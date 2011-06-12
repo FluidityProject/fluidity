@@ -32,7 +32,6 @@ module zoltan_callbacks
   ! - use the whole of data structures now
 
   ! Needed for zoltan_cb_pack_field_sizes
-  use diagnostic_variables, only: default_stat
   use state_module
   use zoltan_detectors
 
@@ -1012,7 +1011,7 @@ contains
     integer(zoltan_int), intent(out) :: ierr
     
     real, dimension(:), allocatable :: rbuf ! easier to write reals to real memory
-    integer :: rhead, i, j, state_no, field_no, loc, sz
+    integer :: rhead, i, j, state_no, field_no, loc, sz, total_det_packed
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
@@ -1021,9 +1020,8 @@ contains
     type(detector_type), pointer :: detector => null(), detector_to_delete => null()    
 
     ewrite(1,*) "In zoltan_cb_pack_fields"
-    
-    ewrite(3,*) "Length of detector list BEFORE packing fields: ", default_stat%detector_list%length
 
+    total_det_packed=0
     do i=1,num_ids
        
        ! work back number of scalar values 'sz' from the formula above in zoltan_cb_pack_field_sizes
@@ -1071,9 +1069,10 @@ contains
 
        ! packing the detectors in that element
        do j=1,zoltan_global_ndets_in_ele(i)
-          
-          ewrite(3,*) "Packing detector ", detector%id_number, "(ID) into rbuf for old_universal_element_number: ", old_universal_element_number
-
+#ifdef DDEBUG
+          ewrite(2,*) "Packing detector ", detector%id_number, "(ID),", detector%list_id, &
+                 "(list ID) into rbuf for old_universal_element_number: ", old_universal_element_number
+#endif
           ! pack the detector
           call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
                zoltan_global_ndims)
@@ -1087,6 +1086,7 @@ contains
           call delete(zoltan_global_to_pack_detectors_list(i), detector_to_delete)
 
           rhead = rhead + zoltan_global_ndata_per_det
+          total_det_packed=total_det_packed+1
        end do
        
        assert(rhead==sz+1)
@@ -1109,8 +1109,7 @@ contains
 
     deallocate(zoltan_global_to_pack_detectors_list)
 
-    ewrite(3,*) "Length of detector list AFTER packing fields: ", default_stat%detector_list%length
-    
+    ewrite(2,*) "Packed ", total_det_packed, " detectors"    
     ewrite(1,*) "Exiting zoltan_cb_pack_fields"
     
     ierr = ZOLTAN_OK
@@ -1165,11 +1164,13 @@ contains
     integer, dimension(1:ele_loc(zoltan_global_new_positions,1)):: vertex_order
     integer :: rhead, i, state_no, field_no, loc, sz, dataSize
     integer :: old_universal_element_number, new_local_element_number
-    integer :: ndetectors_in_ele, det, new_ele_owner
+    integer :: ndetectors_in_ele, det, new_ele_owner, total_det_unpacked
     type(detector_type), pointer :: detector => null()
     type(element_type), pointer :: shape => null()
     
     ewrite(1,*) "In zoltan_cb_unpack_fields"
+
+    total_det_unpacked=0
     
     do i=1,num_ids
        
@@ -1241,16 +1242,17 @@ contains
              call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), zoltan_global_ndims, &
                     global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions)
 
-             ewrite(3,*) "Unpacking ", detector%id_number, "(ID)"
-             ewrite(3,*) detector%id_number, "(ID) being given new local element number: ", detector%element
-
+#ifdef DDEBUG
+             ewrite(2,*) "Unpacking detector", detector%id_number, "(ID), given new local element number: ", detector%element
+#endif
              ! Make sure the unpacked detector is in this element
              assert(new_local_element_number==detector%element)
                    
              call insert(zoltan_global_unpacked_detectors_list, detector)
              detector => null()
              
-             rhead = rhead + zoltan_global_ndata_per_det             
+             rhead = rhead + zoltan_global_ndata_per_det  
+             total_det_unpacked=total_det_unpacked+1           
           end do          
        end if
        
@@ -1258,8 +1260,8 @@ contains
        deallocate(rbuf)       
     end do
     
-    ewrite(3,*) "Length of zoltan_global_unpacked_detectors_list to be merged in AFTER unpacking fields: ", zoltan_global_unpacked_detectors_list%length
-    
+    assert(total_det_unpacked==zoltan_global_unpacked_detectors_list%length)
+    ewrite(2,*) "Unpacked", zoltan_global_unpacked_detectors_list%length, "detectors"    
     ewrite(1,*) "Exiting zoltan_cb_unpack_fields"
     
     ierr = ZOLTAN_OK

@@ -1567,35 +1567,32 @@ module zoltan_integration
 
 
   subroutine update_detector_list_element(detector_list)
-    ! Fix the detector%element field for every detector left in our lis
+    ! Update the detector%element field for every detector left in our list
     type(detector_linked_list), intent(inout) :: detector_list
 
     integer :: i, old_local_element_number, new_local_element_number, old_universal_element_number
     type(detector_type), pointer :: detector => null()
 
     ewrite(1,*) "In update_detector_list_element"
-    ewrite(3,*) "Length of detector list to be updated: ", detector_list%length
+    ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
     detector => detector_list%firstnode
     do i=1, detector_list%length
-
-       ewrite(3,*) "Updating detector%id_number:", detector%id_number
-       ewrite(3,*) "Old element owner of ", detector%id_number, "(ID): ", ele_owner(detector%element, zoltan_global_zz_mesh, zoltan_global_zz_halo)
-       ewrite(3,*) "Old element number of ", detector%id_number, "(ID): ", detector%element
 
        old_local_element_number = detector%element
 
        assert(has_key(zoltan_global_old_local_numbering_to_uen, old_local_element_number) .EQV. .TRUE.)
        old_universal_element_number = fetch(zoltan_global_old_local_numbering_to_uen, old_local_element_number)
 
-       ewrite(3,*) "Universal element number of ", detector%id_number, "(ID): ", old_universal_element_number
-
        if(has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
           ! Update the element number for the detector
           detector%element = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-          ewrite(3,*) "New element number of ", detector%id_number, "(ID): ", detector%element
 
-          ewrite(3,*) "Finished updating detector%id_number:", detector%id_number
+#ifdef DDEBUG
+          ewrite(2,*) "Updated detector", detector%id_number, "(ID) with element owner", ele_owner(old_local_element_number, zoltan_global_zz_mesh, zoltan_global_zz_halo)
+          ewrite(2,*) "Element numbers, old:", old_local_element_number, "universal:", old_universal_element_number, "new:", detector%element
+#endif
+
           detector => detector%next
        else
           ewrite(-1,*) "No new element number of detector", detector%id_number, "(ID) could be found"
@@ -1603,7 +1600,6 @@ module zoltan_integration
        end if
     end do
 
-    ewrite(3,*) "Length of detector list AFTER being updated: ", detector_list%length
     ewrite(1,*) "Exiting update_detector_list_element"
 
   end subroutine update_detector_list_element
@@ -1674,7 +1670,7 @@ module zoltan_integration
     ! calculate the amount of data to be transferred per detector
     zoltan_global_ndims = zoltan_global_zz_positions%dim
     zoltan_global_ndata_per_det = detector_buffer_size(zoltan_global_ndims, .false.)
-    ewrite(3,*) "Amount of data to be transferred per detector: ", zoltan_global_ndata_per_det
+    ewrite(2,*) "Amount of data to be transferred per detector: ", zoltan_global_ndata_per_det
     
     head = 1
     do i=1,size(sends)
@@ -1697,7 +1693,14 @@ module zoltan_integration
          & num_import, import_global_ids, import_local_ids, import_procs)
     assert(ierr == ZOLTAN_OK)
 
-    ewrite(3,*) "Before migrate, default_stat%detector_list%length: ", default_stat%detector_list%length
+    ! Get all detector lists
+    call get_registered_detector_lists(detector_list_array)
+
+    ! Log list lengths
+    ewrite(2,*) "Before migrate, we have", get_num_detector_lists(), "detector lists:"
+    do j = 1, size(detector_list_array)
+       ewrite(2,*) "Detector list", j, "has", detector_list_array(j)%ptr%length, "local and ", detector_list_array(j)%ptr%total_num_det, "global detectors"
+    end do
     
     ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
          & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
@@ -1711,12 +1714,12 @@ module zoltan_integration
     deallocate(zoltan_global_ndets_in_ele)
     
     ! update the detector%element for each detector in each list
-    call get_registered_detector_lists(detector_list_array)
     do j = 1, size(detector_list_array)
+       ewrite(2,*) "Updating local detector list", j
        call update_detector_list_element(detector_list_array(j)%ptr)
     end do
 
-    ewrite(3,*) "Merging zoltan_global_unpacked_detectors_list with default_stat%detector_list"
+    ewrite(2,*) "Done updating detectors, now merging received detectors with detector lists"
 
     ! Merge in any detectors we received as part of the transfer to our detector list
     detector => zoltan_global_unpacked_detectors_list%firstnode
@@ -1732,13 +1735,23 @@ module zoltan_integration
        else
           add_detector%name=int2str(add_detector%id_number)
        end if
+
+#ifdef DDEBUG
+       ewrite(2,*) "Adding detector", add_detector%id_number, "to detector list", add_detector%list_id
+#endif
        ! move detector to the correct list
        call move(zoltan_global_unpacked_detectors_list, add_detector, detector_list_array(add_detector%list_id)%ptr)
     end do
 
-    ewrite(3,*) "Finished merging zoltan_global_unpacked_detectors_list with default_stat%detector_list"
+    assert(zoltan_global_unpacked_detectors_list%length==0)
+    ewrite(2,*) "Merged", original_zoltan_global_unpacked_detectors_list_length, "detectors with local detector lists"
 
-    ewrite(3,*) "After migrate and merge, default_stat%detector_list%length: ", default_stat%detector_list%length
+    ! Log list lengths
+    call get_registered_detector_lists(detector_list_array)
+    ewrite(2,*) "After migrate and merge, we have", get_num_detector_lists(), "detector lists:"
+    do j = 1, size(detector_list_array)
+       ewrite(2,*) "Detector list", j, "has", detector_list_array(j)%ptr%length, "local and ", detector_list_array(j)%ptr%total_num_det, "global detectors"
+    end do
 
     ierr = Zoltan_LB_Free_Part(import_global_ids, import_local_ids, import_procs, import_to_part)
     assert(ierr == ZOLTAN_OK)

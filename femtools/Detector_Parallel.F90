@@ -106,6 +106,8 @@ contains
     type(vector_field), pointer :: xfield
     integer :: i, k, nprocs, all_send_lists_empty, processor_owner
 
+    ewrite(2,*) "In distribute_detectors"  
+
     xfield => extract_vector_field(state(1),"Coordinate")
 
     ! We allocate a sendlist for every processor
