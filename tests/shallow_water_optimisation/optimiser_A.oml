@@ -16,4 +16,5 @@
       <type name="default"/>
     </control>
   </control_io>
+  <debugging/>
 </optimiser_options>

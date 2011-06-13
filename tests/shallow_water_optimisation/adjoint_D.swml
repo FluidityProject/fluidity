@@ -98,7 +98,7 @@
     <physical_parameters>
         <gravity>
             <magnitude>
-                <real_value rank="0">0.1</real_value>
+                <real_value rank="0">1</real_value>
             </magnitude>
             <vector_field name="GravityDirection" rank="1">
                 <prescribed>
@@ -220,11 +220,13 @@
                     <python>
                         <string_value lines="20" type="python">def val(X, t):
   import constants
-  return constants.eta_exact(X[0], 0.0)+0.1</string_value>
+  #return constants.eta_exact(X[0], 0.0)+0.1
+  return 0.0
+  </string_value>
                     </python>
                 </initial_condition>
                 <mean_layer_thickness>
-                    <real_value rank="0">0.5</real_value>
+                    <real_value rank="0">1</real_value>
                 </mean_layer_thickness>
                 <output/>
                 <stat/>
@@ -327,16 +329,24 @@
             <functional_value>
                 <algorithm name="functional_value">
                     <string_value lines="20" type="python">J = 0.0
-T = 1.0 # the time at which to evaluate
+T1 = 0.5 # the time at which to evaluate
+T2 = 1.0 # the time at which to evaluate
+T = -1
+if time &lt; T1 &lt;= time+dt:
+  T = T1
+elif time &lt; T2 &lt;= time+dt:
+  T = T2
 if time &lt; T &lt;= time+dt:
   import numpy
   eta_prev = states[n-1]["Fluid"].scalar_fields["LayerThickness"]
   eta      = states[n]["Fluid"].scalar_fields["LayerThickness"]
-  
+  eta_exact_prev = states[n-1]["Fluid"].scalar_fields["AnalyticalLayerThickness"]
+  eta_exact      = states[n]["Fluid"].scalar_fields["AnalyticalLayerThickness"]
+    
   # We want to temporally interpolate to evaluate eta at t=1.0
   alpha = (time + dt - T) / dt
   assert 0 &lt;= alpha &lt; 1
-  tmp_eta = alpha * eta_prev.val + (1-alpha) * eta.val
+  tmp_eta = alpha * (eta_prev.val - eta_exact_prev.val) + (1-alpha) * (eta.val - eta_exact.val)
   
   # Now we want to integrate that over space
   coord = states[0]["Fluid"].vector_fields["Coordinate"]
@@ -355,9 +365,11 @@ if time &lt; T &lt;= time+dt:
             <functional_dependencies>
                 <algorithm name="functional_dependencies">
                     <string_value lines="20" type="python">def dependencies(times, timestep):
-  if times[0] &lt; 1.0 &lt;= times[1]:
+  if times[0] &lt; 0.5 &lt;= times[1] or times[0] &lt; 1.0 &lt;= times[1]:
     return {"Fluid::Coordinate": [0],
-            "Fluid::LayerThickness": [timestep-1, timestep]}
+            "Fluid::LayerThickness": [timestep-1, timestep],
+            "Fluid::AnalyticalLayerThickness": [timestep-1, timestep]
+            }
   else:
     return {}</string_value>
                 </algorithm>
