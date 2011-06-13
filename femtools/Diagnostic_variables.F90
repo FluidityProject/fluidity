@@ -2525,7 +2525,7 @@ contains
     type(vector_field), pointer :: vfield
     type(detector_type), pointer :: detector
 
-    ewrite(1,*) "Inside write_detectors subroutine"
+    ewrite(1,*) "In write_detectors"
 
     !Computing the global number of detectors. This is to prevent hanging
     !when there are no detectors on any processor
@@ -2625,13 +2625,15 @@ contains
 
     totaldet_global=detector_list%length
     call allsum(totaldet_global)
-    ewrite(2,*) "total number of detectors at the end of write_detectors subroutine", totaldet_global
+    ewrite(2,*) "Global number of detectors at the end of write_detectors subroutine", totaldet_global
 
     if (totaldet_global/=detector_list%total_num_det) then
        ewrite(2,*) "We have either duplication or have lost some det"
        ewrite(2,*) "totaldet_global", totaldet_global
        ewrite(2,*) "total_num_det", detector_list%total_num_det
     end if
+
+    ewrite(1,*) "Exiting write_detectors"
 
   contains
 
@@ -2663,7 +2665,7 @@ contains
     type(vector_field), pointer :: vfield
     type(detector_type), pointer :: node
 
-    ewrite(1, *) "In write_mpi_out"
+    ewrite(2, *) "In write_mpi_out"
 
     detector_list%mpi_write_count = detector_list%mpi_write_count + 1
     ewrite(2, *) "Writing detector output ", detector_list%mpi_write_count
@@ -2791,7 +2793,7 @@ contains
 !    deallocate(buffer)
 !    ewrite(2, "(a,i0,a)") "Read ", count, " reals"
 
-    ewrite(1, *) "Exiting write_mpi_out"
+    ewrite(2, *) "Exiting write_mpi_out"
    
   end subroutine write_mpi_out
 

@@ -51,6 +51,8 @@ module detector_parallel
 contains
 
   subroutine register_detector_list(detector_list)
+    ! Register a detector list, so that adaptivity and Zoltan will distribute detectors on adapts
+    ! This adds a pointer to the given detector list to detector_list_array and assign detector list ID
     type(detector_linked_list), target, intent(inout) :: detector_list
 
     type(detector_list_ptr), dimension(:), allocatable :: tmp_list_array
@@ -106,6 +108,8 @@ contains
     type(vector_field), pointer :: xfield
     integer :: i, k, nprocs, all_send_lists_empty, processor_owner
 
+    ewrite(2,*) "In distribute_detectors"  
+
     xfield => extract_vector_field(state(1),"Coordinate")
 
     ! We allocate a sendlist for every processor
@@ -127,6 +131,7 @@ contains
        end if
     end do
 
+    ! Exchange detectors if there are any detectors to exchange globally
     all_send_lists_empty=0
     do k=1, nprocs
        if (send_list_array(k)%length/=0) then
@@ -134,10 +139,8 @@ contains
        end if
     end do
     call allmax(all_send_lists_empty)
-
     if (all_send_lists_empty/=0) then
-       call exchange_detectors(state(1),detector_list, &
-          send_list_array)
+       call exchange_detectors(state(1),detector_list,send_list_array)
     end if
 
     ! Make sure send lists are empty and deallocate them
@@ -181,17 +184,15 @@ contains
 
     xfield => extract_vector_field(state,"Coordinate")
     dim=xfield%dim
- 
-    !set up sendrequest tags because we are going to do an MPI_Isend
-    !these are used by wait_all
     allocate( sendRequest(nprocs) )
 
-    !Get the element halo 
+    ! Get the element halo 
     halo_level = element_halo_count(xfield%mesh)
     if (halo_level /= 0) then
        ele_halo => xfield%mesh%element_halos(halo_level)
     else
-       ! Something should be done here...
+       ewrite(-1,*) "In exchange_detectors: No element halo found to translate detector%element"
+       FLAbort("Exchanging detectors requires halo_level > 0")
     end if
 
     ! Get buffer size, depending on whether RK-GS parameters are still allocated
@@ -203,11 +204,14 @@ contains
        det_size=detector_buffer_size(dim,have_update_vector)
     end if
     
+    ! Send to all procs
     do target_proc=1, nprocs
        ndet_to_send=send_list_array(target_proc)%length
        allocate(detector_buffer(ndet_to_send,det_size))
 
-       ewrite(2,*) "Proc", target_proc, "ndet_to_send:", ndet_to_send
+       if (ndet_to_send>0) then
+          ewrite(2,*) " Sending", ndet_to_send, "detectors to process", target_proc
+       end if
 
        detector => send_list_array(target_proc)%firstnode
        if (ndet_to_send>0) then
@@ -233,16 +237,16 @@ contains
             & getpreal(), target_proc-1, TAG, MPI_COMM_FEMTOOLS, sendRequest(target_proc), IERROR)
        assert(ierror == MPI_SUCCESS)
 
-       ! Deallocate buffer after sending
+       ! deallocate buffer after sending
        deallocate(detector_buffer)
     end do
 
     allocate( status(MPI_STATUS_SIZE) )
     call get_universal_numbering_inverse(ele_halo, ele_numbering_inverse)
-    ewrite(2,*) "Got universal_numbering_inverse, length:", key_count(ele_numbering_inverse)    
 
+    ! Receive from all procs
     do receive_proc=1, nprocs
-       call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
+       call MPI_PROBE(receive_proc-1, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
        assert(ierror == MPI_SUCCESS)
 
        call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
@@ -250,7 +254,10 @@ contains
 
        ndet_received=count/det_size
        allocate(detector_buffer(ndet_received,det_size))
-       ewrite(2,*) "Proc", receive_proc, "ndet_received:", ndet_received
+
+       if (ndet_received>0) then
+          ewrite(2,*) " Receiving", ndet_received, "detectors from process", receive_proc
+       end if
 
        call MPI_Recv(detector_buffer,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)
