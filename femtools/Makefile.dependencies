@@ -214,22 +214,10 @@ Detector_Data_Types.o ../include/detector_data_types.mod: \
 
 Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
    Detector_Move_Lagrangian.F90 ../include/detector_data_types.mod \
-   ../include/detector_move_rk_guided_search.mod ../include/halos_base.mod \
-   ../include/detector_tools.mod ../include/detector_parallel.mod \
-   ../include/integer_hash_table_module.mod ../include/fields.mod \
-   ../include/spud.mod ../include/halo_data_types.mod ../include/fdebug.h \
-   ../include/state_module.mod
-
-../include/detector_move_rk_guided_search.mod: \
-   Detector_Move_RK_Guided_Search.o
-	@true
-
-Detector_Move_RK_Guided_Search.o \
-   ../include/detector_move_rk_guided_search.mod: \
-   Detector_Move_RK_Guided_Search.F90 ../include/detector_tools.mod \
-   ../include/integer_hash_table_module.mod ../include/fields.mod \
-   ../include/spud.mod ../include/detector_data_types.mod ../include/fdebug.h \
-   ../include/fldebug.mod
+   ../include/halos_base.mod ../include/detector_tools.mod \
+   ../include/detector_parallel.mod ../include/integer_hash_table_module.mod \
+   ../include/fields.mod ../include/spud.mod ../include/halo_data_types.mod \
+   ../include/fdebug.h ../include/state_module.mod
 
 ../include/detector_parallel.mod: Detector_Parallel.o
 	@true
@@ -245,8 +233,8 @@ Detector_Parallel.o ../include/detector_parallel.mod: Detector_Parallel.F90 \
 	@true
 
 Detector_Tools.o ../include/detector_tools.mod: Detector_Tools.F90 \
-   ../include/fields.mod ../include/spud.mod \
-   ../include/detector_data_types.mod ../include/fdebug.h \
+   ../include/integer_hash_table_module.mod ../include/fields.mod \
+   ../include/spud.mod ../include/detector_data_types.mod ../include/fdebug.h \
    ../include/fldebug.mod
 
 ../include/dgtools.mod: Dgtools.o

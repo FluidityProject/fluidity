@@ -34,7 +34,6 @@ module zoltan_integration
   use detector_tools
   use detector_parallel
   use pickers
-  use diagnostic_variables
   use hadapt_advancing_front
   use parallel_tools
   use fields_halos
