@@ -57,7 +57,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.001</real_value>
+      <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">1.00</real_value>
@@ -114,7 +114,7 @@
   if X[0]&lt;=0.0:
     return 1.0
   else:
-    return 0.01</string_value>
+    return 0.2</string_value>
           </python>
         </initial_condition>
         <output/>
@@ -161,7 +161,7 @@
   if X[0]&lt;=0.0:
     return 1.0
   else:
-    return 0.01</string_value>
+    return 0.2</string_value>
           </python>
         </initial_condition>
         <output/>
