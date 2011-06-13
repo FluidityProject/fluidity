@@ -33,7 +33,7 @@ def run_model(m, opt_options, model_options):
   update_custom_controls(m, opt_options)
   if (superspud(model_options, "libspud.have_option('/adjoint/controls/load_controls')")):
     # If the model is loading the default controls, we need to make suer the control files are up to date:
-    update_default_controls(m, opt_options)
+    update_default_controls(m, opt_options, model_options)
   command_line = superspud(opt_options, "libspud.get_option('/model/command_line')")
   option_file = superspud(opt_options, "libspud.get_option('/model/option_file')")
   args = shlex.split(command_line)
@@ -67,7 +67,8 @@ def get_custom_controls(opt_options):
 
 # Initialse the default controls by reading in the control files/
 # This assumes that the model has been run in advance and produced the initial control files.
-def read_default_controls(opt_options):
+def read_default_controls(opt_options, model_options):
+  simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
   nb_controls = superspud(opt_options, "libspud.option_count('/control_io/control')")
   m = {}
   for i in range(nb_controls):
@@ -75,9 +76,9 @@ def read_default_controls(opt_options):
     ctype = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/type/name')")
     if ctype == 'default':
       act_flag = False # Check that at least one control file exists
-      for ctrl_file in glob.iglob('control_'+ cname+ '_[0-9]*.pkl'):
+      for ctrl_file in glob.iglob('control_'+simulation_name+'_'+cname+ '_[0-9]*.pkl'):
         try:
-          timestep = int(ctrl_file.strip()[len('control_'+ cname+ '_'):len(ctrl_file)-4])
+          timestep = int(ctrl_file.strip()[len('control_'+simulation_name+'_'+ cname+ '_'):len(ctrl_file)-4])
         except:
           print "Error while reading the control files."
           print "The control file ", ctrl_file, " does not conform the standard naming conventions for control files."
@@ -91,7 +92,9 @@ def read_default_controls(opt_options):
   return m
 
 # Returns the control derivatives for both the custom and the default controls. 
-def read_control_derivatives(opt_options):
+def read_control_derivatives(opt_options, model_options):
+  simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
+  functional_name = superspud(opt_options, "libspud.get_option('/functional/name')")
   nb_controls = superspud(opt_options, "libspud.option_count('/control_io/control')")
   derivs = {}
   for i in range(nb_controls):
@@ -99,9 +102,11 @@ def read_control_derivatives(opt_options):
     ctype = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/type/name')")
     if ctype == 'default':
       act_flag = False # Check that at least one control file exists
-      for ctrl_file in glob.iglob('control_'+ cname+ '_TotalDerivative_[0-9]*.pkl'):
+      for ctrl_file in glob.iglob('control_'+simulation_name+'_adjoint_'+functional_name+'_'+ cname+ '_TotalDerivative_[0-9]*.pkl'):
         try:
-          timestep = int(ctrl_file.strip()[len('control_'+ cname+ '_TotalDerivative_'):len(ctrl_file)-4])
+          # The naming convenction is control+simulation_name+control_name+TotalDerivative, but do not forget that
+          # the derivatives where produced during the adjoint run in which the simulation name is simulation_name+functional_name
+          timestep = int(ctrl_file.strip()[len('control_'+simulation_name+'_adjoint_'+functional_name+'_'+ cname+ '_TotalDerivative_'):len(ctrl_file)-4])
         except:
           print "Error while reading the control derivative files."
           print "The control file ", ctrl_file, " does not conform the standard naming conventions for control files."
@@ -136,8 +141,9 @@ def update_custom_controls(m, opt_options):
       d['update_control'](m[cname])
 
 # Writes the default controls onto disk
-def update_default_controls(m, opt_options):
+def update_default_controls(m, opt_options, model_options):
   global debug
+  simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
   nb_controls = superspud(opt_options, "libspud.option_count('/control_io/control')")
   # Loop over default controls
   for i in range(nb_controls):
@@ -149,7 +155,7 @@ def update_default_controls(m, opt_options):
         # Check if that is a control we are looking for
         if k[0] == cname:
           timestep = k[1]
-          file_name = 'control_' + cname + '_' + str(timestep) + '.pkl'
+          file_name = 'control_'+simulation_name + '_' + cname + '_' + str(timestep) + '.pkl'
           if not os.path.isfile(file_name):
             print "Error: writing control file ", file_name, " which did not exist before."
             exit()
@@ -306,7 +312,7 @@ def optimisation_loop(opt_options, model_options):
     # Add the functional value the memJ's cache
     mem_pure_J.__add__(J, m_serial, m_shape)
     # Now get the functional derivative information
-    djdm = read_control_derivatives(opt_options)
+    djdm = read_control_derivatives(opt_options, model_options)
     check_control_consistency(m, djdm)
     # Serialise djdm in the same order than m_serial
     djdm_serial = [] 
@@ -358,7 +364,7 @@ def optimisation_loop(opt_options, model_options):
   # This should have created all the default initial controls and we can now activate the load_controls flag. 
   superspud(model_options, ["libspud.add_option('/adjoint/controls/load_controls')", "libspud.write_options('"+ model_file +"')"])
   # Load the default controls
-  m = read_default_controls(opt_options)
+  m = read_default_controls(opt_options, model_options)
   nb_controls = len(m) + len(custom_m)
   # And merge them
   m.update(custom_m)
@@ -368,7 +374,7 @@ def optimisation_loop(opt_options, model_options):
     print "Your controls are: ", m.keys()
     exit()
   # Since now all the controls and derivatives are defined, we can check the consistency of the control variables
-  djdm = read_control_derivatives(opt_options)
+  djdm = read_control_derivatives(opt_options, model_options)
   check_control_consistency(m, djdm)
 
   [m_serial, m_shape] = serialise(m)
