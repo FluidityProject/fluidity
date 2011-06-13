@@ -22,7 +22,6 @@
         <update_control>
           <string_value lines="20" type="python">def update_control(m):
   import pickle
-  import os.path  
   fname = 'control_h.pkl'
   f = open(fname, 'wb')    
   pickle.dump(m, f)
@@ -31,7 +30,6 @@
         <control_derivative>
           <string_value type="python" lines="20">def control_derivative():
   import pickle
-  import os.path  
   func_derivs_file = open('func_derivs.pkl', 'rb')
   derivs = pickle.load(func_derivs_file)
   return derivs['h']</string_value>
@@ -48,7 +46,6 @@
         <update_control>
           <string_value lines="20" type="python">def update_control(m):
   import pickle
-  import os.path  
   fname = 'control_g.pkl'
   f = open(fname, 'wb')    
   pickle.dump(m, f)
@@ -57,7 +54,6 @@
         <control_derivative>
           <string_value type="python" lines="20">def control_derivative():
   import pickle
-  import os.path  
   func_derivs_file = open('func_derivs.pkl', 'rb')
   derivs = pickle.load(func_derivs_file)
   return derivs['g']</string_value>
