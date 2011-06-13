@@ -28,7 +28,7 @@
   f.close()</string_value>
         </update_control>
         <control_derivative>
-          <string_value type="python" lines="20">def control_derivative():
+          <string_value lines="20" type="python">def control_derivative():
   import pickle
   func_derivs_file = open('func_derivs.pkl', 'rb')
   derivs = pickle.load(func_derivs_file)
@@ -52,7 +52,7 @@
   f.close()</string_value>
         </update_control>
         <control_derivative>
-          <string_value type="python" lines="20">def control_derivative():
+          <string_value lines="20" type="python">def control_derivative():
   import pickle
   func_derivs_file = open('func_derivs.pkl', 'rb')
   derivs = pickle.load(func_derivs_file)

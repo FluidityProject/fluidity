@@ -152,7 +152,9 @@ module adjoint_main_loop
       end do
 
       ! Insert the fields for storing the derivatives of the functionals with respect to the controls into the state
-      call allocate_and_insert_functional_derivative_fields(state)
+       if (have_option("/adjoint/controls")) then
+        call allocate_and_insert_control_derivative_fields(state)
+      end if
 
       ierr = adj_timestep_count(adjointer, no_timesteps)
       call adj_chkierr(ierr)
@@ -311,7 +313,7 @@ module adjoint_main_loop
           if (present(adjoint_timestep_callback)) then
             call adjoint_timestep_callback(state, timestep, trim(functional_name), data=adjoint_timestep_callback_data)
           end if
-          if (have_option("/adjoint/controls/write_controls_derivative")) then
+          if (have_option("/adjoint/controls")) then
             ! Write the functional's total derivatives to file
             call adjoint_write_control_derivatives(state, timestep, trim(functional_name))
           end if

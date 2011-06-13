@@ -31,8 +31,8 @@ def superspud(filename, cmd):
 # The model stdout is printed to stdout.
 def run_model(m, opt_options, model_options):
   update_custom_controls(m, opt_options)
-  if (not superspud(model_options, "libspud.have_option('/adjoint/controls/record_controls')")):
-    # If the model is not initialising the default controls, we need to update them here:
+  if (superspud(model_options, "libspud.have_option('/adjoint/controls/load_controls')")):
+    # If the model is loading the default controls, we need to make suer the control files are up to date:
     update_default_controls(m, opt_options)
   command_line = superspud(opt_options, "libspud.get_option('/model/command_line')")
   option_file = superspud(opt_options, "libspud.get_option('/model/option_file')")
@@ -66,7 +66,7 @@ def get_custom_controls(opt_options):
   return m
 
 # Initialse the default controls by reading in the control files/
-# This assumes that the model has been run in advance with /adjoint/controls/write_controls.
+# This assumes that the model has been run in advance and produced the initial control files.
 def read_default_controls(opt_options):
   nb_controls = superspud(opt_options, "libspud.option_count('/control_io/control')")
   m = {}
@@ -203,6 +203,17 @@ def check_control_consistency(m, djdm):
         print "The control ", k, " has shape ", m[k].shape, " but dJd(", k, ") has shape ", djdm[k].shape
         exit()
 
+def delete_temporary_files(model_options):
+  # remove any control files
+  pkl_files = glob.glob('control_*.pkl')
+  for f in pkl_files:
+    os.remove(f)   
+  # remove any stat files from the model
+  simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
+  stat_files = glob.glob(simulation_name+'*.stat')
+  for f in stat_files:
+    os.remove(f)   
+
 ################# Optimisation loop ###################
 def optimisation_loop(opt_options, model_options):
   # Implement a memoization function to avoid duplicated functional (derivative) evaluations
@@ -331,22 +342,21 @@ def optimisation_loop(opt_options, model_options):
   if verbose:
     print "Get initial custom controls"
   custom_m = get_custom_controls(opt_options)
-  # And then the default controls by running the model with the option
-  # /adjoint/controls/record_controls
-  # switched on.
+  # To get the initial default controls we run the model without the option
+  # /adjoint/controls/load_controls
   if verbose:
     print "Get initial default controls"
   model_file = superspud(opt_options, "libspud.get_option('/model/option_file')")
-  if (not superspud(model_options, "libspud.have_option('/adjoint/controls/record_controls')")):
-    superspud(model_options, ["libspud.add_option('/adjoint/controls/record_controls')", "libspud.write_options('"+ model_file +"')"])
+  if (superspud(model_options, "libspud.have_option('/adjoint/controls/load_controls')")):
+    superspud(model_options, ["libspud.delete_option('/adjoint/controls/load_controls')", "libspud.write_options('"+ model_file +"')"])
   # Run the forward model including adjoint.
   functional_name = superspud(opt_options, "libspud.get_option('/functional/name')")
   if superspud(opt_options, "libspud.have_option('/adjoint/functional::"+functional_name+"/disable_adjoint_run')"):
     superspud(opt_options, "libspud.delete_option('/adjoint/functional::"+functional_name+"/disable_adjoint_run')")
   [custom_m_serial, custom_m_shape] = serialise(custom_m)
-  J(custom_m_serial, custom_m_shape, write_stat = False)
-  # This should have created all the default initial controls and we can remove the record flag safely
-  superspud(model_options, ["libspud.delete_option('/adjoint/controls/record_controls')", "libspud.write_options('"+ model_file +"')"])
+  mem_pure_J(custom_m_serial, custom_m_shape)
+  # This should have created all the default initial controls and we can now activate the load_controls flag. 
+  superspud(model_options, ["libspud.add_option('/adjoint/controls/load_controls')", "libspud.write_options('"+ model_file +"')"])
   # Load the default controls
   m = read_default_controls(opt_options)
   nb_controls = len(m) + len(custom_m)

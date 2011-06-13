@@ -310,8 +310,7 @@
             <control name="VelSrcCtrl">
                 <type name="source_term" field_name="Fluid::VelocitySource"></type>
             </control>
-            <write_controls></write_controls>
-            <write_controls_derivative></write_controls_derivative>
+            <load_controls></load_controls>
         </controls>
         <debug></debug>
     </adjoint>
