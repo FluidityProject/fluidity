@@ -6,7 +6,7 @@
   <owner userid="colin"/>
   <tags>flml swml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>test_trace_space trace_space.swml &amp;&gt; tr.log</command_line>
+    <command_line>test_trace_space trace_space.swml &gt; tr.log 2&gt;&amp;1</command_line>
   </problem_definition>
   <variables>
     <variable name="Passed" language="python">
