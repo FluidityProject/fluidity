@@ -126,13 +126,14 @@ module adjoint_controls
 #ifdef HAVE_ADJOINT
       integer :: nb_controls, i, state_id
       logical :: active
-      character(len=OPTION_PATH_LEN) :: field_name, field_type, control_type, control_name, material_phase_name, name
+      character(len=OPTION_PATH_LEN) :: simulation_name, field_name, field_type, control_name 
 
       if (.not. have_option("/adjoint/controls")) then
         return
       end if
 
       nb_controls = option_count("/adjoint/controls/control")
+      call get_option("/simulation_name", simulation_name)
       ! Now loop over the controls and save them to disk
       do i = 0, nb_controls-1
         call get_control_details(states, timestep, i, control_name, state_id, field_name, field_type, active)
@@ -141,7 +142,7 @@ module adjoint_controls
           call python_reset()
           call python_add_state(states(state_id))
           call python_run_string("import pickle;" // &
-                              &  "fname = 'control_" // trim(control_name) // "_" // int2str(timestep) // ".pkl';" // &
+                              &  "fname = 'control_" // trim(simulation_name) // "_" // trim(control_name) // "_" // int2str(timestep) // ".pkl';" // & 
                               &  "f = open(fname, 'wb');" // &
                               &  "field = state." // trim(field_type) // "_fields['" // trim(field_name) // "'];" // &
                               &  "pickle.dump(field.val[:], f);" // &
@@ -160,12 +161,13 @@ module adjoint_controls
 #ifdef HAVE_ADJOINT
       integer :: nb_controls, i, state_id, s_idx
       logical :: active
-      character(len=OPTION_PATH_LEN) :: field_name, field_type, control_type, control_name, material_phase_name, name
+      character(len=OPTION_PATH_LEN) :: field_name, field_type, control_name, simulation_name
 
       ! Do not read anything if we are supposed to write the controls
       if (.not. have_option("/adjoint/controls/load_controls")) then
         return 
       end if
+      call get_option("/simulation_name", simulation_name)
       nb_controls = option_count("/adjoint/controls/control")
       ! Now loop over the controls, read their controls files and fill the associated fields
       do i = 0, nb_controls-1
@@ -175,7 +177,7 @@ module adjoint_controls
           call python_reset()
           call python_add_state(states(state_id))
           call python_run_string("import pickle;" // &
-                              &  "fname = 'control_" // trim(control_name) // "_" // int2str(timestep) // ".pkl';" // &
+                              &  "fname = 'control_" // trim(simulation_name) // "_" // trim(control_name) // "_" // int2str(timestep) // ".pkl';" // & 
                               &  "f = open(fname, 'rb');" // &
                               &  "field = state." // trim(field_type) // "_fields['" // trim(field_name) // "'];" // &
                               &  "field.val[:] = pickle.load(f);" // &
@@ -191,7 +193,7 @@ module adjoint_controls
       type(state_type), dimension(:), intent(inout) :: states
       integer, intent(in) :: timestep
       character(len=*), intent(in) :: functional_name
-      character(len=OPTION_PATH_LEN) :: field_name, control_type, control_deriv_name, field_deriv_name, name, material_phase_name
+      character(len=OPTION_PATH_LEN) :: field_name, control_type, control_deriv_name, field_deriv_name, name, material_phase_name, simulation_name
       integer :: nb_controls
       integer :: i, state_id, s_idx
       type(scalar_field), pointer :: sfield => null()
@@ -201,6 +203,9 @@ module adjoint_controls
       if (.not. have_option("/adjoint/controls")) then
         return
       end if
+      call get_option("/simulation_name", simulation_name)
+      ! Remove the suffix _adjoint from the simulation_name
+
       nb_controls = option_count("/adjoint/controls/control")
       do i = 0, nb_controls-1
         call get_option("/adjoint/controls/control[" // int2str(i) //"]/name", control_deriv_name)
@@ -249,8 +254,9 @@ module adjoint_controls
           FLAbort("Boundary condition control not implemented yet.")
         end if
         ! Save the control parameter to disk
+        ! Note: we 
         call python_run_string("import pickle;" // &
-                            &  "fname = 'control_" // trim(control_deriv_name) // "_" // int2str(timestep) // ".pkl';" // &
+                            &  "fname = 'control_" // trim(simulation_name) // "_" // trim(control_deriv_name) // "_" // int2str(timestep) // ".pkl';" // & 
                             &  "f = open(fname, 'wb');" // &
                             &  "pickle.dump(" // control_deriv_name // ", f);" // &
                             &  "f.close();")
