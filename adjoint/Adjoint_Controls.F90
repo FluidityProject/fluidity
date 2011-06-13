@@ -49,10 +49,7 @@ module adjoint_controls
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
       integer :: nb_controls, i, state_id, s_idx
-      character(len=OPTION_PATH_LEN) :: field_name, control_type, control_name, material_phase_name, name
-      type(scalar_field), pointer :: sfield => null()
-      type(vector_field), pointer :: vfield => null()
-      type(tensor_field), pointer :: tfield => null()
+      character(len=OPTION_PATH_LEN) :: field_name, field_type, control_type, control_name, material_phase_name, name
 
       if (.not. have_option("/adjoint/controls")) then
         return
@@ -87,14 +84,11 @@ module adjoint_controls
             end if
             assert(timestep == 0)
             if (has_scalar_field(states(state_id), field_name)) then
-              sfield => extract_scalar_field(states(state_id), field_name)
-              call python_add_array(sfield%val, size(sfield%val), trim(control_name), len(trim(control_name)))
+              field_type = "scalar"
             elseif (has_vector_field(states(state_id), field_name)) then
-              vfield => extract_vector_field(states(state_id), field_name)
-              call python_add_array(vfield%val, size(vfield%val, 1), size(vfield%val, 2), trim(control_name), len(trim(control_name)))
+              field_type = "vector"
             elseif (has_tensor_field(states(state_id), field_name)) then
-              tfield => extract_tensor_field(states(state_id), field_name)
-              call python_add_array(tfield%val, size(tfield%val, 1), size(tfield%val, 2), size(tfield%val, 3), trim(control_name), len(trim(control_name)))
+              field_type = "tensor"
             else
               ewrite(0, *) "The control field " // trim(field_name) // " specified in control " // trim(control_name) // " is not a field in the state."
               ewrite(0, *) "The current state is: "
@@ -103,14 +97,11 @@ module adjoint_controls
             end if
           case ("source_term")
             if (has_scalar_field(states(state_id), field_name)) then
-              sfield => extract_scalar_field(states(state_id), field_name)
-              call python_add_array(sfield%val, size(sfield%val), trim(control_name), len(trim(control_name)))
+              field_type = "scalar"
             elseif (has_vector_field(states(state_id), field_name)) then
-              vfield => extract_vector_field(states(state_id), field_name)
-              call python_add_array(vfield%val, size(vfield%val, 1), size(vfield%val, 2), trim(control_name), len(trim(control_name)))
+              field_type = "vector"
             elseif (has_tensor_field(states(state_id), field_name)) then
-              tfield => extract_tensor_field(states(state_id), field_name)
-              call python_add_array(tfield%val, size(tfield%val, 1), size(tfield%val, 2), size(tfield%val, 3), trim(control_name), len(trim(control_name)))
+              field_type = "tensor"
             else
               ewrite(0, *) "The control field " // trim(name) // " specified in control " // trim(control_name) // & 
                          & " is not a field in state " // trim(material_phase_name) // "."
@@ -122,12 +113,15 @@ module adjoint_controls
             FLAbort("Boundary condition control not implemented yet.")
         end select
         ! Save the control parameter to disk
+        call python_reset()
+        call python_add_state(states(state_id))
         call python_run_string("import pickle;" // &
-                            &  "import os.path;" // &
                             &  "fname = 'control_" // trim(control_name) // "_" // int2str(timestep) // ".pkl';" // &
                             &  "f = open(fname, 'wb');" // &
-                            &  "pickle.dump(" // control_name // ", f);" // &
+                            &  "field = state." // trim(field_type) // "_fields['" // trim(field_name) // "'];" // &
+                            &  "pickle.dump(field.val[:], f);" // &
                             &  "f.close();")
+        call python_reset()
       end do
 #endif
     end subroutine adjoint_write_controls
@@ -206,7 +200,6 @@ module adjoint_controls
         call python_reset()
         call python_add_state(states(state_id))
         call python_run_string("import pickle;" // &
-                            &  "import os.path;" // &
                             &  "fname = 'control_" // trim(control_name) // "_" // int2str(timestep) // ".pkl';" // &
                             &  "f = open(fname, 'rb');" // &
                             &  "field = state." // trim(field_type) // "_fields['" // trim(field_name) // "'];" // &
@@ -281,7 +274,6 @@ module adjoint_controls
         end if
         ! Save the control parameter to disk
         call python_run_string("import pickle;" // &
-                            &  "import os.path;" // &
                             &  "fname = 'control_" // trim(control_deriv_name) // "_" // int2str(timestep) // ".pkl';" // &
                             &  "f = open(fname, 'wb');" // &
                             &  "pickle.dump(" // control_deriv_name // ", f);" // &
