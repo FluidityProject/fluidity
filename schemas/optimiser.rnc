@@ -102,9 +102,7 @@ control_io =
                       ##
                       ## def update_control(m):
                       ##  import pickle
-                      ##  import os.path  
-                      ##  fname = 'control_h.pkl'
-                      ##  f = open(fname, 'wb')    
+                      ##  f = open('control_h.pkl', 'wb')    
                       ##  pickle.dump(m, f)
                       ##  f.close()
                       element update_control {
@@ -114,6 +112,10 @@ control_io =
                       ##
                       ## Example:
                       ##
+                      ##  def control_derivative():
+                      ##    import pickle
+                      ##    func_deriv_file = open('control_derivative_h.pkl', 'rb')
+                      ##   return pickle.load(func_deriv_file)
                       element control_derivative {
                          python_code
                       },

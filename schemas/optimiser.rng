@@ -102,6 +102,7 @@ It uses custom python functions for handling the controls input/ouput.</a:docume
               </attribute>
               <element name="initial_control">
                 <a:documentation>Expects a python function "initial_control" which returns a numpy.array containing the initial guess of the control.
+
 Example:
 
 def initial_control():
@@ -112,21 +113,25 @@ def initial_control():
               <element name="update_control">
                 <a:documentation>Python function which takes as input a numpy array containing the new model parameters and
 updates the corresponding model configuration.
+
 Example:
 
 def update_control(m):
  import pickle
- import os.path  
- fname = 'control_h.pkl'
- f = open(fname, 'wb')    
+ f = open('control_h.pkl', 'wb')    
  pickle.dump(m, f)
  f.close()</a:documentation>
                 <ref name="python_code"/>
               </element>
               <element name="control_derivative">
                 <a:documentation>Expects a python function "control_derivative" which returns a numpy.array containing the derivative of the objective function with respect to the control.
+
 Example:
-</a:documentation>
+
+ def control_derivative():
+   import pickle
+   func_deriv_file = open('control_derivative_h.pkl', 'rb')
+  return pickle.load(func_deriv_file)</a:documentation>
                 <ref name="python_code"/>
               </element>
               <ref name="comment"/>
