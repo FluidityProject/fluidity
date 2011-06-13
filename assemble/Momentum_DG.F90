@@ -109,10 +109,10 @@ module momentum_DG
   real :: Interior_Penalty_Parameter, edge_length_power, h0
 
   ! Flag indicating whether equations are being solved in acceleration form.
-  logical :: acceleration=.true.
+  logical :: acceleration
 
   ! Flag indicating whether pressure is continuous.
-  logical :: l_cg_pressure=.true.
+  logical :: l_include_pressure_bcs
   
   ! which terms do we have?
   logical :: have_mass
@@ -149,7 +149,7 @@ contains
   subroutine construct_momentum_dg(u, p, rho, x, &
        & big_m, rhs, state, &
        & inverse_masslump, inverse_mass, mass, &
-       & acceleration_form, cg_pressure,&
+       & acceleration_form, include_pressure_bcs,&
        & subcycle_m)
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form. If acceleration_form is present and false, the
@@ -182,8 +182,8 @@ contains
     !! NOTE2: diagonal blocks may be different due to dirichlet bcs and/or absorption
     type(block_csr_matrix), intent(inout), optional :: inverse_mass
 
-    !! Assemble the pressure gradient matrix? and is it continuous galerkin
-    logical, intent(in), optional :: cg_pressure
+    !! whether to include the dirichlet pressure bc integrals to the rhs
+    logical, intent(in), optional :: include_pressure_bcs
 
     !! Optional indicator of whether we are solving in acceleration form.
     !!
@@ -272,10 +272,10 @@ contains
     acceleration= .not. present_and_false(acceleration_form)
     ewrite(2, *) "Acceleration form? ", acceleration
 
-    if(present(cg_pressure)) then
-      l_cg_pressure = cg_pressure
+    if(present(include_pressure_bcs)) then
+      l_include_pressure_bcs = include_pressure_bcs
     else
-      l_cg_pressure = .true.
+      l_include_pressure_bcs = .true.
     end if
     
     ! These names are based on the CGNS SIDS.
@@ -2263,7 +2263,7 @@ contains
     !----------------------------------------------------------------------
 
     ! Insert pressure boundary integral.
-    if (l_cg_pressure .and. boundary .and. l_have_pressure_bc) then
+    if (l_include_pressure_bcs .and. boundary .and. l_have_pressure_bc) then
     
        mnCT(1,:,:,:) =shape_shape_vector(P_shape, U_shape_2, detwei, normal)
        ! for both weak and strong pressure dirichlet bcs:
