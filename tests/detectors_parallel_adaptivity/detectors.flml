@@ -225,7 +225,7 @@
   <mesh_adaptivity>
     <hr_adaptivity>
       <period>
-        <real_value rank="0">3.0</real_value>
+        <real_value rank="0">2.0</real_value>
       </period>
       <minimum_number_of_nodes>
         <integer_value rank="0">1000</integer_value>
