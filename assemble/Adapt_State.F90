@@ -1073,7 +1073,7 @@ contains
         end if
       end if
 
-      if (isparallel()) then
+      if (isparallel() .and. get_num_detector_lists()>0) then
         ! Update the detector element ownership data of every detector list
         call get_registered_detector_lists(detector_list_array)
         do j = 1, size(detector_list_array)
@@ -1224,15 +1224,17 @@ contains
         assert(total_num_detectors_before_zoltan == total_num_detectors_after_zoltan)
 
         ! Sanity check that all local detectors are owned
-        new_positions = extract_vector_field(states(1), "Coordinate")
-        call get_registered_detector_lists(detector_list_array)
-        do j = 1, size(detector_list_array)
-           detector=>detector_list_array(j)%ptr%firstnode
-           do k = 1, detector_list_array(j)%ptr%length
-              assert(element_owned(new_positions%mesh,detector%element))
-              detector=>detector%next
+        if (get_num_detector_lists()>0) then
+           new_positions = extract_vector_field(states(1), "Coordinate")
+           call get_registered_detector_lists(detector_list_array)
+           do j = 1, size(detector_list_array)
+              detector=>detector_list_array(j)%ptr%firstnode
+              do k = 1, detector_list_array(j)%ptr%length
+                 assert(element_owned(new_positions%mesh,detector%element))
+                 detector=>detector%next
+              end do
            end do
-        end do
+        end if
 #endif
 
 #else

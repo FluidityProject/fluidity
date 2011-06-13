@@ -1697,11 +1697,13 @@ module zoltan_integration
     call get_registered_detector_lists(detector_list_array)
 
     ! Log list lengths
-    ewrite(2,*) "Before migrate, we have", get_num_detector_lists(), "detector lists:"
-    do j = 1, size(detector_list_array)
-       ewrite(2,*) "Detector list", j, "has", detector_list_array(j)%ptr%length, "local and ", detector_list_array(j)%ptr%total_num_det, "global detectors"
-    end do
-    
+    if (get_num_detector_lists()>0) then
+       ewrite(2,*) "Before migrate, we have", get_num_detector_lists(), "detector lists:"
+       do j = 1, size(detector_list_array)
+          ewrite(2,*) "Detector list", j, "has", detector_list_array(j)%ptr%length, "local and ", detector_list_array(j)%ptr%total_num_det, "global detectors"
+       end do
+    end if
+
     ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
          & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
     
@@ -1714,10 +1716,12 @@ module zoltan_integration
     deallocate(zoltan_global_ndets_in_ele)
     
     ! update the detector%element for each detector in each list
-    do j = 1, size(detector_list_array)
-       ewrite(2,*) "Updating local detector list", j
-       call update_detector_list_element(detector_list_array(j)%ptr)
-    end do
+    if (get_num_detector_lists()>0) then
+       do j = 1, size(detector_list_array)
+          ewrite(2,*) "Updating local detector list", j
+          call update_detector_list_element(detector_list_array(j)%ptr)
+       end do
+    end if
 
     ewrite(2,*) "Done updating detectors, now merging received detectors with detector lists"
 
@@ -1747,11 +1751,13 @@ module zoltan_integration
     ewrite(2,*) "Merged", original_zoltan_global_unpacked_detectors_list_length, "detectors with local detector lists"
 
     ! Log list lengths
-    call get_registered_detector_lists(detector_list_array)
-    ewrite(2,*) "After migrate and merge, we have", get_num_detector_lists(), "detector lists:"
-    do j = 1, size(detector_list_array)
-       ewrite(2,*) "Detector list", j, "has", detector_list_array(j)%ptr%length, "local and ", detector_list_array(j)%ptr%total_num_det, "global detectors"
-    end do
+    if (get_num_detector_lists()>0) then
+       call get_registered_detector_lists(detector_list_array)
+       ewrite(2,*) "After migrate and merge, we have", get_num_detector_lists(), "detector lists:"
+       do j = 1, size(detector_list_array)
+          ewrite(2,*) "Detector list", j, "has", detector_list_array(j)%ptr%length, "local and ", detector_list_array(j)%ptr%total_num_det, "global detectors"
+       end do
+    end if
 
     ierr = Zoltan_LB_Free_Part(import_global_ids, import_local_ids, import_procs, import_to_part)
     assert(ierr == ZOLTAN_OK)

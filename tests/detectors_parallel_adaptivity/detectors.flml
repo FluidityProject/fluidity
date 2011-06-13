@@ -248,6 +248,11 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <adapt_at_first_timestep>
+        <number_of_adapts>
+          <integer_value rank="0">2</integer_value>
+        </number_of_adapts>
+      </adapt_at_first_timestep>
       <zoltan_options>
         <partitioner>
           <metis/>
