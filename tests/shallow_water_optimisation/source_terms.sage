@@ -1,12 +1,12 @@
 t = var('t')
 h = var('h')
 g = var('g')
-H = var('H')
+H = var('d0')
 
 # --------------------------------------------------
 
-u = (t+1)*h*sin(2*pi*x)
-eta = (t+1)*h*cos(2*pi*x)
+u = h*sin(2*pi*(x+t))
+eta = -h*sin(2*pi*(x+t))
 
 u_src = diff(u, t) + g*diff(eta, x)
 eta_src = diff(eta, t) + diff(H*u, x)
