@@ -124,7 +124,6 @@
           <include_in_detectors/>
         </detectors>
         <consistent_interpolation/>
-        <do_not_recalculate/>
       </prescribed>
     </vector_field>
     <scalar_field name="Tracer" rank="0">
@@ -142,7 +141,6 @@
           <include_in_detectors/>
         </detectors>
         <consistent_interpolation/>
-        <do_not_recalculate/>
       </prescribed>
     </scalar_field>
     <scalar_field name="AdaptivityControl" rank="0">
@@ -226,9 +224,9 @@
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity>
-      <period_in_timesteps>
-        <integer_value rank="0">20</integer_value>
-      </period_in_timesteps>
+      <period>
+        <real_value rank="0">3.0</real_value>
+      </period>
       <minimum_number_of_nodes>
         <integer_value rank="0">1000</integer_value>
       </minimum_number_of_nodes>
