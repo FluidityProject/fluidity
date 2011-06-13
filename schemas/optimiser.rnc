@@ -74,22 +74,47 @@ control_io =
             element control {
                 attribute name { xsd:string },
                   (
-                    ## A default control from the model
+                    ## A default control from the model. 
+                    ## This option is used when a default control was selected in the model
+                    ## (any control under /adjoint/controls/ in the model setup)
                     element type {
                       attribute name { "default" },
                       comment
                     }|
                     element type {
-                      ## The custom control parameter is the most flexible one since it allows 
-                      ## to code custom python functions for handling the controls.
+                      ## The custom control parameter is the most flexible option. 
+                      ## It uses custom python functions for handling the controls input/ouput.
                       attribute name { "custom" },
-                      ## Python function which expects a numpy.array as return value of the control parameter dimension.
-                      element get_initial_controls {
+                      ## Expects a python function "initial_control" which returns a numpy.array containing the initial guess of the control.
+                      ##
+                      ## Example:
+                      ##
+                      ## def initial_control():
+                      ##  import numpy
+                      ##  return numpy.array([1])
+                      element initial_control {
                          python_code
                       },
                       ## Python function which takes as input a numpy array containing the new model parameters and
                       ## updates the corresponding model configuration.
-                      element update_controls {
+                      ##
+                      ## Example:
+                      ##
+                      ## def update_control(m):
+                      ##  import pickle
+                      ##  import os.path  
+                      ##  fname = 'control_h.pkl'
+                      ##  f = open(fname, 'wb')    
+                      ##  pickle.dump(m, f)
+                      ##  f.close()
+                      element update_control {
+                         python_code
+                      },
+                      ## Expects a python function "control_derivative" which returns a numpy.array containing the derivative of the objective function with respect to the control.
+                      ##
+                      ## Example:
+                      ##
+                      element control_derivative {
                          python_code
                       },
                       comment

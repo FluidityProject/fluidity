@@ -86,7 +86,9 @@ configuration template</a:documentation>
           </attribute>
           <choice>
             <element name="type">
-              <a:documentation>A default control from the model</a:documentation>
+              <a:documentation>A default control from the model. 
+This option is used when a default control was selected in the model
+(any control under /adjoint/controls/ in the model setup)</a:documentation>
               <attribute name="name">
                 <value>default</value>
               </attribute>
@@ -94,17 +96,37 @@ configuration template</a:documentation>
             </element>
             <element name="type">
               <attribute name="name">
-                <a:documentation>The custom control parameter is the most flexible one since it allows 
-to code custom python functions for handling the controls.</a:documentation>
+                <a:documentation>The custom control parameter is the most flexible option. 
+It uses custom python functions for handling the controls input/ouput.</a:documentation>
                 <value>custom</value>
               </attribute>
-              <element name="get_initial_controls">
-                <a:documentation>Python function which expects a numpy.array as return value of the control parameter dimension.</a:documentation>
+              <element name="initial_control">
+                <a:documentation>Expects a python function "initial_control" which returns a numpy.array containing the initial guess of the control.
+Example:
+
+def initial_control():
+ import numpy
+ return numpy.array([1])</a:documentation>
                 <ref name="python_code"/>
               </element>
-              <element name="update_controls">
+              <element name="update_control">
                 <a:documentation>Python function which takes as input a numpy array containing the new model parameters and
-updates the corresponding model configuration.</a:documentation>
+updates the corresponding model configuration.
+Example:
+
+def update_control(m):
+ import pickle
+ import os.path  
+ fname = 'control_h.pkl'
+ f = open(fname, 'wb')    
+ pickle.dump(m, f)
+ f.close()</a:documentation>
+                <ref name="python_code"/>
+              </element>
+              <element name="control_derivative">
+                <a:documentation>Expects a python function "control_derivative" which returns a numpy.array containing the derivative of the objective function with respect to the control.
+Example:
+</a:documentation>
                 <ref name="python_code"/>
               </element>
               <ref name="comment"/>
