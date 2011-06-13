@@ -1069,10 +1069,7 @@ contains
 
        ! packing the detectors in that element
        do j=1,zoltan_global_ndets_in_ele(i)
-#ifdef DDEBUG
-          ewrite(2,*) "Packing detector ", detector%id_number, "(ID),", detector%list_id, &
-                 "(list ID) into rbuf for old_universal_element_number: ", old_universal_element_number
-#endif
+
           ! pack the detector
           call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
                zoltan_global_ndims)
@@ -1242,9 +1239,6 @@ contains
              call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), zoltan_global_ndims, &
                     global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions)
 
-#ifdef DDEBUG
-             ewrite(2,*) "Unpacking detector", detector%id_number, "(ID), given new local element number: ", detector%element
-#endif
              ! Make sure the unpacked detector is in this element
              assert(new_local_element_number==detector%element)
                    

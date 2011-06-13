@@ -209,7 +209,9 @@ contains
        ndet_to_send=send_list_array(target_proc)%length
        allocate(detector_buffer(ndet_to_send,det_size))
 
-       ewrite(2,*) "Proc", target_proc, "ndet_to_send:", ndet_to_send
+       if (ndet_to_send>0) then
+          ewrite(2,*) " Sending", ndet_to_send, "detectors to process", target_proc
+       end if
 
        detector => send_list_array(target_proc)%firstnode
        if (ndet_to_send>0) then
@@ -241,10 +243,9 @@ contains
 
     allocate( status(MPI_STATUS_SIZE) )
     call get_universal_numbering_inverse(ele_halo, ele_numbering_inverse)
-    ewrite(2,*) "Got universal_numbering_inverse, length:", key_count(ele_numbering_inverse)    
 
     do receive_proc=1, nprocs
-       call MPI_PROBE(MPI_ANY_SOURCE, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
+       call MPI_PROBE(receive_proc-1, TAG, MPI_COMM_FEMTOOLS, status(:), IERROR) 
        assert(ierror == MPI_SUCCESS)
 
        call MPI_GET_COUNT(status(:), getpreal(), count, IERROR) 
@@ -252,7 +253,10 @@ contains
 
        ndet_received=count/det_size
        allocate(detector_buffer(ndet_received,det_size))
-       ewrite(2,*) "Proc", receive_proc, "ndet_received:", ndet_received
+
+       if (ndet_received>0) then
+          ewrite(2,*) " Receiving", ndet_received, "detectors from process", receive_proc
+       end if
 
        call MPI_Recv(detector_buffer,count, getpreal(), status(MPI_SOURCE), TAG, MPI_COMM_FEMTOOLS, MPI_STATUS_IGNORE, IERROR)
        assert(ierror == MPI_SUCCESS)

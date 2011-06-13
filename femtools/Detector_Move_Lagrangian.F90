@@ -136,7 +136,8 @@ contains
     logical :: any_lagrangian
     real :: rk_dt
 
-    ewrite(2,*) "In move_lagrangian_detectors,", detector_list%length, "local detectors before moving"
+    ewrite(1,*) "In move_lagrangian_detectors"
+    ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, "local and", detector_list%total_num_det, "global detectors"
 
     parameters => detector_list%move_parameters
 
@@ -212,6 +213,9 @@ contains
     ! This needs to be called after distribute_detectors because the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option
     call deallocate_rk_guided_search(detector_list)
+
+    ewrite(2,*) "After moving and distributing we have", detector_list%length, "local and", detector_list%total_num_det, "global detectors"
+    ewrite(1,*) "Exiting move_lagrangian_detectors"
 
   end subroutine move_lagrangian_detectors
 

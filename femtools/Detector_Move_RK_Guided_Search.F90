@@ -101,8 +101,6 @@ contains
     integer :: det_count,j0
     real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
 
-    ewrite(2,*) "In set_stage, stage:", stage0
-
     parameters => detector_list%move_parameters
     
     det0 => detector_list%firstnode

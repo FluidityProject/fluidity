@@ -92,10 +92,6 @@ module zoltan_detectors
                
                    ! Move detector to list of detectors we need to pack
                    call move(detector_list_array(det_list)%ptr, detector_to_move, to_pack_detector_lists(j))
-
-#ifdef DDEBUG
-                   ewrite(2,*) "Detector", detector_to_move%id_number, "(ID) removed from detector_list", det_list, "and added to to_pack_detector_lists", j
-#endif
                    detector_to_move => null()
                 end if
 

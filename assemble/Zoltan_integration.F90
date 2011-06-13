@@ -1587,12 +1587,6 @@ module zoltan_integration
        if(has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
           ! Update the element number for the detector
           detector%element = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-
-#ifdef DDEBUG
-          ewrite(2,*) "Updated detector", detector%id_number, "(ID) with element owner", ele_owner(old_local_element_number, zoltan_global_zz_mesh, zoltan_global_zz_halo)
-          ewrite(2,*) "Element numbers, old:", old_local_element_number, "universal:", old_universal_element_number, "new:", detector%element
-#endif
-
           detector => detector%next
        else
           ewrite(-1,*) "No new element number of detector", detector%id_number, "(ID) could be found"
@@ -1718,12 +1712,9 @@ module zoltan_integration
     ! update the detector%element for each detector in each list
     if (get_num_detector_lists()>0) then
        do j = 1, size(detector_list_array)
-          ewrite(2,*) "Updating local detector list", j
           call update_detector_list_element(detector_list_array(j)%ptr)
        end do
     end if
-
-    ewrite(2,*) "Done updating detectors, now merging received detectors with detector lists"
 
     ! Merge in any detectors we received as part of the transfer to our detector list
     detector => zoltan_global_unpacked_detectors_list%firstnode
@@ -1740,9 +1731,6 @@ module zoltan_integration
           add_detector%name=int2str(add_detector%id_number)
        end if
 
-#ifdef DDEBUG
-       ewrite(2,*) "Adding detector", add_detector%id_number, "to detector list", add_detector%list_id
-#endif
        ! move detector to the correct list
        call move(zoltan_global_unpacked_detectors_list, add_detector, detector_list_array(add_detector%list_id)%ptr)
     end do
