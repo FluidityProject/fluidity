@@ -150,14 +150,9 @@ adjoint_options =
                 )
              )
           }*,
-          ## Writes the controls to disk while running the forward model.
+          ## Load controls values from the control files.
           ## This is used for the optimiser.py only and can be left disabled by the user.
-          element write_controls {
-             empty
-          }?, 
-          ## Writes the derivative of the functional with respect to the controls to disk while running the adjoint model.
-          ## This is used for the optimiser.py only and can be left disabled by the user.
-          element write_controls_derivative {
+          element load_controls {
              empty
           }? 
       }?,

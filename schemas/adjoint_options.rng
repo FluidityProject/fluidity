@@ -185,15 +185,8 @@ but all adjoint related entries will be zeroed.</a:documentation>
             </element>
           </zeroOrMore>
           <optional>
-            <element name="write_controls">
-              <a:documentation>Writes the controls to disk while running the forward model.
-This is used for the optimiser.py only and can be left disabled by the user.</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="write_controls_derivative">
-              <a:documentation>Writes the derivative of the functional with respect to the controls to disk while running the adjoint model.
+            <element name="load_controls">
+              <a:documentation>Load controls values from the control files.
 This is used for the optimiser.py only and can be left disabled by the user.</a:documentation>
               <empty/>
             </element>

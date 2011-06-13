@@ -164,8 +164,11 @@
 #endif
 
     is_shallow_water=.true.
+    timestep=0
 
     call populate_state(state)
+    ! Read in any control variables
+    call adjoint_load_controls(timestep, dt, state)
     call adjoint_register_initial_eta_condition(state)
 
     call insert_time_in_state(state)
@@ -194,8 +197,7 @@
     call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
     ewrite(2,*) 'Initial Energy:', energy
 
-    timestep=0
-    ! Register the initial control variables
+    ! Register the control variables to disk if desired
     call adjoint_write_controls(timestep, dt, state)
     timestep_loop: do
        timestep=timestep+1
@@ -208,6 +210,9 @@
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time + (theta * dt))
+       ! Read in any control variables
+       call adjoint_load_controls(timestep, dt, state)
+
        if (has_vector_field(state(1), "VelocitySource")) then
           v_field => extract_vector_field(state(1), "VelocitySource")
           call project_cartesian_to_local(state(1), v_field)
@@ -217,12 +222,14 @@
 
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time + dt)
+
        call project_local_to_cartesian(state(1))
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
        call calculate_diagnostic_variables_new(state,&
             & exclude_nonrecalculated = .true.)
        call adjoint_register_timestep(timestep, dt, state)
+       ! Save the control variables to disk if desired
        call adjoint_write_controls(timestep, dt, state)
 
        call advance_current_time(current_time, dt)
