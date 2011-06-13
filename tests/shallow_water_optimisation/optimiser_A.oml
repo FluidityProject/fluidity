@@ -6,9 +6,9 @@
   <model command_line="../../bin/shallow_water" option_file="adjoint_A.swml"/>
   <functional name="integral_eta_t1"/>
   <optimisation_options>
-    <optimisation_algorithm name="NCG"/>
+    <optimisation_algorithm name="BFGS"/>
     <tolerance>
-      <real_value rank="0">1e-17</real_value>
+      <real_value rank="0">1e-10</real_value>
     </tolerance>
   </optimisation_options>
   <control_io>

@@ -377,7 +377,7 @@ def optimisation_loop(opt_options, model_options):
     print "Using ", algo, " as optimisation algorithm."
   if algo == 'BFGS':
     res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
-  if algo == 'NCG':
+  elif algo == 'NCG':
     res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   else:
     print "Unknown optimisation algorithm in option path."
