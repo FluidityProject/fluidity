@@ -15,7 +15,7 @@
     </iterations>
   </optimisation_options>
   <control_io>
-    <control name="InitEta">
+    <control name="InitVel">
       <type name="default"/>
     </control>
   </control_io>
