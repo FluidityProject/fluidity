@@ -880,6 +880,8 @@ module copy_outof_into_state
          endif Conditional_VolumeFraction_BC
 
       enddo Loop_VolumeFraction
+      
+      ewrite(3,*) 'satura:', satura
 
 !!!
 !!! Velocity and associated boundary conditions:
@@ -1074,6 +1076,7 @@ module copy_outof_into_state
          do i=1,nphases
             velocity_source => extract_vector_field(state(i), "VelocitySource", stat)
             if (.not.allocated(u_source)) allocate(u_source(u_nonods*nphases))
+!            ewrite(3,*) 'node_count(vs), size(u_s)', node_count(velocity_source), size(u_source)
             if (stat==0) then
                do j=1,node_count(velocity_source)
                   u_source((i-1)*node_count(velocity_source)+j)=velocity_source%val(X_, j)
@@ -1083,23 +1086,24 @@ module copy_outof_into_state
             endif
          enddo
 
-      else
+      else ! Might need to redo this as density isn't the same length as u_source anymore.
 
          if ( .not. allocated( u_source )) allocate( u_source( u_nonods * nphases ))
          u_source = 0.
-         do i = 1, nphases - 1, 1
-            delta_den = 0.
-            do j = 2, node_count( density )
-               delta_den = delta_den + ( den((i)*node_count(density)+j) - &
-                    den((i-1)*node_count(density)+j) ) / &
-                    real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
+         if (have_gravity) then
+            do i = 1, nphases - 1, 1
+               delta_den = 0.
+               do j = 2, node_count( density )
+                  delta_den = delta_den + ( den((i)*node_count(density)+j) - &
+                              den((i-1)*node_count(density)+j) ) / &
+                              real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
+               end do
+               do j = 1, u_nonods
+                  u_source( ( i - 1 ) * u_nonods + j  ) = &
+                       delta_den * gravity_magnitude * 0.2 * domain_length / real( totele )
+               end do
             end do
-            do j = 1, u_nonods
-               u_source( ( i - 1 ) * u_nonods + j  ) = &
-                    delta_den * gravity_magnitude * 0.2 * domain_length / real( totele )
-            end do
-         end do
-
+         end if
       end if Conditional_VelocitySource
 
       ewrite(3,*) 'Getting PVF Source'

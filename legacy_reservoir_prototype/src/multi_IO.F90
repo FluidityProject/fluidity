@@ -732,7 +732,7 @@ contains
 
     write( unit_debug, * ) 'u( u_nonods * nphase ):', &
          ( u( i ), i = 1, u_nonods * nphase )
-
+         
     write( unit_debug, * ) 'den( cv_nonods * nphase ):', &
          ( den( i ), i = 1, cv_nonods * nphase )
 

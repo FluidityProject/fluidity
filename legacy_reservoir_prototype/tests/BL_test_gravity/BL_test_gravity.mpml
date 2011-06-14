@@ -22,6 +22,9 @@
           <polynomial_degree>
             <integer_value rank="0">1</integer_value>
           </polynomial_degree>
+          <element_type>
+            <string_value>overlapping</string_value>
+          </element_type>
         </mesh_shape>
         <mesh_continuity>
           <string_value>discontinuous</string_value>
@@ -62,9 +65,6 @@
         <integer_value rank="0">20</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <max_dump_file_count>
-      <integer_value rank="0">160</integer_value>
-    </max_dump_file_count>
     <output_mesh name="PressureMesh"/>
     <stat/>
   </io>
@@ -85,11 +85,11 @@
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">-981.</real_value>
+        <real_value rank="0">9.81</real_value>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
-          <mesh name="VelocityMesh"/>
+          <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
               <real_value shape="1" dim1="dim" rank="1">-1</real_value>
@@ -142,13 +142,13 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <boundary_conditions name="BC_Pressure_Ph1">
+        <boundary_conditions name="outlet">
           <surface_ids>
             <integer_value shape="1" rank="1">2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.</real_value>
+              <real_value rank="0">0.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -187,7 +187,7 @@
             <real_value rank="0">0.71</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="BC_dens_Ph1">
+        <boundary_conditions name="Inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -260,10 +260,10 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.</real_value>
+            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="BC_velocity_Ph1">
+        <boundary_conditions name="inflow">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -376,13 +376,13 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="BC_satura_Ph1">
+        <boundary_conditions name="Inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.</real_value>
+              <real_value rank="0">1.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -433,69 +433,19 @@
       </diagnostic>
     </scalar_field>
     <scalar_field name="Temperature" rank="0">
-      <prognostic>
+      <prescribed>
         <mesh name="PressureMesh"/>
-        <equation name="AdvectionDiffusion"/>
-        <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
-            <diffusion_scheme name="ElementGradient"/>
-          </control_volumes>
-          <conservative_advection>
-            <real_value rank="0">0.</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.</real_value>
-          </theta>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.e-5</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
+        <value name="WholeMesh">
           <constant>
-            <real_value rank="0">1.</real_value>
+            <real_value rank="0">0.0</real_value>
           </constant>
-        </initial_condition>
-        <boundary_conditions name="BC_T_Ph1">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">0.5</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
+        </value>
         <output/>
         <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
         <detectors>
-          <include_in_detectors/>
+          <exclude_from_detectors/>
         </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
+      </prescribed>
     </scalar_field>
     <multiphase_properties>
       <relperm_option>
@@ -508,7 +458,7 @@
       <incompressible>
         <linear>
           <all_equal>
-            <real_value rank="0">1.</real_value>
+            <real_value rank="0">1.0</real_value>
           </all_equal>
         </linear>
       </incompressible>
@@ -599,10 +549,10 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.</real_value>
+            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="BC_velocity_Ph2">
+        <boundary_conditions name="zero_inflow">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -610,7 +560,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
-                  <real_value rank="0">0.</real_value>
+                  <real_value rank="0">0.0</real_value>
                 </constant>
               </x_component>
             </align_bc_with_cartesian>
@@ -715,13 +665,13 @@
             <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="BC_satura_Ph2">
+        <boundary_conditions name="Inlet">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.</real_value>
+              <real_value rank="0">0.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -740,69 +690,7 @@
       </prognostic>
     </scalar_field>
     <scalar_field name="Temperature" rank="0">
-      <prognostic>
-        <mesh name="PressureMesh"/>
-        <equation name="AdvectionDiffusion"/>
-        <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
-            <diffusion_scheme name="ElementGradient"/>
-          </control_volumes>
-          <conservative_advection>
-            <real_value rank="0">0.</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.</real_value>
-          </theta>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.e-5</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.</real_value>
-          </constant>
-        </initial_condition>
-        <boundary_conditions name="BC_T_Ph2">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">0.5</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
+      <aliased material_phase_name="phase1" field_name="Temperature"/>
     </scalar_field>
     <multiphase_properties>
       <relperm_option>

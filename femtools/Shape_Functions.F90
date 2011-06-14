@@ -145,7 +145,7 @@ contains
     else
        ltype=ELEMENT_LAGRANGIAN
     end if
-
+    
     if (present(stat)) stat=0
 
     ! Get the local numbering of our element
@@ -190,6 +190,14 @@ contains
     else
        call allocate(shape, dim, ele_num%nodes, quad%ngi, coords)
     end if
+    
+    ewrite(3,*) 'shape%loc b4', shape%loc
+    
+!    if (ltype==ELEMENT_OVERLAPPING) then
+!       shape%loc=shape%loc*tr(degree+1)
+!    end if
+    ewrite(3,*) 'shape%loc aft', shape%loc
+    
     shape%degree=degree
     shape%n=0.0
     shape%dn=0.0
@@ -197,9 +205,7 @@ contains
     ! Construct shape for each node
     do i=1,shape%loc
 
-       ewrite(3,*) 'shape%loc, i, coords: ', shape%loc, i, coords
        counts(1:coords)=ele_num%number2count(:,i)
-       ewrite(3,*) 'counts: ', counts(1:coords)
        
        ! Construct appropriate polynomials.
        do j=1,coords
@@ -244,7 +250,28 @@ contains
              
           case(ELEMENT_OVERLAPPING) ! Perhaps want to use the default, ie Lagrangian shape functions
           
-             ewrite(0,*) 'Shape function hack alert!'
+!             ewrite(0,*) 'Shape function hack alert!'
+             select case(ele_num%family)
+             case (FAMILY_SIMPLEX)
+                select case(dim)
+                case (1)
+                   ! Raw polynomial.
+                   shape%spoly(j,i)&
+                        =lagrange_polynomial(counts(j), counts(j), 1.0/degree)
+                   ! Derivative
+                   shape%dspoly(j,i)=ddx(shape%spoly(j,i))
+
+                case default
+                   FLAbort("We don't have shape functions set up for this dimension yet")
+                end select
+             case(FAMILY_CUBE)
+
+                ! note that local coordinates run from -1.0 to 1.0
+                shape%spoly(j,i)&
+                     =lagrange_polynomial(counts(j), degree, 2.0/degree, &
+                       origin=-1.0)
+
+             end select
 
           case default
 
@@ -252,19 +279,28 @@ contains
              
           end select
 
-          ! Derivative
-          shape%dspoly(j,i)=ddx(shape%spoly(j,i))
+          if (ltype/=ELEMENT_OVERLAPPING) then
+             ! Derivative
+             shape%dspoly(j,i)=ddx(shape%spoly(j,i))
+          end if
 
        end do
 
        ! Loop over all the quadrature points.
        do j=1,quad%ngi
+!          if (ltype/=ELEMENT_OVERLAPPING) then
+             ! Raw shape function
+             shape%n(i,j)=eval_shape(shape, i, quad%l(j,:))
 
-          ! Raw shape function
-          shape%n(i,j)=eval_shape(shape, i, quad%l(j,:))
-
-          ! Directional derivatives.
-          shape%dn(i,j,:)=eval_dshape(shape, i, quad%l(j,:))
+             ! Directional derivatives.
+             shape%dn(i,j,:)=eval_dshape(shape, i, quad%l(j,:))
+ !         else
+  !           ! Raw shape function
+   !          shape%n(coords-mod(i,coords),j)=eval_shape(shape, coords-mod(i,coords), quad%l(j,:))
+!
+ !            ! Directional derivatives.
+  !           shape%dn(coords-mod(i,coords),j,:)=eval_dshape(shape, coords-mod(i,coords), quad%l(j,:))
+   !       end if
        end do
 
        if (present(quad_s)) then

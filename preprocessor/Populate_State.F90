@@ -426,7 +426,7 @@ contains
               
           ! Get mesh name.
           call get_option(trim(mesh_path)//"/name", mesh_name)
-
+          
           call insert_derived_mesh(trim(mesh_path), &
                                    trim(mesh_name), &
                                    incomplete, &
@@ -772,8 +772,6 @@ contains
     
     ! Get new mesh shape information
     
-    ewrite(3,*) 'mesh path: ', mesh_path
-    
     new_shape = have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
     if(new_shape) then
       ! Get new mesh element type
@@ -790,7 +788,6 @@ contains
       else
         new_shape_type=from_mesh%shape%numbering%type
       end if
-      ewrite(3,*) 'EO, new_shape_type: ',ELEMENT_OVERLAPPING, new_shape_type
       
       ! degree is the degree of the Lagrange polynomials (even if you add in a bubble function)
       call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", &
@@ -813,7 +810,6 @@ contains
       else
          loc=from_mesh%shape%loc
       end if
-      ewrite(3,*) 'loc:', loc
       ! Make quadrature
       call get_option("/geometry/quadrature/degree",&
            & quad_degree)
@@ -840,7 +836,6 @@ contains
 
     ! Get mesh name.
     call get_option(trim(mesh_path)//"/name", mesh_name)
-    ewrite(3,*) 'Mesh name: ', mesh_name
 
     ! Make new mesh
     mesh=make_mesh(from_mesh, shape, continuity, mesh_name)

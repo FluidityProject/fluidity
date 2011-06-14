@@ -4,7 +4,7 @@ SIM = BL_test_1d
 
 input: clean
 
-	../../../scripts/interval --dx=0.1 0 1 1d_mesh
+	../../../scripts/interval --dx=0.2 0 4 1d_mesh
 
 	@echo "compute input for $(SIM)"
 	gfortran -o input_wic_vol_bc_BL1_fcn input_wic_vol_bc_BL1_fcn.f90

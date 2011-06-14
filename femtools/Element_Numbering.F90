@@ -205,22 +205,8 @@ contains
                 ele_num=>interval_numbering(degree)
                 return
              end if
-          
-          case(6) 
-             ! Overlapping copy: Intervals - the only possibility.
-             if (degree>INTERVAL_MAX_DEGREE) then
-                ele_num=>null()
-                return
-             else
-                ele_num=>interval_numbering(degree)
-                return
-             end if
-          
-          case default
-             ele_num=>null()
-             return
           end select
-
+          
        case(2)
           
           select case(loc)
@@ -234,7 +220,7 @@ contains
                 ele_num=>tri_numbering(degree)
                 return
              end if
-             
+
           case (4)
              ! Quads
              
@@ -245,23 +231,8 @@ contains
                 ele_num=>quad_numbering(degree)
                 return
              end if
-             
-          case(18)
-             ! Overlapping copy of: Triangles.
-             
-             if (degree>TRI_MAX_DEGREE) then
-                ele_num=>null()
-                return
-             else
-                ele_num=>tri_numbering(degree)
-                return
-             end if
-             
-          case default
-             ele_num=>null()
-             return
           end select
-          
+             
        case(3)
           
           select case (loc)
@@ -284,17 +255,6 @@ contains
                 return
              else
                 ele_num=>hex_numbering(degree)
-                return
-             end if
-             
-          case (40)
-             ! Overlapping copy of: Tets
-             
-             if (degree>TET_MAX_DEGREE) then
-                ele_num=>null()
-                return
-             else
-                ele_num=>tet_numbering(degree)
                 return
              end if
              
@@ -388,7 +348,6 @@ contains
        
     case (ELEMENT_OVERLAPPING)
     ! Need to work this out I think before anything will work
-       ewrite(0,*) 'Element numbering hack alert!'
        select case(dimension)
        case (0)
           select case(loc)
@@ -1241,7 +1200,7 @@ contains
 
   subroutine number_intervals_overlapping
     ! Fill the values in element_numbering.
-    integer :: i, j, cnt
+    integer :: i, j, cnt, ncv
     integer, dimension(2) :: l
     type(ele_numbering_type), pointer :: ele
 
@@ -1253,60 +1212,63 @@ contains
     interval_numbering_overlapping%family=FAMILY_SIMPLEX
     interval_numbering_overlapping%type=ELEMENT_OVERLAPPING
 
-    ! Degree 0 elements are a special case.
-    ele=>interval_numbering_overlapping(0)
-    ele%degree=0
-    
-    degree_loop: do i=0,INTERVAL_MAX_DEGREE
+    degree_loop: do i=0,2 ! Don't need to worry about crazy degrees just yet!
        ele=>interval_numbering_overlapping(i)
-       ele%degree=i 
+       ele%degree=i
+       
+       ncv=i+2 ! Number of control volumes in the element
 
        ! Allocate mappings:
-       allocate(ele%count2number(0:i,0:i,0:0))
-       ewrite(3,*) 'Allocating ele%number2count, ele%dimension+1, i+1: ', ele%dimension+1, i+1
-       allocate(ele%number2count(ele%dimension+1,i+1))
-       allocate(ele%boundary_coord(ele%vertices))
-       allocate(ele%boundary_val(ele%vertices))
+       allocate(ele%count2number(0:i,0:i,0:ncv-1))
+       allocate(ele%number2count(ele%dimension+1,(i+1)*ncv))
+       allocate(ele%boundary_coord(ncv*ele%vertices))
+       allocate(ele%boundary_val(ncv*ele%vertices))
 
-       ele%nodes=4*i+2 ! Only right for constant and linear velocity I think!
+       ele%nodes=(i+1)*ncv
        ele%count2number=0
        ele%number2count=0
 
-       l=0
-       l(1)=i
-       
        cnt=0
+       do j=0,ncv-1
 
-       number_loop: do
+         l=0
+         l(1)=i
+       
+         number_loop: do
           
-          cnt=cnt+1
+           cnt=cnt+1
           
-          ele%count2number(l(1), l(2), 0)=cnt
-          ele%number2count(:,cnt)=l
+           ele%count2number(l(1), l(2), j)=cnt
+           ele%number2count(:,cnt)=l
 
-          ! If the last index has reached the current degree then we are
-          ! done.          
-          if (l(2)==i) exit number_loop
+           ! If the last index has reached the current degree then we are
+           ! done.          
+           if (l(2)==i) exit number_loop
 
-          ! Increment the index counter.
-          l(2)=l(2)+1
+           ! Increment the index counter.
+           l(2)=l(2)+1
           
-          l(1)=i-l(2)
+           l(1)=i-l(2)
 
-       end do number_loop
+         end do number_loop
+         
+       end do
        
        ! Sanity test
-       if (i+1/=cnt) then
-          ewrite(3,*) 'Counting error', i, i+1, cnt
+       if ((i+1)*ncv/=cnt) then
+          ewrite(3,*) 'Counting error', i, (i+1)*ncv, cnt
           stop
        end if
        
        ! Number edges.
-       forall(j=1:ele%vertices)
+       forall(j=1:2*ncv)
           ele%boundary_coord(j)=j
        end forall
        ! In an interval all faces occur on planes of zero value for one local coord.
        ele%boundary_val=0
+       
+!       ewrite(3,*) 'c2n', ele%count2number
+!       ewrite(3,*) 'n2c', ele%number2count
 
     end do degree_loop
     
@@ -1728,7 +1690,7 @@ contains
        if (interior) then
           boundary_num_length=0
        else
-          boundary_num_length=1
+          boundary_num_length=ele_num%nodes/2
        end if       
     case (2)
        if (interior) then
@@ -1799,7 +1761,7 @@ contains
     integer :: i, k, l
 
     k=0
-
+    
     do i=1,ele_num%nodes
        
        if (ele_num%number2count(ele_num%boundary_coord(boundary),i)==&

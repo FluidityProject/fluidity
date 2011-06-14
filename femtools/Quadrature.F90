@@ -232,7 +232,6 @@ contains
                
             case(6)
                ! Overlapping element with quadratic pressure
-               ewrite(0,*) 'Quadrature hack alert!'
                template_set=>interval_quads
                coords=2
                

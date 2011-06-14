@@ -240,16 +240,22 @@ contains
     end if
 
     call deallocate(element%quadrature)
+    
+!    ewrite(3,*) 'Here in deallocate_element, spoly', element%spoly
+    ewrite(3,*) 'Size 1, size 2', size(element%spoly,1), size(element%spoly,2)
 
     if(associated(element%spoly)) then
       do i=1,size(element%spoly,1)
         do j=1,size(element%spoly,2)
+            ewrite(3,*) 'i, j', i, j
             call deallocate(element%spoly(i,j))
+            ewrite(3,*) 'Deallocated'
         end do
       end do
       deallocate(element%spoly, stat=tstat)
     end if
     lstat=max(lstat,tstat)
+    ewrite(3,*) 'here'
 
     if (associated(element%n_s)) deallocate(element%n_s,element%dn_s)
 

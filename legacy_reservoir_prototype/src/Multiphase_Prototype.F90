@@ -149,11 +149,10 @@ module mp_prototype
       integer, dimension( : ), allocatable :: colacv, colele, colct, colc, coldgm_pha, colmcy, colcmc, colm
       integer :: mxnele, mx_nct, mx_nc, mx_ncolcmc, mx_ncoldgm_pha, mx_ncolmcy, mx_ncolacv, mx_ncolm
       integer :: ncolacv, ncolmcy, ncolele, ncolct, ncolc, ncolcmc, ncolm
-      integer :: nkcomp, iphase, icomp
+      integer :: nkcomp
 
       integer :: option_debug
       integer, parameter :: unit_input = 5, unit_debug = 101, new_unit_debug = 304
-      integer :: i
 
 
       open( unit_input, file = 'input.dat', status = 'unknown' )
@@ -278,7 +277,7 @@ module mp_prototype
            mat_ndgln, cv_sndgln, u_sndgln, p_sndgln )
 
       ! Mirroring Input dat
-
+      
       if( .true. ) call mirror_data( new_unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc,  p_snloc, stotel, &
@@ -462,7 +461,7 @@ module mp_prototype
 
       told = t
 
-      call allocating_global_nodes( ndim, totele, domain_length, &
+      if (.false.) call allocating_global_nodes( ndim, totele, domain_length, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
            cv_nonods, u_nonods, x_nonods, xu_nonods, &
@@ -472,7 +471,7 @@ module mp_prototype
            mat_ndgln, u_sndgln, cv_sndgln, p_sndgln )
       ! Initialising T and Told. This should be properly initialised through a generic function
 
-      call initialise_scalar_fields( &
+      if (.false.) call initialise_scalar_fields( &
            problem, ndim, nphase, totele, domain_length, &
            x_nloc, cv_nloc, x_nonods, cv_nonods,  &
            x_ndgln, cv_ndgln, &
@@ -584,8 +583,6 @@ module mp_prototype
            mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
            mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
            mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
-ewrite(3,*)'u:', size(u), u_nonods, nphase, u(1:u_nonods*nphase)
-stop 8877
 
       Select Case( problem )
 
