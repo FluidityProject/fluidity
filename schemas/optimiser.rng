@@ -70,9 +70,15 @@ configuration template</a:documentation>
         </element>
       </choice>
       <element name="tolerance">
-        <a:documentation>The optimisation loop tolerance</a:documentation>
+        <a:documentation>Gradient norm must be less than tolerance before succesful termination. </a:documentation>
         <ref name="real"/>
       </element>
+      <optional>
+        <element name="iterations">
+          <a:documentation>Maximum number of iterations to perform. </a:documentation>
+          <ref name="integer"/>
+        </element>
+      </optional>
       <ref name="comment"/>
     </element>
   </define>
