@@ -4,7 +4,7 @@ SIM = InputComp2P2C_
 
 input: clean
 
-	../../../scripts/interval --dx=0.1 0 1 1d_mesh
+	../../../scripts/interval --dx=0.2 0 4 1d_mesh
 
 	@echo "compute input for $(SIM)"
 	gfortran -o $(SIM)KComp   $(SIM)KComp.f90
@@ -35,4 +35,4 @@ clean:
 	rm -f $(SIM)suf_comp_bc
 	rm -f gmon.out
 	rm -f *.d.*   
-	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*
+	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.* mirror_new.dat

@@ -42,3 +42,4 @@ clean:
 	rm -f *.d.*
 	rm -f flog.dat time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*
 	rm -f *.node *.bound *.ele *.face *.stat *.vtu
+	rm -f mirror_new.dat

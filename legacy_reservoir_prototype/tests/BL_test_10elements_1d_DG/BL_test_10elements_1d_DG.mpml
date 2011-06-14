@@ -78,6 +78,9 @@
     <finish_time>
       <real_value rank="0">10.0</real_value>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">3</integer_value>
+    </nonlinear_iterations>
   </timestepping>
   <material_phase name="phase1">
     <equation_of_state>
@@ -115,6 +118,16 @@
             <monitors/>
           </diagnostics>
         </solver>
+        <boundary_conditions name="outlet">
+          <surface_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -150,6 +163,16 @@
             <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="Inlet">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">1.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -213,7 +236,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">1.0</real_value>
+            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="inflow">
@@ -285,11 +308,15 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -298,7 +325,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <control_volumes/>
         </temporal_discretisation>
@@ -325,6 +352,16 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="Inlet">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">1.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -371,6 +408,21 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="Temperature" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
     <multiphase_properties>
       <relperm_option>
         <integer_value rank="0">3</integer_value>
@@ -378,6 +430,15 @@
     </multiphase_properties>
   </material_phase>
   <material_phase name="phase2">
+    <equation_of_state>
+      <incompressible>
+        <linear>
+          <all_equal>
+            <real_value rank="0">1.0</real_value>
+          </all_equal>
+        </linear>
+      </incompressible>
+    </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <aliased material_phase_name="phase1" field_name="Pressure"/>
     </scalar_field>
@@ -464,9 +525,23 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">1.0</real_value>
+            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="zero_inflow">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </x_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
@@ -522,11 +597,15 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -535,7 +614,7 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <control_volumes/>
         </temporal_discretisation>
@@ -562,6 +641,16 @@
             <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="Inlet">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -576,6 +665,14 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="Temperature" rank="0">
+      <aliased material_phase_name="phase1" field_name="Temperature"/>
+    </scalar_field>
+    <multiphase_properties>
+      <relperm_option>
+        <integer_value rank="0">3</integer_value>
+      </relperm_option>
+    </multiphase_properties>
   </material_phase>
   <porous_media>
     <scalar_field name="Porosity">
@@ -583,7 +680,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value rank="0">0.2</real_value>
+            <real_value rank="0">0.5</real_value>
           </constant>
         </value>
         <output/>
