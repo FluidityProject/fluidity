@@ -59,10 +59,14 @@ optimisation_options =
                comment
             }
          ),
-         ## The optimisation loop tolerance
+         ## Gradient norm must be less than tolerance before succesful termination. 
          element tolerance {
               real
          },
+         ## Maximum number of iterations to perform. 
+         element iterations {
+              integer
+         }?,
          comment
       }
    )

@@ -325,6 +325,8 @@ def optimisation_loop(opt_options, model_options):
   def callback(m_serial, m_shape):
     if superspud(opt_options, "libspud.have_option('/debugging/check_gradient')"):
       grad_err = scipy.optimize.check_grad(lambda x: J(x, m_shape, write_stat = False), lambda x: dJdm(x, m_shape, write_stat = False), m_serial)
+      if verbose:
+        print "Gradient error: ", grad_err
       stat_writer[(functional_name + "_gradient_error", "l2norm")] = grad_err
     stat_writer.write()
   
@@ -381,10 +383,14 @@ def optimisation_loop(opt_options, model_options):
   if verbose:
     print "Start optimisation loop"
     print "Using ", algo, " as optimisation algorithm."
+  maxiter=None
+  if superspud(opt_options, "libspud.have_option('/optimisation_options/iterations')"):
+    maxiter = superspud(opt_options, "libspud.get_option('/optimisation_options/iterations')")
+
   if algo == 'BFGS':
-    res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
+    res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, maxiter=maxiter, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   elif algo == 'NCG':
-    res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
+    res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, maxiter=maxiter, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
   else:
     print "Unknown optimisation algorithm in option path."
     exit()
