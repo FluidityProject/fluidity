@@ -4,10 +4,10 @@ meshes:
 	cd src; make
 
 copy_tests:
-	cp adjoint_A.swml adjoint_B.swml; sed -i 's/_A/_B/' adjoint_B.swml; spud-set adjoint_B.swml /timestepping/timestep 0.125
-	cp adjoint_A.swml adjoint_C.swml; sed -i 's/_A/_C/' adjoint_C.swml; spud-set adjoint_C.swml /timestepping/timestep 0.0625
-	cp adjoint_A.swml adjoint_D.swml; sed -i 's/_A/_D/' adjoint_D.swml; spud-set adjoint_D.swml /timestepping/timestep 0.03125
-	cp adjoint_A.swml adjoint_E.swml; sed -i 's/_A/_E/' adjoint_E.swml; spud-set adjoint_E.swml /timestepping/timestep 0.015625
+	cp adjoint_A.swml adjoint_B.swml; sed -i 's/wave_A/wave_B/' adjoint_B.swml; spud-set adjoint_B.swml /timestepping/timestep 0.125
+	cp adjoint_A.swml adjoint_C.swml; sed -i 's/wave_A/wave_C/' adjoint_C.swml; spud-set adjoint_C.swml /timestepping/timestep 0.0625
+	cp adjoint_A.swml adjoint_D.swml; sed -i 's/wave_A/wave_D/' adjoint_D.swml; spud-set adjoint_D.swml /timestepping/timestep 0.03125
+	cp adjoint_A.swml adjoint_E.swml; sed -i 's/wave_A/wave_E/' adjoint_E.swml; spud-set adjoint_E.swml /timestepping/timestep 0.015625
 	cp optimiser_A.oml optimiser_B.oml; sed -i 's/_A/_B/' optimiser_B.oml
 	cp optimiser_A.oml optimiser_C.oml; sed -i 's/_A/_C/' optimiser_C.oml
 	cp optimiser_A.oml optimiser_D.oml; sed -i 's/_A/_D/' optimiser_D.oml
