@@ -1429,15 +1429,15 @@ contains
     default_stat%detector_list%total_num_det=total_dete
 
     total_dete_groups=static_dete+lagrangian_dete+python_functions_or_files
- 
-    ! Register this I/O detector list with a global list of detector lists
-    call register_detector_list(default_stat%detector_list)
 
     allocate(default_stat%detector_group_names(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))
     allocate(default_stat%detector_list%detector_names(total_dete))
     
     if (total_dete==0) return
+
+    ! Register this I/O detector list with a global list of detector lists
+    call register_detector_list(default_stat%detector_list)
 
     xfield=>extract_vector_field(state(1), "Coordinate")
     shape=>ele_shape(xfield,1)

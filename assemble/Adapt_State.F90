@@ -1073,8 +1073,8 @@ contains
         end if
       end if
 
-      if (isparallel() .and. get_num_detector_lists()>0) then
-        ! Update the detector element ownership data of every detector list
+      if (get_num_detector_lists()>0) then
+        ! Update detector element and local_coords for every detector in all lists
         call get_registered_detector_lists(detector_list_array)
         do j = 1, size(detector_list_array)
            call search_for_detectors(detector_list_array(j)%ptr, new_positions)

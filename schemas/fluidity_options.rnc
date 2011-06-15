@@ -293,7 +293,7 @@ start =
                element lagrangian_timestepping {
                   (
                      ## Use explicit runge kutta method with
-                     ## binary search
+                     ## guided search
                      element explicit_runge_kutta_guided_search {
                         ## Number of subdivisions of the timestep
                         ## increase this if you are not happy with your 
@@ -340,10 +340,6 @@ start =
                         element timestep_weights {
                            real_vector
                         }
-                     }|
-                     ## Use binary search algorithm
-                     element binary_search {
-                        empty
                      }
                   )
                }?
