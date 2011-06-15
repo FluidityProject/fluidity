@@ -166,8 +166,10 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
   char *local_key = fix_string(key, keylen);
   PyObject *pLocals = PyDict_GetItemString(pLocalDict, local_key);
 
-  // Extract val function from the code.
+  // Extract val function from the local dict and its code object
   PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
+  PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
+  PyObject *pFuncClosure = PyObject_GetAttrString(pFunc, "func_closure");
 
   // Create ele argument
   PyObject *pEle = PyInt_FromLong( (long)ele );
@@ -179,19 +181,18 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
     PyTuple_SetItem(pLCoords, i, PyFloat_FromDouble(lcoords[i]));
   }
 
-  // Tuple of arguments to function;
-  PyObject *pArgs=PyTuple_New(2);
-  PyTuple_SetItem(pArgs, 0, pEle);
-  PyTuple_SetItem(pArgs, 1, pLCoords);
+  // Create argument array
+  PyObject **pArgs= malloc(sizeof(PyObject*)*2);
+  pArgs[0] = pEle;
+  pArgs[1] = pLCoords;  
 
-  // Check for a Python error in the function call
-  if (PyErr_Occurred()){
-    PyErr_Print();
-    return;
-  }
+  // Merge our stored local vars (fields, etc.) into a new copy of the global namespace
+  // ml805 comment: this is done because for some reason the vars in pLocals don't get picked up in the call
+  PyObject *pGlobalsLocals = PyDict_Copy(pGlobals);
+  PyDict_Merge(pGlobalsLocals, pLocals, 1);
 
   // Run val(ele, local_coords)
-  PyObject *pResult = PyObject_CallObject(pFunc, pArgs);
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pGlobalsLocals, pLocals, pArgs, 2, NULL, 0, NULL, 0, pFuncClosure);
  
   // Check for Python errors
   if(!pResult){

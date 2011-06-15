@@ -185,6 +185,8 @@ def val(ele,local_coords):
   print "In detector val function"
   print "ele: "+str(ele)
   print "local_coords: " + str(local_coords)
+  print "velocity.dimension: " + str(velocity.dimension)
+  #print velocity.eval_field(ele, local_coords)
   return (1.0, 0.9, 0.8)
   #return velocity.eval_field(ele, local_coords)</string_value>
           </random_walk>
