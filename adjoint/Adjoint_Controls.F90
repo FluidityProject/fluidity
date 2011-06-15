@@ -125,8 +125,13 @@ module adjoint_controls
       end select
 
       !!!! Check bounds settings !!!!
-      have_lb = have_option("/adjoint/controls/control[" // int2str(control_no) //"]/bounds/lower_bound")
+      ! We only execute this when the optional files are present
+      if (.not. present(have_lb) .or. .not. present(have_ub)) then
+        return
+      endif
+      have_ub = have_option("/adjoint/controls/control[0]/bounds/upper_bound")
       have_ub = have_option("/adjoint/controls/control[" // int2str(control_no) //"]/bounds/upper_bound")
+      have_lb = have_option("/adjoint/controls/control[" // int2str(control_no) //"]/bounds/lower_bound")
       ! Find material phase for the lower bound field
       if (have_lb) then 
         call get_option("/adjoint/controls/control[" // int2str(control_no) //"]/bounds/lower_bound/field_name", name)
@@ -332,7 +337,7 @@ module adjoint_controls
       type(state_type), dimension(:), intent(in) :: states
 #ifdef HAVE_ADJOINT
       integer :: nb_controls, i, state_id, s_idx
-      logical :: active
+      logical :: active, file_exists
       character(len=OPTION_PATH_LEN) :: field_name, field_type, control_name, simulation_name
 
       ! Do not read anything if we are supposed to write the controls
@@ -345,6 +350,13 @@ module adjoint_controls
       do i = 0, nb_controls-1
         call get_control_details(states, timestep, i, control_name, state_id, field_name, field_type, active)
         if (active) then
+          ! Check that the control parameter file extists
+          inquire(file="control_" // trim(simulation_name) // "_" // trim(control_name) // "_" // int2str(timestep) // ".pkl", exist=file_exists)
+          if (.not. file_exists) then
+            ewrite (0, *) "File 'control_" // trim(simulation_name) // "_" // trim(control_name) // &
+                        & "_" // int2str(timestep) // ".pkl' does not exist."
+            FLExit("Error while loading control files. You might want to remove '/adjoint/controls/load_controls'?")
+          end if
           ! Read the control parameter from disk
           call python_reset()
           call python_add_state(states(state_id))
