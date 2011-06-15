@@ -124,6 +124,7 @@ adjoint_options =
            empty
          }? 
       }+,
+      ## Specifies any control variables 
       element controls {
           element control {
             (
@@ -147,7 +148,22 @@ adjoint_options =
                     attribute field_name { xsd:string },
                     comment
                   }
+                ),
+              ## Defines bounds on the control variables.
+              element bounds {
+                (
+                  ## Defines an upper bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.
+                  element upper_bound {
+                    attribute field_name { xsd:string },
+                     comment
+                  }?,
+                  ## Defines an lower bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.
+                  element lower_bound {
+                    attribute field_name { xsd:string },
+                     comment
+                  }?
                 )
+              }?
              )
           }*,
           ## Load controls values from the control files.

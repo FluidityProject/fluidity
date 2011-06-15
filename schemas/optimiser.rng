@@ -111,9 +111,9 @@ It uses custom python functions for handling the controls input/ouput.</a:docume
 
 Example:
 
-def initial_control():
- import numpy
- return numpy.array([1])</a:documentation>
+ def initial_control():
+  import numpy
+  return numpy.array([1])</a:documentation>
                 <ref name="python_code"/>
               </element>
               <element name="update_control">
@@ -122,11 +122,11 @@ updates the corresponding model configuration.
 
 Example:
 
-def update_control(m):
- import pickle
- f = open('control_h.pkl', 'wb')    
- pickle.dump(m, f)
- f.close()</a:documentation>
+ def update_control(m):
+  import pickle
+  f = open('control_h.pkl', 'wb')    
+  pickle.dump(m, f)
+  f.close()</a:documentation>
                 <ref name="python_code"/>
               </element>
               <element name="control_derivative">
@@ -134,10 +134,10 @@ def update_control(m):
 
 Example:
 
- def control_derivative():
-   import pickle
-   func_deriv_file = open('control_derivative_h.pkl', 'rb')
-  return pickle.load(func_deriv_file)</a:documentation>
+  def control_derivative():
+    import pickle
+    func_deriv_file = open('control_derivative_h.pkl', 'rb')
+    return pickle.load(func_deriv_file)</a:documentation>
                 <ref name="python_code"/>
               </element>
               <ref name="comment"/>

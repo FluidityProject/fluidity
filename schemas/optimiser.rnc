@@ -93,9 +93,9 @@ control_io =
                       ##
                       ## Example:
                       ##
-                      ## def initial_control():
-                      ##  import numpy
-                      ##  return numpy.array([1])
+                      ##  def initial_control():
+                      ##   import numpy
+                      ##   return numpy.array([1])
                       element initial_control {
                          python_code
                       },
@@ -104,11 +104,11 @@ control_io =
                       ##
                       ## Example:
                       ##
-                      ## def update_control(m):
-                      ##  import pickle
-                      ##  f = open('control_h.pkl', 'wb')    
-                      ##  pickle.dump(m, f)
-                      ##  f.close()
+                      ##  def update_control(m):
+                      ##   import pickle
+                      ##   f = open('control_h.pkl', 'wb')    
+                      ##   pickle.dump(m, f)
+                      ##   f.close()
                       element update_control {
                          python_code
                       },
@@ -116,10 +116,10 @@ control_io =
                       ##
                       ## Example:
                       ##
-                      ##  def control_derivative():
-                      ##    import pickle
-                      ##    func_deriv_file = open('control_derivative_h.pkl', 'rb')
-                      ##   return pickle.load(func_deriv_file)
+                      ##   def control_derivative():
+                      ##     import pickle
+                      ##     func_deriv_file = open('control_derivative_h.pkl', 'rb')
+                      ##     return pickle.load(func_deriv_file)
                       element control_derivative {
                          python_code
                       },
