@@ -145,6 +145,7 @@ but all adjoint related entries will be zeroed.</a:documentation>
       </oneOrMore>
       <optional>
         <element name="controls">
+          <a:documentation>Specifies any control variables </a:documentation>
           <zeroOrMore>
             <element name="control">
               <attribute name="name">
@@ -182,6 +183,29 @@ but all adjoint related entries will be zeroed.</a:documentation>
                   <ref name="comment"/>
                 </element>
               </choice>
+              <optional>
+                <element name="bounds">
+                  <a:documentation>Defines bounds on the control variables.</a:documentation>
+                  <optional>
+                    <element name="upper_bound">
+                      <a:documentation>Defines an upper bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.</a:documentation>
+                      <attribute name="field_name">
+                        <data type="string"/>
+                      </attribute>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="lower_bound">
+                      <a:documentation>Defines an lower bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.</a:documentation>
+                      <attribute name="field_name">
+                        <data type="string"/>
+                      </attribute>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
             </element>
           </zeroOrMore>
           <optional>
