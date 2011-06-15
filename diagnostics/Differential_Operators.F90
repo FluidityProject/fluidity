@@ -55,6 +55,7 @@ module differential_operator_diagnostics
   private
   
   public :: calculate_grad, calculate_div, calculate_curl, calculate_perp, &
+    & calculate_hessian, calculate_grad_vector, &
     & calculate_curl_2d, calculate_finite_element_divergence, &
     & calculate_finite_element_divergence_transpose, &
     & calculate_scalar_advection, calculate_scalar_laplacian, &
@@ -78,6 +79,39 @@ contains
     call grad(source_field, positions, v_field)
     
   end subroutine calculate_grad
+
+  subroutine calculate_grad_vector(state, t_field)
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+    
+    type(vector_field), pointer :: source_field
+    type(vector_field), pointer :: positions
+
+    positions => extract_vector_field(state, "Coordinate")
+    source_field => vector_source_field(state, t_field)
+
+    call check_source_mesh_derivative(source_field, "grad_vector")
+
+    call grad(source_field, positions, t_field)
+
+  end subroutine calculate_grad_vector
+
+  subroutine calculate_hessian(state, t_field)
+    ! Compute Hessian of a scalar field
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+    
+    type(scalar_field), pointer :: source_field
+    type(vector_field), pointer :: positions
+
+    positions => extract_vector_field(state, "Coordinate")
+    source_field => scalar_source_field(state, t_field)
+
+    call check_source_mesh_derivative(source_field, "hessian")
+
+    call compute_hessian(source_field, positions, t_field)
+
+  end subroutine calculate_hessian
 
   subroutine calculate_div(state, s_field)
     type(state_type), intent(in) :: state

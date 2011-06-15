@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">MMS_A</string_value>
+    <string_value lines="1">MMS_C</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -52,18 +52,12 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
+    <dump_period>
       <constant>
-        <integer_value rank="0">100</integer_value>
+        <real_value rank="0">25</real_value>
       </constant>
-    </dump_period_in_timesteps>
+    </dump_period>
     <output_mesh name="VelocityMesh"/>
-    <checkpointing>
-      <checkpoint_period_in_dumps>
-        <integer_value rank="0">1000</integer_value>
-      </checkpoint_period_in_dumps>
-      <checkpoint_at_end/>
-    </checkpointing>
     <stat/>
   </io>
   <timestepping>
@@ -75,7 +69,7 @@
       <comment>gives a max cfl number of 0.1</comment>
     </timestep>
     <finish_time>
-      <real_value rank="0">10.0</real_value>
+      <real_value rank="0">20.0</real_value>
       <comment>10.0</comment>
     </finish_time>
     <adaptive_timestep>
@@ -88,24 +82,12 @@
     </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.E-4</real_value>
+        <real_value rank="0">1.E-6</real_value>
         <infinity_norm/>
       </tolerance>
-      <steady_state_file>
-        <plain_text_output/>
-      </steady_state_file>
     </steady_state>
   </timestepping>
   <material_phase name="NS">
-    <equation_of_state>
-      <fluids>
-        <linear>
-          <reference_density>
-            <real_value rank="0">1.0</real_value>
-          </reference_density>
-        </linear>
-      </fluids>
-    </equation_of_state>
     <subgridscale_parameterisations>
       <k-epsilon>
         <scalar_field name="TurbulentKineticEnergy" rank="0">
@@ -113,40 +95,29 @@
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
-              <control_volumes>
-                <face_value name="FiniteElement">
-                  <limit_face_value>
-                    <limiter name="Sweby">
-                      <project_upwind_value_from_point>
-                        <store_upwind_elements>
-                          <store_upwind_quadrature/>
-                        </store_upwind_elements>
-                      </project_upwind_value_from_point>
-                    </limiter>
-                  </limit_face_value>
-                </face_value>
-                <diffusion_scheme name="ElementGradient"/>
-              </control_volumes>
+              <continuous_galerkin>
+                <stabilisation>
+                  <no_stabilisation/>
+                </stabilisation>
+                <advection_terms/>
+                <mass_terms/>
+              </continuous_galerkin>
               <conservative_advection>
                 <real_value rank="0">0</real_value>
               </conservative_advection>
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
-              <control_volumes>
-                <number_advection_iterations>
-                  <integer_value rank="0">3</integer_value>
-                </number_advection_iterations>
-                <limit_theta/>
-              </control_volumes>
             </temporal_discretisation>
             <solver>
-              <iterative_method name="cg"/>
-              <preconditioner name="hypre">
-                <hypre_type name="boomeramg"/>
-              </preconditioner>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
               <relative_error>
                 <real_value rank="0">1.e-7</real_value>
               </relative_error>
@@ -161,32 +132,21 @@
             <initial_condition name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.tke(X)</string_value>
+        import k_epsilon_tools as k
+        tke=k.tke(X)
+        return tke</string_value>
               </python>
             </initial_condition>
-            <boundary_conditions name="intopbottom">
+            <boundary_conditions name="all_sides">
               <surface_ids>
-                <integer_value shape="3" rank="1">7 8 9</integer_value>
+                <integer_value shape="4" rank="1">7 8 9 10</integer_value>
               </surface_ids>
               <type name="dirichlet">
                 <python>
                   <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.tke(X)</string_value>
-                </python>
-              </type>
-            </boundary_conditions>
-            <boundary_conditions name="out">
-              <surface_ids>
-                <integer_value shape="1" rank="1">10</integer_value>
-              </surface_ids>
-              <type name="neumann">
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.grad_tke(X)[0]</string_value>
-                  <comment>Take normal component of gradient</comment>
+        import k_epsilon_tools as k
+        tke=k.tke(X)
+        return tke</string_value>
                 </python>
               </type>
             </boundary_conditions>
@@ -204,8 +164,8 @@
                 <value name="WholeMesh">
                   <python>
                     <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.forcing_k(X)</string_value>
+        import k_epsilon_tools as k
+        return k.forcing_k(X)</string_value>
                   </python>
                 </value>
                 <output/>
@@ -225,7 +185,9 @@
                 </detectors>
               </diagnostic>
             </scalar_field>
-            <output/>
+            <output>
+              <include_previous_time_step/>
+            </output>
             <stat/>
             <convergence>
               <include_in_convergence/>
@@ -234,7 +196,7 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
             <consistent_interpolation/>
           </prognostic>
@@ -244,40 +206,29 @@
             <mesh name="VelocityMesh"/>
             <equation name="AdvectionDiffusion"/>
             <spatial_discretisation>
-              <control_volumes>
-                <face_value name="FiniteElement">
-                  <limit_face_value>
-                    <limiter name="Sweby">
-                      <project_upwind_value_from_point>
-                        <store_upwind_elements>
-                          <store_upwind_quadrature/>
-                        </store_upwind_elements>
-                      </project_upwind_value_from_point>
-                    </limiter>
-                  </limit_face_value>
-                </face_value>
-                <diffusion_scheme name="ElementGradient"/>
-              </control_volumes>
+              <continuous_galerkin>
+                <stabilisation>
+                  <no_stabilisation/>
+                </stabilisation>
+                <advection_terms/>
+                <mass_terms/>
+              </continuous_galerkin>
               <conservative_advection>
                 <real_value rank="0">0</real_value>
               </conservative_advection>
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
-              <control_volumes>
-                <number_advection_iterations>
-                  <integer_value rank="0">3</integer_value>
-                </number_advection_iterations>
-                <limit_theta/>
-              </control_volumes>
             </temporal_discretisation>
             <solver>
-              <iterative_method name="cg"/>
-              <preconditioner name="hypre">
-                <hypre_type name="boomeramg"/>
-              </preconditioner>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
               <relative_error>
                 <real_value rank="0">1.e-7</real_value>
               </relative_error>
@@ -292,31 +243,21 @@
             <initial_condition name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.eps(X)</string_value>
+        import k_epsilon_tools as k
+        eps=k.eps(X)
+        return eps</string_value>
               </python>
             </initial_condition>
-            <boundary_conditions name="intopbottom">
+            <boundary_conditions name="all_sides">
               <surface_ids>
-                <integer_value shape="3" rank="1">7 8 9</integer_value>
+                <integer_value shape="4" rank="1">7 8 9 10</integer_value>
               </surface_ids>
               <type name="dirichlet">
                 <python>
                   <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.eps(X)</string_value>
-                </python>
-              </type>
-            </boundary_conditions>
-            <boundary_conditions name="out">
-              <surface_ids>
-                <integer_value shape="1" rank="1">10</integer_value>
-              </surface_ids>
-              <type name="neumann">
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.grad_eps(X)[0]</string_value>
+        import k_epsilon_tools as k
+        eps=k.eps(X)
+        return eps</string_value>
                 </python>
               </type>
             </boundary_conditions>
@@ -334,8 +275,8 @@
                 <value name="WholeMesh">
                   <python>
                     <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.forcing_eps(X)</string_value>
+        import k_epsilon_tools as k
+        return k.forcing_eps(X)</string_value>
                   </python>
                 </value>
                 <output/>
@@ -355,7 +296,9 @@
                 </detectors>
               </diagnostic>
             </scalar_field>
-            <output/>
+            <output>
+              <include_previous_time_step/>
+            </output>
             <stat/>
             <convergence>
               <include_in_convergence/>
@@ -364,7 +307,7 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
             <consistent_interpolation/>
           </prognostic>
@@ -375,11 +318,13 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">5.e-7</real_value>
+                  <real_value rank="0">0.7</real_value>
                 </constant>
               </isotropic>
             </value>
-            <output/>
+            <output>
+              <exclude_from_vtu/>
+            </output>
           </prescribed>
         </tensor_field>
         <tensor_field name="KEpsEddyViscosity" rank="2">
@@ -407,15 +352,15 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
         <source_absorption>
-          <string_value>implicit</string_value>
+          <string_value>explicit</string_value>
         </source_absorption>
         <C_mu>
-          <real_value rank="0">.09</real_value>
+          <real_value rank="0">0.09</real_value>
         </C_mu>
         <C_eps_1>
           <real_value rank="0">1.44</real_value>
@@ -424,7 +369,7 @@
           <real_value rank="0">1.92</real_value>
         </C_eps_2>
         <sigma_k>
-          <real_value rank="0">1</real_value>
+          <real_value rank="0">1.0</real_value>
         </sigma_k>
         <sigma_eps>
           <real_value rank="0">1.3</real_value>
@@ -437,6 +382,9 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
+        <reference_node>
+          <integer_value rank="0">1</integer_value>
+        </reference_node>
         <scheme>
           <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
@@ -447,28 +395,16 @@
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.E-7</real_value>
+            <real_value rank="0">1.E-5</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">10000</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
           </diagnostics>
         </solver>
-        <boundary_conditions name="allsides">
-          <surface_ids>
-            <integer_value shape="2" rank="1">9 10</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <python>
-              <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.pressure(X)</string_value>
-            </python>
-          </type>
-        </boundary_conditions>
         <output>
           <include_previous_time_step/>
         </output>
@@ -480,7 +416,7 @@
           <exclude_from_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
@@ -508,10 +444,10 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">1</real_value>
           </theta>
           <relaxation>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1</real_value>
           </relaxation>
         </temporal_discretisation>
         <solver>
@@ -537,76 +473,37 @@
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="inbottom">
+        <boundary_conditions name="all_sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">7 8</integer_value>
+            <integer_value shape="4" rank="1">7 8 9 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
                   <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.velocity(X)[0]</string_value>
+   import k_epsilon_tools as k
+   # Shear rotation about origin.
+   return k.velocity(X)[0]</string_value>
                 </python>
               </x_component>
               <y_component>
                 <python>
                   <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.velocity(X)[1]</string_value>
+   import k_epsilon_tools as k
+   # Shear rotation about origin.
+   return k.velocity(X)[1]</string_value>
                 </python>
               </y_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="out">
-          <surface_ids>
-            <integer_value shape="1" rank="1">10</integer_value>
-          </surface_ids>
-          <type name="neumann">
-            <align_bc_with_cartesian>
-              <x_component>
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.grad_u(X)[0]</string_value>
-                </python>
-              </x_component>
-              <y_component>
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.grad_v(X)[0]</string_value>
-                </python>
-              </y_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="top">
-          <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <x_component>
-                <python>
-                  <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.velocity(X)[0]</string_value>
-                </python>
-              </x_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <output>
-              <exclude_from_vtu/>
-            </output>
+            <output/>
             <stat>
-              <exclude_from_stat/>
+              <include_in_stat/>
             </stat>
           </diagnostic>
         </tensor_field>
@@ -615,8 +512,8 @@
             <value name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.forcing_mom(X)</string_value>
+   import k_epsilon_tools as k
+   return k.forcing_mom(X)</string_value>
               </python>
             </value>
             <output/>
@@ -647,7 +544,7 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
@@ -675,8 +572,8 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.pressure(X)</string_value>
+        import k_epsilon_tools as k
+        return k.pressure(X)</string_value>
           </python>
         </value>
         <output/>
@@ -686,9 +583,20 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="ScalarAbsoluteDifference" rank="0">
-      <diagnostic field_name_b="Pressure" field_name_a="PressureAnalytical">
-        <algorithm name="Internal" material_phase_support="multiple"/>
+    <scalar_field name="PressureDifference" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">E=state.scalar_fields["Pressure"]
+S=state.scalar_fields["PressureAnalytical"]
+
+for n in range(field.node_count):
+	E_n=E.node_val(n)
+	S_n=S.node_val(n)
+	field.set(n,E_n-S_n)</string_value>
+          <depends>
+            <string_value lines="1">Pressure</string_value>
+          </depends>
+        </algorithm>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>
@@ -701,7 +609,135 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <relative_to_average/>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="EddyViscosityAnalytical" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+        import k_epsilon_tools as k
+        nut=k.nut(X)
+        return nut</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="EddyViscosityDifference" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">E=state.scalar_fields["ScalarEddyViscosity"]
+S=state.scalar_fields["EddyViscosityAnalytical"]
+
+for n in range(field.node_count):
+	E_n=E.node_val(n)
+	S_n=S.node_val(n)
+	field.set(n,E_n-S_n)</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="TKEAnalytical" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+        import k_epsilon_tools as k
+        tke=k.tke(X)
+        return tke</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="TKEDifference" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">E=state.scalar_fields["TurbulentKineticEnergy"]
+S=state.scalar_fields["TKEAnalytical"]
+
+for n in range(field.node_count):
+	E_n=E.node_val(n)
+	S_n=S.node_val(n)
+	field.set(n,E_n-S_n)</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="EpsilonAnalytical" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+        import k_epsilon_tools as k
+        eps=k.eps(X)
+        return eps</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="EpsilonDifference" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">E=state.scalar_fields["TurbulentDissipation"]
+S=state.scalar_fields["EpsilonAnalytical"]
+
+for n in range(field.node_count):
+	E_n=E.node_val(n)
+	S_n=S.node_val(n)
+	field.set(n,E_n-S_n)</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
       </diagnostic>
     </scalar_field>
     <vector_field name="VelocityAnalytical" rank="1">
@@ -710,8 +746,8 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools
-        return k_epsilon_tools.velocity(X)</string_value>
+        import k_epsilon_tools as k
+        return k.velocity(X)</string_value>
           </python>
         </value>
         <output/>
@@ -723,9 +759,9 @@
         </detectors>
       </prescribed>
     </vector_field>
-    <vector_field name="VectorAbsoluteDifference" rank="1">
-      <diagnostic field_name_b="Velocity" field_name_a="VelocityAnalytical">
-        <algorithm name="Internal" material_phase_support="multiple"/>
+    <vector_field name="VelocityDifference" rank="1">
+      <diagnostic>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="VelocityAnalytical" material_phase_support="single" source_field_1_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>

@@ -327,11 +327,17 @@ contains
     type(scalar_field), intent(inout) :: s_field
 
     type(scalar_field), pointer :: read_field
-    character(len = OPTION_PATH_LEN) :: path, filename
+    character(len = OPTION_PATH_LEN) :: filename
     logical :: checkpoint_exists
-    
-    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    integer :: i
+
+    do i = 1, option_count("/geometry/mesh")
+      if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
+        call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename)
+        ewrite(2,*) "mesh from file: ", filename
+      end if
+    end do
+
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
@@ -349,11 +355,17 @@ contains
     type(vector_field), intent(inout) :: v_field
 
     type(vector_field), pointer :: read_field
-    character(len = OPTION_PATH_LEN) :: path, filename
+    character(len = OPTION_PATH_LEN) :: filename
     logical :: checkpoint_exists
-    
-    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    integer :: i
+
+    do i = 1, option_count("/geometry/mesh")
+      if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
+        call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename)
+        ewrite(2,*) "mesh from file: ", filename
+      end if
+    end do
+
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
@@ -371,11 +383,17 @@ contains
     type(tensor_field), intent(inout) :: t_field
 
     type(tensor_field), pointer :: read_field
-    character(len = OPTION_PATH_LEN) :: path, filename
+    character(len = OPTION_PATH_LEN) :: filename
     logical :: checkpoint_exists
-    
-    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    integer :: i
+
+    do i = 1, option_count("/geometry/mesh")
+      if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
+        call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename)
+        ewrite(2,*) "mesh from file: ", filename
+      end if
+    end do
+
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else

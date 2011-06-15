@@ -9,4 +9,4 @@ input:	clean
 	../../scripts/gmsh2triangle --2d src/MMS_D.msh
 
 clean:
-	rm -f *.vtu *.stat *.s *.log *.node *.ele *.edge *checkpoint*
+	rm -rf *.vtu *.stat *.node *.ele *.edge *checkpoint*

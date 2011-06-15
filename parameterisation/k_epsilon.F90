@@ -94,9 +94,9 @@ subroutine keps_init(state)
     ! Get the 5 model constants
     call get_option(trim(keps_path)//'/C_mu', C_mu, default = 0.09)
     call get_option(trim(keps_path)//'/C_eps_1', c_eps_1, default = 1.44)
-    call get_option(trim(keps_path)//'n/C_eps_2', c_eps_2, default = 1.92)
+    call get_option(trim(keps_path)//'C_eps_2', c_eps_2, default = 1.92)
     call get_option(trim(keps_path)//'/sigma_k', sigma_k, default = 1.0)
-    call get_option(trim(keps_path)//'n/sigma_eps', sigma_eps, default = 1.3)
+    call get_option(trim(keps_path)//'sigma_eps', sigma_eps, default = 1.3)
 
     ! Get background viscosity
     call get_option(trim(keps_path)//"/tensor_field::BackgroundViscosity/prescribed/&
@@ -279,7 +279,6 @@ subroutine keps_eps(state)
         ! Absorption term:
         rhs_addto = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
                               ele_val_at_quad(tke_old,ele))
-
         call addto(abs_rhs, nodes_eps, rhs_addto)
 
         deallocate(detwei, rhs_addto)
