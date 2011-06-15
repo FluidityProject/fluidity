@@ -65,8 +65,8 @@ def get_custom_controls(opt_options):
       m[cname] = d['initial_control']()
   return m
 
-# Initialse the default controls by reading in the control files/
-# This assumes that the model has been run in advance and produced the initial control files.
+# Initialse the default controls by reading in the control files.
+# This assumes that the model has been run without the "/adjoint/load_controls" option (which produced the initial control files).
 def read_default_controls(opt_options, model_options):
   simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
   nb_controls = superspud(opt_options, "libspud.option_count('/control_io/control')")
@@ -88,8 +88,42 @@ def read_default_controls(opt_options, model_options):
         f.close()
         act_flag = True
       if act_flag == False:
-        print "Warning: Found no control derivative file for control ", cname, "."
+        print "Warning: Found no control file for control ", cname, "."
   return m
+
+# Initialse the default controli bounds by reading in the control bound files.
+# This assumes that the model has been run without the "/adjoint/load_controls" option (which produced the initial control bound files).
+def read_default_control_bounds(opt_options, model_options):
+  simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
+  nb_controls = superspud(opt_options, "libspud.option_count('/control_io/control')")
+  m_bounds = {"lower_bound": {}, "upper_bound": {}}
+  # Loop over controls
+  for i in range(nb_controls):
+    cname = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/name')")
+    ctype = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/type/name')")
+    if ctype != 'default':
+      continue
+    have_bound = {}
+    # Loop over lower and upper bound 
+    for k in m_bounds.keys():
+      have_bound[k] = superspud(model_options, "libspud.have_option('/adjoint/controls/control["+str(i)+"/bounds/"+k+"')")
+      if not have_bound[k]:
+        continue
+      act_flag = False # Check that at least one control bound file exists
+      for ctrl_file in glob.iglob('control_'+simulation_name+'_'+cname+ '_'+k+'_[0-9]*.pkl'):
+        try:
+          timestep = int(ctrl_file.strip()[len('control_'+simulation_name+'_'+ cname+ '_'+k+'_'):len(ctrl_file)-4])
+        except:
+          print "Error while reading the control bound files."
+          print "The control bound file ", ctrl_file, " does not conform the standard naming conventions for control files."
+          exit()
+        f = open(ctrl_file, 'rb')
+        m_bounds[k][(cname, timestep)] = pickle.load(f) 
+        f.close()
+        act_flag = True
+      if act_flag == False:
+        print "Warning: Found no control bound file for control ", cname, "."
+  return m_bounds 
 
 # Returns the control derivatives for both the custom and the default controls. 
 def read_control_derivatives(opt_options, model_options):
@@ -192,7 +226,8 @@ def check_option_consistency(opt_options, model_options):
       exit()
 
 # Check that the the controls in dJdm are consistent with the ones in m
-def check_control_consistency(m, djdm):
+# If m_bounds is present, it also checks the consistency of the bounds
+def check_control_consistency(m, djdm, m_bounds=None):
     djdm_keys = djdm.keys()
     m_keys = m.keys()
     djdm_keys.sort()
@@ -205,9 +240,19 @@ def check_control_consistency(m, djdm):
       exit()
     for k, v in m.iteritems():
       if m[k].shape != djdm[k].shape:
-        assert(False)
         print "The control ", k, " has shape ", m[k].shape, " but dJd(", k, ") has shape ", djdm[k].shape
         exit()
+    # Check the bounds
+    if m_bounds!=None:
+      bound_types = ("lower_bound",  "upper_bound")
+      for bound_type in bound_types:
+        for control_name in m_bounds[bound_type].keys():
+          if not m.has_key(control_name):
+            print "Found a ", bound_type, " definition for a control with name ", control_name, " which does not exist in the list of controls."
+            exit()
+          if m[control_name].shape != m_bounds[bound_type][control_name].shape:
+            print "The control ", control_name, " has shape ", m[control_name].shape, " but the ", bound_type, " has shape ", m_bounds[bound_type][control_name].shape
+            exit()
 
 def delete_temporary_files(model_options):
   # remove any control files
@@ -313,7 +358,7 @@ def optimisation_loop(opt_options, model_options):
     mem_pure_J.__add__(J, m_serial, m_shape)
     # Now get the functional derivative information
     djdm = read_control_derivatives(opt_options, model_options)
-    check_control_consistency(m, djdm)
+    check_control_consistency(m, djdm, m_bounds)
     # Serialise djdm in the same order than m_serial
     djdm_serial = [] 
     for k, v in m_shape.iteritems():
@@ -367,6 +412,7 @@ def optimisation_loop(opt_options, model_options):
   superspud(model_options, ["libspud.add_option('/adjoint/controls/load_controls')", "libspud.write_options('"+ model_file +"')"])
   # Load the default controls
   m = read_default_controls(opt_options, model_options)
+  m_bounds = read_default_control_bounds(opt_options, model_options)
   nb_controls = len(m) + len(custom_m)
   # And merge them
   m.update(custom_m)
@@ -377,7 +423,7 @@ def optimisation_loop(opt_options, model_options):
     exit()
   # Since now all the controls and derivatives are defined, we can check the consistency of the control variables
   djdm = read_control_derivatives(opt_options, model_options)
-  check_control_consistency(m, djdm)
+  check_control_consistency(m, djdm, m_bounds)
 
   [m_serial, m_shape] = serialise(m)
   if verbose:
