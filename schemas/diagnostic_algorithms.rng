@@ -1961,7 +1961,7 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="vector_python_diagnostic_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms">
-    <ref name="tensor_squared_time_averaged_algorithm"/>
+    <ref name="vector_squared_time_averaged_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="tensor_copy_algorithm"/>
