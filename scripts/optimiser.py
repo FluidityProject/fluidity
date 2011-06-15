@@ -125,6 +125,18 @@ def read_default_control_bounds(opt_options, model_options):
         print "Warning: Found no control bound file for control ", cname, "."
   return m_bounds 
 
+# Completes the control bounds by adding the missing controls and filling them with nan's
+def complete_default_control_bounds(m, m_bounds):
+  bound_types = {"lower_bound": {}, "upper_bound": {}}
+  for bound_type in bound_types:
+    for control in m.keys():
+      if m_bounds[bound_type].has_key(control):
+        continue
+      m_bounds[bound_type][control] = numpy.empty(shape = m[control].shape)
+      m_bounds[bound_type][control].fill(None)
+  return m_bounds     
+
+
 # Returns the control derivatives for both the custom and the default controls. 
 def read_control_derivatives(opt_options, model_options):
   simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
@@ -246,12 +258,16 @@ def check_control_consistency(m, djdm, m_bounds=None):
     if m_bounds!=None:
       bound_types = ("lower_bound",  "upper_bound")
       for bound_type in bound_types:
-        for control_name in m_bounds[bound_type].keys():
-          if not m.has_key(control_name):
-            print "Found a ", bound_type, " definition for a control with name ", control_name, " which does not exist in the list of controls."
-            exit()
-          if m[control_name].shape != m_bounds[bound_type][control_name].shape:
-            print "The control ", control_name, " has shape ", m[control_name].shape, " but the ", bound_type, " has shape ", m_bounds[bound_type][control_name].shape
+        m_bounds_keys = m_bounds[bound_type].keys()
+        m_bounds_keys.sort()
+        if m_keys != m_bounds_keys:
+          print "Error: The controls are not consistent with the control ", bound_type, "."
+          print "The controls are:", m_keys
+          print "The control ", bound_type, "s are:", m_bounds_keys
+          exit()
+        for k, v in m.iteritems():
+          if m[k].shape != m_bounds[bound_type][k].shape:
+            print "The control ", k, " has shape ", m[k].shape, " but the ", bound_type, " has shape ", m_bounds[bound_type][k].shape
             exit()
 
 def delete_temporary_files(model_options):
@@ -421,8 +437,10 @@ def optimisation_loop(opt_options, model_options):
     print "The controls must have all unique names."
     print "Your controls are: ", m.keys()
     exit()
-  # Since now all the controls and derivatives are defined, we can check the consistency of the control variables
   djdm = read_control_derivatives(opt_options, model_options)
+  # Now complete the bounds arrays where the user did not specify any bounds
+  m_bounds = complete_default_control_bounds(m, m_bounds)
+  # Since now all the controls and derivatives are defined, we can check the consistency of the control variables
   check_control_consistency(m, djdm, m_bounds)
 
   [m_serial, m_shape] = serialise(m)
