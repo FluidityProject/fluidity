@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <testproblem>
-  <name>Shallow Water Equation MMS</name>
-  <owner userid="pef"/>
+  <name>Shallow Water Equation MMS Gradient Check</name>
+  <owner userid="sf1409"/>
   <tags>swml adjoint optimiser</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>time ../../scripts/optimiser.py -v optimiser_A.oml;</command_line>
