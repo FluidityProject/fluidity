@@ -132,7 +132,8 @@ def complete_default_control_bounds(m, m_bounds):
     for control in m.keys():
       if m_bounds[bound_type].has_key(control):
         continue
-      m_bounds[bound_type][control] = numpy.empty(shape = m[control].shape)
+      # We need objects as dtype because we want to keep the Nones for later
+      m_bounds[bound_type][control] = numpy.empty(shape = m[control].shape, dtype=object)
       m_bounds[bound_type][control].fill(None)
   return m_bounds     
 
@@ -280,6 +281,15 @@ def delete_temporary_files(model_options):
   stat_files = glob.glob(simulation_name+'*.stat')
   for f in stat_files:
     os.remove(f)   
+    
+# Returns true if bounds are specified for one of the controls
+def have_bounds(opt_options, model_options):
+  nb_controls = superspud(opt_options, "libspud.option_count('/control_io/control')")
+  have_bounds = False
+  for i in range(nb_controls):
+    cname = superspud(opt_options, "libspud.get_option('/control_io/control["+str(i)+"]/name')")
+    have_bounds = have_bounds or superspud(model_options, "libspud.have_option('/adjoint/controls/control["+cname+"]/bounds')")
+  return have_bounds
 
 ################# Optimisation loop ###################
 def optimisation_loop(opt_options, model_options):
@@ -313,10 +323,10 @@ def optimisation_loop(opt_options, model_options):
   # This function takes in a dictionary m with numpy.array as entries. 
   # From that it creates one serialised numpy.array with all the data.
   # In addition it creates m_shape, a dictionary which is used in unserialise.
-  def serialise(m):
+  def serialise(m, shape=None):
     m_serial = numpy.array([])
     m_shape = {}
-    for k, v in m.iteritems():
+    for k, v in iter(sorted(m.iteritems())):
       m_serial = numpy.append(m_serial, v.flatten())
       m_shape[k] = v.shape
     return [m_serial, m_shape]
@@ -325,7 +335,7 @@ def optimisation_loop(opt_options, model_options):
   def unserialise(m_serial, m_shape):
     m = {}
     start_index = 0
-    for k, s in m_shape.iteritems():
+    for k, s in iter(sorted(m_shape.iteritems())):
       offset = 1
       for d in s:
         offset = offset * d
@@ -399,7 +409,7 @@ def optimisation_loop(opt_options, model_options):
   if verbose:
     print "Read oml settings"
   algo = superspud(opt_options, "libspud.get_option('optimisation_options/optimisation_algorithm[0]/name')")
-  tol = superspud(opt_options, "libspud.get_option('/optimisation_options/tolerance')")
+  have_bound = have_bounds(opt_options, model_options)
   # Create the memoized version of the functional (derivative) evaluation functions
   mem_pure_dJdm = MemoizeMutable(pure_dJdm)
   mem_pure_J = MemoizeMutable(pure_J)
@@ -444,25 +454,66 @@ def optimisation_loop(opt_options, model_options):
   check_control_consistency(m, djdm, m_bounds)
 
   [m_serial, m_shape] = serialise(m)
+  [m_lb_serial, m_lb_shape] = serialise(m_bounds["lower_bound"])
+  [m_ub_serial, m_ub_shape] = serialise(m_bounds["upper_bound"])
+  assert(m_ub_shape == m_shape)
+  assert(m_lb_shape == m_shape)
+  # zip the lower and upper bound to a list of tuples
+  m_bounds_serial = zip(m_lb_serial, m_ub_serial)
   if verbose:
     print "Start optimisation loop"
     print "Using ", algo, " as optimisation algorithm."
-  maxiter=None
-  if superspud(opt_options, "libspud.have_option('/optimisation_options/iterations')"):
-    maxiter = superspud(opt_options, "libspud.get_option('/optimisation_options/iterations')")
 
   if algo == 'BFGS':
+    if have_bound:
+      print "BFGS does not support bounds."
+      exit()
+    tol = superspud(opt_options, "libspud.get_option('/optimisation_options/optimisation_algorithm::BFGS/tolerance')")
+    maxiter=None
+    if superspud(opt_options, "libspud.have_option('/optimisation_options/optimisation_algorithm::BFGS/iterations')"):
+      maxiter = superspud(opt_options, "libspud.get_option('/optimisation_options/optimisation_algorithm::BFGS/iterations')")
     res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, maxiter=maxiter, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
+    print "Functional value J(m): ", res[1]
+    print "Control state m: ", res[0]
   elif algo == 'NCG':
+    if have_bound:
+      print "NCG does not support bounds."
+      exit()
+    tol = superspud(opt_options, "libspud.get_option('/optimisation_options/optimisation_algorithm::NCG/tolerance')")
+    maxiter=None
+    if superspud(opt_options, "libspud.have_option('/optimisation_options/optimisation_algorithm::NCG/iterations')"):
+      maxiter = superspud(opt_options, "libspud.get_option('/optimisation_options/optimisation_algorithm::NCG/iterations')")
     res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, maxiter=maxiter, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
+    print "Functional value J(m): ", res[1]
+    print "Control state m: ", res[0]
+  elif algo == 'L-BFGS-B': 
+    opt_args = dict(func=J, x0=m_serial, fprime=dJdm, args=(m_shape, ) )
+    if have_bound:
+      opt_args['bounds'] = m_bounds_serial
+    if superspud(opt_options, "libspud.have_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/tolerance')"):
+      pgtol = superspud(opt_options, "libspud.get_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/tolerance')")
+      opt_args['pgtol'] = pgtol
+    if superspud(opt_options, "libspud.have_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/factr')"):
+      factr = superspud(opt_options, "libspud.get_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/factr')")
+      opt_args['factr'] = factr
+    if superspud(opt_options, "libspud.have_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/memory_limit')"):
+      memory_limit = superspud(opt_options, "libspud.get_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/memory_limit')")
+      opt_args['m'] = memory_limit
+    if superspud(opt_options, "libspud.have_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/maximal_functional_evaluations')"):
+      maxfun = superspud(opt_options, "libspud.get_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/maximal_functional_evaluations')")
+      opt_args['maxfun'] = maxfun
+    if superspud(opt_options, "libspud.have_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/verbosity')"):
+      iprint = superspud(opt_options, "libspud.get_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/verbosity')")
+      opt_args['iprint'] = iprint
+
+    res = scipy.optimize.fmin_l_bfgs_b(**opt_args)
+    print res
   else:
     print "Unknown optimisation algorithm in option path."
     exit()
   
   if verbose:
     print "End of optimisation loop"
-  print "Functional value J(m): ", res[1]
-  print "Control state m: ", res[0]
 
 ################# Main program ###################
 def main():

@@ -6,10 +6,11 @@
   <model command_line="../../bin/shallow_water" option_file="adjoint_D.swml"/>
   <functional name="integral_eta_t1"/>
   <optimisation_options>
-    <optimisation_algorithm name="BFGS"/>
-    <tolerance>
-      <real_value rank="0">1e-8</real_value>
-    </tolerance>
+    <optimisation_algorithm name="BFGS">
+      <tolerance>
+        <real_value rank="0">1e-8</real_value>
+      </tolerance>
+    </optimisation_algorithm>
   </optimisation_options>
   <control_io>
     <control name="InitEta">
