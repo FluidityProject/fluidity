@@ -1,14 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
-    <string_value lines="1">fsphere</string_value>
+    <string_value lines="1">fsphere_A</string_value>
   </simulation_name>
   <geometry>
     <dimension>
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="sphere">
+      <from_file file_name="src/sphere_A">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
@@ -132,7 +132,7 @@ val=spherical_down()</string_value>
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
   from fluidity.spheretools import cart2polar, polar2cart
   from constants_2d import r
   import constants_2d  
@@ -158,7 +158,7 @@ val=spherical_down()</string_value>
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value type="python" lines="20">def val(X, t):
+                <string_value lines="20" type="python">def val(X, t):
   from fluidity.spheretools import cart2polar, polar2cart
   from constants_2d import r
   import constants_2d  
@@ -256,8 +256,7 @@ val=spherical_down()</string_value>
   import constants_2d
   xpo = cart2polar(X)
   # Function code
-  return constants_2d.eta_exact(xpo, t)
-</string_value>
+  return constants_2d.eta_exact(xpo, t)</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
@@ -267,7 +266,7 @@ val=spherical_down()</string_value>
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value type="python" lines="20">def val(X, t):
+                <string_value lines="20" type="python">def val(X, t):
   from fluidity.spheretools import cart2polar, polar2cart
   import constants_2d  
   xpo = cart2polar(X)
@@ -294,13 +293,12 @@ val=spherical_down()</string_value>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
   from fluidity.spheretools import cart2polar, polar2cart
   import constants_2d
   xpo = cart2polar(X)
   # Function code
-  return constants_2d.eta_exact(xpo, t)
-</string_value>
+  return constants_2d.eta_exact(xpo, t)</string_value>
           </python>
         </value>
         <output/>
@@ -318,7 +316,7 @@ val=spherical_down()</string_value>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
   from fluidity.spheretools import cart2polar, polar2cart
   from constants_2d import r
   import constants_2d  
