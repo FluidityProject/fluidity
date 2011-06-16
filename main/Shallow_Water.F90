@@ -190,6 +190,7 @@
 
     call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
+    call write_diagnostics(state, current_time, dt, timestep)
 
     ! Always output the initial conditions.
     call output_state(state)
