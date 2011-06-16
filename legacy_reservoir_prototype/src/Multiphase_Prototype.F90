@@ -60,6 +60,8 @@ module mp_prototype
       
       real :: dt, current_time, finish_time
       real :: nonlinear_iteration_tolerance
+      
+      logical :: do_old_output
 
       
       !! Old variable declaration
@@ -168,12 +170,12 @@ module mp_prototype
 !!!!!    - for this we need to list everything that's read in and not derived
 !!!!!    - although some derived stuff might be available through state as well
 !!!!!!!!
-      call copy_outof_state(state, dt, current_time, finish_time, &
+      call copy_outof_state(state, dt, &
                             nonlinear_iterations, nonlinear_iteration_tolerance, &
                               ! Begin here all the variables from read_scalar
            problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
-           cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
+           cv_snloc, u_snloc, p_snloc, stotel, &
            ncoef, nuabs_coefs, &
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
            cv_sele_type, u_sele_type, &
@@ -228,7 +230,7 @@ module mp_prototype
       mat_nloc = cv_nloc
       mat_nonods = mat_nloc * totele
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
-      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
+!      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
 
       if( u_snloc < 0 ) u_snloc = 1 * nlev
       mat_nloc = cv_nloc
@@ -309,9 +311,11 @@ module mp_prototype
       !! Ok, done with the new input, now we need to check that everything's
       !! as it was before, so we're going to do the old input routines too
       !! and compare the mirror files.
+      
+      do_old_output=.true.
 
            
-      if( .false. ) call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
+      if( do_old_output ) call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
            ncoef, nuabs_coefs, &
@@ -345,7 +349,7 @@ module mp_prototype
 
       nkcomp = Combination( ncomp, 2 )
 
-      if( .false. ) call read_all( unit_input, nphase, ncomp, totele, ndim, &
+      if( do_old_output ) call read_all( unit_input, nphase, ncomp, totele, ndim, &
            cv_snloc, u_snloc, p_snloc, stotel, &
            ncoef, nuabs_coefs, ncp_coefs, & 
            cv_nonods, u_nonods, &
@@ -379,6 +383,48 @@ module mp_prototype
 
 
       close( unit_input )
+      
+      mat_nloc = cv_nloc
+      mat_nonods = mat_nloc * totele
+      nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
+!      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
+
+      if( u_snloc < 0 ) u_snloc = 1 * nlev
+      mat_nloc = cv_nloc
+      cv_pha_nonods = cv_nonods * nphase
+      u_pha_nonods = u_nonods * nphase
+      ncp_coefs = nphase
+      nlenmcy = u_pha_nonods + cv_nonods
+
+      if( ndpset < 0 ) ndpset = cv_nonods
+
+      ! This should really be in the copy routine, but it isn't used
+      ! anyway
+!      allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
+      opt_vel_upwind_coefs = 0.
+
+      ! Set up Global node number for velocity and scalar fields
+!      allocate( u_ndgln( totele * u_nloc ))
+!      allocate( xu_ndgln( totele * xu_nloc ))
+!      allocate( cv_ndgln( totele * cv_nloc ))
+!      allocate( x_ndgln( totele * cv_nloc ))
+!      allocate( p_ndgln( totele * p_nloc ))
+!      allocate( mat_ndgln( totele * mat_nloc ))
+!      allocate( u_sndgln( stotel * u_snloc ))
+!      allocate( cv_sndgln( stotel * cv_snloc ))
+!      allocate( x_sndgln( stotel * cv_snloc ))
+!      allocate( p_sndgln( stotel * p_snloc ))
+
+      u_ndgln = 0
+      xu_ndgln = 0
+      cv_ndgln = 0
+      x_ndgln = 0
+      p_ndgln = 0
+      mat_ndgln =0
+      u_sndgln = 0
+      cv_sndgln =0
+      x_sndgln = 0
+      p_sndgln = 0
 
 
       ! Allocating solver parameters into the following arrays (dimension = 4)
@@ -460,26 +506,26 @@ module mp_prototype
       nwold = 0.
 
       told = t
-
-      if (.false.) call allocating_global_nodes( ndim, totele, domain_length, &
+      
+      if ( do_old_output ) call allocating_global_nodes( ndim, totele, domain_length, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
            cv_nonods, u_nonods, x_nonods, xu_nonods, &
            u_ele_type, cv_ele_type, &
            x, xu,  &
            u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, u_sndgln, cv_sndgln, p_sndgln )
+           mat_ndgln, cv_sndgln, u_sndgln, p_sndgln )
       ! Initialising T and Told. This should be properly initialised through a generic function
 
-      if (.false.) call initialise_scalar_fields( &
+      if ( do_old_output ) call initialise_scalar_fields( &
            problem, ndim, nphase, totele, domain_length, &
            x_nloc, cv_nloc, x_nonods, cv_nonods,  &
            x_ndgln, cv_ndgln, &
            x, told, t )
 
       ! Mirroring Input dat
-
-      if( .false. ) call mirror_data( unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
+      
+      if( do_old_output ) call mirror_data( unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc,  p_snloc, stotel, &
            ncoef, nuabs_coefs, &

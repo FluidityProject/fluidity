@@ -1451,36 +1451,36 @@ contains
 
 
   subroutine read_all( unit, nphase, ncomp, totele, ndim, &
-       cv_snloc, u_snloc, p_snloc, stotel, &
-       ncoef, nuabs_coefs, ncp_coefs, & 
-       cv_nonods, u_nonods, &
-       mat_nonods, x_nonods, xu_nonods, &
-       nopt_vel_upwind_coefs, &
-       wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, wic_comp_bc, & 
-       suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
-       suf_u_bc, suf_v_bc, suf_w_bc, suf_one_bc, suf_comp_bc, &
-       suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
-       suf_w_bc_rob1, suf_w_bc_rob2, suf_t_bc_rob1, suf_t_bc_rob2, &
-       suf_vol_bc_rob1, suf_vol_bc_rob2, &
-       suf_comp_bc_rob1, suf_comp_bc_rob2, &
-       opt_vel_upwind_coefs, &
-       volfra_error, volfra_relax, volfra_relax_diag, volfra_relax_row, volfra_relax_number_iterations, & 
-       scalar_error, scalar_relax, scalar_relax_diag, scalar_relax_row, scalar_relax_number_iterations, & 
-       global_error, global_relax, global_relax_diag, global_relax_row, global_relax_number_iterations, & 
-       velocity_error, velocity_relax, velocity_relax_diag, velocity_relax_row, velocity_relax_number_iterations, & 
-       pressure_error, pressure_relax, pressure_relax_diag, pressure_relax_row, pressure_relax_number_iterations, & 
-       mass_matrix_error, mass_matrix_relax, mass_matrix_relax_diag, mass_matrix_relax_row, mass_matrix_relax_number_iterations, &
-       in_ele_upwind, dg_ele_upwind, & 
-       x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
-       uabs_option, uabs_coefs, u_abs_stab, Mobility, &
-       u_absorb, t_absorb, v_absorb, comp_absorb, &
-       u_source, t_source, v_source, comp_source, udiffusion, tdiffusion, &
-       ncomp_diff_coef, comp_diffusion, comp_diff_coef, &
-       ncapil_pres_coef, capil_pres_coef, & 
-       u, v, w, &
-       den, satura, comp, volfra, t, cv_one, p, cv_p, volfra_pore, Viscosity, perm, &
-       KComp_Sigmoid, K_Comp, Comp_Sum2One, alpha_beta, &
-       eos_option, cp_option, eos_coefs, cp_coefs )
+           cv_snloc, u_snloc, p_snloc, stotel, &
+           ncoef, nuabs_coefs, ncp_coefs, & 
+           cv_nonods, u_nonods, &
+           mat_nonods, x_nonods, xu_nonods, &
+           nopt_vel_upwind_coefs, &
+           wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, wic_comp_bc, & 
+           suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
+           suf_u_bc, suf_v_bc, suf_w_bc, suf_one_bc, suf_comp_bc, &
+           suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
+           suf_w_bc_rob1, suf_w_bc_rob2, suf_t_bc_rob1, suf_t_bc_rob2, &
+           suf_vol_bc_rob1, suf_vol_bc_rob2, &
+           suf_comp_bc_rob1, suf_comp_bc_rob2, &
+           opt_vel_upwind_coefs, &
+           volfra_error, volfra_relax, volfra_relax_diag, volfra_relax_row, volfra_relax_number_iterations, & 
+           scalar_error, scalar_relax, scalar_relax_diag, scalar_relax_row, scalar_relax_number_iterations, & 
+           global_error, global_relax, global_relax_diag, global_relax_row, global_relax_number_iterations, & 
+           velocity_error, velocity_relax, velocity_relax_diag, velocity_relax_row, velocity_relax_number_iterations, & 
+           pressure_error, pressure_relax, pressure_relax_diag, pressure_relax_row, pressure_relax_number_iterations, & 
+           mass_matrix_error, mass_matrix_relax, mass_matrix_relax_diag, mass_matrix_relax_row, mass_matrix_relax_number_iterations, &
+           in_ele_upwind, dg_ele_upwind, &
+           x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
+           uabs_option, uabs_coefs, u_abs_stab, Mobility, &
+           u_absorb, t_absorb, v_absorb, comp_absorb, &
+           u_source, t_source, v_source, comp_source, udiffusion, tdiffusion, &
+           ncomp_diff_coef, comp_diffusion, comp_diff_coef, &
+           ncapil_pres_coef, capil_pres_coef, & 
+           u, v, w, &
+           den, satura, comp, volfra, t, cv_one, p, cv_p, volfra_pore, Viscosity, perm, &
+           KComp_Sigmoid, K_Comp, Comp_Sum2One, alpha_beta, &
+           eos_option, cp_option, eos_coefs, cp_coefs )
 
     implicit none
     integer, intent( in ) :: unit, nphase, ncomp, totele, ndim, &
@@ -1551,7 +1551,7 @@ contains
     ! Local variables
     integer, parameter :: len_name = 50
     character( len = len_name ) :: ifile, fcn_name
-    integer :: ior, k
+    integer :: ior, k!, q
     real :: value_real
     logical :: value_bool
 
@@ -1561,6 +1561,7 @@ contains
     Mobility = 10.
 
     ior = 0
+!    q=0
     do while ( .not. ( ior == -1000 ))
 
 
@@ -1569,7 +1570,8 @@ contains
 
        Conditional_IOR: if ( ior > 0 ) then
           k = index( ifile, ' ') - 1
-          ewrite(3,*) 'Going to get ', ifile(1:k)
+!          q=q+1
+!          ewrite(3,*) 'q', q, ifile(1:k)
           Select Case ( ifile( 1 : k ))
              ! Logical
           Case( 'KComp_Sigmoid' );
@@ -2730,14 +2732,16 @@ contains
 
     ewrite(3,*) 'In allocating_global_nodes'
 
-    ewrite(3,*) 'vars :', ndim, totele, domain_length, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
-           cv_snloc, u_snloc, p_snloc, stotel, &
-           cv_nonods, u_nonods, x_nonods, xu_nonods, &
-           u_ele_type, cv_ele_type, &
-           x, xu !,  &
+!    ewrite(3,*) 'vars 1:', ndim, totele, domain_length, &
+!           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc
+!    ewrite(3,*) 'vars 2:', cv_snloc, u_snloc, p_snloc
+!    ewrite(3,*) 'vars 3:', stotel, &
+!           cv_nonods, u_nonods, x_nonods, xu_nonods
+!    ewrite(3,*) 'vars 4:', u_ele_type, cv_ele_type, &
+!           x, xu !,  &
            !u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
            !mat_ndgln, u_sndgln, cv_sndgln, p_sndgln
+!    ewrite(3,*) 'vars 5:', x_ndgln
 
     Conditional_NDIM: if( ndim == 1 ) then ! This needs to be updated for 2-3D
 
@@ -2825,25 +2829,25 @@ contains
 
     end if Conditional_NDIM
 
-    ewrite(3,*)'size of u_ndgln:',size(u_ndgln)
-    ewrite(3,*)'u_ndgln:', u_ndgln( 1: totele * u_nloc )
-    ewrite(3,*)'size of cv_ndgln:',size(cv_ndgln)
-    ewrite(3,*)'cv_ndgln:', cv_ndgln( 1: totele * cv_nloc )
-    ewrite(3,*)'size of p_ndgln:',size(p_ndgln)
-    ewrite(3,*)'p_ndgln:', p_ndgln( 1: totele * p_nloc )
-    ewrite(3,*)'size of x_ndgln:',size(x_ndgln)
-    ewrite(3,*)'x_ndgln:', x_ndgln( 1: totele * cv_nloc )
-    ewrite(3,*)'size of xu_ndgln:',size(xu_ndgln)
-    ewrite(3,*)'xu_ndgln:', xu_ndgln( 1: totele * xu_nloc )
-    ewrite(3,*)'size of mat_ndgln:',size(mat_ndgln)
-    ewrite(3,*)'mat_ndgln:', mat_ndgln( 1: totele * mat_nloc )
+!    ewrite(3,*)'size of u_ndgln:',size(u_ndgln)
+!    ewrite(3,*)'u_ndgln:', u_ndgln( 1: totele * u_nloc )
+!    ewrite(3,*)'size of cv_ndgln:',size(cv_ndgln)
+!    ewrite(3,*)'cv_ndgln:', cv_ndgln( 1: totele * cv_nloc )
+!    ewrite(3,*)'size of p_ndgln:',size(p_ndgln)
+!    ewrite(3,*)'p_ndgln:', p_ndgln( 1: totele * p_nloc )
+!    ewrite(3,*)'size of x_ndgln:',size(x_ndgln)
+!    ewrite(3,*)'x_ndgln:', x_ndgln( 1: totele * cv_nloc )
+!    ewrite(3,*)'size of xu_ndgln:',size(xu_ndgln)
+!    ewrite(3,*)'xu_ndgln:', xu_ndgln( 1: totele * xu_nloc )
+!    ewrite(3,*)'size of mat_ndgln:',size(mat_ndgln)
+!    ewrite(3,*)'mat_ndgln:', mat_ndgln( 1: totele * mat_nloc )
 
-    ewrite(3,*)'size of u_sndgln:',size(u_sndgln)
-    ewrite(3,*)'u_sndgln:', u_sndgln( 1: stotel * u_snloc )
-    ewrite(3,*)'size of cv_sndgln:',size(cv_sndgln)
-    ewrite(3,*)'cv_sndgln:', cv_sndgln( 1: stotel * cv_snloc )
-    ewrite(3,*)'size of p_sndgln:',size(p_sndgln)
-    ewrite(3,*)'p_sndgln:', p_sndgln( 1: stotel * p_snloc )
+!    ewrite(3,*)'size of u_sndgln:',size(u_sndgln)
+!    ewrite(3,*)'u_sndgln:', u_sndgln( 1: stotel * u_snloc )
+!    ewrite(3,*)'size of cv_sndgln:',size(cv_sndgln)
+!    ewrite(3,*)'cv_sndgln:', cv_sndgln( 1: stotel * cv_snloc )
+!    ewrite(3,*)'size of p_sndgln:',size(p_sndgln)
+!    ewrite(3,*)'p_sndgln:', p_sndgln( 1: stotel * p_snloc )
 
 
     ewrite(3,*) 'Leaving allocating_global_nodes'

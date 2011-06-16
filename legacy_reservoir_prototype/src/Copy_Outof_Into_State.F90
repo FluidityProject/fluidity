@@ -56,12 +56,12 @@ module copy_outof_into_state
   
   contains
   
-    subroutine copy_outof_state(state, dt, current_time, finish_time, &
+    subroutine copy_outof_state(state, dt, &
          nonlinear_iterations, nonlinear_iteration_tolerance, &
                                 ! Begin here all the variables from read_scalar
          problem, nphases, ncomps, totele, ndim, nlev, &
          u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
-         cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
+         cv_snloc, u_snloc, p_snloc, stotel, &
          ncoef, nuabs_coefs, &
          u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
          cv_sele_type, u_sele_type, &
@@ -121,36 +121,28 @@ module copy_outof_into_state
            componentmassfraction, &
            phasevolumefraction_bc, density_bc, pressure_bc, scalarfield_bc
 
-      REAL, DIMENSION( : ), ALLOCATABLE::SATURABC
-
       type(vector_field), pointer :: velocity, velocity_source
       type(vector_field), pointer :: velocity_bc
 
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
 
       integer :: nonlinear_iterations, &  !! equal to nits in prototype code
-           stat, nstates, ncomponent_scalarfields
+           stat, nstates
 
-      real :: dt, current_time, finish_time
+      real :: dt
       real :: nonlinear_iteration_tolerance
 
-      logical :: have_velocity_bcs
-
-      character(len=OPTION_PATH_LEN) :: state_path, path, field_name, material_phase_name
+      character(len=OPTION_PATH_LEN) :: field_name, material_phase_name
 
       !! temporary variables only needed for interfacing purposes
 
       type(vector_field), pointer :: positions
 
       integer :: i, j, k, l, nscalar_fields, cv_nonods, p_nonods, &
-           U_BC_Type, P_BC_Type, Temperature_bc_type, SufID_BC_U, SufID_BC_P, &
            x_nonods, xu_nonods, u_nonods
 
-      real :: Suf_BC_U, suf_bc_p, &
-           coord_min, coord_max, &
+      real :: coord_min, coord_max, &
            permeability, eos_value!, viscosity_ph1, viscosity_ph2
-
-      integer, dimension(:), allocatable :: elenodes
 
       !! Variables needed by the prototype code
       !! and therefore needing to be pulled out of state or
@@ -159,7 +151,7 @@ module copy_outof_into_state
       ! Scalars (from read_scalar())
       integer :: problem, nphases, ncomps, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
-           cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
+           cv_snloc, u_snloc, p_snloc, stotel, &
            ncoef, nuabs_coefs, &
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
            cv_sele_type, u_sele_type
@@ -222,29 +214,20 @@ module copy_outof_into_state
       real, dimension( : , : , : , : ), allocatable :: comp_diffusion
 
       integer :: Velocity_BC_Type, Pressure_BC_Type, density_bc_type, &
-           VolFrac_BC_Type, component_bc_type, pvf_bc_type, temperaure_bc_type, shape_option(2)
+           component_bc_type, pvf_bc_type, Temperature_bc_type, shape_option(2)
 
-      real :: Velocity_Suf_BC_U, Velocity_Suf_BC_V, Velocity_Suf_BC_W, &
-           Pressure_Suf_BC, density_suf_bc, VolFrac_Suf_BC, component_suf_bc, pvf_suf_bc, &
-           Temperature_suf_bc
+      real :: component_suf_bc
 
       integer, dimension(:), allocatable :: Velocity_SufID_BC, Pressure_SufID_BC, density_sufid_bc, &
-           VolFrac_SufID_BC, component_sufid_bc, pvf_sufid_bc, Temperature_sufid_bc
+           component_sufid_bc, pvf_sufid_bc, Temperature_sufid_bc
 
       ! Gravity terms to be linked with u_source
       logical :: have_gravity
       real :: gravity_magnitude, gravity_direction, delta_den
-      type( vector_field ), pointer :: gravity
-      type(vector_field), pointer :: dummyvector
+!      type( vector_field ), pointer :: gravity
+!      type(vector_field), pointer :: dummyvector
 
       integer :: nobcs    
-      integer, dimension(:), pointer:: surface_element_list    
-      type(scalar_field), pointer:: volfra_surface_field    
-      character(len=OPTION_PATH_LEN):: bctype
-
-
-
-
 
       !! Finish declaration of variables needed from user input
 
@@ -317,9 +300,6 @@ module copy_outof_into_state
       p_snloc = 1
       ! x_snloc = 1
       stotel = surface_element_count(cmesh)
-
-      ewrite(3,*) 'u_nloc, x_nloc, p_nloc', u_nloc, x_nloc, p_nloc
-      ewrite(3,*) 'stotel:', stotel
 
       !! EoS things are going to be done very differently
       !! Currently the default value of ncoef is 10 so I'm going
@@ -462,12 +442,10 @@ module copy_outof_into_state
       coord_min=1.0e9
       coord_max=-1.0e-9
       do i=1,node_count(positions)
-         !ewrite(3,*) 'positions:', positions%val(X_,i)
          coord_min=min(coord_min,positions%val(X_,i))
          coord_max=max(coord_max,positions%val(X_,i))
       end do
       domain_length = coord_max - coord_min
-      ewrite(3,*) 'domain_length:',domain_length
 
       !! I'm going to get this one from the PhaseVolumeFraction scalar_field
       lump_eqns = have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
@@ -548,6 +526,9 @@ module copy_outof_into_state
       ! Calculating Mobility
       ewrite(3,*) "going to get viscosities"
 
+      ! Also have to allocate and initialise Viscosity
+      allocate(Viscosity( cv_nonods * nphases ))
+      Viscosity = 0.
       viscosity_ph1 => extract_tensor_field(state(1), "Viscosity")
       viscosity_ph2 => extract_tensor_field(state(2), "Viscosity")
 
@@ -610,15 +591,16 @@ module copy_outof_into_state
 
       Loop_Component_BC: do i=nstates-ncomps, nstates-1
          do j=1,nphases
+            if (.not.allocated(wic_comp_bc)) then
+               allocate( wic_comp_bc( stotel * nphases ))
+               allocate( suf_comp_bc( stotel * 1 * nphases * ncomps ))
+               wic_comp_bc = 0
+               suf_comp_bc = 0.
+            endif
+
             if( have_option("/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
                  "ComponentMassFraction/prognostic/" // &
                  "boundary_conditions[0]/type::dirichlet" )) then
-               if (.not.allocated(wic_comp_bc)) then
-                  allocate( wic_comp_bc( stotel * nphases ))
-                  allocate( suf_comp_bc( stotel * 1 * nphases * ncomps ))
-                  wic_comp_bc = 0
-                  suf_comp_bc = 0.
-               endif
 
                shape_option=option_shape("/material_phase[" // int2str(i) // &
                     "]/scalar_field::Phase" // int2str(j) // &
@@ -638,9 +620,6 @@ module copy_outof_into_state
                enddo
                deallocate(Component_sufid_bc)
             endif
-
-            ewrite(3,*) 'wic_comp_bc', wic_comp_bc
-            ewrite(3,*) 'suf_comp_bc', suf_comp_bc
 
          enddo
 
@@ -745,9 +724,6 @@ module copy_outof_into_state
                suf_d_bc( ( i - 1 ) * stotel + j ) = density_bc%val( j )
             end do
 
-            ewrite(3,*) 'wic_d_bc', wic_d_bc
-            ewrite(3,*) 'suf_d_bc', suf_d_bc
-
             deallocate(density_sufid_bc)
 
          endif Conditional_Density_BC
@@ -812,9 +788,6 @@ module copy_outof_into_state
                suf_p_bc( ( i - 1 ) * stotel + j ) = pressure_bc%val( j )
             end do
 
-            ewrite(3,*) 'wic_p_bc', wic_p_bc
-            ewrite(3,*) 'suf_p_bc', suf_p_bc
-
          end if Conditional_Pressure_BC
 
       end do Loop_Pressure
@@ -840,11 +813,9 @@ module copy_outof_into_state
          enddo
 
          if (.not. allocated(wic_vol_bc)) then
-            ewrite(3,*) 'In here, stotel, nphases', stotel, nphases
             allocate( wic_vol_bc( stotel * nphases ))
             wic_vol_bc = 0.
          endif
-         ewrite(3,*) 'wic_vol_bc', wic_vol_bc
 
          if (.not. allocated(suf_vol_bc)) then
             allocate( suf_vol_bc( stotel * 1 * nphases ))
@@ -881,7 +852,9 @@ module copy_outof_into_state
 
       enddo Loop_VolumeFraction
       
-      ewrite(3,*) 'satura:', satura
+      ! Also need to allocate and initialise volfra
+      allocate(volfra( cv_nonods * nphases ))
+      volfra=0.
 
 !!!
 !!! Velocity and associated boundary conditions:
@@ -944,12 +917,10 @@ module copy_outof_into_state
             shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
                  &prognostic/boundary_conditions[0]/surface_ids")
             if( .not. allocated( velocity_sufid_bc ))allocate(velocity_sufid_bc(1:shape_option(1)))
-            ewrite(3,*) "allocated vel suf id"
 
             Velocity_BC_Type = 1
             call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
                  "prognostic/boundary_conditions[0]/surface_ids", Velocity_SufID_BC )
-            ewrite(3,*) "velocity_sufid_bc", velocity_sufid_bc
 
             do j = 1, shape_option(1)
                wic_u_bc( velocity_sufid_bc(1) + ( i - 1 ) * nphases ) = Velocity_BC_Type
@@ -974,7 +945,6 @@ module copy_outof_into_state
       allocate(cp_option(nphases))
       do i=1,nphases
          call get_option("/material_phase[" // int2str(i-1) // "]/multiphase_properties/relperm_option",uabs_option(i))
-         ewrite(3,*) "phase, relperm_option(= uabs_option):", i, uabs_option(i)
          if (have_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear")) then
             eos_option(i) = 2
          elseif (have_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/compressible/stiffened_gas")) then
@@ -1025,7 +995,6 @@ module copy_outof_into_state
       yu=0.
       zu=0.
       u_nonods = u_nloc * totele
-      ewrite(3,*)'u_nonods:', u_nloc, totele, u_nonods
 
       allocate( nu( u_nonods * nphases ))
       allocate( nv( u_nonods * nphases ))
@@ -1041,10 +1010,6 @@ module copy_outof_into_state
       ug=0.
       vg=0.
       wg=0.
-
-      ewrite(3,*) "cv_nonods, u_nonods: ", &
-           cv_nonods, u_nonods
-      ewrite(3,*) "x_nonods, xu_nonods: ", x_nonods, xu_nonods
 
       ewrite(3,*) 'Getting source terms -- gravity '
       ! Gravity is associated with the u_source term
@@ -1076,7 +1041,6 @@ module copy_outof_into_state
          do i=1,nphases
             velocity_source => extract_vector_field(state(i), "VelocitySource", stat)
             if (.not.allocated(u_source)) allocate(u_source(u_nonods*nphases))
-!            ewrite(3,*) 'node_count(vs), size(u_s)', node_count(velocity_source), size(u_source)
             if (stat==0) then
                do j=1,node_count(velocity_source)
                   u_source((i-1)*node_count(velocity_source)+j)=velocity_source%val(X_, j)
@@ -1183,9 +1147,6 @@ module copy_outof_into_state
                      suf_t_bc( ( i - 1 ) * stotel + j ) = scalarfield_bc%val( j )
                   end do
 
-                  ewrite(3,*) 'wic_t_bc', wic_t_bc
-                  ewrite(3,*) 'suf_t_bc', suf_t_bc
-
                   deallocate(Temperature_sufid_bc)
 
                endif Conditional_Temperature_BC
@@ -1214,16 +1175,12 @@ module copy_outof_into_state
          do i=nstates-ncomps+1,nstates
             do j=1,option_count("/material_phase[" // int2str(i-1) //"]/scalar_field")
                componentmassfraction => extract_scalar_field(state(i), j)
-               ewrite(3,*) "field name", componentmassfraction%name
                if (componentmassfraction%name(7:27) == "ComponentMassFraction") then
                   call get_option("/material_phase[" // int2str(i-1) //"]/scalar_field[" // int2str(j-1) //&
                        &"]/material_phase_name", material_phase_name)
-                  ewrite(3,*) "i, j, material_phase_name",i, j, trim(material_phase_name)
                   do k=1,nphases
                      if (trim(material_phase_name) == state(k)%name) then
-                        ewrite(3,*) "in here, cv_nonods, node_count", cv_nonods, node_count(componentmassfraction)
                         do l=1,node_count(componentmassfraction)
-                           ewrite(3,*) "comp index, cmf index", ((i-(1+nphases))*nphases+(k-1))*node_count(componentmassfraction)+l, l
                            comp( ((i-(1+nphases))*nphases+(k-1))*node_count(componentmassfraction)+l ) = componentmassfraction%val(l)
                         enddo
                      endif
@@ -1232,10 +1189,8 @@ module copy_outof_into_state
             enddo
          enddo
       endif
-!      ewrite(3,*) "comp: ", comp
 
       ewrite(3,*) 'Getting capillary pressure options and absorptions'
-      ewrite(3,*) 'ncapil_pres_coef', ncapil_pres_coef
       if (ncapil_pres_coef>0) then
          allocate(capil_pres_coef(ncapil_pres_coef,nphases,nphases))
          capil_pres_coef=0.
@@ -1259,6 +1214,8 @@ module copy_outof_into_state
       comp_diffusion=0.
       allocate( comp_diff_coef( ncomps, ncomp_diff_coef, nphases ))
       comp_diff_coef=0.
+      allocate( cv_one( cv_nonods * nphases ))
+      cv_one=0.
 
       ewrite(3,*) "Leaving copy_outof_state"
 
@@ -1278,15 +1235,11 @@ module copy_outof_into_state
 
       ewrite(3,*) "In copy_into_state"
 
-      ewrite(3,*) "size of satura", size(saturations)
-      ewrite(3,*) "saturations:", saturations ! This is cv_nonods * nphases long, and in order
-
       positions => extract_vector_field(state, "Coordinate")
       allocate(elenodes(3*positions%dim))
     
       ! The plan is to copy the first half of saturations into PhaseVolumeFraction:
       phasevolumefraction => extract_scalar_field(state(1), "PhaseVolumeFraction")
-      ewrite(3,*) "size of pvf:", node_count(phasevolumefraction)
       do i=1,ele_count(phasevolumefraction)
         elenodes = ele_nodes(phasevolumefraction,i)
         do j=1,size(elenodes)
@@ -1298,8 +1251,6 @@ module copy_outof_into_state
       ! so that it can be compared to the analytical solution
       galerkinprojection => extract_scalar_field(state(1), "GalerkinProjection")
       call calculate_galerkin_projection(state(1), galerkinprojection)
-      ewrite(3,*) "galerkinprojection: ", galerkinprojection%val(1:node_count(galerkinprojection))
-
 
       ! Let's practice with getting the pressure out
       ! This is designed for the quadratic elements
