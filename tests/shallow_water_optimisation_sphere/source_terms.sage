@@ -8,8 +8,8 @@ r = var('r') # radius of earth
 # x goes from [-pi:pi]
 # y goes from [-pi:pi]
 
-eta = x*cos(y) 
-u_x = 0 
+eta = cos(y)
+u_x = cos(y)*sin(x+2*pi*t/2000) 
 u_y = 0 
 
 # Tme linearised smallow water equations in advection form on tme spmere

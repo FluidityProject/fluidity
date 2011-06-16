@@ -64,13 +64,13 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">2000</real_value>
+      <real_value rank="0">200</real_value>
     </timestep>
     <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">20000</real_value>
+      <real_value rank="0">2000</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -289,6 +289,69 @@ val=spherical_down()</string_value>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="AnalyticalLayerThickness" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X, t):
+  from fluidity.spheretools import cart2polar, polar2cart
+  import constants_2d
+  xpo = cart2polar(X)
+  # Function code
+  return constants_2d.eta_exact(xpo, t)
+</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </scalar_field>
+    <vector_field name="AnalyticalVelocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X, t):
+  from fluidity.spheretools import cart2polar, polar2cart
+  from constants_2d import r
+  import constants_2d  
+  from math import sin, cos 
+  import numpy
+  [theta, phi] = cart2polar(X)
+  res = constants_2d.u_exact([theta, phi], t)
+  # Res is a function on the spherical basis, we transform it to cartesian coordinates
+  # v1 is the derivative of polar2cart wrt to theta
+  v1 = [-sin(theta)*cos(phi), cos(theta)*cos(phi),0]
+  # Normalise
+  v1 = numpy.array(v1)/(sum([x*x for x in v1]))**0.5
+  # v2 is the derivative of polar2cart wrt to phi
+  v2 = [-cos(theta)*sin(phi),-sin(theta)*sin(phi), cos(phi)]  
+  # Normalise  
+  v2 = numpy.array(v2)/(sum([x*x for x in v2]))**0.5  
+  # Now the transformation
+  res_std = numpy.array(res[0]) * v1 + numpy.array(res[1]) * v2
+  return res_std</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </vector_field>
   </material_phase>
   <debug>
     <check_inverse_coriolis_matrix/>
