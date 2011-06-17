@@ -361,7 +361,12 @@ def optimisation_loop(opt_options, model_options):
     run_model(m, opt_options, model_options)
     simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
     stat_file = simulation_name+".stat"
-    J = stat_parser(stat_file)[functional_name]["value"][-1]
+    s = stat_parser(stat_file)
+    if not functional_name in s:
+      print "The functional '", functional_name, "' does not exist in the stat file."
+      print "Check your model configuration"
+      exit()
+    J = s[functional_name]["value"][-1]
     return J
 
   # Returns the functional derivative with respect to the controls.
@@ -394,7 +399,7 @@ def optimisation_loop(opt_options, model_options):
   # This function gets called after each optimisation iteration. 
   # It is currently used to do write the statistics to the stat file.
   def callback(m_serial, m_shape):
-    if superspud(opt_options, "libspud.have_option('/debugging/check_gradient')"):
+    if superspud(opt_options, "libspud.have_option('/debug/check_gradient')"):
       grad_err = scipy.optimize.check_grad(lambda x: J(x, m_shape, write_stat = False), lambda x: dJdm(x, m_shape, write_stat = False), m_serial)
       if verbose:
         print "Gradient error: ", grad_err
