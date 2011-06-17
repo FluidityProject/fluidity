@@ -167,7 +167,7 @@ control_io =
 debugging_options = 
   (
       ## Debugging options.
-      element debugging {
+      element debug {
          (
             ## Check the functional gradient with respect to the parameters using finite differences. 
             ## The l2 error of the result is saved in the stat file as [functional name]_gradient_error
