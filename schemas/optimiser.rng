@@ -193,7 +193,7 @@ Example:
   </define>
   <define name="debugging_options">
     <optional>
-      <element name="debugging">
+      <element name="debug">
         <a:documentation>Debugging options.</a:documentation>
         <optional>
           <element name="check_gradient">
