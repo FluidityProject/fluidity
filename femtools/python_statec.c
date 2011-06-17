@@ -209,6 +209,7 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
     value[i] = PyFloat_AsDouble( PySequence_GetItem(pResult, i) );
   }
 
+  Py_DECREF(pGlobalsLocals);
   free(local_dict);
   free(local_key);
   free(pArgs);

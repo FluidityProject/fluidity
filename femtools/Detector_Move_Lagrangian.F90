@@ -351,6 +351,7 @@ contains
           if (parameters%do_random_walk) then
              call python_run_detector_val_function(det0, trim("random_walk"), trim(detector_list%name), rw_velocity_source) 
              ewrite(3,*) "ml805 debug: python_run_detector_string returns:", rw_velocity_source
+             ewrite(3,*) "ml805 det%position:", det0%position
           end if
 
        end if
