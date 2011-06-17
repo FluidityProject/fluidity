@@ -4,7 +4,7 @@
   <owner userid="sf1409"/>
   <tags>swml adjoint optimiser</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>time ../../bin/shallow_water_equation optimiser_A.oml; time ../../bin/shallow_water_equation optimiser_B.oml; time ../../bin/shallow_water_equation optimiser_C.oml;</command_line>
+    <command_line>time ../../bin/shallow_water optimiser_A.oml; time ../../bin/shallow_water optimiser_B.oml; time ../../bin/shallow_water optimiser_C.oml;</command_line>
   </problem_definition>
   <variables>
     <variable name="u_error_order_final" language="python">from fluidity_tools import stat_parser as stat
