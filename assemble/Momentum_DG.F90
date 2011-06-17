@@ -1651,9 +1651,16 @@ contains
     if((have_viscosity.or.have_dg_les).and.owned_element) then
        if (primal) then
           do dim = 1, u%dim
-             Viscosity_mat(dim,:loc,:loc)= &
+             if(multiphase) then
+               ! Viscosity matrix is \int{grad(N_A)*viscosity*vfrac*grad(N_B)} for multiphase.
+               Viscosity_mat(dim,:loc,:loc)= &
+                  dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele)+les_tensor_gi, &
+                  &                    du_t, detwei*nvfrac_gi)
+             else
+               Viscosity_mat(dim,:loc,:loc)= &
                   dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele)+les_tensor_gi, &
                   &                    du_t, detwei)
+             end if
           end do
 
           if((viscosity_scheme==CDG).or.(viscosity_scheme==IP)) then
@@ -1671,10 +1678,16 @@ contains
 
           end if
 
-         !get kappa mat for CDG
+         ! Get kappa mat for CDG
           if(viscosity_scheme==CDG) then
-             kappa_mat = shape_shape_tensor(u_shape,u_shape,detwei, &
-                  & ele_val_at_quad(Viscosity,ele)+les_tensor_gi)
+             if(multiphase) then
+               ! kappa = mu*vfrac for multiphase
+               kappa_mat = shape_shape_tensor(u_shape,u_shape,detwei*nvfrac_gi, &
+                     & ele_val_at_quad(Viscosity,ele)+les_tensor_gi)
+             else
+               kappa_mat = shape_shape_tensor(u_shape,u_shape,detwei, &
+                     & ele_val_at_quad(Viscosity,ele)+les_tensor_gi)
+             end if
           end if
 
        else
@@ -1696,6 +1709,8 @@ contains
           if(.not.p0) then
              
              if(multiphase) then
+               ! Split up -\int{grad(N_A vfrac) N_B} using the product rule
+               ! and compute -\int{grad(N_A) vfrac N_B} - \int{N_A grad(vfrac) N_B}
                Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei*nvfrac_gi) - &
                                           & shape_shape_vector(q_shape, u_shape, detwei, grad_nvfrac_gi)
              else
@@ -2144,7 +2159,7 @@ contains
     real, dimension(face_loc(U,face),face_loc(U,face_2)) :: nnAdvection_in
     real, dimension(1,mesh_dim(U), face_loc(P,face),face_loc(U,face)) :: mnCT
     
-    !Viscosity values on face (used for CDG and IP fluxes)
+    ! Viscosity values on face (used for CDG and IP fluxes)
     real, dimension(:,:,:), allocatable :: kappa_gi
 
     ! surfacetension stuff
@@ -2162,6 +2177,8 @@ contains
     integer :: i
     integer, dimension(:), pointer :: nodelist
 
+    integer :: d1, d2
+
     floc = face_loc(u, face)
 
     start=ele_loc(u,ele)+(ni-1)*face_loc(U, face_2)+1
@@ -2169,9 +2186,18 @@ contains
     
     p0=(element_degree(u,ele)==0)
 
+    ! Get Density and (non-linear) PhaseVolumeFraction values 
+    ! at the Gauss points on the current face.
+    Rho_q=face_val_at_quad(Rho, face)
+
+    if(multiphase) then
+       nvfrac_gi = face_val_at_quad(nvfrac, face)
+    end if
+
     if(present(viscosity)) then
        allocate( kappa_gi(Viscosity%dim(1), Viscosity%dim(2), &
             face_ngi(Viscosity,face)) )
+
        ! If have_dg_les create a temp viscosity tensor field that includes the
        ! les viscosities
        if (have_dg_les) then
@@ -2185,7 +2211,18 @@ contains
          call deallocate(Combined_Viscosity)
        else
          kappa_gi = face_val_at_quad(Viscosity, face)
+
+         if(multiphase) then
+            ! Multiply the viscosity tensor by the PhaseVolumeFraction 
+            ! since kappa = viscosity*vfrac for multiphase flow simulations.
+            do d1=1,Viscosity%dim(1)
+               do d2=1,Viscosity%dim(2)
+                  kappa_gi(d1,d2,:) = kappa_gi(d1,d2,:)*nvfrac_gi
+               end do
+            end do
+         end if
        end if
+
     end if
 
     u_face_l=face_local_nodes(U, face)
@@ -2265,12 +2302,6 @@ contains
       ! into this element.
       inflow= u_nl_q_dotn<0.0
       income = merge(1.0,0.0,inflow)
-
-      Rho_q=face_val_at_quad(Rho, face)
-
-      if(multiphase) then
-         nvfrac_gi = face_val_at_quad(nvfrac, face)
-      end if
       
       ! Calculate outflow boundary integral.
       ! can anyone think of a way of optimising this more to avoid
