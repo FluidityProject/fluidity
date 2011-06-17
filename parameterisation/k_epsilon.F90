@@ -103,7 +103,7 @@ subroutine keps_init(state)
                           &value::WholeMesh/isotropic/constant", visc)
     
     ! initialise eddy viscosity field
-    if (have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
+    if (have_option(trim(keps_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
        Field => extract_scalar_field(state, "ScalarEddyViscosity")
        call set(Field, visc)
     end if
