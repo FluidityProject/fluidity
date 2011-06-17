@@ -538,7 +538,7 @@ module copy_outof_into_state
       if (have_option("/material_phase[1]/vector_field::Velocity/prognostic/&
            &tensor_field::Viscosity/prescribed/value::WholeMesh/&
            &isotropic")) then
-         Mobility = Viscosity_Ph1%val(1,1,1) / Viscosity_Ph2%val(1,1,1)
+         Mobility =  Viscosity_Ph2%val(1,1,1) / Viscosity_Ph1%val(1,1,1)
       endif
 
       ewrite(3,*) "sorted mobility"
@@ -1064,7 +1064,7 @@ module copy_outof_into_state
                end do
                do j = 1, u_nonods
                   u_source( ( i - 1 ) * u_nonods + j  ) = &
-                       delta_den * gravity_magnitude * 0.2 * domain_length / real( totele )
+                       delta_den * gravity_magnitude * 0.02! * domain_length / real( totele )
                end do
             end do
          end if

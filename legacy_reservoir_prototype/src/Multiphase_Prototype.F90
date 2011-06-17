@@ -48,22 +48,22 @@ module mp_prototype
   contains
 
     subroutine multiphase_prototype(state, dt, current_time, finish_time, &
-                                    nonlinear_iterations, nonlinear_iteration_tolerance)
+         nonlinear_iterations, nonlinear_iteration_tolerance)
 
       implicit none
-      
+
       !! New variable declaration
-      
+
       type(state_type), dimension(:), pointer :: state
-      
+
       integer :: nonlinear_iterations  !! equal to nits in prototype code
-      
+
       real :: dt, current_time, finish_time
       real :: nonlinear_iteration_tolerance
-      
+
       logical :: do_old_output
 
-      
+
       !! Old variable declaration
 
       integer :: problem, nphase, ncomp, totele, ndim, nlev, &
@@ -155,6 +155,7 @@ module mp_prototype
 
       integer :: option_debug
       integer, parameter :: unit_input = 5, unit_debug = 101, new_unit_debug = 304
+      integer :: i, j, k
 
 
       open( unit_input, file = 'input.dat', status = 'unknown' )
@@ -171,8 +172,8 @@ module mp_prototype
 !!!!!    - although some derived stuff might be available through state as well
 !!!!!!!!
       call copy_outof_state(state, dt, &
-                            nonlinear_iterations, nonlinear_iteration_tolerance, &
-                              ! Begin here all the variables from read_scalar
+           nonlinear_iterations, nonlinear_iteration_tolerance, &
+                                ! Begin here all the variables from read_scalar
            problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
@@ -188,7 +189,7 @@ module mp_prototype
            u_theta, domain_length, &
            lump_eqns, volfra_use_theta_flux, volfra_get_theta_flux, &
            comp_use_theta_flux, comp_get_theta_flux, &
-           ! Now the variables from read_all
+                                ! Now the variables from read_all
            volfra_relax_number_iterations, scalar_relax_number_iterations, &
            global_relax_number_iterations,  velocity_relax_number_iterations, &
            pressure_relax_number_iterations, mass_matrix_relax_number_iterations, &
@@ -221,16 +222,16 @@ module mp_prototype
            t_absorb, v_absorb, &
            perm, K_Comp, &
            comp_diffusion, &
-           ! Now adding other things which we have taken inside this routine to define
+                                ! Now adding other things which we have taken inside this routine to define
            cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods)
-           
+
       ! Test ground for sorting out memory problems
-           
+
       ! Going to move to here a load of random things
       mat_nloc = cv_nloc
       mat_nonods = mat_nloc * totele
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
-!      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
+      !      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
 
       if( u_snloc < 0 ) u_snloc = 1 * nlev
       mat_nloc = cv_nloc
@@ -279,7 +280,6 @@ module mp_prototype
            mat_ndgln, cv_sndgln, u_sndgln, p_sndgln )
 
       ! Mirroring Input dat
-      
       if( .true. ) call mirror_data( new_unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc,  p_snloc, stotel, &
@@ -307,14 +307,14 @@ module mp_prototype
            u_source, &
            u,  &
            den, satura, comp, p, cv_p, volfra_pore, perm )
-           
+
       !! Ok, done with the new input, now we need to check that everything's
       !! as it was before, so we're going to do the old input routines too
       !! and compare the mirror files.
-      
+
       do_old_output=.true.
 
-           
+
       if( do_old_output ) call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
@@ -342,8 +342,8 @@ module mp_prototype
       ! Variables in which the dimensions depend upon input data
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ))
       allocate( tdiffusion( mat_nonods, ndim, ndim, nphase ))
-! These can later be added into the schema, but as we are not solving for diffusion now,
-! these can be done latter. For now, we are just allocating memory and initialise them
+      ! These can later be added into the schema, but as we are not solving for diffusion now,
+      ! these can be done latter. For now, we are just allocating memory and initialise them
       udiffusion = 0.
       tdiffusion = 0.
 
@@ -383,11 +383,11 @@ module mp_prototype
 
 
       close( unit_input )
-      
+
       mat_nloc = cv_nloc
       mat_nonods = mat_nloc * totele
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
-!      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
+      !      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
 
       if( u_snloc < 0 ) u_snloc = 1 * nlev
       mat_nloc = cv_nloc
@@ -400,20 +400,20 @@ module mp_prototype
 
       ! This should really be in the copy routine, but it isn't used
       ! anyway
-!      allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
+      !      allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
       opt_vel_upwind_coefs = 0.
 
       ! Set up Global node number for velocity and scalar fields
-!      allocate( u_ndgln( totele * u_nloc ))
-!      allocate( xu_ndgln( totele * xu_nloc ))
-!      allocate( cv_ndgln( totele * cv_nloc ))
-!      allocate( x_ndgln( totele * cv_nloc ))
-!      allocate( p_ndgln( totele * p_nloc ))
-!      allocate( mat_ndgln( totele * mat_nloc ))
-!      allocate( u_sndgln( stotel * u_snloc ))
-!      allocate( cv_sndgln( stotel * cv_snloc ))
-!      allocate( x_sndgln( stotel * cv_snloc ))
-!      allocate( p_sndgln( stotel * p_snloc ))
+      !      allocate( u_ndgln( totele * u_nloc ))
+      !      allocate( xu_ndgln( totele * xu_nloc ))
+      !      allocate( cv_ndgln( totele * cv_nloc ))
+      !      allocate( x_ndgln( totele * cv_nloc ))
+      !      allocate( p_ndgln( totele * p_nloc ))
+      !      allocate( mat_ndgln( totele * mat_nloc ))
+      !      allocate( u_sndgln( stotel * u_snloc ))
+      !      allocate( cv_sndgln( stotel * cv_snloc ))
+      !      allocate( x_sndgln( stotel * cv_snloc ))
+      !      allocate( p_sndgln( stotel * p_snloc ))
 
       u_ndgln = 0
       xu_ndgln = 0
@@ -506,7 +506,7 @@ module mp_prototype
       nwold = 0.
 
       told = t
-      
+
       if ( do_old_output ) call allocating_global_nodes( ndim, totele, domain_length, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
@@ -524,7 +524,7 @@ module mp_prototype
            x, told, t )
 
       ! Mirroring Input dat
-      
+
       if( do_old_output ) call mirror_data( unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc,  p_snloc, stotel, &
@@ -629,6 +629,261 @@ module mp_prototype
            mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
            mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
            mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
+
+      ! Just double-checking the sizes -- Start
+      if( do_old_output ) call mirror_data( unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
+           cv_snloc,  p_snloc, stotel, &
+           ncoef, nuabs_coefs, &
+           u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
+           cv_sele_type, u_sele_type, &
+           ntime, nits, ndpset, &
+           dt, patmos, p_ini, t_ini, &
+           t_beta, v_beta, t_theta, v_theta, u_theta, &
+           t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
+           u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
+           domain_length, u_snloc, mat_nloc, cv_nonods, u_nonods, &
+           p_nonods, mat_nonods, ncp_coefs, x_nonods, xu_nonods, &
+           nlenmcy, &
+           nopt_vel_upwind_coefs, &
+           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
+           mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
+           wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
+           suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
+           suf_u_bc, &
+           suf_u_bc_rob1, suf_u_bc_rob2, &
+           opt_vel_upwind_coefs, &
+           x, xu, nu, ug, &
+           uabs_option, u_abs_stab, u_absorb, &
+           u_source, &
+           u,  &
+           den, satura, comp, p, cv_p, volfra_pore, perm )
+
+
+      ! Sparsity patterns
+      allocate( finmcy( nlenmcy + 1 )) ! Force balance plus cty multi-phase eqns
+      allocate( midmcy( nlenmcy ))
+      allocate( midacv( cv_pha_nonods )) ! CV multi-phase eqns 
+      allocate( finacv( cv_pha_nonods + 1 ))
+      allocate( finele( totele + 1 )) ! Element connectivity
+      allocate( midele( totele ))
+      allocate( centc( u_nonods )) ! C sparsity operating on pressure in force balance
+      allocate( findc( u_nonods + 1 ))
+      allocate( midcmc( cv_nonods )) ! pressure matrix for projection method
+      allocate( findcmc( cv_nonods + 1 ))
+      allocate( centct( cv_nonods )) ! CT sparsity - global cty eqn.
+      allocate( findct( cv_nonods + 1 ))
+      allocate( findgm_pha( u_pha_nonods + 1 )) ! Force balance sparsity
+      allocate( middgm_pha( u_pha_nonods ))
+      allocate( findm( cv_nonods + 1 )) ! Sparsity for the CV-FEM
+      allocate( midm( cv_nonods ))
+
+
+      ! Defining lengths
+      mxnele = ( 2 * ndim + 1 ) * totele
+      mx_nct = cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
+      mx_nc = mx_nct  
+
+      ! select case( problem )
+      ! case( -2 ); ! CV-Adv (Cty)
+      !    mx_ncolcmc = ( 2 * cv_nloc + 1 ) * cv_nonods
+      ! case( -1 ); ! CV-Adv (DG)
+      !    mx_ncolcmc = ( 2 * cv_nloc + 1 ) * cv_nonods
+      ! case( 0 ); ! CV-Adv (Std)
+      !    mx_ncolcmc = ( 2 * cv_nloc + 3 ) * cv_nonods
+      ! case( 1, 2); ! BL-test1
+      mx_ncolcmc = ( 2 * ( cv_nloc + 2 ) + 1 ) * cv_nonods
+      ! end select
+
+      mx_ncoldgm_pha = mxnele * ( u_nloc * ndim )**2 * nphase + totele * ( u_nloc * ndim * nphase )**2
+      mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc
+      mx_ncolacv = ( 2 * ndim + 1 ) * cv_nonods * nphase + cv_nonods * ( nphase - 1 ) * nphase
+      mx_ncolm = mxnele * cv_nloc * cv_nloc
+
+      allocate( colmcy( mx_ncolmcy ))
+      allocate( colacv( mx_ncolacv ))
+      allocate( colele( mxnele ))
+      allocate( colct( mx_nct ))
+      allocate( colc( mx_nc ))
+      allocate( coldgm_pha( mx_ncoldgm_pha ))
+      allocate( colcmc( mx_ncolcmc ))
+      allocate( colm( mx_ncolm ))
+
+      call get_spars_pats( &
+           ndim, u_nonods * nphase, cv_nonods * nphase, &
+           u_nonods, cv_nonods, &
+           u_nloc, cv_nloc, nphase, totele, u_ndgln, &
+           mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
+           nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
+           mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
+           mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
+           mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
+           mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
+           mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
+           mx_ncolm, ncolm, findm, colm, midm, u_ele_type )
+
+      close( unit_debug )
+
+      if( .true. ) call check_sparsity( &
+           u_nonods * nphase, cv_nonods * nphase, &
+           u_nonods, cv_nonods, totele, &
+           mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
+           nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
+           mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
+           mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
+           mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
+           mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
+           mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
+           mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
+
+      ! Just double-checking the sizes -- Start
+      if( do_old_output ) then
+         ewrite( 3, * ) 'problem, nphase, ncomp, totele, ndim, nlev: ', &
+              problem, nphase, ncomp, totele, ndim, nlev
+
+         ewrite( 3, * ) 'u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc: ' , &
+              u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc
+
+         ewrite( 3, * ) 'ncoef, nuabs_coefs, u_ele_type, p_ele_type, mat_ele_type: ', &
+              ncoef, nuabs_coefs, u_ele_type, p_ele_type, mat_ele_type
+
+         ewrite( 3, * ) 'cv_ele_type, cv_sele_type, u_sele_type, ntime, nits: ', &
+              cv_ele_type, cv_sele_type, u_sele_type, ntime, nits
+
+         ewrite( 3, * ) 'ndpset, t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt: ', &
+              ndpset, t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt
+
+         ewrite( 3, * ) 'u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, u_snloc, mat_nloc: ', & 
+              u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, u_snloc, mat_nloc
+
+         ewrite( 3, * ) 'cv_nonods, u_nonods, p_nonods, mat_nonods, ncp_coefs: ', &
+              cv_nonods, u_nonods, p_nonods, mat_nonods, ncp_coefs
+
+         ewrite( 3, * ) 'x_nonods, xu_nonods, nlenmcy: ', &
+              x_nonods, xu_nonods, nlenmcy
+
+         ewrite( 3, * ) 'dt, patmos, p_ini, t_ini: ', dt, patmos, p_ini, t_ini
+
+         ewrite( 3, * ) 't_beta, v_beta, t_theta, v_theta, u_theta: ', &
+              t_beta, v_beta, t_theta, v_theta, u_theta
+
+         ewrite( 3, * ) 'domain_length: ', domain_length
+
+         ewrite( 3, * ) 'wic_vol_bc( stotel * nphase ):', ( wic_vol_bc( i ), i = 1, stotel * nphase )
+
+         ewrite( 3, * ) 'wic_d_bc( stotel * nphase ):', ( wic_d_bc( i ), i = 1, stotel * nphase )
+
+         ewrite( 3, * ) 'wic_u_bc( stotel * nphase ):', ( wic_u_bc( i ), i = 1, stotel * nphase )
+
+         ewrite( 3, * ) 'wic_p_bc( stotel * nphase ):', ( wic_p_bc( i ), i = 1, stotel * nphase )
+
+         ewrite( 3, * ) 'wic_t_bc( stotel * nphase ):', ( wic_t_bc( i ), i = 1, stotel * nphase )
+
+         ewrite( 3, * ) 'suf_vol_bc( stotel * cv_snloc * nphase ):', &
+              ( suf_vol_bc( i ), i = 1, stotel * cv_snloc * nphase )
+
+         ewrite( 3, * ) 'suf_d_bc( stotel * cv_snloc * nphase ):', &
+              ( suf_d_bc( i ), i = 1, stotel * cv_snloc * nphase )
+
+         ewrite( 3, * ) 'suf_cpd_bc( stotel * cv_snloc * nphase ):', &
+              ( suf_cpd_bc( i ), i = 1, stotel * cv_snloc * nphase )
+
+         ewrite( 3, * ) 'suf_t_bc( stotel * cv_snloc * nphase ):', &
+              ( suf_t_bc( i ), i = 1, stotel * cv_snloc * nphase )
+
+         ewrite( 3, * ) 'suf_p_bc( stotel * p_snloc * nphase ):', &
+              ( suf_p_bc( i ), i = 1, stotel * p_snloc * nphase )
+
+         ewrite( 3, * ) 'suf_u_bc( stotel * u_snloc * nphase ):', &
+              ( suf_u_bc( i ), i = 1, stotel * u_snloc * nphase )
+
+         ewrite( 3, * ) 'suf_u_bc_rob1( stotel * u_snloc * nphase ):', &
+              ( suf_u_bc_rob1( i ), i = 1, stotel * u_snloc * nphase )
+
+         ewrite( 3, * ) 'suf_u_bc_rob2( stotel * u_snloc * nphase ):', &
+              ( suf_u_bc_rob2( i ), i = 1, stotel * u_snloc * nphase  )
+
+         ewrite( 3, * ) 'suf_t_bc_rob1( stotel * cv_snloc * nphase ):', &
+              ( suf_u_bc_rob1( i ), i = 1, stotel * cv_snloc * nphase )
+
+         ewrite( 3, * ) 'suf_t_bc_rob2( stotel * cv_snloc * nphase ):', &
+              ( suf_u_bc_rob2( i ), i = 1, stotel * cv_snloc * nphase  )
+
+         ewrite( 3, * ) 'opt_vel_upwind_coefs( nopt_vel_upwind_coefs ):', &
+              ( opt_vel_upwind_coefs( i ), i = 1, nopt_vel_upwind_coefs )
+
+         ewrite( 3, * ) 'x( x_nonods ):', ( x( i ), i = 1, x_nonods )
+
+         ewrite( 3, * ) 'xu( xu_nonods ):', ( xu( i ), i = 1, xu_nonods )
+
+         ewrite( 3, * ) 'nu( u_nonods * nphase ):', &
+              ( nu( i ), i = 1, u_nonods * nphase )
+
+         ewrite( 3, * ) 'ug( u_nonods * nphase ):', &
+              ( ug( i ), i = 1, u_nonods * nphase )
+
+         ewrite( 3, * ) 'uabs_option( nphase ):', &
+              ( uabs_option( i ), i = 1, nphase )
+
+         ewrite( 3, * ) 'u_ndgln', size( u_ndgln ), ( u_ndgln( i ), i = 1, totele * u_nloc )
+         ewrite( 3, * ) 'xu_ndgln', size( xu_ndgln ), ( xu_ndgln( i ), i = 1, totele * xu_nloc )
+         ewrite( 3, * ) 'cv_ndgln', size( cv_ndgln ), ( cv_ndgln( i ), i = 1, totele * cv_nloc )
+         ewrite( 3, * ) 'x_ndgln', size( x_ndgln ), ( x_ndgln( i ), i = 1,  totele * cv_nloc )
+         ewrite( 3, * ) 'p_ndgln',  size( p_ndgln ), ( p_ndgln( i ), i = 1, totele * p_nloc )
+         ewrite( 3, * ) 'mat_ndgln', size( mat_ndgln ), ( mat_ndgln( i ), i = 1, totele * mat_nloc )
+         ewrite( 3, * ) 'u_sndgln', size( u_sndgln), ( u_sndgln( i ), i = 1, stotel * u_snloc )
+         ewrite( 3, * ) 'cv_sndgln', size( cv_sndgln ), ( cv_sndgln( i ), i = 1, stotel * cv_snloc )
+         ewrite( 3, * ) 'x_sndgln',  size( x_sndgln ),( x_sndgln( i ), i = 1, stotel * cv_snloc )
+         ewrite( 3, * ) 'p_sndgln', size( p_sndgln ), ( p_sndgln( i ), i = 1, stotel * p_snloc )
+
+         ewrite( 3, * ) 'u_abs_stab( mat_nonods, ndim * nphase, ndim * nphase ):'
+         do i = 1, mat_nonods
+            do j = 1, ndim * nphase
+               ewrite( 3, * ) i , j, ( u_abs_stab( i, j, k ), k = 1, ndim * nphase )
+            end do
+         end do
+
+         ewrite( 3, * ) 'u_absorb( mat_nonods, ndim * nphase, ndim * nphase ):'
+         do i = 1, mat_nonods
+            do j = 1, ndim * nphase
+               ewrite( 3, * ) i , j, ( u_absorb( i, j, k ), k = 1, ndim * nphase )
+            end do
+         end do
+
+         ewrite( 3, * ) 'u_source( u_nonods * nphase ):', size(u_source), &
+              ( u_source( i ), i = 1, u_nonods * nphase )
+
+         ewrite( 3, * ) 'u( u_nonods * nphase ):', size(u),&
+              ( u( i ), i = 1, u_nonods * nphase )
+
+         ewrite( 3, * ) 'den( cv_nonods * nphase ):', size(den),&
+              ( den( i ), i = 1, cv_nonods * nphase )
+
+         ewrite( 3, * ) 'satura( cv_nonods * nphase ):', size(satura), &
+              ( satura( i ), i = 1, cv_nonods * nphase )
+
+         ewrite( 3, * ) 'comp( cv_nonods * nphase * ncomp ):', size(comp), &
+              ( comp( i ), i = 1, cv_nonods * nphase * ncomp )
+
+         ewrite( 3, * ) 'p( cv_nonods ):', size(p),&
+              ( p( i ), i = 1, cv_nonods )
+
+         ewrite( 3, * ) 'cv_p( cv_nonods ):', size(cv_p), &
+              ( cv_p( i ), i = 1, cv_nonods )
+
+         ewrite( 3, * ) 'volfra_pore( totele ):', size(volfra_pore), &
+              ( volfra_pore( i ), i = 1, totele )
+
+         ewrite( 3, * ) 'perm( totele, ndim, ndim ):', size(perm)
+         do i = 1, totele
+            do j = 1, ndim
+               ewrite( 3, * ) i , j, ( perm( i, j, k ), k = 1, ndim )
+            end do
+         end do
+
+      end if
+
+      ! Just double-checking the sizes -- End
 
       Select Case( problem )
 
@@ -749,7 +1004,7 @@ module mp_prototype
               mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
 
       end Select
-      
+
       call copy_into_state(state, satura, p)
 
       ewrite(3,*) 'Leaving multiphase_prototype'

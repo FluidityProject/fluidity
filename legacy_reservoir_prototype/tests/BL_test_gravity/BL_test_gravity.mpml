@@ -62,9 +62,12 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">20</integer_value>
+        <integer_value rank="0">100</integer_value>
       </constant>
     </dump_period_in_timesteps>
+    <max_dump_file_count>
+      <integer_value rank="0">2800</integer_value>
+    </max_dump_file_count>
     <output_mesh name="PressureMesh"/>
     <stat/>
   </io>
@@ -73,7 +76,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.003125</real_value>
+      <real_value rank="0">0.078e-2</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10.0</real_value>
@@ -85,7 +88,7 @@
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">9.81</real_value>
+        <real_value rank="0">981.</real_value>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
@@ -282,7 +285,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1.0</real_value>
+                  <real_value rank="0">0.1</real_value>
                 </constant>
               </isotropic>
             </value>
