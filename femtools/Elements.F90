@@ -122,21 +122,20 @@ contains
     !! Number of local coordinates.
     integer, intent(in) :: coords
     !! Stat returns zero for success and nonzero otherwise.
-    integer, intent(out), optional :: stat
-    !! define element type
     integer, intent(in), optional :: type
-
+    integer, intent(out), optional :: stat
+    !
     integer :: lstat
 
-    if (present(type)) then
-       element%type=type
+    if(present(type)) then
+       element%type = type
     else
        element%type=ELEMENT_LAGRANGIAN
     end if
 
     select case(element%type)
     case(ELEMENT_LAGRANGIAN, ELEMENT_DISCONTINUOUS_LAGRANGIAN,&
-         & ELEMENT_NONCONFORMING, ELEMENT_BUBBLE)
+         & ELEMENT_NONCONFORMING, ELEMENT_BUBBLE, ELEMENT_TRACE)
 
       allocate(element%n(ndof,ngi),element%dn(ndof,ngi,dim), &
           element%spoly(coords,ndof), element%dspoly(coords,ndof), stat=lstat)

@@ -81,7 +81,7 @@
     h_shape=make_element_shape(loc=dim+1, &
          dimension=dim, degree=h_degree, quad=quad)
 
-    allocate(X_ele(u_shape%dim,x_shape%loc))
+    allocate(X_ele(u_shape%dim,x_shape%ndof))
 
     call get_X_ele(X_ele,simplex_type)
 
@@ -95,17 +95,17 @@
     subroutine assemble_local_matrices( &
          u_shape,h_shape,X_shape,X_ele)
       type(element_type), intent(in) :: u_shape,h_shape,X_shape
-      real, dimension(u_shape%dim,x_shape%loc), intent(in) :: X_ele
+      real, dimension(u_shape%dim,x_shape%ndof), intent(in) :: X_ele
 
       !! Local Stuff
       ! Coordinate transform * quadrature weights.
       real, dimension(u_shape%ngi) :: detwei
       ! Derivatives of shape function:
-      real, dimension(h_shape%loc, h_shape%ngi, h_shape%dim) :: h_dshape
+      real, dimension(h_shape%ndof, h_shape%ngi, h_shape%dim) :: h_dshape
       ! gradient matrix
-      real, dimension(u_shape%dim,h_shape%loc,u_shape%loc) :: grad_mat
-      real, dimension(u_shape%loc,u_shape%loc) :: u_mass_mat
-      real, dimension(h_shape%loc,h_shape%loc) :: lap_mat,h_mass_mat
+      real, dimension(u_shape%dim,h_shape%ndof,u_shape%ndof) :: grad_mat
+      real, dimension(u_shape%ndof,u_shape%ndof) :: u_mass_mat
+      real, dimension(h_shape%ndof,h_shape%ndof) :: lap_mat,h_mass_mat
       integer :: idim, iloc
 
       ! Transform derivatives and weights into physical space.
@@ -119,25 +119,25 @@
 
       print *,  'U Mass Matrix'
 
-      do iloc = 1, u_shape%loc
+      do iloc = 1, u_shape%ndof
          print *,  u_mass_mat(iloc,:)
       end do
 
       print *,  'H mass matrix'
-      do iloc = 1, h_shape%loc
+      do iloc = 1, h_shape%ndof
          print *,  h_mass_mat(iloc,:)
       end do
 
       print *,  'Div matrix'
       do idim = 1, u_shape%dim
-         do iloc = 1, h_shape%loc
+         do iloc = 1, h_shape%ndof
             print *,  grad_mat(idim,iloc,:)
          end do
          print *,  ' '
       end do
 
       print *,  'Laplacian matrix'
-      do iloc = 1, h_shape%loc
+      do iloc = 1, h_shape%ndof
          print *, lap_mat(iloc,:)
       end do
 

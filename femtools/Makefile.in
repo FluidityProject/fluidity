@@ -38,6 +38,8 @@ CFLAGS  = @CPPFLAGS@ @CFLAGS@ -I../include -I../libwm -I/usr/local/include
 CXX     = @CXX@
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include -I../libwm  -I../libvtkfortran/include -I/usr/local/include
 
+LINKER  = @LINKER@ @LDFLAGS@
+
 MAKE    = @MAKE@
 
 AR = @AR@
@@ -47,16 +49,16 @@ UNROLL_LOOPS = @UNROLL_LOOPS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-F90LIB = libfemtools
+F90LIB = libfemtools.a
 
 LIBS    = -L../lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@
 
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
 OBJS = Dgtools.o Coordinates.o EventCounter.o \
-  Elements.o Sparse_Tools.o Quadrature.o Futils.o		\
+  Elements.o Sparse_Tools.o Quadrature.o Quadrature_Test.o Futils.o		\
   Polynomials.o Adjacency_Lists.o Element_Numbering.o Global_Numbering.o \
-  Shape_Functions.o Signals.o Signal_Vars.o signal_handlers.o		\
+  Shape_Functions.o Shape_Functions_Test.o Signals.o Signal_Vars.o signal_handlers.o		\
   Global_Parameters.o Timers.o Transform_elements.o VTK_interfaces.o \
   Fields.o FETools.o FEFields.o Vector_Tools.o Read_Triangle.o \
   Timers.o Transform_elements.o Petsc_Tools.o Solvers.o Linked_Lists.o	\
@@ -129,11 +131,12 @@ default: $(LIB)
 
 $(F90LIB): $(F90LIB_OBJS)
 	@mkdir -p ../lib
-	$(AR) $(ARFLAGS) $(F90LIB).a $(F90LIB_OBJS)
+	$(AR) $(ARFLAGS) $@ $(F90LIB_OBJS)
 
+libfemtools: $(F90LIB)
 
 clean:
-	rm -f *.o *.d *.mod Reference_count_*.F90 $(F90LIB).a
+	rm -f *.o *.d *.mod Reference_count_*.F90 $(F90LIB)
 
 Reference_count_%.F90: Reference_count_interface_%.F90
 	@true

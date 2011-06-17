@@ -333,10 +333,10 @@ contains
     
     type(element_type) :: test_function
     
-    integer :: coords, degree, dim, i, j, loc, ngi
+    integer :: coords, degree, dim, i, j, ngi, loc
     !! This is the factor nu/||u_nl^^2||
     real, dimension(size(u_nl_q, 2)) :: nu_bar_scaled
-    !! u_nl \dot dshape
+    !! u_nl dot dshape
     real, dimension(base_shape%ndof, size(u_nl_q, 2)) :: u_nl_dn
     type(quadrature_type), pointer :: quad
         
@@ -349,11 +349,9 @@ contains
     degree = base_shape%degree
         
     ! Step 1: Generate a new shape
-    
     call allocate(test_function, dim = dim, ndof = loc, ngi = ngi, coords = coords)
     
     test_function%degree = degree
-    test_function%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
     test_function%quadrature = quad
     call incref(quad)
     
@@ -369,13 +367,13 @@ contains
     
     nu_bar_scaled = nu_bar_scaled_q(dshape, u_nl_q, j_mat, diff_q = diff_q, nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
     
-    forall(i = 1:ngi, j = 1:loc)
+    forall(i = 1:ngi, j = 1:base_shape%ndof)
       u_nl_dn(j, i) = dot_product(u_nl_q(:, i), dshape(j, i, :))
     end forall
     
     ! Step 3: Generate the test function
     
-    do i = 1, loc
+    do i = 1, base_shape%ndof
       test_function%n(i, :) = base_shape%n(i, :) + nu_bar_scaled * u_nl_dn(i, :)
     end do
     

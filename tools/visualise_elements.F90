@@ -142,7 +142,7 @@ contains
     e=0
     do ele=1, element_count(mesh)
        ! Point up triangles.
-       n=element%loc*(ele-1)
+       n=element%ndof*(ele-1)
        do row=1, element%degree
           rowlen=element%degree+2-row
           do column=1,element%degree+1-row
@@ -155,7 +155,7 @@ contains
        end do
        
        ! Point down triangles.
-       n=element%loc*(ele-1)+1
+       n=element%ndof*(ele-1)+1
        do row=1, element%degree-1
           rowlen=element%degree+2-row
           do column=1,element%degree-row
@@ -313,13 +313,13 @@ contains
 
     integer :: i
 
-    call allocate(mesh, nodes=mesh_element%loc*layout_element%loc, &
-         elements=layout_element%loc, shape=mesh_element, name=name)
+    call allocate(mesh, nodes=mesh_element%ndof*layout_element%ndof, &
+         elements=layout_element%ndof, shape=mesh_element, name=name)
     ! Definitely a DG mesh
     mesh%continuity=-1
 
     ! Usual dg numbering.
-    mesh%ndglno=(/(i, i=1,mesh_element%loc*layout_element%loc)/)
+    mesh%ndglno=(/(i, i=1,mesh_element%ndof*layout_element%ndof)/)
 
   end function construct_mesh
 
@@ -330,11 +330,11 @@ contains
 
     integer :: i
 
-    call allocate(mesh, nodes=element%loc, elements=1, shape&
+    call allocate(mesh, nodes=element%ndof, elements=1, shape&
          &=element, name=name)
     
     ! Usual dg numbering.
-    mesh%ndglno=(/(i, i=1,element%loc)/)
+    mesh%ndglno=(/(i, i=1,element%ndof)/)
 
   end function construct_one_element_mesh
 

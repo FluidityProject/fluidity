@@ -27,7 +27,7 @@ program analyse_triangle
   if(positions%dim==3) d3 = .true.
 
   call MakeLists(node_count(Positions),element_count(Positions), &
-       positions%mesh%shape%loc,&
+       positions%mesh%shape%ndof,&
        positions%mesh%ndglno,&
        d3, NNList=NNList)
 

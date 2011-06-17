@@ -207,7 +207,7 @@ contains
       call allocate(shapes_c(i), dim = dim, ndof = loc, ngi = ngi, coords = coords)
       
       shapes_c(i)%degree = degree
-      shapes_c(i)%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
+      shapes_c(i)%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)
       shapes_c(i)%quadrature = quad
       call incref(quad)
       
@@ -292,11 +292,12 @@ contains
     end if
     
     allocate(shapes_c(ele_count(positions_c)))
+
     do i = 1, size(shapes_c)    
       call allocate(shapes_c(i), dim = dim, ndof = loc, ngi = ngi, coords = coords)
       
       shapes_c(i)%degree = degree
-      shapes_c(i)%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
+      shapes_c(i)%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)
       shapes_c(i)%quadrature = quad
       call incref(quad)
       
@@ -447,7 +448,6 @@ contains
     type(element_type), target, intent(in) :: shape_vol
     ! If present and .false., do not form the shape function derivatives
     logical, optional, intent(in) :: form_dn
-    
     type(element_type) :: shape_surf_ext
     
     integer :: coords, degree, dim, i, loc, ngi
@@ -465,13 +465,13 @@ contains
     ngi = quad%ngi
     coords = local_coord_count(shape_vol)
     degree = shape_surf%degree
-    
     ! Note that the extruded surface mesh shape function takes its number of
     ! quadrature points from the volume shape function
+
     call allocate_element(shape_surf_ext, dim = dim, ndof = loc, ngi = ngi, coords = coords)
 
     shape_surf_ext%degree = degree
-    shape_surf_ext%numbering => find_element_numbering(loc = loc, dimension = dim - 1, degree = degree)
+    shape_surf_ext%numbering => find_element_numbering(vertices = loc, dimension = dim - 1, degree = degree)
     shape_surf_ext%quadrature = quad
     call incref(quad)
 

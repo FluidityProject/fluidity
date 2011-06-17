@@ -443,7 +443,7 @@ contains
     else
     
       ! allocate a dummy shape and mesh:
-      call allocate(shape, 1, 1, 1, 1)
+      call allocate(shape,dim=1,ndof=1,ngi=1,coords=2)
       call allocate(mesh, n, 1, shape, "Mesh")
       
       ! setup trivial petsc numbering
