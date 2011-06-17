@@ -4,13 +4,15 @@ t = var('t')
 g = var('g') # gravity magnitude
 H = var('d0') # mean layer depth 
 r = var('r') # radius of earth
+K = var('K') # equilibrium amplitude of tidal constituent
+s = var('sigma') # frequency of tidal constituent 
 
 # x goes from [-pi:pi]
 # y goes from [-pi:pi]
 
-eta = cos(y)
-u_x = cos(y)*sin(x+2*pi*t/2000) 
-u_y = 0 
+eta =  cos(y)*cos(y)*K*cos(s*t+2*x)
+u_x = -cos(y)*cos(y)*K*sin(s*t+2*x)
+u_y = 0
 
 # Tme linearised smallow water equations in advection form on tme spmere
 u_x_src = diff(u_x, t) + g/(r*cos(y))*diff(eta, x) 

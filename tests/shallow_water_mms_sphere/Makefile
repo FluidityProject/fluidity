@@ -4,8 +4,8 @@ meshes:
 	cd src; make
 
 copy_tests:
-	cp sw_fsphere_A.swml sw_fsphere_B.swml; sed -i 's/_A/_B/' sw_fsphere_B.swml; spud-set sw_fsphere_B.swml /timestepping/timestep 200
-	cp sw_fsphere_A.swml sw_fsphere_C.swml; sed -i 's/_A/_C/' sw_fsphere_C.swml; spud-set sw_fsphere_C.swml /timestepping/timestep 100
+	cp sw_fsphere_A.swml sw_fsphere_B.swml; sed -i 's/_A/_B/' sw_fsphere_B.swml; spud-set sw_fsphere_B.swml /timestepping/timestep 2235.70667 
+	cp sw_fsphere_A.swml sw_fsphere_C.swml; sed -i 's/_A/_C/' sw_fsphere_C.swml; spud-set sw_fsphere_C.swml /timestepping/timestep 1117.85334
 
 clean:
 	rm -f *.vtu *.stat *~*~ *.html *.pyc 
