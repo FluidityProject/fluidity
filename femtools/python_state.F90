@@ -29,6 +29,7 @@ module python_state
   use global_parameters, only:FIELD_NAME_LEN, current_debug_level, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   use state_module 
   use iso_c_binding
+  use detector_data_types
    
   implicit none
   
@@ -38,7 +39,7 @@ module python_state
   public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states, python_add_states_time
   public :: python_run_string, python_run_file
-  public :: python_run_detector_string, python_run_detector_val
+  public :: python_run_detector_string, python_run_detector_val_function
   public :: python_shell
   public :: python_fetch_real
 
@@ -94,7 +95,7 @@ module python_state
     !! local_coords: vector of size dim
     !! Not wrapped, since this will be called a lot
     subroutine python_run_detector_val(ele, dim, lcoords, dict, dictlen, key, keylen, &
-           value) bind(c, name='python_run_detector_val_from_locals_c')
+           value, stat) bind(c, name='python_run_detector_val_from_locals_c')
       use :: iso_c_binding
       implicit none
       integer(c_int), intent(in), value :: ele, dim
@@ -103,6 +104,7 @@ module python_state
       character(kind=c_char), dimension(dictlen), intent(in) :: dict
       character(kind=c_char), dimension(keylen), intent(in) :: key
       real(c_double), dimension(dim), intent(out) :: value
+      integer(c_int), intent(out) :: stat
     end subroutine python_run_detector_val
 
   end interface
@@ -591,19 +593,10 @@ module python_state
     character(len = *), intent(in) :: str, dict, key
     integer, optional, intent(out) :: stat
     
-    integer :: lstat, ele, dim
-    real, dimension(3) :: lcoords, value
+    integer :: lstat
         
     if(present(stat)) stat = 0
     call python_run_string_keep_locals_c(str, len_trim(str), dict, len_trim(dict), key,len_trim(key), lstat) 
-
-    ele=6
-    dim=3
-    lcoords = (/ 0.1, 0.2, 0.3 /)
-    value = (/ 0.0, 0.0, 0.0 /)
-
-    call python_run_detector_val(ele, dim, lcoords, dict, len_trim(dict), key, len_trim(key), value) 
-    ewrite(3,*) "ml805 debug: python_run_detector_string returns:", value
 
     if(lstat /= 0) then
       if(present(stat)) then
@@ -616,6 +609,30 @@ module python_state
     end if
     
   end subroutine python_run_detector_string
+
+  subroutine python_run_detector_val_function(detector, dict, key, value, stat)
+    !!< Wrapper function for python_run_string_keep_locals_c
+    type(detector_type), pointer, intent(in) :: detector
+    character(len = *), intent(in) :: dict, key
+    real, dimension(size(detector%position)), intent(out) :: value
+    integer, optional, intent(out) :: stat
+    
+    integer :: lstat
+
+    if(present(stat)) stat = 0
+
+    call python_run_detector_val(detector%element, size(detector%position), detector%local_coords, dict, len_trim(dict), key,len_trim(key), value, lstat) 
+
+    if(lstat /= 0) then
+      if(present(stat)) then
+        stat = -1
+      else
+        ewrite(-1, *) "Python error in inner val function of agent array"
+        FLExit("Dying")
+      end if
+    end if
+    
+  end subroutine python_run_detector_val_function
   
   subroutine python_run_file(s, stat)
     !!< Wrapper for function for python_run_filec

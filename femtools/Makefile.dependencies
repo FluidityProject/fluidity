@@ -1235,9 +1235,10 @@ ieee_arithmetic_dummy.o ../include/ieee_arithmetic.mod: \
 	@true
 
 python_state.o ../include/python_state.mod: python_state.F90 \
-   ../include/quadrature.mod ../include/global_parameters.mod \
-   ../include/elements.mod ../include/fields.mod ../include/state_module.mod \
-   ../include/fdebug.h ../include/fldebug.mod
+   ../include/detector_data_types.mod ../include/quadrature.mod \
+   ../include/global_parameters.mod ../include/elements.mod \
+   ../include/fields.mod ../include/state_module.mod ../include/fdebug.h \
+   ../include/fldebug.mod
 
 ../include/quicksort.mod: qsortd.o
 	@true

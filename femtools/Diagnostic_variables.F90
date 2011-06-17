@@ -1432,6 +1432,7 @@ contains
  
     ! Register this I/O detector list with a global list of detector lists
     call register_detector_list(default_stat%detector_list)
+    default_stat%detector_list%name = trim("I/O")
 
     allocate(default_stat%detector_group_names(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))

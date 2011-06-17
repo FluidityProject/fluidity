@@ -144,13 +144,15 @@ void python_run_string_keep_locals_c(char *str, int strlen,
   }
 
   free(c); 
+  free(local_dict);
+  free(local_key);
 #endif
 }
 
 void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
                                            char *dict, int dictlen, 
                                            char *key, int keylen,
-                                           double value[]){
+                                           double value[], int *stat){
 #ifdef HAVE_PYTHON
   /* Evaluate the detector val() function from a previously stored local namespace
    * found in dict under key. The interface is: val(ele, local_coords)
@@ -176,8 +178,8 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
 
   // Create local_coords argument
   int i;
-  PyObject *pLCoords = PyTuple_New(dim);
-  for(i=0; i<dim; i++){
+  PyObject *pLCoords = PyTuple_New(dim+1);
+  for(i=0; i<dim+1; i++){
     PyTuple_SetItem(pLCoords, i, PyFloat_FromDouble(lcoords[i]));
   }
 
@@ -187,7 +189,7 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
   pArgs[1] = pLCoords;  
 
   // Merge our stored local vars (fields, etc.) into a new copy of the global namespace
-  // ml805 comment: this is done because for some reason the vars in pLocals don't get picked up in the call
+  // This is done because, for some reason, the vars in pLocals don't get picked up in PyEval_EvalCodeEx()
   PyObject *pGlobalsLocals = PyDict_Copy(pGlobals);
   PyDict_Merge(pGlobalsLocals, pLocals, 1);
 
@@ -195,8 +197,10 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
   PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pGlobalsLocals, pLocals, pArgs, 2, NULL, 0, NULL, 0, pFuncClosure);
  
   // Check for Python errors
+  *stat=0;
   if(!pResult){
     PyErr_Print();
+    *stat=-1;
     return;
   }
 
@@ -205,6 +209,9 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
     value[i] = PyFloat_AsDouble( PySequence_GetItem(pResult, i) );
   }
 
+  free(local_dict);
+  free(local_key);
+  free(pArgs);
 #endif
 }
 

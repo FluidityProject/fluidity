@@ -61,7 +61,7 @@ contains
     type(vector_field), pointer :: xfield
     type(element_type), pointer :: shape
     character(len=PYTHON_FUNC_LEN) :: func
-    character(len = 254) :: buffer, schema_buffer, agent_array_name
+    character(len = 254) :: buffer, schema_buffer
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type
@@ -83,11 +83,7 @@ contains
     do i = 1, n_agent_arrays
        write(schema_buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/agents/agent_array[",i-1,"]"
        call get_option(trim(schema_buffer)//"/number_of_agents", n_agents)
-       call get_option(trim(schema_buffer)//"/name", agent_array_name)
-
-       call get_option(trim(schema_buffer)//"/initial_position", func)
-       allocate(coords(dim,n_agents))
-       call set_detector_coords_from_python(coords, n_agents, func, current_time)
+       call get_option(trim(schema_buffer)//"/name", agent_arrays(i)%name)
 
        ! Register the agent array, so Zoltan/Adaptivity will not forget about it
        call register_detector_list(agent_arrays(i))
@@ -95,6 +91,15 @@ contains
 
        ! Get options for lagrangian detector movement
        call read_detector_move_options(agent_arrays(i),"/ocean_biology/lagrangian_ensemble/agents")
+
+       ! Get options for Random Walk
+       if (have_option(trim(schema_buffer)//"/random_walk")) then
+          agent_arrays(i)%move_parameters%do_random_walk=.true.
+          call get_option(trim(schema_buffer)//"/random_walk", agent_arrays(i)%move_parameters%rw_pycode)
+       else
+          agent_arrays(i)%move_parameters%do_random_walk=.false.
+       end if
+       agent_arrays(i)%total_num_det=n_agents
 
        ! Collect other meta-information
        if (have_option(trim(schema_buffer)//"/binary_output")) then
@@ -112,16 +117,12 @@ contains
        else
           agent_arrays(i)%move_parameters%do_velocity_advect=.true.
        end if
-       if (have_option(trim(schema_buffer)//"/random_walk")) then
-          agent_arrays(i)%move_parameters%do_random_walk=.true.
-          call get_option(trim(schema_buffer)//"/random_walk", agent_arrays(i)%move_parameters%rw_pycode)
-       else
-          agent_arrays(i)%move_parameters%do_random_walk=.false.
-       end if
-       agent_arrays(i)%total_num_det=n_agents
-
 
        ! Create agent and insert into list
+       call get_option(trim(schema_buffer)//"/initial_position", func)
+       allocate(coords(dim,n_agents))
+       call set_detector_coords_from_python(coords, n_agents, func, current_time)
+
        do j = 1, n_agents
           call create_single_detector(agent_arrays(i), xfield, coords(:,j), j, det_type, trim(int2str(j)))
        end do
@@ -133,7 +134,7 @@ contains
        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
        if (getprocno() == 1) then
           agent_arrays(i)%output_unit=free_unit()
-          open(unit=agent_arrays(i)%output_unit, file=trim(agent_array_name)//'.detectors', action="write")
+          open(unit=agent_arrays(i)%output_unit, file=trim(agent_arrays(i)%name)//'.detectors', action="write")
           write(agent_arrays(i)%output_unit, '(a)') "<header>"
 
           call initialise_constant_diagnostics(agent_arrays(i)%output_unit, binary_format = agent_arrays(i)%binary_output)
@@ -161,10 +162,10 @@ contains
        ! bit of hack to delete any existing .detectors.dat file
        ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
        ! gradually overwritten, mixing detector output from the current with that of a previous run
-       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_array_name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(i)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
        call MPI_FILE_CLOSE(agent_arrays(i)%mpi_fh, ierror)
     
-       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_array_name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(i)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
        assert(ierror == MPI_SUCCESS)
        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     end do 

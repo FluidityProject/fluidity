@@ -99,6 +99,8 @@ module detector_data_types
 
      !! Internal ID used for packing/unpacking detectors
      integer :: id  ! IDs are counted from 1
+     !! Name as specified in options (Lagrangian agents only)
+     character(len=FIELD_NAME_LEN) :: name
 
      !! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
      type(rk_gs_parameters), pointer :: move_parameters => null()
