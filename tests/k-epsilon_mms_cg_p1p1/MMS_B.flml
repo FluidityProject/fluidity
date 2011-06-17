@@ -130,12 +130,9 @@
               </diagnostics>
             </solver>
             <initial_condition name="WholeMesh">
-              <python>
-                <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
-        tke=k.tke(X)
-        return tke</string_value>
-              </python>
+              <constant>
+                <real_value rank="0">0.0001</real_value>
+              </constant>
             </initial_condition>
             <boundary_conditions name="all_sides">
               <surface_ids>
@@ -144,7 +141,7 @@
               <type name="dirichlet">
                 <python>
                   <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
+        import k_epsilon_tools3 as k
         tke=k.tke(X)
         return tke</string_value>
                 </python>
@@ -164,7 +161,7 @@
                 <value name="WholeMesh">
                   <python>
                     <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
+        import k_epsilon_tools3 as k
         return k.forcing_k(X)</string_value>
                   </python>
                 </value>
@@ -241,12 +238,9 @@
               </diagnostics>
             </solver>
             <initial_condition name="WholeMesh">
-              <python>
-                <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
-        eps=k.eps(X)
-        return eps</string_value>
-              </python>
+              <constant>
+                <real_value rank="0">0.000001</real_value>
+              </constant>
             </initial_condition>
             <boundary_conditions name="all_sides">
               <surface_ids>
@@ -255,7 +249,7 @@
               <type name="dirichlet">
                 <python>
                   <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
+        import k_epsilon_tools3 as k
         eps=k.eps(X)
         return eps</string_value>
                 </python>
@@ -275,7 +269,7 @@
                 <value name="WholeMesh">
                   <python>
                     <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
+        import k_epsilon_tools3 as k
         return k.forcing_eps(X)</string_value>
                   </python>
                 </value>
@@ -482,7 +476,7 @@
               <x_component>
                 <python>
                   <string_value lines="20" type="python">def val(X,t):
-   import k_epsilon_tools as k
+   import k_epsilon_tools3 as k
    # Shear rotation about origin.
    return k.velocity(X)[0]</string_value>
                 </python>
@@ -490,7 +484,7 @@
               <y_component>
                 <python>
                   <string_value lines="20" type="python">def val(X,t):
-   import k_epsilon_tools as k
+   import k_epsilon_tools3 as k
    # Shear rotation about origin.
    return k.velocity(X)[1]</string_value>
                 </python>
@@ -499,21 +493,24 @@
           </type>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.7</real_value>
+                </constant>
+              </isotropic>
+            </value>
             <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
-          </diagnostic>
+          </prescribed>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
             <value name="WholeMesh">
               <python>
                 <string_value lines="20" type="python">def val(X,t):
-   import k_epsilon_tools as k
-   return k.forcing_mom(X)</string_value>
+   import k_epsilon_tools3 as k
+   return k.forcing_mom_noturb(X)</string_value>
               </python>
             </value>
             <output/>
@@ -572,7 +569,7 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
+        import k_epsilon_tools3 as k
         return k.pressure(X)</string_value>
           </python>
         </value>
@@ -617,7 +614,7 @@ for n in range(field.node_count):
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
+        import k_epsilon_tools3 as k
         nut=k.nut(X)
         return nut</string_value>
           </python>
@@ -660,7 +657,7 @@ for n in range(field.node_count):
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
+        import k_epsilon_tools3 as k
         tke=k.tke(X)
         return tke</string_value>
           </python>
@@ -703,7 +700,7 @@ for n in range(field.node_count):
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
+        import k_epsilon_tools3 as k
         eps=k.eps(X)
         return eps</string_value>
           </python>
@@ -746,7 +743,7 @@ for n in range(field.node_count):
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-        import k_epsilon_tools as k
+        import k_epsilon_tools3 as k
         return k.velocity(X)</string_value>
           </python>
         </value>
@@ -778,53 +775,5 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </vector_field>
-    <vector_field name="TKEGrad" rank="1">
-      <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="TurbulentKineticEnergy" name="grad"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
-    <vector_field name="UGrad" rank="1">
-      <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="Velocity%0" name="grad"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </vector_field>
-    <tensor_field name="VelocityGrad" rank="2">
-      <diagnostic>
-        <algorithm material_phase_support="single " source_field_type="vector" source_field_name="Velocity" name="grad_vector"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-      </diagnostic>
-    </tensor_field>
   </material_phase>
 </fluidity_options>

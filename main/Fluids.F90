@@ -452,9 +452,7 @@ contains
     keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
     if (have_option(trim(keps_option_path))) then
         have_k_epsilon = .true.
-        if (have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-           call keps_init(state(1))
-        end if
+        call keps_init(state(1))
     end if
 
 

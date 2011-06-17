@@ -50,7 +50,7 @@ implicit none
   private
 
   ! old turbulent kinetic energy, lengthscale, field ratios
-  type(scalar_field), save            :: tke_old, ll, tkeovereps, epsovertke
+  type(scalar_field), save            :: tke_old, tke_src_old, ll, tkeovereps, epsovertke
   ! empirical constants
   real, save                          :: c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k
   real, save                          :: fields_min = 1.e-10
@@ -103,8 +103,10 @@ subroutine keps_init(state)
                           &value::WholeMesh/isotropic/constant", visc)
     
     ! initialise eddy viscosity field
-    Field => extract_scalar_field(state, "ScalarEddyViscosity")
-    call set(Field, visc)
+    if (have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
+       Field => extract_scalar_field(state, "ScalarEddyViscosity")
+       call set(Field, visc)
+    end if
 
     ewrite(2,*) "k-epsilon parameters"
     ewrite(2,*) "--------------------------------------------"
@@ -125,8 +127,8 @@ end subroutine keps_init
 subroutine keps_tke(state)
 
     type(state_type), intent(inout)    :: state
-    type(scalar_field), pointer        :: source_kk, absorption_kk, kk, eps, EV, lumped_mass
-    type(scalar_field)                 :: src_rhs, abs_rhs
+    type(scalar_field), pointer        :: src_kk, abs_kk, kk, eps, EV, lumped_mass
+    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_kk, prescribed_abs_kk
     type(vector_field), pointer        :: positions, nu, u
     type(tensor_field), pointer        :: kk_diff
     type(element_type), pointer        :: shape_kk
@@ -135,14 +137,15 @@ subroutine keps_tke(state)
     real                               :: residual
     real, allocatable, dimension(:)    :: detwei, strain_ngi, rhs_addto
     real, allocatable, dimension(:,:,:):: dshape_kk
+    logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_tke"
 
     positions       => extract_vector_field(state, "Coordinate")
     nu              => extract_vector_field(state, "NonlinearVelocity")
     u               => extract_vector_field(state, "Velocity")
-    source_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
-    absorption_kk   => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
+    src_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
+    abs_kk   => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
     kk_diff         => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
     kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
@@ -151,10 +154,12 @@ subroutine keps_tke(state)
     ! Set copy of old kk for eps solve
     call set(tke_old, kk)
 
+    prescribed_src=.false.
+    prescribed_abs=.false.
     call allocate(src_rhs, kk%mesh, name="KKSRCRHS")
     call allocate(abs_rhs, kk%mesh, name="KKABSRHS")
     call zero(src_rhs); call zero(abs_rhs)
-
+    
     ! Assembly loop
     do ele = 1, ele_count(kk)
         shape_kk => ele_shape(kk, ele)
@@ -182,40 +187,63 @@ subroutine keps_tke(state)
 
     lumped_mass => get_lumped_mass(state, kk%mesh)
 
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+    ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
+    prescribed_src = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
                     &scalar_field::TurbulentKineticEnergy/prognostic/&
-                    &scalar_field::Source/diagnostic/algorithm::Internal")) then
-      ewrite(2,*) "Calculating k source and absorption"
-      do i = 1, node_count(kk)
-        select case (src_abs)
-        case ("explicit")
-          call set(source_kk, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
-          call set(absorption_kk, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
-        case ("implicit")
-          residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
-          call set(source_kk, i, -min(0.0, residual) )
-          call set(absorption_kk, i, max(0.0, residual) )
-        case default
-          FLAbort("Invalid implicitness option for k")
-        end select
-      end do
-    ! This allows user-specified source term, so that an MMS test can be set up.
-    else if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
-                         &scalar_field::TurbulentKineticEnergy/prognostic/&
-                         &scalar_field::Source/prescribed")) then
+                    &scalar_field::Source/prescribed"))
+
+    if(prescribed_src) then
       ewrite(2,*) "Prescribed k source"
-      do i = 1, node_count(kk)
-        select case (src_abs)
-        case ("explicit")
-          call set(absorption_kk, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
-        case ("implicit")
-          residual = node_val(abs_rhs,i)/node_val(lumped_mass,i) - node_val(source_kk,i)
-          call set(source_kk, i, -min(0.0, residual) )
-          call set(absorption_kk, i, max(0.0, residual) )
-        case default
-          FLAbort("Invalid implicitness option for k")
-        end select
-      end do
+      call allocate(prescribed_src_kk, kk%mesh, name="PRSKKSRC")
+      call zero(prescribed_src_kk)
+      call set(prescribed_src_kk, src_kk)
+      ewrite_minmax(prescribed_src_kk)
+      call zero(src_kk)
+    end if
+
+    prescribed_abs = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+                    &scalar_field::TurbulentKineticEnergy/prognostic/&
+                    &scalar_field::Absorption/prescribed"))
+
+    if(prescribed_abs) then
+      ewrite(2,*) "Prescribed k absorption"
+      call allocate(prescribed_abs_kk, kk%mesh, name="PRSKKABS")
+      call zero(prescribed_abs_kk)
+      call set(prescribed_abs_kk, abs_kk)
+      ewrite_minmax(prescribed_abs_kk)
+      call zero(abs_kk)
+    end if
+
+    ewrite(2,*) "Calculating k source and absorption"
+    do i = 1, node_count(kk)
+      select case (src_abs)
+      case ("explicit")
+        call set(src_kk, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
+        call set(abs_kk, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
+      case ("implicit")
+        residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
+        call set(src_kk, i, -min(0.0, residual) )
+        call set(abs_kk, i, max(0.0, residual) )
+      case default
+        FLAbort("Invalid implicitness option for k")
+      end select
+    end do
+
+    ! Set copy of old kk for eps solve
+    call set(tke_src_old, src_kk)
+
+    if(prescribed_src) then
+      ewrite_minmax(src_kk)
+      ! Set copy of old kk for eps solve
+      call set(tke_src_old, src_kk)
+      call addto(src_kk, prescribed_src_kk)
+      ewrite_minmax(src_kk)
+      call deallocate(prescribed_src_kk)
+    end if
+
+    if(prescribed_abs) then
+      call set(abs_kk, prescribed_abs_kk)
+      call deallocate(prescribed_abs_kk)
     end if
 
     call deallocate(src_rhs); call deallocate(abs_rhs)
@@ -229,8 +257,9 @@ subroutine keps_tke(state)
     ewrite_minmax(kk_diff)
     ewrite_minmax(tke_old)
     ewrite_minmax(kk)
-    ewrite_minmax(source_kk)
-    ewrite_minmax(absorption_kk)
+    ewrite_minmax(src_kk)
+    ewrite_minmax(tke_src_old)
+    ewrite_minmax(abs_kk)
 
 end subroutine keps_tke
 
@@ -239,8 +268,8 @@ end subroutine keps_tke
 subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
-    type(scalar_field), pointer        :: source_eps, source_kk, absorption_eps, eps, EV, lumped_mass
-    type(scalar_field)                 :: src_rhs, abs_rhs
+    type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, EV, lumped_mass
+    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps
     type(vector_field), pointer        :: positions
     type(tensor_field), pointer        :: eps_diff
     type(element_type), pointer        :: shape_eps
@@ -248,12 +277,13 @@ subroutine keps_eps(state)
     real                               :: residual
     real, allocatable, dimension(:)    :: detwei, rhs_addto
     integer, pointer, dimension(:)     :: nodes_eps
+    logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_eps"
     eps             => extract_scalar_field(state, "TurbulentDissipation")
-    source_eps      => extract_scalar_field(state, "TurbulentDissipationSource")
-    source_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
-    absorption_eps  => extract_scalar_field(state, "TurbulentDissipationAbsorption")
+    src_eps      => extract_scalar_field(state, "TurbulentDissipationSource")
+    src_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
+    abs_eps  => extract_scalar_field(state, "TurbulentDissipationAbsorption")
     eps_diff        => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
     positions       => extract_vector_field(state, "Coordinate")
@@ -273,7 +303,7 @@ subroutine keps_eps(state)
 
         ! Source term:
         rhs_addto = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
-                              ele_val_at_quad(tke_old,ele)*ele_val_at_quad(source_kk,ele))
+                              ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
         call addto(src_rhs, nodes_eps, rhs_addto)
 
         ! Absorption term:
@@ -286,40 +316,59 @@ subroutine keps_eps(state)
 
     lumped_mass => get_lumped_mass(state, eps%mesh)
 
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
-                    &scalar_field::TurbulentDissipation/prognostic/&
-                    &scalar_field::Source/diagnostic/algorithm::Internal")) then
-      ewrite(2,*) "Calculating epsilon source and absorption"
-      do i = 1, node_count(eps)
-        select case (src_abs)
-        case ("explicit")
-          call set(source_eps, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
-          call set(absorption_eps, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
-        case ("implicit")
-          residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
-          call set(source_eps, i, -min(0.0, residual) )
-          call set(absorption_eps, i, max(0.0, residual) )
-        case default
-          FLAbort("Invalid implicitness option for epsilon")
-        end select
-      end do
-    ! This allows user-specified source term, so that an MMS test can be set up.
-    else if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
-                         &scalar_field::TurbulentDissipation/prognostic/&
-                         &scalar_field::Source/prescribed")) then
-      ewrite(2,*) "Prescribed epsilon source"
-      do i = 1, node_count(eps)
-        select case (src_abs)
-        case ("explicit")
-          call set(absorption_eps, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
-        case ("implicit")
-          residual = node_val(abs_rhs,i)/node_val(lumped_mass,i) - node_val(source_eps,i)
-          call set(source_eps, i, -min(0.0, residual) )
-          call set(absorption_eps, i, max(0.0, residual) )
-        case default
-          FLAbort("Invalid implicitness option for k")
-        end select
-      end do
+    ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
+    prescribed_src = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+                    &scalar_field::TurbulentKineticEnergy/prognostic/&
+                    &scalar_field::Source/prescribed"))
+
+    if(prescribed_src) then
+      ewrite(2,*) "Prescribed eps source"
+      call allocate(prescribed_src_eps, eps%mesh, name="PRSEPSSRC")
+      call zero(prescribed_src_eps)
+      call set(prescribed_src_eps, src_eps)
+      ewrite_minmax(prescribed_src_eps)
+      call zero(src_eps)
+    end if
+
+    prescribed_abs = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
+           &scalar_field::TurbulentDissipation/prognostic/scalar_field::Absorption/prescribed"))
+
+    if(prescribed_abs) then
+      ewrite(2,*) "Prescribed eps absorption"
+      call allocate(prescribed_abs_eps, eps%mesh, name="PRSEPSABS")
+      call zero(prescribed_abs_eps)
+      call set(prescribed_abs_eps, abs_eps)
+      ewrite_minmax(prescribed_abs_eps)
+      call zero(abs_eps)
+    end if
+
+    ewrite(2,*) "Calculating epsilon source and absorption"
+    do i = 1, node_count(eps)
+      select case (src_abs)
+      case ("explicit")
+        call set(src_eps, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
+        call set(abs_eps, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
+      case ("implicit")
+        residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
+        call set(src_eps, i, -min(0.0, residual) )
+        call set(abs_eps, i, max(0.0, residual) )
+      case default
+        FLAbort("Invalid implicitness option for epsilon")
+      end select
+    end do
+
+    if(prescribed_src) then
+      ewrite_minmax(src_eps)
+      ! Set copy of old eps for eps solve
+      call set(tke_src_old, src_eps)
+      call addto(src_eps, prescribed_src_eps)
+      ewrite_minmax(src_eps)
+      call deallocate(prescribed_src_eps)
+    end if
+
+    if(prescribed_abs) then
+      call set(abs_eps, prescribed_abs_eps)
+        call deallocate(prescribed_abs_eps)
     end if
 
     call deallocate(src_rhs); call deallocate(abs_rhs)
@@ -332,10 +381,10 @@ subroutine keps_eps(state)
 
     ewrite_minmax(eps_diff)
     ewrite_minmax(tke_old)
-    ewrite_minmax(source_kk)
+    ewrite_minmax(src_kk)
     ewrite_minmax(eps)
-    ewrite_minmax(source_eps)
-    ewrite_minmax(absorption_eps)
+    ewrite_minmax(src_eps)
+    ewrite_minmax(abs_eps)
 
 end subroutine keps_eps
 
@@ -577,6 +626,7 @@ subroutine keps_cleanup()
 
     call deallocate(ll)
     call deallocate(tke_old)
+    call deallocate(tke_src_old)
     call deallocate(tkeovereps)
     call deallocate(epsovertke)
 
@@ -738,8 +788,10 @@ subroutine keps_allocate_fields(state)
     ! allocate some space for the fields we need for calculations
     call allocate(ll,         vectorField%mesh, "LengthScale")
     call allocate(tke_old,    vectorField%mesh, "Old_TKE")
+    call allocate(tke_src_old,vectorField%mesh, "Old_TKE_Source")
     call allocate(tkeovereps, vectorField%mesh, "TKEoverEpsilon")
     call allocate(epsovertke, vectorField%mesh, "EpsilonOverTKE")
+    call zero(ll); call zero(tke_old); call zero(tke_src_old); call zero(tkeovereps); call zero(epsovertke)
 
 end subroutine keps_allocate_fields
 

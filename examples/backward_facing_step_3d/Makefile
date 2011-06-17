@@ -1,7 +1,7 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=5100
-JOB=dynles-lilly-periodic
+JOB=high-log-periodic
 
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
@@ -27,9 +27,6 @@ preprocess-periodic:
 		pwd; \
 		echo **********copying flml: backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
 		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
-		echo **********Generating mesh for $(NN) simulation:; \
-		gmsh -3 -optimize_netgen -o step3d-$(NN)-periodic.msh ../src/step3d-$(NN)-periodic.geo; \
-		$(SCRIPTS)/gmsh2triangle step3d-$(NN)-periodic.msh; \
 		echo $(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		$(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
