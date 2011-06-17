@@ -969,7 +969,6 @@ contains
     ! nvfrac at quadrature points.
     real, dimension(ele_ngi(u, ele)) :: nvfrac_gi, u_nl_dot_grad_nvfrac_gi
     real, dimension(u%dim, ele_ngi(u, ele)) :: grad_nvfrac_gi
-    real, dimension(U%dim, ele_loc(q_mesh,ele), ele_and_faces_loc(U,ele)) :: Grad_u_mat_q_nvfrac
 
     ! element centre and neighbour centre
     ! for IP parameters
@@ -1680,23 +1679,27 @@ contains
 
        else
           ! Tau Q = grad(u)
-          Q_inv= shape_shape(q_shape, q_shape, detwei)
+          if(multiphase) then
+            ! We define the auxiliary variable as vfrac*q = vfrac*div(u)
+            ! to obtain the correct form of the grad_u_mat_q matrix. This way,
+            ! transpose(grad_u_mat_q) gives the correct form of the viscosity term.
+            Q_inv= shape_shape(q_shape, q_shape, detwei*nvfrac_gi)
+          else
+            Q_inv= shape_shape(q_shape, q_shape, detwei)
+          end if
 
           call invert(Q_inv)
           call cholesky_factor(Q_inv)
           
           Grad_U_mat_q=0.0
           Div_U_mat_q=0.0
-          Grad_U_mat_q_nvfrac=0.0
           if(.not.p0) then
              
-             Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei)
              if(multiphase) then
-               ! For multiphase simulations, we also need to compute 
-               ! Grad_U_mat_q_nvfrac = -\int{grad(N_A) nvfrac N_B}
-               ! such that transpose(Grad_U_mat_q_nvfrac) = -\int{grad(N_A*nvfrac) N_B}.
-               ! The viscosity term then becomes transpose(Grad_U_mat_q_nvfrac) * Q_inv * Grad_U_mat_q
-               Grad_U_mat_q_nvfrac(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei*nvfrac_gi)
+               Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei*nvfrac_gi) - &
+                                          & shape_shape_vector(q_shape, u_shape, detwei, grad_nvfrac_gi)
+             else
+               Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei)
              end if
  
              if(viscosity_scheme==ARBITRARY_UPWIND) then
@@ -1809,7 +1812,7 @@ contains
             if(.not. turbine_face .or. turbine_fluxfac>=0) then
                    call construct_momentum_interface_dg(ele, face, face_2, ni,&
                         & big_m_tensor_addto, &
-                        & rhs_addto, Grad_U_mat_q, Grad_U_mat_q_nvfrac, Div_U_mat_q, X,&
+                        & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, &
@@ -1823,7 +1826,7 @@ contains
             if(.not. turbine_face .or. turbine_fluxfac>=0) then
                    call construct_momentum_interface_dg(ele, face, face_2, ni,&
                         & big_m_tensor_addto, &
-                        & rhs_addto, Grad_U_mat_q, Grad_U_mat_q_nvfrac, Div_U_mat_q, X,&
+                        & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, &
@@ -2021,23 +2024,12 @@ contains
       do dim1=1, Viscosity%dim(1)
          do dim2=1,Viscosity%dim(2)
             do d3 = 1, mesh_dim(U)
-
-               if(multiphase) then
-                  ! In multiphase simulations, the viscosity term becomes 
-                  ! transpose(Grad_U_mat_q_nvfrac) * Q_inv * Grad_U_mat_q
-                  Viscosity_mat(d3,:,:)=Viscosity_mat(d3,:,:)&
-                     +matmul(matmul(transpose(grad_U_mat_q_nvfrac(dim1,:,:))&
-                     &         ,mat_diag_mat(Q_inv, Viscosity_ele(dim1,dim2,:)))&
-                     &     ,grad_U_mat_q(dim2,:,:))
-               else
-                  ! Div U * G^U * Viscosity * G * Grad U
-                  ! Where G^U*G = inverse(Q_mass)
-                  Viscosity_mat(d3,:,:)=Viscosity_mat(d3,:,:)&
-                     +matmul(matmul(transpose(grad_U_mat_q(dim1,:,:))&
-                     &         ,mat_diag_mat(Q_inv, Viscosity_ele(dim1,dim2,:)))&
-                     &     ,grad_U_mat_q(dim2,:,:))
-               end if
-
+               ! Div U * G^U * Viscosity * G * Grad U
+               ! Where G^U*G = inverse(Q_mass)
+               Viscosity_mat(d3,:,:)=Viscosity_mat(d3,:,:)&
+                  +matmul(matmul(transpose(grad_U_mat_q(dim1,:,:))&
+                  &         ,mat_diag_mat(Q_inv, Viscosity_ele(dim1,dim2,:)))&
+                  &     ,grad_U_mat_q(dim2,:,:))
             end do
          end do
       end do
@@ -2060,7 +2052,7 @@ contains
 
   subroutine construct_momentum_interface_dg(ele, face, face_2, ni, &
        & big_m_tensor_addto, &
-       & rhs_addto, Grad_U_mat, Grad_U_mat_nvfrac, Div_U_mat, X, Rho, U,&
+       & rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, U,&
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, &
@@ -2078,7 +2070,7 @@ contains
     real, dimension(:,:,:,:), intent(inout), optional :: & 
          & subcycle_m_tensor_addto
     real, dimension(:,:) :: rhs_addto
-    real, dimension(:,:,:), intent(inout) :: Grad_U_mat, Grad_U_mat_nvfrac, Div_U_mat
+    real, dimension(:,:,:), intent(inout) :: Grad_U_mat, Div_U_mat
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U, U_nl
     type(vector_field), pointer :: U_mesh
@@ -2464,42 +2456,31 @@ contains
     end subroutine arbitrary_upwind_viscosity
 
     subroutine bassi_rebay_viscosity
+
+      real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
       
       do dim=1,mesh_dim(U)
+
+         coefficient_detwei = detwei*normal(dim,:)
+         if(multiphase) then
+            coefficient_detwei = coefficient_detwei*nvfrac_gi
+         end if
 
          if(.not.boundary) then
             ! Internal face.
             Grad_U_mat(dim, q_face_l, U_face_l)=&
                Grad_U_mat(dim, q_face_l, U_face_l) &
-               +0.5*shape_shape(q_shape, U_shape, detwei*normal(dim,:))
+               +0.5*shape_shape(q_shape, U_shape, coefficient_detwei)
             
             ! External face.
             Grad_U_mat(dim, q_face_l, start:finish)=&
-               +0.5*shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
-
-            if(multiphase) then
-               ! Internal face.
-               Grad_U_mat_nvfrac(dim, q_face_l, U_face_l)=&
-                  Grad_U_mat_nvfrac(dim, q_face_l, U_face_l) &
-                  +0.5*shape_shape(q_shape, U_shape, detwei*normal(dim,:)*nvfrac_gi)
-               
-               ! External face.
-               Grad_U_mat_nvfrac(dim, q_face_l, start:finish)=&
-                  +0.5*shape_shape(q_shape, U_shape_2, detwei*normal(dim,:)*nvfrac_gi)
-            end if
-           
+               +0.5*shape_shape(q_shape, U_shape_2, coefficient_detwei) 
          else
             ! Boundary case. Put the whole integral in the external bit.
 
             ! External face.
             Grad_U_mat(dim, q_face_l, start:finish)=&
-               +shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
-
-            if(multiphase) then
-               Grad_U_mat_nvfrac(dim, q_face_l, start:finish)=&
-                  +shape_shape(q_shape, U_shape_2, detwei*normal(dim,:)*nvfrac_gi)
-            end if
-
+               +shape_shape(q_shape, U_shape_2, coefficient_detwei)
          end if
       end do
 
