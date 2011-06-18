@@ -610,18 +610,22 @@ module python_state
     
   end subroutine python_run_detector_string
 
-  subroutine python_run_detector_val_function(detector, dict, key, value, stat)
+  subroutine python_run_detector_val_function(detector, xfield, dict, key, value, stat)
     !!< Wrapper function for python_run_string_keep_locals_c
     type(detector_type), pointer, intent(in) :: detector
+    type(vector_field), pointer, intent(in) :: xfield
     character(len = *), intent(in) :: dict, key
     real, dimension(size(detector%position)), intent(out) :: value
     integer, optional, intent(out) :: stat
     
     integer :: lstat
+    real, dimension(size(detector%local_coords)) :: stage_local_coords
 
     if(present(stat)) stat = 0
 
-    call python_run_detector_val(detector%element, size(detector%position), detector%local_coords, dict, len_trim(dict), key,len_trim(key), value, lstat) 
+    stage_local_coords=local_coords(xfield,detector%element,detector%update_vector)
+    call python_run_detector_val(detector%element, size(detector%position), &
+            stage_local_coords, dict, len_trim(dict), key,len_trim(key), value, lstat) 
 
     if(lstat /= 0) then
       if(present(stat)) then

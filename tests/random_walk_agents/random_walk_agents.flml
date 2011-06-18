@@ -191,17 +191,10 @@
           </initial_position>
           <random_walk>
             <string_value lines="20" type="python">velocity = state.vector_fields['Velocity']
-tracer = state.scalar_fields['Tracer']
-
-print "In outer python"
 
 def val(ele,local_coords):
-  # The val function should only present detector attributes
+  # The val function presents detector attributes
   # that enable us to evaluate the field at the current position
-  # eval_field is not yet implemented in python
-  print "In detector val function"
-  print tracer.eval_field(ele, local_coords)
-  print velocity.eval_field(ele, local_coords)
   return velocity.eval_field(ele, local_coords)</string_value>
           </random_walk>
           <exclude_from_advection/>

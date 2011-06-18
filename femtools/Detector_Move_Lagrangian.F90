@@ -315,44 +315,42 @@ contains
 
        if(det0%type==LAGRANGIAN_DETECTOR) then
 
-          if (parameters%do_velocity_advect) then
-
-             !! Set det%update_vector for lagrangian advection
-             det0%search_complete = .false.
-             if(stage0.eq.1) then
-                det0%update_vector = det0%position
-             end if
-
-             ! stage vector is computed by evaluating velocity at current position
-             stage_local_coords=local_coords(xfield,det0%element,det0%update_vector)
-             det0%k(stage0,:)=eval_field(det0%element, vfield, stage_local_coords)
-
-             if(stage0<parameters%n_stages) then
-                ! update vector maps from current position to place required
-                ! for computing next stage vector
-                det0%update_vector = det0%position
-                do j0 = 1, stage0
-                   det0%update_vector = det0%update_vector + dt0*parameters%stage_matrix(stage0+1,j0)*det0%k(j0,:)
-                end do
-             else
-                ! update vector maps from current position to final position
-                det0%update_vector = det0%position
-                do j0 = 1, parameters%n_stages
-                   det0%update_vector = det0%update_vector + dt0*parameters%timestep_weights(j0)*det0%k(j0,:)
-                end do
-                det0%position = det0%update_vector
-             end if
-
-          else
-             ! do not advect detector with the velocity field
+          !! Set det%update_vector for lagrangian advection
+          det0%search_complete = .false.
+          if(stage0.eq.1) then
              det0%update_vector = det0%position
           end if
 
+          if (parameters%do_velocity_advect) then
+             ! stage vector is computed by evaluating velocity at current position
+             stage_local_coords=local_coords(xfield,det0%element,det0%update_vector)
+             det0%k(stage0,:)=eval_field(det0%element, vfield, stage_local_coords)
+          else
+             ! do not advect detector with the velocity field
+             det0%k(stage0,:)=0.0
+          end if
+
           if (parameters%do_random_walk) then
-             call python_run_detector_val_function(det0, trim("random_walk"), trim(detector_list%name), rw_velocity_source) 
-             ewrite(3,*) "ml805 debug: python_run_detector_string returns:", rw_velocity_source
-             ewrite(3,*) "ml805 det%position:", det0%position
-             ewrite(3,*) "ml805 velocity:", detector_value(vfield, det0)
+             ! Evaluate the RW python function at det%update_vector
+             ! and add this virtual velocity source to det%k
+             call python_run_detector_val_function(det0,xfield,trim("random_walk"),trim(detector_list%name),rw_velocity_source)
+             det0%k(stage0,:)=det0%k(stage0,:) + rw_velocity_source
+          end if
+
+          if(stage0<parameters%n_stages) then
+             ! update vector maps from current position to place required
+             ! for computing next stage vector
+             det0%update_vector = det0%position
+             do j0 = 1, stage0
+                det0%update_vector = det0%update_vector + dt0*parameters%stage_matrix(stage0+1,j0)*det0%k(j0,:)
+             end do
+          else
+             ! update vector maps from current position to final position
+             det0%update_vector = det0%position
+             do j0 = 1, parameters%n_stages
+                det0%update_vector = det0%update_vector + dt0*parameters%timestep_weights(j0)*det0%k(j0,:)
+             end do
+             det0%position = det0%update_vector
           end if
 
        end if
