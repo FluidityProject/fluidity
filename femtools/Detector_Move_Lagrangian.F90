@@ -152,7 +152,7 @@ contains
 
     ! Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
-    vfield => extract_vector_field(state(1),"Velocity")
+    vfield=>extract_vector_field(state(1),"Velocity")
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -352,6 +352,7 @@ contains
              call python_run_detector_val_function(det0, trim("random_walk"), trim(detector_list%name), rw_velocity_source) 
              ewrite(3,*) "ml805 debug: python_run_detector_string returns:", rw_velocity_source
              ewrite(3,*) "ml805 det%position:", det0%position
+             ewrite(3,*) "ml805 velocity:", detector_value(vfield, det0)
           end if
 
        end if

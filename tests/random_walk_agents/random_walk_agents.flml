@@ -126,7 +126,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(x, t):
+            <string_value lines="20" type="python">def val(x, t):
   return x[0]</string_value>
           </python>
         </value>
@@ -201,9 +201,8 @@ def val(ele,local_coords):
   # eval_field is not yet implemented in python
   print "In detector val function"
   print tracer.eval_field(ele, local_coords)
-  #print velocity.eval_field(ele, local_coords)
-  return (1.0, 0.9, 0.8)
-  #return velocity.eval_field(ele, local_coords)</string_value>
+  print velocity.eval_field(ele, local_coords)
+  return velocity.eval_field(ele, local_coords)</string_value>
           </random_walk>
           <exclude_from_advection/>
           <comment>Dave should move just like Steve, but using the python interface.</comment>

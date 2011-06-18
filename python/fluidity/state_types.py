@@ -138,6 +138,20 @@ class VectorField(Field):
     self.val = v
     self.dimension = dim
     self.node_count=self.val.shape[0]
+
+  def eval_field(self,ele,local_coord):
+    if self.mesh.shape.degree==0:
+      n = 1.0
+    else:
+      n = numpy.zeros(self.mesh.shape.loc)
+      for i in range(self.mesh.shape.loc):
+        n[i] = self.mesh.shape.eval_shape(i, local_coord)
+
+    val = numpy.zeros(self.dimension)
+    ele_vals = self.ele_val(ele).transpose()
+    for i in range(len(val)):
+      val[i] = numpy.dot(ele_vals[i],n)
+    return val
     
 class TensorField(Field):
   "A tensor field"
