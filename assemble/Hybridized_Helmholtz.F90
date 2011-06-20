@@ -1,4 +1,3 @@
-
   !    Copyright (C) 2006 Imperial College London and others.
   !
   !    Please see the AUTHORS file in the main source directory for a full list
@@ -358,12 +357,19 @@ contains
        end do
        deallocate(continuity_face_mat)
     end do
+
+    ! ( M    C  -L)(u)   (0)
+    ! ( -C^T N  0 )(h) = (j)
+    ! ( L^T  0  0 )(l)   (0)
+    ! 
+    ! (u)   (M    C)^{-1}(0)   (M    C)^{-1}(L)
+    ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
     
     rhs_loc=0.
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
     rhs_loc = rhs_loc + matmul(continuity_mat,ele_val(lambda,ele))
     call solve(local_solver,Rhs_loc)
-       
+
     do dim1 = 1, mdim
        call set(U,dim1,ele_nodes(u,ele),&
             &Rhs_loc(u_start(dim1):u_end(dim1)))
@@ -565,16 +571,17 @@ contains
     type(vector_field), intent(in) :: U, X
     integer, intent(in) :: ele
     !
-    real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
-     real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: l_u_mat
+    real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: l_u_mat
     real, dimension(X%dim,ele_loc(U,ele)) :: u_rhs
     real, dimension(mesh_dim(U), ele_ngi(U,ele)) :: local_u_gi
+    real, dimension(X%dim, ele_ngi(U,ele)) :: cart_u_gi
     integer :: dim1
     type(element_type) :: u_shape
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     integer, dimension(:), pointer :: U_ele
-    integer :: mdim, uloc
-    real, dimension(ele_ngi(U,ele)) :: detwei
+    integer :: mdim, uloc, gi
+    real, dimension(ele_ngi(U,ele)) :: detwei, detJ
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
 
     mdim = mesh_dim(U)
     uloc = ele_loc(U,ele)
@@ -587,17 +594,20 @@ contains
 
     u_shape=ele_shape(u, ele)
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detwei=detwei)
+         detwei=detwei,detJ=detJ)
 
     local_u_gi = ele_val_at_quad(U,ele)
-    u_rhs = shape_vector_rhs(u_shape,local_u_gi,U_shape%quadrature%weight)
+    do gi = 1, ele_ngi(U,ele)
+       cart_u_gi(:,gi) = matmul(transpose(J(:,:,gi)),local_u_gi(:,gi))/detJ(gi)
+    end do
+    u_rhs = shape_vector_rhs(u_shape,cart_u_gi,detwei)
     l_u_mat = shape_shape(u_shape, u_shape, detwei)
 
     do dim1 = 1, mdim
        call solve(l_u_mat,u_rhs(dim1,:))
     end do
     
-    do dim1 = 1, mdim
+    do dim1 = 1, U_cart%dim
        call set(U_cart,dim1,u_ele,u_rhs(dim1,:))
     end do
   end subroutine compute_cartesian_ele
@@ -636,6 +646,8 @@ contains
     real, dimension(U_cart%dim, face_ngi(U_cart, face)) :: n1,n2
     real, dimension(U_cart%dim, face_ngi(U_cart, face)) :: u1,u2
     real, dimension(face_ngi(U_cart, face)) :: jump_at_quad
+    integer :: dim1
+    real, dimension(X%dim,face_loc(U_cart, face)) :: X_loc
     !
     !Get normals
     call transform_facet_to_physical(X, face, &
@@ -656,6 +668,12 @@ contains
 
     if(maxval(abs(jump_at_quad))>1.0e-8) then
        ewrite(1,*) 'Jump at face, face2 =', jump_at_quad
+       X_loc = face_val(X,face)
+       ewrite(1,*) 'Coords are'
+       do dim1 = 1, X%dim
+          ewrite(1,*) X_loc(dim1,:)
+       end do
+       FLAbort('stopping because of jumps')
     end if
     
   end subroutine check_continuity_face
@@ -759,7 +777,7 @@ contains
           u_local_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))/detJ(gi)
        end do
        U_rhs_loc = shape_vector_rhs(u_shape,&
-            u_local_quad,u_shape%quadrature%weight)
+            u_local_quad,detwei)
        do dim1 = 1, mdim
           Rhs_loc(u_start(dim1):u_end(dim1)) = &
                & U_rhs_loc(dim1,:)
