@@ -47,7 +47,7 @@ subroutine test_tensor_second_invariant
      sfields=(/ tensor_second_invariant_field, solution_field, diff_field /), &
      tfields=(/ field  /))
 
-  fail = maxval( abs( diff_field%val ))> 1e-10
+  fail = maxval( abs( diff_field%val ))> 1e-15
   call report_test("[tensor_second_invariant]", fail, .false., "second invariant different than expected")
 
 end subroutine test_tensor_second_invariant
@@ -73,11 +73,15 @@ end function strainrate
 function solution(pos)
   real, dimension(:) :: pos
   real :: solution
-  real :: x,y,z
+  real :: x,y,z, sum
 
   x = pos(1); y = pos(2) ; z = pos(3)
 
-  solution = 9*(x**2)+25*(z**2)+3*(x**2)*(z**2)+49
+  sum = (1*x*z)**2 + (3*x)**2    + (5*z)**2   &
+      + (3*x)**2   + (-2*x*z)**2 + (7)**2     &
+      + (5*z)**2   + (7)**2      + (1*x*z)**2
+
+  solution = sqrt(sum / 2.)
 
 end function solution
 
