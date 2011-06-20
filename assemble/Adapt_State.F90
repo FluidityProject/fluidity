@@ -1086,7 +1086,7 @@ contains
         do j = 1, size(detector_list_array)
            detector=>detector_list_array(j)%ptr%firstnode
            do k = 1, detector_list_array(j)%ptr%length
-              assert(element_owned(new_positions%mesh,detector%element))
+              assert(detector%element>0)
               detector=>detector%next
            end do
         end do
