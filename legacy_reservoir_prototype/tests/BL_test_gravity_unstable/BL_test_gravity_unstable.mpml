@@ -85,7 +85,7 @@
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">9.81</real_value>
+        <real_value rank="0">9.81e+2</real_value>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
@@ -282,7 +282,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1.0</real_value>
+                  <real_value rank="0">0.1</real_value>
                 </constant>
               </isotropic>
             </value>
