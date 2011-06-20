@@ -122,6 +122,9 @@
     call deallocate(f)
     dump_no = 0
     call write_state(dump_no,state)
+    !subroutine solve_hybridized_helmholtz(state,D_rhs,U_Rhs,&
+    !   &compute_cartesian,&
+    !   &check_continuity,output_dense)
     call solve_hybridized_helmholtz(state(1),D_rhs=D_rhs,U_rhs=u_rhs,&
          &compute_cartesian=.true.,check_continuity=.true.,output_dense=.false.)
 

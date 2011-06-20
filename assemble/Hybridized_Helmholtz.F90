@@ -187,10 +187,10 @@ contains
 
     implicit none
     type(scalar_field), intent(in) :: D,f
-    type(scalar_field), intent(in), optional :: D_rhs
     type(scalar_field), intent(inout) :: lambda_rhs
     type(vector_field), intent(in) :: U,X,down
     type(vector_field), intent(in), optional :: U_rhs
+    type(scalar_field), intent(in), optional :: D_rhs
     integer, intent(in) :: ele
     real, intent(in) :: g,dt,theta,D0
     type(csr_matrix), intent(inout) :: lambda_mat
@@ -274,9 +274,10 @@ contains
     ! so
     !        (M    C)^{-1}(L)         (M    C)^{-1}(0)
     ! (L^T 0)(-C^T N)     (0)=-(L^T 0)(-C^T N)     (j)
-    allocate(lambda_rhs_loc(ele_loc(lambda_rhs,ele)))
+    rhs_loc=0.
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
     call solve(local_solver,Rhs_loc)
+    allocate(lambda_rhs_loc(ele_loc(lambda_rhs,ele)))
     lambda_rhs_loc = -matmul(transpose(continuity_mat),Rhs_loc)
        
     !insert lambda_rhs_loc into lambda_rhs
@@ -358,6 +359,7 @@ contains
        deallocate(continuity_face_mat)
     end do
     
+    rhs_loc=0.
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
     rhs_loc = rhs_loc + matmul(continuity_mat,ele_val(lambda,ele))
     call solve(local_solver,Rhs_loc)
@@ -708,6 +710,7 @@ contains
   end subroutine get_nc_rhs_face
 
   subroutine assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
+    implicit none
     integer, intent(in) :: ele
     type(scalar_field), intent(in), optional :: D_rhs
     type(vector_field), intent(in), optional :: U_rhs
@@ -717,11 +720,13 @@ contains
          &intent(inout) :: Rhs_loc
     !
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
-    real, dimension(ele_ngi(X,ele)) :: detwei
     real, dimension(mesh_dim(U),ele_loc(U,ele)) :: u_rhs_loc
-    integer :: d_start, d_end, dim1, mdim, uloc,dloc
+    real, allocatable, dimension(:,:) :: u_cart_quad
+    real, dimension(mesh_dim(U),ele_ngi(X,ele)) :: u_local_quad
+    integer :: d_start, d_end, dim1, mdim, uloc,dloc, gi
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(element_type) :: u_shape
+    real, dimension(ele_ngi(D,ele)) :: detwei, detJ
 
     !Get some sizes
     mdim = mesh_dim(U)
@@ -740,7 +745,7 @@ contains
     end do
     
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detwei=detwei)
+         detJ=detJ,detwei=detwei)
 
     Rhs_loc = 0.
     if(present(D_rhs)) then
@@ -748,9 +753,13 @@ contains
             &ele_val_at_quad(D_rhs,ele)*detwei)
     end if
     if(present(u_rhs)) then
-       U_rhs_loc = shape_vector_rhs(ele_shape(U_rhs,ele),&
-            ele_val_at_quad(u_rhs,ele),&
-            u_shape%quadrature%weight)
+       allocate(u_cart_quad(U_rhs%dim,ele_ngi(X,ele)))
+       u_cart_quad = ele_val_at_quad(u_rhs,ele)
+       do gi = 1, ele_ngi(u_rhs,ele)
+          u_local_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))/detJ(gi)
+       end do
+       U_rhs_loc = shape_vector_rhs(u_shape,&
+            u_local_quad,u_shape%quadrature%weight)
        do dim1 = 1, mdim
           Rhs_loc(u_start(dim1):u_end(dim1)) = &
                & U_rhs_loc(dim1,:)
