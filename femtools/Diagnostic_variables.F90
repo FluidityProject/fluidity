@@ -1365,6 +1365,11 @@ contains
     if (isparallel()) then
        if (element<0) return
        if (.not.element_owned(xfield,element)) return
+    else
+       ! In serial make sure the detector is in the domain
+       if (element<0) then
+          FLExit("Trying to initialise detector outside of computational domain")
+       end if
     end if
          
     ! Otherwise, allocate and insert detector
