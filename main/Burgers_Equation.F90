@@ -677,7 +677,7 @@
       ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
 
-      ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=.false., variable=u0)
       call adj_chkierr(ierr)
 
       ierr = adj_create_equation(variable=u0, blocks=(/I/), targets=(/u0/), equation=equation)
@@ -728,15 +728,15 @@
 
       do iteration=1,niterations
         ! Set up adj_variables
-        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=.false., variable=u)
         call adj_chkierr(ierr)
 
         ! We need to find out how many nonlinear iterations we did at the previous timestep, so that we can reference it
-        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=.false., variable=previous_u)
         call adj_chkierr(ierr)
         ierr = adj_iteration_count(adjointer, previous_u, niterations_prev)
         call adj_chkierr(ierr)
-        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=niterations_prev-1, auxiliary=ADJ_FALSE, variable=previous_u)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=niterations_prev-1, auxiliary=.false., variable=previous_u)
         call adj_chkierr(ierr)
 
         if (iteration==1) then
@@ -746,7 +746,7 @@
           ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
           call adj_chkierr(ierr)
         else 
-          ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=ADJ_FALSE, variable=iter_u) 
+          ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=.false., variable=iter_u) 
           call adj_chkierr(ierr)
           ! Set up adj_blocks
           ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=burgers_advection_block)
@@ -810,7 +810,7 @@
       character(len=FIELD_NAME_LEN) :: bc_name, bc_type
       integer, dimension(:), pointer :: surface_element_list
 
-      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u_var)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=.false., variable=u_var)
       call adj_chkierr(ierr)
 
       if (present(field)) then
