@@ -25,7 +25,6 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-#include "petscversion.h"
 
 module advection_local_DG
   !!< This module contains the Discontinuous Galerkin form of the advection
@@ -54,24 +53,8 @@ module advection_local_DG
   use sparse_matrices_fields
   use sparsity_patterns_meshes
   use manifold_projections
-  use petsc
-  use Petsc_Tools
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
-#ifdef HAVE_PETSC_MODULES
-#include "finclude/petscvecdef.h"
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
-#include "finclude/petscpcdef.h"
-#else
-#include "finclude/petsc.h"
-#if PETSC_VERSION_MINOR==0
-#include "finclude/petscvec.h"
-#include "finclude/petscmat.h"
-#include "finclude/petscksp.h"
-#include "finclude/petscpc.h"
-#endif
-#endif
 
   implicit none
 
@@ -79,7 +62,7 @@ module advection_local_DG
   character(len=255), private :: message
 
   private
-  public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle
+  public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle, construct_vector_adv_element_dg
 
   ! Local private control parameters. These are module-global parameters
   ! because it would be expensive and/or inconvenient to re-evaluate them
@@ -134,7 +117,7 @@ contains
     type(csr_sparsity), pointer :: sparsity
     
     !! System matrix.
-    type(csr_matrix) :: matrix, mass, inv_mass
+    type(csr_matrix) :: matrix, flux_mat, mass, inv_mass
 
     !! Sparsity of mass matrix.
     type(csr_sparsity) :: mass_sparsity
@@ -165,6 +148,8 @@ contains
 
     call allocate(matrix, sparsity) ! Add data space to the sparsity
     ! pattern.
+    call allocate(flux_mat, sparsity)
+    call zero(flux_mat)
 
     mass_sparsity=make_sparsity_dg_mass(T%mesh)
     call allocate(mass, mass_sparsity)
@@ -175,8 +160,11 @@ contains
     delta_T%option_path = T%option_path
     call allocate(rhs, T%mesh, trim(field_name)//" RHS")
    
-    call construct_advection_dg(matrix, rhs, field_name, state, &
+    call construct_advection_dg(matrix, flux_mat, rhs, field_name, state, &
          mass, velocity_name=velocity_name)
+
+    call matrix2file('A_'//trim(field_name), matrix)
+    call matrix2file('flux_mat_'//trim(field_name), flux_mat)
 
     call get_dg_inverse_mass_matrix(inv_mass, mass)
     
@@ -265,7 +253,7 @@ contains
 
   end subroutine solve_advection_dg_subcycle
 
-  subroutine construct_advection_dg(big_m, rhs, field_name,&
+  subroutine construct_advection_dg(big_m, flux_mat, rhs, field_name,&
        & state, mass, velocity_name) 
     !!< Construct the advection equation for discontinuous elements in
     !!< acceleration form.
@@ -275,7 +263,7 @@ contains
     !!< or for solving equations otherwise than in acceleration form.
 
     !! Main advection matrix.    
-    type(csr_matrix), intent(inout) :: big_m
+    type(csr_matrix), intent(inout) :: big_m, flux_mat
     !! Right hand side vector.
     type(scalar_field), intent(inout) :: rhs
     
@@ -374,7 +362,7 @@ contains
 
     element_loop: do ele=1,element_count(T)
        
-       call construct_adv_element_dg(ele, big_m, rhs,&
+       call construct_adv_element_dg(ele, big_m, flux_mat, rhs,&
             & X, T, U_nl, &
             bc_value, bc_type, mass)
        
@@ -387,7 +375,7 @@ contains
 
   end subroutine construct_advection_dg
 
-  subroutine construct_adv_element_dg(ele, big_m, rhs,&
+  subroutine construct_adv_element_dg(ele, big_m, flux_mat, rhs,&
        & X, T, U_nl, &
        & bc_value, bc_type, &
        & mass)
@@ -397,7 +385,7 @@ contains
     !! Index of current element
     integer :: ele
     !! Main advection matrix.
-    type(csr_matrix), intent(inout) :: big_m
+    type(csr_matrix), intent(inout) :: big_m, flux_mat
     !! Right hand side vector.
     type(scalar_field), intent(inout) :: rhs
     !! Field over the entire surface mesh containing bc values:
@@ -566,7 +554,7 @@ contains
       end if
 
       call construct_adv_interface_dg(ele, face, face_2,&
-           & big_m, rhs, X, T, U_nl,&
+           & big_m, flux_mat, rhs, X, T, U_nl,&
            & bc_value, bc_type)
 
    end do neighbourloop
@@ -574,7 +562,7 @@ contains
  end subroutine construct_adv_element_dg
   
   subroutine construct_adv_interface_dg(ele, face, face_2, &
-       big_m, rhs, &
+       big_m, flux_mat, rhs, &
        & X, T, U_nl,&
        & bc_value, bc_type)
 
@@ -583,7 +571,7 @@ contains
     implicit none
 
     integer, intent(in) :: ele, face, face_2
-    type(csr_matrix), intent(inout) :: big_m
+    type(csr_matrix), intent(inout) :: big_m, flux_mat
     type(scalar_field), intent(inout) :: rhs
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U_nl
@@ -718,6 +706,16 @@ contains
                nnAdvection_in)
        end if
 
+       ! Outflow boundary integral.
+       call addto(flux_mat, T_face, T_face,&
+            nnAdvection_out)
+       
+       if (.not.dirichlet) then
+          ! Inflow boundary integral.
+          call addto(flux_mat, T_face, T_face_2,&
+               nnAdvection_in)
+       end if
+
        ! Insert advection in RHS.
        
        if (dirichlet) then
@@ -795,8 +793,8 @@ contains
     type(csr_sparsity), pointer :: sparsity
     
     !! System matrices.
-    type(block_csr_matrix) :: A, L, mass_local, inv_mass_local, &
-         inv_mass_cartesian, test
+    type(block_csr_matrix) :: A, A1, A2, flux_mat, L, mass_local, inv_mass_local, &
+         inv_mass_cartesian, L_T, test
 
     !! Sparsity of mass matrix.
     type(csr_sparsity) :: mass_sparsity
@@ -831,6 +829,12 @@ contains
     ! Add data space to the sparsity pattern.
     call allocate(A, sparsity, (/dim,X%dim/))
     call zero(A)
+    call allocate(A1, sparsity, (/dim,X%dim/))
+    call zero(A1)
+    call allocate(A2, sparsity, (/dim,X%dim/))
+    call zero(A2)
+    call allocate(flux_mat, sparsity, (/dim,X%dim/))
+    call zero(flux_mat)
     call allocate(L, sparsity, (/dim,X%dim/))
     call zero(L)
     call allocate(test, sparsity, (/X%dim,X%dim/))
@@ -855,15 +859,16 @@ contains
     call allocate(U_cartesian_tmp, U_cartesian%dim, U_cartesian%mesh, 'tmpUcartesian')
     call zero(U_cartesian_tmp)
    
-    call construct_vector_advection_dg(A, L, mass_local, &
+    call construct_vector_advection_dg(A, A1, A2, flux_mat, L, mass_local, &
          inv_mass_local, inv_mass_cartesian,&
          rhs, field_name, state, &
          velocity_name=velocity_name)
-    print*, size(test,1)
-    print*, size(L,2)
     
-    call matmul(test, transpose(L), A)
+    L_T=transpose(L,symmetric_sparsity=.false.)
+    test=matmul(L_T, A)
     ewrite_minmax(test)
+    call matrix2file('A', test)
+    call matrix2file('flux', matmul(L_T, flux_mat))
 
     ! Note that since theta and dt are module global, these lines have to
     ! come after construct_advection_diffusion_dg.
@@ -958,6 +963,8 @@ contains
 
     call deallocate(delta_U)
     call deallocate(A)
+    call deallocate(A1)
+    call deallocate(A2)
     call deallocate(L)
     call deallocate(mass_local)
     call deallocate(inv_mass_local)
@@ -965,36 +972,9 @@ contains
     call deallocate(mass_sparsity)
     call deallocate(rhs)
 
-    contains
-
-      subroutine write_A(A, filename)
-
-        type(block_csr_matrix), intent(in)::A
-        character(len=*), intent(in)::filename
-
-        type(petsc_numbering_type):: petsc_numbering
-        Mat:: mat
-        PetscViewer:: viewer
-        PetscErrorCode:: ierr
-
-        call allocate(petsc_numbering, &
-             nnodes=block_size(A,2), nfields=blocks(A,1), &
-             halo=A%sparsity%column_halo)
-
-        ! create PETSc Mat using this numbering:
-        mat=block_csr2petsc(A, petsc_numbering, petsc_numbering)
-
-        call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, &
-             filename, FILE_MODE_WRITE, &
-             viewer, ierr)
-        call MatView(mat, viewer, ierr)
-        call PetscViewerDestroy(viewer, ierr)
-
-      end subroutine write_A
-
   end subroutine solve_vector_advection_dg_subcycle
 
-  subroutine construct_vector_advection_dg(A, L, mass_local, inv_mass_local,&
+  subroutine construct_vector_advection_dg(A, A1, A2, flux_mat, L, mass_local, inv_mass_local,&
        & inv_mass_cartesian, rhs, field_name, &
        & state, velocity_name) 
     !!< Construct the advection equation for discontinuous elements in
@@ -1005,7 +985,7 @@ contains
     !!< or for solving equations otherwise than in acceleration form.
 
     !! Main advection matrix.    
-    type(block_csr_matrix), intent(inout) :: A, L
+    type(block_csr_matrix), intent(inout) :: A, A1, A2, flux_mat, L
     !! Mass matrices.
     type(block_csr_matrix), intent(inout) :: mass_local, inv_mass_local, &
          inv_mass_cartesian
@@ -1073,12 +1053,14 @@ contains
        & bc_value, bc_type)
 
     call zero(A)
+    call zero(A1)
+    call zero(A2)
     call zero(RHS)
     call zero(mass_local)
 
     element_loop: do ele=1,element_count(U)
        
-       call construct_vector_adv_element_dg(ele, A, L,&
+       call construct_vector_adv_element_dg(ele, A, A1, A2, flux_mat, L,&
             & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
             & X, U, U_nl, &
             & bc_value, bc_type)
@@ -1092,7 +1074,7 @@ contains
 
   end subroutine construct_vector_advection_dg
 
-  subroutine construct_vector_adv_element_dg(ele, A, L,&
+  subroutine construct_vector_adv_element_dg(ele, A, A1, A2, flux_mat, L,&
        & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
        & X, U, U_nl, &
        & bc_value, bc_type)
@@ -1102,7 +1084,7 @@ contains
     !! Index of current element
     integer :: ele
     !! Main advection matrix.
-    type(block_csr_matrix), intent(inout) :: A
+    type(block_csr_matrix), intent(inout) :: A, A1, A2, flux_mat
     !! Transformation matrix
     type(block_csr_matrix), intent(inout) :: L
     !! Mass matrices.
@@ -1211,28 +1193,28 @@ contains
     do gi=1,ele_ngi(X,ele)
        J(:,:,gi)=J(:,:,gi)/detJ(gi)
     end do
-    Ad_mat1 = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, J, U_shape, U_shape%quadrature%weight)
+    Ad_mat1 = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, G, U_shape, U_shape%quadrature%weight)
 !    print*, 'U_shape%quadrature%weight'
 !    print*, U_shape%quadrature%weight
 !    print*, 'U_nl_q'
 !    print*, U_nl_q
-    print*, 'Ad_mat1'
-    do i=1,size(Ad_mat1,1)
-       do k=1,size(Ad_mat1,2)
-          print*, Ad_mat1(i,k,:,:)
-       end do
-    end do
-    Ad_mat2 = -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, J)
+!    print*, 'Ad_mat1'
+!    do i=1,size(Ad_mat1,1)
+!       do k=1,size(Ad_mat1,2)
+!          print*, Ad_mat1(i,k,:,:)
+!       end do
+!    end do
+    Ad_mat2 = -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, G)
 !    print*, 'U_nl_div_q'
 !    print*, U_nl_div_q
-    print*, 'Ad_mat2'
-    do i=1,size(Ad_mat2,1)
-       do k=1,size(Ad_mat2,2)
-          print*, Ad_mat2(i,k,:,:)
-       end do
-    end do
-    Advection_mat = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, J, U_shape, U_shape%quadrature%weight)  &
-           -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, J)
+!    print*, 'Ad_mat2'
+!    do i=1,size(Ad_mat2,1)
+!       do k=1,size(Ad_mat2,2)
+!          print*, Ad_mat2(i,k,:,:)
+!       end do
+!    end do
+    Advection_mat = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, G, U_shape, U_shape%quadrature%weight)  &
+           -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, G)
 
    !----------------------------------------------------------------------
    ! Perform global assembly.
@@ -1270,15 +1252,23 @@ contains
    call invert(cartesian_mass_mat)
 
    do dim1 = 1,X%dim
-      do dim2 = 1,X%dim
-         call addto(inv_mass_cartesian, dim1, dim2, U_ele, U_ele, cartesian_mass_mat)
-      end do
+         call addto(inv_mass_cartesian, dim1, dim1, U_ele, U_ele, cartesian_mass_mat)
    end do
 
    ! advection matrix
    do dim1 = 1,dim
       do dim2 = 1,X%dim
          call addto(A, dim1, dim2, U_ele, U_ele, Advection_mat(dim1,dim2,:,:))
+      end do
+   end do
+   do dim1 = 1,dim
+      do dim2 = 1,X%dim
+         call addto(A1, dim1, dim2, U_ele, U_ele, Ad_mat1(dim1,dim2,:,:))
+      end do
+   end do
+   do dim1 = 1,dim
+      do dim2 = 1,X%dim
+         call addto(A2, dim1, dim2, U_ele, U_ele, Ad_mat2(dim1,dim2,:,:))
       end do
    end do
 
@@ -1324,7 +1314,7 @@ contains
       end if
 
       call construct_vector_adv_interface_dg(ele, face, face_2,&
-           & A, rhs, X, U, U_nl,&
+           & A, flux_mat, rhs, X, U, U_nl,&
            & bc_value, bc_type)
 
    end do neighbourloop
@@ -1332,7 +1322,7 @@ contains
  end subroutine construct_vector_adv_element_dg
   
   subroutine construct_vector_adv_interface_dg(ele, face, face_2, &
-       & A, rhs, &
+       & A, flux_mat, rhs, &
        & X, U, U_nl,&
        & bc_value, bc_type)
 
@@ -1342,6 +1332,7 @@ contains
 
     integer, intent(in) :: ele, face, face_2
     type(block_csr_matrix), intent(inout) :: A
+    type(block_csr_matrix), intent(inout) :: flux_mat
     type(vector_field), intent(inout) :: rhs
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U, U_nl
@@ -1369,7 +1360,7 @@ contains
     ! Variable transform times quadrature weights.
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
     real, dimension(face_ngi(X,face)) :: detwei_f, detJ_f
-    real, dimension(mesh_dim(U), X%dim, face_ngi(X,face)) :: J_f
+    real, dimension(mesh_dim(U), mesh_dim(U), face_ngi(X,face)) :: G_f
     real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(face_ngi(X,face)) :: inner_advection_integral, outer_advection_integral
 
@@ -1379,19 +1370,21 @@ contains
 
     integer :: dim, dim1, dim2, gi, i, k
 
-    print*, 'face: ', face
+!    print*, 'face: ', face
     print*, 'local face: ', local_face_number(U%mesh,face)
-    print*, 'face2: ', face_2
-    print*, 'local face2: ', local_face_number(U%mesh,face_2)
-    print*, 'X: ', face_val(X,face)
+!    print*, 'face2: ', face_2
+!    print*, 'local face2: ', local_face_number(U%mesh,face_2)
+!    print*, 'X: ', face_val(X,face)
 
     dim=mesh_dim(U)
 
     U_face=face_global_nodes(U, face)
+    print*, U_face
     U_face_l=face_local_nodes(U, face)
     U_shape=>face_shape(U, face)
 
     U_face_2=face_global_nodes(U, face_2)
+    print*, U_face_2
     U_shape_2=>face_shape(U, face_2)
     
     !Unambiguously calculate the normal using the face with the higher
@@ -1416,21 +1409,20 @@ contains
        U_nl_f2_q=sqrt(2.)*U_nl_f2_q
     end if
 
-    print*, 'U_nl_f_q'
-    print*, U_nl_f_q
-    print*, 'U_nl_f2_q'
-    print*, U_nl_f2_q
+!    print*, 'U_nl_f_q'
+!    print*, U_nl_f_q
+!    print*, 'U_nl_f2_q'
+!    print*, U_nl_f2_q
 
-    print*, 'n1_l'
-    print*, n1_l
-    print*, 'n2_l'
-    print*, n2_l
+!    print*, 'n1_l'
+!    print*, n1_l
+!    print*, 'n2_l'
+!    print*, n2_l
 
     u_nl_q_dotn1_l = sum(U_nl_f_q*n1_l,1)
     u_nl_q_dotn2_l = -sum(U_nl_f2_q*n2_l,1)
     U_nl_q_dotn_l=0.5*(u_nl_q_dotn1_l+u_nl_q_dotn2_l)
-    print*, 'U_nl_q_dotn_l'
-    print*, U_nl_q_dotn_l
+    print*, 'U_nl_q_dotn_l: ', U_nl_q_dotn_l
 
     ! Inflow is true if the flow at this gauss point is directed
     ! into this element.
@@ -1440,14 +1432,14 @@ contains
     ! Calculate tensor on face
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei=detwei, J=J, detJ=detJ)
     forall(gi=1:face_ngi(X,face))
-       J_f(:,:,gi)=J(:,:,1)/detJ(1)
+       G_f(:,:,gi)=matmul(J(:,:,1),transpose(J(:,:,1)))/detJ(1)
     end forall
 !    print*, 'J_f'
 !    print*, J_f
 
     ! Get outward pointing normals for each element
-    call transform_facet_to_physical(X, face, normal=n1)
-    call transform_facet_to_physical(X, face_2, normal=n2)
+!    call transform_facet_to_physical(X, face, normal=n1)
+!    call transform_facet_to_physical(X, face_2, normal=n2)
 
     ! Form 'bending' tensor
 !    forall(gi=1:face_ngi(X,face))
@@ -1468,17 +1460,15 @@ contains
     ! (this is the flux *out* of the element)
     inner_advection_integral = (1.-income)*u_nl_q_dotn_l
     nnAdvection_out=shape_shape_tensor(U_shape, U_shape,  &
-         &            inner_advection_integral*U_shape%quadrature%weight, J_f)
-    print*, 'js:nnAdvection_out:'
-    print*, nnAdvection_out
+         &            inner_advection_integral*U_shape%quadrature%weight, G_f)
+    print*, 'nnAdvection_out: ', nnAdvection_out
 
     ! now the integral around the outside of the element
     ! (this is the flux *in* to the element)
     outer_advection_integral = income*u_nl_q_dotn_l
     nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
-         &            outer_advection_integral*U_shape%quadrature%weight, J_f)
-    print*, 'js:nnAdvection_in:'
-    print*, nnAdvection_in
+         &            outer_advection_integral*U_shape%quadrature%weight, G_f)
+    print*, 'nnAdvection_in: ', nnAdvection_in
        
     !----------------------------------------------------------------------
     ! Perform global assembly.
@@ -1497,6 +1487,20 @@ contains
     do dim1 = 1, dim
        do dim2 = 1, X%dim
           call addto(A, dim1, dim2, U_face, U_face_2, nnAdvection_in(dim1,dim2,:,:))
+       end do
+    end do
+
+    ! Outflow boundary integral.
+    do dim1 = 1, dim
+       do dim2 = 1, X%dim
+          call addto(flux_mat, dim1, dim2, U_face, U_face, nnAdvection_out(dim1,dim2,:,:))
+       end do
+    end do
+
+    ! Inflow boundary integral.
+    do dim1 = 1, dim
+       do dim2 = 1, X%dim
+          call addto(flux_mat, dim1, dim2, U_face, U_face_2, nnAdvection_in(dim1,dim2,:,:))
        end do
     end do
 

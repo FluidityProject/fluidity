@@ -119,7 +119,7 @@ Mba3d_Integration.o: Adapt_Integration.o Node_Locking.o qmesh.o \
 Pressure_Gradient_Matrix_Wrapper.o: Divergence_Matrix_CV.o Divergence_Matrix_CG.o
 Advection_Diffusion_CG.o: Upwind_Stabilisation.o Petsc_Solve_State.o
 Advection_Diffusion_DG.o: Upwind_Stabilisation.o Slope_limiters_DG.o Petsc_Solve_State.o
-Advection_Local_DG.o: Slope_limiters_DG.o Petsc_Solve_State.o
+Advection_Local_DG.o: Slope_limiters_DG.o Petsc_Solve_State.o Manifold_Projections.o
 Momentum_DG.o: Assemble_CMC.o Coriolis.o Slope_limiters_DG.o Turbine.o \
   Full_Projection.o
 Assemble_CMC.o: Multimaterials.o

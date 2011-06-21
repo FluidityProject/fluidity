@@ -284,7 +284,7 @@ contains
        cache_valid=.true.
     end if
 
-    detJ_local=face_detJ_cache(abs(face_cache(face)))  
+    detJ_local=face_detJ_cache(abs(face_cache(face)))
     normal_local=sign(1,face_cache(face))*face_normal_cache(:,abs(face_cache(face)))
     
   end function retrieve_cached_face_transform_full
@@ -298,7 +298,7 @@ contains
     !! Note that if X is not all linear simplices we are screwed. 
     real, dimension(X%dim, ele_loc(X,1)) :: X_val
     real, dimension(X%dim, face_loc(X,1)) :: X_f
-    real, dimension(X%dim, X%dim-1) :: J
+    real, dimension(X%dim, mesh_dim(X)-1) :: J
     type(element_type), pointer :: X_shape_f
     real :: detJ
     integer, dimension(:), pointer :: neigh
@@ -381,17 +381,30 @@ contains
 
           detJ=0.0
           ! Calculate determinant.
-          select case (X%dim)
+          select case (mesh_dim(X))
           case(1)
              detJ=1.0
           case(2)
-             detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+             select case(X%dim)
+             case(2)
+                detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+             case(3)
+                detJ = sqrt(sum(J(:,1)**2)) 
+             case default
+                FLAbort("Unsupported dimension specified")
+             end select
           case(3)
-             do i=1,3
-                detJ=detJ+ &
-                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
-             end do
-             detJ=sqrt(detJ)
+             select case (X%dim)
+             case(3)
+                do i=1,3
+                   detJ=detJ+ &
+                        (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i&
+                        &+1),1))**2
+                end do
+                detJ=sqrt(detJ)
+             case default
+                FLAbort("Unsupported dimension specified")
+             end select
           case default
              FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
           end select
@@ -1022,7 +1035,6 @@ contains
     real, dimension(:), intent(out), optional :: detwei_f
     ! Outward normal vector. (dim x x_shape_f%ngi)
     real, dimension(:,:), intent(out) :: normal
-
     
     ! Column n of X_f is the position of the nth node on the facet.
     real, dimension(X%dim,face_loc(X,face)) :: X_f
@@ -1031,11 +1043,11 @@ contains
     ! shape function coordinate interpolation on the boundary
     type(element_type), pointer :: x_shape_f
 
-
     ! Jacobian matrix and its inverse.
-    real, dimension(X%dim,X%dim-1) :: J
+    real, dimension(X%dim,mesh_dim(X)-1) :: J
     ! Determinant of J
     real :: detJ
+
     ! Whether the cache can be used
     logical :: cache_valid
     
@@ -1095,17 +1107,30 @@ contains
 
        detJ=0.0
        ! Calculate determinant.
-       select case (X%dim)
+       select case (mesh_dim(X))
        case(1)
           detJ=1.0
        case(2)
-          detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+          select case(X%dim)
+          case(2)
+             detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+          case(3)
+             detJ = sqrt(sum(J(:,1)**2)) 
+          case default
+             FLAbort("Unsupported dimension specified")
+          end select
        case(3)
-          do i=1,3
-             detJ=detJ+ &
-                  (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
-          end do
-          detJ=sqrt(detJ)
+          select case (X%dim)
+          case(3)
+             do i=1,3
+                detJ=detJ+ &
+                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i&
+                     &+1),1))**2
+             end do
+             detJ=sqrt(detJ)
+          case default
+             FLAbort("Unsupported dimension specified")
+          end select
        case default
           FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
        end select
@@ -1265,17 +1290,30 @@ contains
 
        detJ=0.0
        ! Calculate determinant.
-       select case (X%dim)
+       select case (mesh_dim(X))
        case(1)
           detJ=1.0
        case(2)
-          detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+          select case (X%dim)
+          case(2)
+             detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+          case(3)
+             detJ = sqrt(sum(J(:,1)**2))
+          case default
+             FLAbort("Unsupported dimension specified")
+          end select
        case(3)
-          do i=1,3
-             detJ=detJ+ &
-                  (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
-          end do
-          detJ=sqrt(detJ)
+          select case (X%dim)
+          case(3)
+             do i=1,3
+                detJ=detJ+ &
+                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i&
+                     &+1),1))**2
+             end do
+             detJ=sqrt(detJ)
+          case default
+             FLAbort("Unsupported dimension specified")
+          end select
        case default
           FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
        end select
