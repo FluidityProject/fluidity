@@ -518,8 +518,8 @@ contains
     real, dimension(mesh_dim(field)) :: xc, xc_vector
     ! element node coordinates
     ! we only consider the vertices coordinates if higher order
-    real, dimension(mesh_dim(x), x%mesh%shape%numbering%vertices) :: x_ele
-    integer, dimension(x%mesh%shape%numbering%vertices):: vertices
+    real, dimension(mesh_dim(x), x%mesh%shape%cell%entity_counts(0)) :: x_ele
+    integer, dimension(x%mesh%shape%cell%entity_counts(0)):: vertices
     integer, dimension(:), pointer :: x_nodes
     real, dimension(mesh_dim(x_field), ele_loc(x_field, 1)) :: x_field_ele
     ! simplex volume coordinates
@@ -738,8 +738,8 @@ contains
     ! the coordinates of a pt just upwind of the node pair
     real, dimension(x%dim) :: xc, xc_vector
     ! we only consider the vertices coordinates if higher order
-    real, dimension(mesh_dim(x), x%mesh%shape%numbering%vertices) :: x_ele
-    integer, dimension(x%mesh%shape%numbering%vertices):: vertices
+    real, dimension(mesh_dim(x), x%mesh%shape%cell%entity_counts(0)) :: x_ele
+    integer, dimension(x%mesh%shape%cell%entity_counts(0)):: vertices
     integer, dimension(:), pointer :: x_nodes
     real, dimension(x_field%dim, ele_loc(x_field, 1)) :: x_field_ele
     real, dimension(field%mesh%shape%quadrature%vertices) :: l_coords
@@ -1003,8 +1003,8 @@ contains
     real, dimension(x%dim) :: grad_c, old_grad_c
     ! element node coordinates
     ! we only consider the vertices coordinates if higher order
-    real, dimension(mesh_dim(x), x%mesh%shape%numbering%vertices) :: x_ele
-    integer, dimension(x%mesh%shape%numbering%vertices):: vertices
+    real, dimension(mesh_dim(x), x%mesh%shape%cell%entity_counts(0)) :: x_ele
+    integer, dimension(x%mesh%shape%cell%entity_counts(0)):: vertices
     integer, dimension(:), pointer :: x_nodes
     real, dimension(x_field%dim, ele_loc(x_field, 1)) :: x_field_ele
     ! simplex volume coordinates

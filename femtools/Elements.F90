@@ -66,9 +66,9 @@ module elements
      !! Dummy name to satisfy reference counting
      character(len=0) :: name
      !! Mapping from element entities to degrees of freedom
-     type(dof_list), dimension(:,:), allocatable :: entity2dofs
+     type(dof_list), dimension(:,:), pointer :: entity2dofs=>null()
      !! Mapping from facets to degrees of freedom.
-     type(dof_list), dimension(:), allocatable :: facet2dofs
+     type(dof_list), dimension(:), pointer :: facet2dofs=>null()
      !! Topological entity numbering
      type(cell_type), pointer :: cell
   end type element_type
@@ -242,6 +242,16 @@ contains
       deallocate(element%dspoly, stat=tstat)
     end if
     lstat=max(lstat,tstat)
+
+    if(associated(element%entity2dofs)) then
+       deallocate(element%entity2dofs, stat=tstat)
+       lstat=max(lstat,tstat)
+    end if
+
+    if(associated(element%facet2dofs)) then
+       deallocate(element%facet2dofs, stat=tstat)
+       lstat=max(lstat,tstat)
+    end if
 
     deallocate(element%n,element%dn, stat=tstat)
     lstat=max(lstat,tstat)
@@ -483,7 +493,7 @@ contains
     real, dimension(shape%dim) :: dl4dl
 
     ! Find derivative of dependent coordinate
-    dl4dl=diffl4(shape%numbering%vertices, shape%dim)
+    dl4dl=diffl4(shape%cell%entity_counts(0), shape%dim)
 
     do i=1,shape%dim
        ! Directional derivatives.

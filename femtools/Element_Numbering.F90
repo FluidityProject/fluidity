@@ -837,7 +837,8 @@ contains
     type(ele_numbering_type), pointer :: ele
 
     tri_numbering_trace%faces=1
-    tri_numbering_trace%vertices=3
+    tri_numbering_trace%vertices=0 ! This is set to zero because no DOFs
+    ! located on vertices.
     tri_numbering_trace%edges=3
     tri_numbering_trace%dimension=2
     tri_numbering_trace%boundaries=3
@@ -859,8 +860,8 @@ contains
        ! For trace elements, the first index is the facet number.
        allocate(ele%count2number(1:ele%dimension+1,0:i,0:i))
        allocate(ele%number2count(ele%dimension+1,ele%nodes))
-       allocate(ele%boundary_coord(ele%vertices))
-       allocate(ele%boundary_val(ele%vertices))
+       allocate(ele%boundary_coord(3))
+       allocate(ele%boundary_val(3))
 
        ele%count2number=0
        ele%number2count=0
@@ -1476,7 +1477,7 @@ contains
       end select
 
     case (ELEMENT_TRACE)
-       FLAbort("Trace elements do not have well-defined vertices")
+       continue ! Trace elements have no vertex DOFs.
        
     case default
       FLAbort("Unknown element type")

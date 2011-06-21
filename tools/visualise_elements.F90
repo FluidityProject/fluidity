@@ -130,7 +130,7 @@ contains
 
     element=mesh%shape
 
-    linear_element=make_element_shape(element%numbering%vertices, 2, degree=1, &
+    linear_element=make_element_shape(element%cell%entity_counts(0), 2, degree=1, &
          quad=element%quadrature)
     
     triangles=tr(element%degree) + tr(element%degree-1)
@@ -251,14 +251,14 @@ contains
     type(vector_field) :: linear_position, one_element_linear, one_element
     type(element_type) :: linear_element
 
-    real,dimension(2,element%numbering%vertices) :: vertices, lvertices
+    real,dimension(2,element%cell%entity_counts(0)) :: vertices, lvertices
     real,dimension(2) :: node_loc
     real :: scale
     integer :: i, d
 
-    vertices=regular_figure(element%numbering%vertices, 1.0)
+    vertices=regular_figure(element%cell%entity_counts(0), 1.0)
 
-    linear_element=make_element_shape(element%numbering%vertices, 2, degree=1, &
+    linear_element=make_element_shape(element%cell%entity_counts(0), 2, degree=1, &
          quad=element%quadrature)
 
     linear_mesh=construct_mesh(linear_element, element, "LinearMesh")

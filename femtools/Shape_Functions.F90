@@ -67,7 +67,7 @@ contains
     if (present(vertices)) then
        lvertices=vertices
     else
-       lvertices=model%numbering%vertices
+       lvertices=model%cell%entity_counts(0)
     end if
     if (present(dim)) then
        ldim=dim
@@ -147,10 +147,6 @@ contains
           FLAbort('Element numbering unavailable.')
        end if
     end if    
-    
-    element%numbering=>ele_num
-    element%quadrature=quad
-    call incref(quad)
 
     ! The number of local coordinates depends on the element family.
     select case(ele_num%family)
@@ -303,7 +299,7 @@ contains
 
       integer, dimension(:), allocatable :: dofs
       integer, dimension(:), pointer :: vertices
-      integer :: i, dof_len
+      integer :: i, j, dof_len, facet_dim
       logical, dimension(:), allocatable :: cell_mask
 
       cell=>element%cell
@@ -315,17 +311,21 @@ contains
       cell_mask=.true.
 
       ! DG elements have all their dofs associated with the interior.
-      if (element%type/=ELEMENT_DISCONTINUOUS_LAGRANGIAN) then
+      ! Trace elements have all their dofs associated with the facets.
+      if (element%type/=ELEMENT_DISCONTINUOUS_LAGRANGIAN &
+           .and. element%type/=ELEMENT_TRACE) then
          ! Vertices
-         allocate(dofs(cell%entity_counts(0)))
-         dofs=local_vertices(numbering)
-         do i=1,size(dofs)
-            allocate(element%entity2dofs(0,i)%dofs(1))
-            element%entity2dofs(0,i)%dofs(1)=dofs(i)
-         end do
-         cell_mask(dofs)=.false.
-         deallocate(dofs)
-         
+         if (cell%entity_counts(0)>0) then
+            allocate(dofs(cell%entity_counts(0)))
+            dofs=local_vertices(numbering)
+            do i=1,size(dofs)
+               allocate(element%entity2dofs(0,i)%dofs(1))
+               element%entity2dofs(0,i)%dofs(1)=dofs(i)
+            end do
+            cell_mask(dofs)=.false.
+            deallocate(dofs)
+         end if
+
          ! Edges
          dof_len=edge_num_length(numbering, interior=.true.)
          do i=1,cell%entity_counts(1)
@@ -351,6 +351,23 @@ contains
          end do
       end if
 
+      ! Facets for trace elements.
+      if (element%type==ELEMENT_TRACE) then
+         dof_len=boundary_num_length(numbering, interior=.false.)
+         facet_dim=cell%dimension-1
+         do i=1,facet_count(cell)
+            vertices=>entity_vertices(cell,[facet_dim,i])
+            allocate(element%entity2dofs(facet_dim,i)%dofs(dof_len))
+            element%entity2dofs(facet_dim,i)%dofs=&
+                 boundary_local_num(vertices, numbering, interior=.false.)
+            ! Sanity check dofs uniquely belong to one entity.
+            assert(all(cell_mask(element%entity2dofs(facet_dim,i)%dofs)))
+            cell_mask(element%entity2dofs(facet_dim,i)%dofs)=.false.            
+         end do
+         assert(all(.not.cell_mask))
+      end if
+
+
       ! Interior cell elements.
       if (any(cell_mask)) then
          assert(.not.allocated(element%entity2dofs(3,1)%dofs))
@@ -358,6 +375,16 @@ contains
          element%entity2dofs(3,1)%dofs=&
               pack([(i,i=1,element%ndof)],cell_mask)
       end if
+
+      ! Ensure that all remaining entity2dof entries are zero.
+      do i=0,ubound(cell%entities,1)
+         do j=1,size(cell%entities,2)
+            if (.not.allocated(element%entity2dofs(i,j)%dofs)) then
+               allocate(element%entity2dofs(i,j)%dofs(0))
+            end if
+         end do
+      end do
+
     end subroutine entity_dofs
     
     subroutine facet_dofs(element)

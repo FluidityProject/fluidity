@@ -796,7 +796,7 @@ contains
           FLExit("Unsupported polynomial degree for vtk.")
        end select
     case(2)
-       select case(element%numbering%vertices)
+       select case(element%cell%entity_counts(0))
        case (3)
           select case (element%numbering%degree)
           case (0)
@@ -823,11 +823,11 @@ contains
           end select
        case default
           ewrite(0,*) "Dimension: ", element%dim
-          ewrite(0,*) "Vertices: ", element%numbering%vertices
+          ewrite(0,*) "Vertices: ", element%cell%entity_counts(0)
           FLExit("Unsupported element type for vtk.")
        end select
     case(3)
-       select case(element%numbering%vertices)
+       select case(element%cell%entity_counts(0))
        case (4)
           select case (element%numbering%degree)
           case (0)
@@ -854,7 +854,7 @@ contains
           end select
         case default
           ewrite(0,*) "Dimension: ", element%dim
-          ewrite(0,*) "Vertices: ", element%numbering%vertices
+          ewrite(0,*) "Vertices: ", element%cell%entity_counts(0)
           FLExit("Unsupported element type for vtk.")
        end select
     case default

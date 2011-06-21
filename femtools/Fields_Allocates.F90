@@ -915,7 +915,7 @@ contains
           FLExit("Unable to derive a continuous mesh from a discontinuous mesh")
        end if
 
-       allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
+       allocate(ndglno(mesh%shape%cell%entity_counts(0)*model%elements), &
             mesh%ndglno(mesh%shape%ndof*model%elements))
 #ifdef HAVE_MEMORY_STATS
        call register_allocation("mesh_type", "integer", &
@@ -1077,7 +1077,7 @@ contains
     type(element_type), pointer :: element
     type(quadrature_type) :: quad_face
     integer, dimension(:), pointer :: faces, neigh, model_ele_glno, model_ele_glno2
-    integer, dimension(1:mesh%shape%numbering%vertices) :: vertices, &
+    integer, dimension(1:mesh%shape%cell%entity_counts(0)) :: vertices, &
          ele_boundary, ele_boundary2 ! these last two are actually smaller    
     integer :: face_count, ele, j, snloc, m, n, p, face2
 
@@ -1256,7 +1256,7 @@ contains
              end do
 
              ! Check that we really have found two boundaries.
-             ASSERT(p==lmodel%faces%shape%numbering%vertices)
+             ASSERT(p==lmodel%faces%shape%cell%entity_counts(0))
              ! (this might break for the case where elements share more than one
              ! face, but in that case the next few lines are wrong as well)
 
@@ -1871,7 +1871,7 @@ contains
 
     !allocate memory for temporary place to hold old connectivity,
     !and memory for periodic connectivity
-    allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
+    allocate(ndglno(mesh%shape%cell%entity_counts(0)*model%elements), &
          mesh%ndglno(mesh%shape%ndof*model%elements))
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", size(mesh%ndglno), &

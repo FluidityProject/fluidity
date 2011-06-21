@@ -784,10 +784,10 @@ contains
     !!< Assuming that the input mesh is at least C0, return the connectivity
     !!< of the mesh.
     type(mesh_type), intent(in) :: mesh
-    integer, dimension(mesh%elements*mesh%shape%numbering%vertices) ::&
+    integer, dimension(mesh%elements*mesh%shape%cell%entity_counts(0)) ::&
          & ndglno
 
-    integer, dimension(mesh%shape%numbering%vertices) :: vertices
+    integer, dimension(mesh%shape%cell%entity_counts(0)) :: vertices
     integer :: i, nodes
 
     integer, dimension(:), allocatable :: map
@@ -3081,7 +3081,7 @@ contains
     real, dimension(size(position) + 1) :: local_coords
     real, dimension(mesh_dim(position_field) + 1, size(position) + 1) :: matrix
     real, dimension(mesh_dim(position_field), size(position) + 1) :: tmp_matrix
-    integer, dimension(position_field%mesh%shape%numbering%vertices):: vertices
+    integer, dimension(position_field%mesh%shape%cell%entity_counts(0)):: vertices
     integer, dimension(:), pointer:: nodes
     integer :: dim
 
@@ -3139,7 +3139,7 @@ contains
     integer, intent(in) :: ele
     real, dimension(:,:), intent(out) :: mat
 
-    integer, dimension(positions%mesh%shape%numbering%vertices):: vertices
+    integer, dimension(positions%mesh%shape%cell%entity_counts(0)):: vertices
     integer, dimension(:), pointer:: nodes
     
     assert( size(mat,1)==mesh_dim(positions)+1 )
