@@ -153,13 +153,13 @@ contains
        do ele = 1, ele_count(D)
           call compute_cartesian_ele(U_cart,U,X,ele)
        end do
-    end if
 
-    if(l_check_continuity) then
-       ewrite(1,*) 'Checking continuity'
-       do ele = 1, ele_count(U)
-          call check_continuity_ele(U,X,ele)
-       end do
+       if(l_check_continuity) then
+          ewrite(1,*) 'Checking continuity'
+          do ele = 1, ele_count(U)
+             call check_continuity_ele(U_cart,X,ele)
+          end do
+       end if
     end if
 
     lambda_nc=>extract_scalar_field(state, "LambdaNC",stat)
@@ -612,46 +612,52 @@ contains
     end do
   end subroutine compute_cartesian_ele
 
-  subroutine check_continuity_ele(U,X,ele)
+  subroutine check_continuity_ele(U_cart,X,ele)
     implicit none
-    type(vector_field), intent(in) :: U,X
+    type(vector_field), intent(in) :: U_cart,X
     integer, intent(in) :: ele
     !
     integer, dimension(:), pointer :: neigh
     integer :: ni,face,ele2,face2
 
-    neigh => ele_neigh(U,ele)
+    neigh => ele_neigh(U_cart,ele)
     do ni = 1, size(neigh)
        ele2 = neigh(ni)
        if(ele2<ele) then
-          face = ele_face(U,ele,ele2)
+          face = ele_face(U_cart,ele,ele2)
           if(ele2>0) then
-             face2 = ele_face(U,ele2,ele)
+             face2 = ele_face(U_cart,ele2,ele)
           else
              face2 = -1
           end if
-          call check_continuity_face(U,ele,face,face2)
+          call check_continuity_face(U_cart,X,ele,ele2,face,face2)
        end if
     end do
   end subroutine check_continuity_ele
 
-  subroutine check_continuity_face(U,X,ele,face,face2)
+  subroutine check_continuity_face(U_cart,X,ele,ele2,face,face2)
     !subroutine to check the continuity of normal component
     !of velocity at quadrature points
     implicit none
-    type(vector_field), intent(in) :: U,X
-    integer, intent(in) :: face,face2,ele
-    real, dimension(mesh_dim(U), face_ngi(U, face)) :: n1,n2
-    real, dimension(mesh_dim(U), face_ngi(U, face)) :: u1,u2
-    real, dimension(face_ngi(U, face)) :: jump_at_quad
+    type(vector_field), intent(in) :: U_cart,X
+    integer, intent(in) :: face,face2,ele,ele2
+    real, dimension(X%dim, face_ngi(U_cart, face)) :: n1,n2
+    real, dimension(X%dim, face_ngi(U_cart, face)) :: u1,u2
+    real, dimension(face_ngi(U_cart, face)) :: jump_at_quad
     !
-    u1 = face_val_at_quad(U,face)
+    u1 = face_val_at_quad(U_cart,face)
     if(face2>0) then
-       u2 = face_val_at_quad(U,face2)
+       u2 = face_val_at_quad(U_cart,face2)
     else
        u2 = 0.
     end if
 
+    n1 = get_face_normal_manifold(X,ele,face)
+    if(ele2>0) then
+       n2 = get_face_normal_manifold(X,ele2,face2)
+    else
+       n2 = -n1
+    end if
     jump_at_quad = sum(n1*u1+n2*u2,1)
     if(maxval(abs(jump_at_quad))>1.0e-8) then
        ewrite(1,*) 'Jump at face, face2 =', jump_at_quad
@@ -669,23 +675,24 @@ contains
     real, dimension(ele_ngi(X,ele)) :: detwei
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(face_ngi(X,face)) :: detwei_f
-    real, dimension(mesh_dim(X), X%dim, face_ngi(X,face)) :: J_f
+    real, dimension(mesh_dim(X)-1, X%dim, face_ngi(X,face)) :: J_f
     real, dimension(ele_loc(X,ele),ele_loc(X,ele)) :: X_mass_mat
     real, dimension(mesh_dim(X), X%dim, ele_loc(X,ele)) :: J_loc
     real, dimension(ele_loc(X,ele)) :: J_loc_rhs
-    real, dimension(face_ngi(X,face)) :: J_face_gi
+    real, dimension(mesh_dim(X), X%dim, face_ngi(X,face)) :: J_face_gi
     integer :: dim1, dim2, gi
     real, dimension(X%dim) :: ele_normal_gi, edge_tangent_gi, X_mid_ele
-    type(element_type) :: X_shape
+    type(element_type) :: X_shape, X_face_shape
 
     call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
          detwei=detwei)
-    call compute_jacobian(face_val(X,ele),face_Shape(X,ele), J=J_f, &
+    call compute_jacobian(face_val(X,face),face_Shape(X,face), J=J_f, &
          detwei=detwei_f)
 
     !Jacobian can be expanded without error in X function space
     !so we map it to the basis function DOFs by projection
     X_shape = ele_shape(X,ele)
+    X_face_shape = face_shape(X,face)
     X_mass_mat = shape_shape(X_shape,X_shape,detwei)
     do dim1 = 1, mesh_dim(X)
        do dim2 = 1, X%dim
@@ -698,7 +705,7 @@ contains
     do dim1 = 1, mesh_dim(X)
        do dim2 = 1, X%dim
           J_face_gi(dim1,dim2,:) = &
-               & matmul(transpose(X_shape%n),&
+               & matmul(transpose(X_face_shape%n),&
                J_loc(dim1,dim2,face_local_nodes(X,face)))
        end do
     end do
@@ -714,12 +721,13 @@ contains
                   &J_face_gi(:,2,gi))
              ele_normal_gi = ele_normal_gi/(norm2(ele_normal_gi))
              !Get tangent to face f
-             edge_tangent_gi = J_f(:,1,gi)
+             edge_tangent_gi = J_f(1,:,gi)
              edge_tangent_gi = edge_tangent_gi/norm2(edge_tangent_gi)
              !Compute normal to face f in manifold
-             normal(gi) = cross_product(ele_normal_gi,edge_tangent_gi)
-             if(dot_product(normal(gi),X_mid_ele)<0) then
-                normal(gi)=-normal(gi)
+             normal(:,gi) = cross_product(ele_normal_gi,edge_tangent_gi)
+             if(dot_product(normal(:,gi),X_mid_ele)<0) then
+                normal(:,gi)=-normal(:,gi)
+             end if
           end do
        case default
           FLAbort('dimension combination not implemented')
