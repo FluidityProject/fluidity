@@ -157,8 +157,8 @@ contains
 
     if(l_check_continuity) then
        ewrite(1,*) 'Checking continuity'
-       do ele = 1, ele_count(D)
-          call check_continuity_ele(U_cart,X,ele)
+       do ele = 1, ele_count(U)
+          call check_continuity_ele(U,X,ele)
        end do
     end if
 
@@ -232,7 +232,7 @@ contains
     !!!Construct the continuity matrix that multiplies lambda in 
     !!! the U equation
     !allocate continuity_mat
-    allocate(continuity_mat(ele_loc(U,ele)*2+ele_loc(D,ele),lloc))
+    allocate(continuity_mat(2*uloc+dloc,lloc))
     continuity_mat = 0.
     !get list of neighbours
     neigh => ele_neigh(D,ele)
@@ -244,10 +244,9 @@ contains
        call get_continuity_face_mat(continuity_face_mat,face,&
             U,lambda_rhs)
        do dim1 = 1, mdim
-          continuity_mat((dim1-1)*ele_loc(U,face)+face_local_nodes(U,face),&
+          continuity_mat((dim1-1)*uloc+face_local_nodes(U,face),&
                &face_local_nodes(lambda_rhs,face))=&
-               &continuity_mat((dim1-1)*ele_loc(U,face)&
-               &+face_local_nodes(U,face),&
+               &continuity_mat((dim1-1)*uloc+face_local_nodes(U,face),&
                &face_local_nodes(lambda_rhs,face))+&
                continuity_face_mat(dim1,:,:)
        end do
@@ -255,7 +254,7 @@ contains
     end do
 
     !compute continuity_mat2 = inverse(local_solver)*continuity_mat
-    allocate(continuity_mat2(ele_loc(U,ele)*2+ele_loc(D,ele),lloc))
+    allocate(continuity_mat2(uloc*2+dloc,lloc))
     continuity_mat2 = continuity_mat
     call solve(local_solver,continuity_mat)
 
@@ -518,16 +517,7 @@ contains
     lambda_face_shape=>face_shape(lambda, face)
 
     !Get normal in local coordinates
-    n1=get_local_normal(U,local_face_number(U%mesh,face))
-
-    !Integral is taken on one of the edges of the local 2D element
-    !This edge must be transformed to the local 1D element
-    !to do numerical integration, with the following weight factors
-    if(local_face_number(U%mesh, face)==3) then
-       weight = sqrt(2.)
-    else
-       weight = 1.0
-    end if
+    call get_local_normal(n1,weight,U,local_face_number(U%mesh,face))
     detwei = weight*U_face_shape%quadrature%weight
 
     continuity_face_mat = shape_shape_vector(&
@@ -535,12 +525,13 @@ contains
 
   end subroutine get_continuity_face_mat
 
-  function get_local_normal(U,face) result(norm)
+  subroutine get_local_normal(norm,weight,U,face)
     !Function returns normal to face on local 2D element
     implicit none
     type(vector_field), intent(in) :: U
     integer, intent(in) :: face
-    real, dimension(U%dim, face_ngi(U,face)) :: norm
+    real, dimension(U%dim, face_ngi(U,face)), intent(out) :: norm
+    real, intent(out) :: weight
 
     integer :: i
 
@@ -563,7 +554,16 @@ contains
        end if
     end if
 
-  end function get_local_normal
+    !Integral is taken on one of the edges of the local 2D element
+    !This edge must be transformed to the local 1D element
+    !to do numerical integration, with the following weight factors
+    if(face==3) then
+       weight = sqrt(2.)
+    else
+       weight = 1.0
+    end if
+
+  end subroutine get_local_normal
 
   subroutine compute_cartesian_ele(U_cart,U,X,ele)
     implicit none
@@ -612,71 +612,123 @@ contains
     end do
   end subroutine compute_cartesian_ele
 
-  subroutine check_continuity_ele(U_cart,X,ele)
+  subroutine check_continuity_ele(U,X,ele)
     implicit none
-    type(vector_field), intent(inout) :: U_cart
-    type(vector_field), intent(in) :: X
+    type(vector_field), intent(in) :: U,X
     integer, intent(in) :: ele
     !
     integer, dimension(:), pointer :: neigh
     integer :: ni,face,ele2,face2
 
-    neigh => ele_neigh(X,ele)
+    neigh => ele_neigh(U,ele)
     do ni = 1, size(neigh)
        ele2 = neigh(ni)
        if(ele2<ele) then
-          face = ele_face(X,ele,ele2)
+          face = ele_face(U,ele,ele2)
           if(ele2>0) then
-             face2 = ele_face(X,ele2,ele)
+             face2 = ele_face(U,ele2,ele)
           else
              face2 = -1
           end if
-          call check_continuity_face(U_cart,X,face,face2)
+          call check_continuity_face(U,ele,face,face2)
        end if
     end do
   end subroutine check_continuity_ele
 
-  subroutine check_continuity_face(U_cart,X,face,face2)
+  subroutine check_continuity_face(U,X,ele,face,face2)
     !subroutine to check the continuity of normal component
     !of velocity at quadrature points
     implicit none
-    type(vector_field), intent(inout) :: U_cart
-    type(vector_field), intent(in) :: X
-    integer, intent(in) :: face,face2
-    real, dimension(U_cart%dim, face_ngi(U_cart, face)) :: n1,n2
-    real, dimension(U_cart%dim, face_ngi(U_cart, face)) :: u1,u2
-    real, dimension(face_ngi(U_cart, face)) :: jump_at_quad
-    integer :: dim1
-    real, dimension(X%dim,face_loc(U_cart, face)) :: X_loc
+    type(vector_field), intent(in) :: U,X
+    integer, intent(in) :: face,face2,ele
+    real, dimension(mesh_dim(U), face_ngi(U, face)) :: n1,n2
+    real, dimension(mesh_dim(U), face_ngi(U, face)) :: u1,u2
+    real, dimension(face_ngi(U, face)) :: jump_at_quad
     !
-    !Get normals
-    call transform_facet_to_physical(X, face, &
-         &                          normal=n1)
+    u1 = face_val_at_quad(U,face)
     if(face2>0) then
-       call transform_facet_to_physical(X, face2, &
-            &                          normal=n2)
-    end if
-    !
-    u1 = face_val_at_quad(U_cart,face)
-    if(face2>0) then
-       u2 = face_val_at_quad(U_cart,face2)
+       u2 = face_val_at_quad(U,face2)
     else
        u2 = 0.
     end if
-    
-    jump_at_quad = sum(n1*u1+n2*u2,1)
 
+    jump_at_quad = sum(n1*u1+n2*u2,1)
     if(maxval(abs(jump_at_quad))>1.0e-8) then
        ewrite(1,*) 'Jump at face, face2 =', jump_at_quad
-       X_loc = face_val(X,face)
-       ewrite(1,*) 'Coords are'
-       do dim1 = 1, X%dim
-          ewrite(1,*) X_loc(dim1,:)
-       end do
        FLAbort('stopping because of jumps')
     end if
     
   end subroutine check_continuity_face
+
+  function get_face_normal_manifold(X,ele,face) result (normal)
+    implicit none
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele, face
+    real, dimension(X%dim,face_ngi(X,face)) :: normal
+    !
+    real, dimension(ele_ngi(X,ele)) :: detwei
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(face_ngi(X,face)) :: detwei_f
+    real, dimension(mesh_dim(X), X%dim, face_ngi(X,face)) :: J_f
+    real, dimension(ele_loc(X,ele),ele_loc(X,ele)) :: X_mass_mat
+    real, dimension(mesh_dim(X), X%dim, ele_loc(X,ele)) :: J_loc
+    real, dimension(ele_loc(X,ele)) :: J_loc_rhs
+    real, dimension(face_ngi(X,face)) :: J_face_gi
+    integer :: dim1, dim2, gi
+    real, dimension(X%dim) :: ele_normal_gi, edge_tangent_gi, X_mid_ele
+    type(element_type) :: X_shape
+
+    call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
+         detwei=detwei)
+    call compute_jacobian(face_val(X,ele),face_Shape(X,ele), J=J_f, &
+         detwei=detwei_f)
+
+    !Jacobian can be expanded without error in X function space
+    !so we map it to the basis function DOFs by projection
+    X_shape = ele_shape(X,ele)
+    X_mass_mat = shape_shape(X_shape,X_shape,detwei)
+    do dim1 = 1, mesh_dim(X)
+       do dim2 = 1, X%dim
+          J_loc_rhs = shape_rhs(X_shape,J(dim1,dim2,:)*detwei)
+          call solve(X_mass_mat,J_loc_rhs)
+          J_loc(dim1,dim2,:) = J_loc_rhs
+       end do
+    end do
+
+    do dim1 = 1, mesh_dim(X)
+       do dim2 = 1, X%dim
+          J_face_gi(dim1,dim2,:) = &
+               & matmul(transpose(X_shape%n),&
+               J_loc(dim1,dim2,face_local_nodes(X,face)))
+       end do
+    end do
+
+    X_mid_ele = sum(ele_val(X,ele),2)/size(ele_val(X,ele),2)
+    select case(X%dim)
+    case (3)
+       select case (mesh_dim(X))
+       case (2)
+          do gi = 1, face_ngi(X,face)
+             !Get normal to element e on face quad points
+             ele_normal_gi = cross_product(J_face_gi(:,1,gi),&
+                  &J_face_gi(:,2,gi))
+             ele_normal_gi = ele_normal_gi/(norm2(ele_normal_gi))
+             !Get tangent to face f
+             edge_tangent_gi = J_f(:,1,gi)
+             edge_tangent_gi = edge_tangent_gi/norm2(edge_tangent_gi)
+             !Compute normal to face f in manifold
+             normal(gi) = cross_product(ele_normal_gi,edge_tangent_gi)
+             if(dot_product(normal(gi),X_mid_ele)<0) then
+                normal(gi)=-normal(gi)
+          end do
+       case default
+          FLAbort('dimension combination not implemented')
+       end select
+    case default
+       FLAbort('dimension combination not implemented')
+    end select
+
+  end function get_face_normal_manifold
 
   subroutine reconstruct_lambda_nc(lambda,lambda_nc,X,ele)
     type(scalar_field), intent(in) :: lambda
