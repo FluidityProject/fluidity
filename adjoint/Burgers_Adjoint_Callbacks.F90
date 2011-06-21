@@ -61,6 +61,9 @@ module burgers_adjoint_callbacks
       call adj_chkierr(ierr)
       ierr = adj_register_operator_callback(adjointer, ADJ_BLOCK_ACTION_CB, "TimesteppingOperator", c_funloc(timestepping_operator_action_callback))
       call adj_chkierr(ierr)
+
+      ierr = adj_register_operator_callback(adjointer, ADJ_NBLOCK_DERIVATIVE_ACTION_CB, "AdvectionOperator", c_funloc(advection_derivative_action_proc))
+      call adj_chkierr(ierr)
     end subroutine register_burgers_operator_callbacks
 
     subroutine velocity_identity_assembly_callback(nvar, variables, dependencies, hermitian, coefficient, context, output, rhs) bind(c)
@@ -295,6 +298,95 @@ module burgers_adjoint_callbacks
       call deallocate(timestepping_mat)
     end subroutine timestepping_operator_action_callback
 
+    subroutine advection_derivative_action_proc(nvar, variables, dependencies, derivative, contraction, hermitian, &
+                                                  & input, coefficient, context, output) bind(c)
+      use iso_c_binding
+      use libadjoint_data_structures
+      use simple_advection_d
+      use simple_advection_b
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      type(adj_variable), intent(in), value :: derivative
+      type(adj_vector), intent(in), value :: contraction
+      integer(kind=c_int), intent(in), value :: hermitian
+      type(adj_vector), intent(in), value :: input
+      adj_scalar_f, intent(in), value :: coefficient
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+
+      type(state_type), pointer :: matrices
+      type(vector_field), pointer :: positions
+      type(scalar_field) :: u_left, u_right
+      type(scalar_field) :: contraction_field, udot, Acbar
+      type(scalar_field) :: output_field, tmp_field, u
+
+      real :: itheta
+
+      assert(nvar == 1 .or. nvar == 2)
+      call c_f_pointer(context, matrices)
+      positions => extract_vector_field(matrices, "Coordinate")
+
+      call field_from_adj_vector(contraction, contraction_field)
+      call allocate(output_field, contraction_field%mesh, "NonlinearDerivativeOutput")
+      call zero(output_field)
+
+      if (hermitian == ADJ_FALSE) then
+        call field_from_adj_vector(input, udot)
+        call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/relaxation", itheta)
+        if (have_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/remove_advection_term")) then
+          output = field_to_adj_vector(output_field)
+          call deallocate(output_field)
+          return
+        end if
+      else
+        call get_option("/material_phase::Fluid/scalar_field::AdjointVelocity/prognostic/temporal_discretisation/relaxation", itheta)
+        call field_from_adj_vector(input, Acbar)
+        if (have_option("/material_phase::Fluid/scalar_field::AdjointVelocity/prognostic/remove_advection_term")) then
+          output = field_to_adj_vector(output_field)
+          call deallocate(output_field)
+          return
+        end if
+      end if
+
+      call allocate(tmp_field, contraction_field%mesh, "TmpOutput")
+      call zero(tmp_field)
+
+      if (nvar == 1) then
+        call field_from_adj_vector(dependencies(1), u_left)
+        if (hermitian == ADJ_FALSE) then
+          call advection_action_d(positions%val(1,:), u_left%val, udot%val, contraction_field%val, tmp_field%val, output_field%val)
+        else
+          call advection_action_b(positions%val(1,:), u_left%val, output_field%val, contraction_field%val, tmp_field%val, Acbar%val)
+        end if
+      else if (nvar == 2) then
+        call field_from_adj_vector(dependencies(1), u_left)
+        call field_from_adj_vector(dependencies(2), u_right)
+        call allocate(u, u_left%mesh, "AdvectingVelocity")
+        call set(u, u_left)
+        call scale(u, (1.0-itheta))
+        call addto(u, u_right, scale=itheta)
+
+        if (hermitian == ADJ_FALSE) then
+          call advection_action_d(positions%val(1,:), u%val, udot%val, contraction_field%val, tmp_field%val, output_field%val)
+        else
+          call advection_action_b(positions%val(1,:), u%val, output_field%val, contraction_field%val, tmp_field%val, Acbar%val)
+        end if
+
+        call deallocate(u)
+
+        if (derivative == variables(1)) then
+          call scale(output_field, (1.0-itheta))
+        else if (derivative == variables(2)) then
+          call scale(output_field, itheta)
+        end if
+      end if
+
+      call deallocate(tmp_field)
+      call scale(output_field, coefficient)
+      output = field_to_adj_vector(output_field)
+      call deallocate(output_field)
+    end subroutine advection_derivative_action_proc
 
 #endif
 end module burgers_adjoint_callbacks

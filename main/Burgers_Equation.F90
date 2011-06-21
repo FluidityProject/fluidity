@@ -505,7 +505,7 @@
       call deallocate(tmp)
 
     end subroutine assemble_right_hand_side
-    
+
     subroutine advance_current_time(current_time, dt)
       implicit none
       real, intent(inout) :: current_time, dt
@@ -613,6 +613,7 @@
       call insert(matrices, mass_matrix, "MassMatrix")
       call insert(matrices, diffusion_matrix, "DiffusionMatrix")
       call insert(matrices, u%mesh, "VelocityMesh")
+      call insert(matrices, x, "Coordinate")
       call deallocate(mass_matrix)
       call deallocate(diffusion_matrix)
     end subroutine setup_matrices
@@ -725,6 +726,9 @@
       type(adj_variable), dimension(:), allocatable :: vars
       character(len=OPTION_PATH_LEN) :: buf, functional_name
       integer :: iteration, niterations_prev
+      real :: theta
+
+      call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
 
       do iteration=1,niterations
         ! Set up adj_variables
@@ -741,17 +745,17 @@
 
         if (iteration==1) then
           ! Set up adj_blocks
-          ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=burgers_advection_block)
+          ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u /), context=c_loc(matrices), coefficient=theta, nblock=burgers_advection_block)
           call adj_chkierr(ierr)
-          ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
+          ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u /), context=c_loc(matrices), coefficient=1.0-theta, nblock=timestepping_advection_block)
           call adj_chkierr(ierr)
         else 
           ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=.false., variable=iter_u) 
           call adj_chkierr(ierr)
           ! Set up adj_blocks
-          ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=burgers_advection_block)
+          ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), coefficient=theta, nblock=burgers_advection_block)
           call adj_chkierr(ierr)
-          ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
+          ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), coefficient=1.0-theta, nblock=timestepping_advection_block)
           call adj_chkierr(ierr)
         end if
 
@@ -775,6 +779,10 @@
         call adj_chkierr(ierr)
         ierr = adj_destroy_block(burgers_block)
         call adj_chkierr(ierr)
+        !ierr = adj_destroy_nonlinear_block(timestepping_advection_block)
+        !call adj_chkierr(ierr)
+        !ierr = adj_destroy_nonlinear_block(burgers_advection_block)
+        !call adj_chkierr(ierr)
       end do
 
       ! Set the times and functional dependencies for this timestep
