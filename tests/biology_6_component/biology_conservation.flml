@@ -57,18 +57,6 @@
       </checkpoint_period_in_dumps>
     </checkpointing>
     <stat/>
-    <detectors>
-      <static_detector name="Max">
-        <location>
-          <real_value shape="3" dim1="dim" rank="1">1. 99. -10</real_value>
-        </location>
-      </static_detector>
-      <static_detector name="Min">
-        <location>
-          <real_value shape="3" dim1="dim" rank="1">99. 1. -10.</real_value>
-        </location>
-      </static_detector>
-    </detectors>
   </io>
   <timestepping>
     <current_time>
