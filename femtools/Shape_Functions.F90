@@ -299,7 +299,7 @@ contains
 
       integer, dimension(:), allocatable :: dofs
       integer, dimension(:), pointer :: vertices
-      integer :: i, j, dof_len, facet_dim
+      integer :: i, j, dof_len, facet_dim, cell_dim
       logical, dimension(:), allocatable :: cell_mask
 
       cell=>element%cell
@@ -326,29 +326,33 @@ contains
             deallocate(dofs)
          end if
 
-         ! Edges
-         dof_len=edge_num_length(numbering, interior=.true.)
-         do i=1,cell%entity_counts(1)
-            vertices=>entity_vertices(cell,[1,i])
-            allocate(element%entity2dofs(1,i)%dofs(dof_len))
-            element%entity2dofs(1,i)%dofs=&
-                 edge_local_num(vertices, numbering, interior=.true.)
-            ! Sanity check dofs uniquely belong to one entity.
-            assert(all(cell_mask(element%entity2dofs(1,i)%dofs)))
-            cell_mask(element%entity2dofs(1,i)%dofs)=.false.
-         end do
-         
-         ! Faces
-         dof_len=face_num_length(numbering, interior=.true.)
-         do i=1,cell%entity_counts(2)
-            vertices=>entity_vertices(cell,[2,i])
-            allocate(element%entity2dofs(2,i)%dofs(dof_len))
-            element%entity2dofs(2,i)%dofs=&
-                 face_local_num(vertices, numbering, interior=.true.)
-            ! Sanity check dofs uniquely belong to one entity.
-            assert(all(cell_mask(element%entity2dofs(2,i)%dofs)))
-            cell_mask(element%entity2dofs(2,i)%dofs)=.false.
-         end do
+         if (cell%dimension>1) then
+            ! Edges
+            dof_len=edge_num_length(numbering, interior=.true.)
+            do i=1,cell%entity_counts(1)
+               vertices=>entity_vertices(cell,[1,i])
+               allocate(element%entity2dofs(1,i)%dofs(dof_len))
+               element%entity2dofs(1,i)%dofs=&
+                    edge_local_num(vertices, numbering, interior=.true.)
+               ! Sanity check dofs uniquely belong to one entity.
+               assert(all(cell_mask(element%entity2dofs(1,i)%dofs)))
+               cell_mask(element%entity2dofs(1,i)%dofs)=.false.
+            end do
+         end if
+
+         if (cell%dimension>2) then
+            ! Faces
+            dof_len=face_num_length(numbering, interior=.true.)
+            do i=1,cell%entity_counts(2)
+               vertices=>entity_vertices(cell,[2,i])
+               allocate(element%entity2dofs(2,i)%dofs(dof_len))
+               element%entity2dofs(2,i)%dofs=&
+                    face_local_num(vertices, numbering, interior=.true.)
+               ! Sanity check dofs uniquely belong to one entity.
+               assert(all(cell_mask(element%entity2dofs(2,i)%dofs)))
+               cell_mask(element%entity2dofs(2,i)%dofs)=.false.
+            end do
+         end if
       end if
 
       ! Facets for trace elements.
@@ -370,9 +374,10 @@ contains
 
       ! Interior cell elements.
       if (any(cell_mask)) then
-         assert(.not.allocated(element%entity2dofs(3,1)%dofs))
-         allocate(element%entity2dofs(3,1)%dofs(count(cell_mask)))
-         element%entity2dofs(3,1)%dofs=&
+         cell_dim=cell%dimension
+         assert(.not.allocated(element%entity2dofs(cell_dim,1)%dofs))
+         allocate(element%entity2dofs(cell_dim,1)%dofs(count(cell_mask)))
+         element%entity2dofs(cell_dim,1)%dofs=&
               pack([(i,i=1,element%ndof)],cell_mask)
       end if
 

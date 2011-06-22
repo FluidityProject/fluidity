@@ -1271,9 +1271,16 @@ contains
           else if (neigh(j)<0) then
 
              ! boundary face:
-             mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  & boundary_numbering(ele_shape(mesh, ele), j)
-                  
+   
+             ! Interim hack until global numbering honours the new convention
+             element=>ele_shape(mesh,ele)
+             if (element%dim==1) then
+                mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
+                     & element%facet2dofs(mod(j,2)+1)%dofs                
+             else
+                mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
+                     & element%facet2dofs(j)%dofs
+             end if
              
           end if
 
