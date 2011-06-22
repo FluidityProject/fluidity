@@ -153,10 +153,6 @@ contains
 
     ewrite(1,*)'LAMBDARHS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs%val)
 
-    if(l_compute_cartesian) then
-       U_cart => extract_vector_field(state, "Velocity")
-    end if
-
     !Solve the equations
     call petsc_solve(lambda,lambda_mat,lambda_rhs)
 
@@ -174,20 +170,27 @@ contains
        end do
     end if
 
-    call deallocate(lambda_mat)
-    call deallocate(lambda_rhs)
-
     if(l_compute_cartesian) then
-       do ele = 1, ele_count(D)
-          call compute_cartesian_ele(U_cart,U,X,ele)
-       end do
+       U_cart => extract_vector_field(state, "Velocity")
+       call project_local_to_cartesian(X,U,U_cart)
     end if
 
     if(l_check_continuity) then
+       ewrite(1,*) 'Checking continuity'
+
+       call zero(lambda_rhs)
+       do dim1 = 1,U%dim
+          u_cpt = extract_scalar_field(U,dim1)
+          continuity_block_mat = block(continuity_mat,dim1,1)
+          call mult_T_addto(lambda_rhs,continuity_block_mat,u_cpt)
+       end do
+       ewrite(1,*)'LAMBDARHS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs&
+            &%val)
+
        if(.not.l_compute_cartesian) then
           FLExit('Need to compute cartesian to check continuity')
        end if
-       ewrite(1,*) 'Checking continuity'
+
        do ele = 1, ele_count(U)
           call check_continuity_ele(U_cart,X,ele)
        end do
@@ -200,6 +203,9 @@ contains
           call reconstruct_lambda_nc(lambda,lambda_nc,X,ele)
        end do
     end if
+
+    call deallocate(lambda_mat)
+    call deallocate(lambda_rhs)
 
     ewrite(1,*) 'END subroutine solve_hybridized_helmholtz'
 
@@ -337,18 +343,18 @@ contains
     !compute l_continuity_mat2 = inverse(local_solver)*l_continuity_mat
     allocate(l_continuity_mat2(uloc*2+dloc,lloc))
     l_continuity_mat2 = l_continuity_mat
-    call solve(local_solver,l_continuity_mat)
+    call solve(local_solver,l_continuity_mat2)
 
     !compute helmholtz_loc_mat
     allocate(helmholtz_loc_mat(lloc,lloc))
     helmholtz_loc_mat = matmul(transpose(l_continuity_mat),l_continuity_mat2)
     
-    lambda_rhs_loc2 = -matmul(transpose(l_continuity_mat),Rhs_loc)
-    ewrite(1,*) lambda_rhs_loc, 'first way'
-    ewrite(1,*) lambda_rhs_loc2,'second way'
-    !assert(maxval(abs(lambda_rhs_loc-lambda_rhs_loc2))<1.0e-8)
     !insert lambda_rhs_loc into lambda_rhs
-    call addto(lambda_rhs,ele_nodes(lambda_rhs,ele),lambda_rhs_loc)
+    lambda_rhs_loc2 = -matmul(transpose(l_continuity_mat),Rhs_loc)
+    !ewrite(1,*) lambda_rhs_loc, 'first way'
+    !ewrite(1,*) lambda_rhs_loc2,'second way'
+    assert(maxval(abs(lambda_rhs_loc-lambda_rhs_loc2))<1.0e-8)
+    call addto(lambda_rhs,ele_nodes(lambda_rhs,ele),lambda_rhs_loc2)
     !insert helmholtz_loc_mat into global lambda matrix
     call addto(lambda_mat,ele_nodes(lambda_rhs,ele),&
          ele_nodes(lambda_rhs,ele),helmholtz_loc_mat)
@@ -715,7 +721,7 @@ contains
     real, dimension(face_ngi(U_cart, face)) :: jump_at_quad
     !
     u1 = face_val_at_quad(U_cart,face)
-    if(face2>0) then
+    if(ele2>0) then
        u2 = face_val_at_quad(U_cart,face2)
     else
        u2 = 0.
@@ -750,8 +756,11 @@ contains
     real, dimension(ele_loc(X,ele)) :: J_loc_rhs
     real, dimension(mesh_dim(X), X%dim, face_ngi(X,face)) :: J_face_gi
     integer :: dim1, dim2, gi
-    real, dimension(X%dim) :: ele_normal_gi, edge_tangent_gi, X_mid_ele
+    real, dimension(X%dim) :: ele_normal_gi, edge_tangent_gi, X_mid_ele,&
+         &X_mid_face
     type(element_type) :: X_shape, X_face_shape
+    real, dimension(X%dim,ele_loc(X,ele)) :: X_ele
+    real, dimension(X%dim,face_loc(X,face)) :: X_face
 
     call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
          detwei=detwei)
@@ -780,21 +789,22 @@ contains
     end do
 
     X_mid_ele = sum(ele_val(X,ele),2)/size(ele_val(X,ele),2)
+    X_mid_face = sum(face_val(X,face),2)/size(face_val(X,face),2)
     select case(X%dim)
     case (3)
        select case (mesh_dim(X))
        case (2)
           do gi = 1, face_ngi(X,face)
              !Get normal to element e on face quad points
-             ele_normal_gi = cross_product(J_face_gi(:,1,gi),&
-                  &J_face_gi(:,2,gi))
+             ele_normal_gi = cross_product(J_face_gi(1,:,gi),&
+                  &J_face_gi(2,:,gi))
              ele_normal_gi = ele_normal_gi/(norm2(ele_normal_gi))
              !Get tangent to face f
              edge_tangent_gi = J_f(1,:,gi)
              edge_tangent_gi = edge_tangent_gi/norm2(edge_tangent_gi)
              !Compute normal to face f in manifold
              normal(:,gi) = cross_product(ele_normal_gi,edge_tangent_gi)
-             if(dot_product(normal(:,gi),X_mid_ele)<0) then
+             if(dot_product(normal(:,gi),X_mid_face-X_mid_ele)<0) then
                 normal(:,gi)=-normal(:,gi)
              end if
           end do
