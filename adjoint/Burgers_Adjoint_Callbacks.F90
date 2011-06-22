@@ -457,7 +457,7 @@ module burgers_adjoint_callbacks
           call allocate(u_output, u_mesh, "VelocitySource")
           call zero(tmp_u_output)
           call zero(u_output)
-          u_output%option_path = trim(path) // "/prognostic/scalar_field::Source"
+          tmp_u_output%option_path = trim(path) // "/prognostic/scalar_field::Source"
 
           call insert(dummy_state(1), positions, "Coordinate")
           call insert(dummy_state(1), tmp_u_output, "VelocitySource")
