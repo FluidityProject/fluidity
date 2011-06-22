@@ -375,12 +375,10 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-  #from random import random
-  #return [random(),random(),random()]
-  from math import pi, cos, sin
+  from math import pi,cos,sin
   x = X[0]
   y = X[1]
-  return [cos(pi*x)*sin(pi*y),cos(pi*x),0]</string_value>
+  return [-sin(pi*x)*cos(pi*y),cos(pi*x)*sin(pi*y),0]</string_value>
           </python>
         </value>
         <output/>

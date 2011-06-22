@@ -43,8 +43,10 @@ module hybridized_helmholtz
     use diagnostic_variables
     use diagnostic_fields_wrapper
     use assemble_cmc
+    use FUtils, only : real_vector, real_matrix
     use global_parameters, only: option_path_len
     use vector_tools, only: solve
+    use manifold_projections
     implicit none
 
 contains
@@ -68,17 +70,18 @@ contains
     implicit none
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(in), optional :: D_rhs
-    type(vector_field), intent(in), optional :: U_rhs
+    type(vector_field), intent(inout), optional :: U_rhs
     logical, intent(in), optional :: compute_cartesian, check_continuity,&
          & output_dense
     !
     type(vector_field), pointer :: X, U, down, U_cart
     type(scalar_field), pointer :: D,f, lambda, lambda_nc
-    type(scalar_field), target :: lambda_rhs
-    type(csr_sparsity) :: lambda_sparsity
-    type(csr_matrix) :: lambda_mat
+    type(scalar_field), target :: lambda_rhs, u_cpt
+    type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
+    type(csr_matrix) :: lambda_mat, continuity_block_mat,continuity_block_mat1
+    type(block_csr_matrix) :: continuity_mat
     real :: D0, dt, g, theta
-    integer :: ele,i1, stat
+    integer :: ele,i1, stat, dim1
     logical :: l_compute_cartesian,l_check_continuity, l_output_dense
     real, dimension(:,:), allocatable :: lambda_mat_dense
 
@@ -102,10 +105,13 @@ contains
     !construct/extract sparsities
     lambda_sparsity=get_csr_sparsity_firstorder(state, lambda%mesh, lambda&
          &%mesh)
+    continuity_sparsity=get_csr_sparsity_firstorder(state, u%mesh, lambda%mesh)
 
     !allocate matrices
     call allocate(lambda_mat,lambda_sparsity)
     call zero(lambda_mat)
+    call allocate(continuity_mat,continuity_sparsity,(/U%dim,1/))
+    call zero(continuity_mat)
 
     !allocate hybridized RHS
     call allocate(lambda_rhs,lambda%mesh,"LambdaRHS")
@@ -125,8 +131,31 @@ contains
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
             &g,dt,theta,D0,lambda_mat=lambda_mat,&
-            &lambda_rhs=lambda_rhs,D_rhs=D_rhs,U_rhs=U_rhs)
+            &lambda_rhs=lambda_rhs,D_rhs=D_rhs,U_rhs=U_rhs,&
+            &continuity_mat=continuity_mat)
     end do
+
+    !FOR DEBUGGING ONLY, REMOVE
+    if(.false.) then
+       call project_cartesian_to_local(X,U_rhs,U)
+       call zero(lambda_rhs)
+       do dim1 = 1,U%dim
+          u_cpt = extract_scalar_field(U,dim1)
+          ewrite(1,*) maxval(abs(u_cpt%val))
+          continuity_block_mat = block(continuity_mat,dim1,1)
+          ewrite(1,*) maxval(abs(continuity_block_mat%val))
+          call mult_T_addto(lambda_rhs,continuity_block_mat,u_cpt)
+       end do
+       ewrite(1,*)'LAMBDARHS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs&
+            &%val)
+       stop
+    end if
+
+    ewrite(1,*)'LAMBDARHS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs%val)
+
+    if(l_compute_cartesian) then
+       U_cart => extract_vector_field(state, "Velocity")
+    end if
 
     !Solve the equations
     call petsc_solve(lambda,lambda_mat,lambda_rhs)
@@ -149,19 +178,21 @@ contains
     call deallocate(lambda_rhs)
 
     if(l_compute_cartesian) then
-       U_cart => extract_vector_field(state, "Velocity")
        do ele = 1, ele_count(D)
           call compute_cartesian_ele(U_cart,U,X,ele)
        end do
-
-       if(l_check_continuity) then
-          ewrite(1,*) 'Checking continuity'
-          do ele = 1, ele_count(U)
-             call check_continuity_ele(U_cart,X,ele)
-          end do
-       end if
     end if
 
+    if(l_check_continuity) then
+       if(.not.l_compute_cartesian) then
+          FLExit('Need to compute cartesian to check continuity')
+       end if
+       ewrite(1,*) 'Checking continuity'
+       do ele = 1, ele_count(U)
+          call check_continuity_ele(U_cart,X,ele)
+       end do
+    end if
+    
     lambda_nc=>extract_scalar_field(state, "LambdaNC",stat)
     if(stat==0) then
        call zero(lambda_nc)
@@ -175,7 +206,7 @@ contains
   end subroutine solve_hybridized_helmholtz
  
   subroutine assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
-       g,dt,theta,D0,lambda_mat,lambda_rhs,U_rhs,D_rhs)
+       g,dt,theta,D0,lambda_mat,lambda_rhs,U_rhs,D_rhs,continuity_mat)
     !subroutine to assemble hybridized helmholtz equation.
     !For assembly, must provide:
     !   lambda_mat,lambda_rhs
@@ -193,19 +224,26 @@ contains
     integer, intent(in) :: ele
     real, intent(in) :: g,dt,theta,D0
     type(csr_matrix), intent(inout) :: lambda_mat
+    type(block_csr_matrix), intent(inout), optional :: continuity_mat
     !
     real, dimension(ele_loc(U,ele)*2+ele_loc(D,ele),&
          &ele_loc(U,ele)*2+ele_loc(D,ele)) :: local_solver
-    real, allocatable, dimension(:,:) :: continuity_mat, continuity_mat2
+    real, allocatable, dimension(:,:),target :: &
+         &l_continuity_mat, l_continuity_mat2
     real, allocatable, dimension(:,:) :: helmholtz_loc_mat
     real, allocatable, dimension(:,:,:) :: continuity_face_mat
     integer :: ni, face
     integer, dimension(:), pointer :: neigh
-    real, dimension(:), allocatable :: lambda_rhs_loc
-    real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)) :: Rhs_loc
+    real, dimension(ele_loc(lambda_rhs,ele)) :: lambda_rhs_loc,lambda_rhs_loc2
+    real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)),target :: Rhs_loc
     type(element_type) :: U_shape
     integer :: d_start, d_end, dim1, mdim, uloc,dloc, lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
+    type(real_vector), dimension(mesh_dim(U)) :: rhs_u_ptr
+    real, dimension(:), pointer :: rhs_d_ptr
+    type(real_matrix), dimension(mesh_dim(U)) :: &
+         & continuity_mat_u_ptr
+    real, dimension(:,:), pointer :: continuity_mat_d_ptr
 
     !Get some sizes
     lloc = ele_loc(lambda_rhs,ele)
@@ -224,45 +262,18 @@ contains
        u_end(dim1) = uloc*dim1
     end do
 
-    !Get the local_solver matrix that obtains U and D from Lambda on the
-    !boundaries
-    call get_local_solver(local_solver,U,X,down,D,f,ele,&
-         & g,dt,theta,D0)
-
-    !!!Construct the continuity matrix that multiplies lambda in 
-    !!! the U equation
-    !allocate continuity_mat
-    allocate(continuity_mat(2*uloc+dloc,lloc))
-    continuity_mat = 0.
-    !get list of neighbours
-    neigh => ele_neigh(D,ele)
-    !calculate continuity_mat
-    do ni = 1, size(neigh)
-       face=ele_face(U, ele, neigh(ni))
-       allocate(continuity_face_mat(mdim,face_loc(U,face),lloc))
-       continuity_face_mat = 0.
-       call get_continuity_face_mat(continuity_face_mat,face,&
-            U,lambda_rhs)
-       do dim1 = 1, mdim
-          continuity_mat((dim1-1)*uloc+face_local_nodes(U,face),&
-               &face_local_nodes(lambda_rhs,face))=&
-               &continuity_mat((dim1-1)*uloc+face_local_nodes(U,face),&
-               &face_local_nodes(lambda_rhs,face))+&
-               continuity_face_mat(dim1,:,:)
-       end do
-       deallocate(continuity_face_mat)
+    !Get pointers to different parts of rhs_loc and l_continuity_mat
+    do dim1 = 1, mdim
+       rhs_u_ptr(dim1)%ptr => rhs_loc(u_start(dim1):u_end(dim1))
     end do
+    rhs_d_ptr => rhs_loc(d_start:d_end)
+    allocate(l_continuity_mat(2*uloc+dloc,lloc))
+    do dim1= 1,mdim
+       continuity_mat_u_ptr(dim1)%ptr => &
+            & l_continuity_mat(u_start(dim1):u_end(dim1),:)
+    end do
+    continuity_mat_d_ptr => l_continuity_mat(d_start:d_end,:)
 
-    !compute continuity_mat2 = inverse(local_solver)*continuity_mat
-    allocate(continuity_mat2(uloc*2+dloc,lloc))
-    continuity_mat2 = continuity_mat
-    call solve(local_solver,continuity_mat)
-
-    !compute helmholtz_loc_mat
-    allocate(helmholtz_loc_mat(lloc,lloc))
-    helmholtz_loc_mat = matmul(transpose(continuity_mat),continuity_mat2)
-    
-    !construct lambda_rhs
     ! ( M    C  -L)(u)   (0)
     ! ( -C^T N  0 )(h) = (j)
     ! ( L^T  0  0 )(l)   (0)
@@ -272,12 +283,70 @@ contains
     ! so
     !        (M    C)^{-1}(L)         (M    C)^{-1}(0)
     ! (L^T 0)(-C^T N)     (0)=-(L^T 0)(-C^T N)     (j)
+
+    !Get the local_solver matrix that obtains U and D from Lambda on the
+    !boundaries
+    call get_local_solver(local_solver,U,X,down,D,f,ele,&
+         & g,dt,theta,D0)
+
+    !construct lambda_rhs
     rhs_loc=0.
+    lambda_rhs_loc = 0.
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
     call solve(local_solver,Rhs_loc)
-    allocate(lambda_rhs_loc(ele_loc(lambda_rhs,ele)))
-    lambda_rhs_loc = -matmul(transpose(continuity_mat),Rhs_loc)
-       
+    !OK, this is definitely putting the right thing in rhs_loc
+
+    !!!Construct the continuity matrix that multiplies lambda in 
+    !!! the U equation
+    !allocate l_continuity_mat
+    l_continuity_mat = 0.
+    !get list of neighbours
+    neigh => ele_neigh(D,ele)
+    !calculate l_continuity_mat
+    do ni = 1, size(neigh)
+       face=ele_face(U, ele, neigh(ni))
+       allocate(continuity_face_mat(mdim,face_loc(U,face)&
+            &,face_loc(lambda_rhs,face)))
+       continuity_face_mat = 0.
+       call get_continuity_face_mat(continuity_face_mat,face,&
+            U,lambda_rhs)
+       do dim1 = 1, mdim
+          continuity_mat_u_ptr(dim1)%ptr(face_local_nodes(U,face),&
+               face_local_nodes(lambda_rhs,face))=&
+          continuity_mat_u_ptr(dim1)%ptr(face_local_nodes(U,face),&
+               face_local_nodes(lambda_rhs,face))+&
+               continuity_face_mat(dim1,:,:)
+
+          lambda_rhs_loc(face_local_nodes(lambda_rhs,face)) = &
+               & lambda_rhs_loc(face_local_nodes(lambda_rhs,face)) - &
+               & matmul(transpose(continuity_face_mat(dim1,:,:)),&
+               & rhs_u_ptr(dim1)%ptr(face_local_nodes(U,face)))
+       end do
+
+       if(present(continuity_mat)) then
+          do  dim1 = 1, mdim
+             call addto(continuity_mat,dim1,1,face_global_nodes(U,face)&
+                  &,face_global_nodes(lambda_rhs,face),&
+                  &continuity_face_mat(dim1,:,:))
+          end do
+       end if
+
+       deallocate(continuity_face_mat)
+    end do
+
+    !compute l_continuity_mat2 = inverse(local_solver)*l_continuity_mat
+    allocate(l_continuity_mat2(uloc*2+dloc,lloc))
+    l_continuity_mat2 = l_continuity_mat
+    call solve(local_solver,l_continuity_mat)
+
+    !compute helmholtz_loc_mat
+    allocate(helmholtz_loc_mat(lloc,lloc))
+    helmholtz_loc_mat = matmul(transpose(l_continuity_mat),l_continuity_mat2)
+    
+    lambda_rhs_loc2 = -matmul(transpose(l_continuity_mat),Rhs_loc)
+    ewrite(1,*) lambda_rhs_loc, 'first way'
+    ewrite(1,*) lambda_rhs_loc2,'second way'
+    !assert(maxval(abs(lambda_rhs_loc-lambda_rhs_loc2))<1.0e-8)
     !insert lambda_rhs_loc into lambda_rhs
     call addto(lambda_rhs,ele_nodes(lambda_rhs,ele),lambda_rhs_loc)
     !insert helmholtz_loc_mat into global lambda matrix
@@ -301,7 +370,7 @@ contains
     !
     real, dimension(ele_loc(U,ele)*2+ele_loc(D,ele),&
          &ele_loc(U,ele)*2+ele_loc(D,ele)) :: local_solver
-    real, allocatable, dimension(:,:) :: continuity_mat
+    real, allocatable, dimension(:,:) :: l_continuity_mat
     real, allocatable, dimension(:,:,:) :: continuity_face_mat
     integer :: ni, face
     integer, dimension(:), pointer :: neigh
@@ -334,12 +403,12 @@ contains
 
     !!!Construct the continuity matrix that multiplies lambda in 
     !!! the U equation
-    !allocate continuity_mat
-    allocate(continuity_mat(ele_loc(U,ele)*2+ele_loc(D,ele),lloc))
-    continuity_mat = 0.
+    !allocate l_continuity_mat
+    allocate(l_continuity_mat(ele_loc(U,ele)*2+ele_loc(D,ele),lloc))
+    l_continuity_mat = 0.
     !get list of neighbours
     neigh => ele_neigh(D,ele)
-    !calculate continuity_mat
+    !calculate l_continuity_mat
     do ni = 1, size(neigh)
        face=ele_face(U, ele, neigh(ni))
        allocate(continuity_face_mat(mdim,face_loc(U,face),lloc))
@@ -347,9 +416,9 @@ contains
        call get_continuity_face_mat(continuity_face_mat,face,&
             U,lambda)
        do dim1 = 1, mdim
-          continuity_mat((dim1-1)*ele_loc(U,face)+face_local_nodes(U,face),&
+          l_continuity_mat((dim1-1)*ele_loc(U,face)+face_local_nodes(U,face),&
                &face_local_nodes(lambda,face))=&
-               &continuity_mat((dim1-1)*ele_loc(U,face)&
+               &l_continuity_mat((dim1-1)*ele_loc(U,face)&
                &+face_local_nodes(U,face),&
                &face_local_nodes(lambda,face))+&
                continuity_face_mat(dim1,:,:)
@@ -366,7 +435,7 @@ contains
     
     rhs_loc=0.
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
-    rhs_loc = rhs_loc + matmul(continuity_mat,ele_val(lambda,ele))
+    rhs_loc = rhs_loc + matmul(l_continuity_mat,ele_val(lambda,ele))
     call solve(local_solver,Rhs_loc)
 
     do dim1 = 1, mdim
@@ -834,10 +903,12 @@ contains
        allocate(u_cart_quad(U_rhs%dim,ele_ngi(X,ele)))
        u_cart_quad = ele_val_at_quad(u_rhs,ele)
        do gi = 1, ele_ngi(u_rhs,ele)
-          u_local_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))/detJ(gi)
+          u_local_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))
        end do
+       !U_rhs_loc = shape_vector_rhs(u_shape,&
+       !     u_local_quad,detwei)
        U_rhs_loc = shape_vector_rhs(u_shape,&
-            u_local_quad,detwei)
+            u_local_quad,u_shape%quadrature%weight)
        do dim1 = 1, mdim
           Rhs_loc(u_start(dim1):u_end(dim1)) = &
                & U_rhs_loc(dim1,:)
