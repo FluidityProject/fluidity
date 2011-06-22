@@ -40,6 +40,7 @@ module burgers_adjoint_callbacks
     use adjoint_global_variables, only: adj_path_lookup
     use mangle_options_tree, only: adjoint_field_path
     use mangle_dirichlet_rows_module
+    use populate_state_module
     implicit none
 
     private
@@ -63,6 +64,9 @@ module burgers_adjoint_callbacks
       call adj_chkierr(ierr)
 
       ierr = adj_register_operator_callback(adjointer, ADJ_NBLOCK_DERIVATIVE_ACTION_CB, "AdvectionOperator", c_funloc(advection_derivative_action_proc))
+      call adj_chkierr(ierr)
+
+      ierr = adj_register_forward_source_callback(adjointer, c_funloc(burgers_equation_forward_source))
       call adj_chkierr(ierr)
     end subroutine register_burgers_operator_callbacks
 
@@ -142,7 +146,11 @@ module burgers_adjoint_callbacks
         FLAbort("Unknown number of dependencies in burgers_operator_assembly_callback")
       end if
 
-      call get_option(trim(adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta")), theta)
+      if (hermitian == ADJ_TRUE) then
+        call get_option(trim(adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta")), theta)
+      else
+        call get_option(trim(("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta")), theta)
+      end if
       call get_option("/timestepping/timestep", dt)
 
       call c_f_pointer(context, matrices)
@@ -388,5 +396,89 @@ module burgers_adjoint_callbacks
       call deallocate(output_field)
     end subroutine advection_derivative_action_proc
 
+    subroutine burgers_equation_forward_source(adjointer, var, ndepends, dependencies, values, context, output, has_output) bind(c)
+      type(adj_adjointer), intent(in) :: adjointer
+      type(adj_variable), intent(in), value :: var
+      integer(kind=c_int), intent(in), value :: ndepends
+      type(adj_variable), dimension(ndepends), intent(in) :: dependencies
+      type(adj_vector), dimension(ndepends), intent(in) :: values
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+      integer(kind=c_int), intent(out) :: has_output
+
+      character(len=ADJ_DICT_LEN) :: path
+      character(len=ADJ_NAME_LEN) :: name
+      integer :: timestep
+      real :: time, dt, end_time
+      real :: theta
+      type(state_type), pointer :: matrices
+      logical :: has_source
+      type(mesh_type), pointer :: u_mesh
+      type(state_type), dimension(1) :: dummy_state
+      type(scalar_field) :: u_output, tmp_u_output
+      type(csr_matrix), pointer :: mass_matrix
+      type(vector_field), pointer :: positions
+
+      integer :: ierr
+
+      ierr = adj_variable_get_name(var, name)
+      call adj_chkierr(ierr)
+
+      ierr = adj_variable_get_timestep(var, timestep)
+      call adj_chkierr(ierr)
+
+      call c_f_pointer(context, matrices)
+      assert(associated(matrices))
+      u_mesh => extract_mesh(matrices, "VelocityMesh")
+      positions => extract_vector_field(matrices, "Coordinate")
+      mass_matrix => extract_csr_matrix(matrices, "MassMatrix")
+
+      path = "/material_phase::Fluid/scalar_field::Velocity"
+
+      has_source = have_option(trim(path) // "/prognostic/scalar_field::Source")
+
+      if (timestep == 0) then ! initial condition
+        call allocate(u_output, u_mesh, "VelocityInitialCondition")
+        call zero(u_output)
+        u_output%option_path = trim(path)
+        call insert(dummy_state(1), positions, "Coordinate")
+        call insert(dummy_state(1), u_output, "Velocity")
+        call initialise_prognostic_fields(dummy_state)
+        call deallocate(dummy_state(1))
+
+        output = field_to_adj_vector(u_output)
+        has_output = ADJ_TRUE
+        call deallocate(u_output)
+      else if (timestep > 0) then
+        if (.not. has_source) then
+          has_output = ADJ_FALSE
+        else
+          call allocate(tmp_u_output, u_mesh, "VelocitySource")
+          call allocate(u_output, u_mesh, "VelocitySource")
+          call zero(tmp_u_output)
+          call zero(u_output)
+          u_output%option_path = trim(path) // "/prognostic/scalar_field::Source"
+
+          call insert(dummy_state(1), positions, "Coordinate")
+          call insert(dummy_state(1), tmp_u_output, "VelocitySource")
+
+          ierr = adj_timestep_get_times(adjointer, timestep-1, time, end_time)
+          call adj_chkierr(ierr)
+          dt = end_time - time
+
+          call get_option(trim(path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
+          call set_prescribed_field_values(dummy_state, time=time + theta*dt)
+          call deallocate(dummy_state(1))
+
+          call mult(u_output, mass_matrix, tmp_u_output)
+          call deallocate(tmp_u_output)
+
+          output = field_to_adj_vector(u_output)
+          has_output = ADJ_TRUE
+          call deallocate(u_output)
+        end if
+      end if
+
+    end subroutine burgers_equation_forward_source
 #endif
 end module burgers_adjoint_callbacks

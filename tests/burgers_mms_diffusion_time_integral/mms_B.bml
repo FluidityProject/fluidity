@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <burgers_equation>
   <simulation_name>
     <string_value lines="1">mms_diffusion_adjoint_B</string_value>

@@ -197,37 +197,8 @@ J = dt * (int_u + int_u_prev) * 0.5
         </algorithm>
       </functional_dependencies>
     </functional>
-    <functional name="time_integral_hc">
-      <functional_derivative>
-        <algorithm name="functional_derivative">
-          <string_value lines="20" type="python">import numpy
-
-if n == 0 or n == len(times) - 1:
-  multiple = 1
-else:
-  multiple = 2
-  
-dt = times[1] - times[0]
-  
-coord = states[0]["Fluid"].vector_fields["Coordinate"]
-derivative.val[:] = 0.0
-
-if derivative.name == "Fluid::Velocity":
-  for ele in range(coord.element_count):
-    t = Transform(ele, coord)
-    shape = derivative.ele_shape(ele)
-    derivative.addto(derivative.ele_nodes(ele), numpy.dot(shape.n, t.detwei))
-    
-  derivative.val[:] = (dt/2.0) * multiple * derivative.val</string_value>
-        </algorithm>
-      </functional_derivative>
-      <functional_dependencies>
-        <algorithm name="functional_dependencies">
-          <string_value lines="20" type="python">def dependencies(times, timestep):
-  return {"Fluid::Coordinate": [0],
-          "Fluid::Velocity": [timestep-1, timestep]}</string_value>
-        </algorithm>
-      </functional_dependencies>
-    </functional>
+    <debug>
+      <replay_forward_run/>
+    </debug>
   </adjoint>
 </burgers_equation>

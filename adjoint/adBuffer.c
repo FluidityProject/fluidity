@@ -378,7 +378,7 @@ void printbuffertop() {
   size += adr4ibuf*4 ;
   size += adr8ibuf*8 ;
   printf("Buffer size:%i bytes i.e. %i Kbytes\n",
-         size, size/1024.0) ;
+         size, (int) (size/1024.0)) ;
 }
 
 void showallstacks() {
@@ -388,7 +388,7 @@ void showallstacks() {
   for (i=0 ; i<adi4ibuf ; ++i) printf(" %i",adi4buf[i]) ;
   printf("\n") ;
   printf("REAL*8 BUFFER[%i]:",adr8ibuf) ;
-  for (i=0 ; i<adr8ibuf ; ++i) printf(" %d",adr8buf[i]) ;
+  for (i=0 ; i<adr8ibuf ; ++i) printf(" %d",(int) adr8buf[i]) ;
   printf("\n") ;
   printf("REAL*4 BUFFER[%i]:",adr4ibuf) ;
   for (i=0 ; i<adr4ibuf ; ++i) printf(" %f",adr4buf[i]) ;
