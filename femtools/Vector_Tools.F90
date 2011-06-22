@@ -634,4 +634,19 @@ contains
    deallocate(WORK)
   end subroutine svd
   
+  function pseudoinverse(A)
+    !!< Compute pseudoinverse using SVD
+    real, dimension(:,:), intent(in) :: A
+    real, dimension(size(A,1),size(A,2)) :: pseudoinverse
+
+    real, dimension(size(A, 1), size(A, 1)) :: U
+    real, dimension(min(size(A, 1), size(A, 2))) :: sigma
+    real, dimension(size(A, 2), size(A, 2)) :: VT
+
+    call svd(A, U, sigma, T)
+
+    
+      
+  end function pseudoinverse
+
 end module vector_tools

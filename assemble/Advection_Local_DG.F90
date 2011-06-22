@@ -793,7 +793,7 @@ contains
     type(csr_sparsity), pointer :: sparsity
     
     !! System matrices.
-    type(block_csr_matrix) :: A, A1, A2, flux_mat, L, mass_local, inv_mass_local, &
+    type(block_csr_matrix) :: A, flux_mat, L, mass_local, inv_mass_local, &
          inv_mass_cartesian, L_T, test
 
     !! Sparsity of mass matrix.
@@ -829,10 +829,6 @@ contains
     ! Add data space to the sparsity pattern.
     call allocate(A, sparsity, (/dim,X%dim/))
     call zero(A)
-    call allocate(A1, sparsity, (/dim,X%dim/))
-    call zero(A1)
-    call allocate(A2, sparsity, (/dim,X%dim/))
-    call zero(A2)
     call allocate(flux_mat, sparsity, (/dim,X%dim/))
     call zero(flux_mat)
     call allocate(L, sparsity, (/dim,X%dim/))
@@ -859,7 +855,7 @@ contains
     call allocate(U_cartesian_tmp, U_cartesian%dim, U_cartesian%mesh, 'tmpUcartesian')
     call zero(U_cartesian_tmp)
    
-    call construct_vector_advection_dg(A, A1, A2, flux_mat, L, mass_local, &
+    call construct_vector_advection_dg(A, flux_mat, L, mass_local, &
          inv_mass_local, inv_mass_cartesian,&
          rhs, field_name, state, &
          velocity_name=velocity_name)
@@ -927,6 +923,8 @@ contains
        
     end if
 
+    print*, limit_slope
+
     do i=1, subcycles
 
        print*, 'subcycle=', i
@@ -963,8 +961,6 @@ contains
 
     call deallocate(delta_U)
     call deallocate(A)
-    call deallocate(A1)
-    call deallocate(A2)
     call deallocate(L)
     call deallocate(mass_local)
     call deallocate(inv_mass_local)
@@ -974,7 +970,7 @@ contains
 
   end subroutine solve_vector_advection_dg_subcycle
 
-  subroutine construct_vector_advection_dg(A, A1, A2, flux_mat, L, mass_local, inv_mass_local,&
+  subroutine construct_vector_advection_dg(A, flux_mat, L, mass_local, inv_mass_local,&
        & inv_mass_cartesian, rhs, field_name, &
        & state, velocity_name) 
     !!< Construct the advection equation for discontinuous elements in
@@ -985,7 +981,7 @@ contains
     !!< or for solving equations otherwise than in acceleration form.
 
     !! Main advection matrix.    
-    type(block_csr_matrix), intent(inout) :: A, A1, A2, flux_mat, L
+    type(block_csr_matrix), intent(inout) :: A, flux_mat, L
     !! Mass matrices.
     type(block_csr_matrix), intent(inout) :: mass_local, inv_mass_local, &
          inv_mass_cartesian
@@ -1053,14 +1049,12 @@ contains
        & bc_value, bc_type)
 
     call zero(A)
-    call zero(A1)
-    call zero(A2)
     call zero(RHS)
     call zero(mass_local)
 
     element_loop: do ele=1,element_count(U)
        
-       call construct_vector_adv_element_dg(ele, A, A1, A2, flux_mat, L,&
+       call construct_vector_adv_element_dg(ele, A, flux_mat, L,&
             & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
             & X, U, U_nl, &
             & bc_value, bc_type)
@@ -1074,7 +1068,7 @@ contains
 
   end subroutine construct_vector_advection_dg
 
-  subroutine construct_vector_adv_element_dg(ele, A, A1, A2, flux_mat, L,&
+  subroutine construct_vector_adv_element_dg(ele, A, flux_mat, L,&
        & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
        & X, U, U_nl, &
        & bc_value, bc_type)
@@ -1084,7 +1078,7 @@ contains
     !! Index of current element
     integer :: ele
     !! Main advection matrix.
-    type(block_csr_matrix), intent(inout) :: A, A1, A2, flux_mat
+    type(block_csr_matrix), intent(inout) :: A, flux_mat
     !! Transformation matrix
     type(block_csr_matrix), intent(inout) :: L
     !! Mass matrices.
@@ -1106,7 +1100,7 @@ contains
     real, dimension(mesh_dim(U),X%dim,ele_loc(U,ele),ele_loc(U,ele)) :: l_mat
     real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: cartesian_mass_mat
     real, dimension(mesh_dim(U),X%dim,ele_loc(U,ele),ele_loc(U,ele)) :: &
-         Advection_mat, Ad_mat1, Ad_mat2
+         Advection_mat
 
     ! Local assembly matrices.
     real, dimension(mesh_dim(U)*ele_loc(U,ele), mesh_dim(U)*ele_loc(U,ele)) :: l_mass, l_mass_cartesian
@@ -1120,7 +1114,7 @@ contains
     
     ! Transform from local to physical coordinates.
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
-    real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J, J_scaled
     real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(X,ele)) :: G
 
     ! Different velocities at quad points.
@@ -1168,7 +1162,8 @@ contains
     !  | W G U  dV
     !  / 
     do gi=1,ele_ngi(X,ele)
-       G(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+       G(:,:,gi)=matmul(J(:,:,gi),transpose(J(:,:,gi)))/detJ(gi)
+       J_scaled(:,:,gi)=J(:,:,gi)/detJ(gi)
     end do
 
     local_mass_mat=shape_shape_tensor(u_shape, u_shape, &
@@ -1188,33 +1183,7 @@ contains
     !  - | (grad W dot U_nl) T dV -  | W ( div U_nl ) G W dV
     !    /                           /
 
-    ! This assumes X is linear
-
-    do gi=1,ele_ngi(X,ele)
-       J(:,:,gi)=J(:,:,gi)/detJ(gi)
-    end do
-    Ad_mat1 = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, G, U_shape, U_shape%quadrature%weight)
-!    print*, 'U_shape%quadrature%weight'
-!    print*, U_shape%quadrature%weight
-!    print*, 'U_nl_q'
-!    print*, U_nl_q
-!    print*, 'Ad_mat1'
-!    do i=1,size(Ad_mat1,1)
-!       do k=1,size(Ad_mat1,2)
-!          print*, Ad_mat1(i,k,:,:)
-!       end do
-!    end do
-    Ad_mat2 = -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, G)
-!    print*, 'U_nl_div_q'
-!    print*, U_nl_div_q
-!    print*, 'Ad_mat2'
-!    do i=1,size(Ad_mat2,1)
-!       do k=1,size(Ad_mat2,2)
-!          print*, Ad_mat2(i,k,:,:)
-!       end do
-!    end do
-    Advection_mat = -dshape_dot_vector_tensor_shape(U_shape%dn, U_nl_q, G, U_shape, U_shape%quadrature%weight)  &
-           -shape_shape_tensor(U_shape, U_shape, U_nl_div_q * U_shape%quadrature%weight, G)
+    Advection_mat = -shape_vector_dot_dshape_tensor(U_shape, U_nl_q, U_shape%dn, J_scaled, detwei)
 
    !----------------------------------------------------------------------
    ! Perform global assembly.
@@ -1259,16 +1228,6 @@ contains
    do dim1 = 1,dim
       do dim2 = 1,X%dim
          call addto(A, dim1, dim2, U_ele, U_ele, Advection_mat(dim1,dim2,:,:))
-      end do
-   end do
-   do dim1 = 1,dim
-      do dim2 = 1,X%dim
-         call addto(A1, dim1, dim2, U_ele, U_ele, Ad_mat1(dim1,dim2,:,:))
-      end do
-   end do
-   do dim1 = 1,dim
-      do dim2 = 1,X%dim
-         call addto(A2, dim1, dim2, U_ele, U_ele, Ad_mat2(dim1,dim2,:,:))
       end do
    end do
 
@@ -1360,8 +1319,8 @@ contains
     ! Variable transform times quadrature weights.
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
     real, dimension(face_ngi(X,face)) :: detwei_f, detJ_f
-    real, dimension(mesh_dim(U), mesh_dim(U), face_ngi(X,face)) :: G_f
     real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(mesh_dim(U), X%dim, face_ngi(X,face)) :: J_scaled
     real, dimension(face_ngi(X,face)) :: inner_advection_integral, outer_advection_integral
 
     ! Bilinear forms
@@ -1370,21 +1329,13 @@ contains
 
     integer :: dim, dim1, dim2, gi, i, k
 
-!    print*, 'face: ', face
-    print*, 'local face: ', local_face_number(U%mesh,face)
-!    print*, 'face2: ', face_2
-!    print*, 'local face2: ', local_face_number(U%mesh,face_2)
-!    print*, 'X: ', face_val(X,face)
-
     dim=mesh_dim(U)
 
     U_face=face_global_nodes(U, face)
-    print*, U_face
     U_face_l=face_local_nodes(U, face)
     U_shape=>face_shape(U, face)
 
     U_face_2=face_global_nodes(U, face_2)
-    print*, U_face_2
     U_shape_2=>face_shape(U, face_2)
     
     !Unambiguously calculate the normal using the face with the higher
@@ -1409,20 +1360,9 @@ contains
        U_nl_f2_q=sqrt(2.)*U_nl_f2_q
     end if
 
-!    print*, 'U_nl_f_q'
-!    print*, U_nl_f_q
-!    print*, 'U_nl_f2_q'
-!    print*, U_nl_f2_q
-
-!    print*, 'n1_l'
-!    print*, n1_l
-!    print*, 'n2_l'
-!    print*, n2_l
-
     u_nl_q_dotn1_l = sum(U_nl_f_q*n1_l,1)
     u_nl_q_dotn2_l = -sum(U_nl_f2_q*n2_l,1)
     U_nl_q_dotn_l=0.5*(u_nl_q_dotn1_l+u_nl_q_dotn2_l)
-    print*, 'U_nl_q_dotn_l: ', U_nl_q_dotn_l
 
     ! Inflow is true if the flow at this gauss point is directed
     ! into this element.
@@ -1432,10 +1372,8 @@ contains
     ! Calculate tensor on face
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei=detwei, J=J, detJ=detJ)
     forall(gi=1:face_ngi(X,face))
-       G_f(:,:,gi)=matmul(J(:,:,1),transpose(J(:,:,1)))/detJ(1)
+       J_scaled(:,:,gi)=J(:,:,1)/detJ(1)
     end forall
-!    print*, 'J_f'
-!    print*, J_f
 
     ! Get outward pointing normals for each element
 !    call transform_facet_to_physical(X, face, normal=n1)
@@ -1458,17 +1396,15 @@ contains
 
     ! first the integral around the inside of the element
     ! (this is the flux *out* of the element)
-    inner_advection_integral = (1.-income)*u_nl_q_dotn_l
+    inner_advection_integral = -income*u_nl_q_dotn_l
     nnAdvection_out=shape_shape_tensor(U_shape, U_shape,  &
-         &            inner_advection_integral*U_shape%quadrature%weight, G_f)
-    print*, 'nnAdvection_out: ', nnAdvection_out
+         &            inner_advection_integral*U_shape%quadrature%weight, J_scaled)
 
     ! now the integral around the outside of the element
     ! (this is the flux *in* to the element)
     outer_advection_integral = income*u_nl_q_dotn_l
     nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
-         &            outer_advection_integral*U_shape%quadrature%weight, G_f)
-    print*, 'nnAdvection_in: ', nnAdvection_in
+         &            outer_advection_integral*U_shape%quadrature%weight, J_scaled)
        
     !----------------------------------------------------------------------
     ! Perform global assembly.

@@ -798,6 +798,32 @@ contains
 
   end function shape_vector_dot_dshape
 
+  function shape_vector_dot_dshape_tensor(shape, vector, dshape, tensor, detwei) result (R)
+    !!< 
+    !!< Evaluate (Grad N1 dot vector) (N2)
+    !!< 
+    type(element_type), intent(in) :: shape
+    real, dimension(:,:,:), intent(in) :: dshape
+    real, dimension(size(dshape,3),size(dshape,2)), intent(in) :: vector
+    real, dimension(:,:,:), intent(in) :: tensor
+    real, dimension(size(dshape,2)) :: detwei
+
+    real, dimension(size(tensor,1), size(tensor,2), shape%loc, size(dshape,1)) :: R
+
+    integer :: iloc,jloc,i,j
+    integer :: dshape_loc, dim
+
+
+    dshape_loc=size(dshape,1)
+    dim=size(dshape,3)
+
+    forall(iloc=1:shape%loc,jloc=1:dshape_loc,i=1:size(tensor,1),j=1:size(tensor,2))
+       R(i,j,iloc,jloc)= dot_product(shape%n(iloc,:) * &
+            sum(dshape(jloc,:,:)*transpose(vector),2), tensor(i,j,:)*detwei)
+    end forall
+
+  end function shape_vector_dot_dshape_tensor
+
   function shape_curl_shape_2d(shape, dshape, detwei) result (R)
     !!<            /          
     !!<  Evaluate: |(N1)(Curl N2) dV For shapes N1 and N2.
