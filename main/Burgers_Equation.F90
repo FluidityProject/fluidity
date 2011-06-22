@@ -63,6 +63,7 @@
     use adjoint_python
     use adjoint_global_variables
     use adjoint_main_loop, only: compute_adjoint
+    use forward_main_loop, only: register_functional_callbacks, calculate_functional_values
 #include "libadjoint/adj_fortran.h"
 #endif
 
@@ -145,6 +146,7 @@
       FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
     endif
 #else
+    call register_functional_callbacks()
     if (.not. adjoint) then
       ! disable the adjointer
       ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)                                                                                                                                     
@@ -228,12 +230,18 @@
         call output_state(state)
       end if
 
+#ifdef HAVE_ADJOINT
+      call calculate_functional_values(timestep-1)
+#endif
       call write_diagnostics(state, current_time, dt, timestep)
 
     end do timestep_loop
 
     ! One last dump
     call output_state(state)
+#ifdef HAVE_ADJOINT
+    call calculate_functional_values(timestep-1)
+#endif
     call write_diagnostics(state, current_time, dt, timestep)
 
     call deallocate(state)
