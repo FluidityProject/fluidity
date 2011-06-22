@@ -70,8 +70,10 @@
     </timestep>
     <finish_time>
       <real_value rank="0">20.0</real_value>
-      <comment>10.0</comment>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">1</integer_value>
+    </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
         <real_value rank="0">1.0</real_value>
@@ -82,7 +84,7 @@
     </adaptive_timestep>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.E-6</real_value>
+        <real_value rank="0">1.E-7</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>
@@ -119,10 +121,10 @@
               </iterative_method>
               <preconditioner name="sor"/>
               <relative_error>
-                <real_value rank="0">1.e-7</real_value>
+                <real_value rank="0">1.e-8</real_value>
               </relative_error>
               <max_iterations>
-                <integer_value rank="0">1000</integer_value>
+                <integer_value rank="0">10000</integer_value>
               </max_iterations>
               <never_ignore_solver_failures/>
               <diagnostics>
@@ -227,10 +229,10 @@
               </iterative_method>
               <preconditioner name="sor"/>
               <relative_error>
-                <real_value rank="0">1.e-7</real_value>
+                <real_value rank="0">1.e-8</real_value>
               </relative_error>
               <max_iterations>
-                <integer_value rank="0">1000</integer_value>
+                <integer_value rank="0">10000</integer_value>
               </max_iterations>
               <never_ignore_solver_failures/>
               <diagnostics>
@@ -389,16 +391,21 @@
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.E-5</real_value>
+            <real_value rank="0">1.e-8</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">1000</integer_value>
+            <integer_value rank="0">10000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
           </diagnostics>
         </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
         <output>
           <include_previous_time_step/>
         </output>
@@ -410,9 +417,9 @@
           <exclude_from_detectors/>
         </detectors>
         <steady_state>
-          <exclude_from_steady_state/>
+          <include_in_steady_state/>
         </steady_state>
-        <consistent_interpolation/>
+        <no_interpolation/>
       </prognostic>
     </scalar_field>
     <vector_field name="Velocity" rank="1">
@@ -438,10 +445,10 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">0.5</real_value>
           </theta>
           <relaxation>
-            <real_value rank="0">1</real_value>
+            <real_value rank="0">0.5</real_value>
           </relaxation>
         </temporal_discretisation>
         <solver>
@@ -455,7 +462,7 @@
             <real_value rank="0">1.E-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">1000</integer_value>
+            <integer_value rank="0">10000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -493,16 +500,13 @@
           </type>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <isotropic>
-                <constant>
-                  <real_value rank="0">0.7</real_value>
-                </constant>
-              </isotropic>
-            </value>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
-          </prescribed>
+            <stat>
+              <include_in_stat/>
+            </stat>
+          </diagnostic>
         </tensor_field>
         <vector_field name="Source" rank="1">
           <prescribed>
@@ -510,7 +514,7 @@
               <python>
                 <string_value lines="20" type="python">def val(X,t):
    import k_epsilon_tools3 as k
-   return k.forcing_mom_noturb(X)</string_value>
+   return k.forcing_mom(X)</string_value>
               </python>
             </value>
             <output/>

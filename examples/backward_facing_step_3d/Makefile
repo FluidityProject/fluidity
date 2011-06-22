@@ -1,7 +1,7 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=5100
-JOB=high-log-periodic
+JOB=dynles-lilly-sem-periodic
 
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
@@ -21,12 +21,14 @@ preprocess:
 
 preprocess-periodic:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse, \
+	@$(foreach NN,med, \
 		install -d $(RE)-$(JOB)-$(NN); \
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
 		echo **********copying flml: backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
 		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
+		gmsh -3 -optimize_netgen -o step3d-$(NN)-periodic.msh ../src/step3d-$(NN)-periodic.geo; \
+		$(SCRIPTS)/gmsh2triangle step3d-$(NN)-periodic.msh; \
 		echo $(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		$(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
@@ -45,10 +47,19 @@ run:
 
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
-	@$(foreach NN,coarse , \
+	@$(foreach NN, med, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d.py .; \
 		./postprocessor_3d.py $(RE) $(JOB) $(NN); \
+		cd ..; \
+	)
+
+postprocess-les:
+	@echo **********Calling the LES velocity data extraction and plotting python script:
+	@$(foreach NN,coarse , \
+		cd $(RE)-$(JOB)-$(NN); \
+		ln -s ../postprocessor_3d_les.py .; \
+		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
 		cd ..; \
 	)
 

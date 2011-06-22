@@ -186,28 +186,30 @@ def meanvelo(filelist,xarray,yarray,zarray):
 
 #########################################################################
 
-def plot_length(Re,type,mesh,reattachment_length,av_length):
+def plot_length(Re,type,mesh,reattachment_length):
   ##### Plot time series of reattachment length using pylab(matplotlib)
+
+  av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
   avg = numpy.zeros([len(reattachment_length[:,1])])
   avg[:] = av_length
   Lemoinkim = numpy.zeros([len(reattachment_length[:,1])])
   Lemoinkim[:]=6.28
 
   plot1 = pylab.figure()
-  pylab.title("Time series of reattachment length: Re="+str(Re)+", "+str(type)+"-Re BCs, "+str(mesh)+" mesh")
+  pylab.title("Time series of reattachment length: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh")
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
   pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
-  pylab.plot(reattachment_length[:,1], avg, linestyle="dashed")
+  #pylab.plot(reattachment_length[:,1], avg, linestyle="dashed")
   pylab.plot(reattachment_length[:,1], Lemoinkim, linestyle="dashed")
-  pylab.legend(("length (step heights)","average length","Le-Moin-Kim DNS average"), loc="lower right")
+  pylab.legend(("length (step heights)","Le-Moin-Kim DNS average"), loc="lower right")
   pylab.savefig("../reatt_len_3D_"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
   return
 
 def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,zarray,time):
   ##### Plot velocity profiles at different points behind step, and at 3 times using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
-  pylab.suptitle("Evolution of U-velocity: Re="+str(Re)+", "+str(type)+"-Re BCs, "+str(mesh)+" mesh", fontsize=20)
+  pylab.suptitle("Evolution of U-velocity: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh", fontsize=20)
 
   size = 15
 
@@ -285,10 +287,8 @@ def main():
 
     ##### Call reattachment_length function
     reattachment_length = numpy.array(reatt_length(filelist, yarray))
-    av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
     numpy.save("reattachment_length_3D", reattachment_length)
-    print "\nTime-averaged reattachment length (in step heights): ", av_length
-    plot_length(Re,type,mesh,reattachment_length,av_length)
+    plot_length(Re,type,mesh,reattachment_length)
 
     ##### Call meanvelo function
     #profiles, time = meanvelo(filelist, xarray, yarray, zarray)
