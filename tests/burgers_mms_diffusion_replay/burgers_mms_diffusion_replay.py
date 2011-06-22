@@ -19,9 +19,7 @@ def get_convergence(statfileA, statfileB, field):
   ab_ratio_l2 = a_error_l2 / b_error_l2
   ab_ratio_inf = a_error_inf / b_error_inf
 
-  #ab_error = [log(ab_ratio_l1, 2), log(ab_ratio_l2, 2), log(ab_ratio_inf, 2)]
-  # Compute only the convergence using the max norm until ShallowWater.F90's output is fixed
-  ab_error = [1000, 1000, log(ab_ratio_inf, 2)]
+  ab_error = [log(ab_ratio_l1, 2), log(ab_ratio_l2, 2), log(ab_ratio_inf, 2)]
   return ab_error
 
 def test_convergence(statfiles, fields, tol):
@@ -36,7 +34,7 @@ def test_convergence(statfiles, fields, tol):
 
 def test_convergence_rates(tol):
   fields = ["Error"]
-  statfiles = ["mms_A_forward.stat", "mms_B_forward.stat", "mms_C_forward.stat", "mms_D_forward.stat", "mms_E_forward.stat"]
+  statfiles = ["mms_diffusion_adjoint_A_forward.stat", "mms_diffusion_adjoint_B_forward.stat", "mms_diffusion_adjoint_C_forward.stat", "mms_diffusion_adjoint_D_forward.stat", "mms_diffusion_adjoint_E_forward.stat"]
   res1 = test_convergence(statfiles, fields, tol)
   return res1
 
@@ -52,5 +50,5 @@ def print_convergence_rates():
   print ""
   print " =============== Time and space resolution increasing ================="
   fields = ["Error"]
-  statfiles = ["mms_A_forward.stat", "mms_B_forward.stat", "mms_C_forward.stat", "mms_D_forward.stat", "mms_E_forward.stat"]
+  statfiles = ["mms_diffusion_adjoint_A_forward.stat", "mms_diffusion_adjoint_B_forward.stat", "mms_diffusion_adjoint_C_forward.stat", "mms_diffusion_adjoint_D_forward.stat", "mms_diffusion_adjoint_E_forward.stat"]
   print_convergence(statfiles, fields)

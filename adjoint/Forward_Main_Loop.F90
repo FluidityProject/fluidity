@@ -155,6 +155,11 @@ module forward_main_loop
 
               if (has_path) then
                 sfield_soln%option_path = trim(path)
+                ! We need to populate the BC values:
+                call insert(state(1), sfield_soln, trim(sfield_soln%name))
+                call populate_boundary_conditions(state)
+                call set_boundary_conditions_values(state, shift_time=.false.)
+                sfield_soln = extract_scalar_field(state(1), trim(sfield_soln%name))
               end if
 
               select case(lhs%klass)
@@ -170,6 +175,10 @@ module forward_main_loop
                       call adj_chkierr(ierr)
                     end if
 
+                    sfield_rhs%bc => sfield_soln%bc
+                    call set_dirichlet_consistent(sfield_rhs)
+                    sfield_rhs%bc => null()
+
                     call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
                     call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
                   endif
@@ -180,8 +189,6 @@ module forward_main_loop
               end select
 
               call insert(state(1), sfield_soln, trim(sfield_soln%name))
-              call populate_boundary_conditions(state)
-              sfield_soln = extract_scalar_field(state(1), trim(sfield_soln%name))
 
               soln = field_to_adj_vector(sfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)

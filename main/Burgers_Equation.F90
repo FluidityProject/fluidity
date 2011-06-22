@@ -382,7 +382,7 @@
         call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state(1))
         
         call mangle_dirichlet_rows(lhs_matrix, u, keep_diag=.true., rhs=rhs)
-        call apply_dirichlet_conditions(lhs_matrix, rhs, u)
+        call set_inactive_rows(lhs_matrix, u)
 
         call set(old_iterated_velocity, iterated_velocity)
         call petsc_solve(iterated_velocity, lhs_matrix, rhs, &
