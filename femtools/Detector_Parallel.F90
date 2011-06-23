@@ -43,7 +43,8 @@ module detector_parallel
   private
 
   public :: distribute_detectors, exchange_detectors, register_detector_list, &
-            get_num_detector_lists, get_registered_detector_lists
+            get_num_detector_lists, get_registered_detector_lists, &
+            deallocate_detector_list_array
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
@@ -96,6 +97,15 @@ contains
 
     get_num_detector_lists=num_detector_lists
   end function get_num_detector_lists
+
+  subroutine deallocate_detector_list_array()
+
+    if (allocated(detector_list_array)) then 
+       deallocate(detector_list_array)
+       num_detector_lists = 0
+    end if
+
+  end subroutine deallocate_detector_list_array
 
   subroutine distribute_detectors(state, detector_list)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
