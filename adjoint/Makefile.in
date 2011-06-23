@@ -86,6 +86,7 @@ Shallow_Water_Controls.o:
 # Instructions for doing AD with tapenade
 reverse:
 	tapenade -b -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90 -ext PUSHPOPGeneralLib -extAD PUSHPOPADLib-fixinterface
+	echo "Don't forget to remove the zeroing of acb."
 
 forward:
 	tapenade -d -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90

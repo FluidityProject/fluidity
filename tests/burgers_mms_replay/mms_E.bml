@@ -40,13 +40,13 @@
   </io>
   <timestepping>
     <current_time>
-      <real_value rank="0">0.0</real_value>
+      <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
       <real_value rank="0">0.125</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">10.0</real_value>
+      <real_value rank="0">10</real_value>
     </finish_time>
   </timestepping>
   <material_phase name="Fluid">
@@ -65,10 +65,10 @@
           <iterative_method name="preonly"/>
           <preconditioner name="lu"/>
           <relative_error>
-            <real_value rank="0">1.0e-16</real_value>
+            <real_value rank="0">1e-16</real_value>
           </relative_error>
           <absolute_error>
-            <real_value rank="0">1.0e-12</real_value>
+            <real_value rank="0">1e-12</real_value>
           </absolute_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -100,7 +100,7 @@
           </type>
         </boundary_conditions>
         <viscosity>
-          <real_value rank="0">1.0</real_value>
+          <real_value rank="0">1</real_value>
         </viscosity>
         <stat/>
         <adjoint_storage>
@@ -190,8 +190,14 @@ J = dt * (int_u + int_u_prev) * 0.5
         </algorithm>
       </functional_dependencies>
     </functional>
+    <controls>
+      <control name="initial_condition">
+        <type field_name="Fluid::Velocity" name="initial_condition"/>
+      </control>
+    </controls>
     <debug>
       <replay_forward_run/>
+      <check_action_transposes/>
     </debug>
   </adjoint>
 </burgers_equation>

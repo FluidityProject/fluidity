@@ -39,7 +39,7 @@ CONTAINS
         CALL ELE_ADVECTION_ACTION_B(ele, ele_nodes, x, u, ub, c, ac, acb&
 &                             )
       END DO
-      acb = 0.0
+      !acb = 0.0
     END IF
   END SUBROUTINE ADVECTION_ACTION_B
   SUBROUTINE ADVECTION_ACTION(x, u, c, ac)

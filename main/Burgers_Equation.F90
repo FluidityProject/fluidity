@@ -56,6 +56,7 @@
     use mangle_options_tree
     use mangle_dirichlet_rows_module
     use burgers_assembly, only: assemble_advection_matrix
+    use burgers_adjoint_controls
 #ifdef HAVE_ADJOINT
     use burgers_adjoint_callbacks
     use libadjoint
@@ -65,6 +66,7 @@
     use adjoint_global_variables
     use adjoint_main_loop, only: compute_adjoint
     use forward_main_loop, only: register_functional_callbacks, calculate_functional_values, compute_forward
+    use adjoint_controls
 #include "libadjoint/adj_fortran.h"
 #endif
 
@@ -155,7 +157,9 @@
     end if
 #endif
     
+    timestep=0
     call populate_state(state)
+    call adjoint_load_controls(timestep, dt, state)
     call adjoint_register_initial_condition(state)
 
     call insert_time_in_state(state)
@@ -197,9 +201,8 @@
     ! Compute the diagnostics for the initial timestep
     call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
     call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+    call adjoint_write_controls(timestep, dt, state)
 
-
-    timestep=0
     timestep_loop: do 
       timestep=timestep+1
       ewrite(1,*) "Starting timestep, current_time: ", current_time
@@ -210,12 +213,14 @@
       ! evaluate prescribed fields at time = current_time+theta*dt
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
       call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+theta*dt)
+      call adjoint_load_controls(timestep, dt, state)
 
       call execute_timestep(state, matrices, timestep, dt, change=change)
 
       call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
       call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
       call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+      call adjoint_write_controls(timestep, dt, state)
 
       call advance_current_time(current_time, dt)
       call insert_time_in_state(state)
@@ -285,7 +290,7 @@
 
       dump_no = dump_no - 1
 
-      call compute_adjoint(state, dump_no)
+      call compute_adjoint(state, dump_no, burgers_adjoint_timestep_callback, c_loc(matrices))
 
       call deallocate_transform_cache
       call deallocate_reserve_state
@@ -657,8 +662,13 @@
       type(scalar_field), pointer :: u
       type(adj_vector) :: mesh_vec
       type(adj_storage_data) :: storage
+      logical :: check_transposes
+
+      check_transposes = have_option("/adjoint/debug/check_action_transposes")
 
       ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
+      call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(I, check_transposes, 100, 1.0d-10)
       call adj_chkierr(ierr)
 
       ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=.false., variable=u0)
@@ -712,6 +722,9 @@
       character(len=OPTION_PATH_LEN) :: buf, functional_name
       integer :: iteration, niterations_prev
       real :: theta
+      logical :: check_transposes
+
+      check_transposes = have_option("/adjoint/debug/check_action_transposes")
 
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
 
@@ -732,21 +745,35 @@
           ! Set up adj_blocks
           ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u /), context=c_loc(matrices), coefficient=theta, nblock=burgers_advection_block)
           call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_hermitian(burgers_advection_block, check_transposes, 100, 1.0d-10)
+          call adj_chkierr(ierr)
+
           ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u /), context=c_loc(matrices), coefficient=1.0-theta, nblock=timestepping_advection_block)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_hermitian(timestepping_advection_block, check_transposes, 100, 1.0d-10)
           call adj_chkierr(ierr)
         else 
           ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=.false., variable=iter_u) 
           call adj_chkierr(ierr)
-          ! Set up adj_blocks
+
           ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), coefficient=theta, nblock=burgers_advection_block)
           call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_hermitian(burgers_advection_block, check_transposes, 100, 1.0d-10)
+          call adj_chkierr(ierr)
+
           ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), coefficient=1.0-theta, nblock=timestepping_advection_block)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_hermitian(timestepping_advection_block, check_transposes, 100, 1.0d-10)
           call adj_chkierr(ierr)
         end if
 
         ierr = adj_create_block("TimesteppingOperator", timestepping_advection_block, context=c_loc(matrices), block=timestepping_block)
         call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(timestepping_block, check_transposes, 100, 1.0d-10)
+        call adj_chkierr(ierr)
         ierr = adj_create_block("BurgersOperator", burgers_advection_block, context=c_loc(matrices), block=burgers_block)
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(burgers_block, check_transposes, 100, 1.0d-10)
         call adj_chkierr(ierr)
 
         ! Now we can register our lovely equation.

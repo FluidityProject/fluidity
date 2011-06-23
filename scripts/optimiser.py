@@ -487,7 +487,7 @@ def optimisation_loop(opt_options, model_options):
     print "Functional value J(m): ", res[1]
     print "Control state m: ", res[0]
   elif algo == 'L-BFGS-B': 
-    opt_args = dict(func=J, x0=m_serial, fprime=dJdm, args=(m_shape, ) )
+    opt_args = dict(func=J, x0=m_serial, fprime=dJdm, args=(m_shape,))
     if have_bound:
       opt_args['bounds'] = m_bounds_serial
     if superspud(opt_options, "libspud.have_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/tolerance')"):

@@ -42,6 +42,7 @@ module burgers_adjoint_callbacks
     use mangle_dirichlet_rows_module
     use populate_state_module
     use burgers_assembly
+    use global_parameters, only: OPTION_PATH_LEN
     implicit none
 
     private
@@ -374,6 +375,7 @@ module burgers_adjoint_callbacks
       type(scalar_field) :: u_left, u_right
       type(scalar_field) :: contraction_field, udot, Acbar
       type(scalar_field) :: output_field, tmp_field, u
+      character(len=OPTION_PATH_LEN) :: path
 
       real :: itheta
 
@@ -385,18 +387,25 @@ module burgers_adjoint_callbacks
       call allocate(output_field, contraction_field%mesh, "NonlinearDerivativeOutput")
       call zero(output_field)
 
+      if (have_option("/material_phase::Fluid/scalar_field::Velocity")) then
+        path = "/material_phase::Fluid/scalar_field::Velocity"
+      else
+        path = "/material_phase::Fluid/scalar_field::Velocity"
+        path = adjoint_field_path(path)
+      end if
+
       if (hermitian == ADJ_FALSE) then
         call field_from_adj_vector(input, udot)
-        call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/relaxation", itheta)
-        if (have_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/remove_advection_term")) then
+        call get_option(trim(path) // "/prognostic/temporal_discretisation/relaxation", itheta)
+        if (have_option(trim(path) // "/prognostic/remove_advection_term")) then
           output = field_to_adj_vector(output_field)
           call deallocate(output_field)
           return
         end if
       else
-        call get_option("/material_phase::Fluid/scalar_field::AdjointVelocity/prognostic/temporal_discretisation/relaxation", itheta)
+        call get_option(trim(path) // "/prognostic/temporal_discretisation/relaxation", itheta)
         call field_from_adj_vector(input, Acbar)
-        if (have_option("/material_phase::Fluid/scalar_field::AdjointVelocity/prognostic/remove_advection_term")) then
+        if (have_option(trim(path) // "/prognostic/remove_advection_term")) then
           output = field_to_adj_vector(output_field)
           call deallocate(output_field)
           return
