@@ -722,9 +722,10 @@
       character(len=OPTION_PATH_LEN) :: buf, functional_name
       integer :: iteration, niterations_prev
       real :: theta
-      logical :: check_transposes
+      logical :: check_transposes, check_derivatives
 
       check_transposes = have_option("/adjoint/debug/check_action_transposes")
+      check_derivatives = have_option("/adjoint/debug/check_action_derivative")
 
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
 
@@ -747,10 +748,14 @@
           call adj_chkierr(ierr)
           ierr = adj_nonlinear_block_set_test_hermitian(burgers_advection_block, check_transposes, 100, 1.0d-10)
           call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_derivative(burgers_advection_block, check_derivatives, 5)
+          call adj_chkierr(ierr)
 
           ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u /), context=c_loc(matrices), coefficient=1.0-theta, nblock=timestepping_advection_block)
           call adj_chkierr(ierr)
           ierr = adj_nonlinear_block_set_test_hermitian(timestepping_advection_block, check_transposes, 100, 1.0d-10)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_derivative(timestepping_advection_block, check_derivatives, 5)
           call adj_chkierr(ierr)
         else 
           ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=.false., variable=iter_u) 
@@ -760,10 +765,14 @@
           call adj_chkierr(ierr)
           ierr = adj_nonlinear_block_set_test_hermitian(burgers_advection_block, check_transposes, 100, 1.0d-10)
           call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_derivative(burgers_advection_block, check_derivatives, 5)
+          call adj_chkierr(ierr)
 
           ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), coefficient=1.0-theta, nblock=timestepping_advection_block)
           call adj_chkierr(ierr)
           ierr = adj_nonlinear_block_set_test_hermitian(timestepping_advection_block, check_transposes, 100, 1.0d-10)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_derivative(timestepping_advection_block, check_derivatives, 5)
           call adj_chkierr(ierr)
         end if
 
