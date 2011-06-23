@@ -55,6 +55,7 @@
     use adjoint_functionals
     use mangle_options_tree
     use mangle_dirichlet_rows_module
+    use burgers_assembly, only: assemble_advection_matrix
 #ifdef HAVE_ADJOINT
     use burgers_adjoint_callbacks
     use libadjoint
@@ -426,49 +427,6 @@
       call adjoint_register_timestep(timestep, dt, nit-1, states)
 
     end subroutine execute_timestep
-
-    subroutine assemble_advection_matrix(advection_matrix, x, u_left, u_right)
-      type(csr_matrix), intent(inout) :: advection_matrix
-      type(vector_field), intent(in) :: x
-      type(scalar_field), intent(in), target :: u_left, u_right
-
-      type(scalar_field) :: nu
-      type(mesh_type), pointer :: mesh
-      integer :: ele
-      real :: itheta
-
-      call get_option(trim(u_left%option_path) // "/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
-      mesh => u_left%mesh
-      call allocate(nu, mesh, "NonlinearVelocity")
-      call set(nu, u_left)
-      call scale(nu, (1.0 - itheta))
-      call addto(nu, u_right, scale=itheta)
-      nu%option_path = u_left%option_path
-
-      call zero(advection_matrix)
-      if (.not. have_option(trim(nu%option_path) // "/prognostic/remove_advection_term")) then
-        do ele=1,ele_count(nu)
-          call assemble_advection_matrix_ele(advection_matrix, x, nu, ele)
-        end do
-      end if
-
-      call deallocate(nu)
-    end subroutine assemble_advection_matrix
-
-    subroutine assemble_advection_matrix_ele(advection_matrix, x, nu, ele)
-      type(csr_matrix), intent(inout) :: advection_matrix
-      type(vector_field), intent(in) :: x
-      type(scalar_field), intent(in) :: nu
-      integer, intent(in) :: ele
-
-      real, dimension(ele_loc(nu, ele), ele_loc(nu, ele)) :: little_advection_matrix
-      real, dimension(ele_ngi(nu, ele)) :: detwei
-      real, dimension(ele_loc(nu, ele), ele_ngi(nu, ele), x%dim) :: du_t
-
-      call transform_to_physical(x, ele, ele_shape(nu, ele), detwei=detwei, dshape=du_t)
-      little_advection_matrix = shape_vector_dot_dshape(ele_shape(nu, ele), ele_val_at_quad(nu, ele), du_t, detwei)
-      call addto(advection_matrix, ele_nodes(nu, ele), ele_nodes(nu, ele), little_advection_matrix)
-    end subroutine assemble_advection_matrix_ele
 
     subroutine assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
       type(csr_matrix), intent(inout) :: lhs_matrix

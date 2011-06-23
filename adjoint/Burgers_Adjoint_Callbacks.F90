@@ -41,6 +41,7 @@ module burgers_adjoint_callbacks
     use mangle_options_tree, only: adjoint_field_path
     use mangle_dirichlet_rows_module
     use populate_state_module
+    use burgers_assembly
     implicit none
 
     private
@@ -121,9 +122,11 @@ module burgers_adjoint_callbacks
       type(scalar_field) :: empty_velocity_field, previous_u, iter_u
       type(scalar_field), dimension(2) :: deps
       type(csr_matrix), pointer :: mass_mat, diffusion_mat
-      type(csr_matrix) :: burgers_mat, burgers_mat_T
+      type(csr_matrix) :: burgers_mat, burgers_mat_T, advection_mat
+      type(vector_field), pointer :: positions
       real :: dt, theta
       integer :: i
+      character(len=FIELD_NAME_LEN) :: path
 
       if (coefficient /= 1.0) then
         FLAbort("The coefficient in burgers_operator_assembly_callback has to be 1.0")
@@ -147,16 +150,18 @@ module burgers_adjoint_callbacks
       end if
 
       if (hermitian == ADJ_TRUE) then
-        call get_option(trim(adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta")), theta)
+        path = adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity")
       else
-        call get_option(trim(("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta")), theta)
+        path = "/material_phase::Fluid/scalar_field::Velocity/"
       end if
+      call get_option(trim(path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
       call get_option("/timestepping/timestep", dt)
 
       call c_f_pointer(context, matrices)
       u_mesh => extract_mesh(matrices, "VelocityMesh")
       diffusion_mat => extract_csr_matrix(matrices, "DiffusionMatrix")
       mass_mat => extract_csr_matrix(matrices, "MassMatrix")
+      positions => extract_vector_field(matrices, "Coordinate")
 
       call allocate(empty_velocity_field, u_mesh, trim("AdjointPressureRhs"))
       call zero(empty_velocity_field)
@@ -167,10 +172,18 @@ module burgers_adjoint_callbacks
       call allocate(burgers_mat, mass_mat%sparsity, name="BurgersAdjointOutput")
       call zero(burgers_mat)
 
-      if (.not. have_option(trim(adjoint_field_path('/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/remove_time_term')))) then
+      if (.not. have_option(trim(path) // '/prognostic/temporal_discretisation/remove_time_term')) then
         call addto(burgers_mat, mass_mat, 1.0/abs(dt))
       end if
-      !call addto(burgers_mat, advection_mat, theta)
+
+      if (.not. have_option(trim(path) // '/prognostic/remove_advection_term')) then
+        call allocate(advection_mat, mass_mat%sparsity, name="BurgersCallbackAdvectionMatrix")
+        call zero(advection_mat)
+        call assemble_advection_matrix(advection_mat, positions, previous_u, iter_u)
+        call addto(burgers_mat, advection_mat, theta)
+        call deallocate(advection_mat)
+      end if
+
       call addto(burgers_mat, diffusion_mat, theta)
 
       ! Ensure that the input velocity has indeed dirichlet bc attached
@@ -239,6 +252,9 @@ module burgers_adjoint_callbacks
       type(scalar_field) :: u_input, previous_u, iter_u
       type(scalar_field) :: u_output, tmp_u
       real :: theta, dt
+      character(len=FIELD_NAME_LEN) :: path
+      type(csr_matrix) :: advection_mat
+      type(vector_field), pointer :: positions
 
       call c_f_pointer(context, matrices)
       
@@ -250,6 +266,7 @@ module burgers_adjoint_callbacks
       u_mesh => extract_mesh(matrices, "VelocityMesh")
       diffusion_mat => extract_csr_matrix(matrices, "DiffusionMatrix")
       mass_mat => extract_csr_matrix(matrices, "MassMatrix")
+      positions => extract_vector_field(matrices, "Coordinate")
 
       if (nvar==2) then
         if (variables(1)%timestep==variables(2)%timestep-1) then
@@ -282,10 +299,21 @@ module burgers_adjoint_callbacks
       call zero(tmp_u)
 
       if (hermitian==ADJ_FALSE) then
-        if (.not. have_option(trim(adjoint_field_path('/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/remove_time_term')))) then
+        path = "/material_phase::Fluid/scalar_field::Velocity"
+        if (.not. have_option(trim(path) // '/prognostic/temporal_discretisation/remove_time_term')) then
           call mult(tmp_u, mass_mat, u_input)
           call scale(tmp_u, 1.0/dt)
           call addto(u_output, tmp_u)
+        end if
+
+        if (.not. have_option(trim(path) // '/prognostic/remove_advection_term')) then
+          call allocate(advection_mat, mass_mat%sparsity, name="BurgersCallbackAdvectionMatrix")
+          call zero(advection_mat)
+          call assemble_advection_matrix(advection_mat, positions, previous_u, iter_u)
+          call mult(tmp_u, advection_mat, u_input)
+          call scale(tmp_u, theta - 1.0)
+          call addto(u_output, tmp_u)
+          call deallocate(advection_mat)
         end if
 
         call mult(tmp_u, diffusion_mat, u_input)
@@ -294,10 +322,22 @@ module burgers_adjoint_callbacks
 
         call scale(u_output, -1.0)
       else
-        if (.not. have_option(trim(adjoint_field_path('/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/remove_time_term')))) then
+        path = adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity")
+
+        if (.not. have_option(trim(path) // '/prognostic/temporal_discretisation/remove_time_term')) then
           call mult_T(tmp_u, mass_mat, u_input)
           call scale(tmp_u, 1.0/dt)
           call addto(u_output, tmp_u)
+        end if
+
+        if (.not. have_option(trim(path) // '/prognostic/remove_advection_term')) then
+          call allocate(advection_mat, mass_mat%sparsity, name="BurgersCallbackAdvectionMatrix")
+          call zero(advection_mat)
+          call assemble_advection_matrix(advection_mat, positions, previous_u, iter_u)
+          call mult_T(tmp_u, advection_mat, u_input)
+          call scale(tmp_u, theta - 1.0)
+          call addto(u_output, tmp_u)
+          call deallocate(advection_mat)
         end if
 
         call mult_T(tmp_u, diffusion_mat, u_input)
