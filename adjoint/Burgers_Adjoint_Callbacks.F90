@@ -68,6 +68,9 @@ module burgers_adjoint_callbacks
       ierr = adj_register_operator_callback(adjointer, ADJ_NBLOCK_DERIVATIVE_ACTION_CB, "AdvectionOperator", c_funloc(advection_derivative_action_proc))
       call adj_chkierr(ierr)
 
+      ierr = adj_register_operator_callback(adjointer, ADJ_NBLOCK_ACTION_CB, "AdvectionOperator", c_funloc(advection_action_proc))
+      call adj_chkierr(ierr)
+
       ierr = adj_register_forward_source_callback(adjointer, c_funloc(burgers_equation_forward_source))
       call adj_chkierr(ierr)
     end subroutine register_burgers_operator_callbacks
@@ -535,5 +538,65 @@ module burgers_adjoint_callbacks
       end if
 
     end subroutine burgers_equation_forward_source
+
+    subroutine advection_action_proc(nvar, variables, dependencies, input, context, output) bind(c)
+      use iso_c_binding
+      use libadjoint_data_structures
+      integer(kind=c_int), intent(in), value :: nvar
+      type(adj_variable), dimension(nvar), intent(in) :: variables
+      type(adj_vector), dimension(nvar), intent(in) :: dependencies
+      type(adj_vector), intent(in), value :: input
+      type(c_ptr), intent(in), value :: context
+      type(adj_vector), intent(out) :: output
+
+      type(scalar_field) :: u_output
+      type(scalar_field) :: previous_u, iter_u, u_input
+      type(csr_matrix) :: advection_mat
+      type(csr_matrix), pointer :: diffusion_mat
+      type(vector_field), pointer :: positions
+      type(mesh_type), pointer :: u_mesh
+      type(state_type), pointer :: matrices
+
+      if (nvar==2) then
+        if (variables(1)%timestep==variables(2)%timestep-1) then
+          call field_from_adj_vector(dependencies(1), previous_u)
+          call field_from_adj_vector(dependencies(2), iter_u)
+        else if(variables(2)%timestep==variables(1)%timestep-1) then
+          call field_from_adj_vector(dependencies(2), previous_u)
+          call field_from_adj_vector(dependencies(1), iter_u)
+        else
+          FLAbort("Dependencies have no contiguous timesteps.")
+        end if
+      else if (nvar==1) then
+        call field_from_adj_vector(dependencies(1), previous_u)
+        call field_from_adj_vector(dependencies(1), iter_u)
+      else
+        FLAbort("Unknown number of dependencies in burgers_operator_assembly_callback")
+      end if
+
+      call field_from_adj_vector(input, u_input)
+
+      call c_f_pointer(context, matrices)
+      u_mesh => extract_mesh(matrices, "VelocityMesh")
+      diffusion_mat => extract_csr_matrix(matrices, "DiffusionMatrix")
+      positions => extract_vector_field(matrices, "Coordinate")
+
+      call allocate(advection_mat, diffusion_mat%sparsity, name="AdvectionActionMatrix")
+      call zero(advection_mat)
+      call assemble_advection_matrix(advection_mat, positions, previous_u, iter_u)
+
+      if (get_boundary_condition_count(previous_u) /= 1) then
+        FLAbort("Need to supply boundary conditions on previous_u")
+      end if
+
+      call mangle_dirichlet_rows(advection_mat, previous_u, keep_diag=.true.)
+
+      call allocate(u_output, u_mesh, "AdvectionActionOutput")
+      call mult(u_output, advection_mat, u_input)
+      call deallocate(advection_mat)
+
+      output = field_to_adj_vector(u_output)
+      call deallocate(u_output)
+    end subroutine advection_action_proc
 #endif
 end module burgers_adjoint_callbacks
