@@ -385,8 +385,10 @@
         call set_inactive_rows(lhs_matrix, u)
 
         call set(old_iterated_velocity, iterated_velocity)
+
         call petsc_solve(iterated_velocity, lhs_matrix, rhs, &
                option_path="/material_phase::Fluid/scalar_field::Velocity/")
+        call compute_inactive_rows(iterated_velocity, lhs_matrix, rhs)
 
         call set(iterated_velocity_difference, iterated_velocity)
         call addto(iterated_velocity_difference, old_iterated_velocity, scale=-1.0)
