@@ -240,6 +240,12 @@ This option creates an html file for both the forward and adjoint system.</a:doc
               <empty/>
             </element>
           </optional>
+          <optional>
+            <element name="check_action_derivative">
+              <a:documentation>Check all supplied derivative callbacks of nonlinear operators.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </optional>
     </element>
