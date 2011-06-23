@@ -41,8 +41,9 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/sparse_tools.mod ../include/fields.mod ../include/timers.mod \
    ../include/memory_diagnostics.mod ../include/adjacency_lists.mod \
    ../include/reduced_model_runtime.mod ../include/reserve_state_module.mod \
-   ../include/diagnostic_variables.mod ../include/advection_diffusion_cg.mod \
-   ../include/ale_module.mod ../include/boundary_conditions.mod \
+   ../include/detector_parallel.mod ../include/diagnostic_variables.mod \
+   ../include/advection_diffusion_cg.mod ../include/ale_module.mod \
+   ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod \
    ../include/adapt_state_prescribed_module.mod ../include/meshdiagnostics.mod \
    ../include/porous_media.mod ../include/gls.mod ../include/elements.mod \
