@@ -50,6 +50,7 @@ module parallel_fields
     & surface_element_owned, nowned_nodes
   ! Apparently ifort has a problem with the generic name node_owned
   public :: node_owned_mesh, zero_non_owned
+  public :: universal_number, universal_number_field
   
   interface node_owned
     module procedure node_owned_mesh, node_owned_scalar, node_owned_vector, &
@@ -90,8 +91,63 @@ module parallel_fields
       & nowned_nodes_vector, nowned_nodes_tensor
   end interface nowned_nodes
 
+  interface universal_number
+     module procedure mesh_universal_number, mesh_universal_number_vector
+  end interface universal_number
+
 contains
+
+  function universal_number_field(mesh) result (unn)
+    !!< Return a field containing the universal numbering of mesh.
+    type(mesh_type), intent(inout) :: mesh
+
+    type(scalar_field) :: unn
+    integer :: node
+
+    call allocate(unn, mesh, trim(mesh%name)//"UniversalNumbering")
+    
+    do node=1,node_count(mesh)
+       call set(unn, node, real(universal_number(mesh, node)))
+    end do
+
+  end function universal_number_field
   
+  function mesh_universal_number(mesh, node) result (unn)
+    !!< Return the universal node number of node in mesh.
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: node
+    
+    integer :: unn
+
+    integer :: nhalos
+
+    nhalos=halo_count(mesh)
+    if (nhalos>0) then
+       unn=halo_universal_number(mesh%halos(nhalos), node)
+    else
+       unn=node
+    end if
+
+  end function mesh_universal_number
+
+  function mesh_universal_number_vector(mesh, node) result (unn)
+    !!< Return the universal node number of node in mesh.
+    type(mesh_type), intent(in) :: mesh
+    integer, dimension(:), intent(in) :: node
+    
+    integer, dimension(size(node)) :: unn
+
+    integer :: nhalos
+
+    nhalos=halo_count(mesh)
+    if (nhalos>0) then
+       unn=halo_universal_number(mesh%halos(nhalos), node)
+    else
+       unn=node
+    end if
+
+  end function mesh_universal_number_vector
+
   function halo_communicator_mesh(mesh) result(communicator)
     !!< Return the halo communicator for this mesh. Returns the halo
     !!< communicator off of the max level node halo.
@@ -192,7 +248,6 @@ contains
 
     type(vector_field), intent(in) :: v_field
     integer, intent(in) :: node_number
-
     logical :: owned
 
     owned = node_owned(v_field%mesh, node_number)

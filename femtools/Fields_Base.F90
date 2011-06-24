@@ -1808,13 +1808,9 @@ contains
     type(mesh_type),intent(in) :: mesh
     integer, intent(in) :: face_number
     
-    ! This just reduces notational clutter.
-    type(mesh_faces), pointer :: faces
-
-    faces=>mesh%faces
-
-    face_nodes=>faces%face_lno(faces%shape%ndof*(face_number-1)+1:&
-         &faces%shape%ndof*face_number)
+    face_nodes=>mesh%shape%facet2dofs(&
+         mesh%faces%local_face_number(face_number)&
+         )%dofs
   
   end function face_local_nodes_mesh
     

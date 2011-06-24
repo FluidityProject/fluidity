@@ -416,12 +416,6 @@ contains
     if (.not.associated(mesh%faces)) return
 
     call deallocate(mesh%faces%face_list)
-
-#ifdef HAVE_MEMORY_STATS
-    call register_deallocation("mesh_type", "integer", &
-         size(mesh%faces%face_lno), name=mesh%name)
-#endif
-    deallocate(mesh%faces%face_lno)
     
 #ifdef HAVE_MEMORY_STATS
     call register_deallocation("mesh_type", "integer", &
@@ -429,6 +423,12 @@ contains
          name=mesh%name)
 #endif
     deallocate(mesh%faces%face_element_list)
+#ifdef HAVE_MEMORY_STATS
+    call register_deallocation("mesh_type", "integer", &
+         size(mesh%faces%local_face_number), &
+         name=mesh%name)
+#endif
+    deallocate(mesh%faces%local_face_number)
 
     call deallocate(mesh%faces%shape%quadrature)
     call deallocate(mesh%faces%shape)
@@ -1198,9 +1198,6 @@ contains
       
     end if ! if (.not. present(model)) then ... else ...
 
-    ! at this point mesh%faces%face_list and mesh%faces%face_element_list are 
-    ! ready (either newly computed or copied from model)
-    ! now we only have to work out mesh%faces%face_lno
 
     element => ele_shape(mesh, 1)
     if (present(sngi)) then
@@ -1218,81 +1215,13 @@ contains
     allocate(mesh%faces%shape)
     mesh%faces%shape = make_element_shape(vertices=face_vertices(element), &
          & dim=mesh_dim(mesh)-1, degree=element%degree, quad=quad_face)
-
-    face_count=entries(mesh%faces%face_list)
-    snloc=mesh%faces%shape%ndof
-    allocate(mesh%faces%face_lno( face_count*snloc ))
-#ifdef HAVE_MEMORY_STATS
-    call register_allocation("mesh_type", "integer", &
-         size(mesh%faces%face_lno), name=mesh%name)
-#endif
-
-    vertices=local_vertices(lmodel%shape%numbering)    
-
-    ! now fill in face_lno
-    eleloop: do ele=1, size(mesh%faces%face_list,1)
-
-       faces => row_ival_ptr(mesh%faces%face_list, ele)
-       neigh => row_m_ptr(mesh%faces%face_list, ele)
-       model_ele_glno => ele_nodes(lmodel, ele)
-
-       faceloop: do j=1, size(faces)
-          if (ele<neigh(j)) then
-             ! interior face between ele and neigh(j)
-             ! ele<neigh(j) to ensure each pair {ele, neigh(j)} is handled once
-
-             model_ele_glno2 => ele_nodes(lmodel, neigh(j))
-             p=0
-             ! Look for common boundaries by matching common vertices
-             ! Note that we have to use the model mesh here
-             do m=1,size(vertices)
-                do n=1,size(vertices)
-                   if (model_ele_glno(vertices(m))==model_ele_glno2(vertices(n))) then
-                      p=p+1
-                      ele_boundary(p)=m
-                      ele_boundary2(p)=n
-                   end if
-                end do
-             end do
-
-             ! Check that we really have found two boundaries.
-             ASSERT(p==lmodel%faces%shape%cell%entity_counts(0))
-             ! (this might break for the case where elements share more than one
-             ! face, but in that case the next few lines are wrong as well)
-
-             mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  boundary_local_num(ele_boundary(1:p), mesh%shape%numbering)
-
-             face2=ival(mesh%faces%face_list, neigh(j), ele)
-
-             mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
-                  boundary_local_num(ele_boundary2(1:p), mesh%shape%numbering)
-
-          else if (neigh(j)<0) then
-
-             ! boundary face:
-   
-             ! Interim hack until global numbering honours the new convention
-             element=>ele_shape(mesh,ele)
-             if (element%dim==1) then
-                mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                     & element%facet2dofs(mod(j,2)+1)%dofs                
-             else
-                mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                     & element%facet2dofs(j)%dofs
-             end if
-             
-          end if
-
-       end do faceloop
-    end do eleloop
     
     if (present(periodic_face_map)) then  
-      call fix_periodic_face_orientation(model, mesh, periodic_face_map)
+       !call fix_periodic_face_orientation(model, mesh, periodic_face_map)
     else if (present(model)) then
       if (model%periodic .and. .not. mesh%periodic) then
         nullify(mesh%faces%surface_node_list)
-        call fix_periodic_face_orientation(mesh, model, lperiodic_face_map)
+        !call fix_periodic_face_orientation(mesh, model, lperiodic_face_map)
         call deallocate(lperiodic_face_map)
       end if
     end if
@@ -1359,6 +1288,11 @@ contains
     call register_allocation("mesh_type", "integer", no_faces, &
          trim(mesh%name)//" face_element_list")
 #endif
+    allocate(mesh%faces%local_face_number(no_faces))
+#ifdef HAVE_MEMORY_STATS
+    call register_allocation("mesh_type", "integer", no_faces, &
+         trim(mesh%name)//" local_face_number")
+#endif
 
     mesh%faces%has_internal_boundaries = present(element_owner)
     
@@ -1399,11 +1333,11 @@ contains
 
         ! find the matching boundary of this element
         do j=1, mesh%shape%numbering%boundaries
-          if (neigh(j)<=0 .or. internal_face) then
-            if (SetContains(snodes, mesh%ndglno( (ele-1)*nloc+ &
-                                  boundary_numbering(mesh%shape%numbering, j) &
-                                            ))) exit
-          end if
+           if (neigh(j)<=0 .or. internal_face) then
+              if (SetContains(snodes, mesh%ndglno( (ele-1)*nloc+ &
+                   boundary_numbering(mesh%shape%numbering, j) &
+                   ))) exit
+           end if
         end do
           
         if (j>mesh%shape%numbering%boundaries) then
@@ -1505,6 +1439,7 @@ contains
             neigh(j)=-j ! negative number indicates exterior boundary
             
           end if
+          mesh%faces%local_face_number(faces(j))=j
        end do
        
        ! Record the element number of each face.
@@ -1655,65 +1590,65 @@ contains
      end do
 
   end subroutine add_faces_face_list_non_periodic_from_periodic_model
-    
-  subroutine fix_periodic_face_orientation(nonperiodic, periodic, periodic_face_map)
-    !!< Fixes, i.e. overwrites the face local node numbering of non-periodic nonperiodic
-    !!< in periodic faces to make it consistent with the periodic 'mesh'
-    !!< Assumes the shape functions of elements and faces in mesh and nonperiodic are the same!!
-    type(mesh_type), intent(in):: nonperiodic
-    type(mesh_type), intent(in):: periodic
-    type(integer_hash_table), intent(in):: periodic_face_map
-    
-    type(mesh_faces), pointer:: nonperiodic_faces
-    integer:: i, face1, face2
-    
-    ewrite(1,*) "Inside fix_periodic_face_orientation"
-
-    if (.not. periodic%faces%shape==nonperiodic%faces%shape) then
-      ewrite(-1,*) "When deriving the faces structure of a periodic mesh from a non-periodic mesh"
-      ewrite(-1,*) "Its shape functions have to be the same"
-      FLAbort("Different shape functions in non-periodic nonperiodic mesh")
-    end if
-    
-    do i=1, key_count(periodic_face_map)
-       call fetch_pair(periodic_face_map, i, face1, face2)
-       call fix_periodic_face_orientation_face(face1)
-       call fix_periodic_face_orientation_face(face2)
-    end do
-
-    ! when deriving a non-periodic mesh from a periodic model,
-    ! we don't have the surface mesh yet, so no need to fix it:
-    if (.not. associated(nonperiodic%faces%surface_node_list)) return
-    
-    nonperiodic_faces => nonperiodic%faces
-    call deallocate(nonperiodic_faces%surface_mesh)
-#ifdef HAVE_MEMORY_STATS
-    call register_deallocation("mesh_type", "integer", &
-         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
-#endif
-    deallocate(nonperiodic_faces%surface_node_list)
-    call create_surface_mesh(nonperiodic_faces%surface_mesh, &
-       nonperiodic_faces%surface_node_list, nonperiodic, name='Surface'//trim(nonperiodic%name))
-#ifdef HAVE_MEMORY_STATS
-    call register_allocation("mesh_type", "integer", &
-         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
-#endif
-      
-    contains
-    
-    subroutine fix_periodic_face_orientation_face(face)
-    integer, intent(in):: face
-    
-      integer, dimension(:), pointer:: mesh_face_local_nodes, nonperiodic_face_local_nodes
-      
-      mesh_face_local_nodes => face_local_nodes(periodic, face)
-      nonperiodic_face_local_nodes => face_local_nodes(nonperiodic, face)
-      
-      nonperiodic_face_local_nodes=mesh_face_local_nodes
-      
-    end subroutine fix_periodic_face_orientation_face
-    
-  end subroutine fix_periodic_face_orientation
+  
+!!$  subroutine fix_periodic_face_orientation(nonperiodic, periodic, periodic_face_map)
+!!$    !!< Fixes, i.e. overwrites the face local node numbering of non-periodic nonperiodic
+!!$    !!< in periodic faces to make it consistent with the periodic 'mesh'
+!!$    !!< Assumes the shape functions of elements and faces in mesh and nonperiodic are the same!!
+!!$    type(mesh_type), intent(in):: nonperiodic
+!!$    type(mesh_type), intent(in):: periodic
+!!$    type(integer_hash_table), intent(in):: periodic_face_map
+!!$    
+!!$    type(mesh_faces), pointer:: nonperiodic_faces
+!!$    integer:: i, face1, face2
+!!$    
+!!$    ewrite(1,*) "Inside fix_periodic_face_orientation"
+!!$
+!!$    if (.not. periodic%faces%shape==nonperiodic%faces%shape) then
+!!$      ewrite(-1,*) "When deriving the faces structure of a periodic mesh from a non-periodic mesh"
+!!$      ewrite(-1,*) "Its shape functions have to be the same"
+!!$      FLAbort("Different shape functions in non-periodic nonperiodic mesh")
+!!$    end if
+!!$    
+!!$    do i=1, key_count(periodic_face_map)
+!!$       call fetch_pair(periodic_face_map, i, face1, face2)
+!!$       call fix_periodic_face_orientation_face(face1)
+!!$       call fix_periodic_face_orientation_face(face2)
+!!$    end do
+!!$
+!!$    ! when deriving a non-periodic mesh from a periodic model,
+!!$    ! we don't have the surface mesh yet, so no need to fix it:
+!!$    if (.not. associated(nonperiodic%faces%surface_node_list)) return
+!!$    
+!!$    nonperiodic_faces => nonperiodic%faces
+!!$    call deallocate(nonperiodic_faces%surface_mesh)
+!!$#ifdef HAVE_MEMORY_STATS
+!!$    call register_deallocation("mesh_type", "integer", &
+!!$         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
+!!$#endif
+!!$    deallocate(nonperiodic_faces%surface_node_list)
+!!$    call create_surface_mesh(nonperiodic_faces%surface_mesh, &
+!!$       nonperiodic_faces%surface_node_list, nonperiodic, name='Surface'//trim(nonperiodic%name))
+!!$#ifdef HAVE_MEMORY_STATS
+!!$    call register_allocation("mesh_type", "integer", &
+!!$         size(nonperiodic_faces%surface_node_list), name='Surface'//trim(nonperiodic%name))
+!!$#endif
+!!$      
+!!$    contains
+!!$    
+!!$    subroutine fix_periodic_face_orientation_face(face)
+!!$    integer, intent(in):: face
+!!$    
+!!$      integer, dimension(:), pointer:: mesh_face_local_nodes, nonperiodic_face_local_nodes
+!!$      
+!!$      mesh_face_local_nodes => face_local_nodes(periodic, face)
+!!$      nonperiodic_face_local_nodes => face_local_nodes(nonperiodic, face)
+!!$      
+!!$      nonperiodic_face_local_nodes=mesh_face_local_nodes
+!!$      
+!!$    end subroutine fix_periodic_face_orientation_face
+!!$    
+!!$  end subroutine fix_periodic_face_orientation
 
   subroutine create_surface_mesh(surface_mesh, surface_nodes, &
     mesh, surface_elements, name)

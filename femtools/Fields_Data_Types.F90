@@ -101,8 +101,6 @@ module fields_data_types
      type(element_type), pointer :: shape
      !! Face_list(i,j) is the face in element i bordering j.
      type(csr_matrix) :: face_list
-     !! The local number of the nodes in a given face.
-     integer, dimension(:), pointer :: face_lno
      !! A mesh consisting of all faces on the surface of the domain,
      !! it uses its own internal surface node numbering:
      type(mesh_type) surface_mesh
@@ -111,6 +109,8 @@ module fields_data_types
      integer, dimension(:), pointer :: surface_node_list
      !! The element with which each face is associated
      integer, dimension(:), pointer :: face_element_list
+     !! The local face number of each face in its containing element.
+     integer, dimension(:), pointer :: local_face_number
      !! A list of ids marking different parts of the surface mesh
      !! so that boundary conditions can be associated with it.
      integer, dimension(:), pointer :: boundary_ids

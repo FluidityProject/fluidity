@@ -3567,14 +3567,14 @@ implicit none
       call incref(output_mesh%faces%shape%quadrature)
       output_mesh%faces%face_list = input_positions%mesh%faces%face_list
       call incref(output_mesh%faces%face_list)
-      allocate(output_mesh%faces%face_lno(size(input_positions%mesh%faces%face_lno)))
-      output_mesh%faces%face_lno = input_positions%mesh%faces%face_lno
       output_mesh%faces%surface_mesh = input_positions%mesh%faces%surface_mesh
       call incref(output_mesh%faces%surface_mesh)
       allocate(output_mesh%faces%surface_node_list(size(input_positions%mesh%faces%surface_node_list)))
       output_mesh%faces%surface_node_list = permutation(input_positions%mesh%faces%surface_node_list)
       allocate(output_mesh%faces%face_element_list(size(input_positions%mesh%faces%face_element_list)))
       output_mesh%faces%face_element_list = input_positions%mesh%faces%face_element_list
+      allocate(output_mesh%faces%local_face_number(size(input_positions%mesh%faces%local_face_number)))
+      output_mesh%faces%local_face_number = input_positions%mesh%faces%local_face_number
       allocate(output_mesh%faces%boundary_ids(size(input_positions%mesh%faces%boundary_ids)))
       output_mesh%faces%boundary_ids = input_positions%mesh%faces%boundary_ids
       if(associated(input_positions%mesh%faces%coplanar_ids)) then

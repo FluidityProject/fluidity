@@ -52,6 +52,7 @@ module populate_state_module
   use initialise_fields_module
   use transform_elements
   use parallel_tools
+  use parallel_fields
   use boundary_conditions_from_options
   use nemo_states_module
   use data_structures
@@ -168,6 +169,7 @@ contains
     type(mesh_type) :: mesh
     type(vector_field) :: position
     type(vector_field), pointer :: position_ptr
+    type(scalar_field) :: canonical_numbering
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
@@ -343,6 +345,10 @@ contains
             end if
             mesh = position%mesh
           end if
+
+          ! Reorder the mesh according to the canonical numbering.
+          canonical_numbering=universal_number_field(mesh)
+          call order_elements(canonical_numbering)
           
           ! coplanar ids are create here already and stored on the mesh, 
           ! so its derived meshes get the same coplanar ids
@@ -373,7 +379,9 @@ contains
           call insert(states, mesh, mesh%name)
           call insert(states, position, position%name)
           call deallocate(position)
-          
+          call insert(states, canonical_numbering, "CanonicalNumbering")
+          call deallocate(canonical_numbering)
+
         else if (extruded) then
           
           ! This will be picked up by insert_derived_meshes and changed
