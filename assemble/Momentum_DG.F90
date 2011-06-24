@@ -2441,7 +2441,11 @@ contains
     ! Insert pressure boundary integral.
     if (l_cg_pressure .and. boundary .and. l_have_pressure_bc) then
     
-       mnCT(1,:,:,:) =shape_shape_vector(P_shape, U_shape_2, detwei, normal)
+       if(multiphase) then
+          mnCT(1,:,:,:) = shape_shape_vector(P_shape, U_shape_2, detwei*nvfrac_gi, normal)
+       else
+          mnCT(1,:,:,:) = shape_shape_vector(P_shape, U_shape_2, detwei, normal)
+       end if
        ! for both weak and strong pressure dirichlet bcs:
        !      /
        ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
