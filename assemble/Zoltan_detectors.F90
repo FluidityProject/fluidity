@@ -68,8 +68,7 @@ module zoltan_detectors
                 ! work out new owner
                 if (has_key(zoltan_global_uen_to_new_local_numbering,old_universal_element_number)) then
                    new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-                   new_ele_owner = ele_owner(new_local_element_number, zoltan_global_new_positions%mesh, &
-                        zoltan_global_new_positions%mesh%halos(zoltan_global_new_positions_mesh_nhalos))
+                   new_ele_owner = element_owner(zoltan_global_new_positions%mesh, new_local_element_number)
                 else
                    new_ele_owner = -1
                 end if
