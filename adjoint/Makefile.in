@@ -77,7 +77,7 @@ clean:
 
 Adjoint_Functional_Evaluation.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o Adjoint_Python_Fortran.o
 Shallow_Water_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o
-Burgers_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o simple_advection_d.o simple_advection_b.o
+Burgers_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o simple_advection_d.o simple_advection_b.o simple_advection.o
 Adjoint_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o Adjoint_Controls.o
 Forward_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o
 Adjoint_Controls.o:

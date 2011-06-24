@@ -42,7 +42,7 @@ module burgers_adjoint_callbacks
     use mangle_dirichlet_rows_module
     use populate_state_module
     use burgers_assembly
-    use global_parameters, only: OPTION_PATH_LEN
+    use global_parameters, only: OPTION_PATH_LEN, running_adjoint
     implicit none
 
     private
@@ -542,6 +542,7 @@ module burgers_adjoint_callbacks
     subroutine advection_action_proc(nvar, variables, dependencies, input, context, output) bind(c)
       use iso_c_binding
       use libadjoint_data_structures
+      use simple_advection
       integer(kind=c_int), intent(in), value :: nvar
       type(adj_variable), dimension(nvar), intent(in) :: variables
       type(adj_vector), dimension(nvar), intent(in) :: dependencies
@@ -549,13 +550,20 @@ module burgers_adjoint_callbacks
       type(c_ptr), intent(in), value :: context
       type(adj_vector), intent(out) :: output
 
-      type(scalar_field) :: u_output
+      type(scalar_field) :: u_output, u_check, nonlinear_u
       type(scalar_field) :: previous_u, iter_u, u_input
       type(csr_matrix) :: advection_mat
       type(csr_matrix), pointer :: diffusion_mat
       type(vector_field), pointer :: positions
       type(mesh_type), pointer :: u_mesh
       type(state_type), pointer :: matrices
+      character(len=OPTION_PATH_LEN) :: path
+      real :: itheta
+
+      path = "/material_phase::Fluid/scalar_field::Velocity"
+      if (running_adjoint) then
+        path = adjoint_field_path(path)
+      end if
 
       if (nvar==2) then
         if (variables(1)%timestep==variables(2)%timestep-1) then
@@ -596,6 +604,23 @@ module burgers_adjoint_callbacks
       call deallocate(advection_mat)
 
       output = field_to_adj_vector(u_output)
+
+      ! A quick check.
+!      call allocate(u_check, u_mesh, "VelocityCheck")
+!      call zero(u_check)
+!      call allocate(nonlinear_u, u_mesh, "NonlinearVelocity")
+!      call zero(nonlinear_u)
+!      call get_option(trim(path) // "/prognostic/temporal_discretisation/relaxation", itheta)
+!      call set(nonlinear_u, previous_u)
+!      call scale(nonlinear_u, (1.0-itheta))
+!      call addto(nonlinear_u, iter_u, scale=itheta)
+!
+!      call advection_action(positions%val(1,:), nonlinear_u%val, u_input%val, u_check%val)
+!
+!      write(0,*) "u_output - u_check: ", sqrt(sum((u_output%val - u_check%val)**2))
+!      call deallocate(u_check)
+!      call deallocate(nonlinear_u)
+
       call deallocate(u_output)
     end subroutine advection_action_proc
 #endif
