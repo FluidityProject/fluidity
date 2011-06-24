@@ -511,7 +511,7 @@ module adjoint_functional_evaluation
     call get_option("/timestepping/finish_time", finish_time)
 
     call get_option("/adjoint/functional::" // trim(functional) // "/functional_dependencies/algorithm", buf)
-    call adj_variables_from_python(buf, current_time, finish_time, python_timestep, vars)
+    call adj_variables_from_python(adjointer, buf, current_time, finish_time, python_timestep, vars)
 
     variable_loop: do j=1,size(vars)
       ierr = adj_variable_get_timestep(vars(j), var_timestep)

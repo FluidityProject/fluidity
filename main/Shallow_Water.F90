@@ -1295,7 +1295,7 @@
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars)
+        call adj_variables_from_python(adjointer, buf, start_time, start_time+dt, timestep, vars)
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep-1, functional=trim(functional_name), &
                                                       & dependencies=vars)
         call adj_chkierr(ierr)
