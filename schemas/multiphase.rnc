@@ -433,7 +433,12 @@ start =
                   ## between 0 and 1. Test cases have 1.
                   element alpha_beta { real },
                   ## Enable this option to use sigmoid method for finding equilibrium
-                  element KComp_Sigmoid { comment }?,
+                  element KComp_Sigmoid {
+                     (
+                        ## KComp value for this component
+                        element k_comp { real }
+                     )
+                  }?,
                   ## Enable this option to force component mass fractions
                   ## to sum to 1. Oddly set to false (ie not set) in the test cases
                   element Comp_Sum2One { comment }?

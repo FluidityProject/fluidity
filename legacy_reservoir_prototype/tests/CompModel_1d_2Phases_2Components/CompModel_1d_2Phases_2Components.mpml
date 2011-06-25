@@ -682,7 +682,7 @@
       <alpha_beta>
         <real_value rank="0">1.</real_value>
       </alpha_beta>
-      <KComp_Sigmoid/>
+      <Comp_Sum2One/>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase1" field_name="Velocity"/>
@@ -723,7 +723,7 @@
       <alpha_beta>
         <real_value rank="0">1.</real_value>
       </alpha_beta>
-      <KComp_Sigmoid/>
+      <Comp_Sum2One/>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase2" field_name="Velocity"/>

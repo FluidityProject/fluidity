@@ -1209,6 +1209,14 @@ module copy_outof_into_state
       v_absorb=0.
       allocate( k_comp( ncomps, nphases, nphases ))
       k_comp=0.
+      if (KComp_Sigmoid) then
+         do i=1, ncomps
+            call get_option('material_phase['// int2str(i+nphases-1) //']/is_multiphase_component/' // &
+                       'KComp_Sigmoid/k_comp', k_comp(i, 1, 1))
+            ewrite(3,*) 'i, kcomp', i, k_comp(i, 1, 1)
+            k_comp(i, 1:nphases, 1:nphases) = k_comp(i, 1, 1)
+         end do
+      end if
 
       allocate( comp_diffusion( cv_nloc*totele, ndim, ndim, nphases ))
       comp_diffusion=0.

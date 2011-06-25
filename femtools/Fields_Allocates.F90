@@ -466,7 +466,6 @@ contains
     !!< deallocated here.
     type(mesh_type), intent(inout) :: mesh
     
-    ewrite(3,*) 'deallocating mesh:', mesh%name
     call decref(mesh)
     if (has_references(mesh)) then
        ! There are still references to this mesh so we don't deallocate.

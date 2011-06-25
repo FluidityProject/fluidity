@@ -513,7 +513,10 @@ between 0 and 1. Test cases have 1.</a:documentation>
               <optional>
                 <element name="KComp_Sigmoid">
                   <a:documentation>Enable this option to use sigmoid method for finding equilibrium</a:documentation>
-                  <ref name="comment"/>
+                  <element name="k_comp">
+                    <a:documentation>KComp value for this component</a:documentation>
+                    <ref name="real"/>
+                  </element>
                 </element>
               </optional>
               <optional>
