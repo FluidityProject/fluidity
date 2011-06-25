@@ -36,3 +36,4 @@ clean:
 	rm -f gmon.out
 	rm -f *.d.*   
 	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.* mirror_new.dat
+	rm -f *.ele *.bound *.face *.node

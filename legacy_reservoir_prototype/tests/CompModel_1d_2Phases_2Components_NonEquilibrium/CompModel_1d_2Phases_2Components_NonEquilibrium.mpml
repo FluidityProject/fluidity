@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">CompModel_1d_2Phases_2Components</string_value>
+    <string_value lines="1">CompModel_1d_2Phases_2Components_NonEquilibrium</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -682,7 +682,11 @@
       <alpha_beta>
         <real_value rank="0">1.</real_value>
       </alpha_beta>
-      <KComp_Sigmoid/>
+      <KComp_Sigmoid>
+        <k_comp>
+          <real_value rank="0">4.5</real_value>
+        </k_comp>
+      </KComp_Sigmoid>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase1" field_name="Velocity"/>
@@ -723,7 +727,11 @@
       <alpha_beta>
         <real_value rank="0">1.</real_value>
       </alpha_beta>
-      <KComp_Sigmoid/>
+      <KComp_Sigmoid>
+        <k_comp>
+          <real_value rank="0">0.2</real_value>
+        </k_comp>
+      </KComp_Sigmoid>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase2" field_name="Velocity"/>

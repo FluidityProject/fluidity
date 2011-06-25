@@ -960,6 +960,7 @@ module copy_outof_into_state
       !! representation of relative permeability'
       allocate(uabs_coefs(nphases, nuabs_coefs))
       allocate(eos_coefs(nphases, ncoef))
+      eos_coefs=0.
       !! Capillary pressure isn't used at all at the moment
       allocate(cp_coefs(nphases, nphases))
       do i=1,nphases
@@ -976,6 +977,7 @@ module copy_outof_into_state
             call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/compressible/stiffened_gas/eos_option2", eos_coefs(i, 2))
             eos_coefs(i, 3:ncoef) = 0.
          endif
+         ewrite(3,*) 'i, eos_coefs', i, eos_coefs(i, :)
       enddo
       cp_coefs = 1.
 

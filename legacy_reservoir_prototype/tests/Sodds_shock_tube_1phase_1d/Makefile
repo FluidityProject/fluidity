@@ -21,6 +21,8 @@ input: clean
 	gfortran -o input_perm_BL1_func      input_perm_BL1_func.f90
 	gfortran -o input_eos_coef_BL1_func  input_eos_coef_BL1_func.f90
 
+	gfortran -o pressure_in              pressure_in.f90
+
 clean:
 	rm -f input_wic_vol_bc_BL1_fcn
 	rm -f input_wic_d_bc_BL1_fcn       
@@ -32,7 +34,9 @@ clean:
 	rm -f input_suf_u_bc_BL1_fcn       
 	rm -f input_satura_BL1_func        
 	rm -f input_perm_BL1_func        
-	rm -f input_eos_coef_BL1_func       
+	rm -f input_eos_coef_BL1_func
+	rm -f pressure_in 
 	rm -f gmon.out
-	rm -f *.d.*   
-	rm -f time_count tempfile CheckSparsityMatrix.dat fvalues mirror_int_data.dat fort.*
+	rm -f *.d.* fluidity.* *.stat 
+	rm -f time_count tempfile CheckSparsityMatrix.dat fvalues mirror* fort.*
+	rm -f *.ele *.bound *.face *.node

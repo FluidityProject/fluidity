@@ -34,3 +34,4 @@ clean:
 	rm -f gmon.out
 	rm -f *.d.* fluidity.* matrixdump* *.stat
 	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror* fort.* flog.dat
+	rm -f *.ele *.bound *.face *.node
