@@ -1580,7 +1580,13 @@ module zoltan_integration
 
        old_local_element_number = detector%element
 
-       assert(has_key(zoltan_global_old_local_numbering_to_uen, old_local_element_number) .EQV. .TRUE.)
+       if (.not. has_key(zoltan_global_old_local_numbering_to_uen, old_local_element_number)) then
+          ewrite(-1,*) "Zoltan can't find old element number for detector ", detector%id_number
+          ewrite(-1,*) "old_local_ele:", old_local_element_number
+          ewrite(-1,*) "zoltan_global_old_local_numbering_to_uen:"
+          call print(zoltan_global_old_local_numbering_to_uen, -1)
+          FLAbort('Trying to update unknown detector in Zoltan')
+       end if
        old_universal_element_number = fetch(zoltan_global_old_local_numbering_to_uen, old_local_element_number)
 
        if(has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
@@ -1588,7 +1594,10 @@ module zoltan_integration
           detector%element = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
           detector => detector%next
        else
-          ewrite(-1,*) "No new element number of detector", detector%id_number, "(ID) could be found"
+          ewrite(-1,*) "Zoltan can't find new element number for detector ", detector%id_number
+          ewrite(-1,*) "old_local_ele:", old_local_element_number, "old_universal_ele:", old_universal_element_number
+          ewrite(-1,*) "zoltan_global_uen_to_new_local_numbering:"
+          call print(zoltan_global_uen_to_new_local_numbering, -1)
           FLAbort('Trying to update unknown detector in Zoltan')
        end if
     end do
