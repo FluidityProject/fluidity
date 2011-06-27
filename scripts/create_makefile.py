@@ -9,7 +9,7 @@ import glob
 dep_exclusions=[\
     # Because switching on and off mba changes the module files loaded, these
     # are special-cased in the Makefiles.
-    "../../include/mba2d_module.mod",
+    "../include/mba2d_module.mod",
     "../include/mba3d_mba_nodal.mod",
     # Remove dependencies on confdefs.h because it causes
     # lots of spurious rebuilds.

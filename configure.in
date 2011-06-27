@@ -106,7 +106,10 @@ else
     MODINC_FLAG="-I"
 fi
 
-if test "$FC" == "gfortran" || test "$FC" == "gfortran-4.4" || test "$FC" == "gfortran-4.5" || test "$FC" == "gfortran-4.6"; then
+# We're calling the fortran compiler and testing if gcc is in the output. If so
+# we're using gfortran. Fixes cases where we're using gfortran, but the compiler binary
+# is not called gfortran
+if $FC -v 2>&1 | grep 'gcc version'; then
   USING_GFORTRAN="yes"
   GFORTRAN_VERSION=$($FC -v 2>&1 | grep 'gcc version' | awk '{print $3}')
   # test really is so retarded that it can't lexicographically compare strings
@@ -817,7 +820,7 @@ if test "$with_adjoint" != "no"; then
     ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
     if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
       # test really is so retarded that it can't lexicographically compare strings
-      if test "$(python -c "print \"$GFORTRAN_VERSION\" <= \"4.5\"")" = "True"; then
+      if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
         AC_MSG_ERROR(["Need gfortran >= 4.5 for the adjoint, sorry"])
       fi
     fi
@@ -1427,7 +1430,7 @@ AC_ARG_ENABLE(2d-adaptivity,
 
 if test "$enable_2d_adaptivity" = "yes"; then
   echo "#define HAVE_MBA_2D 1" >> include/confdefs.h
-  LIBS="$LIBS -lmba2d"
+  LIBS="-lmba2d $LIBS"
   MBA2D="yes"
   AC_SUBST(MBA2D)
 fi

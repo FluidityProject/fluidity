@@ -4,7 +4,7 @@
 <testproblem>
     <name>forcing</name>
   <owner userid="jhill1"/>
-  <tags>flml gls forcing</tags>
+  <tags>flml forcing</tags>
     <problem_definition length="short" nprocs="1">
         <command_line>fluidity -v2 -l forcing-coare.flml;
                       fluidity -v2 -l forcing-kara.flml;

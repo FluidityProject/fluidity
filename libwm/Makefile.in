@@ -69,4 +69,6 @@ $(LIB): $(OBJS)
 default: $(LIB)
 
 clean:
+	 rm -f *.o *.mod
+
 include Makefile.dependencies
