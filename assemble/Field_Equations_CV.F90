@@ -442,6 +442,7 @@ contains
       end if
 
       if(mesh_periodic(tfield)) then
+        ewrite(2,*) "have periodic mesh..."
         ! we have a periodic mesh and depending on the upwind value scheme
         ! we may want to modify the sparsity for the upwind value matrices
         if((tfield_options%upwind_scheme==CV_UPWINDVALUE_PROJECT_POINT).or.&
@@ -458,6 +459,7 @@ contains
       end if
 
       if(.not.explicit) then
+        ewrite(2,*) "not explicit..."
         ! allocate the lhs matrix
         call allocate(M, mesh_sparsity, name=trim(field_name)//"Matrix")
         call zero(M)

@@ -1,11 +1,11 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=5100
-JOB=dynles-lilly-sem-periodic
+JOB=dynles-lilly
 
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,fine , \
+	@$(foreach NN,med , \
 		echo **********Installing directory $(RE)-$(JOB)-$(NN):; \
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
@@ -56,7 +56,7 @@ postprocess:
 
 postprocess-les:
 	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach NN,coarse , \
+	@$(foreach NN,med , \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d_les.py .; \
 		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
