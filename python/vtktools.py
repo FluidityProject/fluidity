@@ -663,7 +663,7 @@ def VtuMatchLocationsArbitrary(vtu1, vtu2, tolerance = 1.0e-6):
     return False   
     
   epsilon = numpy.ones(locations1.shape[1])*numpy.finfo(numpy.float).eps
-  for j in range(locations1.shape[1]): epsilon[j]*(locations1[:,j].max()-locations1[:,j].min())
+  for j in range(locations1.shape[1]): epsilon[j] = epsilon[j]*(locations1[:,j].max()-locations1[:,j].min())
 
   for i in range(len(locations1)):
     for j in range(len(locations1[i])):
