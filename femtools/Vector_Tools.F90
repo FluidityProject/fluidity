@@ -43,7 +43,7 @@ module vector_tools
   private
   public blasmul, solve, norm2, cross_product, invert, inverse, cholesky_factor, &
      mat_diag_mat, eigendecomposition, eigendecomposition_symmetric, eigenrecomposition, &
-     outer_product, det, det_2, det_3, scalar_triple_product, svd, cross_product2
+     outer_product, det, det_2, det_3, scalar_triple_product, svd, cross_product2, pseudoinverse
 
 contains
 
@@ -637,16 +637,25 @@ contains
   function pseudoinverse(A)
     !!< Compute pseudoinverse using SVD
     real, dimension(:,:), intent(in) :: A
-    real, dimension(size(A,1),size(A,2)) :: pseudoinverse
+    real, dimension(size(A,2),size(A,1)) :: pseudoinverse
 
     real, dimension(size(A, 1), size(A, 1)) :: U
     real, dimension(min(size(A, 1), size(A, 2))) :: sigma
     real, dimension(size(A, 2), size(A, 2)) :: VT
 
-    call svd(A, U, sigma, T)
+    integer :: i
 
-    
-      
+    call svd(A, U, sigma, VT)
+
+    pseudoinverse=0.
+    do i=1,size(sigma)
+       if(sigma(i)>epsilon(0.0)) then
+          pseudoinverse(i,:)=(1./sigma(i))*U(:,i)
+       end if
+    end do
+
+    pseudoinverse=matmul(transpose(VT),pseudoinverse)
+
   end function pseudoinverse
 
 end module vector_tools
