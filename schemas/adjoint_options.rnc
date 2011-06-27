@@ -167,7 +167,7 @@ adjoint_options =
              )
           }*,
           ## Load controls values from the control files.
-          ## This is used for the optimiser.py only and can be left disabled by the user.
+          ## This is used for the optimiser.py only and should be left disabled.
           element load_controls {
              empty
           }? 
