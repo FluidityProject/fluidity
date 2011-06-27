@@ -6,9 +6,8 @@ module zoltan_detectors
 #ifdef HAVE_ZOLTAN
 
   use zoltan, only: zoltan_int
-  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, zoltan_global_uen_to_old_local_numbering, zoltan_global_new_positions, zoltan_global_new_positions_mesh_nhalos
+  use zoltan_global_variables, only: zoltan_global_uen_to_new_local_numbering, zoltan_global_old_local_numbering_to_uen, zoltan_global_new_positions
   use data_structures, only: has_key, fetch
-  use halos_derivation, only: ele_owner
 
   use detector_data_types
   use detector_tools
@@ -31,8 +30,8 @@ module zoltan_detectors
     integer(zoltan_int), intent(in) :: num_ids 
     integer(zoltan_int), intent(in), dimension(*) :: global_ids
     
-    integer :: i, j, det_list, new_ele_owner, total_det_to_pack
-    integer :: old_universal_element_number, old_local_element_number, new_local_element_number
+    integer :: i, j, det_list, new_ele_owner, total_det_to_pack, detector_uen
+    integer :: new_local_element_number
     
     type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(detector_type), pointer :: detector => null(), detector_to_move => null()
@@ -53,21 +52,24 @@ module zoltan_detectors
           ! store the list ID with the detector, so we can map the detector back when receiving it
           detector%list_id=det_list
 
+          ! translate detector element to uen
+          if (.not. has_key(zoltan_global_old_local_numbering_to_uen, detector%element)) then
+             ewrite(-1,*) "No uen found in Zoltan for detector ", detector%id_number, " with local element number ", detector%element
+             FLAbort("No universal element number for detector found in Zoltan")
+          end if
+          detector_uen = fetch(zoltan_global_old_local_numbering_to_uen, detector%element)
+
           ! loop over all the elements we're interested in
           found_det_element=.false.
           element_loop: do j=1, num_ids
-       
-             ! work out some details about the current element
-             old_universal_element_number = global_ids(j)
-             old_local_element_number = fetch(zoltan_global_uen_to_old_local_numbering, old_universal_element_number)
 
              ! check whether detector is in this element
-             if (detector%element == old_local_element_number) then
+             if (detector_uen == global_ids(j)) then
                 found_det_element=.true.
 
                 ! work out new owner
-                if (has_key(zoltan_global_uen_to_new_local_numbering,old_universal_element_number)) then
-                   new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+                if (has_key(zoltan_global_uen_to_new_local_numbering, detector_uen)) then
+                   new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector_uen)
                    new_ele_owner = element_owner(zoltan_global_new_positions%mesh, new_local_element_number)
                 else
                    new_ele_owner = -1
@@ -87,7 +89,7 @@ module zoltan_detectors
 
                    ! Update detector%element to be universal element number
                    ! so we can unpack to new element number
-                   detector_to_move%element = old_universal_element_number
+                   detector_to_move%element = detector_uen
                
                    ! Move detector to list of detectors we need to pack
                    call move(detector_list_array(det_list)%ptr, detector_to_move, to_pack_detector_lists(j))
