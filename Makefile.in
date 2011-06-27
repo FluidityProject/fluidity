@@ -333,6 +333,8 @@ all:
 clean-light:
 	@echo "    CLEAN debug"
 	@cd debug; $(MAKE) clean
+	@echo "    CLEAN libwm"
+	@cd libwm; $(MAKE) clean
 	@echo "    CLEAN femtools"
 	@cd femtools; $(MAKE) clean
 	@echo "    CLEAN femtools/tests"
