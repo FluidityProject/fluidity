@@ -43,11 +43,14 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.c,%.o,$(wildcard *.c))
+OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.f90,%.o,$(wildcard *.f90)) $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.f,%.o,$(wildcard *.f)) 
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a
+.SUFFIXES: .f .f90 .F90 .c .cpp .o .a
 
 .f90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $<
+.f.o:
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) -c $<
 .F90.o:
@@ -74,8 +77,16 @@ clean:
 
 Adjoint_Functional_Evaluation.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o Adjoint_Python_Fortran.o
 Shallow_Water_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o
-Burgers_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o
+Burgers_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o simple_advection_d.o simple_advection_b.o simple_advection.o
 Adjoint_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o Adjoint_Controls.o
 Forward_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o
 Adjoint_Controls.o:
 Shallow_Water_Controls.o:	
+
+# Instructions for doing AD with tapenade
+reverse:
+	tapenade -b -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90 -ext PUSHPOPGeneralLib -extAD PUSHPOPADLib-fixinterface
+	echo "Don't forget to remove the zeroing of acb."
+
+forward:
+	tapenade -d -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90

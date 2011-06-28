@@ -1,4 +1,31 @@
 #!/usr/bin/python
+#    Copyright (C) 2006 Imperial College London and others.
+#
+#    Please see the AUTHORS file in the main source directory for a full list
+#    of copyright holders.
+#
+#    Prof. C Pain
+#    Applied Modelling and Computation Group
+#    Department of Earth Science and Engineering
+#    Imperial College London
+#
+#    amcgsoftware@imperial.ac.uk
+#
+#    This library is free software; you can redistribute it and/or
+#    modify it under the terms of the GNU Lesser General Public
+#    License as published by the Free Software Foundation,
+#    version 2.1 of the License.
+#
+#    This library is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public
+#    License along with this library; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+#    USA
+
 import os.path
 import numpy
 import argparse
@@ -251,7 +278,7 @@ def check_control_consistency(m, djdm, m_bounds=None):
       print "The control derivatives are:", djdm_keys
       print "Check the consistency of the control definition in the model and the optimiser configuration."
       exit()
-    for k, v in m.iteritems():
+    for k, v in sorted(m.items()):
       if m[k].shape != djdm[k].shape:
         print "The control ", k, " has shape ", m[k].shape, " but dJd(", k, ") has shape ", djdm[k].shape
         exit()
@@ -266,7 +293,7 @@ def check_control_consistency(m, djdm, m_bounds=None):
           print "The controls are:", m_keys
           print "The control ", bound_type, "s are:", m_bounds_keys
           exit()
-        for k, v in m.iteritems():
+        for k, v in sorted(m.items()):
           if m[k].shape != m_bounds[bound_type][k].shape:
             print "The control ", k, " has shape ", m[k].shape, " but the ", bound_type, " has shape ", m_bounds[bound_type][k].shape
             exit()
@@ -326,10 +353,10 @@ def optimisation_loop(opt_options, model_options):
   # This function takes in a dictionary m with numpy.array as entries. 
   # From that it creates one serialised numpy.array with all the data.
   # In addition it creates m_shape, a dictionary which is used in unserialise.
-  def serialise(m, shape=None):
+  def serialise(m):
     m_serial = numpy.array([])
     m_shape = {}
-    for k, v in iter(sorted(m.iteritems())):
+    for k, v in sorted(m.items()):
       m_serial = numpy.append(m_serial, v.flatten())
       m_shape[k] = v.shape
     return [m_serial, m_shape]
@@ -338,7 +365,7 @@ def optimisation_loop(opt_options, model_options):
   def unserialise(m_serial, m_shape):
     m = {}
     start_index = 0
-    for k, s in iter(sorted(m_shape.iteritems())):
+    for k, s in sorted(m_shape.items()):
       offset = 1
       for d in s:
         offset = offset * d
@@ -395,7 +422,7 @@ def optimisation_loop(opt_options, model_options):
     check_control_consistency(m, djdm, m_bounds)
     # Serialise djdm in the same order than m_serial
     djdm_serial = [] 
-    for k, v in m_shape.iteritems():
+    for k, v in sorted(m_shape.items()):
       djdm_serial = numpy.append(djdm_serial, djdm[k])
     return djdm_serial
 
@@ -511,7 +538,7 @@ def optimisation_loop(opt_options, model_options):
     print "Functional value J(m): ", res[1]
     print "Control state m: ", res[0]
   elif algo == 'L-BFGS-B': 
-    opt_args = dict(func=J, x0=m_serial, fprime=dJdm, args=(m_shape, ) )
+    opt_args = dict(func=J, x0=m_serial, fprime=dJdm, args=(m_shape,))
     if have_bound:
       opt_args['bounds'] = m_bounds_serial
     if superspud(opt_options, "libspud.have_option('/optimisation_options/optimisation_algorithm::L-BFGS-B/tolerance')"):

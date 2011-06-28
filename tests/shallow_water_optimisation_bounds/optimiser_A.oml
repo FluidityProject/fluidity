@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<optimiser_options>
+  <name>
+    <string_value lines="1">shallow_water_optimisation_A</string_value>
+  </name>
+  <model command_line="../../bin/shallow_water" option_file="adjoint_A.swml"/>
+  <functional name="integral_eta_t1"/>
+  <optimisation_options>
+    <optimisation_algorithm name="L-BFGS-B">
+      <tolerance>
+        <real_value rank="0">1.0000000000000001e-10</real_value>
+      </tolerance>
+      <memory_limit>
+        <integer_value rank="0">7</integer_value>
+      </memory_limit>
+      <verbosity>
+        <integer_value rank="0">1</integer_value>
+      </verbosity>
+    </optimisation_algorithm>
+  </optimisation_options>
+  <control_io>
+    <control name="InitEta">
+      <type name="default"/>
+    </control>
+  </control_io>
+  <debugging/>
+</optimiser_options>

@@ -68,9 +68,9 @@ module adjoint_main_loop
       use iso_c_binding, only: c_ptr
       type(state_type), dimension(:), intent(inout) :: state
       integer, intent(inout) :: dump_no
-      optional :: adjoint_timestep_callback 
+      optional :: adjoint_timestep_callback
       ! Data is a void pointer used to pass variables into the callback
-      type(c_ptr), intent(in) :: adjoint_timestep_callback_data 
+      type(c_ptr), intent(in), optional :: adjoint_timestep_callback_data
       interface 
         subroutine adjoint_timestep_callback(state, timestep, functional_name, data)
           use iso_c_binding, only: c_ptr

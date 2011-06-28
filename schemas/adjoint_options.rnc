@@ -187,6 +187,10 @@ adjoint_options =
          ## Check the transposes of all action callbacks.
          element check_action_transposes {
             empty
+         }?,
+         ## Check all supplied derivative callbacks of nonlinear operators.
+         element check_action_derivative {
+            empty
          }?
      }?
    }
