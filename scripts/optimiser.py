@@ -318,8 +318,11 @@ def have_bounds(opt_options, model_options):
     have_bounds = have_bounds or superspud(model_options, "libspud.have_option('/adjoint/controls/control["+cname+"]/bounds')")
   return have_bounds
 
+#######################################################
 ################# Optimisation loop ###################
+#######################################################
 def optimisation_loop(opt_options, model_options):
+  
   # Implement a memoization function to avoid duplicated functional (derivative) evaluations
   class MemoizeMutable:
     def __init__(self, fn):
@@ -388,7 +391,12 @@ def optimisation_loop(opt_options, model_options):
     run_model(m, opt_options, model_options)
     simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
     stat_file = simulation_name+".stat"
-    J = stat_parser(stat_file)[functional_name]["value"][-1]
+    s = stat_parser(stat_file)
+    if not functional_name in s:
+      print "The functional '", functional_name, "' does not exist in the stat file."
+      print "Check your model configuration"
+      exit()
+    J = s[functional_name]["value"][-1]
     return J
 
   # Returns the functional derivative with respect to the controls.
@@ -421,13 +429,16 @@ def optimisation_loop(opt_options, model_options):
   # This function gets called after each optimisation iteration. 
   # It is currently used to do write the statistics to the stat file.
   def callback(m_serial, m_shape):
-    if superspud(opt_options, "libspud.have_option('/debugging/check_gradient')"):
+    if superspud(opt_options, "libspud.have_option('/debug/check_gradient')"):
       grad_err = scipy.optimize.check_grad(lambda x: J(x, m_shape, write_stat = False), lambda x: dJdm(x, m_shape, write_stat = False), m_serial)
       if verbose:
         print "Gradient error: ", grad_err
       stat_writer[(functional_name + "_gradient_error", "l2norm")] = grad_err
     stat_writer.write()
   
+
+  ### Initialisation of optimisation loop ###
+
   # Initialise stat file
   if verbose:
     print "Initialise stat file"
@@ -440,7 +451,13 @@ def optimisation_loop(opt_options, model_options):
   # Create the memoized version of the functional (derivative) evaluation functions
   mem_pure_dJdm = MemoizeMutable(pure_dJdm)
   mem_pure_J = MemoizeMutable(pure_J)
-  # Initialise the controls
+
+  ### Get initial controls ### 
+  ### The initial controls are retrieved in several steps.
+  ### 1) get custom controls by running the user specified python code and save the associated pkl files
+  ### 2) run the forward/adjoint model without the "load_control" flag. The model will save the initial default controls as pkl files.
+  ### 3) Finally load these initial default controls files 
+
   # First we initialise the custom controls
   # This has to be done first since the next step
   # involves running the model and therefore 
@@ -448,13 +465,15 @@ def optimisation_loop(opt_options, model_options):
   if verbose:
     print "Get initial custom controls"
   custom_m = get_custom_controls(opt_options)
-  # To get the initial default controls we run the model without the option
+
+  # Next run the forward/adjoint model without the option
   # /adjoint/controls/load_controls
   if verbose:
     print "Get initial default controls"
   model_file = superspud(opt_options, "libspud.get_option('/model/option_file')")
   if (superspud(model_options, "libspud.have_option('/adjoint/controls/load_controls')")):
     superspud(model_options, ["libspud.delete_option('/adjoint/controls/load_controls')", "libspud.write_options('"+ model_file +"')"])
+
   # Run the forward model including adjoint.
   functional_name = superspud(opt_options, "libspud.get_option('/functional/name')")
   if superspud(opt_options, "libspud.have_option('/adjoint/functional::"+functional_name+"/disable_adjoint_run')"):
@@ -463,7 +482,8 @@ def optimisation_loop(opt_options, model_options):
   mem_pure_J(custom_m_serial, custom_m_shape)
   # This should have created all the default initial controls and we can now activate the load_controls flag. 
   superspud(model_options, ["libspud.add_option('/adjoint/controls/load_controls')", "libspud.write_options('"+ model_file +"')"])
-  # Load the default controls
+
+  # Finally, load the default controls 
   m = read_default_controls(opt_options, model_options)
   m_bounds = read_default_control_bounds(opt_options, model_options)
   nb_controls = len(m) + len(custom_m)
@@ -480,6 +500,8 @@ def optimisation_loop(opt_options, model_options):
   # Since now all the controls and derivatives are defined, we can check the consistency of the control variables
   check_control_consistency(m, djdm, m_bounds)
 
+  ### Serialise the controls for the optimisation routine 
+
   [m_serial, m_shape] = serialise(m)
   [m_lb_serial, m_lb_shape] = serialise(m_bounds["lower_bound"])
   [m_ub_serial, m_ub_shape] = serialise(m_bounds["upper_bound"])
@@ -490,6 +512,8 @@ def optimisation_loop(opt_options, model_options):
   if verbose:
     print "Start optimisation loop"
     print "Using ", algo, " as optimisation algorithm."
+
+  ### Start the optimisation loop 
 
   if algo == 'BFGS':
     if have_bound:

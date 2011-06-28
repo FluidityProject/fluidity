@@ -62,7 +62,7 @@
       </type>
     </control>
   </control_io>
-  <debugging>
+  <debug>
     <check_gradient/>
-  </debugging>
+  </debug>
 </optimiser_options>
