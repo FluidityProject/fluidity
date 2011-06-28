@@ -380,8 +380,9 @@ contains
     ! We have to figure out how many columns we have in this matrix
     columns = -1
     do i=1,size(lists)
-      columns = max(columns, maxval(lists(i)))
+      if(lists(i)%length/=0) columns = max(columns, maxval(lists(i)))
     end do
+    assert(columns/=-1)
 
     call allocate(sparsity, rows=size(lists), columns=columns, &
          entries=sum(lists(:)%length), name=name)
