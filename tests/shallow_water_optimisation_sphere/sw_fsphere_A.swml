@@ -334,7 +334,7 @@
         <functional name="integral_eta">
             <functional_value>
                 <algorithm name="functional_value">
-                    <string_value lines="20" type="python">J = 0.0&#x0A;T = 44714.1334&#x0A;if time == 0.0 or time &lt; 44714.1334 &lt;= time+dt:&#x0A;  import numpy&#x0A;  eta_prev = states[n-1][&quot;Fluid&quot;].scalar_fields[&quot;LayerThickness&quot;]     &#x0A;  eta_prev_exact   = states[n-1][&quot;Fluid&quot;].scalar_fields[&quot;AnalyticalLayerThickness&quot;]       &#x0A;  if time == 0.0:&#x0A;    tmp_eta = eta_prev.val - eta_prev_exact.val&#x0A;  else:  &#x0A;    eta   = states[n][&quot;Fluid&quot;].scalar_fields[&quot;LayerThickness&quot;] &#x0A;    eta_exact   = states[n][&quot;Fluid&quot;].scalar_fields[&quot;AnalyticalLayerThickness&quot;] &#x0A;    # We want to temporally interpolate to evaluate eta at t=T&#x0A;    alpha = (time + dt - T) / dt&#x0A;    assert 0 &lt;= alpha &lt; 1&#x0A;    tmp_eta = alpha * (eta_prev.val - eta_prev_exact.val) + (1-alpha) * (eta.val - eta_exact.val)&#x0A;&#x0A;  # Now we want to integrate that over space&#x0A;  coord = states[0][&quot;Fluid&quot;].vector_fields[&quot;Coordinate&quot;]&#x0A;  assert eta_prev.element_count == coord.element_count&#x0A;  for ele in range(coord.element_count):&#x0A;    t = Transform(ele, coord)&#x0A;    shape = eta_prev.ele_shape(ele)&#x0A;    mass = t.shape_shape(shape, shape)&#x0A;    nodes = eta_prev.ele_nodes(ele)&#x0A;    J = J + numpy.dot(tmp_eta[nodes], numpy.dot(mass, tmp_eta[nodes]))&#x0A;print &quot;Functional value&quot;, J    </string_value>
+                    <string_value lines="20" type="python">J = 0.0&#x0A;T = 44714.1334&#x0A;if time == 0.0 or time &lt; 44714.1334 &lt;= time+dt:&#x0A;  import numpy&#x0A;  eta_prev = states[n-1][&quot;Fluid&quot;].scalar_fields[&quot;LayerThickness&quot;]         &#x0A;  if time == 0.0:&#x0A;    inner_prt_left = eta_prev.val&#x0A;    inner_prt_right = eta_prev.val &#x0A;  else:  &#x0A;    eta   = states[n][&quot;Fluid&quot;].scalar_fields[&quot;LayerThickness&quot;] &#x0A;    eta0   = states[1][&quot;Fluid&quot;].scalar_fields[&quot;LayerThickness&quot;]     &#x0A;    # We want to temporally interpolate to evaluate eta at t=T&#x0A;    alpha = (time + dt - T) / dt&#x0A;    assert 0 &lt;= alpha &lt; 1&#x0A;    tmp_eta = alpha * eta_prev.val + (1-alpha) * eta.val&#x0A;    inner_prt_left = tmp_eta&#x0A;    inner_prt_right = tmp_eta - 2*eta0.val&#x0A;&#x0A;  # Now we want to integrate that over space&#x0A;  coord = states[0][&quot;Fluid&quot;].vector_fields[&quot;Coordinate&quot;]&#x0A;  assert eta_prev.element_count == coord.element_count&#x0A;  for ele in range(coord.element_count):&#x0A;    t = Transform(ele, coord)&#x0A;    shape = eta_prev.ele_shape(ele)&#x0A;    mass = t.shape_shape(shape, shape)&#x0A;    nodes = eta_prev.ele_nodes(ele)&#x0A;    J = J + numpy.dot(inner_prt_left[nodes], numpy.dot(mass, inner_prt_right[nodes]))&#x0A;print &quot;Functional value&quot;, J</string_value>
                 </algorithm>
                 <reduction>
                     <sum></sum>
@@ -342,7 +342,7 @@
             </functional_value>
             <functional_dependencies>
                 <algorithm name="functional_dependencies">
-                    <string_value lines="20" type="python">def dependencies(times, timestep):&#x0A;  if times[0] &lt;= 0.0 &lt; times[1]:&#x0A;    return {&quot;Fluid::Coordinate&quot;: [0],&#x0A;            &quot;Fluid::LayerThickness&quot;:  [timestep-1],&#x0A;            &quot;Fluid::AnalyticalLayerThickness&quot;: [timestep-1] &#x0A;            }&#x0A;  elif times[0] &lt; 44714.1334 &lt;= times[1]:&#x0A;    return {&quot;Fluid::Coordinate&quot;: [0],&#x0A;            &quot;Fluid::LayerThickness&quot;: [timestep-1, timestep],&#x0A;            &quot;Fluid::AnalyticalLayerThickness&quot;: [timestep-1, timestep]            &#x0A;            }            &#x0A;  else:&#x0A;    return {}</string_value>
+                    <string_value lines="20" type="python">def dependencies(times, timestep):&#x0A;  if times[0] &lt;= 0.0 &lt; times[1]:&#x0A;    print &quot;timestep-1&quot;, timestep-1&#x0A;    return {&quot;Fluid::Coordinate&quot;: [0],&#x0A;            &quot;Fluid::LayerThickness&quot;:  [timestep-1]&#x0A;            }&#x0A;  elif times[0] &lt; 44714.1334 &lt;= times[1]:&#x0A;    return {&quot;Fluid::Coordinate&quot;: [0],&#x0A;            &quot;Fluid::LayerThickness&quot;: [1, timestep-1, timestep]       &#x0A;            }            &#x0A;  else:&#x0A;    return {}</string_value>
                 </algorithm>
             </functional_dependencies>
         </functional>
@@ -350,7 +350,6 @@
             <control name="InitEta">
                 <type name="initial_condition" field_name="Fluid::LayerThickness"></type>
             </control>
-            <load_controls></load_controls>
         </controls>
     </adjoint>
 </shallow_water_options>
