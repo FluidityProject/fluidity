@@ -1389,7 +1389,7 @@ vector_diagnostic_algorithms |= eigenvalues_symmetric_algorithm
 vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_python_diagnostic_algorithm
 
-tensor_diagnostic_algorithms = tensor_squared_time_averaged_algorithm
+tensor_diagnostic_algorithms = vector_squared_time_averaged_algorithm
 tensor_diagnostic_algorithms |= tensor_copy_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
 tensor_diagnostic_algorithms |= hessian_algorithm

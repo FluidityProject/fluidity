@@ -99,7 +99,7 @@ module adjoint_main_loop
       call get_option("/simulation_name", simulation_base_name)
       running_adjoint = .true.
 
-      if (have_option("/adjoint/html_output")) then
+      if (have_option("/adjoint/debug/html_output")) then
         ! Switch the html output on if you are interested what the adjointer has registered
         ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
         ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)
@@ -128,8 +128,8 @@ module adjoint_main_loop
 
       do timestep=no_timesteps-1,0,-1
         ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
-        call adj_chkierr(ierr)
-        current_time = end_time
+        call adj_chkierr(ierr) 
+        current_time = start_time ! the usual convention in fluidity: time is what is /about to be/ computed
         call set_option("/timestepping/current_time", current_time)
 
         ierr = adj_timestep_start_equation(adjointer, timestep, start_timestep)
@@ -202,8 +202,6 @@ module adjoint_main_loop
 
                       call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
                       !call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
-                      ewrite(1,*) "Scalar field: ", trim(sfield_soln%name)
-                      ewrite(1,*) sfield_soln%val
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")

@@ -11,6 +11,7 @@ subroutine test_adj_variables_from_python
   use libadjoint
   use iso_c_binding
   use unittest_tools
+  use spud
   implicit none
 
   type(adj_variable), dimension(:), allocatable :: arr
@@ -18,8 +19,10 @@ subroutine test_adj_variables_from_python
                                "  return {'Fluid::Velocity': [0, 2, 4], 'Fluid::Pressure': [1, 3, 5]} " // c_new_line
   integer :: j, timestep
   character(len=ADJ_NAME_LEN) :: namestr
-  integer :: ierr
+  integer :: ierr, stat
 
+  call set_option("/material_phase::Fluid/scalar_field::Pressure", 1, stat=stat)
+  call set_option("/material_phase::Fluid/vector_field::Velocity", 1, stat=stat)
 
   call adj_variables_from_python(buf, 0.0, 1.0, 1, arr)
 

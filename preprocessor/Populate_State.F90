@@ -524,6 +524,8 @@ contains
              from_shape_type=ELEMENT_LAGRANGIAN
            else if(trim(shape_type)=="bubble") then
              from_shape_type=ELEMENT_BUBBLE
+           else if(trim(shape_type)=="trace") then
+             from_shape_type=ELEMENT_TRACE
            else if(trim(shape_type)=="overlapping") then
              from_shape_type=ELEMENT_OVERLAPPING
            end if
@@ -782,6 +784,8 @@ contains
            new_shape_type=ELEMENT_LAGRANGIAN
         else if(trim(element_option)=="bubble") then
            new_shape_type=ELEMENT_BUBBLE
+        else if(trim(element_option)=="trace") then
+           new_shape_type=ELEMENT_TRACE
         else if(trim(element_option)=="overlapping") then
            new_shape_type=ELEMENT_OVERLAPPING
         end if

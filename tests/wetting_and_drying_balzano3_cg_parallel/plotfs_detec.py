@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import vtktools
 import sys
@@ -81,7 +81,9 @@ def main(argv=None):
 
         # Get and plot results
         plt.ion() # swith on interactive mode
-        fig2 = figure()
+        plt.rcParams['font.size'] = 22
+        fig2 = figure(figsize=(8, 6.2))
+	fig2.subplots_adjust(left=0.15, bottom=0.15)
         ax2 = fig2.add_subplot(111)
 
         plot_start=580  # in timesteps
@@ -105,7 +107,7 @@ def main(argv=None):
                         fsvalues.append(fs[name][t])
 
                 # Plot result of one timestep
-                ax2.plot(xcoords,fsvalues,'r,', label='Numerical solution')
+                ax2.plot(xcoords,fsvalues,'b,', label='Numerical solution')
 
                 # Plot Analytical solution
                 fsvalues_ana=[]
@@ -120,7 +122,7 @@ def main(argv=None):
                 xcoords.append(xcoords[len(xcoords)-1]+0.000000001)
                 fsvalues_ana.append(2.1)
 
-                ax2.plot(xcoords, fsvalues_ana, 'k', label='Bathymetry')
+                ax2.plot(xcoords, fsvalues_ana, 'k', label='Bathymetry', linewidth=2.5)
 
                 #plt.legend()
                 if t==plot_end:

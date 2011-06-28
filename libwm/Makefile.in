@@ -55,17 +55,19 @@ Wm4System.o Wm4Vector2.o Wm4Vector3.o
 
 .f90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< || (rm $(LIB) && false)
+	$(FC) $(FCFLAGS) -c $<
 .cpp.o:
 	@echo "        CXX $<"
-	$(CXX) $(CXXFLAGS) -I. -I../include -c $< || (rm $(LIB) && false)
+	$(CXX) $(CXXFLAGS) -I. -I../include -c $<
 
 default: $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 	cp *.h ../include/
 
 clean:
-	rm -f *.o *.mod
+	 rm -f *.o *.mod
+
+include Makefile.dependencies
