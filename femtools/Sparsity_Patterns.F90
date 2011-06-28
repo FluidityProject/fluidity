@@ -382,7 +382,6 @@ contains
     do i=1,size(lists)
       if(lists(i)%length/=0) columns = max(columns, maxval(lists(i)))
     end do
-    assert(columns/=-1)
 
     call allocate(sparsity, rows=size(lists), columns=columns, &
          entries=sum(lists(:)%length), name=name)
