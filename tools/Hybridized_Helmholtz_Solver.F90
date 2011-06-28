@@ -73,14 +73,15 @@
     end interface
 
     type(state_type), dimension(:), pointer :: state
-    type(scalar_field), pointer :: D_rhs, dgified_D, D, dgified_D_rhs
-    type(scalar_field) :: f
+    type(scalar_field), pointer :: D_rhs, dgified_D, D, &
+         dgified_D_rhs, D_exact, D_exact_D_mesh
+    type(scalar_field) :: f, D_rhs_projected
     type(vector_field), pointer :: u,X,U_rhs
     type(vector_field) :: U_Local
-    integer :: ierr,dump_no,stat
+    integer :: ierr,dump_no,stat,ele
     character(len = OPTION_PATH_LEN) :: simulation_name
     character(len=PYTHON_FUNC_LEN) :: coriolis
-
+    real :: L2error,Linfty_error,L2projectederror
 #ifdef HAVE_MPI
     call mpi_init(ierr)
     assert(ierr == MPI_SUCCESS)
@@ -105,6 +106,7 @@
     D_rhs=>extract_scalar_field(state(1), "LayerThicknessRHS")
     U_rhs=>extract_vector_field(state(1), "VelocityRHS")
     U=>extract_vector_field(state(1), "Velocity")
+    D => extract_scalar_field(state(1), "LayerThickness")
     call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
     call zero(U_local)
     call insert(state, U_local, "LocalVelocity")
@@ -120,17 +122,20 @@
     end if
     call insert(state, f, "Coriolis")
     call deallocate(f)
+
+    call allocate(D_rhs_projected,D%mesh,'D_rhs')
+    call remap_field(D_rhs,D_rhs_projected)
     dump_no = 0
     call write_state(dump_no,state)
     !subroutine solve_hybridized_helmholtz(state,D_rhs,U_Rhs,&
     !   &compute_cartesian,&
-    !   &check_continuity,output_dense)
-    call solve_hybridized_helmholtz(state(1),D_rhs=D_rhs,U_rhs=u_rhs,&
+    !  &check_continuity,output_dense) 
+    call solve_hybridized_helmholtz(&
+         &state(1),D_rhs=D_rhs_projected,U_rhs=u_rhs,&
          &compute_cartesian=.true.,check_continuity=.true.,output_dense=.false.)
 
     dgified_D => extract_scalar_field(state(1), "LayerThicknessP1dg",stat)
     if(stat==0) then
-       D => extract_scalar_field(state(1), "LayerThickness")
        call remap_field(D,dgified_D)
     end if
     dgified_D_rhs => extract_scalar_field(state(1), &
@@ -139,6 +144,24 @@
        call remap_field(D_rhs,dgified_D_rhs)
     end if
 
+    D_exact => extract_scalar_field(state(1), &
+         &"LayerThicknessExact")
+    D_exact_D_mesh => extract_scalar_field(state(1),&
+         &"LayerThicknessExactProjected")
+    call remap_field(D_exact,D_exact_D_mesh)
+
+    L2error=0.
+    Linfty_error=0.
+    L2projectederror=0.
+    do ele = 1, ele_count(D)
+       call compute_errors(D,D_exact,D_exact_D_mesh,X,ele,&
+            L2error,Linfty_error,L2projectederror)
+    end do
+    l2error = sqrt(l2error)
+    l2projectederror = sqrt(l2projectederror)
+    ewrite(1,*) 'l_infty error', Linfty_error
+    ewrite(1,*) 'l2error', l2error
+    ewrite(1,*) 'l2projectederror', l2projectederror
     call write_state(dump_no,state)
 
 #ifdef HAVE_MPI
@@ -146,6 +169,29 @@
     assert(ierr == MPI_SUCCESS)
 #endif
 contains
+  subroutine compute_errors(D,D_exact,D_exact_D_mesh,X,ele,&
+       L2error,Linfty_error,L2projectederror)
+    type(scalar_field), intent(in) :: D,D_exact,D_exact_D_mesh
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real, intent(inout) :: L2error,Linfty_error,L2projectederror
+    !
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(D,ele)) :: D_gi,D_exact_gi,D_exact_D_mesh_gi,&
+         &detwei
+
+    call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
+         detwei=detwei)
+    d_gi = ele_val_at_quad(D,ele)
+    d_exact_gi = ele_val_at_quad(D_exact,ele)
+    d_exact_d_mesh_gi = ele_val_at_quad(D_exact_D_mesh,ele)
+
+    linfty_error = max(linfty_error,maxval(abs(d_gi-d_exact_gi)))
+    l2error = l2error + sum((d_gi-d_exact_gi)**2*detwei)
+    l2projectederror = l2projectederror + &
+         &sum((d_gi-d_exact_d_mesh_gi)**2*detwei)
+  end subroutine compute_errors
+
     subroutine read_command_line()
       implicit none
       ! Read the input filename.

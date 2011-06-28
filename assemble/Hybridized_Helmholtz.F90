@@ -76,6 +76,7 @@ contains
     !
     type(vector_field), pointer :: X, U, down, U_cart
     type(scalar_field), pointer :: D,f, lambda, lambda_nc
+    type(scalar_field) :: X1,X2,lambdaX1, lambdaX2
     type(scalar_field), target :: lambda_rhs, u_cpt
     type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
     type(csr_matrix) :: lambda_mat, continuity_block_mat,continuity_block_mat1
@@ -135,23 +136,14 @@ contains
             &continuity_mat=continuity_mat)
     end do
 
-    !FOR DEBUGGING ONLY, REMOVE
-    if(.false.) then
-       call project_cartesian_to_local(X,U_rhs,U)
-       call zero(lambda_rhs)
-       do dim1 = 1,U%dim
-          u_cpt = extract_scalar_field(U,dim1)
-          ewrite(1,*) maxval(abs(u_cpt%val))
-          continuity_block_mat = block(continuity_mat,dim1,1)
-          ewrite(1,*) maxval(abs(continuity_block_mat%val))
-          call mult_T_addto(lambda_rhs,continuity_block_mat,u_cpt)
-       end do
-       ewrite(1,*)'LAMBDARHS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs&
-            &%val)
-       stop
-    end if
-
     ewrite(1,*)'LAMBDARHS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs%val)
+
+    ! X1 = extract_scalar_field(X,1)
+    ! X2 = extract_scalar_field(X,2)
+    ! call allocate(lambdaX1,lambda%mesh,'LambdaX1')
+    ! call allocate(lambdaX2,lambda%mesh,'LambdaX2')
+    ! call remap_field(X1,lambdaX1)
+    ! call remap_field(X2,lambdaX2)
 
     !Solve the equations
     call petsc_solve(lambda,lambda_mat,lambda_rhs)
@@ -174,6 +166,10 @@ contains
        U_cart => extract_vector_field(state, "Velocity")
        call project_local_to_cartesian(X,U,U_cart)
     end if
+    
+    do ele = 1, ele_count(U)
+       call check_divergence_ele(U,D,D_rhs,X,ele)
+    end do
 
     if(l_check_continuity) then
        ewrite(1,*) 'Checking continuity'
@@ -196,16 +192,16 @@ contains
        end do
     end if
     
-    lambda_nc=>extract_scalar_field(state, "LambdaNC",stat)
-    if(stat==0) then
-       call zero(lambda_nc)
-       do ele = 1, ele_count(D)
-          call reconstruct_lambda_nc(lambda,lambda_nc,X,ele)
-       end do
-    end if
-
-    call deallocate(lambda_mat)
-    call deallocate(lambda_rhs)
+    ! lambda_nc=>extract_scalar_field(state, "LambdaNC",stat)
+    ! if(stat==0) then
+    !    call zero(lambda_nc)
+    !    do ele = 1, ele_count(D)
+    !       call reconstruct_lambda_nc(lambda,lambda_nc,X,ele)
+    !    end do
+    ! end if
+    ! ewrite(1,*) lambda_nc%val
+    ! call deallocate(lambda_mat)
+    ! call deallocate(lambda_rhs)
 
     ewrite(1,*) 'END subroutine solve_hybridized_helmholtz'
 
@@ -249,7 +245,6 @@ contains
     real, dimension(:), pointer :: rhs_d_ptr
     type(real_matrix), dimension(mesh_dim(U)) :: &
          & continuity_mat_u_ptr
-    real, dimension(:,:), pointer :: continuity_mat_d_ptr
 
     !Get some sizes
     lloc = ele_loc(lambda_rhs,ele)
@@ -261,12 +256,12 @@ contains
     !Calculate indices in a vector containing all the U and D dofs in
     !element ele, First the u1 components, then the u2 components, then the
     !D components are stored.
-    d_start = uloc*mdim + 1
-    d_end   = uloc*mdim+dloc
     do dim1 = 1, mdim
        u_start(dim1) = uloc*(dim1-1)+1
        u_end(dim1) = uloc*dim1
     end do
+    d_start = uloc*mdim + 1
+    d_end   = uloc*mdim+dloc
 
     !Get pointers to different parts of rhs_loc and l_continuity_mat
     do dim1 = 1, mdim
@@ -278,7 +273,6 @@ contains
        continuity_mat_u_ptr(dim1)%ptr => &
             & l_continuity_mat(u_start(dim1):u_end(dim1),:)
     end do
-    continuity_mat_d_ptr => l_continuity_mat(d_start:d_end,:)
 
     ! ( M    C  -L)(u)   (0)
     ! ( -C^T N  0 )(h) = (j)
@@ -299,8 +293,8 @@ contains
     rhs_loc=0.
     lambda_rhs_loc = 0.
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
+
     call solve(local_solver,Rhs_loc)
-    !OK, this is definitely putting the right thing in rhs_loc
 
     !!!Construct the continuity matrix that multiplies lambda in 
     !!! the U equation
@@ -328,7 +322,6 @@ contains
                & matmul(transpose(continuity_face_mat(dim1,:,:)),&
                & rhs_u_ptr(dim1)%ptr(face_local_nodes(U,face)))
        end do
-
        if(present(continuity_mat)) then
           do  dim1 = 1, mdim
              call addto(continuity_mat,dim1,1,face_global_nodes(U,face)&
@@ -351,8 +344,6 @@ contains
     
     !insert lambda_rhs_loc into lambda_rhs
     lambda_rhs_loc2 = -matmul(transpose(l_continuity_mat),Rhs_loc)
-    !ewrite(1,*) lambda_rhs_loc, 'first way'
-    !ewrite(1,*) lambda_rhs_loc2,'second way'
     assert(maxval(abs(lambda_rhs_loc-lambda_rhs_loc2))<1.0e-8)
     call addto(lambda_rhs,ele_nodes(lambda_rhs,ele),lambda_rhs_loc2)
     !insert helmholtz_loc_mat into global lambda matrix
@@ -376,14 +367,18 @@ contains
     !
     real, dimension(ele_loc(U,ele)*2+ele_loc(D,ele),&
          &ele_loc(U,ele)*2+ele_loc(D,ele)) :: local_solver
-    real, allocatable, dimension(:,:) :: l_continuity_mat
     real, allocatable, dimension(:,:,:) :: continuity_face_mat
     integer :: ni, face
     integer, dimension(:), pointer :: neigh
-    real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)) :: Rhs_loc
+    real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)), target :: Rhs_loc
     type(element_type) :: U_shape
     integer :: d_start, d_end, dim1, mdim, uloc,dloc,lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
+    type(real_vector), dimension(mesh_dim(U)) :: rhs_u_ptr
+    real, dimension(:), pointer :: rhs_d_ptr
+    type(real_matrix), dimension(mesh_dim(U)) :: &
+         & continuity_mat_u_ptr
+    real, dimension(ele_loc(lambda,ele)) :: lambda_val
 
     !Get some sizes
     lloc = ele_loc(lambda,ele)
@@ -402,32 +397,34 @@ contains
        u_end(dim1) = uloc*dim1
     end do
 
+    !Get pointers to different parts of rhs_loc and l_continuity_mat
+    do dim1 = 1, mdim
+       rhs_u_ptr(dim1)%ptr => rhs_loc(u_start(dim1):u_end(dim1))
+    end do
+
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
     call get_local_solver(local_solver,U,X,down,D,f,ele,&
          & g,dt,theta,D0)
 
-    !!!Construct the continuity matrix that multiplies lambda in 
-    !!! the U equation
-    !allocate l_continuity_mat
-    allocate(l_continuity_mat(ele_loc(U,ele)*2+ele_loc(D,ele),lloc))
-    l_continuity_mat = 0.
+    !Construct the rhs sources for U from lambda
+    call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
+    lambda_val = ele_val(lambda,ele)
     !get list of neighbours
     neigh => ele_neigh(D,ele)
     !calculate l_continuity_mat
     do ni = 1, size(neigh)
        face=ele_face(U, ele, neigh(ni))
-       allocate(continuity_face_mat(mdim,face_loc(U,face),lloc))
+       allocate(continuity_face_mat(mdim,face_loc(U,face),&
+            face_loc(lambda,face)))
        continuity_face_mat = 0.
        call get_continuity_face_mat(continuity_face_mat,face,&
             U,lambda)
        do dim1 = 1, mdim
-          l_continuity_mat((dim1-1)*ele_loc(U,face)+face_local_nodes(U,face),&
-               &face_local_nodes(lambda,face))=&
-               &l_continuity_mat((dim1-1)*ele_loc(U,face)&
-               &+face_local_nodes(U,face),&
-               &face_local_nodes(lambda,face))+&
-               continuity_face_mat(dim1,:,:)
+          rhs_u_ptr(dim1)%ptr(face_local_nodes(U,face)) = &
+               & rhs_u_ptr(dim1)%ptr(face_local_nodes(U,face)) + &
+               & matmul(continuity_face_mat(dim1,:,:),&
+               &        face_val(lambda,face))
        end do
        deallocate(continuity_face_mat)
     end do
@@ -439,9 +436,6 @@ contains
     ! (u)   (M    C)^{-1}(0)   (M    C)^{-1}(L)
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
     
-    rhs_loc=0.
-    call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
-    rhs_loc = rhs_loc + matmul(l_continuity_mat,ele_val(lambda,ele))
     call solve(local_solver,Rhs_loc)
 
     do dim1 = 1, mdim
@@ -483,6 +477,15 @@ contains
     mdim = mesh_dim(U)
     uloc = ele_loc(U,ele)
     dloc = ele_loc(d,ele)
+
+    d_start = uloc*2 + 1
+    d_end   = uloc*2+dloc
+    do dim1 = 1, mdim
+       u_start(dim1) = uloc*(dim1-1)+1
+       u_end(dim1) = uloc*dim1
+    end do
+
+    local_solver = 0.
     
     u_shape=ele_shape(u, ele)
     D_shape=ele_shape(d, ele)
@@ -518,12 +521,6 @@ contains
     !<w,u> + dt*theta*<w,fu^\perp> - g*dt*theta<div w,h> = -<w.n,l>
     !dt*theta*<\phi,div u>         + D_0<\phi,h>         = 0 
 
-    d_start = uloc*2 + 1
-    d_end   = uloc*2+dloc
-    do dim1 = 1, mdim
-       u_start(dim1) = uloc*(dim1-1)+1
-       u_end(dim1) = uloc*dim1
-    end do
     !pressure mass matrix (done in global coordinates)
     local_solver(d_start:d_end,d_start:d_end)=&
          &shape_shape(d_shape,d_shape,detwei)
@@ -531,16 +528,18 @@ contains
     l_div_mat = dshape_shape(u_shape%dn,d_shape,&
          &D_shape%quadrature%weight)
     do dim1 = 1, mdim
-       !pressure gradient term
+       !pressure gradient term [integrated by parts so minus sign]
        local_solver(u_start(dim1):u_end(dim1),d_start:d_end)=&
-            & -g*dt*theta*l_div_mat(mdim,:,:)
+            & -g*dt*theta*l_div_mat(dim1,:,:)
        !divergence continuity term
        local_solver(d_start:d_end,u_start(dim1):u_end(dim1))=&
-            & d0*dt*theta*transpose(l_div_mat(mdim,:,:))
+            & d0*dt*theta*transpose(l_div_mat(dim1,:,:))
     end do
+
     !velocity mass matrix and Coriolis matrix (done in local coordinates)
     l_u_mat = shape_shape_tensor(u_shape, u_shape, &
          u_shape%quadrature%weight, Metric+dt*theta*Metricf)
+
     do dim1 = 1, mdim
        do dim2 = 1, mdim
           local_solver(u_start(dim1):u_end(dim1),&
@@ -548,6 +547,7 @@ contains
                & l_u_mat(dim1,dim2,:,:)
        end do
     end do
+        
   end subroutine get_local_solver
 
   function get_up_vec(X_val, up) result (up_vec_out)
@@ -625,7 +625,7 @@ contains
           forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/1/sqrt(2.),1&
                &/sqrt(2.)/)
        else
-          FLAbort('Oh dear oh dear')
+          FLAbort('Dimension not supported.')
        end if
     end if
 
@@ -698,15 +698,13 @@ contains
     neigh => ele_neigh(U_cart,ele)
     do ni = 1, size(neigh)
        ele2 = neigh(ni)
-       if(ele2<ele) then
-          face = ele_face(U_cart,ele,ele2)
-          if(ele2>0) then
-             face2 = ele_face(U_cart,ele2,ele)
-          else
-             face2 = -1
-          end if
-          call check_continuity_face(U_cart,X,ele,ele2,face,face2)
+       face = ele_face(U_cart,ele,ele2)
+       if(ele2>0) then
+          face2 = ele_face(U_cart,ele2,ele)
+       else
+          face2 = -1
        end if
+       call check_continuity_face(U_cart,X,ele,ele2,face,face2)
     end do
   end subroutine check_continuity_ele
 
@@ -835,42 +833,50 @@ contains
     nc_rhs = 0.
     lambda_nc_shape => ele_shape(lambda_nc,ele)
     neigh => ele_neigh(lambda,ele)
+    l_mass_mat = 0.
     do ni = 1, size(neigh)
        ele2 = neigh(ni)
        face = ele_face(X,ele,ele2)
-       call get_nc_rhs_face(nc_rhs,lambda,lambda_nc,X,face)
+       call get_nc_rhs_face(nc_rhs,l_mass_mat,lambda,lambda_nc,X,face)
     end do
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
          detwei=detwei)
-    l_mass_mat = shape_shape(lambda_nc_shape,lambda_nc_shape,detwei)
-
     call solve(l_mass_mat,nc_rhs)
     call set(lambda_nc,ele_nodes(lambda_nc,ele),nc_rhs)
   end subroutine reconstruct_lambda_nc
 
-  subroutine get_nc_rhs_face(nc_rhs,&
+  subroutine get_nc_rhs_face(nc_rhs,l_mass_mat,&
        lambda,lambda_nc,X,face)
     implicit none
     real, intent(inout), dimension(:) :: nc_rhs
+    real, intent(inout), dimension(:,:) :: l_mass_mat
     type(scalar_field), intent(in) :: lambda, lambda_nc
     type(vector_field), intent(in) :: X
     integer, intent(in) :: face
     !
     real, dimension(face_ngi(lambda,face)) :: detwei
     type(element_type), pointer :: lambda_nc_face_shape
+    real, dimension(X%dim,face_loc(X,face)) :: x_loc
 
     lambda_nc_face_shape => face_shape(lambda_nc,face)
+    X_loc = face_val(X,face)
+
     call transform_facet_to_physical(X,face,detwei_f=detwei)
     nc_rhs(face_local_nodes(lambda_nc,face)) = &
          &nc_rhs(face_local_nodes(lambda_nc,face)) &
          &+ shape_rhs(lambda_nc_face_shape,face_val_at_quad(lambda,face)*detwei)
+    l_mass_mat(face_local_nodes(lambda_nc,face), &
+         &face_local_nodes(lambda_nc,face)) = &
+         &l_mass_mat(face_local_nodes(lambda_nc,face), &
+         &face_local_nodes(lambda_nc,face)) + &
+         &shape_shape(lambda_nc_face_shape,lambda_nc_face_shape,detwei)
   end subroutine get_nc_rhs_face
 
   subroutine assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
     implicit none
     integer, intent(in) :: ele
-    type(scalar_field), intent(in), optional :: D_rhs
-    type(vector_field), intent(in), optional :: U_rhs
+    type(scalar_field), intent(in), optional, target :: D_rhs
+    type(vector_field), intent(in), optional, target :: U_rhs
     type(vector_field), intent(in) :: X,U
     type(scalar_field), intent(in) :: D
     real, dimension(mesh_dim(U)*ele_loc(U,ele)+ele_loc(D,ele)), &
@@ -884,7 +890,14 @@ contains
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(element_type) :: u_shape
     real, dimension(ele_ngi(D,ele)) :: detwei, detJ
+    logical :: have_d_rhs,have_u_rhs
+    type(scalar_field), pointer :: l_d_rhs
+    type(vector_field), pointer :: l_u_rhs
 
+    have_d_rhs = present(d_rhs)
+    have_u_rhs = present(u_rhs)
+    if(have_d_rhs) l_d_rhs => d_rhs
+    if(have_u_rhs) l_u_rhs => u_rhs
     !Get some sizes
     mdim = mesh_dim(U)
     uloc = ele_loc(U,ele)
@@ -905,18 +918,17 @@ contains
          detJ=detJ,detwei=detwei)
 
     Rhs_loc = 0.
-    if(present(D_rhs)) then
+    if(have_d_rhs) then
        Rhs_loc(d_start:d_end) = shape_rhs(ele_shape(D,ele),&
-            &ele_val_at_quad(D_rhs,ele)*detwei)
+            &ele_val_at_quad(l_D_rhs,ele)*detwei)
     end if
-    if(present(u_rhs)) then
-       allocate(u_cart_quad(U_rhs%dim,ele_ngi(X,ele)))
-       u_cart_quad = ele_val_at_quad(u_rhs,ele)
-       do gi = 1, ele_ngi(u_rhs,ele)
+    if(have_u_rhs) then
+       allocate(u_cart_quad(l_U_rhs%dim,ele_ngi(X,ele)))
+       u_cart_quad = ele_val_at_quad(l_u_rhs,ele)
+       do gi = 1, ele_ngi(D,ele)
+          !Don't divide by detJ as we can use weight instead of detwei
           u_local_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))
        end do
-       !U_rhs_loc = shape_vector_rhs(u_shape,&
-       !     u_local_quad,detwei)
        U_rhs_loc = shape_vector_rhs(u_shape,&
             u_local_quad,u_shape%quadrature%weight)
        do dim1 = 1, mdim
@@ -930,4 +942,45 @@ contains
 
   end subroutine assemble_rhs_ele
 
+  subroutine check_divergence_ele(U,D,D_rhs,X,ele)
+    implicit none
+    type(vector_field), intent(in) :: U, X
+    type(scalar_field), intent(in) :: D, D_rhs
+    integer, intent(in) :: ele
+    !
+    real, dimension(ele_ngi(D,ele)) :: detwei, detJ
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    integer :: dim1
+    real, dimension(ele_ngi(X,ele)) :: div
+    real, dimension(U%dim, ele_loc(U,ele)) :: U_loc
+    type(element_type) :: u_shape, d_shape
+    real, dimension(ele_loc(D,ele)) :: Div_loc
+    real, dimension(mesh_dim(U),ele_loc(U,ele),ele_loc(D,ele)) :: l_div_mat
+    real, dimension(ele_loc(D,ele),ele_loc(D,ele)) :: d_mass_mat
+    !
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detJ=detJ,detwei=detwei)
+    
+    u_shape = ele_shape(U,ele)
+    d_shape = ele_shape(D,ele)
+    U_loc = ele_val(U,ele)
+    
+    div = 0.
+    do dim1 = 1, U%dim
+       div = div + &
+            & matmul(U_loc(dim1,:),u_shape%dn(:,:,dim1))/detJ
+    end do
+
+    l_div_mat = dshape_shape(u_shape%dn,d_shape,&
+         &D_shape%quadrature%weight)
+
+    div_loc = 0.
+    do dim1 = 1, U%dim
+       div_loc = div_loc + matmul(transpose(l_div_mat(dim1,:,:))&
+            &,U_loc(dim1,:))
+    end do
+    d_mass_mat = shape_shape(d_shape,d_shape,detwei)
+    call solve(d_mass_mat,div_loc)
+    
+  end subroutine check_divergence_ele
 end module hybridized_helmholtz

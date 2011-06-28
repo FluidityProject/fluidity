@@ -8,7 +8,7 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="basin">
+      <from_file file_name="basin3">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
@@ -69,6 +69,22 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="P2Mesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">4</integer_value>
@@ -103,7 +119,7 @@
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">0.</real_value>
+        <real_value rank="0">1.0</real_value>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
@@ -239,7 +255,7 @@
           </constant>
         </initial_condition>
         <mean_layer_thickness>
-          <real_value rank="0">0.0</real_value>
+          <real_value rank="0">1.0</real_value>
         </mean_layer_thickness>
         <output/>
         <stat/>
@@ -251,8 +267,8 @@
         <mesh name="TraceMesh"/>
         <spatial_discretisation/>
         <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
+          <iterative_method name="cg"/>
+          <preconditioner name="eisenstat"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -271,11 +287,15 @@
     </scalar_field>
     <scalar_field name="LayerThicknessRHS" rank="0">
       <prescribed>
-        <mesh name="PressureMesh"/>
+        <mesh name="P2Mesh"/>
         <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.0</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+  from math import pi,cos
+  x = X[0]
+  y = X[1]
+  return (1+8*pi**2)*cos(2*pi*x)*cos(2*pi*y)</string_value>
+          </python>
         </value>
         <output/>
         <stat/>
@@ -329,11 +349,11 @@
     </scalar_field>
     <scalar_field name="LayerThicknessExact" rank="0">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="P2Mesh"/>
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
-  from math import cos, pi
+  from math import pi,cos
   x = X[0]
   y = X[1]
   return cos(2*pi*x)*cos(2*pi*y)</string_value>
@@ -369,17 +389,33 @@
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="LayerThicknessExactProjected" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="LayerThicknessExact" name="scalar_galerkin_projection"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
     <vector_field name="VelocityRHS" rank="1">
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-  from math import pi,cos,sin
-  x = X[0]
-  y = X[1]
-  return [-sin(pi*x)*cos(pi*y),cos(pi*x)*sin(pi*y),0]</string_value>
-          </python>
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0. 0. 0.</real_value>
+          </constant>
         </value>
         <output/>
         <stat>
