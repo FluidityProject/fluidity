@@ -262,21 +262,23 @@ contains
     !!< its meshes. Meshes should likewise be linear: the intended use case
     !!< is that numbering is on the periodic mesh while the meshes are the
     !!< non-periodic (or possibly periodic on fewer sides) alternatives. 
-    type(scalar_field), intent(in) :: numbering
+    type(scalar_field), intent(in), target :: numbering
     
-    type(mesh_type), dimension(:), intent(in), optional :: meshes
+    type(mesh_type), dimension(:), intent(in), target, optional :: meshes
 
     integer :: ele, m, i
-    integer, dimension(:), pointer :: nodes, facet_row
+    integer, dimension(:), pointer :: nodes, facet_row, neigh_row
     real, dimension(:), allocatable :: unn
-    integer, dimension(:), allocatable :: perm, facet, facet_perm
+    integer, dimension(:), allocatable :: perm, invperm, facet, facet_perm
     integer, dimension(2) :: tmpent
     type(cell_type), pointer :: cell
+    type(mesh_type), pointer :: mesh
 
     assert(numbering%mesh%shape%degree==1)
 
     allocate(unn(ele_loc(numbering,1)))
     allocate(perm(ele_loc(numbering,1)))
+    allocate(invperm(ele_loc(numbering,1)))
     allocate(facet_perm(ele_loc(numbering,1)))
     allocate(facet(face_loc(numbering,1)))
     cell=>numbering%mesh%shape%cell
@@ -287,37 +289,62 @@ contains
        
        ! Establish the node permutation.
        call qsort(unn, perm)
-       
+       invperm=inverse_permutation(perm)
+
        ! Now establish the resulting facet permutation.
        do i=1, facet_count(cell)
-          ! Look up the original vertices on the current facet.
+          ! Look up the vertices on the current facet.
           facet=entity_vertices(cell, [cell%dimension-1,i])
           ! Select new vertices according to the node permutation.
-          facet=perm(facet)
+          facet=invperm(facet)
           ! Look up the new facet number.
           tmpent=vertices_entity(cell, sorted(facet))
           facet_perm(i)=tmpent(2)
        end do
 
        nodes=nodes(perm)
-       facet_row=>ele_neigh(numbering, ele)
-       facet_row=facet_row(facet_perm)
+       neigh_row=>ele_neigh(numbering, ele)
+       facet_row=>ele_faces(numbering, ele)
        
-       ! Face_local_number is shared by all topologically related meshes so
-       !  we don't have to redo this one.
-       numbering%mesh%faces%local_face_number(nodes)=facet_row
+       numbering%mesh%faces%local_face_number(facet_row)=facet_perm
+
+       neigh_row=neigh_row(facet_perm)
+       facet_row=facet_row(facet_perm)
        
        if (present(meshes)) then
           do m=1, size(meshes)
              nodes=>ele_nodes(meshes(m), ele)
              nodes=nodes(perm)
-             
-             facet_row=>ele_neigh(meshes(m), ele)
+             neigh_row=>ele_neigh(numbering, ele)
+             facet_row=>ele_faces(numbering, ele)
+
+             numbering%mesh%faces%local_face_number(facet_row)=facet_perm
+
+             neigh_row=neigh_row(facet_perm)
              facet_row=facet_row(facet_perm)
           end do
        end if
     end do
+ 
+    ! This process invalidates the surface mesh(es) so we rebuild them.
+    ! The new surface meshes will be the same size as the old ones so we
+    !  don't bother with memory allocation registration.
+    mesh=>numbering%mesh
+    call deallocate(mesh%faces%surface_mesh)
+    deallocate(mesh%faces%surface_node_list)
+    call create_surface_mesh(mesh%faces%surface_mesh, &
+            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
     
+    if (present(meshes)) then
+       do m=1, size(meshes)
+          mesh=>meshes(m)
+          call deallocate(mesh%faces%surface_mesh)
+          deallocate(mesh%faces%surface_node_list)
+          call create_surface_mesh(mesh%faces%surface_mesh, &
+               mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))          
+       end do
+    end if
+
   end subroutine order_elements
 
 end module fields_halos
