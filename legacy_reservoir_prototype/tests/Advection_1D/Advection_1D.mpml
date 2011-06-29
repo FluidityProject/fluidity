@@ -453,9 +453,13 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.</real_value>
-          </constant>
+          <python>
+            <string_value type="python" lines="20">def val(x, t):
+  if x[0] &gt; 0.199 and x[0] &lt; 0.401 :
+    return 1.0
+  else:
+    return 0.0</string_value>
+          </python>
         </initial_condition>
         <boundary_conditions name="Inlet_T">
           <surface_ids>
