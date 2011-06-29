@@ -79,12 +79,44 @@ module elements
     real, pointer :: dn(:, :, :)
   end type superconvergence_type
 
+  type projection_type
+     !!< A type to encode the projection from the local Lagrange basis for 
+     !!< (Pn)^d vector-valued elements to another local basis, possibly for 
+     !!< a proper subspace. This new basis must have DOFs consisting
+     !!< of either normal components on facets corresponding to a Lagrange
+     !!< basis for the normal component when restricted to each facet,
+     !!< or coefficients of basis
+     !!< functions with vanishing normal components on all facets.
+     !! local dimension
+     integer :: dim
+     !! order of local Lagrange basis
+     integer :: degree
+     !! number of nodes for local Lagrange basis
+     integer :: loc
+     !! Number of facets
+     integer :: n_facets
+     !! polynomial order of Lagrange basis for normal component on facets
+     integer :: normal_component_degree
+     !! Number of interior DOFs
+     integer :: n_interior_dofs
+     !! Matrices mapping from faces DOFs to (Pn)^d basis
+     !! face x face_loc x dim x ele_loc
+     real, pointer :: face2dofs(:,:,:,:)=>null()
+     !! Matrix mapping from interior DOFs to (Pn)^d basis
+     !! interior_dofs x dim x ele_loc
+     real, pointer :: interior_dofs2dofs(:,:,:)=>null()
+     !! Reference count to prevent memory leaks.
+     type(refcount_type), pointer :: refcount=>null()
+  end type projection_type
+
   interface allocate
      module procedure allocate_element, allocate_element_with_surface
+     module procedure allocate_projection_type
   end interface
 
   interface deallocate
      module procedure deallocate_element
+     module procedure deallocate_projection
   end interface
 
   interface local_coords
@@ -235,6 +267,101 @@ contains
 
   end subroutine allocate_element_with_surface
 
+  subroutine allocate_projection_type(projection, vector_element, &
+       & trace_element, stat)
+    !!< Allocate memory for a projection type
+    type(projection_type), intent(inout) :: projection
+    type(element_type), intent(in) :: vector_element, trace_element
+    !! Stat returns zero for success and nonzero otherwise.
+    integer, intent(out), optional :: stat
+    !
+    integer :: lstat
+
+    lstat = 0
+
+    if(vector_element%numbering%type/=ELEMENT_LAGRANGIAN) then
+       FLExit('Need Lagrange vector element')
+    end if
+    if(trace_element%numbering%type/=ELEMENT_TRACE) then
+       FLExit('Need trace element')
+    end if
+
+    projection%dim = vector_element%dim
+    if(projection%dim /= trace_element%dim) then
+       FLExit('Incompatible dimensions of elements for projection')
+    end if
+    projection%loc = vector_element%loc
+    projection%degree = vector_element%degree
+
+    select case(vector_element%numbering%family)
+    case (FAMILY_SIMPLEX)
+       projection%n_facets=projection%dim + 1
+    case (FAMILY_CUBE)
+       projection%n_facets=2**(projection%dim)
+    case default
+       FLAbort('Illegal element family.')
+    end select
+
+    projection%normal_component_degree = trace_element%degree
+    if(trace_element%degree>projection%degree) then
+       FLExit('Doesn''t make sense to have trace degree higher than degree o&
+            &f vector element')
+    end if
+    select case(projection%degree)
+    case (1)
+       !! RT0 or BDM1 on simplex or cube, no interior DOFs
+       projection%n_interior_dofs = 0
+    case (2)
+       select case(trace_element%degree)
+       case (1)
+          select case(vector_element%numbering%family)
+          case (FAMILY_SIMPLEX)
+             !! BDFM1 on simplex
+             projection%n_interior_dofs = 3
+          case (FAMILY_CUBE)
+             !! BDFM1 (I think) on cube
+             projection%n_interior_dofs = 4
+          case default
+             FLAbort('Illegal element family.')
+          end select
+       case (2)
+          projection%n_interior_dofs = 0
+       case default
+          FLAbort('Don''t know how to count interior DOFs')
+       end select
+    case default
+       FLAbort('Don''t know how to count interior DOFs')
+    end select
+
+    if(projection%n_interior_dofs>0) then
+       allocate(projection%face2dofs(projection%n_facets,&
+            projection%normal_component_degree,&
+            projection%dim,&
+            projection%loc),&
+            projection%interior_dofs2dofs(projection%n_interior_dofs,&
+            projection%dim,projection%loc),stat=lstat)
+    else
+       allocate(projection%face2dofs(projection%n_facets,&
+            projection%normal_component_degree,&
+            projection%dim,&
+            projection%loc),stat=lstat)
+    end if
+    !nullify(projection%refcount) ! Hack for gfortran component initialisation
+    !                         bug.
+    !call addref(projection)
+
+    if(lstat==0) then
+       call make_projection(projection,vector_element%numbering%family)
+    end if
+
+    if (present(stat)) then
+       stat=lstat
+    else if (lstat/=0) then
+       FLAbort("Unable to allocate element.")
+    end if
+
+  end subroutine allocate_projection_type
+
   subroutine deallocate_element(element, stat)
     type(element_type), intent(inout) :: element
     integer, intent(out), optional :: stat
@@ -285,6 +412,35 @@ contains
     end if
 
   end subroutine deallocate_element
+
+  subroutine deallocate_projection(projection, stat)
+    type(projection_type), intent(inout) :: projection
+    integer, intent(out), optional :: stat
+    
+    integer :: lstat
+
+    lstat = 0
+
+    !call decref(projection)
+    !if (has_references(projection)) then
+    !   ! There are still references to this projection so we don't deallocate.
+    !   return
+    !end if
+
+    if(projection%n_interior_dofs>0) then
+       deallocate(projection%face2dofs,&
+            projection%interior_dofs2dofs,stat=lstat)
+    else
+       deallocate(projection%face2dofs,stat=lstat)
+    end if
+
+    if (present(stat)) then
+       stat=lstat
+    else if (lstat/=0) then
+       FLAbort("Unable to deallocate projection.")
+    end if
+
+  end subroutine deallocate_projection
 
   function element_local_coords(n, element) result (coords)
     !!< Work out the local coordinates of node n in element. This is just a
@@ -587,7 +743,7 @@ contains
        diffl4=-1.0
        
     else if (vertices==2**dimension) then
-       ! Hypercube. The dependent coordinate is redundent.
+       ! Hypercube. The dependent coordinate is redundant.
        diffl4=0.0
     
     else if (vertices==6.and.dimension==3) then
@@ -601,6 +757,86 @@ contains
     end if
        
   end function diffl4
+
+  subroutine make_projection(projection,family)
+    type(projection_type), intent(inout) :: projection
+    integer, intent(in) :: family
+    !
+    select case(family)
+    case (FAMILY_SIMPLEX)
+       select case(projection%dim)
+       case (2)
+          select case(projection%normal_component_degree)
+          case (0)
+             FLExit('RT0 sucks for GFD on triangles, not implemented.')
+          case (1)
+             select case(projection%n_interior_dofs)
+             case (0)
+                call make_projection_bdm1_triangle(projection)
+             case (1)
+                FLExit('Haven''t implemented it yet!')
+                !call make_projection_bdfm1_triangle(projection)
+             case default
+                FLExit('Unknown projection type')
+             end select
+          case default
+             FLExit('Unknown projection type')
+          end select
+       case default
+          FLExit('Dimension not implemented.')
+       end select
+    case (FAMILY_CUBE)
+       FLExit('Haven''t quite figured it out for cubes yet.')
+    case default
+       FLExit('Unknown element numbering family')
+    end select
+  end subroutine make_projection
+
+  subroutine make_projection_bdm1_triangle(projection)
+    implicit none
+    type(projection_type), intent(inout) :: projection
+    !
+    !normals and tangents in local coordinates
+    real, dimension(2,3) :: n, t
+    integer, dimension(3) :: fshift,bshift
+    integer, dimension(3,2) :: tangent_list, tangent_sign_list
+    integer :: facet, facet_loc, dim1
+    real :: norm
+
+    !normals in local coords
+    n(:,1) = (/-1.,0./)
+    n(:,2) = (/0.,-1./)
+    n(:,3) = (/1/sqrt(2.),1/sqrt(2.)/)
+    !tangents in local coords (oriented clockwise)
+    t(:,1) = (/0.,-1./)
+    t(:,2) = (/1.,0./)
+    t(:,3) = (/-1/sqrt(2.),1/sqrt(2.)/)
+    
+    !node tangent list
+    ! face x face_loc
+    tangent_list(1,:) = (/ 3,2 /)
+    tangent_list(2,:) = (/ 3,1 /)
+    tangent_list(3,:) = (/ 2,1 /)
+    !node tangent sign list
+    ! face x face_loc
+    tangent_sign_list(1,:) = (/ 1,-1 /)
+    tangent_sign_list(2,:) = (/-1, 1 /)
+    tangent_sign_list(3,:) = (/ 1,-1 /)   
+
+    !make projection%face2dofs
+    !! face x face_loc x dim x ele_loc
+    !interior DOFS
+    projection%face2dofs = 0.
+    do facet = 1, 3
+       do facet_loc = 1,2
+          norm = dot_product(t(:,tangent_list(facet,dim1)),n(:,facet))
+          !projection%face2dofs(facet,1,:,) = &
+          !     t(tangent_list(facet,facet_loc),:)*&
+          !     &tangent_sign_list(facet,facet_loc)/norm
+       end do
+    end do
+
+  end subroutine make_projection_bdm1_triangle
 
 #include "Reference_count_element_type.F90"
 

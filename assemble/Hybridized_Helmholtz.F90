@@ -289,13 +289,6 @@ contains
     call get_local_solver(local_solver,U,X,down,D,f,ele,&
          & g,dt,theta,D0)
 
-    !construct lambda_rhs
-    rhs_loc=0.
-    lambda_rhs_loc = 0.
-    call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
-
-    call solve(local_solver,Rhs_loc)
-
     !!!Construct the continuity matrix that multiplies lambda in 
     !!! the U equation
     !allocate l_continuity_mat
@@ -316,11 +309,6 @@ contains
           continuity_mat_u_ptr(dim1)%ptr(face_local_nodes(U,face),&
                face_local_nodes(lambda_rhs,face))+&
                continuity_face_mat(dim1,:,:)
-
-          lambda_rhs_loc(face_local_nodes(lambda_rhs,face)) = &
-               & lambda_rhs_loc(face_local_nodes(lambda_rhs,face)) - &
-               & matmul(transpose(continuity_face_mat(dim1,:,:)),&
-               & rhs_u_ptr(dim1)%ptr(face_local_nodes(U,face)))
        end do
        if(present(continuity_mat)) then
           do  dim1 = 1, mdim
@@ -341,11 +329,16 @@ contains
     !compute helmholtz_loc_mat
     allocate(helmholtz_loc_mat(lloc,lloc))
     helmholtz_loc_mat = matmul(transpose(l_continuity_mat),l_continuity_mat2)
-    
+
+    !construct lambda_rhs
+    rhs_loc=0.
+    lambda_rhs_loc = 0.
+    call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
+
+    call solve(local_solver,Rhs_loc)
+    lambda_rhs_loc = -matmul(transpose(l_continuity_mat),Rhs_loc)
     !insert lambda_rhs_loc into lambda_rhs
-    lambda_rhs_loc2 = -matmul(transpose(l_continuity_mat),Rhs_loc)
-    assert(maxval(abs(lambda_rhs_loc-lambda_rhs_loc2))<1.0e-8)
-    call addto(lambda_rhs,ele_nodes(lambda_rhs,ele),lambda_rhs_loc2)
+    call addto(lambda_rhs,ele_nodes(lambda_rhs,ele),lambda_rhs_loc)
     !insert helmholtz_loc_mat into global lambda matrix
     call addto(lambda_mat,ele_nodes(lambda_rhs,ele),&
          ele_nodes(lambda_rhs,ele),helmholtz_loc_mat)
