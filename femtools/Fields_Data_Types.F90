@@ -103,7 +103,7 @@ module fields_data_types
      type(csr_matrix) :: face_list
      !! A mesh consisting of all faces on the surface of the domain,
      !! it uses its own internal surface node numbering:
-     type(mesh_type) surface_mesh
+     type(mesh_type) :: surface_mesh
      !! A list of the nodes on the surface, thus forming a map between
      !! internal surface node numbering and global node numbering:
      integer, dimension(:), pointer :: surface_node_list
@@ -117,7 +117,7 @@ module fields_data_types
      !! list of ids to identify coplanar patches of the surface:
      integer, dimension(:), pointer :: coplanar_ids => null()
      !! a DG version of the surface mesh, useful for storing bc values
-     type(mesh_type), pointer:: dg_surface_mesh => null()
+     type(mesh_type), pointer :: dg_surface_mesh => null()
      !! A logical indicating if this mesh has internal boundaries
      !! This means that element owners need to be written when writing out this mesh
      logical :: has_internal_boundaries=.false.
