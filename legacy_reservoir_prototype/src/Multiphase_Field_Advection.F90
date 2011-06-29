@@ -204,36 +204,35 @@ contains
                T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
                MEAN_PORE_CV )
 
-
-
        end do Loop_Non_Linear_Iterations
 
-    end do Loop_Time
+       Select Case( problem )
+       Case( -1 );
+          field = 'CV_adv_field_Tdg'
+       Case( 0 );
+          field = 'CV_adv_field_Tstd'
+       Case( -2 );
+          field = 'CV_adv_field_Tcty'            
+       end Select
 
-    if( problem == -1 ) then
-       field = 'CV_adv_field_Tdg'
-    elseif( problem == 0 ) then
-       field = 'CV_adv_field_Tstd'
-    elseif( problem == -2 ) then
-       field = 'CV_adv_field_Tcty'
-    endif
-
-    unit_T = 1
-    call generate_name_dump( 1, unit_T, field, 1 )
-    xacc = 0.
-    do ele = 1, totele
-       do iloc = 1, cv_nloc
-          cv_nod = cv_ndgln(( ele - 1 ) * cv_nloc + iloc )
-          x_nod = x_ndgln(( ele - 1 ) * cv_nloc + iloc )
-          if( problem == -2 ) then
-             write( unit_T, * ) xacc, t( cv_nod )
-             xacc = xacc + ( domain_length / real( totele ) ) / real( cv_nloc - 1 )
-          else            
-             write( unit_T, * ) x( x_nod ), t( cv_nod )
-          end if
+       unit_T = 1
+       call generate_name_dump( itime, unit_T, field, 1 )
+       xacc = 0.
+       do ele = 1, totele
+          do iloc = 1, cv_nloc
+             cv_nod = cv_ndgln(( ele - 1 ) * cv_nloc + iloc )
+             x_nod = x_ndgln(( ele - 1 ) * cv_nloc + iloc )
+             if( problem == -2 ) then
+                write( itime, * ) xacc, t( cv_nod )
+                xacc = unit_T + ( domain_length / real( totele ) ) / real( cv_nloc - 1 )
+             else            
+                write( unit_T, * ) x( x_nod ), t( cv_nod )
+             end if
+          end do
+          xacc = xacc - ( domain_length / real( totele ) ) / real( cv_nloc - 1 )
        end do
-       xacc = xacc - ( domain_length / real( totele ) ) / real( cv_nloc - 1 )
-    end do
+
+    end do Loop_Time
 
     ewrite(3,*) 'Leaving solve_multiphase_field_advection'
 
