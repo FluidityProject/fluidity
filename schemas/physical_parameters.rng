@@ -8,6 +8,9 @@
       <optional>
         <ref name="coriolis_options"/>
       </optional>
+      <optional>
+        <ref name="mobility_options"/>
+      </optional>
     </element>
   </define>
   <define name="gravity_options">
@@ -141,6 +144,14 @@ where k is the z unit vector
 usually only the y-component of beta is non-zero</a:documentation>
         <ref name="real_dim_vector"/>
       </element>
+    </element>
+  </define>
+  <define name="mobility_options">
+    <element name="mobility">
+      <a:documentation>Mobility is defined as the ratio between the phases' viscosity
+In the schema, we will define one viscosity (e.g., gas phase)
+and the remaining viscosity is calculated from the mobility.</a:documentation>
+      <ref name="real"/>
     </element>
   </define>
 </grammar>

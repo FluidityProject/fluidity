@@ -99,7 +99,8 @@ module copy_outof_into_state
          u_source, t_source, v_source, comp_source, &
          u, v, w, &
          den, satura, volfra, comp, t, p, cv_p, volfra_pore, &
-         cv_one, Viscosity, &
+         cv_one, Viscosity, & 
+                                ! cv_one corresponds to density in single-phase advection problem
          uabs_coefs, &
          eos_coefs, cp_coefs, &
          comp_diff_coef, capil_pres_coef, &
@@ -224,8 +225,8 @@ module copy_outof_into_state
       ! Gravity terms to be linked with u_source
       logical :: have_gravity
       real :: gravity_magnitude, gravity_direction, delta_den
-!      type( vector_field ), pointer :: gravity
-!      type(vector_field), pointer :: dummyvector
+      !      type( vector_field ), pointer :: gravity
+      !      type(vector_field), pointer :: dummyvector
 
       integer :: nobcs    
 
@@ -283,10 +284,10 @@ module copy_outof_into_state
       x_nloc = 3*ndim
       p_nloc = pmesh%shape%loc ! 3
       u_nloc = vmesh%shape%loc
-!      if (have_option("/material_phase::phase1/vector_field::Velocity/prognostic/" // &
-!           "spatial_discretisation/discontinuous_galerkin/overlapping")) then
-!         u_nloc=u_nloc*p_nloc
-!      endif
+      !      if (have_option("/material_phase::phase1/vector_field::Velocity/prognostic/" // &
+      !           "spatial_discretisation/discontinuous_galerkin/overlapping")) then
+      !         u_nloc=u_nloc*p_nloc
+      !      endif
       if (pmesh%continuity>=0) then
          ! Continuous pressure mesh
          cv_nonods = ( cv_nloc - 1 ) * totele + 1
@@ -300,6 +301,11 @@ module copy_outof_into_state
       p_snloc = 1
       ! x_snloc = 1
       stotel = surface_element_count(cmesh)
+
+      if( nphases == 1 ) then
+         problem = 0 ! Single-phase advection (continuous)
+         if( pmesh%continuity < 0 ) problem = -1  
+      end if
 
       !! EoS things are going to be done very differently
       !! Currently the default value of ncoef is 10 so I'm going
@@ -529,19 +535,26 @@ module copy_outof_into_state
       ! Also have to allocate and initialise Viscosity
       allocate(Viscosity( cv_nonods * nphases ))
       Viscosity = 0.
+
       viscosity_ph1 => extract_tensor_field(state(1), "Viscosity")
-      viscosity_ph2 => extract_tensor_field(state(2), "Viscosity")
 
-      ewrite(3,*) "Got viscosities"
+!!!
+!!! This will be changed later, as we just need the viscosity of one phase 
+!!! and the mobility. All test cases will need to be updated, when we move to 
+!!! this. Also for the single phase advection, both mobility and viscosity need
+!!! to be initialised although will not be used.     
+      if( have_option( "/physical_parameters/mobility" ))then
+         call get_option( "/physical_parameters/mobility", Mobility )
+      elseif ( have_option( "/material_phase[1]/vector_field::Velocity/prognostic/" // &
+           "tensor_field::Viscosity/prescribed/value::WholeMesh/" // &
+           "isotropic")) then
+         viscosity_ph2 => extract_tensor_field(state(2), "Viscosity")
+         Mobility =  Viscosity_Ph2%val(1,1,1) / Viscosity_Ph1%val(1,1,1)         
+      elseif( nphases == 1 ) then
+         Mobility = 0. 
+      end if
 
-      ! Maybe should be worth adding Mobility to schema and Viscosity_Ph2 become a diagnostic field
-      if (have_option("/material_phase[1]/vector_field::Velocity/prognostic/&
-           &tensor_field::Viscosity/prescribed/value::WholeMesh/&
-           &isotropic")) then
-         Mobility =  Viscosity_Ph2%val(1,1,1) / Viscosity_Ph1%val(1,1,1)
-      endif
-
-      ewrite(3,*) "sorted mobility"
+      ewrite(3,*) "Got viscosities & mobility"
 
 !!!
 !!! Options below are for the multi-component flow model
@@ -775,9 +788,10 @@ module copy_outof_into_state
 
             do j = 1, shape_option( 1 )
                wic_p_bc( pressure_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = pressure_bc_type
-               ! The bellow is done as prssure for phase 2 is aliased therefore the same info for nodes
+               ! The bellow is done as pressure for phase 2 is aliased therefore the same info for nodes
                ! for the phase 1 should be copied for phase 2. This need to be changed later.
-               wic_p_bc( pressure_sufid_bc( 1 ) + i * nphases ) = pressure_bc_type
+               if( nphases > 1 ) &
+                    wic_p_bc( pressure_sufid_bc( 1 ) + i * nphases ) = pressure_bc_type
             enddo
 
             nobcs = get_boundary_condition_count( pressure )
@@ -851,7 +865,7 @@ module copy_outof_into_state
          endif Conditional_VolumeFraction_BC
 
       enddo Loop_VolumeFraction
-      
+
       ! Also need to allocate and initialise volfra
       allocate(volfra( cv_nonods * nphases ))
       volfra=0.
@@ -880,16 +894,16 @@ module copy_outof_into_state
          do j = node_count(velocity), 1, -1
             u((i-1)*node_count(velocity)+j)=velocity%val(X_, j)
             if( j == 1 ) u( ( i - 1 ) * node_count( velocity ) + j ) = &
-                          u( ( i - 1 ) * node_count( velocity ) + j + 1)
+                 u( ( i - 1 ) * node_count( velocity ) + j + 1)
             if (ndim>1) then
                v((i-1)*node_count(velocity)+j)=velocity%val(Y_, j)
                if( j == 1 ) v( ( i - 1 ) * node_count( velocity ) + j ) = &
-                             v( ( i - 1 ) * node_count( velocity ) + j + 1)
+                    v( ( i - 1 ) * node_count( velocity ) + j + 1)
             endif
             if (ndim>2) then
                w((i-1)*node_count(velocity)+j)=velocity%val(Z_, j)
                if( j == 1 ) w( ( i - 1 ) * node_count( velocity ) + j ) = &
-                             w( ( i - 1 ) * node_count( velocity ) + j + 1)
+                    w( ( i - 1 ) * node_count( velocity ) + j + 1)
             endif
          enddo
 
@@ -1061,8 +1075,8 @@ module copy_outof_into_state
                delta_den = 0.
                do j = 2, node_count( density )
                   delta_den = delta_den + ( den((i)*node_count(density)+j) - &
-                              den((i-1)*node_count(density)+j) ) / &
-                              real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
+                       den((i-1)*node_count(density)+j) ) / &
+                       real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
                end do
                do j = 1, u_nonods
                   u_source( ( i - 1 ) * u_nonods + j  ) = &
@@ -1214,7 +1228,7 @@ module copy_outof_into_state
       if (KComp_Sigmoid) then
          do i=1, ncomps
             call get_option('material_phase['// int2str(i+nphases-1) //']/is_multiphase_component/' // &
-                       'KComp_Sigmoid/k_comp', k_comp(i, 1, 1))
+                 'KComp_Sigmoid/k_comp', k_comp(i, 1, 1))
             ewrite(3,*) 'i, kcomp', i, k_comp(i, 1, 1)
             k_comp(i, 1:nphases, 1:nphases) = k_comp(i, 1, 1)
          end do
@@ -1224,8 +1238,8 @@ module copy_outof_into_state
       comp_diffusion=0.
       allocate( comp_diff_coef( ncomps, ncomp_diff_coef, nphases ))
       comp_diff_coef=0.
-      allocate( cv_one( cv_nonods * nphases ))
-      cv_one=0.
+      allocate( cv_one( nphases * cv_nonods ))
+      cv_one = 0.
 
       ewrite(3,*) "Leaving copy_outof_state"
 
