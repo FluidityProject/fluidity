@@ -1179,6 +1179,15 @@ contains
            trim(mesh%name)//" face_element_list.")
 #endif
 
+      ! local_face_number is a pure copy of that of the model
+      allocate( mesh%faces%local_face_number(1:size(model%faces%local_face_number)) )
+      mesh%faces%local_face_number=model%faces%local_face_number
+#ifdef HAVE_MEMORY_STATS
+      call register_allocation("mesh_type", "integer", &
+           size(mesh%faces%local_face_number), &
+           trim(mesh%name)//" local_face_number.")
+#endif
+
       ! boundary_ids is a pure copy of that of model
       allocate( mesh%faces%boundary_ids(1:size(model%faces%boundary_ids)) )
       mesh%faces%boundary_ids=model%faces%boundary_ids
