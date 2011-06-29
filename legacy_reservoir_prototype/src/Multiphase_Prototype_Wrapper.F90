@@ -105,6 +105,7 @@
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 #endif
 
+    call python_init
     call set_simulation_start_times()
     call initialise_walltime
     timestep = 0
