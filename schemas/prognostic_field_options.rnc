@@ -562,10 +562,23 @@ prognostic_velocity_field =
                      element enable_backscatter {
                         empty
                      }?,
+                     ## Filtered velocity (diagnostic). This is the Velocity field filtered
+                     ## with the test filter - see manual.
+                     element vector_field {
+                        attribute rank { "2" },
+                        attribute name { "FilteredVelocity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_vector_field
+                           }
+                        )
+                     }?,
                      ## Filter width tensor (diagnostic). This is the square of the mesh size.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicFilterWidth" },
+                        attribute name { "FilterWidth" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -577,7 +590,7 @@ prognostic_velocity_field =
                      ## Strain rate S1: the test filter applied to the strain rate of the mesh-filtered velocity.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicStrainRate" },
+                        attribute name { "StrainRate" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -589,7 +602,7 @@ prognostic_velocity_field =
                      ## Strain rate S2: the strain rate of the test-filtered velocity.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicFilteredStrainRate" },
+                        attribute name { "FilteredStrainRate" },
                         (
                            element diagnostic {
                               internal_algorithm,

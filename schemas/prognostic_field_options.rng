@@ -658,13 +658,30 @@ WARNING: this may result in the simulation blowing up.
                     </element>
                   </optional>
                   <optional>
+                    <element name="vector_field">
+                      <a:documentation>Filtered velocity (diagnostic). This is the Velocity field filtered
+with the test filter - see manual.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>FilteredVelocity</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_vector_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="tensor_field">
                       <a:documentation>Filter width tensor (diagnostic). This is the square of the mesh size.</a:documentation>
                       <attribute name="rank">
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>DynamicFilterWidth</value>
+                        <value>FilterWidth</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -680,7 +697,7 @@ WARNING: this may result in the simulation blowing up.
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>DynamicStrainRate</value>
+                        <value>StrainRate</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -696,7 +713,7 @@ WARNING: this may result in the simulation blowing up.
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>DynamicFilteredStrainRate</value>
+                        <value>FilteredStrainRate</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
