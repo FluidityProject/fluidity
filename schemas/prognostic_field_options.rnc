@@ -547,16 +547,6 @@ prognostic_velocity_field =
                      element solver {
                         linear_solver_options_sym
                      },
-                     ## [EXPERIMENTAL] If 0, the smaller filter width G_m is simply the mesh.
-                     ## If > 0, G_m is larger than the mesh.
-                     ## To achieve this the velocity is Helmholtz-filtered with the specified value.
-                     ## This removes some subgrid information, and reduces the effect of the dynamic model.
-                     ## The filtering effect is proportional to the square of the value.
-                     ## Ensure that 0 <= stabilisation_parameter <= 1.0. Default value: 0.0.
-                     ##
-                     element stabilisation_parameter {
-                        real
-                     },
                      ## Enable averaging of the velocity field to stabilise the model.
                      element enable_averaging {
                         empty

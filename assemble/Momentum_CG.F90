@@ -231,7 +231,7 @@
       ! For Germano Dynamic LES:
       type(vector_field), pointer :: nu_av, mnu, mnu_av, tnu, tnu_av
       type(tensor_field), pointer :: leonard, leonard_av
-      real                        :: alpha, alpha2
+      real                        :: alpha
 
       ! for temperature dependent viscosity :
       type(scalar_field), pointer :: temperature
@@ -420,28 +420,11 @@
              nu_av => dummyvector
            end if
 
-           ! Are we filtering the velocity field to stabilise the model?
-           call get_option(trim(les_option_path)//"/dynamic_les/stabilisation_parameter", alpha2, default=0.0)
-           if(alpha2 > 0.0) then
-             ! Calculate mesh-filtered velocity
-             ewrite(2,*) "Calculating mesh-filtered velocity from Velocity (not NonlinearVelocity)"
-             call anisotropic_smooth_vector(u, x, mnu, alpha2, trim(les_option_path)//"/dynamic_les")
-             ! If averaging, we need to smooth the averaged velocity too!
-             if(have_averaging) then
-               call anisotropic_smooth_vector(nu_av, x, mnu_av, alpha2, trim(les_option_path)//"/dynamic_les")
-             else
-               mnu_av => dummyvector
-             end if
-           else if(alpha2==0.0) then
-             ! Point the dynamic velocity field at the Velocity field because we're not filtering it.
-             call set(mnu, u)
-             if(have_averaging) then
-               call set(mnu_av, nu_av)
-             else
-               mnu_av => dummyvector
-             end if
+           call set(mnu, u)
+           if(have_averaging) then
+             call set(mnu_av, nu_av)
            else
-             FLAbort("Incorrect value for dynamic LES stabilisation parameter.")
+             mnu_av => dummyvector
            end if
 
            ! Get (test filter)/(mesh filter) size ratio alpha
@@ -2044,7 +2027,7 @@
                   ! L.S1
                   numerator = sum( leonard_gi(:,:,gi)*strain_gi(:,:,gi) )
                   ! alpha^2*|S2|*S2.S1
-                  ! This term is WRONG until I find a way of filtering the strain rate product.
+                  ! This term is WRONG until I find a way of filtering the strain rate product. The difference may be quite small though.
                   denominator = -2*alpha**2*t_strain_mod(gi)*sum(t_strain_gi(:,:,gi)*strain_gi(:,:,gi))
                   ! Dynamic eddy viscosity m_ij
                   ! N.B. If averaging, beware of operator not applying to every term.
@@ -2060,7 +2043,7 @@
                   ! |S1|*L.S1
                   numerator = t_strain_mod(gi)*sum(leonard_gi(:,:,gi)*t_strain_gi(:,:,gi))
                   ! alpha^2*|S2|^2*S2.S2
-                  ! This term is WRONG until I find a way of filtering the strain rate product.
+                  ! This term is WRONG until I find a way of filtering the strain rate product. The difference may be quite small though.
                   denominator = -2*alpha**2*(t_strain_mod(gi))**2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi))
                   ! Dynamic eddy viscosity m_ij
                   ! N.B. If averaging, beware of operator not applying to every term.

@@ -636,16 +636,6 @@ default/recommended value: 2.0</a:documentation>
                     <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
                     <ref name="linear_solver_options_sym"/>
                   </element>
-                  <element name="stabilisation_parameter">
-                    <a:documentation>[EXPERIMENTAL] If 0, the smaller filter width G_m is simply the mesh.
-If &gt; 0, G_m is larger than the mesh.
-To achieve this the velocity is Helmholtz-filtered with the specified value.
-This removes some subgrid information, and reduces the effect of the dynamic model.
-The filtering effect is proportional to the square of the value.
-Ensure that 0 &lt;= stabilisation_parameter &lt;= 1.0. Default value: 0.0.
-</a:documentation>
-                    <ref name="real"/>
-                  </element>
                   <optional>
                     <element name="enable_averaging">
                       <a:documentation>Enable averaging of the velocity field to stabilise the model.</a:documentation>
