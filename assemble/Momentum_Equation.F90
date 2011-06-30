@@ -1759,6 +1759,15 @@
             end if
 
             if(have_option("/material_phase["//int2str(i)//&
+                                 "]/scalar_field::Pressure/prognostic&
+                                 /spatial_discretisation/discontinuous_galerkin") &
+              .and. .not. have_option("/material_phase["//int2str(i)//&
+                                 "]/vector_field::Velocity/prognostic&
+                                 /spatial_discretisation/continuous_galerkin")) then
+              FLExit("With discontinuous galerkin Pressure you need a continuous Velocity")
+            end if
+ 
+            if(have_option("/material_phase["//int2str(i)//&
                         "]/vector_field::Velocity/prognostic/reference_node")) then
                if((.not.(have_option("/material_phase["//int2str(i)//&
                                  "]/vector_field::Velocity/prognostic&
