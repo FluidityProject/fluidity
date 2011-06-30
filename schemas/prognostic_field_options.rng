@@ -650,6 +650,14 @@ default/recommended value: 2.0</a:documentation>
                     </element>
                   </optional>
                   <optional>
+                    <element name="enable_backscatter">
+                      <a:documentation>Allow negative eddy viscosity (backscatter).
+WARNING: this may result in the simulation blowing up.
+</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="tensor_field">
                       <a:documentation>Filter width tensor (diagnostic). This is the square of the mesh size.</a:documentation>
                       <attribute name="rank">

@@ -556,6 +556,12 @@ prognostic_velocity_field =
                      element enable_lilly {
                         empty
                      }?,
+                     ## Allow negative eddy viscosity (backscatter).
+                     ## WARNING: this may result in the simulation blowing up.
+                     ## 
+                     element enable_backscatter {
+                        empty
+                     }?,
                      ## Filter width tensor (diagnostic). This is the square of the mesh size.
                      element tensor_field {
                         attribute rank { "2" },

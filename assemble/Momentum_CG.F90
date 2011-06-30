@@ -133,7 +133,7 @@
     
     ! LES coefficients and options
     real :: smagorinsky_coefficient
-    logical :: have_averaging, have_lilly, have_eddy_visc
+    logical :: have_averaging, have_lilly, have_eddy_visc, backscatter
     logical :: have_strain, have_filtered_strain, have_filter_width
 
     ! Temperature dependent viscosity coefficients:
@@ -385,6 +385,8 @@
            have_averaging = have_option(trim(les_option_path)//"/dynamic_les/enable_averaging")
            ! Are we using the Lilly (1991) modification?
            have_lilly = have_option(trim(les_option_path)//"/dynamic_les/enable_lilly")
+           ! Whether or not to allow backscatter (negative eddy viscosity)
+           backscatter = have_option(trim(les_option_path)//"/dynamic_les/enable_backscatter")
            ! Get optional diagnostic fields
            have_eddy_visc = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::EddyViscosity")
            have_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::DynamicStrainRate")
@@ -442,7 +444,8 @@
            ewrite_minmax(leonard)
          else
            have_averaging=.false.; have_lilly=.false.; have_eddy_visc=.false.
-           have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.
+           have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.;
+           backscatter=.false.
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
@@ -2033,9 +2036,11 @@
                   ! N.B. If averaging, beware of operator not applying to every term.
                   les_tensor_gi(:,:,gi) = numerator/denominator*strain_mod(gi)
 
-                  ! Artificial but it works!
-                  if(any(les_tensor_gi(:,:,gi) < 0.0)) then
-                    les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi),0.0)
+                  ! Whether or not to allow negative eddy viscosity (backscattering)
+                  if(.not. backscatter) then
+                    if(any(les_tensor_gi(:,:,gi) < 0.0)) then
+                      les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi),0.0)
+                    end if
                   end if
                 end do
               else if(have_lilly) then
@@ -2049,9 +2054,11 @@
                   ! N.B. If averaging, beware of operator not applying to every term.
                   les_tensor_gi(:,:,gi) = numerator/denominator*strain_mod(gi)
 
-                  ! Artificial but it works!
-                  if(any(les_tensor_gi(:,:,gi) < 0.0)) then
-                    les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi),0.0)
+                  ! Whether or not to allow negative eddy viscosity (backscattering)
+                  if(.not. backscatter) then
+                    if(any(les_tensor_gi(:,:,gi) < 0.0)) then
+                      les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi),0.0)
+                    end if
                   end if
                 end do
               end if
