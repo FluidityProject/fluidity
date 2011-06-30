@@ -175,6 +175,10 @@ debugging_options =
               empty
             }?
          ),
+         ## Save model output at each optimisation iteration in a subdirectory opt_iter_X, where X is the iteration number.
+         element save_model_output {
+            empty
+         }?,
          comment
       }?
   )

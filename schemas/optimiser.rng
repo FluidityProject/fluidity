@@ -202,6 +202,12 @@ The l2 error of the result is saved in the stat file as [functional name]_gradie
             <empty/>
           </element>
         </optional>
+        <optional>
+          <element name="save_model_output">
+            <a:documentation>Save model output at each optimisation iteration in a subdirectory opt_iter_X, where X is the iteration number.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
         <ref name="comment"/>
       </element>
     </optional>

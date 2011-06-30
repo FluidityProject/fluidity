@@ -427,18 +427,28 @@ def optimisation_loop(opt_options, model_options):
     return djdm_serial
 
   # This function gets called after each optimisation iteration. 
-  # It is currently used to do write the statistics to the stat file.
+  # It is currently used to write statistics and copy model output files into a subdirectory 
   def callback(m_serial, m_shape):
+    global iteration
+    iteration = iteration + 1
     if superspud(opt_options, "libspud.have_option('/debug/check_gradient')"):
       grad_err = scipy.optimize.check_grad(lambda x: J(x, m_shape, write_stat = False), lambda x: dJdm(x, m_shape, write_stat = False), m_serial)
       if verbose:
         print "Gradient error: ", grad_err
       stat_writer[(functional_name + "_gradient_error", "l2norm")] = grad_err
     stat_writer.write()
-  
+    if superspud(opt_options, "libspud.have_option('/debug/save_model_output')"):
+      # Copy any model output files in a subdirectory 
+      Popen(["mkdir", "opt_iter_"+str(iteration)])
+      simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
+      Popen("cp "+simulation_name.strip()+"* opt_iter_"+str(iteration), shell=True)
+    if verbose:
+	print "End of iteration ", iteration
+
 
   ### Initialisation of optimisation loop ###
-
+  global iteration
+  iteration = 0
   # Initialise stat file
   if verbose:
     print "Initialise stat file"
