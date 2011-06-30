@@ -188,8 +188,20 @@ contains
     
       p_mesh => extract_pressure_mesh(states)
       u_mesh => extract_velocity_mesh(states)
+
+      if (continuity(p_mesh)>=0) then
       
-      cmc_sparsity => get_csr_sparsity_secondorder(states, p_mesh, u_mesh)
+        cmc_sparsity => get_csr_sparsity_secondorder(states, p_mesh, u_mesh)
+
+      else
+
+        ! for dg pressure and cg velocity, C^T M_l^{-1} C (with lumped M_l)
+        ! the sparsity is given by the compact dg stencil
+        assert(continuity(u_mesh)>=0)
+        cmc_sparsity => get_csr_sparsity_compactdgdouble(states, p_mesh)
+
+      end if
+
       
       call allocate(temp_cmc_m, cmc_sparsity, name="PressurePoissonMatrix")
       call insert(states, temp_cmc_m, name="PressurePoissonMatrix")
