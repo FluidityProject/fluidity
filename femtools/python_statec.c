@@ -121,6 +121,13 @@ void python_run_string_keep_locals_c(char *str, int strlen,
   // Execute the user's code.
   PyObject *pCode = PyRun_String(t, Py_file_input, pGlobals, pLocals);
 
+  // Check for Python errors
+  if(!pCode){
+    PyErr_Print();
+    *stat=-1;
+    return;
+  }
+
   // Create dictionary to hold the locals if it doesn't exist
   char *local_dict = fix_string(dict, dictlen);
   PyObject *pLocalDict= PyDict_GetItemString(pGlobals, local_dict);
@@ -143,6 +150,7 @@ void python_run_string_keep_locals_c(char *str, int strlen,
     return;
   }
 
+  Py_DECREF(pCode);
   free(c); 
   free(local_dict);
   free(local_key);
@@ -210,9 +218,14 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
   }
 
   Py_DECREF(pGlobalsLocals);
+  Py_DECREF(pFuncCode);
+  Py_DECREF(pFuncClosure);
+  Py_DECREF(pLCoords);
+  Py_DECREF(pEle);
+  Py_DECREF(pResult);
+  free(pArgs);
   free(local_dict);
   free(local_key);
-  free(pArgs);
 #endif
 }
 

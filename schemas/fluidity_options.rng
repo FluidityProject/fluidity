@@ -8560,17 +8560,22 @@ The t argument is for future use only - currently detector locations are only se
                   </element>
                   <optional>
                     <element name="random_walk">
-                      <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
+                      <element name="python">
+                        <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
 The return value will be added to the lagrangian advection at each sub-timestep. 
-For performance reasons any fields needed should be pulled from 'state' before the val(X,t) function is evaluated.
+Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
 Functions should be of the form:
 
- pull field from state
+ field = state.scalar_fields['Field_name']
 
- def val(X,t):
-    # Function code evaluating the field
-    return # Return value</a:documentation>
-                      <ref name="python_code"/>
+ def val(ele, local_coord):
+    # x = field.eval_field(ele, local_coord)
+    return # Return some f(x)</a:documentation>
+                        <ref name="python_code"/>
+                      </element>
+                      <element name="random_seed">
+                        <ref name="integer"/>
+                      </element>
                     </element>
                   </optional>
                   <optional>

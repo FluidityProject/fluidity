@@ -6740,18 +6740,23 @@ biology =
                   element initial_position {
                      python_code
                   },
-                  ## Python function prescribing additional agent displacement due to turbulence. 
-                  ## The return value will be added to the lagrangian advection at each sub-timestep. 
-                  ## For performance reasons any fields needed should be pulled from 'state' before the val(X,t) function is evaluated.
-                  ## Functions should be of the form:
-                  ## 
-                  ##  pull field from state
-                  ##
-                  ##  def val(X,t):
-                  ##     # Function code evaluating the field
-                  ##     return # Return value
                   element random_walk {
-                     python_code
+                     ## Python function prescribing additional agent displacement due to turbulence. 
+                     ## The return value will be added to the lagrangian advection at each sub-timestep. 
+                     ## Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
+                     ## Functions should be of the form:
+                     ## 
+                     ##  field = state.scalar_fields['Field_name']
+                     ##
+                     ##  def val(ele, local_coord):
+                     ##     # x = field.eval_field(ele, local_coord)
+                     ##     return # Return some f(x)
+                     element python{
+                        python_code
+                     },
+                     element random_seed{
+                        integer
+                     }
                   }?,
                   ## 
                   element exclude_from_advection {

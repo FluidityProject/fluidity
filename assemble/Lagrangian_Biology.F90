@@ -42,6 +42,7 @@ module lagrangian_biology
   use detector_parallel
   use diagnostic_variables, only: initialise_constant_diagnostics, field_tag, &
                                   write_detectors, create_single_detector
+  use python_state
 
 implicit none
 
@@ -64,7 +65,7 @@ contains
     character(len = 254) :: buffer, schema_buffer
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
-    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type
+    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type, random_seed
 
     if (.not.have_option("/ocean_biology/lagrangian_ensemble")) return
 
@@ -95,7 +96,11 @@ contains
        ! Get options for Random Walk
        if (have_option(trim(schema_buffer)//"/random_walk")) then
           agent_arrays(i)%move_parameters%do_random_walk=.true.
-          call get_option(trim(schema_buffer)//"/random_walk", agent_arrays(i)%move_parameters%rw_pycode)
+          call get_option(trim(schema_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
+          call get_option(trim(schema_buffer)//"/random_walk/random_seed", random_seed)
+          
+          ! Initialise random number generator
+          call python_run_string("numpy.random.seed("//trim(int2str(random_seed))//"1001)")
        else
           agent_arrays(i)%move_parameters%do_random_walk=.false.
        end if

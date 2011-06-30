@@ -132,7 +132,6 @@ contains
     integer :: i, j, k, num_proc, dim, all_send_lists_empty, nprocs, stage, cycle
     logical :: any_lagrangian
     real :: rk_dt
-    type(c_ptr) :: val_func = C_NULL_PTR 
 
     ewrite(1,*) "In move_lagrangian_detectors for detectors list: ", detector_list%name
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
