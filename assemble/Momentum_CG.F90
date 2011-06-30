@@ -2037,8 +2037,11 @@
                   les_tensor_gi(:,:,gi) = numerator/denominator*strain_mod(gi)
 
                   ! Whether or not to allow negative eddy viscosity (backscattering)
-                  if(.not. backscatter) then
-                    if(any(les_tensor_gi(:,:,gi) < 0.0)) then
+                  ! but do not allow (viscosity+eddy_viscosity) < 0.
+                  if(any(les_tensor_gi(:,:,gi) < 0.0)) then
+                    if(backscatter) then
+                      les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi), epsilon(0.0) - viscosity_gi(:,:,gi))
+                    else
                       les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi),0.0)
                     end if
                   end if
@@ -2055,8 +2058,11 @@
                   les_tensor_gi(:,:,gi) = numerator/denominator*strain_mod(gi)
 
                   ! Whether or not to allow negative eddy viscosity (backscattering)
-                  if(.not. backscatter) then
-                    if(any(les_tensor_gi(:,:,gi) < 0.0)) then
+                  ! but do not allow (viscosity+eddy_viscosity) < 0.
+                  if(any(les_tensor_gi(:,:,gi) < 0.0)) then
+                    if(backscatter) then
+                      les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi), epsilon(0.0) - viscosity_gi(:,:,gi))
+                    else
                       les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi),0.0)
                     end if
                   end if
