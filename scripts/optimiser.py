@@ -438,13 +438,16 @@ def optimisation_loop(opt_options, model_options):
       stat_writer[(functional_name + "_gradient_error", "l2norm")] = grad_err
     stat_writer.write()
     if superspud(opt_options, "libspud.have_option('/debug/save_model_output')"):
-      # Copy any model output files in a subdirectory 
-      Popen(["mkdir", "opt_iter_"+str(iteration)])
-      simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
-      Popen("cp "+simulation_name.strip()+"* opt_iter_"+str(iteration), shell=True)
+      save_model_results()
     if verbose:
-	print "End of iteration ", iteration
+      print "End of iteration ", iteration
 
+  def save_model_results():
+    global iteration
+    # Copy any model output files in a subdirectory 
+    simulation_name = superspud(model_options, "libspud.get_option('/simulation_name')")
+    Popen(["mkdir", "opt_"+str(iteration)+"_"+simulation_name.strip()])
+    Popen("cp "+simulation_name.strip()+"* "+"opt_"+str(iteration)+"_"+simulation_name.strip(), shell=True)
 
   ### Initialisation of optimisation loop ###
   global iteration
@@ -490,6 +493,8 @@ def optimisation_loop(opt_options, model_options):
     superspud(opt_options, "libspud.delete_option('/adjoint/functional::"+functional_name+"/disable_adjoint_run')")
   [custom_m_serial, custom_m_shape] = serialise(custom_m)
   mem_pure_J(custom_m_serial, custom_m_shape)
+  if superspud(opt_options, "libspud.have_option('/debug/save_model_output')"):
+    save_model_results()
   # This should have created all the default initial controls and we can now activate the load_controls flag. 
   superspud(model_options, ["libspud.add_option('/adjoint/controls/load_controls')", "libspud.write_options('"+ model_file +"')"])
 
