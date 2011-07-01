@@ -57,12 +57,10 @@ mesh_info =
          element constraint_type {
             ## Set the constraint type. This is used to implement
             ## div-conforming elements such as RT0 in a hybridised
-            ## solver. In local coordinates BDFM constraints on quads
-            ## reduce both the polynomial order of u in the y
-            ## direction and the polynomial order of v in the x
-            ## direction by 1. On triangles, BDFM does the same but
-            ## with collapsed coordinates.
-            "BDFM" | "None"
+            ## solver.
+            element string_value{
+               "BDFM" | "RT" | "none"
+            }
          }?,
          ## Make mesh periodic
          element periodic_boundary_conditions {

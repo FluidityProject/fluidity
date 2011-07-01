@@ -764,7 +764,7 @@ contains
     character(len=*), intent(in):: mesh_path
     
     character(len=FIELD_NAME_LEN) :: mesh_name
-    character(len=OPTION_PATH_LEN) :: continuity_option, element_option
+    character(len=OPTION_PATH_LEN) :: continuity_option, element_option, constraint_option_string
     type(quadrature_type):: quad
     type(element_type):: shape
     integer :: constraint_choice
@@ -804,8 +804,16 @@ contains
       quad=make_quadrature(loc, dim, degree=quad_degree, family=get_quad_family())
       ! Get element constraints
       call get_option(trim(mesh_path)//"/from_mesh/constraint_type",&
-           & constraint_choice, stat)
-      if(stat/=0) then
+           constraint_option_string, stat)
+      if(stat==0) then
+         if(trim(constraint_option_string)=="BDFM") then
+            constraint_choice=CONSTRAINT_BDFM
+         else if(trim(constraint_option_string)=="RT") then
+            constraint_choice=CONSTRAINT_RT
+         else if(trim(constraint_option_string)=="none") then
+            constraint_choice=CONSTRAINT_NONE
+         end if
+      else
          constraint_choice = CONSTRAINT_NONE
       end if
       

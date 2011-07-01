@@ -85,6 +85,7 @@ contains
     integer :: ele,i1, stat, dim1
     logical :: l_compute_cartesian,l_check_continuity, l_output_dense
     real, dimension(:,:), allocatable :: lambda_mat_dense
+    character(len=OPTION_PATH_LEN) :: constraint_option_string
 
     ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
 
@@ -173,9 +174,9 @@ contains
           continuity_block_mat = block(continuity_mat,dim1,1)
           call mult_T_addto(lambda_rhs,continuity_block_mat,u_cpt)
        end do
-       ewrite(1,*)'LAMBDARHS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs&
+       ewrite(1,*)'JUMPS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs&
             &%val)
-
+       assert(maxval(abs(lambda_rhs%val))<1.0e-10)
        if(.not.l_compute_cartesian) then
           FLExit('Need to compute cartesian to check continuity')
        end if
@@ -183,6 +184,7 @@ contains
        do ele = 1, ele_count(U)
           call check_continuity_ele(U_cart,X,ele)
        end do
+
     end if
     
     ! lambda_nc=>extract_scalar_field(state, "LambdaNC",stat)
@@ -248,12 +250,10 @@ contains
     dloc = ele_loc(d,ele)
     U_shape = ele_shape(U,ele)
 
-    call get_option(trim(U%mesh%option_path)//"/from_mesh/constraint_type",&
-         & constraint_choice, stat)
-    have_constraint = .false.
+    have_constraint = &
+         &have_option(trim(U%mesh%option_path)//"/from_mesh/constraint_type")
     n_constraints = 0
-    if(stat==0) then
-       have_constraint = .true.
+    if(have_constraint) then
        n_constraints = ele_n_constraints(U,ele)
     end if
 
@@ -276,7 +276,7 @@ contains
        rhs_u_ptr(dim1)%ptr => rhs_loc(u_start(dim1):u_end(dim1))
     end do
     rhs_d_ptr => rhs_loc(d_start:d_end)
-    allocate(l_continuity_mat(2*uloc+dloc,lloc))
+    allocate(l_continuity_mat(2*uloc+dloc+n_constraints,lloc))
     do dim1= 1,mdim
        continuity_mat_u_ptr(dim1)%ptr => &
             & l_continuity_mat(u_start(dim1):u_end(dim1),:)
@@ -330,7 +330,7 @@ contains
     end do
 
     !compute l_continuity_mat2 = inverse(local_solver)*l_continuity_mat
-    allocate(l_continuity_mat2(uloc*2+dloc,lloc))
+    allocate(l_continuity_mat2(uloc*2+dloc+n_constraints,lloc))
     l_continuity_mat2 = l_continuity_mat
     call solve(local_solver,l_continuity_mat2)
 
@@ -345,7 +345,7 @@ contains
 
     call solve(local_solver,Rhs_loc)
     lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
-         &Rhs_loc(1:mdim*uloc+dloc))
+         &Rhs_loc)
     !insert lambda_rhs_loc into lambda_rhs
     call addto(lambda_rhs,ele_nodes(lambda_rhs,ele),lambda_rhs_loc)
     !insert helmholtz_loc_mat into global lambda matrix
@@ -449,7 +449,7 @@ contains
     ! 
     ! (u)   (M    C)^{-1}(0)   (M    C)^{-1}(L)
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
-    
+
     call solve(local_solver,Rhs_loc)
 
     do dim1 = 1, mdim
@@ -458,8 +458,43 @@ contains
     end do
     call set(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
 
+    !some debugging checks
+    do ni = 1, size(neigh)
+       face=ele_face(U, ele, neigh(ni))
+
+       call check_constraints_face(rhs_loc(u_start(1):u_end(1)),&
+            rhs_loc(u_start(2):u_end(2)),U,face)
+    end do
   end subroutine reconstruct_U_d_ele
   
+  subroutine check_constraints_face(U1_loc,U2_loc,U,face)
+    implicit none
+    real, intent(in), dimension(:) :: U1_loc,U2_loc
+    type(vector_field), intent(in) :: U
+    integer, intent(in) :: face
+    !
+    real, dimension(face_loc(U,face)) :: U1_face, U2_face
+    real, dimension(2) :: n
+    real, dimension(face_loc(U,face)) :: nvals
+
+    U1_face = U1_loc(face_local_nodes(U,face))
+    U2_face = U2_loc(face_local_nodes(U,face))
+
+    select case (local_face_number(U%mesh,face))
+    case (1)
+       n = (/ -1.,0. /)
+    case (2)
+       n = (/ 0.,-1. /)
+    case (3)
+       n = (/ 1./sqrt(2.),1./sqrt(2.) /)
+    case default
+       FLExit('!!?!??!')
+    end select
+
+    nvals = U1_face*n(1) + U2_face*n(2)
+    assert(abs(nvals(2)-0.5*(nvals(1)+nvals(3)))<1.0e-10)
+  end subroutine check_constraints_face
+
   subroutine get_local_solver(local_solver,U,X,down,D,f,ele,&
        & g,dt,theta,D0,have_constraint)
     implicit none
@@ -487,6 +522,8 @@ contains
     integer, dimension(:), pointer :: D_ele,U_ele
     integer :: d_start, d_end
     integer, dimension(mesh_dim(U)) :: U_start, U_end
+    type(constraints_type), pointer :: constraints
+    integer :: i1, c_start, c_end
 
     mdim = mesh_dim(U)
     uloc = ele_loc(U,ele)
@@ -561,6 +598,20 @@ contains
                & l_u_mat(dim1,dim2,:,:)
        end do
     end do
+    
+    if(have_constraint) then
+       constraints => U%mesh%shape%constraints
+       c_start = d_end+1
+       c_end = d_end + constraints%n_constraints
+       do i1 = 1, constraints%n_constraints
+          do dim1 = 1, mdim
+             local_solver(d_end+i1,u_start(dim1):u_end(dim1))=&
+                  &constraints%orthogonal(i1,:,dim1)
+             local_solver(u_start(dim1):u_end(dim1),d_end+i1)=&
+                  &constraints%orthogonal(i1,:,dim1)
+          end do
+       end do
+    end if
         
   end subroutine get_local_solver
 
@@ -927,7 +978,7 @@ contains
     type(vector_field), intent(in), optional, target :: U_rhs
     type(vector_field), intent(in) :: X,U
     type(scalar_field), intent(in) :: D
-    real, dimension(mesh_dim(U)*ele_loc(U,ele)+ele_loc(D,ele)), &
+    real, dimension(:), &
          &intent(inout) :: Rhs_loc
     !
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
@@ -1029,6 +1080,7 @@ contains
     end do
     d_mass_mat = shape_shape(d_shape,d_shape,detwei)
     call solve(d_mass_mat,div_loc)
-    
+    !ewrite(1,*) 'div_loc', div_loc
+    !ewrite(1,*) 'div', div
   end subroutine check_divergence_ele
 end module hybridized_helmholtz

@@ -105,7 +105,8 @@ module elements
      real, pointer :: orthogonal(:,:,:)=> null()
   end type constraints_type
 
-  integer, parameter :: CONSTRAINT_NONE =0, CONSTRAINT_BDFM = 1
+  integer, parameter :: CONSTRAINT_NONE =0, CONSTRAINT_BDFM = 1,&
+       & CONSTRAINT_RT = 2
 
   interface allocate
      module procedure allocate_element, allocate_element_with_surface
@@ -718,26 +719,55 @@ contains
     select case(family)
     case (FAMILY_SIMPLEX)
        select case(constraint%type)
-       case (2)
-          select case(constraint%type)
-          case (CONSTRAINT_BDFM)
+       case (CONSTRAINT_BDFM)
+          select case(constraint%dim)
+          case (2)
              select case(constraint%degree)
              case (1)
-                FLExit('RT0 sucks for GFD on triangles, not implemented yet.')
+                call make_constraints_rt0_triangle(constraint)
              case (2)
                 call make_constraints_bdfm1_triangle(constraint)
-                FLExit('Haven''t implemented it yet!')
              case default
                 FLExit('Unknown constraints type')
              end select
           case default
-             FLExit('Unknown constraints type')
+             FLExit('Unsupported dimension')
+          end select
+       case (CONSTRAINT_RT)
+          select case(constraint%dim)
+          case (2)
+             select case(constraint%degree)
+             case (1)
+                call make_constraints_rt0_triangle(constraint)
+             case default
+                FLExit('Unknown constraints type')
+             end select
+          case default
+             FLExit('Unsupported dimension')
           end select
        case default
-          FLExit('Dimension not implemented.')
+          FLExit('Unknown constraints type')
        end select
     case (FAMILY_CUBE)
-       FLExit('Haven''t quite figured it out for cubes yet.')
+       select case(constraint%type)
+       case (CONSTRAINT_BDFM)
+          select case(constraint%dim)
+          case (2)
+             select case(constraint%degree)
+             case (1)
+                call make_constraints_rt0_square(constraint)
+             case (2)
+                FLExit('Haven''t implemented it yet!')
+                !call make_constraints_rt1_square(constraint)
+             case default
+                FLExit('Unknown constraints type')
+             end select
+          case default
+             FLExit('Unsupported dimension')
+          end select
+       case default
+          FLExit('Unknown constraints type')
+       end select
     case default
        FLExit('Unknown element numbering family')
     end select
@@ -749,15 +779,12 @@ contains
     real, dimension(3,2) :: n
     integer, dimension(3,3) :: face_loc
     integer :: dim1, face, floc
+    real, dimension(3) :: c
 
     if(constraint%dim/=2) then
        FLExit('Only implemented for 2D so far')
     end if
-    !linear 1D functions are antisymmetric
-    !so take symmetric cubic bubble
-    !x(1-x) and subtract the mean value 1/6
-    !midpoint value is 0.5**2 - 1/6
-    !
+
     !DOFS    FACES
     ! 3      
     ! 5 2    1 3
@@ -773,16 +800,112 @@ contains
     n(2,:) = (/  0.,-1. /)
     n(3,:) = (/ 1./sqrt(2.),1./sqrt(2.) /)
 
+    !coefficients in each face
+    c = (/ 0.5,-1.,0.5 /)
+
     constraint%orthogonal = 0.
     do face = 1, 3
-       do floc = 1,2
+       do floc = 1,3
           do dim1 = 1, 2
-             constraint%orthogonal(1,face_loc(face,floc),dim1) = n(face,dim1)
+             constraint%orthogonal(face,face_loc(face,floc),dim1) = &
+                  c(floc)*n(face,dim1)
           end do
        end do
     end do
     !! dimension n_constraints x loc x dim
   end subroutine make_constraints_bdfm1_triangle
+
+  subroutine make_constraints_rt0_triangle(constraint)
+    implicit none
+    type(constraints_type), intent(inout) :: constraint
+    real, dimension(3,2) :: n
+    integer, dimension(3,2) :: face_loc
+    integer :: dim1, face, floc, count
+    real, dimension(2) :: c
+
+    if(constraint%dim/=2) then
+       FLExit('Only implemented for 2D so far')
+    end if
+
+    !DOFS    FACES
+    ! 2      
+    !        1 3
+    ! 3   1   2
+
+    !face local nodes to element local nodes
+    face_loc(1,:) = (/ 2,3 /)
+    face_loc(2,:) = (/ 1,3 /)
+    face_loc(3,:) = (/ 1,2 /)
+
+    !normals
+    n(1,:) = (/ -1., 0. /)
+    n(2,:) = (/  0.,-1. /)
+    n(3,:) = (/ 1./sqrt(2.),1./sqrt(2.) /)
+
+    !constraint coefficients
+    c = (/ 1., -1. /)
+
+    constraint%orthogonal = 0.
+    count = 0
+    do face = 1, 3
+       count = count + 1
+       do floc = 1,2
+          do dim1 = 1, 2
+             constraint%orthogonal(count,face_loc(face,floc),dim1)&
+                  = c(floc)*n(face,dim1)
+          end do
+       end do
+    end do
+    assert(count==3)
+    !! dimension n_constraints x loc x dim
+  end subroutine make_constraints_rt0_triangle
+
+  subroutine make_constraints_rt0_square(constraint)
+    implicit none
+    type(constraints_type), intent(inout) :: constraint
+    real, dimension(4,2) :: n
+    integer, dimension(4,2) :: face_loc
+    integer :: dim1, face, floc, count
+    real, dimension(2) :: c
+
+    if(constraint%dim/=2) then
+       FLExit('Only implemented for 2D so far')
+    end if
+
+    !DOFS    FACES
+    ! 3   4   3
+    !        4 2
+    ! 1   2   1
+
+    !face local nodes to element local nodes
+    face_loc(1,:) = (/ 1,2 /)
+    face_loc(2,:) = (/ 2,4 /)
+    face_loc(3,:) = (/ 3,4 /)
+    face_loc(4,:) = (/ 3,1 /)
+
+    !normals
+    n(1,:) = (/  0., -1. /)
+    n(2,:) = (/  1.,  0. /)
+    n(3,:) = (/  0.,  1. /)
+    n(4,:) = (/ -1.,  0. /)
+
+    !constraint coefficients
+    c = (/ 1., -1. /)
+
+    constraint%orthogonal = 0.
+    count  = 0
+    do face = 1, 4
+       count = count + 1
+       do floc = 1,2
+          do dim1 = 1, 2
+             constraint%orthogonal(count,face_loc(face,floc),dim1)&
+                  = c(floc)*n(face,dim1)
+          end do
+       end do
+    end do
+    assert(count==4)
+    !! dimension n_constraints x loc x dim
+  end subroutine make_constraints_rt0_square
 
 #include "Reference_count_element_type.F90"
 
