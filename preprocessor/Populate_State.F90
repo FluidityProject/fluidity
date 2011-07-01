@@ -767,6 +767,7 @@ contains
     character(len=OPTION_PATH_LEN) :: continuity_option, element_option
     type(quadrature_type):: quad
     type(element_type):: shape
+    integer :: constraint_choice
     integer:: loc, dim, poly_degree, continuity, new_shape_type, quad_degree, stat
     logical :: new_shape
     
@@ -801,8 +802,16 @@ contains
       call get_option("/geometry/quadrature/degree",&
            & quad_degree)
       quad=make_quadrature(loc, dim, degree=quad_degree, family=get_quad_family())
+      ! Get element constraints
+      call get_option(trim(mesh_path)//"/from_mesh/constraint_type",&
+           & constraint_choice, stat)
+      if(stat/=0) then
+         constraint_choice = CONSTRAINT_NONE
+      end if
+      
       ! Make new mesh shape
-      shape=make_element_shape(loc, dim, poly_degree, quad, type=new_shape_type)
+      shape=make_element_shape(loc, dim, poly_degree, quad,&
+           &type=new_shape_type,constraint_type_choice=constraint_choice)
       call deallocate(quad) ! Really just drop a reference.
     else
       shape=from_mesh%shape

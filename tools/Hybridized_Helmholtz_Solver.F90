@@ -104,7 +104,7 @@
     call print_current_memory_stats(0)
 #endif
     D_rhs=>extract_scalar_field(state(1), "LayerThicknessRHS")
-    U_rhs=>extract_vector_field(state(1), "VelocityRHS")
+    !U_rhs=>extract_vector_field(state(1), "VelocityRHS")
     U=>extract_vector_field(state(1), "Velocity")
     D => extract_scalar_field(state(1), "LayerThickness")
     call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
@@ -127,11 +127,9 @@
     call remap_field(D_rhs,D_rhs_projected)
     dump_no = 0
     call write_state(dump_no,state)
-    !subroutine solve_hybridized_helmholtz(state,D_rhs,U_Rhs,&
-    !   &compute_cartesian,&
-    !  &check_continuity,output_dense) 
+
     call solve_hybridized_helmholtz(&
-         &state(1),D_rhs=D_rhs_projected,U_rhs=u_rhs,&
+         &state(1),D_rhs=D_rhs_projected,&
          &compute_cartesian=.true.,check_continuity=.true.,output_dense=.false.)
 
     dgified_D => extract_scalar_field(state(1), "LayerThicknessP1dg",stat)

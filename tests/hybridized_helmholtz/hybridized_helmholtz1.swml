@@ -391,7 +391,7 @@
     </scalar_field>
     <scalar_field name="LayerThicknessExactProjected" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="LayerThicknessExact" name="scalar_galerkin_projection"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="LayerThicknessExact"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>
@@ -409,26 +409,6 @@
         </adjoint_storage>
       </diagnostic>
     </scalar_field>
-    <vector_field name="VelocityRHS" rank="1">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value shape="3" dim1="dim" rank="1">0. 0. 0.</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </prescribed>
-    </vector_field>
   </material_phase>
   <debug>
     <check_inverse_coriolis_matrix/>

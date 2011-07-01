@@ -138,13 +138,6 @@ contains
 
     ewrite(1,*)'LAMBDARHS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs%val)
 
-    ! X1 = extract_scalar_field(X,1)
-    ! X2 = extract_scalar_field(X,2)
-    ! call allocate(lambdaX1,lambda%mesh,'LambdaX1')
-    ! call allocate(lambdaX2,lambda%mesh,'LambdaX2')
-    ! call remap_field(X1,lambdaX1)
-    ! call remap_field(X2,lambdaX2)
-
     !Solve the equations
     call petsc_solve(lambda,lambda_mat,lambda_rhs)
 
@@ -228,23 +221,25 @@ contains
     type(csr_matrix), intent(inout) :: lambda_mat
     type(block_csr_matrix), intent(inout), optional :: continuity_mat
     !
-    real, dimension(ele_loc(U,ele)*2+ele_loc(D,ele),&
-         &ele_loc(U,ele)*2+ele_loc(D,ele)) :: local_solver
     real, allocatable, dimension(:,:),target :: &
          &l_continuity_mat, l_continuity_mat2
     real, allocatable, dimension(:,:) :: helmholtz_loc_mat
     real, allocatable, dimension(:,:,:) :: continuity_face_mat
+    real, allocatable, dimension(:,:) :: scalar_continuity_face_mat
     integer :: ni, face
     integer, dimension(:), pointer :: neigh
     real, dimension(ele_loc(lambda_rhs,ele)) :: lambda_rhs_loc,lambda_rhs_loc2
-    real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)),target :: Rhs_loc
+    real, dimension(:),allocatable,target :: Rhs_loc
+    real, dimension(:,:), allocatable :: local_solver
     type(element_type) :: U_shape
-    integer :: d_start, d_end, dim1, mdim, uloc,dloc, lloc
+    integer :: stat, d_start, d_end, dim1, mdim, uloc,dloc, lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(real_vector), dimension(mesh_dim(U)) :: rhs_u_ptr
     real, dimension(:), pointer :: rhs_d_ptr
     type(real_matrix), dimension(mesh_dim(U)) :: &
          & continuity_mat_u_ptr
+    logical :: have_constraint
+    integer :: constraint_choice, n_constraints, constraints_start
 
     !Get some sizes
     lloc = ele_loc(lambda_rhs,ele)
@@ -252,6 +247,19 @@ contains
     uloc = ele_loc(U,ele)
     dloc = ele_loc(d,ele)
     U_shape = ele_shape(U,ele)
+
+    call get_option(trim(U%mesh%option_path)//"/from_mesh/constraint_type",&
+         & constraint_choice, stat)
+    have_constraint = .false.
+    n_constraints = 0
+    if(stat==0) then
+       have_constraint = .true.
+       n_constraints = ele_n_constraints(U,ele)
+    end if
+
+    allocate(rhs_loc(2*uloc+dloc+n_constraints))
+    allocate(local_solver(mdim*uloc+dloc+n_constraints,&
+         mdim*uloc+dloc+n_constraints))
 
     !Calculate indices in a vector containing all the U and D dofs in
     !element ele, First the u1 components, then the u2 components, then the
@@ -274,20 +282,20 @@ contains
             & l_continuity_mat(u_start(dim1):u_end(dim1),:)
     end do
 
-    ! ( M    C  -L)(u)   (0)
+    ! ( M    C  -L)(u)   (v)
     ! ( -C^T N  0 )(h) = (j)
     ! ( L^T  0  0 )(l)   (0)
     ! 
-    ! (u)   (M    C)^{-1}(0)   (M    C)^{-1}(L)
+    ! (u)   (M    C)^{-1}(v)   (M    C)^{-1}(L)
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
     ! so
-    !        (M    C)^{-1}(L)         (M    C)^{-1}(0)
+    !        (M    C)^{-1}(L)         (M    C)^{-1}(v)
     ! (L^T 0)(-C^T N)     (0)=-(L^T 0)(-C^T N)     (j)
 
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
     call get_local_solver(local_solver,U,X,down,D,f,ele,&
-         & g,dt,theta,D0)
+         & g,dt,theta,D0,have_constraint)
 
     !!!Construct the continuity matrix that multiplies lambda in 
     !!! the U equation
@@ -336,7 +344,8 @@ contains
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
 
     call solve(local_solver,Rhs_loc)
-    lambda_rhs_loc = -matmul(transpose(l_continuity_mat),Rhs_loc)
+    lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
+         &Rhs_loc(1:mdim*uloc+dloc))
     !insert lambda_rhs_loc into lambda_rhs
     call addto(lambda_rhs,ele_nodes(lambda_rhs,ele),lambda_rhs_loc)
     !insert helmholtz_loc_mat into global lambda matrix
@@ -358,12 +367,9 @@ contains
     integer, intent(in) :: ele
     real, intent(in) :: g,dt,theta,D0
     !
-    real, dimension(ele_loc(U,ele)*2+ele_loc(D,ele),&
-         &ele_loc(U,ele)*2+ele_loc(D,ele)) :: local_solver
     real, allocatable, dimension(:,:,:) :: continuity_face_mat
     integer :: ni, face
     integer, dimension(:), pointer :: neigh
-    real, dimension(2*ele_loc(U,ele)+ele_loc(D,ele)), target :: Rhs_loc
     type(element_type) :: U_shape
     integer :: d_start, d_end, dim1, mdim, uloc,dloc,lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
@@ -372,6 +378,10 @@ contains
     type(real_matrix), dimension(mesh_dim(U)) :: &
          & continuity_mat_u_ptr
     real, dimension(ele_loc(lambda,ele)) :: lambda_val
+    real, dimension(:),allocatable,target :: Rhs_loc
+    real, dimension(:,:), allocatable :: local_solver
+    logical :: have_constraint
+    integer :: n_constraints
 
     !Get some sizes
     lloc = ele_loc(lambda,ele)
@@ -379,6 +389,17 @@ contains
     uloc = ele_loc(U,ele)
     dloc = ele_loc(d,ele)
     U_shape = ele_shape(U,ele)
+
+    have_constraint = &
+         &have_option(trim(U%mesh%option_path)//"/from_mesh/constraint_type")
+    n_constraints = 0
+    if(have_constraint) then
+       n_constraints = ele_n_constraints(U,ele)
+    end if
+
+    allocate(rhs_loc(2*uloc+dloc+n_constraints))
+    allocate(local_solver(mdim*uloc+dloc+n_constraints,&
+         mdim*uloc+dloc+n_constraints))
 
     !Calculate indices in a vector containing all the U and D dofs in
     !element ele, First the u1 components, then the u2 components, then the
@@ -398,7 +419,7 @@ contains
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
     call get_local_solver(local_solver,U,X,down,D,f,ele,&
-         & g,dt,theta,D0)
+         & g,dt,theta,D0,have_constraint)
 
     !Construct the rhs sources for U from lambda
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
@@ -440,15 +461,15 @@ contains
   end subroutine reconstruct_U_d_ele
   
   subroutine get_local_solver(local_solver,U,X,down,D,f,ele,&
-       & g,dt,theta,D0)
+       & g,dt,theta,D0,have_constraint)
     implicit none
     real, intent(in) :: g,dt,theta,D0
     type(vector_field), intent(in) :: U,X,down
     type(scalar_field), intent(in) :: D,f
     integer, intent(in) :: ele
-    real, dimension(ele_loc(U,ele)*2+ele_loc(D,ele),&
-         &ele_loc(U,ele)*2+ele_loc(D,ele))&
+    real, dimension(:,:)&
          &, intent(inout) :: local_solver
+    logical, intent(in) :: have_constraint
     !
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
     real, dimension(ele_ngi(x,ele)) :: f_gi
@@ -592,6 +613,40 @@ contains
          U_face_shape,lambda_face_shape,detwei,n1)
 
   end subroutine get_continuity_face_mat
+
+  subroutine get_scalar_continuity_face_mat(continuity_face_mat,face,&
+       lambda)
+    ! integral is done in local coordinates to avoid computing
+    ! dx/dxi on face (using properties of the Piola transform)
+    ! \int_f [[w]]\lambda dS
+    implicit none
+    integer, intent(in) :: face
+    type(scalar_field), intent(in) :: lambda
+    real, dimension(face_loc(lambda,face),face_loc(lambda,face)),&
+         &intent(inout) :: continuity_face_mat
+    !
+    real :: weight
+    type(element_type), pointer :: lambda_face_shape
+    real, dimension(face_ngi(lambda,face)) :: detwei
+
+    lambda_face_shape=>face_shape(lambda, face)
+
+    !Integral is taken on one of the edges of the local 2D element
+    !This edge must be transformed to the local 1D element
+    !to do numerical integration, with the following weight factors
+    if(face==3) then
+       weight = sqrt(2.)
+    else
+       weight = 1.0
+    end if
+
+    !Get normal in local coordinates
+    detwei = weight*lambda_face_shape%quadrature%weight
+
+    continuity_face_mat = shape_shape(&
+         lambda_face_shape,lambda_face_shape,detwei)
+
+  end subroutine get_scalar_continuity_face_mat
 
   subroutine get_local_normal(norm,weight,U,face)
     !Function returns normal to face on local 2D element

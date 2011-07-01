@@ -55,6 +55,8 @@ module elements
      type(quadrature_type), pointer :: surface_quadrature=>null()
      !! Pointer to the superconvergence data for this element.
      type(superconvergence_type), pointer :: superconvergence=>null()
+     !! Pointer to constraints data for this element
+     type(constraints_type), pointer :: constraints=>null()
      !! Reference count to prevent memory leaks.
      type(refcount_type), pointer :: refcount=>null()
      !! Dummy name to satisfy reference counting
@@ -79,44 +81,40 @@ module elements
     real, pointer :: dn(:, :, :)
   end type superconvergence_type
 
-  type projection_type
-     !!< A type to encode the projection from the local Lagrange basis for 
+  type constraints_type
+     !!< A type to encode the constraints from the local Lagrange basis for 
      !!< (Pn)^d vector-valued elements to another local basis, possibly for 
      !!< a proper subspace. This new basis must have DOFs consisting
-     !!< of either normal components on facets corresponding to a Lagrange
-     !!< basis for the normal component when restricted to each facet,
+     !!< of either normal components on faces corresponding to a Lagrange
+     !!< basis for the normal component when restricted to each face,
      !!< or coefficients of basis
-     !!< functions with vanishing normal components on all facets.
+     !!< functions with vanishing normal components on all faces.
+     !! type of constraints
+     integer :: type
      !! local dimension
      integer :: dim
      !! order of local Lagrange basis
      integer :: degree
      !! number of nodes for local Lagrange basis
      integer :: loc
-     !! Number of facets
-     integer :: n_facets
-     !! polynomial order of Lagrange basis for normal component on facets
-     integer :: normal_component_degree
-     !! Number of interior DOFs
-     integer :: n_interior_dofs
-     !! Matrices mapping from faces DOFs to (Pn)^d basis
-     !! face x face_loc x dim x ele_loc
-     real, pointer :: face2dofs(:,:,:,:)=>null()
-     !! Matrix mapping from interior DOFs to (Pn)^d basis
-     !! interior_dofs x dim x ele_loc
-     real, pointer :: interior_dofs2dofs(:,:,:)=>null()
-     !! Reference count to prevent memory leaks.
-     type(refcount_type), pointer :: refcount=>null()
-  end type projection_type
+     !! Number of constraints
+     integer :: n_constraints
+     !! basis of functions that are orthogonal to the 
+     !! constrained vector space 
+     !! dimension n_constraints x loc x dim
+     real, pointer :: orthogonal(:,:,:)=> null()
+  end type constraints_type
+
+  integer, parameter :: CONSTRAINT_NONE =0, CONSTRAINT_BDFM = 1
 
   interface allocate
      module procedure allocate_element, allocate_element_with_surface
-     module procedure allocate_projection_type
+     module procedure allocate_constraints_type
   end interface
 
   interface deallocate
      module procedure deallocate_element
-     module procedure deallocate_projection
+     module procedure deallocate_constraints
   end interface
 
   interface local_coords
@@ -267,91 +265,49 @@ contains
 
   end subroutine allocate_element_with_surface
 
-  subroutine allocate_projection_type(projection, vector_element, &
-       & trace_element, stat)
-    !!< Allocate memory for a projection type
-    type(projection_type), intent(inout) :: projection
-    type(element_type), intent(in) :: vector_element, trace_element
+  subroutine allocate_constraints_type(constraint, element, type, stat)
+    !!< Allocate memory for a constraints type
+    type(element_type), intent(in) :: element
+    type(constraints_type), intent(inout) :: constraint
+    integer, intent(in) :: type !type of constraint
     !! Stat returns zero for success and nonzero otherwise.
     integer, intent(out), optional :: stat
     !
     integer :: lstat
 
     lstat = 0
+    constraint%type = type
+    constraint%dim = element%dim
+    constraint%loc = element%loc
+    constraint%degree = element%degree
 
-    if(vector_element%numbering%type/=ELEMENT_LAGRANGIAN) then
-       FLExit('Need Lagrange vector element')
-    end if
-    if(trace_element%numbering%type/=ELEMENT_TRACE) then
-       FLExit('Need trace element')
-    end if
-
-    projection%dim = vector_element%dim
-    if(projection%dim /= trace_element%dim) then
-       FLExit('Incompatible dimensions of elements for projection')
-    end if
-    projection%loc = vector_element%loc
-    projection%degree = vector_element%degree
-
-    select case(vector_element%numbering%family)
-    case (FAMILY_SIMPLEX)
-       projection%n_facets=projection%dim + 1
-    case (FAMILY_CUBE)
-       projection%n_facets=2**(projection%dim)
-    case default
-       FLAbort('Illegal element family.')
-    end select
-
-    projection%normal_component_degree = trace_element%degree
-    if(trace_element%degree>projection%degree) then
-       FLExit('Doesn''t make sense to have trace degree higher than degree o&
-            &f vector element')
-    end if
-    select case(projection%degree)
-    case (1)
-       !! RT0 or BDM1 on simplex or cube, no interior DOFs
-       projection%n_interior_dofs = 0
-    case (2)
-       select case(trace_element%degree)
-       case (1)
-          select case(vector_element%numbering%family)
-          case (FAMILY_SIMPLEX)
-             !! BDFM1 on simplex
-             projection%n_interior_dofs = 3
-          case (FAMILY_CUBE)
-             !! BDFM1 (I think) on cube
-             projection%n_interior_dofs = 4
-          case default
-             FLAbort('Illegal element family.')
-          end select
-       case (2)
-          projection%n_interior_dofs = 0
+    select case (type) 
+    case (CONSTRAINT_BDFM)
+       select case(element%numbering%family)
+       case (FAMILY_SIMPLEX)
+          if(constraint%degree<3) then
+             constraint%n_constraints = constraint%dim+1
+          else
+             FLAbort('High order not supported yet')
+          end if
+       case (FAMILY_CUBE)
+          FLExit('Haven''t implemented BDFM1 on quads yet.')
        case default
-          FLAbort('Don''t know how to count interior DOFs')
+          FLAbort('Illegal element family.')
        end select
+    case (CONSTRAINT_NONE)
+       constraint%n_constraints = 0
     case default
-       FLAbort('Don''t know how to count interior DOFs')
+       FLExit('Unknown constraint type')
     end select
 
-    if(projection%n_interior_dofs>0) then
-       allocate(projection%face2dofs(projection%n_facets,&
-            projection%normal_component_degree,&
-            projection%dim,&
-            projection%loc),&
-            projection%interior_dofs2dofs(projection%n_interior_dofs,&
-            projection%dim,projection%loc),stat=lstat)
-    else
-       allocate(projection%face2dofs(projection%n_facets,&
-            projection%normal_component_degree,&
-            projection%dim,&
-            projection%loc),stat=lstat)
-    end if
-    !nullify(projection%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    !call addref(projection)
-
-    if(lstat==0) then
-       call make_projection(projection,vector_element%numbering%family)
+    if(constraint%n_constraints>0) then
+       allocate(&
+            constraint%orthogonal(constraint%n_constraints,&
+            constraint%loc,constraint%dim),stat=lstat)
+       if(lstat==0) then
+          call make_constraints(constraint,element%numbering%family)
+       end if
     end if
 
     if (present(stat)) then
@@ -360,7 +316,7 @@ contains
        FLAbort("Unable to allocate element.")
     end if
 
-  end subroutine allocate_projection_type
+  end subroutine allocate_constraints_type
 
   subroutine deallocate_element(element, stat)
     type(element_type), intent(inout) :: element
@@ -405,6 +361,12 @@ contains
     deallocate(element%n,element%dn, stat=tstat)
     lstat=max(lstat,tstat)
 
+    call deallocate(element%constraints,stat=tstat)
+    lstat = max(lstat,tstat)
+
+    deallocate(element%constraints, stat=tstat)
+    lstat = max(lstat,tstat)
+
     if (present(stat)) then
        stat=lstat
     else if (lstat/=0) then
@@ -413,34 +375,25 @@ contains
 
   end subroutine deallocate_element
 
-  subroutine deallocate_projection(projection, stat)
-    type(projection_type), intent(inout) :: projection
+  subroutine deallocate_constraints(constraint, stat)
+    type(constraints_type), intent(inout) :: constraint
     integer, intent(out), optional :: stat
     
     integer :: lstat
 
     lstat = 0
 
-    !call decref(projection)
-    !if (has_references(projection)) then
-    !   ! There are still references to this projection so we don't deallocate.
-    !   return
-    !end if
-
-    if(projection%n_interior_dofs>0) then
-       deallocate(projection%face2dofs,&
-            projection%interior_dofs2dofs,stat=lstat)
-    else
-       deallocate(projection%face2dofs,stat=lstat)
+    if(associated(constraint%orthogonal)) then
+       deallocate(constraint%orthogonal,stat=lstat)
     end if
 
     if (present(stat)) then
        stat=lstat
     else if (lstat/=0) then
-       FLAbort("Unable to deallocate projection.")
+       FLAbort("Unable to deallocate constraints.")
     end if
 
-  end subroutine deallocate_projection
+  end subroutine deallocate_constraints
 
   function element_local_coords(n, element) result (coords)
     !!< Work out the local coordinates of node n in element. This is just a
@@ -758,29 +711,27 @@ contains
        
   end function diffl4
 
-  subroutine make_projection(projection,family)
-    type(projection_type), intent(inout) :: projection
+  subroutine make_constraints(constraint,family)
+    type(constraints_type), intent(inout) :: constraint
     integer, intent(in) :: family
     !
     select case(family)
     case (FAMILY_SIMPLEX)
-       select case(projection%dim)
+       select case(constraint%type)
        case (2)
-          select case(projection%normal_component_degree)
-          case (0)
-             FLExit('RT0 sucks for GFD on triangles, not implemented.')
-          case (1)
-             select case(projection%n_interior_dofs)
-             case (0)
-                call make_projection_bdm1_triangle(projection)
+          select case(constraint%type)
+          case (CONSTRAINT_BDFM)
+             select case(constraint%degree)
              case (1)
+                FLExit('RT0 sucks for GFD on triangles, not implemented yet.')
+             case (2)
+                call make_constraints_bdfm1_triangle(constraint)
                 FLExit('Haven''t implemented it yet!')
-                !call make_projection_bdfm1_triangle(projection)
              case default
-                FLExit('Unknown projection type')
+                FLExit('Unknown constraints type')
              end select
           case default
-             FLExit('Unknown projection type')
+             FLExit('Unknown constraints type')
           end select
        case default
           FLExit('Dimension not implemented.')
@@ -790,53 +741,48 @@ contains
     case default
        FLExit('Unknown element numbering family')
     end select
-  end subroutine make_projection
+  end subroutine make_constraints
 
-  subroutine make_projection_bdm1_triangle(projection)
+  subroutine make_constraints_bdfm1_triangle(constraint)
     implicit none
-    type(projection_type), intent(inout) :: projection
+    type(constraints_type), intent(inout) :: constraint
+    real, dimension(3,2) :: n
+    integer, dimension(3,3) :: face_loc
+    integer :: dim1, face, floc
+
+    if(constraint%dim/=2) then
+       FLExit('Only implemented for 2D so far')
+    end if
+    !linear 1D functions are antisymmetric
+    !so take symmetric cubic bubble
+    !x(1-x) and subtract the mean value 1/6
+    !midpoint value is 0.5**2 - 1/6
     !
-    !normals and tangents in local coordinates
-    real, dimension(2,3) :: n, t
-    integer, dimension(3) :: fshift,bshift
-    integer, dimension(3,2) :: tangent_list, tangent_sign_list
-    integer :: facet, facet_loc, dim1
-    real :: norm
+    !DOFS    FACES
+    ! 3      
+    ! 5 2    1 3
+    ! 6 4 1   2
 
-    !normals in local coords
-    n(:,1) = (/-1.,0./)
-    n(:,2) = (/0.,-1./)
-    n(:,3) = (/1/sqrt(2.),1/sqrt(2.)/)
-    !tangents in local coords (oriented clockwise)
-    t(:,1) = (/0.,-1./)
-    t(:,2) = (/1.,0./)
-    t(:,3) = (/-1/sqrt(2.),1/sqrt(2.)/)
-    
-    !node tangent list
-    ! face x face_loc
-    tangent_list(1,:) = (/ 3,2 /)
-    tangent_list(2,:) = (/ 3,1 /)
-    tangent_list(3,:) = (/ 2,1 /)
-    !node tangent sign list
-    ! face x face_loc
-    tangent_sign_list(1,:) = (/ 1,-1 /)
-    tangent_sign_list(2,:) = (/-1, 1 /)
-    tangent_sign_list(3,:) = (/ 1,-1 /)   
+    !face local nodes to element local nodes
+    face_loc(1,:) = (/ 3,5,6 /)
+    face_loc(2,:) = (/ 1,4,6 /)
+    face_loc(3,:) = (/ 1,2,3 /)
 
-    !make projection%face2dofs
-    !! face x face_loc x dim x ele_loc
-    !interior DOFS
-    projection%face2dofs = 0.
-    do facet = 1, 3
-       do facet_loc = 1,2
-          norm = dot_product(t(:,tangent_list(facet,dim1)),n(:,facet))
-          !projection%face2dofs(facet,1,:,) = &
-          !     t(tangent_list(facet,facet_loc),:)*&
-          !     &tangent_sign_list(facet,facet_loc)/norm
+    !normals
+    n(1,:) = (/ -1., 0. /)
+    n(2,:) = (/  0.,-1. /)
+    n(3,:) = (/ 1./sqrt(2.),1./sqrt(2.) /)
+
+    constraint%orthogonal = 0.
+    do face = 1, 3
+       do floc = 1,2
+          do dim1 = 1, 2
+             constraint%orthogonal(1,face_loc(face,floc),dim1) = n(face,dim1)
+          end do
        end do
     end do
-
-  end subroutine make_projection_bdm1_triangle
+    !! dimension n_constraints x loc x dim
+  end subroutine make_constraints_bdfm1_triangle
 
 #include "Reference_count_element_type.F90"
 
