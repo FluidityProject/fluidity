@@ -302,11 +302,6 @@ module copy_outof_into_state
       ! x_snloc = 1
       stotel = surface_element_count(cmesh)
 
-      if( nphases == 1 ) then
-         problem = 0 ! Single-phase advection (continuous)
-         if( pmesh%continuity < 0 ) problem = -1  
-      end if
-
       !! EoS things are going to be done very differently
       !! Currently the default value of ncoef is 10 so I'm going
       !! to put that here until we have a more concrete idea of what
@@ -330,6 +325,13 @@ module copy_outof_into_state
       !! These aren't used 
       cv_sele_type = 1
       u_sele_type = 1
+
+      if( nphases == 1 ) then
+         problem = 0 ! Single-phase advection (continuous)
+         if( pmesh%continuity < 0 ) problem = -1  
+         cv_ele_type = 1
+         u_ele_type = 1
+      end if
 
       !! Time options
       ewrite(3,*) ' Getting time options'
@@ -1172,6 +1174,7 @@ module copy_outof_into_state
          end if Conditional_ExtraScalarField
 
       end if
+ewrite(3,*)'temperature field:',t
 
       ewrite(3,*) 'Getting component source'
       allocate(comp_source(cv_nonods*nphases))

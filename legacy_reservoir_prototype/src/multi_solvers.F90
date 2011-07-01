@@ -37,10 +37,55 @@
 module solvers_module
 
   use fldebug
-
+  use PETScSolve_Serial
 contains
 
-  SUBROUTINE SOLVER( CMC, P, RHS,  &
+
+
+  subroutine SOLVER( CMC, P, RHS,  &
+       NCMC, NONODS, FINCMC, COLCMC, MIDCMC,  &
+       ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
+
+    !
+    ! Solve CMC * P = RHS for RHS.
+    ! RELAX: overall relaxation coeff; =1 for no relaxation. 
+    ! RELAX_DIAABS: relaxation of the absolute values of the sum of the row of the matrix;
+    !               - recommend >=2 for hard problems, =0 for easy
+    ! RELAX_DIA: relaxation of diagonal; =1 no relaxation (normally applied). 
+    ! N_LIN_ITS = no of linear iterations
+    ! ERROR= solver tolerence between 2 consecutive iterations
+    implicit none
+    REAL, intent( in ) :: ERROR, RELAX, RELAX_DIAABS, RELAX_DIA
+    INTEGER, intent( in ) ::  N_LIN_ITS, NCMC, NONODS
+    REAL, DIMENSION( NCMC ), intent( in ) ::  CMC
+    REAL, DIMENSION( NONODS ), intent( inout ) ::  P
+    REAL, DIMENSION( NONODS ), intent( in ) :: RHS
+    INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINCMC
+    INTEGER, DIMENSION( NCMC ), intent( in ) :: COLCMC
+    INTEGER, DIMENSION( NONODS ), intent( in ) :: MIDCMC
+   
+    logical :: use_petsc = .false. !.true.
+    real :: max_error
+
+    if(.not. use_petsc) then
+      call  SOLVER_SSOR( CMC, P, RHS,  &
+        NCMC, NONODS, FINCMC, COLCMC, MIDCMC,  &
+        ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
+    else
+   
+      ewrite(3,*) 'In PETSc Solver'
+   
+      call PETScMatrixSolve(cmc,p,rhs,nonods,fincmc,colcmc,ncmc, max_error)
+
+      ewrite(3,*) 'Leaving PETSc Solver'
+
+    end if    
+       
+  end subroutine SOLVER
+
+
+
+  SUBROUTINE SOLVER_SSOR( CMC, P, RHS,  &
        NCMC, NONODS, FINCMC, COLCMC, MIDCMC,  &
        ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
     !
@@ -102,7 +147,7 @@ contains
     ewrite(3,*) 'Leaving Solver'
 
     RETURN
-  END SUBROUTINE SOLVER
+  END SUBROUTINE SOLVER_SSOR
 
 
   SUBROUTINE GETCMC( CMC, CTP, DIAINV, CT, FREDOP, NONODS, &
