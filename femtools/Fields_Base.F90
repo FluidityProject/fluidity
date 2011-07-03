@@ -3931,6 +3931,21 @@ contains
     opp_face = face_opposite_mesh(tfield%mesh, face)
   end function face_opposite_tensor
 
+  function mesh_topology(mesh) result (topology)
+    ! Return a pointer to the topology mesh for mesh.
+    type(mesh_type), intent(in), target :: mesh
+    type(mesh_type), pointer :: topology
+
+    if (associated(mesh%topology)) then
+       topology=>mesh%topology
+    else if (element_degree(mesh,1)==1) then
+       topology=>mesh
+    else
+       FLAbort("Failed to locate mesh topology")
+    end if
+
+  end function mesh_topology
+
   subroutine write_minmax_scalar(sfield, field_expression)
     ! the scalar field to print its min and max of
     type(scalar_field), intent(in):: sfield

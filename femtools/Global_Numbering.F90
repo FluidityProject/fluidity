@@ -45,15 +45,161 @@ module global_numbering
   use linked_lists
   use mpi_interfaces
   use fields_base
+  use memory_diagnostics
   
   implicit none
 
   private
   
   public :: make_global_numbering_DG, make_global_numbering, &
-       & make_global_numbering_trace
+       & make_global_numbering_trace, make_global_numbering_new
+
 
 contains
+
+  subroutine make_global_numbering_new(mesh)
+    ! Construct a new global numbering for mesh using the ordering from
+    !  topology.
+    type(mesh_type), intent(inout), target :: mesh
+
+    type(csr_sparsity) :: facet_list, edge_list
+    type(csr_matrix) :: facet_numbers, edge_numbers
+    integer, dimension(0:mesh_dim(mesh)) :: entity_counts, dofs_per
+    type(cell_type), pointer :: cell
+    type(element_type), pointer :: element
+    integer :: d, e, ele
+    integer, dimension(:), pointer :: ele_dofs,topo_dofs,facets
+
+    element=>mesh%shape
+    cell=>element%cell    
+
+    call makelists(mesh%topology, EElist=facet_list, NNlist=edge_list)
+    
+    ! Number the topological entities.
+    call number_topology
+    call calculate_dofs_per_entity
+
+    do ele=1,element_count(mesh)
+       ele_dofs=>ele_nodes(mesh, ele)
+       topo_dofs=>ele_nodes(mesh%topology, ele)
+       facets=>row_m_ptr(facet_list,ele)
+#ifdef DDEBUG
+       ele_dofs=0
+#endif
+
+       do d=0,mesh_dim(mesh)
+          do e=1,cell%entity_counts(d)
+             if (dim==0) then
+                entity=topo_dofs(e)
+             else if (dim==cell%dimension-1) then
+                entity=facets(e)
+             else if (dim==1) then
+!                entity=edges(e)
+             end if
+
+             ele_dofs(element%entity2dofs(d,e)%dofs)=&
+                  entity_dofs(d,entity)
+          end do
+       end do
+       
+       assert(all(ele_dofs>0))
+
+    end do
+
+    mesh%nodes=sum(entity_counts*dofs_per)
+    print *, mesh%ndglno
+    assert(mesh%nodes==maxval(mesh%ndglno))
+    
+    if (mesh_dim(mesh)>1) call deallocate(facet_numbers)
+    if (mesh_dim(mesh)>2) call deallocate(edge_numbers)
+    call deallocate(facet_list)
+    call deallocate(edge_list)    
+    
+  contains
+   
+    function entity_dofs(dim, entity) result (dofs)
+      ! Global dofs associated with local entity
+      integer, intent(in) :: dim, entity
+      integer, dimension(dofs_per(dim)) :: dofs
+      
+      integer :: i,d,e
+
+      dofs=0
+      do d=0,dim-1
+         dofs=dofs+dofs_per(d)*entity_counts(dim)
+      end do
+      dofs=dofs+(entity-1)*dofs_per(dim)+[(i, i=1,dofs_per(dim))]
+      
+    end function entity_dofs
+    
+    subroutine calculate_dofs_per_entity
+      integer :: i
+      
+      do i=0,mesh_dim(mesh)
+         if (allocated(element%entity2dofs(i,1)%dofs)) then
+            dofs_per(i)=size(element%entity2dofs(i,1)%dofs)
+         else
+            dofs_per(i)=0
+         end if
+      end do
+
+    end subroutine calculate_dofs_per_entity
+
+    subroutine number_topology
+      integer :: ele1, ele2, node1, node2      
+      integer :: facets, edges,n
+      integer, dimension(:), pointer :: neigh
+
+      ! No need to number vertices: it comes from the topology.
+      entity_counts(0)=node_count(mesh%topology)
+
+      if (mesh_dim(mesh)>0) then
+         entity_counts(mesh_dim(mesh))=element_count(mesh)
+      end if
+
+      ! Number the facets
+      if (mesh_dim(mesh)>1) then
+         call allocate(facet_numbers, facet_list)
+         call zero(facet_numbers)
+
+         facets=0
+         do ele1=1, element_count(mesh)
+            neigh=>ele_neigh(mesh%topology,ele1)
+            do n=1, size(neigh)
+               ele2=neigh(n)
+               if (ele2>ele1) then
+                  facets=facets+1
+                  call set(facet_numbers,ele1,ele2,facets)
+                  call set(facet_numbers,ele2,ele1,facets)
+               end if
+            end do
+         end do
+         
+         entity_counts(mesh_dim(mesh)-1)=facets
+      end if
+
+      ! Number the edges
+      if (mesh_dim(mesh)>2) then
+         ! If mesh_dim(mesh)==1 then this is subsumed in the facets.
+
+         edges=0
+         do node1=1, node_count(mesh%topology)
+            neigh=>row_m_ptr(edge_list, node1)
+            do node2=1, size(neigh)
+               if (node2>node1) then
+                  edges=edges+1
+                  call set(edge_numbers,node1,node2,edges)
+                  call set(edge_numbers,node2,node1,edges)
+               end if
+            end do
+         end do
+         entity_counts(1)=edges
+      end if
+
+    end subroutine number_topology
+    
+
+  end subroutine make_global_numbering_new
   
   subroutine make_global_numbering_DG(new_nonods, new_ndglno, Totele,&
        & element, element_halos, new_halos)

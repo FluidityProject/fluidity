@@ -94,6 +94,10 @@ module fields_data_types
      !! (does not tell you how periodic it is... i.e. true if
      !! any surface is periodic)
      logical :: periodic=.false.
+     !! A pointer to the topology for this mesh. That is, the linear mesh
+     !!  from which this mesh is directly or indirectly derived. If this
+     !!  mesh is its own topology, this pointer should be null.
+     type(mesh_type), pointer :: topology=>null()
   end type mesh_type
 
   type mesh_faces

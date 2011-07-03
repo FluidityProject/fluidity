@@ -36,8 +36,7 @@ use halos_allocates
 use halos_repair
 use pickers_deallocates
 use adjacency_lists
-use global_numbering, only: make_global_numbering, make_global_numbering_dg,&
-     &make_global_numbering_trace
+use global_numbering
 use memory_diagnostics
 use ieee_arithmetic
 use data_structures
@@ -50,7 +49,7 @@ implicit none
   public :: allocate, deallocate, incref, decref, has_references, add_faces, &
     & deallocate_faces
   public :: make_element_shape, make_mesh, make_mesh_periodic, make_submesh, &
-    & create_surface_mesh, make_fake_mesh_linearnonconforming
+    & create_surface_mesh
   public :: extract_scalar_field, wrap_mesh, wrap_scalar_field, &
     & wrap_tensor_field
   public :: add_lists, extract_lists, add_nnlist, extract_nnlist, add_nelist, &
@@ -462,7 +461,7 @@ contains
     
   end subroutine deallocate_mesh_faces
 
-  subroutine deallocate_mesh(mesh)
+  recursive subroutine deallocate_mesh(mesh)
     !!< Deallocate the components of mesh. Shape functions are not
     !!< deallocated here.
     type(mesh_type), intent(inout) :: mesh
@@ -474,6 +473,11 @@ contains
     end if
     call deallocate(mesh%shape)
     
+    if (associated(mesh%topology)) then
+       call deallocate(mesh%topology)
+       mesh%topology=>null()
+    end if
+
     if (.not.mesh%wrapped) then
 #ifdef HAVE_MEMORY_STATS
        call register_deallocation("mesh_type", "integer", &
@@ -865,7 +869,7 @@ contains
     !!< Produce a mesh based on an old mesh but with a different shape and/or continuity.
     type(mesh_type) :: mesh
 
-    type(mesh_type), intent(in) :: model
+    type(mesh_type), intent(in), target :: model
     type(element_type), target, intent(in), optional :: shape
     integer, intent(in), optional :: continuity
     character(len=*), intent(in), optional :: name
@@ -873,35 +877,33 @@ contains
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
     integer :: i, input_nodes, n_faces
+    type(element_type), pointer :: lshape
 
+    if (present(shape)) then
+       lshape=>shape
+    else
+       lshape=>model%shape
+    end if
+    
+    call allocate_mesh(mesh, &
+         nodes=0, & ! We'll fix this later.
+         elements=model%elements, &
+         shape=lshape, &
+         name=name)
+    
     if (present(continuity)) then
        mesh%continuity=continuity
     else
        mesh%continuity=model%continuity
     end if
 
-    allocate(mesh%adj_lists)
-    mesh%elements=model%elements
-    mesh%periodic=model%periodic
-    mesh%wrapped=.false.
-
-    if (present(shape)) then
-       mesh%shape=shape
-    else
-       mesh%shape=model%shape
-    end if
-    call incref(mesh%shape)
-
+    mesh%topology=>mesh_topology(model)
+    call incref(mesh%topology)
+    
     ! You can't have a CG degree 0 mesh!
     if(mesh%shape%degree==0.and.mesh%continuity>=0.and.mesh%shape&
          &%numbering%type/=ELEMENT_TRACE) then
       FLExit("For a P0 mesh, the 'mesh_continuity' must be Discontinuous.")
-    end if
-
-    if (present(name)) then
-       mesh%name=name
-    else
-       mesh%name=empty_name
     end if
 
     if (associated(model%region_ids)) then
@@ -909,90 +911,90 @@ contains
        mesh%region_ids=model%region_ids
     end if
 
-    if (mesh%continuity>=0) then
-       ! Make a continuous field.
-       if (model%continuity<0) then
-          FLExit("Unable to derive a continuous mesh from a discontinuous mesh")
-       end if
+    call make_global_numbering_new(mesh)
 
-       allocate(ndglno(mesh%shape%cell%entity_counts(0)*model%elements), &
-            mesh%ndglno(mesh%shape%ndof*model%elements))
-#ifdef HAVE_MEMORY_STATS
-       call register_allocation("mesh_type", "integer", &
-            size(mesh%ndglno), name=name)
-#endif
+!!$    if (mesh%continuity>=0) then
+!!$       ! Make a continuous field.
+!!$       if (model%continuity<0) then
+!!$          FLExit("Unable to derive a continuous mesh from a discontinuous mesh")
+!!$       end if
+!!$
+!!$       allocate(ndglno(mesh%shape%cell%entity_counts(0)*model%elements), &
+!!$            mesh%ndglno(mesh%shape%ndof*model%elements))
+!!$#ifdef HAVE_MEMORY_STATS
+!!$       call register_allocation("mesh_type", "integer", &
+!!$            size(mesh%ndglno), name=name)
+!!$#endif
+!!$
+!!$       if(model%shape%degree==1 .or. ele_count(model) == 0) then
+!!$          ndglno=model%ndglno
+!!$          input_nodes = node_count(model)
+!!$       else
+!!$          ndglno=mesh_connectivity(model)
+!!$          input_nodes = maxval(ndglno)
+!!$       end if
+!!$       
+!!$       if (associated(model%halos)) then
+!!$          assert(element_halo_count(model) > 0)
+!!$          allocate(mesh%halos(size(model%halos)))
+!!$
+!!$          call make_global_numbering &
+!!$               (mesh%nodes, mesh%ndglno, input_nodes, mesh%elements, &
+!!$               ndglno, mesh%shape, model%halos, model%element_halos(1), &
+!!$               mesh%halos)
+!!$
+!!$          allocate(mesh%element_halos(size(model%element_halos)))
+!!$          do i=1,size(mesh%element_halos)
+!!$             mesh%element_halos(i)=model%element_halos(i)
+!!$             call incref(mesh%element_halos(i))
+!!$          end do
+!!$
+!!$          do i=1,size(mesh%halos)
+!!$             call reorder_halo_from_element_halo(mesh%halos(i), mesh&
+!!$                  &%element_halos(1), mesh)
+!!$          end do
+!!$
+!!$       else
+!!$          
+!!$          call make_global_numbering &
+!!$               (mesh%nodes, mesh%ndglno, max(maxval(ndglno), 0), mesh%elements, &
+!!$               ndglno, mesh%shape)
+!!$       end if
+!!$
+!!$    else
+!!$       !trace fields have continuity -1 but aren't like DG
+!!$       if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
+!!$          ! Make a discontinuous field.
+!!$          allocate(mesh%ndglno(mesh%shape%ndof*model%elements))
+!!$
+!!$#ifdef HAVE_MEMORY_STATS
+!!$          call register_allocation("mesh_type", "integer", &
+!!$               size(mesh%ndglno), name=name)
+!!$#endif
+!!$          if (associated(model%halos)) then
+!!$             assert(associated(model%element_halos))
+!!$             allocate(mesh%halos(size(model%halos)))
+!!$             
+!!$             
+!!$             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
+!!$                  mesh%elements, mesh%shape, model%element_halos, &
+!!$                  mesh%halos)
+!!$             
+!!$             allocate(mesh%element_halos(size(model%element_halos)))
+!!$             do i=1,size(mesh%element_halos)
+!!$                mesh%element_halos(i)=model%element_halos(i)
+!!$                call incref(mesh%element_halos(i))
+!!$             end do
+!!$             
+!!$          else
+!!$             
+!!$             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
+!!$                  mesh%elements, mesh%shape)
+!!$             
+!!$          end if
+!!$       end if
+!!$    end if
 
-       if(model%shape%degree==1 .or. ele_count(model) == 0) then
-          ndglno=model%ndglno
-          input_nodes = node_count(model)
-       else
-          ndglno=mesh_connectivity(model)
-          input_nodes = maxval(ndglno)
-       end if
-       
-       if (associated(model%halos)) then
-          assert(element_halo_count(model) > 0)
-          allocate(mesh%halos(size(model%halos)))
-
-          call make_global_numbering &
-               (mesh%nodes, mesh%ndglno, input_nodes, mesh%elements, &
-               ndglno, mesh%shape, model%halos, model%element_halos(1), &
-               mesh%halos)
-
-          allocate(mesh%element_halos(size(model%element_halos)))
-          do i=1,size(mesh%element_halos)
-             mesh%element_halos(i)=model%element_halos(i)
-             call incref(mesh%element_halos(i))
-          end do
-
-          do i=1,size(mesh%halos)
-             call reorder_halo_from_element_halo(mesh%halos(i), mesh&
-                  &%element_halos(1), mesh)
-          end do
-
-       else
-          
-          call make_global_numbering &
-               (mesh%nodes, mesh%ndglno, max(maxval(ndglno), 0), mesh%elements, &
-               ndglno, mesh%shape)
-       end if
-
-    else
-       !trace fields have continuity -1 but aren't like DG
-       if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
-          ! Make a discontinuous field.
-          allocate(mesh%ndglno(mesh%shape%ndof*model%elements))
-
-#ifdef HAVE_MEMORY_STATS
-          call register_allocation("mesh_type", "integer", &
-               size(mesh%ndglno), name=name)
-#endif
-          if (associated(model%halos)) then
-             assert(associated(model%element_halos))
-             allocate(mesh%halos(size(model%halos)))
-             
-             
-             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
-                  mesh%elements, mesh%shape, model%element_halos, &
-                  mesh%halos)
-             
-             allocate(mesh%element_halos(size(model%element_halos)))
-             do i=1,size(mesh%element_halos)
-                mesh%element_halos(i)=model%element_halos(i)
-                call incref(mesh%element_halos(i))
-             end do
-             
-          else
-             
-             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
-                  mesh%elements, mesh%shape)
-             
-          end if
-       end if
-    end if
-
-    nullify(mesh%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
     
     ! Transfer the eelist from model to mesh
     assert(associated(model%adj_lists))
@@ -1007,23 +1009,22 @@ contains
       call add_faces(mesh, model)
     end if
 
-    if (mesh%shape%numbering%type==ELEMENT_TRACE) then
-       select case(mesh%shape%numbering%family)
-       case(FAMILY_SIMPLEX)          
-          n_faces = mesh%shape%dim + 1
-       case default
-          FLExit('Element family not supported for trace elements')
-       end select
-       allocate(mesh%ndglno(mesh%elements*n_faces*mesh%faces%shape%ndof))
-       call make_global_numbering_trace(mesh)
-       call create_surface_mesh(mesh%faces%surface_mesh, &
-            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
-#ifdef HAVE_MEMORY_STATS
-       call register_allocation("mesh_type", "integer", &
-            size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
-#endif
-    end if
-    call addref(mesh)
+!!$    if (mesh%shape%numbering%type==ELEMENT_TRACE) then
+!!$       select case(mesh%shape%numbering%family)
+!!$       case(FAMILY_SIMPLEX)          
+!!$          n_faces = mesh%shape%dim + 1
+!!$       case default
+!!$          FLExit('Element family not supported for trace elements')
+!!$       end select
+!!$       allocate(mesh%ndglno(mesh%elements*n_faces*mesh%faces%shape%ndof))
+!!$       call make_global_numbering_trace(mesh)
+!!$       call create_surface_mesh(mesh%faces%surface_mesh, &
+!!$            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
+!!$#ifdef HAVE_MEMORY_STATS
+!!$       call register_allocation("mesh_type", "integer", &
+!!$            size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
+!!$#endif
+!!$    end if
 
   end function make_mesh
 
@@ -2035,88 +2036,6 @@ contains
     call deallocate(mesh)
 
   end function make_mesh_periodic
-
-  function make_fake_mesh_linearnonconforming(model, name) result (mesh)
-    !!< Produce a mesh based on a piecewise linear continuous model mesh but 
-    !!< converted to have edge centred nonconforming nodes.
-    type(mesh_type) :: mesh
-
-    type(mesh_type), intent(in) :: model
-    character(len=*), intent(in), optional :: name
-    
-    integer :: number_facets, vertices, n, ele, ele2, face2, local_face2, facet_count
-    integer, dimension(:), pointer :: ele2_nodes, neigh
-    
-    type(element_type) :: shape
-      
-    ewrite(1,*) 'entering make_mesh_linearnonconforming'
-    
-    number_facets = (face_count(model)-surface_element_count(model))/2 &
-                   + surface_element_count(model)
-
-    vertices = model%shape%quadrature%vertices
-    
-    ! create a dummy linear shape function to put into the mesh
-    ! FIXME: I'm Lagrange when I should be NC - do not use for anything other
-    !        than the number of nodes per element
-    shape = make_element_shape(vertices = vertices, dim = mesh_dim(model), &
-                               degree = 1, quad = model%shape%quadrature)
-    
-    call allocate(mesh, nodes=number_facets, elements=element_count(model), &
-                        shape=shape, name=name)
-    call deallocate(shape)
-    
-    ! Transfer the eelist from model to mesh
-    assert(associated(model%adj_lists))
-    if(associated(model%adj_lists%eelist)) then
-      ewrite(2, *) "Transferring element-element list to mesh " // trim(mesh%name)
-      allocate(mesh%adj_lists%eelist)
-      mesh%adj_lists%eelist = model%adj_lists%eelist
-      call incref(mesh%adj_lists%eelist)
-    end if
-    
-    mesh%continuity=-1
-    
-    assert(has_faces(model))
-    mesh%ndglno = -1
-    facet_count = 0
-    do ele = 1, element_count(mesh)
-       ! let's build up the ndglno by looping
-       ! around the faces (and neighbouring elements)
-       ! of this element
-       neigh => ele_neigh(model, ele)
-       do n = 1, size(neigh)
-          ele2 = neigh(n)
-          if((ele2>0).and.(ele2<ele)) then
-            ! already visited this face (and it's internal)
-            ! 1. find the global face number of the face associated with
-            !    the neighbouring model element
-            face2 = ele_face(model, ele2, ele)
-            ! 2. find the local face number of that face
-            local_face2 = local_face_number(model, face2)
-            ! 3. find the global node numbers of the new mesh in
-            !    the neighbouring element (these should exist as
-            !    we've already visited ele2)
-            ele2_nodes => ele_nodes(mesh, ele2)
-            ! 4. now, since we've been adding nodes to mesh consistently 
-            !    with the local face numbering we should be able to retrieve
-            !    the global node number of the node on this face
-            mesh%ndglno(mesh%shape%ndof*(ele-1)+n) = ele2_nodes(local_face2)
-          else
-            ! we're adding a new edge so increment
-            facet_count = facet_count + 1
-            mesh%ndglno(mesh%shape%ndof*(ele-1)+n) = facet_count
-          end if
-       end do
-    end do
-    assert(facet_count==number_facets)
-    assert(all(mesh%ndglno > 0))
-    
-    call addref(mesh)
-    
-    ewrite(1,*) 'exiting make_mesh_linearnonconforming'
-  
-  end function make_fake_mesh_linearnonconforming
 
   function make_submesh (model, name) &
        result (mesh)
