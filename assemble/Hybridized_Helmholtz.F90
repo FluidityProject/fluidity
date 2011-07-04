@@ -460,11 +460,19 @@ contains
 
     call solve(local_solver,Rhs_loc)
 
-    do dim1 = 1, mdim
-       call set(U,dim1,ele_nodes(u,ele),&
-            &Rhs_loc(u_start(dim1):u_end(dim1)))
-    end do
-    call set(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
+    if((present(d_rhs).or.present(u_rhs))) then
+       do dim1 = 1, mdim
+          call set(U,dim1,ele_nodes(u,ele),&
+               &Rhs_loc(u_start(dim1):u_end(dim1)))
+       end do
+       call set(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
+    else
+       do dim1 = 1, mdim
+          call addto(U,dim1,ele_nodes(u,ele),&
+               &Rhs_loc(u_start(dim1):u_end(dim1)))
+       end do
+       call addto(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
+    end if
 
   end subroutine reconstruct_U_d_ele
   
