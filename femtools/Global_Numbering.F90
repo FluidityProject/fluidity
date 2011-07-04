@@ -66,13 +66,15 @@ contains
     type(csr_matrix) :: facet_numbers, edge_numbers
     integer, dimension(0:mesh_dim(mesh)) :: entity_counts, dofs_per
     type(cell_type), pointer :: cell
-    type(element_type), pointer :: element
-    integer :: d, e, ele
+    type(element_type), pointer :: element, topo_element
+    integer :: d, e, ele, entity
     integer, dimension(:), pointer :: ele_dofs,topo_dofs,facets
+    integer, dimension(2) :: edge
 
     element=>mesh%shape
     cell=>element%cell    
-
+    topo_element=>mesh%topology%shape
+    
     call makelists(mesh%topology, EElist=facet_list, NNlist=edge_list)
     
     ! Number the topological entities.
@@ -89,16 +91,23 @@ contains
 
        do d=0,mesh_dim(mesh)
           do e=1,cell%entity_counts(d)
-             if (dim==0) then
+             if (d==0) then
                 entity=topo_dofs(e)
-             else if (dim==cell%dimension-1) then
+             else if (d==cell%dimension-1) then
                 entity=facets(e)
-             else if (dim==1) then
-!                entity=edges(e)
-             end if
+             else if (d==cell%dimension) then
+                entity=ele
+             else if (d==1) then
+                ! This case only gets hit for the edges of 3d elements.
 
+                ! The edge consists of the global dofs in the topology.
+                edge=topo_dofs(topo_element%entity2dofs(1,e)%dofs)
+                ! Now look up the corresponding edge number.
+                entity=val(edge_numbers,edge(1),edge(2))
+             end if
+             
              ele_dofs(element%entity2dofs(d,e)%dofs)=&
-                  entity_dofs(d,entity)
+                  entity_dofs(d,entity, dofs_per)
           end do
        end do
        
@@ -107,7 +116,7 @@ contains
     end do
 
     mesh%nodes=sum(entity_counts*dofs_per)
-    print *, mesh%ndglno
+
     assert(mesh%nodes==maxval(mesh%ndglno))
     
     if (mesh_dim(mesh)>1) call deallocate(facet_numbers)
@@ -117,9 +126,10 @@ contains
     
   contains
    
-    function entity_dofs(dim, entity) result (dofs)
+    function entity_dofs(dim, entity, dofs_per) result (dofs)
       ! Global dofs associated with local entity
       integer, intent(in) :: dim, entity
+      integer, dimension(0:) :: dofs_per
       integer, dimension(dofs_per(dim)) :: dofs
       
       integer :: i,d,e

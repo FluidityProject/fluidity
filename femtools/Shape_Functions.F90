@@ -185,7 +185,7 @@ contains
        do j=1,coords
           
           select case(element%type)
-          case(ELEMENT_LAGRANGIAN)
+          case(ELEMENT_LAGRANGIAN,ELEMENT_DISCONTINUOUS_LAGRANGIAN)
              select case(ele_num%family)
              case (FAMILY_SIMPLEX)
                 ! Raw polynomial.
