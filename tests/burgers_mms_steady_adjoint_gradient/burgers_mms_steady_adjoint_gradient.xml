@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Burgers Equation MMS</name>
+  <owner userid="pef"/>
+  <tags>burgers</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>burgers_equation mms_A.bml; burgers_equation mms_B.bml; burgers_equation mms_C.bml; burgers_equation mms_D.bml; burgers_equation mms_E.bml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="gradient_conv" language="python">
+import cPickle as pickle
+import math
+from numpy.linalg import norm
+gradient_conv = []
+#for char in ['A', 'B', 'C', 'D', 'E']:
+for char in ['B']:
+  init = pickle.load(open("control_mms_adjoint_" + char + "_initial_condition_0.pkl"))
+  grad = pickle.load(open("control_mms_adjoint_" + char + "_adjoint_time_integral_ad_initial_condition_TotalDerivative_0.pkl"))
+  print "init: ", init
+  print "grad: ", grad
+  print "norm(init - grad): ", norm(init-grad)
+    </variable>
+    <variable name="functional_value_conv" language="python">
+from fluidity_tools import stat_parser
+import glob
+import math
+
+functional_errors = [abs(stat_parser(x)["time_integral_ad"]["value"][-1] - 10.0) for x in sorted(glob.glob("mms_adjoint_?.stat"))]
+functional_value_conv = [math.log(functional_errors[i]/functional_errors[i+1], 2) for i in range(0, len(functional_errors)-1)]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="functional_convergence" language="python">
+assert min(functional_value_conv) &gt; 1.9
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+
