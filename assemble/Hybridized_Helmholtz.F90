@@ -232,7 +232,7 @@ contains
     integer, dimension(:), pointer :: neigh
     real, dimension(ele_loc(lambda_rhs,ele)) :: lambda_rhs_loc,lambda_rhs_loc2
     real, dimension(:),allocatable,target :: Rhs_loc
-    real, dimension(:,:), allocatable :: local_solver
+    real, dimension(:,:), allocatable :: local_solver, local_solver_rhs
     type(element_type) :: U_shape
     integer :: stat, d_start, d_end, dim1, mdim, uloc,dloc, lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
@@ -260,6 +260,7 @@ contains
     allocate(rhs_loc(2*uloc+dloc+n_constraints))
     allocate(local_solver(mdim*uloc+dloc+n_constraints,&
          mdim*uloc+dloc+n_constraints))
+    allocate(local_solver_rhs(mdim*uloc+dloc,mdim*uloc+dloc))
 
     !Calculate indices in a vector containing all the U and D dofs in
     !element ele, First the u1 components, then the u2 components, then the
@@ -295,7 +296,7 @@ contains
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
     call get_local_solver(local_solver,U,X,down,D,f,ele,&
-         & g,dt,theta,D0,have_constraint)
+         & g,dt,theta,D0,have_constraint,local_solver_rhs)
 
     !!!Construct the continuity matrix that multiplies lambda in 
     !!! the U equation
@@ -342,7 +343,9 @@ contains
     rhs_loc=0.
     lambda_rhs_loc = 0.
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
-
+    if(.not.(present(d_rhs).or.present(u_rhs))) then
+       rhs_loc(1:d_end) = matmul(local_solver_rhs,rhs_loc(1:d_end))
+    end if
     call solve(local_solver,Rhs_loc)
     lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
          &Rhs_loc)
@@ -379,7 +382,7 @@ contains
          & continuity_mat_u_ptr
     real, dimension(ele_loc(lambda,ele)) :: lambda_val
     real, dimension(:),allocatable,target :: Rhs_loc
-    real, dimension(:,:), allocatable :: local_solver
+    real, dimension(:,:), allocatable :: local_solver, local_solver_rhs
     logical :: have_constraint
     integer :: n_constraints
 
@@ -400,6 +403,7 @@ contains
     allocate(rhs_loc(2*uloc+dloc+n_constraints))
     allocate(local_solver(mdim*uloc+dloc+n_constraints,&
          mdim*uloc+dloc+n_constraints))
+    allocate(local_solver_rhs(mdim*uloc+dloc,mdim*uloc+dloc))
 
     !Calculate indices in a vector containing all the U and D dofs in
     !element ele, First the u1 components, then the u2 components, then the
@@ -419,10 +423,14 @@ contains
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
     call get_local_solver(local_solver,U,X,down,D,f,ele,&
-         & g,dt,theta,D0,have_constraint)
+         & g,dt,theta,D0,have_constraint,local_solver_rhs=local_solver_rhs)
 
     !Construct the rhs sources for U from lambda
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
+    if(.not.(present(d_rhs).or.present(u_rhs))) then
+       rhs_loc(1:d_end) = matmul(local_solver_rhs,rhs_loc(1:d_end))
+    end if
+
     lambda_val = ele_val(lambda,ele)
     !get list of neighbours
     neigh => ele_neigh(D,ele)
@@ -458,13 +466,6 @@ contains
     end do
     call set(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
 
-    !some debugging checks
-    do ni = 1, size(neigh)
-       face=ele_face(U, ele, neigh(ni))
-
-       call check_constraints_face(rhs_loc(u_start(1):u_end(1)),&
-            rhs_loc(u_start(2):u_end(2)),U,face)
-    end do
   end subroutine reconstruct_U_d_ele
   
   subroutine check_constraints_face(U1_loc,U2_loc,U,face)
@@ -496,7 +497,7 @@ contains
   end subroutine check_constraints_face
 
   subroutine get_local_solver(local_solver,U,X,down,D,f,ele,&
-       & g,dt,theta,D0,have_constraint)
+       & g,dt,theta,D0,have_constraint,local_solver_rhs)
     implicit none
     real, intent(in) :: g,dt,theta,D0
     type(vector_field), intent(in) :: U,X,down
@@ -504,6 +505,8 @@ contains
     integer, intent(in) :: ele
     real, dimension(:,:)&
          &, intent(inout) :: local_solver
+    real, dimension(:,:)&
+         &, intent(inout), optional :: local_solver_rhs
     logical, intent(in) :: have_constraint
     !
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
@@ -582,9 +585,17 @@ contains
        !pressure gradient term [integrated by parts so minus sign]
        local_solver(u_start(dim1):u_end(dim1),d_start:d_end)=&
             & -g*dt*theta*l_div_mat(dim1,:,:)
+       if(present(local_solver_rhs)) then
+          local_solver_rhs(u_start(dim1):u_end(dim1),d_start:d_end)=&
+               & dt*theta*l_div_mat(dim1,:,:)
+       end if
        !divergence continuity term
        local_solver(d_start:d_end,u_start(dim1):u_end(dim1))=&
             & d0*dt*theta*transpose(l_div_mat(dim1,:,:))
+       if(present(local_solver_rhs)) then
+          local_solver_rhs(d_start:d_end,u_start(dim1):u_end(dim1))=&
+               & -d0*dt*transpose(l_div_mat(dim1,:,:))
+       end if
     end do
 
     !velocity mass matrix and Coriolis matrix (done in local coordinates)
@@ -598,7 +609,20 @@ contains
                & l_u_mat(dim1,dim2,:,:)
        end do
     end do
-    
+
+    if(present(local_solver_rhs)) then
+       l_u_mat = shape_shape_tensor(u_shape, u_shape, &
+            u_shape%quadrature%weight, -dt*Metricf)
+
+       do dim1 = 1, mdim
+          do dim2 = 1, mdim
+             local_solver_rhs(u_start(dim1):u_end(dim1),&
+                  u_start(dim2):u_end(dim2))=&
+                  & l_u_mat(dim1,dim2,:,:)
+          end do
+       end do
+    end if
+
     if(have_constraint) then
        constraints => U%mesh%shape%constraints
        c_start = d_end+1
@@ -1020,23 +1044,27 @@ contains
     if(have_d_rhs) then
        Rhs_loc(d_start:d_end) = shape_rhs(ele_shape(D,ele),&
             &ele_val_at_quad(l_D_rhs,ele)*detwei)
-    end if
-    if(have_u_rhs) then
-       allocate(u_cart_quad(l_U_rhs%dim,ele_ngi(X,ele)))
-       u_cart_quad = ele_val_at_quad(l_u_rhs,ele)
-       do gi = 1, ele_ngi(D,ele)
-          !Don't divide by detJ as we can use weight instead of detwei
-          u_local_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))
-       end do
-       U_rhs_loc = shape_vector_rhs(u_shape,&
-            u_local_quad,u_shape%quadrature%weight)
-       do dim1 = 1, mdim
-          Rhs_loc(u_start(dim1):u_end(dim1)) = &
-               & U_rhs_loc(dim1,:)
-       end do
+       if(have_u_rhs) then
+          allocate(u_cart_quad(l_U_rhs%dim,ele_ngi(X,ele)))
+          u_cart_quad = ele_val_at_quad(l_u_rhs,ele)
+          do gi = 1, ele_ngi(D,ele)
+             !Don't divide by detJ as we can use weight instead of detwei
+             u_local_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))
+          end do
+          U_rhs_loc = shape_vector_rhs(u_shape,&
+               u_local_quad,u_shape%quadrature%weight)
+          do dim1 = 1, mdim
+             Rhs_loc(u_start(dim1):u_end(dim1)) = &
+                  & U_rhs_loc(dim1,:)
+          end do
+       end if
     end if
     if(.not.(present(D_rhs).or.present(u_rhs))) then
-       FLAbort('Haven''t coded up timestepping version yet')
+       rhs_loc(d_start:d_end) = ele_val(D,ele)
+       do dim1 = 1, mdim
+          rhs_loc(u_start(dim1):u_end(dim1)) = &
+               & U_rhs_loc(dim1,:)
+       end do
     end if
 
   end subroutine assemble_rhs_ele
