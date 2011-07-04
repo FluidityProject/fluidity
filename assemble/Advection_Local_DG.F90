@@ -53,6 +53,7 @@ module advection_local_DG
   use sparse_matrices_fields
   use sparsity_patterns_meshes
   use manifold_projections
+  use Vector_Tools
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
 
@@ -163,8 +164,8 @@ contains
     call construct_advection_dg(matrix, flux_mat, rhs, field_name, state, &
          mass, velocity_name=velocity_name)
 
-    call matrix2file('A_'//trim(field_name), matrix)
-    call matrix2file('flux_mat_'//trim(field_name), flux_mat)
+!    call matrix2file('A_'//trim(field_name), matrix)
+!    call matrix2file('flux_mat_'//trim(field_name), flux_mat)
 
     call get_dg_inverse_mass_matrix(inv_mass, mass)
     
@@ -863,8 +864,8 @@ contains
     L_T=transpose(L,symmetric_sparsity=.false.)
     test=matmul(L_T, A)
     ewrite_minmax(test)
-    call matrix2file('A', test)
-    call matrix2file('flux', matmul(L_T, flux_mat))
+!    call matrix2file('A', test)
+!    call matrix2file('flux', matmul(L_T, flux_mat))
 
     ! Note that since theta and dt are module global, these lines have to
     ! come after construct_advection_diffusion_dg.
@@ -1115,10 +1116,13 @@ contains
     ! Transform from local to physical coordinates.
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
     real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J, J_scaled
+    real, dimension(X%dim, mesh_dim(U), ele_ngi(X,ele)) :: pinvJ
+    real, dimension(ele_loc(U,ele), ele_ngi(X,ele), X%dim) :: dshape
     real, dimension(mesh_dim(U), mesh_dim(U), ele_ngi(X,ele)) :: G
 
     ! Different velocities at quad points.
     real, dimension(U_nl%dim, ele_ngi(U_nl, ele)) :: U_nl_q
+    real, dimension(X%dim, ele_ngi(U_nl, ele)) :: U_cartesian_q
     real, dimension(ele_ngi(U_nl, ele)) :: U_nl_div_q
 
     ! Node and shape pointers.
@@ -1183,7 +1187,15 @@ contains
     !  - | (grad W dot U_nl) T dV -  | W ( div U_nl ) G W dV
     !    /                           /
 
-    Advection_mat = -shape_vector_dot_dshape_tensor(U_shape, U_nl_q, U_shape%dn, J_scaled, detwei)
+    U_cartesian_q=0.
+    do gi=1,ele_ngi(X,ele)
+       U_cartesian_q(:,gi)=matmul(transpose(J(:,:,gi)),U_nl_q(:,gi))
+       U_cartesian_q(:,gi)=U_cartesian_q(:,gi)/detJ(gi)
+       pinvJ(:,:,gi)=pseudoinverse(J(:,:,gi))
+       dshape(:,gi,:)=matmul(U_shape%dn(:,gi,:),transpose(pinvJ(:,:,gi)))
+    end do
+!    Advection_mat = -shape_vector_dot_dshape_tensor(U_shape, U_cartesian_q, dshape, J_scaled, detwei)
+    Advection_mat = shape_vector_dot_dshape_tensor(U_shape, U_nl_q, U_shape%dn, J_scaled, U_shape%quadrature%weight)
 
    !----------------------------------------------------------------------
    ! Perform global assembly.
@@ -1372,7 +1384,7 @@ contains
     ! Calculate tensor on face
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei=detwei, J=J, detJ=detJ)
     forall(gi=1:face_ngi(X,face))
-       J_scaled(:,:,gi)=J(:,:,1)/detJ(1)
+       J_scaled(:,:,gi)=J(:,:,1)!/detJ(1)
     end forall
 
     ! Get outward pointing normals for each element

@@ -584,7 +584,7 @@
       call allocate(delta_u, dim, U%mesh, "Velocity_update")
       call zero(delta_u)
       !allocate advecting velocity
-      call allocate(advecting_u,dim,U%mesh, "Advecting_velocity")
+      call allocate(advecting_u, dim, U%mesh, "Advecting_velocity")
       call zero(advecting_u)
       !allocate previous timestep variables
       call allocate(old_d, D%mesh, "LayerThickness_old")
