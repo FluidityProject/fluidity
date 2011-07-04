@@ -2487,7 +2487,7 @@ contains
 
     subroutine bassi_rebay_viscosity
 
-      real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
+      real, dimension(face_ngi(u_nl, face)) :: coefficient_detwei
       
       do dim=1,mesh_dim(U)
 
