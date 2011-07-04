@@ -22,9 +22,6 @@
           <polynomial_degree>
             <integer_value rank="0">1</integer_value>
           </polynomial_degree>
-          <element_type>
-            <string_value>overlapping</string_value>
-          </element_type>
         </mesh_shape>
         <mesh_continuity>
           <string_value>discontinuous</string_value>
@@ -511,9 +508,14 @@
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
+          <python>
+            <string_value type="python" lines="20">def val(X,t):
+  t=1.0
+  if (X[0]&gt;1.0):
+     t=3.0
+  return t
+  </string_value>
+          </python>
         </value>
         <output/>
         <stat/>

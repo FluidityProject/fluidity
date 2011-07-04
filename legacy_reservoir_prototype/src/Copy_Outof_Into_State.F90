@@ -116,7 +116,7 @@ module copy_outof_into_state
       type(state_type), dimension(:), pointer :: state
       type(mesh_type) :: cmesh, vmesh, pmesh !! coordinate, velocity and pressure meshes
 
-      type(scalar_field), pointer :: porosity, density, pressure, &
+      type(scalar_field), pointer :: porosity, permeability, density, pressure, &
            phasevolumefraction, pvf_source, &
            scalarfield, scalarfield_source, &
            componentmassfraction, &
@@ -143,7 +143,7 @@ module copy_outof_into_state
            x_nonods, xu_nonods, u_nonods
 
       real :: coord_min, coord_max, &
-           permeability, eos_value!, viscosity_ph1, viscosity_ph2
+           eos_value!, viscosity_ph1, viscosity_ph2
 
       !! Variables needed by the prototype code
       !! and therefore needing to be pulled out of state or
@@ -224,7 +224,8 @@ module copy_outof_into_state
 
       ! Gravity terms to be linked with u_source
       logical :: have_gravity
-      real :: gravity_magnitude, gravity_direction, delta_den
+      real :: gravity_magnitude, delta_den, grm
+      type(vector_field) :: gravity_direction
       !      type( vector_field ), pointer :: gravity
       !      type(vector_field), pointer :: dummyvector
 
@@ -314,14 +315,14 @@ module copy_outof_into_state
 
       call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/polynomial_degree', u_ele_type, default=1)
       call get_option('/geometry/mesh::PressureMesh/from_mesh/mesh_shape/polynomial_degree', p_ele_type, default=1)
-
-      u_ele_type = 2 ! this will need to be changed later -- switcher for the 
+      ewrite(3,*) 'u_ele_type', u_ele_type
+!      u_ele_type = 2 ! this will need to be changed later -- switcher for the 
       !! Sufficient to set this to 1 for now? It is 1 in all test cases
       mat_ele_type = 1
       !! Sufficient to set this to 2 for now? It is 2 in all test cases
       !! which presumably means discontinuous
       !! Will need to update once schema is changed
-      cv_ele_type = 2
+      cv_ele_type = p_ele_type
       !! These aren't used 
       cv_sele_type = 1
       u_sele_type = 1
@@ -385,7 +386,12 @@ module copy_outof_into_state
       !       =8      Finite elements in space    Theta=specified    DOWNWIND+
       !       =9      Finite elements in space    Theta=non-linear   DOWNWIND+
 
-      t_disopt = 1 ! I don't know what the theta=non-linear means and I think t field isn't used at the moment anyway
+      if (have_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+           'spatial_discretisation/control_volumes/face_value::FiniteElement/limit_face_value')) then
+         t_disopt = 8 !! Unless all the other options, but need to be able to get 8 here
+      else
+         t_disopt = 1
+      endif
 
       u_disopt = 1 ! Ditto, except that this probably IS used, being velocity. Hmm.
 
@@ -453,6 +459,7 @@ module copy_outof_into_state
          coord_min=min(coord_min,positions%val(X_,i))
          coord_max=max(coord_max,positions%val(X_,i))
       end do
+      ewrite(3,*) '1D 1D 1D 1D'
       domain_length = coord_max - coord_min
 
       !! I'm going to get this one from the PhaseVolumeFraction scalar_field
@@ -581,13 +588,12 @@ module copy_outof_into_state
       ewrite(3,*) "Got porosity"
 
       if (have_option("/porous_media/scalar_field::Permeability")) then
-         call get_option( "/porous_media/scalar_field::Permeability/prescribed/&
-              &value::WholeMesh/constant", permeability )
+         permeability => extract_scalar_field(state(1), "Permeability")
          allocate(perm(totele, ndim, ndim))
          do i=1,totele
             do j=1,ndim
                do k=1,ndim
-                  perm(i,j,k)=permeability
+                  perm(i,j,k)=permeability%val(i)
                end do
             end do
          end do
@@ -909,26 +915,26 @@ module copy_outof_into_state
             endif
          enddo
 
+         if (.not.allocated(wic_u_bc)) then
+            allocate( wic_u_bc( stotel * nphases ))
+            wic_u_bc = 0
+         endif
+         if (.not.allocated(suf_u_bc)) then
+            allocate( suf_u_bc( stotel * 3 * nphases ))
+            suf_u_bc = 0.
+         endif
+         if (.not.allocated(suf_v_bc)) then
+            allocate( suf_v_bc( stotel * 3 * nphases ))
+            suf_v_bc = 0.
+         endif
+         if (.not.allocated(suf_w_bc)) then
+            allocate( suf_w_bc( stotel * 3 * nphases ))
+            suf_w_bc = 0.
+         endif
+
          Conditional_Velocity_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
               ']/vector_field::Velocity/prognostic/' // &
               'boundary_conditions[0]/type::dirichlet' )) then
-
-            if (.not.allocated(wic_u_bc)) then
-               allocate( wic_u_bc( stotel * nphases ))
-               wic_u_bc = 0
-            endif
-            if (.not.allocated(suf_u_bc)) then
-               allocate( suf_u_bc( stotel * 3 * nphases ))
-               suf_u_bc = 0.
-            endif
-            if (.not.allocated(suf_v_bc)) then
-               allocate( suf_v_bc( stotel * 3 * nphases ))
-               suf_v_bc = 0.
-            endif
-            if (.not.allocated(suf_w_bc)) then
-               allocate( suf_w_bc( stotel * 3 * nphases ))
-               suf_w_bc = 0.
-            endif
 
             shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
                  &prognostic/boundary_conditions[0]/surface_ids")
@@ -1035,58 +1041,56 @@ module copy_outof_into_state
       have_gravity = ( stat == 0 )
 
       if( have_gravity ) then
-         if( have_option( '/physical_parameters/gravity/vector_field::' // &
-              'GravityDirection/prescribed/value::WholeMesh' ))then
-            call get_option( '/physical_parameters/gravity/vector_field::' // &
-                 'GravityDirection/prescribed/value::WholeMesh/constant', &
-                 gravity_direction, stat )
-         end if
+         gravity_direction = extract_vector_field(state(1), 'GravityDirection', stat )
+         ! Normalise direction vector
+         grm=0
+         do i=1,ndim
+            grm=grm + gravity_direction%val(i,1)**2
+         end do
+         do i=1,ndim
+            gravity_direction%val(i,:) = gravity_direction%val(i,:)/sqrt(grm)
+         end do
       end if
 
-      ! if( have_gravity ) then
-      !    gravity = extract_vector_field( state, "GravityDirection", stat)
-      ! ewrite(3, *)'GravityDirection', stat
-      ! else
-      !    gravity=>dummyvector
-      !    gravity_magnitude = 0.0
-      ! end if
-
       ewrite(3, *)"Getting source terms -- velocity "
+      allocate( u_source( ndim * u_nonods * nphases ))
+      u_source = 0.
       Conditional_VelocitySource: if( have_option( '/material_phase[0]/vector_field::Velocity/' // &
            'prognostic/vector_field::Source' )) then 
          ! This is still not working as the length of node_count(velocity_source) =
          ! node_count(velocity) /= u_nonods
          do i=1,nphases
             velocity_source => extract_vector_field(state(i), "VelocitySource", stat)
-            if (.not.allocated(u_source)) allocate(u_source(u_nonods*nphases))
             if (stat==0) then
                do j=1,node_count(velocity_source)
                   u_source((i-1)*node_count(velocity_source)+j)=velocity_source%val(X_, j)
+                  if (ndim>1) u_source(u_nonods*nphases + (i-1)*node_count(velocity_source)+j) = velocity_source%val(Y_, j)
+                  if (ndim>2) u_source(2*u_nonods*nphases + (i-1)*node_count(velocity_source)+j) = velocity_source%val(Z_, j)                  
                enddo
             else
                u_source = 0.
             endif
          enddo
+      end if Conditional_VelocitySource
 
-      else ! Might need to redo this as density isn't the same length as u_source anymore.
-
-         if ( .not. allocated( u_source )) allocate( u_source( u_nonods * nphases ))
-         u_source = 0.
-         if (have_gravity) then
-            do i = 1, nphases - 1, 1
-               delta_den = 0.
-               do j = 2, node_count( density )
-                  delta_den = delta_den + ( den((i)*node_count(density)+j) - &
-                       den((i-1)*node_count(density)+j) ) / &
-                       real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
-               end do
-               do j = 1, u_nonods
-                  u_source( ( i - 1 ) * u_nonods + j  ) = &
-                       delta_den * gravity_magnitude * 0.02! * domain_length / real( totele )
+      if (have_gravity) then
+         do i = 1, nphases - 1, 1
+            delta_den = 0.
+            do j = 2, node_count( density )
+               delta_den = delta_den + ( den((i)*node_count(density)+j) - &
+                           den((i-1)*node_count(density)+j) ) / &
+                           real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
+            end do
+            do j = 1, u_nonods
+               do k = 1, ndim
+                  u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) = &
+                              u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) + &
+                              delta_den * gravity_magnitude * gravity_direction%val(k,1) * &
+                              domain_length / real( totele )
                end do
             end do
-         end if
-      end if Conditional_VelocitySource
+         end do
+      end if
 
       ewrite(3,*) 'Getting PVF Source'
       do i=1,nphases

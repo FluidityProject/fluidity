@@ -501,7 +501,7 @@ contains
     REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
-    REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
+    REAL, DIMENSION( NDIM * U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
     REAL, DIMENSION( U_NONODS * NPHASE ), intent( inout ) :: U, V, W
     REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: UOLD, VOLD, WOLD
     REAL, DIMENSION( CV_NONODS ), intent( inout ) :: P,CV_P
@@ -944,7 +944,7 @@ contains
     REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
-    REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
+    REAL, DIMENSION( NDIM * U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
     REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W
     REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: UOLD, VOLD, WOLD
     REAL, DIMENSION( CV_NONODS ), intent( inout ) ::  CV_P
@@ -1186,7 +1186,7 @@ contains
     REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
-    REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
+    REAL, DIMENSION( NDIM * U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
     REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W, UOLD, VOLD, WOLD
     REAL, DIMENSION( CV_NONODS ), intent( in ) :: CV_P
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
@@ -1544,7 +1544,7 @@ contains
     REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABS_STAB
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
-    REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
+    REAL, DIMENSION( NDIM * U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
     REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W, UOLD, VOLD, WOLD
     REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: UDEN, UDENOLD
     REAL, intent( in ) :: DT

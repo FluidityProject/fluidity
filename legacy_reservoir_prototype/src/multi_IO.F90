@@ -2770,6 +2770,7 @@ contains
        x_nod = 0
        mat_nod = 0
        p_nod = 0
+       ewrite(3,*) 'totele:', totele
 
        Loop_Elements: do ele = 1, totele
 
@@ -2786,10 +2787,10 @@ contains
              else
                 if( u_ele_type == 2 ) then
                    xu( xu_nod ) = real( ele - 1 ) * dx + real ( mod( iloc, cv_nloc ) - 1 ) &
-                        * dx / real ( u_nloc - 1 )
+                        * dx / real ( xu_nloc - 1 )
                 else
                    xu( xu_nod ) = real( ele - 1 ) * dx + real ( iloc - 1 ) &
-                        * dx / real ( u_nloc - 1 )
+                        * dx / real ( xu_nloc - 1 )
                 end if
              end if
           end do Loop_XU

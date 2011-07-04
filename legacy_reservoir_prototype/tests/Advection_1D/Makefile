@@ -4,7 +4,7 @@ SIM = Advection_1D
 
 input: clean
 
-	../../../scripts/interval --dx=0.05 0 1 1d_mesh
+	../../../scripts/interval --dx=0.2 0 1 1d_mesh
 
 	@echo "compute input for $(SIM)"
 	gfortran -o input_suf_t_bc           input_suf_t_bc.f90

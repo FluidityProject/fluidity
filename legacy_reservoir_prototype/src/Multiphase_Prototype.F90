@@ -155,7 +155,6 @@ module mp_prototype
 
       integer :: option_debug
       integer, parameter :: unit_input = 5, unit_debug = 101, new_unit_debug = 304
-      integer :: i, j, k
 
 
       open( unit_input, file = 'input.dat', status = 'unknown' )
@@ -251,6 +250,7 @@ module mp_prototype
       allocate( u_ndgln( totele * u_nloc ))
       allocate( xu_ndgln( totele * xu_nloc ))
       allocate( cv_ndgln( totele * cv_nloc ))
+      ewrite(3,*) 'totele, cv_nloc', totele, cv_nloc
       allocate( x_ndgln( totele * cv_nloc ))
       allocate( p_ndgln( totele * p_nloc ))
       allocate( mat_ndgln( totele * mat_nloc ))
