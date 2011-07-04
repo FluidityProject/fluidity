@@ -274,8 +274,6 @@ contains
     character( len = 500 ) :: dummy_string_phase, dummy_string_dump, dummy_string_comp, dump_name, file_format
     integer :: output_channel
 
-    ewrite(3,*) 'In solve_multiphase_mom_press_volf'
-
     allocate( sigma( mat_nonods, ndim * nphase, ndim * nphase ))
 
     allocate( rhs( cv_nonods ))

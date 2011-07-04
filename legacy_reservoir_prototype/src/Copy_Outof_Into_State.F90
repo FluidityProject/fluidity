@@ -515,11 +515,11 @@ module copy_outof_into_state
 
       scalar_relax_number_iterations = 100
       global_relax_number_iterations = 100
-      mass_matrix_relax_number_iterations = 100 
+      mass_matrix_relax_number_iterations = 200 
 
-      scalar_error = 1.e-5
-      global_error = 1.e-5
-      mass_matrix_error = 1.-5
+      scalar_error = 1.e-10
+      global_error = 1.e-10
+      mass_matrix_error = 1.e-10
 
       scalar_relax = 1.
       global_relax = 1.
@@ -554,6 +554,7 @@ module copy_outof_into_state
 !!! to be initialised although will not be used.     
       if( have_option( "/physical_parameters/mobility" ))then
          call get_option( "/physical_parameters/mobility", Mobility )
+         Viscosity( 1 : cv_nonods ) = Viscosity_Ph1%val(1,1,1)
       elseif ( have_option( "/material_phase[1]/vector_field::Velocity/prognostic/" // &
            "tensor_field::Viscosity/prescribed/value::WholeMesh/" // &
            "isotropic")) then
@@ -678,6 +679,8 @@ module copy_outof_into_state
       suf_w_bc_rob2 = 0.
       suf_t_bc_rob1 = 0.
       suf_t_bc_rob2 = 0.
+      suf_vol_bc_rob1 = 0.
+      suf_vol_bc_rob2 = 0.
       suf_comp_bc_rob1 = 0.
       suf_comp_bc_rob2 = 0.
 
@@ -990,7 +993,8 @@ module copy_outof_into_state
          if (eos_option(i)==2) then
             if (have_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/all_equal")) then
                call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/all_equal", eos_value)
-               eos_coefs(i,1:ncoef) = eos_value
+            !   eos_coefs(i,1:ncoef) = eos_value
+               eos_coefs(i,1) = eos_value
             else
                call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/specify_all", eos_coefs(i, :))
             endif

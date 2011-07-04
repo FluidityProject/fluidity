@@ -155,6 +155,7 @@ module mp_prototype
 
       integer :: option_debug
       integer, parameter :: unit_input = 5, unit_debug = 101, new_unit_debug = 304
+      integer :: i, j, k
 
 
       open( unit_input, file = 'input.dat', status = 'unknown' )
@@ -312,8 +313,7 @@ module mp_prototype
       !! as it was before, so we're going to do the old input routines too
       !! and compare the mirror files.
 
-      do_old_output=.true.
-
+      do_old_output= .false.
 
       if( do_old_output ) call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
@@ -494,20 +494,25 @@ module mp_prototype
       uold = 0.
       vold = 0.
       wold = 0.
+      nuold = 0.
+      nvold = 0.
+      nwold = 0.
       denold = 1.
       uden = 0.
       udenold = 0.
       deriv = 0.
+      saturaold = 0.
+      compold = 0.
+      volold = 0.
       told = 0.
       cpden = 0.
+      cpdenold = 0.
       pold = 0.
-      nuold = 0.
-      nvold = 0.
-      nwold = 0.
-
+      cv_pold = 0.
       told = t
 
-      if ( do_old_output ) call allocating_global_nodes( ndim, totele, domain_length, &
+     ! if ( .not. do_old_output ) call allocating_global_nodes( ndim, totele, domain_length, &
+      call allocating_global_nodes( ndim, totele, domain_length, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
            cv_nonods, u_nonods, x_nonods, xu_nonods, &
@@ -618,7 +623,7 @@ module mp_prototype
 
       close( unit_debug )
 
-      if( .true. ) call check_sparsity( &
+      if( do_old_output ) call check_sparsity( &
            u_nonods * nphase, cv_nonods * nphase, &
            u_nonods, cv_nonods, totele, &
            mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
@@ -659,7 +664,152 @@ module mp_prototype
            u,  &
            den, satura, comp, p, cv_p, volfra_pore, perm )
 
+! Just double-checking the sizes -- Start
 
+    ewrite( 3, * ) 'problem, nphase, ncomp, totele, ndim, nlev: ', &
+         problem, nphase, ncomp, totele, ndim, nlev
+
+    ewrite( 3, * ) 'u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc: ' , &
+         u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc
+
+    ewrite( 3, * ) 'ncoef, nuabs_coefs, u_ele_type, p_ele_type, mat_ele_type: ', &
+         ncoef, nuabs_coefs, u_ele_type, p_ele_type, mat_ele_type
+
+    ewrite( 3, * ) 'cv_ele_type, cv_sele_type, u_sele_type, ntime, nits: ', &
+         cv_ele_type, cv_sele_type, u_sele_type, ntime, nits
+
+    ewrite( 3, * ) 'ndpset, t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt: ', &
+         ndpset, t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt
+
+    ewrite( 3, * ) 'u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, u_snloc, mat_nloc: ', & 
+         u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, u_snloc, mat_nloc
+
+    ewrite( 3, * ) 'cv_nonods, u_nonods, p_nonods, mat_nonods, ncp_coefs: ', &
+         cv_nonods, u_nonods, p_nonods, mat_nonods, ncp_coefs
+
+    ewrite( 3, * ) 'x_nonods, xu_nonods, nlenmcy: ', &
+         x_nonods, xu_nonods, nlenmcy
+
+    ewrite( 3, * ) 'dt, patmos, p_ini, t_ini: ', dt, patmos, p_ini, t_ini
+
+    ewrite( 3, * ) 't_beta, v_beta, t_theta, v_theta, u_theta: ', &
+         t_beta, v_beta, t_theta, v_theta, u_theta
+
+    ewrite( 3, * ) 'domain_length: ', domain_length
+
+    ewrite( 3, * ) 'wic_vol_bc( stotel * nphase ):', ( wic_vol_bc( i ), i = 1, stotel * nphase )
+
+    ewrite( 3, * ) 'wic_d_bc( stotel * nphase ):', ( wic_d_bc( i ), i = 1, stotel * nphase )
+
+    ewrite( 3, * ) 'wic_u_bc( stotel * nphase ):', ( wic_u_bc( i ), i = 1, stotel * nphase )
+
+    ewrite( 3, * ) 'wic_p_bc( stotel * nphase ):', ( wic_p_bc( i ), i = 1, stotel * nphase )
+
+    ewrite( 3, * ) 'wic_t_bc( stotel * nphase ):', ( wic_t_bc( i ), i = 1, stotel * nphase )
+
+    ewrite( 3, * ) 'suf_vol_bc( stotel * cv_snloc * nphase ):', &
+         ( suf_vol_bc( i ), i = 1, stotel * cv_snloc * nphase )
+
+    ewrite( 3, * ) 'suf_d_bc( stotel * cv_snloc * nphase ):', &
+         ( suf_d_bc( i ), i = 1, stotel * cv_snloc * nphase )
+
+    ewrite( 3, * ) 'suf_cpd_bc( stotel * cv_snloc * nphase ):', &
+         ( suf_cpd_bc( i ), i = 1, stotel * cv_snloc * nphase )
+
+    ewrite( 3, * ) 'suf_t_bc( stotel * cv_snloc * nphase ):', &
+         ( suf_t_bc( i ), i = 1, stotel * cv_snloc * nphase )
+
+    ewrite( 3, * ) 'suf_p_bc( stotel * p_snloc * nphase ):', &
+         ( suf_p_bc( i ), i = 1, stotel * p_snloc * nphase )
+
+    ewrite( 3, * ) 'suf_u_bc( stotel * u_snloc * nphase ):', &
+         ( suf_u_bc( i ), i = 1, stotel * u_snloc * nphase )
+
+    ewrite( 3, * ) 'suf_u_bc_rob1( stotel * u_snloc * nphase ):', &
+         ( suf_u_bc_rob1( i ), i = 1, stotel * u_snloc * nphase )
+
+    ewrite( 3, * ) 'suf_u_bc_rob2( stotel * u_snloc * nphase ):', &
+         ( suf_u_bc_rob2( i ), i = 1, stotel * u_snloc * nphase  )
+
+    ewrite( 3, * ) 'suf_t_bc_rob1( stotel * cv_snloc * nphase ):', &
+         ( suf_u_bc_rob1( i ), i = 1, stotel * cv_snloc * nphase )
+
+    ewrite( 3, * ) 'suf_t_bc_rob2( stotel * cv_snloc * nphase ):', &
+         ( suf_u_bc_rob2( i ), i = 1, stotel * cv_snloc * nphase  )
+
+    ewrite( 3, * ) 'opt_vel_upwind_coefs( nopt_vel_upwind_coefs ):', &
+         ( opt_vel_upwind_coefs( i ), i = 1, nopt_vel_upwind_coefs )
+
+    ewrite( 3, * ) 'x( x_nonods ):', ( x( i ), i = 1, x_nonods )
+
+    ewrite( 3, * ) 'xu( xu_nonods ):', ( xu( i ), i = 1, xu_nonods )
+
+    ewrite( 3, * ) 'nu( u_nonods * nphase ):', &
+         ( nu( i ), i = 1, u_nonods * nphase )
+
+    ewrite( 3, * ) 'ug( u_nonods * nphase ):', &
+         ( ug( i ), i = 1, u_nonods * nphase )
+
+    ewrite( 3, * ) 'uabs_option( nphase ):', &
+         ( uabs_option( i ), i = 1, nphase )
+
+    ewrite( 3, * ) 'u_ndgln', size( u_ndgln ), ( u_ndgln( i ), i = 1, totele * u_nloc )
+    ewrite( 3, * ) 'xu_ndgln', size( xu_ndgln ), ( xu_ndgln( i ), i = 1, totele * xu_nloc )
+    ewrite( 3, * ) 'cv_ndgln', size( cv_ndgln ), ( cv_ndgln( i ), i = 1, totele * cv_nloc )
+    ewrite( 3, * ) 'x_ndgln', size( x_ndgln ), ( x_ndgln( i ), i = 1,  totele * cv_nloc )
+    ewrite( 3, * ) 'p_ndgln',  size( p_ndgln ), ( p_ndgln( i ), i = 1, totele * p_nloc )
+    ewrite( 3, * ) 'mat_ndgln', size( mat_ndgln ), ( mat_ndgln( i ), i = 1, totele * mat_nloc )
+    ewrite( 3, * ) 'u_sndgln', size( u_sndgln), ( u_sndgln( i ), i = 1, stotel * u_snloc )
+    ewrite( 3, * ) 'cv_sndgln', size( cv_sndgln ), ( cv_sndgln( i ), i = 1, stotel * cv_snloc )
+    ewrite( 3, * ) 'x_sndgln',  size( x_sndgln ),( x_sndgln( i ), i = 1, stotel * cv_snloc )
+    ewrite( 3, * ) 'p_sndgln', size( p_sndgln ), ( p_sndgln( i ), i = 1, stotel * p_snloc )
+
+    ewrite( 3, * ) 'u_abs_stab( mat_nonods, ndim * nphase, ndim * nphase ):'
+    do i = 1, mat_nonods
+       do j = 1, ndim * nphase
+          ewrite( 3, * ) i , j, ( u_abs_stab( i, j, k ), k = 1, ndim * nphase )
+       end do
+    end do
+
+    ewrite( 3, * ) 'u_absorb( mat_nonods, ndim * nphase, ndim * nphase ):'
+    do i = 1, mat_nonods
+       do j = 1, ndim * nphase
+          ewrite( 3, * ) i , j, ( u_absorb( i, j, k ), k = 1, ndim * nphase )
+       end do
+    end do
+
+    ewrite( 3, * ) 'u_source( u_nonods * nphase ):', size(u_source), &
+         ( u_source( i ), i = 1, u_nonods * nphase )
+
+    ewrite( 3, * ) 'u( u_nonods * nphase ):', size(u),&
+         ( u( i ), i = 1, u_nonods * nphase )
+
+    ewrite( 3, * ) 'den( cv_nonods * nphase ):', size(den),&
+         ( den( i ), i = 1, cv_nonods * nphase )
+
+    ewrite( 3, * ) 'satura( cv_nonods * nphase ):', size(satura), &
+         ( satura( i ), i = 1, cv_nonods * nphase )
+
+    ewrite( 3, * ) 'comp( cv_nonods * nphase * ncomp ):', size(comp), &
+         ( comp( i ), i = 1, cv_nonods * nphase * ncomp )
+
+    ewrite( 3, * ) 'p( cv_nonods ):', size(p),&
+         ( p( i ), i = 1, cv_nonods )
+
+    ewrite( 3, * ) 'cv_p( cv_nonods ):', size(cv_p), &
+         ( cv_p( i ), i = 1, cv_nonods )
+
+    ewrite( 3, * ) 'volfra_pore( totele ):', size(volfra_pore), &
+         ( volfra_pore( i ), i = 1, totele )
+
+    ewrite( 3, * ) 'perm( totele, ndim, ndim ):', size(perm)
+    do i = 1, totele
+       do j = 1, ndim
+          ewrite( 3, * ) i , j, ( perm( i, j, k ), k = 1, ndim )
+       end do
+    end do
+
+! Just double-checking the sizes -- End
       Select Case( problem )
 
       Case( : 0 ) ; ! CV-Adv test case: -2( Cty ), -1( DG ), 0( Std )
@@ -698,7 +848,8 @@ module mp_prototype
                                 ! Diffusion parameters
               tdiffusion, &
                                 ! Scalar fields
-              t, p, cv_one, volfra_pore, deriv, &
+             ! t, p, cv_one, volfra_pore, deriv, &
+              t, p, den, volfra_pore, deriv, &
               told, nuold, nvold, nwold, &
                                 ! Matrices sparsity
               mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)

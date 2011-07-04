@@ -65,6 +65,9 @@
         <integer_value rank="0">20</integer_value>
       </constant>
     </dump_period_in_timesteps>
+    <max_dump_file_count>
+      <integer_value rank="0">160</integer_value>
+    </max_dump_file_count>
     <output_mesh name="PressureMesh"/>
     <stat/>
   </io>
@@ -82,6 +85,11 @@
       <integer_value rank="0">3</integer_value>
     </nonlinear_iterations>
   </timestepping>
+  <physical_parameters>
+    <mobility>
+      <real_value rank="0">10.</real_value>
+    </mobility>
+  </physical_parameters>
   <material_phase name="phase1">
     <equation_of_state>
       <incompressible>
