@@ -721,14 +721,11 @@ contains
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
             & u_cg, u_nl_cg, &
+            & turbine_conn_mesh, on_sphere, depth, have_wd_abs, &
+            & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
-            & mass=mass, turbine_conn_mesh=turbine_conn_mesh, &
-            & subcycle_m=subcycle_m, &
-            & on_sphere=on_sphere, depth=depth, have_wd_abs=have_wd_abs,&
-            & alpha_u_field=alpha_u_field,&
-            & Abs_wd=Abs_wd, vvr_sf=vvr_sf, ib_min_grad=ib_min_grad,&
-            & nvfrac=nvfrac)
+            & mass=mass, subcycle_m=subcycle_m)
       
       end do element_loop
       !$OMP END PARALLEL DO
@@ -792,9 +789,9 @@ contains
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
        &u_cg, u_nl_cg, &
-       &inverse_mass, inverse_masslump, mass, turbine_conn_mesh, &
-       &subcycle_m, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
-       vvr_sf, ib_min_grad, nvfrac)
+       &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
+       &vvr_sf, ib_min_grad, nvfrac, &
+       &inverse_mass, inverse_masslump, mass, subcycle_m)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -807,7 +804,7 @@ contains
     type(vector_field), intent(inout) :: rhs
     !! Auxiliary variable mesh
     type(mesh_type), intent(in) :: q_mesh
-    type(mesh_type), intent(in), optional :: turbine_conn_mesh
+    type(mesh_type), intent(in) :: turbine_conn_mesh
     !! 
     type(block_csr_matrix), intent(inout), optional :: subcycle_m
 
@@ -834,9 +831,9 @@ contains
     type(vector_field), intent(inout), optional :: inverse_masslump
     !! Optional separate mass matrix.
     type(csr_matrix), intent(inout), optional :: mass
-    logical, intent(in), optional :: have_wd_abs !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
-    type(scalar_field), intent(in), optional :: alpha_u_field
-    type(vector_field), intent(in), optional :: Abs_wd
+    logical, intent(in) :: have_wd_abs !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
+    type(scalar_field), intent(in) :: alpha_u_field
+    type(vector_field), intent(in) :: Abs_wd
     
     ! Bilinear forms.
     real, dimension(ele_loc(U,ele), ele_loc(U,ele)) :: &
@@ -946,14 +943,14 @@ contains
     real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: tensor_absorption_gi
 
     ! Add vertical velocity relaxation to the absorption if present
-    real, intent(in), optional :: vvr_sf
+    real, intent(in) :: vvr_sf
     real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: vvr_abs
     real, dimension(u%dim,ele_ngi(u,ele)) :: vvr_abs_diag
     real, dimension(ele_ngi(u,ele)) :: depth_at_quads
-    type(scalar_field), optional, intent(in) :: depth
+    type(scalar_field), intent(in) :: depth
 
     ! Add implicit buoyancy to the absorption if present
-    real, intent(in), optional :: ib_min_grad
+    real, intent(in) :: ib_min_grad
     real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: ib_abs
     real, dimension(u%dim,ele_ngi(u,ele)) :: ib_abs_diag
     real, dimension(ele_loc(u,ele),ele_ngi(u,ele),mesh_dim(u)) :: dt_rho
@@ -1831,11 +1828,11 @@ contains
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, &
-                        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
-                        & viscosity, viscosity_mat, &
-                        & subcycle_m_tensor_addto=subcycle_m_tensor_addto, &
-                        & dg_les_loc=dg_les_loc, &
-                        & nvfrac=nvfrac)
+                        & subcycle_m_tensor_addto, nvfrac, &
+                        & ele2grad_mat=ele2grad_mat, kappa_mat=kappa_mat, &
+                        & inverse_mass_mat=inverse_mass_mat, &
+                        & viscosity=viscosity, viscosity_mat=viscosity_mat, &
+                        & dg_les_loc=dg_les_loc)
            end if
         else
             if(.not. turbine_face .or. turbine_fluxfac>=0) then
@@ -1845,8 +1842,7 @@ contains
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, &
-                        & subcycle_m_tensor_addto=subcycle_m_tensor_addto, &
-                        & nvfrac=nvfrac)
+                        & subcycle_m_tensor_addto, nvfrac)
             end if
         end if
 
@@ -2071,9 +2067,9 @@ contains
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, &
+       & subcycle_m_tensor_addto, nvfrac, &
        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
-       & viscosity, viscosity_mat, &
-       & subcycle_m_tensor_addto, dg_les_loc, nvfrac)
+       & viscosity, viscosity_mat, dg_les_loc)
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
     implicit none
@@ -2082,8 +2078,7 @@ contains
 
     integer, intent(in) :: ele, face, face_2, ni
     real, dimension(:,:,:,:), intent(inout) :: big_m_tensor_addto
-    real, dimension(:,:,:,:), intent(inout), optional :: & 
-         & subcycle_m_tensor_addto
+    real, dimension(:,:,:,:), intent(inout) :: subcycle_m_tensor_addto
     real, dimension(:,:) :: rhs_addto
     real, dimension(:,:,:), intent(inout) :: Grad_U_mat, Div_U_mat
     ! We pass these additional fields to save on state lookups.
