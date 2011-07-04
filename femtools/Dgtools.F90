@@ -38,7 +38,7 @@ end interface
 interface dg_apply_mass
    module procedure csr_dg_apply_mass_scalar, block_csr_dg_apply_mass_vector
 end interface
-   
+  
 interface dg_add_mass
    module procedure csr_dg_add_mass
 end interface
@@ -343,11 +343,11 @@ contains
 
   end subroutine assemble_local_dg_inverse_mass_matrix
 
-  subroutine dcsr_get_lumped_mass(mass,mesh, &
-       & positions,dirichlet_list,dirichlet_flag)
+  function dcsr_get_lumped_mass(mesh, &
+       & positions,dirichlet_list,dirichlet_flag) result (mass)
     type(mesh_type), intent(in) :: mesh
     type(vector_field), intent(in) :: positions
-    type(dynamic_csr_matrix), intent(inout) :: mass
+    type(dynamic_csr_matrix) :: mass
     integer, dimension(:), intent(in), optional :: dirichlet_list
     integer, intent(in), optional :: dirichlet_flag
 
@@ -369,6 +369,8 @@ contains
        internal_dirichlet_list(dirichlet_list) = .true.
     end if
 
+    call allocate(mass, mesh%nodes, mesh%nodes)
+
     do ele = 1, mesh%elements
 
        if(present(dirichlet_list).and.(dirichlet_flag.ne.0)) then
@@ -382,7 +384,7 @@ contains
        end if
     end do
 
-  end subroutine dcsr_get_lumped_mass
+  end function dcsr_get_lumped_mass
 
   subroutine dcsr_assemble_local_lumped_mass(mass, &
        mesh,positions,ele,dirichlet_list,dirichlet_flag)
@@ -404,7 +406,6 @@ contains
     ele_dg=>ele_nodes(mesh, ele)
     shape_dg=>ele_shape(mesh, ele)
     shape_X=>ele_shape(positions, ele)
-
     call transform_to_physical(positions, ele, detwei=detwei)
     local_mass = shape_shape(shape_dg,shape_dg,detwei)
 

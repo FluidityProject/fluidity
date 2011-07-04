@@ -39,7 +39,7 @@ FC = @FC@
 CXX = @CXX@
 CXXFLAGS = -I../include @CXXFLAGS@ @CPPFLAGS@
 
-FCFLAGS   = -I../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
+FCFLAGS   = -I../include @MODFLAG@../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
 
 LINKER = $(CXX)
 
@@ -52,7 +52,7 @@ endif
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $< 
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $< 
@@ -65,7 +65,6 @@ ifeq (@HYPERLIGHT@,yes)
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
 default: $(LIB)
 else
 default:
