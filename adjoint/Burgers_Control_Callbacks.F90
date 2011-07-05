@@ -66,6 +66,7 @@ module burgers_adjoint_controls
       
       type(vector_field) :: local_src_tmp, local_src_tmp2, src_tmp
       real :: theta, d0, dt 
+      integer :: stat
      
       ! Cast the data to the matrices state 
       call c_f_pointer(data, matrices)
@@ -117,22 +118,22 @@ module burgers_adjoint_controls
             FLAbort("Boundary condition control not implemented yet.")
           !!!!!!!!!!!!! Source !!!!!!!!!!!!
           case("source_term")
-            if (timestep == 0) then
-             cycle
-            end if 
             field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
-            call get_option("/timestepping/timestep", dt)
-            if (has_scalar_field(states(state_id), field_deriv_name)) then
+            sfield => extract_scalar_field(states(state_id), field_deriv_name, stat=stat) ! Output field
+            if (stat /= 0) then
+              FLAbort("The control derivative field " // trim(field_deriv_name) // " specified for " // trim(control_deriv_name) // " is not a field in the state.")
+            end if
+
+            if (timestep == 0) then
+             call zero(sfield)
+            else
               if (trim(field_name) == "VelocitySource") then
                 adj_sfield => extract_scalar_field(states(state_id), "AdjointVelocity")
-                sfield => extract_scalar_field(states(state_id), field_deriv_name) ! Output field
                 h_mass_mat => extract_csr_matrix(matrices, "MassMatrix")
                 call mult(sfield, h_mass_mat, adj_sfield)
               else
                 FLAbort("Sorry, I do not know how to compute the source condition control for " // trim(field_name) // ".")
               end if
-            else
-              FLAbort("The control derivative field " // trim(field_deriv_name) // " specified for " // trim(control_deriv_name) // " is not a field in the state.")
             end if
         end select
       end do
