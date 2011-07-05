@@ -39,6 +39,7 @@ from fluidity_tools import stat_creator
 import time
 import pickle
 import glob
+import math
 
 # Hack for libspud to be able to read an option from a different files. 
 # A better solution would be to fix libspud or use an alternative implementation like
@@ -325,18 +326,23 @@ def optimisation_loop(opt_options, model_options):
   
   # Implement a memoization function to avoid duplicated functional (derivative) evaluations
   class MemoizeMutable:
+
     def __init__(self, fn):
       self.fn = fn
       self.memo = {}
+
     def __call__(self, *args, **kwds):
       import cPickle
       str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
       if not self.memo.has_key(str): 
         self.memo[str] = self.fn(*args, **kwds)
-      else:
-        if verbose:
-          print "Cache hit for functional evaluation (", self.fn, ")."
       return self.memo[str]
+
+    def has_cache(self, *args, **kwds):
+      import cPickle
+      str = cPickle.dumps(args, 1)+cPickle.dumps(kwds, 1)
+      return str in self.memo
+
     # Insert a function value into the cache manually.
     def __add__(self, value, *args, **kwds):
       import cPickle
@@ -376,8 +382,15 @@ def optimisation_loop(opt_options, model_options):
   
   # Returns the functional value with the current controls
   def J(m_serial, m_shape, write_stat=True):
+    has_cache = mem_pure_J.has_cache(m_serial, m_shape)
+    if has_cache:
+      cache_str = "(cache hit)"
+    else:
+      cache_str = ""
+
     J = mem_pure_J(m_serial, m_shape)
-    print "J = ", J 
+    print "J = %s %s" % (J, cache_str) 
+
     if write_stat:
       # Update the functional value in the optimisation stat file
       stat_writer[(functional_name, 'value')] = J
@@ -426,21 +439,67 @@ def optimisation_loop(opt_options, model_options):
       djdm_serial = numpy.append(djdm_serial, djdm[k])
     return djdm_serial
 
+  # Check the gradient using the Taylor expansion
+  def check_gradient(m_serial, m_shape):
+    print '-' * 80
+    print ' Entering gradient verification '
+    print '-' * 80
+
+    fd_errors = []
+    fd_conv = []
+    grad_errors = []
+    grad_conv = []
+
+    nb_tests = 2
+    perturbation = 2e-6
+    #perturbation_vec = numpy.random.rand(len(m_serial))
+    perturbation_vec  = numpy.zeros(len(m_serial))
+    perturbation_vec[0] = 1.0
+
+    j_unpert = J(m_serial, m_shape)
+    print "m_serial", m_serial
+    djdm_unpert = dJdm(m_serial, m_shape)
+    print "Unperturbed gradient: ", djdm_unpert
+
+    for i in range(nb_tests):
+      perturbation = perturbation/2
+      m_pert = m_serial + perturbation*perturbation_vec
+      fd_errors.append(abs(j_unpert - J(m_pert, m_shape)))
+      grad_errors.append(abs(j_unpert + numpy.dot(djdm_unpert, perturbation_vec*perturbation) - J(m_pert, m_shape)))
+
+    if verbose:
+      print "Error in Taylor expansion of order 0: ", fd_errors
+      print "Error in Taylor expansion of order 1: ", grad_errors
+
+    for i in range(nb_tests-1):
+      if fd_errors[i+1] == 0.0 or fd_errors[i] == 0.0:
+        fd_conv.append(1.0)
+      else:
+        fd_conv.append(math.log(fd_errors[i]/fd_errors[i+1], 2))
+      if grad_errors[i+1] == 0.0 or grad_errors[i] == 0.0:
+        grad_conv.append(2.0)
+      else:
+        grad_conv.append(math.log(grad_errors[i]/grad_errors[i+1], 2))
+
+    if verbose:
+      print "Convergence of Taylor expansion of order 0: ", fd_conv
+      print "Convergence of Taylor expansion of order 1: ", grad_conv
+
+    #stat_writer[(functional_name + "_gradient_error", "l2norm")] = grad_err
+
   # This function gets called after each optimisation iteration. 
   # It is currently used to write statistics and copy model output files into a subdirectory 
   def callback(m_serial, m_shape):
     global iteration
     iteration = iteration + 1
-    if superspud(opt_options, "libspud.have_option('/debug/check_gradient')"):
-      grad_err = scipy.optimize.check_grad(lambda x: J(x, m_shape, write_stat = False), lambda x: dJdm(x, m_shape, write_stat = False), m_serial)
-      if verbose:
-        print "Gradient error: ", grad_err
-      stat_writer[(functional_name + "_gradient_error", "l2norm")] = grad_err
     stat_writer.write()
+
     if superspud(opt_options, "libspud.have_option('/debug/save_model_output')"):
       save_model_results()
-    if verbose:
-      print "End of iteration ", iteration
+
+    print '-' * 80
+    print ' Finished optimisation iteration', iteration
+    print '-' * 80
 
   def save_model_results():
     global iteration
@@ -449,6 +508,9 @@ def optimisation_loop(opt_options, model_options):
     Popen(["mkdir", "opt_"+str(iteration)+"_"+simulation_name.strip()])
     Popen("cp "+simulation_name.strip()+"* "+"opt_"+str(iteration)+"_"+simulation_name.strip(), shell=True)
 
+  print '-' * 80
+  print ' Beginning of optimisation loop'
+  print '-' * 80
   ### Initialisation of optimisation loop ###
   global iteration
   iteration = 0
@@ -528,8 +590,15 @@ def optimisation_loop(opt_options, model_options):
     print "Start optimisation loop"
     print "Using ", algo, " as optimisation algorithm."
 
-  ### Start the optimisation loop 
+  # Check gradient
+  if superspud(opt_options, "libspud.have_option('/debug/check_gradient')"):
+    check_gradient(m_serial, m_shape)
 
+
+  ### Start the optimisation loop 
+  print '-' * 80
+  print ' Entering %s optimisation algorithm ' % algo
+  print '-' * 80
   if algo == 'BFGS':
     if have_bound:
       print "BFGS does not support bounds."
