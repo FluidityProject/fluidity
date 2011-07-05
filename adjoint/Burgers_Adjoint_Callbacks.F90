@@ -290,7 +290,6 @@ module burgers_adjoint_callbacks
       end if
 
       ! Ensure that the input velocity has indeed dirichlet bc attached
-      ! Ensure that the input velocity has indeed dirichlet bc attached
       if (get_boundary_condition_count(previous_u)==0) then
         FLAbort("Velocity in callback must have dirichlet conditions attached")
       end if
@@ -303,7 +302,12 @@ module burgers_adjoint_callbacks
       call zero(tmp_u)
 
       if (hermitian==ADJ_FALSE) then
-        path = "/material_phase::Fluid/scalar_field::Velocity"
+        if (running_adjoint) then
+          path = adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity")
+        else
+          path = "/material_phase::Fluid/scalar_field::Velocity"
+        end if
+
         if (.not. have_option(trim(path) // '/prognostic/temporal_discretisation/remove_time_term')) then
           call mult(tmp_u, mass_mat, u_input)
           call scale(tmp_u, 1.0/dt)
@@ -326,7 +330,11 @@ module burgers_adjoint_callbacks
 
         call scale(u_output, -1.0)
       else
-        path = adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity")
+        if (running_adjoint) then
+          path = adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity")
+        else
+          path = "/material_phase::Fluid/scalar_field::Velocity"
+        end if
 
         if (.not. have_option(trim(path) // '/prognostic/temporal_discretisation/remove_time_term')) then
           call mult_T(tmp_u, mass_mat, u_input)
@@ -591,7 +599,9 @@ module burgers_adjoint_callbacks
 
       call allocate(advection_mat, diffusion_mat%sparsity, name="AdvectionActionMatrix")
       call zero(advection_mat)
-      call assemble_advection_matrix(advection_mat, positions, previous_u, iter_u)
+      if (.not. have_option(trim(path) // "/prognostic/remove_advection_term")) then
+        call assemble_advection_matrix(advection_mat, positions, previous_u, iter_u)
+      end if
 
       if (get_boundary_condition_count(previous_u) /= 1) then
         FLAbort("Need to supply boundary conditions on previous_u")

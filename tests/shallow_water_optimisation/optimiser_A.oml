@@ -17,5 +17,7 @@
       <type name="default"/>
     </control>
   </control_io>
-  <debug/>
+  <debug>
+    <check_gradient/>
+  </debug>
 </optimality_options>

@@ -392,9 +392,13 @@
 
         call set(old_iterated_velocity, iterated_velocity)
 
+        write(0,*) "Forward matrix: ", lhs_matrix%val
+        write(0,*) "Forward RHS: ", rhs%val
         call petsc_solve(iterated_velocity, lhs_matrix, rhs, &
                option_path="/material_phase::Fluid/scalar_field::Velocity/")
         call compute_inactive_rows(iterated_velocity, lhs_matrix, rhs)
+        write(0,*) "Initial forward solution: ", old_iterated_velocity%val
+        write(0,*) "Final forward solution: ", iterated_velocity%val
 
         call set(iterated_velocity_difference, iterated_velocity)
         call addto(iterated_velocity_difference, old_iterated_velocity, scale=-1.0)

@@ -344,7 +344,6 @@
             <control name="InitEta">
                 <type name="initial_condition" field_name="Fluid::LayerThickness"></type>
             </control>
-            <load_controls></load_controls>
         </controls>
     </adjoint>
 </shallow_water_options>

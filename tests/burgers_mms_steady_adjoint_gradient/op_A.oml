@@ -16,7 +16,7 @@
     </optimisation_algorithm>
   </optimisation_options>
   <control_io>
-    <control name="initial_condition">
+    <control name="Source">
       <type name="default"/>
     </control>
   </control_io>

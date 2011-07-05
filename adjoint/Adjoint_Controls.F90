@@ -106,7 +106,16 @@ module adjoint_controls
             call print_state(states(state_id))
             FLExit("Check your control's field settings.")
           end if
+
         case ("source_term")
+
+          if (timestep == 0) then
+            active = .false.
+            field_type = ''
+            field_name = ''
+            return
+          end if
+
           if (has_scalar_field(states(state_id), field_name)) then
             field_type = "scalar"
           elseif (has_vector_field(states(state_id), field_name)) then
@@ -120,6 +129,7 @@ module adjoint_controls
             call print_state(states(state_id))
             FLExit("Check your control's field settings.")
           end if
+
         case ("boundary_condition")
           FLAbort("Boundary condition control not implemented yet.")
       end select
@@ -410,14 +420,20 @@ module adjoint_controls
         ! Make sure we found the state
         if (.not. trim(states(state_id)%name) == trim(material_phase_name)) then
           FLExit("Could not find state " // trim(material_phase_name) // " as specified in control " // trim(control_deriv_name) // ".")
-        end if        
+        end if
 
         field_name = "Adjoint" // trim(field_name)
         control_deriv_name = trim(control_deriv_name) // "_TotalDerivative"
         if (trim(control_type) == "initial_condition" .or. trim(control_type) == "source_term") then
+
           if (trim(control_type) == "initial_condition" .and. timestep > 0) then
             cycle
           end if
+
+          if (trim(control_type) == "source_term" .and. timestep == 0) then
+            cycle
+          end if
+
           field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
           if (has_scalar_field(states(state_id), field_name)) then
             field_type = "scalar"

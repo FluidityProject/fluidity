@@ -226,7 +226,10 @@ module adjoint_main_loop
                       end if
 
                       call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
-                      !call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
+                      call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
+                      write(0,*) "Adjoint matrix: ", csr_mat%val
+                      write(0,*) "Adjoint RHS: ", sfield_rhs%val
+                      write(0,*) "Adjoint solution: ", sfield_soln%val
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")

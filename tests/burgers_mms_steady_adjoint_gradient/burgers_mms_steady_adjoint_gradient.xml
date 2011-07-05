@@ -8,18 +8,15 @@
     <command_line>burgers_equation mms_A.bml; burgers_equation mms_B.bml; burgers_equation mms_C.bml; burgers_equation mms_D.bml; burgers_equation mms_E.bml</command_line>
   </problem_definition>
   <variables>
-    <variable name="gradient_conv" language="python">
+    <variable name="gradient_errors" language="python">
 import cPickle as pickle
 import math
 from numpy.linalg import norm
-gradient_conv = []
-#for char in ['A', 'B', 'C', 'D', 'E']:
-for char in ['B']:
-  init = pickle.load(open("control_mms_adjoint_" + char + "_initial_condition_0.pkl"))
+gradient_errors = []
+for char in ['A', 'B', 'C', 'D', 'E']:
+  init = pickle.load(open("mass_control_mms_adjoint_" + char + "_initial_condition_0.pkl"))
   grad = pickle.load(open("control_mms_adjoint_" + char + "_adjoint_time_integral_ad_initial_condition_TotalDerivative_0.pkl"))
-  print "init: ", init
-  print "grad: ", grad
-  print "norm(init - grad): ", norm(init-grad)
+  gradient_errors.append(norm(init-grad))
     </variable>
     <variable name="functional_value_conv" language="python">
 from fluidity_tools import stat_parser
