@@ -431,6 +431,63 @@
         </detectors>
       </prescribed>
     </scalar_field>
+    <scalar_field name="InterpolatedAnalyticSaturation" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X, t):
+   import BL_Cubic_Interp
+   solution_file_name = "solution_file"
+   poly_coeff_file_name = "poly_coeff_file"
+   BL = BL_Cubic_Interp.BL_Cubic_Interp(solution_file_name, poly_coeff_file_name)  
+   s = BL.interp(X[0])   
+   return s  </string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="AbsoluteDifference" rank="0">
+      <diagnostic field_name_b="InterpolatedAnalyticSaturation" field_name_a="PhaseVolumeFraction">
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="Error" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="InterpolatedAnalyticSaturation" source_field_2_name="PhaseVolumeFraction" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <multiphase_properties>
       <relperm_option>
         <integer_value rank="0">3</integer_value>
