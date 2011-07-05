@@ -510,6 +510,11 @@ module burgers_adjoint_callbacks
         call insert(dummy_state(1), positions, "Coordinate")
         call insert(dummy_state(1), u_output, "Velocity")
         call initialise_prognostic_fields(dummy_state)
+        
+        ! Set initial condition
+        call populate_boundary_conditions(dummy_state)
+        call set_boundary_conditions_values(dummy_state, shift_time=.false.)
+        call set_dirichlet_consistent(dummy_state)
         call deallocate(dummy_state(1))
 
         output = field_to_adj_vector(u_output)
