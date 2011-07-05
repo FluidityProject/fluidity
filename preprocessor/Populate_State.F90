@@ -411,13 +411,40 @@ contains
     
     character(len=FIELD_NAME_LEN) :: mesh_name    
     character(len=OPTION_PATH_LEN) :: mesh_path
-    logical :: incomplete, updated
+    logical :: incomplete, updated, periodic_unique
     integer :: i
     integer :: nmeshes
-    
+
     ! Get number of meshes
     nmeshes=option_count("/geometry/mesh")
     periodic_boundary_option_path=""
+
+    ! Periodic meshes need to be set up first due to the need to renumber
+    !  both the mesh and the parent.
+    periodic_unique=.true.
+    periodic_loop: do i=0, nmeshes-1
+       
+       ! Save mesh path
+       mesh_path="/geometry/mesh["//int2str(i)//"]"
+      
+       if (.not.have_option(trim(mesh_path)&
+            //"/from_mesh/periodic_boundary_conditions")) cycle
+          
+       if (.not.periodic_unique) &
+            FLExit("Only one periodic mesh is supported")
+       periodic_unique=.false.
+
+       ! Get mesh name.
+       call get_option(trim(mesh_path)//"/name", mesh_name)
+       
+       call insert_derived_mesh(trim(mesh_path), &
+            trim(mesh_name), &
+            incomplete, &
+            updated, &
+            states, &
+            skip_extrusion = skip_extrusion)    
+
+    end do periodic_loop
 
     outer_loop: do
        ! Updated becomes true if we manage to set up at least one mesh on
@@ -474,6 +501,7 @@ contains
     type(mesh_type), pointer :: model_mesh
     type(vector_field), pointer :: position, modelposition
     type(vector_field) :: periodic_position, nonperiodic_position, extrudedposition, coordinateposition
+    type(scalar_field) :: canonical_numbering
 
     character(len=FIELD_NAME_LEN) :: model_mesh_name
     character(len=OPTION_PATH_LEN) :: shape_type, cont
@@ -687,6 +715,16 @@ contains
            call incref(mesh)
            call insert(states, periodic_position, trim(periodic_position%name))
            call deallocate(periodic_position)
+
+           ! The periodic mesh canonical numbering replaces the previous
+           !  one. The positions mesh numbering will be adjusted accordingly.
+           canonical_numbering=periodic_universal_ID_field(&
+                extract_scalar_field(states(1), 'CanonicalNumbering'), &
+                mesh)
+           call order_elements(canonical_numbering, [ position%mesh ])
+           call insert(states, canonical_numbering, "CanonicalNumbering")
+           call deallocate(canonical_numbering)
+
          end if
                
        else

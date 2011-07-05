@@ -1943,6 +1943,7 @@ contains
                 end if
              end do
              if(.not.found_node) then
+                print '(2i8)', model%ndglno
                 do nod1 = 1, size(mapX,2)
                    ewrite(0,*) mapX(:,nod1)
                 end do

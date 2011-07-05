@@ -313,12 +313,13 @@ contains
        
        if (present(meshes)) then
           do m=1, size(meshes)
-             nodes=>ele_nodes(meshes(m), ele)
+             mesh=>meshes(m)
+             nodes=>ele_nodes(mesh, ele)
              nodes=nodes(perm)
              neigh_row=>ele_neigh(numbering, ele)
              facet_row=>ele_faces(numbering, ele)
 
-             numbering%mesh%faces%local_face_number(facet_row)=facet_perm
+             mesh%faces%local_face_number(facet_row)=facet_perm
 
              neigh_row=neigh_row(facet_perm)
              facet_row=facet_row(facet_perm)

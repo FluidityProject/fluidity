@@ -50,7 +50,7 @@ module parallel_fields
     & surface_element_owned, nowned_nodes
   ! Apparently ifort has a problem with the generic name node_owned
   public :: node_owned_mesh, zero_non_owned
-  public :: universal_number, universal_number_field
+  public :: universal_number, universal_number_field, periodic_universal_ID_field
   
   interface node_owned
     module procedure node_owned_mesh, node_owned_scalar, node_owned_vector, &
@@ -147,6 +147,26 @@ contains
     end if
 
   end function mesh_universal_number_vector
+
+  function periodic_universal_ID_field(uid_in, periodic_mesh) result (uid)
+    ! Given a (non-periodic) universal ID field, return the periodic
+    !  version applicable to periodic_mesh. Note that this is the universal
+    !  ID which is not necessarily contiguous and definitely not contiguous
+    !  per processor.
+    type(scalar_field), intent(in) :: uid_in
+    type(mesh_type), intent(inout) :: periodic_mesh
+
+    type(scalar_field) :: uid
+
+    integer :: ele
+
+    call allocate(uid, periodic_mesh, trim(periodic_mesh%name)//"UniversalNumbering")
+
+    do ele=1,element_count(periodic_mesh)
+       call set(uid, ele_nodes(uid, ele), ele_val(uid_in,ele))
+    end do
+
+  end function periodic_universal_ID_field
 
   function halo_communicator_mesh(mesh) result(communicator)
     !!< Return the halo communicator for this mesh. Returns the halo
