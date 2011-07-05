@@ -224,6 +224,7 @@ module copy_outof_into_state
 
       ! Gravity terms to be linked with u_source
       logical :: have_gravity
+      !!  real :: gravity_magnitude, gravity_direction, delta_den
       real :: gravity_magnitude, delta_den, grm
       type(vector_field) :: gravity_direction
       !      type( vector_field ), pointer :: gravity
@@ -315,14 +316,14 @@ module copy_outof_into_state
 
       call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/polynomial_degree', u_ele_type, default=1)
       call get_option('/geometry/mesh::PressureMesh/from_mesh/mesh_shape/polynomial_degree', p_ele_type, default=1)
-      ewrite(3,*) 'u_ele_type', u_ele_type
-!      u_ele_type = 2 ! this will need to be changed later -- switcher for the 
+
+      u_ele_type = 2 ! this will need to be changed later -- switcher for the 
       !! Sufficient to set this to 1 for now? It is 1 in all test cases
       mat_ele_type = 1
       !! Sufficient to set this to 2 for now? It is 2 in all test cases
       !! which presumably means discontinuous
       !! Will need to update once schema is changed
-      cv_ele_type = p_ele_type
+      cv_ele_type = p_ele_type !2
       !! These aren't used 
       cv_sele_type = 1
       u_sele_type = 1
@@ -333,6 +334,7 @@ module copy_outof_into_state
          cv_ele_type = 1
          u_ele_type = 1
       end if
+
 
       !! Time options
       ewrite(3,*) ' Getting time options'
@@ -459,7 +461,6 @@ module copy_outof_into_state
          coord_min=min(coord_min,positions%val(X_,i))
          coord_max=max(coord_max,positions%val(X_,i))
       end do
-      ewrite(3,*) '1D 1D 1D 1D'
       domain_length = coord_max - coord_min
 
       !! I'm going to get this one from the PhaseVolumeFraction scalar_field
@@ -519,7 +520,7 @@ module copy_outof_into_state
 
       scalar_error = 1.e-10
       global_error = 1.e-10
-      mass_matrix_error = 1.e-10
+      mass_matrix_error = 1.-10
 
       scalar_relax = 1.
       global_relax = 1.
@@ -554,12 +555,12 @@ module copy_outof_into_state
 !!! to be initialised although will not be used.     
       if( have_option( "/physical_parameters/mobility" ))then
          call get_option( "/physical_parameters/mobility", Mobility )
-         Viscosity( 1 : cv_nonods ) = Viscosity_Ph1%val(1,1,1)
+         Viscosity( 1 : cv_nonods ) = Viscosity_Ph1%val( 1, 1, 1 )
       elseif ( have_option( "/material_phase[1]/vector_field::Velocity/prognostic/" // &
            "tensor_field::Viscosity/prescribed/value::WholeMesh/" // &
            "isotropic")) then
          viscosity_ph2 => extract_tensor_field(state(2), "Viscosity")
-         Mobility =  Viscosity_Ph2%val(1,1,1) / Viscosity_Ph1%val(1,1,1)         
+         Mobility =  Viscosity_Ph2%val( 1, 1, 1 ) / Viscosity_Ph1%val( 1, 1, 1 )         
       elseif( nphases == 1 ) then
          Mobility = 0. 
       end if
@@ -590,6 +591,8 @@ module copy_outof_into_state
 
       if (have_option("/porous_media/scalar_field::Permeability")) then
          permeability => extract_scalar_field(state(1), "Permeability")
+         ! call get_option( "/porous_media/scalar_field::Permeability/prescribed/&
+         !      &value::WholeMesh/constant", permeability )
          allocate(perm(totele, ndim, ndim))
          do i=1,totele
             do j=1,ndim
@@ -993,7 +996,6 @@ module copy_outof_into_state
          if (eos_option(i)==2) then
             if (have_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/all_equal")) then
                call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/all_equal", eos_value)
-            !   eos_coefs(i,1:ncoef) = eos_value
                eos_coefs(i,1) = eos_value
             else
                call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/specify_all", eos_coefs(i, :))
@@ -1056,6 +1058,15 @@ module copy_outof_into_state
          end do
       end if
 
+      !!if( have_gravity ) then
+      !!   if( have_option( '/physical_parameters/gravity/vector_field::' // &
+      !!        'GravityDirection/prescribed/value::WholeMesh' ))then
+      !!      call get_option( '/physical_parameters/gravity/vector_field::' // &
+      !!           'GravityDirection/prescribed/value::WholeMesh/constant', &
+      !!           gravity_direction, stat )
+      !!   end if
+      !!end if
+
       ewrite(3, *)"Getting source terms -- velocity "
       allocate( u_source( ndim * u_nonods * nphases ))
       u_source = 0.
@@ -1082,19 +1093,39 @@ module copy_outof_into_state
             delta_den = 0.
             do j = 2, node_count( density )
                delta_den = delta_den + ( den((i)*node_count(density)+j) - &
-                           den((i-1)*node_count(density)+j) ) / &
-                           real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
+                    den((i-1)*node_count(density)+j) ) / &
+                    real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
             end do
             do j = 1, u_nonods
                do k = 1, ndim
                   u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) = &
-                              u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) + &
-                              delta_den * gravity_magnitude * gravity_direction%val(k,1) * &
-                              domain_length / real( totele )
+                       u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) + &
+                       delta_den * gravity_magnitude * gravity_direction%val(k,1) * &
+                       domain_length / real( totele )
                end do
             end do
          end do
       end if
+
+      !!      else ! Might need to redo this as density isn't the same length as u_source anymore.
+      !!
+      !!         if ( .not. allocated( u_source )) allocate( u_source( u_nonods * nphases ))
+      !!         u_source = 0.
+      !!         if (have_gravity) then
+      !!            do i = 1, nphases - 1, 1
+      !!               delta_den = 0.
+      !!               do j = 2, node_count( density )
+      !!                  delta_den = delta_den + ( den((i)*node_count(density)+j) - &
+      !!                       den((i-1)*node_count(density)+j) ) / &
+      !!                       real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
+      !!               end do
+      !!               do j = 1, u_nonods
+      !!                  u_source( ( i - 1 ) * u_nonods + j  ) = &
+      !!                       delta_den * gravity_magnitude * 0.02! * domain_length / real( totele )
+      !!               end do
+      !!            end do
+      !!         end if
+      !!      end if Conditional_VelocitySource
 
       ewrite(3,*) 'Getting PVF Source'
       do i=1,nphases
@@ -1182,7 +1213,8 @@ module copy_outof_into_state
          end if Conditional_ExtraScalarField
 
       end if
-ewrite(3,*)'temperature field:',t
+
+      ewrite(3,*)'temperature field:',t
 
       ewrite(3,*) 'Getting component source'
       allocate(comp_source(cv_nonods*nphases))
