@@ -43,17 +43,21 @@ module adjoint_controls
     contains 
 
     ! Retrieves the control details from control number control_no in the optin tree. The outputs are:
-    ! control_name: the name of the control 
-    ! state_id: the state number in which the associated control field exists
-    ! field_name: the name of the associated field
-    ! field_type: the type of the associated field
-    ! active: false if the control is active in this timestep (e.g. InitialConditions for timesteps >0)
-    subroutine get_control_details(states, timestep, control_no, control_name, state_id, field_name, field_type, active, have_lb, lb_state_id, lb_material_phase_name, lb_field_name, have_ub, ub_state_id, ub_material_phase_name, ub_field_name)
+    subroutine get_control_details(states, timestep, control_no, control_name, state_id, field_name, field_type, &
+                                 & active, have_lb, lb_state_id, lb_material_phase_name, lb_field_name, have_ub, &
+                                 & ub_state_id, ub_material_phase_name, ub_field_name)
+
+       ! Inputs:
       type(state_type), dimension(:), intent(in) :: states
-      integer, intent(in) :: control_no, timestep
-      character(len=OPTION_PATH_LEN), intent(out) :: control_name, field_type, field_name 
-      integer, intent(out) :: state_id
-      logical, intent(out) :: active 
+      integer, intent(in) :: control_no, timestep ! control_no: The index of the control in the option tree
+                                                  ! timestep: The timestep
+
+      ! Outputs:
+      character(len=OPTION_PATH_LEN), intent(out) :: control_name, field_type, field_name ! control_name: the name of the control 
+                                                                                          ! field_name: the name of the associated field
+                                                                                          ! field_type: the type of the associated field
+      integer, intent(out) :: state_id ! the state number in which the associated control field exists
+      logical, intent(out) :: active ! false if the control is active in this timestep (e.g. InitialConditions for timesteps >0)
       logical, intent(out), optional :: have_ub, have_lb
       integer, intent(out), optional :: lb_state_id, ub_state_id
       character(len=OPTION_PATH_LEN), intent(out), optional :: lb_material_phase_name, ub_material_phase_name
@@ -68,13 +72,16 @@ module adjoint_controls
       call get_option("/adjoint/controls/control[" // int2str(control_no) //"]/name", control_name)
       call get_option("/adjoint/controls/control[" // int2str(control_no) //"]/type/name", control_type)
       call get_option("/adjoint/controls/control[" // int2str(control_no) //"]/type::" // trim(control_type) // "/field_name", name)
-      active = .true.
+
       s_idx = scan(trim(name), "::")
       if (s_idx == 0) then 
         FLExit("The control " // trim(control_name) // " uses an invalid field_name. It should be of the form Materialphase::Field")
       end if
       material_phase_name = name(1:s_idx - 1)
       field_name = name(s_idx + 2:len_trim(name))
+
+      active = .true.
+
       ! Find state associated with the material phase
       do state_id = 1, size(states) 
         if (trim(states(state_id)%name) == trim(material_phase_name)) then
@@ -84,7 +91,7 @@ module adjoint_controls
       if (.not. trim(states(state_id)%name) == trim(material_phase_name)) then
         FLExit("Could not find state " // trim(material_phase_name) // " as specified in control " // trim(control_name) // ".")
       end if
-        
+      
       select case (trim(control_type))
         case ("initial_condition")
           if (timestep > 0) then
@@ -108,7 +115,6 @@ module adjoint_controls
           end if
 
         case ("source_term")
-
           if (timestep == 0) then
             active = .false.
             field_type = ''
@@ -139,9 +145,11 @@ module adjoint_controls
       if (.not. present(have_lb) .or. .not. present(have_ub)) then
         return
       endif
+
       have_ub = have_option("/adjoint/controls/control[0]/bounds/upper_bound")
       have_ub = have_option("/adjoint/controls/control[" // int2str(control_no) //"]/bounds/upper_bound")
       have_lb = have_option("/adjoint/controls/control[" // int2str(control_no) //"]/bounds/lower_bound")
+
       ! Find material phase for the lower bound field
       if (have_lb) then 
         call get_option("/adjoint/controls/control[" // int2str(control_no) //"]/bounds/lower_bound/field_name", name)
@@ -163,6 +171,7 @@ module adjoint_controls
           end if
         end if
       end if
+
       ! Find material phase for the upper bound field
       if (have_ub) then
         call get_option("/adjoint/controls/control[" // int2str(control_no) //"]/bounds/upper_bound/field_name", name)
@@ -184,8 +193,10 @@ module adjoint_controls
           end if
         end if
       end if
+
       ! Check that the lower/upper bound fields indeed exist and have the same mesh than the control
       select case (trim(field_type))
+
         case ("scalar")
           ! Upper bound
           ! Check that the specified field exist in the state
@@ -216,6 +227,7 @@ module adjoint_controls
               FLExit("Check your control's field settings.")
             end if
           end if
+
         case ("vector")
           ! Upper bound
           ! Check that the specified field exist in the state
@@ -246,6 +258,7 @@ module adjoint_controls
               FLExit("Check your control's field settings.")
             end if
           end if
+
         case ("tensor")
           ! Upper bound
           ! Check that the specified field exist in the state
@@ -276,6 +289,7 @@ module adjoint_controls
               FLExit("Check your control's field settings.")
             end if
           end if
+
       end select
     end subroutine get_control_details
 
@@ -303,6 +317,7 @@ module adjoint_controls
       do i = 0, nb_controls-1
         call get_control_details(states, timestep, i, control_name, state_id, field_name, field_type, active, have_lb, lb_state_id, lb_material_phase_name, lb_field_name, have_ub, ub_state_id, ub_material_phase_name, ub_field_name)
         if (active) then
+
           ! Save the control parameter to disk
           call python_reset()
           call python_add_state(states(state_id))
@@ -312,6 +327,7 @@ module adjoint_controls
                               &  "field = state." // trim(field_type) // "_fields['" // trim(field_name) // "'];" // &
                               &  "pickle.dump(field.val[:], f);" // &
                               &  "f.close();")
+
           ! And its bounds
           call python_reset()
           if (have_lb) then
@@ -322,9 +338,9 @@ module adjoint_controls
                                 &  "field = state." // trim(field_type) // "_fields['" // trim(lb_field_name) // "'];" // &
                                 &  "pickle.dump(field.val[:], f);" // &
                                 &  "f.close();")
-
             call python_reset()
           end if
+
           if (have_ub) then
             call python_add_state(states(ub_state_id))
             call python_run_string("import pickle;" // &
@@ -335,6 +351,7 @@ module adjoint_controls
                                 &  "f.close();")
             call python_reset()
           endif
+
         end if
       end do
 #endif
@@ -354,8 +371,10 @@ module adjoint_controls
       if (.not. have_option("/adjoint/controls/load_controls")) then
         return 
       end if
+
       call get_option("/simulation_name", simulation_name)
       nb_controls = option_count("/adjoint/controls/control")
+
       ! Now loop over the controls, read their controls files and fill the associated fields
       do i = 0, nb_controls-1
         call get_control_details(states, timestep, i, control_name, state_id, field_name, field_type, active)
