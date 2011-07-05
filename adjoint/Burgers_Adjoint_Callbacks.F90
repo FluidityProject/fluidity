@@ -463,9 +463,10 @@ module burgers_adjoint_callbacks
       logical :: has_source
       type(mesh_type), pointer :: u_mesh
       type(state_type), dimension(1) :: dummy_state
-      type(scalar_field) :: u_output, tmp_u_output
+      type(scalar_field) :: u_output, tmp_u_output, dummy_u
       type(csr_matrix), pointer :: mass_matrix
       type(vector_field), pointer :: positions
+      type(csr_matrix) :: mangled_mass_matrix
 
       integer :: ierr
 
@@ -508,12 +509,17 @@ module burgers_adjoint_callbacks
         else
           call allocate(tmp_u_output, u_mesh, "VelocitySource")
           call allocate(u_output, u_mesh, "VelocitySource")
+          call allocate(dummy_u, u_mesh, "DummyVelocity")
           call zero(tmp_u_output)
           call zero(u_output)
           tmp_u_output%option_path = trim(path) // "/prognostic/scalar_field::Source"
+          dummy_u%option_path = trim(path)
 
           call insert(dummy_state(1), positions, "Coordinate")
           call insert(dummy_state(1), tmp_u_output, "VelocitySource")
+          call insert(dummy_state(1), dummy_u, "DummyVelocity")
+
+          call populate_boundary_conditions(dummy_state)
 
           ierr = adj_timestep_get_times(adjointer, timestep-1, time, end_time)
           call adj_chkierr(ierr)
@@ -523,8 +529,15 @@ module burgers_adjoint_callbacks
           call set_prescribed_field_values(dummy_state, time=time + theta*dt)
           call deallocate(dummy_state(1))
 
-          call mult(u_output, mass_matrix, tmp_u_output)
+          call allocate(mangled_mass_matrix, mass_matrix%sparsity, name="MangledMassMatrix")
+          call set(mangled_mass_matrix, mass_matrix)
+          call mangle_dirichlet_rows(mangled_mass_matrix, dummy_u, keep_diag=.false.)
+          call mult(u_output, mangled_mass_matrix, tmp_u_output)
+          print *, "mangled_mass_matrix in replay forward run", mangled_mass_matrix%val
+          call deallocate(mangled_mass_matrix)
+
           call deallocate(tmp_u_output)
+          call deallocate(dummy_u)
 
           output = field_to_adj_vector(u_output)
           has_output = ADJ_TRUE

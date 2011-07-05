@@ -392,13 +392,9 @@
 
         call set(old_iterated_velocity, iterated_velocity)
 
-        write(0,*) "Forward matrix: ", lhs_matrix%val
-        write(0,*) "Forward RHS: ", rhs%val
         call petsc_solve(iterated_velocity, lhs_matrix, rhs, &
                option_path="/material_phase::Fluid/scalar_field::Velocity/")
         call compute_inactive_rows(iterated_velocity, lhs_matrix, rhs)
-        write(0,*) "Initial forward solution: ", old_iterated_velocity%val
-        write(0,*) "Final forward solution: ", iterated_velocity%val
 
         call set(iterated_velocity_difference, iterated_velocity)
         call addto(iterated_velocity_difference, old_iterated_velocity, scale=-1.0)
@@ -466,6 +462,7 @@
 
       type(vector_field), pointer :: x
       type(mesh_type), pointer :: mesh
+      type(csr_matrix) :: mangled_mass_matrix
 
       call zero(rhs)
 
@@ -490,7 +487,12 @@
 
       src => extract_scalar_field(state, "VelocitySource", stat=stat)
       if (stat == 0) then
-        call mult(tmp, mass_matrix, src)
+        call allocate(mangled_mass_matrix, mass_matrix%sparsity, name="MangledMassMatrix")
+        call set(mangled_mass_matrix, mass_matrix)
+        call mangle_dirichlet_rows(mangled_mass_matrix, u, keep_diag=.false.)
+        call mult(tmp, mangled_mass_matrix, src)
+        print *, "mangled_mass_matrix in forward run", mangled_mass_matrix%val
+        call deallocate(mangled_mass_matrix)
         call addto(rhs, tmp)
       end if
 
