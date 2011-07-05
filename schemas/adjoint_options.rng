@@ -211,7 +211,7 @@ but all adjoint related entries will be zeroed.</a:documentation>
           <optional>
             <element name="load_controls">
               <a:documentation>Load controls values from the control files.
-This is used for the optimiser.py only and should be left disabled.</a:documentation>
+This is used for optimality only and should be left disabled.</a:documentation>
               <empty/>
             </element>
           </optional>

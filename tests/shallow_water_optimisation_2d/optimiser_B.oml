@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<optimiser_options>
+<optimality_options>
   <name>
     <string_value lines="1">shallow_water_optimisation_B</string_value>
   </name>
@@ -17,4 +17,4 @@
       <type name="default"/>
     </control>
   </control_io>
-</optimiser_options>
+</optimality_options>

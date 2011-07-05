@@ -3,7 +3,7 @@ include "spud_base.rnc"
 start =
    (
       ## The root node of the options dictionary.
-      element optimiser_options {
+      element optimality_options {
          comment,
          ## Output files are named according to the optimisation
          ## name, e.g. [optimisation_name]_0.stat. Non-standard

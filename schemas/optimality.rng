@@ -2,7 +2,7 @@
 <grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <include href="spud_base.rng"/>
   <start>
-    <element name="optimiser_options">
+    <element name="optimality_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
       <ref name="comment"/>
       <element name="name">
