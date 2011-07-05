@@ -40,6 +40,7 @@ import time
 import pickle
 import glob
 import math
+import shutil
 
 # Hack for libspud to be able to read an option from a different files. 
 # A better solution would be to fix libspud or use an alternative implementation like
@@ -451,7 +452,7 @@ def optimisation_loop(opt_options, model_options):
     grad_conv = []
 
     nb_tests = 4
-    perturbation = 2e-2
+    perturbation = 2e-6
     perturbation_vec = numpy.random.rand(len(m_serial))
 
     j_unpert = J(m_serial, m_shape)
@@ -504,9 +505,14 @@ def optimisation_loop(opt_options, model_options):
     Popen(["mkdir", "opt_"+str(iteration)+"_"+simulation_name.strip()])
     Popen("cp "+simulation_name.strip()+"* "+"opt_"+str(iteration)+"_"+simulation_name.strip(), shell=True)
 
+  ############################################################################
+
+
+  ############################################################################
   print '-' * 80
   print ' Beginning of optimisation loop'
   print '-' * 80
+  ############################################################################
   ### Initialisation of optimisation loop ###
   global iteration
   iteration = 0
@@ -574,7 +580,6 @@ def optimisation_loop(opt_options, model_options):
   check_control_consistency(m, djdm, m_bounds)
 
   ### Serialise the controls for the optimisation routine 
-
   [m_serial, m_shape] = serialise(m)
   [m_lb_serial, m_lb_shape] = serialise(m_bounds["lower_bound"])
   [m_ub_serial, m_ub_shape] = serialise(m_bounds["upper_bound"])
@@ -582,19 +587,20 @@ def optimisation_loop(opt_options, model_options):
   assert(m_lb_shape == m_shape)
   # zip the lower and upper bound to a list of tuples
   m_bounds_serial = zip(m_lb_serial, m_ub_serial)
-  if verbose:
-    print "Start optimisation loop"
-    print "Using ", algo, " as optimisation algorithm."
 
   # Check gradient
   if superspud(opt_options, "libspud.have_option('/debug/check_gradient')"):
     check_gradient(m_serial, m_shape)
 
-
-  ### Start the optimisation loop 
+  ############################################################################
   print '-' * 80
   print ' Entering %s optimisation algorithm ' % algo
   print '-' * 80
+  ############################################################################
+
+  ################################
+  ########### BFGS ###############
+  ################################
   if algo == 'BFGS':
     if have_bound:
       print "BFGS does not support bounds."
@@ -606,6 +612,10 @@ def optimisation_loop(opt_options, model_options):
     res = scipy.optimize.fmin_bfgs(J, m_serial, dJdm, gtol=tol, full_output=1, maxiter=maxiter, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
     print "Functional value J(m): ", res[1]
     print "Control state m: ", res[0]
+
+  ################################
+  ########### NCG ################
+  ################################
   elif algo == 'NCG':
     if have_bound:
       print "NCG does not support bounds."
@@ -617,6 +627,10 @@ def optimisation_loop(opt_options, model_options):
     res = scipy.optimize.fmin_ncg(J, m_serial, dJdm, avextol=tol, full_output=1, maxiter=maxiter, args=(m_shape, ), callback = lambda m: callback(m, m_shape))
     print "Functional value J(m): ", res[1]
     print "Control state m: ", res[0]
+
+  ################################
+  ########### L-BFGS-B ###########
+  ################################
   elif algo == 'L-BFGS-B': 
     opt_args = dict(func=J, x0=m_serial, fprime=dJdm, args=(m_shape,))
     if have_bound:
@@ -643,13 +657,12 @@ def optimisation_loop(opt_options, model_options):
     print "Unknown optimisation algorithm in option path."
     exit()
   
-  if verbose:
-    print "End of optimisation loop"
 
-################# Main program ###################
+################# main()  ###################
 def main():
   global verbose
   global debug
+
   parser = argparse.ArgumentParser(description='Optimisation program for fluidity.')
   parser.add_argument('filename', metavar='FILE', help="the .oml file")
   parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode')
@@ -657,24 +670,43 @@ def main():
   args = parser.parse_args()
   verbose = args.verbose
   debug = args.debug
+
   if not os.path.isfile(args.filename):
     print "File", args.filename, "not found."
     exit()
+
   # Initial spud environments for the optimality and model options.
-  opt_options = args.filename
-  if not superspud(opt_options, "libspud.have_option('/optimisation_options')"):
+  opt_file = args.filename
+  if not superspud(opt_file, "libspud.have_option('/optimisation_options')"):
     print "File", args.filename, "is not a valid .oml file."
     exit()
-  model_file = superspud(opt_options, "libspud.get_option('/model/option_file')")
+  model_file = superspud(opt_file, "libspud.get_option('/model/option_file')")
   if not os.path.isfile(model_file):
       print "Could not find ", model_file ," as specified in /model/option_file"
       exit()
+
+  # Create a copy of the option files so that we don't touch the original
+  def rename_file(fn):
+    fn_basename, fn_extension = os.path.splitext(fn)
+    shutil.copy(fn, fn_basename+'_tmp'+fn_extension)
+    fn = fn_basename+'_tmp'+fn_extension
+    return fn
+
+  model_file = rename_file(model_file)
+  opt_file = rename_file(opt_file)
+  superspud(opt_file, ["libspud.delete_option('/model/option_file'), libspud.set_option('/model/option_file', '" + model_file + "')", "libspud.write_options('" + opt_file + "')"])
+
   # Check consistency of the option files
-  check_option_consistency(opt_options, model_file)
+  check_option_consistency(opt_file, model_file)
+
   # Start the optimisation loop
-  optimisation_loop(opt_options, model_file) 
+  optimisation_loop(opt_file, model_file) 
+  
+  # Tidy up
+  os.remove(opt_file)
+  os.remove(model_file)
 
-
+################# __main__ ########################
 if '__main__'==__name__:
       start_time = time.time()
       main()   
