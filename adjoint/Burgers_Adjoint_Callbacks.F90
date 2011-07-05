@@ -259,6 +259,7 @@ module burgers_adjoint_callbacks
       character(len=FIELD_NAME_LEN) :: path
       type(csr_matrix) :: advection_mat
       type(vector_field), pointer :: positions
+      type(csr_matrix) :: timestepping_mat
 
       call c_f_pointer(context, matrices)
       
@@ -301,63 +302,44 @@ module burgers_adjoint_callbacks
       call allocate(tmp_u, u_mesh, "TimeSteppingAdjointVelocityOutput")
       call zero(tmp_u)
 
-      if (hermitian==ADJ_FALSE) then
-        if (running_adjoint) then
-          path = adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity")
-        else
-          path = "/material_phase::Fluid/scalar_field::Velocity"
-        end if
+      call allocate(timestepping_mat, mass_mat%sparsity, name="TimesteppingMatrix")
+      call zero(timestepping_mat)
 
-        if (.not. have_option(trim(path) // '/prognostic/temporal_discretisation/remove_time_term')) then
-          call mult(tmp_u, mass_mat, u_input)
-          call scale(tmp_u, 1.0/dt)
-          call addto(u_output, tmp_u)
-        end if
-
-        if (.not. have_option(trim(path) // '/prognostic/remove_advection_term')) then
-          call allocate(advection_mat, mass_mat%sparsity, name="BurgersCallbackAdvectionMatrix")
-          call zero(advection_mat)
-          call assemble_advection_matrix(advection_mat, positions, previous_u, iter_u)
-          call mult(tmp_u, advection_mat, u_input)
-          call scale(tmp_u, theta - 1.0)
-          call addto(u_output, tmp_u)
-          call deallocate(advection_mat)
-        end if
-
-        call mult(tmp_u, diffusion_mat, u_input)
-        call scale(tmp_u, theta - 1.0)
-        call addto(u_output, tmp_u)
-
-        call scale(u_output, -1.0)
+      if (running_adjoint) then
+        path = adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity")
       else
-        if (running_adjoint) then
-          path = adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity")
-        else
-          path = "/material_phase::Fluid/scalar_field::Velocity"
-        end if
-
-        if (.not. have_option(trim(path) // '/prognostic/temporal_discretisation/remove_time_term')) then
-          call mult_T(tmp_u, mass_mat, u_input)
-          call scale(tmp_u, 1.0/dt)
-          call addto(u_output, tmp_u)
-        end if
-
-        if (.not. have_option(trim(path) // '/prognostic/remove_advection_term')) then
-          call allocate(advection_mat, mass_mat%sparsity, name="BurgersCallbackAdvectionMatrix")
-          call zero(advection_mat)
-          call assemble_advection_matrix(advection_mat, positions, previous_u, iter_u)
-          call mult_T(tmp_u, advection_mat, u_input)
-          call scale(tmp_u, theta - 1.0)
-          call addto(u_output, tmp_u)
-          call deallocate(advection_mat)
-        end if
-
-        call mult_T(tmp_u, diffusion_mat, u_input)
-        call scale(tmp_u, theta - 1.0)
-        call addto(u_output, tmp_u)
-
-        call scale(u_output, -1.0)
+        path = "/material_phase::Fluid/scalar_field::Velocity"
       end if
+
+      if (.not. have_option(trim(path) // '/prognostic/temporal_discretisation/remove_time_term')) then
+        call addto(timestepping_mat, mass_mat, scale=1.0/dt)
+      end if
+
+      if (.not. have_option(trim(path) // '/prognostic/remove_advection_term')) then
+        call allocate(advection_mat, mass_mat%sparsity, name="BurgersCallbackAdvectionMatrix")
+        call zero(advection_mat)
+        call assemble_advection_matrix(advection_mat, positions, previous_u, iter_u)
+        call addto(timestepping_mat, advection_mat, scale=theta-1.0)
+        call deallocate(advection_mat)
+      end if
+
+      call addto(timestepping_mat, diffusion_mat, scale=theta-1.0)
+
+      call scale(timestepping_mat, -1.0)
+      if (get_boundary_condition_count(previous_u)==0) then
+        FLAbort("Velocity in callback must have dirichlet conditions attached")
+      end if
+      ! Mangle the dirichlet rows
+      call mangle_dirichlet_rows(timestepping_mat, previous_u, keep_diag=.false.)
+
+      if (hermitian==ADJ_FALSE) then
+        call mult(u_output, timestepping_mat, u_input)
+      else
+        call mult_T(u_output, timestepping_mat, u_input)
+      end if
+
+      call deallocate(timestepping_mat)
+
       call scale(u_output, coefficient)
       output = field_to_adj_vector(u_output)
       call deallocate(u_output)

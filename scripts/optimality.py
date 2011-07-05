@@ -452,9 +452,7 @@ def optimisation_loop(opt_options, model_options):
 
     nb_tests = 4
     perturbation = 2e-2
-    #perturbation_vec = numpy.random.rand(len(m_serial))
-    perturbation_vec  = numpy.zeros(len(m_serial))
-    perturbation_vec[0] = 1.0
+    perturbation_vec = numpy.random.rand(len(m_serial))
 
     j_unpert = J(m_serial, m_shape)
     print "m_serial", m_serial
