@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<optimiser_options>
+<optimality_options>
   <name>
     <string_value lines="1">optimiser</string_value>
   </name>
@@ -65,4 +65,4 @@
   <debug>
     <check_gradient/>
   </debug>
-</optimiser_options>
+</optimality_options>

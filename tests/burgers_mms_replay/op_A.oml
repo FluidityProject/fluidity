@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<optimiser_options>
+<optimality_options>
   <name>
     <string_value lines="1">op_A</string_value>
   </name>
@@ -20,7 +20,7 @@
       <type name="default"/>
     </control>
   </control_io>
-  <debugging>
+  <debug>
     <check_gradient/>
-  </debugging>
-</optimiser_options>
+  </debug>
+</optimality_options>
