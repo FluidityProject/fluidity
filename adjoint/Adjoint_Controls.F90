@@ -522,35 +522,42 @@ module adjoint_controls
 
           field_name = "Adjoint" // trim(field_name)
           control_deriv_name = trim(control_deriv_name) // "_TotalDerivative"
+
           if (trim(control_type) == "initial_condition" .or. trim(control_type) == "source_term") then
             field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
+
             if (has_scalar_field(states(state_id), field_name)) then
               sfield => extract_scalar_field(states(state_id), field_name)
               call allocate(sfield_deriv, sfield%mesh, field_deriv_name)
               call zero(sfield_deriv)
               call insert(states(state_id), sfield_deriv, field_deriv_name)
               call deallocate(sfield_deriv)
+
             elseif (has_vector_field(states(state_id), field_name)) then
               vfield => extract_vector_field(states(state_id), field_name)
               call allocate(vfield_deriv, vfield%dim, vfield%mesh, field_deriv_name)
               call zero(vfield_deriv)
               call insert(states(state_id), vfield_deriv, field_deriv_name)
               call deallocate(vfield_deriv)
+
             elseif (has_tensor_field(states(state_id), field_name)) then
               tfield => extract_tensor_field(states(state_id), field_name)
               call allocate(tfield_deriv, tfield%mesh, field_deriv_name, tfield%field_type, tfield%dim)
               call zero(tfield_deriv)
               call insert(states(state_id), tfield_deriv, field_deriv_name)
               call deallocate(tfield_deriv)
+
             else
               ewrite(0, *) "The control field " // trim(field_name) // " specified in control " // trim(control_deriv_name) // " is not a field in the state."
               ewrite(0, *) "The current state is: "
               call print_state(states(state_id))
               FLExit("Check your control's field settings.")
             end if
+
           elseif (trim(control_type) == "boundary_condition") then
             FLAbort("Boundary condition control not implemented yet.")
           end if
+
         end do
       end do
     end subroutine allocate_and_insert_control_derivative_fields

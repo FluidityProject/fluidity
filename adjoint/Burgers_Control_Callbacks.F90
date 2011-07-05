@@ -96,6 +96,7 @@ module burgers_adjoint_controls
 
         control_deriv_name = trim(control_deriv_name) // "_TotalDerivative"
         select case(trim(control_type))
+
           !!!!!!!!!!!!! Initial condition !!!!!!!!!!!!
           case ("initial_condition")
             if (timestep /= 0) then
@@ -113,10 +114,12 @@ module burgers_adjoint_controls
             else
               FLAbort("The control derivative field " // trim(field_deriv_name) // " specified for " // trim(control_deriv_name) // " is not a field in the state.")
             end if
+
           !!!!!!!!!!!!! Boundary condition !!!!!!!!!!!!
           case("boundary_condition")
             FLAbort("Boundary condition control not implemented yet.")
-          !!!!!!!!!!!!! Source !!!!!!!!!!!!
+
+          !!!!!!!!!!!!!       Source       !!!!!!!!!!!!
           case("source_term")
             field_deriv_name = trim(functional_name) // "_" // control_deriv_name 
             sfield => extract_scalar_field(states(state_id), field_deriv_name, stat=stat) ! Output field
