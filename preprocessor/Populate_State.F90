@@ -470,7 +470,8 @@ contains
     ! instead (will have correct shape and dimension)
     logical, optional, intent(in):: skip_extrusion
    
-    type(mesh_type) :: mesh, model_mesh
+    type(mesh_type) :: mesh
+    type(mesh_type), pointer :: model_mesh
     type(vector_field), pointer :: position, modelposition
     type(vector_field) :: periodic_position, nonperiodic_position, extrudedposition, coordinateposition
 
@@ -492,7 +493,7 @@ contains
        call get_option(trim(mesh_path)//"/from_mesh/mesh[0]/name", model_mesh_name)
              
        ! Extract model mesh
-       model_mesh=extract_mesh(states(1), trim(model_mesh_name), stat=stat)
+       model_mesh=>extract_mesh(states(1), trim(model_mesh_name), stat=stat)
        if (stat/=0) then
           ! The mesh from which this mesh is derived is not yet
           ! present.
