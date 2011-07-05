@@ -84,7 +84,7 @@
                 <remove_advection_term></remove_advection_term>
                 <initial_condition name="WholeMesh">
                     <python>
-                        <string_value lines="20" type="python">def val(X, t):&#x0A;  from math import sin, cos&#x0A;  x = X[0]&#x0A;  return sin(x) + cos(x)</string_value>
+                        <string_value lines="20" type="python">def val(X, t):&#x0A;  from math import sin, cos&#x0A;  x = X[0]&#x0A;  return 0#sin(x) + cos(x)</string_value>
                     </python>
                 </initial_condition>
                 <boundary_conditions name="bc">
@@ -93,12 +93,12 @@
                     </surface_ids>
                     <type name="dirichlet">
                         <python>
-                            <string_value lines="20" type="python">def val(X, t):&#x0A;  from math import sin, cos&#x0A;  x = X[0]&#x0A;  return sin(x) + cos(x)</string_value>
+                            <string_value lines="20" type="python">def val(X, t):&#x0A;  from math import sin, cos&#x0A;  x = X[0]&#x0A;  return 0#sin(x) + cos(x)</string_value>
                         </python>
                     </type>
                 </boundary_conditions>
                 <viscosity>
-                    <real_value rank="0">1</real_value>
+                    <real_value rank="0">0</real_value>
                 </viscosity>
                 <stat></stat>
                 <adjoint_storage>
@@ -144,7 +144,7 @@
             <diagnostic>
                 <mesh name="VelocityMesh"></mesh>
                 <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-                    <string_value type="python" lines="20">field.val[:] = 0.0&#x0A;if time == 1.0:&#x0A;  coord = state.vector_fields[&apos;Coordinate&apos;]&#x0A;  adj_u = state.scalar_fields[&apos;AdjointVelocity&apos;]&#x0A;  #print &quot;Adjoint velocity(t=1.0): &quot;, adj_u.val&#x0A;  for ele in range(coord.element_count):&#x0A;    t = Transform(ele, coord)&#x0A;    shape = adj_u.ele_shape(ele)&#x0A;    mass = t.shape_shape(shape, shape)&#x0A;    field.addto(adj_u.ele_nodes(ele), numpy.dot(mass, adj_u.ele_val(ele)))&#x0A;    &#x0A;#print &quot;Funct_derivative (diagnostic): &quot;, field.val    </string_value>
+                    <string_value lines="20" type="python">field.val[:] = 0.0&#x0A;if time == 1.0:&#x0A;  coord = state.vector_fields[&apos;Coordinate&apos;]&#x0A;  adj_u = state.scalar_fields[&apos;AdjointVelocity&apos;]&#x0A;  #print &quot;Adjoint velocity(t=1.0): &quot;, adj_u.val&#x0A;  for ele in range(coord.element_count):&#x0A;    t = Transform(ele, coord)&#x0A;    shape = adj_u.ele_shape(ele)&#x0A;    mass = t.shape_shape(shape, shape)&#x0A;    field.addto(adj_u.ele_nodes(ele), numpy.dot(mass, adj_u.ele_val(ele)))&#x0A;    &#x0A;#print &quot;Funct_derivative (diagnostic): &quot;, field.val</string_value>
                 </algorithm>
                 <stat></stat>
                 <adjoint_storage>
@@ -176,7 +176,8 @@
             <load_controls></load_controls>
         </controls>
         <debug>
-            <html_output></html_output>
+            <replay_forward_run></replay_forward_run>
+            <check_action_transposes></check_action_transposes>
         </debug>
     </adjoint>
 </burgers_equation>
