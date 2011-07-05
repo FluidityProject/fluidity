@@ -15,7 +15,9 @@ copy_tests:
 
 clean:
 	rm -f *.vtu *.stat *~*~ *.html *.pyc *.pkl 
+	rm -R opt_*
 
 clean_all:
-	rm -f *.vtu *.stat *~*~ *.html *.pyc adjoint_B.swml adjoint_C.swml adjoint_D.swml adjoint_E.swml optimiser_B.oml optimiser_C.oml optimiser_D.oml optimiser_E.oml
+	rm -f *.vtu *.stat *~*~ *.html *.pyc adjoint_B.swml adjoint_C.swml adjoint_D.swml adjoint_E.swml optimiser_B.oml optimiser_C.oml optimiser_D.oml optimiser_E.oml 
+	rm -R opt_iter_*
 	cd src; rm *ele *node *bound *~*~
