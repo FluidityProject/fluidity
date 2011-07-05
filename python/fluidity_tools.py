@@ -281,6 +281,7 @@ class stat_creator(dict):
           exit()
         header.appendChild(stat_element)
         self.header.append(stat)
+        column = column+1
       self.initialised = True
       try:
             f.write(doc.toprettyxml(indent="  "))
