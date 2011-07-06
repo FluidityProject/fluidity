@@ -295,15 +295,17 @@ contains
        
     case (ELEMENT_TRACE)
 
-       if(vertices /= 3) then
-          FLAbort('Trace elements only currently coded for triangles')
-       end if
        if(dimension /= 2) then
-          FLAbort('Trace elements only currently coded for triangles')
+          FLAbort('Trace elements only currently coded for 2D')
        end if
-
-       ele_num=>tri_numbering_trace(degree)
-
+       select case (vertices)
+       case (3)
+          ele_num=>tri_numbering_trace(degree)
+       case (2)
+          ele_num=>quad_numbering_trace(degree)
+       case default
+          FLAbort('Vertex count not supported for trace elements')
+       end select
     case (ELEMENT_BUBBLE)
 
        select case(dimension)
@@ -394,7 +396,8 @@ contains
     call number_point_lagrange
     call number_hexes_lagrange
     call number_quads_lagrange
-
+    call number_quads_trace
+    
   end subroutine number_elements
 
   subroutine number_tets_lagrange
@@ -836,7 +839,6 @@ contains
        
        cnt=0
        
-       
        facet_loop: do ll=1,ele%dimension+1
           
           l=0
@@ -857,7 +859,7 @@ contains
           ewrite(3,*) 'Counting error', i, ele%nodes, cnt
           stop
        end if
-       
+
        ! For trace elements, the first local_coordinate is the face number.
        ele%boundary_coord=1
        forall(j=1:ele%vertices)
@@ -867,6 +869,78 @@ contains
     end do degree_loop
     
   end subroutine number_triangles_trace
+
+  subroutine number_quads_trace
+    ! Fill the values in in element_numbering.
+    integer :: i,j, cnt, ll
+    integer, dimension(3) :: l
+    type(ele_numbering_type), pointer :: ele
+
+    quad_numbering_trace%faces=1
+    quad_numbering_trace%vertices=4
+    quad_numbering_trace%edges=4
+    quad_numbering_trace%dimension=2
+    quad_numbering_trace%boundaries=4
+    quad_numbering_trace%family=FAMILY_CUBE
+    quad_numbering_trace%type=ELEMENT_TRACE
+
+    ! Degree 0 elements are a special case.
+    ele=>quad_numbering_trace(0)
+    ele%degree=0
+    
+    degree_loop: do i=0,QUAD_MAX_DEGREE
+       ele=>quad_numbering_trace(i)
+       ele%degree=i 
+
+       ! Allocate mappings:
+
+       ele%nodes=(ele%degree+1)**ele%dimension
+       
+       ! For trace elements, the first index is the facet number.
+       allocate(ele%count2number(1:2*ele%dimension,0:i,0:i))
+       allocate(ele%number2count(2*ele%dimension,ele%nodes))
+       allocate(ele%boundary_coord(ele%boundaries))
+       allocate(ele%boundary_val(ele%boundaries))
+
+       ele%count2number=0
+       ele%number2count=0
+
+       l=0
+       l(1)=ele%degree
+       
+       cnt=0
+       
+       facet_loop: do ll=1,2*ele%dimension
+          
+          l=0
+          l(1)=ll
+          number_loop: do j=0,ele%degree
+             
+             cnt=cnt+1
+             l(2:3)=(/ele%degree-j,j/)
+             
+             ele%count2number(l(1), l(2), l(3))=cnt
+             ele%number2count(:,cnt)=l
+             
+          end do number_loop
+       end do facet_loop
+
+       ! Sanity test
+       if (ele%nodes/=cnt) then
+          ewrite(3,*) 'Counting error', i, ele%nodes, cnt
+          stop
+       end if
+
+       COPY FROM QUADRILATERALS
+       ! For trace elements, the first local_coordinate is the face number.
+       ele%boundary_coord=1
+       forall(j=1:ele%vertices)
+          ! The first local coordinate labels the face.
+          ele%boundary_val(j)=j
+       end forall
+    end do degree_loop
+    
+  end subroutine number_quads_trace
 
   subroutine number_intervals_lagrange
     ! Fill the values in in element_numbering.
@@ -1482,6 +1556,7 @@ contains
           face_num_length=tr(ele_num%degree+1)
        end if
     case (FAMILY_CUBE)
+       ADD SOMETHING FOR ELEMENT_TRACE
        if (interior) then
           face_num_length=(ele_num%degree-1)**2
        else
@@ -1770,7 +1845,9 @@ contains
 
          end do trace_number_loop
          assert(cnt==size(edge_local_num))
-
+         
+      case (FAMILY_CUBE)
+         FIX THIS
       case default
          FLAbort("Unknown element family.")
       end select
@@ -2227,6 +2304,8 @@ contains
              coords=0.5
              coords(n) = 0.0
           end if
+       case (FAMILY_CUBE)
+          DO FOR CUBES
 
        case default
           

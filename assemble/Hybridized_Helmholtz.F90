@@ -467,6 +467,7 @@ contains
        end do
        call set(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
     else
+       !We are in timestepping mode, so update U and D with deltaU and deltaD
        do dim1 = 1, mdim
           call addto(U,dim1,ele_nodes(u,ele),&
                &Rhs_loc(u_start(dim1):u_end(dim1)))
@@ -1068,6 +1069,7 @@ contains
        end if
     end if
     if(.not.(present(D_rhs).or.present(u_rhs))) then
+       !We are in timestepping mode.
        rhs_loc(d_start:d_end) = ele_val(D,ele)
        do dim1 = 1, mdim
           rhs_loc(u_start(dim1):u_end(dim1)) = &

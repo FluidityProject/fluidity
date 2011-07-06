@@ -82,6 +82,7 @@
     character(len = OPTION_PATH_LEN) :: simulation_name
     character(len=PYTHON_FUNC_LEN) :: coriolis
     real :: L2error,Linfty_error,L2projectederror
+    logical :: have_rhs
 #ifdef HAVE_MPI
     call mpi_init(ierr)
     assert(ierr == MPI_SUCCESS)
@@ -103,8 +104,8 @@
 #ifdef HAVE_MEMORY_STATS
     call print_current_memory_stats(0)
 #endif
-    D_rhs=>extract_scalar_field(state(1), "LayerThicknessRHS")
-    !U_rhs=>extract_vector_field(state(1), "VelocityRHS")
+    D_rhs=>extract_scalar_field(state(1), "LayerThicknessRHS",stat)
+    have_rhs = (stat==0)
     U=>extract_vector_field(state(1), "Velocity")
     D => extract_scalar_field(state(1), "LayerThickness")
     call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
@@ -123,14 +124,27 @@
     call insert(state, f, "Coriolis")
     call deallocate(f)
 
-    call allocate(D_rhs_projected,D%mesh,'D_rhs')
-    call remap_field(D_rhs,D_rhs_projected)
-    dump_no = 0
-    call write_state(dump_no,state)
+    if(have_rhs) then
+       call allocate(D_rhs_projected,D%mesh,'D_rhs')
+       call remap_field(D_rhs,D_rhs_projected)
+       dump_no = 0
+       call write_state(dump_no,state)
+    else
+       call compute_energy(state(1),energy)
+       ewrite(1,*) 'ENERGY BEFORE = ', energy
+    end if
 
-    call solve_hybridized_helmholtz(&
-         &state(1),D_rhs=D_rhs_projected,&
-         &compute_cartesian=.true.,check_continuity=.true.,output_dense=.false.)
+    if(have_rhs) then       call solve_hybridized_helmholtz(&
+            &state(1),D_rhs=D_rhs_projected,&
+            &compute_cartesian=.true.,&
+            &check_continuity=.true.,output_dense=.false.)
+    else
+       !Timestepping mode.
+       call solve_hybridized_helmholtz(&
+            &state(1),&
+            &compute_cartesian=.true.,&
+            &check_continuity=.true.,output_dense=.false.)
+    end if
 
     dgified_D => extract_scalar_field(state(1), "LayerThicknessV",stat)
     if(stat==0) then
@@ -142,24 +156,29 @@
        call remap_field(D_rhs,dgified_D_rhs)
     end if
 
-    D_exact => extract_scalar_field(state(1), &
-         &"LayerThicknessExact")
-    D_exact_D_mesh => extract_scalar_field(state(1),&
-         &"LayerThicknessExactProjected")
-    call remap_field(D_exact,D_exact_D_mesh)
-
-    L2error=0.
-    Linfty_error=0.
-    L2projectederror=0.
-    do ele = 1, ele_count(D)
-       call compute_errors(D,D_exact,D_exact_D_mesh,X,ele,&
-            L2error,Linfty_error,L2projectederror)
-    end do
-    l2error = sqrt(l2error)
-    l2projectederror = sqrt(l2projectederror)
-    ewrite(1,*) 'l_infty error', Linfty_error
-    ewrite(1,*) 'l2error', l2error
-    ewrite(1,*) 'l2projectederror', l2projectederror
+    if(have_rhs) then
+       D_exact => extract_scalar_field(state(1), &
+            &"LayerThicknessExact")
+       D_exact_D_mesh => extract_scalar_field(state(1),&
+            &"LayerThicknessExactProjected")
+       call remap_field(D_exact,D_exact_D_mesh)
+       
+       L2error=0.
+       Linfty_error=0.
+       L2projectederror=0.
+       do ele = 1, ele_count(D)
+          call compute_errors(D,D_exact,D_exact_D_mesh,X,ele,&
+               L2error,Linfty_error,L2projectederror)
+       end do
+       l2error = sqrt(l2error)
+       l2projectederror = sqrt(l2projectederror)
+       ewrite(1,*) 'l_infty error', Linfty_error
+       ewrite(1,*) 'l2error', l2error
+       ewrite(1,*) 'l2projectederror', l2projectederror
+    else
+       call compute_energy(state(1),energy)
+       ewrite(1,*) 'ENERGY AFTER = ', energy
+    end if
     call write_state(dump_no,state)
 
 #ifdef HAVE_MPI
@@ -246,5 +265,7 @@ contains
       write (0,*) ""
       write (0,*) "-v n sets the verbosity of debugging"
     end subroutine usage
+    
+    subroutine compute_energy(state(1),energy)
 
   end program Hybridized_Helmholtz_Solver

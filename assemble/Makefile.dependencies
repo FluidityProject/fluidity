@@ -484,8 +484,7 @@ Mba2d_Integration.o ../include/mba2d_integration.mod: Mba2d_Integration.F90 \
    ../include/node_locking.mod ../include/data_structures.mod \
    ../include/state_module.mod ../include/limit_metric_module.mod \
    ../include/quadrature.mod ../include/halos.mod \
-   ../include/global_parameters.mod ../include/mba2d_module.mod \
-   ../include/fdebug.h
+   ../include/global_parameters.mod ../include/fdebug.h
 
 ../include/mba3d_integration.mod: Mba3d_Integration.o
 	@true

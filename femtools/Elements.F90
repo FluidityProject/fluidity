@@ -769,7 +769,7 @@ contains
        end select
     case (FAMILY_CUBE)
        select case(constraint%type)
-       case (CONSTRAINT_BDFM)
+       case (CONSTRAINT_RT)
           select case(constraint%dim)
           case (2)
              select case(constraint%degree)
