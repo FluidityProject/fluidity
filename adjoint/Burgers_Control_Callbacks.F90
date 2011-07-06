@@ -35,6 +35,7 @@ module burgers_adjoint_controls
   use python_state
   use sparse_matrices_fields
   use manifold_projections
+  use mangle_dirichlet_rows_module
 
     implicit none
 
@@ -63,7 +64,10 @@ module burgers_adjoint_controls
       type(tensor_field), pointer :: tfield, adj_tfield
       type(block_csr_matrix), pointer :: big_mat, div_mat, u_mass_mat
       type(csr_matrix), pointer :: h_mass_mat
+      type(csr_matrix) :: h_mangled_mass_mat
+      type(state_type), dimension(1) :: dummy_state
       
+      type(scalar_field) :: dummy_u
       type(vector_field) :: local_src_tmp, local_src_tmp2, src_tmp
       real :: theta, d0, dt 
       integer :: stat
@@ -133,7 +137,27 @@ module burgers_adjoint_controls
               if (trim(field_name) == "VelocitySource") then
                 adj_sfield => extract_scalar_field(states(state_id), "AdjointVelocity")
                 h_mass_mat => extract_csr_matrix(matrices, "MassMatrix")
-                call mult(sfield, h_mass_mat, adj_sfield)
+                positions => extract_vector_field(matrices, "Coordinate")
+                call allocate(dummy_u, adj_sfield%mesh, "DummyVelocity")
+                
+                ! Populate boundary conditions
+                dummy_u%option_path =  "/material_phase::Fluid/scalar_field::AdjointVelocity"
+                call insert(dummy_state(1), positions, "Coordinate")
+                call insert(dummy_state(1), dummy_u, "AdjointVelocity")
+                call populate_boundary_conditions(dummy_state)
+
+                ! Mangle the mass matrix
+                call allocate(h_mangled_mass_mat, h_mass_mat%sparsity, name="MangledMassMatrix")
+                call set(h_mangled_mass_mat, h_mass_mat)
+                call mangle_dirichlet_rows(h_mangled_mass_mat, dummy_u, keep_diag=.false.)
+                call mult(sfield, h_mangled_mass_mat, adj_sfield)
+                print *, "mangled_mass_matrix in source control", h_mangled_mass_mat%val
+
+                ! Deallocate temporary variables
+                call deallocate(dummy_state(1))
+                call deallocate(dummy_u)
+                call deallocate(h_mangled_mass_mat)
+
               else
                 FLAbort("Sorry, I do not know how to compute the source condition control for " // trim(field_name) // ".")
               end if
