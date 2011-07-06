@@ -630,17 +630,24 @@ start =
             tensor_field_choice*,
             ## Parameters required to model multiphase flow
             element multiphase_properties {
-               ## Option for rel perms in prototype code
-               ## Usually 3 except for the CompModel Non-equilibrium
-               ## test cases where it is 6
-               element relperm_option {integer},
-               ## Relative permeability end point relperm_max
-               ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-               ## Value between 0 and 1
-               element relperm_max {real}?,
-               ## Relative permeability exponent relperm_exponent
-               ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-               element relperm_exponent {real}?,
+               ## Option for relperm type in prototype code
+               element relperm_type {
+                  ## Corey relperm:
+                  ##
+                  ## relperm = relperm_max * saturation**-relperm_exponent
+                  element Corey {
+                     ## Relative permeability end point
+                     ##
+                     ## Value between 0 and 1. Default value 1.0
+                     element relperm_max {real}?,
+                     ## Relative permeability exponent
+                     ##
+                     ## Default value 2.0
+                     element relperm_exponent {real}?,
+                     ## Option to boost the absorption at zero saturation
+                     element boost_at_zero_saturation { comment }?
+                  }
+               },
                ## Capillary pressure multiplier cp_A
                ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
                element cp_A {real}?,

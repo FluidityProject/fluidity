@@ -19,7 +19,7 @@ program main
   icomp = 1
   iphase = 1
   suf_comp_bc( stotel * cv_snloc * nphase * ( icomp - 1 ) + &
-       stotel * cv_snloc * (iphase - 1 ) + 1 ) = 0.8372
+       stotel * cv_snloc * (iphase - 1 ) + 1 ) = 0.83721
 
   ! Component 1, Phase 2:
   iphase = 2

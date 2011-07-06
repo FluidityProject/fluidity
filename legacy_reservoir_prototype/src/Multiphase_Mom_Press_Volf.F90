@@ -37,7 +37,10 @@ module multiphase_mom_press_volf
   use shape_functions
   use printout
   use Compositional_Terms
+  
   use fldebug
+  use state_module
+  use spud
 
   IMPLICIT NONE
 
@@ -47,7 +50,7 @@ module multiphase_mom_press_volf
 
 contains
 
-  subroutine  solve_multiphase_mom_press_volf( nphase, ncomp, totele, ndim, &
+  subroutine  solve_multiphase_mom_press_volf( state, nphase, ncomp, totele, ndim, &
                                 ! Nodes et misc
        u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
        cv_snloc, u_snloc, p_snloc, stotel, &
@@ -56,10 +59,9 @@ contains
        u_ele_type, p_ele_type, cv_ele_type, &
        cv_sele_type, u_sele_type, &
                                 ! Total time loop and initialisation parameters
-       ntime, ntime_dump, nits, nits_internal, &
+       ntime_dump, nits, nits_internal, &
        nits_flux_lim_volfra, nits_flux_lim_comp, & 
        ndpset, &
-       dt, &
                                 ! Discretisation parameters
        v_beta, v_theta, &
        v_disopt, &
@@ -104,7 +106,7 @@ contains
                                 ! EOS terms
        eos_option, &
        eos_coefs, &
-       KComp_Sigmoid, K_Comp, alpha_beta, &
+       K_Comp, alpha_beta, &
                                 ! Capillarity pressure terms
        capil_pres_opt, ncapil_pres_coef, capil_pres_coef, &
                                 ! Matrices sparsity
@@ -118,6 +120,8 @@ contains
        mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
 
     implicit none
+    
+    type(state_type), dimension(:), intent( inout ) :: state
 
     integer, intent( in ) :: nphase, ncomp, totele, ndim, &
          u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
@@ -125,10 +129,11 @@ contains
          ncoef, nuabs_coefs, &
          u_ele_type, p_ele_type, cv_ele_type, &
          cv_sele_type, u_sele_type, &
-         ntime, ntime_dump, nits, nits_internal, &
+         ntime_dump, nits, nits_internal, &
          nits_flux_lim_volfra, nits_flux_lim_comp, & 
          ndpset 
-    real, intent( in ) :: dt
+    real :: dt
+    integer :: ntime
     ! The following need to be changed later in the other subrts as it should be controlled by the 
     ! input files
     real, intent( inout ) :: v_beta, v_theta
@@ -207,7 +212,6 @@ contains
     integer, dimension( nphase ), intent( in ) :: eos_option
     real, dimension( nphase, ncoef ), intent( in ) :: eos_coefs
     real, dimension( ncomp, nphase, nphase ), intent( inout ) :: K_Comp
-    logical, intent( in ) :: KComp_Sigmoid
     real, intent( inout ) :: alpha_beta
 
     integer, intent( in ) :: capil_pres_opt, ncapil_pres_coef
@@ -249,6 +253,7 @@ contains
     ! Local variables
     real :: acctim ! Accumulated time
     integer :: itime, iphase, jphase, its, its2, icomp, icomp2, ncomp2
+    integer :: nstates
     real :: dx
     integer, parameter :: izero = 0, rzero = 0.
 
@@ -324,7 +329,11 @@ contains
 
     !       print *,'NTIME, ITIME: ',NTIME, ITIME
 
-    ACCTIM = 0.
+    call get_option("/timestepping/current_time", acctim)
+    call get_option("/timestepping/timestep", dt)
+    call get_option('/io/max_dump_file_count', ntime, default=160)
+    nstates = option_count("/material_phase")
+    
 
     Loop_Time: DO ITIME = 1, NTIME
 
@@ -344,11 +353,11 @@ contains
        ! Non linear its:
        Loop_ITS: DO ITS = 1, NITS
 
-          CALL CAL_BULK_DENSITY( NPHASE, NCOMP, CV_NONODS, CV_PHA_NONODS, NCOEF, DEN, DERIV, &
-               T, CV_P, COMP, EOS_COEFS, EOS_OPTION )
+          CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
+               T, CV_P )
 
           ! Calculate absorption for momentum eqns    
-          CALL CAL_U_ABSORB( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
+          CALL calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
                CV_NDGLN, MAT_NDGLN, &
                NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, VOLFRA_PORE, PERM, MOBILITY, VISCOSITY, &
                X, X_NLOC, X_NONODS, X_NDGLN, &
@@ -413,8 +422,8 @@ contains
                MASS_ERROR_RELAX2_NOIT, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ) 
 
 
-          CALL CAL_BULK_DENSITY( NPHASE, NCOMP, CV_NONODS, CV_PHA_NONODS, NCOEF, DEN, DERIV, &
-               T, CV_P, COMP, EOS_COEFS, EOS_OPTION )
+          CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
+               T, CV_P )
 
           NU = U
           NV = V
@@ -468,18 +477,17 @@ contains
              !             COMP_SOURCE = 0.0
 
              ! Use values from the previous time step DENOLD,SATURAOLD so its easier to converge
-             ! ALPHA_BETA is an order 1 acaling coefficient set up in the input file
+             ! ALPHA_BETA is an order 1 scaling coefficient set up in the input file
 
              CALL CALC_COMP_ABSORB( ICOMP, NCOMP, DT, ALPHA_BETA, &
-                                ! NPHASE, CV_NONODS, KCOMP_SIGMOID, K_COMP, DENOLD, SATURAOLD, &
                   NPHASE, CV_NONODS, &
-                                !KCOMP_SIGMOID, K_COMP, &
                   .false., K_COMP, &
                   DENOLD, SATURAOLD, &
                   VOLFRA_PORE, COMP_ABSORB, &
                   TOTELE, CV_NLOC, CV_NDGLN )
 
-             IF( KCOMP_SIGMOID ) THEN
+             IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
+                             "]/is_multiphase_component/KComp_Sigmoid" )) THEN
                 DO CV_NODI = 1, CV_NONODS
                    !                   IF( SATURAOLD( CV_NODI ) > 0.8 ) THEN
                    !                      COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &

@@ -39,7 +39,7 @@ clean:
 	rm -f input_eos_coef_BL1_func       
 	rm -f input_usource_BL1_func
 	rm -f gmon.out
-	rm -f *.d.*
+	rm -f *.d.* fluidity.*
 	rm -f flog.dat time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*
 	rm -f *.node *.bound *.ele *.face *.stat *.vtu
 	rm -f mirror_new.dat

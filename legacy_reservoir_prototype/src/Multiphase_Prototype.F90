@@ -299,6 +299,7 @@ module mp_prototype
            mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
            wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
            suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
+           wic_comp_bc, suf_comp_bc, &
            suf_u_bc, &
            suf_u_bc_rob1, suf_u_bc_rob2, &
            opt_vel_upwind_coefs, &
@@ -312,7 +313,7 @@ module mp_prototype
       !! as it was before, so we're going to do the old input routines too
       !! and compare the mirror files.
 
-      do_old_output= .false.
+      do_old_output=.false.
 
       if( do_old_output ) call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
@@ -548,6 +549,7 @@ module mp_prototype
            mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
            wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
            suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
+           wic_comp_bc, suf_comp_bc, &
            suf_u_bc, &
            suf_u_bc_rob1, suf_u_bc_rob2, &
            opt_vel_upwind_coefs, &
@@ -654,6 +656,7 @@ module mp_prototype
            mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
            wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
            suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
+           wic_comp_bc, suf_comp_bc, &
            suf_u_bc, &
            suf_u_bc_rob1, suf_u_bc_rob2, &
            opt_vel_upwind_coefs, &
@@ -861,7 +864,7 @@ module mp_prototype
 
       Case( 1,2 ); 
 
-         call solve_multiphase_mom_press_volf( nphase, ncomp, totele, ndim, &
+         call solve_multiphase_mom_press_volf( state, nphase, ncomp, totele, ndim, &
                                 ! Nodes et misc
               u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
               cv_snloc, u_snloc, p_snloc, stotel, &
@@ -870,10 +873,9 @@ module mp_prototype
               u_ele_type, p_ele_type, cv_ele_type, &
               cv_sele_type, u_sele_type, &
                                 ! Total time loop and initialisation parameters
-              ntime, ntime_dump, nits, nits_internal, &
+              ntime_dump, nits, nits_internal, &
               nits_flux_lim_volfra, nits_flux_lim_comp, & 
               ndpset, &
-              dt, &
                                 ! Discretisation parameters
               v_beta, v_theta, &
               v_disopt, &
@@ -918,7 +920,7 @@ module mp_prototype
                                 ! EOS terms
               eos_option, &
               eos_coefs, &
-              KComp_Sigmoid, K_Comp, alpha_beta, &
+              K_Comp, alpha_beta, &
                                 ! Capillarity pressure terms
               capil_pres_opt, ncapil_pres_coef, capil_pres_coef, &
                                 ! Matrices sparsity

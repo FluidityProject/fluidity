@@ -765,27 +765,36 @@ via a compressible equation of state.</a:documentation>
           <optional>
             <element name="multiphase_properties">
               <a:documentation>Parameters required to model multiphase flow</a:documentation>
-              <element name="relperm_option">
-                <a:documentation>Option for rel perms in prototype code
-Usually 3 except for the CompModel Non-equilibrium
-test cases where it is 6</a:documentation>
-                <ref name="integer"/>
+              <element name="relperm_type">
+                <a:documentation>Option for relperm type in prototype code</a:documentation>
+                <element name="Corey">
+                  <a:documentation>Corey relperm:
+
+relperm = relperm_max * saturation**-relperm_exponent</a:documentation>
+                  <optional>
+                    <element name="relperm_max">
+                      <a:documentation>Relative permeability end point
+
+Value between 0 and 1. Default value 1.0</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="relperm_exponent">
+                      <a:documentation>Relative permeability exponent
+
+Default value 2.0</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="boost_at_zero_saturation">
+                      <a:documentation>Option to boost the absorption at zero saturation</a:documentation>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                </element>
               </element>
-              <optional>
-                <element name="relperm_max">
-                  <a:documentation>Relative permeability end point relperm_max
-in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-Value between 0 and 1</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-              <optional>
-                <element name="relperm_exponent">
-                  <a:documentation>Relative permeability exponent relperm_exponent
-in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
               <optional>
                 <element name="cp_A">
                   <a:documentation>Capillary pressure multiplier cp_A

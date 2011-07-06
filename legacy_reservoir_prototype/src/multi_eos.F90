@@ -30,122 +30,125 @@
 module multiphase_EOS
 
   use fldebug
+  use state_module
+  use global_parameters, only: OPTION_PATH_LEN
+  use spud
+  use futils, only: int2str
 
 contains
 
-  SUBROUTINE CAL_BULK_DENSITY( NPHASE, NCOMP, CV_NONODS, CV_PHA_NONODS, NCOEF, DEN, DERIV, &
-       T, P, MASSFRAC, EOS_COEFS, EOS_OPTION )
-    IMPLICIT NONE
-    INTEGER, intent( in ) :: NPHASE, NCOMP, CV_NONODS, CV_PHA_NONODS, NCOEF
-    REAL, DIMENSION( CV_PHA_NONODS ), intent( inout ) :: DEN, DERIV
-    REAL, DIMENSION( CV_PHA_NONODS ), intent( in ) :: T
-    REAL, DIMENSION( CV_NONODS ), intent( in ) :: P
-    REAL, DIMENSION( CV_PHA_NONODS * NCOMP ), intent( in ) :: MASSFRAC
-    REAL, DIMENSION( NPHASE, NCOEF ), intent( in ) :: EOS_COEFS
-    INTEGER, DIMENSION( NPHASE ), intent( in ) ::  EOS_OPTION
+  subroutine calculate_multiphase_density( state, cv_nonods, cv_pha_nonods, den, deriv, &
+       t, p )
+    implicit none
+    type(state_type), dimension(:), intent( in ) :: state
+    integer, intent( in ) :: cv_nonods, cv_pha_nonods
+    real, dimension( cv_pha_nonods ), intent( inout ) :: den, deriv
+    REAL, DIMENSION( cv_pha_nonods ), intent( in ) :: t
+    REAL, DIMENSION( cv_nonods ), intent( in ) :: p
     ! Local
-    INTEGER :: ICOMP, CV_NOD, IPHASE, NOD, NCOMP2
+    integer :: nstates, nphases, ncomps, &!ncomp2, &
+               iphase, cv_nod, node, i
+    real, parameter :: toler = 1.0E-10
+    real :: den_plus, den_minus, pert_p, p_plus, p_minus, tval, pval
+    character(len=OPTION_PATH_LEN) option_path
+    real, dimension( 10 ) :: eos_coefs
+    logical :: eos_comp_sg, eos_incomp_linear
 
-    ewrite(3,*) 'In CAL_BULK_DENSITY'
+    ewrite(3,*) 'In calculate_multiphase_density'
+    ewrite(3,*) 'P', P
+    ewrite(3,*) 'T', T
+    deriv = 0.
 
-    IF( NCOMP == 0 ) THEN
-       NCOMP2 = 1
-    ELSE
-       NCOMP2 = NCOMP
-    END IF
+    nstates = option_count("/material_phase")
+    ncomps=0
+    do i=1,nstates
+       if (have_option("/material_phase[" // int2str(i-1) // "]/is_multiphase_component")) then
+          ncomps=ncomps+1
+       end if
+    end do
+    nphases=nstates-ncomps
 
-    Loop_Comp: DO ICOMP = 1, NCOMP2
+!    if( ncomps == 0 ) then
+!       ncomp2 = 1
+!    else
+!       ncomp2 = ncomps
+!    end if
 
-       CALL CAL_DENSITY( NPHASE, ICOMP, CV_NONODS, CV_PHA_NONODS, NCOEF, DEN, DERIV, &
-            T, P, EOS_COEFS, EOS_OPTION )
+    Loop_Phase: do iphase = 1, nphases
+      
+       eos_comp_sg = .false.
+       eos_incomp_linear = .false.
 
-    END DO Loop_Comp
+       if ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible/stiffened_gas") ) then ! Compressible
+          option_path = "/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible/stiffened_gas"
+          eos_comp_sg = .true.
+       elseif ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/incompressible/linear") ) then ! Incompressible
+          option_path = "/material_phase[" // int2str(iphase-1) // "]/equation_of_state/incompressible/linear"
+          eos_incomp_linear = .true.
+       else
+          FLAbort('Unrecognised equation of state')
+       endif
+       
+       Loop_CV: do cv_nod = 1, cv_nonods
 
-    ewrite(3,*) 'Leaving CAL_BULK_DENSITY'
+          node = cv_nod + ( iphase - 1 ) * cv_nonods
 
-    RETURN
-  END SUBROUTINE CAL_BULK_DENSITY
+          if ( eos_comp_sg ) then ! Compressible
+             ! Only need two eos coefficients
+             call get_option(trim(option_path)//"/eos_option1", eos_coefs(1))
+             call get_option(trim(option_path)//"/eos_option2", eos_coefs(2))
+             den(node) = ( p(cv_nod) + eos_coefs( 1 )) * eos_coefs( 2 ) / t(node)
+             pert_p = 0.001 * ( abs(p( cv_nod )) + abs(eos_coefs( 1 )) )
+             pert_p =max(toler, pert_p)
+             den_plus = ( p(cv_nod) + pert_p + eos_coefs( 1 )) * eos_coefs( 2 ) / t(node)
+             den_minus = ( p(cv_nod) - pert_p + eos_coefs( 1 )) * eos_coefs( 2 ) / t(node)
 
-  SUBROUTINE CAL_DENSITY( NPHASE, ICOMP, CV_NONODS, CV_PHA_NONODS, NCOEF, DEN, DERIV, &
-       T, P, EOS_COEFS, EOS_OPTION ) 
-    ! This sub calculates the DEN ,DERIV for multiphase flows i.e. the EoS 
-    ! and the derivative. 
-    IMPLICIT NONE
-    INTEGER, intent( in ) :: NPHASE, ICOMP, CV_NONODS, CV_PHA_NONODS, NCOEF
-    REAL, DIMENSION( CV_PHA_NONODS ), intent( inout ) :: DEN, DERIV
-    REAL, DIMENSION( CV_PHA_NONODS ), intent( in ) :: T
-    REAL, DIMENSION( CV_NONODS ), intent( in ) :: P
-    REAL, DIMENSION( NPHASE, NCOEF ), intent( in ) :: EOS_COEFS
-    INTEGER, DIMENSION( NPHASE ), intent( in ) ::  EOS_OPTION
-    ! Local
-    REAL, PARAMETER :: TOLER = 1.0E-10
-    REAL :: DEN_P1, DEN_M1, PERT_P
-    INTEGER :: IPHASE, CV_NOD, NODE
+          elseif ( eos_incomp_linear ) then ! Incompressible
+             if (have_option(trim(option_path)//"/all_equal")) then
+               call get_option(trim(option_path)//"/all_equal", eos_coefs(1))
+               eos_coefs( 2:10 ) = 0.
+             elseif (have_option(trim(option_path)//"/specify_all")) then
+               call get_option(trim(option_path)//"/specify_all", eos_coefs)
+             else
+               FLAbort('Unknown incompressible linear equation of state')
+             endif
 
-    ewrite(3,*) 'In CAL_DENSITY'
+             tval = t(node)
+             pval = p(cv_nod)
+             den(node) =  eos_coefs( 1 )                      + eos_coefs( 2 ) * pval               &
+                        + eos_coefs( 3 ) * tval               + eos_coefs( 4 ) * pval * tval        &
+                        + eos_coefs( 5 ) * ( pval**2 )        + eos_coefs( 6 ) * ( tval**2 )        &
+                        + eos_coefs( 7 ) * ( pval**2 ) * tval + eos_coefs( 8 ) * pval * ( tval**2 ) &
+                        + eos_coefs( 9 ) * (( pval * tval )**2 )
+             pert_p = 0.001 * abs(p( cv_nod ))
+             pert_p =max(toler, pert_p)
+             p_plus = p(cv_nod)+pert_p
+             p_minus = p(cv_nod)-pert_p
+             den_plus =  eos_coefs( 1 )                      + eos_coefs( 2 ) * p_plus               &
+                     + eos_coefs( 3 ) * tval                 + eos_coefs( 4 ) * p_plus * tval        &
+                     + eos_coefs( 5 ) * ( p_plus**2 )        + eos_coefs( 6 ) * ( tval**2 )          &
+                     + eos_coefs( 7 ) * ( p_plus**2 ) * tval + eos_coefs( 8 ) * p_plus * ( tval**2 ) &
+                     + eos_coefs( 9 ) * (( p_plus * tval )**2 )
+             den_minus =  eos_coefs( 1 )                      + eos_coefs( 2 ) * p_minus               &
+                     + eos_coefs( 3 ) * tval                  + eos_coefs( 4 ) * p_minus * tval        &
+                     + eos_coefs( 5 ) * ( p_minus**2 )        + eos_coefs( 6 ) * ( tval**2 )           &
+                     + eos_coefs( 7 ) * ( p_minus**2 ) * tval + eos_coefs( 8 ) * p_minus * ( tval**2 ) &
+                     + eos_coefs( 9 ) * (( p_minus * tval )**2 )
+          endif
 
-    Loop_Phase: DO IPHASE = 1, NPHASE
+          ! Calculating d(den) / dP
+          deriv( node ) = ( den_plus - den_minus ) / ( 2. * pert_p )
 
-       Loop_CV: DO CV_NOD = 1, CV_NONODS
+       end do Loop_CV
+       
+       ewrite(3,*) 'deriv', deriv
 
-          NODE = CV_NOD + ( IPHASE - 1 ) * CV_NONODS
+    end do Loop_Phase
 
-          CALL CAL_DENSITY_EOS( NCOEF, DEN( NODE ), T( NODE ), P( CV_NOD ), &
-               EOS_COEFS( IPHASE, : ), EOS_OPTION( IPHASE ) )  
+    ewrite(3,*) 'Leaving calculate_multiphase_density'
 
-          IF( EOS_OPTION( IPHASE ) == 1) THEN
-             PERT_P = 0.001 * ( ABS(P( CV_NOD )) + ABS(EOS_COEFS( IPHASE, 1 )) )
-          ELSE
-             PERT_P = 0.001 * ABS(P( CV_NOD ))
-          ENDIF
-          PERT_P =MAX(TOLER, PERT_P)
-
-          CALL CAL_DENSITY_EOS( NCOEF, DEN_P1, T( NODE ), P( CV_NOD ) + PERT_P, &
-               EOS_COEFS( IPHASE, : ), EOS_OPTION( IPHASE ) ) 
-          CALL CAL_DENSITY_EOS( NCOEF, DEN_M1, T( NODE ), P( CV_NOD ) - PERT_P, &
-               EOS_COEFS( IPHASE, : ), EOS_OPTION( IPHASE ) ) 
-
-          ! Calculating d(DEN) / dP
-          DERIV( NODE ) = ( DEN_P1 - DEN_M1 ) / ( 2. * PERT_P )
-
-       END DO Loop_CV
-
-    END DO Loop_Phase
-
-    ewrite(3,*) 'Leaving CAL_DENSITY'
-
-    RETURN
-
-  END SUBROUTINE CAL_DENSITY
-
-
-
-  SUBROUTINE CAL_DENSITY_EOS( NCOEF, DEN, T, P , &
-       EOS_COEFS, EOS_OPTION )
-    IMPLICIT NONE
-    INTEGER, intent( in ) :: NCOEF
-    REAL, intent( inout ) :: DEN
-    REAL, intent( in ) :: T, P
-    REAL, DIMENSION( NCOEF ), intent( in ) :: EOS_COEFS
-    INTEGER, intent( in ) :: EOS_OPTION
-
-    IF( EOS_OPTION == 1 ) THEN
-       ! stiffened gas EoS...
-       DEN = ( P + EOS_COEFS( 1 )) * EOS_COEFS( 2 ) / T
-    ELSEIF( EOS_OPTION == 2 ) THEN
-       ! Linear EoS in pressure and temperature...
-
-       DEN =  EOS_COEFS( 1 )                 + EOS_COEFS( 2 ) * P             + EOS_COEFS( 3 ) * T           &
-            + EOS_COEFS( 4 ) * P * T         + EOS_COEFS( 5 ) * ( P **2 )     + EOS_COEFS( 6 ) * ( T **2 )   &
-            + EOS_COEFS( 7 ) * ( P **2 ) * T + EOS_COEFS( 8 ) * P * ( T **2 ) + EOS_COEFS( 9 ) * (( P * T ) **2 )
-
-    ENDIF
-
-
-    RETURN
-  END SUBROUTINE CAL_DENSITY_EOS
-
-
+    return
+  end subroutine calculate_multiphase_density
 
 
   SUBROUTINE CAL_CPDEN( NPHASE, CV_NONODS, CV_PHA_NONODS, CPDEN, DEN, NCP_COEFS, CP_COEFS, CP_OPTION, STOTEL, CV_SNLOC, SUF_CPD_BCU, SUF_D_BCU ) 
@@ -199,7 +202,7 @@ contains
 
 
 
-  SUBROUTINE CAL_U_ABSORB( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
+  SUBROUTINE calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
        CV_NDGLN, MAT_NDGLN, &
        NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, VOLFRA_PORE, PERM, MOBILITY, VISCOSITY, &
        X, X_NLOC, X_NONODS, X_NDGLN, &
@@ -229,15 +232,15 @@ contains
     REAL :: PERT
     INTEGER :: ELE, IMAT, ICV, IPHASE, CV_ILOC, IDIM, JDIM, IJ
 
-    ewrite(3,*) 'In CAL_U_ABSORB'
+    ewrite(3,*) 'In calculate_absorption'
 
     ALLOCATE( U_ABSORB2( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ))
     ALLOCATE( SATURA2( CV_NONODS * NPHASE ))
     U_ABSORB2 = 0.
     SATURA2 = 0.
 
-    ewrite(3,*)'b4 in cal_u_absorb2, SATURA0',size(SATURA),SATURA
-    CALL CAL_U_ABSORB2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
+    ewrite(3,*)'b4 in calculate_absorption2, SATURA0',size(SATURA),SATURA
+    CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
          CV_NDGLN, MAT_NDGLN, &
          NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, PERM, MOBILITY, VISCOSITY, &
          X, X_NLOC, X_NONODS, X_NDGLN )
@@ -247,27 +250,12 @@ contains
     SATURA2( 1 : CV_NONODS ) = SATURA( 1 : CV_NONODS ) + PERT
     IF ( NPHASE > 1 ) SATURA2( 1 + CV_NONODS : 2 * CV_NONODS ) = SATURA( 1 + CV_NONODS : 2 * CV_NONODS ) - PERT
 
-    !ewrite(3,*)'b4 in cal_u_absorb2, MAT_NONODS, CV_NONODS, NPHASE, NDIM:',MAT_NONODS, CV_NONODS, NPHASE, NDIM
-    !ewrite(3,*)'b4 in cal_u_absorb2, TOTELE, CV_NLOC, MAT_NLOC, X_NLOC, X_NONODS:',TOTELE, CV_NLOC, MAT_NLOC, X_NLOC, X_NONODS
-    !ewrite(3,*)'b4 in cal_u_absorb2, SATURA',size(SATURA),SATURA
-    !ewrite(3,*)'b4 in cal_u_absorb2, SATURA2',size(SATURA2),SATURA2
-    !ewrite(3,*)'b4 in cal_u_absorb2, CV_NDGLN',size(CV_NDGLN),CV_NDGLN
-    !ewrite(3,*)'b4 in cal_u_absorb2, MAT_NDGLN',size(MAT_NDGLN),MAT_NDGLN
-    !ewrite(3,*)'b4 in cal_u_absorb2, UABS_COEFS',size(UABS_COEFS),UABS_COEFS
-    !ewrite(3,*)'b4 in cal_u_absorb2, UABS_OPTION',size(UABS_OPTION),UABS_OPTION
-    !ewrite(3,*)'b4 in cal_u_absorb2, VOLFRA_PORE',size(VOLFRA_PORE),VOLFRA_PORE
-    !ewrite(3,*)'b4 in cal_u_absorb2, PERM',size(PERM),PERM
-    !ewrite(3,*)'b4 in cal_u_absorb2, X',size(X),X
-    !ewrite(3,*)'b4 in cal_u_absorb2, X_NDGLN',size(X_NDGLN),X_NDGLN
-    !ewrite(3,*)'b4 in cal_u_absorb2, U_ABSORB2:', size(U_ABSORB2),U_ABSORB2
-    !ewrite(3,*)'b4 in cal_u_absorb2, OPT_VEL_UPWIND_COEFS:', size(OPT_VEL_UPWIND_COEFS),OPT_VEL_UPWIND_COEFS
-
-    CALL CAL_U_ABSORB2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA2, TOTELE, CV_NLOC, MAT_NLOC, &
+    CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA2, TOTELE, CV_NLOC, MAT_NLOC, &
          CV_NDGLN, MAT_NDGLN, &
          NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB2, PERM, MOBILITY, VISCOSITY, &
          X, X_NLOC, X_NONODS, X_NDGLN )
 
-    ewrite(3,*)'after in cal_u_absorb, U_ABSORB2:', size(U_ABSORB2),U_ABSORB2
+    ewrite(3,*)'after in calculate_absorption, U_ABSORB2:', size(U_ABSORB2),U_ABSORB2
 
     DO ELE = 1, TOTELE
        DO CV_ILOC = 1, CV_NLOC
@@ -291,17 +279,15 @@ contains
        END DO
     END DO
 
-    ewrite(3,*)'in cal_u_absorb, U_ABSORB:', size(U_ABSORB),U_ABSORB
-    ewrite(3,*)'in cal_u_absorb, OPT_VEL_UPWIND_COEFS:', size(OPT_VEL_UPWIND_COEFS),OPT_VEL_UPWIND_COEFS
-    ewrite(3,*) 'Leaving CAL_U_ABSORB'
+    ewrite(3,*)'in calculate_absorption, U_ABSORB:', size(U_ABSORB),U_ABSORB
+    ewrite(3,*)'in calculate_absorption, OPT_VEL_UPWIND_COEFS:', size(OPT_VEL_UPWIND_COEFS),OPT_VEL_UPWIND_COEFS
+    ewrite(3,*) 'Leaving calculate_absorption'
     RETURN
 
-  END SUBROUTINE CAL_U_ABSORB
+  END SUBROUTINE calculate_absorption
 
 
-
-
-  SUBROUTINE CAL_U_ABSORB2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
+  SUBROUTINE calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
        CV_NDGLN, MAT_NDGLN, &
        NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, PERM, MOBILITY, VISCOSITY, &
        X, X_NLOC, X_NONODS, X_NDGLN ) 
@@ -333,7 +319,7 @@ contains
     REAL, DIMENSION( :, :, :), allocatable :: INV_PERM
     LOGICAL :: MEAN_ELE
 
-    ewrite(3,*) 'In CAL_U_ABSORB2'
+    ewrite(3,*) 'In calculate_absorption2'
 
     ALLOCATE( INV_PERM( TOTELE, NDIM, NDIM ))
 
@@ -376,10 +362,13 @@ contains
                       U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = INV_PERM( ELE, IDIM, JDIM ) / &
                            MAX( TOLER, ABS_SUM )
 
-                   CASE( 3 ) ! From Tara and Martin's notes for relative permeability
-
-                      CALL ABS3( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
+                   CASE( 3, 5, 6 ) ! From Tara and Martin's notes for relative permeability
+                      if (nphase==2) then
+                         CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
                            INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE)
+                      else
+                         FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
+                      endif
 
                    CASE( 4 ) 
                       ABS_SUM = 0.0
@@ -388,16 +377,6 @@ contains
                       END DO
                       U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = ABS_SUM
 
-                   CASE( 5 ) ! same as option 3 but larger phase 2 abs when S^1=1.0
-
-                      CALL ABS3_HP1( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                           INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE )
-
-                   CASE( 6 ) ! From Tara and Martin's notes for relative permeability
-
-                      CALL ABS6( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
-                           INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE)
-
                    CASE DEFAULT
                       ewrite(3,*) 'Unknown Option -- UABS_OPTION( IPHASE )'
                       ABS_SUM = 0.0
@@ -405,14 +384,6 @@ contains
                       !                      stop 1023
 
                    END SELECT Case_UABSOption
-
-
-                   !                   ewrite(3,*)'ELE, IDIM, JDIM, iphase, U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ):', &
-                   !                        ELE, IDIM, JDIM, iphase, U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )
-                   !U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = INV_PERM( ELE, IDIM, JDIM ) / &
-                   !     MAX( TOLER, UABS_COEFS( IPHASE, 1 ) + UABS_COEFS( IPHASE, 2) * SATURATION + &
-                   !     UABS_COEFS( IPHASE, 3 ) * SATURATION **2 )
-                   !ewrite(3,*) 'MAT_NOD, IPHA, JPHA, sat., U_ABSORB:', MAT_NOD, IPHA_IDIM, JPHA_JDIM, saturation, U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )
 
                 END DO Loop_DimensionsJ
 
@@ -423,221 +394,6 @@ contains
        END DO Loop_CVNLOC
 
     END DO Loop_ELE
-    !    stop 23
-
-    Conditional_NotUsed1: IF(.false.) THEN 
-       !    IF(.true.) THEN
-       ! Use upwind absorptions. 
-       !       IF((CV_NONODS==CV_NLOC*TOTELE).OR.(CV_NLOC==1)) THEN
-       IF(.true.) THEN
-          DO ELE = 2,TOTELE
-             DO CV_ILOC=1,1
-                MAT_NOD=MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + CV_ILOC)
-                CV_NOD=CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC)
-
-                DO IPHA_IDIM=1,NDIM*NPHASE
-                   DO JPHA_JDIM=1,NDIM*NPHASE
-                      if(IPHA_IDIM==JPHA_JDIM) then
-                         CALL ABS3(rsum, MOBILITY, &
-                              1.0, 0.5*(SATURA(CV_NOD)+SATURA(CV_NOD-1)), IPHA_IDIM)
-                         U_ABSORB( MAT_NOD,   IPHA_IDIM, JPHA_JDIM )=RSUM
-                         U_ABSORB( MAT_NOD-1, IPHA_IDIM, JPHA_JDIM )=RSUM
-                      endif
-                   END DO
-                END DO
-             END DO
-          END DO
-       ELSE
-          DO ELE = TOTELE,1,-1
-             DO CV_ILOC=CV_NLOC,1,-1
-                MAT_NOD=MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + CV_ILOC)
-                ELE2=ELE
-                CV_ILOC2=CV_ILOC-1
-                IF(CV_ILOC==1) THEN
-                   CV_ILOC2=CV_NLOC-1
-                   ELE2=ELE-1
-                   IF(ELE2==0) THEN
-                      CV_ILOC2=CV_ILOC
-                      ELE2=ELE
-                   ENDIF
-                ENDIF
-                MAT_NOD2=MAT_NDGLN(( ELE2 - 1 ) * MAT_NLOC + CV_ILOC2)
-                DO IPHA_IDIM=1,NDIM*NPHASE
-                   DO JPHA_JDIM=1,NDIM*NPHASE
-                      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )=U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM )
-                   END DO
-                END DO
-             END DO
-          END DO
-       ENDIF
-    ENDIF Conditional_NotUsed1
-
-    Conditional_NotUsed2: IF(.FALSE.) THEN
-       DO ELE = 1, TOTELE
-          DO IPHA_IDIM=1,NDIM*NPHASE
-             DO JPHA_JDIM=1,NDIM*NPHASE
-                RSUM=0.0
-                !          RSUM=1.e+10
-                DO CV_ILOC = 1, CV_NLOC
-                   MAT_NOD = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + CV_ILOC)
-                   X_NODI = X_NDGLN(( ELE - 1 ) * X_NLOC + CV_ILOC)
-                   U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )=X(X_NODI)
-                END DO
-             END DO
-          END DO
-       END DO
-    ENDIF Conditional_NotUsed2
-
-    MEAN_ELE=.false.
-    IF( MEAN_ELE ) THEN
-       ! Average absoption throughout element -using the harmonic average
-       DO ELE = 1, TOTELE
-          DO IPHA_IDIM=1,NDIM*NPHASE
-             DO JPHA_JDIM=1,NDIM*NPHASE
-                RSUM=0.0
-                !          RSUM=1.e+10
-                DO CV_ILOC = 1, CV_NLOC
-                   MAT_NOD = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + CV_ILOC)
-                   !      RSUM=RSUM+ (1./max(1.e-10,U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )))/REAL(CV_NLOC+1)
-                   !      IF(CV_ILOC==2) RSUM=RSUM+ (1./max(1.e-10,U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )))/REAL(CV_NLOC+1)
-                   !      RSUM=RSUM+ U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )/REAL(CV_NLOC)
-                   RSUM=RSUM+ U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )/REAL(CV_NLOC+1)
-                   IF(CV_ILOC==2) RSUM=RSUM+ U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )/REAL(CV_NLOC+1)
-                   !      RSUM=max(RSUM, U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ))
-                   !      RSUM=min(RSUM, U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ))
-                END DO
-                MAT_NOD1 = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + 1)
-                MAT_NOD2 = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + 2)
-                MAT_NOD3 = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + 3)
-
-                U_ABS1= &
-                     0.66666* U_ABSORB( MAT_NOD1, IPHA_IDIM, JPHA_JDIM ) &
-                     +0.33333* U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM )
-
-                U_ABS2= &
-                     0.5*0.5* U_ABSORB( MAT_NOD1, IPHA_IDIM, JPHA_JDIM ) &
-                     +0.5* U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM ) &
-                     +0.5*0.5* U_ABSORB( MAT_NOD3, IPHA_IDIM, JPHA_JDIM ) 
-
-                U_ABS3= &
-                     0.33333* U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM ) &
-                     +0.66666* U_ABSORB( MAT_NOD3, IPHA_IDIM, JPHA_JDIM )
-
-                U_ABSORB( MAT_NOD1, IPHA_IDIM, JPHA_JDIM )=U_ABS1
-                U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM )=U_ABS2
-                U_ABSORB( MAT_NOD3, IPHA_IDIM, JPHA_JDIM )=U_ABS3
-
-                DO CV_ILOC = 1, -CV_NLOC
-                   MAT_NOD = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + CV_ILOC)
-                   MAT_NOD1 = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + 3)
-                   !      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )=  &
-                   !    0.25*U_ABSORB( MAT_NOD1, IPHA_IDIM, JPHA_JDIM )  &
-                   !    +0.25*U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )
-                   U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )=RSUM
-                   !      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )=0.65*1./RSUM &
-                   !              + 0.35*U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )
-                   !      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )=0.5*1./RSUM &
-                   !              + 0.5*U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )
-                   !      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )=1./RSUM 
-                END DO
-             END DO
-          END DO
-       END DO
-
-    ENDIF
-
-    !    ewrite(3,*)'CV_NONODs,TOTELE*CV_NLOC,CV_NLOC:',CV_NONODs,TOTELE*CV_NLOC,CV_NLOC
-    !     stop 383
-
-    !    IF(CV_NONODS/=TOTELE*CV_NLOC) THEN
-    Conditional_NotUsed3: IF(.false.) THEN
-       IF(CV_NLOC==3) THEN
-          !    IF(.false.) THEN
-          DO ELE = 1, -TOTELE
-             DO IPHASE = 1, NPHASE
-                DO IDIM = 1, NDIM
-                   DO JDIM = 1, NDIM
-                      IPHA_IDIM = ( IPHASE - 1 ) * NDIM + IDIM 
-                      JPHA_JDIM = ( IPHASE - 1 ) * NDIM + JDIM 
-                      DO CV_ILOC=1,CV_NLOC
-                         MAT_NOD = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + CV_ILOC)
-                         CV_NOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC)
-                         SATURATION=SATURA(CV_NOD + ( IPHASE - 1 ) * CV_NONODS )
-                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )  &
-                              = U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) &
-                              / max(0.03,SATURATION)
-                      END DO
-                   END DO
-                END DO
-             END DO
-          END DO
-          DO ELE = 1, TOTELE
-             DO IPHASE = 1, NPHASE
-                DO IDIM = 1, NDIM
-                   DO JDIM = 1, NDIM
-                      IPHA_IDIM = ( IPHASE - 1 ) * NDIM + IDIM 
-                      JPHA_JDIM = ( IPHASE - 1 ) * NDIM + JDIM 
-                      MAT_NOD1 = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + MAT_NLOC)
-                      MAT_NOD2 = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + 1)
-                      MAT_NOD_MID = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + 2)
-
-                      CV_NOD1 = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_NLOC)
-                      CV_NOD2 = CV_NDGLN(( ELE - 1 ) * CV_NLOC + 1)
-
-                      CV_PHA_NOD1 = CV_NOD1 + ( IPHASE - 1 ) * CV_NONODS
-                      CV_PHA_NOD2 = CV_NOD2 + ( IPHASE - 1 ) * CV_NONODS
-                      if(.true.) then
-                         !        stop 56
-                         ! max...
-                         IF(U_ABSORB( MAT_NOD_MID, IPHA_IDIM, JPHA_JDIM )  &
-                              >U_ABSORB( MAT_NOD1, IPHA_IDIM, JPHA_JDIM ) ) THEN
-                            IF(U_ABSORB( MAT_NOD_MID, IPHA_IDIM, JPHA_JDIM )  &
-                                 >U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM ) ) THEN
-                               U_ABSORB( MAT_NOD_MID, IPHA_IDIM, JPHA_JDIM )= &
-                                    MAX(U_ABSORB( MAT_NOD1, IPHA_IDIM, JPHA_JDIM ), &
-                                    U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM ))
-                            ENDIF
-                         ENDIF
-                         ! min...
-                         IF(U_ABSORB( MAT_NOD_MID, IPHA_IDIM, JPHA_JDIM )  &
-                              <U_ABSORB( MAT_NOD1, IPHA_IDIM, JPHA_JDIM ) ) THEN
-                            IF(U_ABSORB( MAT_NOD_MID, IPHA_IDIM, JPHA_JDIM )  &
-                                 <U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM ) ) THEN
-                               U_ABSORB( MAT_NOD_MID, IPHA_IDIM, JPHA_JDIM )= &
-                                    MIN(U_ABSORB( MAT_NOD1, IPHA_IDIM, JPHA_JDIM ), &
-                                    U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM ))
-                            ENDIF
-                         ENDIF
-                      ENDIF
-                      if(.false.) then
-                         U_ABSORB( MAT_NOD_MID, IPHA_IDIM, JPHA_JDIM )= &
-                              0.5*U_ABSORB( MAT_NOD1, IPHA_IDIM, JPHA_JDIM ) &
-                              +0.5*U_ABSORB( MAT_NOD2, IPHA_IDIM, JPHA_JDIM )
-                      ENDIF
-                   END DO
-                END DO
-             END DO
-          END DO
-          DO ELE = 1, -TOTELE
-             DO IPHASE = 1, NPHASE
-                DO IDIM = 1, NDIM
-                   DO JDIM = 1, NDIM
-                      IPHA_IDIM = ( IPHASE - 1 ) * NDIM + IDIM 
-                      JPHA_JDIM = ( IPHASE - 1 ) * NDIM + JDIM 
-                      DO CV_ILOC=1,CV_NLOC
-                         MAT_NOD = MAT_NDGLN(( ELE - 1 ) * MAT_NLOC + CV_ILOC)
-                         CV_NOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_ILOC)
-                         SATURATION=SATURA(CV_NOD + ( IPHASE - 1 ) * CV_NONODS )
-                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM )  &
-                              = U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) &
-                              * max(0.03,SATURATION)
-                      END DO
-                   END DO
-                END DO
-             END DO
-          END DO
-       ENDIF
-    ENDIF Conditional_NotUsed3
 
     ewrite(3,*)'NUABS_COEFS,UABS_COEFS:',NUABS_COEFS,UABS_COEFS
     ewrite(3,*)'U_ABSORB:'
@@ -646,114 +402,34 @@ contains
           ewrite(3,*)mat_nod,iphase,(U_ABSORB( MAT_NOD, iphase, jphase ),jphase=1,2) 
        end do
     end do
-    !    ewrite(3,*)'U_ABSORB:',U_ABSORB
-    !    stop 4941
     DEALLOCATE( INV_PERM )
 
-    ewrite(3,*) 'Leaving CAL_U_ABSORB2'
+    ewrite(3,*) 'Leaving calculate_absorption2'
 
     RETURN
 
-  END SUBROUTINE CAL_U_ABSORB2
+  END SUBROUTINE calculate_absorption2
 
 
-
-  SUBROUTINE ABS3_HP1( ABS, MOBILITY, INV_PERM, SAT, IPHASE )
-    IMPLICIT NONE
-    REAL, intent( inout) :: ABS
-    REAL, intent( in ) :: MOBILITY, INV_PERM, SAT
-    INTEGER, intent( in ) :: IPHASE
-    ! Local variables...
-    REAL :: VISC1, VISC2, S_GC, S_OR, REF_MOBILITY, &
-         KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2
-
-    VISC1 = 1.0
-    S_GC = 0.1
-    S_OR = 0.3
-    REF_MOBILITY = MOBILITY
-
-    SATURATION = SAT
-    IF( IPHASE == 2 ) SATURATION=1.-SAT
-
-    IF( SAT < S_GC ) THEN
-       KR1 = 0.0
-    ELSE IF( SAT > 1. -S_OR ) THEN
-       KR1 = 1.0
-    ELSE
-       KR1 = ( ( SAT - S_GC) / ( 1. - S_GC - S_OR ))**2
-    ENDIF
-
-    SAT2=1.0-SAT
-    IF( SAT2 < S_OR ) THEN
-       KR2 = 0.0
-    ELSEIF( SAT2 > 1. - S_GC ) THEN
-       KR2 = 1.0
-    ELSE
-       KR2 = ( ( SAT2 - S_OR ) / ( 1. - S_GC - S_OR ))**2
-    ENDIF
-    VISC2=REF_MOBILITY
-
-    IF(IPHASE==1) THEN
-       KR=KR1
-       VISC=VISC1
-    ELSE
-       KR=KR2
-       VISC=VISC2
-    ENDIF
-
-    ABS_SUM = KR / MAX(1.e-6,VISC*max(0.01,SATURATION))
-
-    ABS = INV_PERM / MAX( 1.e-6, ABS_SUM )
-    if(iphase==1) then
-       ABS =  min( 1.e+4, ABS)
-       !        ABS =  min( 1.e+6, ABS)
-       if(saturation < 0.1) then
-          ABS = (1. + max(100.*(0.1-saturation),0.0)) * ABS
-          !                        abs=abs+100000.*exp(90.0*(0.1-sat))
-          !          ABS = (0.001 + max(100.*(0.1-saturation),0.0)) * ABS
-          !          ABS = saturation*ABS/10.
-       endif
-       ! new ************        
-       if(sat>0.7) then
-          ABS = max(0.01,0.7*((1.-sat)/0.3 ))
-          !    abs = 0.7*exp(-40.*(sat-0.7))
-       endif
-    else
-       !        ABS = min( 1.e+5, ABS)
-       !        ABS = min( 2.013e+5, ABS)
-       ABS = min( 4.0e+5, ABS)
-       !        ABS = min( 1.e+7, ABS)
-       if(saturation < 0.3) then
-          ABS = (1. + max(100.*(0.3-saturation),0.0)) * ABS
-          !   print *,'saturation,ABS :',saturation,ABS
-          abs=abs+100000.*exp(30.0*(sat-0.7))
-          !   print *,'sat,abs:',sat,abs
-       endif
-       ! new ************        
-       !        if(sat<0.1) then
-       !          ABS = max(0.01,9.0*(10.0*sat))
-       !        endif
-    endif
-    RETURN   
-  END SUBROUTINE ABS3_HP1
-
-
-
-
-
-  SUBROUTINE ABS3( ABSP, MOBILITY, INV_PERM, SAT, IPHASE )
+  SUBROUTINE relperm_corey( ABSP, MOBILITY, INV_PERM, SAT, IPHASE )
     IMPLICIT NONE
     REAL, intent( inout ) :: ABSP
     REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
     INTEGER, intent( in ) :: IPHASE
     ! Local variables...
-    REAL :: VISC1, VISC2, S_GC, S_OR, REF_MOBILITY, &
-         KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2
+    REAL :: VISC1, VISC2, S_GC, S_OR, &
+         KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2, &
+         kr1_max, kr2_max, kr1_exp, kr2_exp
 
     VISC1 = 1.0
-    S_GC = 0.1
-    S_OR = 0.3
-    REF_MOBILITY = MOBILITY
+!    S_GC = 0.1
+    call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", s_gc, default=0.1)
+!    S_OR = 0.3
+    call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", s_or, default=0.3)
+    call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_max", kr1_max, default=1.0)
+    call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_max", kr2_max, default=1.0)
+    call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_exponent", kr1_exp, default=2.0)
+    call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", kr2_exp, default=2.0)
 
     SATURATION = SAT
     IF( IPHASE == 2 ) SATURATION = 1. - SAT
@@ -761,20 +437,20 @@ contains
     IF( SAT < S_GC ) THEN
        KR1 = 0.0
     ELSE IF( SAT > 1. -S_OR ) THEN
-       KR1 = 1.0
+       kr1 = kr1_max
     ELSE
-       KR1 = ( ( SAT - S_GC) / ( 1. - S_GC - S_OR ))**2
+       KR1 = ( ( SAT - S_GC) / ( 1. - S_GC - S_OR ))**kr1_exp
     ENDIF
 
     SAT2 = 1.0 - SAT
     IF( SAT2 < S_OR ) THEN
        KR2 = 0.0
     ELSEIF( SAT2 > 1. - S_GC ) THEN
-       KR2 = 1.0
+       KR2 = kr2_max
     ELSE
-       KR2 = ( ( SAT2 - S_OR ) / ( 1. - S_GC - S_OR ))**2
+       KR2 = ( ( SAT2 - S_OR ) / ( 1. - S_GC - S_OR ))**kr2_exp
     ENDIF
-    VISC2 = REF_MOBILITY
+    VISC2 = MOBILITY
 
     IF( IPHASE == 1 ) THEN
        KR = KR1
@@ -790,84 +466,26 @@ contains
 
     if( iphase == 1 ) then
        ABSP =  min( 1.e+4, ABSP )
-       if( saturation < 0.1 ) then
-          ABSP = ( 1. + max( 100. * ( 0.1 - saturation ), 0.0 )) * ABSP
+       if( saturation < s_gc ) then
+          ABSP = ( 1. + max( 100. * ( s_gc - saturation ), 0.0 )) * ABSP
        endif
     else
-       ABSP = min( 1.e+5, ABSP )
-       if( saturation < 0.3 ) then
-          ABSP = ( 1. + max( 100. * ( 0.3 - saturation ), 0.0 )) * ABSP
+       if (have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/boost_at_zero_saturation")) then
+          ABSP = min( 4.0e+5, ABSP)
+          if(saturation < s_or) then
+             ABSP = (1. + max( 100. * ( s_or - saturation ), 0.0 )) * ABSP
+             ABSP=ABSP+100000.*exp(30.0*(sat-(1-s_or)))
+          endif
+       else
+          ABSP = min( 1.e+5, ABSP )
+          if( saturation < s_or ) then
+             ABSP = ( 1. + max( 100. * ( s_or - saturation ), 0.0 )) * ABSP
+          endif
        endif
     endif
-
+    
     RETURN
-  END SUBROUTINE ABS3
-
-
-
-
-  SUBROUTINE ABS6( ABSP, MOBILITY, INV_PERM, SAT, IPHASE )
-    IMPLICIT NONE
-    REAL, intent( inout ) :: ABSP
-    REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
-    INTEGER, intent( in ) :: IPHASE
-    ! Local variables...
-    REAL :: VISC1, VISC2, S_GC, S_OR, REF_MOBILITY, &
-         KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2
-
-    VISC1 = 1.0
-    S_GC = 0.1
-    S_OR = 0.3
-    !REF_MOBILITY = 6.0
-    REF_MOBILITY = MOBILITY
-
-    SATURATION = SAT
-    IF( IPHASE == 2 ) SATURATION = 1. - SAT
-
-    IF( SAT < S_GC ) THEN
-       KR1 = 0.0
-    ELSE IF( SAT > 1. -S_OR ) THEN
-       KR1 = 1.0
-    ELSE
-       KR1 = ( ( SAT - S_GC) / ( 1. - S_GC - S_OR ))**2
-    ENDIF
-
-    SAT2 = 1.0 - SAT
-    IF( SAT2 < S_OR ) THEN
-       KR2 = 0.0
-    ELSEIF( SAT2 > 1. - S_GC ) THEN
-       KR2 = 1.0
-    ELSE
-       KR2 = ( ( SAT2 - S_OR ) / ( 1. - S_GC - S_OR ))**2
-    ENDIF
-    VISC2 = REF_MOBILITY
-
-    IF( IPHASE == 1 ) THEN
-       KR = KR1
-       VISC = VISC1
-    ELSE
-       KR = KR2
-       VISC = VISC2
-    ENDIF
-
-    ABS_SUM = KR / MAX( 1.e-6, VISC * max( 0.01, SATURATION ))
-
-    ABSP = INV_PERM / MAX( 1.e-6, ABS_SUM )
-
-    if( iphase == 1 ) then
-       ABSP =  min( 1.e+4, ABSP )
-       if( saturation < 0.1 ) then
-          ABSP = ( 1. + max( 100. * ( 0.1 - saturation ), 0.0 )) * ABSP
-       endif
-    else
-       ABSP = min( 1.e+5, ABSP )
-       if( saturation < 0.3 ) then
-          ABSP = ( 1. + max( 100. * ( 0.3 - saturation ), 0.0 )) * ABSP
-       endif
-    endif
-
-    RETURN
-  END SUBROUTINE ABS6
+  END SUBROUTINE relperm_corey
 
 
 

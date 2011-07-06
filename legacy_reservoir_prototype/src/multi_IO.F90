@@ -541,6 +541,7 @@ contains
        mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
        wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
        suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
+       wic_comp_bc, suf_comp_bc, &
        suf_u_bc, &
        suf_u_bc_rob1, suf_u_bc_rob2, &
        opt_vel_upwind_coefs, &
@@ -566,8 +567,9 @@ contains
          nlenmcy
     real, intent( in ) :: dt, patmos, p_ini, t_ini, t_beta, v_beta, &
          t_theta, v_theta, u_theta, domain_length
-    integer, dimension( stotel * nphase ), intent( in ) :: wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc
+    integer, dimension( stotel * nphase ), intent( in ) :: wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, wic_comp_bc
     real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc
+    real, dimension( stotel * cv_snloc * nphase * ncomp), intent( in ) :: suf_comp_bc
     real, dimension( stotel * p_snloc * nphase ), intent( in ) :: suf_p_bc
     real, dimension( stotel * u_snloc * nphase ), intent( in ) :: suf_u_bc
     real, dimension( stotel * u_snloc * nphase ), intent( in ) :: suf_u_bc_rob1, suf_u_bc_rob2
@@ -641,6 +643,8 @@ contains
 
     write( unit_debug, * ) 'wic_t_bc( stotel * nphase ):', ( wic_t_bc( i ), i = 1, stotel * nphase )
 
+    write( unit_debug, * ) 'wic_comp_bc( stotel * nphase ):', ( wic_comp_bc( i ), i = 1, stotel * nphase )
+
     write( unit_debug, * ) '############################################'
 
     write( unit_debug, * ) 'suf_vol_bc( stotel * cv_snloc * nphase ):', &
@@ -654,6 +658,9 @@ contains
 
     write( unit_debug, * ) 'suf_t_bc( stotel * cv_snloc * nphase ):', &
          ( suf_t_bc( i ), i = 1, stotel * cv_snloc * nphase )
+
+    write( unit_debug, * ) 'suf_comp_bc( stotel * cv_snloc * nphase ):', &
+         ( suf_comp_bc( i ), i = 1, stotel * cv_snloc * nphase * ncomp)
 
     write( unit_debug, * ) 'suf_p_bc( stotel * p_snloc * nphase ):', &
          ( suf_p_bc( i ), i = 1, stotel * p_snloc * nphase )

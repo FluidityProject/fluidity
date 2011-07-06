@@ -1812,6 +1812,7 @@ contains
     !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
     NCOLGPTS = 0
     COLGPTS = 0
+    FINDGPTS = 0
     ewrite(3,*)'in ASSEMB_FORCE_CTY',NCOLGPTS 
     ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS',size(COLGPTS), COLGPTS
     ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS',size(FINDGPTS),FINDGPTS

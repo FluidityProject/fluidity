@@ -133,7 +133,7 @@ module copy_outof_into_state
       real :: dt
       real :: nonlinear_iteration_tolerance
 
-      character(len=OPTION_PATH_LEN) :: field_name, material_phase_name
+      character(len=OPTION_PATH_LEN) :: field_name, material_phase_name, option_path
 
       !! temporary variables only needed for interfacing purposes
 
@@ -283,7 +283,7 @@ module copy_outof_into_state
       ! nlev = 
       xu_nloc = cmesh%shape%loc
       cv_nloc = pmesh%shape%loc
-      x_nloc = 3*ndim
+      x_nloc = pmesh%shape%loc
       p_nloc = pmesh%shape%loc ! 3
       u_nloc = vmesh%shape%loc
       !      if (have_option("/material_phase::phase1/vector_field::Velocity/prognostic/" // &
@@ -316,7 +316,7 @@ module copy_outof_into_state
 
       call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/polynomial_degree', u_ele_type, default=1)
       call get_option('/geometry/mesh::PressureMesh/from_mesh/mesh_shape/polynomial_degree', p_ele_type, default=1)
-
+!      ewrite(3,*) 'u_ele_type', u_ele_type
       u_ele_type = 2 ! this will need to be changed later -- switcher for the 
       !! Sufficient to set this to 1 for now? It is 1 in all test cases
       mat_ele_type = 1
@@ -520,7 +520,7 @@ module copy_outof_into_state
 
       scalar_error = 1.e-10
       global_error = 1.e-10
-      mass_matrix_error = 1.-10
+      mass_matrix_error = 1.e-10
 
       scalar_relax = 1.
       global_relax = 1.
@@ -614,15 +614,13 @@ module copy_outof_into_state
 !!!
 !!! Components Boundary Conditions
 
-      Loop_Component_BC: do i=nstates-ncomps, nstates-1
-         do j=1,nphases
-            if (.not.allocated(wic_comp_bc)) then
-               allocate( wic_comp_bc( stotel * nphases ))
-               allocate( suf_comp_bc( stotel * 1 * nphases * ncomps ))
-               wic_comp_bc = 0
-               suf_comp_bc = 0.
-            endif
+      allocate( wic_comp_bc( stotel * nphases ))
+      allocate( suf_comp_bc( stotel * 1 * nphases * ncomps ))
+      wic_comp_bc = 0
+      suf_comp_bc = 0.
 
+      Loop_Component_BC: do i=nphases, nphases+ncomps-1
+         do j=1,nphases
             if( have_option("/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
                  "ComponentMassFraction/prognostic/" // &
                  "boundary_conditions[0]/type::dirichlet" )) then
@@ -633,15 +631,18 @@ module copy_outof_into_state
                allocate(component_sufid_bc(1:shape_option(1)))
                Component_BC_Type = 1
                call get_option( "/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
-                    "ComponentMassFraction/prognostic" // &
+                    "ComponentMassFraction/prognostic/" // &
                     "boundary_conditions[0]/surface_ids", component_sufid_bc )
                call get_option( "/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
-                    "ComponentMassFraction/prognostic" // &
+                    "ComponentMassFraction/prognostic/" // &
                     "boundary_conditions[0]/type::dirichlet/constant", Component_Suf_BC )
+                    
+               ewrite(3,*) 'csufid', component_sufid_bc
+               ewrite(3,*) 'nphases, j, ncomps, i', nphases, j, ncomps, i
 
                do k=1,shape_option(1)
-                  wic_comp_bc( component_sufid_bc(1) + nphases*(j-1) + nphases*ncomps*(i-1) ) = Component_BC_Type
-                  suf_comp_bc( component_sufid_bc(1) + nphases*(j-1) + nphases*ncomps*(i-1) ) = Component_Suf_BC
+                  wic_comp_bc( component_sufid_bc(1) + nphases*(j-1) ) = Component_BC_Type
+                  suf_comp_bc( component_sufid_bc(1) + nphases*(j-1) + nphases*ncomps*(i-nphases) ) = Component_Suf_BC
                enddo
                deallocate(Component_sufid_bc)
             endif
@@ -972,10 +973,13 @@ module copy_outof_into_state
       allocate(eos_option(nphases))
       allocate(cp_option(nphases))
       do i=1,nphases
-         call get_option("/material_phase[" // int2str(i-1) // "]/multiphase_properties/relperm_option",uabs_option(i))
-         if (have_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear")) then
+         option_path = "/material_phase[" // int2str(i-1) // "]/multiphase_properties/relperm_type"
+         if (have_option(trim(option_path)//"/Corey")) uabs_option(i)=3
+         if (have_option(trim(option_path)//"/Corey/boost_at_zero_saturation")) uabs_option(i)=5
+         option_path = "/material_phase[" // int2str(i-1) // "]/equation_of_state"
+         if (have_option(trim(option_path)//"/incompressible/linear")) then
             eos_option(i) = 2
-         elseif (have_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/compressible/stiffened_gas")) then
+         elseif (have_option(trim(option_path)//"/compressible/stiffened_gas")) then
             eos_option(i) = 1
          else
             FLAbort("Unknown EoS option for phase "// int2str(i))
@@ -1238,7 +1242,9 @@ module copy_outof_into_state
                   call get_option("/material_phase[" // int2str(i-1) //"]/scalar_field[" // int2str(j-1) //&
                        &"]/material_phase_name", material_phase_name)
                   do k=1,nphases
+                     ewrite(3,*) 'mp_name, state_name', trim(material_phase_name), state(k)%name
                      if (trim(material_phase_name) == state(k)%name) then
+                        ewrite(3,*) 'here'
                         do l=1,node_count(componentmassfraction)
                            comp( ((i-(1+nphases))*nphases+(k-1))*node_count(componentmassfraction)+l ) = componentmassfraction%val(l)
                         enddo

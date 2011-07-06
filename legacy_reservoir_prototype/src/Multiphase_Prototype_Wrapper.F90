@@ -93,7 +93,7 @@
     character(len = filename_len), intent(in) :: filename
     character(len = option_path_len) :: simulation_name, dump_format
 
-    real :: finish_time, nonlinear_iteration_tolerance, steady_state_tolerance
+    real :: finish_time, nonlinear_iteration_tolerance
 !    integer :: mpi_success
 
 #ifdef HAVE_MPI
@@ -238,7 +238,7 @@
           call write_state(dump_no, state)
        end if
 
-       ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
+       ewrite(2,*)'nonlinear_iterations:',nonlinear_iterations
 
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:

@@ -34,6 +34,6 @@ clean:
 	rm -f $(SIM)Comp2
 	rm -f $(SIM)suf_comp_bc
 	rm -f gmon.out
-	rm -f *.d.*   
+	rm -f *.d.* *.stat fluidity.*
 	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.* mirror_new.dat
 	rm -f *.ele *.bound *.face *.node
