@@ -89,6 +89,8 @@ module element_numbering
        & tri_numbering
   type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
        & tri_numbering_trace
+  type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
+       & quad_numbering_trace
   type(ele_numbering_type), dimension(1:TRI_BUBBLE_MAX_DEGREE), target, save ::&
        & tri_numbering_bubble
   type(ele_numbering_type), target, save :: tri_numbering_nc
@@ -913,6 +915,7 @@ contains
        facet_loop: do ll=1,2*ele%dimension
           
           l=0
+
           l(1)=ll
           number_loop: do j=0,ele%degree
              
@@ -931,7 +934,6 @@ contains
           stop
        end if
 
-       COPY FROM QUADRILATERALS
        ! For trace elements, the first local_coordinate is the face number.
        ele%boundary_coord=1
        forall(j=1:ele%vertices)
@@ -1233,7 +1235,7 @@ contains
           end do
 
        end do
-              
+
        ! Number faces.
        forall(j=1:ele%vertices)
           ele%boundary_coord(j)=(j+1)/2
@@ -1556,8 +1558,7 @@ contains
           face_num_length=tr(ele_num%degree+1)
        end if
     case (FAMILY_CUBE)
-       ADD SOMETHING FOR ELEMENT_TRACE
-       if (interior) then
+       if (interior.and.ele_num%type/=ELEMENT_TRACE) then
           face_num_length=(ele_num%degree-1)**2
        else
           face_num_length=(ele_num%degree+1)**2
@@ -1722,6 +1723,8 @@ contains
     integer :: cnt, i, j, k, inc
     ! Local edge vertices for trace elements. 
     integer, dimension(2) :: ln
+    ! array for locating face in quad
+    integer, dimension(7) :: sum2face
     
     select case (ele_num%type)
     case (ELEMENT_LAGRANGIAN)
@@ -1847,7 +1850,48 @@ contains
          assert(cnt==size(edge_local_num))
          
       case (FAMILY_CUBE)
-         FIX THIS
+
+         !boundary_coord = (0,0,1,1)
+         !boundary_val = (0,1,0,1)
+         !numbering is
+         !       4
+         !   3      4
+         !  1        2
+         !   1      2
+         !       3
+         sum2face = (/0,0,3,1,0,2,4/)
+         if(sum(nodes)>7) then
+            FLAbort('bad vertex numbers')
+         end if
+         !first local coordinate is face number
+         l(1) = sum2face(sum(nodes))
+         if(l(1)==0) then
+            FLAbort('bad vertex numbers')
+         end if
+
+         if (nodes(2)>nodes(1)) then
+            ! Counting forward
+            ln = (/2,3/)
+         else
+            ! Counting backwards
+            ln = (/3,2/)
+         end if
+
+         l(ln(1))=ele_num%degree
+         cnt=0         
+         trace_number_loop1: do
+            cnt=cnt+1
+                
+            edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
+
+            ! Advance the index:
+            l(ln)=l(ln)+(/-1,1/)
+            
+            ! Check for completion
+            if (any(l<0)) exit trace_number_loop1
+
+         end do trace_number_loop1
+         assert(cnt==size(edge_local_num))
       case default
          FLAbort("Unknown element family.")
       end select
@@ -2300,12 +2344,12 @@ contains
              end do
           else
              ! Degree 0 elements have a single node in the centre of the
-             ! element. 
+             ! face. 
              coords=0.5
              coords(n) = 0.0
           end if
        case (FAMILY_CUBE)
-          DO FOR CUBES
+          FLAbort('I *thought* this wasn''t needed.')
 
        case default
           
