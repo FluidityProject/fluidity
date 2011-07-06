@@ -598,7 +598,7 @@ contains
     
   end function petsc_csr_size
 
-  pure function petsc_must_assemble_by_column_array(matrix, i) result(ret)
+  function petsc_must_assemble_by_column_array(matrix, i) result(ret)
     logical :: ret
     type(petsc_csr_matrix), intent(in) :: matrix
     integer, dimension(:), intent(in) :: i
@@ -618,7 +618,7 @@ contains
 #endif
   end function petsc_must_assemble_by_column_array
 
-  pure function petsc_must_assemble_by_column_scalar(matrix, i) result(ret)
+  function petsc_must_assemble_by_column_scalar(matrix, i) result(ret)
     logical :: ret
     type(petsc_csr_matrix), intent(in) :: matrix
     integer, intent(in) :: i
