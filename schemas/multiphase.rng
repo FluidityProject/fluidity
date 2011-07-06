@@ -796,17 +796,29 @@ Default value 2.0</a:documentation>
                 </element>
               </element>
               <optional>
-                <element name="cp_A">
-                  <a:documentation>Capillary pressure multiplier cp_A
-in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-              <optional>
-                <element name="cp_expo">
-                  <a:documentation>Capillary pressure exponent cp_expo
-in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
-                  <ref name="real"/>
+                <element name="capillary_pressure">
+                  <a:documentation>Option for capillary pressure</a:documentation>
+                  <element name="type_Brookes_Corey">
+                    <a:documentation>Brookes-Corey equation
+
+Pc = c * S_w ** a</a:documentation>
+                    <oneOrMore>
+                      <element name="phase">
+                        <attribute name="material_phase_name">
+                          <a:documentation>Specify the phase to which these values relate</a:documentation>
+                          <data type="string"/>
+                        </attribute>
+                        <element name="c">
+                          <a:documentation>multiplier c</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                        <element name="a">
+                          <a:documentation>exponent a</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </element>
+                    </oneOrMore>
+                  </element>
                 </element>
               </optional>
               <optional>

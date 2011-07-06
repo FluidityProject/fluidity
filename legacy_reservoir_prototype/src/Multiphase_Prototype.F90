@@ -47,7 +47,7 @@ module mp_prototype
 
   contains
 
-    subroutine multiphase_prototype(state, dt, current_time, finish_time, &
+    subroutine multiphase_prototype(state, dt, &
          nonlinear_iterations, nonlinear_iteration_tolerance)
 
       implicit none
@@ -58,7 +58,7 @@ module mp_prototype
 
       integer :: nonlinear_iterations  !! equal to nits in prototype code
 
-      real :: dt, current_time, finish_time
+      real :: dt 
       real :: nonlinear_iteration_tolerance
 
       logical :: do_old_output
@@ -868,7 +868,6 @@ module mp_prototype
                                 ! Nodes et misc
               u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
               cv_snloc, u_snloc, p_snloc, stotel, &
-              ncoef, nuabs_coefs, &
                                 ! Element types
               u_ele_type, p_ele_type, cv_ele_type, &
               cv_sele_type, u_sele_type, &
@@ -903,7 +902,7 @@ module mp_prototype
                                 ! Positions and grid velocities
               x, y, z, nu, nv, nw, ug, vg, wg, &
                                 ! Absorption and source terms and coefficients
-              uabs_option, uabs_coefs, u_abs_stab, Mobility, &
+              u_abs_stab, Mobility, &
               u_absorb, v_absorb, comp_absorb, &
               u_source, v_source, comp_source, &
               t_absorb, t_source, Comp_Sum2One, &
@@ -913,16 +912,12 @@ module mp_prototype
               comp_diffusion_opt, ncomp_diff_coef, comp_diffusion, comp_diff_coef, &
                                 ! Velocities and scalar fields
               u, v, w, &
-              den, satura, comp, t, p, cv_p, cv_one, volfra_pore, Viscosity, &
+              den, satura, comp, t, p, cv_p, volfra_pore, &
               perm, &
               uold, vold, wold, denold, saturaold, compold, uden, udenold, deriv, &
               told, pold, cv_pold, nuold, nvold, nwold, &
                                 ! EOS terms
-              eos_option, &
-              eos_coefs, &
               K_Comp, alpha_beta, &
-                                ! Capillarity pressure terms
-              capil_pres_opt, ncapil_pres_coef, capil_pres_coef, &
                                 ! Matrices sparsity
               mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
               nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns

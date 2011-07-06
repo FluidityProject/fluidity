@@ -201,30 +201,22 @@ contains
   END SUBROUTINE CAL_CPDEN
 
 
-
   SUBROUTINE calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
        CV_NDGLN, MAT_NDGLN, &
-       NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, VOLFRA_PORE, PERM, MOBILITY, VISCOSITY, &
-       X, X_NLOC, X_NONODS, X_NDGLN, &
+       U_ABSORB, PERM, MOBILITY, &
        OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS )
     ! Calculate absorption for momentum eqns
     use matrix_operations
     !    use cv_advection
     implicit none
     INTEGER, intent( in ) :: MAT_NONODS, CV_NONODS, NPHASE, NDIM, TOTELE, CV_NLOC,MAT_NLOC, &
-         NUABS_COEFS, X_NLOC, X_NONODS, NOPT_VEL_UPWIND_COEFS 
+         NOPT_VEL_UPWIND_COEFS 
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
     INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: X_NDGLN
     INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
-    REAL, DIMENSION( NPHASE, NUABS_COEFS ), intent( in ) :: UABS_COEFS
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X
-    INTEGER, DIMENSION( NPHASE ), intent( in ) ::  UABS_OPTION
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( inout ) :: U_ABSORB
-    REAL, DIMENSION( TOTELE ), intent( in ) :: VOLFRA_PORE
     REAL, DIMENSION( TOTELE, NDIM, NDIM ), intent( in ) :: PERM
     REAL, intent( in ) :: MOBILITY
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: VISCOSITY
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( inout ) :: OPT_VEL_UPWIND_COEFS
     ! local variable...
     REAL, DIMENSION( :, :, :), allocatable :: U_ABSORB2
@@ -239,11 +231,10 @@ contains
     U_ABSORB2 = 0.
     SATURA2 = 0.
 
-    ewrite(3,*)'b4 in calculate_absorption2, SATURA0',size(SATURA),SATURA
+!    ewrite(3,*)'b4 in calculate_absorption2, SATURA0',size(SATURA),SATURA
     CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
          CV_NDGLN, MAT_NDGLN, &
-         NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, PERM, MOBILITY, VISCOSITY, &
-         X, X_NLOC, X_NONODS, X_NDGLN )
+         U_ABSORB, PERM, MOBILITY)
 
 
     PERT = 0.0001
@@ -252,10 +243,9 @@ contains
 
     CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA2, TOTELE, CV_NLOC, MAT_NLOC, &
          CV_NDGLN, MAT_NDGLN, &
-         NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB2, PERM, MOBILITY, VISCOSITY, &
-         X, X_NLOC, X_NONODS, X_NDGLN )
+         U_ABSORB2, PERM, MOBILITY)
 
-    ewrite(3,*)'after in calculate_absorption, U_ABSORB2:', size(U_ABSORB2),U_ABSORB2
+!    ewrite(3,*)'after in calculate_absorption, U_ABSORB2:', size(U_ABSORB2),U_ABSORB2
 
     DO ELE = 1, TOTELE
        DO CV_ILOC = 1, CV_NLOC
@@ -279,8 +269,8 @@ contains
        END DO
     END DO
 
-    ewrite(3,*)'in calculate_absorption, U_ABSORB:', size(U_ABSORB),U_ABSORB
-    ewrite(3,*)'in calculate_absorption, OPT_VEL_UPWIND_COEFS:', size(OPT_VEL_UPWIND_COEFS),OPT_VEL_UPWIND_COEFS
+!    ewrite(3,*)'in calculate_absorption, U_ABSORB:', size(U_ABSORB),U_ABSORB
+!    ewrite(3,*)'in calculate_absorption, OPT_VEL_UPWIND_COEFS:', size(OPT_VEL_UPWIND_COEFS),OPT_VEL_UPWIND_COEFS
     ewrite(3,*) 'Leaving calculate_absorption'
     RETURN
 
@@ -289,35 +279,26 @@ contains
 
   SUBROUTINE calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
        CV_NDGLN, MAT_NDGLN, &
-       NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, PERM, MOBILITY, VISCOSITY, &
-       X, X_NLOC, X_NONODS, X_NDGLN ) 
+       U_ABSORB, PERM, MOBILITY) 
     ! Calculate absorption for momentum eqns
     use matrix_operations
     !    use cv_advection
     implicit none
-    INTEGER, intent( in ) :: MAT_NONODS, CV_NONODS, NPHASE, NDIM, TOTELE, CV_NLOC,MAT_NLOC, &
-         NUABS_COEFS, X_NLOC, X_NONODS
+    INTEGER, intent( in ) :: MAT_NONODS, CV_NONODS, NPHASE, NDIM, TOTELE, CV_NLOC,MAT_NLOC
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
     INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
-    INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) :: X_NDGLN
     INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
-    REAL, DIMENSION( NPHASE, NUABS_COEFS ), intent( in ) :: UABS_COEFS
-    REAL, DIMENSION( X_NONODS ), intent( in ) :: X
-    INTEGER, DIMENSION( NPHASE ), intent( in ) ::  UABS_OPTION
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( inout ) :: U_ABSORB
     REAL, DIMENSION( TOTELE, NDIM, NDIM ), intent( in ) :: PERM
     REAL, intent( in ) :: MOBILITY
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: VISCOSITY
     ! Local variable
     REAL, PARAMETER :: TOLER = 1.E-10
     INTEGER :: ELE, CV_ILOC, CV_NOD, CV_PHA_NOD, MAT_NOD, JPHA_JDIM, &
-         IPHA_IDIM, IDIM, JDIM, IPHASE, II, jphase, X_NODI, MAT_NOD1, MAT_NOD2, MAT_NOD3, &
-         CV_NOD1, CV_NOD2, ELE2, CV_PHA_NOD1, CV_PHA_NOD2, &
-         MAT_NOD_MID, CV_ILOC2
-    REAL :: SATURATION, ABS_SUM, RSUM, &
-         U_ABS1, U_ABS2, U_ABS3
+         IPHA_IDIM, IDIM, JDIM, IPHASE, jphase
+!    integer :: ii
+    REAL :: SATURATION
+!    real :: abs_sum
     REAL, DIMENSION( :, :, :), allocatable :: INV_PERM
-    LOGICAL :: MEAN_ELE
 
     ewrite(3,*) 'In calculate_absorption2'
 
@@ -344,46 +325,38 @@ contains
                    SATURATION = SATURA( CV_PHA_NOD ) 
                    IPHA_IDIM = ( IPHASE - 1 ) * NDIM + IDIM 
                    JPHA_JDIM = ( IPHASE - 1 ) * NDIM + JDIM 
-                   !JPHA_JDIM = IPHA_IDIM
 
-                   Case_UABSOption: SELECT CASE( UABS_OPTION( IPHASE ) )
-                   CASE( 0 ) 
-                      ! no absorption option
-                      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
-
-                   CASE( 1 )
-                      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = INV_PERM( ELE, IDIM, JDIM )
-
-                   CASE( 2 ) ! A standard polynomial representation of relative permeability             
-                      ABS_SUM = 0.
-                      DO II = 1, NUABS_COEFS
-                         ABS_SUM = ABS_SUM + UABS_COEFS( IPHASE, II) * SATURATION** (II - 1 )
-                      END DO
-                      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = INV_PERM( ELE, IDIM, JDIM ) / &
-                           MAX( TOLER, ABS_SUM )
-
-                   CASE( 3, 5, 6 ) ! From Tara and Martin's notes for relative permeability
+                   if (have_option("/material_phase["// int2str(iphase-1) //"]/multiphase_properties/relperm_type/Corey")) then
                       if (nphase==2) then
                          CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
                            INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE)
                       else
                          FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
                       endif
+                   else
+                      FLAbort('Unknown relperm_type')
+!                      CASE( 0 ) 
+                      ! no absorption option
+!                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
 
-                   CASE( 4 ) 
-                      ABS_SUM = 0.0
-                      DO II = 1, NUABS_COEFS
-                         ABS_SUM = ABS_SUM + UABS_COEFS( IPHASE, II) * SATURATION** (II - 1 )
-                      END DO
-                      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = ABS_SUM
+!                      CASE( 1 )
+!                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = INV_PERM( ELE, IDIM, JDIM )
 
-                   CASE DEFAULT
-                      ewrite(3,*) 'Unknown Option -- UABS_OPTION( IPHASE )'
-                      ABS_SUM = 0.0
-                      U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = ABS_SUM
-                      !                      stop 1023
+!                      CASE( 2 ) ! A standard polynomial representation of relative permeability             
+!                         ABS_SUM = 0.
+!                         DO II = 1, NUABS_COEFS
+!                            ABS_SUM = ABS_SUM + UABS_COEFS( IPHASE, II) * SATURATION** (II - 1 )
+!                         END DO
+!                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = INV_PERM( ELE, IDIM, JDIM ) / &
+!                              MAX( TOLER, ABS_SUM )
 
-                   END SELECT Case_UABSOption
+!                      CASE( 4 ) 
+!                         ABS_SUM = 0.0
+!                         DO II = 1, NUABS_COEFS
+!                            ABS_SUM = ABS_SUM + UABS_COEFS( IPHASE, II) * SATURATION** (II - 1 )
+!                         END DO
+!                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = ABS_SUM
+                   endif
 
                 END DO Loop_DimensionsJ
 
@@ -395,8 +368,8 @@ contains
 
     END DO Loop_ELE
 
-    ewrite(3,*)'NUABS_COEFS,UABS_COEFS:',NUABS_COEFS,UABS_COEFS
-    ewrite(3,*)'U_ABSORB:'
+!    ewrite(3,*)'NUABS_COEFS,UABS_COEFS:',NUABS_COEFS,UABS_COEFS
+!    ewrite(3,*)'U_ABSORB:'
     do mat_nod =1, -mat_nonods
        do iphase=1,nphase
           ewrite(3,*)mat_nod,iphase,(U_ABSORB( MAT_NOD, iphase, jphase ),jphase=1,2) 
@@ -417,11 +390,10 @@ contains
     REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
     INTEGER, intent( in ) :: IPHASE
     ! Local variables...
-    REAL :: VISC1, VISC2, S_GC, S_OR, &
+    REAL :: S_GC, S_OR, &
          KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2, &
          kr1_max, kr2_max, kr1_exp, kr2_exp
 
-    VISC1 = 1.0
 !    S_GC = 0.1
     call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", s_gc, default=0.1)
 !    S_OR = 0.3
@@ -450,14 +422,13 @@ contains
     ELSE
        KR2 = ( ( SAT2 - S_OR ) / ( 1. - S_GC - S_OR ))**kr2_exp
     ENDIF
-    VISC2 = MOBILITY
 
     IF( IPHASE == 1 ) THEN
        KR = KR1
-       VISC = VISC1
+       VISC = 1.0
     ELSE
        KR = KR2
-       VISC = VISC2
+       VISC = MOBILITY
     ENDIF
 
     ABS_SUM = KR / MAX( 1.e-6, VISC * max( 0.01, SATURATION ))
@@ -489,8 +460,7 @@ contains
 
 
 
-  SUBROUTINE CALC_CAPIL_PRES( CAPIL_PRES_OPT, CV_NONODS, NPHASE, NCAPIL_PRES_COEF, &
-       CAPIL_PRES_COEF, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, SATURA )
+  SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
 
     ! CAPIL_PRES_OPT is the capillary pressure option for deciding what form it might take. 
     ! CAPIL_PRES_COEF( NCAPIL_PRES_COEF, NPHASE, NPHASE ) are the coefficients 
@@ -498,50 +468,71 @@ contains
     ! used to calulcate the capillary pressure. 
 
     IMPLICIT NONE
-    INTEGER, intent( in ) :: IPLIKE_GRAD_SOU, CAPIL_PRES_OPT, CV_NONODS, NPHASE, NCAPIL_PRES_COEF
-    REAL, DIMENSION( NCAPIL_PRES_COEF, NPHASE, NPHASE ), intent( in ) :: CAPIL_PRES_COEF
-    REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS * NPHASE ), intent( inout ) :: &
-         PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD
+    type(state_type), dimension(:) :: state
+    INTEGER, intent( in ) :: CV_NONODS, NPHASE
+    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: capillary_pressure
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SATURA
     ! Local Variables
-    INTEGER :: IPHASE, JPHASE
+    INTEGER :: nstates, ncomps, nphases, IPHASE, JPHASE, i, j
+    real c, a
+    character(len=OPTION_PATH_LEN) option_path, phase_name
 
+    ewrite(3,*) 'In calc_capil_pres'
 
-    IF( IPLIKE_GRAD_SOU /= 1 ) THEN
-       FLAbort("Invalid integer for capillary pressure source option")
-    ENDIF
-
-
-    Case_CapillaryPressure: SELECT CASE( CAPIL_PRES_OPT )
-
-    CASE DEFAULT
-
-       FLAbort("Invalid integer for capillary pressure option")
-
-    CASE( 1 )
-       ! Capillary pressure coefs 
-       ! In this form PLIKE_GRAD_SOU_GRAD is the actual capillary pressure. 
-       PLIKE_GRAD_SOU_COEF = 1.0
-       PLIKE_GRAD_SOU_GRAD = 0.0
+    nstates = option_count("/material_phase")
+    ncomps=0
+    do i=1,nstates
+       if (have_option("/material_phase[" // int2str(i-1) // "]/is_multiphase_component")) then
+          ncomps=ncomps+1
+       end if
+    end do
+    nphases=nstates-ncomps
+    
+    if (have_option("/material_phase[0]/multiphase_properties/capillary_pressure/type_Brookes_Corey") ) then
+    
+       capillary_pressure = 0.0
 
        DO IPHASE = 1, NPHASE
 
+          option_path = "/material_phase["//int2str(iphase-1)//"]/multiphase_properties/capillary_pressure/type_Brookes_Corey"
           DO JPHASE = 1, NPHASE
+          
+             if (iphase/=jphase) then
+                
+                ! Make sure we're pairing the right fields
+                j=-1
+                do i=0, option_count(trim(option_path)//"/phase")-1
+                   call get_option(trim(option_path)//"/phase["//int2str(i)//"]/material_phase_name", phase_name)
+!                   ewrite(3,*) 'iphase ', trim(state(iphase)%name)
+!                   ewrite(3,*) 'jphase ', trim(phase_name)
+                   if (trim(state(jphase)%name) == trim(phase_name)) then
+                      j=i
+                   endif
+                enddo
+                if (j<0) FLAbort('Capillary pressure phase pair not found')
 
-             PLIKE_GRAD_SOU_GRAD( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
-                  PLIKE_GRAD_SOU_GRAD( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
-                  CAPIL_PRES_COEF( 1, IPHASE, JPHASE ) * &
-                  MAX( SATURA( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS ), 0.0 ) &
-                  ** CAPIL_PRES_COEF( 2, IPHASE, JPHASE )
+                call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
+                call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
+                
+!                ewrite(3,*) 'iphase, jphase, c, a:', iphase, jphase, c, a
+       
+                capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
+                     capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &
+                     c * &
+                     MAX( SATURA( 1 + ( JPHASE - 1 ) * CV_NONODS : JPHASE * CV_NONODS ), 0.0 ) &
+                     ** a
+             endif
 
           END DO
 
        END DO
 
-    end SELECT Case_CapillaryPressure
+    else
+       FLAbort('Unknown capillary pressure type')
+    endif
 
     RETURN
-  END SUBROUTINE CALC_CAPIL_PRES
+  END SUBROUTINE calculate_capillary_pressure
 
 
 end module multiphase_EOS

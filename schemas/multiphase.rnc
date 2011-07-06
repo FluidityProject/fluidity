@@ -648,12 +648,22 @@ start =
                      element boost_at_zero_saturation { comment }?
                   }
                },
-               ## Capillary pressure multiplier cp_A
-               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
-               element cp_A {real}?,
-               ## Capillary pressure exponent cp_expo
-               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
-               element cp_expo {real}?,
+               ## Option for capillary pressure
+               element capillary_pressure {
+                  ## Brookes-Corey equation
+                  ##
+                  ## Pc = c * S_w ** a
+                  element type_Brookes_Corey {
+                     element phase {
+                        ## Specify the phase to which these values relate
+                        attribute material_phase_name { xsd:string },
+                        ## multiplier c
+                        element c {real},
+                        ## exponent a
+                        element a {real}
+                     }+
+                  }
+               }?,
                ## Immobile volume of fluid phase
                element immobile_fraction {real}?
             }?

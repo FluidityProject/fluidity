@@ -54,7 +54,6 @@ contains
                                 ! Nodes et misc
        u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
        cv_snloc, u_snloc, p_snloc, stotel, &
-       ncoef, nuabs_coefs, &
                                 ! Element types
        u_ele_type, p_ele_type, cv_ele_type, &
        cv_sele_type, u_sele_type, &
@@ -89,7 +88,7 @@ contains
                                 ! Positions and grid velocities
        x, y, z, nu, nv, nw, ug, vg, wg, &
                                 ! Absorption and source terms and coefficients
-       uabs_option, uabs_coefs, u_abs_stab, Mobility, &
+       u_abs_stab, Mobility, &
        u_absorb, v_absorb, comp_absorb, &
        u_source, v_source, comp_source, &
        t_absorb, t_source, Comp_Sum2One, &
@@ -99,16 +98,12 @@ contains
        comp_diffusion_opt, ncomp_diff_coef, comp_diffusion, comp_diff_coef, &
                                 ! Velocities and scalar fields
        u, v, w, &
-       den, satura, comp, t, p, cv_p, cv_one,  volfra_pore, Viscosity, &
+       den, satura, comp, t, p, cv_p, volfra_pore, &
        perm, &
        uold, vold, wold, denold, saturaold, compold, uden, udenold, deriv, &
        told, pold, cv_pold, nuold, nvold, nwold, &
                                 ! EOS terms
-       eos_option, &
-       eos_coefs, &
        K_Comp, alpha_beta, &
-                                ! Capillarity pressure terms
-       capil_pres_opt, ncapil_pres_coef, capil_pres_coef, &
                                 ! Matrices sparsity
        mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
        nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
@@ -126,7 +121,6 @@ contains
     integer, intent( in ) :: nphase, ncomp, totele, ndim, &
          u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
          cv_snloc, u_snloc, p_snloc, stotel, &
-         ncoef, nuabs_coefs, &
          u_ele_type, p_ele_type, cv_ele_type, &
          cv_sele_type, u_sele_type, &
          ntime_dump, nits, nits_internal, &
@@ -175,8 +169,6 @@ contains
     ! Variables bellow may change on this subroutine, however this should be changed later
     real, dimension( x_nonods ), intent( inout ) :: x, y, z
     real, dimension( u_nonods * nphase ), intent( inout ) :: nu, nv, nw, ug, vg, wg
-    integer, dimension( nphase ), intent( in ) :: uabs_option
-    real, dimension( nphase, nuabs_coefs ), intent( in ) :: uabs_coefs
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab
     real, intent( in ) :: Mobility
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_absorb
@@ -199,8 +191,6 @@ contains
     real, dimension( cv_pha_nonods * ncomp ), intent( inout ) :: comp
     real, dimension( cv_pha_nonods ), intent( inout ) :: t
     real, dimension( cv_nonods ), intent( inout ) :: p, cv_p
-    real, dimension( cv_pha_nonods ), intent( inout ) :: cv_one
-    real, dimension( cv_nonods * nphase ), intent( in ) :: Viscosity
     real, dimension( totele ), intent( inout ) :: volfra_pore
     real, dimension( totele, ndim, ndim ), intent( inout ) :: perm
     real, dimension( u_pha_nonods ), intent( inout ) :: uold, vold, wold
@@ -209,14 +199,9 @@ contains
     real, dimension( cv_pha_nonods ), intent( inout ) :: uden, udenold, deriv, told
     real, dimension( cv_nonods ), intent( inout ) :: pold, cv_pold
     real, dimension( u_pha_nonods ), intent( inout ) :: nuold, nvold, nwold
-    integer, dimension( nphase ), intent( in ) :: eos_option
-    real, dimension( nphase, ncoef ), intent( in ) :: eos_coefs
+
     real, dimension( ncomp, nphase, nphase ), intent( inout ) :: K_Comp
     real, intent( inout ) :: alpha_beta
-
-    integer, intent( in ) :: capil_pres_opt, ncapil_pres_coef
-    real, dimension( ncapil_pres_coef, nphase, nphase ), intent( in ) :: &
-         capil_pres_coef
 
     integer, intent ( in ) :: mx_ncolacv, ncolacv
     integer, dimension( cv_pha_nonods + 1 ), intent (in ) :: finacv
@@ -252,7 +237,7 @@ contains
 
     ! Local variables
     real :: acctim ! Accumulated time
-    integer :: itime, iphase, jphase, its, its2, icomp, icomp2, ncomp2
+    integer :: itime, iphase, jphase, its, its2, icomp, ncomp2
     integer :: nstates
     real :: dx
     integer, parameter :: izero = 0, rzero = 0.
@@ -296,10 +281,7 @@ contains
     allocate( V_SOURCE_COMP( cv_nonods * nphase ))
     V_SOURCE_COMP = 0.0
 
-    IPLIKE_GRAD_SOU = 0
-    IF( CAPIL_PRES_OPT /= 0 ) IPLIKE_GRAD_SOU = 1
-    allocate( PLIKE_GRAD_SOU_COEF( IPLIKE_GRAD_SOU * cv_nonods * nphase ))
-    allocate( PLIKE_GRAD_SOU_GRAD( IPLIKE_GRAD_SOU * cv_nonods * nphase ))
+    allocate( PLIKE_GRAD_SOU_GRAD( cv_nonods * nphase ))
 
     ! Determine scvngi_theta:
     igot_t2 = 0
@@ -359,15 +341,11 @@ contains
           ! Calculate absorption for momentum eqns    
           CALL calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
                CV_NDGLN, MAT_NDGLN, &
-               NUABS_COEFS, UABS_COEFS, UABS_OPTION, U_ABSORB, VOLFRA_PORE, PERM, MOBILITY, VISCOSITY, &
-               X, X_NLOC, X_NONODS, X_NDGLN, &
+               U_ABSORB, PERM, MOBILITY, &
                OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS )
 
-          IF( CAPIL_PRES_OPT /= 0 ) THEN 
-             ! CAPIL_PRES_OPT, NCAPIL_PRES_COEF, CAPIL_PRES_COEF need to be sent down into this sub. 
-             CALL CALC_CAPIL_PRES( CAPIL_PRES_OPT, CV_NONODS, NPHASE, NCAPIL_PRES_COEF, &
-                  CAPIL_PRES_COEF, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD, SATURA )
-
+          IF( have_option("/material_phase[0]/multiphase_properties/capillary_pressure") ) THEN
+             CALL calculate_capillary_pressure( state, CV_NONODS, NPHASE, PLIKE_GRAD_SOU_GRAD, SATURA )
           ENDIF
 
           V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP 
