@@ -132,12 +132,12 @@
          &state(1),D_rhs=D_rhs_projected,&
          &compute_cartesian=.true.,check_continuity=.true.,output_dense=.false.)
 
-    dgified_D => extract_scalar_field(state(1), "LayerThicknessP1dg",stat)
+    dgified_D => extract_scalar_field(state(1), "LayerThicknessV",stat)
     if(stat==0) then
        call remap_field(D,dgified_D)
     end if
     dgified_D_rhs => extract_scalar_field(state(1), &
-         &"LayerThicknessRHSP1dg",stat)
+         &"LayerThicknessRHSV",stat)
     if(stat==0) then
        call remap_field(D_rhs,dgified_D_rhs)
     end if

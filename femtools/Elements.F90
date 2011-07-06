@@ -296,6 +296,24 @@ contains
        case default
           FLAbort('Illegal element family.')
        end select
+    case (CONSTRAINT_RT)
+       select case(element%numbering%family)
+       case (FAMILY_SIMPLEX)
+          FLExit('Haven''t implemented RT0 on simplices yet.')
+          if(constraint%degree<3) then
+             constraint%n_constraints = constraint%dim+1
+          else
+             FLAbort('High order not supported yet')
+          end if
+       case (FAMILY_CUBE)
+          if(constraint%degree<3) then
+             constraint%n_constraints = 2**(constraint%dim)
+          else
+             FLAbort('High order not supported yet')
+          end if
+       case default
+          FLAbort('Illegal element family.')
+       end select
     case (CONSTRAINT_NONE)
        constraint%n_constraints = 0
     case default
