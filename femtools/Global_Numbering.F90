@@ -70,13 +70,18 @@ contains
     integer :: d, e, ele, entity
     integer, dimension(:), pointer :: ele_dofs,topo_dofs,facets
     integer, dimension(2) :: edge
+    logical :: have_facets
 
     element=>mesh%shape
     cell=>element%cell    
     topo_element=>mesh%topology%shape
-    
+
+    have_facets=associated(mesh%topology%faces)
+
     call makelists(mesh%topology, NNlist=edge_list)
-    facet_list=mesh%topology%faces%face_list%sparsity
+    if (have_facets) then
+       facet_list=mesh%topology%faces%face_list%sparsity
+    end if
 
     ! Number the topological entities.
     call number_topology
@@ -85,7 +90,7 @@ contains
     do ele=1,element_count(mesh)
        ele_dofs=>ele_nodes(mesh, ele)
        topo_dofs=>ele_nodes(mesh%topology, ele)
-       facets=>row_m_ptr(facet_list,ele)
+       if (have_facets) facets=>row_m_ptr(facet_list,ele)
 #ifdef DDEBUG
        ele_dofs=0
 #endif
@@ -95,7 +100,7 @@ contains
              if (d==0) then
                 entity=topo_dofs(e)
              else if (d==cell%dimension-1) then
-                entity=facets(e)
+                if (have_facets) entity=facets(e)
              else if (d==cell%dimension) then
                 entity=ele
              else if (d==1) then
@@ -120,7 +125,9 @@ contains
 
     assert(mesh%nodes==maxval(mesh%ndglno))
 
-    if (mesh_dim(mesh)>1) call deallocate(facet_numbers)
+    if(have_facets) then
+       if (mesh_dim(mesh)>1) call deallocate(facet_numbers)
+    end if
     if (mesh_dim(mesh)>2) call deallocate(edge_numbers)
     call deallocate(edge_list)    
     
@@ -160,6 +167,8 @@ contains
       integer :: facets, edges,n
       integer, dimension(:), pointer :: neigh
 
+      entity_counts=0
+
       ! No need to number vertices: it comes from the topology.
       entity_counts(0)=node_count(mesh%topology)
 
@@ -168,7 +177,7 @@ contains
       end if
 
       ! Number the facets
-      if (mesh_dim(mesh)>1) then
+      if (mesh_dim(mesh)>1.and.have_facets) then
          call allocate(facet_numbers, facet_list, type=CSR_INTEGER)
          call zero(facet_numbers)
 
