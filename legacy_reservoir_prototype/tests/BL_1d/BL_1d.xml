@@ -23,14 +23,52 @@ mkdir BL_1d_B_output
 mv *.d.* BL_1d_B_output
 
 rm -f BL_1d_B.mpml
+
+cp  BL_1d_A.mpml BL_1d_C.mpml
+sed -i 's/_A/_C/' BL_1d_C.mpml
+
+../../../bin/multiphase_prototype BL_1d_C.mpml 
+
+mkdir BL_1d_C_output
+
+mv *.d.* BL_1d_C_output
+
+rm -f BL_1d_C.mpml
+
     </command_line>
     <!-- One dimensional BL problem for different mesh resolutions checking against an interpolated analytic solution (at 500 points with cubic interpolation) of the first phase saturation -->
   </problem_definition>
   <variables>
-
+    <variable name="error_max_A" language="python">
+from fluidity_tools import stat_parser as stat
+error_max_A = stat("BL_1d_A.stat")["phase1"]["Error"]["max"][-1]
+    </variable>
+    <variable name="error_l2norm_A" language="python">
+from fluidity_tools import stat_parser as stat
+error_l2norm_A = stat("BL_1d_A.stat")["phase1"]["Error"]["l2norm"][-1]
+    </variable>
+    <variable name="error_max_B" language="python">
+from fluidity_tools import stat_parser as stat
+error_max_B = stat("BL_1d_B.stat")["phase1"]["Error"]["max"][-1]
+    </variable>
+    <variable name="error_l2norm_B" language="python">
+from fluidity_tools import stat_parser as stat
+error_l2norm_B = stat("BL_1d_B.stat")["phase1"]["Error"]["l2norm"][-1]
+    </variable>
   </variables>
   <pass_tests>
-  
+    <test name="Assert max absolute error for mesh A is less than 1.0e-01" language="python">
+assert(abs(error_max_A) &lt; 1.0e-01)
+    </test>
+    <test name="Assert l2norm absolute error for mesh A is less than 4.4e-02" language="python">
+assert(abs(error_l2norm_A) &lt; 4.4e-01)
+    </test>
+    <test name="Assert max absolute error for mesh B is less than 9.0e-02" language="python">
+assert(abs(error_max_B) &lt; 9.0e-02)
+    </test>
+    <test name="Assert l2norm absolute error for mesh B is less than 3.2e-02" language="python">
+assert(abs(error_l2norm_B) &lt; 3.2e-02)
+    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

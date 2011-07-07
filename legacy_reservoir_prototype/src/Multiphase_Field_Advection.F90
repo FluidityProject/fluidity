@@ -34,6 +34,10 @@ module multiphase_field_advection
   use printout
   use fldebug
 
+  use fldebug
+  use state_module
+  use spud
+
   implicit none
 
   private 
@@ -91,7 +95,7 @@ contains
     real, intent( in ) :: domain_length
     integer, intent( in ) :: u_ele_type, p_ele_type, cv_ele_type, cv_sele_type, u_sele_type, &
          ntime, ntime_dump, nits, nits_flux_lim_volfra, nits_flux_lim_comp
-    real, intent( in ) :: dt
+    real :: dt
     ! The following need to be changed later in the other subrts as it should be controlled by the 
     ! input files
     real, intent( inout ) :: t_beta, t_theta
@@ -162,7 +166,9 @@ contains
     ALLOCATE( MEAN_PORE_CV(  cv_nonods ))
 
 
-
+    call get_option("/timestepping/current_time", acctim)
+    call get_option("/timestepping/timestep", dt)
+    
     ewrite(3,*) 'In solve_multiphase_field_advection'
 
     Loop_Time: do itime = 1, ntime
@@ -233,7 +239,10 @@ contains
        end do
 
     end do Loop_Time
-
+    
+    call set_option("/timestepping/current_time", ACCTIM)
+    call set_option("/timestepping/timestep", dt)  
+      
     ewrite(3,*) 'Leaving solve_multiphase_field_advection'
 
   end subroutine solve_multiphase_field_advection

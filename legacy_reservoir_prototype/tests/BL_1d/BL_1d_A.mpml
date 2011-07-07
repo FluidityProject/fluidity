@@ -450,23 +450,6 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="AbsoluteDifference" rank="0">
-      <diagnostic field_name_b="InterpolatedAnalyticSaturation" field_name_a="PhaseVolumeFraction">
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="Error" rank="0">
       <diagnostic>
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="InterpolatedAnalyticSaturation" source_field_2_name="PhaseVolumeFraction" material_phase_support="single" source_field_1_type="scalar">

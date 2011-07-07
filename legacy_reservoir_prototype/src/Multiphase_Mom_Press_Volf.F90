@@ -724,6 +724,9 @@ contains
 
     END DO Loop_Time
 
+    call set_option("/timestepping/current_time", ACCTIM)
+    call set_option("/timestepping/timestep", dt)
+
     ewrite(3,*) 'Leaving solve_multiphase_mom_press_volf'
 
 
