@@ -461,7 +461,7 @@ contains
     
   end subroutine deallocate_mesh_faces
 
-  recursive subroutine deallocate_mesh(mesh)
+  subroutine deallocate_mesh(mesh)
     !!< Deallocate the components of mesh. Shape functions are not
     !!< deallocated here.
     type(mesh_type), intent(inout) :: mesh
@@ -473,11 +473,6 @@ contains
     end if
     call deallocate(mesh%shape)
     
-    if (associated(mesh%topology)) then
-       call deallocate(mesh%topology)
-       mesh%topology=>null()
-    end if
-
     if (.not.mesh%wrapped) then
 #ifdef HAVE_MEMORY_STATS
        call register_deallocation("mesh_type", "integer", &
@@ -877,29 +872,44 @@ contains
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
     integer :: i, input_nodes, n_faces
-    type(element_type), pointer :: lshape
+    type(element_type), pointer :: inshape
+    type(element_type) :: lshape
 
     if (present(shape)) then
-       lshape=>shape
+       inshape=>shape
     else
-       lshape=>model%shape
+       inshape=>model%shape
     end if
     
+    if (present(continuity)) then
+       if (continuity<0.and.inshape%type==ELEMENT_LAGRANGIAN) then
+          lshape = make_element_shape(inshape, type=ELEMENT_DISCONTINUOUS_LAGRANGIAN)
+       else
+          lshape=inshape
+          call incref(lshape)
+       end if
+    else
+       lshape=inshape
+       call incref(lshape)
+    end if
+
     call allocate_mesh(mesh, &
          nodes=0, & ! We'll fix this later.
          elements=model%elements, &
          shape=lshape, &
          name=name)
-    
-    if (present(continuity)) then
-       mesh%continuity=continuity
+
+    if (any(lshape%type==(/ELEMENT_TRACE, &
+         ELEMENT_DISCONTINUOUS_LAGRANGIAN/))) then
+       mesh%continuity=-1
     else
-       mesh%continuity=model%continuity
+       mesh%continuity=0
     end if
 
     mesh%topology=>mesh_topology(model)
-    call incref(mesh%topology)
-    
+ 
+    mesh%periodic=model%periodic
+   
     ! You can't have a CG degree 0 mesh!
     if(mesh%shape%degree==0.and.mesh%continuity>=0.and.mesh%shape&
          &%numbering%type/=ELEMENT_TRACE) then
@@ -912,6 +922,8 @@ contains
     end if
 
     call make_global_numbering_new(mesh)
+
+    call deallocate(lshape)
 
 !!$    if (mesh%continuity>=0) then
 !!$       ! Make a continuous field.

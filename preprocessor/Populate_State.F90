@@ -531,7 +531,7 @@ contains
              
        ! Find out if the new mesh is different from the old mesh and if
        ! so, find out how it differs - in the options check
-       ! we've made sure only one of those (or both new_shape and new_cont) are .true.
+       ! we've made sure only one of those are .true.
        ! If there are no differences, do not create new mesh.
        from_shape=have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
 
@@ -558,7 +558,9 @@ contains
          if(stat==0) then
            ! Set comparison variable from_shape_type
            if(trim(shape_type)=="lagrangian") then
-             from_shape_type=ELEMENT_LAGRANGIAN
+              from_shape_type=ELEMENT_LAGRANGIAN
+           else if (trim(shape_type)=="discontinuous_lagrangian") then
+              from_shape_type=ELEMENT_DISCONTINUOUS_LAGRANGIAN
            else if(trim(shape_type)=="bubble") then
              from_shape_type=ELEMENT_BUBBLE
           else if(trim(shape_type)=="trace") then
@@ -580,28 +582,8 @@ contains
          new_degree=.false.; new_shape_type=.false.
        end if
 
-       ! 2. If mesh_continuity is specified, check if it is different to the model mesh.
-       call get_option(trim(mesh_path)//"/from_mesh/mesh_continuity", cont, stat)
-       if(stat==0) then
-         if(trim(cont)=="discontinuous") then
-           from_cont=-1
-         else if(trim(cont)=="continuous") then
-           from_cont=0
-         end if
-         ! 2.1. If continuity is not the same as model mesh, create new mesh.
-         if(from_cont==model_mesh%continuity) then
-           new_cont=.false.
-         else
-           new_cont=.true.
-         end if
-       ! If no continuity is specified, assume it is the same as model mesh,
-       ! and do not create a new mesh.
-       else
-         new_cont=.false.
-       end if
-
-       ! 3. If any of the above are true, make new mesh.
-       make_new_mesh = new_shape_type .or. new_degree .or. new_cont
+       ! 2. If any of the above are true, make new mesh.
+       make_new_mesh = new_shape_type .or. new_degree
 
        extrusion=have_option(trim(mesh_path)//"/from_mesh/extrude")
        periodic=have_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
@@ -805,30 +787,18 @@ contains
   end subroutine insert_derived_mesh
         
   function make_mesh_from_options(from_mesh, mesh_path) result (mesh)
-    ! make new mesh changing shape or continuity of from_mesh
+    ! make new mesh changing shape of from_mesh
     type(mesh_type):: mesh
     type(mesh_type), intent(in):: from_mesh
     character(len=*), intent(in):: mesh_path
     
     character(len=FIELD_NAME_LEN) :: mesh_name
-    character(len=OPTION_PATH_LEN) :: continuity_option, element_option
+    character(len=OPTION_PATH_LEN) :: element_option
     type(quadrature_type):: quad
     type(element_type):: shape
-    integer:: loc, dim, poly_degree, continuity, new_shape_type, quad_degree, stat
+    integer:: loc, dim, poly_degree, new_shape_type, quad_degree, stat
     logical :: new_shape
     
-    ! Get new mesh continuity
-    call get_option(trim(mesh_path)//"/from_mesh/mesh_continuity", continuity_option, stat)
-    if(stat==0) then
-      if(trim(continuity_option)=="discontinuous") then
-         continuity=-1
-      else if(trim(continuity_option)=="continuous") then
-         continuity=0
-      end if
-    else
-      continuity=from_mesh%continuity
-    end if
-
     ! Get new mesh shape information
     new_shape = have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
     if(new_shape) then
@@ -837,11 +807,9 @@ contains
                       element_option, stat)
       if(stat==0) then
         if(trim(element_option)=="lagrangian") then
-           if(continuity==0) then
-              new_shape_type=ELEMENT_LAGRANGIAN
-           else
-              new_shape_type=ELEMENT_DISCONTINUOUS_LAGRANGIAN
-           end if
+           new_shape_type=ELEMENT_LAGRANGIAN
+        else if(trim(element_option)=="discontinuous lagrangian") then
+           new_shape_type=ELEMENT_DISCONTINUOUS_LAGRANGIAN
         else if(trim(element_option)=="bubble") then
            new_shape_type=ELEMENT_BUBBLE
         else if(trim(element_option)=="trace") then
@@ -875,7 +843,7 @@ contains
     call get_option(trim(mesh_path)//"/name", mesh_name)
 
     ! Make new mesh
-    mesh=make_mesh(from_mesh, shape, continuity, mesh_name)
+    mesh=make_mesh(from_mesh, shape, name=mesh_name)
 
     ! Set mesh option path
     mesh%option_path = trim(mesh_path)
@@ -946,7 +914,7 @@ contains
     end do
     
     call add_faces(position_out%mesh, model=position%mesh, periodic_face_map=periodic_face_map)
-    
+
     call deallocate(periodic_face_map)
     
     ! finally fix the name of the produced mesh and its coordinate field
@@ -3670,13 +3638,12 @@ contains
           if (have_option(trim(path)//"/from_mesh/extrude") .and. ( &
              
              have_option(trim(path)//"/from_mesh/mesh_shape") .or. &
-             have_option(trim(path)//"/from_mesh/mesh_continuity") .or. &
              have_option(trim(path)//"/from_mesh/periodic_boundary_conditions") &
              ) ) then
              
              ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
              ewrite(-1,*) "When extruding a mesh, you cannot at the same time"
-             ewrite(-1,*) "change its shape, continuity or add periodic bcs."
+             ewrite(-1,*) "change its shape, or add periodic bcs."
              ewrite(-1,*) "Need to do this in seperate step (derivation)."
              FLExit("Error in /geometry/mesh with extrude option")
              
@@ -3688,13 +3655,12 @@ contains
              if ( &
              
                 have_option(trim(path)//"/from_mesh/mesh_shape") .or. &
-                have_option(trim(path)//"/from_mesh/mesh_continuity") .or. &
                 have_option(trim(path)//"/from_mesh/extrude") &
              ) then
              
                 ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
                 ewrite(-1,*) "When adding or removing periodicity to a mesh, you cannot at the same time"
-                ewrite(-1,*) "change its shape, continuity or extrude a mesh."
+                ewrite(-1,*) "change its shape or extrude a mesh."
                 ewrite(-1,*) "Need to do this in seperate step (derivation)."
                 FLExit("Error in /geometry/mesh with extrude option")
                 
@@ -4047,17 +4013,17 @@ contains
 
 ! Check velocity mesh continuity
   call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh/name",velmesh)
-  call get_option("/geometry/mesh::"//trim(velmesh)//"/from_mesh/mesh_continuity",continuity2)
+  call get_option("/geometry/mesh::"//trim(velmesh)//"/from_mesh/element_type",continuity2)
     
-  if (trim(continuity2).ne."discontinuous") then
+  if (trim(continuity2).ne."discontinuous lagrangian") then
     FLExit("The velocity mesh is not discontinuous")
   end if
 
   ! Check pressure mesh continuity 
   call get_option("/material_phase[0]/scalar_field::Pressure/prognostic/mesh/name",pressuremesh)
-  if (have_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_continuity"))then
-    call get_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_continuity",continuity1)
-    if (trim(continuity1).ne."continuous")then
+  if (have_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/element_type"))then
+    call get_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/element_type",continuity1)
+    if (trim(continuity1).ne."lagrangian")then
       FLExit ("Pressure mesh is not continuous")
     end if
   end if
