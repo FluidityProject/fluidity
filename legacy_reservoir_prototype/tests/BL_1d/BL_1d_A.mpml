@@ -1,14 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">BL_test_10elements_1d</string_value>
+    <string_value lines="1">BL_1d_A</string_value>
   </simulation_name>
   <geometry>
     <dimension>
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="1d_mesh">
+      <from_file file_name="BL_1d_A">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
