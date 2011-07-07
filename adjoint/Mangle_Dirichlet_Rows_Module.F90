@@ -98,7 +98,7 @@ module mangle_dirichlet_rows_module
         character(len=FIELD_NAME_LEN) :: bctype
         integer, dimension(:), pointer :: node_list
 
-        assert(scalar%mesh == bc_field%mesh)
+        assert(node_count(scalar) == node_count(bc_field))
 
         do i=1,get_boundary_condition_count(bc_field)
           call get_boundary_condition(bc_field, i, type=bctype, surface_node_list=node_list)

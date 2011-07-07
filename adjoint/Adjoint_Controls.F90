@@ -30,6 +30,7 @@
 module adjoint_controls
   use fields
   use global_parameters, only : PYTHON_FUNC_LEN, OPTION_PATH_LEN
+  use boundary_conditions
   use spud
   use state_module
   use python_state
@@ -365,7 +366,7 @@ module adjoint_controls
 #ifdef HAVE_ADJOINT
       integer :: nb_controls, i, state_id, s_idx
       logical :: active, file_exists
-      character(len=OPTION_PATH_LEN) :: field_name, field_type, control_name, simulation_name
+      character(len=OPTION_PATH_LEN) :: field_name, field_type, control_name, simulation_name, control_type
 
       ! Do not read anything if we are supposed to write the controls
       if (.not. have_option("/adjoint/controls/load_controls")) then
@@ -378,6 +379,42 @@ module adjoint_controls
       ! Now loop over the controls, read their controls files and fill the associated fields
       do i = 0, nb_controls-1
         call get_control_details(states, timestep, i, control_name, state_id, field_name, field_type, active)
+        call get_option("/adjoint/controls/control[" // int2str(i) // "]/type/name", control_type)
+
+        ! We load all OTHER controls, then apply our strong boundary conditions, then load BC controls
+        if (trim(control_type) == "boundary_condition") cycle
+
+        if (active) then
+          ! Check that the control parameter file extists
+          inquire(file="control_" // trim(simulation_name) // "_" // trim(control_name) // "_" // int2str(timestep) // ".pkl", exist=file_exists)
+          if (.not. file_exists) then
+            ewrite (0, *) "File 'control_" // trim(simulation_name) // "_" // trim(control_name) // &
+                        & "_" // int2str(timestep) // ".pkl' does not exist."
+            FLExit("Error while loading control files. You might want to remove '/adjoint/controls/load_controls'?")
+          end if
+          ! Read the control parameter from disk
+          call python_reset()
+          call python_add_state(states(state_id))
+          call python_run_string("import pickle;" // &
+                              &  "fname = 'control_" // trim(simulation_name) // "_" // trim(control_name) // "_" // int2str(timestep) // ".pkl';" // & 
+                              &  "f = open(fname, 'rb');" // &
+                              &  "field = state." // trim(field_type) // "_fields['" // trim(field_name) // "'];" // &
+                              &  "field.val[:] = pickle.load(f);" // &
+                              &  "f.close();")
+          call python_reset()
+        end if
+      end do
+
+      ! Now apply the BCs, because the BCs should overwrite (say) an initial_condition control
+      call set_dirichlet_consistent(states)
+
+      do i = 0, nb_controls-1
+        call get_control_details(states, timestep, i, control_name, state_id, field_name, field_type, active)
+        call get_option("/adjoint/controls/control[" // int2str(i) // "]/type/name", control_type)
+
+        ! We load all OTHER controls, then apply our strong boundary conditions, then load BC controls
+        if (trim(control_type) /= "boundary_condition") cycle
+
         if (active) then
           ! Check that the control parameter file extists
           inquire(file="control_" // trim(simulation_name) // "_" // trim(control_name) // "_" // int2str(timestep) // ".pkl", exist=file_exists)

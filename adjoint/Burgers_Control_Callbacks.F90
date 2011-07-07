@@ -111,6 +111,7 @@ module burgers_adjoint_controls
               if (trim(field_name) == "Velocity") then
                 adj_sfield => extract_scalar_field(states(state_id), "Adjoint" // trim(field_name))
                 sfield => extract_scalar_field(states(state_id), field_deriv_name) ! Output field
+                positions => extract_vector_field(matrices, "Coordinate")
                 call set(sfield, adj_sfield)
 
                 ! Populate boundary conditions
@@ -124,7 +125,7 @@ module burgers_adjoint_controls
                 call mangle_dirichlet_rows(sfield, dummy_u)
 
                 call deallocate(dummy_u)
-                call deallocate(dummy_state)
+                call deallocate(dummy_state(1))
               else
                 FLAbort("Sorry, I do not know how to compute the intial condition control for " // trim(field_name) // ".")
               end if
