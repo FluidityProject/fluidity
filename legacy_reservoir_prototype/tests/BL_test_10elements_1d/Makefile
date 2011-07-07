@@ -44,3 +44,4 @@ clean:
 	rm -f *.node *.bound *.ele *.face *.stat *.vtu
 	rm -f mirror_new.dat
 	rm -f *.ele *.bound *.face *.node
+	rm -f Cubic_Interp.pyc

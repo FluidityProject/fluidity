@@ -437,11 +437,9 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X, t):
-   import BL_Cubic_Interp
-   solution_file_name = "solution_file"
-   poly_coeff_file_name = "poly_coeff_file"
-   BL = BL_Cubic_Interp.BL_Cubic_Interp(solution_file_name, poly_coeff_file_name)  
-   s = BL.interp(X[0])   
+   import Cubic_Interp
+   CI = Cubic_Interp.Cubic_Interp("analytic_solution_file", "analytic_poly_coeff_file")  
+   s = CI.interp(X[0])   
    return s</string_value>
           </python>
         </value>

@@ -2,9 +2,9 @@
 
 """ 
 
- BL_Cubic_Interp.py
+ Cubic_Interp.py
  
- The BL_Cubic_Interp class will read a solution field,
+ The Cubic_Interp class will read a solution field,
  as well as the hermite cubic interpolation coefficient
  then find the interpolated solution value at specified 
  x coordinate.
@@ -14,17 +14,17 @@
  
  The driver main is used via:
  
- BL_Cubic_Interp.py solution_file_name poly_coeff_file_name interpolation_mesh_file_name interpolation_solution_file_name
+ Cubic_Interp.py solution_file_name poly_coeff_file_name interpolation_mesh_file_name interpolation_solution_file_name
  
 """
 
 import sys
 import os
   
-class BL_Cubic_Interp:
+class Cubic_Interp:
    
    def __init__(self, solution_file_name, poly_coeff_file_name):
-      """ Initialise BL_Cubic_Interp class """
+      """ Initialise Cubic_Interp class """
       
       # open two input files
       self.solution_file = open(solution_file_name,"r")
@@ -170,15 +170,15 @@ if __name__ == "__main__":
             
    except:
     
-     print "Usage: BL_Cubic_Interp.py solution_file_name poly_coeff_file_name interpolation_mesh_file_name interpolation_solution_file_name"
+     print "Usage: Cubic_Interp.py solution_file_name poly_coeff_file_name interpolation_mesh_file_name interpolation_solution_file_name"
      
      sys.exit()
    
-   print "Running BL_Cubic_Interp.py ",solution_file_name, poly_coeff_file_name, interpolation_mesh_file_name, interpolation_solution_file_name
+   print "Running Cubic_Interp.py ",solution_file_name, poly_coeff_file_name, interpolation_mesh_file_name, interpolation_solution_file_name
    print "where poly_coeff_file_name is an output from JGomes Octave program"
    
    # initialise
-   BL = BL_Cubic_Interp(solution_file_name, poly_coeff_file_name)
+   CI = Cubic_Interp(solution_file_name, poly_coeff_file_name)
    
    # initialise the interpolated x coord and solution lists
    x_coord_interp = []
@@ -206,7 +206,7 @@ if __name__ == "__main__":
    # find the interpolated solution for each of the required points
    for x_index in range(len(x_coord_interp)): 
     
-     solution_interp[x_index] = BL.interp(x_coord_interp[x_index])
+     solution_interp[x_index] = CI.interp(x_coord_interp[x_index])
    
    # open the interpolated solution output file name
    interpolation_solution_file = open(interpolation_solution_file_name,"w")
