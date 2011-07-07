@@ -75,8 +75,9 @@ contains
     cell=>element%cell    
     topo_element=>mesh%topology%shape
     
-    call makelists(mesh%topology, EElist=facet_list, NNlist=edge_list)
-    
+    call makelists(mesh%topology, NNlist=edge_list)
+    facet_list=mesh%topology%faces%face_list%sparsity
+
     ! Number the topological entities.
     call number_topology
     call calculate_dofs_per_entity
@@ -101,11 +102,11 @@ contains
                 ! This case only gets hit for the edges of 3d elements.
 
                 ! The edge consists of the global dofs in the topology.
-                edge=topo_dofs(topo_element%entity2dofs(1,e)%dofs)
+                edge=topo_dofs(entity_vertices(cell,[1,e]))
                 ! Now look up the corresponding edge number.
                 entity=val(edge_numbers,edge(1),edge(2))
              end if
-             
+  
              ele_dofs(element%entity2dofs(d,e)%dofs)=&
                   entity_dofs(d,entity, dofs_per)
           end do
@@ -118,10 +119,9 @@ contains
     mesh%nodes=sum(entity_counts*dofs_per)
 
     assert(mesh%nodes==maxval(mesh%ndglno))
-    
+
     if (mesh_dim(mesh)>1) call deallocate(facet_numbers)
     if (mesh_dim(mesh)>2) call deallocate(edge_numbers)
-    call deallocate(facet_list)
     call deallocate(edge_list)    
     
   contains
@@ -136,7 +136,7 @@ contains
 
       dofs=0
       do d=0,dim-1
-         dofs=dofs+dofs_per(d)*entity_counts(dim)
+         dofs=dofs+dofs_per(d)*entity_counts(d)
       end do
       dofs=dofs+(entity-1)*dofs_per(dim)+[(i, i=1,dofs_per(dim))]
       
@@ -169,7 +169,7 @@ contains
 
       ! Number the facets
       if (mesh_dim(mesh)>1) then
-         call allocate(facet_numbers, facet_list)
+         call allocate(facet_numbers, facet_list, type=CSR_INTEGER)
          call zero(facet_numbers)
 
          facets=0
@@ -177,7 +177,11 @@ contains
             neigh=>ele_neigh(mesh%topology,ele1)
             do n=1, size(neigh)
                ele2=neigh(n)
-               if (ele2>ele1) then
+               if (ele2<0) then
+                  ! Exterior facet
+                  facets=facets+1
+                  call set(facet_numbers,ele1,ele2,facets)
+               else if (ele2>ele1) then
                   facets=facets+1
                   call set(facet_numbers,ele1,ele2,facets)
                   call set(facet_numbers,ele2,ele1,facets)
@@ -191,11 +195,14 @@ contains
       ! Number the edges
       if (mesh_dim(mesh)>2) then
          ! If mesh_dim(mesh)==1 then this is subsumed in the facets.
+         call allocate(edge_numbers, edge_list, type=CSR_INTEGER)
+         call zero(edge_numbers)
 
          edges=0
          do node1=1, node_count(mesh%topology)
             neigh=>row_m_ptr(edge_list, node1)
-            do node2=1, size(neigh)
+            do n=1, size(neigh)
+               node2=neigh(n)
                if (node2>node1) then
                   edges=edges+1
                   call set(edge_numbers,node1,node2,edges)
