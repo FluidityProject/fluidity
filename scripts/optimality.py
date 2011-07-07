@@ -452,7 +452,7 @@ def optimisation_loop(opt_options, model_options):
     grad_conv = []
 
     nb_tests = 4
-    perturbation = 2e-6
+    perturbation = 2e-4
     perturbation_vec = numpy.random.rand(len(m_serial))
 
     j_unpert = J(m_serial, m_shape)

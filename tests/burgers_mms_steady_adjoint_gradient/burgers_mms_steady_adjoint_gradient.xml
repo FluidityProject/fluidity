@@ -27,7 +27,7 @@ functional_value_conv = [math.log(functional_errors[i]/functional_errors[i+1], 2
 assert min(functional_value_conv) &gt; 1.9
     </test>
     <test name="gradient_convergence" language="python">
-assert min(functional_value_conv) &gt; 1.8 # more tolerant because it's stochastic
+assert min(gradient_conv) &gt; 1.8 # more tolerant because it's stochastic
     </test>
   </pass_tests>
   <warn_tests>

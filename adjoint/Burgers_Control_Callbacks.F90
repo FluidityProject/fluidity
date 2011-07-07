@@ -112,6 +112,19 @@ module burgers_adjoint_controls
                 adj_sfield => extract_scalar_field(states(state_id), "Adjoint" // trim(field_name))
                 sfield => extract_scalar_field(states(state_id), field_deriv_name) ! Output field
                 call set(sfield, adj_sfield)
+
+                ! Populate boundary conditions
+                call allocate(dummy_u, adj_sfield%mesh, "DummyVelocity")
+                dummy_u%option_path =  "/material_phase::Fluid/scalar_field::AdjointVelocity"
+                call insert(dummy_state(1), positions, "Coordinate")
+                call insert(dummy_state(1), dummy_u, "AdjointVelocity")
+                call populate_boundary_conditions(dummy_state)
+
+                ! Now we need to zero the derivative field everywhere we have Dirichlet conditions
+                call mangle_dirichlet_rows(sfield, dummy_u)
+
+                call deallocate(dummy_u)
+                call deallocate(dummy_state)
               else
                 FLAbort("Sorry, I do not know how to compute the intial condition control for " // trim(field_name) // ".")
               end if
@@ -138,9 +151,9 @@ module burgers_adjoint_controls
                 adj_sfield => extract_scalar_field(states(state_id), "AdjointVelocity")
                 h_mass_mat => extract_csr_matrix(matrices, "MassMatrix")
                 positions => extract_vector_field(matrices, "Coordinate")
-                call allocate(dummy_u, adj_sfield%mesh, "DummyVelocity")
                 
                 ! Populate boundary conditions
+                call allocate(dummy_u, adj_sfield%mesh, "DummyVelocity")
                 dummy_u%option_path =  "/material_phase::Fluid/scalar_field::AdjointVelocity"
                 call insert(dummy_state(1), positions, "Coordinate")
                 call insert(dummy_state(1), dummy_u, "AdjointVelocity")
