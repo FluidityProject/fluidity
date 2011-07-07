@@ -11,4 +11,4 @@ copy_tests:
 	cp op_A.oml op_E.oml; sed -i 's/_A/_E/' op_E.oml
 
 clean:
-	rm -f *.vtu *.stat
+	rm -f *.vtu *.stat *.pkl *tmp.[ob]ml burgers.py
