@@ -198,6 +198,7 @@ J = dt * (int_u + int_u_prev) * 0.5
     <debug>
       <replay_forward_run/>
       <check_action_transposes/>
+      <check_action_derivative/>
     </debug>
   </adjoint>
 </burgers_equation>
