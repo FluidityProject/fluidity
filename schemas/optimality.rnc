@@ -99,6 +99,11 @@ optimisation_options =
                    integer
               }?,
               comment
+            }|
+            ## This optimisation algorithm does nothing. It is only useful if you want to use optimality
+            ## in debugging mode (e.g. to check correctness of gradients produced with an adjoint).
+            element optimisation_algorithm {
+              attribute name { "NULL" }
             }
          ),
          comment

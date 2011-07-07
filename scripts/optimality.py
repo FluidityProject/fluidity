@@ -456,9 +456,7 @@ def optimisation_loop(opt_options, model_options):
     perturbation_vec = numpy.random.rand(len(m_serial))
 
     j_unpert = J(m_serial, m_shape)
-    print "m_serial", m_serial
     djdm_unpert = dJdm(m_serial, m_shape)
-    print "Unperturbed gradient: ", djdm_unpert
 
     for i in range(nb_tests):
       perturbation = perturbation/2
@@ -479,10 +477,11 @@ def optimisation_loop(opt_options, model_options):
       else:
         grad_conv.append(math.log(grad_errors[i]/grad_errors[i+1], 2))
 
-    print "Convergence of Taylor expansion of order 0: ", fd_conv
-    print "Convergence of Taylor expansion of order 1: ", grad_conv
+    print "Convergence of Taylor expansion of order 0 (should be 1.0): ", fd_conv
+    print "Convergence of Taylor expansion of order 1 (should be 2.0): ", grad_conv
 
-    #stat_writer[(functional_name + "_gradient_error", "l2norm")] = grad_err
+    stat_writer[(functional_name + "_gradient_error", "convergence")] = min(grad_conv)
+    stat_writer.write()
 
   # This function gets called after each optimisation iteration. 
   # It is currently used to write statistics and copy model output files into a subdirectory 
@@ -593,9 +592,10 @@ def optimisation_loop(opt_options, model_options):
     check_gradient(m_serial, m_shape)
 
   ############################################################################
-  print '-' * 80
-  print ' Entering %s optimisation algorithm ' % algo
-  print '-' * 80
+  if algo != 'NULL':
+    print '-' * 80
+    print ' Entering %s optimisation algorithm ' % algo
+    print '-' * 80
   ############################################################################
 
   ################################
@@ -653,6 +653,11 @@ def optimisation_loop(opt_options, model_options):
 
     res = scipy.optimize.fmin_l_bfgs_b(**opt_args)
     print res
+  ################################
+  ########### NULL ##############
+  ################################
+  elif algo == 'NULL':
+    exit()
   else:
     print "Unknown optimisation algorithm in option path."
     exit()

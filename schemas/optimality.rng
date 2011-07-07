@@ -122,6 +122,13 @@ Default: -1</a:documentation>
           </optional>
           <ref name="comment"/>
         </element>
+        <element name="optimisation_algorithm">
+          <a:documentation>This optimisation algorithm does nothing. It is only useful if you want to use optimality
+in debugging mode (e.g. to check correctness of gradients produced with an adjoint).</a:documentation>
+          <attribute name="name">
+            <value>NULL</value>
+          </attribute>
+        </element>
       </choice>
       <ref name="comment"/>
     </element>
