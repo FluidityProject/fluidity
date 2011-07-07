@@ -591,9 +591,8 @@ module copy_outof_into_state
 
       if (have_option("/porous_media/scalar_field::Permeability")) then
          permeability => extract_scalar_field(state(1), "Permeability")
-         ! call get_option( "/porous_media/scalar_field::Permeability/prescribed/&
-         !      &value::WholeMesh/constant", permeability )
          allocate(perm(totele, ndim, ndim))
+         perm = 0.
          do i=1,totele
             do j=1,ndim
                do k=1,ndim
@@ -604,7 +603,6 @@ module copy_outof_into_state
       elseif (have_option("/porous_media/tensor_field::Permeability")) then
          FLAbort("Have not coded up tensor permeability yet! Try scalar instead")
       endif
-
       ewrite(3,*) "Got permeability"
 
 !!!
@@ -1105,31 +1103,11 @@ module copy_outof_into_state
                   u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) = &
                        u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) + &
                        delta_den * gravity_magnitude * gravity_direction%val(k,1) * &
-                       domain_length / real( totele )
+                       domain_length / ( 5.5 * real( totele ))
                end do
             end do
          end do
       end if
-
-      !!      else ! Might need to redo this as density isn't the same length as u_source anymore.
-      !!
-      !!         if ( .not. allocated( u_source )) allocate( u_source( u_nonods * nphases ))
-      !!         u_source = 0.
-      !!         if (have_gravity) then
-      !!            do i = 1, nphases - 1, 1
-      !!               delta_den = 0.
-      !!               do j = 2, node_count( density )
-      !!                  delta_den = delta_den + ( den((i)*node_count(density)+j) - &
-      !!                       den((i-1)*node_count(density)+j) ) / &
-      !!                       real( ( node_count( density ) - 1 ) * max( 1, ( nphases - 1 )))
-      !!               end do
-      !!               do j = 1, u_nonods
-      !!                  u_source( ( i - 1 ) * u_nonods + j  ) = &
-      !!                       delta_den * gravity_magnitude * 0.02! * domain_length / real( totele )
-      !!               end do
-      !!            end do
-      !!         end if
-      !!      end if Conditional_VelocitySource
 
       ewrite(3,*) 'Getting PVF Source'
       do i=1,nphases
