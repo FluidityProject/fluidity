@@ -491,7 +491,6 @@
         call set(mangled_mass_matrix, mass_matrix)
         call mangle_dirichlet_rows(mangled_mass_matrix, u, keep_diag=.false.)
         call mult(tmp, mangled_mass_matrix, src)
-        print *, "mangled_mass_matrix in forward run", mangled_mass_matrix%val
         call deallocate(mangled_mass_matrix)
         call addto(rhs, tmp)
       end if
@@ -670,6 +669,8 @@
       type(adj_storage_data) :: storage
       logical :: check_transposes
 
+      if (.not. adjoint) return
+
       check_transposes = have_option("/adjoint/debug/check_action_transposes")
 
       ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
@@ -732,6 +733,8 @@
 
       check_transposes = have_option("/adjoint/debug/check_action_transposes")
       check_derivatives = have_option("/adjoint/debug/check_action_derivative")
+
+      if (.not. adjoint) return
 
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
 

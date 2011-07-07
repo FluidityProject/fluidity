@@ -150,8 +150,7 @@ module burgers_adjoint_controls
                 call allocate(h_mangled_mass_mat, h_mass_mat%sparsity, name="MangledMassMatrix")
                 call set(h_mangled_mass_mat, h_mass_mat)
                 call mangle_dirichlet_rows(h_mangled_mass_mat, dummy_u, keep_diag=.false.)
-                call mult(sfield, h_mangled_mass_mat, adj_sfield)
-                print *, "mangled_mass_matrix in source control", h_mangled_mass_mat%val
+                call mult_T(sfield, h_mangled_mass_mat, adj_sfield)
 
                 ! Deallocate temporary variables
                 call deallocate(dummy_state(1))

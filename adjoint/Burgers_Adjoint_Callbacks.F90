@@ -533,7 +533,6 @@ module burgers_adjoint_callbacks
           call set(mangled_mass_matrix, mass_matrix)
           call mangle_dirichlet_rows(mangled_mass_matrix, dummy_u, keep_diag=.false.)
           call mult(u_output, mangled_mass_matrix, tmp_u_output)
-          print *, "mangled_mass_matrix in replay forward run", mangled_mass_matrix%val
           call deallocate(mangled_mass_matrix)
 
           call deallocate(tmp_u_output)
