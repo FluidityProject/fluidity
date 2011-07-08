@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pa
 import elementtree.ElementTree as etree
 
 class TestHarness:
-    def __init__(self, length="short", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
+    def __init__(self, length="any", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
         valgrind=False):
         self.tests = []
         self.verbose = verbose
@@ -310,7 +310,7 @@ if __name__ == "__main__":
     import optparse
 
     parser = optparse.OptionParser()
-    parser.add_option("-l", "--length", dest="length", help="length of problem (default=short)", default="short")
+    parser.add_option("-l", "--length", dest="length", help="length of problem (default=short)", default="any")
     parser.add_option("-p", "--parallelism", dest="parallel", help="parallelism of problem (default=serial)",
                       default="serial")
     parser.add_option("-e", "--exclude-tags", dest="exclude_tags", help="run only tests that do not have specific tags (takes precidence over -t)", default=[], action="append")
