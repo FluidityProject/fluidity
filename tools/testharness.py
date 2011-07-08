@@ -74,7 +74,7 @@ class TestHarness:
           prob_defn = p.findall("problem_definition")[0]
           prob_length = prob_defn.attrib["length"]
           prob_nprocs = int(prob_defn.attrib["nprocs"])
-          if prob_length == length or length == "any":
+          if prob_length == length or (length == "any" and prob_length != "special"):
             if self.parallel is True:
               if prob_nprocs > 1:
                 working_set.append(xml_file)
