@@ -749,6 +749,8 @@ contains
              forall(i=1:face_ngi(U,face)) norm(1,i)=1.
           else if(face==2) then
              forall(i=1:face_ngi(U,face)) norm(1,i)=-1.
+          else 
+             FLAbort('Funny face?')
           end if
           weight = 1.0
 
@@ -760,6 +762,8 @@ contains
           else if(face==3) then
              forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/1/sqrt(2.),1&
                   &/sqrt(2.)/)
+          else 
+             FLAbort('Funny face?')
           end if
 
           !Integral is taken on one of the edges of the local 2D element
@@ -782,9 +786,12 @@ contains
              forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/ 1.,0./)
           else if(face==3) then
              forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
-          else if(face==2) then
+          else if(face==4) then
              forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,1./)
+          else
+             FLAbort('Funny face?')
           end if
+          weight = 1.0
        else
           FLAbort('Dimension not supported.')
        end if
