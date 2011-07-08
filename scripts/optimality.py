@@ -480,6 +480,7 @@ def optimisation_loop(opt_options, model_options):
     print "Convergence of Taylor expansion of order 0 (should be 1.0): ", fd_conv
     print "Convergence of Taylor expansion of order 1 (should be 2.0): ", grad_conv
 
+    stat_writer[(functional_name, "iteration")] = 0
     stat_writer[(functional_name + "_gradient_error", "convergence")] = min(grad_conv)
     stat_writer.write()
 
@@ -488,6 +489,7 @@ def optimisation_loop(opt_options, model_options):
   def callback(m_serial, m_shape):
     global iteration
     iteration = iteration + 1
+    stat_writer[(functional_name, "iteration")] = iteration
     stat_writer.write()
 
     if superspud(opt_options, "libspud.have_option('/debug/save_model_output')"):
