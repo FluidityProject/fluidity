@@ -81,7 +81,7 @@
     integer :: ierr,dump_no,stat,ele
     character(len = OPTION_PATH_LEN) :: simulation_name
     character(len=PYTHON_FUNC_LEN) :: coriolis
-    real :: L2error,Linfty_error,L2projectederror
+    real :: L2error,Linfty_error,L2projectederror, energy
     logical :: have_rhs
 #ifdef HAVE_MPI
     call mpi_init(ierr)
@@ -134,7 +134,8 @@
        ewrite(1,*) 'ENERGY BEFORE = ', energy
     end if
 
-    if(have_rhs) then       call solve_hybridized_helmholtz(&
+    if(have_rhs) then       
+       call solve_hybridized_helmholtz(&
             &state(1),D_rhs=D_rhs_projected,&
             &compute_cartesian=.true.,&
             &check_continuity=.true.,output_dense=.false.)
@@ -258,6 +259,12 @@ contains
 
     end subroutine read_command_line
 
+    subroutine compute_energy(state,energy)
+      implicit none
+      type(state_type), intent(inout) :: state
+      real, intent(inout) :: energy
+    end subroutine compute_energy
+
     subroutine usage
       implicit none
 
@@ -266,6 +273,4 @@ contains
       write (0,*) "-v n sets the verbosity of debugging"
     end subroutine usage
     
-    subroutine compute_energy(state(1),energy)
-
   end program Hybridized_Helmholtz_Solver

@@ -742,33 +742,53 @@ contains
 
     integer :: i
 
-    if(U%dim==1) then
-       if(face==1) then
-          forall(i=1:face_ngi(U,face)) norm(1,i)=1.
-       else if(face==2) then
-          forall(i=1:face_ngi(U,face)) norm(1,i)=-1.
-       end if
-    else if(U%dim==2) then
-       if(face==1) then
-          forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/-1.,0./)
-       else if(face==2) then
-          forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
-       else if(face==3) then
-          forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/1/sqrt(2.),1&
-               &/sqrt(2.)/)
+    select case(U%mesh%shape%numbering%family)
+    case (FAMILY_SIMPLEX)
+       if(U%dim==1) then
+          if(face==1) then
+             forall(i=1:face_ngi(U,face)) norm(1,i)=1.
+          else if(face==2) then
+             forall(i=1:face_ngi(U,face)) norm(1,i)=-1.
+          end if
+          weight = 1.0
+
+       else if(U%dim==2) then
+          if(face==1) then
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/-1.,0./)
+          else if(face==2) then
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
+          else if(face==3) then
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/1/sqrt(2.),1&
+                  &/sqrt(2.)/)
+          end if
+
+          !Integral is taken on one of the edges of the local 2D element
+          !This edge must be transformed to the local 1D element
+          !to do numerical integration, with the following weight factors
+          if(face==3) then
+             weight = sqrt(2.)
+          else
+             weight = 1.0
+          end if
+
        else
           FLAbort('Dimension not supported.')
        end if
-    end if
-
-    !Integral is taken on one of the edges of the local 2D element
-    !This edge must be transformed to the local 1D element
-    !to do numerical integration, with the following weight factors
-    if(face==3) then
-       weight = sqrt(2.)
-    else
-       weight = 1.0
-    end if
+    case (FAMILY_CUBE)
+       if(U%dim==2) then
+          if(face==1) then
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/-1.,0./)
+          else if(face==2) then
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/ 1.,0./)
+          else if(face==3) then
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
+          else if(face==2) then
+             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,1./)
+          end if
+       else
+          FLAbort('Dimension not supported.')
+       end if
+    end select
 
   end subroutine get_local_normal
 

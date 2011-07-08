@@ -169,7 +169,15 @@ contains
     case (FAMILY_SIMPLEX)
        coords=dim+1
     case (FAMILY_CUBE)
-       coords=dim
+       if(ele_num%type==ELEMENT_TRACE .and. dim==2) then
+          !For trace elements the local coordinate is face number
+          !then the local coordinates on the face
+          !For quads, the face is an interval element which has
+          !two local coordinates.
+          coords=3
+       else
+          coords=dim
+       end if
     case default
        FLAbort('Illegal element family.')
     end select

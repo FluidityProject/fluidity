@@ -303,7 +303,7 @@ contains
        select case (vertices)
        case (3)
           ele_num=>tri_numbering_trace(degree)
-       case (2)
+       case (4)
           ele_num=>quad_numbering_trace(degree)
        case default
           FLAbort('Vertex count not supported for trace elements')
@@ -825,7 +825,7 @@ contains
 
        ! Allocate mappings:
 
-       ele%nodes=(ele%dimension+1)*(ele%degree+1)
+       ele%nodes=(ele%dimension+1)*(ele%degree+1) !faces x floc
        
        ! For trace elements, the first index is the facet number.
        allocate(ele%count2number(1:ele%dimension+1,0:i,0:i))
@@ -896,11 +896,11 @@ contains
 
        ! Allocate mappings:
 
-       ele%nodes=(ele%degree+1)**ele%dimension
+       ele%nodes= 2**ele%dimension * (ele%degree + 1) ! faces x floc
        
        ! For trace elements, the first index is the facet number.
        allocate(ele%count2number(1:2*ele%dimension,0:i,0:i))
-       allocate(ele%number2count(2*ele%dimension,ele%nodes))
+       allocate(ele%number2count(ele%dimension+1,ele%nodes))
        allocate(ele%boundary_coord(ele%boundaries))
        allocate(ele%boundary_val(ele%boundaries))
 
@@ -930,7 +930,7 @@ contains
 
        ! Sanity test
        if (ele%nodes/=cnt) then
-          ewrite(3,*) 'Counting error', i, ele%nodes, cnt
+          ewrite(0,*) 'Counting error', i, ele%nodes, cnt
           stop
        end if
 
@@ -1850,7 +1850,7 @@ contains
          assert(cnt==size(edge_local_num))
          
       case (FAMILY_CUBE)
-
+         l = 0
          !boundary_coord = (0,0,1,1)
          !boundary_val = (0,1,0,1)
          !numbering is
