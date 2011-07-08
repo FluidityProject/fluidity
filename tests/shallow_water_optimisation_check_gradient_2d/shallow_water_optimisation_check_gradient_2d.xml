@@ -8,11 +8,11 @@
   </problem_definition>
   <variables>
     <variable name="functional_gradient_error" language="python">from fluidity_tools import stat_parser as stat
-functional_gradient_error = stat("shallow_water_optimisation_A.stat")['integral_eta_t1_gradient_error']['l2norm'][-1]
+functional_gradient_error = stat("shallow_water_optimisation_A.stat")['integral_eta_t1_gradient_error']['convergence'][-1]
 </variable>
   </variables>
   <pass_tests>
-    <test name="functional_gradient_error" language="python">assert abs(functional_gradient_error) &lt; 5e-7</test>
+    <test name="functional_gradient_error" language="python">assert abs(functional_gradient_error) &gt; 1.8</test>
   </pass_tests>
   <warn_tests/>
 </testproblem>
