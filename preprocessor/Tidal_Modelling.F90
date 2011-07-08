@@ -298,7 +298,9 @@ contains
       ep_amplitude = 0.0
       depthsign = 1.0
 
-      call get_option('/material_phase::Water/equation_of_state/fluids/linear/salinity_dependency/saline_contraction_coefficient', saline_contraction_coefficient)
+      if (have_option('/material_phase::Water/equation_of_state/fluids/linear/salinity_dependency/saline_contraction_coefficient')) then
+        call get_option('/material_phase::Water/equation_of_state/fluids/linear/salinity_dependency/saline_contraction_coefficient', saline_contraction_coefficient)
+      end if
       call get_option('/physical_parameters/gravity/magnitude', gravity_magnitude)
 
       positions => extract_vector_field(state, "Coordinate")
