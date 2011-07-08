@@ -312,7 +312,7 @@ module burgers_adjoint_callbacks
       end if
 
       if (.not. have_option(trim(path) // '/prognostic/temporal_discretisation/remove_time_term')) then
-        call addto(timestepping_mat, mass_mat, scale=1.0/dt)
+        call addto(timestepping_mat, mass_mat, scale=1.0/abs(dt))
       end if
 
       if (.not. have_option(trim(path) // '/prognostic/remove_advection_term')) then

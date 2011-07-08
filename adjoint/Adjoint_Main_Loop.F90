@@ -214,6 +214,7 @@ module adjoint_main_loop
                 select case(lhs%klass)
                   case(ADJ_IDENTITY_MATRIX)
                     call set(sfield_soln, sfield_rhs)
+                    !write(0,*) "Adjoint solution from identity: ", sfield_soln%val
                   case(ADJ_CSR_MATRIX)
                     call matrix_from_adj_matrix(lhs, csr_mat)
                     if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then

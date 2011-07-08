@@ -190,11 +190,11 @@ if time == 1.0:
 J = 0.0
 
 if time == 0.0:
-  coord = states[0]["Fluid"].vector_fields["Coordinate"]
-  u = states[0]["Fluid"].scalar_fields["Velocity"]
+  coord = states[1]["Fluid"].vector_fields["Coordinate"]
+  u = states[1]["Fluid"].scalar_fields["Velocity"]
   
-  #print "u(t=0): ", states[0]["Fluid"].scalar_fields["Velocity"].val
-  #print "u(t=1): ", states[1]["Fluid"].scalar_fields["Velocity"].val
+#  print "u(t=0): ", states[0]["Fluid"].scalar_fields["Velocity"].val
+#  print "u(t=1): ", states[1]["Fluid"].scalar_fields["Velocity"].val
 
   for ele in range(coord.element_count):
     t = Transform(ele, coord)
@@ -215,9 +215,9 @@ if time == 0.0:
       <functional_dependencies>
         <algorithm name="functional_dependencies">
           <string_value lines="20" type="python">def dependencies(times, timestep):
-  if times[0] &lt;= 0.0 &lt; times[1]:
-    return {"Fluid::Coordinate": [0],
-            "Fluid::Velocity": [0]}
+  if times[0] &lt; 1.0 &lt;= times[1]:
+    return {"Fluid::Coordinate": [1],
+            "Fluid::Velocity": [1]}
   else:
     return {}</string_value>
         </algorithm>
@@ -228,9 +228,6 @@ if time == 0.0:
         <type field_name="Fluid::Velocity" name="initial_condition"/>
       </control>
     </controls>
-    <debug>
-      <replay_forward_run/>
-      <check_action_transposes/>
-    </debug>
+    <debug/>
   </adjoint>
 </burgers_equation>
