@@ -155,11 +155,15 @@ module sparse_tools_petsc
   interface mult
      module procedure petsc_csr_mult_vector, petsc_csr_mult_vector_to_scalar
   end interface
-    
+
   interface assemble
      module procedure petsc_csr_assemble
   end interface
-  
+
+  interface petsc_must_assemble_by_column
+     module procedure petsc_must_assemble_by_column_array, &
+          &petsc_must_assemble_by_column_scalar
+  end interface petsc_must_assemble_by_column
 #include "Reference_count_interface_petsc_csr_matrix.F90"
 
   public :: petsc_csr_matrix, petsc_csr_matrix_pointer, &
@@ -594,6 +598,46 @@ contains
     
   end function petsc_csr_size
 
+  function petsc_must_assemble_by_column_array(matrix, i) result(ret)
+    logical :: ret
+    type(petsc_csr_matrix), intent(in) :: matrix
+    integer, dimension(:), intent(in) :: i
+#if PETSC_VERSION_MAJOR >= 3 && (PETSC_VERSION_MINOR >= 1 || (PETSC_VERSION_MINOR == 0 && PETSC_VERSION_SUBMINOR == 0 && PETSC_VERSION_PATCH >= 8))
+    ret = .false.
+#else
+    ! due to a bug in petsc, the option MAT_IGNORE_ZERO_ENTRIES causes
+    ! an entire non-owned row to be dropped if only its first entry is
+    ! zero therefore we have to assemble column by column.  Fixed in
+    ! PETSc 3.0.0-p8 and later.  (see
+    ! http://lists.mcs.anl.gov/pipermail/petsc-users/2009-July/004772.html)
+    if (IsParallel() .and. maxval(i)>matrix%row_numbering%nprivatenodes) then
+       ret = .true.
+    else
+       ret = .false.
+    end if
+#endif
+  end function petsc_must_assemble_by_column_array
+
+  function petsc_must_assemble_by_column_scalar(matrix, i) result(ret)
+    logical :: ret
+    type(petsc_csr_matrix), intent(in) :: matrix
+    integer, intent(in) :: i
+#if PETSC_VERSION_MAJOR >= 3 && (PETSC_VERSION_MINOR >= 1 || (PETSC_VERSION_MINOR == 0 && PETSC_VERSION_SUBMINOR == 0 && PETSC_VERSION_PATCH >= 8))
+    ret = .false.
+#else
+    ! due to a bug in petsc, the option MAT_IGNORE_ZERO_ENTRIES causes
+    ! an entire non-owned row to be dropped if only its first entry is
+    ! zero therefore we have to assemble column by column.  Fixed in
+    ! PETSc 3.0.0-p8 and later.  (see
+    ! http://lists.mcs.anl.gov/pipermail/petsc-users/2009-July/004772.html)
+    if (IsParallel() .and. i>matrix%row_numbering%nprivatenodes) then
+       ret = .true.
+    else
+       ret = .false.
+    end if
+#endif
+  end function petsc_must_assemble_by_column_scalar
+
   pure function petsc_csr_block_size(matrix, dim)
     !!< size of each block
     integer :: petsc_csr_block_size
@@ -717,10 +761,7 @@ contains
     idxm=matrix%row_numbering%gnn2unn(i,blocki)
     idxn=matrix%column_numbering%gnn2unn(j,blockj)
     
-    if (IsParallel() .and. maxval(i)>matrix%row_numbering%nprivatenodes) then
-      ! due to a bug in petsc, the option MAT_IGNORE_ZERO_ENTRIES causes
-      ! an entire non-owned row to be dropped if only its first entry is zero
-      ! therefore we have to assemble column by column
+    if (petsc_must_assemble_by_column(matrix, i)) then
       do k=1, size(j)
         ! luckily columns are contiguous in memory in fortran, so no copy, required
         call MatSetValues(matrix%M, size(i), idxm, 1, idxn(k:k), real(val(:,k), kind=PetscScalar_kind), &
@@ -747,18 +788,11 @@ contains
     PetscInt, dimension(size(matrix%column_numbering%gnn2unn,2)):: idxn
     PetscErrorCode:: ierr
     integer:: blockj
-    logical:: insert_per_column
     
-    ! due to a bug in petsc, the option MAT_IGNORE_ZERO_ENTRIES causes
-    ! an entire non-owned row to be dropped if only its first entry is zero
-    ! therefore we have to assemble column by column, if:
-    insert_per_column=IsParallel() .and. &
-        i>matrix%row_numbering%nprivatenodes
-        
     idxm=matrix%row_numbering%gnn2unn(i,:)
     idxn=matrix%column_numbering%gnn2unn(j,:)
     
-    if (insert_per_column) then
+    if (petsc_must_assemble_by_column(matrix, i)) then
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
         call MatSetValues(matrix%M, size(idxm), idxm, 1, idxn(blockj:blockj), &
                   real(val(:,blockj), kind=PetscScalar_kind), ADD_VALUES, ierr)
@@ -787,12 +821,8 @@ contains
     integer:: blocki, blockj, k
     logical:: insert_per_column
     
-    ! due to a bug in petsc, the option MAT_IGNORE_ZERO_ENTRIES causes
-    ! an entire non-owned row to be dropped if only its first entry is zero
-    ! therefore we have to assemble column by column, if:
-    insert_per_column=IsParallel() .and. &
-        maxval(i)>matrix%row_numbering%nprivatenodes
-    
+    insert_per_column=petsc_must_assemble_by_column(matrix, i)
+
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)
@@ -832,12 +862,8 @@ contains
     integer:: blocki, blockj, k
     logical:: insert_per_column
     
-    ! due to a bug in petsc, the option MAT_IGNORE_ZERO_ENTRIES causes
-    ! an entire non-owned row to be dropped if only its first entry is zero
-    ! therefore we have to assemble column by column, if:
-    insert_per_column=IsParallel() .and. &
-        maxval(i)>matrix%row_numbering%nprivatenodes
-    
+    insert_per_column=petsc_must_assemble_by_column(matrix, i)
+
     do blocki=1, size(matrix%row_numbering%gnn2unn,2)
       idxm=matrix%row_numbering%gnn2unn(i,blocki)
       do blockj=1, size(matrix%column_numbering%gnn2unn,2)

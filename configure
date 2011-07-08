@@ -14592,7 +14592,7 @@ fi
 
 if test "$enable_2d_adaptivity" = "yes"; then
   echo "#define HAVE_MBA_2D 1" >> include/confdefs.h
-  LIBS="$LIBS -lmba2d"
+  LIBS="-lmba2d $LIBS"
   MBA2D="yes"
 
 fi
