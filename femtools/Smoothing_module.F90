@@ -6,6 +6,7 @@ module smoothing_module
   use sparse_tools
   use sparsity_patterns
   use solvers
+  use edge_length_module
   use global_parameters, only : OPTION_PATH_LEN
   implicit none
 
@@ -13,7 +14,7 @@ module smoothing_module
   
   public :: smooth_scalar, smooth_vector
   public :: anisotropic_smooth_scalar, anisotropic_smooth_vector
-  public :: anisotropic_smooth_tensor, length_scale_tensor
+  public :: anisotropic_smooth_tensor, les_lengthscale
 
 contains
 
@@ -383,12 +384,12 @@ contains
 
     ! mesh size tensor = gamma * (mesh size)**2
     ! gamma is a function of mesh shape e.g. hexahedral, unstructured triangular etc.
-    ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
+    ! Helmholtz smoothing factor = alpha**2 * 1/24 * mesh size tensor
     ! Factor of 1/24 comes from Geurts & Holm, 2002
     beta=1.0/24.0
-    mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
+    mesh_tensor_quad = alpha*beta*les_lengthscale(positions, ele)
 
-    ! Local assembly:
+    ! Local assembly: (1+)
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
          dshape_field_in, detwei) + shape_shape(shape_field_in&
          &,shape_field_in, detwei)
@@ -437,7 +438,7 @@ contains
     ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
     ! Factor of 1/24 comes from Geurts & Holm, 2002
     beta=1.0/24.0
-    mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
+    mesh_tensor_quad = alpha*beta*les_lengthscale(positions, ele)
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -461,7 +462,6 @@ contains
     real, intent(in) :: alpha
     integer, intent(in) :: ele
     real :: beta
-
     real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele))          :: field_in_quad
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
@@ -488,7 +488,7 @@ contains
     ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
     ! Factor of 1/24 comes from Geurts & Holm, 2002
     beta=1.0/24.0
-    mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
+    mesh_tensor_quad = alpha*beta*les_lengthscale(positions, ele)
 
     ! Local assembly: (1+alpha^2.M) or (1-alpha^2.M)?
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -504,45 +504,45 @@ contains
 
   end subroutine assemble_anisotropic_smooth_tensor
 
-  function length_scale_tensor(du_t, shape) result(t)
+  function les_lengthscale(positions, ele) result(t)
     !! Computes a length scale tensor to be used in LES (units are in length^2)
-    !! derivative of velocity shape function (nloc x ngi x dim)
-    real, dimension(:,:,:), intent(in):: du_t
-    !! the resulting tensor (dim x dim x ngi)
-    real, dimension(size(du_t,3),size(du_t,3),size(du_t,2)) :: t
+    type(vector_field), intent(in) :: positions
+    !! the lengthscale tensor in local coords (dim x dim x ngi)
+    real, dimension(positions%dim, positions%dim, ele_ngi(positions,ele)) :: t
     !! for a simplex if degree==1 the tensor is the same for all gaussian points
-    type(element_type), intent(in):: shape
-
+    type(element_type) :: shape
     real, dimension(size(t,1), size(t,2)):: M
     real r
     integer gi, loc, i
     integer dim, ngi, nloc, compute_ngi
 
     t=0.0
+    compute_ngi=ele_ngi(positions, ele)
 
-    nloc=size(du_t,1)
-    ngi=size(du_t,2)
-    dim=size(du_t,3)
+    !if (shape%degree<=1 .and. shape%numbering%family==FAMILY_SIMPLEX) then
+    !   compute_ngi=1
+    !else
+    !   compute_ngi=ngi
+    !end if
 
-    if (shape%degree<=1 .and. shape%numbering%family==FAMILY_SIMPLEX) then
-       compute_ngi=1
-    else
-       compute_ngi=ngi
-    end if
+    ! Use adaptivity architecture: get metric (hx**-2, hy**-2, hz**-2)
+    call get_edge_lengths(positions%mesh, positions, ele, t)
 
     do gi=1, compute_ngi
-       do loc=1, nloc
-          M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
-          r=sum( (/ ( M(i,i), i=1, dim) /) )
-          t(:,:,gi)=t(:,:,gi)+M/(r**2)
-       end do
+       ! Invert t to get (hx**2, hy**2, hz**2)
+       t(:,:,gi) = inverse(t(:,:,gi))
+       !do loc=1, nloc
+       !   M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
+       !   r=sum( (/ ( M(i,i), i=1, dim) /) )
+       !   t(:,:,gi)=t(:,:,gi)+M/(r**2)
+       !end do
     end do
 
     ! copy the rest
-    do gi=compute_ngi+1, ngi
-       t(:,:,gi)=t(:,:,1)
-    end do
+    !do gi=compute_ngi+1, ngi
+    !   t(:,:,gi)=t(:,:,1)
+    !end do
 
-  end function length_scale_tensor
+  end function les_lengthscale
 
 end module smoothing_module

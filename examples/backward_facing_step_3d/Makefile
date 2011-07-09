@@ -1,8 +1,8 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=5100
-JOB=dynles-periodic
-PYTHONPATH=PYTHONPATH:/data/JBull/fluidity/turbulence-dev/python/
+JOB=dynles-lilly-sem2-periodic
+
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
 	@$(foreach NN,fine , \
@@ -37,17 +37,17 @@ preprocess-periodic:
 	)
 
 run:
-	@$(foreach NN,coarse2, \
+	@$(foreach NN,coarse2 , \
 		echo Running $(NN) case; \
 		cd $(RE)-$(JOB)-$(NN); \
 		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
-		$(BIN)/fluidity -v3 -l 5100-dynles-periodic-coarse2-2p.flml; \
+		mpiexec -np $(NPROCS) $(BIN)/fluidity -v2 -l $(RE)-$(JOB)-$(NN)-$(NPROCS)p.flml; \
 		cd ..; \
 	)
 
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
-	@$(foreach NN, med, \
+	@$(foreach NN, coarse, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d.py .; \
 		./postprocessor_3d.py $(RE) $(JOB) $(NN); \
@@ -56,7 +56,7 @@ postprocess:
 
 postprocess-les:
 	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach NN, coarse, \
+	@$(foreach NN,coarse, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d_les.py .; \
 		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
@@ -67,10 +67,6 @@ input: clean
 	$(MAKE) preprocess NPROCS=8
 
 clean:
-	@echo **********Cleaning the output from previous fluidity runs:
-	@$(foreach NN,coarse med fine, \
-		cd $(RE)-$(JOB)-$(NN); \
-		rm -rf *; \
-		cd ..; \
-	)
+	@$(foreach NN,coarse, \
+		rm -r $(RE)-$(JOB)-$(NN); \
 

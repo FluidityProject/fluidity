@@ -1960,7 +1960,7 @@
 
          ! WALE model
          if (wale) then
-            les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
+            les_tensor_gi=les_lengthscale(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, nu_ele)
             wale_coef_gi=wale_viscosity_strength(du_t, nu_ele)
             do gi=1, size(les_coef_gi)
@@ -1970,7 +1970,7 @@
             end do
          ! 2nd order Smagorinsky model
          else if(les_second_order) then
-            les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
+            les_tensor_gi=les_lengthscale(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, nu_ele)
             do gi=1, size(les_coef_gi)
                les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
@@ -1986,7 +1986,7 @@
 
          ! 4th order Smagorinsky model
          else if (les_fourth_order) then
-            les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
+            les_tensor_gi=les_lengthscale(du_t, ele_shape(u, ele))
             les_coef_gi=les_viscosity_strength(du_t, nu_ele)
             div_les_viscosity=dshape_dot_tensor_shape(du_t, les_tensor_gi, ele_shape(u, ele), detwei)
             grad_u_nodes=ele_val(grad_u, ele)
@@ -2019,7 +2019,7 @@
             !end do
 
             ! Filter width G1 associated with mesh size (units length^2)
-            mesh_size_gi = length_scale_tensor(du_t, shape_nu)
+            mesh_size_gi = les_lengthscale(du_t, shape_nu)
             ! Leonard tensor L at gi
             leonard_gi =ele_val_at_quad(leonard, ele)
 
@@ -2186,7 +2186,7 @@
       
       if (have_les) then
          ! add in LES viscosity
-         les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
+         les_tensor_gi=les_lengthscale(du_t, ele_shape(u, ele))
          les_coef_gi=les_viscosity_strength(du_t, ele_val(nu, ele))
          do gi=1, size(les_coef_gi)
             les_tensor_gi(:,:,gi)=les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
