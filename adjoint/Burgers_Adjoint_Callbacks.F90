@@ -160,6 +160,7 @@ module burgers_adjoint_callbacks
       end if
       call get_option(trim(path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
       call get_option("/timestepping/timestep", dt)
+      dt = abs(dt)
 
       call c_f_pointer(context, matrices)
       u_mesh => extract_mesh(matrices, "VelocityMesh")
@@ -526,7 +527,7 @@ module burgers_adjoint_callbacks
           dt = end_time - time
 
           call get_option(trim(path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
-          call set_prescribed_field_values(dummy_state, time=time + theta*dt)
+          call set_prescribed_field_values(dummy_state, time=time + theta*abs(dt))
           call deallocate(dummy_state(1))
 
           call allocate(mangled_mass_matrix, mass_matrix%sparsity, name="MangledMassMatrix")
