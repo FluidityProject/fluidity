@@ -201,30 +201,33 @@ module adjoint_controls
         case ("scalar")
           ! Upper bound
           ! Check that the specified field exist in the state
-          if (have_ub .and. .not. has_scalar_field(states(ub_state_id), ub_field_name)) then
+          if (have_ub) then
+            if (.not. has_scalar_field(states(ub_state_id), ub_field_name)) then
               ewrite(0, *) "Can not find the specified field ", trim(ub_field_name), " for the upper bound of control ", trim(control_name)
               FLExit("Check your control's field settings.")
-          end if
-          if (have_ub) then
-            ! Check that the control and the uppower bound use the same mesh
+            end if
+
+            ! Check that the control and the upper bound use the same mesh
             sfield => extract_scalar_field(states(state_id), field_name)
             sfield2 => extract_scalar_field(states(ub_state_id), ub_field_name)
             if (.not. sfield%mesh == sfield2%mesh) then
-              ewrite(0, *) "Error in control ", trim(control_name), " definition. The lower bound and the control's mesh have to be the same."
+              ewrite(0, *) "Error in control ", trim(control_name), " definition. The upper bound and the control's mesh have to be the same."
               FLExit("Check your control's field settings.")
             end if
           end if
+
           ! Lower bound
-          if (have_lb .and. .not. has_scalar_field(states(state_id), lb_field_name)) then
+          if (have_lb) then
+            if (.not. has_scalar_field(states(state_id), lb_field_name)) then
               ewrite(0, *) "Can not find the specified field ", trim(lb_field_name), " for the lower bound of control ", trim(control_name)
               FLExit("Check your control's field settings.")
-          end if
-          if (have_lb) then
-            ! Check that the control and the uppower bound use the same mesh
+            end if
+
+            ! Check that the control and the lower bound use the same mesh
             sfield => extract_scalar_field(states(state_id), field_name)
             sfield2 => extract_scalar_field(states(lb_state_id), lb_field_name)
             if (.not. sfield%mesh == sfield2%mesh) then
-              ewrite(0, *) "Error in control ", trim(control_name), " definition. The upper bound and the control's mesh have to be the same."
+              ewrite(0, *) "Error in control ", trim(control_name), " definition. The lower bound and the control's mesh have to be the same."
               FLExit("Check your control's field settings.")
             end if
           end if
@@ -232,30 +235,33 @@ module adjoint_controls
         case ("vector")
           ! Upper bound
           ! Check that the specified field exist in the state
-          if (have_ub .and. .not. has_vector_field(states(ub_state_id), ub_field_name)) then
+          if (have_ub) then
+            if (.not. has_vector_field(states(ub_state_id), ub_field_name)) then
               ewrite(0, *) "Can not find the specified field ", trim(ub_field_name), " for the upper bound of control ", trim(control_name)
               FLExit("Check your control's field settings.")
-          end if
-          if (have_ub) then
-            ! Check that the control and the uppower bound use the same mesh
+            end if
+
+            ! Check that the control and the upper bound use the same mesh
             vfield => extract_vector_field(states(state_id), field_name)
             vfield2 => extract_vector_field(states(ub_state_id), ub_field_name)
             if (.not. vfield%mesh == vfield2%mesh) then
-              ewrite(0, *) "Error in control ", trim(control_name), " definition. The lower bound and the control's mesh have to be the same."
+              ewrite(0, *) "Error in control ", trim(control_name), " definition. The upper bound and the control's mesh have to be the same."
               FLExit("Check your control's field settings.")
             end if
           end if
+
           ! Lower bound
-          if (have_lb .and. .not. has_vector_field(states(state_id), lb_field_name)) then
+          if (have_lb) then
+            if (.not. has_vector_field(states(state_id), lb_field_name)) then
               ewrite(0, *) "Can not find the specified field ", trim(lb_field_name), " for the lower bound of control ", trim(control_name)
               FLExit("Check your control's field settings.")
-          end if
-          if (have_lb) then
-            ! Check that the control and the uppower bound use the same mesh
+            end if
+
+            ! Check that the control and the lower bound use the same mesh
             vfield => extract_vector_field(states(state_id), field_name)
             vfield2 => extract_vector_field(states(lb_state_id), lb_field_name)
             if (.not. vfield%mesh == vfield2%mesh) then
-              ewrite(0, *) "Error in control ", trim(control_name), " definition. The upper bound and the control's mesh have to be the same."
+              ewrite(0, *) "Error in control ", trim(control_name), " definition. The lower bound and the control's mesh have to be the same."
               FLExit("Check your control's field settings.")
             end if
           end if
@@ -263,12 +269,13 @@ module adjoint_controls
         case ("tensor")
           ! Upper bound
           ! Check that the specified field exist in the state
-          if (have_ub .and. .not. has_tensor_field(states(ub_state_id), ub_field_name)) then
+          if (have_ub) then
+            if (.not. has_tensor_field(states(ub_state_id), ub_field_name)) then
               ewrite(0, *) "Can not find the specified field ", trim(ub_field_name), " for the upper bound of control ", trim(control_name)
               FLExit("Check your control's field settings.")
-          end if
-          if (have_ub) then
-            ! Check that the control and the uppower bound use the same mesh
+            end if
+
+            ! Check that the control and the upper bound use the same mesh
             tfield => extract_tensor_field(states(state_id), field_name)
             tfield2 => extract_tensor_field(states(ub_state_id), ub_field_name)
             if (.not. tfield%mesh == tfield2%mesh) then
@@ -276,17 +283,19 @@ module adjoint_controls
               FLExit("Check your control's field settings.")
             end if
           end if
+
           ! Lower bound
-          if (have_lb .and. .not. has_tensor_field(states(state_id), lb_field_name)) then
+          if (have_lb) then
+            if (.not. has_tensor_field(states(state_id), lb_field_name)) then
               ewrite(0, *) "Can not find the specified field ", trim(lb_field_name), " for the lower bound of control ", trim(control_name)
               FLExit("Check your control's field settings.")
-          end if
-          if (have_lb) then
-            ! Check that the control and the uppower bound use the same mesh
+            end if
+
+            ! Check that the control and the lower bound use the same mesh
             tfield => extract_tensor_field(states(state_id), field_name)
             tfield2 => extract_tensor_field(states(lb_state_id), lb_field_name)
             if (.not. sfield%mesh == sfield2%mesh) then
-              ewrite(0, *) "Error in control ", trim(control_name), " definition. The upper bound and the control's mesh have to be the same."
+              ewrite(0, *) "Error in control ", trim(control_name), " definition. The lower bound and the control's mesh have to be the same."
               FLExit("Check your control's field settings.")
             end if
           end if
