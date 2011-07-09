@@ -63,7 +63,7 @@ ARFLAGS	= r
 
 EVAL = scripts/silenteval
 
-VERSION = $(shell svnversion .)
+VERSION = $(shell bzr revision-info)
 
 ifeq (@MBA2D@,yes)
 LIBMBA2D = lib/libmba2d.a
@@ -143,7 +143,7 @@ ifeq (@FEMDEM@,yes)
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
 
-bin/@FLUIDITY@: main.o fluidity_library
+bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 	@echo "BUILD fluidity"
 	@echo "    MKDIR bin"
 	@mkdir -p bin
@@ -262,8 +262,7 @@ python_clean:
 fluidity_library: lib/lib@FLUIDITY@.a
 lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system 
 	@echo "DEFINE __FLUIDITY_VERSION__"
-	@echo "#undef __FLUIDITY_VERSION__" >> include/confdefs.h
-	@echo "#define __FLUIDITY_VERSION__ \"$(VERSION)\"" >> include/confdefs.h
+	@grep "$(VERSION)" include/confdefs.h >/dev/null 2>&1 || (echo "#undef __FLUIDITY_VERSION__" >> include/confdefs.h && echo "#define __FLUIDITY_VERSION__ \"$(VERSION)\"" >> include/confdefs.h)
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
@@ -309,10 +308,10 @@ endif
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
 	@./scripts/make_check_options
-	@cd preprocessor; $(MAKE) check_options
+	@cd preprocessor; $(MAKE) check_options.o
 	@echo "    MAKE register_diagnostics"
 	@./scripts/make_register_diagnostics
-	@cd preprocessor; $(MAKE) register_diagnostics
+	@cd preprocessor; $(MAKE) register_diagnostics.o
 
 fldecomp: fluidity_library 
 	@echo "BUILD fldecomp"
@@ -334,6 +333,8 @@ all:
 clean-light:
 	@echo "    CLEAN debug"
 	@cd debug; $(MAKE) clean
+	@echo "    CLEAN libwm"
+	@cd libwm; $(MAKE) clean
 	@echo "    CLEAN femtools"
 	@cd femtools; $(MAKE) clean
 	@echo "    CLEAN femtools/tests"
@@ -492,3 +493,59 @@ schema:
 	@echo "Rebuilding schema fluidity_options.rng"
 	@./bin/spud-preprocess schemas/fluidity_options.rnc
 
+.PHONY: makefiles
+
+makefiles: 
+ifneq (@GFORTRAN_4_5_OR_NEWER@,yes)
+	@echo "makefile dependency generation requires gfortran (>=4.5)"
+	@false
+endif
+ifneq (@HAVE_ZOLTAN@,yes)
+	@echo "makefile dependency generation requires zoltan"
+	@false
+endif
+ifneq (@HAVE_ADJOINT@,yes)
+	@echo "makefile dependency generation requires adjoint"
+	@false
+endif
+	@echo "    Generating debug dependencies"
+	@cd debug; 	../scripts/create_makefile.py
+	@echo "    Generating libwm dependencies"
+	@cd libwm; ../scripts/create_makefile.py
+	@echo "    Generating femtools dependencies"
+	@cd femtools;	../scripts/create_makefile.py --exclude \
+	"Refcount_interface_templates.F90 Refcount_templates.F90"
+	@echo "    Generating bathymetry dependencies"
+	@cd bathymetry; ../scripts/create_makefile.py
+	@echo "    Generating ocean_forcing dependencies"
+	@cd ocean_forcing; ../scripts/create_makefile.py
+	@echo "    Generating sediments dependencies"
+	@cd sediments; ../scripts/create_makefile.py
+	@echo "    Generating parameterisation dependencies"
+	@cd parameterisation; ../scripts/create_makefile.py
+	@echo "    Generating forward_interfaces dependencies"
+	@cd forward_interfaces;	../scripts/create_makefile.py
+	@echo "    Generating horizontal_adaptivity dependencies"
+	@cd horizontal_adaptivity;   	../scripts/create_makefile.py
+	@echo "    Generating preprocessor dependencies"
+	@cd preprocessor; ../scripts/create_makefile.py --exclude \
+	"register_diagnostics.F90 check_options.F90"
+	@echo "    Generating error_measures dependencies"
+	@cd error_measures;   	../scripts/create_makefile.py
+	@echo "    Generating decomp dependencies"
+	@cd decomp;   	../scripts/create_makefile.py
+	@echo "    Generating assemble dependencies"
+	@cd assemble;   	../scripts/create_makefile.py
+	@echo "    Generating diagnostics dependencies"
+	@cd diagnostics;   	../scripts/create_makefile.py --exclude \
+	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90"
+	@cd diagnostics;   	$(MAKE) Diagnostic_Fields_Interfaces.o \
+	Diagnostic_Fields_New.o
+	@echo "    Generating radiation dependencies"
+	@cd radiation; ../scripts/create_makefile.py
+	@echo "    Generating reduced_modelling dependencies"
+	@cd reduced_modelling;   	../scripts/create_makefile.py
+	@echo "    Generating adjoint dependencies"
+	@cd adjoint; ../scripts/create_makefile.py
+	@echo "    Generating main dependencies"
+	@cd main; ../scripts/create_makefile.py --exclude test_coupler.F90

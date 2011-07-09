@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -49,13 +49,14 @@ OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.f90,%.o,$(wildcar
 
 .f90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .f.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
@@ -66,22 +67,15 @@ OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.f90,%.o,$(wildcar
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
+
 default: $(LIB)
+
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
 clean:
 	rm -f *.o *.d *.mod
-
-Adjoint_Functional_Evaluation.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o Adjoint_Python_Fortran.o
-Shallow_Water_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o
-Burgers_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o simple_advection_d.o simple_advection_b.o simple_advection.o
-Adjoint_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o Adjoint_Controls.o
-Forward_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o
-Adjoint_Controls.o:
-Shallow_Water_Controls.o:	
 
 # Instructions for doing AD with tapenade
 reverse:
@@ -90,3 +84,9 @@ reverse:
 
 forward:
 	tapenade -d -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90
+
+../include/simple_advection.mod: simple_advection.o
+../include/simple_advection_d.mod: simple_advection_d.o
+../include/simple_advection_b.mod: simple_advection_b.o
+
+include Makefile.dependencies

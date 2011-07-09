@@ -29,7 +29,9 @@
 
 #include "fdebug.h"
 #include "libadjoint/adj_fortran.h"
+#endif
 module libadjoint_data_callbacks
+#ifdef HAVE_ADJOINT
 use libadjoint
 use boundary_conditions
 use fields
@@ -525,7 +527,7 @@ end subroutine
     call c_f_pointer(input%ptr, tmp)
     output = tmp
   end subroutine mesh_type_from_adj_vector
+#endif
 
 end module libadjoint_data_callbacks
 
-#endif
