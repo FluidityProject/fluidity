@@ -11,7 +11,6 @@ CONTAINS
 !   RW status of diff variables: ac:out u:in
   SUBROUTINE ADVECTION_ACTION_D(x, u, ud, c, ac, acd)
     IMPLICIT NONE
-!$openad DEPENDENT(Ac)
     REAL, DIMENSION(:), INTENT(IN) :: x
     REAL, DIMENSION(:), INTENT(IN) :: u
     REAL, DIMENSION(:), INTENT(IN) :: ud
@@ -24,7 +23,6 @@ CONTAINS
     INTEGER :: result1
     INTEGER :: result2
     INTRINSIC SIZE
-!$openad INDEPENDENT(u)
     node_count = SIZE(x)
     result1 = SIZE(c)
     result2 = SIZE(u)
@@ -45,7 +43,6 @@ CONTAINS
   END SUBROUTINE ADVECTION_ACTION_D
   SUBROUTINE ADVECTION_ACTION(x, u, c, ac)
     IMPLICIT NONE
-!$openad DEPENDENT(Ac)
     REAL, DIMENSION(:), INTENT(IN) :: x
     REAL, DIMENSION(:), INTENT(IN) :: u
     REAL, DIMENSION(:), INTENT(IN) :: c
@@ -56,7 +53,6 @@ CONTAINS
     INTEGER :: result1
     INTEGER :: result2
     INTRINSIC SIZE
-!$openad INDEPENDENT(u)
     node_count = SIZE(x)
     result1 = SIZE(c)
     result2 = SIZE(u)
@@ -83,8 +79,8 @@ CONTAINS
     INTEGER, DIMENSION(2), INTENT(IN) :: ele_nodes
     REAL, DIMENSION(:), INTENT(IN) :: x, u, c
     REAL, DIMENSION(:), INTENT(IN) :: ud
-    REAL, DIMENSION(2), INTENT(OUT) :: ac
-    REAL, DIMENSION(2), INTENT(OUT) :: acd
+    REAL, DIMENSION(:), INTENT(INOUT) :: ac
+    REAL, DIMENSION(:), INTENT(INOUT) :: acd
     REAL, DIMENSION(2, 2) :: a
     REAL, DIMENSION(2, 2) :: ad
 ! loc x ngi
@@ -155,7 +151,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: ele
     INTEGER, DIMENSION(2), INTENT(IN) :: ele_nodes
     REAL, DIMENSION(:), INTENT(IN) :: x, u, c
-    REAL, DIMENSION(2), INTENT(OUT) :: ac
+    REAL, DIMENSION(:), INTENT(INOUT) :: ac
     REAL, DIMENSION(2, 2) :: a
 ! loc x ngi
     REAL, DIMENSION(2, 2) :: shape_n

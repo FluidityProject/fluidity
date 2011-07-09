@@ -12,7 +12,6 @@ subroutine advection_action(x, u, c, Ac)
   integer :: ele, ele_count, node_count
   integer, dimension(2) :: ele_nodes
   real, dimension(2) :: ele_tmp
-!$openad INDEPENDENT(u)
   node_count = size(x)
   if (size(c) /= node_count .or. size(u) /= node_count) then
     write(0,*) "Huh? Everything has to be consistent"
@@ -26,14 +25,13 @@ subroutine advection_action(x, u, c, Ac)
     ele_nodes = (/ele, ele+1/)
     call ele_advection_action(ele, ele_nodes, x, u, c, Ac)
   end do
-!$openad DEPENDENT(Ac)
 end subroutine advection_action
 
 subroutine ele_advection_action(ele, ele_nodes, x, u, c, Ac)
   integer, intent(in) :: ele
   integer, dimension(2), intent(in) :: ele_nodes
   real, dimension(:), intent(in) :: x, u, c
-  real, dimension(2), intent(out) :: Ac
+  real, dimension(:), intent(inout) :: Ac
 
   real, dimension(2, 2) :: A
 
