@@ -57,6 +57,7 @@
     use mangle_dirichlet_rows_module
     use burgers_assembly, only: assemble_advection_matrix
     use burgers_adjoint_controls
+    use adjoint_controls
 #ifdef HAVE_ADJOINT
     use burgers_adjoint_callbacks
     use libadjoint
@@ -66,7 +67,6 @@
     use adjoint_global_variables
     use adjoint_main_loop, only: compute_adjoint
     use forward_main_loop, only: register_functional_callbacks, calculate_functional_values, compute_forward
-    use adjoint_controls
 #include "libadjoint/adj_fortran.h"
 #endif
 

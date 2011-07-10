@@ -55,6 +55,7 @@
     use iso_c_binding
     use mangle_options_tree
     use manifold_projections
+    use adjoint_controls
 #ifdef HAVE_ADJOINT
     use libadjoint_data_callbacks
     use shallow_water_adjoint_callbacks
@@ -65,7 +66,6 @@
     use shallow_water_adjoint_controls
     use adjoint_main_loop
     use forward_main_loop
-    use adjoint_controls
 #include "libadjoint/adj_fortran.h"
 #endif
     implicit none
