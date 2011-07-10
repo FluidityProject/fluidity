@@ -37,6 +37,8 @@ USA
 #endif
 #ifdef HAVE_ADJOINT
 #include "libadjoint/libadjoint.h"
+#else
+#define adj_adjointer int
 #endif
 
 void adj_variables_from_python(adj_adjointer* adjointer, char* function, int function_len,
