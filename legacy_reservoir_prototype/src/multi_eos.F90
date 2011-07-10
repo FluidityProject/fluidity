@@ -52,7 +52,10 @@ contains
     real :: den_plus, den_minus, pert_p, p_plus, p_minus, tval, pval
     character(len=OPTION_PATH_LEN) option_path
     real, dimension( 10 ) :: eos_coefs
-    logical :: eos_comp_sg, eos_incomp_linear
+    real :: compressibility_factor, reference_density
+    real, dimension( : ), allocatable, save :: reference_pressure
+    logical, save :: initialised = .false.
+    logical :: eos_comp_sg, eos_comp_exp, eos_incomp_linear
 
     ewrite(3,*) 'In calculate_multiphase_density'
     ewrite(3,*) 'P', P
@@ -77,11 +80,21 @@ contains
     Loop_Phase: do iphase = 1, nphases
       
        eos_comp_sg = .false.
+       eos_comp_exp = .false.
        eos_incomp_linear = .false.
 
-       if ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible/stiffened_gas") ) then ! Compressible
-          option_path = "/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible/stiffened_gas"
-          eos_comp_sg = .true.
+      ! if ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible/stiffened_gas") ) then ! Compressible
+
+       if ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible") ) then ! Compressible
+          option_path = "/material_phase[" // int2str(iphase-1) // "]/equation_of_state/compressible"
+          if ( have_option( trim( option_path ) // '/stiffened_gas' )) then
+             option_path = trim( option_path ) // '/stiffened_gas'
+             eos_comp_sg = .true.
+          elseif ( have_option( trim( option_path ) // '/exponential_oil_gas' )) then
+             option_path = trim( option_path ) // '/exponential_oil_gas'
+             eos_comp_exp = .true.
+          endif
+
        elseif ( have_option("/material_phase[" // int2str(iphase-1) // "]/equation_of_state/incompressible/linear") ) then ! Incompressible
           option_path = "/material_phase[" // int2str(iphase-1) // "]/equation_of_state/incompressible/linear"
           eos_incomp_linear = .true.
@@ -102,6 +115,23 @@ contains
              pert_p =max(toler, pert_p)
              den_plus = ( p(cv_nod) + pert_p + eos_coefs( 1 )) * eos_coefs( 2 ) / t(node)
              den_minus = ( p(cv_nod) - pert_p + eos_coefs( 1 )) * eos_coefs( 2 ) / t(node)
+
+          elseif ( eos_comp_exp ) then ! Compressible
+             ! Only need compressibility factor and reference density
+             call get_option(trim(option_path)//"/compressibility", compressibility_factor)
+             call get_option(trim(option_path)//"/reference_density", reference_density)
+             if ( .not. initialised ) then
+               allocate( reference_pressure( cv_nonods ))
+               reference_pressure = p
+               initialised = .true.
+             end if
+             den( node ) = reference_density * exp( compressibility_factor * &
+                  ( p( node ) - reference_pressure( node )))
+             pert_p = max( toler, 0.001 * abs( p( cv_nod ) ))
+             den_plus = reference_density * exp( compressibility_factor * &
+                  ( ( p( node ) + pert_p )- reference_pressure( node )))
+             den_minus = reference_density * exp( compressibility_factor * &
+                  ( ( p( node ) - pert_p )- reference_pressure( node )))
 
           elseif ( eos_incomp_linear ) then ! Incompressible
              if (have_option(trim(option_path)//"/all_equal")) then

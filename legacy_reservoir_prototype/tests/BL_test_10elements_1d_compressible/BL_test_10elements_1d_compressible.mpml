@@ -62,11 +62,11 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <integer_value rank="0">40</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <max_dump_file_count>
-      <integer_value rank="0">100</integer_value>
+      <integer_value rank="0">640</integer_value>
     </max_dump_file_count>
     <output_mesh name="PressureMesh"/>
     <stat/>
@@ -76,7 +76,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.001</real_value>
+      <real_value rank="0">0.078e-2</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10.0</real_value>
@@ -85,15 +85,23 @@
       <integer_value rank="0">3</integer_value>
     </nonlinear_iterations>
   </timestepping>
+  <physical_parameters>
+    <mobility>
+      <real_value rank="0">6.25</real_value>
+    </mobility>
+  </physical_parameters>
   <material_phase name="phase1">
     <equation_of_state>
-      <incompressible>
-        <linear>
-          <specify_all>
-            <real_value shape="10" rank="1">1.0 0.01 0. 0. 0. 0. 0. 0. 0. 0.</real_value>
-          </specify_all>
-        </linear>
-      </incompressible>
+      <compressible>
+        <exponential_oil_gas>
+          <compressibility>
+            <real_value rank="0">1.e-10</real_value>
+          </compressibility>
+          <reference_density>
+            <real_value rank="0">0.70</real_value>
+          </reference_density>
+        </exponential_oil_gas>
+      </compressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <prognostic>
@@ -111,10 +119,10 @@
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">8000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -163,7 +171,7 @@
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.7</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Inlet">
@@ -172,7 +180,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.0</real_value>
+              <real_value rank="0">0.7</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -227,7 +235,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
@@ -261,7 +269,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1.0</real_value>
+                  <real_value rank="0">0.4</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -427,20 +435,36 @@
       </prescribed>
     </scalar_field>
     <multiphase_properties>
-      <relperm_option>
-        <integer_value rank="0">3</integer_value>
-      </relperm_option>
+      <relperm_type>
+        <Corey>
+          <relperm_max>
+            <real_value rank="0">1.0</real_value>
+            <comment>kr1_max</comment>
+          </relperm_max>
+          <relperm_exponent>
+            <real_value rank="0">2.</real_value>
+            <comment>Kr1_exp</comment>
+          </relperm_exponent>
+        </Corey>
+      </relperm_type>
+      <immobile_fraction>
+        <real_value rank="0">0.1</real_value>
+        <comment>S_gc</comment>
+      </immobile_fraction>
     </multiphase_properties>
   </material_phase>
   <material_phase name="phase2">
     <equation_of_state>
-      <incompressible>
-        <linear>
-          <specify_all>
-            <real_value shape="10" rank="1">1.0 0. 0. 0. 0. 0. 0. 0. 0. 0.</real_value>
-          </specify_all>
-        </linear>
-      </incompressible>
+      <compressible>
+        <exponential_oil_gas>
+          <compressibility>
+            <real_value rank="0">1.e-9</real_value>
+          </compressibility>
+          <reference_density>
+            <real_value rank="0">1.01</real_value>
+          </reference_density>
+        </exponential_oil_gas>
+      </compressible>
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <aliased material_phase_name="phase1" field_name="Pressure"/>
@@ -463,7 +487,7 @@
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">1.</real_value>
+            <real_value rank="0">1.01</real_value>
           </constant>
         </initial_condition>
         <output/>
@@ -516,7 +540,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
@@ -629,7 +653,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0e-10</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">500</integer_value>
@@ -672,9 +696,22 @@
       <aliased material_phase_name="phase1" field_name="Temperature"/>
     </scalar_field>
     <multiphase_properties>
-      <relperm_option>
-        <integer_value rank="0">3</integer_value>
-      </relperm_option>
+      <relperm_type>
+        <Corey>
+          <relperm_max>
+            <real_value rank="0">1.0</real_value>
+            <comment>kr2_max</comment>
+          </relperm_max>
+          <relperm_exponent>
+            <real_value rank="0">2.</real_value>
+            <comment>Kr2_exp</comment>
+          </relperm_exponent>
+        </Corey>
+      </relperm_type>
+      <immobile_fraction>
+        <real_value rank="0">0.3</real_value>
+        <comment>S_or</comment>
+      </immobile_fraction>
     </multiphase_properties>
   </material_phase>
   <porous_media>
