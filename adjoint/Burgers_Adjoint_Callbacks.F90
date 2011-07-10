@@ -153,11 +153,11 @@ module burgers_adjoint_callbacks
         FLAbort("Unknown number of dependencies in burgers_operator_assembly_callback")
       end if
 
-      if (hermitian == ADJ_TRUE) then
+      path = "/material_phase::Fluid/scalar_field::Velocity"
+      if (running_adjoint) then
         path = adjoint_field_path("/material_phase::Fluid/scalar_field::Velocity")
-      else
-        path = "/material_phase::Fluid/scalar_field::Velocity/"
       end if
+
       call get_option(trim(path) // "/prognostic/temporal_discretisation/theta", theta, default=0.5)
       call get_option("/timestepping/timestep", dt)
       dt = abs(dt)

@@ -210,7 +210,6 @@ module adjoint_main_loop
                 select case(lhs%klass)
                   case(ADJ_IDENTITY_MATRIX)
                     call set(sfield_soln, sfield_rhs)
-                    !write(0,*) "Adjoint solution from identity: ", sfield_soln%val
                   case(ADJ_CSR_MATRIX)
                     call matrix_from_adj_matrix(lhs, csr_mat)
                     if (iand(lhs%flags, ADJ_MATRIX_INVERTED) == ADJ_MATRIX_INVERTED) then
@@ -224,9 +223,6 @@ module adjoint_main_loop
 
                       call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
                       call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
-                      !write(0,*) "Adjoint matrix: ", csr_mat%val
-                      !write(0,*) "Adjoint RHS: ", sfield_rhs%val
-                      !write(0,*) "Adjoint solution: ", sfield_soln%val
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
