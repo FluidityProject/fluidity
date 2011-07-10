@@ -255,7 +255,7 @@
 
       !! Multiphase interaction terms, F_i
       subroutine add_fluid_particle_drag(state, istate, u, x, big_m, mom_rhs)
-         !!< This computes the fluid-particle drag force term defined in Wen & Yu (1966).
+         !!< This computes the fluid-particle drag force term.
          !!< Note that this assumes only one fluid phase, and one or more particle phases.
          
          type(state_type), dimension(:), intent(inout) :: state     
@@ -478,7 +478,8 @@
                do gi = 1, ele_ngi(u,ele)
                   if(particle_re(gi) < 1000) then
                      drag_coefficient(gi) = (24.0/particle_re(gi))
-                     !drag_coefficient(gi) = (24.0/particle_re(gi))*(1.0+0.15*particle_re(gi)**0.687)
+                     ! For the Wen & Yu (1966) drag term, this should be:
+                     ! drag_coefficient(gi) = (24.0/particle_re(gi))*(1.0+0.15*particle_re(gi)**0.687)
                   else
                      drag_coefficient(gi) = 0.44
                   end if
@@ -495,7 +496,8 @@
                magnitude = sqrt((nu_fluid_gi(1,:) - nu_particle_gi(1,:))**2 + &
                                 & (nu_fluid_gi(2,:) - nu_particle_gi(2,:))**2)
            
-               !K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient*(vfrac_fluid_gi*density_fluid_gi*magnitude)/(d*vfrac_fluid_gi**2.7)
+               ! For the Wen & Yu (1966) drag term, this should be:
+               ! K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient*(vfrac_fluid_gi*density_fluid_gi*magnitude)/(d*vfrac_fluid_gi**2.7)
                K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient*(vfrac_fluid_gi*density_fluid_gi*magnitude)/(d)
                
                if(is_particle_phase) then
