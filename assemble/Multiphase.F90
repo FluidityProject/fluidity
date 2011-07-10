@@ -24,6 +24,7 @@
 !    License along with this library; if not, write to the Free Software
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
+
 #include "fdebug.h"
 
    module multiphase_module
@@ -36,11 +37,16 @@
       use global_parameters, only: OPTION_PATH_LEN
       use field_priority_lists
       use field_options
+      use fetools
+      use sparse_tools_petsc
+      use profiler
+
       implicit none
 
       private
       public :: get_phase_submaterials, get_nonlinear_volume_fraction, &
-                calculate_diagnostic_phase_volume_fraction
+                calculate_diagnostic_phase_volume_fraction, &
+                add_fluid_particle_drag
 
    contains
 
@@ -245,5 +251,291 @@
          ewrite(1,*) 'Exiting calculate_diagnostic_phase_volume_fraction'
 
       end subroutine calculate_diagnostic_phase_volume_fraction
+      
+
+      !! Multiphase interaction terms, F_i
+      subroutine add_fluid_particle_drag(state, istate, u, x, big_m, mom_rhs)
+         !!< This computes the fluid-particle drag force term defined in Wen & Yu (1966).
+         !!< Note that this assumes only one fluid phase, and one or more particle phases.
+         
+         type(state_type), dimension(:), intent(inout) :: state     
+         integer, intent(in) :: istate
+         type(vector_field), intent(in) :: u, x
+         type(petsc_csr_matrix), intent(inout) :: big_m
+         type(vector_field), intent(inout) :: mom_rhs
+         
+         ! Local variables              
+         integer :: ele
+         type(element_type) :: test_function
+         type(element_type), pointer :: u_shape
+         integer, dimension(:), pointer :: u_ele
+         logical :: dg
+              
+         type(scalar_field), pointer :: vfrac_fluid, vfrac_particle
+         type(scalar_field), pointer :: density_fluid, density_particle
+         type(vector_field), pointer :: velocity_fluid, velocity_particle
+         type(vector_field), pointer :: oldu_fluid, oldu_particle
+         type(vector_field), pointer :: nu_fluid, nu_particle ! Non-linear approximation to the Velocities
+         type(tensor_field), pointer :: viscosity_fluid
+         type(scalar_field) :: nvfrac_fluid, nvfrac_particle
+                 
+         logical :: is_particle_phase
+         real :: d ! Particle diameter
+         
+         real :: dt, theta
+         logical, dimension(u%dim, u%dim) :: block_mask ! Control whether the off diagonal entries are used
+                 
+         integer :: i, stat, dim
+         logical :: not_found ! Error flag. Have we found the fluid phase?
+         integer :: istate_fluid, istate_particle
+         
+         
+         ewrite(1, *) "Entering add_fluid_particle_drag"
+
+         ! Is this phase a particle phase?
+         is_particle_phase = have_option("/material_phase["//int2str(istate-1)//&
+                          &"]/multiphase_properties/particle_diameter")
+              
+         ! Retrieve the index of the fluid phase in the state array.
+         not_found = .true.
+         if(is_particle_phase) then    
+            do i = 1, size(state)
+               if(.not.have_option("/material_phase["//int2str(i-1)//&
+                        &"]/multiphase_properties/particle_diameter")) then
+
+                  velocity_fluid => extract_vector_field(state(i), "Velocity")
+                  ! Aliased material_phases will also not have a particle_diameter,
+                  ! so here we make sure that we don't count these as the fluid phase
+                  if(.not.aliased(velocity_fluid)) then
+                     istate_fluid = i
+                     if(.not.not_found) then
+                        FLExit("Fluid-particle drag does not currently support more than one fluid phase.")
+                     end if
+                     not_found = .false.
+                  end if
+
+               end if
+            end do
+         else
+            istate_fluid = istate
+            not_found = .false.
+         end if
+
+         if(not_found) then
+            FLAbort("No fluid phase found for the fluid-particle drag.")
+         end if
+
+         state_loop: do i = 1, size(state)
+         
+            ! If we have a fluid-particle pair, then compute the drag term                              
+            if( (is_particle_phase .and. i == istate_fluid) .or. (.not.is_particle_phase .and. i /= istate_fluid) ) then
+
+               ! Determine the particle phase index
+               if(is_particle_phase .and. i == istate_fluid) then
+                  istate_particle = istate
+               else
+                  istate_particle = i
+               end if
+
+               ! Get the necessary fields to calculate the drag force
+               velocity_particle => extract_vector_field(state(istate_particle), "Velocity")
+               if(aliased(velocity_particle)) then
+                  cycle ! Don't count the aliased material_phases
+               end if
+               vfrac_fluid => extract_scalar_field(state(istate_fluid), "PhaseVolumeFraction")
+               vfrac_particle => extract_scalar_field(state(istate_particle), "PhaseVolumeFraction")
+               density_fluid => extract_scalar_field(state(istate_fluid), "Density")
+               density_particle => extract_scalar_field(state(istate_particle), "Density")
+               viscosity_fluid => extract_tensor_field(state(istate_fluid), "Viscosity")
+      
+               call get_option("/material_phase["//int2str(istate_particle-1)//&
+                          &"]/multiphase_properties/particle_diameter", d)
+
+               ! Calculate the non-linear approximation to the PhaseVolumeFractions
+               call allocate(nvfrac_fluid, vfrac_fluid%mesh, "NonlinearPhaseVolumeFraction")
+               call allocate(nvfrac_particle, vfrac_particle%mesh, "NonlinearPhaseVolumeFraction")
+               call zero(nvfrac_fluid)
+               call zero(nvfrac_particle)
+               call get_nonlinear_volume_fraction(state(istate_fluid), nvfrac_fluid)
+               call get_nonlinear_volume_fraction(state(istate_particle), nvfrac_particle)
+               
+               ! Get the non-linear approximation to the Velocities
+               nu_fluid => extract_vector_field(state(istate_fluid), "NonlinearVelocity")
+               nu_particle => extract_vector_field(state(istate_particle), "NonlinearVelocity")
+               oldu_fluid => extract_vector_field(state(istate_fluid), "OldVelocity")
+               oldu_particle => extract_vector_field(state(istate_particle), "OldVelocity")
+               
+               ! Get the timestepping options
+               call get_option("/timestepping/timestep", dt)
+               call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/theta", &
+                              theta)
+                                                 
+               ! For the big_m matrix. Controls whether the off diagonal entries are used    
+               block_mask = .false.
+               do dim = 1, u%dim
+                  block_mask(dim, dim) = .true.
+               end do
+
+               dg = continuity(u) < 0
+    
+               ! ----- Volume integrals over elements -------------           
+               call profiler_tic("element_loop")
+               element_loop: do ele = 1, element_count(u)
+
+                  u_ele=>ele_nodes(u, ele)
+                  u_shape => ele_shape(u, ele)
+                  test_function = u_shape                         
+
+                  call add_fluid_particle_drag_element(ele, test_function, u_shape, &
+                                                      x, u, big_m, mom_rhs, &
+                                                      nvfrac_fluid, nvfrac_particle, &
+                                                      density_fluid, density_particle, &
+                                                      nu_fluid, nu_particle, &
+                                                      oldu_fluid, oldu_particle, &
+                                                      viscosity_fluid)
+               end do element_loop
+               call profiler_toc("element_loop")
+
+               call deallocate(nvfrac_fluid)
+               call deallocate(nvfrac_particle)
+
+            end if
+                                   
+         end do state_loop
+         
+         ewrite(1, *) "Exiting add_fluid_particle_drag"
+         
+         contains
+         
+            subroutine add_fluid_particle_drag_element(ele, test_function, u_shape, &
+                                                      x, u, big_m, mom_rhs, &
+                                                      vfrac_fluid, vfrac_particle, &
+                                                      density_fluid, density_particle, &
+                                                      nu_fluid, nu_particle, &
+                                                      oldu_fluid, oldu_particle, &
+                                                      viscosity_fluid)
+                                                         
+               integer, intent(in) :: ele
+               type(element_type), intent(in) :: test_function
+               type(element_type), intent(in) :: u_shape
+               type(vector_field), intent(in) :: u, x
+               type(petsc_csr_matrix), intent(inout) :: big_m
+               type(vector_field), intent(inout) :: mom_rhs
+                    
+               type(scalar_field), intent(in) :: vfrac_fluid, vfrac_particle
+               type(scalar_field), intent(in) :: density_fluid, density_particle
+               type(vector_field), intent(in) :: nu_fluid, nu_particle
+               type(vector_field), intent(in) :: oldu_fluid, oldu_particle
+               type(tensor_field), intent(in) :: viscosity_fluid     
+               
+               ! Local variables
+               real, dimension(ele_ngi(u,ele)) :: vfrac_fluid_gi, vfrac_particle_gi
+               real, dimension(ele_ngi(u,ele)) :: density_fluid_gi, density_particle_gi
+               real, dimension(u%dim, ele_ngi(u,ele)) :: nu_fluid_gi, nu_particle_gi
+               real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: viscosity_fluid_gi
+               
+               real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
+               
+               integer :: loc ! Number of nodes in the current element
+               real, dimension(ele_loc(u, ele), ele_ngi(u, ele), x%dim) :: du_t
+               real, dimension(ele_ngi(u, ele)) :: detwei
+               real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: interaction_rhs_mat, interaction_big_m_mat
+               real, dimension(u%dim, ele_loc(u,ele)) :: rhs_addto
+               real, dimension(u%dim, u%dim, ele_loc(u,ele), ele_loc(u,ele)) :: big_m_tensor_addto
+               
+               real, dimension(ele_ngi(u,ele)) :: particle_re ! Particle Reynolds number
+               real, dimension(ele_ngi(u,ele)) :: drag_coefficient
+               real, dimension(ele_ngi(u,ele)) :: magnitude ! |v_f - v_p|
+               
+               real, dimension(ele_ngi(u,ele)) :: K
+               real, dimension(ele_ngi(u,ele)) :: drag_force_big_m
+               real, dimension(u%dim, ele_ngi(u,ele)) :: drag_force_rhs ! drag_force = K*(v_f - v_p)
+                             
+               integer :: dim, gi
+
+
+               ! Get the number of nodes in the current element
+               loc = ele_loc(u, ele)
+               
+               ! Compute detwei
+               call transform_to_physical(x, ele, u_shape, dshape=du_t, detwei=detwei)
+               
+               ! Get the values of the necessary fields at the Gauss points
+               vfrac_fluid_gi = ele_val_at_quad(vfrac_fluid, ele)
+               vfrac_particle_gi = ele_val_at_quad(vfrac_particle, ele)
+               density_fluid_gi = ele_val_at_quad(density_fluid, ele)
+               density_particle_gi = ele_val_at_quad(density_particle, ele)
+               nu_fluid_gi = ele_val_at_quad(nu_fluid, ele)
+               nu_particle_gi = ele_val_at_quad(nu_particle, ele)
+               viscosity_fluid_gi = ele_val_at_quad(viscosity_fluid, ele)               
+         
+               ! Compute the particle Reynolds number
+               ! (Assumes isotropic viscosity for now)
+               particle_re = (vfrac_fluid_gi*density_fluid_gi*sqrt((nu_fluid_gi(1,:) - nu_particle_gi(1,:))**2 + &
+                                   & (nu_fluid_gi(2,:) - nu_particle_gi(2,:))**2)*d) / viscosity_fluid_gi(1,1,:)
+           
+               ! Compute the drag coefficient
+               do gi = 1, ele_ngi(u,ele)
+                  if(particle_re(gi) < 1000) then
+                     drag_coefficient(gi) = (24.0/particle_re(gi))
+                     !drag_coefficient(gi) = (24.0/particle_re(gi))*(1.0+0.15*particle_re(gi)**0.687)
+                  else
+                     drag_coefficient(gi) = 0.44
+                  end if
+               end do
+               
+                      
+               ! Don't let the drag_coefficient be NaN
+               do gi = 1, ele_ngi(u,ele)
+                  if(particle_re(gi) == 0) then
+                     drag_coefficient(gi) = 1e16
+                  end if
+               end do
+
+               magnitude = sqrt((nu_fluid_gi(1,:) - nu_particle_gi(1,:))**2 + &
+                                & (nu_fluid_gi(2,:) - nu_particle_gi(2,:))**2)
+           
+               !K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient*(vfrac_fluid_gi*density_fluid_gi*magnitude)/(d*vfrac_fluid_gi**2.7)
+               K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient*(vfrac_fluid_gi*density_fluid_gi*magnitude)/(d)
+               
+               if(is_particle_phase) then
+                  drag_force_big_m = -K
+                  do dim = 1, u%dim
+                     drag_force_rhs(dim,:) = -K*(-nu_fluid_gi(dim,:))
+                  end do
+               else
+                  drag_force_big_m = -K
+                  do dim = 1, u%dim
+                     drag_force_rhs(dim,:) = K*(nu_particle_gi(dim,:))
+                  end do
+               end if
+               
+               ! Form the element interaction/drag matrix
+               interaction_big_m_mat = shape_shape(test_function, u_shape, detwei*drag_force_big_m)
+               interaction_rhs_mat = shape_vector_rhs(test_function, drag_force_rhs, detwei)
+              
+               ! Add contribution  
+               big_m_tensor_addto = 0.0            
+               rhs_addto = 0.0
+               if(is_particle_phase) then
+                  oldu_val = ele_val(oldu_particle, ele)
+               else
+                  oldu_val = ele_val(oldu_fluid, ele)
+               end if
+               do dim = 1, u%dim
+                  big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) - dt*theta*interaction_big_m_mat
+                  rhs_addto(dim,:loc) = rhs_addto(dim,:loc) + matmul(interaction_big_m_mat, oldu_val(dim,:loc)) + interaction_rhs_mat(dim,:loc)
+               end do
+               
+               if(.not.dg .or. (dg .and. element_owned(u,ele))) then
+                  ! Add the contribution to mom_rhs
+                  call addto(mom_rhs, u_ele, rhs_addto(:,:loc)) 
+                  ! Add to the big_m matrix
+                  call addto(big_m, u_ele, u_ele, big_m_tensor_addto(:,:,:loc,:loc), block_mask=block_mask)
+               end if
+
+            end subroutine add_fluid_particle_drag_element
+
+      end subroutine add_fluid_particle_drag
 
    end module multiphase_module

@@ -243,7 +243,7 @@
          integer :: d
 
          !! Variables for multi-phase flow model
-         integer :: prognostic_count
+         integer :: i, prognostic_count
          ! Do we have a prognostic pressure field to solve for?
          logical :: prognostic_p = .false.
          ! Prognostic pressure field's state index (if present)
@@ -253,7 +253,9 @@
          ! An array of submaterials of the current phase in state(istate).
          type(state_type), dimension(:), pointer :: submaterials
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
-         integer :: submaterials_istate 
+         integer :: submaterials_istate
+         ! Do we have fluid-particle drag between phases?
+         logical :: have_fp_drag
 
          ewrite(1,*) 'Entering solve_momentum'
 
@@ -566,6 +568,22 @@
                      assemble_ct_matrix=reassemble_ct_m, &
                      cg_pressure=cg_pressure)
             end if
+            
+            ! Add in multiphase interactions (e.g. fluid-particle drag) if necessary
+            ! Note: this is done outside of construct_momentum_cg/dg to keep things
+            ! neater in Momentum_CG/DG.F90, since we would need to pass around multiple phases 
+            ! and their fields otherwise.
+            have_fp_drag = .false.
+            do i = 1, size(state)
+               if(have_option("/material_phase["//int2str(i-1)//&
+                        &"]/multiphase_properties/particle_diameter")) then
+                  have_fp_drag = .true.
+               end if
+            end do
+            if(multiphase .and. have_fp_drag) then
+               call add_fluid_particle_drag(state, istate, u, x, big_m(istate), mom_rhs(istate))
+            end if
+            
             call profiler_toc(u, "assembly")
 
             if(has_scalar_field(state(istate), hp_name)) then
