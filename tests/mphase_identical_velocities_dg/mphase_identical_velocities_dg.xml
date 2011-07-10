@@ -3,14 +3,14 @@
 
 <testproblem>
    
-  <name>mphase_identical_velocities</name>
+  <name>mphase_identical_velocities_dg</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
   <problem_definition length="medium" nprocs="1">
     <command_line>make run</command_line>
     <!-- 2D test case to check that the two velocity fields are identical, and are the same as the single-phase case. -->
-    <!-- This is basically a stripped-down copy of the driven_cavity example (see examples/driven_cavity), -->
+    <!-- This is basically a stripped-down copy of the driven_cavity_2d_dg test case, -->
     <!-- but two prognostic velocity fields are solved for here instead of one. -->
   </problem_definition>
   
@@ -18,7 +18,7 @@
     <variable name="f1_u" language="python">
 import vtktools
 
-ug = vtktools.vtu('mphase_identical_velocities_12.vtu')
+ug = vtktools.vtu('mphase_identical_velocities_dg_10.vtu')
 ug.GetFieldNames()
 f1_u = ug.GetVectorField('Fluid1::Velocity')
     </variable>
@@ -26,7 +26,7 @@ f1_u = ug.GetVectorField('Fluid1::Velocity')
     <variable name="f2_u" language="python">
 import vtktools
 
-ug = vtktools.vtu('mphase_identical_velocities_12.vtu')
+ug = vtktools.vtu('mphase_identical_velocities_dg_10.vtu')
 ug.GetFieldNames()
 f2_u = ug.GetVectorField('Fluid2::Velocity')
     </variable>
