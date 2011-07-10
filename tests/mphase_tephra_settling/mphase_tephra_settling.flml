@@ -237,67 +237,6 @@
             <output/>
           </prescribed>
         </tensor_field>
-        <vector_field name="Source" rank="1">
-          <diagnostic>
-            <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python">## Calculates the fluid-particle drag force interaction term
-from math import sqrt, pi
-
-vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
-vfrac_water = states["Water"].scalar_fields["PhaseVolumeFraction"]
-
-velocity_tephra = states["Tephra"].vector_fields["Velocity"]
-velocity_water = states["Water"].vector_fields["Velocity"]
-
-density_tephra = states["Tephra"].scalar_fields["Density"]
-density_water = states["Water"].scalar_fields["Density"]
-
-viscosity_water = states["Water"].tensor_fields["Viscosity"]
-
-# Particle diameter - experimental value from Carey (1997)
-d = 48e-6
-
-for i in range(field.node_count):
-
-  # Reynolds number
-  Re = (vfrac_water.node_val(i)*density_water.node_val(i)*sqrt((velocity_water.node_val(i)[0] - velocity_tephra.node_val(i)[0])**2 + (velocity_water.node_val(i)[1] - velocity_tephra.node_val(i)[1])**2)*d)/viscosity_water.node_val(0)[0][0]
-  
-  # Drag coefficient
-  if(Re &lt; 1000):
-    C = (24.0/Re)*(1.0+0.15*Re**0.687)
-  else:
-    C = 0.44
-    
-  # Don't let C be NaN
-  if(Re == 0):
-    C = 1e16
-
-  magnitude = sqrt((velocity_water.node_val(i)[0] - velocity_tephra.node_val(i)[0])**2 + (velocity_water.node_val(i)[1] - velocity_tephra.node_val(i)[1])**2)
-  
-  K = vfrac_tephra.node_val(i)*(3.0/4.0)*C*(vfrac_water.node_val(i)*density_water.node_val(i)*magnitude)/(d*vfrac_water.node_val(i)**2.7)
-    
-  Force = K*(velocity_tephra.node_val(i) - velocity_water.node_val(i))
-
-  field.set(i, Force/density_water.node_val(i))</string_value>
-              <depends>
-                <string_value lines="1">Water::Velocity,Tephra::Velocity,Water::PhaseVolumeFraction,Tephra::PhaseVolumeFraction,Water::Density,Tephra::Density</string_value>
-              </depends>
-            </algorithm>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </vector_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -523,69 +462,6 @@ for i in range(field.node_count):
             <output/>
           </prescribed>
         </tensor_field>
-        <vector_field name="Source" rank="1">
-          <diagnostic>
-            <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
-              <string_value lines="20" type="python">## Calculates the fluid-particle drag force interaction term
-from math import sqrt, pi
-
-vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
-vfrac_water = states["Water"].scalar_fields["PhaseVolumeFraction"]
-
-velocity_tephra = states["Tephra"].vector_fields["Velocity"]
-velocity_water = states["Water"].vector_fields["Velocity"]
-
-density_tephra = states["Tephra"].scalar_fields["Density"]
-density_water = states["Water"].scalar_fields["Density"]
-
-viscosity_water = states["Water"].tensor_fields["Viscosity"]
-
-# Particle diameter - experimental value from Carey (1997)
-d = 48e-6
-
-for i in range(field.node_count):
-
-  # Reynolds number
-  Re = (vfrac_water.node_val(i)*density_water.node_val(i)*sqrt((velocity_water.node_val(i)[0] - velocity_tephra.node_val(i)[0])**2 + (velocity_water.node_val(i)[1] - velocity_tephra.node_val(i)[1])**2)*d)/viscosity_water.node_val(0)[0][0]
-  
-  # Drag coefficient
-  if(Re &lt; 1000):
-    C = (24.0/Re)*(1.0+0.15*Re**0.687)
-  else:
-    C = 0.44
-    
-  # Don't let C be NaN
-  if(Re == 0):
-    C = 1e16
-
-  magnitude = sqrt((velocity_water.node_val(i)[0] - velocity_tephra.node_val(i)[0])**2 + (velocity_water.node_val(i)[1] - velocity_tephra.node_val(i)[1])**2)
-  
-  K = vfrac_tephra.node_val(i)*(3.0/4.0)*C*(vfrac_water.node_val(i)*density_water.node_val(i)*magnitude)/(d*vfrac_water.node_val(i)**2.7)
-
-  Force = K*(velocity_tephra.node_val(i) - velocity_water.node_val(i))
-
-  #print "i = %d, Force = %f", (i, Force, velocity_tephra.node_val(i))
-
-  field.set(i, -Force/density_tephra.node_val(i))</string_value>
-              <depends>
-                <string_value lines="1">Water::Velocity,Tephra::Velocity,Water::PhaseVolumeFraction,Tephra::PhaseVolumeFraction,Water::Density,Tephra::Density</string_value>
-              </depends>
-            </algorithm>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
-            <convergence>
-              <include_in_convergence/>
-            </convergence>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-            <steady_state>
-              <include_in_steady_state/>
-            </steady_state>
-          </diagnostic>
-        </vector_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -823,6 +699,11 @@ for i in range(field.node_count):
         </steady_state>
       </diagnostic>
     </vector_field>
+    <multiphase_properties>
+      <particle_diameter>
+        <real_value rank="0">48e-6</real_value>
+      </particle_diameter>
+    </multiphase_properties>
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity>
