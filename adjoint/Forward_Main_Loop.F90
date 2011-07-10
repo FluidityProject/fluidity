@@ -209,6 +209,11 @@ module forward_main_loop
 
               if (has_path) then
                 vfield_soln%option_path = trim(path)
+                ! We need to populate the BC values:
+                call insert(state(1), vfield_soln, trim(vfield_soln%name))
+                call populate_boundary_conditions(state)
+                call set_boundary_conditions_values(state, shift_time=.false.)
+                vfield_soln = extract_vector_field(state(1), trim(vfield_soln%name))
               end if
 
               select case(lhs%klass)
@@ -224,8 +229,12 @@ module forward_main_loop
                       call adj_chkierr(ierr)
                     end if
 
+                    vfield_rhs%bc => vfield_soln%bc
+                    call set_dirichlet_consistent(vfield_rhs)
+                    vfield_rhs%bc => null()
+
                     call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=path)
-                    !call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
+                    call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
                   endif
                 case(ADJ_BLOCK_CSR_MATRIX)
                   call matrix_from_adj_matrix(lhs, block_csr_mat)
@@ -238,15 +247,13 @@ module forward_main_loop
                     end if
 
                     call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs, option_path=path)
-                    !call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
+                    call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
                   endif
                 case default
                   FLAbort("Unknown lhs%klass")
               end select
 
               call insert(state(1), vfield_soln, trim(vfield_soln%name))
-              call populate_boundary_conditions(state)
-              vfield_soln = extract_vector_field(state(1), trim(vfield_soln%name))
 
               soln = field_to_adj_vector(vfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)
