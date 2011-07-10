@@ -21,7 +21,7 @@ mms_eta_passed = convergence_rate.test_convergence_rates(1.88, "wave_[A-E].stat"
     <variable name="functional_convergence" language="python">
 import numpy
 import math
-import constants
+import shallow_water_adjoint_default_controls as constants
 
 from fluidity_tools import stat_parser as stat
 sims = ["_A", "_B", "_C", "_D", "_E"]
@@ -39,7 +39,7 @@ import glob
 import numpy
 from fluidity_tools import stat_parser
 import math
-import constants
+import shallow_water_adjoint_default_controls as constants
 
 files = glob.glob("wave_[A-E]_adjoint_integral_eta_t1.stat")
 dJdh = [sum(stat_parser(file)["Fluid"]["dJdh"]["min"]) for file in sorted(files)]
