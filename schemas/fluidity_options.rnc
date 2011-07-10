@@ -1603,17 +1603,12 @@ start =
                   }
                }?
             }?,
-            ## Parameters required to model multiphase flow in porous media
+            ## Phase interaction options for Fluidity's multiphase flow model
             element multiphase_properties {
-               ## Relative permeability end point relperm_max
-               ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-               ## Value between 0 and 1
-               element relperm_max {real},
-               ## Relative permeability exponent relperm_exponent
-               ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-               element relperm_exponent {real},
-               ## Immobile volume of fluid phase
-               element immobile_fraction {real}?
+               comment,
+               element particle_diameter { 
+                     real 
+               }?
             }?,
             sediment?
          }+,
