@@ -382,17 +382,20 @@
                call profiler_tic("element_loop")
                element_loop: do ele = 1, element_count(u)
 
-                  u_ele=>ele_nodes(u, ele)
-                  u_shape => ele_shape(u, ele)
-                  test_function = u_shape                         
+                  if(.not.dg .or. (dg .and. element_owned(u,ele))) then
+                     u_ele=>ele_nodes(u, ele)
+                     u_shape => ele_shape(u, ele)
+                     test_function = u_shape                         
 
-                  call add_fluid_particle_drag_element(ele, test_function, u_shape, &
-                                                      x, u, big_m, mom_rhs, &
-                                                      nvfrac_fluid, nvfrac_particle, &
-                                                      density_fluid, density_particle, &
-                                                      nu_fluid, nu_particle, &
-                                                      oldu_fluid, oldu_particle, &
-                                                      viscosity_fluid)
+                     call add_fluid_particle_drag_element(ele, test_function, u_shape, &
+                                                         x, u, big_m, mom_rhs, &
+                                                         nvfrac_fluid, nvfrac_particle, &
+                                                         density_fluid, density_particle, &
+                                                         nu_fluid, nu_particle, &
+                                                         oldu_fluid, oldu_particle, &
+                                                         viscosity_fluid)
+                  end if
+
                end do element_loop
                call profiler_toc("element_loop")
 
@@ -530,12 +533,10 @@
                   rhs_addto(dim,:loc) = rhs_addto(dim,:loc) + matmul(interaction_big_m_mat, oldu_val(dim,:loc)) + interaction_rhs_mat(dim,:loc)
                end do
                
-               if(.not.dg .or. (dg .and. element_owned(u,ele))) then
-                  ! Add the contribution to mom_rhs
-                  call addto(mom_rhs, u_ele, rhs_addto(:,:loc)) 
-                  ! Add to the big_m matrix
-                  call addto(big_m, u_ele, u_ele, big_m_tensor_addto(:,:,:loc,:loc), block_mask=block_mask)
-               end if
+               ! Add the contribution to mom_rhs
+               call addto(mom_rhs, u_ele, rhs_addto(:,:loc)) 
+               ! Add to the big_m matrix
+               call addto(big_m, u_ele, u_ele, big_m_tensor_addto(:,:,:loc,:loc), block_mask=block_mask)
 
             end subroutine add_fluid_particle_drag_element
 
