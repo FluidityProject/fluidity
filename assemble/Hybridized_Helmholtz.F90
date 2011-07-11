@@ -52,7 +52,7 @@ module hybridized_helmholtz
 contains
   subroutine solve_hybridized_helmholtz(state,D_rhs,U_Rhs,&
        &compute_cartesian,&
-       &check_continuity,output_dense)
+       &check_continuity,output_dense,dt)
     ! Subroutine to solve hybridized helmholtz equation
     ! If D_rhs (scalar pressure field) is present, then solve:
     ! <w,u> + <w,fu^\perp> - g <div w,d> + <<[w],d>> = <w,U_rhs>
@@ -71,8 +71,9 @@ contains
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(in), optional :: D_rhs
     type(vector_field), intent(inout), optional :: U_rhs
-    logical, intent(in), optional :: compute_cartesian, check_continuity,&
-         & output_dense
+    logical, intent(in), optional :: compute_cartesian, &
+         &check_continuity,output_dense
+    real, intent(in), optional :: dt
     !
     type(vector_field), pointer :: X, U, down, U_cart
     type(scalar_field), pointer :: D,f, lambda, lambda_nc
@@ -81,7 +82,7 @@ contains
     type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
     type(csr_matrix) :: lambda_mat, continuity_block_mat,continuity_block_mat1
     type(block_csr_matrix) :: continuity_mat
-    real :: D0, dt, g, theta
+    real :: D0, l_dt, g, theta
     integer :: ele,i1, stat, dim1
     logical :: l_compute_cartesian,l_check_continuity, l_output_dense
     real, dimension(:,:), allocatable :: lambda_mat_dense
@@ -125,22 +126,23 @@ contains
     !get parameters
     call get_option("/physical_parameters/gravity/magnitude", g)
     !theta
-    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
+    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
+         &pro&
          &gnostic/temporal_discretisation/theta",theta)
     !D0
-    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
+         &p&
          &rognostic/mean_layer_thickness",D0)
-    call get_option("/timestepping/timestep", dt)
-
-    do dim1 = 1,U%dim
-       u_cpt = extract_scalar_field(U,dim1)
-       ewrite(1,*) 'U',maxval(u_cpt%val)
-    end do
+    if(present(dt)) then
+       l_dt = dt
+    else
+       call get_option("/timestepping/timestep", l_dt)
+    end if
 
     !Assemble matrices
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
-            &g,dt,theta,D0,lambda_mat=lambda_mat,&
+            &g,l_dt,theta,D0,lambda_mat=lambda_mat,&
             &lambda_rhs=lambda_rhs,D_rhs=D_rhs,U_rhs=U_rhs,&
             &continuity_mat=continuity_mat)
     end do
@@ -154,7 +156,7 @@ contains
     !Reconstruct U and D from lambda
     do ele = 1, ele_count(D)
        call reconstruct_u_d_ele(D,f,U,X,down,ele, &
-            &g,dt,theta,D0,D_rhs=D_rhs,U_rhs=U_rhs,lambda=lambda)
+            &g,l_dt,theta,D0,D_rhs=D_rhs,U_rhs=U_rhs,lambda=lambda)
     end do
 
     if(l_output_dense) then
@@ -184,16 +186,13 @@ contains
           call mult_T_addto(lambda_rhs,continuity_block_mat,u_cpt)
           ewrite(1,*) 'U',maxval(u_cpt%val)
        end do
-       ewrite(1,*)'JUMPS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs&
-            &%val)
+       ewrite(1,*)'JUMPS MIN:MAX',minval(lambda_rhs%val),&
+            &maxval(lambda_rhs%val)
        assert(maxval(abs(lambda_rhs%val))<1.0e-10)
-       if(.not.l_compute_cartesian) then
-          FLExit('Need to compute cartesian to check continuity')
-       end if
-
-       do ele = 1, ele_count(U)
-          call check_continuity_ele(U_cart,X,ele)
-       end do
+       call project_local_to_cartesian(X,U,U_cart)
+       !do ele = 1, ele_count(U)
+       !   call check_continuity_ele(U_cart,X,ele)
+       !end do
 
     end if
     
@@ -213,7 +212,8 @@ contains
   end subroutine solve_hybridized_helmholtz
  
   subroutine assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
-       g,dt,theta,D0,lambda_mat,lambda_rhs,U_rhs,D_rhs,continuity_mat)
+       g,dt,theta,D0,lambda_mat,lambda_rhs,U_rhs,D_rhs,&
+       continuity_mat)
     !subroutine to assemble hybridized helmholtz equation.
     !For assembly, must provide:
     !   lambda_mat,lambda_rhs
@@ -353,7 +353,7 @@ contains
     rhs_loc=0.
     lambda_rhs_loc = 0.
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
-    if(.not.(present(d_rhs).or.present(u_rhs))) then
+    if(.not.(present(d_rhs).or.present(u_rhs)))then
        rhs_loc(1:d_end) = matmul(local_solver_rhs,rhs_loc(1:d_end))
     end if
     call solve(local_solver,Rhs_loc)
@@ -437,7 +437,7 @@ contains
 
     !Construct the rhs sources for U from lambda
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs)
-    if(.not.(present(d_rhs).or.present(u_rhs))) then
+    if(.not.(present(d_rhs).or.present(u_rhs)))then
        rhs_loc(1:d_end) = matmul(local_solver_rhs,rhs_loc(1:d_end))
     end if
 
@@ -889,6 +889,7 @@ contains
     real, dimension(X%dim, face_ngi(U_cart, face)) :: n1,n2
     real, dimension(X%dim, face_ngi(U_cart, face)) :: u1,u2
     real, dimension(face_ngi(U_cart, face)) :: jump_at_quad
+    integer :: dim1
     !
     u1 = face_val_at_quad(U_cart,face)
     if(ele2>0) then
@@ -905,7 +906,15 @@ contains
     end if
     jump_at_quad = sum(n1*u1+n2*u2,1)
     if(maxval(abs(jump_at_quad))>1.0e-8) then
-       ewrite(1,*) 'Jump at face, face2 =', jump_at_quad
+       ewrite(1,*) 'Jump at quadrature face, face2 =', jump_at_quad
+       ewrite(1,*) 'ELE = ',ele,ele2
+       do dim1 = 1, X%dim
+          ewrite(1,*) 'normal',dim1,n1(dim1,:)
+          ewrite(1,*) 'normal',dim1,n2(dim1,:)
+       end do
+       ewrite(1,*) 'n cpt1',sum(n1*u1,1)
+       ewrite(1,*) 'n cpt2',sum(n2*u2,1)
+       ewrite(1,*) jump_at_quad/max(maxval(abs(u1)),maxval(abs(u2)))
        FLAbort('stopping because of jumps')
     end if
     
@@ -1091,7 +1100,6 @@ contains
                & U_rhs_loc(dim1,:)
        end do
     else
-
        have_d_rhs = present(d_rhs)
        have_u_rhs = present(u_rhs)
        if(have_d_rhs) l_d_rhs => d_rhs

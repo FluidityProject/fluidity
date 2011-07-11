@@ -32,6 +32,7 @@
         <stat>
           <exclude_from_stat/>
         </stat>
+        <comment>It's currently BDM1 not BDFM1</comment>
       </from_mesh>
     </mesh>
     <mesh name="PressureMesh">
@@ -146,7 +147,8 @@
     </gravity>
     <coriolis>
       <string_value lines="20" type="python">def val(X,t):
-  return 1.0313e-4</string_value>
+  return 0.0</string_value>
+      <comment>1.0313e-4</comment>
     </coriolis>
   </physical_parameters>
   <material_phase name="Fluid">
@@ -187,7 +189,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   from math import exp, pi, sqrt
   r0 = 250000.
   D0 = 5.
@@ -201,6 +203,9 @@
     v =  0.05*c*exp((r-r0)/LR)*X[0]/r*X[0]/r
   else:
     [u,v] = [0.,0.]
+  #from random import random
+  #u = u + 1.0e3*(random()-0.5)
+  #v = v + 1.0e3*(random()-0.5)
   return [u,v,0]</string_value>
           </python>
         </initial_condition>
@@ -296,8 +301,8 @@
         <mesh name="TraceMesh"/>
         <spatial_discretisation/>
         <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="eisenstat"/>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
           <relative_error>
             <real_value rank="0">1.0e-10</real_value>
           </relative_error>
@@ -333,6 +338,24 @@
           <exists_in_forward/>
         </adjoint_storage>
       </diagnostic>
+    </scalar_field>
+    <scalar_field name="LayerThicknessRHS" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
     </scalar_field>
   </material_phase>
   <debug>

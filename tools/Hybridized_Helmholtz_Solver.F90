@@ -76,8 +76,8 @@
     type(scalar_field), pointer :: D_rhs, dgified_D, D, &
          dgified_D_rhs, D_exact, D_exact_D_mesh
     type(scalar_field) :: f, D_rhs_projected
-    type(vector_field), pointer :: u,X,U_rhs
-    type(vector_field) :: U_Local
+    type(vector_field), pointer :: u,X
+    type(vector_field) :: U_Local,U_rhs
     integer :: ierr,dump_no,stat,ele
     character(len = OPTION_PATH_LEN) :: simulation_name
     character(len=PYTHON_FUNC_LEN) :: coriolis
@@ -127,6 +127,8 @@
     if(have_rhs) then
        call allocate(D_rhs_projected,D%mesh,'D_rhs')
        call remap_field(D_rhs,D_rhs_projected)
+       call allocate(U_rhs,X%dim,U%mesh,'VelocityRHS')
+       call set(U_rhs,U)
     else
        call compute_energy(state(1),energy)
        ewrite(1,*) 'ENERGY BEFORE = ', energy
@@ -135,17 +137,18 @@
     dump_no = 0
     call write_state(dump_no,state)
 
-    if(have_rhs) then       
+    if(have_rhs) then
        call solve_hybridized_helmholtz(&
-            &state(1),D_rhs=D_rhs_projected,&
+            &state(1),D_rhs=D_rhs_projected,U_rhs=U_rhs,&
             &compute_cartesian=.true.,&
             &check_continuity=.true.,output_dense=.false.)
     else
        !Timestepping mode.
+       ewrite(1,*) 'TTTTIMESTEPPING MODE!'
        call solve_hybridized_helmholtz(&
             &state(1),&
             &compute_cartesian=.true.,&
-            &check_continuity=.true.,output_dense=.false.)
+            &check_continuity=.true.,output_dense=.false.,dt=0.0)
     end if
 
     dgified_D => extract_scalar_field(state(1), "LayerThicknessV",stat)
@@ -160,23 +163,28 @@
 
     if(have_rhs) then
        D_exact => extract_scalar_field(state(1), &
-            &"LayerThicknessExact")
-       D_exact_D_mesh => extract_scalar_field(state(1),&
-            &"LayerThicknessExactProjected")
-       call remap_field(D_exact,D_exact_D_mesh)
-
-       L2error=0.
-       Linfty_error=0.
-       L2projectederror=0.
-       do ele = 1, ele_count(D)
-          call compute_errors(D,D_exact,D_exact_D_mesh,X,ele,&
-               L2error,Linfty_error,L2projectederror)
-       end do
-       l2error = sqrt(l2error)
-       l2projectederror = sqrt(l2projectederror)
-       ewrite(1,*) 'l_infty error', Linfty_error
-       ewrite(1,*) 'l2error', l2error
-       ewrite(1,*) 'l2projectederror', l2projectederror
+            &"LayerThicknessExact",stat)
+       if(stat==0) then
+          D_exact_D_mesh => extract_scalar_field(state(1),&
+               &"LayerThicknessExactProjected")
+          if(stat==0) then
+             call remap_field(D_exact,D_exact_D_mesh)
+          end if
+       end if
+       if(stat==0) then
+          L2error=0.
+          Linfty_error=0.
+          L2projectederror=0.
+          do ele = 1, ele_count(D)
+             call compute_errors(D,D_exact,D_exact_D_mesh,X,ele,&
+                  L2error,Linfty_error,L2projectederror)
+          end do
+          l2error = sqrt(l2error)
+          l2projectederror = sqrt(l2projectederror)
+          ewrite(1,*) 'l_infty error', Linfty_error
+          ewrite(1,*) 'l2error', l2error
+          ewrite(1,*) 'l2projectederror', l2projectederror
+       end if
     else
        call compute_energy(state(1),energy)
        ewrite(1,*) 'ENERGY AFTER = ', energy
@@ -190,6 +198,7 @@
   contains
     subroutine compute_errors(D,D_exact,D_exact_D_mesh,X,ele,&
          L2error,Linfty_error,L2projectederror)
+      implicit none
       type(scalar_field), intent(in) :: D,D_exact,D_exact_D_mesh
       type(vector_field), intent(in) :: X
       integer, intent(in) :: ele
