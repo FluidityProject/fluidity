@@ -937,7 +937,7 @@ Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
    ../include/solvers.mod ../include/sparse_tools.mod \
    ../include/global_parameters.mod ../include/fields.mod \
    ../include/sparsity_patterns.mod ../include/fdebug.h \
-   ../include/state_module.mod ../include/edge_length_module.mod
+   ../include/state_module.mod
 
 ../include/solvers.mod: Solvers.o
 	@true
