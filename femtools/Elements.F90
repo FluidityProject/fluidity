@@ -33,6 +33,9 @@ module elements
   use FLDebug
   use polynomials
   use reference_counting
+#ifdef _OPENMP
+    use omp_lib
+#endif
   implicit none
 
   type element_type
@@ -184,8 +187,11 @@ contains
     element%ngi=ngi
     element%dim=ele_num%dimension
 
+
+    !$OMP CRITICAL
     nullify(element%refcount) ! Hack for gfortran component initialisation
     !                         bug.
+    !$OMP END CRITICAL
     call addref(element)
     
     nullify(element%n_s)
