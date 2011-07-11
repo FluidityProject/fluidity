@@ -544,6 +544,18 @@ start =
                            element bulk_sound_speed_squared {
                               real
                            }?
+                        }|
+                        ## Exponential EOS (SPE 102542)
+                        ##
+                        ## DEN = DEN_REF * EXP( COMPRES_FACTOR * ( P_oil * P_oil_ref ))
+                        ##
+                        element exponential_oil_gas {
+                           element compressibility { 
+                              real 
+                           }?,
+                           element reference_density {
+                              real
+                           }?
                         }  
                      }
                   )

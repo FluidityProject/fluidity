@@ -604,47 +604,65 @@ the hydrostatic level</a:documentation>
                 </element>
                 <element name="compressible">
                   <a:documentation>Equations of state for compressible applications</a:documentation>
-                  <element name="stiffened_gas">
-                    <a:documentation>Stiffened Gas EoS
+                  <choice>
+                    <element name="stiffened_gas">
+                      <a:documentation>Stiffened Gas EoS
 
 Used with compressible simulations
 
 DEN = ( P + EOS_COEFS( 1 )) * EOS_COEFS( 2 ) / T</a:documentation>
-                    <element name="eos_option1">
-                      <ref name="real"/>
-                    </element>
-                    <element name="eos_option2">
-                      <ref name="real"/>
-                    </element>
-                    <optional>
-                      <element name="reference_density">
-                        <a:documentation>reference uncompressed density
+                      <element name="eos_option1">
+                        <ref name="real"/>
+                      </element>
+                      <element name="eos_option2">
+                        <ref name="real"/>
+                      </element>
+                      <optional>
+                        <element name="reference_density">
+                          <a:documentation>reference uncompressed density
 
 if activated then either Liquid EoS or
 full Stiffened Gas EoS</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="ratio_specific_heats">
-                        <a:documentation>Ratio of specific heats at constant
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="ratio_specific_heats">
+                          <a:documentation>Ratio of specific heats at constant
 pressure to that at constant volume
 
 Requires an energy field.
 If activated then a full Stiffened Gas EoS </a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="bulk_sound_speed_squared">
-                        <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="bulk_sound_speed_squared">
+                          <a:documentation>bulk_sound_speed_squared = isothermal_bulk_modulus/reference_density
 
 if activated then either full or partial Liquid EoS or full
 Stiffened Gas EoS</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                  </element>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                    </element>
+                    <element name="exponential_oil_gas">
+                      <a:documentation>Exponential EOS (SPE 102542)
+
+DEN = DEN_REF * EXP( COMPRES_FACTOR * ( P_oil * P_oil_ref ))
+</a:documentation>
+                      <optional>
+                        <element name="compressibility">
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="reference_density">
+                          <ref name="real"/>
+                        </element>
+                      </optional>
+                    </element>
+                  </choice>
                 </element>
               </choice>
             </element>
