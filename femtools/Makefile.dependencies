@@ -529,15 +529,16 @@ Halos_Debug.o ../include/halos_debug.mod: Halos_Debug.F90 \
 	@true
 
 Halos_Derivation.o ../include/halos_derivation.mod: Halos_Derivation.F90 \
-   ../include/halos_communications.mod ../include/mpi_interfaces.mod \
-   ../include/fields_base.mod ../include/halos_base.mod \
-   ../include/parallel_tools.mod ../include/halos_ownership.mod \
-   ../include/halos_allocates.mod ../include/sparse_tools.mod \
-   ../include/linked_lists.mod ../include/fields_manipulation.mod \
-   ../include/fields_allocates.mod ../include/halos_debug.mod \
-   ../include/fields_data_types.mod ../include/halos_numbering.mod \
-   ../include/data_structures.mod ../include/halos_repair.mod \
-   ../include/halo_data_types.mod ../include/fdebug.h ../include/fldebug.mod
+   ../include/halos_base.mod ../include/halos_allocates.mod \
+   ../include/fields_allocates.mod ../include/halos_repair.mod \
+   ../include/halo_data_types.mod ../include/fields_manipulation.mod \
+   ../include/sparse_tools.mod ../include/halos_numbering.mod \
+   ../include/mpi_interfaces.mod ../include/linked_lists.mod \
+   ../include/fields_base.mod ../include/halos_debug.mod \
+   ../include/fields_data_types.mod ../include/data_structures.mod \
+   ../include/fldebug.mod ../include/halos_communications.mod \
+   ../include/halos_ownership.mod ../include/parallel_tools.mod \
+   ../include/fdebug.h
 
 ../include/halos_diagnostics.mod: Halos_Diagnostics.o
 	@true

@@ -18,7 +18,7 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/boundary_conditions.mod ../include/eventcounter.mod \
    ../include/edge_length_module.mod ../include/timeloop_utilities.mod \
    ../include/diagnostic_variables.mod \
-   ../include/discrete_properties_module.mod \
+   ../include/discrete_properties_module.mod ../include/zoltan_integration.mod \
    ../include/adaptive_timestepping.mod ../include/anisotropic_gradation.mod \
    ../include/interpolation_module.mod ../include/sam_integration.mod \
    ../include/interpolation_manager.mod ../include/sparse_tools.mod \
@@ -26,15 +26,15 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/detector_data_types.mod ../include/reserve_state_module.mod \
    ../include/mba2d_integration.mod ../include/mba_adapt_module.mod \
    ../include/boundary_conditions_from_options.mod \
-   ../include/metric_assemble.mod ../include/adapt_integration.mod \
-   ../include/elements.mod ../include/data_structures.mod \
-   ../include/hadapt_metric_based_extrude.mod ../include/mba3d_integration.mod \
-   ../include/state_module.mod ../include/hadapt_extrude.mod \
-   ../include/adaptivity_1d.mod ../include/diagnostic_fields_wrapper.mod \
-   ../include/quadrature.mod ../include/checkpoint.mod ../include/halos.mod \
-   ../include/pickers.mod ../include/field_options.mod \
-   ../include/global_parameters.mod ../include/fields_halos.mod \
-   ../include/parallel_tools.mod \
+   ../include/mpi_interfaces.mod ../include/metric_assemble.mod \
+   ../include/adapt_integration.mod ../include/elements.mod \
+   ../include/data_structures.mod ../include/hadapt_metric_based_extrude.mod \
+   ../include/mba3d_integration.mod ../include/state_module.mod \
+   ../include/hadapt_extrude.mod ../include/adaptivity_1d.mod \
+   ../include/diagnostic_fields_wrapper.mod ../include/quadrature.mod \
+   ../include/checkpoint.mod ../include/halos.mod ../include/pickers.mod \
+   ../include/field_options.mod ../include/global_parameters.mod \
+   ../include/fields_halos.mod ../include/parallel_tools.mod \
    ../include/project_metric_to_surface_module.mod \
    ../include/intersection_finder_module.mod ../include/fdebug.h
 
@@ -826,25 +826,55 @@ Vorticity_Diagnostics.o ../include/vorticity_diagnostics.mod: \
 	@true
 
 Zoltan_callbacks.o ../include/zoltan_callbacks.mod: Zoltan_callbacks.F90 \
-   ../include/fdebug.h
+   ../include/diagnostic_variables.mod ../include/zoltan_global_variables.mod \
+   ../include/zoltan_detectors.mod ../include/halos.mod \
+   ../include/detector_tools.mod ../include/halos_derivation.mod \
+   ../include/sparse_tools.mod ../include/global_parameters.mod \
+   ../include/parallel_tools.mod ../include/data_structures.mod \
+   ../include/mpi_interfaces.mod ../include/state_module.mod \
+   ../include/detector_data_types.mod ../include/fdebug.h \
+   ../include/metric_tools.mod
 
 ../include/zoltan_detectors.mod: Zoltan_detectors.o
 	@true
 
 Zoltan_detectors.o ../include/zoltan_detectors.mod: Zoltan_detectors.F90 \
-   ../include/fdebug.h
+   ../include/zoltan_global_variables.mod ../include/detector_tools.mod \
+   ../include/halos_derivation.mod ../include/fields.mod \
+   ../include/diagnostic_variables.mod ../include/data_structures.mod \
+   ../include/detector_data_types.mod ../include/fdebug.h
 
 ../include/zoltan_global_variables.mod: Zoltan_global_variables.o
 	@true
 
 Zoltan_global_variables.o ../include/zoltan_global_variables.mod: \
-   Zoltan_global_variables.F90
+   Zoltan_global_variables.F90 ../include/halos.mod \
+   ../include/sparse_tools.mod ../include/fields.mod \
+   ../include/data_structures.mod ../include/detector_data_types.mod \
+   ../include/state_module.mod
 
 ../include/zoltan_integration.mod: Zoltan_integration.o
 	@true
 
 Zoltan_integration.o ../include/zoltan_integration.mod: Zoltan_integration.F90 \
-   ../include/fdebug.h
+   ../include/zoltan_global_variables.mod ../include/populate_state_module.mod \
+   ../include/vtk_interfaces.mod ../include/hadapt_advancing_front.mod \
+   ../include/c_interfaces.mod ../include/linked_lists.mod \
+   ../include/halos_derivation.mod \
+   ../include/boundary_conditions_from_options.mod \
+   ../include/halos_ownership.mod ../include/surface_id_interleaving.mod \
+   ../include/sparse_tools.mod ../include/fields.mod \
+   ../include/metric_tools.mod ../include/memory_diagnostics.mod \
+   ../include/detector_data_types.mod ../include/reserve_state_module.mod \
+   ../include/pickers.mod ../include/diagnostic_variables.mod \
+   ../include/zoltan_detectors.mod ../include/zoltan_callbacks.mod \
+   ../include/boundary_conditions.mod ../include/mpi_interfaces.mod \
+   ../include/detector_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/parallel_fields.mod ../include/elements.mod \
+   ../include/data_structures.mod ../include/state_module.mod \
+   ../include/quadrature.mod ../include/halos.mod ../include/field_options.mod \
+   ../include/global_parameters.mod ../include/fields_halos.mod \
+   ../include/parallel_tools.mod ../include/fdebug.h
 
 ../include/qmesh_module.mod: qmesh.o
 	@true
