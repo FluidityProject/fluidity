@@ -285,7 +285,7 @@
          real :: dt, theta
          logical, dimension(u%dim, u%dim) :: block_mask ! Control whether the off diagonal entries are used
                  
-         integer :: i, stat, dim
+         integer :: i, dim
          logical :: not_found ! Error flag. Have we found the fluid phase?
          integer :: istate_fluid, istate_particle
          
@@ -470,10 +470,14 @@
                nu_particle_gi = ele_val_at_quad(nu_particle, ele)
                viscosity_fluid_gi = ele_val_at_quad(viscosity_fluid, ele)               
          
+               ! Compute the magnitude of the relative velocity
+               do gi = 1, ele_ngi(u,ele)
+                  magnitude(gi) = norm2(nu_fluid_gi(:,gi) - nu_particle_gi(:,gi))
+               end do
+
                ! Compute the particle Reynolds number
                ! (Assumes isotropic viscosity for now)
-               particle_re = (vfrac_fluid_gi*density_fluid_gi*sqrt((nu_fluid_gi(1,:) - nu_particle_gi(1,:))**2 + &
-                                   & (nu_fluid_gi(2,:) - nu_particle_gi(2,:))**2)*d) / viscosity_fluid_gi(1,1,:)
+               particle_re = (vfrac_fluid_gi*density_fluid_gi*magnitude*d) / viscosity_fluid_gi(1,1,:)
            
                ! Compute the drag coefficient
                do gi = 1, ele_ngi(u,ele)
@@ -485,7 +489,6 @@
                      drag_coefficient(gi) = 0.44
                   end if
                end do
-               
                       
                ! Don't let the drag_coefficient be NaN
                do gi = 1, ele_ngi(u,ele)
@@ -493,9 +496,6 @@
                      drag_coefficient(gi) = 1e16
                   end if
                end do
-
-               magnitude = sqrt((nu_fluid_gi(1,:) - nu_particle_gi(1,:))**2 + &
-                                & (nu_fluid_gi(2,:) - nu_particle_gi(2,:))**2)
            
                ! For the Wen & Yu (1966) drag term, this should be:
                ! K = vfrac_particle_gi*(3.0/4.0)*drag_coefficient*(vfrac_fluid_gi*density_fluid_gi*magnitude)/(d*vfrac_fluid_gi**2.7)
