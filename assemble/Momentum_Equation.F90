@@ -243,7 +243,7 @@
          integer :: d
 
          !! Variables for multi-phase flow model
-         integer :: i, prognostic_count
+         integer :: prognostic_count
          ! Do we have a prognostic pressure field to solve for?
          logical :: prognostic_p = .false.
          ! Prognostic pressure field's state index (if present)
@@ -573,13 +573,7 @@
             ! Note: this is done outside of construct_momentum_cg/dg to keep things
             ! neater in Momentum_CG/DG.F90, since we would need to pass around multiple phases 
             ! and their fields otherwise.
-            have_fp_drag = .false.
-            do i = 1, size(state)
-               if(have_option("/material_phase["//int2str(i-1)//&
-                        &"]/multiphase_properties/particle_diameter")) then
-                  have_fp_drag = .true.
-               end if
-            end do
+            have_fp_drag = option_count("/material_phase/multiphase_properties/particle_diameter") > 0
             if(multiphase .and. have_fp_drag) then
                call add_fluid_particle_drag(state, istate, u, x, big_m(istate), mom_rhs(istate))
             end if
