@@ -748,7 +748,7 @@ contains
 !    print *, "the current timestep=", timestep
 !    if(timestep .eq. final_timestep) then
 !       print *, "dump bloody dg matrix"
-!!!       call dump_petsc_csr_matrix(big_m)
+!       call dump_petsc_csr_matrix(big_m)
 !    endif
 #endif
 #endif
