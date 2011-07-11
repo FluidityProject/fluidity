@@ -1454,7 +1454,7 @@ module sam_integration
     
     allocate(nsends(nprocs))
     nsends = 0
-    node => default_stat%detector_list%firstnode
+    node => default_stat%detector_list%first
     do while(associated(node))
       if(node%element > 0) then
         owner = minval(node_ownership(ele_nodes(old_mesh, node%element)))
@@ -1475,7 +1475,7 @@ module sam_integration
     
     allocate(data_index(nprocs))
     data_index = 0
-    node => default_stat%detector_list%firstnode
+    node => default_stat%detector_list%first
     do while(associated(node))
       next_node => node%next
     
@@ -1493,7 +1493,7 @@ module sam_integration
           data_index(owner) = data_index(owner) + 1
                     
           ! Delete this node from the detector list
-          call delete(default_stat%detector_list, node)
+          call delete(node, default_stat%detector_list)
         end if
       end if      
     
@@ -1570,7 +1570,7 @@ module sam_integration
         node%name = default_stat%detector_list%detector_names(node%id_number)
         allocate(node%local_coords(new_positions%dim + 1))
         
-        call insert(default_stat%detector_list, node)
+        call insert(node, default_stat%detector_list)
       end do
       
       deallocate(ireceive_data(i)%ptr)

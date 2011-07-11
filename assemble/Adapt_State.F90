@@ -1084,7 +1084,7 @@ contains
         ! Sanity check that all local detectors are owned
         call get_registered_detector_lists(detector_list_array)
         do j = 1, size(detector_list_array)
-           detector=>detector_list_array(j)%ptr%firstnode
+           detector=>detector_list_array(j)%ptr%first
            do k = 1, detector_list_array(j)%ptr%length
               assert(detector%element>0)
               detector=>detector%next
@@ -1222,19 +1222,6 @@ contains
         assert(ierr == MPI_SUCCESS)
         
         assert(total_num_detectors_before_zoltan == total_num_detectors_after_zoltan)
-
-        ! Sanity check that all local detectors are owned
-        if (get_num_detector_lists()>0) then
-           new_positions = extract_vector_field(states(1), "Coordinate")
-           call get_registered_detector_lists(detector_list_array)
-           do j = 1, size(detector_list_array)
-              detector=>detector_list_array(j)%ptr%firstnode
-              do k = 1, detector_list_array(j)%ptr%length
-                 assert(element_owned(new_positions%mesh,detector%element))
-                 detector=>detector%next
-              end do
-           end do
-        end if
 #endif
 
 #else

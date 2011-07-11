@@ -1575,7 +1575,7 @@ module zoltan_integration
     ewrite(1,*) "In update_detector_list_element"
     ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
-    detector => detector_list%firstnode
+    detector => detector_list%first
     do i=1, detector_list%length
 
        old_local_element_number = detector%element
@@ -1725,7 +1725,7 @@ module zoltan_integration
     end if
 
     ! Merge in any detectors we received as part of the transfer to our detector list
-    detector => zoltan_global_unpacked_detectors_list%firstnode
+    detector => zoltan_global_unpacked_detectors_list%first
     original_zoltan_global_unpacked_detectors_list_length = zoltan_global_unpacked_detectors_list%length
 
     do j=1, original_zoltan_global_unpacked_detectors_list_length
@@ -1740,7 +1740,7 @@ module zoltan_integration
        end if
 
        ! move detector to the correct list
-       call move(zoltan_global_unpacked_detectors_list, add_detector, detector_list_array(add_detector%list_id)%ptr)
+       call move(add_detector, zoltan_global_unpacked_detectors_list, detector_list_array(add_detector%list_id)%ptr)
     end do
 
     assert(zoltan_global_unpacked_detectors_list%length==0)

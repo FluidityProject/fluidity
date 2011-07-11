@@ -250,7 +250,7 @@ contains
 
     number_total_columns=total_num_det*dimen
 
-    node => default_stat%detector_list%firstnode
+    node => default_stat%detector_list%first
 
     location_to_write=0
 

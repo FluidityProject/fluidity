@@ -220,7 +220,7 @@ contains
     integer :: checkint 
       
     checkint = 0
-    det0 => detector_list0%firstnode
+    det0 => detector_list0%first
     do i = 1, detector_list0%length         
        if (det0%type==LAGRANGIAN_DETECTOR) then
           checkint = 1
@@ -240,7 +240,7 @@ contains
     integer, intent(in) :: n_stages, dim
     type(detector_type), pointer :: det0
 
-    det0 => detector_list%firstnode
+    det0 => detector_list%first
     do while (associated(det0))
        if(det0%type==LAGRANGIAN_DETECTOR) then
           if(allocated(det0%k)) then
@@ -266,7 +266,7 @@ contains
     type(detector_type), pointer :: det0
     integer :: j0
       
-    det0 => detector_list%firstnode
+    det0 => detector_list%first
     do j0=1, detector_list%length
        if(det0%type==LAGRANGIAN_DETECTOR) then
           if(allocated(det0%k)) then
@@ -295,7 +295,7 @@ contains
 
     parameters => detector_list%move_parameters
     
-    det0 => detector_list%firstnode
+    det0 => detector_list%first
     do det_count=1, detector_list%length 
 
        if(det0%type==LAGRANGIAN_DETECTOR) then
@@ -355,7 +355,7 @@ contains
     logical :: make_static
 
     !Loop over all the detectors
-    det0 => detector_list%firstnode
+    det0 => detector_list%first
     do det_count=1, detector_list%length
 
        !Only move Lagrangian detectors
@@ -410,7 +410,7 @@ contains
                    !this face goes into another computational domain
                    proc_local_number=element_owner(vfield%mesh,det_send%element)
 
-                   call move(detector_list,det_send,send_list_array(proc_local_number))
+                   call move(det_send, detector_list, send_list_array(proc_local_number))
                    !move on to the next detector
                    exit search_loop
                 end if

@@ -1064,7 +1064,7 @@ contains
        rhead = rhead + 1
 
        if(zoltan_global_to_pack_detectors_list(i)%length /= 0) then
-          detector => zoltan_global_to_pack_detectors_list(i)%firstnode
+          detector => zoltan_global_to_pack_detectors_list(i)%first
        end if
 
        ! packing the detectors in that element
@@ -1080,7 +1080,7 @@ contains
           detector => detector%next
           
           ! delete the detector we just packed from the to_pack list
-          call delete(zoltan_global_to_pack_detectors_list(i), detector_to_delete)
+          call delete(detector_to_delete, zoltan_global_to_pack_detectors_list(i))
 
           rhead = rhead + zoltan_global_ndata_per_det
           total_det_packed=total_det_packed+1
@@ -1228,7 +1228,7 @@ contains
        rhead = rhead + 1
        
        ! check if there are any detectors associated with this element
-       if(ndetectors_in_ele .GT. 0) then
+       if(ndetectors_in_ele > 0) then
           
           do det=1,ndetectors_in_ele
              ! allocate a detector
@@ -1242,7 +1242,7 @@ contains
              ! Make sure the unpacked detector is in this element
              assert(new_local_element_number==detector%element)
                    
-             call insert(zoltan_global_unpacked_detectors_list, detector)
+             call insert(detector, zoltan_global_unpacked_detectors_list)
              detector => null()
              
              rhead = rhead + zoltan_global_ndata_per_det  

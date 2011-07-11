@@ -1376,7 +1376,7 @@ contains
     allocate(detector)
     allocate(detector%position(xfield%dim))
     allocate(detector%local_coords(local_coord_count(shape)))
-    call insert(default_stat%detector_list,detector)
+    call insert(detector,default_stat%detector_list)
 
     ! Populate detector
     detector%name=name
@@ -2561,7 +2561,7 @@ contains
        end if
 
        ! Next columns contain the positions of all the detectors.
-       detector => detector_list%firstnode
+       detector => detector_list%first
        positionloop: do i=1, detector_list%length
           if(detector_list%binary_output) then
              write(detector_list%output_unit) detector%position
@@ -2580,7 +2580,7 @@ contains
                 ! Output statistics for each scalar field.
                 sfield=>extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
 
-                detector => detector_list%firstnode
+                detector => detector_list%first
                 do j=1, detector_list%length
                    value =  detector_value(sfield, detector)
                    if(detector_list%binary_output) then
@@ -2601,7 +2601,7 @@ contains
                   & detector_list%vfield_list(phase)%ptr(i))
                 allocate(vvalue(vfield%dim))
 
-                detector => detector_list%firstnode
+                detector => detector_list%first
                 do j=1, detector_list%length
                    vvalue =  detector_value(vfield, detector)
 
@@ -2709,7 +2709,7 @@ contains
     end if
     location_to_write = location_to_write + 2 * realsize
 
-    node => detector_list%firstnode
+    node => detector_list%first
     position_loop: do i = 1, detector_list%length
       ! Output detector coordinates
       assert(size(node%position) == dim)  
@@ -2732,7 +2732,7 @@ contains
           ! Output statistics for each scalar field        
           sfield => extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
 
-          node => detector_list%firstnode
+          node => detector_list%first
           scalar_node_loop: do j = 1, detector_list%length
             value =  detector_value(sfield, node)
 
@@ -2758,7 +2758,7 @@ contains
           ! vector fields (see below)
           assert(vfield%dim == dim)
 
-          node => detector_list%firstnode
+          node => detector_list%first
           vector_node_loop: do j = 1, detector_list%length
             vvalue =  detector_value(vfield, node)
 
@@ -2825,7 +2825,7 @@ contains
 
     if (detector_list%length/=0) then
    
-       node => detector_list%firstnode
+       node => detector_list%first
 
        dim=size(node%position)
 
@@ -2853,7 +2853,7 @@ contains
       allocate(detector_count(1:no_rows))
       detector_count=0
       ! loop over detectors:
-      node => detector_list%firstnode
+      node => detector_list%first
 
       do i=1, detector_list%length
 

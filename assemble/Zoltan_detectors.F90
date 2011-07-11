@@ -47,7 +47,7 @@ module zoltan_detectors
     do det_list = 1, size(detector_list_array)
 
        ! search through all the local detectors in this list
-       detector => detector_list_array(det_list)%ptr%firstnode
+       detector => detector_list_array(det_list)%ptr%first
        detector_loop: do i=1, detector_list_array(det_list)%ptr%length
           ! store the list ID with the detector, so we can map the detector back when receiving it
           detector%list_id=det_list
@@ -92,7 +92,7 @@ module zoltan_detectors
                    detector_to_move%element = detector_uen
                
                    ! Move detector to list of detectors we need to pack
-                   call move(detector_list_array(det_list)%ptr, detector_to_move, to_pack_detector_lists(j))
+                   call move(detector_to_move, detector_list_array(det_list)%ptr, to_pack_detector_lists(j))
                    detector_to_move => null()
                 end if
 
