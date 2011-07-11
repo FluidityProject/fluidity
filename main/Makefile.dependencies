@@ -99,19 +99,19 @@ Shallow_Water_Legacy.o : Shallow_Water_Legacy.F90 \
    ../include/fdebug.h
 
 Simple_Shallow_Water.o : Simple_Shallow_Water.F90 \
-   ../include/populate_state_module.mod ../include/vtk_interfaces.mod \
-   ../include/tictoc.mod ../include/sparse_matrices_fields.mod \
-   ../include/timeloop_utilities.mod ../include/diagnostic_fields_new.mod \
-   ../include/reference_counting.mod ../include/global_parameters.mod \
+   ../include/populate_state_module.mod ../include/fldebug.mod \
+   ../include/vtk_interfaces.mod ../include/tictoc.mod \
+   ../include/sparse_matrices_fields.mod ../include/timeloop_utilities.mod \
+   ../include/diagnostic_fields_new.mod ../include/reference_counting.mod \
    ../include/sparse_tools.mod ../include/fields.mod ../include/timers.mod \
-   ../include/memory_diagnostics.mod ../include/state_module.mod \
+   ../include/memory_diagnostics.mod ../include/transform_elements.mod \
    ../include/reserve_state_module.mod ../include/diagnostic_variables.mod \
    ../include/adapt_state_prescribed_module.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/transform_elements.mod \
-   ../include/signals.mod ../include/write_state_module.mod \
-   ../include/spud.mod ../include/fldebug.mod \
-   ../include/diagnostic_fields_wrapper.mod ../include/coriolis_module.mod \
-   ../include/checkpoint.mod ../include/solvers.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/signals.mod \
+   ../include/write_state_module.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/diagnostic_fields_wrapper.mod \
+   ../include/coriolis_module.mod ../include/checkpoint.mod \
+   ../include/solvers.mod ../include/global_parameters.mod \
    ../include/parallel_tools.mod ../include/state_fields_module.mod \
    ../include/fdebug.h
 
