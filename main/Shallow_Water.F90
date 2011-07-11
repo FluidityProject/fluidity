@@ -43,6 +43,7 @@
     use solvers
     use diagnostic_variables
     use diagnostic_fields_wrapper
+    use hybridized_helmholtz
     use assemble_cmc
     use global_parameters, only: option_path_len, python_func_len, current_time, dt
     use adapt_state_prescribed_module
@@ -102,7 +103,8 @@
                                          ! them
     real :: D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
-    integer :: timestep, nonlinear_iterations
+    logical :: hybridized
+   integer :: timestep, nonlinear_iterations
     integer :: ierr
 
     type(vector_field), pointer :: v_field
@@ -334,7 +336,16 @@
 
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
-      call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
+
+      if(have_option("/material_phase::Fluid/scalar_field::LagrangeMultiplie&
+           &r")) then
+         hybridized = .true.
+      else
+         hybridized = .false.
+      end if
+
+      call setup_wave_matrices(state(1),u_sparsity,wave_sparsity&
+           &,ct_sparsity, &
            h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
            div_mat,wave_mat,big_mat, &
            dt,theta,D0,g)
@@ -376,6 +387,7 @@
       call insert(matrices, div_mat, "DivergenceMatrix")
       call insert(matrices, wave_mat, "WaveMatrix")
       call insert(matrices, big_mat, "InverseBigMatrix")
+
       ! Also save the velocity and pressure mesh and the dimension
       eta => extract_scalar_field(state, "LayerThickness")
       u => extract_vector_field(state, "Velocity")
@@ -521,56 +533,62 @@
                  "NonlinearVelocity")
          end if
 
-         !Wave equation step
-         ! M\Delta u + \Delta t F(\theta\Delta u + u^n) + \Delta t C(\theta
-         ! \Delta\eta + \eta^n) = 0
-         ! M\Delta h - \Delta t HC^T(\theta\Delta u + u^n) = 0
-         ! SO
-         ! (M+\theta\Delta t F)\Delta u =
-         !   -\theta\Delta t g C\Delta\eta + \Delta t(-Fu^n - gC\eta^n)
-         ! SET r = \Delta t(-Fu^n - gC\eta^n)
-         ! THEN SUBSTITUTION GIVES
-         ! (M + \theta^2\Delta t^2 gH C^T(M+\theta\Delta t F)^{-1}C)\Delta\eta
-         !  = \Delta t HC^T(u^n + \theta(M+\theta\Delta t F)^{-1}r)
-
-         !Construct explicit parts of u rhs
-         if (have_source) then
-           call get_u_rhs(u_rhs,U,D,dt,g, &
-                coriolis_mat,div_mat,u_mass_mat, source)
+         if(hybridized) then
+            call solve_hybridized_helmholtz(&
+                 &state,&
+                 &compute_cartesian=.true.,&
+                 &check_continuity=.true.,output_dense=.false.)
          else
-           call get_u_rhs(u_rhs,U,D,dt,g, &
-                coriolis_mat,div_mat)
+            !Wave equation step
+            ! M\Delta u + \Delta t F(\theta\Delta u + u^n) + \Delta t C(\theta
+            ! \Delta\eta + \eta^n) = 0
+            ! M\Delta h - \Delta t HC^T(\theta\Delta u + u^n) = 0
+            ! SO
+            ! (M+\theta\Delta t F)\Delta u =
+            !   -\theta\Delta t g C\Delta\eta + \Delta t(-Fu^n - gC\eta^n)
+            ! SET r = \Delta t(-Fu^n - gC\eta^n)
+            ! THEN SUBSTITUTION GIVES
+            ! (M + \theta^2\Delta t^2 gH C^T(M+\theta\Delta t F)^{-1}C)\Delta\eta
+            !  = \Delta t HC^T(u^n + \theta(M+\theta\Delta t F)^{-1}r)
+
+            !Construct explicit parts of u rhs
+            if (have_source) then
+               call get_u_rhs(u_rhs,U,D,dt,g, &
+                    coriolis_mat,div_mat,u_mass_mat, source)
+            else
+               call get_u_rhs(u_rhs,U,D,dt,g, &
+                    coriolis_mat,div_mat)
+            end if
+
+            !Construct explicit parts of h rhs in wave equation
+            call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
+
+            if (has_scalar_field(state, "LayerThicknessSource")) then
+               d_src => extract_scalar_field(state, "LayerThicknessSource")
+               call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
+               call zero(md_src)
+               call mult(md_src, h_mass_mat, d_src)
+               call addto(d_rhs, md_src, scale=dt)
+               call deallocate(md_src)
+            endif
+
+            !Solve wave equation for D update
+            delta_d%option_path = d%option_path
+            call petsc_solve(delta_d, wave_mat, d_rhs)
+
+            !Add the new D contributions into the RHS for u
+            call update_u_rhs(u_rhs,U,delta_D,div_mat,theta,dt,g)
+
+            !Solve momentum equation for U update
+            call zero(delta_u)
+            call mult(delta_u, big_mat, u_rhs)
+
+            !Check the equation was solved correctly
+            if(have_option("/debug/check_solution")) then
+               call check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
+                    &,h_mass_mat, coriolis_mat,div_mat)
+            end if
          end if
-
-         !Construct explicit parts of h rhs in wave equation
-         call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
-
-         if (has_scalar_field(state, "LayerThicknessSource")) then
-           d_src => extract_scalar_field(state, "LayerThicknessSource")
-           call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
-           call zero(md_src)
-           call mult(md_src, h_mass_mat, d_src)
-           call addto(d_rhs, md_src, scale=dt)
-           call deallocate(md_src)
-         endif
-
-         !Solve wave equation for D update
-         delta_d%option_path = d%option_path
-         call petsc_solve(delta_d, wave_mat, d_rhs)
-
-         !Add the new D contributions into the RHS for u
-         call update_u_rhs(u_rhs,U,delta_D,div_mat,theta,dt,g)
-
-         !Solve momentum equation for U update
-         call zero(delta_u)
-         call mult(delta_u, big_mat, u_rhs)
-
-         !Check the equation was solved correctly
-         if(have_option("/debug/check_solution")) then
-            call check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
-                 &,h_mass_mat, coriolis_mat,div_mat)
-         end if
-
 
          call addto(u,delta_u)
          call addto(d,delta_d)

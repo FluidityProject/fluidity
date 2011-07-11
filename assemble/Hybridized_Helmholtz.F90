@@ -104,6 +104,9 @@ contains
     down=>extract_vector_field(state, "GravityDirection")
     lambda=>extract_scalar_field(state, "LagrangeMultiplier")
 
+    U_cart => extract_vector_field(state, "Velocity")
+    call project_cartesian_to_local(X,U_cart,U)
+
     !construct/extract sparsities
     lambda_sparsity=get_csr_sparsity_firstorder(state, lambda%mesh, lambda&
          &%mesh)
@@ -606,7 +609,7 @@ contains
             & -g*dt*theta*l_div_mat(dim1,:,:)
        if(present(local_solver_rhs)) then
           local_solver_rhs(u_start(dim1):u_end(dim1),d_start:d_end)=&
-               & dt*g*l_div_mat(dim1,:,:)
+               & g*dt*l_div_mat(dim1,:,:)
        end if
        !divergence continuity term
        local_solver(d_start:d_end,u_start(dim1):u_end(dim1))=&
