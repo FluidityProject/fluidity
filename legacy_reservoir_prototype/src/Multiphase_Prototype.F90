@@ -612,7 +612,7 @@ module mp_prototype
       call get_spars_pats( &
            ndim, u_nonods * nphase, cv_nonods * nphase, &
            u_nonods, cv_nonods, &
-           u_nloc, cv_nloc, nphase, totele, u_ndgln, &
+           u_nloc, cv_nloc, u_snloc, cv_snloc, nphase, totele, u_ndgln, cv_ndgln, &
            mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
            nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
            mxnele, ncolele, midele, finele, colele, & ! Element connectivity 

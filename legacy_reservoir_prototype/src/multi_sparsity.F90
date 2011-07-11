@@ -30,6 +30,7 @@
 module spact
 
   use fldebug
+  integer, parameter :: nface_p1 = 3
 
 contains
 
@@ -37,7 +38,7 @@ contains
   SUBROUTINE GET_SPARS_PATS(   &
        NDIM, U_PHA_NONODS, CV_PHA_NONODS,   &
        U_NONODS, CV_NONODS, &
-       U_NLOC, CV_NLOC, NPHASE, TOTELE, U_NDGLN,  &
+       U_NLOC, CV_NLOC, U_SNLOC, CV_SNLOC, NPHASE, TOTELE, U_NDGLN, CV_NDGLN, &
                                 ! CV multi-phase eqns (e.g. vol frac, temp)..***************
        MX_NCOLACV, NCOLACV, FINACV, COLACV, MIDACV,  &
                                 ! Force balance plus cty multi-phase eqns....***************
@@ -60,14 +61,15 @@ contains
     IMPLICIT NONE
 
     INTEGER, intent( in ) :: NDIM, U_PHA_NONODS, CV_PHA_NONODS, U_NONODS, CV_NONODS, U_NLOC, CV_NLOC, &
-         NPHASE, TOTELE, U_ELE_TYPE
+         U_SNLOC, CV_SNLOC, NPHASE, TOTELE, U_ELE_TYPE
     INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in )     :: U_NDGLN
+    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in )    :: CV_NDGLN
 
     INTEGER, intent( in )                                   :: MX_NCOLACV 
     INTEGER, intent( inout )                                :: NCOLACV
 
     INTEGER, DIMENSION( CV_PHA_NONODS + 1), intent( inout ) :: FINACV ! CV multi-phase eqns (e.g. vol frac, temp)
-    INTEGER, DIMENSION( MX_NCOLACV ), intent( inout )          :: COLACV
+    INTEGER, DIMENSION( MX_NCOLACV ), intent( inout )       :: COLACV
     INTEGER, DIMENSION( CV_PHA_NONODS ), intent( inout )    :: MIDACV
 
     INTEGER, intent( in )                                   :: NLENMCY, MX_NCOLMCY
@@ -115,7 +117,8 @@ contains
     INTEGER :: NPHA_TOTELE, MXNACV_LOC, NACV_LOC, MX_NCOLELE_PHA, II
 
     INTEGER, ALLOCATABLE, DIMENSION( : ) :: MIDACV_LOC, FINACV_LOC, COLACV_LOC, COLELE_PHA, FINELE_PHA, &
-         MIDELE_PHA, CENTCT
+         MIDELE_PHA, CENTCT, &
+         colele2
 
     ewrite(3,*) 'In GET_SPARS_PATS'
 
@@ -132,6 +135,14 @@ contains
     CALL DEF_SPAR( 1, TOTELE, MXNELE, NCOLELE, &
          MIDELE, FINELE, COLELE )
 
+    ewrite( 3, * )'colele:', size(colele), ':', colele( 1: mxnele )
+
+    ewrite( 3, * )'nface_p1:', nface_p1
+    allocate( colele2( totele * nface_p1 ))
+    if ( .false. ) call getfinele( totele, u_nloc, u_snloc, u_nonods, u_ndgln, nface_p1, &
+         colele2 )
+    ewrite( 3, * )'colele2:', size(colele2), ':', colele2( 1: totele * nface_p1 )
+   ! stop 56
 
     CALL EXTEN_SPARSE_MULTI_PHASE( TOTELE, MXNELE, FINELE, COLELE, &
          NPHASE, NPHA_TOTELE, MX_NCOLELE_PHA, FINELE_PHA, COLELE_PHA, MIDELE_PHA ) 
@@ -642,6 +653,115 @@ contains
     RETURN
   END SUBROUTINE EXTEN_SPARSE_MOM_CTY
 
+
+  subroutine getfinele( totele, nloc, snloc, nonods, ndglno, nface_p1, &
+       colele )
+    ! This sub caluculates COLELE the element
+    ! connectivitiy list in order of faces.
+    implicit none
+    integer, intent( in ) :: totele, nloc, snloc, nonods
+    integer, dimension( totele * nloc ), intent( in ) :: ndglno
+    integer, intent( in ) :: nface_p1
+    integer, dimension( totele * nface_p1 ), intent( inout ) :: colele
+
+    ! Local variables
+    integer :: nface, ele, iloc, jloc, iloc2, nod, inod, jnod, count, ele2, i, hit, &
+         iface!, iface2, kface, ncolel
+    logical :: found
+
+    integer, allocatable, dimension( : ) :: finele, fintran, coltran, icount
+
+    allocate( finele( totele + 1 ))
+    allocate( fintran( nonods + 1 ))
+    allocate( coltran( max( totele, nonods ) * nface_p1 ))
+    allocate( icount( max( nonods, totele )))
+
+    nface = nface_p1 - 1
+
+    icount = 0
+    do ele = 1, totele
+       do iloc = 1, nloc
+          nod = ndglno( ( ele - 1 ) * nloc + iloc )
+          icount( nod ) = icount( nod ) + 1
+       end do
+    end do
+
+    fintran = 0
+    fintran( 1 ) = 1
+    do nod = 1, nonods
+       fintran( nod + 1 ) = fintran( nod ) + icount( nod )
+    end do
+
+    icount = 0
+    coltran = 0
+    do ele = 1, totele
+       do iloc = 1, nloc
+          nod = ndglno( ( ele - 1 ) * nloc + iloc )
+       !   ewrite(3,*)'nod, filtran, icount, ele:', nod, fintran( nod ), ele, totele, nonods
+          coltran( fintran( nod ) + icount( nod )) = ele
+          icount( nod ) = icount( nod ) + 1
+       end do
+    end do
+    ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * nface_p1 )
+    ewrite(3,*)'fintran:', fintran( 1: nonods + 1 )
+
+    icount = 0
+    colele = 0
+    Loop_Elements1: do ele = 1, totele
+
+       Loop_Iloc: do iloc = 1, nloc
+
+          nod = ndglno( ( ele - 1 ) * nloc + iloc )
+          Loop_Count1: do count = fintran( nod ), fintran( nod + 1 ) - 1, 1
+
+             ele2 = coltran( count )
+             found = .false. ! Add ELE2 into list FINELE and COLELE
+             do i = 1, icount( ele )
+                if( colele( ( ele - 1 ) * nface_p1 + i ) == ele2 ) found = .true.
+             end do
+
+             Conditional_Found: if ( .not. found ) then ! Do elements ELE and ELE2 share at least 3 nodes?
+
+                hit = 0
+                do iloc2 = 1, nloc
+                   inod = ndglno( ( ele - 1 ) * nloc + iloc2 )
+                   do jloc = 1, nloc
+                      jnod = ndglno( ( ele2 - 1 ) * nloc + jloc )
+                      if ( inod == jnod ) hit = hit + 1
+                   end do
+                end do
+                if ( hit >= snloc ) then
+                   icount( ele ) = icount( ele ) + 1
+                   colele( ( ele - 1 ) * nface_p1 + icount( ele )) = ele2 
+    ewrite(3,*)'colele:', ( ele - 1 ) * nface_p1 + icount( ele ), ele2
+                end if
+
+             end if Conditional_Found
+
+          end do Loop_Count1
+
+       end do Loop_Iloc
+
+    end do Loop_Elements1
+stop 87
+    ewrite(3,*)'colele_int:',size(colele),colele(1:totele * nface_p1 )
+
+
+    Loop_Elements2: do ele = 1, totele 
+       ! Add the central element at the end of the list COLELE( (ELE-1) * NFACE_P1 + NFACE_P1 )
+
+       do iface = 1, nface ! Which face is it?
+          ele2 = colele( ( ele - 1 ) * nface_p1 + iface )
+          if ( ele2 == ele ) then ! Swop over
+             colele( ( ele - 1 ) * nface_p1 + iface ) = colele( ( ele - 1 ) * nface_p1 + nface_p1 )
+             colele( ( ele - 1 ) * nface_p1 + nface_p1 ) = ele
+          end if
+       end do
+
+    end do Loop_Elements2
+
+    return
+  end subroutine getfinele
 
 
   SUBROUTINE POSINMAT( POSMAT, GLOBI, GLOBJ,& 
