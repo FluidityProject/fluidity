@@ -811,10 +811,10 @@
         call adj_chkierr(ierr)
         ierr = adj_destroy_block(burgers_block)
         call adj_chkierr(ierr)
-        !ierr = adj_destroy_nonlinear_block(timestepping_advection_block)
-        !call adj_chkierr(ierr)
-        !ierr = adj_destroy_nonlinear_block(burgers_advection_block)
-        !call adj_chkierr(ierr)
+        ierr = adj_destroy_nonlinear_block(timestepping_advection_block)
+        call adj_chkierr(ierr)
+        ierr = adj_destroy_nonlinear_block(burgers_advection_block)
+        call adj_chkierr(ierr)
       end do
 
       ! Set the times and functional dependencies for this timestep
