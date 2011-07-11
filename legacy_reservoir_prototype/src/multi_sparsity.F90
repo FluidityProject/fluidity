@@ -30,7 +30,7 @@
 module spact
 
   use fldebug
-  integer, parameter :: nface_p1 = 3
+  integer, parameter :: nface_p1 = 3, internal_faces = 1
 
 contains
 
@@ -137,12 +137,12 @@ contains
 
     ewrite( 3, * )'colele:', size(colele), ':', colele( 1: mxnele )
 
-    ewrite( 3, * )'nface_p1:', nface_p1
+    ewrite( 3, * )'nface_p1, totele, u_snloc:', nface_p1, totele, u_snloc
     allocate( colele2( totele * nface_p1 ))
     if ( .false. ) call getfinele( totele, u_nloc, u_snloc, u_nonods, u_ndgln, nface_p1, &
          colele2 )
     ewrite( 3, * )'colele2:', size(colele2), ':', colele2( 1: totele * nface_p1 )
-   ! stop 56
+    stop 56
 
     CALL EXTEN_SPARSE_MULTI_PHASE( TOTELE, MXNELE, FINELE, COLELE, &
          NPHASE, NPHA_TOTELE, MX_NCOLELE_PHA, FINELE_PHA, COLELE_PHA, MIDELE_PHA ) 
@@ -666,10 +666,13 @@ contains
 
     ! Local variables
     integer :: nface, ele, iloc, jloc, iloc2, nod, inod, jnod, count, ele2, i, hit, &
-         iface!, iface2, kface, ncolel
+         iface, iface2, kface, ncolel
     logical :: found
 
     integer, allocatable, dimension( : ) :: finele, fintran, coltran, icount
+
+    integer, allocatable, dimension( : ) :: cface, eface
+    integer, allocatable, dimension( : ,  : ) :: loclist
 
     allocate( finele( totele + 1 ))
     allocate( fintran( nonods + 1 ))
@@ -677,6 +680,10 @@ contains
     allocate( icount( max( nonods, totele )))
 
     nface = nface_p1 - 1
+
+    allocate( cface( nface_p1 ))
+    allocate( eface( nface_p1 ))
+    allocate( loclist ( nface, internal_faces ))
 
     icount = 0
     do ele = 1, totele
@@ -697,13 +704,13 @@ contains
     do ele = 1, totele
        do iloc = 1, nloc
           nod = ndglno( ( ele - 1 ) * nloc + iloc )
-       !   ewrite(3,*)'nod, filtran, icount, ele:', nod, fintran( nod ), ele, totele, nonods
+          !   ewrite(3,*)'nod, filtran, icount, ele:', nod, fintran( nod ), ele, totele, nonods
           coltran( fintran( nod ) + icount( nod )) = ele
           icount( nod ) = icount( nod ) + 1
        end do
     end do
-    ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * nface_p1 )
-    ewrite(3,*)'fintran:', fintran( 1: nonods + 1 )
+    ! ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * nface_p1 )
+    ! ewrite(3,*)'fintran:', fintran( 1: nonods + 1 )
 
     icount = 0
     colele = 0
@@ -733,7 +740,6 @@ contains
                 if ( hit >= snloc ) then
                    icount( ele ) = icount( ele ) + 1
                    colele( ( ele - 1 ) * nface_p1 + icount( ele )) = ele2 
-    ewrite(3,*)'colele:', ( ele - 1 ) * nface_p1 + icount( ele ), ele2
                 end if
 
              end if Conditional_Found
@@ -743,8 +749,8 @@ contains
        end do Loop_Iloc
 
     end do Loop_Elements1
-stop 87
-    ewrite(3,*)'colele_int:',size(colele),colele(1:totele * nface_p1 )
+    ewrite(3,*)'colele1', size(colele), colele(1:totele * nface_p1 )
+      
 
 
     Loop_Elements2: do ele = 1, totele 
@@ -753,13 +759,61 @@ stop 87
        do iface = 1, nface ! Which face is it?
           ele2 = colele( ( ele - 1 ) * nface_p1 + iface )
           if ( ele2 == ele ) then ! Swop over
-             colele( ( ele - 1 ) * nface_p1 + iface ) = colele( ( ele - 1 ) * nface_p1 + nface_p1 )
+            !! colele( ( ele - 1 ) * nface_p1 + iface ) = colele( ( ele - 1 ) * nface_p1 + nface_p1 )
              colele( ( ele - 1 ) * nface_p1 + nface_p1 ) = ele
           end if
        end do
 
     end do Loop_Elements2
+    ewrite(3,*)'colele:', size(colele), colele(1:totele * nface_p1 )
+  !  stop 98
+if( .false. ) then
+    iface = 1
+    loclist( iface , 1 ) = 1
+    iface = 2
+    loclist( iface , 1 ) = 2
 
+    Loop_Elements3: do ele = 1, totele ! Get COLELE in order of faces
+
+       Loop_Face1: do iface2 = 1, nface ! Which face is it? 
+
+          ele2 = colele( ( ele - 1 ) * nface_p1 + iface )
+          if ( ele2 /= 0 ) then
+
+             kface = 0
+             Loop_Face2: do iface = 1, nface
+                hit = 0
+                do iloc = 1, nloc
+                   do i = 1, internal_faces
+                      if ( ndglno( ( ele - 1 ) * nloc + loclist( iface, i )) == &
+                           ndglno( ( ele2 - 1 ) * nloc + iloc )) hit = hit + 1
+                   end do
+                end do
+                if ( hit == 1 ) kface = iface
+             end do Loop_Face2
+
+             cface( iface2 ) = kface
+             eface( iface2 ) = ele2
+          else
+             cface( iface2 ) = 0
+             eface( iface2 ) = 0
+
+          end if
+
+       end do Loop_Face1
+
+       Loop_Face3: do iface2 = 1, nface
+          colele( ( ele - 1 ) * nface_p1 + iface2 ) = 0
+          Loop_Face4: do iface = 1, nface
+             if ( cface( iface ) == iface2 ) colele( ( ele - 1 ) * nface_p1 + iface2 ) = eface( iface )
+          end do Loop_Face4
+       end do Loop_Face3
+
+
+    end do Loop_Elements3
+    ewrite(3,*)'colele:', size(colele), colele(1:totele * nface_p1 )
+stop 98
+endif
     return
   end subroutine getfinele
 
