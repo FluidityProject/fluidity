@@ -129,6 +129,11 @@ contains
          &rognostic/mean_layer_thickness",D0)
     call get_option("/timestepping/timestep", dt)
 
+    do dim1 = 1,U%dim
+       u_cpt = extract_scalar_field(U,dim1)
+       ewrite(1,*) 'U',maxval(u_cpt%val)
+    end do
+
     !Assemble matrices
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
@@ -142,6 +147,7 @@ contains
     !Solve the equations
     call petsc_solve(lambda,lambda_mat,lambda_rhs)
 
+    ewrite(1,*)'LAMBDA MIN:MAX',minval(lambda%val),maxval(lambda%val)
     !Reconstruct U and D from lambda
     do ele = 1, ele_count(D)
        call reconstruct_u_d_ele(D,f,U,X,down,ele, &
@@ -173,6 +179,7 @@ contains
           u_cpt = extract_scalar_field(U,dim1)
           continuity_block_mat = block(continuity_mat,dim1,1)
           call mult_T_addto(lambda_rhs,continuity_block_mat,u_cpt)
+          ewrite(1,*) 'U',maxval(u_cpt%val)
        end do
        ewrite(1,*)'JUMPS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs&
             &%val)
@@ -549,6 +556,9 @@ contains
     end do
 
     local_solver = 0.
+    if(present(local_solver_rhs)) then
+       local_solver_rhs = 0.
+    end if
     
     u_shape=ele_shape(u, ele)
     D_shape=ele_shape(d, ele)
@@ -596,7 +606,7 @@ contains
             & -g*dt*theta*l_div_mat(dim1,:,:)
        if(present(local_solver_rhs)) then
           local_solver_rhs(u_start(dim1):u_end(dim1),d_start:d_end)=&
-               & dt*theta*l_div_mat(dim1,:,:)
+               & dt*g*l_div_mat(dim1,:,:)
        end if
        !divergence continuity term
        local_solver(d_start:d_end,u_start(dim1):u_end(dim1))=&
@@ -1053,16 +1063,12 @@ contains
     type(scalar_field), pointer :: l_d_rhs
     type(vector_field), pointer :: l_u_rhs
 
-    have_d_rhs = present(d_rhs)
-    have_u_rhs = present(u_rhs)
-    if(have_d_rhs) l_d_rhs => d_rhs
-    if(have_u_rhs) l_u_rhs => u_rhs
     !Get some sizes
     mdim = mesh_dim(U)
     uloc = ele_loc(U,ele)
     dloc = ele_loc(d,ele)
     U_shape = ele_shape(U,ele)
-
+    
     !Calculate indices in a vector containing all the U and D dofs in
     !element ele, First the u1 components, then the u2 components, then the
     !D components are stored.
@@ -1073,37 +1079,44 @@ contains
        u_end(dim1) = uloc*dim1
     end do
     
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detJ=detJ,detwei=detwei)
-
-    Rhs_loc = 0.
-    if(have_d_rhs) then
-       Rhs_loc(d_start:d_end) = shape_rhs(ele_shape(D,ele),&
-            &ele_val_at_quad(l_D_rhs,ele)*detwei)
-       if(have_u_rhs) then
-          allocate(u_cart_quad(l_U_rhs%dim,ele_ngi(X,ele)))
-          u_cart_quad = ele_val_at_quad(l_u_rhs,ele)
-          do gi = 1, ele_ngi(D,ele)
-             !Don't divide by detJ as we can use weight instead of detwei
-             u_local_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))
-          end do
-          U_rhs_loc = shape_vector_rhs(u_shape,&
-               u_local_quad,u_shape%quadrature%weight)
-          do dim1 = 1, mdim
-             Rhs_loc(u_start(dim1):u_end(dim1)) = &
-                  & U_rhs_loc(dim1,:)
-          end do
-       end if
-    end if
     if(.not.(present(D_rhs).or.present(u_rhs))) then
        !We are in timestepping mode.
        rhs_loc(d_start:d_end) = ele_val(D,ele)
+       u_rhs_loc = ele_val(U,ele)
        do dim1 = 1, mdim
           rhs_loc(u_start(dim1):u_end(dim1)) = &
                & U_rhs_loc(dim1,:)
        end do
-    end if
+    else
 
+       have_d_rhs = present(d_rhs)
+       have_u_rhs = present(u_rhs)
+       if(have_d_rhs) l_d_rhs => d_rhs
+       if(have_u_rhs) l_u_rhs => u_rhs
+       
+       call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+            detJ=detJ,detwei=detwei)
+       
+       Rhs_loc = 0.
+       if(have_d_rhs) then
+          Rhs_loc(d_start:d_end) = shape_rhs(ele_shape(D,ele),&
+               &ele_val_at_quad(l_D_rhs,ele)*detwei)
+          if(have_u_rhs) then
+             allocate(u_cart_quad(l_U_rhs%dim,ele_ngi(X,ele)))
+             u_cart_quad = ele_val_at_quad(l_u_rhs,ele)
+             do gi = 1, ele_ngi(D,ele)
+                !Don't divide by detJ as we can use weight instead of detwei
+                u_local_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))
+             end do
+             U_rhs_loc = shape_vector_rhs(u_shape,&
+                  u_local_quad,u_shape%quadrature%weight)
+             do dim1 = 1, mdim
+                Rhs_loc(u_start(dim1):u_end(dim1)) = &
+                     & U_rhs_loc(dim1,:)
+             end do
+          end if
+       end if
+    end if
   end subroutine assemble_rhs_ele
 
   subroutine check_divergence_ele(U,D,D_rhs,X,ele)

@@ -24,7 +24,7 @@
   !    License along with this library; if not, write to the Free Software
   !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
   !    USA
-
+  
 #include "fdebug.h"
   program Hybridized_Helmholtz_Solver
     ! Program to solve the Helmholtz problem arising from the implicit
@@ -51,25 +51,25 @@
 
     ! Interface blocks for the initialisation routines we need to call
     interface
-      subroutine set_global_debug_level(n)
-        integer, intent(in) :: n
-      end subroutine set_global_debug_level
+       subroutine set_global_debug_level(n)
+         integer, intent(in) :: n
+       end subroutine set_global_debug_level
 
-      subroutine mpi_init(ierr)
-        integer, intent(out) :: ierr
-      end subroutine mpi_init
+       subroutine mpi_init(ierr)
+         integer, intent(out) :: ierr
+       end subroutine mpi_init
 
-      subroutine mpi_finalize(ierr)
-        integer, intent(out) :: ierr
-      end subroutine mpi_finalize
+       subroutine mpi_finalize(ierr)
+         integer, intent(out) :: ierr
+       end subroutine mpi_finalize
 
-      subroutine python_init
-      end subroutine python_init
+       subroutine python_init
+       end subroutine python_init
 
-      subroutine petscinitialize(s, i)
-        character(len=*), intent(in) :: s
-        integer, intent(out) :: i
-      end subroutine petscinitialize
+       subroutine petscinitialize(s, i)
+         character(len=*), intent(in) :: s
+         integer, intent(out) :: i
+       end subroutine petscinitialize
     end interface
 
     type(state_type), dimension(:), pointer :: state
@@ -91,7 +91,7 @@
 #ifdef HAVE_PETSC
     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
 #endif
-    
+
     call python_init
     call read_command_line
     call mangle_options_tree_forward
@@ -114,8 +114,8 @@
     call deallocate(U_local)
 
     X=>extract_vector_field(state(1), "Coordinate")
-     call allocate(f, X%mesh, "Coriolis")
-     call get_option("/physical_parameters/coriolis", coriolis, stat)
+    call allocate(f, X%mesh, "Coriolis")
+    call get_option("/physical_parameters/coriolis", coriolis, stat)
     if(stat==0) then
        call set_from_python_function(f, coriolis, X, time=0.0)
     else
@@ -127,12 +127,13 @@
     if(have_rhs) then
        call allocate(D_rhs_projected,D%mesh,'D_rhs')
        call remap_field(D_rhs,D_rhs_projected)
-       dump_no = 0
-       call write_state(dump_no,state)
     else
        call compute_energy(state(1),energy)
        ewrite(1,*) 'ENERGY BEFORE = ', energy
     end if
+
+    dump_no = 0
+    call write_state(dump_no,state)
 
     if(have_rhs) then       
        call solve_hybridized_helmholtz(&
@@ -163,7 +164,7 @@
        D_exact_D_mesh => extract_scalar_field(state(1),&
             &"LayerThicknessExactProjected")
        call remap_field(D_exact,D_exact_D_mesh)
-       
+
        L2error=0.
        Linfty_error=0.
        L2projectederror=0.
@@ -186,29 +187,29 @@
     call mpi_finalize(ierr)
     assert(ierr == MPI_SUCCESS)
 #endif
-contains
-  subroutine compute_errors(D,D_exact,D_exact_D_mesh,X,ele,&
-       L2error,Linfty_error,L2projectederror)
-    type(scalar_field), intent(in) :: D,D_exact,D_exact_D_mesh
-    type(vector_field), intent(in) :: X
-    integer, intent(in) :: ele
-    real, intent(inout) :: L2error,Linfty_error,L2projectederror
-    !
-    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
-    real, dimension(ele_ngi(D,ele)) :: D_gi,D_exact_gi,D_exact_D_mesh_gi,&
-         &detwei
+  contains
+    subroutine compute_errors(D,D_exact,D_exact_D_mesh,X,ele,&
+         L2error,Linfty_error,L2projectederror)
+      type(scalar_field), intent(in) :: D,D_exact,D_exact_D_mesh
+      type(vector_field), intent(in) :: X
+      integer, intent(in) :: ele
+      real, intent(inout) :: L2error,Linfty_error,L2projectederror
+      !
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+      real, dimension(ele_ngi(D,ele)) :: D_gi,D_exact_gi,D_exact_D_mesh_gi,&
+           &detwei
 
-    call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
-         detwei=detwei)
-    d_gi = ele_val_at_quad(D,ele)
-    d_exact_gi = ele_val_at_quad(D_exact,ele)
-    d_exact_d_mesh_gi = ele_val_at_quad(D_exact_D_mesh,ele)
+      call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
+           detwei=detwei)
+      d_gi = ele_val_at_quad(D,ele)
+      d_exact_gi = ele_val_at_quad(D_exact,ele)
+      d_exact_d_mesh_gi = ele_val_at_quad(D_exact_D_mesh,ele)
 
-    linfty_error = max(linfty_error,maxval(abs(d_gi-d_exact_gi)))
-    l2error = l2error + sum((d_gi-d_exact_gi)**2*detwei)
-    l2projectederror = l2projectederror + &
-         &sum((d_gi-d_exact_d_mesh_gi)**2*detwei)
-  end subroutine compute_errors
+      linfty_error = max(linfty_error,maxval(abs(d_gi-d_exact_gi)))
+      l2error = l2error + sum((d_gi-d_exact_gi)**2*detwei)
+      l2projectederror = l2projectederror + &
+           &sum((d_gi-d_exact_d_mesh_gi)**2*detwei)
+    end subroutine compute_errors
 
     subroutine read_command_line()
       implicit none
@@ -263,7 +264,74 @@ contains
       implicit none
       type(state_type), intent(inout) :: state
       real, intent(inout) :: energy
+      !
+      type(scalar_field), pointer :: D
+      type(vector_field), pointer :: u,X
+      integer :: ele
+      real :: old_energy,g,d0
+
+      !get parameters
+      call get_option("/physical_parameters/gravity/magnitude", g)
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+           &rognostic/mean_layer_thickness",D0)
+
+      U=>extract_vector_field(state, "Velocity")
+      D => extract_scalar_field(state, "LayerThickness")
+      X=>extract_vector_field(state, "Coordinate")
+
+      old_energy = energy
+      energy = 0.
+
+      do ele = 1, element_count(X)
+         call compute_energy_ele(energy,U,D,X,D0,g,ele)
+      end do
+
+      ewrite(1,*) 'Energy:= ', energy
+      ewrite(1,*) 'Change in energy:= ', energy-old_energy
+
     end subroutine compute_energy
+
+    subroutine compute_energy_ele(energy,U,D,X,D0,g,ele)
+      implicit none
+      real, intent(inout) :: energy
+      type(vector_field), intent(in) :: U,X
+      type(scalar_field), intent(in) :: D
+      integer, intent(in) :: ele
+      real, intent(in) :: D0,g
+      !
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+      real, dimension(ele_ngi(D,ele)) :: detwei
+      type(element_type) :: d_shape, u_shape, x_shape
+      real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: u_mass
+      real, dimension(ele_loc(D,ele),ele_loc(D,ele)) :: d_mass
+      real, dimension(u%dim,ele_loc(U,ele)) :: U_val
+      real, dimension(ele_loc(D,ele)) :: D_val
+      real, dimension(X%dim,ele_loc(X,ele)) :: X_val
+      integer :: dim1
+
+      U_val = ele_val(U,ele)
+      D_val = ele_val(D,ele)
+      X_val = ele_val(X,ele)
+
+      u_shape = ele_shape(u,ele)
+      d_shape = ele_shape(d,ele)
+      x_shape = ele_shape(X,ele)
+      call compute_jacobian(x_val,x_shape, J=J, &
+           detwei=detwei)
+
+      u_mass = shape_shape(u_shape,u_shape,detwei)
+      d_mass = shape_shape(d_shape,d_shape,detwei)
+
+      !kinetic energy
+      do dim1 = 1, u%dim
+         energy = energy + D0*dot_product(U_val(dim1,:),&
+              &matmul(u_mass,U_val(dim1,:)))
+      end do
+
+      energy = energy + g*dot_product(D_val,&
+           &matmul(D_mass,D_val))
+
+    end subroutine compute_energy_ele
 
     subroutine usage
       implicit none
@@ -272,5 +340,5 @@ contains
       write (0,*) ""
       write (0,*) "-v n sets the verbosity of debugging"
     end subroutine usage
-    
+
   end program Hybridized_Helmholtz_Solver

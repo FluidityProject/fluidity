@@ -2332,7 +2332,7 @@ contains
 
           count_coords=ele_num%number2count(:,n)
 
-          if (ele_num%degree>0) then          
+          if (ele_num%degree>0) then
              do i=1,ele_num%dimension+1
                 if (i<count_coords(1)) then
                    coords(i)=count_coords(i+1)/real(ele_num%degree)
