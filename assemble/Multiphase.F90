@@ -439,7 +439,6 @@
                
                real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
                
-               integer :: loc ! Number of nodes in the current element
                real, dimension(ele_loc(u, ele), ele_ngi(u, ele), x%dim) :: du_t
                real, dimension(ele_ngi(u, ele)) :: detwei
                real, dimension(u%dim, ele_loc(u,ele)) :: interaction_rhs_mat
@@ -456,10 +455,6 @@
                real, dimension(u%dim, ele_ngi(u,ele)) :: drag_force_rhs ! drag_force = K*(v_f - v_p)
                              
                integer :: dim, gi
-
-
-               ! Get the number of nodes in the current element
-               loc = ele_loc(u, ele)
                
                ! Compute detwei
                call transform_to_physical(x, ele, u_shape, dshape=du_t, detwei=detwei)
@@ -529,14 +524,14 @@
                   oldu_val = ele_val(oldu_fluid, ele)
                end if
                do dim = 1, u%dim
-                  big_m_tensor_addto(dim, dim, :loc, :loc) = big_m_tensor_addto(dim, dim, :loc, :loc) - dt*theta*interaction_big_m_mat
-                  rhs_addto(dim,:loc) = rhs_addto(dim,:loc) + matmul(interaction_big_m_mat, oldu_val(dim,:loc)) + interaction_rhs_mat(dim,:loc)
+                  big_m_tensor_addto(dim, dim, :, :) = big_m_tensor_addto(dim, dim, :, :) - dt*theta*interaction_big_m_mat
+                  rhs_addto(dim,:) = rhs_addto(dim,:) + matmul(interaction_big_m_mat, oldu_val(dim,:)) + interaction_rhs_mat(dim,:)
                end do
                
                ! Add the contribution to mom_rhs
-               call addto(mom_rhs, u_ele, rhs_addto(:,:loc)) 
+               call addto(mom_rhs, u_ele, rhs_addto) 
                ! Add to the big_m matrix
-               call addto(big_m, u_ele, u_ele, big_m_tensor_addto(:,:,:loc,:loc), block_mask=block_mask)
+               call addto(big_m, u_ele, u_ele, big_m_tensor_addto, block_mask=block_mask)
 
             end subroutine add_fluid_particle_drag_element
 
