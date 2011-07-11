@@ -47,7 +47,7 @@ module momentum_DG
   use boundary_conditions_from_options
   use solvers
   use dgtools
-  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, timestep
   use coriolis_module
   use halos
   use sparsity_patterns
@@ -62,7 +62,10 @@ module momentum_DG
   use sparsity_patterns_meshes
   use colouring
   use Profiler
+#ifdef _OPENMP
   use omp_lib
+  use timeloop_utilities
+#endif
   use multiphase_module
 
 
@@ -264,7 +267,7 @@ contains
     type(integer_set), dimension(:), allocatable :: clr_sets
     integer :: clr, nnid, no_colours, len
     logical :: compact_stencil
-    integer :: num_threads
+    integer :: num_threads, final_timestep
 
     ! Volume fraction fields for multi-phase flow simulation
     type(scalar_field), pointer :: vfrac
@@ -656,6 +659,7 @@ contains
 
 #ifdef _OPENMP
       num_threads = omp_get_max_threads()
+      print *, "num_threads=", num_threads,"M_DG"
 #else 
       num_threads=1
 #endif
@@ -674,8 +678,10 @@ contains
             &/compact_discontinuous_galerkin")
 
       compact_stencil=.false.
+       call find_linear_parent_mesh(state, u%mesh, cg_mesh, stat)
       !! generate the dual graph of the mesh
-      p0_mesh = piecewise_constant_mesh(x%mesh, trim(x%name)//"P0Mesh")
+   !!   p0_mesh = piecewise_constant_mesh(x%mesh, trim(x%name)//"P0Mesh")
+      p0_mesh = piecewise_constant_mesh(cg_mesh, "P0Mesh")
 
        !! the sparse pattern of the dual graph.
        if ((have_viscosity.or.have_dg_les) .and. (.not. compact_stencil)) then
@@ -734,6 +740,18 @@ contains
 
     call deallocate(clr_sets)
     deallocate(clr_sets)
+
+#ifdef DDEBUG
+#ifdef _OPENMP
+!    call get_option("/timestepping/final_timestep", final_timestep)
+!    print *, "final_timestep=", final_timestep
+!    print *, "the current timestep=", timestep
+!    if(timestep .eq. final_timestep) then
+!       print *, "dump bloody dg matrix"
+!!!       call dump_petsc_csr_matrix(big_m)
+!    endif
+#endif
+#endif
 
     if(num_threads > 1) then
     call deallocate(node_colour)
