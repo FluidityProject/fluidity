@@ -439,7 +439,8 @@
                integer :: loc ! Number of nodes in the current element
                real, dimension(ele_loc(u, ele), ele_ngi(u, ele), x%dim) :: du_t
                real, dimension(ele_ngi(u, ele)) :: detwei
-               real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: interaction_rhs_mat, interaction_big_m_mat
+               real, dimension(u%dim, ele_loc(u,ele)) :: interaction_rhs_mat
+               real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: interaction_big_m_mat
                real, dimension(u%dim, ele_loc(u,ele)) :: rhs_addto
                real, dimension(u%dim, u%dim, ele_loc(u,ele), ele_loc(u,ele)) :: big_m_tensor_addto
                
