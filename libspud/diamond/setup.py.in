@@ -26,8 +26,7 @@ setup(
       packages = ['diamond'],
       package_dir = {'diamond': 'diamond'},
       scripts=["bin/diamond"],
-      data_files = [(destdir + "@prefix@/share/diamond/gui", ["gui/gui.glade", "gui/diamond.svg"]),
-                    (destdir + "/etc/bash_completion.d/", ["misc/diamond-bash-completion"])] +
+      data_files = [(destdir + "@prefix@/share/diamond/gui", ["gui/gui.glade", "gui/diamond.svg"])] +
                    plugin_data_files
      )
 

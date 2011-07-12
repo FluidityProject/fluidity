@@ -1,8 +1,13 @@
-spud (1.0.25) natty; urgency=low
+spud (1.1.0) natty; urgency=low
 
-  * Include Fraser's first week of work on Diamond
+  * Refactor the Fortran calls to C to use iso_c_binding
+  * Clean up the C interface to remove old Fortran interface hacks.
+  * Modify interfaces so that almost every routine returns an error status.
+  * Consequential changes to the manual.
+  * Cause bash completion for diamond to be installed by the package.
+  * Include Fraser's first week of work on Diamond.
 
- -- Patrick Farrell <patrick.farrell06@imperial.ac.uk>  Mon, 11 Jul 2011 11:49:45 +0100
+ -- David A Ham <david.ham@imperial.ac.uk>  Tue, 12 Jul 2011 09:56:34 +0100
 
 spud (1.0.24) natty; urgency=low
 
