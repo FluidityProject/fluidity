@@ -37,8 +37,9 @@ contains
 
   SUBROUTINE GET_SPARS_PATS(   &
        NDIM, U_PHA_NONODS, CV_PHA_NONODS,   &
-       U_NONODS, CV_NONODS, &
-       U_NLOC, CV_NLOC, U_SNLOC, CV_SNLOC, NPHASE, TOTELE, U_NDGLN, CV_NDGLN, &
+       U_NONODS, CV_NONODS, X_NONODS, &
+       U_NLOC, CV_NLOC, X_NLOC, U_SNLOC, CV_SNLOC, X_SNLOC, NPHASE, TOTELE, &
+       U_NDGLN, CV_NDGLN, X_NDGLN, &
                                 ! CV multi-phase eqns (e.g. vol frac, temp)..***************
        MX_NCOLACV, NCOLACV, FINACV, COLACV, MIDACV,  &
                                 ! Force balance plus cty multi-phase eqns....***************
@@ -60,10 +61,11 @@ contains
 
     IMPLICIT NONE
 
-    INTEGER, intent( in ) :: NDIM, U_PHA_NONODS, CV_PHA_NONODS, U_NONODS, CV_NONODS, U_NLOC, CV_NLOC, &
-         U_SNLOC, CV_SNLOC, NPHASE, TOTELE, U_ELE_TYPE
+    INTEGER, intent( in ) :: NDIM, U_PHA_NONODS, CV_PHA_NONODS, U_NONODS, CV_NONODS, X_NONODS, U_NLOC, CV_NLOC, &
+         X_NLOC, U_SNLOC, CV_SNLOC, X_SNLOC, NPHASE, TOTELE, U_ELE_TYPE
     INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in )     :: U_NDGLN
     INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in )    :: CV_NDGLN
+    INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in )    :: X_NDGLN
 
     INTEGER, intent( in )                                   :: MX_NCOLACV 
     INTEGER, intent( inout )                                :: NCOLACV
@@ -118,7 +120,8 @@ contains
 
     INTEGER, ALLOCATABLE, DIMENSION( : ) :: MIDACV_LOC, FINACV_LOC, COLACV_LOC, COLELE_PHA, FINELE_PHA, &
          MIDELE_PHA, CENTCT, &
-         colele2
+         colele2, finele2
+    LOGICAL, parameter :: OldSetUp = .true.
 
     ewrite(3,*) 'In GET_SPARS_PATS'
 
@@ -132,17 +135,23 @@ contains
     ALLOCATE( MIDELE_PHA( NPHA_TOTELE ))
     ALLOCATE( CENTCT( CV_NONODS ))
 
+    if ( OldSetUp ) then
     CALL DEF_SPAR( 1, TOTELE, MXNELE, NCOLELE, &
          MIDELE, FINELE, COLELE )
+    else
+     call getfinele( totele, cv_nloc, x_snloc, x_nonods, x_ndgln, nface_p1, &
+         finele, colele )
+    endif
 
-    ewrite( 3, * )'colele:', size(colele), ':', colele( 1: mxnele )
+ !   ewrite( 3, * )'colele:', size(colele), ':', colele( 1: mxnele )
 
-    ewrite( 3, * )'nface_p1, totele, u_snloc:', nface_p1, totele, u_snloc
-    allocate( colele2( totele * nface_p1 ))
-    if ( .false. ) call getfinele( totele, u_nloc, u_snloc, u_nonods, u_ndgln, nface_p1, &
-         colele2 )
-    ewrite( 3, * )'colele2:', size(colele2), ':', colele2( 1: totele * nface_p1 )
-    stop 56
+ !   ewrite( 3, * )'nface_p1, totele, u_snloc:', nface_p1, totele, u_snloc
+ !   allocate( colele2( totele * nface_p1 ))
+ !   allocate( finele2( totele + 1 ))
+ !   if ( .false. ) call getfinele( totele, cv_nloc, x_snloc, x_nonods, x_ndgln, nface_p1, &
+ !        finele2, colele2 )
+ !   ewrite( 3, * )'colele2:', size(colele2), ':', colele2( 1: totele * nface_p1 )
+ !   stop 56
 
     CALL EXTEN_SPARSE_MULTI_PHASE( TOTELE, MXNELE, FINELE, COLELE, &
          NPHASE, NPHA_TOTELE, MX_NCOLELE_PHA, FINELE_PHA, COLELE_PHA, MIDELE_PHA ) 
@@ -655,7 +664,7 @@ contains
 
 
   subroutine getfinele( totele, nloc, snloc, nonods, ndglno, nface_p1, &
-       colele )
+       finele, colele )
     ! This sub caluculates COLELE the element
     ! connectivitiy list in order of faces.
     implicit none
@@ -663,18 +672,17 @@ contains
     integer, dimension( totele * nloc ), intent( in ) :: ndglno
     integer, intent( in ) :: nface_p1
     integer, dimension( totele * nface_p1 ), intent( inout ) :: colele
-
+    integer, dimension( totele + 1 ), intent( inout ) :: finele
     ! Local variables
     integer :: nface, ele, iloc, jloc, iloc2, nod, inod, jnod, count, ele2, i, hit, &
-         iface, iface2, kface, ncolel
+         iface, iface2, kface, ncolel, ITEMP, IFACE_P1, COUNT2
     logical :: found
 
-    integer, allocatable, dimension( : ) :: finele, fintran, coltran, icount
+    integer, allocatable, dimension( : ) :: fintran, coltran, icount
 
     integer, allocatable, dimension( : ) :: cface, eface
     integer, allocatable, dimension( : ,  : ) :: loclist
 
-    allocate( finele( totele + 1 ))
     allocate( fintran( nonods + 1 ))
     allocate( coltran( max( totele, nonods ) * nface_p1 ))
     allocate( icount( max( nonods, totele )))
@@ -711,6 +719,7 @@ contains
     end do
     ! ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * nface_p1 )
     ! ewrite(3,*)'fintran:', fintran( 1: nonods + 1 )
+    ewrite(3,*)'X_NDGLN:', ndglno( 1: totele*nloc )
 
     icount = 0
     colele = 0
@@ -749,71 +758,105 @@ contains
        end do Loop_Iloc
 
     end do Loop_Elements1
-    ewrite(3,*)'colele1', size(colele), colele(1:totele * nface_p1 )
-      
+    !ewrite(3,*)'colele1', size(colele), colele(1:totele * nface_p1 )
+    !ewrite(3,*)'  '  
 
 
-    Loop_Elements2: do ele = 1, totele 
+    Loop_Elements2: do ele = 1, -totele 
        ! Add the central element at the end of the list COLELE( (ELE-1) * NFACE_P1 + NFACE_P1 )
 
        do iface = 1, nface ! Which face is it?
           ele2 = colele( ( ele - 1 ) * nface_p1 + iface )
           if ( ele2 == ele ) then ! Swop over
-            !! colele( ( ele - 1 ) * nface_p1 + iface ) = colele( ( ele - 1 ) * nface_p1 + nface_p1 )
+             !! colele( ( ele - 1 ) * nface_p1 + iface ) = colele( ( ele - 1 ) * nface_p1 + nface_p1 )
              colele( ( ele - 1 ) * nface_p1 + nface_p1 ) = ele
           end if
        end do
 
     end do Loop_Elements2
-    ewrite(3,*)'colele:', size(colele), colele(1:totele * nface_p1 )
-  !  stop 98
-if( .false. ) then
-    iface = 1
-    loclist( iface , 1 ) = 1
-    iface = 2
-    loclist( iface , 1 ) = 2
+   ! ewrite(3,*)'colele:', size(colele), colele(1:totele * nface_p1 )
 
-    Loop_Elements3: do ele = 1, totele ! Get COLELE in order of faces
+    ! Shorten COLELE then perform a bubble sort to get the ordering right for : 
+    ! determine FINELE
+    FINELE(1)=1
+    DO ELE=1,TOTELE
+       FINELE(ELE+1)=FINELE(ELE)+ICOUNT(ELE)
+    END DO
+    COUNT=0
+    DO ELE = 1, TOTELE
+       DO IFACE_P1=1,NFACE_P1
+          IF(COLELE((ELE-1)*NFACE_P1+IFACE_P1).NE.0) THEN
+             COUNT=COUNT+1
+             COLELE(COUNT)=COLELE((ELE-1)*NFACE_P1+IFACE_P1)
+          END IF
+       END DO
+    END DO
+    ! bubble sort
+    DO ELE=1,TOTELE
+       DO COUNT=FINELE(ELE),FINELE(ELE+1)-2
+          DO COUNT2=FINELE(ELE),FINELE(ELE+1)-1
+             IF(COLELE(COUNT).GT.COLELE(COUNT+1)) THEN
+                ! swop over
+                ITEMP=COLELE(COUNT+1)
+                COLELE(COUNT+1)=COLELE(COUNT)
+                COLELE(COUNT)=ITEMP
+             ENDIF
+          END DO
+       END DO
+    END DO
+    ewrite(3,*)'colele_after_BubbleSort:', size(colele), colele(1:totele * nface_p1 )
 
-       Loop_Face1: do iface2 = 1, nface ! Which face is it? 
 
-          ele2 = colele( ( ele - 1 ) * nface_p1 + iface )
-          if ( ele2 /= 0 ) then
 
-             kface = 0
-             Loop_Face2: do iface = 1, nface
-                hit = 0
-                do iloc = 1, nloc
-                   do i = 1, internal_faces
-                      if ( ndglno( ( ele - 1 ) * nloc + loclist( iface, i )) == &
-                           ndglno( ( ele2 - 1 ) * nloc + iloc )) hit = hit + 1
+    stop 98
+
+    if( .false. ) then
+       iface = 1
+       loclist( iface , 1 ) = 1
+       iface = 2
+       loclist( iface , 1 ) = 2
+
+       Loop_Elements3: do ele = 1, totele ! Get COLELE in order of faces
+
+          Loop_Face1: do iface2 = 1, nface ! Which face is it? 
+
+             ele2 = colele( ( ele - 1 ) * nface_p1 + iface )
+             if ( ele2 /= 0 ) then
+
+                kface = 0
+                Loop_Face2: do iface = 1, nface
+                   hit = 0
+                   do iloc = 1, nloc
+                      do i = 1, internal_faces
+                         if ( ndglno( ( ele - 1 ) * nloc + loclist( iface, i )) == &
+                              ndglno( ( ele2 - 1 ) * nloc + iloc )) hit = hit + 1
+                      end do
                    end do
-                end do
-                if ( hit == 1 ) kface = iface
-             end do Loop_Face2
+                   if ( hit == 1 ) kface = iface
+                end do Loop_Face2
 
-             cface( iface2 ) = kface
-             eface( iface2 ) = ele2
-          else
-             cface( iface2 ) = 0
-             eface( iface2 ) = 0
+                cface( iface2 ) = kface
+                eface( iface2 ) = ele2
+             else
+                cface( iface2 ) = 0
+                eface( iface2 ) = 0
 
-          end if
+             end if
 
-       end do Loop_Face1
+          end do Loop_Face1
 
-       Loop_Face3: do iface2 = 1, nface
-          colele( ( ele - 1 ) * nface_p1 + iface2 ) = 0
-          Loop_Face4: do iface = 1, nface
-             if ( cface( iface ) == iface2 ) colele( ( ele - 1 ) * nface_p1 + iface2 ) = eface( iface )
-          end do Loop_Face4
-       end do Loop_Face3
+          Loop_Face3: do iface2 = 1, nface
+             colele( ( ele - 1 ) * nface_p1 + iface2 ) = 0
+             Loop_Face4: do iface = 1, nface
+                if ( cface( iface ) == iface2 ) colele( ( ele - 1 ) * nface_p1 + iface2 ) = eface( iface )
+             end do Loop_Face4
+          end do Loop_Face3
 
 
-    end do Loop_Elements3
-    ewrite(3,*)'colele:', size(colele), colele(1:totele * nface_p1 )
-stop 98
-endif
+       end do Loop_Elements3
+       ewrite(3,*)'colele:', size(colele), colele(1:totele * nface_p1 )
+       stop 98
+    endif
     return
   end subroutine getfinele
 
