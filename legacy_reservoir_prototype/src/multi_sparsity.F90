@@ -119,8 +119,7 @@ contains
     INTEGER :: NPHA_TOTELE, MXNACV_LOC, NACV_LOC, MX_NCOLELE_PHA, II
 
     INTEGER, ALLOCATABLE, DIMENSION( : ) :: MIDACV_LOC, FINACV_LOC, COLACV_LOC, COLELE_PHA, FINELE_PHA, &
-         MIDELE_PHA, CENTCT, &
-         colele2, finele2
+         MIDELE_PHA, CENTCT
     LOGICAL, parameter :: OldSetUp = .true.
 
     ewrite(3,*) 'In GET_SPARS_PATS'
@@ -136,22 +135,12 @@ contains
     ALLOCATE( CENTCT( CV_NONODS ))
 
     if ( OldSetUp ) then
-    CALL DEF_SPAR( 1, TOTELE, MXNELE, NCOLELE, &
-         MIDELE, FINELE, COLELE )
+       CALL DEF_SPAR( 1, TOTELE, MXNELE, NCOLELE, &
+            MIDELE, FINELE, COLELE )
     else
-     call getfinele( totele, cv_nloc, x_snloc, x_nonods, x_ndgln, nface_p1, &
-         finele, colele )
+       call getfinele( totele, cv_nloc, x_snloc, x_nonods, x_ndgln, nface_p1, &
+            finele, colele )
     endif
-
- !   ewrite( 3, * )'colele:', size(colele), ':', colele( 1: mxnele )
-
- !   ewrite( 3, * )'nface_p1, totele, u_snloc:', nface_p1, totele, u_snloc
- !   allocate( colele2( totele * nface_p1 ))
- !   allocate( finele2( totele + 1 ))
- !   if ( .false. ) call getfinele( totele, cv_nloc, x_snloc, x_nonods, x_ndgln, nface_p1, &
- !        finele2, colele2 )
- !   ewrite( 3, * )'colele2:', size(colele2), ':', colele2( 1: totele * nface_p1 )
- !   stop 56
 
     CALL EXTEN_SPARSE_MULTI_PHASE( TOTELE, MXNELE, FINELE, COLELE, &
          NPHASE, NPHA_TOTELE, MX_NCOLELE_PHA, FINELE_PHA, COLELE_PHA, MIDELE_PHA ) 
@@ -675,7 +664,7 @@ contains
     integer, dimension( totele + 1 ), intent( inout ) :: finele
     ! Local variables
     integer :: nface, ele, iloc, jloc, iloc2, nod, inod, jnod, count, ele2, i, hit, &
-         iface, iface2, kface, ncolel, ITEMP, IFACE_P1, COUNT2
+         iface, iface2, kface, ncolel, itemp, count2
     logical :: found
 
     integer, allocatable, dimension( : ) :: fintran, coltran, icount
@@ -719,7 +708,7 @@ contains
     end do
     ! ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * nface_p1 )
     ! ewrite(3,*)'fintran:', fintran( 1: nonods + 1 )
-    ewrite(3,*)'X_NDGLN:', ndglno( 1: totele*nloc )
+!    ewrite(3,*)'X_NDGLN:', ndglno( 1: totele*nloc )
 
     icount = 0
     colele = 0
@@ -758,105 +747,35 @@ contains
        end do Loop_Iloc
 
     end do Loop_Elements1
-    !ewrite(3,*)'colele1', size(colele), colele(1:totele * nface_p1 )
-    !ewrite(3,*)'  '  
 
+    finele( 1 ) = 1
+    do ele = 1, totele
+       finele( ele + 1 ) = finele( ele ) + icount( ele )
+    end do
 
-    Loop_Elements2: do ele = 1, -totele 
-       ! Add the central element at the end of the list COLELE( (ELE-1) * NFACE_P1 + NFACE_P1 )
-
-       do iface = 1, nface ! Which face is it?
-          ele2 = colele( ( ele - 1 ) * nface_p1 + iface )
-          if ( ele2 == ele ) then ! Swop over
-             !! colele( ( ele - 1 ) * nface_p1 + iface ) = colele( ( ele - 1 ) * nface_p1 + nface_p1 )
-             colele( ( ele - 1 ) * nface_p1 + nface_p1 ) = ele
+    count = 0
+    Loop_Elements2: do ele = 1, totele
+       ! Shorten COLELE then perform a bubble sort to get the ordering right for.
+       do iface = 1, nface_p1
+          if ( colele( ( ele - 1 ) * nface_p1 + iface ) /= 0 ) then
+             count = count + 1
+             colele( count ) = colele( ( ele - 1 ) * nface_p1 + iface )
           end if
        end do
-
     end do Loop_Elements2
-   ! ewrite(3,*)'colele:', size(colele), colele(1:totele * nface_p1 )
 
-    ! Shorten COLELE then perform a bubble sort to get the ordering right for : 
-    ! determine FINELE
-    FINELE(1)=1
-    DO ELE=1,TOTELE
-       FINELE(ELE+1)=FINELE(ELE)+ICOUNT(ELE)
-    END DO
-    COUNT=0
-    DO ELE = 1, TOTELE
-       DO IFACE_P1=1,NFACE_P1
-          IF(COLELE((ELE-1)*NFACE_P1+IFACE_P1).NE.0) THEN
-             COUNT=COUNT+1
-             COLELE(COUNT)=COLELE((ELE-1)*NFACE_P1+IFACE_P1)
-          END IF
-       END DO
-    END DO
-    ! bubble sort
-    DO ELE=1,TOTELE
-       DO COUNT=FINELE(ELE),FINELE(ELE+1)-2
-          DO COUNT2=FINELE(ELE),FINELE(ELE+1)-1
-             IF(COLELE(COUNT).GT.COLELE(COUNT+1)) THEN
-                ! swop over
-                ITEMP=COLELE(COUNT+1)
-                COLELE(COUNT+1)=COLELE(COUNT)
-                COLELE(COUNT)=ITEMP
-             ENDIF
-          END DO
-       END DO
-    END DO
-    ewrite(3,*)'colele_after_BubbleSort:', size(colele), colele(1:totele * nface_p1 )
-
-
-
-    stop 98
-
-    if( .false. ) then
-       iface = 1
-       loclist( iface , 1 ) = 1
-       iface = 2
-       loclist( iface , 1 ) = 2
-
-       Loop_Elements3: do ele = 1, totele ! Get COLELE in order of faces
-
-          Loop_Face1: do iface2 = 1, nface ! Which face is it? 
-
-             ele2 = colele( ( ele - 1 ) * nface_p1 + iface )
-             if ( ele2 /= 0 ) then
-
-                kface = 0
-                Loop_Face2: do iface = 1, nface
-                   hit = 0
-                   do iloc = 1, nloc
-                      do i = 1, internal_faces
-                         if ( ndglno( ( ele - 1 ) * nloc + loclist( iface, i )) == &
-                              ndglno( ( ele2 - 1 ) * nloc + iloc )) hit = hit + 1
-                      end do
-                   end do
-                   if ( hit == 1 ) kface = iface
-                end do Loop_Face2
-
-                cface( iface2 ) = kface
-                eface( iface2 ) = ele2
-             else
-                cface( iface2 ) = 0
-                eface( iface2 ) = 0
-
+    Loop_BubbleSort: do ele = 1, totele
+       do count = finele( ele ) , finele( ele + 1 ) - 2, 1
+          do count2 = finele( ele ) , finele( ele + 1 ) - 1, 1
+             if ( colele( count ) > colele( count + 1 )) then ! swop over
+                itemp = colele( count + 1 )
+                colele( count + 1 ) = colele( count )
+                colele( count ) = itemp
              end if
+          end do
+       end do
+    end do Loop_BubbleSort
 
-          end do Loop_Face1
-
-          Loop_Face3: do iface2 = 1, nface
-             colele( ( ele - 1 ) * nface_p1 + iface2 ) = 0
-             Loop_Face4: do iface = 1, nface
-                if ( cface( iface ) == iface2 ) colele( ( ele - 1 ) * nface_p1 + iface2 ) = eface( iface )
-             end do Loop_Face4
-          end do Loop_Face3
-
-
-       end do Loop_Elements3
-       ewrite(3,*)'colele:', size(colele), colele(1:totele * nface_p1 )
-       stop 98
-    endif
     return
   end subroutine getfinele
 
@@ -930,7 +849,6 @@ contains
 
     return
   end subroutine checksparsity
-
 
 end module spact
 

@@ -625,7 +625,7 @@ module mp_prototype
 
       close( unit_debug )
 
-      if( do_old_output ) call check_sparsity( &
+      if( .not. do_old_output ) call check_sparsity( &
            u_nonods * nphase, cv_nonods * nphase, &
            u_nonods, cv_nonods, totele, &
            mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
@@ -813,7 +813,6 @@ module mp_prototype
          end do
 
       end if
-
       ! Just double-checking the sizes -- End
 
       Select Case( problem )
