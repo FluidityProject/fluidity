@@ -30,7 +30,7 @@ FC      = @FC@
 FCFLAGS = @CPPFLAGS@ @FCFLAGS@ -Iinclude
 
 CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -Iinclude
+CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -Iinclude -v
 
 MAKE    = @MAKE@
 AR      = @AR@
