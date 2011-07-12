@@ -136,12 +136,6 @@ adjoint_options =
                     attribute field_name { xsd:string },
                     comment
                   }|
-                  ## Boundary condition 
-                  element type {
-                     attribute name { "boundary_condition" },
-                    attribute field_name { xsd:string },
-                     comment
-                  }|
                   ## Source term. Note that the source term has to exist in both the forward and in the adjoint run (using the exist_in_both flag)
                   element type {
                     attribute name { "source_term" },

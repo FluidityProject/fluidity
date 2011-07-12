@@ -818,7 +818,7 @@ CAN_USE_ADJOINT=yes
 WANTS_ADJOINT=yes
 if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
   # test really is so retarded that it can't lexicographically compare strings
-  if test "$(python -c "print \"$GFORTRAN_VERSION\" <= \"4.5\"")" = "True"; then
+  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
     CAN_USE_ADJOINT=no
   fi
 fi

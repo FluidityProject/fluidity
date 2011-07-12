@@ -163,16 +163,6 @@ but all adjoint related entries will be zeroed.</a:documentation>
                   <ref name="comment"/>
                 </element>
                 <element name="type">
-                  <a:documentation>Boundary condition </a:documentation>
-                  <attribute name="name">
-                    <value>boundary_condition</value>
-                  </attribute>
-                  <attribute name="field_name">
-                    <data type="string"/>
-                  </attribute>
-                  <ref name="comment"/>
-                </element>
-                <element name="type">
                   <a:documentation>Source term. Note that the source term has to exist in both the forward and in the adjoint run (using the exist_in_both flag)</a:documentation>
                   <attribute name="name">
                     <value>source_term</value>

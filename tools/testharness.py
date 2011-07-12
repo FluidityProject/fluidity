@@ -31,6 +31,16 @@ class TestHarness:
 
         fluidity_command = self.decide_fluidity_command()
 
+        if file == "":
+          print "Test criteria:"
+          print "-" * 80
+          print "length: ", length
+          print "parallel: ", parallel
+          print "tags to include: ", tags
+          print "tags to exclude: ", exclude_tags
+          print "-" * 80
+          print 
+
         # step 1. form a list of all the xml files to be considered.
 
         xml_files = []
@@ -74,7 +84,7 @@ class TestHarness:
           prob_defn = p.findall("problem_definition")[0]
           prob_length = prob_defn.attrib["length"]
           prob_nprocs = int(prob_defn.attrib["nprocs"])
-          if prob_length == length or (length == "any" and prob_length != "special"):
+          if prob_length == length or (length == "any" and prob_length not in ["special", "long"]):
             if self.parallel is True:
               if prob_nprocs > 1:
                 working_set.append(xml_file)
@@ -130,7 +140,6 @@ class TestHarness:
           self.tests.append((subdir, testprob))
 
         if len(self.tests) == 0:
-          print
           print "Warning: no matching tests."
 
     def length_matches(self, filelength):
