@@ -330,7 +330,7 @@ contains
     end if
 
     lchild_name = ""
-    lstat = spud_get_child_name(string_array(key), len_trim(key), index, lchild_name, len(lchild_name))
+    lstat = spud_get_child_name(string_array(key), len_trim(key), index, lchild_name, size(lchild_name))
     if(lstat /= SPUD_NO_ERROR) then
       call option_error(key, lstat, stat)
       return
