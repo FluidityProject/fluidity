@@ -1285,10 +1285,18 @@ contains
     !We can do everything in local coordinates since d commutes with pullback
     l_mass_mat = shape_shape(u_shape,u_shape,U_local%mesh%shape%quadrature&
          &%weight)
+    !Streamfunction at node values
     psi_loc = ele_val(psi,ele)
-    forall(dim1=1:U_local%dim,gi=1:ele_ngi(psi,ele))
-       dpsi_gi(dim1,gi) = sum(psi_loc*psi%mesh%shape%dn(:,gi,dim1))
-    end forall
+    !Skew gradient of streamfunction at quadrature points
+    select case(mesh_dim(psi))
+    case (2)
+       forall(gi=1:ele_ngi(psi,ele))
+          dpsi_gi(1,gi) = -sum(psi_loc*psi%mesh%shape%dn(:,gi,2))
+          dpsi_gi(2,gi) =  sum(psi_loc*psi%mesh%shape%dn(:,gi,1))
+       end forall
+    case default
+       FLAbort('Exterior derivative not implemented for given mesh dimension')
+    end select
     U_loc = shape_vector_rhs(u_shape,dpsi_gi,U_local%mesh%shape%quadrature&
          &%weight)
     call solve(l_mass_mat,U_loc)
