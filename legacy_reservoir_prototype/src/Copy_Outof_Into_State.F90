@@ -967,6 +967,7 @@ module copy_outof_into_state
 
       enddo Loop_Velocity
 
+
       allocate(uabs_option(nphases))
       allocate(eos_option(nphases))
       allocate(cp_option(nphases))
@@ -974,11 +975,14 @@ module copy_outof_into_state
          option_path = "/material_phase[" // int2str(i-1) // "]/multiphase_properties/relperm_type"
          if (have_option(trim(option_path)//"/Corey")) uabs_option(i)=3
          if (have_option(trim(option_path)//"/Corey/boost_at_zero_saturation")) uabs_option(i)=5
+
          option_path = "/material_phase[" // int2str(i-1) // "]/equation_of_state"
          if (have_option(trim(option_path)//"/incompressible/linear")) then
             eos_option(i) = 2
          elseif (have_option(trim(option_path)//"/compressible/stiffened_gas")) then
             eos_option(i) = 1
+         elseif (have_option(trim(option_path)//"/compressible/exponential_oil_gas")) then
+            eos_option(i) = 3
          else
             FLAbort("Unknown EoS option for phase "// int2str(i))
          endif
@@ -1002,7 +1006,7 @@ module copy_outof_into_state
             else
                call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/incompressible/linear/specify_all", eos_coefs(i, :))
             endif
-         else
+         elseif (eos_option(i)==1) then
             call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/compressible/stiffened_gas/eos_option1", eos_coefs(i, 1))
             call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/compressible/stiffened_gas/eos_option2", eos_coefs(i, 2))
             eos_coefs(i, 3:ncoef) = 0.

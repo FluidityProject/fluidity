@@ -669,18 +669,12 @@ contains
 
     integer, allocatable, dimension( : ) :: fintran, coltran, icount
 
-    integer, allocatable, dimension( : ) :: cface, eface
-    integer, allocatable, dimension( : ,  : ) :: loclist
 
     allocate( fintran( nonods + 1 ))
     allocate( coltran( max( totele, nonods ) * nface_p1 ))
     allocate( icount( max( nonods, totele )))
 
     nface = nface_p1 - 1
-
-    allocate( cface( nface_p1 ))
-    allocate( eface( nface_p1 ))
-    allocate( loclist ( nface, internal_faces ))
 
     icount = 0
     do ele = 1, totele
@@ -708,7 +702,7 @@ contains
     end do
     ! ewrite(3,*)'coltran:', coltran( 1: max(totele, nonods ) * nface_p1 )
     ! ewrite(3,*)'fintran:', fintran( 1: nonods + 1 )
-!    ewrite(3,*)'X_NDGLN:', ndglno( 1: totele*nloc )
+    !    ewrite(3,*)'X_NDGLN:', ndglno( 1: totele*nloc )
 
     icount = 0
     colele = 0
@@ -776,8 +770,144 @@ contains
        end do
     end do Loop_BubbleSort
 
+    deallocate( fintran )
+    deallocate( coltran )
+    deallocate( icount )
+
     return
   end subroutine getfinele
+
+
+  subroutine pousinmc2( totele, nonods1, nloc1, nonods2, nloc2, nimem, ndglno1, ndglno2, &
+       lencolm, findrm, colm, centrm )
+    implicit none
+    integer, intent( in ) :: totele, nonods1, nloc1, nonods2, nloc2, nimem
+    integer, dimension( totele * nloc1 ), intent( in ) :: ndglno1
+    integer, dimension( totele * nloc2 ), intent( in ) :: ndglno2
+    integer, intent( inout ) :: lencolm
+    integer, dimension( nonods2 + 1 ), intent( inout ) :: findrm
+    integer, dimension( nimem ), intent( inout ) :: colm
+    integer, dimension( nonods2 ), intent( inout ) :: centrm
+
+    ! Local Variables
+    integer :: ele, globi, globj, loci, locj, i, irow, ptr
+
+    ! Defining derived data types for the linked list
+    type node
+       integer :: id                 ! id number of node
+       type( node ), pointer :: next ! next node
+    end type node
+
+    type row
+       type( node ), pointer :: row ! recursive data type
+    end type row
+
+    type( row ), dimension( : ), allocatable :: matrix
+    type( node ), pointer :: list, current, next
+
+    allocate( matrix( nonods2 ))
+    do i = 1, nonods2
+       allocate( list )
+       list % id = -1
+       nullify( list % next )
+       matrix( i ) % row => list
+       nullify( list )
+    end do
+
+    Loop_Elements1: do ele = 1, totele
+
+       Loop_LocI: do loci = 1, nloc2
+
+          globi = ndglno2( ( ele - 1 ) * nloc2 + loci )
+          list => matrix( globi ) % row
+
+          Loop_LocJ: do locj = 1, nloc1
+
+             globj = ndglno1( ( ele - 1 ) * nloc1 + locj )
+
+             if ( list % id == -1 ) then ! Check if the list is initalised
+                list % id = globj
+                cycle
+             end if
+
+             if ( list % id == -1 ) then ! Check if the list is initalised
+                list % id = globj
+                cycle
+             end if
+
+             Conditional1: if ( globj < list % id ) then ! Insert at start of list
+                allocate( current )
+                current % id = globj
+                current % next => list
+                matrix( globi ) % row => current
+                list => matrix( globi ) % row
+
+             else ! Conditional1
+                current => list
+                Loop_While1: do while ( associated( current ))
+
+                   if ( globj == current % id ) then ! Already have this node
+                      exit
+
+                   elseif ( .not. associated( current % next )) then  ! End of list - insert this node
+                      allocate( current % next )
+                      nullify( current % next % next )
+                      current % next % id = globj
+                      exit
+
+                   elseif ( globj < current % next % id ) then ! Insert new node here
+                      allocate( next )
+                      next % id = globj
+                      next % next => current % next
+                      current % next => next
+                      exit                
+
+                   end if
+                   current => current % next
+
+                end do Loop_While1
+
+             end if Conditional1
+
+          end do Loop_LocJ
+
+       end do Loop_LocI
+
+    end do Loop_Elements1
+
+    ! From matrix write COLM, FINDRM and CENTRM
+    ! linked list as we go
+    ptr = 1
+    Loop_Irow: do irow = 1, nonods2
+       findrm( irow ) = ptr
+       centrm( irow ) = -1
+
+       current => matrix( irow ) % row
+       Loop_While2: do while ( associated( current ))
+          assert( ptr <= nimem )
+          colm( ptr ) = current % id
+          if ( current % id == -1 ) then
+             ewrite(0,*) "ERROR: POSINM() seriously unhappy with node", IROW
+             FLAbort( "ERROR: Mesh contains nodes that are not associated with any elements." )
+          end if
+          if ( current % id == irow ) then
+             centrm( irow ) = ptr
+          endif
+          next => current % next
+          deallocate( current )
+          current => next
+          ptr = ptr + 1
+       end do Loop_While2
+
+    end do Loop_Irow
+
+    lencolm = ptr - 1
+    findrm( nonods2 + 1 ) = lencolm + 1
+
+    deallocate( matrix )
+
+    return
+  end subroutine pousinmc2
 
 
   SUBROUTINE POSINMAT( POSMAT, GLOBI, GLOBJ,& 

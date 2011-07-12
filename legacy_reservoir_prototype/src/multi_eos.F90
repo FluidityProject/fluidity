@@ -101,7 +101,7 @@ contains
        else
           FLAbort('Unrecognised equation of state')
        endif
-       
+
        Loop_CV: do cv_nod = 1, cv_nonods
 
           node = cv_nod + ( iphase - 1 ) * cv_nonods
@@ -126,12 +126,12 @@ contains
                initialised = .true.
              end if
              den( node ) = reference_density * exp( compressibility_factor * &
-                  ( p( node ) - reference_pressure( node )))
+                  ( p( cv_nod ) - reference_pressure( cv_nod )))
              pert_p = max( toler, 0.001 * abs( p( cv_nod ) ))
              den_plus = reference_density * exp( compressibility_factor * &
-                  ( ( p( node ) + pert_p )- reference_pressure( node )))
+                  ( ( p( cv_nod ) + pert_p )- reference_pressure( cv_nod )))
              den_minus = reference_density * exp( compressibility_factor * &
-                  ( ( p( node ) - pert_p )- reference_pressure( node )))
+                  ( ( p( cv_nod ) - pert_p )- reference_pressure( cv_nod )))
 
           elseif ( eos_incomp_linear ) then ! Incompressible
              if (have_option(trim(option_path)//"/all_equal")) then

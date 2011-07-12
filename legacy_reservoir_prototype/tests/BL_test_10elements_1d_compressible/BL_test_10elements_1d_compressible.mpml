@@ -448,7 +448,7 @@
         </Corey>
       </relperm_type>
       <immobile_fraction>
-        <real_value rank="0">0.1</real_value>
+        <real_value rank="0">0.2</real_value>
         <comment>S_gc</comment>
       </immobile_fraction>
     </multiphase_properties>
