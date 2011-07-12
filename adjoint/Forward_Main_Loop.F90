@@ -234,7 +234,7 @@ module forward_main_loop
                     vfield_rhs%bc => null()
 
                     call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=path)
-                    call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
+                    !call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
                   endif
                 case(ADJ_BLOCK_CSR_MATRIX)
                   call matrix_from_adj_matrix(lhs, block_csr_mat)
@@ -247,7 +247,7 @@ module forward_main_loop
                     end if
 
                     call petsc_solve(vfield_soln, block_csr_mat, vfield_rhs, option_path=path)
-                    call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
+                    !call compute_inactive_rows(vfield_soln, block_csr_mat, vfield_rhs)
                   endif
                 case default
                   FLAbort("Unknown lhs%klass")
