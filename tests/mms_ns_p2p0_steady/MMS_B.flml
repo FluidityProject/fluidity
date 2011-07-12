@@ -116,6 +116,7 @@
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
+          <remove_null_space/>
           <never_ignore_solver_failures/>
           <diagnostics>
             <monitors/>
@@ -216,7 +217,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value type="python" lines="20">def val(X,t):
+                  <string_value lines="20" type="python">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    return sin(X[0])*cos(X[1])</string_value>
@@ -224,7 +225,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value type="python" lines="20">def val(X,t):
+                  <string_value lines="20" type="python">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    return -1.0*cos(X[0])*sin(X[1])</string_value>

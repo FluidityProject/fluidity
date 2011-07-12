@@ -284,7 +284,7 @@ assert(a_final_change_vel &lt; 1.E-3)
 assert(b_final_change_vel &lt; 1.E-3)
     </test>
     <test name="checking steady state was reached in C vel" language="python">
-assert(c_final_changevel &lt; 1.E-3)
+assert(c_final_change_vel &lt; 1.E-3)
     </test>
     <test name="checking steady state was reached in D vel" language="python">
 assert(d_final_change_vel &lt; 1.E-3)
