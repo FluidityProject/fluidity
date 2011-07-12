@@ -35,7 +35,7 @@ module mangle_dirichlet_rows_module
   implicit none
 
   interface mangle_dirichlet_rows
-    module procedure mangle_dirichlet_rows_csr_scalar
+    module procedure mangle_dirichlet_rows_csr_scalar, mangle_dirichlet_rows_scalar
   end interface
 
   interface set_inactive_rows
@@ -89,6 +89,28 @@ module mangle_dirichlet_rows_module
           end do
         end do
     end subroutine mangle_dirichlet_rows_csr_scalar
+
+    subroutine mangle_dirichlet_rows_scalar(scalar, bc_field)
+        type(scalar_field), intent(inout) :: scalar
+        type(scalar_field), intent(in) :: bc_field
+
+        integer :: i, j, node
+        character(len=FIELD_NAME_LEN) :: bctype
+        integer, dimension(:), pointer :: node_list
+
+        assert(node_count(scalar) == node_count(bc_field))
+
+        do i=1,get_boundary_condition_count(bc_field)
+          call get_boundary_condition(bc_field, i, type=bctype, surface_node_list=node_list)
+
+          if (bctype /= "dirichlet") cycle
+
+          do j=1,size(node_list)
+            node = node_list(j)
+            call set(scalar, node, 0.0)
+          end do
+        end do
+    end subroutine mangle_dirichlet_rows_scalar
 
     subroutine set_inactive_rows_csr_scalar(matrix, field)
       ! Any nodes associated with Dirichlet BCs, we make them inactive

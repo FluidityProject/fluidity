@@ -132,8 +132,81 @@ the functional. In this example, the relevant reduction would be a sum.</a:docum
               <ref name="python_code"/>
             </element>
           </element>
+          <optional>
+            <element name="disable_adjoint_run">
+              <a:documentation>Disables the adjoint run for this functional.
+The functional values are still computed during the forward run.
+The resulting stat file is equivalent to the one with this option disabled, 
+but all adjoint related entries will be zeroed.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </oneOrMore>
+      <optional>
+        <element name="controls">
+          <a:documentation>Specifies any control variables </a:documentation>
+          <zeroOrMore>
+            <element name="control">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <choice>
+                <element name="type">
+                  <a:documentation>Initial condition </a:documentation>
+                  <attribute name="name">
+                    <value>initial_condition</value>
+                  </attribute>
+                  <attribute name="field_name">
+                    <data type="string"/>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+                <element name="type">
+                  <a:documentation>Source term. Note that the source term has to exist in both the forward and in the adjoint run (using the exist_in_both flag)</a:documentation>
+                  <attribute name="name">
+                    <value>source_term</value>
+                  </attribute>
+                  <attribute name="field_name">
+                    <data type="string"/>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+              </choice>
+              <optional>
+                <element name="bounds">
+                  <a:documentation>Defines bounds on the control variables.</a:documentation>
+                  <optional>
+                    <element name="upper_bound">
+                      <a:documentation>Defines an upper bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.</a:documentation>
+                      <attribute name="field_name">
+                        <data type="string"/>
+                      </attribute>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="lower_bound">
+                      <a:documentation>Defines an lower bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.</a:documentation>
+                      <attribute name="field_name">
+                        <data type="string"/>
+                      </attribute>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+            </element>
+          </zeroOrMore>
+          <optional>
+            <element name="load_controls">
+              <a:documentation>Load controls values from the control files.
+This is used for optimality only and should be left disabled.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
       <optional>
         <element name="debug">
           <a:documentation>Debugging options for adjoint model development</a:documentation>
@@ -154,6 +227,12 @@ This option creates an html file for both the forward and adjoint system.</a:doc
           <optional>
             <element name="check_action_transposes">
               <a:documentation>Check the transposes of all action callbacks.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="check_action_derivative">
+              <a:documentation>Check all supplied derivative callbacks of nonlinear operators.</a:documentation>
               <empty/>
             </element>
           </optional>
