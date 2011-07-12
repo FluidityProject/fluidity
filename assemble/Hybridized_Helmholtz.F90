@@ -356,6 +356,7 @@ contains
     if(.not.(present(d_rhs).or.present(u_rhs)))then
        rhs_loc(1:d_end) = matmul(local_solver_rhs,rhs_loc(1:d_end))
     end if
+    ewrite(1,*) 'rhs_loc',rhs_loc
     call solve(local_solver,Rhs_loc)
     lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
          &Rhs_loc)
@@ -470,20 +471,11 @@ contains
 
     call solve(local_solver,Rhs_loc)
 
-    if((present(d_rhs).or.present(u_rhs))) then
-       do dim1 = 1, mdim
-          call set(U,dim1,ele_nodes(u,ele),&
-               &Rhs_loc(u_start(dim1):u_end(dim1)))
-       end do
-       call set(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
-    else
-       !We are in timestepping mode, so update U and D with deltaU and deltaD
-       do dim1 = 1, mdim
-          call addto(U,dim1,ele_nodes(u,ele),&
-               &Rhs_loc(u_start(dim1):u_end(dim1)))
-       end do
-       call addto(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
-    end if
+    do dim1 = 1, mdim
+       call set(U,dim1,ele_nodes(u,ele),&
+            &Rhs_loc(u_start(dim1):u_end(dim1)))
+    end do
+    call set(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
 
   end subroutine reconstruct_U_d_ele
   
@@ -600,6 +592,10 @@ contains
     !pressure mass matrix (done in global coordinates)
     local_solver(d_start:d_end,d_start:d_end)=&
          &shape_shape(d_shape,d_shape,detwei)
+       if(present(local_solver_rhs)) then
+          local_solver_rhs(d_start:d_end,d_start:d_end) = &
+               shape_shape(d_shape,d_shape,detwei)
+       end if
     !divergence matrix (done in local coordinates)
     l_div_mat = dshape_shape(u_shape%dn,d_shape,&
          &D_shape%quadrature%weight)
@@ -609,14 +605,14 @@ contains
             & -g*dt*theta*l_div_mat(dim1,:,:)
        if(present(local_solver_rhs)) then
           local_solver_rhs(u_start(dim1):u_end(dim1),d_start:d_end)=&
-               & g*dt*l_div_mat(dim1,:,:)
+               & -g*(theta-1.0)*dt*l_div_mat(dim1,:,:)
        end if
        !divergence continuity term
        local_solver(d_start:d_end,u_start(dim1):u_end(dim1))=&
             & d0*dt*theta*transpose(l_div_mat(dim1,:,:))
        if(present(local_solver_rhs)) then
           local_solver_rhs(d_start:d_end,u_start(dim1):u_end(dim1))=&
-               & -d0*dt*transpose(l_div_mat(dim1,:,:))
+               & d0*(theta-1.0)*dt*transpose(l_div_mat(dim1,:,:))
        end if
     end do
 
@@ -634,7 +630,8 @@ contains
 
     if(present(local_solver_rhs)) then
        l_u_mat = shape_shape_tensor(u_shape, u_shape, &
-            u_shape%quadrature%weight, -dt*Metricf)
+            u_shape%quadrature%weight, &
+            Metric+(theta-1.0)*dt*Metricf)
 
        do dim1 = 1, mdim
           do dim2 = 1, mdim

@@ -107,7 +107,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.0</real_value>
+      <real_value rank="0">1.0</real_value>
     </timestep>
     <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
@@ -191,8 +191,8 @@
   x = X[0]
   y = X[1]
   [u,v,w]= [-sin(pi*x)*cos(pi*y),cos(pi*x)*sin(pi*y),0.0]
-  u = u + 1.0e-3*random()
-  v = v + 1.0e-3*random()
+  #u = u + 1.0e-3*random()
+  #v = v + 1.0e-3*random()
   return [u,v,w]</string_value>
           </python>
         </initial_condition>
@@ -316,24 +316,6 @@
           <exists_in_forward/>
         </adjoint_storage>
       </diagnostic>
-    </scalar_field>
-    <scalar_field name="LayerThicknessRHS" rank="0">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </prescribed>
     </scalar_field>
   </material_phase>
   <debug>

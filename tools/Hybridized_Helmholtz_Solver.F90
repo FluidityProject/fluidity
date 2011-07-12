@@ -148,7 +148,7 @@
        call solve_hybridized_helmholtz(&
             &state(1),&
             &compute_cartesian=.true.,&
-            &check_continuity=.true.,output_dense=.false.,dt=0.0)
+            &check_continuity=.true.,output_dense=.false.)
     end if
 
     dgified_D => extract_scalar_field(state(1), "LayerThicknessV",stat)

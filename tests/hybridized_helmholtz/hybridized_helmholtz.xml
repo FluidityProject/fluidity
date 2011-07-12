@@ -6,7 +6,7 @@
   <owner userid="colin"/>
   <tags>flml swml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line> hybridized_helmholtz_solver hybridized_helmholtz1.swml &gt; hh1.log 2&gt;&amp;1; hybridized_helmholtz_solver hybridized_helmholtz2.swml &gt; hh2.log 2&gt;&amp;1; hybridized_helmholtz_solver hybridized_helmholtz3.swml &gt; hh3.log 2&gt;&amp;1;
+    <command_line> hybridized_helmholtz_solver hybridized_helmholtz1.swml &gt; hh1.log 2&gt;&amp;1; hybridized_helmholtz_solver hybridized_helmholtz2.swml &gt; hh2.log 2&gt;&amp;1; hybridized_helmholtz_solver hybridized_helmholtz3.swml &gt; hh3.log 2&gt;&amp;1; hybridized_helmholtz_solver hh_check_energy.swml &gt; hh_energy.log 2&gt;&amp;1;
     </command_line>
   </problem_definition>
   <variables>
@@ -36,7 +36,7 @@ for line in f:
    if 'l2projectederror' in line:
       line = line.replace('l2projectederror','')
       errors[1,2] = double(line)
-f.close()
+f.close() 
 f = open('hh3.log', 'r')
 for line in f:
    if 'l_infty error' in line:
@@ -48,6 +48,14 @@ for line in f:
    if 'l2projectederror' in line:
       line = line.replace('l2projectederror','')
       errors[2,2] = double(line)
+    </variable>
+    <variable name="energy_change" language="python">
+from numpy import double
+f = open('hh_energy.log', 'r')
+for line in f:
+   if 'Change in energy:=' in line:
+      line = line.replace('Change in energy:=','')
+      energy_change = double(line)
     </variable>
   </variables>
   <pass_tests>
@@ -68,6 +76,9 @@ assert(errors[0,2]/errors[1,2] &gt; 3.95)
     </test>
     <test name="l2 second order projected convergence 2" language="python">
 assert(errors[1,2]/errors[2,2] &gt; 3.95)
+    </test>
+    <test name="Energy conserved in timestepping mode with theta=0.5" language="python">
+assert(abs(energy_change) &lt; 1.0e-12)
     </test>
   </pass_tests>
   <warn_tests>
