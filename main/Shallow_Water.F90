@@ -191,8 +191,13 @@
     ! Always output the initial conditions.
     call output_state(state)
 
-    call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
-    ewrite(2,*) 'Initial Energy:', energy
+      if(have_option("/material_phase::&
+           &Fluid/scalar_field::LagrangeMultiplier")) then
+         call compute_energy(state(1),energy)
+      else
+         call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+      end if
+      ewrite(2,*) 'Initial Energy:', energy
 
     timestep=0
     timestep_loop: do
@@ -233,7 +238,12 @@
 
     end do timestep_loop
 
-    call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+    if(have_option("/material_phase::&
+         &Fluid/scalar_field::LagrangeMultiplier")) then
+       call compute_energy(state(1),energy)
+    else
+       call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+    end if
     ewrite(2,*) 'Final Energy:', energy
 
     ! One last dump
@@ -344,12 +354,16 @@
          hybridized = .false.
       end if
 
-      call setup_wave_matrices(state(1),u_sparsity,wave_sparsity&
-           &,ct_sparsity, &
-           h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
-           div_mat,wave_mat,big_mat, &
-           dt,theta,D0,g)
-
+      if(.not.have_option("/material_phase::&
+           &Fluid/scalar_field::LagrangeMultiplier")) then
+         call setup_wave_matrices(state(1),u_sparsity,&
+              wave_sparsity,&
+              ct_sparsity,&
+              h_mass_mat,u_mass_mat,&
+              coriolis_mat,inverse_coriolis_mat,&
+              div_mat,wave_mat,big_mat, &
+              dt,theta,D0,g)
+      end if
       v_field => extract_vector_field(state(1), "Velocity")
       call project_cartesian_to_local(state(1), v_field)
       if (has_vector_field(state(1), "VelocitySource")) then
@@ -379,15 +393,19 @@
          call adjoint_register_initial_u_condition(balanced=.false.)
       end if
 
-      ! Set up the state of cached matrices
-      call insert(matrices, u_mass_mat, "LocalVelocityMassMatrix")
-      call insert(matrices, h_mass_mat, "LayerThicknessMassMatrix")
-      call insert(matrices, coriolis_mat, "CoriolisMatrix")
-      call insert(matrices, inverse_coriolis_mat, "InverseCoriolisMatrix")
-      call insert(matrices, div_mat, "DivergenceMatrix")
-      call insert(matrices, wave_mat, "WaveMatrix")
-      call insert(matrices, big_mat, "InverseBigMatrix")
+      if(.not.have_option("/material_phase::&
+           &Fluid/scalar_field::LagrangeMultiplier")) then
 
+         ! Set up the state of cached matrices
+         call insert(matrices, u_mass_mat, "LocalVelocityMassMatrix")
+         call insert(matrices, h_mass_mat, "LayerThicknessMassMatrix")
+         call insert(matrices, coriolis_mat, "CoriolisMatrix")
+         call insert(matrices, inverse_coriolis_mat,&
+              & "InverseCoriolisMatrix")
+         call insert(matrices, div_mat, "DivergenceMatrix")
+         call insert(matrices, wave_mat, "WaveMatrix")
+         call insert(matrices, big_mat, "InverseBigMatrix")
+      end if
       ! Also save the velocity and pressure mesh and the dimension
       eta => extract_scalar_field(state, "LayerThickness")
       u => extract_vector_field(state, "Velocity")
@@ -600,8 +618,12 @@
       end do
 
       !Update the variables
-
-      call get_linear_energy(state,u_mass_mat,h_mass_mat,d0,g,energy)
+      if(have_option("/material_phase::&
+           &Fluid/scalar_field::LagrangeMultiplier")) then
+         call compute_energy(state,energy)
+      else
+         call get_linear_energy(state,u_mass_mat,h_mass_mat,d0,g,energy)
+      end if
       ewrite(2,*) 'Energy = ',energy
 
       call deallocate(d_rhs)

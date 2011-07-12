@@ -356,7 +356,6 @@ contains
     if(.not.(present(d_rhs).or.present(u_rhs)))then
        rhs_loc(1:d_end) = matmul(local_solver_rhs,rhs_loc(1:d_end))
     end if
-    ewrite(1,*) 'rhs_loc',rhs_loc
     call solve(local_solver,Rhs_loc)
     lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
          &Rhs_loc)
@@ -1169,4 +1168,132 @@ contains
     !ewrite(1,*) 'div_loc', div_loc
     !ewrite(1,*) 'div', div
   end subroutine check_divergence_ele
+
+  subroutine compute_energy(state,energy)
+    implicit none
+    type(state_type), intent(inout) :: state
+    real, intent(inout) :: energy
+    !
+    type(scalar_field), pointer :: D
+    type(vector_field), pointer :: u,X
+    integer :: ele
+    real :: old_energy,g,d0
+
+    !get parameters
+    call get_option("/physical_parameters/gravity/magnitude", g)
+    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+         &rognostic/mean_layer_thickness",D0)
+
+    U=>extract_vector_field(state, "Velocity")
+    D => extract_scalar_field(state, "LayerThickness")
+    X=>extract_vector_field(state, "Coordinate")
+
+    old_energy = energy
+    energy = 0.
+
+    do ele = 1, element_count(X)
+       call compute_energy_ele(energy,U,D,X,D0,g,ele)
+    end do
+
+    ewrite(1,*) 'Energy:= ', energy
+    ewrite(1,*) 'Change in energy:= ', energy-old_energy
+
+  end subroutine compute_energy
+
+  subroutine compute_energy_ele(energy,U,D,X,D0,g,ele)
+    implicit none
+    real, intent(inout) :: energy
+    type(vector_field), intent(in) :: U,X
+    type(scalar_field), intent(in) :: D
+    integer, intent(in) :: ele
+    real, intent(in) :: D0,g
+    !
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(D,ele)) :: detwei
+    type(element_type) :: d_shape, u_shape, x_shape
+    real, dimension(ele_loc(U,ele),ele_loc(U,ele)) :: u_mass
+    real, dimension(ele_loc(D,ele),ele_loc(D,ele)) :: d_mass
+    real, dimension(u%dim,ele_loc(U,ele)) :: U_val
+    real, dimension(ele_loc(D,ele)) :: D_val
+    real, dimension(X%dim,ele_loc(X,ele)) :: X_val
+    integer :: dim1
+
+    U_val = ele_val(U,ele)
+    D_val = ele_val(D,ele)
+    X_val = ele_val(X,ele)
+
+    u_shape = ele_shape(u,ele)
+    d_shape = ele_shape(d,ele)
+    x_shape = ele_shape(X,ele)
+    call compute_jacobian(x_val,x_shape, J=J, &
+         detwei=detwei)
+
+    u_mass = shape_shape(u_shape,u_shape,detwei)
+    d_mass = shape_shape(d_shape,d_shape,detwei)
+
+    !kinetic energy
+    do dim1 = 1, u%dim
+       energy = energy + D0*dot_product(U_val(dim1,:),&
+            &matmul(u_mass,U_val(dim1,:)))
+    end do
+
+    energy = energy + g*dot_product(D_val,&
+         &matmul(D_mass,D_val))
+
+  end subroutine compute_energy_ele
+
+  subroutine set_velocity_from_geostrophic_balance_hybridized(&
+       &state)
+    implicit none
+    type(state_type), intent(in) :: state
+    !
+    type(scalar_field), pointer :: D,psi,f
+    type(vector_field), pointer :: U_local,down,X
+    integer :: ele
+    
+    D=>extract_scalar_field(state, "LayerThickness")
+    psi=>extract_scalar_field(state, "Streamfunction")
+    f=>extract_scalar_field(state, "Coriolis")
+    U_local=>extract_vector_field(state, "LocalVelocity")
+    X=>extract_vector_field(state, "Coordinate")
+    down=>extract_vector_field(state, "GravityDirection")
+    
+    do ele = 1, element_count(D)
+       call set_local_velocity_from_streamfunction_ele(&
+            &U_local,psi,ele)
+    end do
+
+  end subroutine set_velocity_from_geostrophic_balance_hybridized
+  
+  subroutine set_local_velocity_from_streamfunction_ele(&
+       &U_local,psi,ele)
+    implicit none
+    type(vector_field), intent(inout) :: U_local
+    type(scalar_field), intent(in) :: psi
+    integer, intent(in) :: ele
+    !
+    real, dimension(ele_loc(psi,ele)) :: psi_loc
+    real, dimension(mesh_dim(psi),ele_ngi(psi,ele)) :: dpsi_gi
+    real, dimension(mesh_dim(U_local),ele_loc(U_local,ele)) :: U_loc
+    real, dimension(ele_loc(U_local,ele),ele_loc(U_local,ele)) :: &
+         & l_mass_mat
+    type(element_type) :: u_shape, psi_shape
+    integer :: dim1,gi
+
+    u_shape = ele_shape(U_local,ele)
+    psi_shape = ele_shape(psi,ele)
+    !We can do everything in local coordinates since d commutes with pullback
+    l_mass_mat = shape_shape(u_shape,u_shape,U_local%mesh%shape%quadrature&
+         &%weight)
+    psi_loc = ele_val(psi,ele)
+    forall(dim1=1:U_local%dim,gi=1:ele_ngi(psi,ele))
+       dpsi_gi(dim1,gi) = sum(psi_loc*psi%mesh%shape%dn(:,gi,dim1))
+    end forall
+    U_loc = shape_vector_rhs(u_shape,dpsi_gi,U_local%mesh%shape%quadrature&
+         &%weight)
+    call solve(l_mass_mat,U_loc)
+    do dim1 = 1, U_local%dim
+       call set(U_local,dim1,ele_nodes(U_local,ele),U_loc(dim1,:))
+    end do
+  end subroutine set_local_velocity_from_streamfunction_ele
 end module hybridized_helmholtz
