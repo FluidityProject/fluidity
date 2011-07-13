@@ -278,6 +278,7 @@ start =
                   }
                }?,
                scalar_field_choice*
+               vector_field_choice*
             )
          },
         element mesh_adaptivity {
