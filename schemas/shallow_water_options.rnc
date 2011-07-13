@@ -9,6 +9,8 @@ include "adjoint_options.rnc"
 include "physical_parameters.rnc"
 include "mesh_options.rnc"
 include "prognostic_field_options.rnc"
+include "spatial_discretisation.rnc"
+include "temporal_discretisation.rnc"
 
 start =
    (

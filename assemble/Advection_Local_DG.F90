@@ -164,9 +164,6 @@ contains
     call construct_advection_dg(matrix, flux_mat, rhs, field_name, state, &
          mass, velocity_name=velocity_name)
 
-!    call matrix2file('A_'//trim(field_name), matrix)
-!    call matrix2file('flux_mat_'//trim(field_name), flux_mat)
-
     call get_dg_inverse_mass_matrix(inv_mass, mass)
     
     ! Note that since theta and dt are module global, these lines have to
@@ -197,30 +194,13 @@ contains
     if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter")) then
        limit_slope=.true.
+       limiter=LIMITER_VB
        
        ! Note unsafe for mixed element meshes
        if (element_degree(T,1)==0) then
           FLExit("Slope limiters make no sense for degree 0 fields")
        end if
 
-       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/slope_limiter/name",limiter_name)
-
-       select case(trim(limiter_name))
-       case("Cockburn_Shu")
-          limiter=LIMITER_COCKBURN
-       case("Hermite_Weno")
-          limiter=LIMITER_HERMITE_WENO
-       case("minimal")
-          limiter=LIMITER_MINIMAL
-       case("FPN")
-          limiter=LIMITER_FPN
-       case("Vertex_Based")
-          limiter=LIMITER_VB
-       case default
-          FLAbort('No such limiter')
-       end select
-       
     end if
 
     U_nl=>extract_vector_field(state, velocity_name)
@@ -233,11 +213,12 @@ contains
        call addto(delta_T, RHS, -1.0)
        ! dT = M^(-1) dT
        call dg_apply_mass(inv_mass, delta_T)
+       ewrite_minmax(delta_T)
        
        ! T = T + dt/s * dT
        call addto(T, delta_T, scale=-dt/subcycles)
        call halo_update(T)
-       ewrite_minmax(delta_T)
+
        if (limit_slope) then
           ! Filter wiggles from T
           call limit_slope_dg(T, U_nl, X, state, limiter)
@@ -433,14 +414,10 @@ contains
     type(element_type), pointer :: T_shape, U_shape
     ! Neighbours of this element.
     integer, dimension(:), pointer :: neigh
-    ! Whether the tracer field is continuous.
-    logical :: dg
 
     integer :: gi,i,j
 
     logical :: boundary_element
-
-    dg=continuity(T)<0
 
     !----------------------------------------------------------------------
     ! Establish local node lists
@@ -484,13 +461,6 @@ contains
       !    /                           /
       !  - | (grad T dot U_nl) T dV -  | T ( div U_nl ) T dV
       !    /                           /
-
-      Ad_mat1 = -dshape_dot_vector_shape(T_shape%dn, U_nl_q, T_shape, T_shape%quadrature%weight)
-      Ad_mat2 = -shape_shape(T_shape, T_shape, U_nl_div_q * T_shape%quadrature%weight)
-      print*, 'Ad_mat1'
-      print*, Ad_mat1
-      print*, 'Ad_mat2'
-      print*, Ad_mat2
       Advection_mat = -dshape_dot_vector_shape(T_shape%dn, U_nl_q, T_shape, T_shape%quadrature%weight)  &
            -shape_shape(T_shape, T_shape, U_nl_div_q * T_shape%quadrature%weight)
    else
@@ -645,13 +615,6 @@ contains
        U_f_q = face_val_at_quad(U_nl, face)
        U_f2_q = face_val_at_quad(U_nl, face_2)
 
-       if(local_face_number(T%mesh, face)==3) then
-          U_f_q=sqrt(2.)*U_f_q
-       end if
-       if(local_face_number(T%mesh, face_2)==3) then
-          U_f2_q=sqrt(2.)*U_f2_q
-       end if
-
        u_nl_q_dotn1 = sum(U_f_q*n1,1)
        u_nl_q_dotn2 = -sum(U_f2_q*n2,1)
        U_nl_q_dotn=0.5*(u_nl_q_dotn1+u_nl_q_dotn2)
@@ -674,16 +637,13 @@ contains
        inner_advection_integral = (1.-income)*u_nl_q_dotn
        nnAdvection_out=shape_shape(T_shape, T_shape,  &
             &                     inner_advection_integral*T_shape%quadrature%weight)
-       print*, 'js:nnAdvection_out:'
-       print*, nnAdvection_out
+
        ! now the integral around the outside of the element
        ! (this is the flux *in* to the element)
        outer_advection_integral = income*u_nl_q_dotn
        nnAdvection_in=shape_shape(T_shape, T_shape_2, &
             &                       outer_advection_integral*T_shape%quadrature%weight)
-       print*, 'js:nnAdvection_in:'
-       print*, nnAdvection_in
-       
+
     else if (include_advection.and.(flux_scheme==LAX_FRIEDRICHS_FLUX)) then
 
        FLExit("Haven't worked out Lax-Friedrichs yet")
@@ -737,6 +697,7 @@ contains
         integer, intent(in) :: face
         real, dimension(U_nl%dim, face_ngi(U_nl,face)) :: norm
 
+        real :: weight
         integer :: i
 
         if(U_nl%dim==1) then
@@ -756,6 +717,14 @@ contains
               FLAbort('Oh dear oh dear')
            end if
         end if
+
+        if(face==3) then
+           weight=sqrt(2.)
+        else
+           weight=1.
+        end if
+
+        norm=weight*norm
 
       end function get_normal
 
@@ -785,7 +754,7 @@ contains
     type(scalar_field) :: U_component
 
     !! Change in U over one timestep.
-    type(vector_field) :: delta_U
+    type(vector_field) :: delta_U, delta_U_tmp
 
     !! DG Courant number field
     type(scalar_field), pointer :: s_field
@@ -795,7 +764,7 @@ contains
     
     !! System matrices.
     type(block_csr_matrix) :: A, flux_mat, L, mass_local, inv_mass_local, &
-         inv_mass_cartesian, L_T, test
+         inv_mass_cartesian
 
     !! Sparsity of mass matrix.
     type(csr_sparsity) :: mass_sparsity
@@ -813,7 +782,7 @@ contains
     real :: max_courant_number
 
     character(len=FIELD_NAME_LEN) :: limiter_name
-    integer :: i, j, dim
+    integer :: i, j, dim, ele
 
     U=>extract_vector_field(state, field_name)
     U_old=>extract_vector_field(state, "Old"//field_name)
@@ -834,8 +803,6 @@ contains
     call zero(flux_mat)
     call allocate(L, sparsity, (/dim,X%dim/))
     call zero(L)
-    call allocate(test, sparsity, (/X%dim,X%dim/))
-    call zero(test)
 
     mass_sparsity=make_sparsity_dg_mass(U%mesh)
     call allocate(mass_local, mass_sparsity, (/dim,dim/))
@@ -847,6 +814,9 @@ contains
 
     ! Ensure delta_U inherits options from U.
     call allocate(delta_U, U%dim, U%mesh, "delta_U")
+    call zero(delta_U)
+    call allocate(delta_U_tmp, U%dim, U%mesh, "delta_U")
+    call zero(delta_U_tmp)
     delta_U%option_path = U_cartesian%option_path
     call allocate(rhs, U%dim, U%mesh, trim(field_name)//" RHS")
 
@@ -861,12 +831,6 @@ contains
          rhs, field_name, state, &
          velocity_name=velocity_name)
     
-    L_T=transpose(L,symmetric_sparsity=.false.)
-    test=matmul(L_T, A)
-    ewrite_minmax(test)
-!    call matrix2file('A', test)
-!    call matrix2file('flux', matmul(L_T, flux_mat))
-
     ! Note that since theta and dt are module global, these lines have to
     ! come after construct_advection_diffusion_dg.
     call get_option("/timestepping/timestep", dt)
@@ -897,31 +861,13 @@ contains
          "/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter")) then
        limit_slope=.true.
+       limiter=LIMITER_VB
        
        ! Note unsafe for mixed element meshes
        if (element_degree(U,1)==0) then
           FLExit("Slope limiters make no sense for degree 0 fields")
        end if
 
-       call get_option(trim(U_cartesian%option_path)//&
-            "/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/slope_limiter/name",limiter_name)
-
-       select case(trim(limiter_name))
-       case("Cockburn_Shu")
-          limiter=LIMITER_COCKBURN
-       case("Hermite_Weno")
-          limiter=LIMITER_HERMITE_WENO
-       case("minimal")
-          limiter=LIMITER_MINIMAL
-       case("FPN")
-          limiter=LIMITER_FPN
-       case("Vertex_Based")
-          limiter=LIMITER_VB
-       case default
-          FLAbort('No such limiter')
-       end select
-       
     end if
 
     print*, limit_slope
@@ -930,18 +876,29 @@ contains
 
        print*, 'subcycle=', i
 
-       call mult_t(U_cartesian_tmp, L, U)
-       call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
+!       call mult_t(U_cartesian_tmp, L, U)
+!       call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
+       call project_local_to_cartesian(X, U, U_cartesian)
        ! dU = Advection * U
-       call mult(delta_U, A, U_cartesian)
+       call mult(delta_U_tmp, A, U_cartesian)
        ! dU = dU + RHS
-       call addto(delta_U, RHS, -1.0)
+       call addto(delta_U_tmp, RHS, -1.0)
        ! dU = M^(-1) dU
-       call dg_apply_mass(inv_mass_local, delta_U)
+       call mult(delta_U, inv_mass_local, delta_U_tmp)
+!       call mult_t(U_cartesian_tmp, L, delta_U)
+!       call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
+       call project_local_to_cartesian(X, delta_U, U_cartesian)
+!       print*, 'here!'
+!       do ele=1,element_count(delta_U)
+!          print*, ele_nodes(delta_U, ele)
+!          print*, ele_val(X,ele)
+!       end do
+!       do j=1, node_count(delta_U)
+!          print*, U_cartesian%val(1,j), U_cartesian%val(2,j)
+!       end do
 
        ! U = U + dt/s * dU
        call addto(U, delta_U, scale=-dt/subcycles)
-       ewrite_minmax(delta_U)
        call halo_update(U)
        if (limit_slope) then
 
@@ -1021,10 +978,6 @@ contains
     ! These names are based on the CGNS SIDS.
     U=extract_vector_field(state, field_name)
     X=extract_vector_field(state, "Coordinate")
-
-    if (.not.U%mesh%shape%degree==1) then
-       FLAbort('This bit only works for linear elements at the moment')
-    end if
 
     if(present(velocity_name)) then
       lvelocity_name = velocity_name
@@ -1314,6 +1267,7 @@ contains
     integer, dimension(:,:), intent(in):: bc_type
 
     ! Face objects and numberings.
+    type(csr_matrix) :: A_block
     type(element_type), pointer :: U_shape, U_shape_2
     integer, dimension(face_loc(U,face)) :: U_face, U_face_l
     integer, dimension(face_loc(U,face_2)) :: U_face_2
@@ -1344,7 +1298,6 @@ contains
     dim=mesh_dim(U)
 
     U_face=face_global_nodes(U, face)
-    U_face_l=face_local_nodes(U, face)
     U_shape=>face_shape(U, face)
 
     U_face_2=face_global_nodes(U, face_2)
@@ -1365,13 +1318,6 @@ contains
     U_nl_f_q = face_val_at_quad(U_nl, face)
     U_nl_f2_q = face_val_at_quad(U_nl, face_2)
 
-    if(local_face_number(U%mesh, face)==3) then
-       U_nl_f_q=sqrt(2.)*U_nl_f_q
-    end if
-    if(local_face_number(U%mesh, face_2)==3) then
-       U_nl_f2_q=sqrt(2.)*U_nl_f2_q
-    end if
-
     u_nl_q_dotn1_l = sum(U_nl_f_q*n1_l,1)
     u_nl_q_dotn2_l = -sum(U_nl_f2_q*n2_l,1)
     U_nl_q_dotn_l=0.5*(u_nl_q_dotn1_l+u_nl_q_dotn2_l)
@@ -1384,8 +1330,15 @@ contains
     ! Calculate tensor on face
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei=detwei, J=J, detJ=detJ)
     forall(gi=1:face_ngi(X,face))
-       J_scaled(:,:,gi)=J(:,:,1)!/detJ(1)
+       J_scaled(:,:,gi)=J(:,:,1)/detJ(1)
     end forall
+!    print*, 'detJ: ', detJ(1)
+!    print*, 'J_scaled:'
+!    do i=1, size(J_scaled,1)
+!       do k=1, size(J_scaled,2)
+!          print*, J_scaled(i,k,:)
+!       end do
+!    end do
 
     ! Get outward pointing normals for each element
 !    call transform_facet_to_physical(X, face, normal=n1)
@@ -1411,22 +1364,35 @@ contains
     inner_advection_integral = -income*u_nl_q_dotn_l
     nnAdvection_out=shape_shape_tensor(U_shape, U_shape,  &
          &            inner_advection_integral*U_shape%quadrature%weight, J_scaled)
-
+    
+!    do dim1 = 1, dim
+!       do dim2 = 1, X%dim
+!          write(11,*), dim1, dim2
+!          write(11,*), 'vector out: ', nnAdvection_out(dim1,dim2,:,:)
+!       end do
+!    end do
     ! now the integral around the outside of the element
     ! (this is the flux *in* to the element)
     outer_advection_integral = income*u_nl_q_dotn_l
     nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
          &            outer_advection_integral*U_shape%quadrature%weight, J_scaled)
+!    do dim1 = 1, dim
+!       do dim2 = 1, X%dim
+!          write(11,*), dim1, dim2
+!          write(11,*), 'vector in: ', nnAdvection_in(dim1,dim2,:,:)
+!       end do
+!    end do
        
     !----------------------------------------------------------------------
     ! Perform global assembly.
     !----------------------------------------------------------------------
 
     ! Insert advection in matrix.
-    
+
     ! Outflow boundary integral.
     do dim1 = 1, dim
        do dim2 = 1, X%dim
+!          print*, dim1, dim2, nnAdvection_out(dim1,dim2,:,:)
           call addto(A, dim1, dim2, U_face, U_face, nnAdvection_out(dim1,dim2,:,:))
        end do
     end do
@@ -1434,8 +1400,10 @@ contains
     ! Inflow boundary integral.
     do dim1 = 1, dim
        do dim2 = 1, X%dim
+!          print*, dim1, dim2, nnAdvection_in(dim1,dim2,:,:)
           call addto(A, dim1, dim2, U_face, U_face_2, nnAdvection_in(dim1,dim2,:,:))
-       end do
+          A_block=block(A,dim1,dim2)
+        end do
     end do
 
     ! Outflow boundary integral.
@@ -1459,6 +1427,7 @@ contains
         integer, intent(in) :: face
         real, dimension(U_nl%dim, face_ngi(U_nl,face)) :: norm
 
+        real :: weight
         integer :: i
 
         if(U_nl%dim==1) then
@@ -1478,6 +1447,14 @@ contains
               FLAbort('Oh dear oh dear')
            end if
         end if
+
+        if(face==3) then
+           weight=sqrt(2.)
+        else
+           weight=1.
+        end if
+
+        norm=weight*norm
 
       end function get_normal
 

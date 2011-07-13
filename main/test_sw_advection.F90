@@ -106,7 +106,8 @@
     integer :: timestep, nonlinear_iterations
     integer :: ierr
 
-    type(vector_field), pointer :: v_field
+    type(vector_field), pointer :: v_field, v_field_init
+    type(scalar_field), pointer :: u_x, u_y
     !! Sparsity for matrices.
     type(csr_sparsity) :: ct_sparsity,u_sparsity,wave_sparsity
 
@@ -184,9 +185,23 @@
        FLExit("Multiple material_phases are not supported")
     end if
 
-!    call calculate_diagnostic_variables(state)
-!    call calculate_diagnostic_variables_new(state)
+    call calculate_diagnostic_variables(state)
+    call calculate_diagnostic_variables_new(state)
 
+    v_field =>  extract_vector_field(state(1), "Velocity")
+    if(has_vector_field(state(1), "InitialVelocity")) then
+       v_field_init => extract_vector_field(state(1), "InitialVelocity")
+       call set(v_field, v_field_init)
+    end if
+    ewrite_minmax(v_field)
+!    call project_cartesian_to_local(state(1), v_field)
+
+    u_x=>extract_scalar_field(state(1), "Ux")
+    u_y=>extract_scalar_field(state(1), "Uy")
+
+    call set(u_x, v_field, 1)
+    call set(u_y, v_field, 2)
+    call project_cartesian_to_local(state(1), v_field)
     ! Always output the initial conditions.
     call output_state(state)
 
@@ -217,10 +232,10 @@
        if(.not. prescribed_velocity) then
           call project_local_to_cartesian(state(1))
        end if
-!       call calculate_diagnostic_variables(state,&
-!            & exclude_nonrecalculated = .true.)
-!       call calculate_diagnostic_variables_new(state,&
-!            & exclude_nonrecalculated = .true.)
+       call calculate_diagnostic_variables(state,&
+            & exclude_nonrecalculated = .true.)
+       call calculate_diagnostic_variables_new(state,&
+            & exclude_nonrecalculated = .true.)
        call adjoint_register_timestep(timestep, dt, state)
 
        call advance_current_time(current_time, dt)
@@ -346,14 +361,8 @@
       v_field => extract_vector_field(state(1), "Velocity")
       call project_cartesian_to_local(state(1), v_field)
 
-      u_x=>extract_scalar_field(state(1), "Ux")
-      u_y=>extract_scalar_field(state(1), "Uy")
-
-      call set(u_x, v_field, 1)
-      call set(u_y, v_field, 2)
-
       if (has_vector_field(state(1), "VelocitySource")) then
-                v_field => extract_vector_field(state(1), "VelocitySource")
+         v_field => extract_vector_field(state(1), "VelocitySource")
         call project_cartesian_to_local(state(1), v_field)
       end if
 
