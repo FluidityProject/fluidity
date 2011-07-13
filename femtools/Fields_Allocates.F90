@@ -36,7 +36,8 @@ use halos_allocates
 use halos_repair
 use pickers_deallocates
 use adjacency_lists
-use global_numbering, only: make_global_numbering, make_global_numbering_dg
+use global_numbering, only: make_global_numbering, make_global_numbering_dg,&
+     &make_global_numbering_trace
 use memory_diagnostics
 use ieee_arithmetic
 use data_structures
@@ -537,7 +538,7 @@ contains
 #endif
 
 #ifdef DDEBUG
-         field%val = ieee_get_value(0.0, ieee_quiet_nan)
+         field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif
          deallocate(field%val)
       end if
@@ -548,7 +549,7 @@ contains
 #endif
 
 #ifdef DDEBUG
-      field%val = ieee_get_value(0.0, ieee_quiet_nan)
+      field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif
       deallocate(field%val)
     case(FIELD_TYPE_PYTHON)
@@ -599,7 +600,7 @@ contains
       select case(field%field_type)
       case(FIELD_TYPE_NORMAL,FIELD_TYPE_CONSTANT)
 #ifdef DDEBUG
-        field%val = ieee_get_value(0.0, ieee_quiet_nan)
+        field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif          
 #ifdef HAVE_MEMORY_STATS
            call register_deallocation("vector_field", "real", &
@@ -659,7 +660,7 @@ contains
 #endif
 
 #ifdef DDEBUG
-         field%val = ieee_get_value(0.0, ieee_quiet_nan)
+         field%val = ieee_value(0.0, ieee_quiet_nan)
 #endif
          deallocate(field%val)
       case(FIELD_TYPE_DEFERRED)
@@ -871,7 +872,7 @@ contains
     
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
-    integer :: i, input_nodes
+    integer :: i, input_nodes, n_faces
 
     if (present(continuity)) then
        mesh%continuity=continuity
@@ -892,7 +893,8 @@ contains
     call incref(mesh%shape)
 
     ! You can't have a CG degree 0 mesh!
-    if(mesh%shape%degree==0.and.mesh%continuity>=0) then
+    if(mesh%shape%degree==0.and.mesh%continuity>=0.and.mesh%shape&
+         &%numbering%type/=ELEMENT_TRACE) then
       FLExit("For a P0 mesh, the 'mesh_continuity' must be Discontinuous.")
     end if
 
@@ -956,33 +958,35 @@ contains
        end if
 
     else
-       ! Make a discontinuous field.
-       allocate(mesh%ndglno(mesh%shape%loc*model%elements))
+       !trace fields have continuity -1 but aren't like DG
+       if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
+          ! Make a discontinuous field.
+          allocate(mesh%ndglno(mesh%shape%loc*model%elements))
 #ifdef HAVE_MEMORY_STATS
-       call register_allocation("mesh_type", "integer", &
-            size(mesh%ndglno), name=name)
+          call register_allocation("mesh_type", "integer", &
+               size(mesh%ndglno), name=name)
 #endif
-
-       if (associated(model%halos)) then
-          assert(associated(model%element_halos))
-          allocate(mesh%halos(size(model%halos)))
-
-
-          call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
-               mesh%elements, mesh%shape, model%element_halos, &
-               mesh%halos)
-
-          allocate(mesh%element_halos(size(model%element_halos)))
-          do i=1,size(mesh%element_halos)
-             mesh%element_halos(i)=model%element_halos(i)
-             call incref(mesh%element_halos(i))
-          end do
-
-       else
-          
-          call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
-               mesh%elements, mesh%shape)
-
+          if (associated(model%halos)) then
+             assert(associated(model%element_halos))
+             allocate(mesh%halos(size(model%halos)))
+             
+             
+             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
+                  mesh%elements, mesh%shape, model%element_halos, &
+                  mesh%halos)
+             
+             allocate(mesh%element_halos(size(model%element_halos)))
+             do i=1,size(mesh%element_halos)
+                mesh%element_halos(i)=model%element_halos(i)
+                call incref(mesh%element_halos(i))
+             end do
+             
+          else
+             
+             call make_global_numbering_DG(mesh%nodes, mesh%ndglno, &
+                  mesh%elements, mesh%shape)
+             
+          end if
        end if
     end if
 
@@ -1002,6 +1006,24 @@ contains
       call add_faces(mesh, model)
     end if
 
+    if (mesh%shape%numbering%type==ELEMENT_TRACE) then
+       select case(mesh%shape%numbering%family)
+       case(FAMILY_SIMPLEX)          
+          n_faces = mesh%shape%dim + 1
+       case(FAMILY_CUBE)
+          n_faces = 2**mesh%shape%dim
+       case default
+          FLExit('Element family not supported for trace elements')
+       end select
+       allocate(mesh%ndglno(mesh%elements*n_faces*mesh%faces%shape%loc))
+       call make_global_numbering_trace(mesh)
+       call create_surface_mesh(mesh%faces%surface_mesh, &
+            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
+#ifdef HAVE_MEMORY_STATS
+       call register_allocation("mesh_type", "integer", &
+            size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
+#endif
+    end if
     call addref(mesh)
 
   end function make_mesh
@@ -1269,17 +1291,19 @@ contains
       end if
     end if
       
-    ! this is a surface mesh consisting of all exterior faces
-    !    which is often used and therefore created in advance
-    ! this also create a surface_node_list which can be used
-    !    as a mapping between the node numbering of this surface mesh
-    !    and the node numbering of the full mesh
-    call create_surface_mesh(mesh%faces%surface_mesh, &
-       mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
+    if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
+       ! this is a surface mesh consisting of all exterior faces
+       !    which is often used and therefore created in advance
+       ! this also create a surface_node_list which can be used
+       !    as a mapping between the node numbering of this surface mesh
+       !    and the node numbering of the full mesh
+       call create_surface_mesh(mesh%faces%surface_mesh, &
+            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
 #ifdef HAVE_MEMORY_STATS
-    call register_allocation("mesh_type", "integer", &
-         size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
+       call register_allocation("mesh_type", "integer", &
+            size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
 #endif
+    end if
 
   end subroutine add_faces
 

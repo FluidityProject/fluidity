@@ -482,7 +482,7 @@ contains
     integer :: ele
     !! Reference element of which the derivatives are to be transformed
     type(element_type), intent(in) :: shape
-    !! Derivatives of this shape function transformed to physical space
+    !! Derivatives of this shape function transformed to physical space (loc x ngi x dim)
     real, dimension(:,:,:), intent(out) ::  dshape
     
     !! Quadrature weights for physical coordinates.
@@ -1111,11 +1111,11 @@ contains
        case(1)
           detJ=1.0
        case(2)
-          select case(X%dim)
+          select case (X%dim)
           case(2)
              detJ = sqrt(J(1,1)**2 + J(2,1)**2)
           case(3)
-             detJ = sqrt(sum(J(:,1)**2)) 
+             detJ = sqrt(sum(J(:,1)**2))
           case default
              FLAbort("Unsupported dimension specified")
           end select

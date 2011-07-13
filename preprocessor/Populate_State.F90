@@ -524,6 +524,8 @@ contains
              from_shape_type=ELEMENT_LAGRANGIAN
            else if(trim(shape_type)=="bubble") then
              from_shape_type=ELEMENT_BUBBLE
+          else if(trim(shape_type)=="trace") then
+             from_shape_type=ELEMENT_TRACE
            end if
            ! If new_shape_type does not match model mesh shape type, make new mesh.
            if(from_shape_type == model_mesh%shape%numbering%type) then
@@ -762,9 +764,10 @@ contains
     character(len=*), intent(in):: mesh_path
     
     character(len=FIELD_NAME_LEN) :: mesh_name
-    character(len=OPTION_PATH_LEN) :: continuity_option, element_option
+    character(len=OPTION_PATH_LEN) :: continuity_option, element_option, constraint_option_string
     type(quadrature_type):: quad
     type(element_type):: shape
+    integer :: constraint_choice
     integer:: loc, dim, poly_degree, continuity, new_shape_type, quad_degree, stat
     logical :: new_shape
     
@@ -780,6 +783,8 @@ contains
            new_shape_type=ELEMENT_LAGRANGIAN
         else if(trim(element_option)=="bubble") then
            new_shape_type=ELEMENT_BUBBLE
+        else if(trim(element_option)=="trace") then
+           new_shape_type=ELEMENT_TRACE
         end if
       else
         new_shape_type=from_mesh%shape%numbering%type
@@ -797,8 +802,24 @@ contains
       call get_option("/geometry/quadrature/degree",&
            & quad_degree)
       quad=make_quadrature(loc, dim, degree=quad_degree, family=get_quad_family())
+      ! Get element constraints
+      call get_option(trim(mesh_path)//"/from_mesh/constraint_type",&
+           constraint_option_string, stat)
+      if(stat==0) then
+         if(trim(constraint_option_string)=="BDFM") then
+            constraint_choice=CONSTRAINT_BDFM
+         else if(trim(constraint_option_string)=="RT") then
+            constraint_choice=CONSTRAINT_RT
+         else if(trim(constraint_option_string)=="none") then
+            constraint_choice=CONSTRAINT_NONE
+         end if
+      else
+         constraint_choice = CONSTRAINT_NONE
+      end if
+      
       ! Make new mesh shape
-      shape=make_element_shape(loc, dim, poly_degree, quad, type=new_shape_type)
+      shape=make_element_shape(loc, dim, poly_degree, quad,&
+           &type=new_shape_type,constraint_type_choice=constraint_choice)
       call deallocate(quad) ! Really just drop a reference.
     else
       shape=from_mesh%shape

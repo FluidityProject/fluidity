@@ -44,16 +44,13 @@ module advection_local_DG
   use vtk_interfaces
   use Coordinates
   use petsc_solve_state_module
-  use boundary_conditions
-  use boundary_conditions_from_options
   use spud
-  use upwind_stabilisation
   use slope_limiters_dg
   use sparsity_patterns
   use sparse_matrices_fields
   use sparsity_patterns_meshes
-  use manifold_projections
   use Vector_Tools
+  use manifold_projections
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
 
@@ -68,26 +65,12 @@ module advection_local_DG
   ! Local private control parameters. These are module-global parameters
   ! because it would be expensive and/or inconvenient to re-evaluate them
   ! on a per-element or per-face basis
-  real :: dt, theta
+  real :: dt
 
   ! Whether to include various terms
   logical :: include_advection
-  ! Discretisation to use for advective flux.
-  integer :: flux_scheme
-  integer, parameter :: UPWIND_FLUX=1
-  integer, parameter :: LAX_FRIEDRICHS_FLUX=2
   
-  ! Boundary condition types:
-  ! (the numbers should match up with the order in the 
-  !  get_entire_boundary_condition call)
-  integer :: BCTYPE_WEAKDIRICHLET=1, BCTYPE_DIRICHLET=2
-
   logical :: include_mass
-
-  ! Stabilisation schemes.
-  integer :: stabilisation_scheme
-  integer, parameter :: NONE=0
-  integer, parameter :: UPWIND=1
 
 contains
 
@@ -118,7 +101,7 @@ contains
     type(csr_sparsity), pointer :: sparsity
     
     !! System matrix.
-    type(csr_matrix) :: matrix, flux_mat, mass, inv_mass
+    type(csr_matrix) :: matrix, mass, inv_mass
 
     !! Sparsity of mass matrix.
     type(csr_sparsity) :: mass_sparsity
@@ -149,24 +132,27 @@ contains
 
     call allocate(matrix, sparsity) ! Add data space to the sparsity
     ! pattern.
-    call allocate(flux_mat, sparsity)
-    call zero(flux_mat)
+    call zero(matrix)
 
     mass_sparsity=make_sparsity_dg_mass(T%mesh)
     call allocate(mass, mass_sparsity)
+    call zero(mass)
     call allocate(inv_mass, mass_sparsity)
+    call zero(inv_mass)
 
     ! Ensure delta_T inherits options from T.
     call allocate(delta_T, T%mesh, "delta_T")
+    call zero(delta_T)
     delta_T%option_path = T%option_path
     call allocate(rhs, T%mesh, trim(field_name)//" RHS")
-   
-    call construct_advection_dg(matrix, flux_mat, rhs, field_name, state, &
+    call zero(rhs)
+
+    call construct_advection_dg(matrix, rhs, field_name, state, &
          mass, velocity_name=velocity_name)
 
     call get_dg_inverse_mass_matrix(inv_mass, mass)
     
-    ! Note that since theta and dt are module global, these lines have to
+    ! Note that since dt is module global, these lines have to
     ! come after construct_advection_diffusion_dg.
     call get_option("/timestepping/timestep", dt)
     
@@ -235,7 +221,7 @@ contains
 
   end subroutine solve_advection_dg_subcycle
 
-  subroutine construct_advection_dg(big_m, flux_mat, rhs, field_name,&
+  subroutine construct_advection_dg(big_m, rhs, field_name,&
        & state, mass, velocity_name) 
     !!< Construct the advection equation for discontinuous elements in
     !!< acceleration form.
@@ -245,7 +231,7 @@ contains
     !!< or for solving equations otherwise than in acceleration form.
 
     !! Main advection matrix.    
-    type(csr_matrix), intent(inout) :: big_m, flux_mat
+    type(csr_matrix), intent(inout) :: big_m
     !! Right hand side vector.
     type(scalar_field), intent(inout) :: rhs
     
@@ -271,12 +257,6 @@ contains
 
     !! Status variable for field extraction.
     integer :: stat
-
-    !! Field over the entire surface mesh containing bc values:
-    type(scalar_field) :: bc_value
-    !! Integer array of all surface elements indicating bc type
-    !! (see below call to get_entire_boundary_condition):
-    integer, dimension(:), allocatable :: bc_type
 
     ewrite(1,*) "Writing advection equation for "&
          &//trim(field_name)
@@ -308,73 +288,40 @@ contains
        include_advection=.false.
     end if
 
-    flux_scheme=UPWIND_FLUX
-    if (have_option(trim(T%option_path)//"/prognostic&
-         &/spatial_discretisation/discontinuous_galerkin&
-         &/advection_scheme/lax_friedrichs")) then
-       flux_scheme=LAX_FRIEDRICHS_FLUX
-    end if
-
     include_mass = .not. have_option(trim(T%option_path)//&
            "/prognostic/spatial_discretisation/discontinuous_galerkin/mass_terms/exclude_mass_terms")
            
-    ! Switch on upwind stabilisation if requested.
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/upwind_stabilisation")) then
-       stabilisation_scheme=UPWIND
-    else
-       stabilisation_scheme=NONE
-    end if
-
     assert(has_faces(X%mesh))
     assert(has_faces(T%mesh))
     
-    ! Enquire about boundary conditions we're interested in
-    ! Returns an integer array bc_type over the surface elements
-    ! that indicates the bc type (in the order we specified, i.e.
-    ! BCTYPE_WEAKDIRICHLET=1)
-    allocate( bc_type(1:surface_element_count(T)) )
-    call get_entire_boundary_condition(T, &
-       & (/"weakdirichlet"/), &
-       & bc_value, bc_type)
-
     call zero(big_m)
     call zero(RHS)
     if (present(mass)) call zero(mass)
 
     element_loop: do ele=1,element_count(T)
        
-       call construct_adv_element_dg(ele, big_m, flux_mat, rhs,&
-            & X, T, U_nl, &
-            bc_value, bc_type, mass)
+       call construct_adv_element_dg(ele, big_m, rhs,&
+            & X, T, U_nl, mass)
        
     end do element_loop
     
     ! Drop any extra field references.
 
     call deallocate(U_nl)
-    call deallocate(bc_value)
 
   end subroutine construct_advection_dg
 
-  subroutine construct_adv_element_dg(ele, big_m, flux_mat, rhs,&
-       & X, T, U_nl, &
-       & bc_value, bc_type, &
-       & mass)
+  subroutine construct_adv_element_dg(ele, big_m, rhs,&
+       & X, T, U_nl, mass)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
     !! Index of current element
     integer :: ele
     !! Main advection matrix.
-    type(csr_matrix), intent(inout) :: big_m, flux_mat
+    type(csr_matrix), intent(inout) :: big_m
     !! Right hand side vector.
     type(scalar_field), intent(inout) :: rhs
-    !! Field over the entire surface mesh containing bc values:
-    type(scalar_field), intent(in):: bc_value
-    !! Integer array of all surface elements indicating bc type
-    !! (see above call to get_entire_boundary_condition):
-    integer, dimension(:), intent(in):: bc_type
     !! Optional separate mass matrix.
     type(csr_matrix), intent(inout), optional :: mass
     
@@ -416,8 +363,6 @@ contains
     integer, dimension(:), pointer :: neigh
 
     integer :: gi,i,j
-
-    logical :: boundary_element
 
     !----------------------------------------------------------------------
     ! Establish local node lists
@@ -496,9 +441,6 @@ contains
     
    neigh=>ele_neigh(T, ele)
 
-   ! Flag for whether this is a boundary element.
-   boundary_element=.false.
-
    neighbourloop: do ni=1,size(neigh)
 
       !----------------------------------------------------------------------
@@ -521,37 +463,28 @@ contains
       else
          ! External face.
          face_2=face
-         boundary_element=.true.
       end if
 
       call construct_adv_interface_dg(ele, face, face_2,&
-           & big_m, flux_mat, rhs, X, T, U_nl,&
-           & bc_value, bc_type)
+           & big_m, rhs, X, T, U_nl)
 
    end do neighbourloop
     
  end subroutine construct_adv_element_dg
   
   subroutine construct_adv_interface_dg(ele, face, face_2, &
-       big_m, flux_mat, rhs, &
-       & X, T, U_nl,&
-       & bc_value, bc_type)
+       big_m, rhs, X, T, U_nl)
 
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
     implicit none
 
     integer, intent(in) :: ele, face, face_2
-    type(csr_matrix), intent(inout) :: big_m, flux_mat
+    type(csr_matrix), intent(inout) :: big_m
     type(scalar_field), intent(inout) :: rhs
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U_nl
     type(scalar_field), intent(in) :: T
-   !! Field over the entire surface mesh containing bc values:
-    type(scalar_field), intent(in):: bc_value
-    !! Integer array of all surface elements indicating bc type
-    !! (see above call to get_entire_boundary_condition):
-    integer, dimension(:), intent(in):: bc_type
 
     ! Face objects and numberings.
     type(element_type), pointer :: T_shape, T_shape_2
@@ -575,11 +508,8 @@ contains
     real, dimension(face_loc(T,face),face_loc(T,face)) :: nnAdvection_out
     real, dimension(face_loc(T,face),face_loc(T,face_2)) :: nnAdvection_in
 
-    logical :: boundary, dirichlet
-
-    ! Lax-Friedrichs flux parameter
-    real :: C
-
+    ! Normal weights
+    real :: w1, w2
     integer :: i
 
     T_face=face_global_nodes(T, face)
@@ -589,34 +519,25 @@ contains
     T_face_2=face_global_nodes(T, face_2)
     T_shape_2=>face_shape(T, face_2)
     
-    ! Boundary nodes have both faces the same.
-    boundary=(face==face_2)
-    dirichlet=.false.
-    if (boundary) then
-       if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
-         dirichlet=.true.
-       end if
-    end if
-
     !Unambiguously calculate the normal using the face with the higher
     !face number. This is so that the normal is identical on both sides.
     ! Jemma: need to be more careful here - actually have to calculate normal for face2
 
-    n1=get_normal(local_face_number(T%mesh,face))
-    n2=get_normal(local_face_number(T%mesh,face_2))
+    call get_local_normal(n1, w1, T, local_face_number(T%mesh,face))
+    call get_local_normal(n2, w2, T, local_face_number(T%mesh,face_2))
     
     !----------------------------------------------------------------------
     ! Construct element-wise quantities.
     !----------------------------------------------------------------------
 
-    if (include_advection.and.(flux_scheme==UPWIND_FLUX)) then
+    if (include_advection) then
        
        ! Advecting velocity at quadrature points.
        U_f_q = face_val_at_quad(U_nl, face)
        U_f2_q = face_val_at_quad(U_nl, face_2)
 
-       u_nl_q_dotn1 = sum(U_f_q*n1,1)
-       u_nl_q_dotn2 = -sum(U_f2_q*n2,1)
+       u_nl_q_dotn1 = sum(U_f_q*w1*n1,1)
+       u_nl_q_dotn2 = -sum(U_f2_q*w2*n2,1)
        U_nl_q_dotn=0.5*(u_nl_q_dotn1+u_nl_q_dotn2)
 
        ! Inflow is true if the flow at this gauss point is directed
@@ -644,10 +565,6 @@ contains
        nnAdvection_in=shape_shape(T_shape, T_shape_2, &
             &                       outer_advection_integral*T_shape%quadrature%weight)
 
-    else if (include_advection.and.(flux_scheme==LAX_FRIEDRICHS_FLUX)) then
-
-       FLExit("Haven't worked out Lax-Friedrichs yet")
-
     end if
 
     !----------------------------------------------------------------------
@@ -661,72 +578,11 @@ contains
        call addto(big_M, T_face, T_face,&
             nnAdvection_out)
        
-       if (.not.dirichlet) then
-          ! Inflow boundary integral.
-          call addto(big_M, T_face, T_face_2,&
-               nnAdvection_in)
-       end if
+       ! Inflow boundary integral.
+       call addto(big_M, T_face, T_face_2,&
+            nnAdvection_in)
 
-       ! Outflow boundary integral.
-       call addto(flux_mat, T_face, T_face,&
-            nnAdvection_out)
-       
-       if (.not.dirichlet) then
-          ! Inflow boundary integral.
-          call addto(flux_mat, T_face, T_face_2,&
-               nnAdvection_in)
-       end if
-
-       ! Insert advection in RHS.
-       
-       if (dirichlet) then
-
-          ! Inflow and outflow of Dirichlet value.
-          call addto(RHS, T_face, &
-               -matmul(nnAdvection_in,&
-               ele_val(bc_value, face)))
-          
-       end if
-       
     end if
-
-    contains
-
-      function get_normal(face) result(norm)
-
-        integer, intent(in) :: face
-        real, dimension(U_nl%dim, face_ngi(U_nl,face)) :: norm
-
-        real :: weight
-        integer :: i
-
-        if(U_nl%dim==1) then
-           if(face==1) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1,i)=1.
-           else if(face==2) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1,i)=-1.
-           end if
-        else if(U_nl%dim==2) then
-           if(face==1) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1:2,i)=(/-1.,0./)
-           else if(face==2) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1:2,i)=(/0.,-1./)
-           else if(face==3) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1:2,i)=(/1/sqrt(2.),1/sqrt(2.)/)
-           else
-              FLAbort('Oh dear oh dear')
-           end if
-        end if
-
-        if(face==3) then
-           weight=sqrt(2.)
-        else
-           weight=1.
-        end if
-
-        norm=weight*norm
-
-      end function get_normal
 
   end subroutine construct_adv_interface_dg
 
@@ -763,7 +619,7 @@ contains
     type(csr_sparsity), pointer :: sparsity
     
     !! System matrices.
-    type(block_csr_matrix) :: A, flux_mat, L, mass_local, inv_mass_local, &
+    type(block_csr_matrix) :: A, L, mass_local, inv_mass_local, &
          inv_mass_cartesian
 
     !! Sparsity of mass matrix.
@@ -799,8 +655,6 @@ contains
     ! Add data space to the sparsity pattern.
     call allocate(A, sparsity, (/dim,X%dim/))
     call zero(A)
-    call allocate(flux_mat, sparsity, (/dim,X%dim/))
-    call zero(flux_mat)
     call allocate(L, sparsity, (/dim,X%dim/))
     call zero(L)
 
@@ -819,6 +673,7 @@ contains
     call zero(delta_U_tmp)
     delta_U%option_path = U_cartesian%option_path
     call allocate(rhs, U%dim, U%mesh, trim(field_name)//" RHS")
+    call zero(rhs)
 
     ! allocate temp velocity fields
     call allocate(U_tmp, U%dim, U%mesh, 'tmpU')
@@ -826,12 +681,12 @@ contains
     call allocate(U_cartesian_tmp, U_cartesian%dim, U_cartesian%mesh, 'tmpUcartesian')
     call zero(U_cartesian_tmp)
    
-    call construct_vector_advection_dg(A, flux_mat, L, mass_local, &
+    call construct_vector_advection_dg(A, L, mass_local, &
          inv_mass_local, inv_mass_cartesian,&
          rhs, field_name, state, &
          velocity_name=velocity_name)
     
-    ! Note that since theta and dt are module global, these lines have to
+    ! Note that since dt is module global, these lines have to
     ! come after construct_advection_diffusion_dg.
     call get_option("/timestepping/timestep", dt)
     
@@ -876,18 +731,16 @@ contains
 
        print*, 'subcycle=', i
 
-!       call mult_t(U_cartesian_tmp, L, U)
-!       call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
-       call project_local_to_cartesian(X, U, U_cartesian)
+       call mult_t(U_cartesian_tmp, L, U)
+       call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
        ! dU = Advection * U
        call mult(delta_U_tmp, A, U_cartesian)
        ! dU = dU + RHS
        call addto(delta_U_tmp, RHS, -1.0)
        ! dU = M^(-1) dU
        call mult(delta_U, inv_mass_local, delta_U_tmp)
-!       call mult_t(U_cartesian_tmp, L, delta_U)
-!       call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
-       call project_local_to_cartesian(X, delta_U, U_cartesian)
+       call mult_t(U_cartesian_tmp, L, delta_U)
+       call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
 !       print*, 'here!'
 !       do ele=1,element_count(delta_U)
 !          print*, ele_nodes(delta_U, ele)
@@ -928,7 +781,7 @@ contains
 
   end subroutine solve_vector_advection_dg_subcycle
 
-  subroutine construct_vector_advection_dg(A, flux_mat, L, mass_local, inv_mass_local,&
+  subroutine construct_vector_advection_dg(A, L, mass_local, inv_mass_local,&
        & inv_mass_cartesian, rhs, field_name, &
        & state, velocity_name) 
     !!< Construct the advection equation for discontinuous elements in
@@ -939,7 +792,7 @@ contains
     !!< or for solving equations otherwise than in acceleration form.
 
     !! Main advection matrix.    
-    type(block_csr_matrix), intent(inout) :: A, flux_mat, L
+    type(block_csr_matrix), intent(inout) :: A, L
     !! Mass matrices.
     type(block_csr_matrix), intent(inout) :: mass_local, inv_mass_local, &
          inv_mass_cartesian
@@ -966,12 +819,6 @@ contains
     !! Status variable for field extraction.
     integer :: stat
 
-    !! Field over the entire surface mesh containing bc values:
-    type(vector_field) :: bc_value
-    !! Integer array of all surface elements indicating bc type
-    !! (see below call to get_entire_boundary_condition):
-    integer, dimension(:,:), allocatable :: bc_type
-
     ewrite(1,*) "Writing advection equation for "&
          &//trim(field_name)
 
@@ -988,51 +835,37 @@ contains
     U_nl=extract_vector_field(state, lvelocity_name)
     call incref(U_nl)
 
-    flux_scheme=UPWIND_FLUX
-
     assert(has_faces(X%mesh))
     assert(has_faces(U%mesh))
     
-    ! Enquire about boundary conditions we're interested in
-    ! Returns an integer array bc_type over the surface elements
-    ! that indicates the bc type (in the order we specified, i.e.
-    ! BCTYPE_WEAKDIRICHLET=1)
-    allocate( bc_type(1:U%dim,1:surface_element_count(U)) )
-    call get_entire_boundary_condition(U, &
-       & (/"weakdirichlet"/), &
-       & bc_value, bc_type)
-
     call zero(A)
     call zero(RHS)
     call zero(mass_local)
 
     element_loop: do ele=1,element_count(U)
        
-       call construct_vector_adv_element_dg(ele, A, flux_mat, L,&
+       call construct_vector_adv_element_dg(ele, A, L,&
             & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
-            & X, U, U_nl, &
-            & bc_value, bc_type)
+            & X, U, U_nl)
        
     end do element_loop
     
     ! Drop any extra field references.
 
     call deallocate(U_nl)
-    call deallocate(bc_value)
 
   end subroutine construct_vector_advection_dg
 
-  subroutine construct_vector_adv_element_dg(ele, A, flux_mat, L,&
+  subroutine construct_vector_adv_element_dg(ele, A, L,&
        & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
-       & X, U, U_nl, &
-       & bc_value, bc_type)
+       & X, U, U_nl)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
     !! Index of current element
     integer :: ele
     !! Main advection matrix.
-    type(block_csr_matrix), intent(inout) :: A, flux_mat
+    type(block_csr_matrix), intent(inout) :: A
     !! Transformation matrix
     type(block_csr_matrix), intent(inout) :: L
     !! Mass matrices.
@@ -1040,11 +873,6 @@ contains
          inv_mass_cartesian
     !! Right hand side vector.
     type(vector_field), intent(inout) :: rhs
-    !! Field over the entire surface mesh containing bc values:
-    type(vector_field), intent(in):: bc_value
-    !! Integer array of all surface elements indicating bc type
-    !! (see above call to get_entire_boundary_condition):
-    integer, dimension(:,:), intent(in):: bc_type
     
     !! Position, velocity and advecting velocity.
     type(vector_field), intent(in) :: X, U, U_nl
@@ -1085,8 +913,6 @@ contains
     integer, dimension(:), pointer :: neigh
 
     integer :: i, gi, dim, dim1, dim2, nloc, k
-
-    logical :: boundary_element
 
     dim=mesh_dim(U)
 
@@ -1147,7 +973,6 @@ contains
        pinvJ(:,:,gi)=pseudoinverse(J(:,:,gi))
        dshape(:,gi,:)=matmul(U_shape%dn(:,gi,:),transpose(pinvJ(:,:,gi)))
     end do
-!    Advection_mat = -shape_vector_dot_dshape_tensor(U_shape, U_cartesian_q, dshape, J_scaled, detwei)
     Advection_mat = shape_vector_dot_dshape_tensor(U_shape, U_nl_q, U_shape%dn, J_scaled, U_shape%quadrature%weight)
 
    !----------------------------------------------------------------------
@@ -1209,9 +1034,6 @@ contains
     
    neigh=>ele_neigh(U, ele)
 
-   ! Flag for whether this is a boundary element.
-   boundary_element=.false.
-
    neighbourloop: do ni=1,size(neigh)
 
       !----------------------------------------------------------------------
@@ -1234,21 +1056,17 @@ contains
       else
          ! External face.
          face_2=face
-         boundary_element=.true.
       end if
 
       call construct_vector_adv_interface_dg(ele, face, face_2,&
-           & A, flux_mat, rhs, X, U, U_nl,&
-           & bc_value, bc_type)
+           & A, rhs, X, U, U_nl)
 
    end do neighbourloop
     
  end subroutine construct_vector_adv_element_dg
   
   subroutine construct_vector_adv_interface_dg(ele, face, face_2, &
-       & A, flux_mat, rhs, &
-       & X, U, U_nl,&
-       & bc_value, bc_type)
+       & A, rhs, X, U, U_nl)
 
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
@@ -1256,18 +1074,11 @@ contains
 
     integer, intent(in) :: ele, face, face_2
     type(block_csr_matrix), intent(inout) :: A
-    type(block_csr_matrix), intent(inout) :: flux_mat
     type(vector_field), intent(inout) :: rhs
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U, U_nl
-   !! Field over the entire surface mesh containing bc values:
-    type(vector_field), intent(in):: bc_value
-    !! Integer array of all surface elements indicating bc type
-    !! (see above call to get_entire_boundary_condition):
-    integer, dimension(:,:), intent(in):: bc_type
 
     ! Face objects and numberings.
-    type(csr_matrix) :: A_block
     type(element_type), pointer :: U_shape, U_shape_2
     integer, dimension(face_loc(U,face)) :: U_face, U_face_l
     integer, dimension(face_loc(U,face_2)) :: U_face_2
@@ -1293,6 +1104,8 @@ contains
     real, dimension(mesh_dim(U),X%dim,face_loc(U,face),face_loc(U,face)) :: nnAdvection_out
     real, dimension(mesh_dim(U),X%dim,face_loc(U,face),face_loc(U,face_2)) :: nnAdvection_in
 
+    ! normal weights
+    real :: w1, w2
     integer :: dim, dim1, dim2, gi, i, k
 
     dim=mesh_dim(U)
@@ -1307,8 +1120,8 @@ contains
     !face number. This is so that the normal is identical on both sides.
     ! Jemma: need to be more careful here - actually have to calculate normal for face2
 
-    n1_l=get_normal(local_face_number(U%mesh,face))
-    n2_l=get_normal(local_face_number(U%mesh,face_2))
+    call get_local_normal(n1_l, w1, U, local_face_number(U%mesh,face))
+    call get_local_normal(n2_l, w2, U, local_face_number(U%mesh,face_2))
     
     !----------------------------------------------------------------------
     ! Construct element-wise quantities.
@@ -1318,8 +1131,8 @@ contains
     U_nl_f_q = face_val_at_quad(U_nl, face)
     U_nl_f2_q = face_val_at_quad(U_nl, face_2)
 
-    u_nl_q_dotn1_l = sum(U_nl_f_q*n1_l,1)
-    u_nl_q_dotn2_l = -sum(U_nl_f2_q*n2_l,1)
+    u_nl_q_dotn1_l = sum(U_nl_f_q*w1*n1_l,1)
+    u_nl_q_dotn2_l = -sum(U_nl_f2_q*w2*n2_l,1)
     U_nl_q_dotn_l=0.5*(u_nl_q_dotn1_l+u_nl_q_dotn2_l)
 
     ! Inflow is true if the flow at this gauss point is directed
@@ -1332,13 +1145,6 @@ contains
     forall(gi=1:face_ngi(X,face))
        J_scaled(:,:,gi)=J(:,:,1)/detJ(1)
     end forall
-!    print*, 'detJ: ', detJ(1)
-!    print*, 'J_scaled:'
-!    do i=1, size(J_scaled,1)
-!       do k=1, size(J_scaled,2)
-!          print*, J_scaled(i,k,:)
-!       end do
-!    end do
 
     ! Get outward pointing normals for each element
 !    call transform_facet_to_physical(X, face, normal=n1)
@@ -1365,23 +1171,11 @@ contains
     nnAdvection_out=shape_shape_tensor(U_shape, U_shape,  &
          &            inner_advection_integral*U_shape%quadrature%weight, J_scaled)
     
-!    do dim1 = 1, dim
-!       do dim2 = 1, X%dim
-!          write(11,*), dim1, dim2
-!          write(11,*), 'vector out: ', nnAdvection_out(dim1,dim2,:,:)
-!       end do
-!    end do
     ! now the integral around the outside of the element
     ! (this is the flux *in* to the element)
     outer_advection_integral = income*u_nl_q_dotn_l
     nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
          &            outer_advection_integral*U_shape%quadrature%weight, J_scaled)
-!    do dim1 = 1, dim
-!       do dim2 = 1, X%dim
-!          write(11,*), dim1, dim2
-!          write(11,*), 'vector in: ', nnAdvection_in(dim1,dim2,:,:)
-!       end do
-!    end do
        
     !----------------------------------------------------------------------
     ! Perform global assembly.
@@ -1400,63 +1194,11 @@ contains
     ! Inflow boundary integral.
     do dim1 = 1, dim
        do dim2 = 1, X%dim
-!          print*, dim1, dim2, nnAdvection_in(dim1,dim2,:,:)
           call addto(A, dim1, dim2, U_face, U_face_2, nnAdvection_in(dim1,dim2,:,:))
-          A_block=block(A,dim1,dim2)
         end do
     end do
 
-    ! Outflow boundary integral.
-    do dim1 = 1, dim
-       do dim2 = 1, X%dim
-          call addto(flux_mat, dim1, dim2, U_face, U_face, nnAdvection_out(dim1,dim2,:,:))
-       end do
-    end do
-
-    ! Inflow boundary integral.
-    do dim1 = 1, dim
-       do dim2 = 1, X%dim
-          call addto(flux_mat, dim1, dim2, U_face, U_face_2, nnAdvection_in(dim1,dim2,:,:))
-       end do
-    end do
-
     contains
-
-      function get_normal(face) result(norm)
-
-        integer, intent(in) :: face
-        real, dimension(U_nl%dim, face_ngi(U_nl,face)) :: norm
-
-        real :: weight
-        integer :: i
-
-        if(U_nl%dim==1) then
-           if(face==1) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1,i)=1.
-           else if(face==2) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1,i)=-1.
-           end if
-        else if(U_nl%dim==2) then
-           if(face==1) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1:2,i)=(/-1.,0./)
-           else if(face==2) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1:2,i)=(/0.,-1./)
-           else if(face==3) then
-              forall(i=1:face_ngi(U_nl,face)) norm(1:2,i)=(/1/sqrt(2.),1/sqrt(2.)/)
-           else
-              FLAbort('Oh dear oh dear')
-           end if
-        end if
-
-        if(face==3) then
-           weight=sqrt(2.)
-        else
-           weight=1.
-        end if
-
-        norm=weight*norm
-
-      end function get_normal
 
       ! copy of outer_product in vector tools, but now as function
       pure function outer_product(x, y) result (M)
