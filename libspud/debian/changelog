@@ -1,3 +1,20 @@
+spud (1.1.0) natty; urgency=low
+
+  * Refactor the Fortran calls to C to use iso_c_binding
+  * Clean up the C interface to remove old Fortran interface hacks.
+  * Modify interfaces so that almost every routine returns an error status.
+  * Consequential changes to the manual.
+  * Cause bash completion for diamond to be installed by the package.
+  * Include Fraser's first week of work on Diamond.
+
+ -- David A Ham <david.ham@imperial.ac.uk>  Tue, 12 Jul 2011 09:56:34 +0100
+
+spud (1.0.24) natty; urgency=low
+
+  * Update the manual to reflect the move to Launchpad.
+
+ -- David A Ham <david.ham@imperial.ac.uk>  Tue, 28 Jun 2011 18:24:02 +0100
+
 spud (1.0.23) maverick; urgency=low
 
   * Include the latest diamond updates

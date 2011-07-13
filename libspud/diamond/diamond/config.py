@@ -34,7 +34,7 @@ schemata = {'flml': ('Fluidity markup language', 'http://amcg.ese.ic.ac.uk/svn/f
 for dir in dirs:
   try:
     for file in os.listdir(dir):
-      if file[-1] == "~": 
+      if file[-1] == "~" or file[0] == ".": #skip files like .nfs0000 
         continue # bloody emacs
       # Skip item gracefully here if there's a problem.
       # This is useful if the schemata files are in a subversion

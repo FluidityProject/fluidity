@@ -731,6 +731,7 @@ with_lapack
 with_lapack_dir
 enable_openmp
 enable_shared
+enable_buildopt
 enable_verbose
 with_femdem
 with_psmile
@@ -1396,6 +1397,8 @@ Optional Features:
   --disable-openmp        do not use OpenMP
   --enable-shared         Compile objects with -fPIC to enable the 'make
                           shared' target.
+  --enable-buildopt       Enables build optimisations on ext4 and xfs
+                          filesystems
   --enable-verbose        turns on super verbosity
   --enable-mpi            turns on MPI support
   --disable-petsc-fortran-modules
@@ -10733,6 +10736,14 @@ fi
 
 
 
+
+# Check whether --enable-buildopt was given.
+if test "${enable_buildopt+set}" = set; then :
+  enableval=$enable_buildopt;
+fi
+
+
+
 # Set default for ARFLAGS, since autoconf does not have a macro for
 # it. This allows people to set it when running configure or make.
 # Extract the first word of "ar", so it can be a program name with args.
@@ -10773,6 +10784,11 @@ fi
 
 
 test -n "$ARFLAGS" || ARFLAGS="cr"
+
+if test "$enable_buildopt" == "yes" ; then
+    ARFLAGS="r"
+fi
+
 if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}ranlib", so it can be a program name with args.
 set dummy ${ac_tool_prefix}ranlib; ac_word=$2

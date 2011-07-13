@@ -27,7 +27,7 @@
 */
 
 #include "Usage.h"
-#include "spud.h"
+#include "spud"
 
 using namespace std;
 
