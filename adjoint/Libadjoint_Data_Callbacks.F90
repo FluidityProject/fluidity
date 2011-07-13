@@ -88,6 +88,8 @@ implicit none
     call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_VEC_GET_NORM_CB, c_funloc(femtools_vec_getnorm_proc))
     call adj_chkierr(ierr)
+    ierr = adj_register_data_callback(adjointer, ADJ_VEC_GET_SIZE_CB, c_funloc(femtools_vec_get_size_proc))
+    call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_VEC_DOT_PRODUCT_CB, c_funloc(femtools_vec_dot_product_proc))
     call adj_chkierr(ierr)
     ierr = adj_register_data_callback(adjointer, ADJ_VEC_SET_RANDOM_CB, c_funloc(femtools_vec_set_random_proc))
@@ -316,6 +318,27 @@ end subroutine
       FLAbort("adj_vector class not supported.")
     end if
   end subroutine femtools_vec_set_random_proc
+
+  subroutine femtools_vec_get_size_proc(vec, sz) bind(c)
+    type(adj_vector), intent(in), value :: vec
+    integer(kind=c_int), intent(out) :: sz
+    type(scalar_field), pointer :: scalar
+    type(vector_field), pointer :: vector
+    type(tensor_field), pointer :: tensor
+
+    if (vec%klass == ADJ_SCALAR_FIELD) then
+      call c_f_pointer(vec%ptr, scalar)
+      sz = node_count(scalar)
+    else if (vec%klass == ADJ_VECTOR_FIELD) then
+      call c_f_pointer(vec%ptr, vector)
+      sz = node_count(vector) * vector%dim
+    else if (vec%klass == ADJ_TENSOR_FIELD) then
+      call c_f_pointer(vec%ptr, tensor)
+      sz = node_count(tensor) * tensor%dim(1) * tensor%dim(2)
+    else
+      FLAbort("adj_vector class not supported.")
+    end if
+  end subroutine femtools_vec_get_size_proc
 
   subroutine femtools_mat_axpy_proc(Y, alpha, X) bind(c)  
     ! Computes Y = alpha*X + Y.

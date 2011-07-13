@@ -167,6 +167,14 @@ contains
     rk_dt = dt/parameters%n_subcycles
 
     subcycling_loop: do cycle = 1, parameters%n_subcycles
+
+       ! Prepare reset update_vector to position
+       do det = 1, detector_list%length
+          if(det0%type==LAGRANGIAN_DETECTOR) then
+             det0%update_vector = det0%position
+          end if
+       end do
+
        RKstages_loop: do stage = 1, parameters%n_stages
 
           ! Compute the update vector
@@ -208,6 +216,13 @@ contains
              end if
           end do detector_timestepping_loop
        end do RKstages_loop
+
+       ! Set position from update_vector
+       do det = 1, detector_list%length
+          if (det0%type==LAGRANGIAN_DETECTOR) then
+             det0%position = det0%update_vector
+          end if
+       end do
     end do subcycling_loop
 
     deallocate(send_list_array)
@@ -321,9 +336,6 @@ contains
 
           !! Set det%update_vector for lagrangian advection
           det0%search_complete = .false.
-          if(stage0.eq.1) then
-             det0%update_vector = det0%position
-          end if
 
           if (parameters%do_velocity_advect) then
              ! stage vector is computed by evaluating velocity at current position
@@ -354,7 +366,6 @@ contains
              do j0 = 1, parameters%n_stages
                 det0%update_vector = det0%update_vector + dt0*parameters%timestep_weights(j0)*det0%k(j0,:)
              end do
-             det0%position = det0%update_vector
           end if
 
        end if

@@ -104,4 +104,14 @@ to
 "short" is a keyword the testharness will pick up, special means the test case is ignored. When the test case
 is fully working make sure that "short" is included back such that the new test case will run with 
 
-     make test  
+     make test
+
+
+********************************
+
+TO CREATE THE Makefile from Makefile.in (Makefile is no longer in the repository)
+cd .. (to the fluidity trunk directory)
+./configure
+
+TO COMPILE THE CODE, including the fluidity library on which this code now depends
+make mp (from the fluidity trunk directory)
