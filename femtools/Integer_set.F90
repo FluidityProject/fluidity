@@ -64,7 +64,8 @@ module integer_set_module
   end interface
 
   interface deallocate
-    module procedure integer_set_delete_single, integer_set_delete_vector
+    module procedure integer_set_delete_single, integer_set_delete_vector,&
+         & integer_set_delete_array
   end interface
 
   interface has_value
@@ -133,6 +134,19 @@ module integer_set_module
     end do
     
   end subroutine integer_set_delete_vector
+
+  subroutine integer_set_delete_array(iset)
+    type(integer_set), dimension(:,:), intent(inout) :: iset
+    
+    integer :: i,j
+    
+    do i = 1, size(iset,1)
+       do j = 1, size(iset,2)
+          call deallocate(iset(i,j))
+       end do
+    end do
+    
+  end subroutine integer_set_delete_array
 
   subroutine integer_set_insert(iset, val, changed)
     type(integer_set), intent(inout) :: iset

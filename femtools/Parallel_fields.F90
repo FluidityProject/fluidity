@@ -57,6 +57,11 @@ module parallel_fields
       & node_owned_tensor
   end interface node_owned
 
+  interface node_owner
+    module procedure node_owner_mesh, node_owner_scalar, &
+      & node_owner_vector, node_owner_tensor
+  end interface node_owner
+
   interface element_owned
     module procedure element_owned_mesh, element_owned_scalar, &
       & element_owned_vector, element_owned_tensor
@@ -226,6 +231,68 @@ contains
     communicator = halo_communicator(t_field%mesh)
   
   end function halo_communicator_tensor
+
+  function node_owner_mesh(mesh, node_number) result(owner)
+  !!< Return number of processor that owns the supplied node in the
+  !given mesh
+
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: node_number
+
+    integer :: nhalos
+    integer :: owner
+
+    assert(node_number > 0)
+    assert(node_number <= ele_count(mesh))
+
+    nhalos = halo_count(mesh)
+
+    if(nhalos == 0) then
+      owner=getprocno()
+    else
+      owner = halo_node_owner(mesh%halos(nhalos), node_number)
+    end if
+
+  end function node_owner_mesh
+
+  function node_owner_scalar(s_field, node_number) result(owner)
+    !!< Return the processor that owns the supplied node in the mesh of the given scalar
+    !!< field 
+    
+    type(scalar_field), intent(in) :: s_field
+    integer, intent(in) :: node_number
+
+    integer :: owner
+
+    owner = node_owner(s_field%mesh, node_number)
+
+  end function node_owner_scalar
+
+  function node_owner_vector(v_field, node_number) result(owner)
+    !!< Return the processor that owns the supplied node in the mesh of the given vector
+    !!< field 
+
+    type(vector_field), intent(in) :: v_field
+    integer, intent(in) :: node_number
+
+    integer :: owner
+
+    owner = node_owner(v_field%mesh, node_number)
+
+  end function node_owner_vector
+
+  function node_owner_tensor(t_field, node_number) result(owner)
+    !!< Return the processor that owns the supplied node in the mesh of the given tensor
+    !!< field 
+
+    type(tensor_field), intent(in) :: t_field
+    integer, intent(in) :: node_number
+    
+    integer :: owner
+
+    owner = node_owner(t_field%mesh, node_number)
+  
+  end function node_owner_tensor
 
   function node_owned_mesh(mesh, node_number) result(owned)
     !!< Return whether the supplied node in the given mesh is owned by this
