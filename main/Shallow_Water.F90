@@ -383,11 +383,16 @@
            &none")
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
            &gnostic/temporal_discretisation/relaxation",itheta)
-      ! Geostrophic balanced initial condition, if required
+         ! Geostrophic balanced initial condition, if required
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
            &/initial_condition::WholeMesh/balanced")) then
-         call set_velocity_from_geostrophic_balance(state(1), &
-              div_mat, coriolis_mat, inverse_coriolis_mat)
+         if(have_option("/material_phase::&
+              &Fluid/scalar_field::LagrangeMultiplier")) then
+            call set_velocity_from_geostrophic_balance_hybridized(state(1))
+         else
+            call set_velocity_from_geostrophic_balance(state(1), &
+                 div_mat, coriolis_mat, inverse_coriolis_mat)
+         end if
          call adjoint_register_initial_u_condition(balanced=.true.)
       else
          call adjoint_register_initial_u_condition(balanced=.false.)
