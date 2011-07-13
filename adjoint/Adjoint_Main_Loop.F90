@@ -56,9 +56,9 @@ module adjoint_main_loop
     private
 #ifdef HAVE_ADJOINT
     public :: compute_adjoint
+    contains
 #endif
 
-    contains
 
 #ifdef HAVE_ADJOINT
     ! Computes the adjoint equation
