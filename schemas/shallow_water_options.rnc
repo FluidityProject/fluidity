@@ -277,7 +277,7 @@ start =
                      prognostic_lagrangemultiplier_field
                   }
                }?,
-               scalar_field_choice*
+               scalar_field_choice*,
                vector_field_choice*
             )
          },

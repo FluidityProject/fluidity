@@ -353,6 +353,9 @@ This is usually disabled.</a:documentation>
           <zeroOrMore>
             <ref name="scalar_field_choice"/>
           </zeroOrMore>
+          <zeroOrMore>
+            <ref name="vector_field_choice"/>
+          </zeroOrMore>
         </group>
       </element>
       <optional>
