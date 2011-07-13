@@ -43,10 +43,16 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.c,%.o,$(wildcard *.c))
+OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.f90,%.o,$(wildcard *.f90)) $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.f,%.o,$(wildcard *.f)) 
 
-.SUFFIXES: .F90 .c .cpp .o .a
+.SUFFIXES: .f .f90 .F90 .c .cpp .o .a
 
+.f90.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
+.f.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
@@ -70,5 +76,17 @@ default: $(LIB)
 
 clean:
 	rm -f *.o *.d *.mod
+
+# Instructions for doing AD with tapenade
+reverse:
+	tapenade -b -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90 -ext PUSHPOPGeneralLib -extAD PUSHPOPADLib-fixinterface
+	echo "Don't forget to remove the zeroing of acb."
+
+forward:
+	tapenade -d -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90
+
+../include/simple_advection.mod: simple_advection.o
+../include/simple_advection_d.mod: simple_advection_d.o
+../include/simple_advection_b.mod: simple_advection_b.o
 
 include Makefile.dependencies
