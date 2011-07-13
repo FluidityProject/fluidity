@@ -38,7 +38,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0.0</real_value>
+        <real_value rank="0">10.0</real_value>
       </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
@@ -120,6 +120,7 @@ from math import sqrt
 diffusivity = state.scalar_fields['Diffusivity']
 
 def val(ele, local_coord):
+  #print "ele: " + str(ele) + " lcoord: " + str(local_coord)
   rnd = random.uniform(-1.,1.,1)
   K = diffusivity.eval_field(ele, local_coord)
   return [rnd * sqrt(6*K)]</string_value>
@@ -149,6 +150,7 @@ def val(ele, local_coord):
  0.3333333333333333 0.16666666666666666</real_value>
             </timestep_weights>
           </explicit_runge_kutta_guided_search>
+          <reflect_on_boundary/>
         </lagrangian_timestepping>
       </agents>
     </lagrangian_ensemble>

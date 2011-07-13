@@ -80,6 +80,8 @@ module detector_data_types
     logical :: do_velocity_advect=.true.
     ! Flag indicating whther Python Random Walk should be used
     logical :: do_random_walk=.false.
+    ! Flag indicating whether we reflect detectors at the domain boundary
+    logical :: reflect_on_boundary=.false.
 
     ! Runk-Kutta Guided Search parameters
     integer :: n_stages, n_subcycles

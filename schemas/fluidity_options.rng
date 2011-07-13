@@ -3340,6 +3340,14 @@ For the RK4 method, it should be
           <empty/>
         </element>
       </choice>
+      <choice>
+        <element name="turn_static_on_boundary">
+          <empty/>
+        </element>
+        <element name="reflect_on_boundary">
+          <empty/>
+        </element>
+      </choice>
     </element>
   </define>
   <!-- Default child of diagnostic scalar field -->

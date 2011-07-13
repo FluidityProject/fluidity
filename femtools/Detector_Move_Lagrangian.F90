@@ -40,6 +40,7 @@ module detector_move_lagrangian
   use detector_parallel
   use python_state
   use iso_c_binding
+  use transform_elements
 
   implicit none
   
@@ -67,6 +68,10 @@ contains
     end if
     allocate(detector_list%move_parameters)
     parameters => detector_list%move_parameters
+
+    if (have_option(trim(detector_path)//trim("/lagrangian_timestepping/reflect_on_boundary"))) then
+       parameters%reflect_on_boundary=.true.
+    end if
 
     if(have_option(trim(detector_path)//trim(rk_gs_path))) then
 
@@ -378,8 +383,18 @@ contains
     logical :: owned
     real, dimension(mesh_dim(vfield)+1) :: arrival_local_coords
     integer, dimension(:), pointer :: neigh_list
-    integer :: neigh, proc_local_number
-    logical :: make_static
+    integer :: neigh, proc_local_number, face, i, j
+    logical :: outside_domain
+
+    ! boundary reflection
+    integer :: neigh_face
+    real, dimension(xfield%dim,xfield%mesh%faces%shape%ngi) :: facet_normals
+    real, dimension(xfield%mesh%faces%shape%ngi) :: detwei_f
+    integer, dimension(:), allocatable :: face_nodes 
+    real, dimension(xfield%dim) :: face_node_val, face_normal
+    real :: offset, p, D
+
+    ewrite(2,*) "In move_detectors_guided_search"
 
     !Loop over all the detectors
     det0 => detector_list%firstnode
@@ -414,22 +429,63 @@ contains
                    !this face goes outside of the computational domain
                    !try all of the faces with negative local coordinate
                    !just in case we went through a corner
-                   make_static=.true.
-                   face_search: do neigh = 1, size(arrival_local_coords)
-                      if (arrival_local_coords(neigh)<-search_tolerance.and.neigh_list(neigh)>0) then
-                         make_static = .false.
-                         det0%element = neigh_list(neigh)
+                   outside_domain=.true.
+                   face_search: do face = 1, size(arrival_local_coords)
+                      if (arrival_local_coords(face)<-search_tolerance.and.neigh_list(face)>0) then
+                         outside_domain = .false.
+                         det0%element = neigh_list(face)
                          exit face_search
                       end if
                    end do face_search
-                   if (make_static) then
-                      ewrite(1,*) "WARNING: detector attempted to leave computational &
+
+                   if (outside_domain) then
+                      if (detector_list%move_parameters%reflect_on_boundary) then
+                         ! We reflect the detector path at the face we just went through
+                         ewrite(2,*) "Reflecting detector, det%update_vector before:", det0%update_vector
+
+                         ! First get the face we went through and the coordinates of one node on it
+                         neigh_face = ele_face(xfield, det0%element, neigh_list(neigh))
+                         allocate(face_nodes(face_loc(xfield, neigh_face)))
+                         face_nodes = face_global_nodes(xfield, neigh_face)    
+                         face_node_val=node_val(xfield,face_nodes(1))
+
+                         ! Now we get the face normal from the transform (detwei_f is a dummy)
+                         call transform_facet_to_physical(xfield, neigh_face, detwei_f, facet_normals)
+                         face_normal = facet_normals(:,1)
+
+                         ! p = - n . x_f / sqrt(a**2 + b**2 + c**2), where x_f is a point of the face
+                         ! http://mathworld.wolfram.com/Plane.html, eqs. 3 and 11
+                         p = 0.0
+                         do j=1, xfield%dim
+                            p = p + face_normal(j)**2
+                         end do
+                         p = - dot_product(face_node_val,face_normal) / sqrt(p)
+
+                         ! D = n . x + p, where x is the point we want to reflect
+                         ! http://mathworld.wolfram.com/Plane.html, eq. 13
+                         D = dot_product(face_normal,det0%update_vector) + p
+
+                         ! x' = x - 2Dn, where x' is the reflected point
+                         ! http://mathworld.wolfram.com/Reflection.html, eq. 7
+                         do j=1, xfield%dim
+                            det0%update_vector(j) = det0%update_vector(j) - (2 * D * face_normal(j))
+                         end do
+                         ewrite(2,*) "Reflected detector, det%update_vector after:", det0%update_vector
+
+                         ! move on to the next detector
+                         deallocate(face_nodes)
+                         det0 => det0%next
+                         exit search_loop
+                      else
+                         ! Turn detector static inside the domain
+                         ewrite(1,*) "WARNING: detector attempted to leave computational &
                            domain; making it static, detector ID:", det0%id_number, "detector element:", det0%element
-                      det0%type=STATIC_DETECTOR
-                      ! move on to the next detector, without updating det0%position, 
-                      ! because det0%update_vector is by now outside of the computational domain
-                      det0 => det0%next
-                      exit search_loop
+                         det0%type=STATIC_DETECTOR
+                         ! move on to the next detector, without updating det0%position, 
+                         ! because det0%update_vector is by now outside of the computational domain
+                         det0 => det0%next
+                         exit search_loop
+                      end if
                    end if
                 else
                    det_send => det0

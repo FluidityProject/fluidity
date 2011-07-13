@@ -2433,6 +2433,14 @@ lagrangian_timestepping =
             element binary_search {
                empty
             }
+         ),
+         (
+            element turn_static_on_boundary{
+               empty
+            }|
+            element reflect_on_boundary{
+               empty
+            }
          )
       }
    )
