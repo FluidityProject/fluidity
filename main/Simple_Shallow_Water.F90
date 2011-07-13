@@ -1,4 +1,7 @@
 ! James Maddison
+#ifndef HAVE_PETSC
+#error PETSc required
+#endif
 
 #include "fdebug.h"
 
@@ -9,18 +12,14 @@
 !! supported element types.
 program simple_shallow_water
 
-#ifndef HAVE_PETSC
-#error PETSc required
-#endif
 #ifdef HAVE_PETSC_MODULES
   use petsc 
   use petscvec 
   use petscmat 
   use petscksp 
   use petscpc
-#else
-#error PETSc modules required
 #endif
+
 #ifdef HAVE_ZOLTAN
   use zoltan
 #endif
@@ -57,6 +56,9 @@ program simple_shallow_water
   use write_state_module
 
   implicit none
+#ifndef HAVE_PETSC_MODULES
+#include "finclude/petsc.h"
+#endif
   
   interface check_options
     subroutine check_options()

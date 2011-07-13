@@ -11810,9 +11810,27 @@ fi
 
 
 HAVE_ADJOINT=no
+CAN_USE_ADJOINT=yes
+WANTS_ADJOINT=yes
+if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+  # test really is so retarded that it can't lexicographically compare strings
+  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
+    CAN_USE_ADJOINT=no
+  fi
+fi
+
+if test "$with_adjoint" = no || test -z "$with_adjoint"; then
+  WANTS_ADJOINT=no
+fi
+
+if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+  echo "Wanted adjoint, but you need gcc > 4.5"
+  exit 1
+fi
+
+echo "with_adjoint: " $with_adjoint
 if test "$with_adjoint" != "no"; then
-  if test ! -z "$with_adjoint"; then
-    HAVE_ADJOINT=yes
+  if test "$CAN_USE_ADJOINT" != "no"; then
 
 # Set variables...
 
@@ -11822,10 +11840,11 @@ if test "${with_adjoint+set}" = set; then :
 fi
 
 
+bakLIBS=$LIBS
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
-if test $adjoint != no; then
-  if test $adjoint != yes; then
+if test "$adjoint" != "no"; then
+  if test "$adjoint" != "yes"; then
     adjoint_LIBS_PATH="$adjoint/lib"
     adjoint_INCLUDES_PATH="$adjoint/include"
     # Ensure the comiler finds the library...
@@ -11900,9 +11919,10 @@ $as_echo "$ac_cv_lib_adjoint_adj_register_equation" >&6; }
 if test "x$ac_cv_lib_adjoint_adj_register_equation" = x""yes; then :
 
 $as_echo "#define HAVE_ADJOINT 1" >>confdefs.h
-
+HAVE_ADJOINT=yes
 else
-  as_fn_error $? "Could not link in libadjoint ... exiting " "$LINENO" 5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not link in libadjoint ...  " >&5
+$as_echo "$as_me: WARNING: Could not link in libadjoint ...  " >&2;};HAVE_ADJOINT=no;LIBS=$bakLIBS
 fi
 
 # Save variables...
@@ -11913,14 +11933,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-echo $LIBS
 
-    if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
-      # test really is so retarded that it can't lexicographically compare strings
-      if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
-        as_fn_error $? "\"Need gfortran >= 4.5 for the adjoint, sorry\"" "$LINENO" 5
-      fi
-    fi
+  fi
+  if test "$HAVE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+    echo "Wanted adjoint, but couldn't find it"
+    exit 1
   fi
 fi
 
@@ -14592,7 +14609,7 @@ fi
 
 if test "$enable_2d_adaptivity" = "yes"; then
   echo "#define HAVE_MBA_2D 1" >> include/confdefs.h
-  LIBS="$LIBS -lmba2d"
+  LIBS="-lmba2d $LIBS"
   MBA2D="yes"
 
 fi

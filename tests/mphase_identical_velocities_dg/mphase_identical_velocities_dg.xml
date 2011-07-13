@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>mphase_identical_velocities_dg</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="medium" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- 2D test case to check that the two velocity fields are identical, and are the same as the single-phase case. -->
+    <!-- This is basically a stripped-down copy of the driven_cavity_2d_dg test case, -->
+    <!-- but two prognostic velocity fields are solved for here instead of one. -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="f1_u" language="python">
+import vtktools
+
+ug = vtktools.vtu('mphase_identical_velocities_dg_10.vtu')
+ug.GetFieldNames()
+f1_u = ug.GetVectorField('Fluid1::Velocity')
+    </variable>
+    
+    <variable name="f2_u" language="python">
+import vtktools
+
+ug = vtktools.vtu('mphase_identical_velocities_dg_10.vtu')
+ug.GetFieldNames()
+f2_u = ug.GetVectorField('Fluid2::Velocity')
+    </variable>
+    
+    <variable name="single_phase_u" language="python">
+import vtktools
+
+ug = vtktools.vtu('single_phase_results.vtu')
+ug.GetFieldNames()
+single_phase_u = ug.GetVectorField('Velocity')
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Final velocities are identical" language="python">
+(nnodes, ncomponents) = f1_u.shape
+
+difference = []
+for i in range(nnodes):
+   for j in range(ncomponents):
+      difference.append(abs(f1_u[i][j] - f2_u[i][j]))
+
+assert max(difference) &lt; 1e-8
+    </test>
+    
+    <test name="Final velocities are the same as in the single-phase scenario" language="python"> 
+(nnodes, ncomponents) = single_phase_u.shape
+
+difference_f1 = []
+difference_f2 = []
+for i in range(nnodes):
+   for j in range(ncomponents):
+      difference_f1.append(abs(single_phase_u[i][j] - f1_u[i][j]))
+      difference_f2.append(abs(single_phase_u[i][j] - f2_u[i][j]))
+      
+assert max(difference_f1) &lt; 1e-8       
+assert max(difference_f2) &lt; 1e-8
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

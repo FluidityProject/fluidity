@@ -135,6 +135,13 @@ Biology.o ../include/biology.mod: Biology.F90 \
    ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
    ../include/python_state.mod ../include/fdebug.h ../include/state_module.mod
 
+../include/burgers_assembly.mod: Burgers_Assembly.o
+	@true
+
+Burgers_Assembly.o ../include/burgers_assembly.mod: Burgers_Assembly.F90 \
+   ../include/fetools.mod ../include/sparse_tools.mod ../include/fields.mod \
+   ../include/spud.mod ../include/transform_elements.mod
+
 ../include/compressible_projection.mod: Compressible_Projection.o
 	@true
 
@@ -317,15 +324,14 @@ Free_Surface.o ../include/free_surface_module.mod: Free_Surface.F90 \
 	@true
 
 Full_Projection.o ../include/full_projection.mod: Full_Projection.F90 \
-   ../include/halos.mod ../include/petsc_tools.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools_petsc.mod \
-   ../include/multigrid.mod ../include/sparse_tools.mod \
-   ../include/boundary_conditions_from_options.mod ../include/fields_base.mod \
-   ../include/spud.mod ../include/fldebug.mod \
+   ../include/petsc_tools.mod ../include/sparse_matrices_fields.mod \
+   ../include/multigrid.mod ../include/sparse_tools.mod ../include/fldebug.mod \
+   ../include/boundary_conditions_from_options.mod \
+   ../include/sparse_tools_petsc.mod ../include/fields_base.mod \
+   ../include/elements.mod ../include/spud.mod ../include/state_module.mod \
    ../include/petsc_solve_state_module.mod ../include/signal_vars.mod \
-   ../include/elements.mod ../include/solvers.mod \
-   ../include/global_parameters.mod ../include/state_module.mod \
-   ../include/fdebug.h
+   ../include/halos.mod ../include/solvers.mod \
+   ../include/global_parameters.mod ../include/fdebug.h
 
 ../include/geostrophic_pressure.mod: Geostrophic_Pressure.o
 	@true
@@ -537,7 +543,8 @@ Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 \
    ../include/sparsity_patterns_meshes.mod ../include/fetools.mod \
    ../include/elements.mod ../include/fefields.mod ../include/spud.mod \
    ../include/turbine.mod ../include/les_viscosity_module.mod \
-   ../include/fldebug.mod ../include/coriolis_module.mod ../include/halos.mod \
+   ../include/fldebug.mod ../include/coriolis_module.mod \
+   ../include/multiphase_module.mod ../include/halos.mod \
    ../include/shape_functions.mod ../include/solvers.mod \
    ../include/field_options.mod ../include/global_parameters.mod \
    ../include/state_module.mod ../include/smoothing_module.mod \
