@@ -427,9 +427,9 @@
       </prescribed>
     </scalar_field>
     <multiphase_properties>
-      <relperm_option>
-        <integer_value rank="0">3</integer_value>
-      </relperm_option>
+      <relperm_type>
+        <Corey/>
+      </relperm_type>
     </multiphase_properties>
   </material_phase>
   <material_phase name="phase2">
@@ -672,9 +672,9 @@
       <aliased material_phase_name="phase1" field_name="Temperature"/>
     </scalar_field>
     <multiphase_properties>
-      <relperm_option>
-        <integer_value rank="0">3</integer_value>
-      </relperm_option>
+      <relperm_type>
+        <Corey/>
+      </relperm_type>
     </multiphase_properties>
   </material_phase>
   <porous_media>

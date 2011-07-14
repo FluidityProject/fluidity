@@ -199,7 +199,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.71.</real_value>
+              <real_value rank="0">1.</real_value>
             </constant>
           </type>
         </boundary_conditions>

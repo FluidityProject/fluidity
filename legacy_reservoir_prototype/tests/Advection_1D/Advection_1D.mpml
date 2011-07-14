@@ -483,9 +483,9 @@
       </prognostic>
     </scalar_field>
     <multiphase_properties>
-      <relperm_option>
-        <integer_value rank="0">3</integer_value>
-      </relperm_option>
+      <relperm_type>
+        <Corey/>
+      </relperm_type>
     </multiphase_properties>
   </material_phase>
   <porous_media>
