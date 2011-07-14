@@ -3285,22 +3285,22 @@ i.e. the free surface or rigid lid.</a:documentation>
   </define>
   <define name="lagrangian_timestepping">
     <element name="lagrangian_timestepping">
-      <choice>
-        <element name="explicit_runge_kutta_guided_search">
-          <a:documentation>Use explicit runge kutta method with
-binary search</a:documentation>
-          <element name="subcycles">
-            <a:documentation>Number of subdivisions of the timestep
+      <element name="subcycles">
+        <a:documentation>Number of subdivisions of the timestep
 increase this if you are not happy with your 
 detector trajectory accuracy, or if particles
 are jumping out of the domain a lot</a:documentation>
-            <ref name="integer"/>
-          </element>
-          <element name="search_tolerance">
-            <a:documentation>Tolerance for deciding if detector is in a given
+        <ref name="integer"/>
+      </element>
+      <element name="search_tolerance">
+        <a:documentation>Tolerance for deciding if detector is in a given
 element. Recommended value 1.0e-10.</a:documentation>
-            <ref name="real"/>
-          </element>
+        <ref name="real"/>
+      </element>
+      <choice>
+        <element name="explicit_runge_kutta_guided_search">
+          <a:documentation>Use explicit runge kutta method with
+guided search particle tracking</a:documentation>
           <element name="n_stages">
             <a:documentation>Number of RK stages
 For the RK4 method, it should be 4.</a:documentation>
@@ -3335,8 +3335,9 @@ For the RK4 method, it should be
             <ref name="real_vector"/>
           </element>
         </element>
-        <element name="binary_search">
-          <a:documentation>Use binary search algorithm</a:documentation>
+        <element name="forward_euler_guided_search">
+          <a:documentation>Use explicit Forward Euler method with
+guided search particle tracking</a:documentation>
           <empty/>
         </element>
       </choice>

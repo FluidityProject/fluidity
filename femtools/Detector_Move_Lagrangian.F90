@@ -73,47 +73,55 @@ contains
        parameters%reflect_on_boundary=.true.
     end if
 
-    if(have_option(trim(detector_path)//trim(rk_gs_path))) then
+    if(have_option(trim(detector_path)//"/lagrangian_timestepping")) then
 
-       call get_option(trim(detector_path)//trim(rk_gs_path)//"/n_stages",parameters%n_stages)
-       call get_option(trim(detector_path)//trim(rk_gs_path)//"/subcycles",parameters%n_subcycles)
-       call get_option(trim(detector_path)//trim(rk_gs_path)//"/search_tolerance",parameters%search_tolerance)
+       call get_option(trim(detector_path)//"/lagrangian_timestepping/subcycles",parameters%n_subcycles)
+       call get_option(trim(detector_path)//"/lagrangian_timestepping/search_tolerance",parameters%search_tolerance)
 
-       ! Allocate and read stage_matrix from options
-       allocate(stage_weights(parameters%n_stages*(parameters%n_stages-1)/2))
-       option_rank = option_shape(trim(detector_path)//trim(rk_gs_path)//"/stage_weights")
-       if(option_rank(2).ne.-1) then
-          FLExit('Stage Array wrong rank')
+       if (have_option(trim(detector_path)//"/lagrangian_timestepping/forward_euler_guided_search")) then
+          parameters%n_stages = 1
+          allocate(parameters%timestep_weights(parameters%n_stages))
+          parameters%timestep_weights = 1.0
        end if
-       if(option_rank(1).ne.size(stage_weights)) then
-          ewrite(-1,*) 'size expected was', size(stage_weights)
-          ewrite(-1,*) 'size actually was', option_rank(1)
-          FLExit('Stage Array wrong size')
-       end if
-       call get_option(trim(detector_path)//trim(rk_gs_path)//"/stage_weights",stage_weights)
-       allocate(parameters%stage_matrix(parameters%n_stages,parameters%n_stages))
-       parameters%stage_matrix = 0.
-       k = 0
-       do i = 1, parameters%n_stages
-          do j = 1, parameters%n_stages
-             if(i>j) then
-                k = k + 1
-                parameters%stage_matrix(i,j) = stage_weights(k)
-             end if
+
+       if(have_option(trim(detector_path)//trim(rk_gs_path))) then
+          call get_option(trim(detector_path)//trim(rk_gs_path)//"/n_stages",parameters%n_stages)
+
+          ! Allocate and read stage_matrix from options
+          allocate(stage_weights(parameters%n_stages*(parameters%n_stages-1)/2))
+          option_rank = option_shape(trim(detector_path)//trim(rk_gs_path)//"/stage_weights")
+          if (option_rank(2).ne.-1) then
+             FLExit('Stage Array wrong rank')
+          end if
+          if (option_rank(1).ne.size(stage_weights)) then
+             ewrite(-1,*) 'size expected was', size(stage_weights)
+             ewrite(-1,*) 'size actually was', option_rank(1)
+             FLExit('Stage Array wrong size')
+          end if
+          call get_option(trim(detector_path)//trim(rk_gs_path)//"/stage_weights",stage_weights)
+          allocate(parameters%stage_matrix(parameters%n_stages,parameters%n_stages))
+          parameters%stage_matrix = 0.
+          k = 0
+          do i = 1, parameters%n_stages
+             do j = 1, parameters%n_stages
+                if(i>j) then
+                   k = k + 1
+                   parameters%stage_matrix(i,j) = stage_weights(k)
+                end if
+             end do
           end do
-       end do
 
-       ! Allocate and read timestep_weights from options
-       allocate(parameters%timestep_weights(parameters%n_stages))
-       option_rank = option_shape(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights")
-       if(option_rank(2).ne.-1) then
-          FLExit('Timestep Array wrong rank')
+          ! Allocate and read timestep_weights from options
+          allocate(parameters%timestep_weights(parameters%n_stages))
+          option_rank = option_shape(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights")
+          if (option_rank(2).ne.-1) then
+             FLExit('Timestep Array wrong rank')
+          end if
+          if (option_rank(1).ne.size(parameters%timestep_weights)) then
+              FLExit('Timestep Array wrong size')
+          end if
+          call get_option(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights",parameters%timestep_weights)
        end if
-       if(option_rank(1).ne.size(parameters%timestep_weights)) then
-          FLExit('Timestep Array wrong size')
-       end if
-       call get_option(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights",parameters%timestep_weights)
-
     else
        if (check_any_lagrangian(detector_list)) then
           ewrite(-1,*) "Found lagrangian detectors, but no timstepping options"
@@ -238,7 +246,7 @@ contains
 
           call move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,parameters%search_tolerance)
 
-          ! Work out whether all send lists are empty, in which case exit.
+          ! If needed exchange_detectors
           all_send_lists_empty=0
           do k=1, nprocs
              if (send_list_array(k)%length/=0) then
@@ -251,7 +259,7 @@ contains
           end if
        end if
 
-       ! Set position from update_vector
+       ! After everything is done, we update detector%position
        detector => detector_list%first
        do det = 1, detector_list%length
           if (detector%type==LAGRANGIAN_DETECTOR) then
