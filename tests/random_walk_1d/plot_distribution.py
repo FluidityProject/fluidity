@@ -18,7 +18,7 @@ def plot_detector_distribution(filename):
   cs=ax.contourf(det_count, arange(70,130,5))
   pp=colorbar(cs)
 
-  show()
+  #show()
 
   return
 
@@ -32,10 +32,12 @@ def plot_diffusivity(file):
   ax = fig.add_axes([.1,.1,.8,.8])
   ax.plot(K, z)
 
-  show()
+  #show()
 
 ### Main ###
 
-#plot_diffusivity("random_walk_1d_0.vtu")
+plot_diffusivity("random_walk_1d_0.vtu")
 
 plot_detector_distribution("Naive_RW.detectors")
+
+show()

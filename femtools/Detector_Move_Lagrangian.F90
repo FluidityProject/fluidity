@@ -134,9 +134,12 @@ contains
     type(detector_type), pointer :: detector
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(halo_type), pointer :: ele_halo
-    integer :: i, j, k, num_proc, dim, all_send_lists_empty, nprocs, stage, cycle
+    integer :: i, j, k, num_proc, dim, all_send_lists_empty, nprocs, stage, cycle, det
     logical :: any_lagrangian
     real :: rk_dt
+
+    ! Random Walk velocity source
+    real, dimension(:), allocatable :: rw_velocity_source
 
     ewrite(1,*) "In move_lagrangian_detectors for detectors list: ", detector_list%name
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
@@ -157,6 +160,7 @@ contains
     ! Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
     vfield=>extract_vector_field(state(1),"Velocity")
+    allocate(rw_velocity_source(xfield%dim))
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -168,11 +172,13 @@ contains
 
     subcycling_loop: do cycle = 1, parameters%n_subcycles
 
-       ! Prepare reset update_vector to position
+       ! Reset update_vector to position
+       detector => detector_list%firstnode
        do det = 1, detector_list%length
-          if(det0%type==LAGRANGIAN_DETECTOR) then
-             det0%update_vector = det0%position
+          if(detector%type==LAGRANGIAN_DETECTOR) then
+             detector%update_vector = detector%position
           end if
+          detector => detector%next
        end do
 
        RKstages_loop: do stage = 1, parameters%n_stages
@@ -217,15 +223,47 @@ contains
           end do detector_timestepping_loop
        end do RKstages_loop
 
-       ! Set position from update_vector
-       do det = 1, detector_list%length
-          if (det0%type==LAGRANGIAN_DETECTOR) then
-             det0%position = det0%update_vector
+       ! Add the Random Walk displacement 
+       if (parameters%do_random_walk) then
+          detector => detector_list%firstnode
+          do det = 1, detector_list%length
+             if (detector%type==LAGRANGIAN_DETECTOR) then
+                ! Evaluate the RW python function and add to update_vector
+                call python_run_detector_val_function(detector,xfield,trim("random_walk"),trim(detector_list%name),rw_velocity_source)
+                detector%update_vector=detector%update_vector + (dt * rw_velocity_source)  
+                detector%search_complete=.false.
+             end if
+             detector => detector%next
+          end do
+
+          call move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,parameters%search_tolerance)
+
+          ! Work out whether all send lists are empty, in which case exit.
+          all_send_lists_empty=0
+          do k=1, nprocs
+             if (send_list_array(k)%length/=0) then
+                all_send_lists_empty=1
+             end if
+          end do
+          call allmax(all_send_lists_empty)
+          if (all_send_lists_empty>0) then
+             call exchange_detectors(state(1),detector_list, send_list_array)
           end if
+       end if
+
+       ! Set position from update_vector
+       detector => detector_list%firstnode
+       do det = 1, detector_list%length
+          if (detector%type==LAGRANGIAN_DETECTOR) then
+             detector%position = detector%update_vector
+          end if
+          detector => detector%next
        end do
+
     end do subcycling_loop
 
     deallocate(send_list_array)
+    deallocate(rw_velocity_source)
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
@@ -324,9 +362,6 @@ contains
     integer :: det_count,j0
     real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
 
-    ! Random Walk velocity source
-    real, dimension(mesh_dim(xfield)) :: rw_velocity_source
-
     parameters => detector_list%move_parameters
     
     det0 => detector_list%firstnode
@@ -337,6 +372,7 @@ contains
           !! Set det%update_vector for lagrangian advection
           det0%search_complete = .false.
 
+          ! Evaluate velocity at update_vector and set k
           if (parameters%do_velocity_advect) then
              ! stage vector is computed by evaluating velocity at current position
              stage_local_coords=local_coords(xfield,det0%element,det0%update_vector)
@@ -346,22 +382,15 @@ contains
              det0%k(stage0,:)=0.0
           end if
 
-          if (parameters%do_random_walk) then
-             ! Evaluate the RW python function at det%update_vector
-             ! and add this virtual velocity source to det%k
-             call python_run_detector_val_function(det0,xfield,trim("random_walk"),trim(detector_list%name),rw_velocity_source)
-             det0%k(stage0,:)=det0%k(stage0,:) + rw_velocity_source
-          end if
-
           if(stage0<parameters%n_stages) then
-             ! update vector maps from current position to place required
+             ! Update vector maps from current position to place required
              ! for computing next stage vector
              det0%update_vector = det0%position
              do j0 = 1, stage0
                 det0%update_vector = det0%update_vector + dt0*parameters%stage_matrix(stage0+1,j0)*det0%k(j0,:)
              end do
           else
-             ! update vector maps from current position to final position
+             ! Update vector maps from current position to final position
              det0%update_vector = det0%position
              do j0 = 1, parameters%n_stages
                 det0%update_vector = det0%update_vector + dt0*parameters%timestep_weights(j0)*det0%k(j0,:)
