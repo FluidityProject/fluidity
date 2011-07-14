@@ -121,7 +121,7 @@ contains
     do ele=1,element_count(mesh)
        ele_dofs=>ele_nodes(mesh, ele)
        topo_dofs=>ele_nodes(topology, ele)
-       if (have_facets) facets=>row_ival_ptr(facet_numbers,ele)
+       if (have_facets.and.mesh_dim(mesh)>1) facets=>row_ival_ptr(facet_numbers,ele)
 #ifdef DDEBUG
        ele_dofs=0
 #endif
@@ -130,10 +130,10 @@ contains
           do e=1,cell%entity_counts(d)
              if (d==0) then
                 entity=topo_dofs(e)
+             else if (d==cell%dimension) then
+                entity=sum(entity_counts(:d-1))+ele
              else if (d==cell%dimension-1) then
                 if (have_facets) entity=facets(e)
-             else if (d==cell%dimension) then
-                entity=ele
              else if (d==1) then
                 ! This case only gets hit for the edges of 3d elements.
 
@@ -243,6 +243,11 @@ contains
             end do
          end do
       end if
+      
+      ! There's nothing to do for cells.
+      if (mesh_dim(mesh)>0) then
+         entity=entity+entity_counts(mesh_dim(mesh))
+      end if
 
       assert(sum(entity_counts)==entity)
 
@@ -330,12 +335,30 @@ contains
                   
                   entity_sort_list(entity,0)=entity_owner(entity)
                   entity_sort_list(entity,1:face_loc(topology,face))=&
-                       sorted(int(node_val(uid, face_global_nodes(topology,face))))
+                       sorted(int(face_val(uid, face)))
 
                end if
             end do
          end do
       end if
+
+      ! Loop over the cells
+      do ele1=1, element_count(mesh)
+         entity=entity+1
+
+         ! Set the owner and any sends/receives for this cell.
+         call conduct_halo_voting(entity_owner(:vertices), &
+              entity_receive_level(:vertices), &
+              entity_send_targets(:vertices,:), &
+              ele_nodes(topology,ele1), &
+              entity_owner(entity), &
+              entity_receive_level(entity), &
+              entity_send_targets(entity,:))
+
+         entity_sort_list(entity,0)=entity_owner(entity)
+         entity_sort_list(entity,1:ele_loc(topology,ele1))=&
+                       sorted(int(ele_val(uid, ele1)))
+      end do
 
       assert(entity==sum(entity_counts))
 
