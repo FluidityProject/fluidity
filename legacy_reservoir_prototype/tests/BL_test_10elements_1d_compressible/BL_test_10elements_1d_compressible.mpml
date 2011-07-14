@@ -76,7 +76,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.078e-2</real_value>
+      <real_value rank="0">0.003125</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10.0</real_value>
@@ -445,6 +445,7 @@
             <real_value rank="0">2.</real_value>
             <comment>Kr1_exp</comment>
           </relperm_exponent>
+          <boost_at_zero_saturation/>
         </Corey>
       </relperm_type>
       <immobile_fraction>
@@ -706,6 +707,7 @@
             <real_value rank="0">2.</real_value>
             <comment>Kr2_exp</comment>
           </relperm_exponent>
+          <boost_at_zero_saturation/>
         </Corey>
       </relperm_type>
       <immobile_fraction>

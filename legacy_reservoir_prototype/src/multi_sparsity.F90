@@ -209,6 +209,9 @@ contains
     ewrite(3,*)'CV_NONODS,CV_NLOC:',CV_NONODS,CV_NLOC
     CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLM, NCOLM, &
          MIDM, FINDM, COLM )
+    ewrite(3,*)'findm:', FINDM(1:CV_NONODS+1)
+    if ( .false. ) call  pousinmc2( totele, cv_nonods, cv_nloc, x_nonods, x_nloc, mx_ncolm, cv_ndgln, x_ndgln, &
+         ncolm, findm, colm, midm )
 
     ewrite(3,*) 'NCOLMCY, NCOLACV, NCOLCMC:', NCOLMCY, NCOLACV, NCOLCMC
 
@@ -903,6 +906,9 @@ contains
 
     lencolm = ptr - 1
     findrm( nonods2 + 1 ) = lencolm + 1
+
+    ewrite(3,*)'findrm:',findrm( 1:nonods2 + 1)
+stop 987
 
     deallocate( matrix )
 
