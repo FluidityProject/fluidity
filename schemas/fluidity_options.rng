@@ -193,7 +193,6 @@ in conjunction with /timestepping/nonlinear_iterations/terminate_if_not_converge
             <a:documentation>Whether to enable dumping of checkpointing output.
 
 See http://amcg.ese.ic.ac.uk/index.php?title=Local:Checkpointing_from_new_options</a:documentation>
-           <optional>
             <element name="checkpoint_period_in_dumps">
               <a:documentation>Checkpointing period, in dumps. Non-negative value
 required. A value of zero indicates that checkpoints
@@ -202,17 +201,6 @@ should be created at every dump. If
 checkpoints may be overwritten.</a:documentation>
               <ref name="integer"/>
             </element>
-           </optional>
-            <optional>
-            <element name="checkpoint_list">
-           <a:documentation>The checkpoint times specified as a list of times.  These times must coincide with times when fluidity is dumping anyway.  Check the dump_period options.</a:documentation>
-              <ref name="real_vector"/>
-           <element name="number_of_checkpoints">
-                    <a:documentation>The length of the list specified in checkpoint_list.</a:documentation>
-                    <ref name="integer"/>
-                  </element>
-            </element>
-            </optional>
             <optional>
               <element name="checkpoint_at_start">
                 <a:documentation>Enable to checkpoint at simulation start.</a:documentation>

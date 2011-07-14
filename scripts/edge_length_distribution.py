@@ -3,8 +3,6 @@
 # courtesy of the very smart Mr P Farrell
 
 from optparse import OptionParser
-import sys
-sys.path.append('/data/fpm08/bzr-fluidity/fluidity/python')
 import vtktools
 import glob
 import numpy
