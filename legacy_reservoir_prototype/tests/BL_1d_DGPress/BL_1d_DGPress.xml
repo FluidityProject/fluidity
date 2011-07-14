@@ -2,46 +2,46 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>BL_1d</name>
+  <name>BL_1d_DGPress</name>
   <owner userid="btollit"/>
   <tags>mpml</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../../bin/multiphase_prototype BL_1d_A.mpml
+../../../bin/multiphase_prototype BL_1d_DGPress_A.mpml
 
-mkdir BL_1d_A_output
+mkdir BL_1d_DGPress_A_output
 
-mv *.d.* BL_1d_A_output
+mv *.d.* BL_1d_DGPress_A_output
 
-cp  BL_1d_A.mpml BL_1d_B.mpml
-sed -i 's/_A/_B/' BL_1d_B.mpml
+cp  BL_1d_DGPress_A.mpml BL_1d_DGPress_B.mpml
+sed -i 's/_A/_B/' BL_1d_DGPress_B.mpml
 
-../../../bin/multiphase_prototype BL_1d_B.mpml 
+../../../bin/multiphase_prototype BL_1d_DGPress_B.mpml 
 
-mkdir BL_1d_B_output
+mkdir BL_1d_DGPress_B_output
 
-mv *.d.* BL_1d_B_output
+mv *.d.* BL_1d_DGPress_B_output
 
-rm -f BL_1d_B.mpml
+rm -f BL_1d_DGPress_B.mpml
     </command_line>
-    <!-- One dimensional BL problem for different mesh resolutions checking against an interpolated analytic solution (at 500 points with cubic interpolation) of the first phase saturation -->
+    <!-- One dimensional BL problem using discontinous pressure for different mesh resolutions checking against an interpolated analytic solution (at 500 points with cubic interpolation) of the first phase saturation -->
   </problem_definition>
   <variables>
     <variable name="error_max_A" language="python">
 from fluidity_tools import stat_parser as stat
-error_max_A = stat("BL_1d_A.stat")["phase1"]["Error"]["max"][-1]
+error_max_A = stat("BL_1d_DGPress_A.stat")["phase1"]["Error"]["max"][-1]
     </variable>
     <variable name="error_l2norm_A" language="python">
 from fluidity_tools import stat_parser as stat
-error_l2norm_A = stat("BL_1d_A.stat")["phase1"]["Error"]["l2norm"][-1]
+error_l2norm_A = stat("BL_1d_DGPress_A.stat")["phase1"]["Error"]["l2norm"][-1]
     </variable>
     <variable name="error_max_B" language="python">
 from fluidity_tools import stat_parser as stat
-error_max_B = stat("BL_1d_B.stat")["phase1"]["Error"]["max"][-1]
+error_max_B = stat("BL_1d_DGPress_B.stat")["phase1"]["Error"]["max"][-1]
     </variable>
     <variable name="error_l2norm_B" language="python">
 from fluidity_tools import stat_parser as stat
-error_l2norm_B = stat("BL_1d_B.stat")["phase1"]["Error"]["l2norm"][-1]
+error_l2norm_B = stat("BL_1d_DGPress_B.stat")["phase1"]["Error"]["l2norm"][-1]
     </variable>
   </variables>
   <pass_tests>

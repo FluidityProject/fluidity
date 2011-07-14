@@ -1,6 +1,6 @@
 SHELL = sh
 
-SIM = BL_1d
+SIM = BL_1d_DGPress
 
 # options for 1d mesh interval script for different mesh resolutions
 LEFT_X    = 0.0

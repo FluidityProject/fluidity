@@ -9,6 +9,7 @@ clean:
 	$(MAKE) -C BL_test_gravity clean
 	$(MAKE) -C BL_test_10elements_1d_compressible clean
 	$(MAKE) -C BL_1d clean
+	$(MAKE) -C BL_1d_DGPress clean        
 	$(MAKE) -C Sodds_shock_tube_1phase_1d clean
 	$(MAKE) -C CompModel_1d_2Phases_3Components_LVI_NonEquilibrium_DG clean
 	$(MAKE) -C CompModel_1d_2Phases_2Components_NonEquilibrium clean
