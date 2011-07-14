@@ -348,7 +348,7 @@ contains
 
     allocate(local_ele(detectors%length))
         
-    node => detectors%firstnode
+    node => detectors%first
 
     nlocal_dets = 0
     do i = 1, detectors%length
@@ -361,7 +361,7 @@ contains
       call picker_inquire(positions, local_coords(:, :nlocal_dets), local_ele(:nlocal_dets), local_coords = local_l_coords(:, :nlocal_dets), global = .false.)
     end if
     
-    node => detectors%firstnode
+    node => detectors%first
 
     local_index = 0
     do i = 1, detectors%length

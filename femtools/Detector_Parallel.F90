@@ -43,7 +43,8 @@ module detector_parallel
   private
 
   public :: distribute_detectors, exchange_detectors, register_detector_list, &
-            get_num_detector_lists, get_registered_detector_lists
+            get_num_detector_lists, get_registered_detector_lists, &
+            deallocate_detector_list_array
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
@@ -97,6 +98,15 @@ contains
     get_num_detector_lists=num_detector_lists
   end function get_num_detector_lists
 
+  subroutine deallocate_detector_list_array()
+
+    if (allocated(detector_list_array)) then 
+       deallocate(detector_list_array)
+       num_detector_lists = 0
+    end if
+
+  end subroutine deallocate_detector_list_array
+
   subroutine distribute_detectors(state, detector_list)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
     ! If not, they need to be sent to the processor owner before adaptivity happens
@@ -116,7 +126,7 @@ contains
     nprocs=getnprocs()
     allocate(send_list_array(nprocs))
 
-    detector => detector_list%firstnode
+    detector => detector_list%first
     do i = 1, detector_list%length
        assert(detector%element>0)
        processor_owner=element_owner(xfield%mesh,detector%element)
@@ -125,7 +135,7 @@ contains
           node_to_send => detector
           detector => detector%next
 
-          call move(detector_list,node_to_send,send_list_array(processor_owner))
+          call move(node_to_send, detector_list, send_list_array(processor_owner))
        else
           detector => detector%next
        end if
@@ -149,7 +159,7 @@ contains
     end do
     deallocate(send_list_array)
 
-    detector => detector_list%firstnode
+    detector => detector_list%first
     do i = 1, detector_list%length
        assert(element_owner(xfield%mesh,detector%element)==getprocno())
        detector=>detector%next
@@ -213,7 +223,7 @@ contains
           ewrite(2,*) " Sending", ndet_to_send, "detectors to process", target_proc
        end if
 
-       detector => send_list_array(target_proc)%firstnode
+       detector => send_list_array(target_proc)%first
        if (ndet_to_send>0) then
           do j=1, send_list_array(target_proc)%length
 
@@ -228,7 +238,7 @@ contains
              end if
 
              ! delete also advances detector
-             call delete(send_list_array(target_proc), detector)
+             call delete(detector, send_list_array(target_proc))
           end do
        end if
 
@@ -282,7 +292,7 @@ contains
              detector_received%name=int2str(detector_received%id_number)
           end if
 
-          call insert(detector_list, detector_received)           
+          call insert(detector_received, detector_list)           
        end do
        deallocate(detector_buffer)
     end do    

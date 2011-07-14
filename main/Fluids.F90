@@ -105,6 +105,7 @@ module fluids_module
 #endif
   use multiphase_module
   use lagrangian_biology
+  use detector_parallel, only: deallocate_detector_list_array
 
   implicit none
 
@@ -998,6 +999,9 @@ contains
 
     ! closing .stat, .convergence and .detector files
     call close_diagnostic_files()
+
+    ! deallocate the array of all detector lists
+    call deallocate_detector_list_array()
 
     ewrite(1, *) "Printing references before final deallocation"
     call print_references(1)

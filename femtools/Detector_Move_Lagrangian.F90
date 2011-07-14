@@ -173,7 +173,7 @@ contains
     subcycling_loop: do cycle = 1, parameters%n_subcycles
 
        ! Reset update_vector to position
-       detector => detector_list%firstnode
+       detector => detector_list%first
        do det = 1, detector_list%length
           if(detector%type==LAGRANGIAN_DETECTOR) then
              detector%update_vector = detector%position
@@ -225,7 +225,7 @@ contains
 
        ! Add the Random Walk displacement 
        if (parameters%do_random_walk) then
-          detector => detector_list%firstnode
+          detector => detector_list%first
           do det = 1, detector_list%length
              if (detector%type==LAGRANGIAN_DETECTOR) then
                 ! Evaluate the RW python function and add to update_vector
@@ -252,7 +252,7 @@ contains
        end if
 
        ! Set position from update_vector
-       detector => detector_list%firstnode
+       detector => detector_list%first
        do det = 1, detector_list%length
           if (detector%type==LAGRANGIAN_DETECTOR) then
              detector%position = detector%update_vector
@@ -289,7 +289,7 @@ contains
     integer :: checkint 
       
     checkint = 0
-    det0 => detector_list0%firstnode
+    det0 => detector_list0%first
     do i = 1, detector_list0%length         
        if (det0%type==LAGRANGIAN_DETECTOR) then
           checkint = 1
@@ -309,7 +309,7 @@ contains
     integer, intent(in) :: n_stages, dim
     type(detector_type), pointer :: det0
 
-    det0 => detector_list%firstnode
+    det0 => detector_list%first
     do while (associated(det0))
        if(det0%type==LAGRANGIAN_DETECTOR) then
           if(allocated(det0%k)) then
@@ -335,7 +335,7 @@ contains
     type(detector_type), pointer :: det0
     integer :: j0
       
-    det0 => detector_list%firstnode
+    det0 => detector_list%first
     do j0=1, detector_list%length
        if(det0%type==LAGRANGIAN_DETECTOR) then
           if(allocated(det0%k)) then
@@ -364,7 +364,7 @@ contains
 
     parameters => detector_list%move_parameters
     
-    det0 => detector_list%firstnode
+    det0 => detector_list%first
     do det_count=1, detector_list%length 
 
        if(det0%type==LAGRANGIAN_DETECTOR) then
@@ -437,7 +437,7 @@ contains
     ewrite(2,*) "In move_detectors_guided_search"
 
     !Loop over all the detectors
-    det0 => detector_list%firstnode
+    det0 => detector_list%first
     do det_count=1, detector_list%length
 
        !Only move Lagrangian detectors
@@ -533,7 +533,7 @@ contains
                    !this face goes into another computational domain
                    proc_local_number=element_owner(vfield%mesh,det_send%element)
 
-                   call move(detector_list,det_send,send_list_array(proc_local_number))
+                   call move(det_send, detector_list, send_list_array(proc_local_number))
                    !move on to the next detector
                    exit search_loop
                 end if
