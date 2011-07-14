@@ -183,7 +183,6 @@
             <integer_value shape="1" rank="1">666</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_weakly/>
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
@@ -198,7 +197,6 @@
             <integer_value shape="1" rank="1">444</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_weakly/>
             <align_bc_with_cartesian>
               <y_component>
                 <constant>
@@ -405,7 +403,6 @@
             <integer_value shape="1" rank="1">666</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_weakly/>
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
@@ -420,7 +417,6 @@
             <integer_value shape="1" rank="1">444</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_weakly/>
             <align_bc_with_cartesian>
               <y_component>
                 <constant>
@@ -435,7 +431,6 @@
             <integer_value shape="1" rank="1">333</integer_value>
           </surface_ids>
           <type name="dirichlet">
-            <apply_weakly/>
             <align_bc_with_cartesian>
               <y_component>
                 <constant>
@@ -505,7 +500,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">1e-8</real_value>
+            <real_value rank="0">1.0e-8</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Top">
@@ -514,7 +509,7 @@
           </surface_ids>
           <type name="neumann">
             <constant>
-              <real_value rank="0">2.01804273504e-9</real_value>
+              <real_value rank="0">2.01804273504e-7</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -564,6 +559,35 @@
         </adaptivity_options>
         <consistent_interpolation/>
       </prognostic>
+    </scalar_field>
+    <scalar_field name="SumVelocityDivergence" rank="0">
+      <diagnostic>
+        <mesh name="VelocityMesh"/>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <output/>
+        <stat/>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+      </diagnostic>
     </scalar_field>
     <multiphase_properties>
       <particle_diameter>
