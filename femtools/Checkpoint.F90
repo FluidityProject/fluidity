@@ -66,29 +66,46 @@ contains
     logical :: do_checkpoint
 
     integer :: cp_dump_period
-    real :: current_time
-
+    real :: current_time, timestep
+    real, dimension(:), allocatable:: cp_list
+    integer :: no_checkpoints
+    integer :: cp
+    cp=1
     ! Is checkpointing enabled?
     if(.not. have_option("/io/checkpointing")) then
       do_checkpoint = .false.
     else
-      call get_option("/io/checkpointing/checkpoint_period_in_dumps", cp_dump_period)
+
       call get_option("/timestepping/current_time", current_time)
+      if (have_option("/io/checkpointing/checkpoint_period_in_dumps")) then 
+        call get_option("/io/checkpointing/checkpoint_period_in_dumps", cp_dump_period)
+        ! Permit a checkpointing period of zero
+        cp_dump_period = max(cp_dump_period, 1)
 
-      ! Permit a checkpointing period of zero
-      cp_dump_period = max(cp_dump_period, 1)
-
-      ! Checkpoint if cp_no is divisible by cp_dump_period
-      if(mod(dump_no, cp_dump_period) /= 0) then
+        ! Checkpoint if cp_no is divisible by cp_dump_period
+        if(mod(dump_no, cp_dump_period) /= 0) then                             
+          do_checkpoint = .false.
+        ! unless this is at simulation start and checkpointing is not enabled at simulation start
+        else if(current_time == simulation_start_time .and. .not. have_option("/io/checkpointing/checkpoint_at_start")) then
         do_checkpoint = .false.
-      ! unless this is at simulation start and checkpointing is not enabled at simulation start
-      else if(current_time == simulation_start_time .and. .not. have_option("/io/checkpointing/checkpoint_at_start")) then
-        do_checkpoint = .false.
-      else
+        else
         do_checkpoint = .true.
-      end if
-    end if
-
+        end if                                                                    
+      else
+        ! The case when the checkpoint period is specified as a list of times
+        call get_option("/io/checkpointing/checkpoint_list/number_of_checkpoints",no_checkpoints )
+        call get_option("/timestepping/timestep", timestep)
+        allocate(cp_list(no_checkpoints)) 
+        call get_option("/io/checkpointing/checkpoint_list", cp_list)
+        do_checkpoint = .false.
+        do while (cp .le. no_checkpoints) 
+          if ( abs (current_time-cp_list(cp)) .lt. (timestep/2.) ) then           
+            do_checkpoint = .true.    
+          end if
+          cp=cp+1   
+        end do         
+      end if  
+    end if   
     if(do_checkpoint) then
       ewrite(1, *) "do_checkpoint returning .true."
     else
@@ -813,6 +830,8 @@ contains
     !!< Check checkpointing related options
 
     integer :: cp_period, stat
+    integer :: no_checkpoints
+    real, dimension(:), allocatable:: cp_list
 
     if(.not. have_option("/io/checkpointing")) then
       ! Nothing to check
@@ -824,11 +843,25 @@ contains
 #ifndef HAVE_VTK
     ewrite(0, *) "Warning: Checkpointing is enabled, but Fluidity has been compiled without VTK support"
 #endif
-
-    call get_option("/io/checkpointing/checkpoint_period_in_dumps", cp_period, stat)
-    if(stat /= 0) then
-      FLExit("Checkpoint period (in dumps) required for checkpointing")
+   
+    if ((.not.have_option("/io/checkpointing/checkpoint_period_in_dumps").and..not.have_option("/io/checkpointing/checkpoint_list")).or.(have_option("/io/checkpointing/checkpoint_period_in_dumps").and.have_option("/io/checkpointing/checkpoint_list"))) then
+        FLExit("Either checkpoint_period_in_dumps or checkpoint_list is required when checkpointing (not both).")
     end if
+    !if (have_option("/io/checkpointing/checkpoint_period_in_dumps")) then
+    !  call get_option("/io/checkpointing/checkpoint_period_in_dumps", cp_period, stat)
+    !end if
+    !if (have_option("/io/checkpointing/checkpoint_list")) then
+    !  call get_option("/io/checkpointing/checkpoint_list/number_of_checkpoints",no_checkpoints )
+    !  print *, no_checkpoints
+    !  allocate(cp_list(no_checkpoints))
+    !  call get_option("/io/checkpointing/checkpoint_list", cp_list)
+    !  print *, cp_list
+    !end if
+ 
+   
+    !print *, no_checkpoints
+    !print *, cp_list
+   
     if(cp_period < 0) then
       FLExit("Checkpoint period (in dumps) cannot be negative")
     end if
