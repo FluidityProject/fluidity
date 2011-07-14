@@ -71,16 +71,13 @@ contains
     type(element_type), pointer :: element, topo_element
     type(mesh_type), pointer :: topology
     integer :: d, e, ele, entity, max_vertices
-    integer, dimension(:), pointer :: ele_dofs,topo_dofs,facets
+    integer, dimension(:), pointer :: ele_dofs,topo_dofs, facets
     integer, dimension(2) :: edge
     logical :: have_facets, have_halos
 
-    type(integer_set), dimension(:,:), allocatable :: vertex_send_targets,&
-         & edge_send_targets, facet_send_targets
-    integer, dimension(:), allocatable :: vertex_owner, edge_owner,&
-         & facet_owner
-    integer, dimension(:), allocatable :: vertex_receive_level, edge_receive_level,&
-         & facet_receive_level
+    type(integer_set), dimension(:,:), allocatable :: entity_send_targets
+    integer, dimension(:), allocatable :: entity_owner
+    integer, dimension(:), allocatable :: entity_receive_level
     
     ! Array to enable all the entities to be sorted together according to
     !  halo levels and universal numbers.
@@ -124,7 +121,7 @@ contains
     do ele=1,element_count(mesh)
        ele_dofs=>ele_nodes(mesh, ele)
        topo_dofs=>ele_nodes(topology, ele)
-       if (have_facets) facets=>row_m_ptr(facet_list,ele)
+       if (have_facets) facets=>row_ival_ptr(facet_numbers,ele)
 #ifdef DDEBUG
        ele_dofs=0
 #endif
@@ -148,6 +145,7 @@ contains
   
              ele_dofs(element%entity2dofs(d,e)%dofs)=&
                   entity_dofs(d,entity, dofs_per)
+             
           end do
        end do
        
@@ -176,7 +174,7 @@ contains
       
       integer :: i,d,e
 
-      dofs=entity_dof_starts(sum(entity_counts(:dim-1))+entity)&
+      dofs=entity_dof_starts(entity)&
            +[(i, i=1,dofs_per(dim))]
       
     end function entity_dofs
@@ -199,10 +197,11 @@ contains
 
     subroutine number_topology
       integer :: ele1, ele2, vertex1, vertex2      
-      integer :: facets, edges,n
+      integer :: entity,n
       integer, dimension(:), pointer :: neigh
 
       ! No need to number vertices: it comes from the topology.
+      entity=entity_counts(0)
 
       ! Number the edges
       if (mesh_dim(mesh)>2) then
@@ -210,19 +209,17 @@ contains
          call allocate(edge_numbers, edge_list, type=CSR_INTEGER)
          call zero(edge_numbers)
 
-         edges=0
          do vertex1=1, node_count(topology)
             neigh=>row_m_ptr(edge_list, vertex1)
             do n=1, size(neigh)
                vertex2=neigh(n)
                if (vertex2>vertex1) then
-                  edges=edges+1
-                  call set(edge_numbers,vertex1,vertex2,edges)
-                  call set(edge_numbers,vertex2,vertex1,edges)
+                  entity=entity+1
+                  call set(edge_numbers,vertex1,vertex2,entity)
+                  call set(edge_numbers,vertex2,vertex1,entity)
                end if
             end do
          end do
-         assert(entity_counts(1)==edges)
       end if
 
       ! Number the facets
@@ -230,25 +227,24 @@ contains
          call allocate(facet_numbers, facet_list, type=CSR_INTEGER)
          call zero(facet_numbers)
 
-         facets=0
          do ele1=1, element_count(mesh)
             neigh=>ele_neigh(topology,ele1)
             do n=1, size(neigh)
                ele2=neigh(n)
                if (ele2<0) then
                   ! Exterior facet
-                  facets=facets+1
-                  call set(facet_numbers,ele1,ele2,facets)
+                  entity=entity+1
+                  call set(facet_numbers,ele1,ele2,entity)
                else if (ele2>ele1) then
-                  facets=facets+1
-                  call set(facet_numbers,ele1,ele2,facets)
-                  call set(facet_numbers,ele2,ele1,facets)
+                  entity=entity+1
+                  call set(facet_numbers,ele1,ele2,entity)
+                  call set(facet_numbers,ele2,ele1,entity)
                end if
             end do
          end do
-         
-         assert(entity_counts(mesh_dim(mesh)-1)==facets)
       end if
+
+      assert(sum(entity_counts)==entity)
 
     end subroutine number_topology
 
@@ -257,49 +253,49 @@ contains
       !  owns each of these objects and to which halos they may belong.
       type(halo_type), dimension(:), intent(in) :: halos
       
-      integer :: facets, facet, face, ele1, ele2
-      integer :: edges, edge, vertex1, vertex2
-      integer :: entity_count, n
+      integer :: face, ele1, ele2
+      integer :: vertex1, vertex2
+      integer :: vertices, entity, n
       integer, dimension(:), pointer :: neigh
 
-      allocate(vertex_send_targets(node_count(topology), size(halos)))
-      allocate(vertex_owner(node_count(topology)))
-      allocate(vertex_receive_level(node_count(topology)))
-      call invert_halos(halos, vertex_owner, vertex_receive_level, vertex_send_targets)
-      entity_count=0
+      allocate(entity_send_targets(node_count(topology), size(halos)))
+      allocate(entity_owner(node_count(topology)))
+      allocate(entity_receive_level(node_count(topology)))
+      vertices=entity_counts(0)
+      call invert_halos(halos, entity_owner(:vertices), &
+           entity_receive_level(:vertices), &
+           entity_send_targets(:vertices,:))
+
+      entity=0
       do vertex1=1,node_count(uid)
-         entity_count=entity_count+1
-         entity_sort_list(entity_count,0)=vertex_owner(vertex1)
-         entity_sort_list(entity_count,1)=node_val(uid, vertex1)
+         entity=entity+1
+         entity_sort_list(entity,0)=entity_owner(vertex1)
+         entity_sort_list(entity,1)=node_val(uid, vertex1)
       end do
       
       ! Loop over the edges.
       if (mesh_dim(mesh)>2) then
          ! If mesh_dim(mesh)==2 then this is subsumed in the facets.
-         edges=entity_counts(mesh_dim(mesh)-1)
-         allocate(edge_owner(edges),&
-              edge_receive_level(edges),&
-              edge_send_targets(edges,size(halos)))
-         
+
          do vertex1=1, node_count(topology)
             neigh=>row_m_ptr(edge_list, vertex1)
             do n=1, size(neigh)
                vertex2=neigh(n)
                if (vertex2>vertex1) then
-                  edge=val(edge_numbers,vertex1,vertex2)
-                  
-                  ! Set the owner and any sends/receives for this edge.
-                  call conduct_halo_voting(vertex_owner, &
-                       vertex_receive_level, &
-                       vertex_send_targets, &
-                       [vertex1,vertex2], &
-                       edge_owner(edge), &
-                       edge_receive_level(edge), &
-                       edge_send_targets(edge,:))
 
-                  entity_count=entity_count+1
-                  entity_sort_list(entity_count,0)=edge_owner(edge)
-                  entity_sort_list(entity_count,1:2)=&
+                  entity=entity+1
+
+                  ! Set the owner and any sends/receives for this edge.
+                  call conduct_halo_voting(entity_owner(:vertices), &
+                       entity_receive_level(:vertices), &
+                       entity_send_targets(:vertices,:), &
+                       [vertex1,vertex2], &
+                       entity_owner(entity), &
+                       entity_receive_level(entity), &
+                       entity_send_targets(entity,:))
+                  
+                  entity_sort_list(entity,0)=entity_owner(entity)
+                  entity_sort_list(entity,1:2)=&
                        node_val(uid, [vertex1,vertex2])
 
                end if
@@ -310,9 +306,6 @@ contains
       ! Loop over the facets
       if (mesh_dim(mesh)>1) then
          facets=entity_counts(mesh_dim(mesh)-1)
-         allocate(facet_owner(facets),&
-              facet_receive_level(facets),&
-              facet_send_targets(facets,size(halos)))
 
          do ele1=1, element_count(mesh)
             neigh=>ele_neigh(topology,ele1)
@@ -322,21 +315,21 @@ contains
                   ! Only need to hit each facet once. 
                   cycle
                else
-                  facet=val(facet_numbers,ele1,ele2)
                   face=ele_face(topology,ele1,ele2)
 
+                  entity=entity+1
+
                   ! Set the owner and any sends/receives for this facet.
-                  call conduct_halo_voting(vertex_owner,&
-                       vertex_receive_level,&
-                       vertex_send_targets,&
+                  call conduct_halo_voting(entity_owner(:vertices), &
+                       entity_receive_level(:vertices), &
+                       entity_send_targets(:vertices,:), &
                        face_global_nodes(topology,face), &
-                       facet_owner(facet), &
-                       facet_receive_level(facet), &
-                       facet_send_targets(facet,:))
+                       entity_owner(entity), &
+                       entity_receive_level(entity), &
+                       entity_send_targets(entity,:))
                   
-                  entity_count=entity_count+1
-                  entity_sort_list(entity_count,0)=facet_owner(facet)
-                  entity_sort_list(entity_count,1:face_loc(topology,face))=&
+                  entity_sort_list(entity,0)=entity_owner(entity)
+                  entity_sort_list(entity,1:face_loc(topology,face))=&
                        sorted(int(node_val(uid, face_global_nodes(topology,face))))
 
                end if
@@ -344,20 +337,16 @@ contains
          end do
       end if
 
-      assert(entity_count==sum(entity_counts))
+      assert(entity==sum(entity_counts))
 
     end subroutine create_topology_halos
 
     subroutine deallocate_topology_halos
       
       if (.not.have_halos) return
-      call deallocate(vertex_send_targets)
-      call deallocate(edge_send_targets)
-      call deallocate(facet_send_targets)
+      call deallocate(entity_send_targets)
 
-      deallocate(vertex_owner, vertex_receive_level, vertex_send_targets)
-      deallocate(edge_owner, edge_receive_level, edge_send_targets)
-      deallocate(facet_owner, facet_receive_level, facet_send_targets)
+      deallocate(entity_owner, entity_receive_level, entity_send_targets)
 
     end subroutine deallocate_topology_halos
 
@@ -376,6 +365,7 @@ contains
          end do
          call sort(entity_sort_list, visit_order)
       else
+         ! In the serial case, we just run through the list in order.
          visit_order=[(i,i=1,size(visit_order))]
       end if
 
