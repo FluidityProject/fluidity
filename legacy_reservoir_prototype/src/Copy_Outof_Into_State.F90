@@ -1279,14 +1279,18 @@ module copy_outof_into_state
 
 
     subroutine copy_into_state(state, saturations, proto_pressure)
-  
-      type(state_type), dimension(:), pointer :: state
-      type(scalar_field), pointer :: galerkinprojection, phasevolumefraction, pressure
+      
+      !!< Copy prototype saturations and pressure into fluidity state array for output
+      
+      type(state_type), dimension(:), intent(inout) :: state
+      real, dimension(:), intent(in) :: saturations, proto_pressure  
+      
+      ! local variables    
+      type(scalar_field), pointer :: phasevolumefraction, pressure
       type(vector_field), pointer :: positions
 
       integer :: i,j
       integer, dimension(:), allocatable :: elenodes
-      real, dimension(:), intent(in) :: saturations, proto_pressure
 
       ewrite(3,*) "In copy_into_state"
 
@@ -1301,11 +1305,6 @@ module copy_outof_into_state
           call set(phasevolumefraction, elenodes(j), saturations(2*(i-1)+j))
         end do
       end do  
-    
-      ! Then to get the projection of PhaseVolumeFraction onto the CoordinateMesh
-      ! so that it can be compared to the analytical solution
-      galerkinprojection => extract_scalar_field(state(1), "GalerkinProjection")
-      call calculate_galerkin_projection(state(1), galerkinprojection)
 
       ! Let's practice with getting the pressure out
       ! This is designed for the quadratic elements

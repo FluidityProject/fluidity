@@ -382,38 +382,6 @@
         </max_iterations_flux_limiter>
       </prognostic>
     </scalar_field>
-    <scalar_field name="GalerkinProjection" rank="0">
-      <diagnostic>
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
-        <source_field_name>PhaseVolumeFraction</source_field_name>
-        <mesh name="CoordinateMesh"/>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">500</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="Temperature" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
