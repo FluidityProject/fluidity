@@ -1278,7 +1278,7 @@ module copy_outof_into_state
 
 
 
-    subroutine copy_into_state(state, saturations, proto_pressure, nphase)
+    subroutine copy_into_state(state, saturations, proto_pressure, nphase, cv_ndgln)
       
       !!< Copy prototype saturations and pressure into fluidity state array for output
       
@@ -1286,6 +1286,7 @@ module copy_outof_into_state
       real, dimension(:), intent(in) :: saturations
       real, dimension(:), intent(in) :: proto_pressure
       integer, intent(in) :: nphase
+      integer, dimension(:), intent(in) :: cv_ndgln
       
       ! local variables        
       integer :: stat
@@ -1321,7 +1322,8 @@ module copy_outof_into_state
                ! this is hard wired for quadratic elements 1d with regard to prototype array
                call set(phasevolumefraction, &
                         element_nodes(j), &
-                        saturations((2*(i-1)+j) + (p-1)*node_count(phasevolumefraction)))
+!!!                        saturations((2*(i-1)+j) + (p-1)*node_count(phasevolumefraction)))
+                        saturations((cv_ndgln((i-1)*size(element_nodes)+j)) + (p-1)*node_count(phasevolumefraction)))
             
             end do volf_node_loop
             
