@@ -139,10 +139,33 @@
       if ( OldSetUp ) then
          CALL DEF_SPAR( 1, TOTELE, MXNELE, NCOLELE, &
               MIDELE, FINELE, COLELE )
+         !  ewrite(3,*) colele( 1 : ncolele )
+         !  ewrite(3,*) midele( 1 : totele )
+         !  ewrite(3,*) ' '
+         !  allocate( tempvec1( totele + 1 ))
+         !  allocate( tempvec2( totele ))
+         !  allocate( tempvec3( ncolele ))
+         !  tempvec1 = finele
+         !  tempvec2 = midele
+         !  tempvec3( 1: ncolele ) = colele( 1: ncolele )
+         !  finele = 0  
+         !  midele = 0
+         !  colele = 0
       else
          call getfinele( totele, cv_nloc, x_snloc, x_nonods, x_ndgln, nface_p1, &
-              finele, colele )
+              finele, colele, midele )
+         ncolele = nface_p1 * totele
+         ! ewrite(3,*) colele( 1 : ncolele )
+         ! ewrite(3,*) midele( 1 : totele )
+         ! ewrite(3,*) ncolele, totele * nface_p1, mxnele
+         ! ewrite(3,*)'  -----  finele  -----  '
+         ! call comparematrices( totele + 1,        tempvec1, finele )
+         ! ewrite(3,*)' -----  midele -----  '
+         ! call comparematrices( totele,            tempvec2, midele )
+         ! ewrite(3,*)' -----  colele  -----  '
+         ! call comparematrices( ncolele, tempvec3, colele )
       endif
+      ! stop 11
 
       CALL EXTEN_SPARSE_MULTI_PHASE( TOTELE, MXNELE, FINELE, COLELE, &
            NPHASE, NPHA_TOTELE, MX_NCOLELE_PHA, FINELE_PHA, COLELE_PHA, MIDELE_PHA ) 
@@ -155,12 +178,13 @@
       ! Now form the global matrix: FINMCY, COLMCY and MIDMCY for the 
       ! momentum and continuity eqns: 
 
-      if ( OldSetUp ) then
+      if ( .not. OldSetUp ) then
          CALL DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE)
          NC = NCT
       else
-         call  pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, u_ndgln, cv_ndgln, &
+         call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, u_ndgln, cv_ndgln, &
               nct, findct, colct, centct )
+         nc = nct
       endif
 
 
@@ -659,7 +683,7 @@
 
 
     subroutine getfinele( totele, nloc, snloc, nonods, ndglno, nface_p1, &
-         finele, colele )
+         finele, colele, midele )
       ! This sub caluculates COLELE the element
       ! connectivitiy list in order of faces.
       implicit none
@@ -668,6 +692,7 @@
       integer, intent( in ) :: nface_p1
       integer, dimension( totele * nface_p1 ), intent( inout ) :: colele
       integer, dimension( totele + 1 ), intent( inout ) :: finele
+      integer, dimension( totele ), intent( inout ) :: midele
       ! Local variables
       integer :: nface, ele, iloc, jloc, iloc2, nod, inod, jnod, count, ele2, i, hit, &
            iface, iface2, kface, ncolel, itemp, count2
@@ -688,6 +713,16 @@
             nod = ndglno( ( ele - 1 ) * nloc + iloc )
             icount( nod ) = icount( nod ) + 1
          end do
+      end do
+
+! Not sure if this is correct -- double check later on.
+      midele( 1 ) = 1
+      do ele = 2, totele
+      count = 0 
+         do iloc = 1, nloc
+            count = count + 1
+         end do
+         midele( ele ) = midele( ele - 1 ) + count 
       end do
 
       fintran = 0
