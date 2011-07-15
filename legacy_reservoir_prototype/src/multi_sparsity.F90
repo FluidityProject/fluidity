@@ -193,10 +193,15 @@
 
       ewrite(3,*) 'NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC:',NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC
 
-      IF(CV_NONODS /= TOTELE*CV_NLOC) THEN
-         CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
+      IF(CV_NONODS /= TOTELE*CV_NLOC) THEN ! Continuous pressure
+  !       if ( OldSetUp ) then
+            CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
                                 !    CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-              MIDCMC, FINDCMC, COLCMC )
+                 MIDCMC, FINDCMC, COLCMC )
+           ewrite(3,*)'findmc'
+  !       else
+
+   !      end if
       ELSE
          ewrite(3,*)'CV_NLOC,MX_NCOLCMC=',CV_NLOC,MX_NCOLCMC
          !    CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
@@ -949,6 +954,163 @@
 
       return
     end subroutine pousinmc2
+
+    subroutine poscmc( totele, nonods, nimem, nct, &
+         findct, colct, &
+         ncmc, fincmc, colcmc, midcmc, noinod, presym )
+      implicit none
+      integer, intent ( in ) :: totele, nonods, nimem, nct
+      integer, dimension( totele + 1 ), intent( in ) :: findct
+      integer, dimension( nct ), intent( in ) :: colct
+      integer, intent( inout ) :: ncmc
+      integer, dimension( totele + 1 ), intent( inout ) :: fincmc
+      integer, dimension( nimem ), intent( inout ) :: colcmc
+      integer, dimension( totele ), intent( inout ) :: midcmc
+      integer, dimension( nonods ), intent( inout ) ::  noinod
+      logical, intent( inout ) :: presym
+
+      ! Local variables
+      integer :: count, count2, globi, globj, i, irow, inod, jnod, jrow, ptr 
+
+      ! Defining derived data types for the linked list
+      type node
+         integer :: id                 ! id number of node
+         type( node ), pointer :: next ! next node
+      end type node
+
+      type row
+         type( node ), pointer :: row ! recursive data type
+      end type row
+
+      type( row ), dimension( : ), allocatable :: matrix, matrix2
+      type( node ), pointer :: list, current, current2, next
+
+      allocate( matrix( nonods ))
+      do i = 1, nonods
+         allocate( list )
+         list % id = -1
+         nullify( list % next )
+         matrix( i ) % row => list
+         nullify( list )
+      end do
+
+      noinod = 0
+
+      Loop_Row1: do irow = 1, totele ! Given a vel node find the pressure nodes surrounding it. 
+         globj = irow
+
+         Loop_Count1: do count = findct( irow ), findct( irow + 1 ) - 1, 1
+            globi = colct( count )
+            list => matrix( globi ) % row
+
+            if ( list % id == -1 ) then ! Check if the list is initalised
+               list % id = globj
+               cycle
+            end if
+
+            Conditional1: if ( globj < list % id ) then ! Insert at start of list
+               allocate( current )
+               current % id = globj
+               current % next => list
+               matrix( globj ) % row => current
+               list => matrix( globj ) % row
+            else
+               current => list
+               Loop_While1: do while( associated( current ))
+                  if ( globj == current % id ) then ! Already have this node
+                     exit
+                  elseif ( .not. associated( current % next )) then ! End of list - insert this node
+                     allocate( current % next )
+                     nullify( current % next % next )
+                     current % next % id = globj
+                     exit
+                  elseif( globj < current % next % id ) then ! Insert new node here
+                     allocate( next )
+                     next % id = globj
+                     next % next => current % next
+                     current % next => next
+                     exit
+                  end if
+                  current => current % next
+               end do Loop_While1
+            end if Conditional1
+
+            noinod( globi ) = noinod( globi ) + 1
+
+         end do Loop_Count1
+
+      end do Loop_Row1
+
+      allocate( matrix2( totele )) ! Initalise the linked lists
+      do i = 1, totele
+         allocate( list )
+         list % id = -1
+         nullify( list % next )
+         matrix2( i ) % row => list
+         nullify( list )
+      end do
+
+      Loop_Row2: do irow = 1, totele
+
+         Loop_Count2: do count = findct( irow ), findct( irow + 1 ) - 1, 1 ! Find the PRESSURE NODES surrounding pressure node IROW
+            inod = colct( count )
+
+            ! Find the pressure nodes surrounding node INOD 
+            ! these will be connected to pressure node IROW.
+            current => matrix( inod ) % row
+            Loop_While2: do while( associated( current ))
+               jrow = current % id
+
+               Conditional2: if (( .not. presym ) .or. ( jrow >= irow )) then
+                  list => matrix2( irow ) % row
+
+                  if ( list % id == -1 ) then
+                     list % id = jrow
+                     cycle
+                  end if
+
+                  Conditional3: if ( jrow < list % id ) then ! Insert at start of list
+                     allocate( current2 )
+                     current2 % id = jrow
+                     current2 % next => list
+                     matrix2( irow ) % row => current2
+                     list => matrix2( irow ) % row
+
+                  else
+                     current2 => list
+                     Loop_While3: do while( associated( current2 ))
+
+                        Conditional4: if ( jrow == current2 % id ) then ! Already have this node
+                           exit
+                        elseif( .not. associated( current2 % next )) then ! End of list - insert this node
+                           allocate( current2 % next )
+                           nullify(  current2 % next % next )
+                           current2 % next % id = jrow
+                           exit 
+                        elseif( jrow < current2 % next % id ) then ! Insert new node here
+                           allocate( next )
+                           next % id = jrow
+                           next % next => current2 % next
+                           current2 % next => next
+                           exit
+                        end if Conditional4
+                        current2 => current2 % next
+
+                     end do Loop_While3
+
+                  end if Conditional3
+
+               end if Conditional2
+               current => current % next          
+
+            end do Loop_While2
+
+         end do Loop_Count2
+
+      end do Loop_Row2
+
+      return
+    end subroutine poscmc
 
 
     subroutine comparematrices( n, vec1, vec2 )
