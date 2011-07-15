@@ -399,7 +399,7 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="InterpolatedAnalyticSaturation" rank="0">
+    <scalar_field name="InterpolatedAnalyticSaturation1" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -420,7 +420,7 @@
     </scalar_field>
     <scalar_field name="Error" rank="0">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="InterpolatedAnalyticSaturation" source_field_2_name="PhaseVolumeFraction" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="InterpolatedAnalyticSaturation1" source_field_2_name="PhaseVolumeFraction" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="PressureMesh"/>

@@ -930,7 +930,7 @@ module mp_prototype
 
       end Select
 
-      call copy_into_state(state, satura, p)
+      call copy_into_state(state, satura, p, nphase)
 
       ewrite(3,*) 'Leaving multiphase_prototype'
       close( 357 )

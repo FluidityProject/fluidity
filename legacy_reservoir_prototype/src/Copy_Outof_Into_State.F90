@@ -1278,44 +1278,73 @@ module copy_outof_into_state
 
 
 
-    subroutine copy_into_state(state, saturations, proto_pressure)
+    subroutine copy_into_state(state, saturations, proto_pressure, nphase)
       
       !!< Copy prototype saturations and pressure into fluidity state array for output
       
       type(state_type), dimension(:), intent(inout) :: state
-      real, dimension(:), intent(in) :: saturations, proto_pressure  
+      real, dimension(:), intent(in) :: saturations
+      real, dimension(:), intent(in) :: proto_pressure
+      integer, intent(in) :: nphase
       
-      ! local variables    
-      type(scalar_field), pointer :: phasevolumefraction, pressure
-      type(vector_field), pointer :: positions
-
-      integer :: i,j
-      integer, dimension(:), allocatable :: elenodes
+      ! local variables        
+      integer :: stat
+      integer :: i,j,p
+      integer, dimension(:), pointer :: element_nodes
+      type(scalar_field), pointer :: phasevolumefraction
+      type(scalar_field), pointer :: pressure
 
       ewrite(3,*) "In copy_into_state"
-
-      positions => extract_vector_field(state, "Coordinate")
-      allocate(elenodes(3*positions%dim))
-    
-      ! The plan is to copy the first half of saturations into PhaseVolumeFraction:
-      phasevolumefraction => extract_scalar_field(state(1), "PhaseVolumeFraction")
-      do i=1,ele_count(phasevolumefraction)
-        elenodes = ele_nodes(phasevolumefraction,i)
-        do j=1,size(elenodes)
-          call set(phasevolumefraction, elenodes(j), saturations(2*(i-1)+j))
-        end do
-      end do  
-
-      ! Let's practice with getting the pressure out
-      ! This is designed for the quadratic elements
+      
+      ! set volume fraction fields for each phase into state
+      
+      assert(size(state) >= nphase)
+      
+      phase_loop: do p = 1,nphase
+         
+         phasevolumefraction => extract_scalar_field(state(p), "PhaseVolumeFraction", stat=stat)
+         
+         if (stat /= 0) then 
+            
+            ewrite(1,*) 'Issue in prototype interface for phase ',p
+            
+            FLAbort('Failed to extract phase volume fraction from state in copy_into_state')
+         
+         end if
+         
+         volf_ele_loop: do i = 1,element_count(phasevolumefraction)
+            
+            element_nodes => ele_nodes(phasevolumefraction,i)
+            
+            volf_node_loop: do j = 1,size(element_nodes)
+               
+               ! this is hard wired for quadratic elements 1d with regard to prototype array
+               call set(phasevolumefraction, &
+                        element_nodes(j), &
+                        saturations((2*(i-1)+j) + (p-1)*node_count(phasevolumefraction)))
+            
+            end do volf_node_loop
+            
+         end do volf_ele_loop
+      
+      end do phase_loop
+         
       pressure => extract_scalar_field(state(1), "Pressure")    
-      do i=1,ele_count(pressure)
-        elenodes = ele_nodes(pressure,i)
-        do j=1,size(elenodes)
-          call set(pressure, elenodes(j), proto_pressure(2*(i-1)+j))
-        end do
-      end do  
-      deallocate(elenodes)
+      
+      press_ele_loop: do i = 1,ele_count(pressure)
+        
+        element_nodes => ele_nodes(pressure,i)
+        
+        press_node_loop: do j = 1,size(element_nodes)
+          
+          ! this is hard wired for quadratic elements 1d with regard to prototype array
+          call set(pressure, &
+                   element_nodes(j), &
+                   proto_pressure(2*(i-1)+j))
+        
+        end do press_node_loop
+      
+      end do press_ele_loop
     
       ewrite(3,*) "Leaving copy_into_state"
   
