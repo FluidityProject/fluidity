@@ -124,7 +124,7 @@ contains
     name = " "
     child_name = " "
 
-    nchildren=number_of_children(path)
+    call get_number_of_children(path, nchildren)
     print *, trim(path), ": number of children: ", nchildren
     if(nchildren==0) return
     do i=0, nchildren-1
