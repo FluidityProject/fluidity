@@ -729,13 +729,13 @@ contains
        end do
     end do
 
+    ewrite(3,*) 'unit_debug', unit_debug
     write( unit_debug, * ) '############################################'
 
     write( unit_debug, * ) 'u_source( u_nonods * nphase ):', &
          ( u_source( i ), i = 1, u_nonods * nphase )
 
     write( unit_debug, * ) '############################################'
-
 
     write( unit_debug, * ) 'u( u_nonods * nphase ):', &
          ( u( i ), i = 1, u_nonods * nphase )
@@ -1558,7 +1558,7 @@ contains
     ! Local variables
     integer, parameter :: len_name = 50
     character( len = len_name ) :: ifile, fcn_name
-    integer :: ior, k!, q
+    integer :: ior, k, q
     real :: value_real
     logical :: value_bool
 
@@ -1568,17 +1568,17 @@ contains
     Mobility = 10.
 
     ior = 0
-!    q=0
+    q=0
     do while ( .not. ( ior == -1000 ))
 
 
        call get_entry( unit, len_name, ior, ifile, fcn_name, value_real, value_bool )
-!       ewrite(3,*) 'ior :', ior
+       ewrite(3,*) 'ior :', ior
 
        Conditional_IOR: if ( ior > 0 ) then
           k = index( ifile, ' ') - 1
-!          q=q+1
-!          ewrite(3,*) 'q', q, ifile(1:k)
+          q=q+1
+          ewrite(3,*) 'q', q, ifile(1:k)
           Select Case ( ifile( 1 : k ))
              ! Logical
           Case( 'KComp_Sigmoid' );
@@ -1953,6 +1953,7 @@ contains
              else
                 suf_one_bc = value_real
              endif
+             ewrite(3,*) 'suf_one_bc ', suf_one_bc
 
           Case( 'suf_comp_bc' );
              if(( ior == 13 ) .or. ( ior == 15 )) then

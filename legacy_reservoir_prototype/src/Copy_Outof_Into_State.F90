@@ -140,10 +140,13 @@ module copy_outof_into_state
       type(vector_field), pointer :: positions
 
       integer :: i, j, k, l, nscalar_fields, cv_nonods, p_nonods, &
-           x_nonods, xu_nonods, u_nonods
+           x_nonods, xu_nonods, u_nonods, cv_nod
 
       real :: coord_min, coord_max, &
            eos_value!, viscosity_ph1, viscosity_ph2
+           
+      integer, dimension(:), allocatable :: cv_ndgln
+      integer, dimension(:), pointer :: element_nodes
 
       !! Variables needed by the prototype code
       !! and therefore needing to be pulled out of state or
@@ -297,12 +300,32 @@ module copy_outof_into_state
          ! Discontinuous pressure mesh
          cv_nonods = cv_nloc * totele
       endif
-      p_nonods = cv_nonods
       cv_snloc = 1
-      u_snloc = 3
+      ! u_snloc is 1 for the single phase advection case:
+      if (nstates==1) then
+         u_snloc = 1
+         xu_nloc = 3
+         p_nonods = u_nloc * totele ! = u_nonods
+      else
+         u_snloc = 3
+         p_nonods = cv_nonods
+      endif
       p_snloc = 1
       ! x_snloc = 1
       stotel = surface_element_count(cmesh)
+      
+      !! global numbering to allow proper copying of fields
+      cv_nod = 0
+      allocate(cv_ndgln(totele*cv_nloc))
+      do i=1, totele
+         do j = 1, cv_nloc
+            cv_nod = cv_nod + 1
+            cv_ndgln( ( i - 1 ) * cv_nloc + j ) = cv_nod
+         end do
+         if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
+      end do
+      ewrite(3,*) 'cv_ndgln: ', cv_ndgln
+
 
       !! EoS things are going to be done very differently
       !! Currently the default value of ncoef is 10 so I'm going
@@ -330,7 +353,8 @@ module copy_outof_into_state
 
       if( nphases == 1 ) then
          problem = 0 ! Single-phase advection (continuous)
-         if( pmesh%continuity < 0 ) problem = -1  
+         if( pmesh%continuity < 0 ) problem = -1
+         p_ele_type = 1
          cv_ele_type = 1
          u_ele_type = 1
       end if
@@ -476,7 +500,6 @@ module copy_outof_into_state
 
 
       ! Others (from read_all())
-
       !!
       !! Most of the options below should be replaced by PETSc options soon, i.e., still at the second part of
       !! of the first stage of the integration.  So let's keep as it is for the moment and remove them
@@ -753,6 +776,8 @@ module copy_outof_into_state
             deallocate(density_sufid_bc)
 
          endif Conditional_Density_BC
+         
+         ewrite(3,*) 'den ', den
 
       enddo Loop_Density
 
@@ -1134,13 +1159,30 @@ module copy_outof_into_state
 
             Loop_Temperature: do i = 1, nphases
                scalarfield => extract_scalar_field(state(i), "Temperature")
+               ewrite(3,*) 'temperature: ', scalarfield%val(:)
                if (.not.allocated(t)) allocate( t( cv_nonods * nphases ))
 
-               do j = node_count( scalarfield ), 1, -1
-                  t(( i - 1 ) * node_count( scalarfield ) + j ) = scalarfield%val( j )
-                  if( j == 1 ) t(( i - 1 ) * node_count( scalarfield ) + j ) = &
-                       t(( i - 1 ) * node_count( scalarfield ) + j + 1 )
-               enddo
+!!!!!!!!!!!!!!!
+               t_ele_loop: do k = 1,element_count(scalarfield)
+            
+                  element_nodes => ele_nodes(scalarfield,k)
+                  ewrite(3,*) 'element_nodes', element_nodes
+            
+                  t_node_loop: do j = 1,size(element_nodes)
+                  
+                     t((cv_ndgln((k-1)*size(element_nodes)+j)) + (i-1)*node_count(scalarfield)) = &
+                        scalarfield%val(element_nodes(j))
+            
+                  end do t_node_loop
+            
+               end do t_ele_loop
+!!!!!!!!!!!!!!!!!
+
+!               do j = node_count( scalarfield ), 1, -1
+!                  t(( i - 1 ) * node_count( scalarfield ) + j ) = scalarfield%val( j )
+!                  if( j == 1 ) t(( i - 1 ) * node_count( scalarfield ) + j ) = &
+!                       t(( i - 1 ) * node_count( scalarfield ) + j + 1 )
+!               enddo
 
                scalarfield_source => extract_scalar_field( state( i ), trim( field_name ) // &
                     "Source", stat)

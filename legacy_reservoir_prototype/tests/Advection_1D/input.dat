@@ -20,7 +20,7 @@ nphase                1
 ncomp                 0
 
 # total number of elements
-totele               5
+totele               20 
 
 # Dimensionality
 ndim                  1

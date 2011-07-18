@@ -533,8 +533,6 @@
                   j=-1
                   do i=0, option_count(trim(option_path)//"/phase")-1
                      call get_option(trim(option_path)//"/phase["//int2str(i)//"]/material_phase_name", phase_name)
-                     !                   ewrite(3,*) 'iphase ', trim(state(iphase)%name)
-                     !                   ewrite(3,*) 'jphase ', trim(phase_name)
                      if (trim(state(jphase)%name) == trim(phase_name)) then
                         j=i
                      endif
@@ -543,8 +541,6 @@
 
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/c", c)
                   call get_option(trim(option_path)//"/phase["//int2str(j)//"]/a", a)
-
-                  !                ewrite(3,*) 'iphase, jphase, c, a:', iphase, jphase, c, a
 
                   capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = &
                        capillary_pressure( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) + &

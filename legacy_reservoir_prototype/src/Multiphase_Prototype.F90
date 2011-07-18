@@ -279,6 +279,9 @@ module mp_prototype
            u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
            mat_ndgln, cv_sndgln, u_sndgln, p_sndgln )
 
+      ewrite(3,*) 'cv_ele_type', cv_ele_type
+      ewrite(3,*) 'cv_sele_type', cv_sele_type
+      ewrite(3,*) 'u_sele_type', u_sele_type
       ! Mirroring Input dat
       if( .true. ) call mirror_data( new_unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
