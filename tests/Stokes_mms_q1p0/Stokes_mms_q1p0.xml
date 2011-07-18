@@ -38,26 +38,6 @@ ab_ratio_inf_x = a_error_inf_x / b_error_inf_x
 ab_ratio_inf_y = a_error_inf_y / b_error_inf_y
 ab_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
     </variable>
-    <variable name="ab_convergence_p" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log
-
-a_error = stat("MMS_A.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
-b_error = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
-
-a_error_inf = stat("MMS_A.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
-b_error_inf = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
-
-print a_error
-print b_error
-
-print a_error_inf
-print b_error_inf
-
-ab_ratio = a_error / b_error
-ab_ratio_inf = a_error_inf / b_error_inf
-ab_convergence_p = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
-    </variable>
     <variable name="bc_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -88,26 +68,6 @@ bc_ratio_inf_x = b_error_inf_x / c_error_inf_x
 bc_ratio_inf_y = b_error_inf_y / c_error_inf_y
 bc_convergence_vel = [[log(bc_ratio_x, 2), log(bc_ratio_inf_x, 2)], [log(bc_ratio_y, 2), log(bc_ratio_inf_y, 2)]]
     </variable>
-    <variable name="bc_convergence_p" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log
-
-b_error = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
-c_error = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
-
-b_error_inf = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
-c_error_inf = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
-
-print b_error
-print c_error
-
-print b_error_inf
-print c_error_inf
-
-bc_ratio = b_error / c_error
-bc_ratio_inf = b_error_inf / c_error_inf
-bc_convergence_p = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
-    </variable>
     <variable name="cd_convergence_vel" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
@@ -137,26 +97,6 @@ cd_ratio_y = c_error_y / d_error_y
 cd_ratio_inf_x = c_error_inf_x / d_error_inf_x
 cd_ratio_inf_y = c_error_inf_y / d_error_inf_y
 cd_convergence_vel = [[log(cd_ratio_x, 2), log(cd_ratio_inf_x, 2)], [log(cd_ratio_y, 2), log(cd_ratio_inf_y, 2)]]
-    </variable>
-    <variable name="cd_convergence_p" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log
-
-c_error = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
-d_error = stat("MMS_D.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
-
-c_error_inf = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
-d_error_inf = stat("MMS_D.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
-
-print c_error
-print d_error
-
-print c_error_inf
-print d_error_inf
-
-cd_ratio = c_error / d_error
-cd_ratio_inf = c_error_inf / d_error_inf
-cd_convergence_p = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
     </variable>
    <variable name="a_finish_time" language="python">
 from fluidity_tools import stat_parser as stat
