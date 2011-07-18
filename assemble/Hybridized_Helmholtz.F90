@@ -54,7 +54,8 @@ contains
        &D_out,U_out,&
        &compute_cartesian,&
        &check_continuity,output_dense,&
-       &projection,poisson,u_rhs_local)
+       &projection,poisson,u_rhs_local,&
+       &solver_option_path)
     ! Subroutine to solve hybridized helmholtz equation
     ! If D_rhs (scalar pressure field) is present, then solve:
     ! <w,u> + <w,fu^\perp> - g <div w,d> + <<[w],d>> = <w,U_rhs>
@@ -72,12 +73,13 @@ contains
     implicit none
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(in), optional :: D_rhs
-    type(vector_field), intent(in), optional :: U_rhs
+    type(vector_field), intent(inout), optional :: U_rhs
     type(scalar_field), intent(inout), optional :: D_out
     type(vector_field), intent(inout), optional :: U_out
     logical, intent(in), optional :: compute_cartesian, &
          &check_continuity,output_dense, projection,poisson
     logical, intent(in), optional :: u_rhs_local !means u_rhs is in local coords
+    character(len=*), optional, intent(in) :: solver_option_path
     !
     type(vector_field), pointer :: X, U, down, U_cart
     type(scalar_field), pointer :: D,f, lambda, lambda_nc
@@ -110,7 +112,6 @@ contains
     lambda=>extract_scalar_field(state, "LagrangeMultiplier")
 
     U_cart => extract_vector_field(state, "Velocity")
-    call project_cartesian_to_local(X,U_cart,U)
 
     !construct/extract sparsities
     lambda_sparsity=get_csr_sparsity_firstorder(state, lambda%mesh, lambda&
@@ -138,7 +139,7 @@ contains
          &p&
          &rognostic/mean_layer_thickness",D0)
     call get_option("/timestepping/timestep", dt)
-
+    
     !Assemble matrices
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
@@ -149,12 +150,13 @@ contains
             &u_rhs_local=u_rhs_local)
     end do
 
-    ewrite(1,*)'LAMBDARHS MIN:MAX',minval(lambda_rhs%val),maxval(lambda_rhs%val)
-
     !Solve the equations
-    call petsc_solve(lambda,lambda_mat,lambda_rhs)
+    if(present(solver_option_path)) then
+       call petsc_solve(lambda,lambda_mat,lambda_rhs,solver_option_path)
+    else
+       call petsc_solve(lambda,lambda_mat,lambda_rhs)
+    end if
 
-    ewrite(1,*)'LAMBDA MIN:MAX',minval(lambda%val),maxval(lambda%val)
     !Reconstruct U and D from lambda
     do ele = 1, ele_count(D)
        call reconstruct_u_d_ele(D,f,U,X,down,ele, &
@@ -167,15 +169,20 @@ contains
     if(l_output_dense) then
        allocate(lambda_mat_dense(node_count(lambda),node_count(lambda)))
        lambda_mat_dense = dense(lambda_mat)
+       ewrite(1,*) '-----------'
        do i1 = 1, node_count(lambda)
           ewrite(1,*) lambda_mat_dense(i1,:)
        end do
+       ewrite(1,*) '-----------'
     end if
 
     if(l_compute_cartesian) then
        U_cart => extract_vector_field(state, "Velocity")
        if(present(U_out)) then
           call project_local_to_cartesian(X,U_out,U_cart)
+          !do ele = 1, ele_count(U)
+          !   call check_continuity_ele(U_cart,X,ele)
+          !end do
        else
           call project_local_to_cartesian(X,U,U_cart)
        end if
@@ -198,9 +205,6 @@ contains
        ewrite(1,*)'JUMPS MIN:MAX',minval(lambda_rhs%val),&
             &maxval(lambda_rhs%val)
        assert(maxval(abs(lambda_rhs%val))<1.0e-10)
-       !do ele = 1, ele_count(U)
-       !   call check_continuity_ele(U_cart,X,ele)
-       !end do
 
     end if
     
@@ -1169,7 +1173,7 @@ contains
              u_cart_quad = ele_val_at_quad(l_u_rhs,ele)
              do gi = 1, ele_ngi(D,ele)
                 !Don't divide by detJ as we can use weight instead of detwei
-                u_local_quad(:,gi) = matmul(transpose(J(:,:,gi))&
+                u_local_quad(:,gi) = matmul(J(:,:,gi)&
                      &,u_cart_quad(:,gi))
              end do
           end if
@@ -1306,15 +1310,17 @@ contains
     !
     type(scalar_field), pointer :: D,psi,f
     type(scalar_field) :: D_rhs
-    type(vector_field), pointer :: U_local,down,X
-    type(vector_field) :: Coriolis_term, Balance_eqn
+    type(vector_field), pointer :: U_local,down,X, U_cart
+    type(vector_field) :: Coriolis_term, Balance_eqn, tmp_field
     integer :: ele,dim1
     real :: g
+    logical :: elliptic_method
 
     D=>extract_scalar_field(state, "LayerThickness")
     psi=>extract_scalar_field(state, "Streamfunction")
     f=>extract_scalar_field(state, "Coriolis")
     U_local=>extract_vector_field(state, "LocalVelocity")
+    U_cart=>extract_vector_field(state, "Velocity")
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
     call get_option("/physical_parameters/gravity/magnitude", g)
@@ -1322,65 +1328,116 @@ contains
     !STAGE 1: Set velocity from streamfunction
     do ele = 1, element_count(D)
        call set_local_velocity_from_streamfunction_ele(&
-            &U_local,psi,ele)
+            &U_local,psi,down,X,ele)
+    end do
+    call project_cartesian_to_local(U_cart,U_local)
+
+    !STAGE 1a: verify that velocity projects is div-conforming
+    call project_local_to_cartesian(X,U_local,U_cart)
+    do ele = 1, ele_count(U_local)
+       call check_continuity_ele(U_cart,X,ele)
     end do
 
-    !STAGE 2: Construct Coriolis term
-    call allocate(Coriolis_term,mesh_dim(U_local), U_local%mesh, "CoriolisTerm")
-    call zero(Coriolis_term)
-    do ele = 1, element_count(D)
-       call set_coriolis_term_ele(Coriolis_term,f,down,U_local,X,ele)
-    end do
-
-    !STAGE 3: Project Coriolis term into div-conforming space
-    ewrite(0,*) 'REMEMBER TO REMOVE DEBUGGING TESTS'
-    call solve_hybridized_helmholtz(state,U_Rhs=Coriolis_term,&
-         &U_out=Coriolis_term,&
+    !Stage 1b: verify that projection is idempotent
+    call solve_hybridized_helmholtz(state,U_Rhs=U_local,&
+         &U_out=tmp_field,&
          &compute_cartesian=.true.,&
          &check_continuity=.true.,projection=.true.,&
-         &u_rhs_local=.true.)
+         &u_rhs_local=.true.)!verified that projection is idempotent
+    assert(maxval(abs(U_local%val-tmp_field%val))<1.0e-8)
 
-    !STAGE 4: Construct the RHS for the balanced layer depth equation
-    call allocate(D_rhs,D%mesh,'BalancedSolverRHS')
-    call zero(D_rhs)
-    do ele = 1, element_count(D)
-       call set_geostrophic_balance_rhs_ele(D_rhs,Coriolis_term,ele)
-    end do
+    elliptic_method = .false.
 
-    !STAGE 5: Solve Poisson equation for the balanced layer depth
-    ewrite(0,*) 'REMEMBER ABOUT SETTING MEAN VALUE'
-    call solve_hybridized_helmholtz(state,D_rhs=D_rhs,&
-         &compute_cartesian=.false.,&
-         &check_continuity=.false.,Poisson=.true.)
+    if(elliptic_method) then
+       call allocate(Coriolis_term,mesh_dim(U_local),&
+            U_local%mesh,"CoriolisTerm")
+       call allocate(tmp_field,mesh_dim(U_local), U_local%mesh, "tmp_field")
 
-    !STAGE 6: Check if we have a balanced solution
-    !Can be done by projecting balance equation into div-conforming space
-    !and checking that it is equal to zero
-    !STAGE 6a: Project balance equation into DG space
-    call allocate(balance_eqn,mesh_dim(D),u_local%mesh,'BalancedEquation')
-    do ele = 1, element_count(D)
-       call set_pressure_force_ele(balance_eqn,D,g,ele)
-    end do
-    call addto(balance_eqn,coriolis_term)
+       !STAGE 2: Construct Coriolis term
+       call zero(Coriolis_term)
+       do ele = 1, element_count(D)
+          call set_coriolis_term_ele(Coriolis_term,f,down,U_local,X,ele)
+       end do!checked!signs checked
 
-    !STAGE 6b: Project balance equation into div-conforming space
-    call solve_hybridized_helmholtz(state,U_Rhs=balance_eqn,&
-         &U_out=balance_eqn,&
-         &compute_cartesian=.true.,&
-         &check_continuity=.true.,projection=.true.,&
-         &u_rhs_local=.true.)
+       !STAGE 3: Project Coriolis term into div-conforming space
 
-    do dim1 = 1, mesh_dim(D)
-       ewrite(1,*) 'Balance equation', maxval(abs(balance_eqn%val(dim1,:)))
-       assert(maxval(abs(balance_eqn%val(dim1,:)))<1.0e-8)
-    end do
+       !debugging bits - checking if it works with cartesian instead
+       call project_local_to_cartesian(X,Coriolis_Term,U_cart)
+       call solve_hybridized_helmholtz(state,U_Rhs=U_cart,&
+            &U_out=tmp_field,&
+            &compute_cartesian=.true.,output_dense=.false.,&
+            &check_continuity=.true.,projection=.true.,&
+            &u_rhs_local=.false.)
 
-    !Clean up after yourself
-    call deallocate(Coriolis_term)
-    call deallocate(D_rhs)
-    call deallocate(balance_eqn)
+       ewrite(0,*) 'REMEMBER TO REMOVE DEBUGGING TESTS'
+       call solve_hybridized_helmholtz(state,U_Rhs=Coriolis_term,&
+            &U_out=tmp_field,&
+            &compute_cartesian=.true.,&
+            &check_continuity=.true.,projection=.true.,&
+            &u_rhs_local=.true.)!verified that projection is idempotent
 
+       !STAGE 4: Construct the RHS for the balanced layer depth equation
+       call allocate(D_rhs,D%mesh,'BalancedSolverRHS')
+       call zero(D_rhs)
+       do ele = 1, element_count(D)
+          call set_geostrophic_balance_rhs_ele(D_rhs,Coriolis_term,ele)
+       end do
+
+       !STAGE 5: Solve Poisson equation for the balanced layer depth
+       ewrite(0,*) 'REMEMBER ABOUT SETTING MEAN VALUE'
+       ewrite(0,*) trim(u_cart%option_path)
+
+       call solve_hybridized_helmholtz(state,D_rhs=D_rhs,&
+            &compute_cartesian=.false.,&
+            &check_continuity=.false.,Poisson=.true.,&
+            &solver_option_path=trim(u_cart%option_path)//'/prognostic/initial_condition::WholeMesh/balanced')
+
+       !STAGE 6: Check if we have a balanced solution
+       !Can be done by projecting balance equation into div-conforming space
+       !and checking that it is equal to zero
+       !STAGE 6a: Project balance equation into DG space
+       call allocate(balance_eqn,mesh_dim(D),u_local%mesh,'BalancedEquation')
+       do ele = 1, element_count(D)
+          call set_pressure_force_ele(balance_eqn,D,g,ele)
+       end do
+       call addto(balance_eqn,coriolis_term)
+
+       !STAGE 6b: Project balance equation into div-conforming space
+       call solve_hybridized_helmholtz(state,U_Rhs=balance_eqn,&
+            &U_out=balance_eqn,&
+            &compute_cartesian=.true.,&
+            &check_continuity=.true.,projection=.true.,&
+            &u_rhs_local=.true.)
+
+       do dim1 = 1, mesh_dim(D)
+          ewrite(1,*) 'Balance equation', maxval(abs(balance_eqn%val(dim1,:)))
+          assert(maxval(abs(balance_eqn%val(dim1,:)))<1.0e-8)
+       end do
+
+       !Clean up after yourself
+       call deallocate(Coriolis_term)
+       call deallocate(D_rhs)
+       call deallocate(balance_eqn)
+       call deallocate(tmp_field)
+    else
+       !Project the streamfunction into pressure space
+       do ele = 1, element_count(D)
+          call project_streamfunction_for_balance_ele(D,psi,g,ele)
+       end do
+    end if
   end subroutine set_velocity_from_geostrophic_balance_hybridized
+
+  subroutine projection_streamfunction_for_balance_ele(D,psi,f,g,ele)
+    implicit none
+    type(scalar_field), intent(in) :: psi
+    type(scalar_field), intent(inout) :: D
+    integer, intent(in) :: ele
+    real, intent(in) :: g
+    !
+    real, dimension(ele_loc(d,ele),ele_loc(d,ele)) :: d_mass
+    real, dimension(ele_loc(d,ele)) :: d_rhs
+    real :: 
+  end subroutine projection_streamfunction_for_balance_ele
   
   subroutine set_pressure_force_ele(force,D,g,ele)
     implicit none
@@ -1420,9 +1477,12 @@ contains
     real, dimension(ele_loc(D_rhs,ele),ele_loc(D_rhs,ele)) :: d_mass
     integer :: dim1 
     type(element_type) :: U_shape, D_shape
+    real :: g
 
     !Computes the divergence of projected Coriolis term
     !Can be done locally since d commutes with pullback
+
+    call get_option("/physical_parameters/gravity/magnitude", g)
     
     U_shape = ele_shape(Coriolis_term,ele)
     D_shape = ele_shape(D_rhs,ele)
@@ -1436,7 +1496,7 @@ contains
     D_rhs_loc = shape_rhs(D_shape,div_gi*U_shape%quadrature%weight)
     d_mass = shape_shape(d_shape,d_shape,d_shape%quadrature%weight)
     call solve(d_mass,D_rhs_loc)
-    call set(D_rhs,ele_nodes(D_rhs,ele),D_rhs_loc)
+    call set(D_rhs,ele_nodes(D_rhs,ele),-D_rhs_loc/g)
   end subroutine set_geostrophic_balance_rhs_ele
 
   subroutine set_coriolis_term_ele(Coriolis_term,f,down,U_local,X,ele)
@@ -1509,25 +1569,36 @@ contains
   end subroutine set_coriolis_term_ele
   
   subroutine set_local_velocity_from_streamfunction_ele(&
-       &U_local,psi,ele)
+       &U_local,psi,down,X,ele)
     implicit none
     type(vector_field), intent(inout) :: U_local
+    type(vector_field), intent(in) :: down,X
     type(scalar_field), intent(in) :: psi
     integer, intent(in) :: ele
     !
     real, dimension(ele_loc(psi,ele)) :: psi_loc
     real, dimension(mesh_dim(psi),ele_ngi(psi,ele)) :: dpsi_gi
+    real, dimension(ele_ngi(psi,ele)) :: div_gi
     real, dimension(mesh_dim(U_local),ele_loc(U_local,ele)) :: U_loc
     real, dimension(ele_loc(U_local,ele),ele_loc(U_local,ele)) :: &
          & l_mass_mat
     type(element_type) :: u_shape, psi_shape
     integer :: dim1,gi,uloc
+    real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
 
     uloc = ele_loc(U_local,ele)
     u_shape = ele_shape(U_local,ele)
     psi_shape = ele_shape(psi,ele)
+    up_gi = -ele_val_at_quad(down,ele)
+
+    do gi=1, ele_ngi(U_local,ele)
+       up_vec = get_up_vec(ele_val(X,ele), up_gi(:,gi))
+       up_gi(:,gi) = up_vec
+    end do
+
     !We can do everything in local coordinates since d commutes with pullback
     !usual tricks: dpsi lives in the U space so we can do projection
+    NEED TO CHECK ORIENTATION
     l_mass_mat = shape_shape(u_shape,u_shape,U_local%mesh%shape%quadrature&
          &%weight)
     !Streamfunction at node values
@@ -1550,5 +1621,15 @@ contains
        call set(U_local,dim1,ele_nodes(U_local,ele),&
             u_loc(dim1,:))
     end do
+
+    !verify divergence-free-ness
+    div_gi = 0.
+    do gi = 1, ele_ngi(psi,ele)
+       do dim1 = 1, mesh_dim(psi)
+          div_gi(gi) = div_gi(gi) + sum(u_shape%dn(:,gi,dim1)*u_loc(dim1,:))
+       end do
+    end do
+    assert(maxval(abs(div_gi))<1.0e-8)
   end subroutine set_local_velocity_from_streamfunction_ele
+
 end module hybridized_helmholtz
