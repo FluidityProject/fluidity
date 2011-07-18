@@ -499,7 +499,7 @@ contains
     !! the lengthscale tensor in local coords (dim x dim x ngi)
     real, dimension(positions%dim, positions%dim, ele_ngi(positions,ele)) :: les_lengthscale
     real, dimension(positions%dim, positions%dim) :: ele_tensor
-    real, dimension(size(les_lengthscale,1), size(les_lengthscale,2)):: M
+    real, dimension(positions%dim, positions%dim):: M
     real r
     integer gi, loc, i
     integer dim, ngi, nloc, compute_ngi
