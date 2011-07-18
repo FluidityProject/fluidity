@@ -96,8 +96,6 @@ contains
 
     ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
 
-    if(present(D_out)) stop
-    
     l_compute_cartesian = .false.
     if(present(compute_cartesian)) l_compute_cartesian = compute_cartesian
     if(present(check_continuity)) l_check_continuity = check_continuity
@@ -157,6 +155,7 @@ contains
             option_path=solver_option_path)
     else
        call petsc_solve(lambda,lambda_mat,lambda_rhs)
+       ewrite(1,*) 'LAMBDA', maxval(abs(lambda%val))
     end if
 
     !Reconstruct U and D from lambda
@@ -669,7 +668,6 @@ contains
     !velocity mass matrix and Coriolis matrix (done in local coordinates)
     l_u_mat = shape_shape_tensor(u_shape, u_shape, &
          u_shape%quadrature%weight, Metric+l_dt*theta*Metricf)
-
     do dim1 = 1, mdim
        do dim2 = 1, mdim
           local_solver(u_start(dim1):u_end(dim1),&
@@ -682,7 +680,6 @@ contains
        l_u_mat = shape_shape_tensor(u_shape, u_shape, &
             u_shape%quadrature%weight, &
             Metric+(theta-1.0)*l_dt*Metricf)
-
        do dim1 = 1, mdim
           do dim2 = 1, mdim
              local_solver_rhs(u_start(dim1):u_end(dim1),&
@@ -1363,13 +1360,17 @@ contains
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
     call get_option("/physical_parameters/gravity/magnitude", g)
+    call allocate(tmp_field,mesh_dim(U_local), U_local%mesh, "tmp_field")
+       call allocate(D_rhs,D%mesh,'BalancedSolverRHS')
+    call allocate(Coriolis_term,mesh_dim(U_local),&
+         U_local%mesh,"CoriolisTerm")
+    call allocate(balance_eqn,mesh_dim(D),u_local%mesh,'BalancedEquation')
 
     !STAGE 1: Set velocity from streamfunction
     do ele = 1, element_count(D)
        call set_local_velocity_from_streamfunction_ele(&
             &U_local,psi,down,X,ele)
     end do
-    call project_cartesian_to_local(X,U_cart,U_local)
 
     !STAGE 1a: verify that velocity projects is div-conforming
     call project_local_to_cartesian(X,U_local,U_cart)
@@ -1378,7 +1379,7 @@ contains
     end do
 
     !Stage 1b: verify that projection is idempotent
-    call allocate(tmp_field,mesh_dim(U_local), U_local%mesh, "tmp_field")
+    ewrite(1,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
     call solve_hybridized_helmholtz(state,U_Rhs=U_local,&
          &U_out=tmp_field,&
          &compute_cartesian=.true.,&
@@ -1389,8 +1390,6 @@ contains
     elliptic_method = .false.
 
     if(elliptic_method) then
-       call allocate(Coriolis_term,mesh_dim(U_local),&
-            U_local%mesh,"CoriolisTerm")
 
        !STAGE 2: Construct Coriolis term
        call zero(Coriolis_term)
@@ -1416,7 +1415,6 @@ contains
             &u_rhs_local=.true.)!verified that projection is idempotent
 
        !STAGE 4: Construct the RHS for the balanced layer depth equation
-       call allocate(D_rhs,D%mesh,'BalancedSolverRHS')
        call zero(D_rhs)
        do ele = 1, element_count(D)
           call set_geostrophic_balance_rhs_ele(D_rhs,Coriolis_term,ele)
@@ -1435,9 +1433,8 @@ contains
        !Can be done by projecting balance equation into div-conforming space
        !and checking that it is equal to zero
        !STAGE 6a: Project balance equation into DG space
-       call allocate(balance_eqn,mesh_dim(D),u_local%mesh,'BalancedEquation')
        do ele = 1, element_count(D)
-          call set_pressure_force_ele(balance_eqn,D,g,ele)
+          call set_pressure_force_ele(balance_eqn,D,X,g,ele)
        end do
        call addto(balance_eqn,coriolis_term)
 
@@ -1453,23 +1450,50 @@ contains
           assert(maxval(abs(balance_eqn%val(dim1,:)))<1.0e-8)
        end do
 
-       !Clean up after yourself
-       call deallocate(Coriolis_term)
-       call deallocate(D_rhs)
-       call deallocate(balance_eqn)
     else
        !Project the streamfunction into pressure space
        do ele = 1, element_count(D)
-          call project_streamfunction_for_balance_ele(D,psi,f,g,ele)
+          call project_streamfunction_for_balance_ele(D,psi,X,f,g,ele)
        end do
+       ewrite(1,*) maxval(abs(D%val))
+
+       !debugging tests
+       call zero(Coriolis_term)
+       do ele = 1, element_count(D)
+          call set_coriolis_term_ele(Coriolis_term,f,down,U_local,X,ele)
+       end do
+       call zero(balance_eqn)
+       do ele = 1, element_count(D)
+          call set_pressure_force_ele(balance_eqn,D,X,g,ele)
+       end do
+       call addto(balance_eqn,coriolis_term,scale=1.0)
+       ewrite(1,*) 'CJC b4',maxval(abs(balance_eqn%val)),&
+            & maxval(abs(coriolis_term%val))
+       call solve_hybridized_helmholtz(state,U_Rhs=balance_eqn,&
+            &U_out=balance_eqn,&
+            &compute_cartesian=.true.,&
+            &check_continuity=.true.,projection=.true.,&
+            &u_rhs_local=.true.)
+       ewrite(1,*) 'CJC after',maxval(abs(balance_eqn%val)), maxval(abs(coriolis_term%val))
+       stop
+       ! do dim1 = 1, mesh_dim(D)
+       !    ewrite(1,*) 'Balance equation', maxval(abs(balance_eqn%val(dim1,:)))
+       !    assert(maxval(abs(balance_eqn%val(dim1,:)))<1.0e-8)
+       ! end do
+       ! stop
     end if
+    !Clean up after yourself
+    call deallocate(Coriolis_term)
+    call deallocate(D_rhs)
+    call deallocate(balance_eqn)
     call deallocate(tmp_field)
   end subroutine set_velocity_from_geostrophic_balance_hybridized
 
-  subroutine project_streamfunction_for_balance_ele(D,psi,f,g,ele)
+  subroutine project_streamfunction_for_balance_ele(D,psi,X,f,g,ele)
     implicit none
     type(scalar_field), intent(in) :: psi,f
     type(scalar_field), intent(inout) :: D
+    type(vector_field), intent(in) :: X
     integer, intent(in) :: ele
     real, intent(in) :: g
     !
@@ -1477,25 +1501,28 @@ contains
     real, dimension(ele_loc(d,ele)) :: d_rhs
     type(element_type) :: psi_shape, d_shape
     real, dimension(ele_ngi(d,ele)) :: detwei, psi_quad,f_gi
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
 
     f_gi = ele_val_at_quad(f,ele)
     psi_shape = ele_shape(psi,ele)
     d_shape = ele_shape(d,ele)
     psi_quad = ele_val_at_quad(psi,ele)
 
-    !projection can be done locally
-    detwei = d_shape%quadrature%weight
-    d_rhs = shape_rhs(d_shape,-detwei*psi_quad*f_gi/g)
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detwei=detwei)
+
+    d_rhs = shape_rhs(d_shape,detwei*psi_quad*f_gi/g)
     d_mass = shape_shape(d_shape,d_shape,detwei)
     call solve(d_mass,d_rhs)
     call set(D,ele_nodes(D,ele),d_rhs)
 
   end subroutine project_streamfunction_for_balance_ele
   
-  subroutine set_pressure_force_ele(force,D,g,ele)
+  subroutine set_pressure_force_ele(force,D,X,g,ele)
     implicit none
     type(vector_field), intent(inout) :: force
     type(scalar_field), intent(in) :: D
+    type(vector_field), intent(in) :: X
     real, intent(in) :: g
     integer, intent(in) :: ele
     !
@@ -1504,17 +1531,47 @@ contains
          & rhs_loc
     real, dimension(ele_loc(force,ele),ele_loc(force,ele)) :: &
          & l_mass_mat    
-    integer :: dim1
+    integer :: dim1,dim2,gi,uloc
+    real, dimension(mesh_dim(force), X%dim, ele_ngi(force,ele)) :: J
+    real, dimension(ele_ngi(force,ele)) :: detJ
+    real, dimension(mesh_dim(force),mesh_dim(force),ele_ngi(force,ele))::&
+         &Metric
+    real, dimension(mesh_dim(force)*ele_loc(force,ele),&
+         mesh_dim(force)*ele_loc(force,ele)) :: l_u_mat
+    real, dimension(mesh_dim(force)*ele_loc(force,ele)) :: force_rhs
+    type(element_type) :: force_shape
+
+    uloc = ele_loc(force,ele)
+    force_shape = ele_shape(force,ele)
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detJ=detJ)
+    do gi=1,ele_ngi(force,ele)
+       Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+    end do
 
     D_gi = ele_val_at_quad(D,ele)
     rhs_loc = -g*dshape_rhs(force%mesh%shape%dn,&
          D_gi*D%mesh%shape%quadrature%weight)
     l_mass_mat = shape_shape(ele_shape(force,ele),ele_shape(force,ele),&
          &force%mesh%shape%quadrature%weight)
-    do dim1 = 1, mesh_dim(D)
-       call solve(l_mass_mat,rhs_loc(dim1,:))
-       call set(force,dim1,ele_nodes(force,ele),rhs_loc(dim1,:))
+    do dim1 = 1, mesh_dim(force)
+       force_rhs((dim1-1)*uloc+1:dim1*uloc) = rhs_loc(dim1,:)
     end do
+    do dim1 = 1, mesh_dim(force)
+       do dim2 = 1, mesh_dim(force)
+          l_u_mat((dim1-1)*uloc+1:dim1*uloc,&
+               &  (dim2-1)*uloc+1:dim2*uloc ) = &
+               & shape_shape(force_shape,force_shape,&
+               & force_shape%quadrature%weight*Metric(dim1,dim2,:))
+       end do
+    end do
+
+    call solve(l_u_mat,force_rhs)
+    do dim1= 1, mesh_dim(force)
+       call set(force,dim1,ele_nodes(force,ele),&
+            &force_rhs((dim1-1)*uloc+1:dim1*uloc))
+    end do
+
   end subroutine set_pressure_force_ele
 
   subroutine set_geostrophic_balance_rhs_ele(D_rhs,Coriolis_term,ele)
@@ -1586,7 +1643,8 @@ contains
        up_vec = get_up_vec(ele_val(X,ele), up_gi(:,gi))
        up_gi(:,gi) = up_vec
     end do
-
+    coriolis_rhs = 0.
+    l_u_mat = 0.
     !metrics for velocity mass and coriolis matrices
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
          detJ=detJ)
@@ -1649,23 +1707,22 @@ contains
     !We can do everything in local coordinates since d commutes with pullback
     !usual tricks: dpsi lives in the U space so we can do projection
 
-    l_mass_mat = shape_shape(u_shape,u_shape,U_local%mesh%shape%quadrature&
-         &%weight)
+    l_mass_mat = shape_shape(u_shape,u_shape,U_shape%quadrature%weight)
+
     !Streamfunction at node values
     psi_loc = ele_val(psi,ele)
     !Skew gradient of streamfunction at quadrature points
     select case(mesh_dim(psi))
     case (2)
        forall(gi=1:ele_ngi(psi,ele))
-          dpsi_gi(1,gi) = -sum(psi_loc*psi%mesh%shape%dn(:,gi,2))
-          dpsi_gi(2,gi) =  sum(psi_loc*psi%mesh%shape%dn(:,gi,1))
+          dpsi_gi(1,gi) = -sum(psi_loc*psi_shape%dn(:,gi,2))
+          dpsi_gi(2,gi) =  sum(psi_loc*psi_shape%dn(:,gi,1))
        end forall
     case default
        FLAbort('Exterior derivative not implemented for given mesh dimension')
     end select
     dpsi_gi = orientation*dpsi_gi
-    U_loc = shape_vector_rhs(u_shape,dpsi_gi,U_local%mesh%shape%quadrature&
-         &%weight)
+    U_loc = shape_vector_rhs(u_shape,dpsi_gi,U_shape%quadrature%weight)
 
     do dim1 = 1, U_local%dim
        call solve(l_mass_mat,U_loc(dim1,:))
