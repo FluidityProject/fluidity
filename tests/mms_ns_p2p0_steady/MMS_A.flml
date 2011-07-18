@@ -70,16 +70,16 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.01</real_value>
+      <real_value rank="0">0.05</real_value>
       <comment>gives a max cfl number of 0.1</comment>
     </timestep>
     <finish_time>
-      <real_value rank="0">10.0</real_value>
+      <real_value rank="0">10000.0</real_value>
       <comment>10.0</comment>
     </finish_time>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.E-7</real_value>
+        <real_value rank="0">1.E-6</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>
@@ -102,20 +102,47 @@
           <discontinuous_galerkin/>
         </spatial_discretisation>
         <reference_node>
-          <integer_value rank="0"/>
+          <integer_value rank="0">1</integer_value>
         </reference_node>
         <scheme>
           <poisson_pressure_solution>
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
-          <use_projection_method/>
+          <use_projection_method>
+            <full_schur_complement>
+              <inner_matrix name="FullMomentumMatrix">
+                <solver>
+                  <iterative_method name="gmres">
+                    <restart>
+                      <integer_value rank="0">30</integer_value>
+                    </restart>
+                  </iterative_method>
+                  <preconditioner name="sor"/>
+                  <relative_error>
+                    <real_value rank="0">1e-7</real_value>
+                  </relative_error>
+                  <max_iterations>
+                    <integer_value rank="0">1000</integer_value>
+                  </max_iterations>
+                  <never_ignore_solver_failures/>
+                  <diagnostics>
+                    <monitors/>
+                  </diagnostics>
+                </solver>
+              </inner_matrix>
+              <preconditioner_matrix name="DiagonalSchurComplement"/>
+            </full_schur_complement>
+          </use_projection_method>
         </scheme>
         <solver>
-          <iterative_method name="cg"/>
+          <iterative_method name="fgmres"/>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.E-10</real_value>
+            <real_value rank="0">1.E-7</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">1e-10</real_value>
+          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
@@ -167,9 +194,7 @@
               <no_stabilisation/>
             </stabilisation>
             <mass_terms>
-              <lump_mass_matrix>
-                <use_submesh/>
-              </lump_mass_matrix>
+              <exclude_mass_terms/>
             </mass_terms>
             <advection_terms/>
             <stress_terms>
@@ -182,10 +207,10 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </theta>
           <relaxation>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0</real_value>
           </relaxation>
         </temporal_discretisation>
         <solver>
@@ -194,10 +219,13 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="eisenstat"/>
+          <preconditioner name="sor"/>
           <relative_error>
             <real_value rank="0">1.E-7</real_value>
           </relative_error>
+          <absolute_error>
+            <real_value rank="0">1e-10</real_value>
+          </absolute_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
           </max_iterations>
@@ -321,23 +349,6 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
-    <scalar_field name="CFLNumber" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="PressureAnalytical" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
@@ -372,37 +383,6 @@ mass*rho*v_t + adv*rho*(u*v_x+v*v_y + beta*(v*u_x + v*v_y)) + p_y - nu*v_xx - nu
           <include_in_steady_state/>
         </steady_state>
         <relative_to_average/>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="FiniteElementDivergence" rank="0">
-      <diagnostic field_name="Velocity">
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.E-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">5000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
       </diagnostic>
     </scalar_field>
     <vector_field name="VelocityAnalytical" rank="1">
