@@ -188,7 +188,7 @@ contains
     
       p_mesh => extract_pressure_mesh(states)
       u_mesh => extract_velocity_mesh(states)
-
+      
       cmc_sparsity => get_csr_sparsity_secondorder(states, p_mesh, u_mesh)
       
       call allocate(temp_cmc_m, cmc_sparsity, name="PressurePoissonMatrix")

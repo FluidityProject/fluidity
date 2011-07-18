@@ -112,7 +112,7 @@ module momentum_DG
   ! Flag indicating whether equations are being solved in acceleration form.
   logical :: acceleration
 
-  ! Flag indicating whether pressure is continuous.
+  ! Flag indicating whether to include pressure bcs (not for cv pressure)
   logical :: l_include_pressure_bcs
   
   ! which terms do we have?

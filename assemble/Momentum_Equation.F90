@@ -132,10 +132,6 @@
       ! Are we running a multi-phase simulation?
       logical :: multiphase
 
-      !!DEBUG:
-      type(scalar_field):: constant_pressure
-      type(vector_field):: gradp
-
    contains
 
       subroutine solve_momentum(state, at_first_timestep, timestep, POD_state)
@@ -743,18 +739,7 @@
                         call add_kmk_matrix(state(istate), cmc_m)
                      end if
                   else
-                     call allocate(constant_pressure, p%mesh, "ConstantPressure")
-                     call set(constant_pressure, 1.0)
-                     call allocate(gradp, u%dim, u%mesh, "GradientOfConstantPressure")
-                     call mult_T(gradp, ct_m(istate)%ptr, constant_pressure)
-                     call vtk_write_fields("lumped_mass", position=x, &
-                       model=inverse_masslump(istate)%mesh, &
-                       vfields=(/ inverse_masslump(istate), gradp /))
                      call assemble_masslumped_cmc(cmc_m, ctp_m(istate)%ptr, inverse_masslump(istate), ct_m(istate)%ptr)
-                     call mmwrite("cmc_m", cmc_m)
-                     call mmwrite("ct1_m", block(ct_m(istate)%ptr,1,1))
-                     call mmwrite("ct2_m", block(ct_m(istate)%ptr,1,2))
-
 
                      ! P1-P1 stabilisation
                      if (apply_kmk) then
