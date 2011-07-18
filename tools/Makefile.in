@@ -97,14 +97,13 @@ VTKPROJECTION=../bin/vtk_projection
 RUNZOLTAN=../bin/zoltan_load_balance
 PERIODISE=../bin/periodise
 TEST_TRACE_SPACE=../bin/test_trace_space
-HYBRIDIZED_HELMHOLTZ_SOLVER=../bin/hybridized_helmholtz_solver
 BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC) \
   $(FLDIAGNOSTICS) $(FLREDECOMP) $(PETSC_READNSOLVE) $(FLINTEGRATE) \
   $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH) $(DERIVE_MESH) \
   $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE) $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU) \
   $(PROJECT_TO_CONTINUOUS) $(PROJECT_TO_CONTINUOUS_PARALLEL) \
   $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE) \
-  $(TEST_TRACE_SPACE) $(HYBRIDIZED_HELMHOLTZ_SOLVER)
+  $(TEST_TRACE_SPACE)
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
 
@@ -311,7 +310,4 @@ clean:
 	rm -rf build dist fluidity.egg-info 
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.o lib/
-	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(HYBRIDIZED_HELMHOLTZ_SOLVER): Hybridized_Helmholtz_Solver.o lib/
 	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

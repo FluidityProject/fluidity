@@ -134,8 +134,7 @@ contains
     call get_option("/physical_parameters/gravity/magnitude", g)
     !theta
     call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
-         &pro&
-         &gnostic/temporal_discretisation/theta",theta)
+         &prognostic/temporal_discretisation/theta",theta)
     !D0
     call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
          &p&
