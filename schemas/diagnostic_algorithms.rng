@@ -1727,6 +1727,12 @@ This field needs to be interpolated between adapts.</a:documentation>
           <ref name="real"/>
         </element>
       </optional>
+      <optional>
+        <element name="absolute_values">
+          <a:documentation>If enabled, the average of the absolute value is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="scalar_squared_time_averaged_algorithm">
@@ -1763,6 +1769,12 @@ This field needs to be interpolated between adapts.</a:documentation>
         <element name="spin_up_time">
           <a:documentation>When to start sampling?  Defaults to simulation start time.</a:documentation>
           <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="absolute_values">
+          <a:documentation>If enabled, the average of the absolute value is taken</a:documentation>
+          <ref name="comment"/>
         </element>
       </optional>
     </element>

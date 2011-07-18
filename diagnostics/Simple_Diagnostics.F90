@@ -153,6 +153,7 @@ contains
     type(scalar_field), pointer :: source_field
     real :: a, b, spin_up_time, current_time, dt
     integer :: stat
+    logical :: absolute_vals
 
     if (timestep==0) then 
       call initialise_diagnostic_from_checkpoint(s_field)
@@ -162,9 +163,11 @@ contains
     call get_option("/timestepping/current_time", current_time)
     call get_option("/timestepping/timestep", dt)
 
+    absolute_vals=have_option(trim(s_field%option_path)//"/diagnostic/algorithm/absolute_values")
     call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
     if (stat /=0) spin_up_time=0.
     source_field => scalar_source_field(state, s_field)
+    if(absolute_vals) source_field%val = abs(source_field%val)
 
     if (current_time>spin_up_time) then
       a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
@@ -183,6 +186,7 @@ contains
     type(vector_field), pointer :: source_field
     real :: a, b, spin_up_time, current_time, dt
     integer :: stat
+    logical :: absolute_vals
 
     if (timestep==0) then 
       call initialise_diagnostic_from_checkpoint(v_field)
@@ -192,9 +196,11 @@ contains
     call get_option("/timestepping/current_time", current_time)
     call get_option("/timestepping/timestep", dt)
 
+    absolute_vals=have_option(trim(v_field%option_path)//"/diagnostic/algorithm/absolute_values")
     call get_option(trim(v_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
     if (stat /=0) spin_up_time=0.
     source_field => vector_source_field(state, v_field)
+    if(absolute_vals) source_field%val = abs(source_field%val)
 
     if (current_time>spin_up_time) then
       a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)

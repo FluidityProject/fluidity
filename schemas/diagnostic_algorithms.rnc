@@ -1279,6 +1279,10 @@ scalar_time_averaged_algorithm =
          ## When to start sampling? Defaults to simulation start time.
          element spin_up_time {
             real
+         }?,
+         ## If enabled, the average of the absolute value is taken
+         element absolute_values {
+            comment
          }?
       }
    )
@@ -1309,6 +1313,10 @@ vector_time_averaged_algorithm =
          ## When to start sampling?  Defaults to simulation start time.
          element spin_up_time {
             real
+         }?,
+         ## If enabled, the average of the absolute value is taken
+         element absolute_values {
+            comment
          }?
       }
    )

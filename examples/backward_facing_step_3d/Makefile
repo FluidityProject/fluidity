@@ -2,7 +2,7 @@ BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=5100
 JOB=LES-sem-periodic
-PYTHONPATH=PYTHONPATH:/data/JBull/fluidity/turbulence-dev/python/
+PYTHONPATH=PYTHONPATH:/data/JBull/fluidity/turbulence-dev/python/:/data2/JBull/fluidity/turbulence-dev/python/
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
 	@$(foreach NN,fine , \
@@ -27,8 +27,6 @@ preprocess-periodic:
 		pwd; \
 		echo **********copying flml: backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
 		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
-		gmsh -3 -optimize_netgen -o step3d-$(NN)-periodic.msh ../src/step3d-$(NN)-periodic.geo; \
-		$(SCRIPTS)/gmsh2triangle step3d-$(NN)-periodic.msh; \
 		echo $(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		$(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
@@ -56,7 +54,7 @@ postprocess:
 
 postprocess-les:
 	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach NN,med, \
+	@$(foreach NN,fine, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d_les.py .; \
 		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
