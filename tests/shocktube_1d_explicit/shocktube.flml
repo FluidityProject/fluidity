@@ -131,7 +131,7 @@
             <real_value rank="0">1e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">3000</integer_value>
+            <integer_value rank="0">500</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>

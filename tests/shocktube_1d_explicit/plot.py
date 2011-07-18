@@ -4,7 +4,7 @@ import shocktube
 import vtktools
 
 folders=['.']
-filename='shocktube_9.vtu'
+filename='shocktube_50.vtu'
 
 for folder in folders:
   vt=vtktools.vtu(folder + '/' + filename)
@@ -14,10 +14,8 @@ for folder in folders:
   xyz0=vt.GetVectorField('DiagnosticCoordinate')
   print xyz0.shape
   x0=xyz0[:,0]
-  print x0.shape
 
   p=vt.GetScalarField('Pressure')
-  print p.shape
   uvw=vt.GetVectorField('Velocity')
   u=uvw[:,0]
   rho=vt.GetScalarField('Density')
