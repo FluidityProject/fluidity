@@ -81,7 +81,7 @@ module detector_tools
   end interface
 
   interface deallocate
-     module procedure detector_deallocate
+     module procedure detector_deallocate, detector_list_deallocate
   end interface
 
   ! Evaluate field at the location of the detector.
@@ -143,6 +143,40 @@ contains
     detector => null()
 
   end subroutine detector_deallocate
+
+  subroutine detector_list_deallocate(detector_list)
+    type(detector_linked_list), pointer :: detector_list
+
+    type(rk_gs_parameters), pointer :: parameters
+
+    ! Delete detectors
+    if (detector_list%length > 0) then
+       call delete_all(detector_list)
+    end if
+
+    ! Deallocate list information
+    if (allocated(detector_list%detector_names)) then
+       deallocate(detector_list%detector_names)
+    end if
+    if (allocated(detector_list%sfield_list)) then
+       deallocate(detector_list%sfield_list)
+    end if
+    if (allocated(detector_list%vfield_list)) then
+       deallocate(detector_list%vfield_list)
+    end if
+
+    ! Deallocate move_parameters
+    parameters => detector_list%move_parameters
+    if (associated(parameters)) then 
+       if (allocated(parameters%timestep_weights)) then
+          deallocate(parameters%timestep_weights)
+       end if
+       if (allocated(parameters%stage_matrix)) then
+          deallocate(parameters%stage_matrix)
+       end if
+    end if
+
+  end subroutine detector_list_deallocate
     
   subroutine detector_copy(new_detector, old_detector)
     ! Copies all the information from the old detector to
