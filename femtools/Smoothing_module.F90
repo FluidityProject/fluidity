@@ -360,7 +360,6 @@ contains
     type(scalar_field), intent(in) :: field_in
     real, intent(in) :: alpha
     integer, intent(in) :: ele
-    real :: beta
     real, dimension(ele_ngi(positions,ele))                                      :: field_in_quad
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
@@ -382,12 +381,10 @@ contains
     call transform_to_physical(positions, ele, shape_field_in, dshape&
          &=dshape_field_in, detwei=detwei)
 
-    ! mesh size tensor = gamma * (mesh size)**2
-    ! gamma is a function of mesh shape e.g. hexahedral, unstructured triangular etc.
-    ! Helmholtz smoothing factor = alpha**2 * 1/24 * mesh size tensor
-    ! Factor of 1/24 comes from Geurts & Holm, 2002
-    beta=1.0/24.0
-    mesh_tensor_quad = alpha*beta*les_lengthscale(positions, ele)
+    ! mesh size tensor=(edge lengths)**2
+    ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
+    ! factor 1/24 derives from 2nd moment of filter (see Pope 2000, Geurts&Holm 2002)
+    mesh_tensor_quad = alpha**2 * 1.0/24.0 * les_lengthscale(positions, ele)
 
     ! Local assembly: (1+)
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -410,8 +407,6 @@ contains
     type(vector_field), intent(in) :: field_in
     real, intent(in) :: alpha
     integer, intent(in) :: ele
-    real :: beta
-
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: field_in_quad
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
@@ -433,12 +428,9 @@ contains
     call transform_to_physical(positions, ele, shape_field_in, dshape&
          &=dshape_field_in, detwei=detwei)
 
-    ! mesh size tensor = gamma * (mesh size)**2
-    ! gamma is a function of mesh shape e.g. hexahedral, unstructured triangular etc.
-    ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
-    ! Factor of 1/24 comes from Geurts & Holm, 2002
-    beta=1.0/24.0
-    mesh_tensor_quad = alpha*beta*les_lengthscale(positions, ele)
+    ! mesh size tensor=(edge lengths)**2
+    ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
+    mesh_tensor_quad = alpha**2 * 1.0/24.0 * les_lengthscale(positions, ele)
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -461,7 +453,6 @@ contains
     type(tensor_field), intent(in) :: field_in
     real, intent(in) :: alpha
     integer, intent(in) :: ele
-    real :: beta
     real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele))          :: field_in_quad
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
@@ -483,12 +474,9 @@ contains
     call transform_to_physical(positions, ele, shape_field_in, dshape&
          &=dshape_field_in, detwei=detwei)
 
-    ! mesh size tensor = gamma * (mesh size)**2
-    ! gamma is a function of mesh geometry
-    ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
-    ! Factor of 1/24 comes from Geurts & Holm, 2002
-    beta=1.0/24.0
-    mesh_tensor_quad = alpha*beta*les_lengthscale(positions, ele)
+    ! mesh size tensor=(edge lengths)**2
+    ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
+    mesh_tensor_quad = alpha**2 * 1.0/24.0 * les_lengthscale(positions, ele)
 
     ! Local assembly: (1+alpha^2.M) or (1-alpha^2.M)?
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &

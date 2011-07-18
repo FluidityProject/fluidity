@@ -1,8 +1,8 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=5100
-JOB=dynles-lilly-sem2-periodic
-
+JOB=LES-sem-periodic
+PYTHONPATH=PYTHONPATH:/data/JBull/fluidity/turbulence-dev/python/
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
 	@$(foreach NN,fine , \
@@ -21,7 +21,7 @@ preprocess:
 
 preprocess-periodic:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse2, \
+	@$(foreach NN,fine, \
 		install -d $(RE)-$(JOB)-$(NN); \
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
@@ -56,7 +56,7 @@ postprocess:
 
 postprocess-les:
 	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach NN,coarse, \
+	@$(foreach NN,med, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d_les.py .; \
 		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
