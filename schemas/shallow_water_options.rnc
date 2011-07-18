@@ -501,9 +501,12 @@ input_choice_initial_condition_vector =
       }|
       ## Set balanced velocity from height field
       element balanced {
-         empty
+               ## Solver
+         element solver {
+            linear_solver_options_sym
+         }
       }
-   )  
+   )
 
 # Choice of input method for initial/boundary conditions
 # version for real symmetric tensor

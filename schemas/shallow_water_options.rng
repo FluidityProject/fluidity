@@ -631,7 +631,10 @@ where X and the return value are tuples of length geometry dimension.</a:documen
       </element>
       <element name="balanced">
         <a:documentation>Set balanced velocity from height field</a:documentation>
-        <empty/>
+        <element name="solver">
+          <a:documentation>Solver</a:documentation>
+          <ref name="linear_solver_options_sym"/>
+        </element>
       </element>
     </choice>
   </define>

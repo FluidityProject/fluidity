@@ -79,7 +79,7 @@ contains
     logical, intent(in), optional :: compute_cartesian, &
          &check_continuity,output_dense, projection,poisson
     logical, intent(in), optional :: u_rhs_local !means u_rhs is in local coords
-    character(len=*), optional, intent(in) :: solver_option_path
+    character(len=OPTION_PATH_LEN), intent(in), optional :: solver_option_path
     !
     type(vector_field), pointer :: X, U, down, U_cart
     type(scalar_field), pointer :: D,f, lambda, lambda_nc
@@ -96,6 +96,8 @@ contains
 
     ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
 
+    if(present(D_out)) stop
+    
     l_compute_cartesian = .false.
     if(present(compute_cartesian)) l_compute_cartesian = compute_cartesian
     if(present(check_continuity)) l_check_continuity = check_continuity
@@ -152,7 +154,8 @@ contains
 
     !Solve the equations
     if(present(solver_option_path)) then
-       call petsc_solve(lambda,lambda_mat,lambda_rhs,solver_option_path)
+       call petsc_solve(lambda,lambda_mat,lambda_rhs,&
+            option_path=solver_option_path)
     else
        call petsc_solve(lambda,lambda_mat,lambda_rhs)
     end if
@@ -723,9 +726,46 @@ contains
        up_vec_out = up_vec_out*dot_product(up_vec_out, up)
        up_vec_out = up_vec_out/sqrt(sum(up_vec_out**2))
     else
+       FLAbort('Haven''t sorted out quads yet.')
        up_vec_out = up
     end if
   end function get_up_vec
+
+  function get_orientation(X_val, up) result (orientation)
+    !function compares the orientation of the element with the 
+    !up direction
+    implicit none
+    real, dimension(:,:), intent(in) :: X_val           !(dim,loc)
+    real, dimension(:,:), intent(in) :: up
+    integer :: orientation
+    !
+    real, dimension(size(X_val,1)) :: t1,t2
+    real, dimension(size(X_val,1)) :: crossprod
+    integer :: gi
+    ! if elements are triangles:
+    if(size(X_val,2)==3) then
+       t1 = X_val(:,2)-X_val(:,1)
+       t2 = X_val(:,3)-X_val(:,1)
+       crossprod = cross_product(t1,t2)
+       if(dot_product(crossprod,up(:,1))>0.0) then
+          do gi = 1, size(up,2)
+             if(dot_product(crossprod,up(:,gi))<0.0) then
+                FLAbort('Something nasty with down direction')
+             end if             
+          end do
+          orientation = 1
+       else
+          do gi = 1, size(up,2)
+             if(dot_product(crossprod,up(:,gi))>0.0) then
+                FLAbort('Something nasty with down direction')
+             end if             
+          end do
+          orientation = -1
+       end if
+    else
+       FLAbort('Haven''t sorted out quads yet.')
+    end if
+  end function get_orientation
 
   subroutine get_continuity_face_mat(continuity_face_mat,face,&
        U,lambda)
@@ -1330,7 +1370,7 @@ contains
        call set_local_velocity_from_streamfunction_ele(&
             &U_local,psi,down,X,ele)
     end do
-    call project_cartesian_to_local(U_cart,U_local)
+    call project_cartesian_to_local(X,U_cart,U_local)
 
     !STAGE 1a: verify that velocity projects is div-conforming
     call project_local_to_cartesian(X,U_local,U_cart)
@@ -1339,6 +1379,7 @@ contains
     end do
 
     !Stage 1b: verify that projection is idempotent
+    call allocate(tmp_field,mesh_dim(U_local), U_local%mesh, "tmp_field")
     call solve_hybridized_helmholtz(state,U_Rhs=U_local,&
          &U_out=tmp_field,&
          &compute_cartesian=.true.,&
@@ -1351,7 +1392,6 @@ contains
     if(elliptic_method) then
        call allocate(Coriolis_term,mesh_dim(U_local),&
             U_local%mesh,"CoriolisTerm")
-       call allocate(tmp_field,mesh_dim(U_local), U_local%mesh, "tmp_field")
 
        !STAGE 2: Construct Coriolis term
        call zero(Coriolis_term)
@@ -1418,26 +1458,40 @@ contains
        call deallocate(Coriolis_term)
        call deallocate(D_rhs)
        call deallocate(balance_eqn)
-       call deallocate(tmp_field)
     else
        !Project the streamfunction into pressure space
        do ele = 1, element_count(D)
-          call project_streamfunction_for_balance_ele(D,psi,g,ele)
+          call project_streamfunction_for_balance_ele(D,psi,f,g,ele)
        end do
     end if
+    call deallocate(tmp_field)
   end subroutine set_velocity_from_geostrophic_balance_hybridized
 
-  subroutine projection_streamfunction_for_balance_ele(D,psi,f,g,ele)
+  subroutine project_streamfunction_for_balance_ele(D,psi,f,g,ele)
     implicit none
-    type(scalar_field), intent(in) :: psi
+    type(scalar_field), intent(in) :: psi,f
     type(scalar_field), intent(inout) :: D
     integer, intent(in) :: ele
     real, intent(in) :: g
     !
     real, dimension(ele_loc(d,ele),ele_loc(d,ele)) :: d_mass
     real, dimension(ele_loc(d,ele)) :: d_rhs
-    real :: 
-  end subroutine projection_streamfunction_for_balance_ele
+    type(element_type) :: psi_shape, d_shape
+    real, dimension(ele_ngi(d,ele)) :: detwei, psi_quad,f_gi
+
+    f_gi = ele_val_at_quad(f,ele)
+    psi_shape = ele_shape(psi,ele)
+    d_shape = ele_shape(d,ele)
+    psi_quad = ele_val_at_quad(psi,ele)
+
+    !projection can be done locally
+    detwei = d_shape%quadrature%weight
+    d_rhs = shape_rhs(d_shape,-detwei*psi_quad*f_gi/g)
+    d_mass = shape_shape(d_shape,d_shape,detwei)
+    call solve(d_mass,d_rhs)
+    call set(D,ele_nodes(D,ele),d_rhs)
+
+  end subroutine project_streamfunction_for_balance_ele
   
   subroutine set_pressure_force_ele(force,D,g,ele)
     implicit none
@@ -1585,20 +1639,17 @@ contains
     type(element_type) :: u_shape, psi_shape
     integer :: dim1,gi,uloc
     real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi
+    integer :: orientation
 
     uloc = ele_loc(U_local,ele)
     u_shape = ele_shape(U_local,ele)
     psi_shape = ele_shape(psi,ele)
     up_gi = -ele_val_at_quad(down,ele)
-
-    do gi=1, ele_ngi(U_local,ele)
-       up_vec = get_up_vec(ele_val(X,ele), up_gi(:,gi))
-       up_gi(:,gi) = up_vec
-    end do
+    orientation = get_orientation(ele_val(X,ele), up_gi)
 
     !We can do everything in local coordinates since d commutes with pullback
     !usual tricks: dpsi lives in the U space so we can do projection
-    NEED TO CHECK ORIENTATION
+
     l_mass_mat = shape_shape(u_shape,u_shape,U_local%mesh%shape%quadrature&
          &%weight)
     !Streamfunction at node values
@@ -1613,6 +1664,7 @@ contains
     case default
        FLAbort('Exterior derivative not implemented for given mesh dimension')
     end select
+    dpsi_gi = orientation*dpsi_gi
     U_loc = shape_vector_rhs(u_shape,dpsi_gi,U_local%mesh%shape%quadrature&
          &%weight)
 
