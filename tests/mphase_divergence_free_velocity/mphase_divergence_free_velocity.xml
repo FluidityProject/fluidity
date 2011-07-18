@@ -16,13 +16,13 @@
       <variable name="SumVelocityDivergence" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_divergence_free_velocity.stat")
-SumVelocityDivergence = s["Fluid1"]["SumVelocityDivergence"]["l2norm"]
+SumVelocityDivergence = s["Fluid1"]["SumVelocityDivergence"]["max"]
       </variable>
    </variables>
    
    <pass_tests>
-      <test name="\sum{div(vfrac*u)} is less than 1e-9." language="python">
-assert(max(abs(SumVelocityDivergence)) &lt; 1e-9)
+      <test name="\sum{div(vfrac*u)} is less than 1e-10." language="python">
+assert(max(abs(SumVelocityDivergence)) &lt; 1e-10)
       </test>
    </pass_tests>
    

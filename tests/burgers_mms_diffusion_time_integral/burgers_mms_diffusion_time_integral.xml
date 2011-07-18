@@ -3,8 +3,8 @@
 <testproblem>
   <name>Burgers Equation MMS</name>
   <owner userid="pef"/>
-  <tags>burgers</tags>
-  <problem_definition length="special" nprocs="1">
+  <tags>burgers adjoint</tags>
+  <problem_definition length="medium" nprocs="1">
     <command_line>burgers_equation mms_A.bml; burgers_equation mms_B.bml; burgers_equation mms_C.bml; burgers_equation mms_D.bml; burgers_equation mms_E.bml</command_line>
   </problem_definition>
   <variables>
@@ -69,8 +69,8 @@ truth = -2.00098747251
 from fluidity_tools import stat_parser as stat
 from math import log
 
-a_func = stat("mms_diffusion_adjoint_A_adjoint_time_integral_ad.stat")["time_integral_ad"]["value"][-1]
-b_func = stat("mms_diffusion_adjoint_B_adjoint_time_integral_ad.stat")["time_integral_ad"]["value"][-1]
+a_func = stat("mms_diffusion_adjoint_A.stat")["time_integral_ad"]["value"][-1]
+b_func = stat("mms_diffusion_adjoint_B.stat")["time_integral_ad"]["value"][-1]
 
 a_error = abs(truth - a_func)
 b_error = abs(truth - b_func)
@@ -82,8 +82,8 @@ truth = -2.00098747251
 from fluidity_tools import stat_parser as stat
 from math import log
 
-b_func = stat("mms_diffusion_adjoint_B_adjoint_time_integral_ad.stat")["time_integral_ad"]["value"][-1]
-c_func = stat("mms_diffusion_adjoint_C_adjoint_time_integral_ad.stat")["time_integral_ad"]["value"][-1]
+b_func = stat("mms_diffusion_adjoint_B.stat")["time_integral_ad"]["value"][-1]
+c_func = stat("mms_diffusion_adjoint_C.stat")["time_integral_ad"]["value"][-1]
 
 b_error = abs(truth - b_func)
 c_error = abs(truth - c_func)
@@ -95,8 +95,8 @@ truth = -2.00098747251
 from fluidity_tools import stat_parser as stat
 from math import log
 
-c_func = stat("mms_diffusion_adjoint_C_adjoint_time_integral_ad.stat")["time_integral_ad"]["value"][-1]
-d_func = stat("mms_diffusion_adjoint_D_adjoint_time_integral_ad.stat")["time_integral_ad"]["value"][-1]
+c_func = stat("mms_diffusion_adjoint_C.stat")["time_integral_ad"]["value"][-1]
+d_func = stat("mms_diffusion_adjoint_D.stat")["time_integral_ad"]["value"][-1]
 
 c_error = abs(truth - c_func)
 d_error = abs(truth - d_func)
@@ -108,8 +108,8 @@ truth = -2.00098747251
 from fluidity_tools import stat_parser as stat
 from math import log
 
-d_func = stat("mms_diffusion_adjoint_D_adjoint_time_integral_ad.stat")["time_integral_ad"]["value"][-1]
-e_func = stat("mms_diffusion_adjoint_E_adjoint_time_integral_ad.stat")["time_integral_ad"]["value"][-1]
+d_func = stat("mms_diffusion_adjoint_D.stat")["time_integral_ad"]["value"][-1]
+e_func = stat("mms_diffusion_adjoint_E.stat")["time_integral_ad"]["value"][-1]
 
 d_error = abs(truth - d_func)
 e_error = abs(truth - e_func)
@@ -183,19 +183,21 @@ assert(abs(cd_func_error-2.0) &lt; 0.2)
 assert(abs(de_func_error-2.0) &lt; 0.2)
     </test>
     <test name="functionals give the same adjoint: A" language="python">
-assert functional_difference_a &lt; 1.0e-14
+assert functional_difference_a &lt; 1.0e-12
     </test>
     <test name="functionals give the same adjoint: B" language="python">
-assert functional_difference_b &lt; 1.0e-14
+assert functional_difference_b &lt; 1.0e-12
     </test>
     <test name="functionals give the same adjoint: C" language="python">
-assert functional_difference_c &lt; 1.0e-14
+assert functional_difference_c &lt; 1.0e-12
     </test>
     <test name="functionals give the same adjoint: D" language="python">
-assert functional_difference_d &lt; 1.0e-14
+assert functional_difference_d &lt; 1.0e-12
+#assert True
     </test>
     <test name="functionals give the same adjoint: E" language="python">
-assert functional_difference_e &lt; 1.0e-14
+assert functional_difference_e &lt; 1.0e-12
+#assert True
     </test>
   </pass_tests>
   <warn_tests>

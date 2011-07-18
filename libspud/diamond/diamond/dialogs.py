@@ -193,6 +193,7 @@ class RadioDialog:
   def __init__(self, title, message, choices, logo):
     self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
     self.window.connect("delete_event", self.cleanup)
+    self.window.connect("key_press_event", self.key_press)
     self.window.set_title(title)
     self.window.set_position(gtk.WIN_POS_CENTER)
     if not logo is None:
@@ -248,6 +249,10 @@ class RadioDialog:
   def cleanup(self, widget, data=None):
     self.window.destroy()
     gtk.main_quit()
+
+  def key_press(self, widget, event):
+    if event.keyval == gtk.keysyms.Return:
+      self.cleanup(None)
 
   def radio_callback(self, widget, data):
     self.data = data

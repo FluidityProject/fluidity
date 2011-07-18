@@ -148,18 +148,6 @@
 
 
          volumefraction => extract_scalar_field(state, 'PhaseVolumeFraction')
-         
-         ! First cap the volume fraction to take care of under or overshoots.
-         ! This will have typically occurred during advection.
-         cap = (have_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values"))  
-         if(cap) then
-            call get_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values/upper_cap", &
-                           u_cap_val, default=huge(0.0)*epsilon(0.0))
-            call get_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values/lower_cap", &
-                           l_cap_val, default=-huge(0.0)*epsilon(0.0))
-                  
-            call bound(volumefraction, l_cap_val, u_cap_val)               
-         end if
 
          ! Calculate the non-linear PhaseVolumeFraction
          call remap_field(volumefraction, nvfrac)
@@ -183,6 +171,18 @@
                
                call deallocate(remapvfrac)
             end if
+         end if
+
+         ! Cap the volume fraction to take care of under or overshoots.
+         ! This will have typically occurred during advection.
+         cap = (have_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values"))  
+         if(cap) then
+            call get_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values/upper_cap", &
+                           u_cap_val, default=huge(0.0)*epsilon(0.0))
+            call get_option(trim(complete_field_path(volumefraction%option_path))//"/cap_values/lower_cap", &
+                           l_cap_val, default=-huge(0.0)*epsilon(0.0))
+                  
+            call bound(nvfrac, l_cap_val, u_cap_val)               
          end if
 
          ewrite_minmax(nvfrac)

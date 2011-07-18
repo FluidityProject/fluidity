@@ -69,7 +69,9 @@ module manifold_projections
       end do
     end if
   end subroutine project_cartesian_to_local_state
-  
+ 
+  ! In the case tranpose=.false., the third argument is the output 
+  ! In the case tranpose=.true., the second argument is the output 
   subroutine project_cartesian_to_local_generic(X, in_field_cartesian, out_field_local, transpose)
     !!< Project the cartesian velocity to local coordinates
     type(vector_field), intent(in) :: X
