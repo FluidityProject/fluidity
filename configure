@@ -594,7 +594,6 @@ ac_includes_default="\
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 HYPERLIGHT
-HAVE_ZOLTAN
 MEMORY_STATS
 ALGENCAN
 MBA3D
@@ -620,6 +619,7 @@ X_PRE_LIBS
 X_CFLAGS
 XMKMF
 HAVE_ADJOINT
+HAVE_ZOLTAN
 ZOLTAN
 MPICXX
 MPICC
@@ -738,6 +738,7 @@ with_psmile
 enable_mpi
 with_netcdf
 with_ParMetis
+enable_sam
 with_zoltan
 with_adjoint
 enable_petsc_fortran_modules
@@ -1401,6 +1402,8 @@ Optional Features:
                           filesystems
   --enable-verbose        turns on super verbosity
   --enable-mpi            turns on MPI support
+  --enable-sam            use sam rather than zoltan for adaptive load
+                          rebalancing
   --disable-petsc-fortran-modules
                           By default fluidity tries to use fortran modules
                           provided with petsc. Use
@@ -11604,8 +11607,6 @@ fi
 fi
 
 # Parmetis and zoltan
-if test "$enable_mpi" != "no"
-    then
 
 # Set variables...
 
@@ -11703,8 +11704,16 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
 
-    if test "$with_zoltan" != "no"; then
-      if test ! -z "$with_zoltan"; then
+
+# Check whether --enable-sam was given.
+if test "${enable_sam+set}" = set; then :
+  enableval=$enable_sam;
+fi
+
+if test "$enable_sam" = "yes"; then
+    HAVE_ZOLTAN=no
+else
+    HAVE_ZOLTAN=yes
 
 # Set variables...
 
@@ -11724,7 +11733,7 @@ if test $zoltan != no; then
     tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
     tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
   fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis -lptscotch $ZOLTAN_DEPS"
+  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis $ZOLTAN_DEPS"
   tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
 fi
 LIBS=$tmpLIBS
@@ -11820,9 +11829,9 @@ ZOLTAN="yes"
 
 echo $LIBS
 
-      fi
-    fi
 fi
+
+
 
 
 HAVE_ADJOINT=no
@@ -14679,13 +14688,7 @@ fi
 # Hack for CX1. The zoltan libs (scotch, parmetis, etc) need to apepar on the end of the compile
 # command or all sorts of badness happens (libraries not being found, despite being in the path).
 # ZOLTAN_DEPS should be empty on other machine and will be set in the cx1-module file. See wiki.
-if test "$with_zoltan" != "no" ; then
-	LIBS="$LIBS $ZOLTAN_DEPS"
-    HAVE_ZOLTAN=yes
-else
-    HAVE_ZOLTAN=no
-fi
-
+LIBS="$LIBS $ZOLTAN_DEPS"
 
 # Check whether --enable-hyperlight was given.
 if test "${enable_hyperlight+set}" = set; then :
