@@ -495,7 +495,7 @@ schema:
 
 .PHONY: makefiles
 
-makefiles: 
+makefiles: sub_system
 ifneq (@GFORTRAN_4_5_OR_NEWER@,yes)
 	@echo "makefile dependency generation requires gfortran (>=4.5)"
 	@false
