@@ -212,19 +212,29 @@ if __name__=='__main__':
     options=handle_options()
 
     sys.stderr.write("Clobbering previous dependencies\n")
-    os.system("rm Makefile.dependencies")
-    trysystem("touch Makefile.dependencies")
+    os.system("mv Makefile.dependencies Makefile.dependencies.old")
+    try:
+        trysystem("touch Makefile.dependencies")
 
-    sys.stderr.write("Making clean\n")
-    trysystem("make clean")
+        sys.stderr.write("Making clean\n")
+        trysystem("make clean")
 
-    sys.stderr.write("Listing F90 files\n")
-    fortran=set(glob.glob("*.F90"))\
-        .difference(set(options.exclude.split()))
+        sys.stderr.write("Listing F90 files\n")
+        fortran=set(glob.glob("*.F90"))\
+            .difference(set(options.exclude.split()))
+        
+        sys.stderr.write("Creating reference counts\n")
+        create_refcounts()
 
-    sys.stderr.write("Creating reference counts\n")
-    create_refcounts()
+        dependencies=generate_dependencies(fortran)
+        
+        file("Makefile.dependencies",'w').writelines(dependencies)        
+    except:
+        # If anything fails, move the previous makefiled dependencies back.
+        os.system("mv Makefile.dependencies.old Makefile.dependencies")
+        # Now re-raise whatever the exception was.
+        raise
 
-    dependencies=generate_dependencies(fortran)
-
-    file("Makefile.dependencies",'w').writelines(dependencies)        
+    # On success, remove the old file.
+    os.system("rm Makefile.dependencies.old")
+    
