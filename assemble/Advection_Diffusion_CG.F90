@@ -39,13 +39,16 @@ module advection_diffusion_cg
   use boundary_conditions_from_options
   use field_options
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
+  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, timestep
   use profiler
   use spud
   use petsc_solve_state_module
   use state_module
   use upwind_stabilisation
   use sparsity_patterns_meshes
+  use sparse_tools_petsc
+  use colouring
+  use omp_lib
   
   implicit none
   
@@ -211,7 +214,7 @@ contains
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
     type(scalar_field), intent(in), optional :: extra_discretised_source
@@ -230,6 +233,16 @@ contains
     character(len = FIELD_NAME_LEN) :: density_name
     type(scalar_field), pointer :: pressure
         
+    !! Coloring  data structures for OpenMP parallization
+    type(mesh_type) :: p0_mesh
+    type(mesh_type), pointer :: vertex_mesh
+    type(csr_sparsity), pointer :: ad_sparsity
+    type(petsc_csr_matrix) :: petsccsrmatix
+    type(scalar_field) :: node_colour
+    type(integer_set), dimension(:), allocatable :: clr_sets
+    integer :: clr, nnid, no_colours, len, ele
+    integer :: num_threads, final_timestep
+
     ewrite(1, *) "In assemble_advection_diffusion_cg"
     
     assert(mesh_dim(rhs) == mesh_dim(t))
@@ -450,14 +463,84 @@ contains
     call zero(matrix)
     call zero(rhs)
     
-    do i = 1, ele_count(t)
-      call assemble_advection_diffusion_element_cg(i, t, matrix, rhs, &
-                                        positions, old_positions, new_positions, &
-                                        velocity, grid_velocity, &
-                                        source, absorption, diffusivity, &
-                                        density, olddensity, pressure)
-    end do
+!    call profiler_tic("advection_diffusion_loop")
 
+#ifdef _OPENMP
+      num_threads = omp_get_max_threads()
+      print *, "num_threads=", num_threads, "AD_CG"
+#else 
+      num_threads=1
+#endif
+
+    if(num_threads>1) then
+       call find_linear_parent_mesh(state, t%mesh, vertex_mesh, stat)
+       if (stat .ne. 0) then
+         FLAbort(" t CG parent mesh could not be found")
+       endif
+
+       p0_mesh = piecewise_constant_mesh(vertex_mesh, "P0Mesh")
+!!       p0_mesh = piecewise_constant_mesh(t%mesh, trim(t%name)//"P0Mesh")
+       ad_sparsity => get_csr_sparsity_firstorder(state, p0_mesh, p0_mesh)
+   !    ad_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, p0_mesh)
+       call colour_sparsity(ad_sparsity, p0_mesh, node_colour, no_colours)
+
+       if(.not. verify_colour_sparsity(ad_sparsity, node_colour)) then
+        FLAbort("The neighbours are using same colours, wrong!!.")
+       endif 
+
+       allocate(clr_sets(no_colours))
+       clr_sets=colour_sets(ad_sparsity, node_colour, no_colours)
+       PRINT *, "Temperature colouring passed"
+    else
+       no_colours = 1
+       allocate(clr_sets(no_colours))
+       call allocate(clr_sets)
+       do ELE=1,ele_count(t)
+          call insert(clr_sets(1), ele)
+       end do
+    end if
+
+    colour_loop: do clr = 1, no_colours
+      len = key_count(clr_sets(clr))
+      !$OMP PARALLEL DO DEFAULT(SHARED) &
+      !$OMP SCHEDULE(STATIC) &
+      !$OMP PRIVATE(nnid, ele)
+!!      !$OMP PRIVATE(equation_type, local_dt, dt_theta, theta, beta) &
+ !!     !$OMP PRIVATE(stabilisation_scheme, nu_bar_scheme, nu_bar_scale)
+ !!     !$OMP PRIVATE(density_theta)
+      element_loop: do nnid = 1, len 
+       ele = fetch(clr_sets(clr), nnid)       
+       call assemble_advection_diffusion_element_cg(ele, t, matrix, rhs, &
+                                positions, old_positions, new_positions, &
+                                         velocity, grid_velocity, &
+                                         source, absorption, diffusivity, &
+                                         density, olddensity, pressure)
+      end do element_loop
+      !$OMP END PARALLEL DO
+
+    end do colour_loop
+
+    call deallocate(clr_sets)
+    deallocate(clr_sets)
+
+#ifdef DDEBUG
+#ifdef _OPENMP
+!    call get_option("/timestepping/final_timestep", final_timestep)
+!    if(timestep .eq. final_timestep) then
+!!       print *, "dump bloody cg matrix"
+!       petsccsrmatix=csr2petsc_csr(matrix)
+!       call dump_petsc_csr_matrix(petsccsrmatix)
+!    endif
+#endif
+#endif
+
+    if(num_threads > 1) then
+    call deallocate(node_colour)
+!    call deallocate(vertex_mesh)
+    call deallocate(p0_mesh)
+    endif
+!    call profiler_toc("advection_diffusion_loop")
+    
     ! as part of assembly include the already discretised optional source
     ! needed before applying direchlet boundary conditions
     call addto_rhs_extra_discretised_source(rhs, extra_discretised_source = extra_discretised_source)
@@ -658,7 +741,9 @@ contains
         end if
       case default
         test_function = t_shape
+ !!   !$OMP CRITICAL
         call incref(test_function)
+ !!   !$OMP END CRITICAL
     end select
     ! Important note: with SUPG the test function derivatives have not been
     ! modified - i.e. dt_t is currently used everywhere. This is fine for P1,
