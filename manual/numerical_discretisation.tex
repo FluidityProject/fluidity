@@ -1582,6 +1582,14 @@ direction.
 The boundary
 conditions in the tangential direction (slip/no-slip) are independent of this choice.
 
+For a discontinuous Galerkin (DG) discretisation of velocity with a continuous
+Galerkin (CG) pressure space, the integration by parts of the continuity
+equation means only derivatives of continuous functions are evaluated and hence
+no additional face integrals are required. Vice versa, for a DG pressure with a CG
+velocity, we simply do not integrate by parts so that again no face integrals
+are required. For this reason, \fluidity currently only supports mixed velocity,
+pressure finite element pairs where at least one of them is continuous.
+
 \subsection{Pressure correction}\label{Sect:pressure_correction}
 \index{pressure!correction}
 
@@ -1736,7 +1744,7 @@ that pressure itself is discretised in a higher order polynomial space than velo
 gradient can match the Coriolis term. Another approach is to separate out this balance in an
 additional balance solve as discussed in the next section. If the viscous term is dominant in 
 the momentum equation, a higher order velocity discretisation than pressure may be 
-desirable. For instance in Stokes problems the $\Ptwo-\Pone$ element pair is popular.
+desirable. For instance in Stokes problems the $\Ptwo\Pone$ element pair is popular.
 
 The following table gives an overview of element pairs available in \fluidity.
 \begin{center}
@@ -1755,12 +1763,13 @@ $\Pzo$ & The $\PoDGPt$ pair can be extended to a family of velocity, pressure pa
 The $\Pzo$ pair can therefore be seen as a lower order version of $\PoDGPt$, which is less accurate
 but also cheaper to compute. Unfortunately it is known that for $P0$ velocity, the viscosity schemes 
 available in fluidity only really give an accurate answer for structured meshes. \\
-$P0P_{1\text{CV}}$ & This is similar to the $\Pzo$ pair but with a $P_{1\text{CV}}$ discretisation 
-for pressure. This has the advantage that in the advection equation for $P_{1CV}$ tracers, the 
+$\PzoCV$ & This is similar to the $\Pzo$ pair but with a $P_{1\text{CV}}$ discretisation 
+for pressure. This has the advantage that in the advection equation for
+$P_{1\text{CV}}$ tracers, the 
 advective velocity will be exactly divergence free, as the continuity equation 
 is tested with $P_{1\text{CV}}$ test functions. This is therefore the element pair of choice
 for multimaterial runs. \\
-$P2P1$ & This is a well known, stable element pair (also known as Taylor Hood. It does require 
+$\Ptwo\Pone$ & This is a well known, stable element pair (also known as Taylor Hood. It does require 
 a special mass lumping procedure. It is often used in problems with a dominant viscosity term (e.g. 
 pure Stokes problems).
 \end{tabular}
