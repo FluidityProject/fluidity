@@ -14,7 +14,7 @@ module smoothing_module
   
   public :: smooth_scalar, smooth_vector
   public :: anisotropic_smooth_scalar, anisotropic_smooth_vector
-  public :: anisotropic_smooth_tensor, les_lengthscale
+  public :: anisotropic_smooth_tensor, length_scale_tensor
 
 contains
 
@@ -384,7 +384,7 @@ contains
     ! mesh size tensor=(edge lengths)**2
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
     ! factor 1/24 derives from 2nd moment of filter (see Pope 2000, Geurts&Holm 2002)
-    mesh_tensor_quad = alpha**2 * 1.0/24.0 * les_lengthscale(positions, ele)
+    mesh_tensor_quad = alpha**2 * 1.0/24.0 * length_scale_tensor(dshape_field_in, shape_field_in)
 
     ! Local assembly: (1+)
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -430,7 +430,7 @@ contains
 
     ! mesh size tensor=(edge lengths)**2
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
-    mesh_tensor_quad = alpha**2 * 1.0/24.0 * les_lengthscale(positions, ele)
+    mesh_tensor_quad = alpha**2 * 1.0/24.0 * length_scale_tensor(dshape_field_in, shape_field_in)
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -476,7 +476,7 @@ contains
 
     ! mesh size tensor=(edge lengths)**2
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
-    mesh_tensor_quad = alpha**2 * 1.0/24.0 * les_lengthscale(positions, ele)
+    mesh_tensor_quad = alpha**2 * 1.0/24.0 * length_scale_tensor(dshape_field_in, shape_field_in)
 
     ! Local assembly: (1+alpha^2.M) or (1-alpha^2.M)?
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -492,47 +492,45 @@ contains
 
   end subroutine assemble_anisotropic_smooth_tensor
 
-  function les_lengthscale(positions, ele)
+  function length_scale_tensor(du_t, shape) result(t)
     !! Computes a length scale tensor to be used in LES (units are in length^2)
-    type(vector_field), intent(in) :: positions
-    integer, intent(in) :: ele
-    !! the lengthscale tensor in local coords (dim x dim x ngi)
-    real, dimension(positions%dim, positions%dim, ele_ngi(positions,ele)) :: les_lengthscale
-    real, dimension(positions%dim, positions%dim) :: ele_tensor
-    real, dimension(positions%dim, positions%dim):: M
+    !! derivative of velocity shape function (nloc x ngi x dim)
+    real, dimension(:,:,:), intent(in):: du_t
+    !! the resulting tensor (dim x dim x ngi)
+    real, dimension(size(du_t,3),size(du_t,3),size(du_t,2)) :: t
+    !! for a simplex if degree==1 the tensor is the same for all gaussian points
+    type(element_type), intent(in):: shape
+
+    real, dimension(size(t,1), size(t,2)):: M
     real r
     integer gi, loc, i
     integer dim, ngi, nloc, compute_ngi
 
-    les_lengthscale=0.0
-    compute_ngi=ele_ngi(positions, ele)
+    t=0.0
 
-    !if (shape%degree<=1 .and. shape%numbering%family==FAMILY_SIMPLEX) then
-    !   compute_ngi=1
-    !else
-    !   compute_ngi=ngi
-    !end if
+    nloc=size(du_t,1)
+    ngi=size(du_t,2)
+    dim=size(du_t,3)
 
-    ! Use adaptivity architecture: get metric (hx**-2, hy**-2, hz**-2)
-    ele_tensor = simplex_tensor(positions, ele)
-    les_lengthscale = spread(edge_length_from_eigenvalue(ele_tensor), 3, size(les_lengthscale, 3))
-    !call get_edge_lengths(positions%mesh, positions, ele, les_lengthscale)
+    if (shape%degree<=1 .and. shape%numbering%family==FAMILY_SIMPLEX) then
+       compute_ngi=1
+    else
+       compute_ngi=ngi
+    end if
 
     do gi=1, compute_ngi
-       ! Invert t to get (hx**2, hy**2, hz**2)
-       les_lengthscale(:,:,gi) = inverse(les_lengthscale(:,:,gi))
-       !do loc=1, nloc
-       !   M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
-       !   r=sum( (/ ( M(i,i), i=1, dim) /) )
-       !   t(:,:,gi)=t(:,:,gi)+M/(r**2)
-       !end do
+       do loc=1, nloc
+          M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
+          r=sum( (/ ( M(i,i), i=1, dim) /) )
+          t(:,:,gi)=t(:,:,gi)+M/(r**2)
+       end do
     end do
 
     ! copy the rest
-    !do gi=compute_ngi+1, ngi
-    !   les_lengthscale(:,:,gi)=les_lengthscale(:,:,1)
-    !end do
+    do gi=compute_ngi+1, ngi
+       t(:,:,gi)=t(:,:,1)
+    end do
 
-  end function les_lengthscale
+  end function length_scale_tensor
 
 end module smoothing_module
