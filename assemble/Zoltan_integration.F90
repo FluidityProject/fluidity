@@ -89,6 +89,7 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer :: p1_export_procs_full => null()
     integer(zoltan_int) :: p1_num_export_full
     type(vector_field) :: zoltan_global_new_positions_m1d
+    real :: load_imbalance_tolerance
 
     ewrite(1,*) "In zoltan_drive"
 
@@ -100,12 +101,13 @@ module zoltan_integration
     call setup_quality_module_variables(states, metric) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
-    call set_zoltan_parameters(iteration, max_adapt_iteration, zz)
+    call set_zoltan_parameters(iteration, max_adapt_iteration, zz, load_imbalance_tolerance)
 
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
-       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
+       & load_imbalance_tolerance)
 
 
     if (changes .eqv. .false.) then
@@ -161,7 +163,7 @@ module zoltan_integration
       
       call setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name = topology_mesh_name)
 
-      call set_zoltan_parameters(iteration, max_adapt_iteration, zz)
+      call set_zoltan_parameters(iteration, max_adapt_iteration, zz, load_imbalance_tolerance)
       
       call reset_zoltan_lists_full(zz, &
        & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
@@ -395,14 +397,15 @@ module zoltan_integration
     
   end subroutine setup_quality_module_variables
 
-  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, zz)
+  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, zz, load_imbalance_tolerance)
     integer, intent(in) :: iteration, max_adapt_iteration
     type(zoltan_struct), pointer, intent(in) :: zz    
+    real, intent(out) :: load_imbalance_tolerance
 
     integer(zoltan_int) :: ierr
     character (len = FIELD_NAME_LEN) :: method, graph_checking_level
 
-    real :: load_imbalance_tolerance
+
     character (len = 10) :: string_load_imbalance_tolerance
 
     if (debug_level()>1) then
@@ -647,7 +650,8 @@ module zoltan_integration
 
   subroutine zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
-       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
+       load_imbalance_tolerance)
 
     type(zoltan_struct), pointer, intent(in) :: zz    
     logical, intent(out) :: changes    
@@ -661,28 +665,38 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids 
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
-    
+    real, intent(inout) :: load_imbalance_tolerance
+
     integer(zoltan_int) :: ierr
     integer :: i, node
     integer :: num_nodes, num_nodes_after_balance, min_num_nodes_after_balance
+
+    num_nodes = zoltan_global_zz_halo%nowned_nodes
       
-    ! import_* aren't used because we set RETURN_LISTS to be only EXPORT
-    ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
-         &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
-    assert(ierr == ZOLTAN_OK)
-    
-    ! calculate how many owned nodes we'd have after doing the planned load balancing
-    num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+    min_num_nodes_after_balance = 0
+    do while (min_num_nodes_after_balance == 0)
 
-    ! calculate the minimum number of owned nodes any process would have after doing the planned load balancing
-    call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
-         & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
-    assert(ierr == MPI_SUCCESS)
-
-    if (min_num_nodes_after_balance == 0) then
-       FLAbort("Zoltan would have produced an empty partition")
-    end if
-
+       ! import_* aren't used because we set RETURN_LISTS to be only EXPORT
+       ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
+            &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+       assert(ierr == ZOLTAN_OK)
+       
+       ! calculate how many owned nodes we'd have after doing the planned load balancing
+       num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+       
+       ! find the minimum number of owned nodes any process would have after doing the planned load balancing
+       call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
+            & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+       assert(ierr == MPI_SUCCESS)
+       
+       if (min_num_nodes_after_balance == 0) then
+          load_imbalance_tolerance = 0.95 * load_imbalance_tolerance
+          if (load_imbalance_tolerance < 1.075) then
+             FLAbort("Tightening load_imbalance_tolerance to prevent empty partitions being created by Zoltan failed")
+          end if
+       end if
+    end do
+       
     do i=1,p1_num_export
        node = p1_export_local_ids(i)
        assert(node_owned(zoltan_global_zz_halo, node))
