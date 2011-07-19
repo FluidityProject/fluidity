@@ -156,7 +156,7 @@ def generate_dependencies(fortran):
             obj=os.path.splitext(f)[0]+".o"
             os.system("rm "+obj+" 2>\\dev\\null || true")
 
-            pipe=os.popen('make GENFLAGS="-M -MF '+obj+'_dependencies" '+obj)
+            pipe=os.popen('make GENFLAGS="-cpp -M -MF '+obj+'_dependencies" '+obj)
             stdout=pipe.readlines()
             if pipe.close()==None:
                 
@@ -220,7 +220,7 @@ if __name__=='__main__':
         trysystem("make clean")
 
         sys.stderr.write("Listing F90 files\n")
-        fortran=set(glob.glob("*.F90"))\
+        fortran=set(glob.glob("*.[fF]90"))\
             .difference(set(options.exclude.split()))
         
         sys.stderr.write("Creating reference counts\n")

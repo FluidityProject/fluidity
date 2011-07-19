@@ -138,3 +138,18 @@ Shallow_Water_Control_Callbacks.o \
    ../include/sparse_matrices_fields.mod ../include/python_state.mod \
    ../include/fdebug.h ../include/state_module.mod
 
+../include/simple_advection.mod: simple_advection.o
+	@true
+
+simple_advection.o ../include/simple_advection.mod: simple_advection.f90
+
+../include/simple_advection_b.mod: simple_advection_b.o
+	@true
+
+simple_advection_b.o ../include/simple_advection_b.mod: simple_advection_b.f90
+
+../include/simple_advection_d.mod: simple_advection_d.o
+	@true
+
+simple_advection_d.o ../include/simple_advection_d.mod: simple_advection_d.f90
+
