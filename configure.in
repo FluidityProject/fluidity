@@ -821,7 +821,12 @@ AC_ARG_ENABLE(sam,
 if test "$enable_sam" = "yes"; then
     HAVE_ZOLTAN=no
 else
+    if test "$with_zoltan" = no; then
+        HAVE_ZOLTAN=no
+        echo "Warning: zoltan disabled, using libsam instead"
+    fi
     HAVE_ZOLTAN=yes
+    zoltan=yes
     ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
 fi
 AC_SUBST(HAVE_ZOLTAN)

@@ -11713,7 +11713,12 @@ fi
 if test "$enable_sam" = "yes"; then
     HAVE_ZOLTAN=no
 else
+    if test "$with_zoltan" = no; then
+        HAVE_ZOLTAN=no
+        echo "Warning: zoltan disabled, using libsam instead"
+    fi
     HAVE_ZOLTAN=yes
+    zoltan=yes
 
 # Set variables...
 
@@ -11738,25 +11743,24 @@ if test $zoltan != no; then
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
-# Check that the compiler uses the library we specified...
-if test -e $zoltan_LIBS_PATH/libzoltan.a; then
-  echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
-fi
+if test $zoltan != no; then
+    # Check that the compiler uses the library we specified...
+    if test -e $zoltan_LIBS_PATH/libzoltan.a; then
+        echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
+    fi
 
-# Check that the compiler uses the include path we specified...
-if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
-	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
-fi
+    # Check that the compiler uses the include path we specified...
+    if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
+	    echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
+    fi
 
-
-
-ac_ext=c
+    ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Initialize in -lzoltan" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Initialize in -lzoltan" >&5
 $as_echo_n "checking for Zoltan_Initialize in -lzoltan... " >&6; }
 if test "${ac_cv_lib_zoltan_Zoltan_Initialize+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -11816,18 +11820,24 @@ else
   as_fn_error $? "Could not link in the zoltan library... exiting " "$LINENO" 5
 fi
 
-# Save variables...
-ac_ext=c
+    # Save variables...
+    ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-ZOLTAN="yes"
+    ZOLTAN="yes"
 
 
-echo $LIBS
+    echo $LIBS
+
+else
+    HAVE_ZOLTAN=0
+fi
+
+
 
 fi
 
