@@ -3,21 +3,21 @@
 	@true
 
 Adjoint_Controls.o ../include/adjoint_controls.mod: Adjoint_Controls.F90 \
-   ../include/boundary_conditions.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod ../include/python_state.mod \
-   ../include/fdebug.h ../include/state_module.mod
+   ../include/boundary_conditions.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/python_state.mod ../include/spud.mod ../include/state_module.mod
 
 ../include/adjoint_functional_evaluation.mod: Adjoint_Functional_Evaluation.o
 	@true
 
 Adjoint_Functional_Evaluation.o ../include/adjoint_functional_evaluation.mod: \
-   Adjoint_Functional_Evaluation.F90 ../include/adjoint_python.mod \
-   ../include/libadjoint_data_callbacks.mod ../include/mangle_options_tree.mod \
-   ../include/adjoint_global_variables.mod ../include/field_options.mod \
-   ../include/global_parameters.mod ../include/fields.mod \
-   ../include/diagnostic_variables.mod ../include/spud.mod \
-   ../include/embed_python.mod ../include/state_module.mod \
-   ../include/python_state.mod ../include/fdebug.h ../include/fldebug.mod
+   Adjoint_Functional_Evaluation.F90 ../include/adjoint_global_variables.mod \
+   ../include/adjoint_python.mod ../include/diagnostic_variables.mod \
+   ../include/embed_python.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/libadjoint_data_callbacks.mod \
+   ../include/mangle_options_tree.mod ../include/python_state.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/adjoint_global_variables.mod: Adjoint_Global_Variables.o
 	@true
@@ -29,88 +29,95 @@ Adjoint_Global_Variables.o ../include/adjoint_global_variables.mod: \
 	@true
 
 Adjoint_Main_Loop.o ../include/adjoint_main_loop.mod: Adjoint_Main_Loop.F90 \
-   ../include/populate_state_module.mod ../include/sparse_matrices_fields.mod \
-   ../include/diagnostic_fields_new.mod ../include/adjoint_controls.mod \
-   ../include/adjoint_functional_evaluation.mod ../include/sparse_tools.mod \
-   ../include/fields.mod ../include/diagnostic_variables.mod \
-   ../include/mangle_options_tree.mod ../include/write_state_module.mod \
-   ../include/spud.mod ../include/mangle_dirichlet_rows_module.mod \
-   ../include/state_module.mod ../include/libadjoint_data_callbacks.mod \
-   ../include/diagnostic_fields_wrapper.mod ../include/signal_vars.mod \
-   ../include/adjoint_global_variables.mod ../include/solvers.mod \
-   ../include/global_parameters.mod ../include/fdebug.h
+   ../include/adjoint_controls.mod \
+   ../include/adjoint_functional_evaluation.mod \
+   ../include/adjoint_global_variables.mod \
+   ../include/diagnostic_fields_new.mod \
+   ../include/diagnostic_fields_wrapper.mod \
+   ../include/diagnostic_variables.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/libadjoint_data_callbacks.mod \
+   ../include/mangle_dirichlet_rows_module.mod \
+   ../include/mangle_options_tree.mod ../include/populate_state_module.mod \
+   ../include/signal_vars.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/spud.mod ../include/state_module.mod \
+   ../include/write_state_module.mod
 
 ../include/adjoint_python.mod: Adjoint_Python_Fortran.o
 	@true
 
 Adjoint_Python_Fortran.o ../include/adjoint_python.mod: \
-   Adjoint_Python_Fortran.F90 ../include/spud.mod ../include/fdebug.h \
-   ../include/fldebug.mod
+   Adjoint_Python_Fortran.F90 ../include/fdebug.h ../include/fldebug.mod \
+   ../include/spud.mod
 
 ../include/burgers_adjoint_callbacks.mod: Burgers_Adjoint_Callbacks.o
 	@true
 
 Burgers_Adjoint_Callbacks.o ../include/burgers_adjoint_callbacks.mod: \
-   Burgers_Adjoint_Callbacks.F90 ../include/libadjoint_data_callbacks.mod \
-   ../include/simple_advection.mod ../include/burgers_assembly.mod \
-   ../include/populate_state_module.mod \
-   ../include/adjoint_global_variables.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/simple_advection_b.mod ../include/spud.mod \
-   ../include/mangle_options_tree.mod ../include/sparse_matrices_fields.mod \
+   Burgers_Adjoint_Callbacks.F90 ../include/adjoint_global_variables.mod \
+   ../include/burgers_assembly.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/global_parameters.mod ../include/libadjoint_data_callbacks.mod \
    ../include/mangle_dirichlet_rows_module.mod \
-   ../include/simple_advection_d.mod ../include/fdebug.h \
-   ../include/state_module.mod
+   ../include/mangle_options_tree.mod ../include/populate_state_module.mod \
+   ../include/simple_advection.mod ../include/simple_advection_b.mod \
+   ../include/simple_advection_d.mod ../include/sparse_matrices_fields.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/burgers_adjoint_controls.mod: Burgers_Control_Callbacks.o
 	@true
 
 Burgers_Control_Callbacks.o ../include/burgers_adjoint_controls.mod: \
-   Burgers_Control_Callbacks.F90 ../include/mangle_dirichlet_rows_module.mod \
-   ../include/manifold_projections.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod \
-   ../include/sparse_matrices_fields.mod ../include/state_module.mod \
-   ../include/python_state.mod ../include/fdebug.h
+   Burgers_Control_Callbacks.F90 ../include/fdebug.h ../include/fields.mod \
+   ../include/global_parameters.mod \
+   ../include/mangle_dirichlet_rows_module.mod \
+   ../include/manifold_projections.mod ../include/python_state.mod \
+   ../include/sparse_matrices_fields.mod ../include/spud.mod \
+   ../include/state_module.mod
 
 ../include/forward_main_loop.mod: Forward_Main_Loop.o
 	@true
 
 Forward_Main_Loop.o ../include/forward_main_loop.mod: Forward_Main_Loop.F90 \
-   ../include/populate_state_module.mod ../include/sparse_matrices_fields.mod \
-   ../include/diagnostic_fields_new.mod \
-   ../include/adjoint_functional_evaluation.mod ../include/sparse_tools.mod \
-   ../include/fields.mod ../include/diagnostic_variables.mod \
+   ../include/adjoint_functional_evaluation.mod \
+   ../include/adjoint_global_variables.mod \
    ../include/boundary_conditions_from_options.mod \
-   ../include/mangle_options_tree.mod ../include/write_state_module.mod \
-   ../include/spud.mod ../include/mangle_dirichlet_rows_module.mod \
-   ../include/state_module.mod ../include/libadjoint_data_callbacks.mod \
-   ../include/diagnostic_fields_wrapper.mod ../include/signal_vars.mod \
-   ../include/adjoint_global_variables.mod ../include/solvers.mod \
-   ../include/global_parameters.mod ../include/fdebug.h
+   ../include/diagnostic_fields_new.mod \
+   ../include/diagnostic_fields_wrapper.mod \
+   ../include/diagnostic_variables.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/libadjoint_data_callbacks.mod \
+   ../include/mangle_dirichlet_rows_module.mod \
+   ../include/mangle_options_tree.mod ../include/populate_state_module.mod \
+   ../include/signal_vars.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/spud.mod ../include/state_module.mod \
+   ../include/write_state_module.mod
 
 ../include/libadjoint_data_callbacks.mod: Libadjoint_Data_Callbacks.o
 	@true
 
 Libadjoint_Data_Callbacks.o ../include/libadjoint_data_callbacks.mod: \
    Libadjoint_Data_Callbacks.F90 ../include/boundary_conditions.mod \
-   ../include/sparse_tools.mod ../include/fields_manipulation.mod \
-   ../include/fields.mod ../include/fdebug.h
+   ../include/fdebug.h ../include/fields.mod \
+   ../include/fields_manipulation.mod ../include/sparse_tools.mod
 
 ../include/mangle_dirichlet_rows_module.mod: Mangle_Dirichlet_Rows_Module.o
 	@true
 
 Mangle_Dirichlet_Rows_Module.o ../include/mangle_dirichlet_rows_module.mod: \
    Mangle_Dirichlet_Rows_Module.F90 ../include/boundary_conditions.mod \
-   ../include/boundary_conditions_from_options.mod \
+   ../include/boundary_conditions_from_options.mod ../include/fdebug.h \
    ../include/field_options.mod ../include/fields.mod \
-   ../include/sparse_matrices_fields.mod ../include/fdebug.h
+   ../include/sparse_matrices_fields.mod
 
 ../include/mangle_options_tree.mod: Mangle_Options_Tree.o
 	@true
 
 Mangle_Options_Tree.o ../include/mangle_options_tree.mod: \
-   Mangle_Options_Tree.F90 ../include/futils.mod ../include/field_options.mod \
-   ../include/global_parameters.mod ../include/spud.mod ../include/fdebug.h \
-   ../include/fldebug.mod
+   Mangle_Options_Tree.F90 ../include/fdebug.h ../include/field_options.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/spud.mod
 
 ../include/shallow_water_adjoint_callbacks.mod: \
    Shallow_Water_Adjoint_Callbacks.o
@@ -118,13 +125,11 @@ Mangle_Options_Tree.o ../include/mangle_options_tree.mod: \
 
 Shallow_Water_Adjoint_Callbacks.o \
    ../include/shallow_water_adjoint_callbacks.mod: \
-   Shallow_Water_Adjoint_Callbacks.F90 \
-   ../include/libadjoint_data_callbacks.mod \
-   ../include/adjoint_global_variables.mod \
-   ../include/populate_state_module.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod \
-   ../include/mangle_options_tree.mod ../include/sparse_matrices_fields.mod \
-   ../include/manifold_projections.mod ../include/fdebug.h \
+   Shallow_Water_Adjoint_Callbacks.F90 ../include/adjoint_global_variables.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
+   ../include/libadjoint_data_callbacks.mod ../include/mangle_options_tree.mod \
+   ../include/manifold_projections.mod ../include/populate_state_module.mod \
+   ../include/sparse_matrices_fields.mod ../include/spud.mod \
    ../include/state_module.mod
 
 ../include/shallow_water_adjoint_controls.mod: \
@@ -133,10 +138,11 @@ Shallow_Water_Adjoint_Callbacks.o \
 
 Shallow_Water_Control_Callbacks.o \
    ../include/shallow_water_adjoint_controls.mod: \
-   Shallow_Water_Control_Callbacks.F90 ../include/manifold_projections.mod \
-   ../include/global_parameters.mod ../include/fields.mod ../include/spud.mod \
-   ../include/sparse_matrices_fields.mod ../include/python_state.mod \
-   ../include/fdebug.h ../include/state_module.mod
+   Shallow_Water_Control_Callbacks.F90 ../include/fdebug.h \
+   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/manifold_projections.mod ../include/python_state.mod \
+   ../include/sparse_matrices_fields.mod ../include/spud.mod \
+   ../include/state_module.mod
 
 ../include/simple_advection.mod: simple_advection.o
 	@true
