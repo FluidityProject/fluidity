@@ -63,6 +63,7 @@ module momentum_DG
   use colouring
   use Profiler
   use omp_lib
+  use multiphase_module
 
 
   implicit none
@@ -143,6 +144,9 @@ module momentum_DG
   ! DG LES
   logical :: have_dg_les
   real :: smagorinsky_coefficient
+
+  ! Are we running a multi-phase flow simulation?
+  logical :: multiphase
 
 contains
 
@@ -234,8 +238,6 @@ contains
     !! Mesh for auxiliary variable
     type(mesh_type), save :: q_mesh, turbine_conn_mesh
 
-    integer :: dim, dim2
-
     ! Fields for vertical velocity relaxation
     type(scalar_field), pointer :: dtt, dtb
     type(scalar_field) :: depth
@@ -263,6 +265,10 @@ contains
     integer :: clr, nnid, no_colours, len
     logical :: compact_stencil
     integer :: num_threads
+
+    ! Volume fraction fields for multi-phase flow simulation
+    type(scalar_field), pointer :: vfrac
+    type(scalar_field) :: nvfrac ! Non-linear approximation to the PhaseVolumeFraction
 
     ewrite(1, *) "In construct_momentum_dg"
 
@@ -424,6 +430,22 @@ contains
     else
       call incref(surfacetension)
       ewrite_minmax(surfacetension)
+    end if
+
+    ! Are we running a multi-phase simulation?
+    if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+      multiphase = .true.
+
+      vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+      call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+      call zero(nvfrac)
+      call get_nonlinear_volume_fraction(state, nvfrac)
+
+      ewrite_minmax(nvfrac)
+
+    else
+      multiphase = .false.
+      nullify(vfrac)
     end if
 
     have_coriolis = have_option("/physical_parameters/coriolis")
@@ -699,13 +721,11 @@ contains
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
             & u_cg, u_nl_cg, &
+            & turbine_conn_mesh, on_sphere, depth, have_wd_abs, &
+            & alpha_u_field, Abs_wd, vvr_sf, ib_min_grad, nvfrac, &
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
-            & mass=mass, turbine_conn_mesh=turbine_conn_mesh, &
-            & subcycle_m=subcycle_m, &
-            & on_sphere=on_sphere, depth=depth, have_wd_abs=have_wd_abs,&
-            & alpha_u_field=alpha_u_field,&
-            & Abs_wd=Abs_wd, vvr_sf=vvr_sf, ib_min_grad=ib_min_grad)
+            & mass=mass, subcycle_m=subcycle_m)
       
       end do element_loop
       !$OMP END PARALLEL DO
@@ -753,6 +773,9 @@ contains
     call deallocate(gravity)
     call deallocate(u_cg)
     call deallocate(u_nl_cg)
+    if(multiphase) then
+      call deallocate(nvfrac)
+    end if
     
     ewrite(1, *) "Exiting construct_momentum_dg"
 
@@ -766,9 +789,9 @@ contains
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
        &u_cg, u_nl_cg, &
-       &inverse_mass, inverse_masslump, mass, turbine_conn_mesh, &
-       &subcycle_m, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
-       vvr_sf, ib_min_grad)
+       &turbine_conn_mesh, on_sphere, depth, have_wd_abs, alpha_u_field, Abs_wd, &
+       &vvr_sf, ib_min_grad, nvfrac, &
+       &inverse_mass, inverse_masslump, mass, subcycle_m)
 
     !!< Construct the momentum equation for discontinuous elements in
     !!< acceleration form.
@@ -781,7 +804,7 @@ contains
     type(vector_field), intent(inout) :: rhs
     !! Auxiliary variable mesh
     type(mesh_type), intent(in) :: q_mesh
-    type(mesh_type), intent(in), optional :: turbine_conn_mesh
+    type(mesh_type), intent(in) :: turbine_conn_mesh
     !! 
     type(block_csr_matrix), intent(inout), optional :: subcycle_m
 
@@ -808,9 +831,9 @@ contains
     type(vector_field), intent(inout), optional :: inverse_masslump
     !! Optional separate mass matrix.
     type(csr_matrix), intent(inout), optional :: mass
-    logical, intent(in), optional :: have_wd_abs !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
-    type(scalar_field), intent(in), optional :: alpha_u_field
-    type(vector_field), intent(in), optional :: Abs_wd
+    logical, intent(in) :: have_wd_abs !! Wetting and drying switch, if TRUE, alpha_u_field must be passed as well
+    type(scalar_field), intent(in) :: alpha_u_field
+    type(vector_field), intent(in) :: Abs_wd
     
     ! Bilinear forms.
     real, dimension(ele_loc(U,ele), ele_loc(U,ele)) :: &
@@ -920,20 +943,29 @@ contains
     real, dimension(u%dim, u%dim, ele_ngi(u, ele)) :: tensor_absorption_gi
 
     ! Add vertical velocity relaxation to the absorption if present
-    real, intent(in), optional :: vvr_sf
+    real, intent(in) :: vvr_sf
     real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: vvr_abs
     real, dimension(u%dim,ele_ngi(u,ele)) :: vvr_abs_diag
     real, dimension(ele_ngi(u,ele)) :: depth_at_quads
-    type(scalar_field), optional, intent(in) :: depth
+    type(scalar_field), intent(in) :: depth
 
     ! Add implicit buoyancy to the absorption if present
-    real, intent(in), optional :: ib_min_grad
+    real, intent(in) :: ib_min_grad
     real, dimension(u%dim,u%dim,ele_ngi(u,ele)) :: ib_abs
     real, dimension(u%dim,ele_ngi(u,ele)) :: ib_abs_diag
     real, dimension(ele_loc(u,ele),ele_ngi(u,ele),mesh_dim(u)) :: dt_rho
     real, dimension(u%dim,ele_ngi(u,ele)) :: grav_at_quads
     real, dimension(u%dim, ele_ngi(u,ele)) :: grad_rho
     real, dimension(ele_ngi(u,ele)) :: drho_dz
+
+    ! Non-linear approximation to the PhaseVolumeFraction field
+    type(scalar_field), intent(in) :: nvfrac
+    type(element_type), pointer :: nvfrac_shape
+    ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
+    real, dimension(:, :, :), allocatable :: dnvfrac_t
+    ! nvfrac at quadrature points.
+    real, dimension(ele_ngi(u, ele)) :: nvfrac_gi, u_nl_dot_grad_nvfrac_gi
+    real, dimension(u%dim, ele_ngi(u, ele)) :: grad_nvfrac_gi
 
     ! element centre and neighbour centre
     ! for IP parameters
@@ -1052,6 +1084,24 @@ contains
     
     Rho_q=ele_val_at_quad(Rho, ele)
 
+    if(multiphase) then
+      allocate(dnvfrac_t(ele_loc(nvfrac%mesh,ele), ele_ngi(nvfrac%mesh,ele), mesh_dim(u)))
+
+      ! If the Velocity and PhaseVolumeFraction meshes are different, then we need to
+      ! compute the derivatives of the PhaseVolumeFraction shape functions.
+      if(.not.(nvfrac%mesh == u%mesh)) then
+         nvfrac_shape => ele_shape(nvfrac%mesh, ele)
+         call transform_to_physical(X, ele, nvfrac_shape, dshape=dnvfrac_t)
+      else
+         dnvfrac_t = du_t
+      end if
+
+      nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+      grad_nvfrac_gi = ele_grad_at_quad(nvfrac, ele, dnvfrac_t)
+
+      deallocate(dnvfrac_t)
+    end if
+
     les_tensor_gi=0.0
     dg_les_loc=0.0
     ! dg les hack
@@ -1137,7 +1187,13 @@ contains
       ! so should be evaluated at t+dt
       rho_mat = shape_shape(u_shape, u_shape, detwei_new*Rho_q)
     else
-      rho_mat = shape_shape(u_shape, u_shape, detwei*Rho_q)
+
+      if(multiphase) then
+         rho_mat = shape_shape(u_shape, u_shape, detwei*Rho_q*nvfrac_gi)
+      else
+         rho_mat = shape_shape(u_shape, u_shape, detwei*Rho_q)
+      end if
+
     end if
     l_masslump= sum(rho_mat,2)
     
@@ -1203,14 +1259,23 @@ contains
       U_nl_q=ele_val_at_quad(U_nl,ele)
 
       if(integrate_conservation_term_by_parts) then
-        ! Element advection matrix
-        !         /                                          /
-        !  - beta | (grad T dot U_nl) T Rho dV + (1. - beta) | T (U_nl dot grad T) Rho dV
-        !         /                                          /
-        Advection_mat = -beta* dshape_dot_vector_shape(du_t, U_nl_q, u_shape, detwei&
-            &*Rho_q)  &
-            + (1.-beta) * shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei &
-            &*Rho_q)
+      
+        if(multiphase) then
+           ! Element advection matrix
+           !         /                                                /
+           !  - beta | (grad T dot U_nl) T Rho vfrac dV + (1. - beta) | T (vfrac U_nl dot grad T) Rho dV
+           !         /                                                /
+           Advection_mat = -beta*dshape_dot_vector_shape(du_t, U_nl_q, u_shape, detwei*Rho_q*nvfrac_gi) &
+               + (1.-beta)*shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei*Rho_q*nvfrac_gi)
+        else
+           ! Element advection matrix
+           !         /                                          /
+           !  - beta | (grad T dot U_nl) T Rho dV + (1. - beta) | T (U_nl dot grad T) Rho dV
+           !         /                                          /
+           Advection_mat = -beta*dshape_dot_vector_shape(du_t, U_nl_q, u_shape, detwei*Rho_q) &
+               + (1.-beta)*shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei*Rho_q)
+        end if
+        
         if(move_mesh) then
           if(integrate_by_parts_once) then
             Advection_mat = Advection_mat &
@@ -1230,23 +1295,57 @@ contains
         U_nl_div_q=ele_div_at_quad(U_nl, ele, du_t)
 
         if(integrate_by_parts_once) then
-          ! Element advection matrix
-          !    /                                          /
-          !  - | (grad T dot U_nl) T Rho dV - (1. - beta) | T ( div U_nl ) T Rho dV
-          !    /                                          /
-          Advection_mat = - dshape_dot_vector_shape(du_t, U_nl_q, u_shape, detwei&
-              &*Rho_q)  &
-              - (1.-beta) * shape_shape(u_shape, u_shape, U_nl_div_q * detwei &
-              &*Rho_q)
+        
+          if(multiphase) then
+             ! Element advection matrix
+             !    /                                                /
+             !  - | (grad T dot U_nl vfrac) T Rho dV - (1. - beta) | T ( div(U_nl vfrac) ) T Rho dV
+             !    /                                                /
+            
+             ! We need to compute \int{T div(u_nl vfrac) T},
+             ! so split up the div using the product rule and compute
+             ! \int{T vfrac div(u_nl) T} + \int{T u_nl grad(vfrac) T}
+             do i = 1, ele_ngi(u, ele)
+                u_nl_dot_grad_nvfrac_gi(i) = dot_product(U_nl_q(:,i), grad_nvfrac_gi(:,i))
+             end do
+             Advection_mat = -dshape_dot_vector_shape(du_t, U_nl_q, u_shape, detwei*Rho_q*nvfrac_gi) &
+                 - (1.-beta) * (shape_shape(u_shape, u_shape, U_nl_div_q*detwei*Rho_q*nvfrac_gi) + &
+                 shape_shape(u_shape, u_shape, detwei*Rho_q*u_nl_dot_grad_nvfrac_gi))
+          else
+             ! Element advection matrix
+             !    /                                          /
+             !  - | (grad T dot U_nl) T Rho dV - (1. - beta) | T ( div U_nl ) T Rho dV
+             !    /                                          /
+             Advection_mat = - dshape_dot_vector_shape(du_t, U_nl_q, u_shape, detwei*Rho_q) &
+                 - (1.-beta) * shape_shape(u_shape, u_shape, U_nl_div_q*detwei*Rho_q)
+          end if
+          
         else
-          ! Element advection matrix
-          !  /                                   /
-          !  | T (U_nl dot grad T) Rho dV + beta | T ( div U_nl ) T Rho dV
-          !  /                                   /
-          Advection_mat = shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei&
-              &*Rho_q)  &
-              + beta * shape_shape(u_shape, u_shape, U_nl_div_q * detwei &
-              &*Rho_q)
+       
+          if(multiphase) then
+             ! Element advection matrix
+             !  /                                         /
+             !  | T (vfrac U_nl dot grad T) Rho dV + beta | T ( div (vfrac U_nl) ) T Rho dV
+             !  /                                         /
+             
+             ! We need to compute \int{T div(vfrac u_nl) T},
+             ! so split up the div using the product rule and compute
+             ! \int{T vfrac div(u_nl) T} + \int{T u_nl grad(vfrac) T}
+             do i = 1, ele_ngi(u, ele)
+                u_nl_dot_grad_nvfrac_gi(i) = dot_product(U_nl_q(:,i), grad_nvfrac_gi(:,i))
+             end do
+             Advection_mat = shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei*Rho_q*nvfrac_gi) &
+                 + beta * (shape_shape(u_shape, u_shape, U_nl_div_q*detwei*Rho_q*nvfrac_gi) + &
+                 shape_shape(u_shape, u_shape, detwei*Rho_q*u_nl_dot_grad_nvfrac_gi))
+          else
+             ! Element advection matrix
+             !  /                                   /
+             !  | T (U_nl dot grad T) Rho dV + beta | T ( div U_nl ) T Rho dV
+             !  /                                   /
+             Advection_mat = shape_vector_dot_dshape(u_shape, U_nl_q, du_t, detwei*Rho_q) &
+                 + beta * shape_shape(u_shape, u_shape, U_nl_div_q * detwei*Rho_q)
+          end if 
+          
           if(move_mesh) then
             Advection_mat = Advection_mat &
                   - shape_shape(u_shape, u_shape, ele_div_at_quad(U_mesh, ele, dug_t) * detwei * Rho_q)
@@ -1297,9 +1396,17 @@ contains
                                     sphere_inward_normal_at_quad_ele(X, ele), &
                                     detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
       else
-        rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
+      
+        if(multiphase) then
+          rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
+                                    ele_val_at_quad(gravity, ele), &
+                                    detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele)*nvfrac_gi)
+        else
+          rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
                                     ele_val_at_quad(gravity, ele), &
                                     detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+        end if
+        
       end if
     end if
 
@@ -1541,9 +1648,16 @@ contains
     if((have_viscosity.or.have_dg_les).and.owned_element) then
        if (primal) then
           do dim = 1, u%dim
-             Viscosity_mat(dim,:loc,:loc)= &
+             if(multiphase) then
+               ! Viscosity matrix is \int{grad(N_A)*viscosity*vfrac*grad(N_B)} for multiphase.
+               Viscosity_mat(dim,:loc,:loc)= &
+                  dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele)+les_tensor_gi, &
+                  &                    du_t, detwei*nvfrac_gi)
+             else
+               Viscosity_mat(dim,:loc,:loc)= &
                   dshape_tensor_dshape(du_t, ele_val_at_quad(Viscosity,ele)+les_tensor_gi, &
                   &                    du_t, detwei)
+             end if
           end do
 
           if((viscosity_scheme==CDG).or.(viscosity_scheme==IP)) then
@@ -1561,25 +1675,49 @@ contains
 
           end if
 
-         !get kappa mat for CDG
+         ! Get kappa mat for CDG
           if(viscosity_scheme==CDG) then
-             kappa_mat = shape_shape_tensor(u_shape,u_shape,detwei, &
-                  & ele_val_at_quad(Viscosity,ele)+les_tensor_gi)
+             if(multiphase) then
+               ! kappa = mu*vfrac for multiphase
+               kappa_mat = shape_shape_tensor(u_shape,u_shape,detwei*nvfrac_gi, &
+                     & ele_val_at_quad(Viscosity,ele)+les_tensor_gi)
+             else
+               kappa_mat = shape_shape_tensor(u_shape,u_shape,detwei, &
+                     & ele_val_at_quad(Viscosity,ele)+les_tensor_gi)
+             end if
           end if
 
        else
           ! Tau Q = grad(u)
-          Q_inv= shape_shape(q_shape, q_shape, detwei)
+          if(multiphase) then
+            ! We define the auxiliary variable as vfrac*q = vfrac*div(u)
+            ! to obtain the correct form of the grad_u_mat_q matrix. This way,
+            ! transpose(grad_u_mat_q) gives the correct form of the viscosity term.
+            Q_inv= shape_shape(q_shape, q_shape, detwei*nvfrac_gi)
+          else
+            Q_inv= shape_shape(q_shape, q_shape, detwei)
+          end if
+
           call invert(Q_inv)
           call cholesky_factor(Q_inv)
           
           Grad_U_mat_q=0.0
           Div_U_mat_q=0.0
           if(.not.p0) then
-             Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, U_shape, detwei)
-             if(viscosity_scheme==ARBITRARY_UPWIND) then
-                Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei)
+             
+             if(multiphase) then
+               ! Split up -\int{grad(N_A vfrac) N_B} using the product rule
+               ! and compute -\int{grad(N_A) vfrac N_B} - \int{N_A grad(vfrac) N_B}
+               Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei*nvfrac_gi) - &
+                                          & shape_shape_vector(q_shape, u_shape, detwei, grad_nvfrac_gi)
+             else
+               Grad_U_mat_q(:, :, :loc) = -dshape_shape(dq_t, u_shape, detwei)
              end if
+ 
+             if(viscosity_scheme==ARBITRARY_UPWIND) then
+               Div_U_mat_q(:, :, :loc) = -shape_dshape(q_shape, du_t, detwei)
+             end if
+
           end if
        end if
     end if
@@ -1690,9 +1828,10 @@ contains
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, &
-                        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
-                        & viscosity, viscosity_mat, &
-                        & subcycle_m_tensor_addto=subcycle_m_tensor_addto, &
+                        & subcycle_m_tensor_addto, nvfrac, &
+                        & ele2grad_mat=ele2grad_mat, kappa_mat=kappa_mat, &
+                        & inverse_mass_mat=inverse_mass_mat, &
+                        & viscosity=viscosity, viscosity_mat=viscosity_mat, &
                         & dg_les_loc=dg_les_loc)
            end if
         else
@@ -1703,7 +1842,7 @@ contains
                         & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, &
-                        & subcycle_m_tensor_addto=subcycle_m_tensor_addto)
+                        & subcycle_m_tensor_addto, nvfrac)
             end if
         end if
 
@@ -1862,7 +2001,8 @@ contains
        end if
          
     end if
-  
+
+
   contains
  
     subroutine local_assembly_arbitrary_upwind
@@ -1898,9 +2038,9 @@ contains
                ! Div U * G^U * Viscosity * G * Grad U
                ! Where G^U*G = inverse(Q_mass)
                Viscosity_mat(d3,:,:)=Viscosity_mat(d3,:,:)&
-                    +matmul(matmul(transpose(grad_U_mat_q(dim1,:,:))&
-                    &         ,mat_diag_mat(Q_inv, Viscosity_ele(dim1,dim2,:)))&
-                    &     ,grad_U_mat_q(dim2,:,:))
+                  +matmul(matmul(transpose(grad_U_mat_q(dim1,:,:))&
+                  &         ,mat_diag_mat(Q_inv, Viscosity_ele(dim1,dim2,:)))&
+                  &     ,grad_U_mat_q(dim2,:,:))
             end do
          end do
       end do
@@ -1927,9 +2067,9 @@ contains
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, &
+       & subcycle_m_tensor_addto, nvfrac, &
        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
-       & viscosity, viscosity_mat, &
-       & subcycle_m_tensor_addto, dg_les_loc)
+       & viscosity, viscosity_mat, dg_les_loc)
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
     implicit none
@@ -1938,14 +2078,14 @@ contains
 
     integer, intent(in) :: ele, face, face_2, ni
     real, dimension(:,:,:,:), intent(inout) :: big_m_tensor_addto
-    real, dimension(:,:,:,:), intent(inout), optional :: & 
-         & subcycle_m_tensor_addto
+    real, dimension(:,:,:,:), intent(inout) :: subcycle_m_tensor_addto
     real, dimension(:,:) :: rhs_addto
     real, dimension(:,:,:), intent(inout) :: Grad_U_mat, Div_U_mat
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U, U_nl
     type(vector_field), pointer :: U_mesh
     type(scalar_field), intent(in) :: Rho, P
+    type(scalar_field), intent(in) :: nvfrac
     !! Mesh of the auxiliary variable in the second order operator.
     type(mesh_type), intent(in) :: q_mesh
     !! surfacetension
@@ -2000,7 +2140,7 @@ contains
 
     ! Note that both sides of the face can be assumed to have the same
     ! number of quadrature points.
-    real, dimension(face_ngi(U_nl, face)) :: Rho_q
+    real, dimension(face_ngi(U_nl, face)) :: Rho_q, nvfrac_gi
     real, dimension(U%dim, face_ngi(U_nl, face)) :: normal, u_nl_q,&
          & u_f_q, u_f2_q, div_u_f_q
     logical, dimension(face_ngi(U_nl, face)) :: inflow
@@ -2014,7 +2154,7 @@ contains
     real, dimension(face_loc(U,face),face_loc(U,face_2)) :: nnAdvection_in
     real, dimension(1,mesh_dim(U), face_loc(P,face),face_loc(U,face)) :: mnCT
     
-    !Viscosity values on face (used for CDG and IP fluxes)
+    ! Viscosity values on face (used for CDG and IP fluxes)
     real, dimension(:,:,:), allocatable :: kappa_gi
 
     ! surfacetension stuff
@@ -2032,6 +2172,8 @@ contains
     integer :: i
     integer, dimension(:), pointer :: nodelist
 
+    integer :: d1, d2
+
     floc = face_loc(u, face)
 
     start=ele_loc(u,ele)+(ni-1)*face_loc(U, face_2)+1
@@ -2039,9 +2181,18 @@ contains
     
     p0=(element_degree(u,ele)==0)
 
+    ! Get Density and (non-linear) PhaseVolumeFraction values 
+    ! at the Gauss points on the current face.
+    Rho_q=face_val_at_quad(Rho, face)
+
+    if(multiphase) then
+       nvfrac_gi = face_val_at_quad(nvfrac, face)
+    end if
+
     if(present(viscosity)) then
        allocate( kappa_gi(Viscosity%dim(1), Viscosity%dim(2), &
             face_ngi(Viscosity,face)) )
+
        ! If have_dg_les create a temp viscosity tensor field that includes the
        ! les viscosities
        if (have_dg_les) then
@@ -2055,7 +2206,18 @@ contains
          call deallocate(Combined_Viscosity)
        else
          kappa_gi = face_val_at_quad(Viscosity, face)
+
+         if(multiphase) then
+            ! Multiply the viscosity tensor by the PhaseVolumeFraction 
+            ! since kappa = viscosity*vfrac for multiphase flow simulations.
+            do d1=1,Viscosity%dim(1)
+               do d2=1,Viscosity%dim(2)
+                  kappa_gi(d1,d2,:) = kappa_gi(d1,d2,:)*nvfrac_gi
+               end do
+            end do
+         end if
        end if
+
     end if
 
     u_face_l=face_local_nodes(U, face)
@@ -2135,8 +2297,6 @@ contains
       ! into this element.
       inflow= u_nl_q_dotn<0.0
       income = merge(1.0,0.0,inflow)
-
-      Rho_q=face_val_at_quad(Rho, face)
       
       ! Calculate outflow boundary integral.
       ! can anyone think of a way of optimising this more to avoid
@@ -2160,14 +2320,25 @@ contains
                                       + beta*sum(div_u_f_q*normal,1)
         end if
       end if
-      nnAdvection_out=shape_shape(U_shape, U_shape,  &
-          &                        inner_advection_integral * detwei * Rho_q) 
+      
+      if(multiphase) then
+         nnAdvection_out=shape_shape(U_shape, U_shape,  &
+             &                        inner_advection_integral * detwei * Rho_q * nvfrac_gi) 
+      else
+         nnAdvection_out=shape_shape(U_shape, U_shape,  &
+             &                        inner_advection_integral * detwei * Rho_q) 
+      end if
       
       ! now the integral around the outside of the element
       ! (this is the flux *in* to the element)
       outer_advection_integral = income * u_nl_q_dotn
-      nnAdvection_in=shape_shape(U_shape, U_shape_2, &
-          &                       outer_advection_integral * detwei * Rho_q) 
+      if(multiphase) then
+         nnAdvection_in=shape_shape(U_shape, U_shape_2, &
+             &                       outer_advection_integral * detwei * Rho_q * nvfrac_gi)
+      else
+         nnAdvection_in=shape_shape(U_shape, U_shape_2, &
+             &                       outer_advection_integral * detwei * Rho_q)
+      end if
 
       do dim = 1, u%dim
       
@@ -2265,7 +2436,11 @@ contains
     ! Insert pressure boundary integral.
     if (l_cg_pressure .and. boundary .and. l_have_pressure_bc) then
     
-       mnCT(1,:,:,:) =shape_shape_vector(P_shape, U_shape_2, detwei, normal)
+       if(multiphase) then
+          mnCT(1,:,:,:) = shape_shape_vector(P_shape, U_shape_2, detwei*nvfrac_gi, normal)
+       else
+          mnCT(1,:,:,:) = shape_shape_vector(P_shape, U_shape_2, detwei, normal)
+       end if
        ! for both weak and strong pressure dirichlet bcs:
        !      /
        ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
@@ -2283,6 +2458,7 @@ contains
 
        !! Arbitrary upwinding scheme.
        do dim=1,mesh_dim(U)
+
           if (normal(dim,1)>0) then          
              ! Internal face.
              Grad_U_mat(dim, q_face_l, U_face_l)=&
@@ -2310,26 +2486,31 @@ contains
     end subroutine arbitrary_upwind_viscosity
 
     subroutine bassi_rebay_viscosity
+
+      real, dimension(face_ngi(u_nl, face)) :: coefficient_detwei
       
       do dim=1,mesh_dim(U)
+
+         coefficient_detwei = detwei*normal(dim,:)
+         if(multiphase) then
+            coefficient_detwei = coefficient_detwei*nvfrac_gi
+         end if
 
          if(.not.boundary) then
             ! Internal face.
             Grad_U_mat(dim, q_face_l, U_face_l)=&
-                 Grad_U_mat(dim, q_face_l, U_face_l) &
-                 +0.5*shape_shape(q_shape, U_shape, detwei*normal(dim,:))
+               Grad_U_mat(dim, q_face_l, U_face_l) &
+               +0.5*shape_shape(q_shape, U_shape, coefficient_detwei)
             
             ! External face.
             Grad_U_mat(dim, q_face_l, start:finish)=&
-                 +0.5*shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
-           
+               +0.5*shape_shape(q_shape, U_shape_2, coefficient_detwei) 
          else
             ! Boundary case. Put the whole integral in the external bit.
-            
+
             ! External face.
             Grad_U_mat(dim, q_face_l, start:finish)=&
-                 +shape_shape(q_shape, U_shape_2, detwei*normal(dim,:))
- 
+               +shape_shape(q_shape, U_shape_2, coefficient_detwei)
          end if
       end do
 

@@ -115,8 +115,57 @@ adjoint_options =
                attribute name { "functional_dependencies" },
                python_code
             }
-         }
+         },
+         ## Disables the adjoint run for this functional.
+         ## The functional values are still computed during the forward run.
+         ## The resulting stat file is equivalent to the one with this option disabled, 
+         ## but all adjoint related entries will be zeroed.
+         element disable_adjoint_run {
+           empty
+         }? 
       }+,
+      ## Specifies any control variables 
+      element controls {
+          element control {
+            (
+              attribute name { xsd:string },
+                (
+                  ## Initial condition 
+                  element type {
+                    attribute name { "initial_condition" },
+                    attribute field_name { xsd:string },
+                    comment
+                  }|
+                  ## Source term. Note that the source term has to exist in both the forward and in the adjoint run (using the exist_in_both flag)
+                  element type {
+                    attribute name { "source_term" },
+                    attribute field_name { xsd:string },
+                    comment
+                  }
+                ),
+              ## Defines bounds on the control variables.
+              element bounds {
+                (
+                  ## Defines an upper bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.
+                  element upper_bound {
+                    attribute field_name { xsd:string },
+                     comment
+                  }?,
+                  ## Defines an lower bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.
+                  element lower_bound {
+                    attribute field_name { xsd:string },
+                     comment
+                  }?
+                )
+              }?
+             )
+          }*,
+          ## Load controls values from the control files.
+          ## This is used for optimality only and should be left disabled.
+          element load_controls {
+             empty
+          }? 
+      }?,
       ## Debugging options for adjoint model development
       element debug {
          ## Rerun the forward equation using libadjoint. 
@@ -131,6 +180,10 @@ adjoint_options =
          }?,
          ## Check the transposes of all action callbacks.
          element check_action_transposes {
+            empty
+         }?,
+         ## Check all supplied derivative callbacks of nonlinear operators.
+         element check_action_derivative {
             empty
          }?
      }?

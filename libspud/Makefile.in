@@ -39,7 +39,7 @@ ARFLAGS = @ARFLAGS@
 LIB = libspud.la
 LIBS = $(shell echo @LIBS@ | sed 's/-L /-L/g')
 
-HEADERS = include/cspud.h include/spud.h include/spud_config.h include/spud_enums.h include/tinystr.h include/tinyxml.h
+HEADERS = include/spud.h include/spud include/spud_enums.h include/tinystr.h include/tinyxml.h
 MODS = spud.mod
 OBJS = spud.lo spud_interfaces.lo tinystr.lo tinyxml.lo tinyxmlerror.lo tinyxmlparser.lo fspud.lo
 
@@ -102,7 +102,6 @@ clean:
 distclean: clean
 	@cd src/tests; $(MAKE) distclean
 	rm -fr config.log config.status autom4te.cache Makefile
-	rm -f include/spud_config.h
 	rm -f Makefile src/tests/Makefile examples/Makefile
 	rm -f bin/spud-preprocess
 	rm -f diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py

@@ -622,9 +622,9 @@ XMKMF
 HAVE_ADJOINT
 ZOLTAN
 MPICXX
-MPICC
 MPIF77
 MPIF90
+MPICC
 ENABLE_PSMILE
 FLPSMILE_PATH
 FEMDEM
@@ -731,10 +731,10 @@ with_lapack
 with_lapack_dir
 enable_openmp
 enable_shared
+enable_buildopt
 enable_verbose
 with_femdem
 with_psmile
-enable_mpi
 with_netcdf
 with_ParMetis
 with_zoltan
@@ -769,6 +769,10 @@ CXXFLAGS
 CCC
 CPP
 PYTHON_VERSION
+MPICC
+MPIF90
+MPIF77
+MPICXX
 XMKMF
 CXXCPP'
 
@@ -1396,8 +1400,9 @@ Optional Features:
   --disable-openmp        do not use OpenMP
   --enable-shared         Compile objects with -fPIC to enable the 'make
                           shared' target.
+  --enable-buildopt       Enables build optimisations on ext4 and xfs
+                          filesystems
   --enable-verbose        turns on super verbosity
-  --enable-mpi            turns on MPI support
   --disable-petsc-fortran-modules
                           By default fluidity tries to use fortran modules
                           provided with petsc. Use
@@ -1454,6 +1459,10 @@ Some influential environment variables:
               The installed Python version to use, for example '2.3'. This
               string will be appended to the Python interpreter canonical
               name.
+  MPICC       C compiler command for MPI programs
+  MPIF90      Fortran 90 compiler command for MPI programs
+  MPIF77      Fortran 77 compiler command for MPI programs
+  MPICXX      C++ compiler command for MPI programs
   XMKMF       Path to xmkmf, Makefile generator for X Window System
   CXXCPP      C++ preprocessor
 
@@ -10733,6 +10742,14 @@ fi
 
 
 
+
+# Check whether --enable-buildopt was given.
+if test "${enable_buildopt+set}" = set; then :
+  enableval=$enable_buildopt;
+fi
+
+
+
 # Set default for ARFLAGS, since autoconf does not have a macro for
 # it. This allows people to set it when running configure or make.
 # Extract the first word of "ar", so it can be a program name with args.
@@ -10773,6 +10790,11 @@ fi
 
 
 test -n "$ARFLAGS" || ARFLAGS="cr"
+
+if test "$enable_buildopt" == "yes" ; then
+    ARFLAGS="r"
+fi
+
 if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}ranlib", so it can be a program name with args.
 set dummy ${ac_tool_prefix}ranlib; ac_word=$2
@@ -11029,18 +11051,13 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-# Check whether --enable-mpi was given.
-if test "${enable_mpi+set}" = set; then :
-  enableval=$enable_mpi;
-fi
 
 
-# various synonyms accepted to disable MPI
-if test "$with_mpi" = no ; then enable_mpi=no; fi
-if test "$with_MPI" = no ; then enable_mpi=no; fi
-if test "$enable_MPI" = no ; then enable_mpi=no; fi
-if test "$enable_mpi" != "no" ; then
-  for ac_prog in mpif90 mpf90
+
+
+
+
+for ac_prog in mpif90 mpf90
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -11083,10 +11100,10 @@ fi
 done
 test -n "$MPIF90" || MPIF90="$FC"
 
-  if test "$smart_fortran" = "yes" ; then
-    MPIF77=$MPIF90
-  else
-    for ac_prog in mpif77 mpf77
+if test "$smart_fortran" = "yes" ; then
+  MPIF77=$MPIF90
+else
+  for ac_prog in mpif77 mpf77
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -11129,8 +11146,8 @@ fi
 done
 test -n "$MPIF77" || MPIF77="$F77"
 
-  fi
-  for ac_prog in mpicc mpcc
+fi
+for ac_prog in mpicc mpcc
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -11173,7 +11190,7 @@ fi
 done
 test -n "$MPICC" || MPICC="$CC"
 
-  for ac_prog in mpicxx mpiCC mpCC
+for ac_prog in mpicxx mpiCC mpCC
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -11217,19 +11234,19 @@ done
 test -n "$MPICXX" || MPICXX="$CXX"
 
 
-  F77=$MPIF77
-  FC=$MPIF90
-  CC=$MPICC
-  CXX=$MPICXX
+F77=$MPIF77
+FC=$MPIF90
+CC=$MPICC
+CXX=$MPICXX
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if we can compile and link without using -lmpi" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if we can compile and link without using -lmpi" >&5
 $as_echo_n "checking if we can compile and link without using -lmpi... " >&6; }
-  LIBS_bck="$LIBS"
-  LIBS=""
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+LIBS_bck="$LIBS"
+LIBS=""
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-  #include <mpi.h>
+#include <mpi.h>
 
 #ifdef F77_DUMMY_MAIN
 
@@ -11251,8 +11268,8 @@ int
 main ()
 {
 
-  int flag;
-  MPI_Initialized(&flag);
+int flag;
+MPI_Initialized(&flag);
 
   ;
   return 0;
@@ -11260,29 +11277,21 @@ main ()
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-  LIBS="$LIBS_bck"
-  mpi="yes"
+LIBS="$LIBS_bck"
+mpi="yes"
 
 else
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-  LIBS="$LIBS_bck"
-  check_for_lmpi="yes"
+LIBS="$LIBS_bck"
+check_for_lmpi="yes"
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: mpi disabled" >&5
-$as_echo "$as_me: WARNING: mpi disabled" >&2;}
-  MPIF77=$F77
-  MPIF90=$FC
-  MPICC=$CC
-  MPICXX=$CXX
-fi
 
 if test "$check_for_lmpi" = "yes" ; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if we can compile and link using -lmpi" >&5
@@ -11416,9 +11425,7 @@ cat >> confdefs.h << EOF
 EOF
   enable_mpi="yes"
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: no mpi support found on system" >&5
-$as_echo "$as_me: WARNING: no mpi support found on system" >&2;}
-  enable_mpi="no"
+  as_fn_error $? "no MPI support found on system" "$LINENO" 5
 fi
 
 # netCDF support
@@ -11810,9 +11817,27 @@ fi
 
 
 HAVE_ADJOINT=no
+CAN_USE_ADJOINT=yes
+WANTS_ADJOINT=yes
+if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+  # test really is so retarded that it can't lexicographically compare strings
+  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
+    CAN_USE_ADJOINT=no
+  fi
+fi
+
+if test "$with_adjoint" = no || test -z "$with_adjoint"; then
+  WANTS_ADJOINT=no
+fi
+
+if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+  echo "Wanted adjoint, but you need gcc > 4.5"
+  exit 1
+fi
+
+echo "with_adjoint: " $with_adjoint
 if test "$with_adjoint" != "no"; then
-  if test ! -z "$with_adjoint"; then
-    HAVE_ADJOINT=yes
+  if test "$CAN_USE_ADJOINT" != "no"; then
 
 # Set variables...
 
@@ -11822,10 +11847,11 @@ if test "${with_adjoint+set}" = set; then :
 fi
 
 
+bakLIBS=$LIBS
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
-if test $adjoint != no; then
-  if test $adjoint != yes; then
+if test "$adjoint" != "no"; then
+  if test "$adjoint" != "yes"; then
     adjoint_LIBS_PATH="$adjoint/lib"
     adjoint_INCLUDES_PATH="$adjoint/include"
     # Ensure the comiler finds the library...
@@ -11900,9 +11926,10 @@ $as_echo "$ac_cv_lib_adjoint_adj_register_equation" >&6; }
 if test "x$ac_cv_lib_adjoint_adj_register_equation" = x""yes; then :
 
 $as_echo "#define HAVE_ADJOINT 1" >>confdefs.h
-
+HAVE_ADJOINT=yes
 else
-  as_fn_error $? "Could not link in libadjoint ... exiting " "$LINENO" 5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not link in libadjoint ...  " >&5
+$as_echo "$as_me: WARNING: Could not link in libadjoint ...  " >&2;};HAVE_ADJOINT=no;LIBS=$bakLIBS
 fi
 
 # Save variables...
@@ -11913,14 +11940,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-echo $LIBS
 
-    if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
-      # test really is so retarded that it can't lexicographically compare strings
-      if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
-        as_fn_error $? "\"Need gfortran >= 4.5 for the adjoint, sorry\"" "$LINENO" 5
-      fi
-    fi
+  fi
+  if test "$HAVE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+    echo "Wanted adjoint, but couldn't find it"
+    exit 1
   fi
 fi
 
