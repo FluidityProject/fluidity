@@ -50,6 +50,22 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="P2DG">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">5</integer_value>
@@ -68,7 +84,7 @@
     <max_dump_file_count>
       <integer_value rank="0">160</integer_value>
     </max_dump_file_count>
-    <output_mesh name="PressureMesh"/>
+    <output_mesh name="P2DG"/>
     <stat/>
   </io>
   <timestepping>
@@ -399,7 +415,7 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="InterpolatedAnalyticSaturation1" rank="0">
+    <scalar_field name="InterpolatedAnalyticSaturation" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
@@ -418,12 +434,67 @@
         </detectors>
       </prescribed>
     </scalar_field>
-    <scalar_field name="Error" rank="0">
+    <scalar_field name="AnalyticError" rank="0">
       <diagnostic>
-        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="InterpolatedAnalyticSaturation1" source_field_2_name="PhaseVolumeFraction" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="InterpolatedAnalyticSaturation" source_field_2_name="PhaseVolumeFraction" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ProjectedPhaseVolumeFraction" rank="0">
+      <diagnostic>
+        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="PhaseVolumeFraction" name="scalar_galerkin_projection"/>
+        <mesh name="P2DG"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="RegressionProjectedPhaseVolumeFraction" rank="0">
+      <prescribed>
+        <mesh name="P2DG"/>
+        <value name="WholeMesh">
+          <from_file file_name="regression_solution/BL_1d_A_1.vtu">
+            <format name="vtu">
+              <field_name>
+                <string_value lines="1">phase1::ProjectedPhaseVolumeFraction</string_value>
+              </field_name>
+            </format>
+          </from_file>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="RegressionDifference" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="ProjectedPhaseVolumeFraction" source_field_2_name="RegressionProjectedPhaseVolumeFraction" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="P2DG"/>
         <output/>
         <stat/>
         <convergence>
