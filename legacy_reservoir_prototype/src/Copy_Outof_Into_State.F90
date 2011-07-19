@@ -1131,8 +1131,8 @@ module copy_outof_into_state
                do k = 1, ndim
                   u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) = &
                        u_source( ( k - 1 ) * u_nonods * nphases + ( i - 1 ) * u_nonods + j  ) + &
-                       delta_den * gravity_magnitude * gravity_direction%val(k,1) * &
-                       domain_length / ( 5.5 * real( totele ))
+                       delta_den * gravity_magnitude * gravity_direction%val(k,1) * min( 0.027, & 
+                       domain_length /  real( totele * cv_nloc ))
                end do
             end do
          end do

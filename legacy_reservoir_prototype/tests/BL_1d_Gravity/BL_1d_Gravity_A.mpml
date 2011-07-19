@@ -62,11 +62,11 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">40</integer_value>
+        <integer_value rank="0">90</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <max_dump_file_count>
-      <integer_value rank="0">640</integer_value>
+      <integer_value rank="0">450</integer_value>
     </max_dump_file_count>
     <output_mesh name="PressureMesh"/>
     <stat/>
@@ -154,7 +154,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.0</real_value>
+              <real_value rank="0">1.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -193,7 +193,7 @@
             <real_value rank="0">0.71</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="Inlet">
+        <boundary_conditions name="Inlet_Ph1">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
@@ -512,6 +512,16 @@
             <real_value rank="0">1.05</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="Inlet_Ph2">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -585,7 +595,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
-                  <real_value rank="0">0.0</real_value>
+                  <real_value rank="0">1.0</real_value>
                 </constant>
               </x_component>
             </align_bc_with_cartesian>
@@ -696,7 +706,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.0</real_value>
+              <real_value rank="0">.0</real_value>
             </constant>
           </type>
         </boundary_conditions>
