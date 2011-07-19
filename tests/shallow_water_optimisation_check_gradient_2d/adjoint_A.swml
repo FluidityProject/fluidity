@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<shallow_water_options>
+    <simulation_name>
+        <string_value lines="1">wave_A</string_value>
+    </simulation_name>
+    <geometry>
+        <dimension>
+            <integer_value rank="0">3</integer_value>
+        </dimension>
+        <mesh name="CoordinateMesh">
+            <from_file file_name="src/mesh_A">
+                <format name="triangle"></format>
+                <dimension>
+                    <integer_value rank="0">2</integer_value>
+                </dimension>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+            </from_file>
+        </mesh>
+        <mesh name="VelocityMesh">
+            <from_mesh>
+                <mesh name="PeriodicMesh"></mesh>
+                <mesh_continuity>
+                    <string_value>discontinuous</string_value>
+                </mesh_continuity>
+                <stat>
+                    <exclude_from_stat></exclude_from_stat>
+                </stat>
+            </from_mesh>
+        </mesh>
+        <mesh name="PressureMesh">
+            <from_mesh>
+                <mesh name="PeriodicMesh"></mesh>
+                <mesh_shape>
+                    <polynomial_degree>
+                        <integer_value rank="0">2</integer_value>
+                    </polynomial_degree>
+                </mesh_shape>
+                <stat>
+                    <exclude_from_stat></exclude_from_stat>
+                </stat>
+            </from_mesh>
+        </mesh>
+        <mesh name="PeriodicMesh">
+            <from_mesh>
+                <mesh name="CoordinateMesh"></mesh>
+                <periodic_boundary_conditions name="periodicity">
+                    <physical_boundary_ids>
+                        <integer_value rank="1" shape="1">10</integer_value>
+                    </physical_boundary_ids>
+                    <aliased_boundary_ids>
+                        <integer_value rank="1" shape="1">8</integer_value>
+                    </aliased_boundary_ids>
+                    <coordinate_map>
+                        <string_value lines="20" type="python">def val(X,t):&#x0A;  result = list(X)&#x0A;  result[0]=result[0]-1.0&#x0A;  return result</string_value>
+                    </coordinate_map>
+                </periodic_boundary_conditions>
+                <periodic_boundary_conditions name="periodic_y">
+                    <physical_boundary_ids>
+                        <integer_value rank="1" shape="1">7</integer_value>
+                    </physical_boundary_ids>
+                    <aliased_boundary_ids>
+                        <integer_value rank="1" shape="1">9</integer_value>
+                    </aliased_boundary_ids>
+                    <coordinate_map>
+                        <string_value lines="20" type="python">def val(X,t):&#x0A;  result = list(X)&#x0A;  result[1]=result[1]-1.0&#x0A;  return result</string_value>
+                    </coordinate_map>
+                </periodic_boundary_conditions>
+                <stat>
+                    <exclude_from_stat></exclude_from_stat>
+                </stat>
+            </from_mesh>
+        </mesh>
+        <quadrature>
+            <degree>
+                <integer_value rank="0">4</integer_value>
+            </degree>
+        </quadrature>
+    </geometry>
+    <io>
+        <dump_format>
+            <string_value>vtk</string_value>
+        </dump_format>
+        <dump_period_in_timesteps>
+            <constant>
+                <integer_value rank="0">1</integer_value>
+            </constant>
+        </dump_period_in_timesteps>
+        <output_mesh name="CoordinateMesh"></output_mesh>
+    </io>
+    <timestepping>
+        <current_time>
+            <real_value rank="0">0</real_value>
+        </current_time>
+        <timestep>
+            <real_value rank="0">0.25</real_value>
+        </timestep>
+        <nonlinear_iterations>
+            <integer_value rank="0">1</integer_value>
+        </nonlinear_iterations>
+        <finish_time>
+            <real_value rank="0">1</real_value>
+        </finish_time>
+    </timestepping>
+    <physical_parameters>
+        <gravity>
+            <magnitude>
+                <real_value rank="0">1</real_value>
+            </magnitude>
+            <vector_field name="GravityDirection" rank="1">
+                <prescribed>
+                    <mesh name="CoordinateMesh"></mesh>
+                    <value name="WholeMesh">
+                        <constant>
+                            <real_value rank="1" shape="3" dim1="dim">0 0 -1</real_value>
+                        </constant>
+                    </value>
+                    <output></output>
+                    <stat>
+                        <include_in_stat></include_in_stat>
+                    </stat>
+                    <detectors>
+                        <exclude_from_detectors></exclude_from_detectors>
+                    </detectors>
+                    <adjoint_storage>
+                        <exists_in_forward></exists_in_forward>
+                    </adjoint_storage>
+                </prescribed>
+            </vector_field>
+        </gravity>
+    </physical_parameters>
+    <material_phase name="Fluid">
+        <vector_field name="Velocity" rank="1">
+            <prognostic>
+                <mesh name="VelocityMesh"></mesh>
+                <equation name="ShallowWater"></equation>
+                <spatial_discretisation>
+                    <discontinuous_galerkin>
+                        <advection_scheme>
+                            <none></none>
+                        </advection_scheme>
+                    </discontinuous_galerkin>
+                    <conservative_advection>
+                        <real_value rank="0">0</real_value>
+                    </conservative_advection>
+                </spatial_discretisation>
+                <solver>
+                    <iterative_method name="gmres">
+                        <restart>
+                            <integer_value rank="0">500</integer_value>
+                        </restart>
+                    </iterative_method>
+                    <preconditioner name="sor"></preconditioner>
+                    <relative_error>
+                        <real_value rank="0">1e-12</real_value>
+                    </relative_error>
+                    <max_iterations>
+                        <integer_value rank="0">500</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures></never_ignore_solver_failures>
+                    <diagnostics>
+                        <monitors></monitors>
+                    </diagnostics>
+                </solver>
+                <initial_condition name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="python">def val(X, t):&#x0A;  import constants_2d&#x0A;  return constants_2d.u_exact(X, t)</string_value>
+                    </python>
+                </initial_condition>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                    <previous_time_step>
+                        <exclude_from_stat></exclude_from_stat>
+                    </previous_time_step>
+                    <nonlinear_field>
+                        <exclude_from_stat></exclude_from_stat>
+                    </nonlinear_field>
+                </stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <consistent_interpolation></consistent_interpolation>
+            </prognostic>
+        </vector_field>
+        <scalar_field name="LayerThickness" rank="0">
+            <prognostic>
+                <mesh name="PressureMesh"></mesh>
+                <spatial_discretisation>
+                    <continuous_galerkin>
+                        <advection_terms>
+                            <exclude_advection_terms></exclude_advection_terms>
+                        </advection_terms>
+                    </continuous_galerkin>
+                    <conservative_advection>
+                        <real_value rank="0">0</real_value>
+                    </conservative_advection>
+                </spatial_discretisation>
+                <temporal_discretisation>
+                    <theta>
+                        <real_value rank="0">0.5</real_value>
+                    </theta>
+                    <relaxation>
+                        <real_value rank="0">1</real_value>
+                    </relaxation>
+                </temporal_discretisation>
+                <solver>
+                    <iterative_method name="cg"></iterative_method>
+                    <preconditioner name="sor"></preconditioner>
+                    <relative_error>
+                        <real_value rank="0">1e-12</real_value>
+                    </relative_error>
+                    <max_iterations>
+                        <integer_value rank="0">500</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures></never_ignore_solver_failures>
+                    <cache_solver_context></cache_solver_context>
+                    <diagnostics>
+                        <monitors></monitors>
+                    </diagnostics>
+                </solver>
+                <initial_condition name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="python">def val(X, t):&#x0A;  import constants_2d&#x0A;  #return constants_2d.eta_exact(X, t)&#x0A;  return 0.0</string_value>
+                    </python>
+                </initial_condition>
+                <mean_layer_thickness>
+                    <real_value rank="0">1</real_value>
+                </mean_layer_thickness>
+                <output></output>
+                <stat></stat>
+                <consistent_interpolation></consistent_interpolation>
+            </prognostic>
+        </scalar_field>
+        <scalar_field name="AnalyticalLayerThickness" rank="0">
+            <prescribed>
+                <mesh name="PressureMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="python">def val(X, t):&#x0A;  import constants_2d&#x0A;  return constants_2d.eta_exact(X, t)</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat></stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+                <adjoint_storage>
+                    <exists_in_forward></exists_in_forward>
+                </adjoint_storage>
+            </prescribed>
+        </scalar_field>
+        <scalar_field name="LayerThicknessError" rank="0">
+            <diagnostic>
+                <algorithm name="scalar_difference" source_field_2_type="scalar" source_field_1_name="LayerThickness" source_field_2_name="AnalyticalLayerThickness" material_phase_support="single" source_field_1_type="scalar">
+                    <absolute_difference></absolute_difference>
+                </algorithm>
+                <mesh name="PressureMesh"></mesh>
+                <output></output>
+                <stat></stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <adjoint_storage>
+                    <exists_in_forward></exists_in_forward>
+                </adjoint_storage>
+            </diagnostic>
+        </scalar_field>
+        <vector_field name="AnalyticalVelocity" rank="1">
+            <prescribed>
+                <mesh name="VelocityMesh"></mesh>
+                <value name="WholeMesh">
+                    <python>
+                        <string_value lines="20" type="python">def val(X, t):&#x0A;  import constants_2d&#x0A;  return constants_2d.u_exact(X, t)</string_value>
+                    </python>
+                </value>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+                <detectors>
+                    <exclude_from_detectors></exclude_from_detectors>
+                </detectors>
+                <adjoint_storage>
+                    <exists_in_forward></exists_in_forward>
+                </adjoint_storage>
+            </prescribed>
+        </vector_field>
+        <vector_field name="VelocityError" rank="1">
+            <diagnostic>
+                <algorithm name="vector_difference" source_field_2_type="vector" source_field_1_name="Velocity" source_field_2_name="AnalyticalVelocity" material_phase_support="single" source_field_1_type="vector">
+                    <absolute_difference></absolute_difference>
+                </algorithm>
+                <mesh name="VelocityMesh"></mesh>
+                <output></output>
+                <stat>
+                    <include_in_stat></include_in_stat>
+                </stat>
+                <convergence>
+                    <include_in_convergence></include_in_convergence>
+                </convergence>
+                <detectors>
+                    <include_in_detectors></include_in_detectors>
+                </detectors>
+                <steady_state>
+                    <include_in_steady_state></include_in_steady_state>
+                </steady_state>
+                <adjoint_storage>
+                    <exists_in_forward></exists_in_forward>
+                </adjoint_storage>
+            </diagnostic>
+        </vector_field>
+    </material_phase>
+    <adjoint>
+        <functional name="integral_eta_t1">
+            <functional_value>
+                <algorithm name="functional_value">
+                    <string_value lines="20" type="python">J = 0.0&#x0A;T1 = 0.5 # the time at which to evaluate&#x0A;T2 = 1.0 # the time at which to evaluate&#x0A;T = -1&#x0A;if time &lt; T1 &lt;= time+dt:&#x0A;  T = T1&#x0A;elif time &lt; T2 &lt;= time+dt:&#x0A;  T = T2&#x0A;if time &lt; T &lt;= time+dt:&#x0A;  import numpy&#x0A;  eta_prev = states[n-1][&quot;Fluid&quot;].scalar_fields[&quot;LayerThickness&quot;]&#x0A;  eta      = states[n][&quot;Fluid&quot;].scalar_fields[&quot;LayerThickness&quot;]&#x0A;  eta_exact_prev = states[n-1][&quot;Fluid&quot;].scalar_fields[&quot;AnalyticalLayerThickness&quot;]&#x0A;  eta_exact      = states[n][&quot;Fluid&quot;].scalar_fields[&quot;AnalyticalLayerThickness&quot;]&#x0A;    &#x0A;  # We want to temporally interpolate to evaluate eta at t=1.0&#x0A;  alpha = (time + dt - T) / dt&#x0A;  assert 0 &lt;= alpha &lt; 1&#x0A;  tmp_eta = alpha * (eta_prev.val - eta_exact_prev.val) + (1-alpha) * (eta.val - eta_exact.val)&#x0A;  &#x0A;  # Now we want to integrate that over space&#x0A;  coord = states[0][&quot;Fluid&quot;].vector_fields[&quot;Coordinate&quot;]&#x0A;  assert eta.element_count == eta_prev.element_count == coord.element_count&#x0A;  for ele in range(coord.element_count):&#x0A;    t = Transform(ele, coord)&#x0A;    shape = eta_prev.ele_shape(ele)&#x0A;    mass = t.shape_shape(shape, shape)&#x0A;    nodes = eta_prev.ele_nodes(ele)&#x0A;    J = J + numpy.dot(tmp_eta[nodes], numpy.dot(mass, tmp_eta[nodes]))</string_value>
+                </algorithm>
+                <reduction>
+                    <sum></sum>
+                </reduction>
+            </functional_value>
+            <functional_dependencies>
+                <algorithm name="functional_dependencies">
+                    <string_value lines="20" type="python">def dependencies(times, timestep):&#x0A;  if times[0] &lt; 0.5 &lt;= times[1] or times[0] &lt; 1.0 &lt;= times[1]:&#x0A;    return {&quot;Fluid::Coordinate&quot;: [0],&#x0A;            &quot;Fluid::LayerThickness&quot;: [timestep-1, timestep],&#x0A;            &quot;Fluid::AnalyticalLayerThickness&quot;: [timestep-1, timestep]&#x0A;            }&#x0A;  else:&#x0A;    return {}</string_value>
+                </algorithm>
+            </functional_dependencies>
+        </functional>
+        <controls>
+            <control name="InitVel">
+                <type name="initial_condition" field_name="Fluid::Velocity"></type>
+            </control>
+            <load_controls></load_controls>
+        </controls>
+    </adjoint>
+</shallow_water_options>
