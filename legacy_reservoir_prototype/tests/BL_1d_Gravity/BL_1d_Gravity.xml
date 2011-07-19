@@ -5,7 +5,7 @@
   <name>BL_1d_Gravity</name>
   <owner userid="btollit"/>
   <tags>mpml</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>
 ../../../bin/multiphase_prototype BL_1d_Gravity_A.mpml
 
@@ -45,17 +45,17 @@ error_l2norm_B = stat("BL_1d_Gravity_B.stat")["phase1"]["Error"]["l2norm"][-1]
     </variable>
   </variables>
   <pass_tests>
-    <test name="Assert max absolute error for mesh A is less than 1.0e-01" language="python">
-assert(abs(error_max_A) &lt; 1.0e-01)
+    <test name="Assert max absolute error for mesh A is less than 1.04e-01" language="python">
+assert(abs(error_max_A) &lt; 1.04e-01)
     </test>
-    <test name="Assert l2norm absolute error for mesh A is less than 4.4e-02" language="python">
-assert(abs(error_l2norm_A) &lt; 4.4e-02)
+    <test name="Assert l2norm absolute error for mesh A is less than 5.4e-02" language="python">
+assert(abs(error_l2norm_A) &lt; 5.4e-02)
     </test>
-    <test name="Assert max absolute error for mesh B is less than 9.0e-02" language="python">
-assert(abs(error_max_B) &lt; 9.0e-02)
+    <test name="Assert max absolute error for mesh B is less than 5.3e-02" language="python">
+assert(abs(error_max_B) &lt; 5.3e-02)
     </test>
-    <test name="Assert l2norm absolute error for mesh B is less than 3.2e-02" language="python">
-assert(abs(error_l2norm_B) &lt; 3.2e-02)
+    <test name="Assert l2norm absolute error for mesh B is less than 2.3e-02" language="python">
+assert(abs(error_l2norm_B) &lt; 2.3e-02)
     </test>
   </pass_tests>
   <warn_tests>
