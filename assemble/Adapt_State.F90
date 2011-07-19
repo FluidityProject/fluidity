@@ -962,9 +962,6 @@ contains
     integer :: my_num_detectors, total_num_detectors_before_zoltan, total_num_detectors_after_zoltan
     integer :: ierr
 
-    ! For checking the final partitions created by Zoltan
-    type(mesh_type) :: tmp_new_mesh
-
     ewrite(1, *) "In adapt_state_internal"
 
     nullify(node_ownership)
@@ -1219,13 +1216,6 @@ contains
           call deallocate(metric)
         end if
       end if
-
-      tmp_new_mesh = extract_mesh(states(1), trim(topology_mesh_name))
-      call incref(tmp_new_mesh)
-      if (tmp_new_mesh%elements == 0) then
-         FLAbort("Error: Mesh partitioning during adaptivity created an empty partition")
-      end if
-      call deallocate(tmp_new_mesh)
 
       if(vertical_only) then
         ewrite(2,*) "Using vertical_only adaptivity, so skipping the printing of references"

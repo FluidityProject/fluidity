@@ -49,6 +49,7 @@ module zoltan_integration
 
   type(scalar_field), save :: node_quality
   integer, save :: max_coplanar_id, max_size
+  real, parameter :: default_load_imbalance_tolerance = 1.5
 
   public :: zoltan_drive
   private
@@ -100,6 +101,7 @@ module zoltan_integration
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
     call set_zoltan_parameters(iteration, max_adapt_iteration, zz)
+
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
@@ -408,25 +410,29 @@ module zoltan_integration
     else         
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
     end if
-
+    
     if (iteration /= max_adapt_iteration) then
+       
+       ! if user has passed us the option then use the load imbalance tolerance they supplied
        if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance")) then
           call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance", load_imbalance_tolerance)
           ! check the value is reasonable
           if (load_imbalance_tolerance < 1.0) then
              FLExit("load_imbalance_tolerance should be greater than or equal to 1. Default is 1.5")
           end if
-          
-          ! convert our real to a string for passing to Zoltan
-          write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
-
-          ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
        else
-        ! default is to ignore large load imbalances when on intermediate adapt iterations
-        ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.5"); assert(ierr == ZOLTAN_OK)
-     end if
+          ! otherwise use default load imbalance tolerance
+          load_imbalance_tolerance = default_load_imbalance_tolerance
+       end if
+       
+       ! convert our real to a string for passing to Zoltan
+       write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
+       
+       ! set the parameter in Zoltan
+       ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
+       
     else 
-        ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.075"); assert(ierr == ZOLTAN_OK)
+       ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.075"); assert(ierr == ZOLTAN_OK)
     end if
 
     ! If we are not an active process, then let's set the number of local parts to be zero
@@ -655,16 +661,28 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids 
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
-
     
     integer(zoltan_int) :: ierr
     integer :: i, node
+    integer :: num_nodes, num_nodes_after_balance, min_num_nodes_after_balance
       
     ! import_* aren't used because we set RETURN_LISTS to be only EXPORT
     ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
          &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
     assert(ierr == ZOLTAN_OK)
     
+    ! calculate how many owned nodes we'd have after doing the planned load balancing
+    num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+
+    ! calculate the minimum number of owned nodes any process would have after doing the planned load balancing
+    call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
+         & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+    assert(ierr == MPI_SUCCESS)
+
+    if (min_num_nodes_after_balance == 0) then
+       FLAbort("Zoltan would have produced an empty partition")
+    end if
+
     do i=1,p1_num_export
        node = p1_export_local_ids(i)
        assert(node_owned(zoltan_global_zz_halo, node))
