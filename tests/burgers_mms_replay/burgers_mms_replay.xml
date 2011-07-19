@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Burgers Equation MMS</name>
+  <owner userid="pef"/>
+  <tags>burgers adjoint</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>burgers_equation mms_A.bml; burgers_equation mms_B.bml; burgers_equation mms_C.bml; burgers_equation mms_D.bml; burgers_equation mms_E.bml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="replay_convergence_pass" language="python">
+import burgers_mms_replay
+burgers_mms_replay.print_convergence_rates()
+replay_convergence_pass = burgers_mms_replay.test_convergence_rates(1.8)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="replay_convergence" language="python">
+assert replay_convergence_pass
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

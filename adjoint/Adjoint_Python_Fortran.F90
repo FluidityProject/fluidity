@@ -40,9 +40,11 @@ module adjoint_python
   public :: adj_variables_from_python
 
   interface
-    subroutine adj_variables_from_python_c(fn, fnlen, start_time, end_time, timestep, result, result_len, stat) &
+    subroutine adj_variables_from_python_c(adjointer, fn, fnlen, start_time, end_time, timestep, result, result_len, stat) &
                                          & bind(c, name='adj_variables_from_python')
+        use libadjoint
         use iso_c_binding
+        type(adj_adjointer), intent(in) :: adjointer
         integer(kind=c_int), intent(in), value :: fnlen
         character(kind=c_char), dimension(fnlen), intent(in) :: fn
         real(kind=c_double), intent(in), value :: start_time, end_time
@@ -60,7 +62,8 @@ module adjoint_python
 
   contains
 
-  subroutine adj_variables_from_python(fn, start_time, end_time, timestep, result, extras, stat)
+  subroutine adj_variables_from_python(adjointer, fn, start_time, end_time, timestep, result, extras, stat)
+    type(adj_adjointer), intent(in) :: adjointer
     character(len=*), intent(in) :: fn
     real, intent(in) :: start_time, end_time
     integer, intent(in) :: timestep
@@ -88,7 +91,7 @@ module adjoint_python
 
     timestep_long = timestep
 
-    call adj_variables_from_python_c(fn_c, len_trim(fn), start_time, end_time, timestep_long, result_c_ptr, result_len_c, stat_c)
+    call adj_variables_from_python_c(adjointer, fn_c, len_trim(fn), start_time, end_time, timestep_long, result_c_ptr, result_len_c, stat_c)
 
     if (stat_c /= 0) then
       if (present(stat)) then
