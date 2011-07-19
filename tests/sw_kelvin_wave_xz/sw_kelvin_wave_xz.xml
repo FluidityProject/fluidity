@@ -13,7 +13,7 @@
     <variable name="Denergy" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("kelvin_wave.stat")
-energy0 = s["LinearEnergy"]["value"][0]
+energy0 = s["LinearEnergy"]["value"][1]
 energy1 = s["LinearEnergy"]["value"][-1]
 print energy0,energy1
 Denergy = abs(energy1-energy0)/energy0

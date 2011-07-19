@@ -594,7 +594,6 @@ ac_includes_default="\
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 HYPERLIGHT
-HAVE_ZOLTAN
 MEMORY_STATS
 ALGENCAN
 MBA3D
@@ -620,6 +619,7 @@ X_PRE_LIBS
 X_CFLAGS
 XMKMF
 HAVE_ADJOINT
+HAVE_ZOLTAN
 ZOLTAN
 MPICXX
 MPICC
@@ -731,12 +731,14 @@ with_lapack
 with_lapack_dir
 enable_openmp
 enable_shared
+enable_buildopt
 enable_verbose
 with_femdem
 with_psmile
 enable_mpi
 with_netcdf
 with_ParMetis
+enable_sam
 with_zoltan
 with_adjoint
 enable_petsc_fortran_modules
@@ -1396,8 +1398,12 @@ Optional Features:
   --disable-openmp        do not use OpenMP
   --enable-shared         Compile objects with -fPIC to enable the 'make
                           shared' target.
+  --enable-buildopt       Enables build optimisations on ext4 and xfs
+                          filesystems
   --enable-verbose        turns on super verbosity
   --enable-mpi            turns on MPI support
+  --enable-sam            use sam rather than zoltan for adaptive load
+                          rebalancing
   --disable-petsc-fortran-modules
                           By default fluidity tries to use fortran modules
                           provided with petsc. Use
@@ -10733,6 +10739,14 @@ fi
 
 
 
+
+# Check whether --enable-buildopt was given.
+if test "${enable_buildopt+set}" = set; then :
+  enableval=$enable_buildopt;
+fi
+
+
+
 # Set default for ARFLAGS, since autoconf does not have a macro for
 # it. This allows people to set it when running configure or make.
 # Extract the first word of "ar", so it can be a program name with args.
@@ -10773,6 +10787,11 @@ fi
 
 
 test -n "$ARFLAGS" || ARFLAGS="cr"
+
+if test "$enable_buildopt" == "yes" ; then
+    ARFLAGS="r"
+fi
+
 if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}ranlib", so it can be a program name with args.
 set dummy ${ac_tool_prefix}ranlib; ac_word=$2
@@ -11588,8 +11607,6 @@ fi
 fi
 
 # Parmetis and zoltan
-if test "$enable_mpi" != "no"
-    then
 
 # Set variables...
 
@@ -11687,8 +11704,21 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
 
-    if test "$with_zoltan" != "no"; then
-      if test ! -z "$with_zoltan"; then
+
+# Check whether --enable-sam was given.
+if test "${enable_sam+set}" = set; then :
+  enableval=$enable_sam;
+fi
+
+if test "$enable_sam" = "yes"; then
+    HAVE_ZOLTAN=no
+else
+    if test "$with_zoltan" = no; then
+        HAVE_ZOLTAN=no
+        echo "Warning: zoltan disabled, using libsam instead"
+    fi
+    HAVE_ZOLTAN=yes
+    zoltan=yes
 
 # Set variables...
 
@@ -11713,25 +11743,24 @@ if test $zoltan != no; then
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
-# Check that the compiler uses the library we specified...
-if test -e $zoltan_LIBS_PATH/libzoltan.a; then
-  echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
-fi
+if test $zoltan != no; then
+    # Check that the compiler uses the library we specified...
+    if test -e $zoltan_LIBS_PATH/libzoltan.a; then
+        echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
+    fi
 
-# Check that the compiler uses the include path we specified...
-if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
-	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
-fi
+    # Check that the compiler uses the include path we specified...
+    if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
+	    echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
+    fi
 
-
-
-ac_ext=c
+    ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Initialize in -lzoltan" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Initialize in -lzoltan" >&5
 $as_echo_n "checking for Zoltan_Initialize in -lzoltan... " >&6; }
 if test "${ac_cv_lib_zoltan_Zoltan_Initialize+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -11791,28 +11820,52 @@ else
   as_fn_error $? "Could not link in the zoltan library... exiting " "$LINENO" 5
 fi
 
-# Save variables...
-ac_ext=c
+    # Save variables...
+    ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-ZOLTAN="yes"
+    ZOLTAN="yes"
 
 
-echo $LIBS
+    echo $LIBS
 
-      fi
-    fi
+else
+    HAVE_ZOLTAN=0
 fi
 
 
+
+fi
+
+
+
+
 HAVE_ADJOINT=no
+CAN_USE_ADJOINT=yes
+WANTS_ADJOINT=yes
+if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+  # test really is so retarded that it can't lexicographically compare strings
+  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
+    CAN_USE_ADJOINT=no
+  fi
+fi
+
+if test "$with_adjoint" = no || test -z "$with_adjoint"; then
+  WANTS_ADJOINT=no
+fi
+
+if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+  echo "Wanted adjoint, but you need gcc > 4.5"
+  exit 1
+fi
+
+echo "with_adjoint: " $with_adjoint
 if test "$with_adjoint" != "no"; then
-  if test ! -z "$with_adjoint"; then
-    HAVE_ADJOINT=yes
+  if test "$CAN_USE_ADJOINT" != "no"; then
 
 # Set variables...
 
@@ -11822,10 +11875,11 @@ if test "${with_adjoint+set}" = set; then :
 fi
 
 
+bakLIBS=$LIBS
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
-if test $adjoint != no; then
-  if test $adjoint != yes; then
+if test "$adjoint" != "no"; then
+  if test "$adjoint" != "yes"; then
     adjoint_LIBS_PATH="$adjoint/lib"
     adjoint_INCLUDES_PATH="$adjoint/include"
     # Ensure the comiler finds the library...
@@ -11900,9 +11954,10 @@ $as_echo "$ac_cv_lib_adjoint_adj_register_equation" >&6; }
 if test "x$ac_cv_lib_adjoint_adj_register_equation" = x""yes; then :
 
 $as_echo "#define HAVE_ADJOINT 1" >>confdefs.h
-
+HAVE_ADJOINT=yes
 else
-  as_fn_error $? "Could not link in libadjoint ... exiting " "$LINENO" 5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not link in libadjoint ...  " >&5
+$as_echo "$as_me: WARNING: Could not link in libadjoint ...  " >&2;};HAVE_ADJOINT=no;LIBS=$bakLIBS
 fi
 
 # Save variables...
@@ -11913,14 +11968,11 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-echo $LIBS
 
-    if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
-      # test really is so retarded that it can't lexicographically compare strings
-      if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
-        as_fn_error $? "\"Need gfortran >= 4.5 for the adjoint, sorry\"" "$LINENO" 5
-      fi
-    fi
+  fi
+  if test "$HAVE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+    echo "Wanted adjoint, but couldn't find it"
+    exit 1
   fi
 fi
 
@@ -14592,7 +14644,7 @@ fi
 
 if test "$enable_2d_adaptivity" = "yes"; then
   echo "#define HAVE_MBA_2D 1" >> include/confdefs.h
-  LIBS="$LIBS -lmba2d"
+  LIBS="-lmba2d $LIBS"
   MBA2D="yes"
 
 fi
@@ -14646,13 +14698,7 @@ fi
 # Hack for CX1. The zoltan libs (scotch, parmetis, etc) need to apepar on the end of the compile
 # command or all sorts of badness happens (libraries not being found, despite being in the path).
 # ZOLTAN_DEPS should be empty on other machine and will be set in the cx1-module file. See wiki.
-if test "$with_zoltan" != "no" ; then
-	LIBS="$LIBS $ZOLTAN_DEPS"
-    HAVE_ZOLTAN=yes
-else
-    HAVE_ZOLTAN=no
-fi
-
+LIBS="$LIBS $ZOLTAN_DEPS"
 
 # Check whether --enable-hyperlight was given.
 if test "${enable_hyperlight+set}" = set; then :

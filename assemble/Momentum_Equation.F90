@@ -235,7 +235,7 @@
          ! What is the equation type?
          character(len=FIELD_NAME_LEN) :: equation_type, poisson_scheme, schur_scheme, pressure_pmat
 
-         integer :: i, stat
+         integer :: stat
 
          ! The list of stiff nodes
          ! This is saved because the list is only formed when cmc is assembled, which
@@ -1426,7 +1426,6 @@
          !! Local variables
          ! Change in velocity
          type(vector_field) :: delta_u
-         integer :: i
 
          ewrite(1,*) 'Entering advance_velocity'
 

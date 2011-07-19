@@ -45,6 +45,7 @@ def Help():
                "Options:\n" + \
                "\n" + \
                "-h               Display this message\n" + \
+               "-f               Forks at startup\n" + \
                "-s [SCHEMAFILE]  Use the supplied schema file *\n" + \
                "-t [TRONFILE]    Use the supplied schematron file for extended validation\n" + \
                "-v               Verbosity switch - if supplied Diamond prints additional\n" + \
@@ -57,21 +58,8 @@ def Help():
 
 def main():
 
-  # Detach from controlling terminal
   try:
-    pid = os.fork()
-    if pid == 0:
-      os.setsid()
-      pid = os.fork()
-      if pid != 0:
-        os._exit(0)
-    else:
-      os._exit(0)
-  except:
-    pass
-
-  try:
-    opts, args = getopt.getopt(sys.argv[1:], "hvs:t:")
+    opts, args = getopt.getopt(sys.argv[1:], "hvfs:t:")
   except:
     Help()
     sys.exit(1)
@@ -85,6 +73,19 @@ def main():
   if ("-h", "") in opts:
     Help()
     return
+  if ("-f", "") in opts:
+    # Detach from controlling terminal
+    try:
+      pid = os.fork()
+      if pid == 0:
+        os.setsid()
+        pid = os.fork()
+        if pid != 0:
+          os._exit(0)
+      else:
+        os._exit(0)
+    except:
+      pass
 
   import diamond.config as config
   import diamond.dialogs as dialogs
@@ -206,14 +207,9 @@ def main():
 
   i = interface.Diamond(gladefile = gladefile, logofile = logofile, suffix = suffix)
 
-  def initialise(i, s, f):
-    i.open_file(schemafile = s, filename = f)
-    i.main_window.window.set_cursor(None)
-    i.statusbar.clear_statusbar()
-
-  i.statusbar.set_statusbar("Loading ...")
   i.main_window.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
-  initialise(i, input_schemafile, input_filename)
+  i.open_file(schemafile = input_schemafile, filename = input_filename)
+  i.main_window.window.set_cursor(None)  
 
   gtk.main()
 

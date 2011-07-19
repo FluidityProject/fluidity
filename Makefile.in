@@ -59,11 +59,11 @@ MAKE = @MAKE@ -s
 
 AR = @AR@
 
-ARFLAGS	= r
+ARFLAGS	= @ARFLAGS@
 
 EVAL = scripts/silenteval
 
-VERSION = $(shell svnversion .)
+VERSION = $(shell bzr revision-info)
 
 ifeq (@MBA2D@,yes)
 LIBMBA2D = lib/libmba2d.a
@@ -143,7 +143,7 @@ ifeq (@FEMDEM@,yes)
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
 
-bin/@FLUIDITY@: main.o fluidity_library
+bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 	@echo "BUILD fluidity"
 	@echo "    MKDIR bin"
 	@mkdir -p bin
@@ -262,8 +262,7 @@ python_clean:
 fluidity_library: lib/lib@FLUIDITY@.a
 lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system 
 	@echo "DEFINE __FLUIDITY_VERSION__"
-	@echo "#undef __FLUIDITY_VERSION__" >> include/confdefs.h
-	@echo "#define __FLUIDITY_VERSION__ \"$(VERSION)\"" >> include/confdefs.h
+	@grep "$(VERSION)" include/confdefs.h >/dev/null 2>&1 || (echo "#undef __FLUIDITY_VERSION__" >> include/confdefs.h && echo "#define __FLUIDITY_VERSION__ \"$(VERSION)\"" >> include/confdefs.h)
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
@@ -309,10 +308,10 @@ endif
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
 	@./scripts/make_check_options
-	@cd preprocessor; $(MAKE) check_options
+	@cd preprocessor; $(MAKE) check_options.o
 	@echo "    MAKE register_diagnostics"
 	@./scripts/make_register_diagnostics
-	@cd preprocessor; $(MAKE) register_diagnostics
+	@cd preprocessor; $(MAKE) register_diagnostics.o
 
 fldecomp: fluidity_library 
 	@echo "BUILD fldecomp"
@@ -334,6 +333,8 @@ all:
 clean-light:
 	@echo "    CLEAN debug"
 	@cd debug; $(MAKE) clean
+	@echo "    CLEAN libwm"
+	@cd libwm; $(MAKE) clean
 	@echo "    CLEAN femtools"
 	@cd femtools; $(MAKE) clean
 	@echo "    CLEAN femtools/tests"
@@ -423,7 +424,7 @@ clean-test:
 	@echo "    CLEAN tests"
 	@cd tests; ../tools/testharness.py --clean >/dev/null
 
-test: fltools bin/@FLUIDITY@ bin/shallow_water serialtest
+test: fltools bin/@FLUIDITY@ bin/shallow_water serialtest bin/burgers_equation
 
 serialtest:
 ifeq (@MBA2D@,yes)
@@ -440,7 +441,7 @@ else
         endif
 endif
 
-mediumtest:
+mediumtest: bin/burgers_equation
 	@cd tests; ../tools/testharness.py -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:

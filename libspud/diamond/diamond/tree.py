@@ -304,6 +304,9 @@ class Tree:
     count = len(filter(lambda x: x.schemaname == schemaname, self.children))
     return count
 
+  def get_children_by_schemaname(self, schemaname):
+    return filter(lambda x: x.schemaname == schemaname, self.children)
+
   def delete_child_by_ref(self, ref):
     self.children.remove(ref)
 
