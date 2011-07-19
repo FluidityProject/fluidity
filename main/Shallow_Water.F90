@@ -194,13 +194,24 @@
     ! Always output the initial conditions.
     call output_state(state)
 
-      if(have_option("/material_phase::&
-           &Fluid/scalar_field::LagrangeMultiplier")) then
-         call compute_energy(state(1),energy)
-      else
-         call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
-      end if
-      ewrite(2,*) 'Initial Energy:', energy
+    if(have_option("/material_phase::&
+         &Fluid/scalar_field::LagrangeMultiplier")) then
+       !project velocity into div-conforming space
+       v_field => extract_vector_field(state(1),"LocalVelocity")
+       call solve_hybridized_helmholtz(state(1),&
+            &U_rhs=v_field,&
+            &compute_cartesian=.true.,&
+            &check_continuity=.true.,projection=.true.,&
+            &u_rhs_local=.true.)
+    end if
+
+    if(have_option("/material_phase::&
+         &Fluid/scalar_field::LagrangeMultiplier")) then
+       call compute_energy(state(1),energy)
+    else
+       call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+    end if
+    ewrite(2,*) 'Initial Energy:', energy
 
     timestep=0
     timestep_loop: do
