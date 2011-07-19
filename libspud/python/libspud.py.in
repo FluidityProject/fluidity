@@ -27,22 +27,28 @@ SPUD_ATTR_SET_FAILED_WARNING = -2
 OPTION_PATH_LEN = 8192
 
 class SpudKeyError(Exception):
-  pass
+  def __init__(self, msg = "The specified option is not present in the dictionary."):
+    self.message = msg
 
 class SpudTypeError(Exception):
-  pass
+  def __init__(self, msg = "The specified option has a different type from that of the option argument provided."):
+    self.message = msg
 
 class SpudRankError(Exception):
-  pass
+  def __init__(self, msg = "The specified option has a different rank from that of the option argument provided."):
+    self.message = msg
 
 class SpudShapeError(Exception):
-  pass
+  def __init__(self, msg = "The specified option has a different shape from that of the option argument provided."):
+    self.message = msg
 
 class SpudNewKeyWarning(Exception):
-  pass
+  def __init__(self, msg = "The option being inserted is not already in the dictionary."):
+    self.message = msg
   
 class SpudAttrSetFailedWarning(Exception):
-  pass
+  def __init__(self, msg = "The option being set as an attribute can not be set as an attribute."):
+    self.message = msg
   
 spud_exceptions = {SPUD_KEY_ERROR: SpudKeyError,
                    SPUD_TYPE_ERROR: SpudTypeError,
@@ -157,18 +163,31 @@ cget_option.restype = c_int
 
 def get_option(s):
   type = get_option_type(s)
-  # assume scalar values for now ..
+  rank=0
   if type is str:
     strlen = get_option_shape(s)[0]
     val = create_string_buffer(strlen+1)
+  elif type is None:
+    raise spud_exceptions[SPUD_TYPE_ERROR]("No value exists at the given path")
   else:
-    val = ctype_map[type]()
+    val_type = ctype_map[type]
+    rank = get_option_rank(s)
+    shape = get_option_shape(s)
+    # reverse the numbering so we get a rowxcolumn list of lists
+    for i in range(rank-1, -1, -1): val_type = val_type*shape[i]
+    val = val_type()
 
   out = cget_option(s, byref(c_int(len(s))), byref(val))
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
-  return val.value
+  if rank==2:
+    val_out = [[val[i][j] for j in range(shape[1])] for i in range(shape[0])]
+  elif rank==1:
+    val_out = [val[i] for i in range(shape[0])]
+  else:
+    val_out = val.value
+  return val_out
 
 cadd_option = libspud.cspud_add_option_
 cadd_option.argtypes = [c_char_p, POINTER(c_int)]
@@ -187,19 +206,48 @@ cset_option.argtypes = [c_char_p, POINTER(c_int), c_void_p, POINTER(c_int), POIN
 cset_option.restype = c_int
 
 def set_option(s, val):
+  rank = 0
+  shape_type = c_int * 2
+  shape = shape_type(1, -1)
   py_type = type(val)
+  if py_type not in typepy_map:
+    if py_type == list:
+      subval = val
+      for i in range(2):
+        if type(subval) == list:
+          shape[i] = len(subval)
+          rank += 1
+          subval = subval[0]
+        else:
+          break 
+      py_type = type(subval)
+    # elif ...
+      # could put numpy array handling in here 
+      # (they'd be easier but didn't want to
+      #  add a numpy dependency)
+    else:
+      raise spud_exceptions[SPUD_TYPE_ERROR]("Unknown value type.  Only know about floats, ints, strings and lists thereof.")
   spud_code = typepy_map[py_type]
   c_type = ctype_map[py_type]
-  c_val = c_type(val)
+  # reverse the order of the shape entries as that way we end up with a rows x columns c_type
+  for i in range(rank-1, -1, -1): c_type = c_type*shape[i]
+  if rank == 2:
+    c_val = c_type()
+    for i in range(shape[0]):
+      for j in range(shape[1]):
+        c_val[i][j] = val[i][j]
+  elif rank == 1:
+    c_val = c_type()
+    for i in range(shape[0]):
+      c_val[i] = val[i]
+  else:
+    c_val = c_type(val)
 
-  shape_type = c_int * 2
   if py_type is str:
     shape = shape_type(len(val), -1)
     rank = 1
     out = cset_option(s, byref(c_int(len(s))), (c_val), byref(c_int(spud_code)), byref(c_int(rank)), shape)
   else:
-    shape = shape_type(1, -1)
-    rank = 0
     out = cset_option(s, byref(c_int(len(s))), byref(c_val), byref(c_int(spud_code)), byref(c_int(rank)), shape)
 
   if out != SPUD_NO_ERROR:
