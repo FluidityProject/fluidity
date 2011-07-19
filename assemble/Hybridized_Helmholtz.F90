@@ -478,13 +478,11 @@ contains
 
     !Construct the rhs sources for U from lambda
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs,U_rhs_local)
-    ewrite(1,*) 'RHS_LOC BEFORE MATMUL', maxval(abs(rhs_loc))
     if(.not.(present(d_rhs).or.present(u_rhs)))then
        assert(.not.present_and_true(projection))
        assert(.not.present_and_true(poisson))
        rhs_loc(1:d_end) = matmul(local_solver_rhs,rhs_loc(1:d_end))
     end if
-    ewrite(1,*) 'RHS_LOC AFTER MATMUL', maxval(abs(rhs_loc))
 
     lambda_val = ele_val(lambda,ele)
     !get list of neighbours
@@ -514,9 +512,7 @@ contains
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
 
     call solve(local_solver,Rhs_loc)
-    ewrite(1,*) maxval(abs(rhs_loc))
     rhs_loc = matmul(local_solver,rhs_loc)
-    ewrite(1,*) 'RHS CHECK', rhs_loc(d_end+1:)
     call solve(local_solver,Rhs_loc)
 
     do dim1 = 1, mdim

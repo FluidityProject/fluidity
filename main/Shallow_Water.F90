@@ -31,6 +31,7 @@
     use advection_diffusion_cg
     use linear_shallow_water
     use spud
+    use signals
     use fields
     use state_module
     use FLDebug
@@ -149,6 +150,8 @@
     call python_init
     call read_command_line
     call mangle_options_tree_forward
+    ! Establish signal handlers
+    call initialise_signals()
 
     adjoint = have_option("/adjoint")
 #ifndef HAVE_ADJOINT
