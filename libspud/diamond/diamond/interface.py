@@ -70,6 +70,7 @@ Important fields:
   node_desc_link_bounds: a list of tuples corresponding to the start and end points of links in the current tree.Tree / MixedTree documentation
   options_tree_select_func_enabled: boolean, true if the options tree select function is enabled (used to overcome a nasty clash with the treeview clicked signal) - re-enabled on next options_tree_select_func call
   selected_node: a tree.Tree or MixedTree containing data to be displayed on the RHS
+  selected_iter: last iter set by on_select_row
   s: current schema
   saved: boolean, false if the current file has been edited
   schemafile: the current RNG schema file
@@ -102,6 +103,7 @@ class Diamond:
 
     self.statusbar = DiamondStatusBar(self.gui.get_widget("statusBar"))
     self.find      = DiamondFindDialog(self, gladefile)
+    self.popup = self.gui.get_widget("popupmenu")
 
     self.plugin_buttonbox = self.gui.get_widget("plugin_buttonbox")
     self.plugin_buttonbox.set_layout(gtk.BUTTONBOX_START)
@@ -125,7 +127,9 @@ class Diamond:
                     "on_console": self.on_console,
                     "on_display_properties_toggled": self.on_display_properties_toggled,
                     "on_about": self.on_about,
-                    "on_copy_spud_path": self.on_copy_spud_path}
+                    "on_copy_spud_path": self.on_copy_spud_path,
+                    "on_copy": self.on_copy,
+                    "on_paste": self.on_paste}
     self.gui.signal_autoconnect(signals)
 
     self.main_window = self.gui.get_widget("mainWindow")
@@ -224,6 +228,7 @@ class Diamond:
   def load_schema(self, schemafile):
     # so, if the schemafile has already been opened, then ..
     if schemafile == self.schemafile:
+      self.statusbar.set_statusbar('Schema ' + schemafile + ' already loaded')
       return
 
     # if we aren't using a http schema, and we're passed a relative filename, we
@@ -231,12 +236,16 @@ class Diamond:
     if 'http' not in schemafile:
       schemafile = os.path.abspath(schemafile)
 
+    self.statusbar.set_statusbar('Loading schema from ' + schemafile)
+
     # now, let's try and read the schema.
     try:
       s_read = schema.Schema(schemafile)
       self.s = s_read
+      self.statusbar.set_statusbar('Loaded schema from ' + schemafile)
     except:
       dialogs.error_tb(self.main_window, "Unable to open schema file \"" + schemafile + "\"")
+      self.statusbar.clear_statusbar()
       return
 
     self.schemafile = schemafile
@@ -594,7 +603,7 @@ class Diamond:
     about.set_name("Diamond")
     about.set_copyright("GPLv3")
     about.set_comments("A RELAX-NG-aware XML editor")
-    about.set_authors(["Patrick E. Farrell", "James R. Maddison", "Matthew T. Whitworth"])
+    about.set_authors(["Patrick E. Farrell", "James R. Maddison", "Matthew T. Whitworth", "Fraser J. Waters"])
     about.set_license("Diamond is free software: you can redistribute it and/or modify\n"+
                       "it under the terms of the GNU General Public License as published by\n"+
                       "the Free Software Foundation, either version 3 of the License, or\n"+
@@ -635,6 +644,76 @@ class Diamond:
     clipboard.set_text(name)
     clipboard.store()
 
+  def on_copy(self, widget=None):
+    if isinstance(self.selected_node, MixedTree):
+      node = self.selected_node.parent
+    else:
+      node = self.selected_node    
+
+    if node != None and node.active:
+      ios = StringIO.StringIO()
+      node.write(ios)
+    
+      clipboard = gtk.clipboard_get()
+      clipboard.set_text(ios.getvalue())
+      clipboard.store()
+
+      ios.close()
+    return
+
+  def on_paste(self, widget=None):
+    clipboard = gtk.clipboard_get()
+    ios = StringIO.StringIO(clipboard.wait_for_text())
+    
+    if self.selected_iter is not None:    
+      node = self.treestore.get_value(self.selected_iter, 3)
+
+    if node != None:
+
+      newnode = self.s.read(ios, node)
+
+      if newnode is None:
+        self.statusbar.set_statusbar("Trying to paste invalid XML.")
+        return
+
+      if not node.active:
+        self.expand_tree(self.selected_iter)
+
+      # Extract and display validation errors
+      lost_eles, added_eles, lost_attrs, added_attrs = self.s.read_errors()
+      if len(lost_eles) > 0 or len(added_eles) > 0 or len(lost_attrs) > 0 or len(added_attrs) > 0:
+        saved = False
+        msg = ""
+        if len(lost_eles) > 0:
+          msg += "Warning: lost xml elements:\n"
+          for ele in lost_eles:
+            msg += ele + "\n"
+        if len(added_eles) > 0:
+          msg += "Warning: added xml elements:\n"
+          for ele in added_eles:
+            msg += ele + "\n"
+        if len(lost_attrs) > 0:
+          msg += "Warning: lost xml attributes:\n"
+          for ele in lost_attrs:
+            msg += ele + "\n"
+        if len(added_attrs) > 0:
+          msg += "Warning: added xml attributes:\n"
+          for ele in added_attrs:
+            msg += ele + "\n"
+      
+        dialogs.long_message(self.main_window, msg)
+ 
+      self.set_saved(False)     
+   
+      self.treeview.freeze_child_notify()
+      iter = self.set_treestore(self.selected_iter, [newnode], True, True)
+      self.treeview.thaw_child_notify()
+      
+      self.treeview.get_selection().select_iter(iter)
+
+    return
+
+
   ## LHS ###
 
   def init_datatree(self):
@@ -667,6 +746,9 @@ class Diamond:
 
     self.treeview = optionsTree = self.gui.get_widget("optionsTree")
     self.treeview.connect("row-collapsed", self.on_treeview_row_collapsed)
+    self.treeview.connect("key_press_event", self.on_treeview_key_press)
+    self.treeview.connect("button_press_event", self.on_treeview_button_press)
+    self.treeview.connect("popup_menu", self.on_treeview_popup)
     try:  # allow for possibility of no tooltips (like elsewhere)
       self.treeview.connect("query-tooltip", self.on_tooltip)
       self.treeview.set_property("has-tooltip", False)
@@ -749,12 +831,17 @@ class Diamond:
 
     return liststore
 
-  def set_treestore(self, iter=None, new_tree=[], recurse=False):
+  def set_treestore(self, iter=None, new_tree=[], recurse=False, replace=False):
     """
     Given a list of children of a node in a treestore, stuff them in the treestore.
     """
 
-    self.remove_children(iter)
+    if replace:
+      replacediter = iter
+      iter = self.treestore.iter_parent(replacediter)
+    else:
+      self.remove_children(iter)
+    
     for t in new_tree:
       if t.__class__ is tree.Tree:
         if self.choice_or_tree_is_hidden(t):
@@ -771,16 +858,28 @@ class Diamond:
 #              node_data = t[:4] + ".."
           
           data = str(node_data)
-        child_iter = self.treestore.append(iter, [self.get_display_name(t), liststore, t, t, data])
+ 
+        if replace:
+          child_iter = self.treestore.insert_before(iter, replacediter, [self.get_display_name(t), liststore, t, t, data])
+        else:
+          child_iter = self.treestore.append(iter, [self.get_display_name(t), liststore, t, t, data])
+        
         if recurse and t.active: self.set_treestore(child_iter, t.children, recurse)
       elif t.__class__ is choice.Choice:
         liststore = self.create_liststore(t)
         ts_choice = t.get_current_tree()
         if self.choice_or_tree_is_hidden(ts_choice):
           continue
-        child_iter = self.treestore.append(iter, [self.get_display_name(ts_choice), liststore, t, ts_choice, ""])
+        if replace:
+          child_iter = self.treestore.insert_before(iter, replacediter, [self.get_display_name(ts_choice), liststore, t, ts_choice, ""])
+        else:
+          child_iter = self.treestore.append(iter, [self.get_display_name(ts_choice), liststore, t, ts_choice, ""])
         if recurse and t.active: self.set_treestore(child_iter, ts_choice.children, recurse)
 
+    if replace:
+      self.treestore.remove(replacediter)
+      return child_iter
+   
     return
 
   def expand_choice_or_tree(self, choice_or_tree):
@@ -812,11 +911,8 @@ class Diamond:
         self.set_treestore(iter, [])
         return
 
-    choice_or_tree = self.treestore.get_value(iter, 2)
-    active_tree = self.treestore.get_value(iter, 3)
-    if active_tree.active is False:
-      return
-    if choice_or_tree.active is False:
+    choice_or_tree, active_tree = self.treestore.get(iter, 2, 3)
+    if active_tree.active is False or choice_or_tree.active is False:
       return
 
     l = self.s.valid_children(active_tree.schemaname)
@@ -908,7 +1004,7 @@ class Diamond:
     choice_or_tree = self.treestore.get_value(iter, 2)
     if choice_or_tree.cardinality == "":
       cell.set_property("stock-id", None)
-    elif choice_or_tree.cardinality == "?":
+    elif choice_or_tree.cardinality == "?" or choice_or_tree.cardinality == "*":
       if choice_or_tree.active:
         cell.set_property("stock-id", gtk.STOCK_REMOVE)
       else:
@@ -916,18 +1012,10 @@ class Diamond:
     elif choice_or_tree.cardinality == "+":
       parent_tree = choice_or_tree.parent
       count = parent_tree.count_children_by_schemaname(choice_or_tree.schemaname)
-      if count == 2: # one active, one inactive
-        if choice_or_tree.active is True:
-          cell.set_property("stock-id", None)
-        elif choice_or_tree.active is False:
-          cell.set_property("stock-id", gtk.STOCK_ADD)
-      else:
-        if choice_or_tree.active:
-          cell.set_property("stock-id", gtk.STOCK_REMOVE)
-        else:
-          cell.set_property("stock-id", gtk.STOCK_ADD)
-    elif choice_or_tree.cardinality == "*":
-      if choice_or_tree.active is True:
+      
+      if choice_or_tree.active and count == 2: # one active, one inactive
+        cell.set_property("stock-id", None)
+      elif choice_or_tree.active:
         cell.set_property("stock-id", gtk.STOCK_REMOVE)
       else:
         cell.set_property("stock-id", gtk.STOCK_ADD)
@@ -939,8 +1027,8 @@ class Diamond:
     Called when a row in the LHS treeview is collapsed.
     """
 
-    self.treeview.get_column(0).queue_resize()
-    self.treeview.get_column(1).queue_resize()
+    #self.treeview.get_column(0).queue_resize()
+    #self.treeview.get_column(1).queue_resize()
 
     return
 
@@ -1051,96 +1139,12 @@ class Diamond:
     col = pathinfo[1]
 
     iter = self.treestore.get_iter(path)
-    (name, combobox_liststore, choice_or_tree, active_tree) = self.treestore.get(iter, 0, 1, 2, 3)
-    parent_iter = self.treestore.iter_parent(iter)
-
-    if parent_iter == None:
-      parent_tree = None
-    else:
-      parent_tree = self.treestore.get_value(parent_iter, 3)
-
     self.update_data_column(self.treestore, iter)
 
     if col is not self.imgcolumn:
       return
 
-    if choice_or_tree.cardinality == "":
-      return
-
-    if not self.options_tree_select_func():
-      self.options_tree_select_func_enabled = False
-      return
-
-    if choice_or_tree.cardinality == "?":
-      if choice_or_tree.active is True:
-        choice_or_tree.active = False
-        self.set_saved(False)
-        self.remove_children(iter)
-      else:
-        choice_or_tree.active = True
-        self.set_saved(False)
-        self.expand_treestore(iter)
-
-    elif choice_or_tree.cardinality == "*":
-      if choice_or_tree.active is True:
-        # If this is the only one, just make it inactive.
-        # Otherwise, just delete it.
-        count = parent_tree.count_children_by_schemaname(choice_or_tree.schemaname)
-        if count == 1:
-          choice_or_tree.active = False
-          self.set_saved(False)
-          self.remove_children(iter)
-        else:
-          confirm = dialogs.prompt(self.main_window, "Are you sure you want to delete this node?")
-          if confirm == gtk.RESPONSE_YES:
-            parent_tree.delete_child_by_ref(choice_or_tree)
-            self.remove_children(iter)
-            self.treestore.remove(iter)
-            self.set_saved(False)
-      else:
-        # Make this active, and add a new inactive instance
-        choice_or_tree.active = True
-        new_tree = parent_tree.add_inactive_instance(choice_or_tree)
-        liststore = self.create_liststore(new_tree)
-        self.expand_treestore(iter)
-        iter = self.treestore.insert_after(parent=parent_iter, sibling=iter, row=[self.get_display_name(new_tree), liststore, new_tree,
-          new_tree.get_current_tree(), ""])
-        self.set_saved(False)
-
-    elif choice_or_tree.cardinality == "+":
-      count = parent_tree.count_children_by_schemaname(choice_or_tree.schemaname)
-      if count == 2: # one active, one inactive
-        if choice_or_tree.active is True:
-          # do nothing
-          return
-        elif choice_or_tree.active is False:
-          # Make this active, and add a new inactive instance
-          choice_or_tree.active = True
-          new_tree = parent_tree.add_inactive_instance(choice_or_tree)
-          liststore = self.create_liststore(new_tree)
-          self.expand_treestore(iter)
-          iter = self.treestore.insert_after(parent=parent_iter, sibling=iter, row=[self.get_display_name(new_tree), liststore, new_tree,
-            new_tree.get_current_tree(), ""])
-          self.set_saved(False)
-      else: # count > 2
-        if choice_or_tree.active is True:
-          # remove it
-          confirm = dialogs.prompt(self.main_window, "Are you sure you want to delete this node?")
-          if confirm == gtk.RESPONSE_YES:
-            parent_tree.delete_child_by_ref(choice_or_tree)
-            self.treestore.remove(iter)
-            self.set_saved(False)
-        elif choice_or_tree.active is False:
-          # Make this active, and add a new inactive instance
-          choice_or_tree.active = True
-          new_tree = parent_tree.add_inactive_instance(choice_or_tree)
-          liststore = self.create_liststore(new_tree)
-          self.expand_treestore(iter)
-          iter = self.treestore.insert_after(parent=parent_iter, sibling=iter, row=[self.get_display_name(new_tree), liststore, new_tree,
-            new_tree.get_current_tree(), ""])
-          self.set_saved(False)
-
-    parent_tree.recompute_validity()
+    self.toggle_tree(iter)
 
     self.on_select_row(self.treeview.get_selection())
 
@@ -1148,6 +1152,127 @@ class Diamond:
     self.treeview.get_column(0).queue_resize()
     self.treeview.get_column(1).queue_resize()
 
+    return
+
+  def toggle_tree(self, iter):
+    """
+    Toggles the state of part of the tree.
+    """
+
+    choice_or_tree = self.treestore.get_value(iter, 2)
+
+    if choice_or_tree.active:
+      self.collapse_tree(iter)
+    else:
+      self.expand_tree(iter)
+
+    return
+  
+  def collapse_tree(self, iter):
+    """
+    Collapses part of the tree.
+    """
+
+    choice_or_tree, = self.treestore.get(iter, 2)
+    parent_iter = self.treestore.iter_parent(iter)
+
+    if parent_iter == None:
+      parent_tree = None
+    else:
+      parent_tree = self.treestore.get_value(parent_iter, 3)
+
+    if not choice_or_tree.active:
+      return
+
+    if choice_or_tree.cardinality == "":
+      return
+
+    if choice_or_tree.cardinality == "?":
+      choice_or_tree.active = False
+      self.set_saved(False)
+      self.remove_children(iter)
+
+    elif choice_or_tree.cardinality == "*":
+      # If this is the only one, just make it inactive.
+      # Otherwise, just delete it.
+      count = parent_tree.count_children_by_schemaname(choice_or_tree.schemaname)
+      if count == 1:
+        choice_or_tree.active = False
+        self.set_saved(False)
+        self.remove_children(iter)
+      else:
+        self.delete_tree(iter)
+
+    elif choice_or_tree.cardinality == "+":
+      count = parent_tree.count_children_by_schemaname(choice_or_tree.schemaname)
+      if count == 2: # one active, one inactive
+        # do nothing
+        return
+      else: # count > 2
+        self.delete_tree(iter)
+  
+    parent_tree.recompute_validity()
+    self.treeview.queue_draw()
+    return
+
+  def delete_tree(self, iter):
+    choice_or_tree, = self.treestore.get(iter, 2)
+    parent_iter = self.treestore.iter_parent(iter)
+    isSelected = self.treeview.get_selection().iter_is_selected(iter)
+    sibling = self.treestore.iter_next(iter)
+
+    if parent_iter == None:
+      parent_tree = None
+    else:
+      parent_tree = self.treestore.get_value(parent_iter, 3)
+
+    confirm = dialogs.prompt(self.main_window, "Are you sure you want to delete this node?")
+    if confirm == gtk.RESPONSE_YES:
+      parent_tree.delete_child_by_ref(choice_or_tree)
+      self.remove_children(iter)
+      self.treestore.remove(iter)
+      self.set_saved(False)
+      
+      if isSelected and sibling:
+        self.treeview.get_selection().select_iter(sibling)
+    return
+
+  def expand_tree(self, iter):
+    """
+    Expands part of the tree.
+    """
+
+    choice_or_tree, active_tree = self.treestore.get(iter, 2, 3)
+    parent_iter = self.treestore.iter_parent(iter)
+
+    if parent_iter == None:
+      parent_tree = None
+    else:
+      parent_tree = self.treestore.get_value(parent_iter, 3)
+
+    if choice_or_tree.active:
+      return
+
+    if choice_or_tree.cardinality == "":
+      return
+
+    elif choice_or_tree.cardinality == "?":
+      choice_or_tree.active = True
+      self.set_saved(False)
+      self.expand_treestore(iter)
+
+    elif choice_or_tree.cardinality == "*" or choice_or_tree.cardinality == "+":
+      # Make this active, and add a new inactive instance
+      choice_or_tree.active = True
+      new_tree = parent_tree.add_inactive_instance(choice_or_tree)
+      liststore = self.create_liststore(new_tree)
+      self.expand_treestore(iter)
+      iter = self.treestore.insert_after(
+        parent=parent_iter, sibling=iter, 
+        row=[self.get_display_name(new_tree), liststore, new_tree, new_tree.get_current_tree(), ""])
+      self.set_saved(False)
+
+    parent_tree.recompute_validity()
     return
 
   def options_tree_select_func(self, info = None):
@@ -1168,16 +1293,58 @@ class Diamond:
 
     return True
 
+  def on_treeview_key_press(self, treeview, event):
+    """
+    Called when treeview intercepts a key press. Collapse and expand rows.
+    """
+
+    if event.keyval == gtk.keysyms.Right:
+      self.treeview.expand_row(self.get_selected_row(), open_all = False)
+
+    if event.keyval == gtk.keysyms.Left:
+      self.treeview.collapse_row(self.get_selected_row())
+
+    if event.keyval == gtk.keysyms.Delete:
+       self.collapse_tree(self.treestore.get_iter(self.get_selected_row()))
+ 
+    return
+
+  def on_treeview_button_press(self, treeview, event):
+    if event.button == 3:
+      x = int(event.x)
+      y = int(event.y)
+      path = treeview.get_path_at_pos(x, y)[0]
+      if path is not None:
+        treeview.get_selection().select_path(path)
+        self.show_popup(None, event.button, event.time)
+        return True
+    return False
+
+  def popup_location(self, widget, user_data):
+    column = self.treeview.get_column(0)
+    path = self.treeview.get_selection().get_selected_rows()[0]
+    area = self.treeview.get_cell_area(path, column)
+    tx, ty = area.x, area.y
+    x, y = self.treeview.tree_to_widget_coords(tx, ty)
+    return (x, y, True)
+    
+  def on_treeview_popup(self, treeview):
+    self.show_popup(None, self.popup_location, gtk.get_current_event_time())
+    return
+
+  def show_popup(self, func, button, time):
+    self.popup.popup( None, None, func, button, time)  
+    return
+
   def on_select_row(self, selection=None):
     """
     Called when a row is selected. Update the options frame.
     """
-
+    
     path = self.get_selected_row(self.treeview.get_selection())
     if path is None:
-      self.statusbar.clear_statusbar()
       return
-    iter = self.treestore.get_iter(path)
+    self.selected_iter = iter = self.treestore.get_iter(path)
     choice_or_tree = self.treestore.get_value(iter, 2)
 
     active_tree = self.treestore.get_value(iter, 3)
@@ -1304,30 +1471,18 @@ class Diamond:
       iter = model.iter_next(iter)
    
 
-  def on_activate_row(self, treeview, iter, path):
+  def on_activate_row(self, treeview, path, view_column):
     """
     Called when you double click or press Enter on a row.
     """
 
-    path = self.get_selected_row(self.treeview.get_selection())
     iter = self.treestore.get_iter(path)
-    (name, combobox_liststore, choice_or_tree, active_tree) = self.treestore.get(iter, 0, 1, 2, 3)
-    parent_iter = self.treestore.iter_parent(iter)
-    if parent_iter == None:
-      parent_tree = None
-    else:
-      parent_tree = self.treestore.get_value(parent_iter, 3)
+    
+    self.expand_tree(iter)
 
-    if choice_or_tree.cardinality == "?":
-      if choice_or_tree.active is False:
-        choice_or_tree.active = True
-        self.set_saved(False)
-        self.expand_treestore(iter)
-        self.on_select_row(self.treeview.get_selection())
-    if parent_tree is not None:
-      parent_tree.recompute_validity()
-
-    if path is None: return
+    if path is None: 
+      return
+    
     if treeview.row_expanded(path):
       treeview.collapse_row(path)
     else:
@@ -1946,6 +2101,8 @@ class Diamond:
 
     self.update_node_comment()
 
+    self.gui.get_widget("optionsFrame").queue_resize()
+    
     return
 
   def node_desc_mouse_over(self, widget, event):
@@ -2028,17 +2185,16 @@ class Diamond:
     Update the RHS attributes widget.
     """
 
-    iter = self.node_attrs.get_model().get_iter_first()
-    while iter is not None:
-      next_iter = self.node_attrs.get_model().iter_next(iter)
-      self.node_attrs.get_model().remove(iter)
-      iter = next_iter
+    self.node_attrs.get_model().clear()
 
     if self.selected_node is None:
       self.node_attrs.get_column(2).set_property("visible", False)
       self.node_attrs.get_column(0).queue_resize()
       self.node_attrs.get_column(1).queue_resize()
+    elif len(self.selected_node.attrs.keys()) == 0:
+      self.gui.get_widget("attributeFrame").set_property("visible", False)
     else:
+      self.gui.get_widget("attributeFrame").set_property("visible", True)
       for key in self.selected_node.attrs.keys():
         iter = self.node_attrs.get_model().append()
         self.node_attrs.get_model().set_value(iter, 0, key)
@@ -2312,7 +2468,7 @@ class Diamond:
       self.node_data.set_tab_width(2)
       if self.node_data_is_python_code():
         self.node_data.set_show_line_numbers(True)
-        font_desc = pango.FontDescription("monospace 10")
+        font_desc = pango.FontDescription("monospace")
         if font_desc:
           self.node_data.modify_font(font_desc)
     except ImportError:
@@ -2586,9 +2742,6 @@ class Diamond:
     else:
       store_success = self.node_data_entry_store()
 
-    if store_success:
-      self.node_data_revert()
-
     if self.scherror.errlist_is_open():
       if self.scherror.errlist_type == 0:
          self.scherror.on_validate_schematron()
@@ -2622,7 +2775,8 @@ class Diamond:
         if isinstance(self.selected_node, MixedTree) and "shape" in self.selected_node.child.attrs.keys() and self.selected_node.child.attrs["shape"][0] is int and isinstance(self.selected_node.datatype, plist.List) and self.selected_node.datatype.cardinality == "+":
           self.selected_node.child.set_attr("shape", str(len(value_check.split(" "))))
         self.paint_validity()
-        iter = self.get_treeview_iter(self.treeview.get_selection())
+        
+        iter = self.selected_iter
         self.treestore.set_value(iter, 4, new_data)
         self.set_saved(False)
         self.node_data_interacted = False

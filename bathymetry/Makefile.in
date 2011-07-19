@@ -42,7 +42,7 @@ LINKER = $(CXX)
 # If /usr/include occurs too early it's going to
 # interfere with other compilers - and it would completely
 # stuff C++ with obsecure, ungoogleable, error messages. 
-FCFLAGS   = -I../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
+FCFLAGS   = -I../include @MODFLAG@../include @FCFLAGS@ @CPPFLAGS@ -I/usr/include
 
 CXXFLAGS = -I../include @CXXFLAGS@ @CPPFLAGS@
 
@@ -56,7 +56,7 @@ OBJS = NetCDF_reader.o SampleNetCDF2.o import_bath_data.o read_netcdf_interface.
 
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
@@ -81,3 +81,4 @@ install:
 
 clean:
 	rm -f *.o *.mod
+include Makefile.dependencies

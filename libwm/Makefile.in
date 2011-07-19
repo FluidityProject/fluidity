@@ -63,9 +63,12 @@ Wm4System.o Wm4Vector2.o Wm4Vector3.o
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -I. -I../include -c $<
 
-default: $(OBJS)
+$(LIB): $(OBJS)
 	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 	cp *.h ../include/
+default: $(LIB)
 
 clean:
-	rm -f *.o *.mod
+	 rm -f *.o *.mod
+
+include Makefile.dependencies

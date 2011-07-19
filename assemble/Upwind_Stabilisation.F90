@@ -333,27 +333,29 @@ contains
     
     type(element_type) :: test_function
     
-    integer :: coords, degree, dim, i, j, loc, ngi
+    integer :: coords, degree, dim, i, j, vertices, ngi
     !! This is the factor nu/||u_nl^^2||
     real, dimension(size(u_nl_q, 2)) :: nu_bar_scaled
     !! u_nl \dot dshape
     real, dimension(base_shape%loc, size(u_nl_q, 2)) :: u_nl_dn
     type(quadrature_type), pointer :: quad
+    type(ele_numbering_type), pointer :: ele_num
         
     quad => base_shape%quadrature
     
     dim = base_shape%dim
-    loc = base_shape%loc
+    vertices = base_shape%numbering%vertices
     ngi = quad%ngi
     coords = local_coord_count(base_shape)
     degree = base_shape%degree
         
     ! Step 1: Generate a new shape
-    
-    call allocate(test_function, dim = dim, loc = loc, ngi = ngi, coords = coords)
+    ele_num => &
+         &find_element_numbering(&
+         &vertices = vertices, dimension = dim, degree = degree)
+    call allocate(test_function, ele_num=ele_num,ngi=ngi)
     
     test_function%degree = degree
-    test_function%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
     test_function%quadrature = quad
     call incref(quad)
     
@@ -369,13 +371,13 @@ contains
     
     nu_bar_scaled = nu_bar_scaled_q(dshape, u_nl_q, j_mat, diff_q = diff_q, nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
     
-    forall(i = 1:ngi, j = 1:loc)
+    forall(i = 1:ngi, j = 1:base_shape%loc)
       u_nl_dn(j, i) = dot_product(u_nl_q(:, i), dshape(j, i, :))
     end forall
     
     ! Step 3: Generate the test function
     
-    do i = 1, loc
+    do i = 1, base_shape%loc
       test_function%n(i, :) = base_shape%n(i, :) + nu_bar_scaled * u_nl_dn(i, :)
     end do
     

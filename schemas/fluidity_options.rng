@@ -6368,6 +6368,9 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
         <attribute name="name">
           <value>FreeSurfaceHistory</value>
         </attribute>
@@ -8194,6 +8197,18 @@ NOT arranged to work with add_pressure_from_ice - TODO</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="external_data_boundary_conditions">
+          <a:documentation>Check this option to use an external data set for the t(0)
+and in/out boundary conditions. This sets up NEMO-type forcing.</a:documentation>
+          <element name="input_file">
+            <a:documentation>Path of the file containing the external data set</a:documentation>
+            <attribute name="file_name">
+              <data type="string"/>
+            </attribute>
+          </element>
+        </element>
+      </optional>
+      <optional>
         <element name="bulk_formulae">
           <a:documentation>Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
 and photosynthetic radiation to be set using data obtained from
@@ -8278,18 +8293,6 @@ useful for psuedo-1D simulations.</a:documentation>
                   <empty/>
                 </element>
               </optional>
-            </element>
-          </optional>
-          <optional>
-            <element name="external_data_boundary_conditions">
-              <a:documentation>Check this option to use an external data set for the t(0)
-and in/out boundary conditions</a:documentation>
-              <element name="input_file">
-                <a:documentation>Path of the file containing the external data set</a:documentation>
-                <attribute name="file_name">
-                  <data type="string"/>
-                </attribute>
-              </element>
             </element>
           </optional>
           <element name="output_fluxes_diagnostics">

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Shallow Water Equation MMS</name>
+  <owner userid="sf1409"/>
+  <tags>swml adjoint</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line> time shallow_water adjoint_A.swml; time shallow_water adjoint_B.swml; time shallow_water adjoint_C.swml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="mms_u_passed" language="python">
+import eta_adjoint_convergence_rate as convergence_rate
+convergence_rate.print_convergence_rates("wave_[A-C].stat", ["VelocityError%1"])
+mms_u_passed = convergence_rate.test_convergence_rates(1.8, "wave_[A-C].stat", ["VelocityError%1"])
+    </variable>
+    <variable name="mms_eta_passed" language="python">
+import eta_adjoint_convergence_rate as convergence_rate
+convergence_rate.print_convergence_rates("wave_[A-C].stat", ["LayerThicknessError"])
+mms_eta_passed = convergence_rate.test_convergence_rates(1.8, "wave_[A-C].stat", ["LayerThicknessError"])
+    </variable>
+    <variable name="time_integrals_forward" language="python">
+import glob
+from fluidity_tools import stat_parser
+
+def time_integral(filename, field):
+  stat = stat_parser(filename)
+  values = stat["Fluid"][field]["max"]
+  J = sum(values[1:])  # The first entry in the stat file of the forward model is before the timestep loop, we ignore that
+  return J
+
+files_forward = glob.glob("wave_[A-C].stat")
+field_forward = 'J'
+time_integrals_forward = [time_integral(file, field_forward) for file in sorted(files_forward)]
+    </variable>
+    <variable name="time_integrals_adjoint" language="python">
+import glob
+from fluidity_tools import stat_parser
+
+def time_integral(filename, field):
+  stat = stat_parser(filename)
+  values = stat["Fluid"][field]["max"]
+  J = sum(values)
+  return J
+
+files_adjoint = glob.glob("wave_[A-C]_adjoint_integral_eta_t1.stat")
+field_adjoint = 'adj_J'
+time_integrals_adjoint = [time_integral(file, field_adjoint) for file in sorted(files_adjoint)]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="mms_eta convergence" language="python">
+assert mms_eta_passed
+    </test>
+    <test name="mms_u convergence" language="python">
+assert mms_u_passed
+    </test>
+    <test name="adjoint_functional_value" language="python">
+for i in range(len(time_integrals_adjoint)):
+  assert(abs(time_integrals_adjoint[i] - time_integrals_forward[i]) &lt; 1e-10)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
