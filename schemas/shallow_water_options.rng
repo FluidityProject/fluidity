@@ -636,6 +636,13 @@ where X and the return value are tuples of length geometry dimension.</a:documen
           <ref name="linear_solver_options_sym"/>
         </element>
       </element>
+      <element name="dg_projection">
+        <a:documentation>project velocity from a DG field</a:documentation>
+        <attribute name="source_field">
+          <a:documentation>Field to project from</a:documentation>
+          <data type="string"/>
+        </attribute>
+      </element>
     </choice>
   </define>
   <!--

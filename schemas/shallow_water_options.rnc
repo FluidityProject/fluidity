@@ -505,7 +505,12 @@ input_choice_initial_condition_vector =
          element solver {
             linear_solver_options_sym
          }
-      }
+      }|
+      ## project velocity from a DG field
+      element dg_projection {
+         ## Field to project from
+         attribute source_field { xsd:string }
+      }         
    )
 
 # Choice of input method for initial/boundary conditions

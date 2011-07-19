@@ -149,6 +149,8 @@ contains
             &u_rhs_local=u_rhs_local)
     end do
 
+    ewrite(1,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
+
     !Solve the equations
     if(present(solver_option_path)) then
        call petsc_solve(lambda,lambda_mat,lambda_rhs,&
@@ -180,15 +182,17 @@ contains
     if(l_compute_cartesian) then
        U_cart => extract_vector_field(state, "Velocity")
        if(present(U_out)) then
-          call project_local_to_cartesian(X,U_out,U_cart)
-          !do ele = 1, ele_count(U)
-          !   call check_continuity_ele(U_cart,X,ele)
+          !do ele = 1, element_count(X)
+          !   call compute_cartesian_ele(U_cart,U_out,X,ele)
           !end do
+          call project_local_to_cartesian(X,U_out,U_cart)
        else
+          !do ele = 1, element_count(X)
+          !   call compute_cartesian_ele(U_cart,U,X,ele)
+          !end do
           call project_local_to_cartesian(X,U,U_cart)
        end if
     end if
-
     if(l_check_continuity) then
        ewrite(1,*) 'Checking continuity'
 
@@ -201,12 +205,21 @@ contains
           end if
           continuity_block_mat = block(continuity_mat,dim1,1)
           call mult_T_addto(lambda_rhs,continuity_block_mat,u_cpt)
-          ewrite(1,*) 'U',maxval(u_cpt%val)
+          ewrite(1,*) 'U, lambda',&
+               &maxval(u_cpt%val), maxval(abs(lambda_rhs%val))
        end do
        ewrite(1,*)'JUMPS MIN:MAX',minval(lambda_rhs%val),&
             &maxval(lambda_rhs%val)
        assert(maxval(abs(lambda_rhs%val))<1.0e-10)
+       
+       !do ele = 1, ele_count(U)
+       !   call check_continuity_local_ele(U,ele)
+       !end do
 
+       ewrite(1,*) 'D MAXABS', maxval(abs(D%val))
+       do ele = 1, ele_count(U)
+          call check_continuity_ele(U_cart,X,ele)
+       end do
     end if
     
     ! lambda_nc=>extract_scalar_field(state, "LambdaNC",stat)
@@ -414,8 +427,12 @@ contains
     real, dimension(ele_loc(lambda,ele)) :: lambda_val
     real, dimension(:),allocatable,target :: Rhs_loc
     real, dimension(:,:), allocatable :: local_solver, local_solver_rhs
+    real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_solved
+    real, dimension(ele_loc(D,ele)) :: D_solved
     logical :: have_constraint
-    integer :: n_constraints
+    integer :: n_constraints, i1
+    type(constraints_type), pointer :: constraints
+    real :: constraint_check
 
     !Get some sizes
     lloc = ele_loc(lambda,ele)
@@ -432,6 +449,7 @@ contains
     end if
 
     allocate(rhs_loc(2*uloc+dloc+n_constraints))
+    rhs_loc = 0.
     allocate(local_solver(mdim*uloc+dloc+n_constraints,&
          mdim*uloc+dloc+n_constraints))
     allocate(local_solver_rhs(mdim*uloc+dloc,mdim*uloc+dloc))
@@ -460,11 +478,13 @@ contains
 
     !Construct the rhs sources for U from lambda
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,D_rhs,U_rhs,U_rhs_local)
+    ewrite(1,*) 'RHS_LOC BEFORE MATMUL', maxval(abs(rhs_loc))
     if(.not.(present(d_rhs).or.present(u_rhs)))then
        assert(.not.present_and_true(projection))
        assert(.not.present_and_true(poisson))
        rhs_loc(1:d_end) = matmul(local_solver_rhs,rhs_loc(1:d_end))
     end if
+    ewrite(1,*) 'RHS_LOC AFTER MATMUL', maxval(abs(rhs_loc))
 
     lambda_val = ele_val(lambda,ele)
     !get list of neighbours
@@ -494,54 +514,48 @@ contains
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
 
     call solve(local_solver,Rhs_loc)
+    ewrite(1,*) maxval(abs(rhs_loc))
+    rhs_loc = matmul(local_solver,rhs_loc)
+    ewrite(1,*) 'RHS CHECK', rhs_loc(d_end+1:)
+    call solve(local_solver,Rhs_loc)
 
     do dim1 = 1, mdim
+       U_solved(dim1,:) = rhs_loc(u_start(dim1):u_end(dim1))
        if(.not.(present_and_true(poisson))) then
           if(present(U_out)) then
-             call set(U_out,dim1,ele_nodes(u,ele),&
-                  &Rhs_loc(u_start(dim1):u_end(dim1)))
+             call set(U_out,dim1,ele_nodes(u,ele),u_solved(dim1,:))
           else
-             call set(U,dim1,ele_nodes(u,ele),&
-                  &Rhs_loc(u_start(dim1):u_end(dim1)))
+             call set(U,dim1,ele_nodes(u,ele),u_solved(dim1,:))
           end if
        end if
     end do
+    
+    D_solved = rhs_loc(d_start:d_end)
     if(.not.(present_and_true(projection))) then
        if(present(D_out)) then
-          call set(D_out,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
+          call set(D_out,ele_nodes(d,ele),D_solved)
        else
-          call set(D,ele_nodes(d,ele),Rhs_loc(d_start:d_end))
+          call set(D,ele_nodes(d,ele),D_solved)
        end if
     end if
+
+    !check that the constraints are satisfied
+    if(have_constraint) then
+       constraints => U%mesh%shape%constraints
+       do i1 = 1, constraints%n_constraints
+          constraint_check = 0.
+          do dim1 = 1, mdim
+             constraint_check = constraint_check + &
+                  & sum(U_solved(dim1,:)*constraints%orthogonal(i1,:,dim1))
+          end do
+          if(abs(constraint_check)>1.0e-8) then
+             ewrite(1,*) 'Constraint check', constraint_check
+             FLAbort('Constraint not enforced')
+          end if
+       end do       
+    end if
+
   end subroutine reconstruct_U_d_ele
-  
-  subroutine check_constraints_face(U1_loc,U2_loc,U,face)
-    implicit none
-    real, intent(in), dimension(:) :: U1_loc,U2_loc
-    type(vector_field), intent(in) :: U
-    integer, intent(in) :: face
-    !
-    real, dimension(face_loc(U,face)) :: U1_face, U2_face
-    real, dimension(2) :: n
-    real, dimension(face_loc(U,face)) :: nvals
-
-    U1_face = U1_loc(face_local_nodes(U,face))
-    U2_face = U2_loc(face_local_nodes(U,face))
-
-    select case (local_face_number(U%mesh,face))
-    case (1)
-       n = (/ -1.,0. /)
-    case (2)
-       n = (/ 0.,-1. /)
-    case (3)
-       n = (/ 1./sqrt(2.),1./sqrt(2.) /)
-    case default
-       FLExit('!!?!??!')
-    end select
-
-    nvals = U1_face*n(1) + U2_face*n(2)
-    assert(abs(nvals(2)-0.5*(nvals(1)+nvals(3)))<1.0e-10)
-  end subroutine check_constraints_face
 
   subroutine get_local_solver(local_solver,U,X,down,D,f,ele,&
        & g,dt,theta,D0,have_constraint,local_solver_rhs,projection,poisson)
@@ -940,6 +954,46 @@ contains
     end do
   end subroutine compute_cartesian_ele
 
+  subroutine check_continuity_local_ele(U,ele)
+    implicit none
+    type(vector_field), intent(in) :: U
+    integer, intent(in) :: ele
+    !
+    integer, dimension(:), pointer :: neigh
+    integer :: ni,face,ele2,face2
+
+    neigh => ele_neigh(U,ele)
+    do ni = 1, size(neigh)
+       ele2 = neigh(ni)
+       face = ele_face(U,ele,ele2)
+       if(ele2>0) then
+          face2 = ele_face(U,ele2,ele)
+       else
+          face2 = -1
+       end if
+       call check_continuity_local_face(U,ele,ele2,face,face2)
+    end do
+  end subroutine check_continuity_local_ele
+
+  subroutine check_continuity_local_face(U,ele,ele2,face,face2)
+    implicit none
+    integer, intent(in) :: face, face2,ele,ele2
+    type(vector_field), intent(in) :: U
+    !
+    real, dimension(U%dim, face_ngi(U, face)) :: n1,n2,u1,u2
+    real :: weight, jump
+
+    !Get normal in local coordinates
+    call get_local_normal(n1,weight,U,local_face_number(U%mesh,face))
+    call get_local_normal(n2,weight,U,local_face_number(U%mesh,face2))
+    u1 = face_val_at_quad(U,face)
+    u2 = face_val_at_quad(U,face2)
+    jump = maxval(abs(sum(u1*n1+u2*n2,1)))
+    ewrite(1,*) jump
+    assert(jump<1.0e-8)
+
+  end subroutine check_continuity_local_face
+
   subroutine check_continuity_ele(U_cart,X,ele)
     implicit none
     type(vector_field), intent(in) :: U_cart,X
@@ -968,11 +1022,12 @@ contains
     type(vector_field), intent(in) :: U_cart,X
     integer, intent(in) :: face,face2,ele,ele2
     real, dimension(X%dim, face_ngi(U_cart, face)) :: n1,n2
-    real, dimension(X%dim, face_ngi(U_cart, face)) :: u1,u2
+    real, dimension(X%dim, face_ngi(U_cart, face)) :: u1,u2,x1
     real, dimension(face_ngi(U_cart, face)) :: jump_at_quad
     integer :: dim1
     !
     u1 = face_val_at_quad(U_cart,face)
+    x1 = face_val_at_quad(X,face)
     if(ele2>0) then
        u2 = face_val_at_quad(U_cart,face2)
     else
@@ -992,6 +1047,7 @@ contains
        do dim1 = 1, X%dim
           ewrite(1,*) 'normal',dim1,n1(dim1,:)
           ewrite(1,*) 'normal',dim1,n2(dim1,:)
+          ewrite(1,*) 'X',dim1,x1(dim1,:)
        end do
        ewrite(1,*) 'n cpt1',sum(n1*u1,1)
        ewrite(1,*) 'n cpt2',sum(n2*u2,1)
@@ -1469,24 +1525,24 @@ contains
        call addto(balance_eqn,coriolis_term,scale=1.0)
        ewrite(1,*) 'CJC b4',maxval(abs(balance_eqn%val)),&
             & maxval(abs(coriolis_term%val))
+       !Project balance equation into div-conforming space
        call solve_hybridized_helmholtz(state,U_Rhs=balance_eqn,&
             &U_out=balance_eqn,&
             &compute_cartesian=.true.,&
             &check_continuity=.true.,projection=.true.,&
             &u_rhs_local=.true.)
-       ewrite(1,*) 'CJC after',maxval(abs(balance_eqn%val)), maxval(abs(coriolis_term%val))
-       stop
-       ! do dim1 = 1, mesh_dim(D)
-       !    ewrite(1,*) 'Balance equation', maxval(abs(balance_eqn%val(dim1,:)))
-       !    assert(maxval(abs(balance_eqn%val(dim1,:)))<1.0e-8)
-       ! end do
-       ! stop
+
+        do dim1 = 1, mesh_dim(D)
+           ewrite(1,*) 'Balance equation', maxval(abs(balance_eqn%val(dim1,:)))
+           assert(maxval(abs(balance_eqn%val(dim1,:)))<1.0e-8)
+        end do
     end if
     !Clean up after yourself
     call deallocate(Coriolis_term)
     call deallocate(D_rhs)
     call deallocate(balance_eqn)
     call deallocate(tmp_field)
+
   end subroutine set_velocity_from_geostrophic_balance_hybridized
 
   subroutine project_streamfunction_for_balance_ele(D,psi,X,f,g,ele)

@@ -59,6 +59,27 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/parallel_tools.mod ../include/radiation.mod \
    ../include/meshmovement.mod ../include/fdebug.h
 
+Hybridized_Helmholtz.o : Hybridized_Helmholtz.F90 ../include/populate_state_module.mod \
+   ../include/sparse_matrices_fields.mod ../include/assemble_cmc.mod \
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/reserve_state_module.mod ../include/diagnostic_variables.mod \
+   ../include/boundary_conditions_from_options.mod \
+   ../include/adapt_state_prescribed_module.mod \
+   ../include/write_state_module.mod ../include/spud.mod \
+   ../include/advection_diffusion_dg.mod ../include/adjoint_python.mod \
+   ../include/diagnostic_fields_wrapper.mod \
+   ../include/adjoint_global_variables.mod ../include/global_parameters.mod \
+   ../include/advection_diffusion_cg.mod ../include/adjoint_main_loop.mod \
+   ../include/manifold_projections.mod ../include/vtk_interfaces.mod \
+   ../include/timeloop_utilities.mod ../include/diagnostic_fields_new.mod \
+   ../include/adjoint_functional_evaluation.mod \
+   ../include/memory_diagnostics.mod ../include/linear_shallow_water.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/forward_main_loop.mod \
+   ../include/mangle_options_tree.mod ../include/state_module.mod \
+   ../include/libadjoint_data_callbacks.mod ../include/solvers.mod \
+   ../include/shallow_water_adjoint_callbacks.mod ../include/fdebug.h \
+   ../include/hybridized_helmholtz.mod
+
 Shallow_Water.o : Shallow_Water.F90 ../include/populate_state_module.mod \
    ../include/sparse_matrices_fields.mod ../include/assemble_cmc.mod \
    ../include/fields.mod ../include/fldebug.mod \

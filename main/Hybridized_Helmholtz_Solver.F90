@@ -74,15 +74,15 @@
 
     type(state_type), dimension(:), pointer :: state
     type(scalar_field), pointer :: D_rhs, dgified_D, D, &
-         dgified_D_rhs, D_exact, D_exact_D_mesh
-    type(scalar_field) :: f, D_rhs_projected
-    type(vector_field), pointer :: u,X
-    type(vector_field) :: U_Local,U_rhs
+         dgified_D_rhs, D_exact, D_exact_D_mesh, l_d_rhs
+    type(scalar_field), target :: f, D_rhs_projected
+    type(vector_field), pointer :: u,X,U_rhs
+    type(vector_field) :: U_Local,U_rhs_allocated
     integer :: ierr,dump_no,stat,ele
     character(len = OPTION_PATH_LEN) :: simulation_name
     character(len=PYTHON_FUNC_LEN) :: coriolis
     real :: L2error,Linfty_error,L2projectederror, energy
-    logical :: have_rhs
+    logical :: have_d_rhs, have_u_rhs, projection_mode=.false.
 #ifdef HAVE_MPI
     call mpi_init(ierr)
     assert(ierr == MPI_SUCCESS)
@@ -105,7 +105,9 @@
     call print_current_memory_stats(0)
 #endif
     D_rhs=>extract_scalar_field(state(1), "LayerThicknessRHS",stat)
-    have_rhs = (stat==0)
+    have_d_rhs = (stat==0)
+    U_rhs=>extract_vector_field(state(1), "VelocityRHS",stat)
+    have_u_rhs = (stat==0)
     U=>extract_vector_field(state(1), "Velocity")
     D => extract_scalar_field(state(1), "LayerThickness")
     call allocate(U_local, mesh_dim(U), U%mesh, "LocalVelocity")
@@ -124,12 +126,13 @@
     call insert(state, f, "Coriolis")
     call deallocate(f)
 
-    if(have_rhs) then
+    if(have_d_rhs) then
        call allocate(D_rhs_projected,D%mesh,'D_rhs')
        call remap_field(D_rhs,D_rhs_projected)
-       call allocate(U_rhs,X%dim,U%mesh,'VelocityRHS')
-       call set(U_rhs,U)
-    else
+       l_d_rhs => d_rhs_projected
+    end if
+
+    if(.not.(have_u_rhs).or.(have_d_rhs)) then
        call compute_energy(state(1),energy)
        ewrite(1,*) 'ENERGY BEFORE = ', energy
     end if
@@ -137,18 +140,34 @@
     dump_no = 0
     call write_state(dump_no,state)
 
-    if(have_rhs) then
-       call solve_hybridized_helmholtz(&
-            &state(1),D_rhs=D_rhs_projected,U_rhs=U_rhs,&
-            &compute_cartesian=.true.,&
-            &check_continuity=.true.,output_dense=.false.)
+    if(have_d_rhs.or.have_u_rhs) then
+       if(.not.have_d_rhs) then
+          call solve_hybridized_helmholtz(&
+               &state(1),U_rhs=U_rhs,&
+               &compute_cartesian=.true.,&
+               &check_continuity=.true.,output_dense=.false.,&
+               projection=projection_mode)
+       else if(have_u_rhs) then
+          call solve_hybridized_helmholtz(&
+               &state(1),d_rhs=l_d_rhs,U_rhs=U_rhs,&
+               &compute_cartesian=.true.,&
+               &check_continuity=.true.,output_dense=.false.,&
+               projection=projection_mode)          
+       else
+          call solve_hybridized_helmholtz(&
+               &state(1),d_rhs=l_d_rhs,&
+               &compute_cartesian=.true.,&
+               &check_continuity=.true.,output_dense=.false.,&
+               projection=projection_mode)
+       end if
     else
        !Timestepping mode.
-       ewrite(1,*) 'TTTTIMESTEPPING MODE!'
+       ewrite(1,*) 'TIMESTEPPING MODE'
        call solve_hybridized_helmholtz(&
             &state(1),&
             &compute_cartesian=.true.,&
-            &check_continuity=.true.,output_dense=.false.)
+            &check_continuity=.true.,output_dense=.false.,&
+            projection=projection_mode)
     end if
 
     dgified_D => extract_scalar_field(state(1), "LayerThicknessV",stat)
@@ -161,7 +180,15 @@
        call remap_field(D_rhs,dgified_D_rhs)
     end if
 
-    if(have_rhs) then
+    if(projection_mode) then
+       call project_local_to_cartesian(X,U_local,U)
+       l2error = 0.
+       do ele = 1, element_count(U)
+          call compute_errors_projection(U,U_rhs,X,ele,l2error)
+       end do
+       ewrite(1,*) 'l2error for projection', l2error
+
+    else if(have_d_rhs) then
        D_exact => extract_scalar_field(state(1), &
             &"LayerThicknessExact",stat)
        if(stat==0) then
@@ -220,6 +247,27 @@
            &sum((d_gi-d_exact_d_mesh_gi)**2*detwei)
     end subroutine compute_errors
 
+    subroutine compute_errors_projection(U,U_rhs,X,ele,l2error)
+      implicit none
+      type(vector_field), intent(in) :: X,U,U_rhs
+      integer, intent(in) :: ele
+      real, intent(inout) :: L2error
+      !
+      real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+      real, dimension(ele_ngi(D,ele)) :: detwei
+      real, dimension(U%dim, ele_ngi(X,ele)) :: U_quad, U_rhs_quad
+      integer :: dim1
+
+      call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
+           detwei=detwei)
+      u_quad = ele_val_at_quad(U,ele)
+      u_rhs_quad = ele_val_at_quad(U_rhs,ele)
+
+      do dim1 = 1, U%dim
+         l2error = l2error + sum((u_quad(dim1,:)-u_rhs_quad(dim1,:))**2*detwei)
+      end do
+    end subroutine compute_errors_projection
+
     subroutine read_command_line()
       implicit none
       ! Read the input filename.
@@ -256,6 +304,11 @@
             cycle
          end if
 
+         if(argument=="-p") then
+            projection_mode = .true.
+            cycle
+         end if
+
          exit
       end do
 
@@ -272,9 +325,10 @@
     subroutine usage
       implicit none
 
-      write (0,*) "usage: hybridized_helmholtz_solver [-v n] <options_file>"
+      write (0,*) "usage: hybridized_helmholtz_solver [-v n] [-p] <options_file>"
       write (0,*) ""
       write (0,*) "-v n sets the verbosity of debugging"
+      write (0,*) "-p switches on projection mode (project velocity to div-conforming"
     end subroutine usage
 
   end program Hybridized_Helmholtz_Solver
