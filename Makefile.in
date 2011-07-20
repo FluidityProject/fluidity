@@ -551,3 +551,4 @@ endif
 	@cd main; ../scripts/create_makefile.py --exclude test_coupler.F90 $(TESTOPTS)
 	@echo "    Cleaning up the mess"
 	$(MAKE) clean-light
+	@echo "    Congratulations, make makefiles succeeded!"
