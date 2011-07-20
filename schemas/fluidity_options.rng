@@ -164,6 +164,15 @@ interpolated for VTK output.</a:documentation>
           </element>
         </choice>
         <optional>
+          <element name="regularise_spatial_aspect">
+            <a:documentation>Regularise spatial aspect - rescales spatial extent of output position mesh.
+Regularise the domain so all spatial extents are of the same length
+(the smallest of the spatial extents),
+i.e. scale so the domain has an aspect ratio of 1:1, or 1:1:1.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+        <optional>
           <element name="convergence">
             <a:documentation>Options for convergence analysis.</a:documentation>
             <optional>

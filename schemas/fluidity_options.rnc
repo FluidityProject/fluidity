@@ -132,6 +132,13 @@ start =
                   attribute name { xsd:string }
                }
             ),
+            ## Regularise spatial aspect - rescales spatial extent of output position mesh.
+            ## Regularise the domain so all spatial extents are of the same length
+            ## (the smallest of the spatial extents),
+            ## i.e. scale so the domain has an aspect ratio of 1:1, or 1:1:1.
+            element regularise_spatial_aspect {
+               comment
+            }?,
             ## Options for convergence analysis.
             element convergence {
                ## Whether to enable the creation of a convergence
