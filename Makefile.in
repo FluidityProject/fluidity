@@ -549,3 +549,5 @@ endif
 	@cd adjoint; ../scripts/create_makefile.py
 	@echo "    Generating main dependencies"
 	@cd main; ../scripts/create_makefile.py --exclude test_coupler.F90
+	@echo "    Cleaning up the mess"
+	$(MAKE) clean-light

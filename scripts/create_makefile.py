@@ -81,12 +81,10 @@ class dependency_list(object):
                 out+=["\t@true\n","\n"]
 
         # Main rule.
-        list_deps=list(self.deps)
-        list_deps.sort()
         out+=wrap(self.obj+" "
                   +" ".join(self.targets)+": "
                   +self.source+" "
-                  +" ".join(list_deps))+["\n","\n"]
+                  +" ".join(sorted(self.deps)))+["\n","\n"]
         
         return out
 
