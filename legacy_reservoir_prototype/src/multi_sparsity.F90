@@ -121,7 +121,8 @@
       INTEGER, ALLOCATABLE, DIMENSION( : ) :: MIDACV_LOC, FINACV_LOC, COLACV_LOC, COLELE_PHA, FINELE_PHA, &
            MIDELE_PHA, CENTCT
       LOGICAL, parameter :: OldSetUp = .true.
-      integer, dimension( : ), allocatable :: tempvec1, tempvec2, tempvec3 
+      logical :: presym
+      integer, dimension( : ), allocatable :: tempvec1, tempvec2, tempvec3, dummyvec
       integer :: tempnct
 
       ewrite(3,*) 'In GET_SPARS_PATS'
@@ -178,15 +179,17 @@
       ! Now form the global matrix: FINMCY, COLMCY and MIDMCY for the 
       ! momentum and continuity eqns: 
 
-      if ( .not. OldSetUp ) then
+     if ( OldSetUp ) then
          CALL DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE)
-         NC = NCT
+        NC = NCT
+      !   call swapprint( .true., cv_nonods, mx_nct, nct, findct, colct, centct )
       else
          call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, u_ndgln, cv_ndgln, &
               nct, findct, colct, centct )
          nc = nct
+      !   call swapprint( .false., cv_nonods, mx_nct, nct, findct, colct, centct )
       endif
-
+!stop 12
 
       ! Convert CT sparsity to C sparsity.
       CALL CONV_CT2C( CV_NONODS, NCT, FINDCT, COLCT, U_NONODS, MX_NC, FINDC, COLC )
@@ -194,20 +197,50 @@
       ewrite(3,*) 'NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC:',NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC
 
       IF(CV_NONODS /= TOTELE*CV_NLOC) THEN ! Continuous pressure
-  !       if ( OldSetUp ) then
+
+         if ( .not. OldSetUp ) then
             CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
                                 !    CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
                  MIDCMC, FINDCMC, COLCMC )
-           ewrite(3,*)'findmc'
-  !       else
+         else
+            allocate( dummyvec( u_nonods ))
+            dummyvec = 0
+            presym = .false.
+            call poscmc( cv_nonods, u_nonods, mx_ncolcmc, nct, &
+                 findct, colct, &
+                 ncolcmc, findcmc, colcmc, midcmc, dummyvec, presym )
+            deallocate( dummyvec )
+         end if
 
-   !      end if
       ELSE
-         ewrite(3,*)'CV_NLOC,MX_NCOLCMC=',CV_NLOC,MX_NCOLCMC
-         !    CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-         CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-              MIDCMC, FINDCMC, COLCMC )
+         if (  OldSetUp ) then
+            CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
+                 MIDCMC, FINDCMC, COLCMC )
+            ewrite(3,*)'findcmc: ', findcmc(1:cv_nonods+1)
+            ewrite(3,*)'colcmc: ', colcmc( 1:ncolcmc )
+            ewrite(3,*)'midcmc: ', midcmc( 1:cv_nonods)
+         else
+            allocate(tempvec1(cv_nonods+1))
+            allocate(tempvec2(mx_ncolcmc))
+            allocate(tempvec3(cv_nonods))
+            tempvec1 = findcmc
+            tempvec2 = colcmc
+            tempvec3 = midcmc
+            findcmc = 0 ; colcmc = 0 ; midcmc = 0
+            allocate( dummyvec( u_nonods ))
+            presym = .false.
+            call poscmc( cv_nonods, u_nonods, mx_ncolcmc, nct, &
+                 findct, colct, &
+                 ncolcmc, findcmc, colcmc, midcmc, dummyvec, presym )
+            ewrite(3,*)'findcmc: ', findcmc(1:cv_nonods+1)
+            ewrite(3,*)'colcmc: ', colcmc(1:mx_ncolcmc )
+            ewrite(3,*)'midcmc: ', midcmc(1:cv_nonods)
+            deallocate( dummyvec )
+         end if
+         !stop 98
       ENDIF
+      ewrite( 3, *)CV_NONODS /= TOTELE*CV_NLOC
+      !stop 98
       if(MX_NCOLCMC < NCOLCMC) FLAbort(" Incorrect number of computed dimension of CMC sparcity matrix")
 
       ewrite(3,*)'defining sparsity of matrix'
@@ -720,10 +753,10 @@
          end do
       end do
 
-! Not sure if this is correct -- double check later on.
+      ! Not sure if this is correct -- double check later on.
       midele( 1 ) = 1
       do ele = 2, totele
-      count = 0 
+         count = 0 
          do iloc = 1, nloc
             count = count + 1
          end do
@@ -975,11 +1008,11 @@
       ! Defining derived data types for the linked list
       type node
          integer :: id                 ! id number of node
-         type( node ), pointer :: next ! next node
+         type( node ), pointer :: next ! next node, recursive data type
       end type node
 
       type row
-         type( node ), pointer :: row ! recursive data type
+         type( node ), pointer :: row
       end type row
 
       type( row ), dimension( : ), allocatable :: matrix, matrix2
@@ -996,17 +1029,18 @@
 
       noinod = 0
 
-      Loop_Row1: do irow = 1, totele ! Given a vel node find the pressure nodes surrounding it. 
+      Loop_Row1: do irow = 1, totele ! Given a vel node find the pressure nodes surrounding it 
          globj = irow
-
          Loop_Count1: do count = findct( irow ), findct( irow + 1 ) - 1, 1
             globi = colct( count )
             list => matrix( globi ) % row
+! ewrite(3,*)'list%id:',globj,globi,list % id
 
             if ( list % id == -1 ) then ! Check if the list is initalised
                list % id = globj
                cycle
             end if
+! ewrite(3,*)'true?:', list % id == -1, globj, list % id 
 
             Conditional1: if ( globj < list % id ) then ! Insert at start of list
                allocate( current )
@@ -1016,6 +1050,7 @@
                list => matrix( globj ) % row
             else
                current => list
+ !ewrite(3,*)'-->', globj, current % id, current % next % id
                Loop_While1: do while( associated( current ))
                   if ( globj == current % id ) then ! Already have this node
                      exit
@@ -1051,8 +1086,8 @@
       end do
 
       Loop_Row2: do irow = 1, totele
-
-         Loop_Count2: do count = findct( irow ), findct( irow + 1 ) - 1, 1 ! Find the PRESSURE NODES surrounding pressure node IROW
+         ! Find the pressure nodes surrounding pressure node IROW
+         Loop_Count2: do count = findct( irow ), findct( irow + 1 ) - 1, 1 
             inod = colct( count )
 
             ! Find the pressure nodes surrounding node INOD 
@@ -1108,6 +1143,49 @@
          end do Loop_Count2
 
       end do Loop_Row2
+
+
+      do irow = 1, nonods ! Delete Matrix
+         current => matrix( irow ) % row
+         do while ( associated( current ))
+            next => current % next
+            deallocate( current )
+            current => next
+         end do
+      end do
+      deallocate( matrix )
+
+      ptr = 1
+      Loop_Row3: do irow = 1, totele ! From matrix write COLCMC, FINCMC and MIDCMC
+         midcmc( irow ) = -1
+         fincmc( irow ) = ptr
+         current => matrix2( irow ) % row ! Warning: overwriten 
+
+         Loop_While4: do while ( associated( current ))
+
+            if ( ptr > nimem ) then
+               ewrite( -1, * ) 'nimem, ptr: ',nimem, ptr
+               ewrite( -1, * ) 'totele, irow: ',totele, irow
+               FLAbort( "Integer memory too small" )
+            end if
+
+            colcmc( ptr ) = current % id
+            if( current % id == irow ) then
+               midcmc( irow ) = ptr
+            end if
+
+            next => current % next
+            deallocate( current )
+            current => next
+            ptr = ptr + 1
+!ewrite(3,*)'ptr:', ptr
+
+         end do Loop_While4
+!ewrite(3,*)'irow:', irow
+      end do Loop_Row3
+
+      ncmc =  ptr - 1
+      fincmc( totele + 1 ) = ncmc + 1
 
       return
     end subroutine poscmc
@@ -1208,6 +1286,28 @@
 
       return
     end subroutine checksparsity
+
+    subroutine swapprint( first, n, nc, nc2, fin, col, mid )
+     implicit none
+     logical, intent( in ) :: first
+     integer, intent( in ) :: n, nc
+     integer, intent( inout ) :: nc2
+     integer, dimension( n + 1 ), intent( inout ) :: fin
+     integer, dimension( nc ), intent( inout ) :: col
+     integer, dimension( n ), intent( inout ) :: mid
+
+     ewrite(3,*)'fin:', size( fin ), fin( 1 : n+1 )
+     ewrite(3,*)'col:', nc2, col( 1 : nc2 )
+     ewrite(3,*)'mid:', mid( 1 : n )
+
+     if( first ) then
+        fin = 0
+        col = 0
+        mid = 0
+     end if
+
+     return
+   end subroutine swapprint
 
   end module spact
 
