@@ -288,6 +288,7 @@ contains
     call VecDestroy(petb,ierr)
     call VecDestroy(petx,ierr)
     call MatDestroy(petA,ierr)
+    call KSPDestroy(ksp,ierr)
 
     !Write to file
     !open(unit = 3, file = "resid", status = 'UNKNOWN',FORM = 'formatted')
