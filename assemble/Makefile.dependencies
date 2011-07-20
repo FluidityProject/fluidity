@@ -533,11 +533,11 @@ Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 \
    ../include/vtk_interfaces.mod ../include/petsc_tools.mod \
    ../include/colouring.mod ../include/slope_limiters_dg.mod \
    ../include/diagnostic_fields.mod ../include/sparse_matrices_fields.mod \
-   ../include/dgtools.mod ../include/fields_manipulation.mod \
-   ../include/profiler.mod ../include/vector_tools.mod \
-   ../include/sparse_tools.mod ../include/fields.mod \
-   ../include/transform_elements.mod ../include/sparsity_patterns.mod \
-   ../include/boundary_conditions.mod \
+   ../include/timeloop_utilities.mod ../include/dgtools.mod \
+   ../include/fields_manipulation.mod ../include/profiler.mod \
+   ../include/vector_tools.mod ../include/sparse_tools.mod \
+   ../include/fields.mod ../include/transform_elements.mod \
+   ../include/sparsity_patterns.mod ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod \
    ../include/sparsity_patterns_meshes.mod ../include/fetools.mod \
    ../include/elements.mod ../include/fefields.mod ../include/spud.mod \
