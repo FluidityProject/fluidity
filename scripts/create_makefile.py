@@ -204,6 +204,12 @@ def handle_options():
                   help="list of .F90 files to exclude from consideration.",
                   action="store", type="string", dest="exclude", default="")
 
+    optparser.add_option("--test",
+                         help="Cause a failure if the dependencies would"+
+                         " change. This is used to detect user failure to"+
+                         " run make makefiles", action="store_true",
+                         dest="test", default="test")
+
     (options, argv) = optparser.parse_args()
 
     return options
@@ -229,11 +235,30 @@ if __name__=='__main__':
         dependencies=generate_dependencies(fortran)
         
         file("Makefile.dependencies",'w').writelines(dependencies)        
+        
+        if options.test:
+            if os.path.isfile("Makefile.dependencies"):
+                # Check that nothing has changed.
+                trysystem("diff -q Makefile.dependencies.old Makefile.dependencies")
+            elif os.path.isfile("Makefile.dependencies.old"):
+                raise OSError("Dependencies have disappeared!")
+
     except:
         # If anything fails, move the previous makefiled dependencies back.
         os.system("mv Makefile.dependencies.old Makefile.dependencies")
+
+        if options.test:
+            print "**********************************************************"
+            print "Testing make makefiles failed.\n"+\
+                "This may indicate that make makefiles should have been\n" +\
+                "run and the resulting Makefile.dependencies committed"
+            print "**********************************************************"
+
         # Now re-raise whatever the exception was.
         raise
+
+        
+
 
     # On success, remove the old file.
     os.system("rm Makefile.dependencies.old")
