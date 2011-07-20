@@ -716,10 +716,11 @@ Mixing_Statistics.o ../include/mixing_statistics.mod: Mixing_Statistics.F90 \
 ../include/multigrid.mod: Multigrid.o
 	@true
 
-Multigrid.o ../include/multigrid.mod: Multigrid.F90 ../include/petsc_tools.mod \
-   ../include/futils.mod ../include/sparse_tools_petsc.mod \
-   ../include/sparse_tools.mod ../include/spud.mod ../include/fldebug.mod \
-   ../include/parallel_tools.mod ../include/fdebug.h
+Multigrid.o ../include/multigrid.mod: Multigrid.F90 \
+   ../include/sparse_tools_petsc.mod ../include/petsc_tools.mod \
+   ../include/futils.mod ../include/spud.mod ../include/fldebug.mod \
+   ../include/sparse_tools.mod ../include/parallel_tools.mod \
+   ../include/fdebug.h
 
 ../include/node_owner_finder.mod: Node_Owner_Finder_Fortran.o
 	@true
@@ -942,14 +943,14 @@ Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
 ../include/solvers.mod: Solvers.o
 	@true
 
-Solvers.o ../include/solvers.mod: Solvers.F90 ../include/halos.mod \
-   ../include/vtk_interfaces.mod ../include/petsc_tools.mod \
-   ../include/multigrid.mod ../include/sparse_tools_petsc.mod \
-   ../include/global_parameters.mod ../include/profiler.mod \
-   ../include/sparse_tools.mod ../include/fields.mod ../include/elements.mod \
+Solvers.o ../include/solvers.mod: Solvers.F90 ../include/vtk_interfaces.mod \
+   ../include/petsc_tools.mod ../include/sparse_matrices_fields.mod \
+   ../include/multigrid.mod ../include/profiler.mod \
+   ../include/sparse_tools.mod ../include/fields.mod \
+   ../include/sparse_tools_petsc.mod ../include/elements.mod \
    ../include/spud.mod ../include/fldebug.mod ../include/signal_vars.mod \
-   ../include/sparse_matrices_fields.mod ../include/parallel_tools.mod \
-   ../include/fdebug.h
+   ../include/halos.mod ../include/global_parameters.mod \
+   ../include/parallel_tools.mod ../include/fdebug.h
 
 ../include/sparse_matrices_fields.mod: Sparse_Matrices_Fields.o
 	@true
@@ -963,7 +964,7 @@ Sparse_Matrices_Fields.o ../include/sparse_matrices_fields.mod: \
 	@true
 
 Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
-   ../include/fldebug.mod ../include/futils.mod ../include/halos_allocates.mod \
+   ../include/futils.mod ../include/halos_allocates.mod \
    ../include/halo_data_types.mod ../include/reference_counting.mod \
    Reference_count_dynamic_csr_matrix.F90 \
    Reference_count_interface_block_csr_matrix.F90 \
@@ -971,10 +972,11 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
    Reference_count_interface_dynamic_csr_matrix.F90 \
    Reference_count_interface_csr_sparsity.F90 \
    Reference_count_interface_block_dynamic_csr_matrix.F90 \
-   Reference_count_block_dynamic_csr_matrix.F90 ../include/data_structures.mod \
+   ../include/data_structures.mod ../include/fldebug.mod \
    Reference_count_interface_csr_matrix.F90 \
    Reference_count_block_csr_matrix.F90 ../include/global_parameters.mod \
-   Reference_count_csr_sparsity.F90 ../include/ieee_arithmetic.mod \
+   Reference_count_csr_sparsity.F90 \
+   Reference_count_block_dynamic_csr_matrix.F90 ../include/ieee_arithmetic.mod \
    ../include/fdebug.h
 
 ../include/sparse_tools_petsc.mod: Sparse_Tools_Petsc.o
@@ -982,12 +984,11 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
 
 Sparse_Tools_Petsc.o ../include/sparse_tools_petsc.mod: Sparse_Tools_Petsc.F90 \
    ../include/petsc_tools.mod ../include/halos_allocates.mod \
-   Reference_count_interface_petsc_csr_matrix.F90 \
-   ../include/halo_data_types.mod ../include/reference_counting.mod \
-   Reference_count_petsc_csr_matrix.F90 ../include/sparse_tools.mod \
-   ../include/fldebug.mod ../include/fields_base.mod \
+   ../include/fields_base.mod Reference_count_interface_petsc_csr_matrix.F90 \
+   ../include/halo_data_types.mod ../include/sparse_tools.mod \
+   ../include/reference_counting.mod Reference_count_petsc_csr_matrix.F90 \
    ../include/fields_manipulation.mod ../include/parallel_tools.mod \
-   ../include/fdebug.h
+   ../include/fldebug.mod ../include/fdebug.h
 
 ../include/sparsity_patterns.mod: Sparsity_Patterns.o
 	@true
