@@ -109,6 +109,8 @@ contains
     U=>extract_vector_field(state, "LocalVelocity")
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
+
+    NEED TO ALLOCATE THIS HERE AND DEALLOCATE AT THE END
     lambda=>extract_scalar_field(state, "LagrangeMultiplier")
 
     U_cart => extract_vector_field(state, "Velocity")
@@ -152,6 +154,7 @@ contains
     ewrite(1,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
 
     !Solve the equations
+    NEED TO PUT IN SOME SOLVER OPTIONS
     if(present(solver_option_path)) then
        call petsc_solve(lambda,lambda_mat,lambda_rhs,&
             option_path=solver_option_path)

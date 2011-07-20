@@ -132,6 +132,9 @@ contains
 
     call insert_derived_meshes(states)
 
+    !If any meshes have constraints, allocate an appropriate trace mesh
+    call insert_trace_meshes(states)
+
     call compute_domain_statistics(states)
 
     call allocate_and_insert_fields(states)
@@ -756,7 +759,54 @@ contains
     end if
        
   end subroutine insert_derived_mesh
-        
+
+  subroutine insert_trace_meshes(states)
+    !If any meshes have constraints, allocate an appropriate trace mesh
+    type(state_type), dimension(:), intent(inout) :: states
+    !
+    type(mesh_type), pointer :: from_mesh
+    type(mesh_type) :: trace_mesh
+    type(quadrature_type) :: quad
+    type(element_type) :: trace_shape
+    integer :: mesh_no, trace_degree, dim, loc, constraint_choice, &
+         &quad_degree
+    logical :: allocate_trace_mesh
+
+    do mesh_no = 1, mesh_count(states(1))
+       allocate_trace_mesh = .false.
+       from_mesh => extract_mesh(states(1),mesh_no)
+       if(associated(from_mesh%shape%constraints)) then
+          constraint_choice = from_mesh%shape%constraints%type
+          if(constraint_choice.ne.CONSTRAINT_NONE) then
+             trace_degree = from_mesh%shape%degree - 1
+             dim = from_mesh%shape%dim
+             loc=from_mesh%shape%loc
+             
+             !Make quadrature
+             call get_option("/geometry/quadrature/degree",&
+                  & quad_degree)
+             quad=make_quadrature(loc, dim, &
+                  degree=quad_degree, family=get_quad_family())
+             !allocate shape
+             trace_shape=make_element_shape(loc, dim, trace_degree, &
+                  &quad,type=ELEMENT_TRACE)
+             !deallocate quadrature (just drop a reference)
+             call deallocate(quad)
+             !allocate mesh
+             trace_mesh=make_mesh(from_mesh, trace_shape, continuity=-1,&
+                  name=trim(from_mesh%name)//"Trace")
+             !deallocate shape (just drop a reference)
+             call deallocate(trace_shape)
+             !insert into states
+             call insert(states,trace_mesh,trace_mesh%name)
+             !deallocate mesh (just drop a reference)
+             call deallocate(trace_mesh)
+          end if
+       end if
+    end do
+
+  end subroutine insert_trace_meshes
+
   function make_mesh_from_options(from_mesh, mesh_path) result (mesh)
     ! make new mesh changing shape or continuity of from_mesh
     type(mesh_type):: mesh

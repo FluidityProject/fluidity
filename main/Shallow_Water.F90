@@ -200,6 +200,8 @@
     ! Always output the initial conditions.
     call output_state(state)
 
+    NEED TO CHANGE ALL THIS TO CHECKING FOR CONSTRAINTS,
+    AND PUT A WRAPPER AROUND THE PROJECTIONS
     if(have_option("/material_phase::&
          &Fluid/scalar_field::LagrangeMultiplier")) then
        !project velocity into div-conforming space
