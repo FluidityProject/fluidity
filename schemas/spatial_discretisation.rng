@@ -112,6 +112,7 @@ galerkin formulation will result. </a:documentation>
       <ref name="dg_diffusion_scheme"/>
       <ref name="dg_upwind_stabilisation"/>
       <ref name="dg_mass_terms"/>
+      <ref name="dg_local_assembly"/>
     </element>
   </define>
   <define name="dg_advection_scheme">
@@ -521,6 +522,16 @@ provided bounds.</a:documentation>
             <empty/>
           </element>
         </optional>
+      </element>
+    </optional>
+  </define>
+  <define name="dg_local_assembly">
+    <optional>
+      <element name="local_assembly">
+        <a:documentation>Should we perform local assembly of DG terms.
+If this is set, we assemble in the halo elements,
+doing more work</a:documentation>
+        <empty/>
       </element>
     </optional>
   </define>
