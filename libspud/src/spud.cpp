@@ -25,7 +25,7 @@
     USA
 */
 
-#include "spud.h"
+#include "spud"
 
 using namespace std;
 
@@ -41,16 +41,12 @@ namespace Spud{
     return;
   }
 
-  void OptionManager::load_options(const string& filename){
-    manager.options->load_options(filename);
-
-    return;
+  OptionError OptionManager::load_options(const string& filename){
+    return manager.options->load_options(filename);
   }
 
-  void OptionManager::write_options(const string& filename){
-    manager.options->write_options(filename);
-
-    return;
+  OptionError OptionManager::write_options(const string& filename){
+    return manager.options->write_options(filename);
   }
 
   OptionError OptionManager::get_child_name(const string& key, const unsigned& index, string& child_name){
@@ -64,12 +60,15 @@ namespace Spud{
 
     return SPUD_NO_ERROR;
   }
-
-  int OptionManager::number_of_children(const string& key){
+  
+  OptionError OptionManager::get_number_of_children(const string& key, int& child_count){
     deque<string> kids;
-    manager.options->list_children(key, kids);
 
-    return kids.size();
+    manager.options->list_children(key, kids);
+    
+    child_count = kids.size();
+
+    return check_key(key);
   }
 
   int OptionManager::option_count(const string& key){
@@ -686,7 +685,7 @@ namespace Spud{
     return *this;
   }
 
-  void OptionManager::Option::load_options(const string& filename){
+  OptionError OptionManager::Option::load_options(const string& filename){
     if(verbose)
       cout << "void OptionManager::Option::load_options(const string& filename = " << filename << ")\n";
 
@@ -695,8 +694,8 @@ namespace Spud{
     TiXmlDocument doc(filename);
     doc.SetCondenseWhiteSpace(false);
     if(!doc.LoadFile()){
-      cerr << "SPUD WARNING: Failed to load options file " << filename << endl;
-      return;
+      //cerr << "SPUD WARNING: Failed to load options file " << filename << endl;
+      return SPUD_FILE_ERROR;
     }
 
     TiXmlNode* header = doc.FirstChild();
@@ -705,8 +704,8 @@ namespace Spud{
     }
     TiXmlNode* fluidity_options = doc.FirstChildElement();
     if(fluidity_options == NULL){
-      cerr << "SPUD WARNING: Failed to find root node when loading options file" << endl;
-      return;
+      //cerr << "SPUD WARNING: Failed to find root node when loading options file" << endl;
+      return SPUD_FILE_ERROR;
     }
 
     // Set the name of this element
@@ -720,10 +719,10 @@ namespace Spud{
       }
     }
 
-    return;
+    return SPUD_NO_ERROR;
   }
 
-  void OptionManager::Option::write_options(const string& filename) const{
+  OptionError OptionManager::Option::write_options(const string& filename) const{
     if(verbose)
       cout << "void OptionManager::Option::write_options(const string& filename = " << filename << ") const\n";
 
@@ -738,10 +737,11 @@ namespace Spud{
     doc.LinkEndChild(root_node);
 
     if(!doc.SaveFile(filename)){
-      cerr << "SPUD WARNING: Failed to write options file" << endl;
+      return SPUD_FILE_ERROR;
+      //cerr << "SPUD WARNING: Failed to write options file" << endl;
     }
 
-    return;
+    return SPUD_NO_ERROR;
   }
 
   string OptionManager::Option::get_name() const{

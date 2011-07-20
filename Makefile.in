@@ -59,7 +59,7 @@ MAKE = @MAKE@ -s
 
 AR = @AR@
 
-ARFLAGS	= r
+ARFLAGS	= @ARFLAGS@
 
 EVAL = scripts/silenteval
 
@@ -424,7 +424,7 @@ clean-test:
 	@echo "    CLEAN tests"
 	@cd tests; ../tools/testharness.py --clean >/dev/null
 
-test: fltools bin/@FLUIDITY@ bin/shallow_water serialtest
+test: fltools bin/@FLUIDITY@ bin/shallow_water serialtest bin/burgers_equation
 
 serialtest:
 ifeq (@MBA2D@,yes)
@@ -441,7 +441,7 @@ else
         endif
 endif
 
-mediumtest:
+mediumtest: bin/burgers_equation
 	@cd tests; ../tools/testharness.py -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:

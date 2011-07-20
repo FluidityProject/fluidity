@@ -47,7 +47,7 @@ subroutine test_tensor_second_invariant
      sfields=(/ tensor_second_invariant_field, solution_field, diff_field /), &
      tfields=(/ field  /))
 
-  fail = maxval( abs( diff_field%val ))> 1e-15
+  fail = maxval( abs( diff_field%val ))> 1e-10
   call report_test("[tensor_second_invariant]", fail, .false., "second invariant different than expected")
 
 end subroutine test_tensor_second_invariant
