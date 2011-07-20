@@ -9,17 +9,17 @@ ClimateReader_interface.o ../include/climatology.mod: \
 	@true
 
 NEMO_load_fields.o ../include/nemo_states_module.mod: NEMO_load_fields.F90 \
-   ../include/boundary_conditions.mod ../include/nemo_load_fields_vars.mod \
-   ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod ../include/coordinates.mod \
-   ../include/state_module.mod
+   ../include/boundary_conditions.mod ../include/coordinates.mod \
+   ../include/field_options.mod ../include/fields.mod \
+   ../include/global_parameters.mod ../include/nemo_load_fields_vars.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/nemo_load_fields_vars.mod: NEMO_load_fields_vars.o
 	@true
 
 NEMO_load_fields_vars.o ../include/nemo_load_fields_vars.mod: \
-   NEMO_load_fields_vars.F90 ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod ../include/fldebug.mod \
+   NEMO_load_fields_vars.F90 ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/spud.mod \
    ../include/state_module.mod
 
 NEMOdataload_rotation.o : NEMOdataload_rotation.F90 ../include/coordinates.mod
@@ -35,19 +35,18 @@ NetCDFWriter.o ../include/netcdfwriter.mod: NetCDFWriter.F90 \
 
 bulk_parameterisations.o ../include/bulk_parameterisations.mod: \
    bulk_parameterisations.F90 ../include/boundary_conditions.mod \
-   ../include/quadrature.mod ../include/global_parameters.mod \
-   ../include/field_options.mod ../include/elements.mod ../include/fields.mod \
-   ../include/spud.mod ../include/state_module.mod ../include/fdebug.h \
-   ../include/fldebug.mod
+   ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/quadrature.mod \
+   ../include/spud.mod ../include/state_module.mod
 
-forcingERA40_fortran.o : forcingERA40_fortran.F90 ../include/coordinates.mod \
-   ../include/bulk_parameterisations.mod
+forcingERA40_fortran.o : forcingERA40_fortran.F90 \
+   ../include/bulk_parameterisations.mod ../include/coordinates.mod
 
 ../include/load_netcdf_module.mod: load_netcdf.o
 	@true
 
 load_netcdf.o ../include/load_netcdf_module.mod: load_netcdf.F90 \
-   ../include/field_options.mod ../include/global_parameters.mod \
-   ../include/fields.mod ../include/spud.mod ../include/coordinates.mod \
-   ../include/fdebug.h
+   ../include/coordinates.mod ../include/fdebug.h ../include/field_options.mod \
+   ../include/fields.mod ../include/global_parameters.mod ../include/spud.mod
 
