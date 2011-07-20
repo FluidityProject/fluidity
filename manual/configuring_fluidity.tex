@@ -2078,6 +2078,7 @@ Adding a \option{particle\_diameter} to a dispersed phase enables fluid-particle
  \item The momentum equation for each \option{material\_phase} can only be discretised in non-conservative form.
  \item The \option{arbitrary\_upwind} and \option{interior\_penalty} viscosity schemes for DG do not yet support multiple phases.
  \item Discontinuous \option{PhaseVolumeFraction} fields are not yet supported.
+ \item The Pressure field only supports a continuous Galerkin discretisation.
  \item Prescribed velocity fields cannot yet be used in multi-phase simulations.
  \item Fluid-particle drag can currently only support one continuous (i.e. fluid) phase.
 \end{itemize}
