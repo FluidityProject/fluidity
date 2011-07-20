@@ -134,6 +134,12 @@ module advection_diffusion_DG
   ! Vertical diffusion by mixing option
   logical :: have_buoyancy_adjustment_by_vertical_diffusion
 
+  ! Are we doing local assembly?
+  ! If yes, then entries in the global matrix that are outside our
+  ! domain will be thrown away when constructing the linear system.
+  ! This requires that we do assembly in the L1 halo elements (more
+  ! computational work), and as a result do less communication.
+  logical :: local_assembly
 contains
 
   subroutine solve_advection_diffusion_dg(field_name, state, velocity_name)
@@ -350,6 +356,11 @@ contains
        FLAbort("Unknown diffusion scheme for DG Advection Diffusion")
     end if
 
+    local_assembly = have_option(trim(T%option_path)//"/prognostic/&
+         &spatial_discretisation/discontinuous_galerkin/local_assembly")
+    if ( local_assembly ) then
+       ewrite(2, *)'Using local assembly routines for advection_diffusion_dg'
+    end if
     ! Vertical mixing by diffusion
     have_buoyancy_adjustment_by_vertical_diffusion=have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/by_vertical_diffusion")    
 
@@ -428,7 +439,8 @@ contains
 
     call zero(delta_T) ! Impose zero initial guess.
     ! Solve for the change in T.
-    call petsc_solve(delta_T, matrix, rhs, state)
+    call petsc_solve(delta_T, matrix, rhs, state, &
+         local_assembly=local_assembly)
 
     ! Add the change in T to T.
     call addto(T, delta_T, dt)
@@ -611,7 +623,8 @@ contains
        call addto(matrix_diff,mass)
        call zero(delta_T) ! Impose zero initial guess.
        ! Solve for the change in T.
-       call petsc_solve(delta_T, matrix_diff, RHS_diff, state)
+       call petsc_solve(delta_T, matrix_diff, RHS_diff, state, &
+            local_assembly=local_assembly)
 
        ! Add the change in T to T.
        call addto(T, delta_T, dt)
@@ -1022,9 +1035,6 @@ contains
          
    end subroutine lumped_mass_galerkin_projection_scalar
 
-
-
-
   subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
        & rhs_diff, &
        & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
@@ -1197,6 +1207,8 @@ contains
     real, dimension(x%dim, ele_loc(x,ele)) :: x_val, x_val_2
     real, dimension(mesh_dim(T)) :: centre_vec
 
+    logical :: ele_owned
+
     if(move_mesh) then
       ! the following have been assumed in the declarations above
       assert(ele_loc(U_mesh, ele)==ele_loc(X, ele))
@@ -1209,9 +1221,13 @@ contains
     if(diffusion_scheme == IP) primal =.true.
 
     ! In parallel, we only construct the equations on elements we own.
+    ele_owned = element_owned(T, ele)
     if (dg) then
-       if (.not.element_owned(T,ele)) then
-          return
+       if (.not.ele_owned) then
+          if (.not.local_assembly) return
+          ! If doing local assembly, we also need to construct the
+          ! equations on L1 halo elements
+          if (.not.element_neighbour_owned(T, ele)) return
        end if
     end if
 
@@ -1521,7 +1537,11 @@ contains
     end if
 
     ! Right hand side field.
-    call addto(RHS, t_ele, l_T_rhs)
+    ! If we're doing local assembly then we might get here not owning
+    ! the element, in which case we don't want to add to the RHS field
+    if ( ele_owned ) then
+       call addto(RHS, t_ele, l_T_rhs)
+    end if
     ! Assemble matrix.
     
     ! Advection.
@@ -1678,7 +1698,7 @@ contains
           end select
        end select
 
-       if (boundary_element) then
+       if (boundary_element.and.ele_owned) then
           ! Weak application of dirichlet conditions on diffusion term.
 
           do i=1, 2
@@ -1715,18 +1735,18 @@ contains
                     finish=start+face_loc(T, face)-1
                     
                     if (i==1) then
-                      ! Wipe out boundary condition's coupling to itself.
-                      Diffusivity_mat(start:finish,:)=0.0
+                       ! Wipe out boundary condition's coupling to itself.
+                       Diffusivity_mat(start:finish,:)=0.0
                     else
                       
-                      ! Add BC into RHS
-                      !
-                      call addto(RHS_diff, local_glno, &
-                           & -matmul(Diffusivity_mat(:,start:finish), &
-                           & ele_val( bc_value, face )))
-                      
-                      ! Ensure it is not used again.
-                      Diffusivity_mat(:,start:finish)=0.0
+                       ! Add BC into RHS
+                       !
+                       call addto(RHS_diff, local_glno, &
+                            & -matmul(Diffusivity_mat(:,start:finish), &
+                            & ele_val( bc_value, face )))
+
+                       ! Ensure it is not used again.
+                       Diffusivity_mat(:,start:finish)=0.0
                       
                     end if
                   
@@ -1752,8 +1772,8 @@ contains
     if (include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion) then
        call addto(Big_m_diff, local_glno, local_glno,&
             & Diffusivity_mat*theta*dt)
-       
-       if (.not.semi_discrete) then
+
+       if (.not.semi_discrete .and. ele_owned) then
           call addto(RHS_diff, local_glno, &
                & -matmul(Diffusivity_mat, node_val(T, local_glno)))
        end if
@@ -2279,12 +2299,14 @@ contains
     logical :: do_primal_fluxes
 
     logical :: p0_vel
+    logical :: ele_owned
 
     ! Lax-Friedrichs flux parameter
     real :: C
 
     integer :: i
 
+    ele_owned = element_owned(T, ele)
     do_primal_fluxes = present(primal_fluxes_mat)
     if(do_primal_fluxes.and..not.present(ele2grad_mat)) then
        FLAbort('need ele2grad mat to compute primal fluxes')
@@ -2317,7 +2339,7 @@ contains
     ! Boundary nodes have both faces the same.
     boundary=(face==face_2)
     dirichlet=.false.
-    if (boundary) then
+    if (boundary .and. element_owned(T, face_ele(T, face))) then
        if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
          dirichlet=.true.
        end if
@@ -2503,36 +2525,33 @@ contains
        end if
 
        ! Insert advection in RHS.
-       
-       if (.not.dirichlet) then
-          ! For interior interfaces this is the upwinding term. For a Neumann
-          ! boundary it's necessary to apply downwinding here to maintain the
-          ! surface integral. Fortunately, since face_2==face for a boundary
-          ! this is automagic.
-          
-          if (.not.semi_discrete) then
+       if ( ele_owned ) then
+          if (.not.dirichlet) then
+             ! For interior interfaces this is the upwinding term. For
+             ! a Neumann boundary it's necessary to apply downwinding
+             ! here to maintain the surface integral. Fortunately,
+             ! since face_2==face for a boundary this is automagic.
+             if (.not.semi_discrete) then
+                call addto(RHS, T_face, &
+                     ! Outflow boundary integral.
+                     -matmul(nnAdvection_out,face_val(T,face))&
+                     ! Inflow boundary integral.
+                     -matmul(nnAdvection_in,face_val(T,face_2)))
+             end if
+          else
+
+             ! Inflow and outflow of Dirichlet value.
              call addto(RHS, T_face, &
-                  ! Outflow boundary integral.
-                  -matmul(nnAdvection_out,face_val(T,face))&
-                  ! Inflow boundary integral.
-                  -matmul(nnAdvection_in,face_val(T,face_2)))
+                  -matmul(nnAdvection_in,&
+                  ele_val(bc_value, face)))
+
+             if(.not.semi_discrete) then
+                ! The interior integral is still interior!
+                call addto(RHS, T_face, &
+                     -matmul(nnAdvection_out,face_val(T,face)))
+             end if
           end if
-
-       else
-
-          ! Inflow and outflow of Dirichlet value.
-          call addto(RHS, T_face, &
-               -matmul(nnAdvection_in,&
-               ele_val(bc_value, face)))
-          
-          if(.not.semi_discrete) then
-             ! The interior integral is still interior!
-             call addto(RHS, T_face, &
-                  -matmul(nnAdvection_out,face_val(T,face)))
-          end if
-
        end if
-       
     end if
 
   contains
