@@ -623,10 +623,7 @@ contains
     end if
     up_gi = -ele_val_at_quad(down,ele)
 
-    do gi=1, ele_ngi(U,ele)
-       up_vec = get_up_vec(ele_val(X,ele), up_gi(:,gi))
-       up_gi(:,gi) = up_vec
-    end do
+    call get_up_gi(X,ele,up_gi)
 
     !J, detJ is needed for Piola transform
     !detwei is needed for pressure mass matrix
@@ -715,27 +712,51 @@ contains
         
   end subroutine get_local_solver
 
-  function get_up_vec(X_val, up) result (up_vec_out)
+  subroutine get_up_gi(X,ele,up_gi,orientation)
+    !subroutine to replace up_gi with a normal to the surface
+    !with the same orientation
     implicit none
-    real, dimension(:,:), intent(in) :: X_val           !(dim,loc)
-    real, dimension(:), intent(in) :: up
-    real, dimension(size(X_val,1)) :: up_vec_out
+    type(vector_field), intent(in) :: X
+    integer, intent(in) :: ele
+    real, dimension(X%dim,ele_ngi(X,ele)), intent(inout) :: up_gi
+    integer, intent(out), optional :: orientation
     !
-    real, dimension(size(X_val,1)) :: t1,t2
-    ! if elements are triangles:
-    if(size(X_val,2)==3) then
-       t1 = X_val(:,2)-X_val(:,1)
-       t2 = X_val(:,3)-X_val(:,1)
-       up_vec_out(1) = t1(2)*t2(3)-t1(3)*t2(2)
-       up_vec_out(2) = -(t1(1)*t2(3)-t1(3)*t2(1))
-       up_vec_out(3) = t1(1)*t2(2)-t1(2)*t2(1)
-       up_vec_out = up_vec_out*dot_product(up_vec_out, up)
-       up_vec_out = up_vec_out/sqrt(sum(up_vec_out**2))
-    else
-       FLAbort('Haven''t sorted out quads yet.')
-       up_vec_out = up
-    end if
-  end function get_up_vec
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    integer :: gi
+    real, dimension(X%dim,ele_ngi(X,ele)) :: normal_gi
+    real, dimension(ele_ngi(X,ele)) :: orientation_gi
+    real :: norm
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J)
+
+    select case(mesh_dim(X)) 
+    case (2)
+       !Coriolis only makes sense for 2d surfaces embedded in 3d
+       do gi = 1, ele_ngi(X,ele)
+          normal_gi(:,gi) = cross_product(J(1,:,gi),J(2,:,gi))
+          norm = sqrt(sum(normal_gi(:,gi)**2))
+          normal_gi(:,gi) = normal_gi(:,gi)/norm
+       end do
+       do gi = 1, ele_ngi(X,ele)
+          orientation_gi(gi) = dot_product(normal_gi(:,gi),up_gi(:,gi))
+       end do
+       if(any(abs(orientation_gi-orientation_gi(1))>1.0e-8)) then
+          FLAbort('Nasty geometry problem')
+       end if
+       do gi = 1, ele_ngi(X,ele)
+          up_gi(:,gi) = normal_gi(:,gi)*orientation_gi(gi)
+       end do
+       if(present(orientation)) then
+          if(orientation_gi(1)>0.0) then
+             orientation = 1
+          else
+             orientation = -1
+          end if
+       end if
+    case default
+       FLAbort('not implemented')
+    end select
+  end subroutine get_up_gi
 
   function get_orientation(X_val, up) result (orientation)
     !function compares the orientation of the element with the 
@@ -1691,10 +1712,8 @@ contains
     f_gi = ele_val_at_quad(f,ele)
     up_gi = -ele_val_at_quad(down,ele)
 
-    do gi=1, ele_ngi(U_local,ele)
-       up_vec = get_up_vec(ele_val(X,ele), up_gi(:,gi))
-       up_gi(:,gi) = up_vec
-    end do
+    call get_up_gi(X,ele,up_gi)
+
     coriolis_rhs = 0.
     l_u_mat = 0.
     !metrics for velocity mass and coriolis matrices
@@ -1754,7 +1773,7 @@ contains
     u_shape = ele_shape(U_local,ele)
     psi_shape = ele_shape(psi,ele)
     up_gi = -ele_val_at_quad(down,ele)
-    orientation = get_orientation(ele_val(X,ele), up_gi)
+    call get_up_gi(X,ele,up_gi,orientation)
 
     !We can do everything in local coordinates since d commutes with pullback
     !usual tricks: dpsi lives in the U space so we can do projection
