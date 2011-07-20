@@ -65,7 +65,6 @@ assert(abs(analytic_error_max_B) &lt; 9.0e-02)
     <test name="Assert l2norm absolute analytic_error for mesh B is less than 3.2e-02" language="python">
 assert(abs(analytic_error_l2norm_B) &lt; 3.2e-02)
     </test>
-
     <test name="Assert max absolute regression difference for mesh A is less than 1.0e-10" language="python">
 assert(abs(regression_difference_max_A) &lt; 1.0e-10)
     </test>
