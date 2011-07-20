@@ -127,7 +127,8 @@ contains
 
 subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   preconditioner_matrix, prolongators, surface_node_list, &
-  internal_smoothing_option, iterations_taken)
+  internal_smoothing_option, local_assembly, &
+  iterations_taken)
   !!< Solve a linear system the nice way.
   type(scalar_field), intent(inout) :: x
   type(scalar_field), intent(in) :: rhs
@@ -142,6 +143,8 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
   integer, dimension(:), optional, intent(in) :: surface_node_list
   !! internal smoothing option
   integer, intent(in), optional :: internal_smoothing_option
+  !! Are we performing local assembly? (Ignoring off process entries)
+  logical, optional, intent(in) :: local_assembly
   !! the number of petsc iterations taken
   integer, intent(out), optional :: iterations_taken
   
@@ -179,7 +182,8 @@ subroutine petsc_solve_scalar(x, matrix, rhs, option_path, &
         option_path=option_path, &
         preconditioner_matrix=preconditioner_matrix, &
         prolongators=prolongators, surface_node_list=surface_node_list, &
-        internal_smoothing_option=internal_smoothing_option)
+        internal_smoothing_option=internal_smoothing_option, &
+        local_assembly=local_assembly)
  
   ! copy array into PETSc vecs
   call petsc_solve_copy_vectors_from_scalar_fields(y, b, x, &
@@ -645,7 +649,7 @@ subroutine petsc_solve_setup(y, A, b, ksp, petsc_numbering, &
   matrix, block_matrix, sfield, vfield, tfield, &
   option_path, startfromzero_in, &
   preconditioner_matrix, prolongators, surface_node_list, &
-  internal_smoothing_option)
+  internal_smoothing_option, local_assembly)
 !!< sets up things needed to call petsc_solve_core
 !! Stuff that comes out:
 !!
@@ -685,7 +689,8 @@ type(petsc_csr_matrix), dimension(:), optional, intent(in) :: prolongators
 !! Stuff needed for internal smoother
 integer, dimension(:), optional, intent(in) :: surface_node_list
 integer, optional, intent(in) :: internal_smoothing_option
-  
+!! Are we performing local assembly? (Ignoring off process entries)
+logical, optional, intent(in) :: local_assembly
   logical, dimension(:), pointer:: inactive_mask
   integer, dimension(:), allocatable:: ghost_nodes
   Mat:: pmat
@@ -816,7 +821,8 @@ integer, optional, intent(in) :: internal_smoothing_option
      
      if (.not. have_cache) then
        ! create PETSc Mat using this numbering:
-       A=csr2petsc(matrix, petsc_numbering, petsc_numbering)
+       A=csr2petsc(matrix, petsc_numbering, petsc_numbering, &
+            local_assembly=local_assembly)
      end if
       
      halo=>matrix%sparsity%column_halo
@@ -840,7 +846,8 @@ integer, optional, intent(in) :: internal_smoothing_option
      
       if (.not. have_cache) then
         ! create PETSc Mat using this numbering:
-        A=block_csr2petsc(block_matrix, petsc_numbering, petsc_numbering)
+        A=block_csr2petsc(block_matrix, petsc_numbering, petsc_numbering, &
+             local_assembly=local_assembly)
       end if
       
       halo=>block_matrix%sparsity%column_halo
@@ -866,7 +873,8 @@ integer, optional, intent(in) :: internal_smoothing_option
     call ewrite_ksp_options(ksp)
   else if (present(preconditioner_matrix)) then
     ewrite(2,*)  'Using provided preconditioner matrix'
-    pmat=csr2petsc(preconditioner_matrix, petsc_numbering)
+    pmat=csr2petsc(preconditioner_matrix, petsc_numbering, &
+         local_assembly=local_assembly)
     
     ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
     call SetupKSP(ksp, A, pmat, solver_option_path, parallel, &

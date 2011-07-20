@@ -863,7 +863,8 @@ contains
     
   end subroutine Petsc2VectorField
     
-  function csr2petsc(A, petsc_numbering, column_petsc_numbering, use_inodes) result(M)
+  function csr2petsc(A, petsc_numbering, column_petsc_numbering, &
+       use_inodes, local_assembly) result(M)
   !!< Converts a csr_matrix from Sparse_Tools into a PETSc matrix.
   !!< Note: this function creates a PETSc matrix, it has to be deallocated
   !!< with MatDestroy by the user.
@@ -878,6 +879,8 @@ contains
   !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
   !! that's why we default to not use them
   logical, intent(in), optional:: use_inodes
+  !! Are we performing local assembly? (Ignoring off process entries)
+  logical, optional, intent(in) :: local_assembly
   Mat M
     
     type(block_csr_matrix) block_matrix
@@ -885,13 +888,15 @@ contains
     block_matrix=wrap(A%sparsity, (/ 1, 1 /), A%val, name="TemporaryMatrix_csr2petsc")
     
     M=block_csr2petsc(block_matrix, petsc_numbering=petsc_numbering, &
-        column_petsc_numbering=column_petsc_numbering, use_inodes=use_inodes)
+        column_petsc_numbering=column_petsc_numbering, &
+        use_inodes=use_inodes, local_assembly=local_assembly)
         
     call deallocate(block_matrix)
     
   end function csr2petsc
   
-  function block_csr2petsc(A, petsc_numbering, column_petsc_numbering, use_inodes) result(M)
+  function block_csr2petsc(A, petsc_numbering, column_petsc_numbering, &
+       use_inodes, local_assembly) result(M)
   !!< Converts a block_csr_matrix from Sparse_Tools into a PETSc matrix.
   !!< Note: this function creates a PETSc matrix, it has to be deallocated
   !!< with MatDestroy by the user. 
@@ -906,6 +911,8 @@ contains
   !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
   !! that's why we default to not use them
   logical, intent(in), optional:: use_inodes
+  !! Are we performing local assembly? (Ignoring off process entries)
+  logical, optional, intent(in) :: local_assembly
   Mat M
     
     type(petsc_numbering_type) row_numbering, col_numbering
@@ -1001,7 +1008,10 @@ contains
     
       ! Create parallel matrix:
       M=csr2petsc_CreateMPIAIJ(A%sparsity, row_numbering, col_numbering, A%diagonal, use_inodes=use_inodes)
-      
+
+      if (present_and_true(local_assembly)) then
+         call MatSetOption(M, MAT_IGNORE_OFF_PROC_ENTRIES, PETSC_TRUE, ierr)
+      end if
     endif 
 
     allocate(colidx(1:nbcols))
@@ -1162,7 +1172,7 @@ contains
     deallocate(colidx, vals)
 
   end function CreatePrivateMatrixFromSparsity
-  
+
   function csr2petsc_CreateSeqAIJ(sparsity, row_numbering, col_numbering, only_diagonal_blocks, use_inodes) result(M)
   !!< Creates a sequential PETSc Mat of size corresponding with
   !!< row_numbering and col_numbering.
