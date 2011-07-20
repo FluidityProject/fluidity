@@ -251,6 +251,7 @@ contains
     type(scalar_field) :: l_model
     type(vector_field) :: v_model(3)
     type(tensor_field) :: t_model
+    real, dimension(position%dim) :: spatialextent
     logical :: dgify_fields ! should we DG-ify the fields -- make them discontinous?
     integer, allocatable, dimension(:)::ghost_levels
     real, allocatable, dimension(:,:) :: tempval
