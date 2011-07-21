@@ -63,7 +63,10 @@ contains
     INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINCMC
     INTEGER, DIMENSION( NCMC ), intent( in ) :: COLCMC
     INTEGER, DIMENSION( NONODS ), intent( in ) :: MIDCMC
-   
+    
+    
+    ! THERE IS A SERIOUS BUG WITH CALLING THIS PETSC SOLVER WRAPPER
+    ! IN THAT THE MEMORY USAGE CONTINUOUSLY GROWS. DO NOT USE IT.
     logical :: use_petsc = .false. !.true.
     real :: max_error
 

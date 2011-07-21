@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>BL_1d_GravityUnstable</name>
+  <owner userid="btollit"/>
+  <tags>mpml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../../bin/multiphase_prototype BL_1d_GravityUnstable_A.mpml
+
+mkdir BL_1d_GravityUnstable_A_output
+
+mv *.d.* BL_1d_GravityUnstable_A_output
+
+cp  BL_1d_GravityUnstable_A.mpml BL_1d_GravityUnstable_B.mpml
+sed -i 's/_A/_B/' BL_1d_GravityUnstable_B.mpml
+
+../../../bin/multiphase_prototype BL_1d_GravityUnstable_B.mpml 
+
+mkdir BL_1d_GravityUnstable_B_output
+
+mv *.d.* BL_1d_GravityUnstable_B_output
+
+rm -f BL_1d_GravityUnstable_B.mpml
+    </command_line>
+    <!-- One dimensional BL with gravity unstable problem for different mesh resolutions checking against an interpolated analytic solution (at 500 points with cubic interpolation) of the first phase saturation and also against a projected regression reference answer-->
+  </problem_definition>
+  <variables>
+    <variable name="analytic_error_max_A" language="python">
+from fluidity_tools import stat_parser as stat
+analytic_error_max_A = stat("BL_1d_GravityUnstable_A.stat")["phase1"]["AnalyticError"]["max"][-1]
+    </variable>
+    <variable name="analytic_error_l2norm_A" language="python">
+from fluidity_tools import stat_parser as stat
+analytic_error_l2norm_A = stat("BL_1d_GravityUnstable_A.stat")["phase1"]["AnalyticError"]["l2norm"][-1]
+    </variable>
+    <variable name="analytic_error_max_B" language="python">
+from fluidity_tools import stat_parser as stat
+analytic_error_max_B = stat("BL_1d_GravityUnstable_B.stat")["phase1"]["AnalyticError"]["max"][-1]
+    </variable>
+    <variable name="analytic_error_l2norm_B" language="python">
+from fluidity_tools import stat_parser as stat
+analytic_error_l2norm_B = stat("BL_1d_GravityUnstable_B.stat")["phase1"]["AnalyticError"]["l2norm"][-1]
+    </variable>
+    <variable name="regression_difference_max_A" language="python">
+from fluidity_tools import stat_parser as stat
+regression_difference_max_A = stat("BL_1d_GravityUnstable_A.stat")["phase1"]["RegressionDifference"]["max"][-1]
+    </variable>
+    <variable name="regression_difference_max_B" language="python">
+from fluidity_tools import stat_parser as stat
+regression_difference_max_B = stat("BL_1d_GravityUnstable_B.stat")["phase1"]["RegressionDifference"]["max"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Assert max absolute analytic_error for mesh A is less than 9.0e-02" language="python">
+assert(abs(analytic_error_max_A) &lt; 9.0e-02)
+    </test>
+    <test name="Assert l2norm absolute analytic_error for mesh A is less than 4.7e-02" language="python">
+assert(abs(analytic_error_l2norm_A) &lt; 4.7e-02)
+    </test>
+    <test name="Assert max absolute analytic_error for mesh B is less than 7.0e-02" language="python">
+assert(abs(analytic_error_max_B) &lt; 7.0e-02)
+    </test>
+    <test name="Assert l2norm absolute analytic_error for mesh B is less than 3.1e-02" language="python">
+assert(abs(analytic_error_l2norm_B) &lt; 3.1e-02)
+    </test>
+    <test name="Assert max absolute regression difference for mesh A is less than 1.0e-10" language="python">
+assert(abs(regression_difference_max_A) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression difference for mesh B is less than 1.0e-10" language="python">
+assert(abs(regression_difference_max_B) &lt; 1.0e-10)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

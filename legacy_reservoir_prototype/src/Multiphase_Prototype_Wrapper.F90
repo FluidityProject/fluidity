@@ -27,7 +27,7 @@
 
 #include "fdebug.h"
 
-  subroutine multiphase_prototype_wrapper(filename, filename_len)
+  subroutine multiphase_prototype_wrapper() bind(C)
 
     use fldebug
     use state_module
@@ -61,51 +61,18 @@
 #include "finclude/petsc.h"
 #endif
 
-    ! Interface blocks for the initialisation routines we need to call
-    interface
-       subroutine set_global_debug_level(n)
-         integer, intent(in) :: n
-       end subroutine set_global_debug_level
-
-       subroutine mpi_init(ierr)
-         integer, intent(out) :: ierr
-       end subroutine mpi_init
-
-       subroutine mpi_finalize(ierr)
-         integer, intent(out) :: ierr
-       end subroutine mpi_finalize
-
-       subroutine python_init
-       end subroutine python_init
-
-       subroutine petscinitialize(s, i)
-         character(len=*), intent(in) :: s
-         integer, intent(out) :: i
-       end subroutine petscinitialize
-    end interface
-
     type(state_type), dimension(:), pointer :: state
 
-    integer, intent(in) :: filename_len
-    integer :: ierr, i, dump_no = 0
+    integer :: i, dump_no = 0
     integer :: ntsol, nonlinear_iterations
 
-    character(len = filename_len), intent(in) :: filename
+    character(len = option_path_len) :: filename
     character(len = option_path_len) :: simulation_name, dump_format
 
     real :: finish_time, nonlinear_iteration_tolerance
-!    integer :: mpi_success
-
-#ifdef HAVE_MPI
-    call mpi_init(ierr)
-    assert(ierr == MPI_SUCCESS)
-#endif
-
-#ifdef HAVE_PETSC
-    call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
-#endif
-
-    call python_init
+    
+    call get_option("/simulation_name",filename)
+    
     call set_simulation_start_times()
     call initialise_walltime
     timestep = 0

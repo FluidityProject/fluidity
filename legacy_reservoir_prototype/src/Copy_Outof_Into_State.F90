@@ -359,18 +359,6 @@ module copy_outof_into_state
          u_ele_type = 1
       end if
 
-
-      !! Time options
-      ewrite(3,*) ' Getting time options'
-      call get_option('/io/max_dump_file_count', ntime, default=160)
-      if (have_option('/io/dump_period_in_timesteps/constant')) then
-         call get_option('/io/dump_period_in_timesteps/constant',ntime_dump)
-      else
-         ! This way might be inaccurate due to rounding errors:
-         call get_option('/io/dump_period/constant',ntime_dump)
-         ntime_dump = int(ntime_dump/dt)
-      end if
-
       ewrite(3,*) ' Getting iteration info'
       call get_option( '/timestepping/nonlinear_iterations', nonlinear_iterations, &
            default = 3 )

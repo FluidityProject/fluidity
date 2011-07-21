@@ -155,6 +155,8 @@ contains
 
     REAL, DIMENSION( :, :, :, : ), allocatable :: THETA_FLUX, ONE_M_THETA_FLUX
     INTEGER :: IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA
+    
+    real :: finish_time
 
     IGOT_T2 = 0
     IGOT_THETA_FLUX = 0 
@@ -168,12 +170,20 @@ contains
 
     call get_option("/timestepping/current_time", acctim)
     call get_option("/timestepping/timestep", dt)
+    call get_option("/timestepping/finish_time", finish_time)
     
     ewrite(3,*) 'In solve_multiphase_field_advection'
-
-    Loop_Time: do itime = 1, ntime
-
+    
+    itime = 0
+    
+    Loop_Time: do 
+       
+       itime = itime + 1
+       
        acctim = acctim + dt
+       
+       if (acctim >= finish_time) exit Loop_Time 
+       
        told = t
 
        Loop_Non_Linear_Iterations: do its = 1, nits
