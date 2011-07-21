@@ -1250,10 +1250,10 @@ start =
                      }
                   }
                }?,
-               ## Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
+               ## Standard k-epsilon turbulence model (see e.g. Ferziger and Peric(2002) p.295).
                ## Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
                ## in order to close momentum equations.
-               ## Generates an isotropic 'eddy viscosity', added to normal viscosity field, that
+               ## Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
                ## carries the influence of turbulence onto the velocity field. See the manual for details.
                element k-epsilon {
                   ## Turbulent kinetic energy (k).
@@ -1319,7 +1319,7 @@ start =
                         }
                      )
                   },
-                  ## Scalar component of the eddy viscosity tensor (diagnostic).
+                  ## Scalar component of the eddy viscosity tensor.
                   ## This will appear in the stat file.
                   element scalar_field {
                      attribute rank { "0" },
@@ -1347,31 +1347,7 @@ start =
                            diagnostic_scalar_field
                         }
                      )
-                  }?,
-                  ## Ratio of TurbulentKineticEnergy to TurbulentDissipation (diagnostic).
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "TKEOverEpsilon" },
-                     (
-                        element diagnostic {
-                           internal_algorithm,
-                           velocity_mesh_choice,
-                           diagnostic_scalar_field
-                        }
-                     )
-                  }?,
-                  ## Reciprocal of the above ratio, a.k.a. Omega or specific dissipation (diagnostic).
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "EpsilonOverTKE" },
-                     (
-                        element diagnostic {
-                           internal_algorithm,
-                           velocity_mesh_choice,
-                           diagnostic_scalar_field
-                        }
-                     )
-                  }?,
+                  },
                   ## Select whether source and absorption terms for k and epsilon
                   ## are implicit or explicit.
                   element source_absorption {
@@ -1379,6 +1355,9 @@ start =
                      "explicit"|"implicit"
                      }
                   },
+                  ## Limit the turbulence lengthscale to within physical bounds (e.g. inlet min dimension).
+                  ## This helps to prevent instabilities during simulation spin-up.
+                  element lengthscale_limit {real},
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value (default): 0.09.
                   element C_mu {real},

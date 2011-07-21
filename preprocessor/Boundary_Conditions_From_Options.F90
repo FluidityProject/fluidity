@@ -168,10 +168,6 @@ contains
     if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
         call populate_iceshelf_boundary_conditions(states(1))
     end if
-
-    !if (have_option(trim(states(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-    !    call populate_kepsilon_boundary_conditions(states(1))
-    !end if
     
   end subroutine populate_boundary_conditions
 
@@ -618,7 +614,6 @@ contains
     end if
 
     if (have_option(trim(states(1)%option_path)//'/subgridscale_parameterisations/k-epsilon')) then
-    !if (have_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon')) then
         ewrite(2,*) "Calling keps_bcs"
         call keps_bcs(states(1))
     end if

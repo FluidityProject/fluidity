@@ -153,7 +153,7 @@ contains
     type(scalar_field), pointer :: source_field
     real :: a, b, spin_up_time, current_time, dt
     integer :: stat
-    logical :: absolute_vals
+    logical :: absolute_vals=.false.
 
     if (timestep==0) then 
       call initialise_diagnostic_from_checkpoint(s_field)

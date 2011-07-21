@@ -49,10 +49,9 @@ implicit none
 
   private
 
-  ! old turbulent kinetic energy, lengthscale, field ratios
-  type(scalar_field), save            :: tke_old, tke_src_old, ll, tkeovereps, epsovertke
-  ! empirical constants
-  real, save                          :: c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k
+  ! locally allocatad fields
+  type(scalar_field), save            :: tke_old, tke_src_old
+  real, save                          :: c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k, lmax
   real, save                          :: fields_min = 1.e-10
   character(len=FIELD_NAME_LEN), save :: src_abs
 
@@ -79,7 +78,6 @@ subroutine keps_init(state)
     type(scalar_field), pointer     :: Field
     character(len=OPTION_PATH_LEN)  :: keps_path
     real                            :: visc
-    integer                         :: i
 
     ewrite(1,*)'Now in k_epsilon turbulence model - keps_init'
     keps_path = trim(state%option_path)//"/subgridscale_parameterisations/k-epsilon"
@@ -90,6 +88,9 @@ subroutine keps_init(state)
 
     ! Are source and absorption terms implicit/explicit?
     call get_option(trim(keps_path)//'/source_absorption', src_abs)
+
+    ! What is the maximum physical lengthscale in the domain?
+    call get_option(trim(keps_path)//'/lengthscale_limit', lmax)
 
     ! Get the 5 model constants
     call get_option(trim(keps_path)//'/C_mu', C_mu, default = 0.09)
@@ -102,11 +103,15 @@ subroutine keps_init(state)
     call get_option(trim(keps_path)//"/tensor_field::BackgroundViscosity/prescribed/&
                           &value::WholeMesh/isotropic/constant", visc)
     
-    ! initialise eddy viscosity field
+    ! initialise eddy viscosity
     if (have_option(trim(keps_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
        Field => extract_scalar_field(state, "ScalarEddyViscosity")
        call set(Field, visc)
     end if
+
+    ! initialise lengthscale
+    Field => extract_scalar_field(state, "LengthScale")
+    call zero(Field)
 
     ewrite(2,*) "k-epsilon parameters"
     ewrite(2,*) "--------------------------------------------"
@@ -118,6 +123,7 @@ subroutine keps_init(state)
     ewrite(2,*) "fields_min: ",fields_min
     ewrite(2,*) "background visc: ",   visc
     ewrite(2,*) "implicit/explicit source/absorption terms: ",   trim(src_abs)
+    ewrite(2,*) "max turbulence lengthscale: ",     lmax
     ewrite(2,*) "--------------------------------------------"
 
 end subroutine keps_init
@@ -132,7 +138,7 @@ subroutine keps_tke(state)
     type(vector_field), pointer        :: positions, nu, u
     type(tensor_field), pointer        :: kk_diff
     type(element_type), pointer        :: shape_kk
-    integer                            :: i, ele, stat
+    integer                            :: i, ele
     integer, pointer, dimension(:)     :: nodes_kk
     real                               :: residual
     real, allocatable, dimension(:)    :: detwei, strain_ngi, rhs_addto
@@ -398,10 +404,10 @@ subroutine keps_eddyvisc(state)
     type(state_type), intent(inout)  :: state
     type(tensor_field), pointer      :: eddy_visc, viscosity, bg_visc
     type(vector_field), pointer      :: positions
-    type(scalar_field), pointer      :: kk, eps, EV, scalarField, lumped_mass
+    type(scalar_field), pointer      :: kk, eps, EV, ll, lumped_mass
     type(scalar_field)               :: ev_rhs
     type(element_type), pointer      :: shape_ev
-    integer                          :: i, ele, stat
+    integer                          :: i, ele
     integer, pointer, dimension(:)   :: nodes_ev
     real, allocatable, dimension(:)  :: detwei, rhs_addto
 
@@ -413,6 +419,7 @@ subroutine keps_eddyvisc(state)
     viscosity  => extract_tensor_field(state, "Viscosity")
     bg_visc    => extract_tensor_field(state, "BackgroundViscosity")
     EV         => extract_scalar_field(state, "ScalarEddyViscosity")
+    ll         => extract_scalar_field(state, "LengthScale")
 
     ewrite_minmax(kk)
     ewrite_minmax(eps)
@@ -428,6 +435,8 @@ subroutine keps_eddyvisc(state)
     do i = 1, node_count(EV)
       call set(kk, i, max(node_val(kk,i), fields_min))
       call set(eps, i, max(node_val(eps,i), fields_min))
+      ! Limit lengthscale to prevent instablilities.
+      call set(ll, i, min(node_val(kk,i)**1.5 / node_val(eps,i), lmax))
     end do
 
     ! Calculate scalar eddy viscosity by integration over element
@@ -437,56 +446,33 @@ subroutine keps_eddyvisc(state)
       allocate(detwei (ele_ngi(EV, ele)))
       allocate(rhs_addto (ele_loc(EV, ele)))
       call transform_to_physical(positions, ele, detwei=detwei)
-
-      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(kk,ele)**2./ele_val_at_quad(eps,ele))
+      rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
       call addto(ev_rhs, nodes_ev, rhs_addto)
-
       deallocate(detwei, rhs_addto)
     end do
 
     lumped_mass => get_lumped_mass(state, EV%mesh)
 
-    ! Node loop: set eddy viscosity at nodes
+    ! Set eddy viscosity
     do i = 1, node_count(EV)
       call set(EV, i, node_val(ev_rhs,i)/node_val(lumped_mass,i))
-      ! Now set diagnostic fields. These do not need to be assembled by integration
-      ! because we do not need to know the values at gauss points.
-      call set(ll, i, c_mu * node_val(kk,i)**1.5 / node_val(eps,i))
-      call set(tkeovereps, i, node_val(kk,i) / node_val(eps,i))
-      call set(epsovertke, i, 1. / node_val(tkeovereps,i))
     end do
 
     call deallocate(ev_rhs)
 
-    ewrite(2,*) "Set k-epsilon eddy-viscosity tensor"
+    ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"
     call zero(eddy_visc)
 
-    ! eddy tensors are isotropic
+    ! eddy viscosity tensor is isotropic
     do i = 1, eddy_visc%dim(1)
       call set(eddy_visc, i, i, EV)
     end do
-    ewrite_minmax(eddy_visc)
 
     ! Add turbulence model contribution to viscosity field
     call addto(viscosity, eddy_visc)
 
-    ! Check components of viscosity
+    ewrite_minmax(eddy_visc)
     ewrite_minmax(viscosity)
-
-    ! Set output on optional fields
-    scalarField => extract_scalar_field(state, "LengthScale", stat)
-    if(stat == 0) then
-        call set(scalarField, ll)
-    end if
-    scalarField => extract_scalar_field(state, "TKEOverEpsilon", stat)
-    if(stat == 0) then
-        call set(scalarField, tkeovereps)  
-    end if
-    scalarField => extract_scalar_field(state, "EpsilonOverTKE", stat)
-    if(stat == 0) then
-        call set(scalarField, epsovertke)  
-    end if
-
     ewrite_minmax(kk)
     ewrite_minmax(eps)
     ewrite_minmax(EV)
@@ -512,17 +498,13 @@ subroutine keps_bcs(state)
     character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i
     integer, allocatable, dimension(:)         :: nodes_bdy
     real, dimension(:), allocatable            :: rhs
-    real                                       :: cmu
+
     ewrite(2,*) "In keps_bcs"
 
     positions => extract_vector_field(state, "Coordinate")
     u         => extract_vector_field(state, "Velocity")
     EV        => extract_scalar_field(state, "ScalarEddyViscosity")
     bg_visc   => extract_tensor_field(state, "BackgroundViscosity")
-
-    ! THIS IS NOT AVAILABLE BEFORE KEPS_INIT HAS BEEN CALLED!
-    call get_option(trim(state%option_path)//"/subgridscale_parameterisations/k-epsilon/C_mu", cmu, default = 0.09)
-    ewrite(2,*) "cmu: ", cmu
 
     field_loop: do index=1,2
 
@@ -535,7 +517,6 @@ subroutine keps_bcs(state)
       end if
 
       bc_path=trim(field1%option_path)//'/prognostic/boundary_conditions'
-      ewrite(2,*) "bc_path: ", trim(bc_path)
       nbcs=option_count(trim(bc_path))
 
       ! Loop over boundary conditions for field1
@@ -547,20 +528,15 @@ subroutine keps_bcs(state)
         call get_option(trim(bc_path_i)//"/name", bc_name)
         call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
 
-        ewrite(2,*) "Checking field BC: ",trim(field1%name),' ',trim(bc_name),' ',trim(bc_type)
-
         if (trim(bc_type) .eq. "k_epsilon") then
           ! Get bc by name. Get type just to make sure it's now dirichlet
           call get_boundary_condition(field1, name=bc_name, type=bc_type, surface_node_list=surface_node_list, &
                                       surface_element_list=surface_elements, surface_mesh=surface_mesh)
-          !ewrite(3,*) "surface_node_list: ", surface_node_list
 
           ! Do we have high- or low-Reynolds-number wall functions?
           call get_option(trim(bc_path_i)//"/type::k_epsilon/", wall_fns)
 
           ewrite(2,*) "Calculating field BC: ",trim(field1%name),' ',trim(bc_name),' ',trim(bc_type),' ',trim(wall_fns)
-          !ewrite(3,*) "surface_mesh%: ", trim(surface_mesh%name), surface_mesh%elements, surface_mesh%nodes
-          !ewrite(3,*) "---------------------------------------"
 
           ! Get surface field already created in bcs_from_options
           surface_field => extract_surface_field(field1, bc_name=bc_name, name="value")
@@ -569,32 +545,18 @@ subroutine keps_bcs(state)
           call allocate(surface_values, surface_mesh, name="surfacevalues")
           call allocate(rhs_field, field1%mesh, name="rhs")
           call zero(surface_values); call zero(rhs_field)
-          !ewrite(3,*) "rhs_field%: ", trim(rhs_field%name), rhs_field%mesh%elements, rhs_field%mesh%nodes
 
-          ewrite(3,*) "Entering surface element loop"
           do j = 1, ele_count(surface_mesh)
-             ! I want ele and sele on volume mesh for keps_wall_function
              sele = surface_elements(j)
-             !sele = j
              ele  = face_ele(rhs_field, sele)
-             !ewrite(3,*) "j, sele, ele: ", j, sele, ele
-             !ewrite(3,*) "ele_nodes: ", ele_nodes(rhs_field,ele)
-             !ewrite(3,*) "sele_nodes: ", ele_nodes(rhs_field,sele)
 
              allocate(rhs(face_loc(rhs_field, sele)))
              allocate(nodes_bdy(face_loc(rhs_field, sele)))
-
              nodes_bdy = face_global_nodes(rhs_field, sele)
-             !nodes_bdy = face_global_nodes(rhs_field, j)
-             !nodes_bdy = ele_nodes(surface_field, j)
-
-             !ewrite(3,*) "nodes_bdy: ", nodes_bdy
-             !ewrite(3,*) "node_val rhs_field: ", node_val(rhs_field,nodes_bdy)
 
              ! Calculate wall function
-             call keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,cmu,rhs)
-             ewrite(3,*) "rhs: ", rhs
-             ewrite(3,*) "----------------------------------------"
+             call keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,rhs)
+
              ! Add element contribution to rhs field
              call addto(rhs_field, nodes_bdy, rhs)
              
@@ -605,8 +567,6 @@ subroutine keps_bcs(state)
           call remap_field_to_surface(rhs_field, surface_values, surface_elements)
 
           do j = 1, size(surface_node_list)
-             !node = surface_node_list(j)
-             ewrite(3,*) "node, val: ", j, node_val(surface_values, j)
              call set(surface_field, j, node_val(surface_values, j))
           end do
 
@@ -624,11 +584,8 @@ subroutine keps_cleanup()
 
     ewrite(1,*) "In keps_cleanup"
 
-    call deallocate(ll)
     call deallocate(tke_old)
     call deallocate(tke_src_old)
-    call deallocate(tkeovereps)
-    call deallocate(epsovertke)
 
 end subroutine keps_cleanup
 
@@ -786,20 +743,17 @@ subroutine keps_allocate_fields(state)
     vectorField => extract_vector_field(state, "Velocity")
 
     ! allocate some space for the fields we need for calculations
-    call allocate(ll,         vectorField%mesh, "LengthScale")
     call allocate(tke_old,    vectorField%mesh, "Old_TKE")
     call allocate(tke_src_old,vectorField%mesh, "Old_TKE_Source")
-    call allocate(tkeovereps, vectorField%mesh, "TKEoverEpsilon")
-    call allocate(epsovertke, vectorField%mesh, "EpsilonOverTKE")
-    call zero(ll); call zero(tke_old); call zero(tke_src_old); call zero(tkeovereps); call zero(epsovertke)
+    call zero(tke_old); call zero(tke_src_old)
 
 end subroutine keps_allocate_fields
 
 !--------------------------------------------------------------------------------!
-! Only used if bc type == k_epsilon for field.                                    !
+! Only used if bc type == k_epsilon for field.                                   !
 !--------------------------------------------------------------------------------!
 
-subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,cmu,rhs)
+subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,rhs)
 
     type(scalar_field), pointer, intent(in)              :: field1, field2, EV
     type(vector_field), pointer, intent(in)              :: positions, u
@@ -810,7 +764,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
 
     type(element_type), pointer                          :: shape, fshape
     integer                                              :: i, j, gi, sgi, sloc
-    real                                                 :: kappa, h, cmu
+    real                                                 :: kappa, h
     real, dimension(1,1)                                 :: hb
     real, dimension(ele_ngi(field1,ele))                 :: detwei
     real, dimension(face_ngi(field1,sele))               :: detwei_bdy, ustar, q_sgin, visc_sgi
@@ -833,8 +787,8 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
     ! Get ids, lists and shape functions
     sgi      =  face_ngi(field1, sele)    ! no. of gauss points in surface element
     sloc     =  face_loc(field1, sele)    ! no. of nodes on surface element
-    shape  => ele_shape(field1, ele)    ! scalar field shape functions in volume element
-    fshape => face_shape(field1, sele)  ! scalar field shape functions in surface element
+    shape    => ele_shape(field1, ele)    ! scalar field shape functions in volume element
+    fshape   => face_shape(field1, sele)  ! scalar field shape functions in surface element
 
     ! Get shape fn gradients, element/face quadrature weights, and surface normal
     call transform_to_physical( positions, ele, shape, dshape=dshape, detwei=detwei, invJ=invJ )
@@ -864,21 +818,16 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
 
           ! grad(k**0.5) at ele_nodes (dim,loc)
           q = shape_vector_rhs(shape, grad_k, detwei)
-          !ewrite(3,*) "q: ", q
 
           q = matmul(q,invmass)
-          !ewrite(3,*) "q: ", q
           ! Pick surface nodes (dim,sloc)
           q_s = q(:,face_local_nodes(field1,sele))
-          !ewrite(3,*) "qs: ", qs
           q_sgi = matmul(q_s, fshape%n)
-          !ewrite(3,*) "qsgi: ", qsgi
 
           !dot with surface normal
           do gi = 1, sgi
              q_sgin(gi) = dot_product(q_sgi(:,gi),normal_bdy(:,gi))
           end do
-          !ewrite(3,*) "q_sgin: ", q_sgin
 
           ! integral of 2*nu*(grad(k**0.5))**2 (sloc)
           rhs = shape_rhs(fshape, detwei_bdy*q_sgin**2.0*visc_sgi*2.0)
@@ -896,43 +845,35 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
        do i=1,u%dim
          do j=1,u%dim
            qq(i,j,:) = matmul(invmass,qq(i,j,:))
-           !ewrite(3,*) "qq: ", qq(i,j,:)
 
            ! Pick surface nodes (dim,dim,sloc)
            qq_s(i,j,:) = qq(i,j,face_local_nodes(field1,sele))
-           !ewrite(3,*) "qq_s: ", qq_s(i,j,:)
 
            ! Get values at surface quadrature (dim,dim,sgi)
            qq_sgi(i,j,:) = matmul(qq_s(i,j,:), fshape%n)
-           !ewrite(3,*) "qq_sgi: ", qq_sgi(i,j,:)
          end do
        end do
 
        do gi = 1, sgi
           !dot with surface normal (dim,sgi)
           qq_sgin(:,gi) = matmul(qq_sgi(:,:,gi),normal_bdy(:,gi))
-          !ewrite(3,*) "qq_sgin: ", qq_sgin(:,gi)
 
           ! Subtract normal component of velocity, leaving tangent components:
           qq_sgin(:,gi) = qq_sgin(:,gi)-normal_bdy(:,gi)*dot_product(qq_sgin(:,gi),normal_bdy(:,gi))
 
           ! Get streamwise component by taking sqrt(grad_n.grad_n). Multiply by eddy viscosity.
           ustar(gi) = norm2(qq_sgin(:,gi)) * visc_sgi(gi)
-          !ewrite(3,*) "ustar: ", ustar(gi)
        end do
 
        if (index==1) then
-          rhs = shape_rhs(fshape, detwei_bdy*ustar/cmu**0.5)
-          !ewrite(3,*) "cmu, rhs: ", cmu, rhs
+          rhs = shape_rhs(fshape, detwei_bdy*ustar/c_mu**0.5)
           rhs = rhs/lumpedfmass
-          !ewrite(3,*) "rhs: ", rhs
        else if (index==2) then
           ! calculate wall-normal element size
           G = matmul(transpose(invJ(:,:,1)), invJ(:,:,1))
           n(:,1) = normal_bdy(:,1)
           hb = 1. / sqrt( matmul(matmul(transpose(n), G), n) )
           h  = hb(1,1)
-          !ewrite(3,*) "h: ", h
           ! Von Karman's constant
           kappa = 0.43
 
@@ -962,17 +903,14 @@ function double_dot_product(du_t, nu)
     dim  = size(du_t,3)
 
     do gi=1, ngi
-       !ewrite(2,*) "nu,du_t: ", nu, du_t(:,gi,:)
        S = matmul( nu, du_t(:,gi,:) )
        T = S
-       !print *, "gi, S: ", gi, S
        S = S + transpose(S)
        double_dot_product(gi) = 0.
 
        do i = 1, dim
            do j = 1, dim
                double_dot_product(gi) = double_dot_product(gi) + T(i,j) * S(j,i)
-               !ewrite(2,*) "i,j,T_ij,S_ji,ddp: ", i,j,T(i,j),S(j,i),double_dot_product(gi)
            end do
        end do
     end do
