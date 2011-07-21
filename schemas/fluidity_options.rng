@@ -164,6 +164,13 @@ interpolated for VTK output.</a:documentation>
           </element>
         </choice>
         <optional>
+          <element name="adhere_to_output_mesh_continuity">
+            <a:documentation>Select to disable automatically using a discontinuous output
+mesh when there are discontinuous fields to output.</a:documentation>
+            <ref name="comment"/>
+          </element>
+        </optional>
+        <optional>
           <element name="convergence">
             <a:documentation>Options for convergence analysis.</a:documentation>
             <optional>

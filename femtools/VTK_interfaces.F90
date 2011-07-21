@@ -259,22 +259,24 @@ contains
     if (present(stat)) stat = 0
     
     dgify_fields = .false.
-    if (present(sfields)) then
-      do i=1,size(sfields)
-        if ( (sfields(i)%mesh%continuity .lt. 0 .and. sfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
-      end do
+    if (not have_option("/io/adhere_to_output_mesh_continuity")) then
+      if (present(sfields)) then
+        do i=1,size(sfields)
+          if ( (sfields(i)%mesh%continuity .lt. 0 .and. sfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
+        end do
+      end if
+      if (present(vfields)) then
+        do i=1,size(vfields)
+          if ( (vfields(i)%mesh%continuity .lt. 0 .and. vfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
+        end do
+      end if
+      if (present(tfields)) then
+        do i=1,size(tfields)
+          if ( (tfields(i)%mesh%continuity .lt. 0 .and. tfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
+        end do
+      end if
     end if
-    if (present(vfields)) then
-      do i=1,size(vfields)
-        if ( (vfields(i)%mesh%continuity .lt. 0 .and. vfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
-      end do
-    end if
-    if (present(tfields)) then
-      do i=1,size(tfields)
-        if ( (tfields(i)%mesh%continuity .lt. 0 .and. tfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
-      end do
-    end if
-    
+
     if (present_and_true(write_inactive_parts)) then
       nparts = getnprocs()
     else
