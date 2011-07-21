@@ -252,14 +252,20 @@ contains
     type(vector_field) :: v_model(3)
     type(tensor_field) :: t_model
     logical :: dgify_fields ! should we DG-ify the fields -- make them discontinous?
+    logical :: adhere_out_cty 
     integer, allocatable, dimension(:)::ghost_levels
     real, allocatable, dimension(:,:) :: tempval
     integer :: lstat
     
     if (present(stat)) stat = 0
-    
+    if (have_option("/io/adhere_to_output_mesh_continuity")) then
+      adhere_out_cty = .true.
+    else
+      adhere_out_cty = .true.
+    end if
+
     dgify_fields = .false.
-    if (.not. have_option("/io/adhere_to_output_mesh_continuity")) then
+    if (.not. adhere_out_cty) then
       if (present(sfields)) then
         do i=1,size(sfields)
           if ( (sfields(i)%mesh%continuity .lt. 0 .and. sfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
@@ -428,7 +434,7 @@ contains
     ! if this is being called from something other than the main output routines
     ! then these tests can be disabled by passing in the optional stat argument
     ! to vtk_write_fields
-    if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+    if((lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) .and. (.not. adhere_out_cty)) then
       if(present(stat)) then
         stat = lstat
       else
@@ -473,7 +479,7 @@ contains
             ! if this is being called from something other than the main output routines
             ! then these tests can be disabled by passing in the optional stat argument
             ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            if((lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) .and. (.not. adhere_out_cty)) then
               if(present(stat)) then
                 stat = lstat
               else
@@ -564,7 +570,7 @@ contains
             ! if this is being called from something other than the main output routines
             ! then these tests can be disabled by passing in the optional stat argument
             ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            if((lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) .and. (.not. adhere_out_cty)) then
               if(present(stat)) then
                 stat = lstat
               else
@@ -645,7 +651,7 @@ contains
             ! if this is being called from something other than the main output routines
             ! then these tests can be disabled by passing in the optional stat argument
             ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            if((lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) .and. (.not. adhere_out_cty)) then
               if(present(stat)) then
                 stat = lstat
               else
