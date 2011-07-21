@@ -914,7 +914,7 @@
       ierr = adj_create_block("LayerThicknessMassMatrix", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
 
-      ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=eta0)
+      ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=.false., variable=eta0)
       call adj_chkierr(ierr)
 
       ierr = adj_create_equation(variable=eta0, blocks=(/I/), targets=(/eta0/), equation=equation)
@@ -969,7 +969,7 @@
         ierr = adj_create_block("CartesianVelocityMassMatrix", block=I, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=.false., variable=cartesian_u0)
         call adj_chkierr(ierr)
 
         ierr = adj_create_equation(variable=cartesian_u0, blocks=(/I/), targets=(/cartesian_u0/), equation=equation)
@@ -990,7 +990,7 @@
         ierr = adj_block_set_coefficient(P, coefficient=-1.0)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=local_u0)
+        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=.false., variable=local_u0)
         call adj_chkierr(ierr)
 
         ierr = adj_create_equation(variable=local_u0, blocks=(/P, I/), targets=(/cartesian_u0, local_u0/), equation=equation)
@@ -1013,9 +1013,9 @@
         ierr = adj_block_set_coefficient(block=gC, coefficient=g)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=local_u0)
+        ierr = adj_create_variable("Fluid::LocalVelocity", timestep=0, iteration=0, auxiliary=.false., variable=local_u0)
         call adj_chkierr(ierr)
-        ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=eta0)
+        ierr = adj_create_variable("Fluid::LayerThickness", timestep=0, iteration=0, auxiliary=.false., variable=eta0)
         call adj_chkierr(ierr)
 
         ierr = adj_create_equation(variable=local_u0, blocks=(/L, gC/), targets=(/local_u0, eta0/), equation=equation)
@@ -1038,7 +1038,7 @@
         ierr = adj_block_set_coefficient(P, coefficient=-1.0)
         call adj_chkierr(ierr)
 
-        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u0)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=.false., variable=cartesian_u0)
         call adj_chkierr(ierr)
 
         ierr = adj_create_equation(variable=cartesian_u0, blocks=(/P, I/), targets=(/local_u0, cartesian_u0/), equation=equation)
@@ -1072,19 +1072,19 @@
       character(len=OPTION_PATH_LEN) :: buf, functional_name
 
       ! Set up adj_variables
-      ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=u)
+      ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep, iteration=0, auxiliary=.false., variable=u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
+      ierr = adj_create_variable("Fluid::LocalVelocity", timestep=timestep-1, iteration=0, auxiliary=.false., variable=previous_u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LocalVelocityDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_u)
+      ierr = adj_create_variable("Fluid::LocalVelocityDelta", timestep=timestep, iteration=0, auxiliary=.false., variable=delta_u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=cartesian_u)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=0, auxiliary=.false., variable=cartesian_u)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=eta)
+      ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep, iteration=0, auxiliary=.false., variable=eta)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_eta)
+      ierr = adj_create_variable("Fluid::LayerThickness", timestep=timestep-1, iteration=0, auxiliary=.false., variable=previous_eta)
       call adj_chkierr(ierr)
-      ierr = adj_create_variable("Fluid::LayerThicknessDelta", timestep=timestep, iteration=0, auxiliary=ADJ_FALSE, variable=delta_eta)
+      ierr = adj_create_variable("Fluid::LayerThicknessDelta", timestep=timestep, iteration=0, auxiliary=.false., variable=delta_eta)
       call adj_chkierr(ierr)
 
       ! Set up adj_blocks
@@ -1223,7 +1223,7 @@
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars)
+        call adj_variables_from_python(adjointer, buf, start_time, start_time+dt, timestep, vars)
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep-1, functional=trim(functional_name), &
                                                       & dependencies=vars)
         call adj_chkierr(ierr)
