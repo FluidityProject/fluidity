@@ -515,10 +515,21 @@ AC_LANG_POP([Fortran 77])
 AC_PROG_INSTALL
 AC_CHECK_PROG(MAKE, gmake, gmake, make, $PATH)
 
+
+AC_ARG_ENABLE(buildopt,
+    [AC_HELP_STRING([--enable-buildopt],
+        [Enables build optimisations on ext4 and xfs filesystems])])
+
+
 # Set default for ARFLAGS, since autoconf does not have a macro for
 # it. This allows people to set it when running configure or make.
 AC_CHECK_PROG(AR, ar, ar, ,$PATH)
 test -n "$ARFLAGS" || ARFLAGS="cr"
+
+if test "$enable_buildopt" == "yes" ; then
+    ARFLAGS="r" 
+fi
+
 AC_PROG_RANLIB
 
 AC_ARG_ENABLE(verbose,
@@ -651,53 +662,43 @@ check_for_mpich=""
 check_for_lmpi=""
 
 AC_LANG(C)
-AC_ARG_ENABLE(mpi,
-[AC_HELP_STRING([--enable-mpi],
-[turns on MPI support])])
 
-# various synonyms accepted to disable MPI
-if test "$with_mpi" = no ; then enable_mpi=no; fi
-if test "$with_MPI" = no ; then enable_mpi=no; fi
-if test "$enable_MPI" = no ; then enable_mpi=no; fi
-if test "$enable_mpi" != "no" ; then
-  AC_CHECK_PROGS(MPIF90, mpif90 mpf90, $FC, $PATH)
-  if test "$smart_fortran" = "yes" ; then
-    MPIF77=$MPIF90
-  else
-    AC_CHECK_PROGS(MPIF77, mpif77 mpf77,       $F77, $PATH)
-  fi
-  AC_CHECK_PROGS(MPICC,  mpicc mpcc,        $CC,  $PATH)
-  AC_CHECK_PROGS(MPICXX, mpicxx mpiCC mpCC, $CXX, $PATH)
+AC_ARG_VAR(MPICC, C compiler command for MPI programs)
+AC_ARG_VAR(MPIF90, Fortran 90 compiler command for MPI programs)
+AC_ARG_VAR(MPIF77, Fortran 77 compiler command for MPI programs)
+AC_ARG_VAR(MPICXX, C++ compiler command for MPI programs)
 
-  F77=$MPIF77
-  FC=$MPIF90
-  CC=$MPICC
-  CXX=$MPICXX
-
-  AC_MSG_CHECKING([if we can compile and link without using -lmpi])
-  LIBS_bck="$LIBS"
-  LIBS=""
-  AC_TRY_LINK([
-  #include <mpi.h>
-  ],[
-  int flag;
-  MPI_Initialized(&flag);
-  ],[
-  AC_MSG_RESULT([yes])
-  LIBS="$LIBS_bck"
-  mpi="yes"
-  ],[
-  AC_MSG_RESULT([no])
-  LIBS="$LIBS_bck"
-  check_for_lmpi="yes"
-  ])
+AC_CHECK_PROGS(MPIF90, mpif90 mpf90, $FC, $PATH)
+if test "$smart_fortran" = "yes" ; then
+  MPIF77=$MPIF90
 else
-  AC_MSG_WARN([mpi disabled])
-  MPIF77=$F77
-  MPIF90=$FC
-  MPICC=$CC
-  MPICXX=$CXX
+  AC_CHECK_PROGS(MPIF77, mpif77 mpf77,       $F77, $PATH)
 fi
+AC_CHECK_PROGS(MPICC,  mpicc mpcc,        $CC,  $PATH)
+AC_CHECK_PROGS(MPICXX, mpicxx mpiCC mpCC, $CXX, $PATH)
+
+F77=$MPIF77
+FC=$MPIF90
+CC=$MPICC
+CXX=$MPICXX
+
+AC_MSG_CHECKING([if we can compile and link without using -lmpi])
+LIBS_bck="$LIBS"
+LIBS=""
+AC_TRY_LINK([
+#include <mpi.h>
+],[
+int flag;
+MPI_Initialized(&flag);
+],[
+AC_MSG_RESULT([yes])
+LIBS="$LIBS_bck"
+mpi="yes"
+],[
+AC_MSG_RESULT([no])
+LIBS="$LIBS_bck"
+check_for_lmpi="yes"
+])
 
 if test "$check_for_lmpi" = "yes" ; then
   AC_MSG_CHECKING([if we can compile and link using -lmpi])
@@ -759,8 +760,7 @@ cat >> confdefs.h << EOF
 EOF
   enable_mpi="yes"
 else
-  AC_MSG_WARN([no mpi support found on system])
-  enable_mpi="no"
+  AC_MSG_ERROR([no MPI support found on system])
 fi
 
 # netCDF support
@@ -802,28 +802,53 @@ EOF
 fi
 
 # Parmetis and zoltan
-if test "$enable_mpi" != "no"
-    then
-    ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
-    if test "$with_zoltan" != "no"; then
-      if test ! -z "$with_zoltan"; then
-        ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
-      fi
+ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
+
+AC_ARG_ENABLE(sam,
+    [AC_HELP_STRING([--enable-sam],
+	    [use sam rather than zoltan for adaptive load rebalancing])])
+if test "$enable_sam" = "yes"; then
+    HAVE_ZOLTAN=no
+else
+    if test "$with_zoltan" = no; then
+        HAVE_ZOLTAN=no
+        echo "Warning: zoltan disabled, using libsam instead"
     fi
+    HAVE_ZOLTAN=yes
+    zoltan=yes
+    ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
 fi
+AC_SUBST(HAVE_ZOLTAN)
+
 
 
 HAVE_ADJOINT=no
+CAN_USE_ADJOINT=yes
+WANTS_ADJOINT=yes
+if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
+  # test really is so retarded that it can't lexicographically compare strings
+  if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
+    CAN_USE_ADJOINT=no
+  fi
+fi
+
+if test "$with_adjoint" = no || test -z "$with_adjoint"; then
+  WANTS_ADJOINT=no
+fi
+
+if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+  echo "Wanted adjoint, but you need gcc > 4.5"
+  exit 1
+fi
+
+echo "with_adjoint: " $with_adjoint
 if test "$with_adjoint" != "no"; then
-  if test ! -z "$with_adjoint"; then
-    HAVE_ADJOINT=yes
+  if test "$CAN_USE_ADJOINT" != "no"; then
     ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
-    if test "$USING_GFORTRAN" = "yes"; then # check gfortran version >= 4.5
-      # test really is so retarded that it can't lexicographically compare strings
-      if test "$GFORTRAN_4_5_OR_NEWER" != "yes"; then
-        AC_MSG_ERROR(["Need gfortran >= 4.5 for the adjoint, sorry"])
-      fi
-    fi
+  fi
+  if test "$HAVE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
+    echo "Wanted adjoint, but couldn't find it"
+    exit 1
   fi
 fi
 AC_SUBST(HAVE_ADJOINT)
@@ -1478,13 +1503,7 @@ fi
 # Hack for CX1. The zoltan libs (scotch, parmetis, etc) need to apepar on the end of the compile
 # command or all sorts of badness happens (libraries not being found, despite being in the path).
 # ZOLTAN_DEPS should be empty on other machine and will be set in the cx1-module file. See wiki.
-if test "$with_zoltan" != "no" ; then
-	LIBS="$LIBS $ZOLTAN_DEPS"
-    HAVE_ZOLTAN=yes
-else
-    HAVE_ZOLTAN=no
-fi
-AC_SUBST(HAVE_ZOLTAN)
+LIBS="$LIBS $ZOLTAN_DEPS"
 
 AC_ARG_ENABLE(hyperlight,
 [AC_HELP_STRING([--enable-hyperlight],

@@ -46,6 +46,7 @@ module copy_outof_into_state
 !    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
 !    & check_diagnostic_dependencies
 
+  use element_numbering
   use boundary_conditions
 
   implicit none
@@ -140,13 +141,16 @@ module copy_outof_into_state
       type(vector_field), pointer :: positions
 
       integer :: i, j, k, l, nscalar_fields, cv_nonods, p_nonods, &
-           x_nonods, xu_nonods, u_nonods, cv_nod
+           x_nonods, xu_nonods, u_nonods, cv_nod, &
+           shared_nodes
 
       real :: coord_min, coord_max, &
            eos_value!, viscosity_ph1, viscosity_ph2
            
       integer, dimension(:), allocatable :: cv_ndgln
       integer, dimension(:), pointer :: element_nodes
+      
+      real, dimension(:), allocatable :: initial_constant_velocity
 
       !! Variables needed by the prototype code
       !! and therefore needing to be pulled out of state or
@@ -283,23 +287,42 @@ module copy_outof_into_state
 
       call get_option("/geometry/dimension",ndim)
 
-      ! nlev = 
-      xu_nloc = cmesh%shape%loc
-      cv_nloc = pmesh%shape%loc
-      x_nloc = pmesh%shape%loc
-      p_nloc = pmesh%shape%loc ! 3
-      u_nloc = vmesh%shape%loc
-      !      if (have_option("/material_phase::phase1/vector_field::Velocity/prognostic/" // &
-      !           "spatial_discretisation/discontinuous_galerkin/overlapping")) then
-      !         u_nloc=u_nloc*p_nloc
-      !      endif
+      select case(ndim)
+        case(1)
+          xu_nloc = 2
+          cv_nloc = pmesh%shape%degree + 1
+          shared_nodes = 1
+        case(2)
+          xu_nloc = 3
+          cv_nloc = tr(pmesh%shape%degree+1)
+          select case(pmesh%shape%degree)
+            case(1)
+              shared_nodes=2
+            case(2)
+              shared_nodes=3
+          end select
+        case(3)
+          xu_nloc = 4
+          cv_nloc = te(pmesh%shape%degree+1)
+          select case(pmesh%shape%degree)
+            case(1)
+              shared_nodes=3
+            case(2)
+              shared_nodes=6
+          end select
+      end select
+      x_nloc = cv_nloc
+      p_nloc = cv_nloc
+      u_nloc = cv_nloc * xu_nloc
+
       if (pmesh%continuity>=0) then
          ! Continuous pressure mesh
-         cv_nonods = ( cv_nloc - 1 ) * totele + 1
+         cv_nonods = ( cv_nloc - shared_nodes ) * totele + shared_nodes
       else
          ! Discontinuous pressure mesh
          cv_nonods = cv_nloc * totele
       endif
+
       cv_snloc = 1
       ! u_snloc is 1 for the single phase advection case:
       if (nstates==1) then
@@ -324,7 +347,7 @@ module copy_outof_into_state
          end do
          if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
       end do
-      ewrite(3,*) 'cv_ndgln: ', cv_ndgln
+!      ewrite(3,*) 'cv_ndgln: ', cv_ndgln
 
 
       !! EoS things are going to be done very differently
@@ -777,7 +800,7 @@ module copy_outof_into_state
 
          endif Conditional_Density_BC
          
-         ewrite(3,*) 'den ', den
+!         ewrite(3,*) 'den ', den
 
       enddo Loop_Density
 
@@ -916,32 +939,47 @@ module copy_outof_into_state
       Loop_Velocity: do i = 1, nphases
 
          velocity => extract_vector_field(state(i), "Velocity")
+         option_path = "/material_phase["//int2str(i-1)//"]/vector_field::Velocity"
          if (.not. allocated(u)) then
-            allocate(u(nphases*node_count(velocity)))
-            allocate(v(nphases*node_count(velocity)))
-            allocate(w(nphases*node_count(velocity)))
+            allocate(u(nphases*size(velocity%val(1, :))))
+            allocate(v(nphases*size(velocity%val(1, :))))
+            allocate(w(nphases*size(velocity%val(1, :))))
+            u=0.
+            v=0.
+            w=0.
          endif
-         u=0.
-         v=0.
-         w=0.
-         ewrite(3,*)'nodes veloc:', node_count(velocity)
+         
+         ! facility to initialise velocity field with the initial value from diamond
+         ! as long as it's a constant value
+         if (.not. allocated(initial_constant_velocity)) allocate(initial_constant_velocity(ndim))
+         initial_constant_velocity=0.
+         call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
+                         initial_constant_velocity, stat)
+         ewrite(3,*) 'initial_constant_velocity', initial_constant_velocity
+         if (stat==0) then
+            u((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(1)
+            if (ndim>1) v((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(2)
+            if (ndim>2) w((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(3)
+         endif
 
+!         ewrite(3,*) 'size veloc: ', size(velocity%val(1, :))
+         
          ! This will make sure that the fields in the PC *does not* contain any boundary conditions
          ! elements. This need to be changed along with the future data structure to take into 
          ! account the overlapping formulation.
-         do j = node_count(velocity), 1, -1
-            u((i-1)*node_count(velocity)+j)=velocity%val(X_, j)
-            if( j == 1 ) u( ( i - 1 ) * node_count( velocity ) + j ) = &
-                 u( ( i - 1 ) * node_count( velocity ) + j + 1)
+         do j = size(velocity%val(1, :)), 1, -1
+            u((i-1)*size(velocity%val(1, :))+j)=velocity%val(X_, j)
+            if( j == 1 ) u( ( i - 1 ) * size(velocity%val(1, :)) + j ) = &
+                 u( ( i - 1 ) * size(velocity%val(1, :)) + j + 1)
             if (ndim>1) then
-               v((i-1)*node_count(velocity)+j)=velocity%val(Y_, j)
-               if( j == 1 ) v( ( i - 1 ) * node_count( velocity ) + j ) = &
-                    v( ( i - 1 ) * node_count( velocity ) + j + 1)
+               v((i-1)*size(velocity%val(1, :))+j)=velocity%val(Y_, j)
+               if( j == 1 ) v( ( i - 1 ) * size(velocity%val(1, :)) + j ) = &
+                    v( ( i - 1 ) * size(velocity%val(1, :)) + j + 1)
             endif
             if (ndim>2) then
-               w((i-1)*node_count(velocity)+j)=velocity%val(Z_, j)
-               if( j == 1 ) w( ( i - 1 ) * node_count( velocity ) + j ) = &
-                    w( ( i - 1 ) * node_count( velocity ) + j + 1)
+               w((i-1)*size(velocity%val(1, :))+j)=velocity%val(Z_, j)
+               if( j == 1 ) w( ( i - 1 ) * size(velocity%val(1, :)) + j ) = &
+                    w( ( i - 1 ) * size(velocity%val(1, :)) + j + 1)
             endif
          enddo
 
@@ -991,6 +1029,7 @@ module copy_outof_into_state
          endif Conditional_Velocity_BC
 
       enddo Loop_Velocity
+      ewrite(3,*) 'u: ', u
 
 
       allocate(uabs_option(nphases))

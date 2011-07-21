@@ -54,7 +54,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">2000</real_value>
+        <real_value rank="0">1</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>

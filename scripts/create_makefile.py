@@ -84,7 +84,7 @@ class dependency_list(object):
         out+=wrap(self.obj+" "
                   +" ".join(self.targets)+": "
                   +self.source+" "
-                  +" ".join(self.deps))+["\n","\n"]
+                  +" ".join(sorted(self.deps)))+["\n","\n"]
         
         return out
 
@@ -156,7 +156,7 @@ def generate_dependencies(fortran):
             obj=os.path.splitext(f)[0]+".o"
             os.system("rm "+obj+" 2>\\dev\\null || true")
 
-            pipe=os.popen('make GENFLAGS="-M -MF '+obj+'_dependencies" '+obj)
+            pipe=os.popen('make GENFLAGS="-cpp -M -MF '+obj+'_dependencies" '+obj)
             stdout=pipe.readlines()
             if pipe.close()==None:
                 
@@ -204,6 +204,12 @@ def handle_options():
                   help="list of .F90 files to exclude from consideration.",
                   action="store", type="string", dest="exclude", default="")
 
+    optparser.add_option("--test",
+                         help="Cause a failure if the dependencies would"+
+                         " change. This is used to detect user failure to"+
+                         " run make makefiles", action="store_true",
+                         dest="test", default="test")
+
     (options, argv) = optparser.parse_args()
 
     return options
@@ -212,19 +218,48 @@ if __name__=='__main__':
     options=handle_options()
 
     sys.stderr.write("Clobbering previous dependencies\n")
-    os.system("rm Makefile.dependencies")
-    trysystem("touch Makefile.dependencies")
+    os.system("mv Makefile.dependencies Makefile.dependencies.old")
+    try:
+        trysystem("touch Makefile.dependencies")
 
-    sys.stderr.write("Making clean\n")
-    trysystem("make clean")
+        sys.stderr.write("Making clean\n")
+        trysystem("make clean")
 
-    sys.stderr.write("Listing F90 files\n")
-    fortran=set(glob.glob("*.F90"))\
-        .difference(set(options.exclude.split()))
+        sys.stderr.write("Listing F90 files\n")
+        fortran=set(glob.glob("*.[fF]90"))\
+            .difference(set(options.exclude.split()))
+        
+        sys.stderr.write("Creating reference counts\n")
+        create_refcounts()
 
-    sys.stderr.write("Creating reference counts\n")
-    create_refcounts()
+        dependencies=generate_dependencies(fortran)
+        
+        file("Makefile.dependencies",'w').writelines(dependencies)        
+        
+        if options.test:
+            if os.path.isfile("Makefile.dependencies"):
+                # Check that nothing has changed.
+                trysystem("diff -q Makefile.dependencies.old Makefile.dependencies")
+            elif os.path.isfile("Makefile.dependencies.old"):
+                raise OSError("Dependencies have disappeared!")
 
-    dependencies=generate_dependencies(fortran)
+    except:
+        # If anything fails, move the previous makefiled dependencies back.
+        os.system("mv Makefile.dependencies.old Makefile.dependencies")
 
-    file("Makefile.dependencies",'w').writelines(dependencies)        
+        if options.test:
+            print "**********************************************************"
+            print "Testing make makefiles failed.\n"+\
+                "This may indicate that make makefiles should have been\n" +\
+                "run and the resulting Makefile.dependencies committed"
+            print "**********************************************************"
+
+        # Now re-raise whatever the exception was.
+        raise
+
+        
+
+
+    # On success, remove the old file.
+    os.system("rm Makefile.dependencies.old")
+    
