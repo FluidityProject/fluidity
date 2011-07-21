@@ -658,7 +658,7 @@ contains
       
 
 #ifdef _OPENMP
-      num_threads = omp_get_num_threads()
+      num_threads = omp_get_max_threads()
       print *, "num_threads=", num_threads,"M_DG"
 #else 
       num_threads=1
