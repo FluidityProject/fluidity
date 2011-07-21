@@ -56,6 +56,7 @@
     use iso_c_binding
     use mangle_options_tree
     use manifold_projections
+    use adjoint_controls
 #ifdef HAVE_ADJOINT
     use libadjoint_data_callbacks
     use shallow_water_adjoint_callbacks
@@ -63,6 +64,7 @@
     use adjoint_functional_evaluation
     use adjoint_python
     use adjoint_global_variables
+    use shallow_water_adjoint_controls
     use adjoint_main_loop
     use forward_main_loop
 #include "libadjoint/adj_fortran.h"
@@ -135,7 +137,6 @@
     call adj_register_femtools_data_callbacks(adjointer)
     ! Register the operator callbacks
     call register_sw_operator_callbacks(adjointer)
-
 #endif
 
 #ifdef HAVE_MPI
@@ -157,6 +158,7 @@
       FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
     endif
 #else
+    call register_functional_callbacks()
     if (.not. adjoint) then
       ! disable the adjointer
       ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)
@@ -165,8 +167,11 @@
 #endif
 
     is_shallow_water=.true.
+    timestep=0
 
     call populate_state(state)
+    ! Read in any control variables
+    call adjoint_load_controls(timestep, dt, state)
     call adjoint_register_initial_eta_condition(state)
 
     call insert_time_in_state(state)
@@ -189,6 +194,8 @@
 !    call calculate_diagnostic_variables(state)
 !    call calculate_diagnostic_variables_new(state)
 
+    call write_diagnostics(state, current_time, dt, timestep)
+
     ! Always output the initial conditions.
     call output_state(state)
 
@@ -200,10 +207,11 @@
       end if
       ewrite(2,*) 'Initial Energy:', energy
 
-    timestep=0
+    ! Register the control variables to disk if desired
+    call adjoint_write_controls(timestep, dt, state)
     timestep_loop: do
        timestep=timestep+1
-       ewrite (1,*) "SW: start of timestep ",timestep, current_time
+       ewrite (1,*) "SW: start of timestep ", timestep, current_time
 
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
@@ -212,6 +220,9 @@
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time + (theta * dt))
+       ! Read in any control variables
+       call adjoint_load_controls(timestep, dt, state)
+
        if (has_vector_field(state(1), "VelocitySource")) then
           v_field => extract_vector_field(state(1), "VelocitySource")
           call project_cartesian_to_local(state(1), v_field)
@@ -221,6 +232,7 @@
 
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time + dt)
+
        if(.not. prescribed_velocity) then
           call project_local_to_cartesian(state(1))
        end if
@@ -228,7 +240,10 @@
 !            & exclude_nonrecalculated = .true.)
 !       call calculate_diagnostic_variables_new(state,&
 !            & exclude_nonrecalculated = .true.)
+
        call adjoint_register_timestep(timestep, dt, state)
+       ! Save the control variables to disk if desired
+       call adjoint_write_controls(timestep, dt, state)
 
        call advance_current_time(current_time, dt)
        if (simulation_completed(current_time, timestep)) exit timestep_loop
@@ -236,8 +251,11 @@
        if (do_write_state(current_time, timestep)) then
           call output_state(state)
        end if
-
-       call write_diagnostics(state,current_time,dt, timestep)
+  
+#ifdef HAVE_ADJOINT
+       call calculate_functional_values(timestep-1)
+#endif
+       call write_diagnostics(state,current_time, dt, timestep)
 
     end do timestep_loop
 
@@ -251,6 +269,9 @@
 
     ! One last dump
     call output_state(state)
+#ifdef HAVE_ADJOINT
+    call calculate_functional_values(timestep-1)
+#endif
     call write_diagnostics(state,current_time,dt,timestep)
 
     call deallocate(h_mass_mat)
@@ -302,7 +323,7 @@
 
       dump_no = dump_no - 1
 
-      call compute_adjoint(state, dump_no)
+      call compute_adjoint(state, dump_no, shallow_water_adjoint_timestep_callback, c_loc(matrices))
 
       call deallocate_transform_cache
       call deallocate_reserve_state
@@ -1346,7 +1367,7 @@
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars)
+        call adj_variables_from_python(adjointer, buf, start_time, start_time+dt, timestep, vars)
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep-1, functional=trim(functional_name), &
                                                       & dependencies=vars)
         call adj_chkierr(ierr)

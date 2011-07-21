@@ -523,8 +523,8 @@ contains
     !face number. This is so that the normal is identical on both sides.
     ! Jemma: need to be more careful here - actually have to calculate normal for face2
 
-    call get_local_normal(n1, w1, T, local_face_number(T%mesh,face))
-    call get_local_normal(n2, w2, T, local_face_number(T%mesh,face_2))
+    call get_local_normal(n1, w1, U_nl, local_face_number(U_nl%mesh,face))
+    call get_local_normal(n2, w2, U_nl, local_face_number(U_nl%mesh,face_2))
     
     !----------------------------------------------------------------------
     ! Construct element-wise quantities.

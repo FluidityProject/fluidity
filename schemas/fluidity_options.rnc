@@ -6466,6 +6466,14 @@ forcing =
              empty
            }?
         }?,
+        ## Check this option to use an external data set for the t(0)
+        ## and in/out boundary conditions. This sets up NEMO-type forcing.
+        element external_data_boundary_conditions {
+            ## Path of the file containing the external data set
+            element input_file {
+                attribute file_name {xsd:string} 
+            }
+        }?,
         ## Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
         ## and photosynthetic radiation to be set using data obtained from
         ## the ERA-40 reanalysis (http://data-portal.ecmwf.int/data/d/era40_daily/)
@@ -6527,14 +6535,6 @@ forcing =
                 element single_location {
                     empty
                 }?
-            }?,
-            ## Check this option to use an external data set for the t(0)
-            ## and in/out boundary conditions
-            element external_data_boundary_conditions {
-                ## Path of the file containing the external data set
-                element input_file {
-                    attribute file_name {xsd:string} 
-                }
             }?,
             ## Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
             element output_fluxes_diagnostics {

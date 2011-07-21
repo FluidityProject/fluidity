@@ -982,5 +982,6 @@ module shallow_water_adjoint_callbacks
         end select
       end if
     end subroutine shallow_water_forward_source
+    
 #endif
 end module shallow_water_adjoint_callbacks
