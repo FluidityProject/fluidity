@@ -208,7 +208,7 @@ def handle_options():
                          help="Cause a failure if the dependencies would"+
                          " change. This is used to detect user failure to"+
                          " run make makefiles", action="store_true",
-                         dest="test", default="test")
+                         dest="test", default=False)
 
     (options, argv) = optparser.parse_args()
 
@@ -246,7 +246,7 @@ if __name__=='__main__':
     except:
         # If anything fails, move the previous makefiled dependencies back.
         os.system("mv Makefile.dependencies.old Makefile.dependencies")
-
+        
         if options.test:
             print "**********************************************************"
             print "Testing make makefiles failed.\n"+\
