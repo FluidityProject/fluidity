@@ -267,6 +267,9 @@ contains
     type(integer_set), dimension(:), allocatable :: clr_sets
     integer :: clr, nnid, no_colours, len
     logical :: compact_stencil
+
+    !! Is the transform_to_physical cache we prepopulated valid
+    logical :: cache_valid
     integer :: num_threads, final_timestep
 
     ! Volume fraction fields for multi-phase flow simulation
@@ -715,6 +718,10 @@ contains
        end do
     end if
 
+#ifdef _OPENMP
+    cache_valid = prepopulate_transform_cache(X)
+    assert(cache_valid)
+#endif
     colour_loop: do clr = 1, no_colours
       len = key_count(clr_sets(clr))
       !$OMP PARALLEL DO DEFAULT(SHARED) &
