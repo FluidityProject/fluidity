@@ -164,10 +164,10 @@ module porous_media
     !!< Swc = connate water saturation
     !!< Sro = residual oil saturation
     real, intent(in) :: Sw, Swc, Sro
-    real :: normalised_saturation, nominator
-    nominator = Sw-Swc
-    if (abs(nominator)>1.0e-3) then
-      normalised_saturation = nominator/(1.0-Swc-Sro)
+    real :: normalised_saturation, numerator
+    numerator = Sw-Swc
+    if (abs(numerator)>1.0e-3) then
+      normalised_saturation = numerator/(1.0-Swc-Sro)
     else
       normalised_saturation = 0.0
     end if
@@ -234,8 +234,7 @@ module porous_media
       ! TENSOR PERMEABILITY
       t_permeability => extract_tensor_field(state(1), "Permeability", stat)
       FLExit("Cannot currently solve porous media problems with a full tensor permeability.")
-    end if
-    if (stat/=0) then
+    else
       FLExit("Porous media problems require a permeability field.")
     end if
     stat = 0
