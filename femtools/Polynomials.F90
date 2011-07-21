@@ -471,8 +471,6 @@ contains
 
     integer :: lstat
 
-    ewrite(3,*) 'coefs', poly%coefs
-
     deallocate(poly%coefs, stat=lstat)
 
     poly%degree=-1

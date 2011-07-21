@@ -950,7 +950,7 @@ contains
     real, dimension(X%dim, X%dim, ele_ngi(u_cg,ele)) :: les_tensor_gi
     real, dimension(ele_ngi(u_cg, ele)) :: les_coef_gi
     integer :: toloc, fromloc, j, gi
-    real, dimension(u%mesh%shape%loc, u_cg%mesh%shape%loc) :: locweight
+    real, dimension(u%mesh%shape%ndof, u_cg%mesh%shape%ndof) :: locweight
     integer, dimension(:), pointer :: from_ele, to_ele
     real, dimension(u%dim, u%dim, ele_loc(u, ele)) :: dg_les_loc
     real, dimension(u%dim, u%dim, ele_loc(u_cg, ele)) :: cg_les_rhs, cg_les_loc

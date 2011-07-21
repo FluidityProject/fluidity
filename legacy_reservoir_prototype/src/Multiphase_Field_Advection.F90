@@ -32,11 +32,16 @@ module multiphase_field_advection
 
   use multiphase_1D_engine
   use printout
-  use fldebug
 
   use fldebug
   use state_module
+  use fields
   use spud
+  use global_parameters, only: option_path_len
+  use advection_diffusion_cg
+  use advection_diffusion_DG
+  use advection_diffusion_FV
+  use field_equations_cv, only: solve_field_eqn_cv
 
   implicit none
 
@@ -46,7 +51,7 @@ module multiphase_field_advection
 
 contains
 
-  subroutine solve_multiphase_field_advection( problem, nphase, ncomp, totele, ndim, &
+  subroutine solve_multiphase_field_advection( state, problem, nphase, ncomp, totele, ndim, &
        u_nloc, xu_nloc, cv_nloc, x_nloc, mat_nloc, &
        cv_snloc, u_snloc, stotel, &
        domain_length, &
@@ -89,6 +94,12 @@ contains
        mxnele, ncolele, finele, colele ) ! Element connectivity 
 
     implicit none
+
+    !! New variable declaration
+
+    type(state_type), dimension(:), intent(inout) :: state
+
+    !! Old variable declaration
 
     integer, intent( in ) :: problem, nphase, ncomp, totele, ndim, u_nloc, xu_nloc, cv_nloc, x_nloc, &
          mat_nloc, cv_snloc, u_snloc, stotel
@@ -155,6 +166,8 @@ contains
 
     REAL, DIMENSION( :, :, :, : ), allocatable :: THETA_FLUX, ONE_M_THETA_FLUX
     INTEGER :: IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA
+    
+    logical :: do_fluidity_advection
 
     IGOT_T2 = 0
     IGOT_THETA_FLUX = 0 
@@ -178,8 +191,20 @@ contains
 
        Loop_Non_Linear_Iterations: do its = 1, nits
           write( 375, * ) 'itime, its: ', itime, its
-
-          call INTENERGE_ASSEM_SOLVE(  &
+          
+          !! Put alternative call to solve_advection_diffusion_? or
+          !! solve_field_eqn_c? as in Fluids.F90
+          !! Will need to pull out and put back fields at each timestep.
+          !!
+          !! Hopefully this approach will be portable to some extent to the
+          !! call to intenerge_assem_solve in Multiphase_Mom_Press_Volf
+          do_fluidity_advection = .false.
+          
+          if (do_fluidity_advection) then
+             call use_fluidity_advection_routines(state, t, cv_ndgln, its, dt)
+          
+          else
+             call INTENERGE_ASSEM_SOLVE(  &
                NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
                NCOLCT, FINDCT, COLCT, &
                CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
@@ -209,6 +234,7 @@ contains
                NOIT_DIM, &
                T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
                MEAN_PORE_CV )
+          endif
 
        end do Loop_Non_Linear_Iterations
 
@@ -246,5 +272,94 @@ contains
     ewrite(3,*) 'Leaving solve_multiphase_field_advection'
 
   end subroutine solve_multiphase_field_advection
+  
+  subroutine use_fluidity_advection_routines(state, t, cv_ndgln, its, dt)
+  
+    implicit none
+  
+    type(state_type), dimension(:), intent(inout) :: state
+    type(scalar_field), pointer :: temperature
+    integer, intent(in) :: its
+    real, intent(in) :: dt
+    integer, dimension(:), intent(in) :: cv_ndgln
+    real, dimension(:), intent(inout) :: t
+    
+    !local variables
+    integer :: i, j, stat
+    integer, dimension(:), pointer :: element_nodes
+    
+    character(len=OPTION_PATH_LEN) :: option_path, field_name
+    
+    !! Pull temperature out of state
+    temperature => extract_scalar_field(state, "Temperature", stat)
+    if (stat/=0) FLAbort("Advected field not called Temperature!")
+    
+    option_path = "/material_phase[0]/scalar_field::Temperature"
+    field_name = "Temperature"
+    
+    !! Update temperature from prototype field
+    temp_ele_loop: do i = 1,element_count(temperature)
+            
+      element_nodes => ele_nodes(temperature,i)
+            
+      temp_node_loop: do j = 1,size(element_nodes)
+             
+        call set(temperature, &
+                 element_nodes(j), &
+                 t((cv_ndgln((i-1)*size(element_nodes)+j)))) ! + (p-1)*node_count(temperature)))
+            
+      end do temp_node_loop
+            
+    end do temp_ele_loop
+
+    !! Call appropriate advection routine
+    if(have_option(trim(option_path)//&
+                     & "/prognostic/spatial_discretisation/discontinuous_galerkin")) then
+
+      ! Solve the DG form of the equations.
+      call solve_advection_diffusion_dg(field_name=trim(field_name), &
+                        & state=state(1))
+
+    elseif(have_option(trim(option_path)//&
+                     & "/prognostic/spatial_discretisation/finite_volume")) then
+
+      ! Solve the FV form of the equations.
+      call solve_advection_diffusion_fv(field_name=trim(field_name), &
+                        & state=state(1))
+
+    elseif(have_option(trim(option_path)//&
+                     & "/prognostic/spatial_discretisation/control_volumes")) then
+
+      ! Solve the pure control volume form of the equations
+      call solve_field_eqn_cv(field_name=trim(field_name), &
+                        state=state, &
+                        global_it=its)
+
+    elseif(have_option(trim(option_path) // &
+                     & "/prognostic/spatial_discretisation/continuous_galerkin")) then
+
+      call solve_field_equation_cg(trim(field_name), state(1), dt)
+      
+    else
+      ewrite(2, *) "Not solving scalar field " // trim(field_name) // " in state " // trim(state(1)%name) //" in an advdif-like subroutine."
+
+    end if ! End of dg/cv/cg choice.
+    
+    
+    !! Update prototype field from temperature
+    t_ele_loop: do i = 1,element_count(temperature)
+            
+      element_nodes => ele_nodes(temperature,i)
+            
+      t_node_loop: do j = 1,size(element_nodes)
+                 
+        t((cv_ndgln((i-1)*size(element_nodes)+j))) = & !+ (p-1)*node_count(temperature)) = &
+                        temperature%val(element_nodes(j))
+            
+      end do t_node_loop
+            
+    end do t_ele_loop
+  
+  end subroutine use_fluidity_advection_routines
 
 end module multiphase_field_advection

@@ -96,7 +96,7 @@ contains
     ! Face objects and numberings.
     type(element_type), pointer :: u_shape, u_shape_2
     integer, dimension(face_loc(U,face)) :: u_face_l
-    real, dimension(velocity_bc%dim, velocity_bc%mesh%shape%loc) :: penalty_val, penalty_val_2
+    real, dimension(velocity_bc%dim, velocity_bc%mesh%shape%ndof) :: penalty_val, penalty_val_2
 
         ! Connected two domains with a penalty term
         !

@@ -35,7 +35,8 @@ module populate_state_module
   use vtk_cache_module
   use global_parameters, only: OPTION_PATH_LEN, is_active_process, pi, &
     no_active_processes, topology_mesh_name, adaptivity_mesh_name, &
-    periodic_boundary_option_path, domain_bbox, domain_volume
+    periodic_boundary_option_path, domain_bbox, domain_volume, empty_path, &
+    PYTHON_FUNC_LEN, empty_name
   use field_options
   use reserve_state_module
   use fields_manipulation
@@ -168,6 +169,7 @@ contains
     type(mesh_type) :: mesh
     type(vector_field) :: position
     type(vector_field), pointer :: position_ptr
+    type(scalar_field) :: canonical_numbering
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
@@ -343,6 +345,10 @@ contains
             end if
             mesh = position%mesh
           end if
+
+          ! Reorder the mesh according to the canonical numbering.
+          canonical_numbering=universal_number_field(mesh)
+          call order_elements(canonical_numbering)
           
           ! coplanar ids are create here already and stored on the mesh, 
           ! so its derived meshes get the same coplanar ids
@@ -373,7 +379,9 @@ contains
           call insert(states, mesh, mesh%name)
           call insert(states, position, position%name)
           call deallocate(position)
-          
+          call insert(states, canonical_numbering, "CanonicalNumbering")
+          call deallocate(canonical_numbering)
+
         else if (extruded) then
           
           ! This will be picked up by insert_derived_meshes and changed
@@ -403,13 +411,40 @@ contains
     
     character(len=FIELD_NAME_LEN) :: mesh_name    
     character(len=OPTION_PATH_LEN) :: mesh_path
-    logical :: incomplete, updated
+    logical :: incomplete, updated, periodic_unique
     integer :: i
     integer :: nmeshes
-    
+
     ! Get number of meshes
     nmeshes=option_count("/geometry/mesh")
     periodic_boundary_option_path=""
+
+    ! Periodic meshes need to be set up first due to the need to renumber
+    !  both the mesh and the parent.
+    periodic_unique=.true.
+    periodic_loop: do i=0, nmeshes-1
+       
+       ! Save mesh path
+       mesh_path="/geometry/mesh["//int2str(i)//"]"
+      
+       if (.not.have_option(trim(mesh_path)&
+            //"/from_mesh/periodic_boundary_conditions")) cycle
+          
+       if (.not.periodic_unique) &
+            FLExit("Only one periodic mesh is supported")
+       periodic_unique=.false.
+
+       ! Get mesh name.
+       call get_option(trim(mesh_path)//"/name", mesh_name)
+       
+       call insert_derived_mesh(trim(mesh_path), &
+            trim(mesh_name), &
+            incomplete, &
+            updated, &
+            states, &
+            skip_extrusion = skip_extrusion)    
+
+    end do periodic_loop
 
     outer_loop: do
        ! Updated becomes true if we manage to set up at least one mesh on
@@ -426,7 +461,7 @@ contains
               
           ! Get mesh name.
           call get_option(trim(mesh_path)//"/name", mesh_name)
-          
+
           call insert_derived_mesh(trim(mesh_path), &
                                    trim(mesh_name), &
                                    incomplete, &
@@ -462,9 +497,11 @@ contains
     ! instead (will have correct shape and dimension)
     logical, optional, intent(in):: skip_extrusion
    
-    type(mesh_type) :: mesh, model_mesh
+    type(mesh_type) :: mesh
+    type(mesh_type), pointer :: model_mesh
     type(vector_field), pointer :: position, modelposition
     type(vector_field) :: periodic_position, nonperiodic_position, extrudedposition, coordinateposition
+    type(scalar_field) :: canonical_numbering
 
     character(len=FIELD_NAME_LEN) :: model_mesh_name
     character(len=OPTION_PATH_LEN) :: shape_type, cont
@@ -484,7 +521,7 @@ contains
        call get_option(trim(mesh_path)//"/from_mesh/mesh[0]/name", model_mesh_name)
              
        ! Extract model mesh
-       model_mesh=extract_mesh(states(1), trim(model_mesh_name), stat=stat)
+       model_mesh=>extract_mesh(states(1), trim(model_mesh_name), stat=stat)
        if (stat/=0) then
           ! The mesh from which this mesh is derived is not yet
           ! present.
@@ -494,7 +531,7 @@ contains
              
        ! Find out if the new mesh is different from the old mesh and if
        ! so, find out how it differs - in the options check
-       ! we've made sure only one of those (or both new_shape and new_cont) are .true.
+       ! we've made sure only one of those are .true.
        ! If there are no differences, do not create new mesh.
        from_shape=have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
 
@@ -521,13 +558,16 @@ contains
          if(stat==0) then
            ! Set comparison variable from_shape_type
            if(trim(shape_type)=="lagrangian") then
-             from_shape_type=ELEMENT_LAGRANGIAN
+              from_shape_type=ELEMENT_LAGRANGIAN
+           else if (trim(shape_type)=="discontinuous_lagrangian") then
+              from_shape_type=ELEMENT_DISCONTINUOUS_LAGRANGIAN
            else if(trim(shape_type)=="bubble") then
              from_shape_type=ELEMENT_BUBBLE
            else if(trim(shape_type)=="trace") then
              from_shape_type=ELEMENT_TRACE
+           ! Trying this for now
            else if(trim(shape_type)=="overlapping") then
-             from_shape_type=ELEMENT_OVERLAPPING
+             from_shape_type=ELEMENT_LAGRANGIAN
            end if
            ! If new_shape_type does not match model mesh shape type, make new mesh.
            if(from_shape_type == model_mesh%shape%numbering%type) then
@@ -545,28 +585,8 @@ contains
          new_degree=.false.; new_shape_type=.false.
        end if
 
-       ! 2. If mesh_continuity is specified, check if it is different to the model mesh.
-       call get_option(trim(mesh_path)//"/from_mesh/mesh_continuity", cont, stat)
-       if(stat==0) then
-         if(trim(cont)=="discontinuous") then
-           from_cont=-1
-         else if(trim(cont)=="continuous") then
-           from_cont=0
-         end if
-         ! 2.1. If continuity is not the same as model mesh, create new mesh.
-         if(from_cont==model_mesh%continuity) then
-           new_cont=.false.
-         else
-           new_cont=.true.
-         end if
-       ! If no continuity is specified, assume it is the same as model mesh,
-       ! and do not create a new mesh.
-       else
-         new_cont=.false.
-       end if
-
-       ! 3. If any of the above are true, make new mesh.
-       make_new_mesh = new_shape_type .or. new_degree .or. new_cont
+       ! 2. If any of the above are true, make new mesh.
+       make_new_mesh = new_shape_type .or. new_degree
 
        extrusion=have_option(trim(mesh_path)//"/from_mesh/extrude")
        periodic=have_option(trim(mesh_path)//"/from_mesh/periodic_boundary_conditions")
@@ -680,6 +700,16 @@ contains
            call incref(mesh)
            call insert(states, periodic_position, trim(periodic_position%name))
            call deallocate(periodic_position)
+
+           ! The periodic mesh canonical numbering replaces the previous
+           !  one. The positions mesh numbering will be adjusted accordingly.
+           canonical_numbering=periodic_universal_ID_field(&
+                extract_scalar_field(states(1), 'CanonicalNumbering'), &
+                mesh)
+           call order_elements(canonical_numbering, [ position%mesh ])
+           call insert(states, canonical_numbering, "CanonicalNumbering")
+           call deallocate(canonical_numbering)
+
          end if
                
        else
@@ -760,20 +790,19 @@ contains
   end subroutine insert_derived_mesh
         
   function make_mesh_from_options(from_mesh, mesh_path) result (mesh)
-    ! make new mesh changing shape or continuity of from_mesh
+    ! make new mesh changing shape of from_mesh
     type(mesh_type):: mesh
     type(mesh_type), intent(in):: from_mesh
     character(len=*), intent(in):: mesh_path
     
     character(len=FIELD_NAME_LEN) :: mesh_name
-    character(len=OPTION_PATH_LEN) :: continuity_option, element_option
+    character(len=OPTION_PATH_LEN) :: element_option
     type(quadrature_type):: quad
     type(element_type):: shape
-    integer:: loc, dim, poly_degree, continuity, new_shape_type, quad_degree, stat, p_degree
+    integer:: loc, dim, poly_degree, new_shape_type, quad_degree, stat
     logical :: new_shape
     
     ! Get new mesh shape information
-    
     new_shape = have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
     if(new_shape) then
       ! Get new mesh element type
@@ -782,12 +811,14 @@ contains
       if(stat==0) then
         if(trim(element_option)=="lagrangian") then
            new_shape_type=ELEMENT_LAGRANGIAN
+        else if(trim(element_option)=="discontinuous lagrangian") then
+           new_shape_type=ELEMENT_DISCONTINUOUS_LAGRANGIAN
         else if(trim(element_option)=="bubble") then
            new_shape_type=ELEMENT_BUBBLE
         else if(trim(element_option)=="trace") then
            new_shape_type=ELEMENT_TRACE
         else if(trim(element_option)=="overlapping") then
-           new_shape_type=ELEMENT_OVERLAPPING
+           new_shape_type=ELEMENT_LAGRANGIAN
         end if
       else
         new_shape_type=from_mesh%shape%numbering%type
@@ -797,23 +828,10 @@ contains
       call get_option(trim(mesh_path)//"/from_mesh/mesh_shape/polynomial_degree", &
                       poly_degree, default=from_mesh%shape%degree)
     
+      ! loc is the number of vertices of the element (since from_mesh is linear)
+      loc=from_mesh%shape%ndof
       ! dim is the dimension
       dim=from_mesh%shape%dim
-      ! loc is the number of vertices of the element
-      if(new_shape_type==ELEMENT_OVERLAPPING) then
-         ewrite(3,*) 'dealing with new element type'
-         ! Going to assume for now that the PressureMesh will be derived
-         ! (if not then we couldn't set the mesh shape anyway)
-         call get_option("/geometry/mesh::PressureMesh/from_mesh/mesh_shape/polynomial_degree", p_degree, default=1)
-         ewrite(3,*) 'p_degree', p_degree
-         if(p_degree==1) then ! Linear pressure, constant velocity
-            loc=dim + 1
-         else if(p_degree==2) then ! Quadratic pressure, linear velocity
-            loc=(dim+1)*(dim**2 + 3*dim + 2)/2
-         end if
-      else
-         loc=from_mesh%shape%loc
-      end if
       ! Make quadrature
       call get_option("/geometry/quadrature/degree",&
            & quad_degree)
@@ -826,23 +844,11 @@ contains
       call incref(shape)
     end if
 
-    ! Get new mesh continuity
-    call get_option(trim(mesh_path)//"/from_mesh/mesh_continuity", continuity_option, stat)
-    if(stat==0) then
-      if(trim(continuity_option)=="discontinuous") then
-         continuity=-1
-      else if(trim(continuity_option)=="continuous") then
-         continuity=0
-      end if
-    else
-      continuity=from_mesh%continuity
-    end if
-
     ! Get mesh name.
     call get_option(trim(mesh_path)//"/name", mesh_name)
 
     ! Make new mesh
-    mesh=make_mesh(from_mesh, shape, continuity, mesh_name)
+    mesh=make_mesh(from_mesh, shape, name=mesh_name)
 
     ! Set mesh option path
     mesh%option_path = trim(mesh_path)
@@ -913,7 +919,7 @@ contains
     end do
     
     call add_faces(position_out%mesh, model=position%mesh, periodic_face_map=periodic_face_map)
-    
+
     call deallocate(periodic_face_map)
     
     ! finally fix the name of the produced mesh and its coordinate field
@@ -3638,13 +3644,12 @@ contains
           if (have_option(trim(path)//"/from_mesh/extrude") .and. ( &
              
              have_option(trim(path)//"/from_mesh/mesh_shape") .or. &
-             have_option(trim(path)//"/from_mesh/mesh_continuity") .or. &
              have_option(trim(path)//"/from_mesh/periodic_boundary_conditions") &
              ) ) then
              
              ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
              ewrite(-1,*) "When extruding a mesh, you cannot at the same time"
-             ewrite(-1,*) "change its shape, continuity or add periodic bcs."
+             ewrite(-1,*) "change its shape, or add periodic bcs."
              ewrite(-1,*) "Need to do this in seperate step (derivation)."
              FLExit("Error in /geometry/mesh with extrude option")
              
@@ -3656,13 +3661,12 @@ contains
              if ( &
              
                 have_option(trim(path)//"/from_mesh/mesh_shape") .or. &
-                have_option(trim(path)//"/from_mesh/mesh_continuity") .or. &
                 have_option(trim(path)//"/from_mesh/extrude") &
              ) then
              
                 ewrite(-1,*) "In derivation of mesh ", trim(mesh_name), " from ", trim(from_mesh_name)
                 ewrite(-1,*) "When adding or removing periodicity to a mesh, you cannot at the same time"
-                ewrite(-1,*) "change its shape, continuity or extrude a mesh."
+                ewrite(-1,*) "change its shape or extrude a mesh."
                 ewrite(-1,*) "Need to do this in seperate step (derivation)."
                 FLExit("Error in /geometry/mesh with extrude option")
                 
@@ -4015,17 +4019,17 @@ contains
 
 ! Check velocity mesh continuity
   call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh/name",velmesh)
-  call get_option("/geometry/mesh::"//trim(velmesh)//"/from_mesh/mesh_continuity",continuity2)
+  call get_option("/geometry/mesh::"//trim(velmesh)//"/from_mesh/element_type",continuity2)
     
-  if (trim(continuity2).ne."discontinuous") then
+  if (trim(continuity2).ne."discontinuous lagrangian") then
     FLExit("The velocity mesh is not discontinuous")
   end if
 
   ! Check pressure mesh continuity 
   call get_option("/material_phase[0]/scalar_field::Pressure/prognostic/mesh/name",pressuremesh)
-  if (have_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_continuity"))then
-    call get_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/mesh_continuity",continuity1)
-    if (trim(continuity1).ne."continuous")then
+  if (have_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/element_type"))then
+    call get_option("/geometry/mesh::"//trim(pressuremesh)//"/from_mesh/element_type",continuity1)
+    if (trim(continuity1).ne."lagrangian")then
       FLExit ("Pressure mesh is not continuous")
     end if
   end if

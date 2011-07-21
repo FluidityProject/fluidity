@@ -33,17 +33,25 @@ module elements
   use FLDebug
   use polynomials
   use reference_counting
+  use cell_numbering
   implicit none
+
+  type dof_list
+     !!< Container type for a list of vertices
+     integer, dimension(:), allocatable :: dofs
+  end type dof_list
 
   type element_type
      !!< Type to encode shape and quadrature information for an element.
      integer :: dim !! 2d or 3d?
-     integer :: loc !! Number of nodes.
+     integer :: ndof !! Number of degrees of fredom (nodes).
      integer :: ngi !! Number of gauss points.
      integer :: degree !! Polynomial degree of element.
+     integer :: type !! Identifier for elements eg. Lagrange 
+     !!                 See Element_Numbering for a list.
      !! Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces. 
-     !! n is loc x ngi, dn is loc x ngi x dim
-     !! dn_s is loc x ngi x face x dim 
+     !! n is ndof x ngi, dn is ndof x ngi x dim
+     !! dn_s is ndof x ngi x face x dim 
      real, pointer :: n(:,:)=>null(), dn(:,:,:)=>null()
      real, pointer :: n_s(:,:,:)=>null(), dn_s(:,:,:,:)=>null()
      !! Polynomials defining shape functions and their derivatives.
@@ -53,34 +61,20 @@ module elements
      !! Link back to the quadrature used for this element.
      type(quadrature_type) :: quadrature
      type(quadrature_type), pointer :: surface_quadrature=>null()
-     !! Pointer to the superconvergence data for this element.
-     type(superconvergence_type), pointer :: superconvergence=>null()
      !! Reference count to prevent memory leaks.
      type(refcount_type), pointer :: refcount=>null()
      !! Dummy name to satisfy reference counting
      character(len=0) :: name
+     !! Mapping from element entities to degrees of freedom
+     type(dof_list), dimension(:,:), pointer :: entity2dofs=>null()
+     !! Mapping from facets to degrees of freedom.
+     type(dof_list), dimension(:), pointer :: facet2dofs=>null()
+     !! Topological entity numbering
+     type(cell_type), pointer :: cell
   end type element_type
 
-  type superconvergence_type
-    !!< A structure to represent the superconvergent points of the element in question.
-    !!< This is in this module because it has to be in element_type,
-    !!< but Superconvergence.F90 depends on Elements.F90. So Elements.F90
-    !!< cannot depend on Superconvergence.F90. (Fortran is a real pain.)
-    !! Number of superconvergent points
-    integer :: nsp 
-    !! Locations of superconvergent points in local coordinates
-    !! allocated to nsp x loc
-    real, pointer :: l(:, :)
-    !! Shape functions at each superconvergent point.
-    !! loc x nsp
-    real, pointer :: n(:, :)
-    !! Derivatives of shape functions at each superconvergent point
-    !! loc x nsp x ndim
-    real, pointer :: dn(:, :, :)
-  end type superconvergence_type
-
   interface allocate
-     module procedure allocate_element, allocate_element_with_surface
+     module procedure allocate_element
   end interface
 
   interface deallocate
@@ -119,56 +113,45 @@ module elements
 
 contains
 
-  subroutine allocate_element(element, ele_num, ngi, type, stat)
+  subroutine allocate_element(element, dim, ndof, ngi, coords, type, stat)
     !!< Allocate memory for an element_type. 
     type(element_type), intent(inout) :: element
-    !! Number of quadrature points
-    integer, intent(in) :: ngi    
-    !! Element numbering
-    type(ele_numbering_type), intent(in) :: ele_num
+    !! Dim is the dimension of the element, ndof is number of nodes, ngi is
+    !! number of gauss points. 
+    integer, intent(in) :: dim,ndof,ngi    
+    !! Number of local coordinates.
+    integer, intent(in) :: coords
     !! Stat returns zero for success and nonzero otherwise.
     integer, intent(in), optional :: type
     integer, intent(out), optional :: stat
     !
-    integer :: lstat, coords, ltype
+    integer :: lstat
 
     if(present(type)) then
-       ltype = type
+       element%type = type
     else
-       ltype = ele_num%type
+       element%type=ELEMENT_LAGRANGIAN
     end if
 
-    select case(ele_num%family)
-    case (FAMILY_SIMPLEX)
-       coords=ele_num%dimension+1
-    case (FAMILY_CUBE)
-       coords=ele_num%dimension
-    case default
-       FLAbort('Illegal element family.')
-    end select
+    select case(element%type)
+    case(ELEMENT_LAGRANGIAN, ELEMENT_DISCONTINUOUS_LAGRANGIAN,&
+         & ELEMENT_NONCONFORMING, ELEMENT_BUBBLE, ELEMENT_TRACE,&
+         & ELEMENT_ISODG)
 
-    select case(ltype)
-    case(ELEMENT_LAGRANGIAN, ELEMENT_NONCONFORMING, &
-         &ELEMENT_BUBBLE, ELEMENT_TRACE, ELEMENT_OVERLAPPING)
-
-       allocate(element%n(ele_num%nodes,ngi),&
-            &element%dn(ele_num%nodes,ngi,ele_num%dimension), &
-            &element%spoly(coords,ele_num%nodes), &
-            &element%dspoly(coords,ele_num%nodes), stat=lstat)
+      allocate(element%n(ndof,ngi),element%dn(ndof,ngi,dim), &
+          element%spoly(coords,ndof), element%dspoly(coords,ndof), stat=lstat)
 
     case(ELEMENT_CONTROLVOLUME_SURFACE)
 
-       allocate(element%n(ele_num%nodes,ngi),&
-            &element%dn(ele_num%nodes,ngi,ele_num%dimension-1), &
-            stat=lstat)
+      allocate(element%n(ndof,ngi),element%dn(ndof,ngi,dim-1), &
+          stat=lstat)
 
       element%spoly=>null()
       element%dspoly=>null()
 
     case(ELEMENT_CONTROLVOLUMEBDY_SURFACE)
 
-      allocate(element%n(ele_num%nodes,ngi),&
-           &element%dn(ele_num%nodes,ngi,ele_num%dimension), &
+      allocate(element%n(ndof,ngi),element%dn(ndof,ngi,dim), &
           stat=lstat)
 
       element%spoly=>null()
@@ -180,9 +163,9 @@ contains
 
     end select
 
-    element%loc=ele_num%nodes
+    element%ndof=ndof
     element%ngi=ngi
-    element%dim=ele_num%dimension
+    element%dim=dim
 
     nullify(element%refcount) ! Hack for gfortran component initialisation
     !                         bug.
@@ -199,41 +182,27 @@ contains
 
   end subroutine allocate_element
 
-  subroutine allocate_element_with_surface(element, dim, loc,&
-       ngi,faces, ngi_s, coords,surface_present,type, stat)
-    !!< Allocate memory for an element_type. 
+  subroutine allocate_element_facets(element, dim, ndof,&
+       facets, ngi_s, stat)
+    !!< Allocate memory for the facet shape functions of an element_type. 
     type(element_type), intent(inout) :: element
-    !! Dim is the dimension of the element, loc is number of nodes, ngi is
+    !! Dim is the dimension of the element, ndof is number of nodes, ngi is
     !! number of gauss points. 
-    integer, intent(in) :: dim,loc,ngi,faces,ngi_s    
-    !! Number of local coordinates.
-    integer, intent(in) :: coords
-    logical, intent(in) :: surface_present
-    !! Stat returns zero for success and nonzero otherwise.
-    integer, intent(in), optional :: type
+    integer, intent(in) :: dim,ndof,facets,ngi_s    
     integer, intent(out), optional :: stat
 
     integer :: lstat
 
-    allocate(element%n(loc,ngi),element%dn(loc,ngi,dim), &
-         element%n_s(loc,ngi_s,faces),element%dn_s(loc,ngi_s,faces,dim),&
-         element%spoly(coords,loc), element%dspoly(coords,loc), stat=lstat)
-    
-    element%loc=loc
-    element%ngi=ngi
-    element%dim=dim
-
+    allocate(element%n_s(ndof,ngi_s,facets),element%dn_s(ndof,ngi_s,facets,dim),&
+         stat=lstat)
+   
     if (present(stat)) then
        stat=lstat
     else if (lstat/=0) then
-       FLAbort("Unable to allocate element.")
+       FLAbort("Unable to allocate element facets.")
     end if
     
-    nullify(element%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    call addref(element)
-
-  end subroutine allocate_element_with_surface
+  end subroutine allocate_element_facets
 
   subroutine deallocate_element(element, stat)
     type(element_type), intent(inout) :: element
@@ -252,22 +221,16 @@ contains
     end if
 
     call deallocate(element%quadrature)
-    
-!    ewrite(3,*) 'Here in deallocate_element, spoly', element%spoly
-    ewrite(3,*) 'Size 1, size 2', size(element%spoly,1), size(element%spoly,2)
 
     if(associated(element%spoly)) then
       do i=1,size(element%spoly,1)
         do j=1,size(element%spoly,2)
-            ewrite(3,*) 'i, j', i, j
             call deallocate(element%spoly(i,j))
-            ewrite(3,*) 'Deallocated'
         end do
       end do
       deallocate(element%spoly, stat=tstat)
     end if
     lstat=max(lstat,tstat)
-    ewrite(3,*) 'here'
 
     if (associated(element%n_s)) deallocate(element%n_s,element%dn_s)
 
@@ -280,6 +243,16 @@ contains
       deallocate(element%dspoly, stat=tstat)
     end if
     lstat=max(lstat,tstat)
+
+    if(associated(element%entity2dofs)) then
+       deallocate(element%entity2dofs, stat=tstat)
+       lstat=max(lstat,tstat)
+    end if
+
+    if(associated(element%facet2dofs)) then
+       deallocate(element%facet2dofs, stat=tstat)
+       lstat=max(lstat,tstat)
+    end if
 
     deallocate(element%n,element%dn, stat=tstat)
     lstat=max(lstat,tstat)
@@ -343,7 +316,7 @@ contains
     type(element_type), intent(in) :: element1, element2
     
     element_equal = element1%dim==element2%dim &
-         .and. element1%loc==element2%loc &
+         .and. element1%ndof==element2%ndof &
          .and. element1%ngi==element2%ngi &
          .and. element1%numbering==element2%numbering &
          .and. element1%quadrature==element2%quadrature
@@ -353,8 +326,8 @@ contains
   subroutine extract_old_element(element, N, NLX, NLY, NLZ)
     !!< Extract the shape function values from an old element.
     type(element_type), intent(in) :: element
-    real, dimension(element%loc, element%ngi), intent(out) :: N, NLX, NLY
-    real, dimension(element%loc, element%ngi), intent(out), optional :: NLZ
+    real, dimension(element%ndof, element%ngi), intent(out) :: N, NLX, NLY
+    real, dimension(element%ndof, element%ngi), intent(out), optional :: NLZ
     
     N=element%n
     NLX=element%dn(:,:,1)
@@ -399,13 +372,13 @@ contains
     ! Evaluate the shape function for all locations at local coordinates l
     type(element_type), intent(in) :: shape
     real, dimension(size(shape%spoly,1)), intent(in) :: l
-    real, dimension(shape%loc) :: eval_shape
+    real, dimension(shape%ndof) :: eval_shape
 
     integer :: i,j
 
     eval_shape=1.0
 
-    do j=1,shape%loc
+    do j=1,shape%ndof
 
       do i=1,size(shape%spoly,1)
 
@@ -449,12 +422,12 @@ contains
   function eval_dshape_all_nodes(shape, l) result(eval_dshape)
     type(element_type), intent(in) :: shape
     real, dimension(:), intent(in) :: l
-    real, dimension(shape%loc, shape%dim) :: eval_dshape
+    real, dimension(shape%ndof, shape%dim) :: eval_dshape
 
-    integer :: loc
+    integer :: dof
 
-    do loc=1,shape%loc
-      eval_dshape(loc, :) = eval_dshape_node(shape, loc, l)
+    do dof=1,shape%ndof
+      eval_dshape(dof, :) = eval_dshape_node(shape, dof, l)
     end do
   end function eval_dshape_all_nodes
 
@@ -462,13 +435,13 @@ contains
     type(element_type), intent(in) :: shape
     real, dimension(:), intent(in) :: l
     real, dimension(shape%dim, shape%dim), intent(in) :: invJ
-    real, dimension(shape%loc, shape%dim) :: transformed_dshape, untransformed_dshape
+    real, dimension(shape%ndof, shape%dim) :: transformed_dshape, untransformed_dshape
 
-    integer :: loc
+    integer :: dof
 
-    do loc=1,shape%loc
-      untransformed_dshape(loc, :) = eval_dshape_node(shape, loc, l)
-      transformed_dshape(loc, :) = matmul(invJ, untransformed_dshape(loc, :))
+    do dof=1,shape%ndof
+      untransformed_dshape(dof, :) = eval_dshape_node(shape, dof, l)
+      transformed_dshape(dof, :) = matmul(invJ, untransformed_dshape(dof, :))
     end do
   end function eval_dshape_transformed
 
@@ -483,35 +456,35 @@ contains
     type(element_type), intent(in) :: shape ! NOT the face shape! The volume shape!
     integer, intent(in) :: local_face_number ! which face are we on
     real, dimension(:, :, :), intent(in) :: invJ
-    real, dimension(shape%loc, shape%surface_quadrature%ngi, shape%dim) :: output
-    integer :: loc, gi
+    real, dimension(shape%ndof, shape%surface_quadrature%ngi, shape%dim) :: output
+    integer :: dof, gi
 
     assert(associated(shape%dn_s))
     assert(size(invJ, 1) == shape%dim)
     assert(size(invJ, 2) == shape%dim)
     assert(size(invJ, 3) == shape%surface_quadrature%ngi)
     assert(shape%dim == size(shape%dn_s, 4))
-    assert(shape%loc == size(shape%dn_s, 1))
+    assert(shape%ndof == size(shape%dn_s, 1))
     assert(shape%surface_quadrature%ngi == size(shape%dn_s, 2))
     assert(local_face_number <= size(shape%dn_s, 3))
     assert(shape%dim == size(shape%dn_s, 4))
 
     ! You can probably do this with some fancy-pants tensor contraction.
-    do loc=1,shape%loc
+    do dof=1,shape%ndof
       do gi=1,shape%surface_quadrature%ngi
-        output(loc, gi, :) = matmul(invJ(:, :, gi), shape%dn_s(loc, gi, local_face_number, :))
+        output(dof, gi, :) = matmul(invJ(:, :, gi), shape%dn_s(dof, gi, local_face_number, :))
       end do
     end do
   end function eval_volume_dshape_at_face_quad
 
-  pure function eval_dshape_simplex(shape, loc,  l) result (eval_dshape)
-    !!< Evaluate the derivatives of the shape function for location loc at local
+  pure function eval_dshape_simplex(shape, dof,  l) result (eval_dshape)
+    !!< Evaluate the derivatives of the shape function for dofation dof at local
     !!< coordinates l 
     !!<
     !!< This version of the function applies to members of the simplex
     !!< family including the interval.
     type(element_type), intent(in) :: shape
-    integer, intent(in) :: loc
+    integer, intent(in) :: dof
     real, dimension(shape%dim+1), intent(in) :: l
     real, dimension(shape%dim) :: eval_dshape
     
@@ -521,7 +494,7 @@ contains
     real, dimension(shape%dim) :: dl4dl
 
     ! Find derivative of dependent coordinate
-    dl4dl=diffl4(shape%numbering%vertices, shape%dim)
+    dl4dl=diffl4(shape%cell%entity_counts(0), shape%dim)
 
     do i=1,shape%dim
        ! Directional derivatives.
@@ -537,31 +510,31 @@ contains
        !
        
        ! Expression in brackets.
-       eval_dshape(i)=eval(shape%dspoly(i,loc), l(i))&
-            *eval(shape%spoly(shape%dim+1,loc),l(shape%dim+1))&
+       eval_dshape(i)=eval(shape%dspoly(i,dof), l(i))&
+            *eval(shape%spoly(shape%dim+1,dof),l(shape%dim+1))&
             + dl4dl(i)&
-            *eval(shape%dspoly(shape%dim+1,loc), l(shape%dim+1)) &
-            *eval(shape%spoly(i,loc),l(i))
+            *eval(shape%dspoly(shape%dim+1,dof), l(shape%dim+1)) &
+            *eval(shape%spoly(i,dof),l(i))
              
        ! The other terms
        do j=1,shape%dim
           if (j==i) cycle
           
-          eval_dshape(i)=eval_dshape(i)*eval(shape%spoly(j,loc), l(j))
+          eval_dshape(i)=eval_dshape(i)*eval(shape%spoly(j,dof), l(j))
        end do
        
     end do
 
   end function eval_dshape_simplex
 
-  pure function eval_dshape_cube(shape, loc,  l) result (eval_dshape)
-    !!< Evaluate the derivatives of the shape function for location loc at local
+  pure function eval_dshape_cube(shape, dof,  l) result (eval_dshape)
+    !!< Evaluate the derivatives of the shape function for location dof at local
     !!< coordinates l 
     !!<
     !!< This version of the function applies to members of the hypercube
     !!< family. Note that this does NOT include the interval.
     type(element_type), intent(in) :: shape
-    integer, intent(in) :: loc
+    integer, intent(in) :: dof
     real, dimension(shape%dim+1), intent(in) :: l
     real, dimension(shape%dim) :: eval_dshape
 
@@ -572,9 +545,9 @@ contains
        ! Directional derivatives.
        do j=1,shape%dim
           if(i==j) then
-            eval_dshape(i)=eval_dshape(i)*eval(shape%dspoly(j,loc), l(j))
+            eval_dshape(i)=eval_dshape(i)*eval(shape%dspoly(j,dof), l(j))
           else
-            eval_dshape(i)=eval_dshape(i)*eval(shape%spoly(j,loc), l(j))
+            eval_dshape(i)=eval_dshape(i)*eval(shape%spoly(j,dof), l(j))
           end if          
        end do
     

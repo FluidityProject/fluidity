@@ -132,6 +132,12 @@ CV_Upwind_Values.o ../include/cv_upwind_values.mod: CV_Upwind_Values.F90 \
 C_Interfaces_Fortran.o ../include/c_interfaces.mod: C_Interfaces_Fortran.F90 \
    ../include/fdebug.h ../include/fldebug.mod
 
+../include/cell_numbering.mod: Cell_Numbering.o
+	@true
+
+Cell_Numbering.o ../include/cell_numbering.mod: Cell_Numbering.F90 \
+   ../include/data_structures.mod ../include/fdebug.h ../include/fldebug.mod
+
 ../include/checkpoint.mod: Checkpoint.o
 	@true
 
@@ -294,9 +300,9 @@ Element_set.o ../include/element_set.mod: Element_set.F90
 
 Elements.o ../include/elements.mod: Elements.F90 \
    Reference_count_interface_element_type.F90 ../include/quadrature.mod \
-   ../include/reference_counting.mod ../include/polynomials.mod \
-   ../include/element_numbering.mod ../include/fdebug.h \
-   Reference_count_element_type.F90 ../include/fldebug.mod
+   ../include/reference_counting.mod ../include/cell_numbering.mod \
+   ../include/polynomials.mod ../include/element_numbering.mod \
+   ../include/fdebug.h Reference_count_element_type.F90 ../include/fldebug.mod
 
 ../include/embed_python.mod: Embed_Python_Fortran.o
 	@true
@@ -345,8 +351,8 @@ Field_derivatives.o ../include/field_derivatives.mod: Field_derivatives.F90 \
    ../include/vtk_interfaces.mod ../include/surfacelabels.mod \
    ../include/halos.mod ../include/fetools.mod ../include/node_boundary.mod \
    ../include/vector_tools.mod ../include/elements.mod ../include/fields.mod \
-   ../include/superconvergence.mod ../include/state_module.mod \
-   ../include/eventcounter.mod ../include/vector_set.mod ../include/fdebug.h \
+   ../include/state_module.mod ../include/eventcounter.mod \
+   ../include/vector_set.mod ../include/fdebug.h \
    ../include/transform_elements.mod
 
 ../include/fields.mod: Fields.o
@@ -450,11 +456,12 @@ Generic_interface.o ../include/generic_interface.mod: Generic_interface.F90 \
 Global_Numbering.o ../include/global_numbering.mod: Global_Numbering.F90 \
    ../include/mpi_interfaces.mod ../include/halos_ownership.mod \
    ../include/halos_base.mod ../include/linked_lists.mod \
-   ../include/halos_allocates.mod ../include/sparse_tools.mod \
-   ../include/elements.mod ../include/halos_debug.mod \
-   ../include/parallel_tools.mod ../include/adjacency_lists.mod \
-   ../include/halos_numbering.mod ../include/fields_base.mod \
-   ../include/halo_data_types.mod ../include/fdebug.h ../include/fldebug.mod
+   ../include/halos_allocates.mod ../include/integer_set_module.mod \
+   ../include/sparse_tools.mod ../include/elements.mod \
+   ../include/halos_debug.mod ../include/parallel_tools.mod \
+   ../include/adjacency_lists.mod ../include/halos_numbering.mod \
+   ../include/fields_base.mod ../include/halo_data_types.mod \
+   ../include/fdebug.h ../include/fldebug.mod
 
 ../include/global_parameters.mod: Global_Parameters.o
 	@true
@@ -529,16 +536,15 @@ Halos_Debug.o ../include/halos_debug.mod: Halos_Debug.F90 \
 	@true
 
 Halos_Derivation.o ../include/halos_derivation.mod: Halos_Derivation.F90 \
-   ../include/halos_base.mod ../include/halos_allocates.mod \
-   ../include/fields_allocates.mod ../include/halos_repair.mod \
-   ../include/halo_data_types.mod ../include/fields_manipulation.mod \
-   ../include/sparse_tools.mod ../include/halos_numbering.mod \
-   ../include/mpi_interfaces.mod ../include/linked_lists.mod \
-   ../include/fields_base.mod ../include/halos_debug.mod \
-   ../include/fields_data_types.mod ../include/data_structures.mod \
-   ../include/fldebug.mod ../include/halos_communications.mod \
-   ../include/halos_ownership.mod ../include/parallel_tools.mod \
-   ../include/fdebug.h
+   ../include/halos_communications.mod ../include/mpi_interfaces.mod \
+   ../include/fields_base.mod ../include/halos_base.mod \
+   ../include/parallel_tools.mod ../include/halos_ownership.mod \
+   ../include/halos_allocates.mod ../include/sparse_tools.mod \
+   ../include/linked_lists.mod ../include/fields_manipulation.mod \
+   ../include/fields_allocates.mod ../include/halos_debug.mod \
+   ../include/fields_data_types.mod ../include/halos_numbering.mod \
+   ../include/data_structures.mod ../include/halos_repair.mod \
+   ../include/halo_data_types.mod ../include/fdebug.h ../include/fldebug.mod
 
 ../include/halos_diagnostics.mod: Halos_Diagnostics.o
 	@true
@@ -610,12 +616,12 @@ Integer_set.o ../include/integer_set_module.mod: Integer_set.F90 \
 	@true
 
 Interpolation.o ../include/interpolation_module.mod: Interpolation.F90 \
-   ../include/superconvergence.mod ../include/supermesh_construction.mod \
+   ../include/supermesh_construction.mod ../include/field_options.mod \
    ../include/meshdiagnostics.mod ../include/futils.mod \
-   ../include/field_options.mod ../include/sparse_tools.mod \
-   ../include/fields.mod ../include/node_ownership.mod \
-   ../include/field_derivatives.mod ../include/transform_elements.mod \
-   ../include/fdebug.h ../include/state_module.mod
+   ../include/sparse_tools.mod ../include/fields.mod \
+   ../include/node_ownership.mod ../include/field_derivatives.mod \
+   ../include/transform_elements.mod ../include/fdebug.h \
+   ../include/state_module.mod
 
 ../include/intersection_finder_module.mod: Intersection_finder.o
 	@true
@@ -716,10 +722,11 @@ Mixing_Statistics.o ../include/mixing_statistics.mod: Mixing_Statistics.F90 \
 ../include/multigrid.mod: Multigrid.o
 	@true
 
-Multigrid.o ../include/multigrid.mod: Multigrid.F90 ../include/petsc_tools.mod \
-   ../include/futils.mod ../include/sparse_tools_petsc.mod \
-   ../include/sparse_tools.mod ../include/spud.mod ../include/fldebug.mod \
-   ../include/parallel_tools.mod ../include/fdebug.h
+Multigrid.o ../include/multigrid.mod: Multigrid.F90 \
+   ../include/sparse_tools_petsc.mod ../include/petsc_tools.mod \
+   ../include/futils.mod ../include/spud.mod ../include/fldebug.mod \
+   ../include/sparse_tools.mod ../include/parallel_tools.mod \
+   ../include/fdebug.h
 
 ../include/node_owner_finder.mod: Node_Owner_Finder_Fortran.o
 	@true
@@ -908,7 +915,7 @@ SampleNetCDF_fortran.o ../include/samplenetcdf.mod: SampleNetCDF_fortran.F90 \
 	@true
 
 Shape_Functions.o ../include/shape_functions.mod: Shape_Functions.F90 \
-   ../include/superconvergence.mod ../include/futils.mod \
+   ../include/futils.mod \
    ../include/polynomials.mod ../include/element_numbering.mod \
    ../include/elements.mod ../include/ieee_arithmetic.mod ../include/fdebug.h \
    ../include/fldebug.mod
@@ -942,14 +949,14 @@ Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
 ../include/solvers.mod: Solvers.o
 	@true
 
-Solvers.o ../include/solvers.mod: Solvers.F90 ../include/halos.mod \
-   ../include/vtk_interfaces.mod ../include/petsc_tools.mod \
-   ../include/multigrid.mod ../include/sparse_tools_petsc.mod \
-   ../include/global_parameters.mod ../include/profiler.mod \
-   ../include/sparse_tools.mod ../include/fields.mod ../include/elements.mod \
+Solvers.o ../include/solvers.mod: Solvers.F90 ../include/vtk_interfaces.mod \
+   ../include/petsc_tools.mod ../include/sparse_matrices_fields.mod \
+   ../include/multigrid.mod ../include/profiler.mod \
+   ../include/sparse_tools.mod ../include/fields.mod \
+   ../include/sparse_tools_petsc.mod ../include/elements.mod \
    ../include/spud.mod ../include/fldebug.mod ../include/signal_vars.mod \
-   ../include/sparse_matrices_fields.mod ../include/parallel_tools.mod \
-   ../include/fdebug.h
+   ../include/halos.mod ../include/global_parameters.mod \
+   ../include/parallel_tools.mod ../include/fdebug.h
 
 ../include/sparse_matrices_fields.mod: Sparse_Matrices_Fields.o
 	@true
@@ -963,7 +970,7 @@ Sparse_Matrices_Fields.o ../include/sparse_matrices_fields.mod: \
 	@true
 
 Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
-   ../include/fldebug.mod ../include/futils.mod ../include/halos_allocates.mod \
+   ../include/futils.mod ../include/halos_allocates.mod \
    ../include/halo_data_types.mod ../include/reference_counting.mod \
    Reference_count_dynamic_csr_matrix.F90 \
    Reference_count_interface_block_csr_matrix.F90 \
@@ -971,10 +978,11 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
    Reference_count_interface_dynamic_csr_matrix.F90 \
    Reference_count_interface_csr_sparsity.F90 \
    Reference_count_interface_block_dynamic_csr_matrix.F90 \
-   Reference_count_block_dynamic_csr_matrix.F90 ../include/data_structures.mod \
+   ../include/data_structures.mod ../include/fldebug.mod \
    Reference_count_interface_csr_matrix.F90 \
    Reference_count_block_csr_matrix.F90 ../include/global_parameters.mod \
-   Reference_count_csr_sparsity.F90 ../include/ieee_arithmetic.mod \
+   Reference_count_csr_sparsity.F90 \
+   Reference_count_block_dynamic_csr_matrix.F90 ../include/ieee_arithmetic.mod \
    ../include/fdebug.h
 
 ../include/sparse_tools_petsc.mod: Sparse_Tools_Petsc.o
@@ -982,12 +990,11 @@ Sparse_Tools.o ../include/sparse_tools.mod: Sparse_Tools.F90 \
 
 Sparse_Tools_Petsc.o ../include/sparse_tools_petsc.mod: Sparse_Tools_Petsc.F90 \
    ../include/petsc_tools.mod ../include/halos_allocates.mod \
-   Reference_count_interface_petsc_csr_matrix.F90 \
-   ../include/halo_data_types.mod ../include/reference_counting.mod \
-   Reference_count_petsc_csr_matrix.F90 ../include/sparse_tools.mod \
-   ../include/fldebug.mod ../include/fields_base.mod \
+   ../include/fields_base.mod Reference_count_interface_petsc_csr_matrix.F90 \
+   ../include/halo_data_types.mod ../include/sparse_tools.mod \
+   ../include/reference_counting.mod Reference_count_petsc_csr_matrix.F90 \
    ../include/fields_manipulation.mod ../include/parallel_tools.mod \
-   ../include/fdebug.h
+   ../include/fldebug.mod ../include/fdebug.h
 
 ../include/sparsity_patterns.mod: Sparsity_Patterns.o
 	@true
@@ -1038,12 +1045,6 @@ Streamfunction.o ../include/streamfunction.mod: Streamfunction.F90 \
    ../include/fields.mod ../include/parallel_tools.mod ../include/spud.mod \
    ../include/eventcounter.mod ../include/sparsity_patterns.mod \
    ../include/fdebug.h ../include/state_module.mod
-
-../include/superconvergence.mod: Superconvergence.o
-	@true
-
-Superconvergence.o ../include/superconvergence.mod: Superconvergence.F90 \
-   ../include/vector_tools.mod ../include/elements.mod ../include/fdebug.h
 
 ../include/supermesh_construction.mod: Supermesh.o
 	@true

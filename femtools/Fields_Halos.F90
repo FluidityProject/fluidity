@@ -30,11 +30,14 @@ module fields_halos
 use fields
 use halos
 use data_structures
+use parallel_fields
+use quicksort
 implicit none
 
 private
 
-public:: make_mesh_unperiodic, verify_consistent_local_element_numbering
+public:: make_mesh_unperiodic, verify_consistent_local_element_numbering,&
+     & order_elements
   
 contains
 
@@ -250,4 +253,99 @@ contains
     
   end function verify_consistent_local_element_numbering
   
+  subroutine order_elements(numbering, meshes)
+    !!< Given a universal numbering field, renumber the local elements of
+    !!< its mesh into this order. This should only be called for linear meshes:
+    !!< derive the other meshes from the linear one.
+    !!<
+    !!< If meshes is present, also reorder the local elements in each of
+    !!< its meshes. Meshes should likewise be linear: the intended use case
+    !!< is that numbering is on the periodic mesh while the meshes are the
+    !!< non-periodic (or possibly periodic on fewer sides) alternatives. 
+    type(scalar_field), intent(in), target :: numbering
+    
+    type(mesh_type), dimension(:), intent(in), target, optional :: meshes
+
+    integer :: ele, m, i
+    integer, dimension(:), pointer :: nodes, facet_row, neigh_row
+    real, dimension(:), allocatable :: unn
+    integer, dimension(:), allocatable :: perm, invperm, facet, facet_perm
+    integer, dimension(2) :: tmpent
+    type(cell_type), pointer :: cell
+    type(mesh_type), pointer :: mesh
+
+    assert(numbering%mesh%shape%degree==1)
+
+    allocate(unn(ele_loc(numbering,1)))
+    allocate(perm(ele_loc(numbering,1)))
+    allocate(invperm(ele_loc(numbering,1)))
+    allocate(facet_perm(ele_loc(numbering,1)))
+    allocate(facet(face_loc(numbering,1)))
+    cell=>numbering%mesh%shape%cell
+    
+    do ele=1,element_count(numbering%mesh)
+       nodes=>ele_nodes(numbering,ele)
+       unn=ele_val(numbering, ele)
+       
+       ! Establish the node permutation.
+       call qsort(unn, perm)
+       invperm=inverse_permutation(perm)
+
+       ! Now establish the resulting facet permutation.
+       do i=1, facet_count(cell)
+          ! Look up the vertices on the current facet.
+          facet=entity_vertices(cell, [cell%dimension-1,i])
+          ! Select new vertices according to the node permutation.
+          facet=invperm(facet)
+          ! Look up the new facet number.
+          tmpent=vertices_entity(cell, sorted(facet))
+          facet_perm(i)=tmpent(2)
+       end do
+
+       nodes=nodes(perm)
+       neigh_row=>ele_neigh(numbering, ele)
+       facet_row=>ele_faces(numbering, ele)
+       
+       numbering%mesh%faces%local_face_number(facet_row)=facet_perm
+
+       neigh_row=neigh_row(facet_perm)
+       facet_row=facet_row(facet_perm)
+       
+       if (present(meshes)) then
+          do m=1, size(meshes)
+             mesh=>meshes(m)
+             nodes=>ele_nodes(mesh, ele)
+             nodes=nodes(perm)
+             neigh_row=>ele_neigh(numbering, ele)
+             facet_row=>ele_faces(numbering, ele)
+
+             mesh%faces%local_face_number(facet_row)=facet_perm
+
+             neigh_row=neigh_row(facet_perm)
+             facet_row=facet_row(facet_perm)
+          end do
+       end if
+    end do
+ 
+    ! This process invalidates the surface mesh(es) so we rebuild them.
+    ! The new surface meshes will be the same size as the old ones so we
+    !  don't bother with memory allocation registration.
+    mesh=>numbering%mesh
+    call deallocate(mesh%faces%surface_mesh)
+    deallocate(mesh%faces%surface_node_list)
+    call create_surface_mesh(mesh%faces%surface_mesh, &
+            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
+    
+    if (present(meshes)) then
+       do m=1, size(meshes)
+          mesh=>meshes(m)
+          call deallocate(mesh%faces%surface_mesh)
+          deallocate(mesh%faces%surface_node_list)
+          call create_surface_mesh(mesh%faces%surface_mesh, &
+               mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))          
+       end do
+    end if
+
+  end subroutine order_elements
+
 end module fields_halos

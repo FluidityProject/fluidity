@@ -50,11 +50,17 @@ module parallel_fields
     & surface_element_owned, nowned_nodes
   ! Apparently ifort has a problem with the generic name node_owned
   public :: node_owned_mesh, zero_non_owned
+  public :: universal_number, universal_number_field, periodic_universal_ID_field
   
   interface node_owned
     module procedure node_owned_mesh, node_owned_scalar, node_owned_vector, &
       & node_owned_tensor
   end interface node_owned
+
+  interface node_owner
+    module procedure node_owner_mesh, node_owner_scalar, &
+      & node_owner_vector, node_owner_tensor
+  end interface node_owner
 
   interface element_owned
     module procedure element_owned_mesh, element_owned_scalar, &
@@ -90,8 +96,83 @@ module parallel_fields
       & nowned_nodes_vector, nowned_nodes_tensor
   end interface nowned_nodes
 
+  interface universal_number
+     module procedure mesh_universal_number, mesh_universal_number_vector
+  end interface universal_number
+
 contains
+
+  function universal_number_field(mesh) result (unn)
+    !!< Return a field containing the universal numbering of mesh.
+    type(mesh_type), intent(inout) :: mesh
+
+    type(scalar_field) :: unn
+    integer :: node
+
+    call allocate(unn, mesh, trim(mesh%name)//"UniversalNumbering")
+    
+    do node=1,node_count(mesh)
+       call set(unn, node, real(universal_number(mesh, node)))
+    end do
+
+  end function universal_number_field
   
+  function mesh_universal_number(mesh, node) result (unn)
+    !!< Return the universal node number of node in mesh.
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: node
+    
+    integer :: unn
+
+    integer :: nhalos
+
+    nhalos=halo_count(mesh)
+    if (nhalos>0) then
+       unn=halo_universal_number(mesh%halos(nhalos), node)
+    else
+       unn=node
+    end if
+
+  end function mesh_universal_number
+
+  function mesh_universal_number_vector(mesh, node) result (unn)
+    !!< Return the universal node number of node in mesh.
+    type(mesh_type), intent(in) :: mesh
+    integer, dimension(:), intent(in) :: node
+    
+    integer, dimension(size(node)) :: unn
+
+    integer :: nhalos
+
+    nhalos=halo_count(mesh)
+    if (nhalos>0) then
+       unn=halo_universal_number(mesh%halos(nhalos), node)
+    else
+       unn=node
+    end if
+
+  end function mesh_universal_number_vector
+
+  function periodic_universal_ID_field(uid_in, periodic_mesh) result (uid)
+    ! Given a (non-periodic) universal ID field, return the periodic
+    !  version applicable to periodic_mesh. Note that this is the universal
+    !  ID which is not necessarily contiguous and definitely not contiguous
+    !  per processor.
+    type(scalar_field), intent(in) :: uid_in
+    type(mesh_type), intent(inout) :: periodic_mesh
+
+    type(scalar_field) :: uid
+
+    integer :: ele
+
+    call allocate(uid, periodic_mesh, trim(periodic_mesh%name)//"UniversalNumbering")
+
+    do ele=1,element_count(periodic_mesh)
+       call set(uid, ele_nodes(uid, ele), ele_val(uid_in,ele))
+    end do
+
+  end function periodic_universal_ID_field
+
   function halo_communicator_mesh(mesh) result(communicator)
     !!< Return the halo communicator for this mesh. Returns the halo
     !!< communicator off of the max level node halo.
@@ -151,6 +232,68 @@ contains
   
   end function halo_communicator_tensor
 
+  function node_owner_mesh(mesh, node_number) result(owner)
+  !!< Return number of processor that owns the supplied node in the
+  !given mesh
+
+    type(mesh_type), intent(in) :: mesh
+    integer, intent(in) :: node_number
+
+    integer :: nhalos
+    integer :: owner
+
+    assert(node_number > 0)
+    assert(node_number <= ele_count(mesh))
+
+    nhalos = halo_count(mesh)
+
+    if(nhalos == 0) then
+      owner=getprocno()
+    else
+      owner = halo_node_owner(mesh%halos(nhalos), node_number)
+    end if
+
+  end function node_owner_mesh
+
+  function node_owner_scalar(s_field, node_number) result(owner)
+    !!< Return the processor that owns the supplied node in the mesh of the given scalar
+    !!< field 
+    
+    type(scalar_field), intent(in) :: s_field
+    integer, intent(in) :: node_number
+
+    integer :: owner
+
+    owner = node_owner(s_field%mesh, node_number)
+
+  end function node_owner_scalar
+
+  function node_owner_vector(v_field, node_number) result(owner)
+    !!< Return the processor that owns the supplied node in the mesh of the given vector
+    !!< field 
+
+    type(vector_field), intent(in) :: v_field
+    integer, intent(in) :: node_number
+
+    integer :: owner
+
+    owner = node_owner(v_field%mesh, node_number)
+
+  end function node_owner_vector
+
+  function node_owner_tensor(t_field, node_number) result(owner)
+    !!< Return the processor that owns the supplied node in the mesh of the given tensor
+    !!< field 
+
+    type(tensor_field), intent(in) :: t_field
+    integer, intent(in) :: node_number
+    
+    integer :: owner
+
+    owner = node_owner(t_field%mesh, node_number)
+  
+  end function node_owner_tensor
+
   function node_owned_mesh(mesh, node_number) result(owned)
     !!< Return whether the supplied node in the given mesh is owned by this
     !!< process
@@ -192,7 +335,6 @@ contains
 
     type(vector_field), intent(in) :: v_field
     integer, intent(in) :: node_number
-
     logical :: owned
 
     owned = node_owned(v_field%mesh, node_number)

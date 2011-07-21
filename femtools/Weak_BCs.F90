@@ -364,7 +364,7 @@
          x_shape  => ele_shape(x, ele)
          u_shape  => ele_shape(u, ele)
 
-         augmented_shape = make_element_shape(x_shape%loc, &
+         augmented_shape = make_element_shape(x_shape%ndof, &
               u_shape%dim, u_shape%degree, u_shape%quadrature, &
               quad_s=u_f_shape%quadrature )
 

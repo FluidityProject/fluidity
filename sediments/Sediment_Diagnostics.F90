@@ -126,18 +126,18 @@ contains
            ! there isn't one...move along
            cycle
        end if
-       allocate(values(erosion(i)%mesh%shape%loc))
        fluxUp => extract_surface_field(sediment_field(i)%ptr, id, "value")
        call get_boundary_condition(sediment_field(i)%ptr, id,surface_element_list=surface_element_list)
        do ele=1,ele_count(fluxUp)
            to_nodes => ele_nodes(erosion(i), surface_element_list(ele))
+           allocate(values(ele_loc(fluxUp, ele)))
            values = ele_val(fluxUp,ele)
            do node=1,size(to_nodes)
                call set(erosion(i),to_nodes(node),values(node))
            end do
+           deallocate(values)
        end do
        call scale(erosion(i),dt)
-       deallocate(values)
 
 
     end do

@@ -9,12 +9,17 @@ module quicksort
 
   private
   
-  public :: qsort, sort, count_unique, inverse_permutation, apply_permutation, apply_reverse_permutation
+  public :: qsort, sort, count_unique, inverse_permutation,&
+       & apply_permutation, apply_reverse_permutation, sorted
 
   interface qsort
     module procedure qsortd, qsortsp, qsorti
   end interface qsort
   
+  interface sorted
+     module procedure sortedi
+  end interface sorted
+
   interface sort
     module procedure sort_integer_array, sort_real_array
   end interface
@@ -965,5 +970,16 @@ END SUBROUTINE qsorti
     end do
     
   end subroutine apply_reverse_permutation_integer  
+
+  function sortedi(list) result (sorted)
+    !! Return the sorted version of list.
+    integer, dimension(:) :: list
+    integer, dimension(size(list)) :: sorted, perm
+
+    call qsort(list, perm)
+
+    sorted=list(perm)
+
+  end function sortedi
 
 end module quicksort

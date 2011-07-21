@@ -13,7 +13,8 @@ input: clean
 
 clean:
 	rm -f input_suf_t_bc  
-	rm -f input_wic_t_bc   
+	rm -f input_wic_t_bc
+	rm -f input_suf_one_bc 
 	rm -f gmon.out
 	rm -f *.d.*
 	rm -f flog.dat time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*

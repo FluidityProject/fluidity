@@ -304,7 +304,7 @@ module copy_outof_into_state
       ! u_snloc is 1 for the single phase advection case:
       if (nstates==1) then
          u_snloc = 1
-         xu_nloc = 3
+         xu_nloc = u_nloc
          p_nonods = u_nloc * totele ! = u_nonods
       else
          u_snloc = 3
@@ -1162,7 +1162,6 @@ module copy_outof_into_state
                ewrite(3,*) 'temperature: ', scalarfield%val(:)
                if (.not.allocated(t)) allocate( t( cv_nonods * nphases ))
 
-!!!!!!!!!!!!!!!
                t_ele_loop: do k = 1,element_count(scalarfield)
             
                   element_nodes => ele_nodes(scalarfield,k)
@@ -1176,13 +1175,6 @@ module copy_outof_into_state
                   end do t_node_loop
             
                end do t_ele_loop
-!!!!!!!!!!!!!!!!!
-
-!               do j = node_count( scalarfield ), 1, -1
-!                  t(( i - 1 ) * node_count( scalarfield ) + j ) = scalarfield%val( j )
-!                  if( j == 1 ) t(( i - 1 ) * node_count( scalarfield ) + j ) = &
-!                       t(( i - 1 ) * node_count( scalarfield ) + j + 1 )
-!               enddo
 
                scalarfield_source => extract_scalar_field( state( i ), trim( field_name ) // &
                     "Source", stat)

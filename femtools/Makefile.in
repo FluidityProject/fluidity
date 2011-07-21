@@ -63,7 +63,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Fields.o FETools.o FEFields.o Vector_Tools.o Read_Triangle.o \
   Timers.o Transform_elements.o Petsc_Tools.o Solvers.o Linked_Lists.o	\
   Sparsity_Patterns.o Sparsity_Patterns_Meshes.o State.o Tensors.o \
-  Superconvergence.o Unittest_tools.o Fields_Data_Types.o Multigrid.o	\
+  Unittest_tools.o Fields_Data_Types.o Multigrid.o	\
   ieee_arithmetic_dummy.o ieee_arithmetic_C99.o Diagnostic_variables.o	\
   Diagnostic_Fields.o SampleNetCDF_fortran.o \
   AuxilaryOptions.o MeshDiagnostics.o VTK_interfaces.o Surface_Labels.o	\
@@ -99,7 +99,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   CGAL_Tools_C.o CGAL_Tools.o \
   Rotated_Boundary_Conditions.o MPI_Interfaces.o Parallel_Tools.o \
   Fields_Halos.o Profiler.o Profiler_Fortran.o Streamfunction.o \
-  GMSH_Common.o Read_GMSH.o Write_GMSH.o Mesh_Files.o
+  GMSH_Common.o Read_GMSH.o Write_GMSH.o Mesh_Files.o Cell_Numbering.o
 
 
 # objects to be included in libfemtools:

@@ -157,11 +157,7 @@ module mp_prototype
       integer, parameter :: unit_input = 5, unit_debug = 101, new_unit_debug = 304
       integer :: i, j, k
 
-      open( unit_input, file = 'input.dat', status = 'unknown' )
-      open( unit_debug, file = 'mirror_int_data.dat', status = 'unknown' )
       open( new_unit_debug, file = 'mirror_new.dat', status = 'unknown' )
-      !open( 357, file = 'flog.dat', status = 'unknown')
-      !open( 357, file = '/dev/null', status = 'unknown')
 
       ewrite(3,*) 'In multiphase_prototype'
 
@@ -318,7 +314,11 @@ module mp_prototype
 
       do_old_output=.false.
 
-      if( do_old_output ) call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
+      if( do_old_output ) then
+      
+         open( unit_input, file = 'input.dat', status = 'unknown' )
+         open( unit_debug, file = 'mirror_int_data.dat', status = 'unknown' )
+         call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
            ncoef, nuabs_coefs, &
@@ -334,6 +334,7 @@ module mp_prototype
            volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux, &
            capil_pres_opt, ncapil_pres_coef, comp_diffusion_opt, ncomp_diff_coef, &
            domain_length )
+      endif
 
       if( option_debug == 357 )then
          open( 357, file = 'flog.dat', status = 'unknown')
@@ -822,7 +823,7 @@ module mp_prototype
 
       Case( : 0 ) ; ! CV-Adv test case: -2( Cty ), -1( DG ), 0( Std )
 
-         call solve_multiphase_field_advection( problem, nphase, ncomp, totele, ndim, &
+         call solve_multiphase_field_advection( state, problem, nphase, ncomp, totele, ndim, &
               u_nloc, xu_nloc, cv_nloc, x_nloc, mat_nloc, &
               cv_snloc, u_snloc, stotel, &
               domain_length, &

@@ -45,9 +45,9 @@ contains
          real, intent(out):: mu(:,:)
          !! Derivatives of input fields at nodes.
          real, intent(in):: &
-              density_dshape(density_shape%loc, density_shape%ngi, density_shape%dim) 
+              density_dshape(density_shape%ndof, density_shape%ngi, density_shape%dim) 
          !! Value of input fields at nodes.
-         real, intent(in):: density(density_shape%loc)
+         real, intent(in):: density(density_shape%ndof)
          !! actual distance from the top/bottom
          real, intent(in):: topdis(density_shape%ngi),botdis(density_shape%ngi)
          !! some measure (don't ask) of distance from boundaries

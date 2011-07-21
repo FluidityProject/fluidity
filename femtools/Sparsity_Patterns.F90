@@ -213,7 +213,7 @@ contains
     integer :: nonzeros, nodes, elements, nloc
     integer :: i,j,k
 
-    nloc=mesh%shape%loc ! Nodes per element
+    nloc=mesh%shape%ndof ! Nodes per element
     nodes=node_count(mesh) ! Total nodes
     elements=element_count(mesh) ! Total elements
     nonzeros=nloc**2*elements
@@ -380,7 +380,7 @@ contains
     ! We have to figure out how many columns we have in this matrix
     columns = -1
     do i=1,size(lists)
-      columns = max(columns, maxval(lists(i)))
+      if(lists(i)%length/=0) columns = max(columns, maxval(lists(i)))
     end do
 
     call allocate(sparsity, rows=size(lists), columns=columns, &

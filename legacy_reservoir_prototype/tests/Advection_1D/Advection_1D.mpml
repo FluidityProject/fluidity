@@ -231,9 +231,23 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+            <real_value shape="1" dim1="dim" rank="1">1.0</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="Inlet">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">1.0</real_value>
+                </constant>
+              </x_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">

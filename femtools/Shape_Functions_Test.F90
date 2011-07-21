@@ -59,7 +59,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
 
        tmpval=integrand(local_coords(i,element))       
        
@@ -90,7 +90,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
        
        tmpval=integrand(local_coords(i,element))
 
@@ -124,7 +124,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
        
        tmpval=integrand(local_coords(i,element))
 
@@ -167,7 +167,7 @@ contains
 
     integral=0.0
 
-    do i=1, element%loc
+    do i=1, element%ndof
        
        tmpval=integrand(local_coords(i,element))
 

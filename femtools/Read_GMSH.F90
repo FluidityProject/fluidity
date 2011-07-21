@@ -310,7 +310,7 @@ contains
       sloc = 0
     end if
 
-    assert(loc==shape%loc)
+    assert(loc==shape%ndof)
 
     ! Loop round nodes copying across coords and column IDs to field mesh,
     ! if they exist
