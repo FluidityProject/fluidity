@@ -259,7 +259,7 @@ contains
     if (present(stat)) stat = 0
     
     dgify_fields = .false.
-    if (not have_option("/io/adhere_to_output_mesh_continuity")) then
+    if (.not. have_option("/io/adhere_to_output_mesh_continuity")) then
       if (present(sfields)) then
         do i=1,size(sfields)
           if ( (sfields(i)%mesh%continuity .lt. 0 .and. sfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
