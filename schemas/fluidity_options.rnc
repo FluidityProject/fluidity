@@ -1310,7 +1310,7 @@ start =
                   ## carries the influence of turbulence onto the velocity field.
                   element tensor_field {
                      attribute rank { "2" },
-                     attribute name { "KEpsEddyViscosity" },
+                     attribute name { "EddyViscosity" },
                      (
                         element diagnostic {
                            internal_algorithm,

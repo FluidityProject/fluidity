@@ -1640,7 +1640,7 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                       <value>2</value>
                     </attribute>
                     <attribute name="name">
-                      <value>KEpsEddyViscosity</value>
+                      <value>EddyViscosity</value>
                     </attribute>
                     <element name="diagnostic">
                       <ref name="internal_algorithm"/>
