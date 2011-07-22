@@ -802,15 +802,24 @@ EOF
 fi
 
 # Parmetis and zoltan
-if test "$enable_mpi" != "no"
-    then
-    ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
-    if test "$with_zoltan" != "no"; then
-      if test ! -z "$with_zoltan"; then
-        ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
-      fi
+ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
+
+AC_ARG_ENABLE(sam,
+    [AC_HELP_STRING([--enable-sam],
+	    [use sam rather than zoltan for adaptive load rebalancing])])
+if test "$enable_sam" = "yes"; then
+    HAVE_ZOLTAN=no
+else
+    if test "$with_zoltan" = no; then
+        HAVE_ZOLTAN=no
+        echo "Warning: zoltan disabled, using libsam instead"
     fi
+    HAVE_ZOLTAN=yes
+    zoltan=yes
+    ACX_zoltan([AC_MSG_NOTICE(["Zoltan found"])], [AC_MSG_WARN(["Zoltan not found"])])
 fi
+AC_SUBST(HAVE_ZOLTAN)
+
 
 
 HAVE_ADJOINT=no
@@ -1494,13 +1503,7 @@ fi
 # Hack for CX1. The zoltan libs (scotch, parmetis, etc) need to apepar on the end of the compile
 # command or all sorts of badness happens (libraries not being found, despite being in the path).
 # ZOLTAN_DEPS should be empty on other machine and will be set in the cx1-module file. See wiki.
-if test "$with_zoltan" != "no" ; then
-	LIBS="$LIBS $ZOLTAN_DEPS"
-    HAVE_ZOLTAN=yes
-else
-    HAVE_ZOLTAN=no
-fi
-AC_SUBST(HAVE_ZOLTAN)
+LIBS="$LIBS $ZOLTAN_DEPS"
 
 AC_ARG_ENABLE(hyperlight,
 [AC_HELP_STRING([--enable-hyperlight],

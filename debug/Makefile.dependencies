@@ -2,8 +2,8 @@
 ../include/fldebug.mod: Debug.o
 	@true
 
-Debug.o ../include/fldebug.mod: Debug.F90 ../include/fldebug_parameters.mod \
-   ../include/fdebug.h
+Debug.o ../include/fldebug.mod: Debug.F90 ../include/fdebug.h \
+   ../include/fldebug_parameters.mod
 
 ../include/fldebug_parameters.mod: Debug_Parameters.o
 	@true
