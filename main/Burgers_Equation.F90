@@ -160,7 +160,9 @@
     timestep=0
     call populate_state(state)
     call adjoint_load_controls(timestep, dt, state)
+#ifdef HAVE_ADJOINT
     call adjoint_register_initial_condition(state)
+#endif
 
     call insert_time_in_state(state)
 
@@ -339,13 +341,13 @@
       real, intent(out), optional :: change
 
       type(scalar_field) :: iterated_velocity
-      type(scalar_field) :: old_iterated_velocity, iterated_velocity_difference, stored_iterated_velocity
-      type(scalar_field) :: rhs, stored_iterated_srhs
+      type(scalar_field) :: old_iterated_velocity, iterated_velocity_difference
+      type(scalar_field) :: rhs
 
       type(csr_matrix) :: advection_matrix
       type(csr_matrix) :: lhs_matrix
 
-      type(scalar_field), pointer :: u, srhs
+      type(scalar_field), pointer :: u
       type(vector_field), pointer :: x
       type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
 
@@ -354,6 +356,12 @@
       real :: nonlin_change
       logical :: adjoint
       integer :: stat
+
+      integer :: dummy_timestep
+      type(mesh_type), pointer :: mesh_ptr
+
+      mesh_ptr => extract_mesh(states(1), "VelocityMesh")
+      dummy_timestep = timestep
 
       mass_matrix => extract_csr_matrix(matrices, "MassMatrix")
       diffusion_matrix => extract_csr_matrix(matrices, "DiffusionMatrix")
@@ -402,9 +410,11 @@
         ewrite(1,*) "L2 norm of change in velocity: ", nonlin_change
 
         ! Tell libadjoint about the equations we are solving
+#ifdef HAVE_ADJOINT
         if (adjoint) then
           call adjoint_record_velocity(timestep, nit, states, field=iterated_velocity)
         end if
+#endif
 
         if (sig_hup .or. sig_int) then
           ewrite(1,*) "Caught signal, exiting"
@@ -429,7 +439,9 @@
       call deallocate(rhs)
       call deallocate(advection_matrix)
 
+#ifdef HAVE_ADJOINT
       call adjoint_register_timestep(timestep, dt, nit-1, states)
+#endif
 
     end subroutine execute_timestep
 
@@ -649,9 +661,9 @@
       call deallocate(diffusion_matrix_T)
     end subroutine compute_matrix_transposes
 
+#ifdef HAVE_ADJOINT
     subroutine adjoint_register_initial_condition(states)
       type(state_type), dimension(:), intent(in) :: states
-#ifdef HAVE_ADJOINT
       ! Register the initial condition.
       type(adj_block) :: I
       integer :: ierr
@@ -660,13 +672,8 @@
       real :: start_time
       real :: dt
       integer :: nfunctionals, j
-      character(OPTION_PATH_LEN) :: buf, functional_name, mesh_name
-      type(adj_variable), dimension(:), allocatable :: vars
-      integer :: nmeshes
-      type(mesh_type), pointer :: mesh
+      character(OPTION_PATH_LEN) :: functional_name
       type(scalar_field), pointer :: u
-      type(adj_vector) :: mesh_vec
-      type(adj_storage_data) :: storage
       logical :: check_transposes
 
       if (.not. adjoint) return
@@ -709,14 +716,14 @@
         call adj_record_anything_necessary(adjointer, python_timestep=1, timestep_to_record=0, functional=trim(functional_name), states=states)
       end do
       call adjoint_record_velocity(0, 1, states)
-#endif
     end subroutine adjoint_register_initial_condition
+#endif
 
+#ifdef HAVE_ADJOINT
     subroutine adjoint_register_timestep(timestep, dt, niterations, states)
       integer, intent(in) :: timestep, niterations
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
-#ifdef HAVE_ADJOINT
       type(adj_block) :: timestepping_block, burgers_block
       type(adj_nonlinear_block) :: burgers_advection_block, timestepping_advection_block
       integer :: ierr
@@ -724,7 +731,7 @@
       type(adj_variable) :: u, previous_u, iter_u
       real :: start_time
 
-      integer :: j, nfunctionals, nonlinear_iterations
+      integer :: j, nfunctionals
       type(adj_variable), dimension(:), allocatable :: vars
       character(len=OPTION_PATH_LEN) :: buf, functional_name
       integer :: iteration, niterations_prev
@@ -833,14 +840,14 @@
         call adj_record_anything_necessary(adjointer, python_timestep=timestep, timestep_to_record=timestep, functional=trim(functional_name), states=states)
       end do
 
-#endif
     end subroutine adjoint_register_timestep
+#endif
 
+#ifdef HAVE_ADJOINT
     subroutine adjoint_record_velocity(timestep, iteration, states, field)
       integer, intent(in) :: timestep, iteration
       type(state_type), dimension(:), intent(in) :: states
       type(scalar_field), intent(in), optional, target :: field
-#ifdef HAVE_ADJOINT
       type(adj_storage_data) :: storage
       integer :: ierr
       type(adj_vector) :: u_vec
@@ -878,6 +885,6 @@
       if (ierr /= ADJ_WARN_ALREADY_RECORDED) then
         call adj_chkierr(ierr)
       end if
-#endif
     end subroutine adjoint_record_velocity
+#endif
   end program burgers_equation
