@@ -1632,7 +1632,8 @@ contains
         "weakdirichlet", &
         "neumann      ", &
         "internal     ", &
-        "zero_flux    "/), tfield_bc, tfield_bc_type)
+        "zero_flux    ", &
+        "influx       "/), tfield_bc, tfield_bc_type)
       if(include_density) then
         allocate(tdensity_bc_type(surface_element_count(tdensity)))
         call get_entire_boundary_condition(tdensity, (/"weakdirichlet"/), tdensity_bc, tdensity_bc_type)
@@ -1745,14 +1746,15 @@ contains
                   ! u.n
                   if(move_mesh) then
                     divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-                    if((tfield_bc_type(sele)==4)) then
+                    if((tfield_bc_type(sele)==4 .or. tfield_bc_type(sele)==5)) then
+                      ! If we have zero flux, or an influx BC, set u.n = 0
                       udotn = 0.0
                     else
                       udotn = dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
                     end if
                   else
                     divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-                    if((tfield_bc_type(sele)==4)) then
+                    if((tfield_bc_type(sele)==4 .or. tfield_bc_type(sele)==5)) then
                       udotn = 0.0
                     else
                       udotn = divudotn
@@ -1830,7 +1832,7 @@ contains
 
                     else
 
-                      if(tfield_bc_type(sele)==2) then
+                      if(tfield_bc_type(sele)==2 .or. tfield_bc_type(sele)==5) then
 
                         ! assemble div_rhs
                         div_rhs_local_bdy(iloc) = div_rhs_local_bdy(iloc) &
@@ -1850,7 +1852,7 @@ contains
 
                   case(CV_DIFFUSION_ELEMENTGRADIENT)
 
-                    if(tfield_bc_type(sele)==2) then
+                    if(tfield_bc_type(sele)==2 .or. tfield_bc_type(sele)==5) then
 
                       div_rhs_local_bdy(iloc) = div_rhs_local_bdy(iloc) &
                                   -detwei_bdy(ggi)*ghost_gradtfield_ele_bdy(iloc)
@@ -1909,7 +1911,7 @@ contains
             ! assume zero neumann for the moment
             ! call addto(diff_rhs, nodes_bdy, -matmul(diff_mat_local_bdy, ghost_gradtfield_ele_bdy))
 
-            elseif(tfield_bc_type(sele)==2) then
+            elseif(tfield_bc_type(sele)==2 .or. tfield_bc_type(sele)==5) then
 
               call addto(diff_rhs, nodes_bdy, div_rhs_local_bdy)
 
