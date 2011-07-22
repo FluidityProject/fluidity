@@ -1058,21 +1058,21 @@ contains
          face_2=face
       end if
 
-      call construct_vector_adv_interface_dg(ele, face, face_2,&
+      call construct_vector_adv_interface_dg(ele, ele_2, face, face_2,&
            & A, rhs, X, U, U_nl)
 
    end do neighbourloop
     
  end subroutine construct_vector_adv_element_dg
   
-  subroutine construct_vector_adv_interface_dg(ele, face, face_2, &
+  subroutine construct_vector_adv_interface_dg(ele, ele_2, face, face_2, &
        & A, rhs, X, U, U_nl)
 
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
     implicit none
 
-    integer, intent(in) :: ele, face, face_2
+    integer, intent(in) :: ele, ele_2, face, face_2
     type(block_csr_matrix), intent(inout) :: A
     type(vector_field), intent(inout) :: rhs
     ! We pass these additional fields to save on state lookups.
@@ -1092,6 +1092,7 @@ contains
     logical, dimension(face_ngi(U_nl, face)) :: inflow
     real, dimension(face_ngi(U_nl, face)) :: U_nl_q_dotn1_l, U_nl_q_dotn2_l, U_nl_q_dotn_l, income
     real, dimension(X%dim, face_ngi(X,face)) :: n1, n2
+    real, dimension(X%dim, X%dim, face_ngi(X,face)) :: Btmp
     real, dimension(mesh_dim(U), X%dim, face_ngi(X,face)) :: B
     ! Variable transform times quadrature weights.
     real, dimension(ele_ngi(X,ele)) :: detwei, detJ
@@ -1147,15 +1148,30 @@ contains
     end forall
 
     ! Get outward pointing normals for each element
-!    call transform_facet_to_physical(X, face, normal=n1)
-!    call transform_facet_to_physical(X, face_2, normal=n2)
+    print*, ele, ele_2
+    n1=get_face_normal_manifold(X, ele, face)
+    if(ele_2<0) then
+       ! external boundary
+       n2=-n1
+    else
+       n2=get_face_normal_manifold(X, ele_2, face_2)
+    end if
+    print*, 'n1'
+    print*, n1(:,1)
+    print*, 'n2'
+    print*, n2(:,1)
 
     ! Form 'bending' tensor
-!    forall(gi=1:face_ngi(X,face))
-!       B(:,:,gi)=-outer_product(n1(:,gi),n2(:,gi))-outer_product(n2(:,gi),n2(:,gi))
-!       forall(i=1:size(B,1)) B(i,i,gi)=B(i,i,gi)+1.0
-!       B(:,:,gi)=transpose(transpose(J_f(:,:,gi))*B(:,:,gi))
-!    end forall
+    forall(gi=1:face_ngi(X,face))
+       Btmp(:,:,gi)=-outer_product(n1(:,gi),n2(:,gi))-outer_product(n2(:,gi),n2(:,gi))
+       forall(i=1:size(Btmp,1)) Btmp(i,i,gi)=Btmp(i,i,gi)+1.0
+       B(:,:,gi)=matmul(J_scaled(:,:,gi),Btmp(:,:,gi))
+    end forall
+    print*, maxval(abs(B-J_scaled))
+    print*, 'Btmp'
+    print*, Btmp(:,:,1)
+    print*, 'B'
+    print*, B(:,:,1)
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.
@@ -1175,7 +1191,7 @@ contains
     ! (this is the flux *in* to the element)
     outer_advection_integral = income*u_nl_q_dotn_l
     nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
-         &            outer_advection_integral*U_shape%quadrature%weight, J_scaled)
+         &            outer_advection_integral*U_shape%quadrature%weight, B)
        
     !----------------------------------------------------------------------
     ! Perform global assembly.
