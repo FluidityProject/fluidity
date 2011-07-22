@@ -3,7 +3,7 @@
 	@true
 
 Diagnostic_Fields_Wrapper_New.o ../include/diagnostic_fields_wrapper_new.mod: \
-   Diagnostic_Fields_Wrapper_New.F90 ../include/global_parameters.mod \
-   ../include/fields.mod ../include/fields_data_types.mod ../include/fdebug.h \
+   Diagnostic_Fields_Wrapper_New.F90 ../include/fdebug.h ../include/fields.mod \
+   ../include/fields_data_types.mod ../include/global_parameters.mod \
    ../include/state_module.mod
 
