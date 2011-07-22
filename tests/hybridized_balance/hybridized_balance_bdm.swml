@@ -29,6 +29,23 @@
         <mesh_continuity>
           <string_value>discontinuous</string_value>
         </mesh_continuity>
+        <constraint_type>
+          <string_value>BDM</string_value>
+          <solver>
+            <iterative_method name="preonly"/>
+            <preconditioner name="lu"/>
+            <relative_error>
+              <real_value rank="0">1.0e-12</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </constraint_type>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -290,30 +307,6 @@
         <mean_layer_thickness>
           <real_value rank="0">5.0</real_value>
         </mean_layer_thickness>
-        <output/>
-        <stat/>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
-    <scalar_field name="LagrangeMultiplier" rank="0">
-      <prognostic>
-        <mesh name="TraceMesh"/>
-        <spatial_discretisation/>
-        <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
-          <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <start_from_zero/>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
         <output/>
         <stat/>
         <consistent_interpolation/>

@@ -322,31 +322,18 @@ This is usually disabled.</a:documentation>
               </element>
             </choice>
           </element>
-          <element name="scalar_field">
-            <a:documentation>Free surface elevation</a:documentation>
-            <attribute name="rank">
-              <value>0</value>
-            </attribute>
-            <attribute name="name">
-              <value>LayerThickness</value>
-            </attribute>
-            <element name="prognostic">
-              <ref name="pressure_mesh_choice"/>
-              <ref name="prognostic_layerthickness_field"/>
-            </element>
-          </element>
           <optional>
             <element name="scalar_field">
-              <a:documentation>Lagrange multiplier for hybridised solver</a:documentation>
+              <a:documentation>Free surface elevation</a:documentation>
               <attribute name="rank">
                 <value>0</value>
               </attribute>
               <attribute name="name">
-                <value>LagrangeMultiplier</value>
+                <value>LayerThickness</value>
               </attribute>
               <element name="prognostic">
-                <ref name="mesh_choice"/>
-                <ref name="prognostic_lagrangemultiplier_field"/>
+                <ref name="pressure_mesh_choice"/>
+                <ref name="prognostic_layerthickness_field"/>
               </element>
             </element>
           </optional>

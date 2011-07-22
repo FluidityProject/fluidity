@@ -82,12 +82,13 @@ contains
     character(len=OPTION_PATH_LEN), intent(in), optional :: solver_option_path
     !
     type(vector_field), pointer :: X, U, down, U_cart
-    type(scalar_field), pointer :: D,f, lambda, lambda_nc
-    type(scalar_field) :: X1,X2,lambdaX1, lambdaX2
+    type(scalar_field), pointer :: D,f, lambda_nc
+    type(scalar_field) :: lambda
     type(scalar_field), target :: lambda_rhs, u_cpt
     type(csr_sparsity) :: lambda_sparsity, continuity_sparsity
     type(csr_matrix) :: lambda_mat, continuity_block_mat,continuity_block_mat1
     type(block_csr_matrix) :: continuity_mat
+    type(mesh_type), pointer :: lambda_mesh
     real :: D0, dt, g, theta
     integer :: ele,i1, stat, dim1
     logical :: l_compute_cartesian,l_check_continuity, l_output_dense
@@ -110,8 +111,8 @@ contains
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
 
-    NEED TO ALLOCATE THIS HERE AND DEALLOCATE AT THE END
-    lambda=>extract_scalar_field(state, "LagrangeMultiplier")
+    lambda_mesh=>extract_mesh(state, "VelocityMeshTrace")
+    call allocate(lambda,lambda_mesh,name="LagrangeMultiplier")
 
     U_cart => extract_vector_field(state, "Velocity")
 
@@ -154,14 +155,15 @@ contains
     ewrite(1,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
 
     !Solve the equations
-    NEED TO PUT IN SOME SOLVER OPTIONS
     if(present(solver_option_path)) then
        call petsc_solve(lambda,lambda_mat,lambda_rhs,&
             option_path=solver_option_path)
     else
-       call petsc_solve(lambda,lambda_mat,lambda_rhs)
-       ewrite(1,*) 'LAMBDA', maxval(abs(lambda%val))
+       call petsc_solve(lambda,lambda_mat,lambda_rhs,&
+            option_path=trim(U_cart%mesh%option_path)//&
+            &"/from_mesh/constraint_type")
     end if
+    ewrite(1,*) 'LAMBDA', maxval(abs(lambda%val))
 
     !Reconstruct U and D from lambda
     do ele = 1, ele_count(D)
@@ -185,14 +187,8 @@ contains
     if(l_compute_cartesian) then
        U_cart => extract_vector_field(state, "Velocity")
        if(present(U_out)) then
-          !do ele = 1, element_count(X)
-          !   call compute_cartesian_ele(U_cart,U_out,X,ele)
-          !end do
           call project_local_to_cartesian(X,U_out,U_cart)
        else
-          !do ele = 1, element_count(X)
-          !   call compute_cartesian_ele(U_cart,U,X,ele)
-          !end do
           call project_local_to_cartesian(X,U,U_cart)
        end if
     end if
@@ -215,26 +211,15 @@ contains
             &maxval(lambda_rhs%val)
        assert(maxval(abs(lambda_rhs%val))<1.0e-10)
        
-       !do ele = 1, ele_count(U)
-       !   call check_continuity_local_ele(U,ele)
-       !end do
-
        ewrite(1,*) 'D MAXABS', maxval(abs(D%val))
        do ele = 1, ele_count(U)
           call check_continuity_ele(U_cart,X,ele)
        end do
     end if
     
-    ! lambda_nc=>extract_scalar_field(state, "LambdaNC",stat)
-    ! if(stat==0) then
-    !    call zero(lambda_nc)
-    !    do ele = 1, ele_count(D)
-    !       call reconstruct_lambda_nc(lambda,lambda_nc,X,ele)
-    !    end do
-    ! end if
-    ! ewrite(1,*) lambda_nc%val
-    ! call deallocate(lambda_mat)
-    ! call deallocate(lambda_rhs)
+    call deallocate(lambda_mat)
+    call deallocate(lambda_rhs)
+    call deallocate(lambda)
 
     ewrite(1,*) 'END subroutine solve_hybridized_helmholtz'
 
@@ -272,7 +257,7 @@ contains
     integer, dimension(:), pointer :: neigh
     real, dimension(ele_loc(lambda_rhs,ele)) :: lambda_rhs_loc,lambda_rhs_loc2
     real, dimension(:),allocatable,target :: Rhs_loc
-    real, dimension(:,:), allocatable :: local_solver, local_solver_rhs
+    real, dimension(:,:), allocatable :: local_solver_matrix, local_solver_rhs
     type(element_type) :: U_shape
     integer :: stat, d_start, d_end, dim1, mdim, uloc,dloc, lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
@@ -298,7 +283,7 @@ contains
     end if
 
     allocate(rhs_loc(2*uloc+dloc+n_constraints))
-    allocate(local_solver(mdim*uloc+dloc+n_constraints,&
+    allocate(local_solver_matrix(mdim*uloc+dloc+n_constraints,&
          mdim*uloc+dloc+n_constraints))
     allocate(local_solver_rhs(mdim*uloc+dloc,mdim*uloc+dloc))
 
@@ -335,7 +320,7 @@ contains
 
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
-    call get_local_solver(local_solver,U,X,down,D,f,ele,&
+    call get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
          & g,dt,theta,D0,have_constraint,local_solver_rhs,&
          projection)
 
@@ -374,7 +359,7 @@ contains
     !compute l_continuity_mat2 = inverse(local_solver)*l_continuity_mat
     allocate(l_continuity_mat2(uloc*2+dloc+n_constraints,lloc))
     l_continuity_mat2 = l_continuity_mat
-    call solve(local_solver,l_continuity_mat2)
+    call solve(local_solver_matrix,l_continuity_mat2)
 
     !compute helmholtz_loc_mat
     allocate(helmholtz_loc_mat(lloc,lloc))
@@ -389,7 +374,7 @@ contains
        assert(.not.present_and_true(poisson))
        rhs_loc(1:d_end) = matmul(local_solver_rhs,rhs_loc(1:d_end))
     end if
-    call solve(local_solver,Rhs_loc)
+    call solve(local_solver_matrix,Rhs_loc)
     lambda_rhs_loc = -matmul(transpose(l_continuity_mat),&
          &Rhs_loc)
     !insert lambda_rhs_loc into lambda_rhs
@@ -429,7 +414,7 @@ contains
          & continuity_mat_u_ptr
     real, dimension(ele_loc(lambda,ele)) :: lambda_val
     real, dimension(:),allocatable,target :: Rhs_loc
-    real, dimension(:,:), allocatable :: local_solver, local_solver_rhs
+    real, dimension(:,:), allocatable :: local_solver_matrix, local_solver_rhs
     real, dimension(mesh_dim(U),ele_loc(U,ele)) :: U_solved
     real, dimension(ele_loc(D,ele)) :: D_solved
     logical :: have_constraint
@@ -453,7 +438,7 @@ contains
 
     allocate(rhs_loc(2*uloc+dloc+n_constraints))
     rhs_loc = 0.
-    allocate(local_solver(mdim*uloc+dloc+n_constraints,&
+    allocate(local_solver_matrix(mdim*uloc+dloc+n_constraints,&
          mdim*uloc+dloc+n_constraints))
     allocate(local_solver_rhs(mdim*uloc+dloc,mdim*uloc+dloc))
 
@@ -474,7 +459,7 @@ contains
 
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
-    call get_local_solver(local_solver,U,X,down,D,f,ele,&
+    call get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
          & g,dt,theta,D0,have_constraint,&
          & local_solver_rhs=local_solver_rhs,projection=projection,&
          & poisson=poisson)
@@ -514,9 +499,9 @@ contains
     ! (u)   (M    C)^{-1}(0)   (M    C)^{-1}(L)
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
 
-    call solve(local_solver,Rhs_loc)
-    rhs_loc = matmul(local_solver,rhs_loc)
-    call solve(local_solver,Rhs_loc)
+    call solve(local_solver_matrix,Rhs_loc)
+    rhs_loc = matmul(local_solver_matrix,rhs_loc)
+    call solve(local_solver_matrix,Rhs_loc)
 
     do dim1 = 1, mdim
        U_solved(dim1,:) = rhs_loc(u_start(dim1):u_end(dim1))
@@ -556,8 +541,16 @@ contains
 
   end subroutine reconstruct_U_d_ele
 
-  subroutine get_local_solver(local_solver,U,X,down,D,f,ele,&
-       & g,dt,theta,D0,have_constraint,local_solver_rhs,projection,poisson)
+  subroutine get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
+       & g,dt,theta,D0,have_constraint, &
+       & local_solver_rhs,projection,poisson)
+    !Subroutine to get the matrix and rhs for obtaining U and D within
+    !element ele from the lagrange multipliers on the boundaries.
+    !This matrix-vector system is referred to as the "local solver" in the 
+    !literature e.g.
+    !Cockburn et al, Unified hybridization of discontinuous Galerkin, mixed
+    ! and continuous Galerkin methods for second order elliptic problems,
+    ! SIAM J. Numer. Anal., 2009
     implicit none
     !If projection is present and true, set dt to zero and just project U 
     !into div-conforming space
@@ -566,7 +559,7 @@ contains
     type(scalar_field), intent(in) :: D,f
     integer, intent(in) :: ele
     real, dimension(:,:)&
-         &, intent(inout) :: local_solver
+         &, intent(inout) :: local_solver_matrix
     real, dimension(:,:)&
          &, intent(inout), optional :: local_solver_rhs
     logical, intent(in), optional :: projection, poisson
@@ -609,7 +602,7 @@ contains
        u_end(dim1) = uloc*dim1
     end do
 
-    local_solver = 0.
+    local_solver_matrix = 0.
     if(present(local_solver_rhs)) then
        local_solver_rhs = 0.
     end if
@@ -650,7 +643,7 @@ contains
     !dt*theta*<\phi,div u>         + D_0<\phi,h>         = 0 
 
     !pressure mass matrix (done in global coordinates)
-    local_solver(d_start:d_end,d_start:d_end)=&
+    local_solver_matrix(d_start:d_end,d_start:d_end)=&
          &shape_shape(d_shape,d_shape,detwei)
        if(present(local_solver_rhs)) then
           local_solver_rhs(d_start:d_end,d_start:d_end) = &
@@ -661,14 +654,14 @@ contains
          &D_shape%quadrature%weight)
     do dim1 = 1, mdim
        !pressure gradient term [integrated by parts so minus sign]
-       local_solver(u_start(dim1):u_end(dim1),d_start:d_end)=&
+       local_solver_matrix(u_start(dim1):u_end(dim1),d_start:d_end)=&
             & -g*l_dt*theta*l_div_mat(dim1,:,:)
        if(present(local_solver_rhs)) then
           local_solver_rhs(u_start(dim1):u_end(dim1),d_start:d_end)=&
                & -g*(theta-1.0)*l_dt*l_div_mat(dim1,:,:)
        end if
        !divergence continuity term
-       local_solver(d_start:d_end,u_start(dim1):u_end(dim1))=&
+       local_solver_matrix(d_start:d_end,u_start(dim1):u_end(dim1))=&
             & d0*l_dt*theta*transpose(l_div_mat(dim1,:,:))
        if(present(local_solver_rhs)) then
           local_solver_rhs(d_start:d_end,u_start(dim1):u_end(dim1))=&
@@ -680,7 +673,7 @@ contains
          u_shape%quadrature%weight, Metric+l_dt*theta*Metricf)
     do dim1 = 1, mdim
        do dim2 = 1, mdim
-          local_solver(u_start(dim1):u_end(dim1),&
+          local_solver_matrix(u_start(dim1):u_end(dim1),&
                u_start(dim2):u_end(dim2))=&
                & l_u_mat(dim1,dim2,:,:)
        end do
@@ -705,9 +698,9 @@ contains
        c_end = d_end + constraints%n_constraints
        do i1 = 1, constraints%n_constraints
           do dim1 = 1, mdim
-             local_solver(d_end+i1,u_start(dim1):u_end(dim1))=&
+             local_solver_matrix(d_end+i1,u_start(dim1):u_end(dim1))=&
                   &constraints%orthogonal(i1,:,dim1)
-             local_solver(u_start(dim1):u_end(dim1),d_end+i1)=&
+             local_solver_matrix(u_start(dim1):u_end(dim1),d_end+i1)=&
                   &constraints%orthogonal(i1,:,dim1)
           end do
        end do
@@ -1342,7 +1335,7 @@ contains
     !ewrite(1,*) 'div', div
   end subroutine check_divergence_ele
 
-  subroutine compute_energy(state,energy)
+  subroutine compute_energy_hybridized(state,energy)
     implicit none
     type(state_type), intent(inout) :: state
     real, intent(inout) :: energy
@@ -1371,7 +1364,7 @@ contains
     ewrite(1,*) 'Energy:= ', energy
     ewrite(1,*) 'Change in energy:= ', energy-old_energy
 
-  end subroutine compute_energy
+  end subroutine compute_energy_hybridized
 
   subroutine compute_energy_ele(energy,U,D,X,D0,g,ele)
     implicit none
@@ -1813,5 +1806,19 @@ contains
     end do
     assert(maxval(abs(div_gi))<1.0e-8)
   end subroutine set_local_velocity_from_streamfunction_ele
+
+  subroutine project_to_constrained_space(state,v_field)
+    !wrapper for projecting vector field to constrained space
+    implicit none
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: v_field
+
+    call solve_hybridized_helmholtz(state,&
+         &U_rhs=v_field,&
+         &compute_cartesian=.true.,&
+         &check_continuity=.true.,projection=.true.,&
+         &u_rhs_local=.true.)
+
+  end subroutine project_to_constrained_space
 
 end module hybridized_helmholtz

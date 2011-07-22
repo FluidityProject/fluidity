@@ -764,23 +764,41 @@ contains
     !If any meshes have constraints, allocate an appropriate trace mesh
     type(state_type), dimension(:), intent(inout) :: states
     !
-    type(mesh_type), pointer :: from_mesh
+    type(mesh_type) :: from_mesh, model_mesh
     type(mesh_type) :: trace_mesh
     type(quadrature_type) :: quad
     type(element_type) :: trace_shape
     integer :: mesh_no, trace_degree, dim, loc, constraint_choice, &
          &quad_degree
     logical :: allocate_trace_mesh
+    character(len=FIELD_NAME_LEN) :: model_mesh_name
 
     do mesh_no = 1, mesh_count(states(1))
        allocate_trace_mesh = .false.
-       from_mesh => extract_mesh(states(1),mesh_no)
+       from_mesh = extract_mesh(states(1),mesh_no)
        if(associated(from_mesh%shape%constraints)) then
           constraint_choice = from_mesh%shape%constraints%type
           if(constraint_choice.ne.CONSTRAINT_NONE) then
-             trace_degree = from_mesh%shape%degree - 1
+             select case(constraint_choice)
+             case (CONSTRAINT_BDM)
+                trace_degree = from_mesh%shape%degree
+             case (CONSTRAINT_RT)
+                trace_degree = from_mesh%shape%degree-1
+             case (CONSTRAINT_BDFM)
+                trace_degree = from_mesh%shape%degree-1
+             case default
+                FLAbort('Constraint type not supported')
+             end select
              dim = from_mesh%shape%dim
-             loc=from_mesh%shape%loc
+             loc=from_mesh%shape%quadrature%vertices
+
+             ! Get model mesh name
+             call get_option("/geometry/mesh["//int2str(mesh_no)//&
+                  &"]/from_mesh/mesh[0]/name",&
+                  &model_mesh_name)
+             
+             ! Extract model mesh
+             model_mesh=extract_mesh(states(1), trim(model_mesh_name))
              
              !Make quadrature
              call get_option("/geometry/quadrature/degree",&
@@ -793,7 +811,7 @@ contains
              !deallocate quadrature (just drop a reference)
              call deallocate(quad)
              !allocate mesh
-             trace_mesh=make_mesh(from_mesh, trace_shape, continuity=-1,&
+             trace_mesh=make_mesh(model_mesh, trace_shape, continuity=-1,&
                   name=trim(from_mesh%name)//"Trace")
              !deallocate shape (just drop a reference)
              call deallocate(trace_shape)
@@ -860,6 +878,8 @@ contains
             constraint_choice=CONSTRAINT_BDFM
          else if(trim(constraint_option_string)=="RT") then
             constraint_choice=CONSTRAINT_RT
+         else if(trim(constraint_option_string)=="BDM") then
+            constraint_choice=CONSTRAINT_BDM
          else if(trim(constraint_option_string)=="none") then
             constraint_choice=CONSTRAINT_NONE
          end if

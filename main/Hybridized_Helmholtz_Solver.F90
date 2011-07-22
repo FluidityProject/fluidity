@@ -133,7 +133,7 @@
     end if
 
     if(.not.(have_u_rhs).or.(have_d_rhs)) then
-       call compute_energy(state(1),energy)
+       call compute_energy_hybridized(state(1),energy)
        ewrite(1,*) 'ENERGY BEFORE = ', energy
     end if
 
@@ -213,7 +213,7 @@
           ewrite(1,*) 'l2projectederror', l2projectederror
        end if
     else
-       call compute_energy(state(1),energy)
+       call compute_energy_hybridized(state(1),energy)
        ewrite(1,*) 'ENERGY AFTER = ', energy
     end if
     call write_state(dump_no,state)

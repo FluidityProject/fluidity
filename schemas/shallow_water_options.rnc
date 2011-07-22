@@ -267,7 +267,9 @@ start =
                      pressure_mesh_choice,
                      prognostic_layerthickness_field
                   }
-               }
+               }?,
+               scalar_field_choice*,
+               vector_field_choice*
             )
          },
         element mesh_adaptivity {

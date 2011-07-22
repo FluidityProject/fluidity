@@ -200,22 +200,21 @@
     ! Always output the initial conditions.
     call output_state(state)
 
-    NEED TO CHANGE ALL THIS TO CHECKING FOR CONSTRAINTS,
-    AND PUT A WRAPPER AROUND THE PROJECTIONS
-    if(have_option("/material_phase::&
-         &Fluid/scalar_field::LagrangeMultiplier")) then
-       !project velocity into div-conforming space
-       v_field => extract_vector_field(state(1),"LocalVelocity")
-       call solve_hybridized_helmholtz(state(1),&
-            &U_rhs=v_field,&
-            &compute_cartesian=.true.,&
-            &check_continuity=.true.,projection=.true.,&
-            &u_rhs_local=.true.)
+    hybridized = .false.
+    v_field => extract_vector_field(state(1),"Velocity")
+    if(associated(v_field%mesh%shape%constraints)) then
+       if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
+            & .true.
     end if
 
-    if(have_option("/material_phase::&
-         &Fluid/scalar_field::LagrangeMultiplier")) then
-       call compute_energy(state(1),energy)
+    if(hybridized) then
+       !project velocity into div-conforming space
+       v_field => extract_vector_field(state(1),"LocalVelocity")
+       call project_to_constrained_space(state(1),v_field)
+    end if
+
+    if(hybridized) then
+       call compute_energy_hybridized(state(1),energy)
     else
        call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
     end if
@@ -269,9 +268,8 @@
        call write_diagnostics(state,current_time, dt, timestep)
 
        !Update the variables
-       if(have_option("/material_phase::&
-            &Fluid/scalar_field::LagrangeMultiplier")) then
-          call compute_energy(state(1),energy)
+       if(hybridized) then
+          call compute_energy_hybridized(state(1),energy)
        else
           call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
        end if
@@ -279,9 +277,8 @@
        
     end do timestep_loop
 
-    if(have_option("/material_phase::&
-         &Fluid/scalar_field::LagrangeMultiplier")) then
-       call compute_energy(state(1),energy)
+    if(hybridized) then
+       call compute_energy_hybridized(state(1),energy)
     else
        call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
     end if
@@ -294,8 +291,7 @@
 #endif
     call write_diagnostics(state,current_time,dt,timestep)
 
-    if(.not.have_option("/material_phase::&
-         &Fluid/scalar_field::LagrangeMultiplier")) then
+    if(.not.hybridized) then
        call deallocate(h_mass_mat)
        call deallocate(u_mass_mat)
        call deallocate(coriolis_mat)
@@ -394,15 +390,7 @@
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
 
-      if(have_option("/material_phase::Fluid/scalar_field::LagrangeMultiplie&
-           &r")) then
-         hybridized = .true.
-      else
-         hybridized = .false.
-      end if
-
-      if(.not.have_option("/material_phase::&
-           &Fluid/scalar_field::LagrangeMultiplier")) then
+      if(.not.hybridized) then
          call setup_wave_matrices(state(1),u_sparsity,&
               wave_sparsity,&
               ct_sparsity,&
@@ -433,8 +421,7 @@
          ! Geostrophic balanced initial condition, if required
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
            &/initial_condition::WholeMesh/balanced")) then
-         if(have_option("/material_phase::&
-              &Fluid/scalar_field::LagrangeMultiplier")) then
+         if(hybridized) then
             call set_velocity_from_geostrophic_balance_hybridized(state(1))
          else
             call set_velocity_from_geostrophic_balance(state(1), &
@@ -445,9 +432,7 @@
          call adjoint_register_initial_u_condition(balanced=.false.)
       end if
 
-      if(.not.have_option("/material_phase::&
-           &Fluid/scalar_field::LagrangeMultiplier")) then
-
+      if(.not.hybridized) then
          ! Set up the state of cached matrices
          call insert(matrices, u_mass_mat, "LocalVelocityMassMatrix")
          call insert(matrices, h_mass_mat, "LayerThicknessMassMatrix")

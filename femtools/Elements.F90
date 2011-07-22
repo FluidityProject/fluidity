@@ -106,7 +106,7 @@ module elements
   end type constraints_type
 
   integer, parameter :: CONSTRAINT_NONE =0, CONSTRAINT_BDFM = 1,&
-       & CONSTRAINT_RT = 2
+       & CONSTRAINT_RT = 2, CONSTRAINT_BDM = 3
 
   interface allocate
      module procedure allocate_element, allocate_element_with_surface
@@ -322,6 +322,8 @@ contains
        case default
           FLAbort('Illegal element family.')
        end select
+    case (CONSTRAINT_BDM)
+       constraint%n_constraints = 0
     case (CONSTRAINT_NONE)
        constraint%n_constraints = 0
     case default
@@ -746,6 +748,8 @@ contains
     select case(family)
     case (FAMILY_SIMPLEX)
        select case(constraint%type)
+       case (CONSTRAINT_BDM)
+          !do nothing
        case (CONSTRAINT_BDFM)
           select case(constraint%dim)
           case (2)
@@ -778,6 +782,8 @@ contains
        end select
     case (FAMILY_CUBE)
        select case(constraint%type)
+       case (CONSTRAINT_BDM)
+          !do nothing
        case (CONSTRAINT_RT)
           select case(constraint%dim)
           case (2)

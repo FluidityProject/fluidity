@@ -30,7 +30,21 @@
           <string_value>discontinuous</string_value>
         </mesh_continuity>
         <constraint_type>
-          <string_value>BDFM</string_value>
+          <string_value>BDM</string_value>
+          <solver>
+            <iterative_method name="preonly"/>
+            <preconditioner name="lu"/>
+            <relative_error>
+              <real_value rank="0">1.0e-7</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
         </constraint_type>
         <stat>
           <exclude_from_stat/>
@@ -265,29 +279,6 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="LagrangeMultiplier" rank="0">
-      <prognostic>
-        <mesh name="TraceMesh"/>
-        <spatial_discretisation/>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="eisenstat"/>
-          <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
     <scalar_field name="LayerThicknessRHS" rank="0">
       <prescribed>
         <mesh name="P2Mesh"/>
@@ -331,26 +322,6 @@
           <exists_in_forward/>
         </adjoint_storage>
       </prescribed>
-    </scalar_field>
-    <scalar_field name="LambdaNC" rank="0">
-      <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="LagrangeMultiplier"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </diagnostic>
     </scalar_field>
     <scalar_field name="LayerThicknessExactProjected" rank="0">
       <diagnostic>

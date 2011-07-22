@@ -88,10 +88,16 @@ enforcing continuity by Lagrange multipliers).</a:documentation>
 div-conforming elements such as RT0 in a hybridised
 solver.</a:documentation>
               <choice>
+                <value>BDM</value>
                 <value>BDFM</value>
                 <value>RT</value>
-                <value>none</value>
               </choice>
+            </element>
+            <element name="solver">
+              <ref name="linear_solver_options_sym">
+                <a:documentation>Solver is used to apply projections to div-conforming
+space, and in elliptic solvers</a:documentation>
+              </ref>
             </element>
           </element>
         </optional>
