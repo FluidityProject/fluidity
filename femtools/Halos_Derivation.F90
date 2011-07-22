@@ -613,7 +613,7 @@ contains
     
     integer :: ele_owner
     
-    ele_owner = minval(halo_node_owners(node_halo, ele_nodes(mesh, ele)))
+    ele_owner = maxval(halo_node_owners(node_halo, ele_nodes(mesh, ele)))
     assert(ele_owner > 0)
    
   end function ele_owner

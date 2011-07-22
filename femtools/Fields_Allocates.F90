@@ -907,7 +907,8 @@ contains
     end if
 
     mesh%topology=>mesh_topology(model)
- 
+    mesh%uid=>model%uid
+
     mesh%periodic=model%periodic
    
     ! You can't have a CG degree 0 mesh!

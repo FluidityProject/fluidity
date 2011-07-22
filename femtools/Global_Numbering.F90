@@ -57,22 +57,20 @@ module global_numbering
 
 contains
 
-  subroutine make_global_numbering_new(mesh, uid)
+  subroutine make_global_numbering_new(mesh)
     ! Construct a new global numbering for mesh using the ordering from
     !  topology.
     type(mesh_type), intent(inout), target :: mesh
-    ! The universal identifier. Required for parallel.
-    type(scalar_field), intent(in), optional :: uid
-    
-    type(csr_sparsity) :: facet_list, edge_list
+
+        type(csr_sparsity) :: facet_list, edge_list
     type(csr_matrix) :: facet_numbers, edge_numbers
     integer, dimension(0:mesh_dim(mesh)) :: entity_counts, dofs_per
     type(cell_type), pointer :: cell
     type(element_type), pointer :: element, topo_element
     type(mesh_type), pointer :: topology
-    integer :: d, e, ele, entity, max_vertices
-    integer, dimension(:), pointer :: ele_dofs,topo_dofs, facets
-    integer, dimension(2) :: edge
+    ! The universal identifier. Required for parallel.
+    type(scalar_field), pointer :: uid
+    integer :: max_vertices
     logical :: have_facets, have_halos
 
     type(integer_set), dimension(:,:), allocatable :: entity_send_targets
@@ -91,11 +89,10 @@ contains
     cell=>element%cell    
     topo_element=>mesh%topology%shape
     topology=>mesh%topology
-
+    uid=>mesh%uid
+    
     have_facets=associated(topology%faces)
     have_halos=associated(topology%halos)
-    ! Halos require uid.
-    assert((.not.have_halos).or.(.not.present(uid)))
 
     call makelists(topology, NNlist=edge_list)
     if (have_facets) then
@@ -114,49 +111,18 @@ contains
     ! Number the topological entities.
     call number_topology
     call calculate_dofs_per_entity
+    ! Extract halo information for each tolological entity.
     if (have_halos) call create_topology_halos(topology%halos)
+    ! Determine the order in which topological entities should be numbered.
     call entity_order
+    ! Associate dof numbers with each topological entity
     call topology_dofs
-
-    do ele=1,element_count(mesh)
-       ele_dofs=>ele_nodes(mesh, ele)
-       topo_dofs=>ele_nodes(topology, ele)
-       if (have_facets.and.mesh_dim(mesh)>1) facets=>row_ival_ptr(facet_numbers,ele)
-#ifdef DDEBUG
-       ele_dofs=0
-#endif
-
-       do d=0,mesh_dim(mesh)
-          do e=1,cell%entity_counts(d)
-             if (d==0) then
-                entity=topo_dofs(e)
-             else if (d==cell%dimension) then
-                entity=sum(entity_counts(:d-1))+ele
-             else if (d==cell%dimension-1) then
-                if (have_facets) entity=facets(e)
-             else if (d==1) then
-                ! This case only gets hit for the edges of 3d elements.
-
-                ! The edge consists of the global dofs in the topology.
-                edge=topo_dofs(entity_vertices(cell,[1,e]))
-                ! Now look up the corresponding edge number.
-                entity=ival(edge_numbers,edge(1),edge(2))
-             end if
-  
-             ele_dofs(element%entity2dofs(d,e)%dofs)=&
-                  entity_dofs(d,entity, dofs_per)
-             
-          end do
-       end do
-       
-       assert(all(ele_dofs>0))
-
-    end do
-
-    mesh%nodes=sum(entity_counts*dofs_per)
-
-    assert(mesh%nodes==maxval(mesh%ndglno))
-
+    ! Transpose dof numbers into the mesh object
+    call populate_ndglno
+    
+    if (have_halos) then
+       call create_halos(mesh, topology%halos)
+    end if
     if(have_facets) then
        if (mesh_dim(mesh)>1) call deallocate(facet_numbers)
     end if
@@ -263,9 +229,9 @@ contains
       integer :: vertices, entity, n
       integer, dimension(:), pointer :: neigh
 
-      allocate(entity_send_targets(node_count(topology), size(halos)))
-      allocate(entity_owner(node_count(topology)))
-      allocate(entity_receive_level(node_count(topology)))
+      allocate(entity_send_targets(sum(entity_counts), size(halos)))
+      allocate(entity_owner(sum(entity_counts)))
+      allocate(entity_receive_level(sum(entity_counts)))
       vertices=entity_counts(0)
       call invert_halos(halos, entity_owner(:vertices), &
            entity_receive_level(:vertices), &
@@ -310,7 +276,6 @@ contains
 
       ! Loop over the facets
       if (mesh_dim(mesh)>1) then
-         facets=entity_counts(mesh_dim(mesh)-1)
 
          do ele1=1, element_count(mesh)
             neigh=>ele_neigh(topology,ele1)
@@ -358,6 +323,12 @@ contains
          entity_sort_list(entity,0)=entity_owner(entity)
          entity_sort_list(entity,1:ele_loc(topology,ele1))=&
                        sorted(int(ele_val(uid, ele1)))
+      end do
+      
+      do ele1=1,entity
+         print '(12i4)',entity_sort_list(ele1,:)&
+              &,entity_receive_level(ele1)&
+              &,set2vector(entity_send_targets(ele1,2)) 
       end do
 
       assert(entity==sum(entity_counts))
@@ -424,6 +395,123 @@ contains
       
     end function entity_dim
 
+    subroutine populate_ndglno
+      ! Having established what the numbering should be, actually populate
+      !  the mesh with dof numbers.
+      integer :: ele, d, e, entity
+      integer, dimension(2) :: edge
+      integer, dimension(:), pointer :: ele_dofs, topo_dofs, facets
+
+      do ele=1,element_count(mesh)
+         ele_dofs=>ele_nodes(mesh, ele)
+         topo_dofs=>ele_nodes(topology, ele)
+         if (have_facets.and.mesh_dim(mesh)>1) facets=>row_ival_ptr(facet_numbers,ele)
+#ifdef DDEBUG
+         ele_dofs=0
+#endif
+         
+         do d=0,mesh_dim(mesh)
+            do e=1,cell%entity_counts(d)
+               if (d==0) then
+                  entity=topo_dofs(e)
+               else if (d==cell%dimension) then
+                  entity=sum(entity_counts(:d-1))+ele
+               else if (d==cell%dimension-1) then
+                  if (have_facets) entity=facets(e)
+               else if (d==1) then
+                  ! This case only gets hit for the edges of 3d elements.
+                  
+                  ! The edge consists of the global dofs in the topology.
+                  edge=topo_dofs(entity_vertices(cell,[1,e]))
+                  ! Now look up the corresponding edge number.
+                  entity=ival(edge_numbers,edge(1),edge(2))
+               end if
+               
+               ele_dofs(element%entity2dofs(d,e)%dofs)=&
+                    entity_dofs(d,entity, dofs_per)
+               
+            end do
+         end do
+         
+         assert(all(ele_dofs>0))
+         
+      end do
+      
+      mesh%nodes=sum(entity_counts*dofs_per)
+      
+      assert(mesh%nodes==maxval(mesh%ndglno))
+    end subroutine populate_ndglno
+
+    subroutine create_halos(mesh, thalos)
+      type(mesh_type), intent(inout) :: mesh
+      type(halo_type), dimension(:), intent(in) :: thalos
+      
+      type(integer_set), dimension(:,:), allocatable :: sends, receives
+      integer :: local_dofs, data_type, entity, h, k, p, rank
+
+      allocate(sends(size(thalos), size(thalos(1)%sends)), &
+           receives(size(thalos), size(thalos(1)%receives)))
+      call allocate(sends)
+      call allocate(receives)
+
+      allocate(mesh%halos(size(thalos)))
+
+      rank=getprocno()
+      local_dofs=0
+
+      do entity=1,size(visit_order)
+         if (entity_owner(entity)==rank) then
+            ! One of ours
+            local_dofs=local_dofs+dofs_per(entity_dim(entity))
+            
+            do h=1,size(mesh%halos)
+               do k=1,key_count(entity_send_targets(entity,h))
+                  call insert(sends(h,fetch(entity_send_targets(entity,h),k)),&
+                       & entity_dofs(entity_dim(entity),entity, dofs_per))
+                  
+               end do
+            end do
+         else
+            ! Someone else's.
+            
+            assert(entity_receive_level(entity)>0)
+            do h=1,entity_receive_level(entity)
+               
+               call insert(receives(h,entity_owner(entity)),&
+                    entity_dofs(entity_dim(entity),entity, dofs_per))
+
+            end do
+         end if
+      end do
+
+      if (all(cell%entity_counts(:cell%dimension-1)==0)) then
+         data_type=HALO_TYPE_DG_NODE
+      else
+         data_type=HALO_TYPE_CG_NODE
+      end if
+
+      do h=1,size(mesh%halos)
+         call allocate(mesh%halos(h), &
+              nsends=key_count(sends(h,:)), &
+              nreceives=key_count(sends(h,:)), &
+              nowned_nodes=local_dofs, &
+              data_type=data_type,&
+              communicator=thalos(1)%communicator)
+
+         do p=1,size(mesh%halos(h)%sends)
+            mesh%halos(h)%sends(p)%ptr=sorted(set2vector(sends(h,p)))
+         end do
+         do p=1,size(mesh%halos(h)%receives)
+            mesh%halos(h)%receives(p)%ptr=sorted(set2vector(receives(h,p)))
+         end do
+
+      end do
+
+      call deallocate(sends)
+      call deallocate(receives)
+
+    end subroutine create_halos
+    
   end subroutine make_global_numbering_new
 
   function count_topological_entities(topology, edge_list, facet_list) result&

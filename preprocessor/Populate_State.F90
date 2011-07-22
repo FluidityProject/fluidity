@@ -170,6 +170,7 @@ contains
     type(vector_field) :: position
     type(vector_field), pointer :: position_ptr
     type(scalar_field) :: canonical_numbering
+    type(scalar_field), pointer :: uid
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
@@ -376,11 +377,25 @@ contains
           
           ! Insert mesh and position field into states(1) and
           ! alias it to all the others
-          call insert(states, mesh, mesh%name)
-          call insert(states, position, position%name)
-          call deallocate(position)
           call insert(states, canonical_numbering, "CanonicalNumbering")
           call deallocate(canonical_numbering)
+          uid=>extract_scalar_field(states(1),"CanonicalNumbering")
+          mesh%uid=>uid
+          position%mesh%uid=>uid
+          call insert(states, mesh, mesh%name)
+          call insert(states, position, position%name)
+#ifdef DDEBUG
+          call print_halo(position%mesh%element_halos(1), 0)
+          mesh=piecewise_constant_mesh(position%mesh,"foo")
+          call print_halo(mesh%halos(2), 0)
+          print *,"ndglno"
+          print '(3i4)',position%mesh%ndglno
+          print '(1i4)',mesh%ndglno
+          print '(1i4)',int(uid%val)
+          ! Now that we've got uids, we can verify the halos.
+          call verify_halos(position)
+#endif
+          call deallocate(position)
 
         else if (extruded) then
           
@@ -502,6 +517,7 @@ contains
     type(vector_field), pointer :: position, modelposition
     type(vector_field) :: periodic_position, nonperiodic_position, extrudedposition, coordinateposition
     type(scalar_field) :: canonical_numbering
+    type(scalar_field), pointer :: uid
 
     character(len=FIELD_NAME_LEN) :: model_mesh_name
     character(len=OPTION_PATH_LEN) :: shape_type, cont
@@ -693,11 +709,6 @@ contains
            periodic_position%mesh%name = mesh_name
            periodic_position%mesh%option_path = trim(mesh_path)
 
-           mesh = periodic_position%mesh
-           call incref(mesh)
-           call insert(states, periodic_position, trim(periodic_position%name))
-           call deallocate(periodic_position)
-
            ! The periodic mesh canonical numbering replaces the previous
            !  one. The positions mesh numbering will be adjusted accordingly.
            canonical_numbering=periodic_universal_ID_field(&
@@ -706,6 +717,14 @@ contains
            call order_elements(canonical_numbering, [ position%mesh ])
            call insert(states, canonical_numbering, "CanonicalNumbering")
            call deallocate(canonical_numbering)
+           uid=>extract_scalar_field(states(1),"CanonicalNumbering")
+           periodic_position%mesh%uid=>uid
+           position%mesh%uid=>uid
+
+           mesh = periodic_position%mesh
+           call incref(mesh)
+           call insert(states, periodic_position, trim(periodic_position%name))
+           call deallocate(periodic_position)
 
          end if
                

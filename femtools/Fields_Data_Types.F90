@@ -98,6 +98,8 @@ module fields_data_types
      !!  from which this mesh is directly or indirectly derived. If this
      !!  mesh is its own topology, this pointer should be null.
      type(mesh_type), pointer :: topology=>null()
+     !! A pointer to the vertex unique id field for this mesh. 
+     type(scalar_field), pointer :: uid=>null()
   end type mesh_type
 
   type mesh_faces

@@ -55,7 +55,8 @@ module integer_set_module
   end interface
 
   interface allocate
-    module procedure integer_set_allocate_single, integer_set_allocate_vector
+    module procedure integer_set_allocate_single,&
+         & integer_set_allocate_vector, integer_set_allocate_array
   end interface
 
   interface insert
@@ -113,6 +114,19 @@ module integer_set_module
     end do
   
   end subroutine integer_set_allocate_vector
+
+  subroutine integer_set_allocate_array(iset)
+    type(integer_set), dimension(:,:), intent(out) :: iset
+    
+    integer :: i,j
+    
+    do i = 1, size(iset,1)
+       do j = 1, size(iset,2)
+          call allocate(iset(i,j))
+       end do
+    end do
+  
+  end subroutine integer_set_allocate_array
 
   function integer_set_create() result(iset)
     type(integer_set) :: iset

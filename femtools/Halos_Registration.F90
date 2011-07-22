@@ -204,10 +204,6 @@ contains
 
     call read_halos(filename, positions%mesh, communicator = communicator)
 
-#ifdef DDEBUG
-    call verify_halos(positions)
-#endif
-
   end subroutine read_halos_positions
 
   subroutine verify_halos(positions)
