@@ -32,7 +32,6 @@ module multiphase_mom_press_volf
   use spact
   use multiphase_1D_engine
   use multiphase_EOS
-  use solvers_module
   use matrix_operations
   use shape_functions
   use printout
@@ -440,7 +439,8 @@ contains
                SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
                IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
-               SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_VOLFRA )
+               SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_VOLFRA, &
+               option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
 
 
           SUM_THETA_FLUX = 0.0
@@ -538,7 +538,8 @@ contains
                      SUF_VOL_BC, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, WIC_VOL_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                      NOIT_DIM, &
                      T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
-                     MEAN_PORE_CV )
+                     MEAN_PORE_CV, &
+                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
 
                 do iphase = 1, nphase
                    ewrite(3,*) 'comp:', icomp, iphase, comp(( ICOMP - 1 ) * NPHASE * CV_NONODS + (iphase - 1) * cv_nonods + 1 )

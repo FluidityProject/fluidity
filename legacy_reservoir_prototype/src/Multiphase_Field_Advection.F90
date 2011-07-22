@@ -86,8 +86,9 @@ contains
        mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
        mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
        ncolm, findm, colm, midm, & ! CV-FEM matrix
-       mxnele, ncolele, finele, colele ) ! Element connectivity 
-
+       mxnele, ncolele, finele, colele, & ! Element connectivity 
+       option_path)
+       
     implicit none
 
     integer, intent( in ) :: problem, nphase, ncomp, totele, ndim, u_nloc, xu_nloc, cv_nloc, x_nloc, &
@@ -145,7 +146,8 @@ contains
     integer, intent ( in ) :: mxnele, ncolele
     integer, dimension( totele + 1 ), intent (in ) :: finele
     integer, dimension( mxnele ), intent (in ) :: colele
-
+    character(len=*), intent(in), optional :: option_path
+    
     ! Local variables
     real :: acctim, xacc
     integer :: its, itime, ele, iloc, x_nod, cv_nod
@@ -182,7 +184,7 @@ contains
        
        acctim = acctim + dt
        
-       if (acctim >= finish_time) exit Loop_Time 
+       if (acctim > finish_time) exit Loop_Time 
        
        told = t
 
@@ -218,7 +220,8 @@ contains
                SUF_T_BC, SUF_T_BC_ROB1, SUF_T_BC_ROB2, WIC_T_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
                T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
-               MEAN_PORE_CV )
+               MEAN_PORE_CV, &
+               option_path = trim(option_path) )
 
        end do Loop_Non_Linear_Iterations
 

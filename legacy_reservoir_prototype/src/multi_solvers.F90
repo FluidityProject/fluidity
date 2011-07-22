@@ -27,24 +27,26 @@
 !    USA
 #include "fdebug.h"
 
-
-!!!=========================================!!!
-!!!           SOLVERS SUBROUTINES           !!!
-!!!=========================================!!!
-
-
-
 module solvers_module
 
   use fldebug
-  use PETScSolve_Serial
+  use sparse_tools_petsc
+  use solvers
+  use state_module
+  use fields
+  use elements
+  use element_numbering
+  
+  private
+  
+  public  :: solver
+  
 contains
-
-
 
   subroutine SOLVER( CMC, P, RHS,  &
        NCMC, NONODS, FINCMC, COLCMC, MIDCMC,  &
-       ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
+       ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS, &
+       option_path )
 
     !
     ! Solve CMC * P = RHS for RHS.
@@ -63,30 +65,191 @@ contains
     INTEGER, DIMENSION( NONODS + 1 ), intent( in ) :: FINCMC
     INTEGER, DIMENSION( NCMC ), intent( in ) :: COLCMC
     INTEGER, DIMENSION( NONODS ), intent( in ) :: MIDCMC
-    
-    
-    ! THERE IS A SERIOUS BUG WITH CALLING THIS PETSC SOLVER WRAPPER
-    ! IN THAT THE MEMORY USAGE CONTINUOUSLY GROWS. DO NOT USE IT.
-    logical :: use_petsc = .false. !.true.
-    real :: max_error
+    character(len=*), intent(in), optional :: option_path
 
-    if(.not. use_petsc) then
+    if(present(option_path)) then
+       
+      call solve_via_copy_to_petsc_csr_matrix(cmc, &
+                                              p, &
+                                              rhs, &
+                                              nonods, &
+                                              fincmc, &
+                                              colcmc, &
+                                              ncmc, &
+                                              option_path = option_path)
+       
+    else
+       
+       FLAbort('Should not be using old solver')
+       
       call  SOLVER_SSOR( CMC, P, RHS,  &
         NCMC, NONODS, FINCMC, COLCMC, MIDCMC,  &
         ERROR, RELAX, RELAX_DIAABS, RELAX_DIA, N_LIN_ITS )
-    else
-   
-      ewrite(3,*) 'In PETSc Solver'
-   
-      call PETScMatrixSolve(cmc,p,rhs,nonods,fincmc,colcmc,ncmc, max_error)
-
-      ewrite(3,*) 'Leaving PETSc Solver'
 
     end if    
        
   end subroutine SOLVER
 
+! -----------------------------------------------------------------------------
 
+  subroutine solve_via_copy_to_petsc_csr_matrix(A, &
+                                                x, &
+                                                b, &
+                                                rows, &
+                                                findfe, &
+                                                colfe, &
+                                                number_of_unknowns, &
+                                                option_path)
+  
+     !!< Solve a matrix Ax = b system via copying over the
+     !!< petsc_csr_matrix type and calling the femtools solver
+     !!< using the spud options given by the field options path
+     
+    integer, intent(in) :: rows 
+    integer, intent(in) :: number_of_unknowns
+    integer, intent(in) :: findfe(rows+1) 
+    integer, intent(in) :: colfe(number_of_unknowns)
+    real, intent(in) :: a(number_of_unknowns),b(rows)
+    real, intent(inout) :: x(rows)
+    character(len=*), intent(in) :: option_path
+    
+    ! local variables
+    integer :: i,j,k
+    integer, dimension(:), allocatable :: dnnz
+    type(petsc_csr_matrix) :: matrix
+    type(scalar_field) :: rhs
+    type(scalar_field) :: solution
+    type(mesh_type) :: dummy_mesh
+    type(element_type) :: dummy_element
+    type(ele_numbering_type), pointer :: dummy_ele_num => null()
+    
+    ! find the number of non zeros per row
+    allocate(dnnz(rows))
+    
+    dnnz = 0
+    
+    do i = 1,rows
+       
+       dnnz(i) = findfe(i+1) - findfe(i)
+       
+    end do
+    
+    ! allocate the petsc_csr_matrix using nnz (pass dnnz also for onnz) 
+    call allocate(matrix, &
+                  rows, &
+                  rows, &
+                  dnnz, &
+                  dnnz, &
+                  (/1,1/), &
+                  name = 'dummy')
+    
+    call zero(matrix)
+    
+    ! add in the entries to petsc matrix
+    do i = 1, rows
+    
+      do j = findfe(i), findfe(i+1) - 1
+
+          k = colfe(j)
+          
+          call addto(matrix, &
+                     blocki = 1, &
+                     blockj = 1, &
+                     i = i, &
+                     j = k, &
+                     val = a(j))
+       
+       end do 
+    
+    end do 
+
+    call assemble(matrix)    
+    
+    ! Set up rhs and initial guess which are scalar field types.
+    ! To allocate these a mesh type is needed. The only important 
+    ! part of the mesh is the number of nodes (which is known here
+    ! as rows). But to allocate a mesh type a element type is needed
+    ! which itself requires a element numbering type. These are 
+    ! all set up as dummies here. Also the quadrature component
+    ! of the element type needs explicitly passed to an allocate and
+    ! the poly components need deallocating and nullifying to 
+    ! avoid confusion when element is deallocated.
+    
+    !!! --- START OF HACK TO GET A MESH TYPE FOR RHS AND SOLUTION ALLOCATE --- !!!
+    dummy_ele_num => find_element_numbering(vertices = 2, &
+                                            dimension = 1, &
+                                            degree = 1)
+    
+    call allocate(dummy_element, &
+                  dummy_ele_num, &
+                  ngi = 2)
+
+    call allocate(dummy_element%quadrature, &
+                  vertices = 2, &
+                  ngi = 2, &
+                  coords = 2)
+    
+    ! unallocate the poly and null to avoid issue when deallocating dummy_element
+    deallocate(dummy_element%spoly)
+    deallocate(dummy_element%dspoly)
+    dummy_element%spoly => null()
+    dummy_element%dspoly => null()
+    
+    call allocate(dummy_mesh, &
+                  nodes = rows, &
+                  elements = 1, &
+                  shape = dummy_element)
+    !!! --- END OF HACK TO GET A MESH TYPE FOR RHS AND SOLUTION ALLOCATE --- !!!
+        
+    call allocate(rhs, &
+                  dummy_mesh)
+    
+    call allocate(solution, &
+                  dummy_mesh)
+    
+    call zero(rhs)
+    
+    call zero(solution)
+    
+    do i = 1,rows
+    
+       call set(rhs, &
+                i, &
+                b(i))
+                
+       call set(solution, &
+                i, &
+                x(i))
+    
+    end do
+        
+    ! solve matrix
+    call petsc_solve(solution, &
+                     matrix, &
+                     rhs, &
+                     option_path = trim(option_path))
+    
+    ! copy solution back    
+    do i = 1,rows
+                
+       x(i) =  node_val(solution, &
+                        i)
+    
+    end do
+    
+    ! deallocate as needed
+    
+    deallocate(dnnz)
+    
+    call deallocate(matrix)
+    call deallocate(dummy_element)
+    call deallocate(dummy_mesh)
+    call deallocate(rhs)
+    call deallocate(solution)
+      
+  end subroutine solve_via_copy_to_petsc_csr_matrix
+
+! -----------------------------------------------------------------------------
 
   SUBROUTINE SOLVER_SSOR( CMC, P, RHS,  &
        NCMC, NONODS, FINCMC, COLCMC, MIDCMC,  &

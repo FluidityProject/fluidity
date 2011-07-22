@@ -90,7 +90,8 @@ contains
        SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
        T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM, &
-       MEAN_PORE_CV )
+       MEAN_PORE_CV, &
+       option_path )
 
     ! Solve for internal energy using a control volume method.
 
@@ -150,7 +151,8 @@ contains
     INTEGER, INTENT( IN ) :: NOIT_DIM
     REAL, DIMENSION( NOIT_DIM ), intent( in ) :: T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT
     REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
-
+    character(len=*), intent(in), optional :: option_path
+    
     ! Local variables
     LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
     INTEGER :: ITS_FLUX_LIM
@@ -221,8 +223,8 @@ contains
           CALL SOLVER( ACV_SUB, T, CV_RHS_SUB, &
                NCOLACV_SUB, CV_NONODS, FINACV_SUB, COLACV_SUB, MIDACV_SUB,  &
                T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
-               T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1))
-          !               T_ERROR_RELAX2_NOIT(1),1.0, 0.0, 1.0, 200 )
+               T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1), &
+               option_path = trim(option_path))
 
           DO IPHASE = 2, NPHASE
              T( 1 + ( IPHASE - 1 ) * CV_NONODS : IPHASE * CV_NONODS ) = T ( 1 : CV_NONODS )
@@ -233,8 +235,9 @@ contains
           CALL SOLVER( ACV, T, CV_RHS, &
                NCOLACV, NPHASE * CV_NONODS, FINACV, COLACV, MIDACV,  &
                T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
-               T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1))
-          !               T_ERROR_RELAX2_NOIT(1),1.0, 0.0, 1.0, 200 )
+               T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1), &
+               option_path = trim(option_path))
+
           ewrite(3,*)'cv_rhs:', cv_rhs
           ewrite(3,*)'T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1', T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
                T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1)
@@ -286,7 +289,8 @@ contains
        THETA_FLUX, ONE_M_THETA_FLUX, &
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
-       SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM )
+       SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM, &
+       option_path )
 
     implicit none
     INTEGER, intent( in ) :: NCOLACV, NCOLCT, &
@@ -335,6 +339,7 @@ contains
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
     INTEGER, INTENT( IN ) :: NOIT_DIM
     REAL, DIMENSION( NOIT_DIM ), intent( in ) :: SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT
+    character(len=*), intent(in), optional :: option_path
 
     ! Local Variables
     LOGICAL, PARAMETER :: GETCV_DISC = .TRUE., GETCT= .FALSE.
@@ -409,8 +414,8 @@ contains
        CALL SOLVER( ACV, SATURA, CV_RHS, &
             NCOLACV, NPHASE * CV_NONODS, FINACV, COLACV, MIDACV,  &
             SAT_ERROR_RELAX2_NOIT(1), SAT_ERROR_RELAX2_NOIT(2), SAT_ERROR_RELAX2_NOIT(3), &
-            SAT_ERROR_RELAX2_NOIT(4), INT(SAT_ERROR_RELAX2_NOIT(5)+0.1))
-       !               SAT_ERROR_RELAX2_NOIT(1),1.0, 0.0, 1.0, 200 )
+            SAT_ERROR_RELAX2_NOIT(4), INT(SAT_ERROR_RELAX2_NOIT(5)+0.1), &
+            option_path = trim(option_path))
 
     END DO Loop_NonLinearFlux
 
@@ -653,8 +658,8 @@ contains
        CALL SOLVER( MCY, UP, MCY_RHS, &
             NCOLMCY, NLENMCY, FINMCY, COLMCY, MIDMCY,  &
             GL_ERROR_RELAX2_NOIT(1), GL_ERROR_RELAX2_NOIT(2), GL_ERROR_RELAX2_NOIT(3), &
-            GL_ERROR_RELAX2_NOIT(4), INT(GL_ERROR_RELAX2_NOIT(5)+0.1))
-       !            GL_RELAX, GL_RELAX_DIAABS, GL_RELAX_DIA, GL_N_LIN_ITS )
+            GL_ERROR_RELAX2_NOIT(4), INT(GL_ERROR_RELAX2_NOIT(5)+0.1), &
+            option_path = '/material_phase[0]/vector_field::Velocity')
 
        CALL ULONG_2_UVW( U, V, W, UP, U_NONODS, NDIM, NPHASE )
 
@@ -683,8 +688,8 @@ contains
           CALL SOLVER( DGM_PHA, UP_VEL, U_RHS_CDP, &
                NCOLDGM_PHA, U_NONODS * NPHASE, FINDGM_PHA, COLDGM_PHA, MIDDGM_PHA,  &
                U_ERROR_RELAX2_NOIT(1), U_ERROR_RELAX2_NOIT(2), U_ERROR_RELAX2_NOIT(3), &
-               U_ERROR_RELAX2_NOIT(4), INT(U_ERROR_RELAX2_NOIT(5)+0.1))
-          !               U_RELAX, U_RELAX_DIAABS, U_RELAX_DIA, U_N_LIN_ITS )
+               U_ERROR_RELAX2_NOIT(4), INT(U_ERROR_RELAX2_NOIT(5)+0.1), &
+               option_path = '/material_phase[0]/vector_field::Velocity')
 
        ENDIF
 
@@ -720,8 +725,8 @@ contains
        CALL SOLVER( CMC, DP, P_RHS, &
             NCOLCMC, CV_NONODS, FINDCMC, COLCMC, MIDCMC,  &
             P_ERROR_RELAX2_NOIT(1), P_ERROR_RELAX2_NOIT(2), P_ERROR_RELAX2_NOIT(3), &
-            P_ERROR_RELAX2_NOIT(4), INT(P_ERROR_RELAX2_NOIT(5)+0.1 ))
-       !            P_RELAX, P_RELAX_DIAABS, P_RELAX_DIA, P_N_LIN_ITS )
+            P_ERROR_RELAX2_NOIT(4), INT(P_ERROR_RELAX2_NOIT(5)+0.1 ), &
+            option_path = '/material_phase[0]/scalar_field::Pressure')
 
        ewrite(3,*)'after pressure solve DP:',DP
 

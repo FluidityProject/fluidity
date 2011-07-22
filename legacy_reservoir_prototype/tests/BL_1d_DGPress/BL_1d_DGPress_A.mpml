@@ -126,13 +126,13 @@
           <use_projection_method/>
         </scheme>
         <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
           <relative_error>
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">8000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -248,7 +248,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -361,7 +361,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -452,7 +452,7 @@
     </scalar_field>
     <scalar_field name="ProjectedPhaseVolumeFraction" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="PhaseVolumeFraction" name="scalar_galerkin_projection"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="PhaseVolumeFraction"/>
         <mesh name="P2DG"/>
         <output/>
         <stat/>
@@ -488,7 +488,7 @@
     </scalar_field>
     <scalar_field name="RegressionDifference" rank="0">
       <diagnostic>
-        <algorithm name="scalar_difference" source_field_1_name="ProjectedPhaseVolumeFraction" source_field_2_name="RegressionProjectedPhaseVolumeFraction" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="ProjectedPhaseVolumeFraction" source_field_2_name="RegressionProjectedPhaseVolumeFraction" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
         <mesh name="P2DG"/>
