@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>test_shallow_water</name>
+  <name>trace_space</name>
   <owner userid="colin"/>
   <tags>flml swml</tags>
   <problem_definition length="short" nprocs="1">
