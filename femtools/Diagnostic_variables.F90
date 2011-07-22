@@ -195,16 +195,16 @@ contains
 
     type(mesh_type), intent(in) :: mesh
 
-    logical :: stat_mesh
+    logical :: stat_mesh, stat_mesh2
     integer :: stat
     character(len = OPTION_PATH_LEN) :: stat_test_path
 
-    stat_mesh = .false.
     stat_test_path=trim(complete_mesh_path(mesh%option_path,stat))
     if(stat==0) then
-       stat_mesh = have_option(stat_test_path // "/stat/include_in_stat") &
-            &.and..not.have_option(stat_test_path // "/stat/exclude_from_stat")
+       stat_mesh2 = have_option(trim(stat_test_path) // "/stat/include_in_stat") &
+            &.and..not.have_option(trim(stat_test_path) // "/stat/exclude_from_stat")
     end if
+
   end function stat_mesh
 
   function stat_field_scalar(sfield, state)
