@@ -155,7 +155,7 @@ be: bin/burgers_equation
 mp: bin/multiphase_prototype
 hh: bin/hybridized_helmholtz_solver
 
-bin/shallow_water: fluidity_library main/Shallow_Water.F90
+bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow_Water.F90
 	@cd main; $(MAKE) Shallow_Water.o
 	@echo "BUILD shallow_water"
 	@echo "    MKDIR bin"
