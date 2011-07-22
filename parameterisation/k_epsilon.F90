@@ -476,6 +476,7 @@ subroutine keps_eddyvisc(state)
     ewrite_minmax(kk)
     ewrite_minmax(eps)
     ewrite_minmax(EV)
+    ewrite_minmax(ll)
 
 end subroutine keps_eddyvisc
 
@@ -498,6 +499,7 @@ subroutine keps_bcs(state)
     character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i
     integer, allocatable, dimension(:)         :: nodes_bdy
     real, dimension(:), allocatable            :: rhs
+    real                                       :: cmu
 
     ewrite(2,*) "In keps_bcs"
 
@@ -505,6 +507,10 @@ subroutine keps_bcs(state)
     u         => extract_vector_field(state, "Velocity")
     EV        => extract_scalar_field(state, "ScalarEddyViscosity")
     bg_visc   => extract_tensor_field(state, "BackgroundViscosity")
+
+    ! THIS IS NOT AVAILABLE BEFORE KEPS_INIT HAS BEEN CALLED! Grab it here for initialising BCs.
+    call get_option(trim(state%option_path)//"/subgridscale_parameterisations/k-epsilon/C_mu", cmu, default = 0.09)
+    ewrite(2,*) "cmu: ", cmu
 
     field_loop: do index=1,2
 
@@ -555,7 +561,7 @@ subroutine keps_bcs(state)
              nodes_bdy = face_global_nodes(rhs_field, sele)
 
              ! Calculate wall function
-             call keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,rhs)
+             call keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,cmu,rhs)
 
              ! Add element contribution to rhs field
              call addto(rhs_field, nodes_bdy, rhs)
@@ -565,7 +571,7 @@ subroutine keps_bcs(state)
 
           ! Put values onto surface mesh
           call remap_field_to_surface(rhs_field, surface_values, surface_elements)
-
+          ewrite_minmax(rhs_field)
           do j = 1, size(surface_node_list)
              call set(surface_field, j, node_val(surface_values, j))
           end do
@@ -753,7 +759,7 @@ end subroutine keps_allocate_fields
 ! Only used if bc type == k_epsilon for field.                                   !
 !--------------------------------------------------------------------------------!
 
-subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,rhs)
+subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,index,wall_fns,cmu,rhs)
 
     type(scalar_field), pointer, intent(in)              :: field1, field2, EV
     type(vector_field), pointer, intent(in)              :: positions, u
@@ -764,7 +770,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
 
     type(element_type), pointer                          :: shape, fshape
     integer                                              :: i, j, gi, sgi, sloc
-    real                                                 :: kappa, h
+    real                                                 :: kappa, h, cmu
     real, dimension(1,1)                                 :: hb
     real, dimension(ele_ngi(field1,ele))                 :: detwei
     real, dimension(face_ngi(field1,sele))               :: detwei_bdy, ustar, q_sgin, visc_sgi
@@ -866,7 +872,7 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
        end do
 
        if (index==1) then
-          rhs = shape_rhs(fshape, detwei_bdy*ustar/c_mu**0.5)
+          rhs = shape_rhs(fshape, detwei_bdy*ustar/cmu**0.5)
           rhs = rhs/lumpedfmass
        else if (index==2) then
           ! calculate wall-normal element size
