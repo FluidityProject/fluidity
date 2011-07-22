@@ -1660,11 +1660,12 @@ contains
     
     ! Solve...
     DO IT = 1, NTSOL
-       CALL SOLVER( MAT,  FEMPSI( 1 + (IT - 1 ) * CV_NONODS ),  FEMPSI_RHS( 1 + ( IT - 1 ) * CV_NONODS ),  &
-            NCOLM, CV_NONODS, FINDM, COLM, MIDM,   &
-            MASS_ERROR_RELAX2_NOIT(1), MASS_ERROR_RELAX2_NOIT(2), MASS_ERROR_RELAX2_NOIT(3), &
-            MASS_ERROR_RELAX2_NOIT(4), INT(MASS_ERROR_RELAX2_NOIT(5)+0.1), &
-            option_path = '/material_phase[0]/scalar_field::Pressure' )
+       CALL SOLVER( MAT,  &
+                    FEMPSI( 1 + (IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
+                    FEMPSI_RHS( 1 + ( IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
+                    FINDM, &
+                    COLM, &
+                    option_path = '/material_phase[0]/scalar_field::Pressure' )
     END DO
 
     DEALLOCATE( MASS_CV )
