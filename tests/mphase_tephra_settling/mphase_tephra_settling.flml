@@ -54,7 +54,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0.1</real_value>
+        <real_value rank="0">1.0</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -67,11 +67,18 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.01</real_value>
+      <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">600.0</real_value>
+      <real_value rank="0">240.0</real_value>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">2</integer_value>
+      <tolerance>
+        <real_value rank="0">1.0e-12</real_value>
+        <infinity_norm/>
+      </tolerance>
+    </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -183,6 +190,7 @@
             <integer_value shape="1" rank="1">666</integer_value>
           </surface_ids>
           <type name="dirichlet">
+            <apply_weakly/>
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
@@ -197,6 +205,7 @@
             <integer_value shape="1" rank="1">444</integer_value>
           </surface_ids>
           <type name="dirichlet">
+            <apply_weakly/>
             <align_bc_with_cartesian>
               <y_component>
                 <constant>
@@ -264,14 +273,6 @@
         <detectors>
           <exclude_from_detectors/>
         </detectors>
-        <cap_values>
-          <upper_cap>
-            <real_value rank="0">1.0</real_value>
-          </upper_cap>
-          <lower_cap>
-            <real_value rank="0">0.0</real_value>
-          </lower_cap>
-        </cap_values>
       </diagnostic>
     </scalar_field>
   </material_phase>
@@ -403,6 +404,7 @@
             <integer_value shape="1" rank="1">666</integer_value>
           </surface_ids>
           <type name="dirichlet">
+            <apply_weakly/>
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
@@ -417,6 +419,7 @@
             <integer_value shape="1" rank="1">444</integer_value>
           </surface_ids>
           <type name="dirichlet">
+            <apply_weakly/>
             <align_bc_with_cartesian>
               <y_component>
                 <constant>
@@ -431,6 +434,7 @@
             <integer_value shape="1" rank="1">333</integer_value>
           </surface_ids>
           <type name="dirichlet">
+            <apply_weakly/>
             <align_bc_with_cartesian>
               <y_component>
                 <constant>
@@ -469,7 +473,7 @@
         <spatial_discretisation>
           <control_volumes>
             <face_value name="FirstOrderUpwind"/>
-            <diffusion_scheme name="ElementGradient"/>
+            <diffusion_scheme name="BassiRebay"/>
           </control_volumes>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -507,11 +511,23 @@
           <surface_ids>
             <integer_value shape="1" rank="1">333</integer_value>
           </surface_ids>
-          <type name="neumann">
+          <type name="influx">
             <constant>
               <real_value rank="0">2.01804273504e-7</real_value>
             </constant>
           </type>
+        </boundary_conditions>
+        <boundary_conditions name="Bottom">
+          <surface_ids>
+            <integer_value shape="1" rank="1">444</integer_value>
+          </surface_ids>
+          <type name="zero_flux"/>
+        </boundary_conditions>
+        <boundary_conditions name="Sides">
+          <surface_ids>
+            <integer_value shape="1" rank="1">666</integer_value>
+          </surface_ids>
+          <type name="zero_flux"/>
         </boundary_conditions>
         <tensor_field name="Diffusivity" rank="2">
           <prescribed>
@@ -536,27 +552,6 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <adaptivity_options>
-          <relative_measure>
-            <scalar_field name="InterpolationErrorBound" rank="0">
-              <prescribed>
-                <value name="WholeMesh">
-                  <constant>
-                    <real_value rank="0">0.03</real_value>
-                  </constant>
-                </value>
-                <output/>
-                <stat/>
-                <detectors>
-                  <exclude_from_detectors/>
-                </detectors>
-              </prescribed>
-            </scalar_field>
-            <tolerance>
-              <real_value rank="0">1.0e-7</real_value>
-            </tolerance>
-          </relative_measure>
-        </adaptivity_options>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
