@@ -205,18 +205,26 @@ implicit none
       type(tensor_field), intent(in):: t_field
       type(scalar_field), intent(inout) :: second_invariant
 
+      type(tensor_field) :: t_field_local
+
       integer :: node, dim1, dim2
       real :: val
 
+      ! Remap t_field to second invariant mesh if required:
+      call allocate(t_field_local, second_invariant%mesh, "LocalTensorField")  
+      call remap_field(t_field, t_field_local)
+
       do node = 1, node_count(second_invariant)
          val = 0.
-         do dim1 = 1, t_field%dim(1)
-            do dim2 = 1, t_field%dim(2) 
-               val = val + node_val(t_field,dim1,dim2,node)**2
+         do dim1 = 1, t_field_local%dim(1)
+            do dim2 = 1, t_field_local%dim(2) 
+               val = val + node_val(t_field_local,dim1,dim2,node)**2
             end do
          end do
          call set(second_invariant,node,sqrt(val/2.))
       end do
+
+      call deallocate(t_field_local)
                
   end subroutine tensor_second_invariant
 
