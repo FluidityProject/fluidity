@@ -495,7 +495,7 @@ schema:
 
 .PHONY: makefiles
 
-makefiles: 
+makefiles: sub_system
 ifneq (@GFORTRAN_4_5_OR_NEWER@,yes)
 	@echo "makefile dependency generation requires gfortran (>=4.5)"
 	@false
@@ -509,43 +509,46 @@ ifneq (@HAVE_ADJOINT@,yes)
 	@false
 endif
 	@echo "    Generating debug dependencies"
-	@cd debug; 	../scripts/create_makefile.py
+	@cd debug; 	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating libwm dependencies"
-	@cd libwm; ../scripts/create_makefile.py
+	@cd libwm; ../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating femtools dependencies"
 	@cd femtools;	../scripts/create_makefile.py --exclude \
-	"Refcount_interface_templates.F90 Refcount_templates.F90"
+	"Refcount_interface_templates.F90 Refcount_templates.F90" $(TESTOPTS)
 	@echo "    Generating bathymetry dependencies"
-	@cd bathymetry; ../scripts/create_makefile.py
+	@cd bathymetry; ../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating ocean_forcing dependencies"
-	@cd ocean_forcing; ../scripts/create_makefile.py
+	@cd ocean_forcing; ../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating sediments dependencies"
-	@cd sediments; ../scripts/create_makefile.py
+	@cd sediments; ../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating parameterisation dependencies"
-	@cd parameterisation; ../scripts/create_makefile.py
+	@cd parameterisation; ../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating forward_interfaces dependencies"
-	@cd forward_interfaces;	../scripts/create_makefile.py
+	@cd forward_interfaces;	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating horizontal_adaptivity dependencies"
-	@cd horizontal_adaptivity;   	../scripts/create_makefile.py
+	@cd horizontal_adaptivity;   	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating preprocessor dependencies"
 	@cd preprocessor; ../scripts/create_makefile.py --exclude \
-	"register_diagnostics.F90 check_options.F90"
+	"register_diagnostics.F90 check_options.F90" $(TESTOPTS)
 	@echo "    Generating error_measures dependencies"
-	@cd error_measures;   	../scripts/create_makefile.py
+	@cd error_measures;   	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating decomp dependencies"
-	@cd decomp;   	../scripts/create_makefile.py
+	@cd decomp;   	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating assemble dependencies"
-	@cd assemble;   	../scripts/create_makefile.py
+	@cd assemble;   	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating diagnostics dependencies"
 	@cd diagnostics;   	../scripts/create_makefile.py --exclude \
-	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90"
+	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90" $(TESTOPTS)
 	@cd diagnostics;   	$(MAKE) Diagnostic_Fields_Interfaces.o \
-	Diagnostic_Fields_New.o
+	Diagnostic_Fields_New.o 
 	@echo "    Generating radiation dependencies"
-	@cd radiation; ../scripts/create_makefile.py
+	@cd radiation; ../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating reduced_modelling dependencies"
-	@cd reduced_modelling;   	../scripts/create_makefile.py
+	@cd reduced_modelling;   	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating adjoint dependencies"
-	@cd adjoint; ../scripts/create_makefile.py
+	@cd adjoint; ../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating main dependencies"
-	@cd main; ../scripts/create_makefile.py --exclude test_coupler.F90
+	@cd main; ../scripts/create_makefile.py --exclude test_coupler.F90 $(TESTOPTS)
+	@echo "    Cleaning up the mess"
+	$(MAKE) clean-light
+	@echo "    Congratulations, make makefiles succeeded!"
