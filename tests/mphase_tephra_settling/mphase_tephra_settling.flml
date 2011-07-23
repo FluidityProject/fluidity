@@ -79,6 +79,14 @@
         <infinity_norm/>
       </tolerance>
     </nonlinear_iterations>
+    <adaptive_timestep>
+      <requested_cfl>
+        <real_value rank="0">0.05</real_value>
+      </requested_cfl>
+      <courant_number name="CFLNumber">
+        <mesh name="VelocityMesh"/>
+      </courant_number>
+    </adaptive_timestep>
   </timestepping>
   <physical_parameters>
     <gravity>
