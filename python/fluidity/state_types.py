@@ -139,6 +139,24 @@ class VectorField(Field):
     self.dimension = dim
     self.node_count=self.val.shape[0]
 
+  def local_coords(self, ele, position):
+    dim = self.dimension
+    local_coords = numpy.zeros(dim+1)
+    local_coords = local_coords + position[:]
+    local_coords[dim] = 1.0
+
+    matrix = numpy.zeros((dim+1, len(position)+1))
+    if self.mesh.shape.degree == 1:
+      tmp_matrix = self.ele_val(ele)
+    else:
+      # TODO: implement using vertices
+      tmp_matrix = self.ele_val(ele)
+
+    matrix[:,:] = tmp_matrix[:,:]
+    matrix[:,dim] = 1.0
+    local_coords = numpy.linalg.solve(matrix.transpose(), local_coords)
+    return local_coords
+
   def eval_field(self,ele,local_coord):
     if self.mesh.shape.degree==0:
       n = 1.0

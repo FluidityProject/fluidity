@@ -179,7 +179,6 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
   // Extract val function from the local dict and its code object
   PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
   PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
-  PyObject *pFuncClosure = PyObject_GetAttrString(pFunc, "func_closure");
 
   // Create ele argument
   PyObject *pEle = PyInt_FromLong( (long)ele );
@@ -196,13 +195,8 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
   pArgs[0] = pEle;
   pArgs[1] = pLCoords;  
 
-  // Merge our stored local vars (fields, etc.) into a new copy of the global namespace
-  // This is done because, for some reason, the vars in pLocals don't get picked up in PyEval_EvalCodeEx()
-  PyObject *pGlobalsLocals = PyDict_Copy(pGlobals);
-  PyDict_Merge(pGlobalsLocals, pLocals, 1);
-
   // Run val(ele, local_coords)
-  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pGlobalsLocals, pLocals, pArgs, 2, NULL, 0, NULL, 0, pFuncClosure);
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 2, NULL, 0, NULL, 0, NULL);
  
   // Check for Python errors
   *stat=0;
@@ -217,9 +211,7 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
     value[i] = PyFloat_AsDouble( PySequence_GetItem(pResult, i) );
   }
 
-  Py_DECREF(pGlobalsLocals);
   Py_DECREF(pFuncCode);
-  Py_DECREF(pFuncClosure);
   Py_DECREF(pLCoords);
   Py_DECREF(pEle);
   Py_DECREF(pResult);

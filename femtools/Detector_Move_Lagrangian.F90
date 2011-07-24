@@ -272,6 +272,11 @@ contains
 
     deallocate(send_list_array)
     deallocate(rw_velocity_source)
+    
+    ! Delete the global Random Walk dicts from python
+    if (parameters%do_random_walk) then
+       call python_run_string("random_walk.clear()")
+    end if
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
@@ -489,7 +494,6 @@ contains
                    if (outside_domain) then
                       if (detector_list%move_parameters%reflect_on_boundary) then
                          ! We reflect the detector path at the face we just went through
-                         ewrite(2,*) "Reflecting detector, det%update_vector before:", det0%update_vector
 
                          ! First get the face we went through and the coordinates of one node on it
                          neigh_face = ele_face(xfield, det0%element, neigh_list(neigh))
@@ -518,7 +522,6 @@ contains
                          do j=1, xfield%dim
                             det0%update_vector(j) = det0%update_vector(j) - (2 * D * face_normal(j))
                          end do
-                         ewrite(2,*) "Reflected detector, det%update_vector after:", det0%update_vector
 
                          ! move on to the next detector
                          deallocate(face_nodes)
