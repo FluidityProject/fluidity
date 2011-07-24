@@ -176,7 +176,7 @@ vtktools python module, is provided with this example. The vtktools module is lo
 variable.
 
 As can be seen in the numerical result using the CG method leads, to over and 
-undershoots in the solution. The DG result seems to encur no noticable bounds
+undershoots in the solution. The DG result seems to incur no noticeable bounds
 violation. The Control Volumes solution is perfectly bounded, but rather diffusive. Note that in each of 
 these cases the initial mesh resolution has changed and is still focussed near the jumps in the solution.
 
@@ -378,7 +378,7 @@ available for a wide range of Reynolds numbers \citep{botella1998,erturk2005,bru
 Here the two-dimensional problem at a Reynolds number of 1000 is given as an example.
 
 \subsection{Configuration}
-The problem domain is $(x,y) \in [0,1]^2$ and this is represented by an unstructured triangluar mesh
+The problem domain is $(x,y) \in [0,1]^2$ and this is represented by an unstructured triangular mesh
 of approximately uniform resolution. To enable convergence analysis a sequence of meshes are considered
 with spacing of $h=1/2^n$, $n=4,5,6,7$. The two-dimensional incompressible Navier-Stokes equations are
 considered with unit density.
@@ -393,7 +393,7 @@ that in the infinity norm the velocity varies by less that $10^{-6}$ between tim
 The time step is constant between all runs, $\Delta t = 0.05$, and data is dumped to disk every
 1.0 time units (20 time steps). The Crank-Nicolson $(\theta=0.5)$ discretisation is used in time. 
 A \Poo Galerkin method is used for the discretisation of velocity and pressure, with no stabilisation
-of velocity. Based on a domain size of $L=1.0$ and a velocity scale taken from the lid $(U=1.0)$, to achive
+of velocity. Based on a domain size of $L=1.0$ and a velocity scale taken from the lid $(U=1.0)$, to achieve
 a Reynolds number of 1000 viscosity is taken to be isotropic with a value of $\nu=0.001$.
 
  
@@ -413,8 +413,8 @@ Left: the streamfunction. Right: the vorticity. The contour levels are taken fro
 
 \subsection{Results}
 Plots of the streamfunction and vorticity from the $h=1/128$ simulation are shown in figure \ref{fig:driven_cavity1}.
-Observe the good qualititative agreement with \citep{botella1998,erturk2005,bruneau2006}. 
-For a quantitative comaprison we take advantage of the tabulated benchmark data available in these papers.
+Observe the good qualitative agreement with \citep{botella1998,erturk2005,bruneau2006}. 
+For a quantitative comparison we take advantage of the tabulated benchmark data available in these papers.
 Only a subset of these are computed: the $u$ velocity at a series of points along the line $x=0.5$ and the
 $v$ velocity at a series of points along the line $y=0.5$ from \citep{erturk2005}, the same quantities at
 different points along the same lines as well as the pressure along both the $x=0.5$ and $y=0.5$ lines from 
@@ -762,7 +762,7 @@ show results from Reynolds numbers $Re=1,10,100,1000$.}
 \subsection{Results}
 Figure \ref{fig:flow_past_sphere_1} shows streamlines close to the sphere and the surface mesh.
 The mesh can be seen to be much finer on the sphere compares to the far wall seen in the background.
-This is empahsised in figure \ref{fig:flow_past_sphere_2} where a more detailed plot of the mesh (with
+This is emphasised in figure \ref{fig:flow_past_sphere_2} where a more detailed plot of the mesh (with
 half of the domain removed) over the whole domain and close to the sphere, and the velocity vectors
 close to the sphere are shown.
 
@@ -1207,7 +1207,7 @@ You might wish to try spinning up before you run this problem.  First run to a s
 Tidal modelling is a widely used method for validating free surface implementations \citep{Shum1997}. The Mediterranean Sea
 is a good example as it requires both astronomical and co-oscillating boundary tide forcing to obtain
 an accurate solution \citep{Tsimplis1995, Wells2008}. An abundance of available tide gauge data recording the 
-harmonic constants for both the amplitude and phase of a wide variety of different tidal constituets
+harmonic constants for both the amplitude and phase of a wide variety of different tidal constituents
 facilitates comparisons between ICOM and real-world data. 
  
 
@@ -1239,11 +1239,11 @@ The timestep itself is 5 minutes. The total runtime is 200 hours (simulated time
 
 The harmonic amplitudes are presented as plotted scalar fields and compared with a high-resolution 2D model of \citet{Tsimplis1995} in
 Figure \ref{amp}. The model results are similar to those of \citet{Tsimplis1995} and generally predict the correct patterns. 
-The semidiurnal consitieunts give very similar results due to their similar frequencies (Figure \ref{amp}A - D). The amphidromic
-systems are correctly located in the Sicilian Channel bewtween Sicily and Libya     
-and in the northern Adriatic. The degenerate amphidromes are also accurately positioned near the Balearic Islands and in bewteen
+The semidiurnal constituents give very similar results due to their similar frequencies (Figure \ref{amp}A - D). The amphidromic
+systems are correctly located in the Sicilian Channel between Sicily and Libya     
+and in the northern Adriatic. The degenerate amphidromes are also accurately positioned near the Balearic Islands and in between
 Crete and Libya. The model also captures the amplification of the tidal amplitudes in both the Gulf of gables and the northern Adriatic, 
-a phenomena primarilly due to resonance of the wave in these regions.
+a phenomena primarily due to resonance of the wave in these regions.
 
 The amplitudes for the diurnal constituents show a similarly good match with the results of \citet{Tsimplis1995} (Figure \ref{amp}E - H).
 The lowest amplitudes occur in the eastern part of the basin and there is pronounced amplification in the Adriatic Sea caused by this region
@@ -1270,13 +1270,13 @@ The phases as predicted by ICOM and by \citet{Tsimplis1995} are presented in Fig
 a general agreement with the amphidromic systems shown to be rotating in an anti-clockwise direction; a feature
 brought about by Coriolis force deflecting the tidal wave to the right in the Northern Hemisphere.
 ICOM appears to slightly overpredict the wave speed in all cases; a result that could be attributed to any number of eatures including the
-bathymetric/mesh reolution and/or an insufficntly low drag coefficient. Another possible source of error is that the
+bathymetric/mesh resolution and/or an insufficiently low drag coefficient. Another possible source of error is that the
 phase of the boundary tide and the natural mode of oscillation of the basin might not be synchronised; something that
 \citet{Tsimplis1995} adjusted repeatedly until they achieved their best results.
  
 The harmonic amplitudes are compared with data from 62 tide gauges (Figure \ref{gauge}; \citealp{Tsimplis1995,Wells2008}).
 The RMS differences for ICOM are typically 2-3 times those of \citet{Tsimplis1995}    
-with the largest errors being for the diurnal constituents (Table \ref{rms}). Despite these discrepencies, the
+with the largest errors being for the diurnal constituents (Table \ref{rms}). Despite these discrepancies, the
 magnitudes of the RMS differences indicate a good match with the tide gauges, even in a strongly microtidal environment 
 such as the Mediterranean Sea. 
 
