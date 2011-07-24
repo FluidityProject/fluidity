@@ -91,7 +91,7 @@ are termed reactions and are common when dealing with chemistry or biology.
 \index{boundary conditions!scalar}
 
 To form a well-posed system upon which to attempt a numerical discretisation, the
-set of equations (discussed above) describing the behavior of the 
+set of equations (discussed above) describing the behaviour of the 
 system must be supplemented with appropriate boundary conditions.
 
 
@@ -305,13 +305,13 @@ and $\gamma$ is the isothermal compressibility
 \gamma = \frac{1}{\rho}\frac{\pp\rho}{\pp p}.
 \end{equation}
 
-For ocean modeling applications the most important compositional variation is salinity $S$ (the volume fraction of salt) and the compressibility of water $\gamma$ is so small that the pressure dependence can be neglected, giving the simple linear equation of state
+For ocean modelling applications the most important compositional variation is salinity $S$ (the volume fraction of salt) and the compressibility of water $\gamma$ is so small that the pressure dependence can be neglected, giving the simple linear equation of state
 \begin{equation}
 \rho = \rho_0(1 - \alpha(T-T_0) + \beta(S-S_0)),
 \end{equation}
 where $\beta$ is the saline contraction coefficient (not to be confused with the beta plane parameters defined in the section \ref{sect:coriolis}.)
 
-\subsubsection{Pade equation of state for ocean modeling}\label{Sect:PadeDescription}
+\subsubsection{Pade equation of state for ocean modelling}\label{Sect:PadeDescription}
 \index{equation of state!Pade approximation}
 
 Within \fluidity it is also possible to relate the density of sea water to the in situ temperature and salinity through the Pad{\'e} approximation to the equation of state. This approximation offers an accurate and computationally efficient method for calculating the density of seawater and is described by \citet{mcdougall2003}.
@@ -560,7 +560,7 @@ must therefore be included in the horizontal momentum equations.
 \index{density!reference}
 \index{Boussinesq!approximation}
 
-Under certain conditions, one is able to assume that density does not vary greatly about a mean reference density, that is, the density at a position $\vec x$ can be wriiten as
+Under certain conditions, one is able to assume that density does not vary greatly about a mean reference density, that is, the density at a position $\vec x$ can be written as
 \begin{equation}
 \rho(\bmx,t) = \rho_0 + \rho'(\bmx,t),
 \end{equation}
@@ -689,7 +689,7 @@ is required. This can be applied as:
 \end{equation}    
 where $\eta$ is the corrected tidal potential, $\eta_{eq}$ is the uncorrected equilibrium tidal potential
 and $k$ (0.3) and $h$ (0.61) are Love numbers (after \citealp{Love1909}).
-Both $k$ and $h$ are dimensionless measures of the elastic behavior of the solid Earth. $k$ accounts for the enhancement to the
+Both $k$ and $h$ are dimensionless measures of the elastic behaviour of the solid Earth. $k$ accounts for the enhancement to the
 Earth's gravitational potential brought about by the re-distribution of the Earth's mass whereas $h$
 is a correction for the physical distortion to the Earth's surface \citep{Pugh1987}.
 
@@ -701,7 +701,7 @@ use in body tide corrections to the majority of tidal constituents.
 
 \subsection{Multi-material simulations}
 \index{multi-material flow}
-The ability to differentiate between regions with distinct material properties is of fundamental importance in the modeling of many physical systems. Two different approaches exist for achieving this: the multi-material approach and the multi-phase approach. The multi-material approach is implemented within \fluidity, and the multi-phase approach (discussed in the next subsection) is currently under development.
+The ability to differentiate between regions with distinct material properties is of fundamental importance in the modelling of many physical systems. Two different approaches exist for achieving this: the multi-material approach and the multi-phase approach. The multi-material approach is implemented within \fluidity, and the multi-phase approach (discussed in the next subsection) is currently under development.
 In situations where the model can resolve physical mixing of immiscible materials, or where there is no mixing, only one velocity field (and hence one momentum equation) is required to describe the flow of all materials. The \emph{multi-material} approach, considers all materials to be immiscible materials separated by a sharp interface.
 
 In a multi-material approach, the various forms of the conservation equations can be solved for multiple material flows if the point-wise mass density $\rho$ in the equations is defined as the bulk density at each point.  If the flow comprises $n$ materials and the volume fraction of the $i^{th}$ material is denoted $\phi_i$ then the bulk density is given by:
