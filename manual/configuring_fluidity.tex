@@ -1978,7 +1978,7 @@ In addition to these mandatory settings, there are a number of other configurati
 
 \section{Multiple material/phase models} \label{sec:config_multimatph}
 
-This section contains advice on setting up simulations with multiple material\_phase options.  This enables related fields to be grouped together into related materials or phases.  For example a prognostic scalar field in one material\_phase will be advected using the Velocity from that material\_phase while a prognostic scalar field in another material\_phase will be advected according to the Velocity in its material\_phase.
+This section contains advice on setting up simulations with multiple material\_phase options.  This enables related fields to be grouped together into related materials or phases.  For example a prognostic scalar field in one material\_phase will be advected using the Velocity field from that material\_phase, while a prognostic scalar field in another material\_phase will be advected according to the Velocity field in its material\_phase.
 
 We refer to two typical scenarios: a \emph{multiple material} model and a \emph{multiple phase} model. A multiple phase model is one in which the Velocity field in each material\_phase is in some way independent of the velocities in the other material\_phases.  This means that scalar fields (for example phase volume fractions) in each material\_phase are advected independently.  A multiple material model is one in which the Velocity field is shared between all material\_phases so that all scalar fields are advected similarly.
 
@@ -1988,8 +1988,8 @@ Models with a single prognostic velocity field that is shared between material\_
 
 In a multiple material simulation each material\_phase requires:
 \begin{itemize}
-\item an equation of state
-\item a MaterialVolumeFraction scalar field
+\item an equation of state, and
+\item a MaterialVolumeFraction scalar field.
 \end{itemize}
 
 The equation of state provides the density properties of the material described in the current material\_phase.  For incompressible simulations a linear equation of state is used, which only requires a reference density:\\
@@ -2043,15 +2043,15 @@ Models with one prognostic velocity field per \option{material\_phase} are refer
 \subsubsection{Simulation requirements}
 In a multi-phase simulation, each \option{material\_phase} requires:
 \begin{itemize}
- \item an equation of state
- \item a PhaseVolumeFraction scalar field
+ \item an equation of state, and
+ \item a PhaseVolumeFraction scalar field.
 \end{itemize}
 
 As per multi-material simulations, the equation of state provides the density properties of the phase described in the current \option{material\_phase}. For incompressible simulations a linear equation of state is used, which only requires a reference density:\\
 \option{\ldots/equation\_of\_state/fluids/linear/reference\_density}\\
 to be set.
 
-For an $N$ phase problem, $N$ material\_phases are required and hence $N$ PhaseVolumeFractions, $\alpha_i, i = 1, \ldots, N$, and $N$ equations of state. Just like multi-material simulations, only $N-1$ of the PhaseVolumeFraction fields, $\alpha_i, i = 1, \ldots, N-1$, need be prognostic. The final PhaseVolumeFraction field, $\alpha_N$, should always be set to \option{diagnostic}, as it can be recovered using the internal algorithm:
+For an $N$ phase problem, $N$ material\_phases are required and hence $N$ PhaseVolumeFractions, $\alpha_i, i = 1, \ldots, N$, and $N$ equations of state. Just as in multi-material simulations, only $N-1$ of the PhaseVolumeFraction fields, $\alpha_i, i = 1, \ldots, N-1$, need be prognostic. The final PhaseVolumeFraction field, $\alpha_N$, should always be set to \option{diagnostic}, as it can be recovered using the internal algorithm:
 \begin{equation}
 \alpha_N = 1 - \sum_{i=1}^{N-1}\alpha_i\textrm{.}
 \end{equation}
@@ -2059,15 +2059,15 @@ For an $N$ phase problem, $N$ material\_phases are required and hence $N$ PhaseV
 \subsubsection{Inter-phase interactions}
 Inter-phase interactions can be included under \option{../multiphase\_properties} in Diamond. Currently, \fluidity\ only supports fluid-particle drag between the continuous phase and dispersed phase(s), given by:
 \begin{equation}\label{eq:multiphase_drag_term}
-\mathbf{F}_D = \frac{3\ \alpha_p\ C_D\ \alpha_f\ \rho_f\ |\mathbf{u}_f-\mathbf{u}_p|\ (\mathbf{u}_f-\mathbf{u}_p)}{4\ d}
+\mathbf{F}_D = \frac{3\ \alpha_p\ C_D\ \alpha_f\ \rho_f\ |\mathbf{u}_f-\mathbf{u}_p|\ (\mathbf{u}_f-\mathbf{u}_p)}{4\ d},
 \end{equation}
-where $f$ and $p$ denote the fluid and particle phases respectively. The drag coefficient $C_D$ is:
+where $f$ and $p$ denote the fluid (i.e. continuous) and particle (i.e. dispersed) phases respectively. The drag coefficient $C_D$ is:
 \begin{equation}\label{eq:wen_yu_drag_coefficient}
-C_D = \frac{24}{\mathrm{Re}}
+C_D = \frac{24}{\mathrm{Re}},
 \end{equation}
 with
 \begin{equation}\label{eq:particle_reynolds_number}
-\mathrm{Re} = \frac{\alpha_f\ \rho_f\ d\ |\mathbf{u}_f-\mathbf{u}_p|}{\mu_f}
+\mathrm{Re} = \frac{\alpha_f\ \rho_f\ d\ |\mathbf{u}_f-\mathbf{u}_p|}{\mu_f}.
 \end{equation}
 
 Adding a \option{particle\_diameter} to a dispersed phase enables fluid-particle interaction between itself and the continuous phase.
@@ -2076,7 +2076,7 @@ Adding a \option{particle\_diameter} to a dispersed phase enables fluid-particle
 \begin{itemize}
  \item Boussinesq and fully compressible multi-phase simulations are not yet supported.
  \item The momentum equation for each \option{material\_phase} can only be discretised in non-conservative form.
- \item The \option{arbitrary\_upwind} and \option{interior\_penalty} viscosity schemes for DG do not yet support multiple phases.
+ \item The \option{bassi\_rebay} and \option{compact\_discontinuous\_galerkin} are currently the only DG viscosity schemes available for multi-phase flow simulations.
  \item Discontinuous \option{PhaseVolumeFraction} fields are not yet supported.
  \item The Pressure field only supports a continuous Galerkin discretisation.
  \item Prescribed velocity fields cannot yet be used in multi-phase simulations.

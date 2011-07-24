@@ -731,13 +731,13 @@ Further to the above definition, each phase is classed as either \textit{continu
 
 To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate set of continuity and momentum equations) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Thus, for each phase $i$, the governing equations (based on those derived in \cite{ishii1975}) are:
 \begin{equation}
-\frac{\partial}{\partial t}\left(\alpha_i\rho_i\right) + \nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\right) = 0
+\frac{\partial}{\partial t}\left(\alpha_i\rho_i\right) + \nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\right) = 0,
 \end{equation}
 \begin{equation}
 \frac{\partial}{\partial t}\left(\alpha_i\rho_i\mathbf{u}_i\right) +
 \nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\mathbf{u}_i\right) =
 -\alpha_i\nabla p + \alpha_i\rho_i\mathbf{g} +
 \nabla\cdot\left(\alpha_i\tautens_i\right) +
-\mathbf{F}_i
+\mathbf{F}_i,
 \end{equation}
-where $\mathbf{u}_i$, $\rho_i$, $\tautens_i$ and $\alpha_i$ are the velocity, density, stress tensor and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. The model assumes a common pressure field $p$ and no mass transfer between phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
+where $\mathbf{u}_i$, $\rho_i$, $\tautens_i$ and $\alpha_i$ are the velocity, density, stress tensor and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. The model currently assumes a common pressure field $p$ and no mass transfer between phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
