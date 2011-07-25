@@ -106,7 +106,7 @@ module elements
   end type constraints_type
 
   integer, parameter :: CONSTRAINT_NONE =0, CONSTRAINT_BDFM = 1,&
-       & CONSTRAINT_RT = 2
+       & CONSTRAINT_RT = 2, CONSTRAINT_BDM = 3
 
   interface allocate
      module procedure allocate_element, allocate_element_with_surface
@@ -322,6 +322,8 @@ contains
        case default
           FLAbort('Illegal element family.')
        end select
+    case (CONSTRAINT_BDM)
+       constraint%n_constraints = 0
     case (CONSTRAINT_NONE)
        constraint%n_constraints = 0
     case default
@@ -746,11 +748,14 @@ contains
     select case(family)
     case (FAMILY_SIMPLEX)
        select case(constraint%type)
+       case (CONSTRAINT_BDM)
+          !do nothing
        case (CONSTRAINT_BDFM)
           select case(constraint%dim)
           case (2)
              select case(constraint%degree)
              case (1)
+                !BDFM0 is the same as RT0
                 call make_constraints_rt0_triangle(constraint)
              case (2)
                 call make_constraints_bdfm1_triangle(constraint)
@@ -777,6 +782,8 @@ contains
        end select
     case (FAMILY_CUBE)
        select case(constraint%type)
+       case (CONSTRAINT_BDM)
+          !do nothing
        case (CONSTRAINT_RT)
           select case(constraint%dim)
           case (2)
@@ -812,10 +819,20 @@ contains
        FLExit('Only implemented for 2D so far')
     end if
 
+    !BDFM1 constraint requires that normal components are linear.
+    !This means that the normal components at the edge centres
+    !need to be constrained to the average of the normal components 
+    !at each end of the edge.
+
     !DOFS    FACES
     ! 3      
     ! 5 2    1 3
     ! 6 4 1   2
+
+    !constraint equations are:
+    ! (0.5 u_3 - u_5 + 0.5 u_6).n_1 = 0
+    ! (0.5 u_1 - u_4 + 0.5 u_6).n_2 = 0    
+    ! (0.5 u_1 - u_2 + 0.5 u_3).n_3 = 0
 
     !face local nodes to element local nodes
     face_loc(1,:) = (/ 3,5,6 /)
@@ -829,6 +846,9 @@ contains
 
     !coefficients in each face
     c = (/ 0.5,-1.,0.5 /)
+
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !for basis function loc, dimension dim1 in equation i.
 
     constraint%orthogonal = 0.
     do face = 1, 3
@@ -854,10 +874,19 @@ contains
        FLExit('Only implemented for 2D so far')
     end if
 
+    !RT0 constraint requires that normal components are constant.
+    !This means that both the normal components at each end of the 
+    !edge need to have the same value.
+
     !DOFS    FACES
     ! 2      
     !        1 3
     ! 3   1   2
+
+    !constraint equations are:
+    ! (u_2 - u_3).n_1 = 0
+    ! (u_1 - u_3).n_2 = 0    
+    ! (u_1 - u_2).n_3 = 0
 
     !face local nodes to element local nodes
     face_loc(1,:) = (/ 2,3 /)
@@ -871,6 +900,9 @@ contains
 
     !constraint coefficients
     c = (/ 1., -1. /)
+
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !for basis function loc, dimension dim1 in equation i.
 
     constraint%orthogonal = 0.
     count = 0
@@ -899,10 +931,20 @@ contains
        FLExit('Only implemented for 2D so far')
     end if
 
+    !RT0 constraint requires that normal components are constant.
+    !This means that both the normal components at each end of the 
+    !edge need to have the same value.
+
     !DOFS    FACES
     ! 3   4   3
     !        4 2
     ! 1   2   1
+
+    !constraint equations are:
+    ! (u_1 - u_2).n_1 = 0
+    ! (u_2 - u_4).n_2 = 0    
+    ! (u_3 - u_4).n_3 = 0
+    ! (u_3 - u_1).n_4 = 0
 
     !face local nodes to element local nodes
     face_loc(1,:) = (/ 1,2 /)
@@ -915,6 +957,9 @@ contains
     n(2,:) = (/  1.,  0. /)
     n(3,:) = (/  0.,  1. /)
     n(4,:) = (/ -1.,  0. /)
+
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !for basis function loc, dimension dim1 in equation i.
 
     !constraint coefficients
     c = (/ 1., -1. /)

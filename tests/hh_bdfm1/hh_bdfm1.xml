@@ -5,7 +5,7 @@
   <name>hh_bdfm1</name>
   <owner userid="colin"/>
   <tags>flml swml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line> hybridized_helmholtz_solver hybridized_helmholtz1.swml &gt; hh1.log 2&gt;&amp;1; hybridized_helmholtz_solver hybridized_helmholtz2.swml &gt; hh2.log 2&gt;&amp;1; hybridized_helmholtz_solver hybridized_helmholtz3.swml &gt; hh3.log 2&gt;&amp;1;
     </command_line>
   </problem_definition>

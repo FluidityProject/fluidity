@@ -31,6 +31,7 @@
     use advection_diffusion_cg
     use linear_shallow_water
     use spud
+    use signals
     use fields
     use state_module
     use FLDebug
@@ -151,6 +152,8 @@
     call python_init
     call read_command_line
     call mangle_options_tree_forward
+    ! Establish signal handlers
+    call initialise_signals()
 
     adjoint = have_option("/adjoint")
 #ifndef HAVE_ADJOINT
@@ -195,18 +198,28 @@
     call calculate_diagnostic_variables_new(state)
     call write_diagnostics(state, current_time, dt, timestep)
 
-    call write_diagnostics(state, current_time, dt, timestep)
-
     ! Always output the initial conditions.
     call output_state(state)
 
-      if(have_option("/material_phase::&
-           &Fluid/scalar_field::LagrangeMultiplier")) then
-         call compute_energy(state(1),energy)
-      else
-         call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
-      end if
-      ewrite(2,*) 'Initial Energy:', energy
+    hybridized = .false.
+    v_field => extract_vector_field(state(1),"Velocity")
+    if(associated(v_field%mesh%shape%constraints)) then
+       if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
+            & .true.
+    end if
+
+    if(hybridized) then
+       !project velocity into div-conforming space
+       v_field => extract_vector_field(state(1),"LocalVelocity")
+       call project_to_constrained_space(state(1),v_field)
+    end if
+
+    if(hybridized) then
+       call compute_energy_hybridized(state(1),energy)
+    else
+       call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+    end if
+    ewrite(2,*) 'Initial Energy:', energy
 
     ! Register the control variables to disk if desired
     call adjoint_write_controls(timestep, dt, state)
@@ -258,11 +271,18 @@
 #endif
        call write_diagnostics(state,current_time, dt, timestep)
 
+       !Update the variables
+       if(hybridized) then
+          call compute_energy_hybridized(state(1),energy)
+       else
+          call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+       end if
+       ewrite(2,*) 'Energy = ',energy
+       
     end do timestep_loop
 
-    if(have_option("/material_phase::&
-         &Fluid/scalar_field::LagrangeMultiplier")) then
-       call compute_energy(state(1),energy)
+    if(hybridized) then
+       call compute_energy_hybridized(state(1),energy)
     else
        call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
     end if
@@ -275,13 +295,15 @@
 #endif
     call write_diagnostics(state,current_time,dt,timestep)
 
-    call deallocate(h_mass_mat)
-    call deallocate(u_mass_mat)
-    call deallocate(coriolis_mat)
-    call deallocate(inverse_coriolis_mat)
-    call deallocate(div_mat)
-    call deallocate(wave_mat)
-    call deallocate(big_mat)
+    if(.not.hybridized) then
+       call deallocate(h_mass_mat)
+       call deallocate(u_mass_mat)
+       call deallocate(coriolis_mat)
+       call deallocate(inverse_coriolis_mat)
+       call deallocate(div_mat)
+       call deallocate(wave_mat)
+       call deallocate(big_mat)
+    end if
     call deallocate(state)
     call deallocate_transform_cache
     call deallocate_reserve_state
@@ -372,15 +394,7 @@
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
 
-      if(have_option("/material_phase::Fluid/scalar_field::LagrangeMultiplie&
-           &r")) then
-         hybridized = .true.
-      else
-         hybridized = .false.
-      end if
-
-      if(.not.have_option("/material_phase::&
-           &Fluid/scalar_field::LagrangeMultiplier")) then
+      if(.not.hybridized) then
          call setup_wave_matrices(state(1),u_sparsity,&
               wave_sparsity,&
               ct_sparsity,&
@@ -409,19 +423,21 @@
            &none" ).or. prescribed_velocity
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
            &gnostic/temporal_discretisation/relaxation",itheta)
-      ! Geostrophic balanced initial condition, if required
+         ! Geostrophic balanced initial condition, if required
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
            &/initial_condition::WholeMesh/balanced")) then
-         call set_velocity_from_geostrophic_balance(state(1), &
-              div_mat, coriolis_mat, inverse_coriolis_mat)
+         if(hybridized) then
+            call set_velocity_from_geostrophic_balance_hybridized(state(1))
+         else
+            call set_velocity_from_geostrophic_balance(state(1), &
+                 div_mat, coriolis_mat, inverse_coriolis_mat)
+         end if
          call adjoint_register_initial_u_condition(balanced=.true.)
       else
          call adjoint_register_initial_u_condition(balanced=.false.)
       end if
 
-      if(.not.have_option("/material_phase::&
-           &Fluid/scalar_field::LagrangeMultiplier")) then
-
+      if(.not.hybridized) then
          ! Set up the state of cached matrices
          call insert(matrices, u_mass_mat, "LocalVelocityMassMatrix")
          call insert(matrices, h_mass_mat, "LayerThicknessMassMatrix")
@@ -587,11 +603,14 @@
          if(hybridized) then
             call solve_hybridized_helmholtz(&
                  &state,&
+                 &U_out=U_rhs,D_out=D_rhs,&
                  &compute_cartesian=.true.,&
                  &check_continuity=.true.,output_dense=.false.)
-
+            ewrite(1,*) 'jump in D', maxval(abs(D_rhs%val-D%val))
+            ewrite(1,*) 'jump in U', maxval(abs(U_rhs%val-U%val))
+            call set(D,D_rhs)
+            call set(U,U_rhs)
          else
-
             !Wave equation step
             ! M\Delta u + \Delta t F(\theta\Delta u + u^n) + \Delta t C(\theta
             ! \Delta\eta + \eta^n) = 0
@@ -603,7 +622,7 @@
             ! THEN SUBSTITUTION GIVES
             ! (M + \theta^2\Delta t^2 gH C^T(M+\theta\Delta t F)^{-1}C)\Delta\eta
             !  = \Delta t HC^T(u^n + \theta(M+\theta\Delta t F)^{-1}r)
-            
+
             !Construct explicit parts of u rhs
             if (have_source) then
                call get_u_rhs(u_rhs,U,D,dt,g, &
@@ -657,15 +676,6 @@
          end if
 
       end do
-
-      !Update the variables
-      if(have_option("/material_phase::&
-           &Fluid/scalar_field::LagrangeMultiplier")) then
-         call compute_energy(state,energy)
-      else
-         call get_linear_energy(state,u_mass_mat,h_mass_mat,d0,g,energy)
-      end if
-      ewrite(2,*) 'Energy = ',energy
 
       call deallocate(d_rhs)
       call deallocate(u_rhs)

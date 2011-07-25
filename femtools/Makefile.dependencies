@@ -241,13 +241,13 @@ Diagnostic_Fields.o ../include/diagnostic_fields.mod: Diagnostic_Fields.F90 \
    ../include/fetools.mod ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/interpolation_module.mod ../include/meshdiagnostics.mod \
-   ../include/parallel_tools.mod ../include/quicksort.mod \
-   ../include/solvers.mod ../include/sparsity_patterns.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/streamfunction.mod ../include/unittest_tools.mod \
-   ../include/vector_tools.mod
+   ../include/interpolation_module.mod ../include/manifold_tools.mod \
+   ../include/meshdiagnostics.mod ../include/parallel_tools.mod \
+   ../include/quicksort.mod ../include/solvers.mod \
+   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/streamfunction.mod \
+   ../include/unittest_tools.mod ../include/vector_tools.mod
 
 ../include/diagnostic_variables.mod: Diagnostic_variables.o
 	@true

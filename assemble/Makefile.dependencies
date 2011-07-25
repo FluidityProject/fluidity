@@ -123,7 +123,7 @@ Advection_Local_DG.o ../include/advection_local_dg.mod: Advection_Local_DG.F90 \
    ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/global_numbering.mod ../include/global_parameters.mod \
-   ../include/manifold_projections.mod ../include/petsc_solve_state_module.mod \
+   ../include/manifold_tools.mod ../include/petsc_solve_state_module.mod \
    ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
    ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
    ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
@@ -390,7 +390,7 @@ Hybridized_Helmholtz.o ../include/hybridized_helmholtz.mod: \
    ../include/diagnostic_fields_wrapper.mod \
    ../include/diagnostic_variables.mod ../include/fdebug.h \
    ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/manifold_projections.mod \
+   ../include/global_parameters.mod ../include/manifold_tools.mod \
    ../include/populate_state_module.mod ../include/solvers.mod \
    ../include/sparse_matrices_fields.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
@@ -490,12 +490,12 @@ Linear_Shallow_Water_Legacy.o ../include/linear_shallow_water_legacy.mod: \
    ../include/state_module.mod ../include/timeloop_utilities.mod \
    ../include/write_state_module.mod
 
-../include/manifold_projections.mod: Manifold_Projections.o
+../include/manifold_tools.mod: Manifold_Tools.o
 	@true
 
-Manifold_Projections.o ../include/manifold_projections.mod: \
-   Manifold_Projections.F90 ../include/fdebug.h ../include/fields.mod \
-   ../include/fields_base.mod ../include/state_module.mod
+Manifold_Tools.o ../include/manifold_tools.mod: Manifold_Tools.F90 \
+   ../include/fdebug.h ../include/fields.mod ../include/fields_base.mod \
+   ../include/state_module.mod
 
 ../include/mba2d_integration.mod: Mba2d_Integration.o
 	@true
