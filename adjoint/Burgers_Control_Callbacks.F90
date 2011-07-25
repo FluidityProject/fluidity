@@ -34,7 +34,7 @@ module burgers_adjoint_controls
   use state_module
   use python_state
   use sparse_matrices_fields
-  use manifold_projections
+  use manifold_tools
   use mangle_dirichlet_rows_module
 
     implicit none

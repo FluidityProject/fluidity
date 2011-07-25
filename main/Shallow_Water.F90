@@ -55,7 +55,7 @@
     & check_diagnostic_dependencies
     use iso_c_binding
     use mangle_options_tree
-    use manifold_projections
+    use manifold_tools
     use adjoint_controls
 #ifdef HAVE_ADJOINT
     use libadjoint_data_callbacks
@@ -191,8 +191,9 @@
        FLExit("Multiple material_phases are not supported")
     end if
 
-!    call calculate_diagnostic_variables(state)
-!    call calculate_diagnostic_variables_new(state)
+    call calculate_diagnostic_variables(state)
+    call calculate_diagnostic_variables_new(state)
+    call write_diagnostics(state, current_time, dt, timestep)
 
     call write_diagnostics(state, current_time, dt, timestep)
 

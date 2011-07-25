@@ -59,6 +59,7 @@ module diagnostic_fields
   use interpolation_module
   use Vector_Tools
   use streamfunction
+  use manifold_tools
 
   implicit none
 
@@ -1762,7 +1763,7 @@ contains
     type(element_type), pointer :: U_shape
     integer, dimension(:), pointer :: u_ele
     real, dimension(ele_loc(u,ele)) :: Vols
-    real :: val
+    real :: val, w1, w2
     real, dimension(ele_loc(u,ele)) :: Vals
     !
     !Get element volume
@@ -1780,20 +1781,13 @@ contains
           face_2=ele_face(U, ele_2, ele)
        end if
        
-       n1=get_normal(local_face_number(U%mesh,face))
-       n2=get_normal(local_face_number(U%mesh,face_2))
+       call get_local_normal(n1, w1, U, local_face_number(U%mesh,face))
+       call get_local_normal(n2, w2, U, local_face_number(U%mesh,face_2))
        U_f_q = face_val_at_quad(U, face)
        U_f2_q = face_val_at_quad(U, face_2)
 
-       if(local_face_number(U%mesh, face)==3) then
-          U_f_q=sqrt(2.)*U_f_q
-       end if
-       if(local_face_number(U%mesh, face_2)==3) then
-          U_f2_q=sqrt(2.)*U_f2_q
-       end if
-
-       u_q_dotn1 = sum(U_f_q*n1,1)
-       u_q_dotn2 = -sum(U_f2_q*n2,1)
+       u_q_dotn1 = sum(U_f_q*w1*n1,1)
+       u_q_dotn2 = -sum(U_f2_q*w2*n2,1)
        u_q_dotn=0.5*(u_q_dotn1+u_q_dotn2)
 
        Flux_quad = -sum(u_q_dotn,1)
@@ -1808,34 +1802,6 @@ contains
     Val = Flux/Vol*dt
     Vals = Val
     call set(Courant,U_ele,Vals)
-    contains
-
-      function get_normal(face) result(norm)
-
-        integer, intent(in) :: face
-        real, dimension(U%dim, face_ngi(U,face)) :: norm
-
-        integer :: i
-
-        if(U%dim==1) then
-           if(face==1) then
-              forall(i=1:face_ngi(U,face)) norm(1,i)=1.
-           else if(face==2) then
-              forall(i=1:face_ngi(U,face)) norm(1,i)=-1.
-           end if
-        else if(U%dim==2) then
-           if(face==1) then
-              forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/-1.,0./)
-           else if(face==2) then
-              forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
-           else if(face==3) then
-              forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/1/sqrt(2.),1/sqrt(2.)/)
-           else
-              FLAbort('Oh dear oh dear')
-           end if
-        end if
-
-      end function get_normal
 
   end subroutine calculate_courant_number_local_dg_ele
 

@@ -46,7 +46,7 @@ module hybridized_helmholtz
     use FUtils, only : real_vector, real_matrix
     use global_parameters, only: option_path_len
     use vector_tools, only: solve
-    use manifold_projections
+    use manifold_tools
     implicit none
 
 contains

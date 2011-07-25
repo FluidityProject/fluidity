@@ -25,7 +25,7 @@
 !    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
 !    USA
 #include "fdebug.h"
-module manifold_projections
+module manifold_tools
   use state_module
   use fields
   use fields_base
@@ -504,4 +504,4 @@ module manifold_projections
     end if
   end function get_up_vec
 
-end module manifold_projections
+end module manifold_tools

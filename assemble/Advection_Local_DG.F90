@@ -50,7 +50,7 @@ module advection_local_DG
   use sparse_matrices_fields
   use sparsity_patterns_meshes
   use Vector_Tools
-  use manifold_projections
+  use manifold_tools
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
 
