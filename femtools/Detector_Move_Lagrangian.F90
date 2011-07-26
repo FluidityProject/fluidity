@@ -327,7 +327,7 @@ contains
     parameters => detector_list%move_parameters
     
     det0 => detector_list%first
-    do det_count=1, detector_list%length 
+    do while (associated(det0))
 
        if(det0%type==LAGRANGIAN_DETECTOR) then
           det0%search_complete = .false.
