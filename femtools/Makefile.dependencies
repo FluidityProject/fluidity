@@ -656,6 +656,13 @@ Linked_Lists.o ../include/linked_lists.mod: Linked_Lists.F90 \
 MPI_Interfaces.o ../include/mpi_interfaces.mod: MPI_Interfaces.F90 \
    ../include/fdebug.h ../include/global_parameters.mod
 
+../include/manifold_tools.mod: Manifold_Tools.o
+	@true
+
+Manifold_Tools.o ../include/manifold_tools.mod: Manifold_Tools.F90 \
+   ../include/fdebug.h ../include/fields.mod ../include/fields_base.mod \
+   ../include/state_module.mod
+
 ../include/matrix_norms.mod: Matrix_Norms.o
 	@true
 
