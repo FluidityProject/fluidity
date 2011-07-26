@@ -1799,7 +1799,7 @@ contains
        if (interior) then
           boundary_num_length=0
        else
-          boundary_num_length=1
+          boundary_num_length=ele_num%nodes/2
        end if       
     case (2)
        if (ele_num%type/=ELEMENT_OVERLAPPING) then
