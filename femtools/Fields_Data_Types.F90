@@ -94,10 +94,6 @@ module fields_data_types
      !! (does not tell you how periodic it is... i.e. true if
      !! any surface is periodic)
      logical :: periodic=.false.
-     !! A pointer to the topology for this mesh. That is, the linear mesh
-     !!  from which this mesh is directly or indirectly derived. If this
-     !!  mesh is its own topology, this pointer should be null.
-     type(mesh_type), pointer :: topology=>null()
   end type mesh_type
 
   type mesh_faces
@@ -105,23 +101,23 @@ module fields_data_types
      type(element_type), pointer :: shape
      !! Face_list(i,j) is the face in element i bordering j.
      type(csr_matrix) :: face_list
+     !! The local number of the nodes in a given face.
+     integer, dimension(:), pointer :: face_lno
      !! A mesh consisting of all faces on the surface of the domain,
      !! it uses its own internal surface node numbering:
-     type(mesh_type) :: surface_mesh
+     type(mesh_type) surface_mesh
      !! A list of the nodes on the surface, thus forming a map between
      !! internal surface node numbering and global node numbering:
      integer, dimension(:), pointer :: surface_node_list
      !! The element with which each face is associated
      integer, dimension(:), pointer :: face_element_list
-     !! The local face number of each face in its containing element.
-     integer, dimension(:), pointer :: local_face_number
      !! A list of ids marking different parts of the surface mesh
      !! so that boundary conditions can be associated with it.
      integer, dimension(:), pointer :: boundary_ids
      !! list of ids to identify coplanar patches of the surface:
      integer, dimension(:), pointer :: coplanar_ids => null()
      !! a DG version of the surface mesh, useful for storing bc values
-     type(mesh_type), pointer :: dg_surface_mesh => null()
+     type(mesh_type), pointer:: dg_surface_mesh => null()
      !! A logical indicating if this mesh has internal boundaries
      !! This means that element owners need to be written when writing out this mesh
      logical :: has_internal_boundaries=.false.

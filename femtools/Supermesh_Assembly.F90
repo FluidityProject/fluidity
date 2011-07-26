@@ -184,6 +184,7 @@ contains
     logical :: lform_dn
     real, dimension(ele_loc(positions_a, 1), ele_ngi(positions_a, 1), ele_count(positions_c)) :: l_coords
     type(quadrature_type), pointer :: quad
+    type(ele_numbering_type), pointer :: ele_num
     
     lform_dn = .not. present_and_false(form_dn)
     
@@ -192,7 +193,7 @@ contains
     quad => base_shape_c%quadrature
     
     dim = base_shape_c%dim
-    loc = base_shape_c%ndof
+    loc = base_shape_c%loc
     ngi = quad%ngi
     coords = local_coord_count(base_shape_c)
     degree = base_shape_c%degree
@@ -203,8 +204,12 @@ contains
     end if
     
     allocate(shapes_c(ele_count(positions_c)))
-    do i = 1, size(shapes_c)    
-      call allocate(shapes_c(i), dim = dim, ndof = loc, ngi = ngi, coords = coords)
+    do i = 1, size(shapes_c)
+       ele_num => find_element_numbering(&
+            &vertices = base_shape_c%numbering%vertices, &
+            &dimension = dim, degree =&
+            & degree)    
+      call allocate(shapes_c(i), ele_num=ele_num, ngi = ngi)
       
       shapes_c(i)%degree = degree
       shapes_c(i)%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)
@@ -275,13 +280,14 @@ contains
     logical :: lform_dn
     real, dimension(ele_loc(positions_b, ele_b), ele_ngi(positions_b, ele_b), ele_count(positions_c)) :: l_coords
     type(quadrature_type), pointer :: quad
+    type(ele_numbering_type), pointer :: ele_num
     
     lform_dn = .not. present_and_false(form_dn)
     
     quad => base_shape_c%quadrature
     
     dim = base_shape_c%dim
-    loc = base_shape_c%ndof
+    loc = base_shape_c%loc
     ngi = quad%ngi
     coords = local_coord_count(base_shape_c)
     degree = base_shape_c%degree
@@ -292,9 +298,11 @@ contains
     end if
     
     allocate(shapes_c(ele_count(positions_c)))
-
-    do i = 1, size(shapes_c)    
-      call allocate(shapes_c(i), dim = dim, ndof = loc, ngi = ngi, coords = coords)
+    do i = 1, size(shapes_c)
+       ele_num => find_element_numbering(&
+            vertices = base_shape_c%numbering%vertices, dimension = dim, degree =&
+            & degree)    
+      call allocate(shapes_c(i), ele_num, ngi = ngi)
       
       shapes_c(i)%degree = degree
       shapes_c(i)%numbering => find_element_numbering(vertices = loc, dimension = dim, degree = degree)
@@ -448,6 +456,7 @@ contains
     type(element_type), target, intent(in) :: shape_vol
     ! If present and .false., do not form the shape function derivatives
     logical, optional, intent(in) :: form_dn
+    type(ele_numbering_type), pointer :: ele_num
     type(element_type) :: shape_surf_ext
     
     integer :: coords, degree, dim, i, loc, ngi
@@ -461,15 +470,16 @@ contains
     quad => shape_vol%quadrature
     
     dim = positions_vol%dim
-    loc = shape_surf%ndof
+    loc = shape_surf%loc
     ngi = quad%ngi
     coords = local_coord_count(shape_vol)
     degree = shape_surf%degree
+    ele_num => &
+         &find_element_numbering(vertices = shape_surf%numbering%vertices, &
+         &dimension = dim - 1, degree = degree)
     ! Note that the extruded surface mesh shape function takes its number of
     ! quadrature points from the volume shape function
-
-    call allocate_element(shape_surf_ext, dim = dim, ndof = loc, ngi = ngi, coords = coords)
-
+    call allocate_element(shape_surf_ext, ele_num=ele_num, ngi = ngi)
     shape_surf_ext%degree = degree
     shape_surf_ext%numbering => find_element_numbering(vertices = loc, dimension = dim - 1, degree = degree)
     shape_surf_ext%quadrature = quad
@@ -969,7 +979,7 @@ contains
     type(vector_field), intent(in) :: positions
     type(state_type), intent(in) :: state
     type(element_type), intent(in) :: shape
-    real, dimension(shape%ndof, scalar_field_count(state)), intent(inout) :: little_rhs
+    real, dimension(shape%loc, scalar_field_count(state)), intent(inout) :: little_rhs
     
     integer :: i
     real, dimension(ele_ngi(positions, ele)) :: detwei

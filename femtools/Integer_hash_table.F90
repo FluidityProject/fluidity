@@ -194,7 +194,7 @@ module integer_hash_table_module
 
     call integer_hash_table_fetch_pair_c(ihash%address, idx, key, val)
   end subroutine integer_hash_table_fetch_pair
-    
+
   subroutine print_hash_table(ihash, priority)
     type(integer_hash_table), intent(in) :: ihash
     integer, intent(in) :: priority

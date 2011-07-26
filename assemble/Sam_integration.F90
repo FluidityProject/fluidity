@@ -829,8 +829,8 @@ module sam_integration
        dim = old_positions%dim
        linear_shape = ele_shape(old_linear_mesh, 1)
 
-       nloc = old_linear_mesh%shape%ndof
-       snloc = old_linear_mesh%faces%surface_mesh%shape%ndof
+       nloc = old_linear_mesh%shape%loc
+       snloc = old_linear_mesh%faces%surface_mesh%shape%loc
        call incref(linear_shape)
 
        call allocate(linear_s, old_linear_mesh, "LinearScalarField")
@@ -1261,8 +1261,8 @@ module sam_integration
        nonods = node_count(mesh)
        totele = ele_count(mesh)
        stotel = surface_element_count(mesh)
-       nloc = mesh%shape%ndof
-       snloc = mesh%faces%surface_mesh%shape%ndof
+       nloc = mesh%shape%loc
+       snloc = mesh%faces%surface_mesh%shape%loc
        ndglno => mesh%ndglno
        allocate(sndgln(stotel * snloc))
        call getsndgln(mesh, sndgln)

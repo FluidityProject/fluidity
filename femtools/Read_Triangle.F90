@@ -217,7 +217,7 @@ contains
     ! Read element file header.
     read (ele_unit, *) elements, loc, ele_attributes
 
-    assert(loc==shape%ndof)
+    assert(loc==shape%loc)
     allocate(node_order(loc))
     select case(loc)
     case(3)
@@ -478,7 +478,7 @@ contains
     ! Read element file header.
     read (ele_unit, *) elements, loc, ele_attributes
 
-    assert(loc==shape%ndof)
+    assert(loc==shape%loc)
     allocate(node_order(loc))
     select case(loc)
     case(3)
@@ -728,7 +728,7 @@ contains
     ! Read element file header.
     read (ele_unit, *) elements, loc, ele_attributes
 
-    assert(loc==shape%ndof)
+    assert(loc==shape%loc)
     allocate(node_order(loc))
     select case(loc)
     case(3)
@@ -939,7 +939,7 @@ contains
     ! Read element file header.
     read (ele_unit, *) elements, loc, ele_attributes
 
-    assert(loc==shape%ndof)
+    assert(loc==shape%loc)
     allocate(node_order(loc))
     select case(loc)
     case(3)

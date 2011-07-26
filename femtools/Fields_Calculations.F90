@@ -371,7 +371,7 @@ implicit none
     type(vector_field), intent(in) :: X
 
     integer :: ele
-    real, dimension(X%mesh%shape%ndof) :: ones
+    real, dimension(X%mesh%shape%loc) :: ones
 
     integral=0
     

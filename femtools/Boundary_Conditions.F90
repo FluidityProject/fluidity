@@ -1303,20 +1303,14 @@ contains
   type(mesh_type), intent(inout):: mesh
   type(mesh_type), pointer:: get_dg_surface_mesh
   
-  type(element_type) :: surface_shape
-
     if (.not. has_faces(mesh)) then
       FLAbort("A mesh%faces structure is needed for get_dg_surface_mesh")
     end if
     
     if (.not. associated(mesh%faces%dg_surface_mesh)) then
-       surface_shape= make_element_shape(model=mesh%faces%shape,&
-            type=ELEMENT_DISCONTINUOUS_LAGRANGIAN)
-       allocate(mesh%faces%dg_surface_mesh)
-       mesh%faces%dg_surface_mesh=make_mesh(mesh%faces%surface_mesh, surface_shape, &
-            continuity=-1, name=trim(mesh%name)//"DGSurfaceMesh")
-       ! Drop the extra reference.
-       call deallocate(surface_shape)
+      allocate(mesh%faces%dg_surface_mesh)
+      mesh%faces%dg_surface_mesh=make_mesh(mesh%faces%surface_mesh, mesh%faces%shape, &
+        continuity=-1, name=trim(mesh%name)//"DGSurfaceMesh")
     end if
     
     get_dg_surface_mesh => mesh%faces%dg_surface_mesh

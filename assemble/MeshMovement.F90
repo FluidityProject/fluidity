@@ -1006,7 +1006,7 @@ contains
 
     allocate(di_t(ele_loc(ifield,ele),ele_ngi(ifield,ele),mesh_dim(ifield)))
     allocate(detwei(ele_ngi(ifield,ele)))
-    allocate(mass(positions%mesh%shape%ndof,positions%mesh%shape%ndof))
+    allocate(mass(positions%mesh%shape%loc,positions%mesh%shape%loc))
     shape_field=>ele_shape(ifield, ele)
     shape_X=>ele_shape(positions, ele)
     i_ele=>ele_nodes(ifield,ele)

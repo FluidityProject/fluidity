@@ -264,7 +264,7 @@ contains
          & shape=shape, name=trim(mesh_name))
 
     ! Determine ndglno (connectivity matrix) on subdomain_mesh:
-    loc = shape%ndof
+    loc = shape%loc
     do i = 1, size(subele_list)
       ele = subele_list(i)
       call set_ele_nodes(subdomain_mesh, i, inverse_n_list(ele_nodes(external_mesh, ele)))
@@ -279,7 +279,7 @@ contains
     subdomain_mesh%subdomain_mesh%node_list = n_list
 
     ! Calculate sndglno - an array of nodes corresponding to edges along surface:
-    sloc = external_mesh%faces%shape%ndof
+    sloc = external_mesh%faces%shape%loc
     surf_ele_count = surface_element_count(external_mesh)
 
     ! Begin by determining which faces are on subdomain_mesh boundaries:

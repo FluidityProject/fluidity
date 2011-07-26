@@ -114,9 +114,9 @@ module supermesh_construction
 #ifdef DDEBUG
     select case(dim)
       case(2)
-        assert(shape%ndof == 3)
+        assert(shape%loc == 3)
       case(3)
-        assert(shape%ndof == 4)
+        assert(shape%loc == 4)
     end select
 #endif
 
@@ -278,7 +278,7 @@ module supermesh_construction
         val = 0.0
         local_coords(1:dim) = node_val(supermesh_positions_remapped, node_C); local_coords(dim+1) = 1.0
         local_coords = matmul(inversion_matrix_B, local_coords)
-        do j=1,supermesh_field_shape%ndof
+        do j=1,supermesh_field_shape%loc
           val = val + eval_shape(supermesh_field_shape, j, local_coords) * element_value(j)
         end do
         call set(new_field_on_supermesh, node_C, val)

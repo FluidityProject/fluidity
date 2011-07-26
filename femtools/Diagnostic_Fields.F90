@@ -1801,7 +1801,7 @@ contains
 
           notvisited=.true.
 
-          do iloc = 1, courant%mesh%shape%ndof
+          do iloc = 1, courant%mesh%shape%loc
 
             do face = 1, cvfaces%faces
 
@@ -1875,7 +1875,7 @@ contains
           u_bdy_f=face_val_at_quad(u, sele, u_cvbdyshape)
           if(move_mesh) ug_bdy_f=face_val_at_quad(ug, sele, ug_cvbdyshape)
 
-          do iloc = 1, courant%mesh%faces%shape%ndof
+          do iloc = 1, courant%mesh%faces%shape%loc
 
             do face = 1, cvfaces%sfaces
 
@@ -2150,7 +2150,7 @@ contains
 
         notvisited=.true.
 
-        do iloc = 1, courant%mesh%shape%ndof
+        do iloc = 1, courant%mesh%shape%loc
 
           do face = 1, cvfaces%faces
 
@@ -2270,7 +2270,7 @@ contains
         matdens_ele_bdy=face_val(matdens, sele)
         oldmatdens_ele_bdy=face_val(oldmatdens, sele)
 
-        do iloc = 1, courant%mesh%faces%shape%ndof
+        do iloc = 1, courant%mesh%faces%shape%loc
 
           do face = 1, cvfaces%sfaces
 

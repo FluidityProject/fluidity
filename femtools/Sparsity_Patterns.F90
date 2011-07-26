@@ -213,7 +213,7 @@ contains
     integer :: nonzeros, nodes, elements, nloc
     integer :: i,j,k
 
-    nloc=mesh%shape%ndof ! Nodes per element
+    nloc=mesh%shape%loc ! Nodes per element
     nodes=node_count(mesh) ! Total nodes
     elements=element_count(mesh) ! Total elements
     nonzeros=nloc**2*elements

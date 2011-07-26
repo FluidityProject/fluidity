@@ -302,7 +302,7 @@ module python_state
     type(element_type) :: E
     type(mesh_type) :: M
     type(state_type) :: st
-    real, dimension(E%ndof, size(E%numbering%number2count, 1)) :: coords
+    real, dimension(E%loc, size(E%numbering%number2count, 1)) :: coords
     integer :: snlen,mlen
     integer :: i, j
     character(len=20) :: family_name, type_name
@@ -327,11 +327,11 @@ module python_state
       type_name = "nonconforming"
     end if
 
-    do l=1,E%ndof
+    do l=1,E%loc
       coords(l,:) = local_coords(l, E)
     end do
 
-    call python_add_element(E%dim, E%ndof, E%ngi, E%degree,&   
+    call python_add_element(E%dim, E%loc, E%ngi, E%degree,&   
       &trim(st%name),snlen,trim(M%name),mlen,&
       &E%n,size(E%n,1), size(E%n,2),E%dn, size(E%dn,1), size(E%dn,2), size(E%dn,3),&
       &size(E%spoly,1),size(E%spoly,2),size(E%dspoly,1),size(E%dspoly,2), family_name, len_trim(family_name), &

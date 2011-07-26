@@ -94,7 +94,7 @@ contains
        mxnele, ncolele, finele, colele ) ! Element connectivity 
 
     implicit none
-
+    
     !! New variable declaration
 
     type(state_type), dimension(:), intent(inout) :: state

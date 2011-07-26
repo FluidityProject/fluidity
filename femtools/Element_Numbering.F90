@@ -51,8 +51,8 @@ module element_numbering
   integer, parameter :: ELEMENT_LAGRANGIAN=1, ELEMENT_NONCONFORMING=2, ELEMENT_BUBBLE=3, &
                         ELEMENT_CONTROLVOLUMEBDY_SURFACE=4, ELEMENT_CONTROLVOLUME_SURFACE=5, &
                         ELEMENT_CONTROLVOLUME_SURFACE_BODYDERIVATIVES=6, &
-                        ELEMENT_DISCONTINUOUS_LAGRANGIAN=7, ELEMENT_TRACE=8, &
-                        ELEMENT_ISODG=9
+                        ELEMENT_TRACE=7, &
+                        ELEMENT_OVERLAPPING=9
 
   integer, parameter :: FAMILY_SIMPLEX=1, FAMILY_CUBE=2
 
@@ -60,9 +60,6 @@ module element_numbering
      ! Type to record element numbering details.
      ! Differentiate tets from other elements.
      integer :: faces, vertices, edges, boundaries
-     ! How many nodes are there on each geometric object. The index in this
-     ! array is the dimension of the object. 
-     integer, dimension(0:3) :: nodes_per
      integer :: degree ! Degree of polynomials.
      integer :: dimension ! 2D or 3D
      integer :: nodes
@@ -86,18 +83,18 @@ module element_numbering
   ! bubbles are restricted to prevent co-located nodes
 
   type(ele_numbering_type), dimension(0:TET_MAX_DEGREE), target, save ::&
-       & tet_numbering
+       & tet_numbering, tet_numbering_overlapping
   type(ele_numbering_type), dimension(1:TET_BUBBLE_MAX_DEGREE), target, save ::&
        & tet_numbering_bubble
   type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
-       & tri_numbering
+       & tri_numbering, tri_numbering_overlapping
   type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
        & tri_numbering_trace
   type(ele_numbering_type), dimension(1:TRI_BUBBLE_MAX_DEGREE), target, save ::&
        & tri_numbering_bubble
   type(ele_numbering_type), target, save :: tri_numbering_nc
   type(ele_numbering_type), dimension(0:INTERVAL_MAX_DEGREE), target, &
-       save :: interval_numbering
+       save :: interval_numbering, interval_numbering_overlapping
   type(ele_numbering_type), target, save :: interval_numbering_bubble
   type(ele_numbering_type), dimension(0:HEX_MAX_DEGREE), target, save ::&
        & hex_numbering
@@ -185,12 +182,6 @@ contains
        ltype=type
     else
        ltype=ELEMENT_LAGRANGIAN
-    end if
-
-    ! For element numbering, DG and CG Lagrangian are the same. The
-    !  difference occurs in the element_type.
-    if (ltype==ELEMENT_DISCONTINUOUS_LAGRANGIAN) then
-       ltype=ELEMENT_LAGRANGIAN 
     end if
 
     select case(ltype)
@@ -378,6 +369,114 @@ contains
           return
        end select
 
+    case (ELEMENT_OVERLAPPING)
+    ! Need to work this out I think before anything will work
+       select case(dimension)
+       case (0)
+          select case(vertices)
+          case(1)
+             ! The point element always has degree 0
+             ele_num=>point_numbering(0)
+             return
+          case default
+             ele_num=>null()
+             return
+          end select
+
+       case (1)
+          select case(vertices)
+          case(2) ! Linear pressure, constant velocity
+             ! Intervals - the only possibility.
+             if (degree>INTERVAL_MAX_DEGREE) then
+                ele_num=>null()
+                return
+             else
+                ele_num=>interval_numbering_overlapping(degree)
+                return
+             end if
+          
+          case(6) ! Quadratic pressure, linear velocity
+             ! Overlapping copy: Intervals - the only possibility.
+             if (degree>INTERVAL_MAX_DEGREE) then
+                ele_num=>null()
+                return
+             else
+                ele_num=>interval_numbering_overlapping(degree)
+                return
+             end if
+          
+          case default
+             ele_num=>null()
+             return
+          end select
+
+       case(2)
+          
+          select case(vertices)
+          case(3)
+             !Triangles. Linear pressure, constant velocity
+             
+             if (degree>TRI_MAX_DEGREE) then
+                ele_num=>null()
+                return
+             else
+                ele_num=>tri_numbering_overlapping(degree)
+                return
+             end if
+             
+          case(18)
+             ! Overlapping copy of: Triangles.
+             ! Quadratic pressure, linear velocity
+             
+             if (degree>TRI_MAX_DEGREE) then
+                ele_num=>null()
+                return
+             else
+                ele_num=>tri_numbering_overlapping(degree)
+                return
+             end if
+             
+          case default
+             ele_num=>null()
+             return
+          end select
+          
+       case(3)
+          
+          select case (vertices)
+          case (4)
+             !Tets, linear pressure, constant velocity
+             
+             if (degree>TET_MAX_DEGREE) then
+                ele_num=>null()
+                return
+             else
+                ele_num=>tet_numbering_overlapping(degree)
+                return
+             end if
+             
+          case (40)
+             ! Overlapping copy of: Tets
+             ! Quadratic pressure, linear velocity
+             
+             if (degree>TET_MAX_DEGREE) then
+                ele_num=>null()
+                return
+             else
+                ele_num=>tet_numbering_overlapping(degree)
+                return
+             end if
+             
+          case default
+             ele_num=>null()
+             return
+          end select
+          
+       case default
+          ele_num=>null()
+          return
+       end select
+       
     case default
        
        FLAbort('Attempt to select an illegal element type.')
@@ -401,6 +500,7 @@ contains
     call number_triangles_nc
     call number_intervals_lagrange
     call number_intervals_bubble
+    call number_intervals_overlapping
     call number_point_lagrange
     call number_hexes_lagrange
     call number_quads_lagrange
@@ -429,11 +529,6 @@ contains
     degree_loop: do i=0,TET_MAX_DEGREE
        ele=>tet_numbering(i)
        ele%degree=i
-
-       ele%nodes_per(0)=1
-       ele%nodes_per(1)=i-1
-       ele%nodes_per(2)=tr(i-2)
-       ele%nodes_per(3)=te(i-3)
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:i))
@@ -516,11 +611,6 @@ contains
        ele=>tet_numbering_bubble(i)
        ele%degree=i
 
-       ele%nodes_per(0)=1
-       ele%nodes_per(1)=i-1
-       ele%nodes_per(2)=tr(i-2)
-       ele%nodes_per(3)=te(i-3)+1
-
        ! Allocate mappings:
        allocate(ele%count2number(0:i*(ele%dimension+1),0:i*(ele%dimension+1),0:i*(ele%dimension+1)))
        allocate(ele%number2count(ele%dimension+1,te(i+1)+1))
@@ -591,6 +681,90 @@ contains
     
   end subroutine number_tets_bubble
 
+  subroutine number_tets_overlapping
+    ! Fill the values in in element_numbering.
+    integer :: i,j, cnt
+    integer, dimension(4) :: l
+    type(ele_numbering_type), pointer :: ele
+
+    ! Currently only tets are supported.
+    tet_numbering_overlapping%faces=4
+    tet_numbering_overlapping%vertices=4
+    tet_numbering_overlapping%edges=6
+    tet_numbering_overlapping%dimension=3
+    tet_numbering_overlapping%boundaries=4
+    tet_numbering_overlapping%family=FAMILY_SIMPLEX
+    tet_numbering_overlapping%type=ELEMENT_OVERLAPPING
+
+    ! Degree 0 elements are a special case.
+    ele=>tet_numbering_overlapping(0)
+    ele%degree=0
+    
+    degree_loop: do i=0,TET_MAX_DEGREE
+       ele=>tet_numbering_overlapping(i)
+       ele%degree=i
+
+       ! Allocate mappings:
+       allocate(ele%count2number(0:i,0:i,0:i))
+       allocate(ele%number2count(ele%dimension+1,te(i+1)))
+       allocate(ele%boundary_coord(ele%faces))
+       allocate(ele%boundary_val(ele%faces))
+
+       ele%nodes=te(i+1)
+
+       ele%count2number=0
+       ele%number2count=0
+
+       l=0
+       l(1)=i
+       
+       cnt=0
+
+       number_loop: do
+          
+          cnt=cnt+1
+          
+          ele%count2number(l(1), l(2), l(3))=cnt
+          ele%number2count(:,cnt)=l
+
+          ! If the last index has reached the current degree then we are
+          ! done.          
+          if (l(4)==i) exit number_loop
+
+          ! Increment the index counter.
+          l(2)=l(2)+1
+          
+          do j=2,3
+             ! This comparison implements the decreasing dimension lengths
+             ! as you move up the pyramid.
+             if (l(j)>i-sum(l(j+1:))) then
+                l(j)=0
+                l(j+1)=l(j+1)+1
+             end if
+          end do
+
+          l(1)=i-sum(l(2:))
+
+
+       end do number_loop
+       
+       ! Sanity test
+       if (te(i+1)/=cnt) then
+          ewrite(3,*) 'Counting error', i, te(i+1), cnt
+          stop
+       end if
+       
+       ! Number faces.
+       forall(j=1:ele%faces)
+          ele%boundary_coord(j)=j
+       end forall
+       ! In a tet all faces occur on planes of zero value for one local coord.
+       ele%boundary_val=0
+
+    end do degree_loop
+
+  end subroutine number_tets_overlapping
+
   subroutine number_triangles_lagrange
     ! Fill the values in in element_numbering.
     integer :: i,j, cnt
@@ -612,11 +786,6 @@ contains
     degree_loop: do i=0,TRI_MAX_DEGREE
        ele=>tri_numbering(i)
        ele%degree=i 
-
-       ele%nodes_per(0)=1
-       ele%nodes_per(1)=i-1
-       ele%nodes_per(2)=tr(i-2)
-       ele%nodes_per(3)=0
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:i))
@@ -695,11 +864,6 @@ contains
        ele=>tri_numbering_bubble(i)
        ele%degree=i
 
-       ele%nodes_per(0)=1
-       ele%nodes_per(1)=i-1
-       ele%nodes_per(2)=tr(i-2)+1
-       ele%nodes_per(3)=0
-
        ! Allocate mappings:
        allocate(ele%count2number(0:i*(ele%dimension+1),0:i*(ele%dimension+1),0:i*(ele%dimension+1)))
        allocate(ele%number2count(ele%dimension+1,tr(i+1)+1))
@@ -767,6 +931,95 @@ contains
     
   end subroutine number_triangles_bubble
 
+  subroutine number_triangles_overlapping
+    ! Fill the values in in element_numbering.
+    integer :: i,j, k, cnt, ncv
+    integer, dimension(3) :: l
+    type(ele_numbering_type), pointer :: ele
+
+    tri_numbering_overlapping%faces=1
+    tri_numbering_overlapping%vertices=3
+    tri_numbering_overlapping%edges=3
+    tri_numbering_overlapping%dimension=2
+    tri_numbering_overlapping%boundaries=3
+    tri_numbering_overlapping%family=FAMILY_SIMPLEX
+    tri_numbering_overlapping%type=ELEMENT_OVERLAPPING
+    
+    ! Degree 0 elements are a special case.
+    ele=>tri_numbering_overlapping(0)
+    ele%degree=0
+    
+    degree_loop: do i=0,2
+       ele=>tri_numbering_overlapping(i)
+       ele%degree=i
+       
+       ncv=3*(i+1)
+
+       ! Allocate mappings:
+       allocate(ele%count2number(0:i,0:i,0:(i+1)*ncv-1))
+       allocate(ele%number2count(ele%dimension+1,tr(i+1)*ncv))
+       allocate(ele%boundary_coord(ncv*ele%vertices))
+       allocate(ele%boundary_val(ncv*ele%vertices))
+
+       ele%nodes=tr(i+1)*ncv
+       ele%count2number=0
+       ele%number2count=0
+
+       cnt=0
+       do k=1,ncv
+
+          l=0
+          l(1)=i
+       
+          number_loop: do
+          
+             cnt=cnt+1
+          
+             ele%count2number(l(1), l(2), l(3)+(k-1)*(i+1))=cnt
+             ele%number2count(:,cnt)=l
+
+             ! If the last index has reached the current degree then we are
+             ! done.          
+             if (l(3)==i) exit number_loop
+
+             ! Increment the index counter.
+             l(2)=l(2)+1
+          
+             do j=2,2
+                ! This comparison implements the decreasing dimension lengths
+                ! as you move up the triangle.
+                if (l(j)>i-sum(l(j+1:))) then
+                   l(j)=0
+                   l(j+1)=l(j+1)+1
+                end if
+             end do
+
+             l(1)=i-sum(l(2:))
+
+          end do number_loop
+       end do
+       
+       ! Sanity test
+       if (tr(i+1)*ncv/=cnt) then
+          ewrite(3,*) 'Counting error', i, tr(i+1)*ncv, cnt
+          stop
+       end if
+       
+       ! Number edges.
+       forall(j=1:ele%vertices*ncv)
+          ele%boundary_coord(j)=j
+       end forall
+       ! In a triangle all faces occur on planes of zero value for one local coord.
+       ele%boundary_val=0
+       
+!       ewrite(3,*) 'c2n', ele%count2number
+!       ewrite(3,*) 'n2c', ele%number2count
+!       ewrite(3,*) 'b_c', ele%boundary_coord
+       
+    end do degree_loop
+    
+  end subroutine number_triangles_overlapping
+
   subroutine number_triangles_nc
     ! Fill the values in in element_numbering.
     integer :: j
@@ -784,11 +1037,6 @@ contains
     ele=>tri_numbering_nc
     ele%degree=1
     
-    ele%nodes_per(0)=0
-    ele%nodes_per(1)=1
-    ele%nodes_per(2)=0
-    ele%nodes_per(3)=0
-
     ! Allocate mappings: 
     allocate(ele%count2number(0:ele%degree,0:ele%degree,0:ele%degree))
     allocate(ele%number2count(ele%dimension+1,tr(ele%degree+1)))
@@ -838,8 +1086,7 @@ contains
     type(ele_numbering_type), pointer :: ele
 
     tri_numbering_trace%faces=1
-    tri_numbering_trace%vertices=0 ! This is set to zero because no DOFs
-    ! located on vertices.
+    tri_numbering_trace%vertices=3
     tri_numbering_trace%edges=3
     tri_numbering_trace%dimension=2
     tri_numbering_trace%boundaries=3
@@ -861,8 +1108,8 @@ contains
        ! For trace elements, the first index is the facet number.
        allocate(ele%count2number(1:ele%dimension+1,0:i,0:i))
        allocate(ele%number2count(ele%dimension+1,ele%nodes))
-       allocate(ele%boundary_coord(3))
-       allocate(ele%boundary_val(3))
+       allocate(ele%boundary_coord(ele%vertices))
+       allocate(ele%boundary_val(ele%vertices))
 
        ele%count2number=0
        ele%number2count=0
@@ -925,11 +1172,6 @@ contains
     degree_loop: do i=0,INTERVAL_MAX_DEGREE
        ele=>interval_numbering(i)
        ele%degree=i 
-
-       ele%nodes_per(0)=1
-       ele%nodes_per(1)=i-1
-       ele%nodes_per(2)=0
-       ele%nodes_per(3)=0
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:0))
@@ -1001,11 +1243,6 @@ contains
      ele=>interval_numbering_bubble
      ele%degree=1
 
-     ele%nodes_per(0)=1
-     ele%nodes_per(1)=1
-     ele%nodes_per(2)=0
-     ele%nodes_per(3)=0
-
      ! Allocate mappings:
      ! we need a lot of blank spaces here to make this
      ! mapping bijective!
@@ -1065,6 +1302,82 @@ contains
     
   end subroutine number_intervals_bubble
 
+  subroutine number_intervals_overlapping
+    ! Fill the values in element_numbering.
+    integer :: i, j, cnt, ncv
+    integer, dimension(2) :: l
+    type(ele_numbering_type), pointer :: ele
+
+    interval_numbering_overlapping%faces=0
+    interval_numbering_overlapping%vertices=2
+    interval_numbering_overlapping%edges=1
+    interval_numbering_overlapping%dimension=1
+    interval_numbering_overlapping%boundaries=2
+    interval_numbering_overlapping%family=FAMILY_SIMPLEX
+    interval_numbering_overlapping%type=ELEMENT_OVERLAPPING
+
+    degree_loop: do i=0,2 ! Don't need to worry about crazy degrees just yet!
+       ele=>interval_numbering_overlapping(i)
+       ele%degree=i
+       
+       ncv=i+2 ! Number of control volumes in the element
+
+       ! Allocate mappings:
+       allocate(ele%count2number(0:i,0:i,0:ncv-1))
+       allocate(ele%number2count(ele%dimension+1,(i+1)*ncv))
+       allocate(ele%boundary_coord(ncv*ele%vertices))
+       allocate(ele%boundary_val(ncv*ele%vertices))
+
+       ele%nodes=(i+1)*ncv
+       ele%count2number=0
+       ele%number2count=0
+
+       cnt=0
+       do j=0,ncv-1
+
+         l=0
+         l(1)=i
+       
+         number_loop: do
+          
+           cnt=cnt+1
+          
+           ele%count2number(l(1), l(2), j)=cnt
+           ele%number2count(:,cnt)=l
+
+           ! If the last index has reached the current degree then we are
+           ! done.          
+           if (l(2)==i) exit number_loop
+
+           ! Increment the index counter.
+           l(2)=l(2)+1
+          
+           l(1)=i-l(2)
+
+         end do number_loop
+         
+       end do
+       
+       ! Sanity test
+       if ((i+1)*ncv/=cnt) then
+          ewrite(3,*) 'Counting error', i, (i+1)*ncv, cnt
+          stop
+       end if
+       
+       ! Number edges.
+       forall(j=1:2*ncv)
+          ele%boundary_coord(j)=j
+       end forall
+       ! In an interval all faces occur on planes of zero value for one local coord.
+       ele%boundary_val=0
+       
+!       ewrite(3,*) 'c2n', ele%count2number
+!       ewrite(3,*) 'n2c', ele%number2count
+
+    end do degree_loop
+    
+  end subroutine number_intervals_overlapping
+
   subroutine number_point_lagrange
     !!< The highly complex 1 point 0D element.
     type(ele_numbering_type), pointer :: ele
@@ -1080,11 +1393,6 @@ contains
     ! Degree 0 elements are a special case.
     ele=>point_numbering(0)
     ele%degree=0
-
-    ele%nodes_per(0)=1
-    ele%nodes_per(1)=0
-    ele%nodes_per(2)=0
-    ele%nodes_per(3)=0
 
     ! Allocate mappings:
     allocate(ele%count2number(0:0,0:0,0:0))
@@ -1119,11 +1427,6 @@ contains
     degree_loop: do i=0,HEX_MAX_DEGREE
        ele=>hex_numbering(i)
        ele%degree=i
-
-       ele%nodes_per(0)=1
-       ele%nodes_per(1)=i-1
-       ele%nodes_per(2)=ele%nodes_per(1)**2
-       ele%nodes_per(3)=ele%nodes_per(1)**3
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:i))
@@ -1189,11 +1492,6 @@ contains
     degree_loop: do i=0,QUAD_MAX_DEGREE
        ele=>quad_numbering(i)
        ele%degree=i
-
-       ele%nodes_per(0)=1
-       ele%nodes_per(1)=i-1
-       ele%nodes_per(2)=ele%nodes_per(1)**2
-       ele%nodes_per(3)=0
 
        ! Allocate mappings:
        allocate(ele%count2number(0:i,0:i,0:0))
@@ -1478,7 +1776,7 @@ contains
       end select
 
     case (ELEMENT_TRACE)
-       continue ! Trace elements have no vertex DOFs.
+       FLAbort("Trace elements do not have well-defined vertices")
        
     case default
       FLAbort("Unknown element type")
@@ -1504,10 +1802,18 @@ contains
           boundary_num_length=1
        end if       
     case (2)
-       if (interior) then
-          boundary_num_length=ele_num%degree-1
+       if (ele_num%type/=ELEMENT_OVERLAPPING) then
+          if (interior) then
+             boundary_num_length=ele_num%degree-1
+          else
+             boundary_num_length=ele_num%degree+1
+          end if
        else
-          boundary_num_length=ele_num%degree+1
+          if (interior) then
+             boundary_num_length=ele_num%degree-1
+          else
+             boundary_num_length=3*(ele_num%degree+1)**2
+          end if
        end if
     case (3)
        boundary_num_length=face_num_length(ele_num, interior)
@@ -1836,6 +2142,35 @@ contains
          FLAbort("Unknown element family.")
       end select
       
+    case (ELEMENT_OVERLAPPING)
+      select case (ele_num%family)
+      case (FAMILY_SIMPLEX)
+         do k=1,3*(ele_num%degree) ! ncv=3*ele_num%degree
+            l=0
+            l(nodes(1))=ele_num%degree
+            cnt=0
+            ol_number_loop: do
+               ! Skip spurious boundary cases.
+               if (.not.present_and_true(interior) .or. all(&
+                    l(nodes)/=0 .and. l(nodes)/=ele_num%degree)) then
+                  cnt=cnt+1
+                
+                  edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3)+(k-1)*(ele_num%degree+1))
+               end if
+
+               ! Advance the index:
+               l(nodes)=l(nodes)+(/-1,1/)
+             
+               ! Check for completion
+               if (any(l<0)) exit ol_number_loop
+
+            end do ol_number_loop
+         end do
+
+      case default
+          FLAbort("Unknown element family.")
+      end select
+
    case default
       FLAbort("Unknown element type")
    end select
@@ -2214,7 +2549,7 @@ contains
     integer :: i
 
     select case(ele_num%type)
-    case (ELEMENT_LAGRANGIAN)
+    case (ELEMENT_LAGRANGIAN,ELEMENT_OVERLAPPING)
 
        select case (ele_num%family)
        case (FAMILY_SIMPLEX)

@@ -685,7 +685,7 @@ contains
           rhs_local = 0.0
 
           ! loop over nodes within this element
-          do iloc = 1, tfield%mesh%shape%ndof
+          do iloc = 1, tfield%mesh%shape%loc
 
             ! loop over cv faces internal to this element
             do face = 1, cvfaces%faces

@@ -227,6 +227,11 @@ contains
                template_set=>interval_quads
                coords=2
                
+            case(6)
+               ! Overlapping element with quadratic pressure
+               template_set=>interval_quads
+               coords=2
+               
             case default
                FLAbort('Invalid quadrature')
             end select
@@ -242,6 +247,12 @@ contains
 
             template_set=>quad_quads
             coords=2
+            
+         case(18)
+            ! Overlapping triangular element with quadratic pressure
+            ewrite(0,*) 'Quadrature hack alert!'
+            template_set=>tri_quads
+            coords=3
             
          case default
             ! Sanity test
@@ -269,6 +280,12 @@ contains
 
             template_set=>hex_quads
             coords=3
+            
+         case(40)
+            ! Overlapping tet element with quadratic pressure
+            ewrite(0,*) 'Quadrature hack alert!'
+            template_set=>tet_quads
+            coords=4
 
          case default
             ! Sanity test

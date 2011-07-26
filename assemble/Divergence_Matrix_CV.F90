@@ -123,7 +123,7 @@ contains
       end if
 
       x=>extract_vector_field(state, "Coordinate")
-      allocate(x_ele(x%dim,x%mesh%shape%ndof))
+      allocate(x_ele(x%dim,x%mesh%shape%loc))
 
       call get_option("/geometry/quadrature/controlvolume_surface_degree", &
                      quaddegree, default=1)
@@ -150,7 +150,7 @@ contains
                 detwei(x_cvshape%ngi), &
                 normal(x%dim, x_cvshape%ngi), &
                 normgi(x%dim), &
-                ct_mat_local(x%dim, test_mesh%shape%ndof, field%mesh%shape%ndof))
+                ct_mat_local(x%dim, test_mesh%shape%loc, field%mesh%shape%loc))
   
         allocate(notvisited(x_cvshape%ngi))
 
@@ -167,7 +167,7 @@ contains
   
           ct_mat_local = 0.0
   
-          nodal_loop_i: do iloc = 1, test_mesh%shape%ndof
+          nodal_loop_i: do iloc = 1, test_mesh%shape%loc
   
             face_loop: do face = 1, cvfaces%faces
   
@@ -183,7 +183,7 @@ contains
   
                     normgi=orientate_cvsurf_normgi(node_val(x_test, x_test_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
   
-                    nodal_loop_j: do jloc = 1, field%mesh%shape%ndof
+                    nodal_loop_j: do jloc = 1, field%mesh%shape%loc
   
                       inner_dimension_loop: do dim = 1, size(normgi)
   
@@ -235,14 +235,14 @@ contains
                                                     "internal      ", &
                                                     "free_surface  "/), field_bc, field_bc_type)
   
-        allocate(x_ele_bdy(x%dim,x%mesh%faces%shape%ndof), &
+        allocate(x_ele_bdy(x%dim,x%mesh%faces%shape%loc), &
                 detwei_bdy(x_cvbdyshape%ngi), &
                 normal_bdy(x%dim, x_cvbdyshape%ngi), &
-                field_bc_val(field_bc%dim, field_bc%mesh%shape%ndof))
-        allocate(field_nodes_bdy(field%mesh%faces%shape%ndof))
-        allocate(test_nodes_bdy(test_mesh%faces%shape%ndof))
-        allocate(ct_mat_local_bdy(x%dim, test_mesh%faces%shape%ndof, field%mesh%faces%shape%ndof), &
-                ct_rhs_local(test_mesh%faces%shape%ndof))
+                field_bc_val(field_bc%dim, field_bc%mesh%shape%loc))
+        allocate(field_nodes_bdy(field%mesh%faces%shape%loc))
+        allocate(test_nodes_bdy(test_mesh%faces%shape%loc))
+        allocate(ct_mat_local_bdy(x%dim, test_mesh%faces%shape%loc, field%mesh%faces%shape%loc), &
+                ct_rhs_local(test_mesh%faces%shape%loc))
   
         surface_element_loop: do sele = 1, surface_element_count(test_mesh)
   
@@ -271,7 +271,7 @@ contains
           ct_mat_local_bdy = 0.0
           ct_rhs_local = 0.0
   
-          surface_nodal_loop_i: do iloc = 1, test_mesh%faces%shape%ndof
+          surface_nodal_loop_i: do iloc = 1, test_mesh%faces%shape%loc
   
             surface_face_loop: do face = 1, cvfaces%sfaces
               if(cvfaces%sneiloc(iloc,face)/=0) then
@@ -280,7 +280,7 @@ contains
   
                   ggi = (face-1)*cvfaces%shape%ngi + gi
   
-                  surface_nodal_loop_j: do jloc = 1, field%mesh%faces%shape%ndof
+                  surface_nodal_loop_j: do jloc = 1, field%mesh%faces%shape%loc
   
                     surface_inner_dimension_loop: do dim = 1, size(normal_bdy,1)
   
@@ -531,7 +531,7 @@ contains
                olddens_ele(ele_loc(p,1)), &
                norm_ele(ele_loc(normalisation,1)))
       allocate(notvisited(x_cvshape%ngi))
-      allocate(ctp_mat_local(x%dim, p%mesh%shape%ndof, u_cvshape%ndof))
+      allocate(ctp_mat_local(x%dim, p%mesh%shape%loc, u_cvshape%loc))
 
       element_loop: do ele=1, element_count(p)
         x_ele=ele_val(x, ele)
@@ -554,7 +554,7 @@ contains
 
         ctp_mat_local = 0.0
 
-        nodal_loop_i: do iloc = 1, p%mesh%shape%ndof
+        nodal_loop_i: do iloc = 1, p%mesh%shape%loc
 
           face_loop: do face = 1, cvfaces%faces
 
@@ -592,7 +592,7 @@ contains
                                            dens_ele, olddens_ele)
 
 
-                  nodal_loop_j: do jloc = 1, u_cvshape%ndof
+                  nodal_loop_j: do jloc = 1, u_cvshape%loc
 
                     face_value = u_cvshape%n(jloc, ggi)*detwei(ggi)*dens_theta_val
 
@@ -638,9 +638,9 @@ contains
                u_nodes_bdy(face_loc(u,1)), &
                p_nodes_bdy(face_loc(p,1)), &
                velocity_bc_type(u%dim, surface_element_count(u)), &
-               velocity_bc_val(u%dim, u%mesh%faces%shape%ndof))
-      allocate(ctp_mat_local_bdy(x%dim, p%mesh%faces%shape%ndof, u_cvbdyshape%ndof), &
-               ct_rhs_local(p%mesh%faces%shape%ndof))
+               velocity_bc_val(u%dim, u%mesh%faces%shape%loc))
+      allocate(ctp_mat_local_bdy(x%dim, p%mesh%faces%shape%loc, u_cvbdyshape%loc), &
+               ct_rhs_local(p%mesh%faces%shape%loc))
 
       call get_entire_boundary_condition(dens, &
                                          (/"weakdirichlet"/), &
@@ -692,7 +692,7 @@ contains
         ctp_mat_local_bdy = 0.0
         ct_rhs_local = 0.0
 
-        surface_nodal_loop_i: do iloc = 1, p%mesh%faces%shape%ndof
+        surface_nodal_loop_i: do iloc = 1, p%mesh%faces%shape%loc
 
           surface_face_loop: do face = 1, cvfaces%sfaces
 
@@ -713,7 +713,7 @@ contains
                 face_value = (income*ghost_dens_ele_bdy(iloc) + (1.-income)*dens_ele_bdy(iloc))/&
                               norm_ele_bdy(iloc)
 
-                surface_nodal_loop_j: do jloc = 1, u_cvbdyshape%ndof
+                surface_nodal_loop_j: do jloc = 1, u_cvbdyshape%loc
 
                   surface_inner_dimension_loop: do dim = 1, size(normal_bdy,1)
                   
@@ -926,7 +926,7 @@ contains
                oldmatdens_ele(ele_loc(p,1)), &
                norm_ele(ele_loc(x,1)))
       allocate(visited(x_cvshape%ngi))
-      allocate(ctp_mat_local(x%dim, p%mesh%shape%ndof, u_cvshape%ndof))
+      allocate(ctp_mat_local(x%dim, p%mesh%shape%loc, u_cvshape%loc))
 
       call allocate(summatvfrac_upwind, mesh_sparsity, name="SumMatVFracUpwindValues")
       call allocate(sumoldmatvfrac_upwind, mesh_sparsity, name="SumOldMatVFracUpwindValues")
@@ -1097,7 +1097,7 @@ contains
 
             ctp_mat_local = 0.0
 
-            do iloc = 1, p%mesh%shape%ndof
+            do iloc = 1, p%mesh%shape%loc
 
               do face = 1, cvfaces%faces
 
@@ -1169,7 +1169,7 @@ contains
                                                     matdens_ele, oldmatdens_ele)
 
 
-                      do jloc = 1, u_cvshape%ndof
+                      do jloc = 1, u_cvshape%loc
 
                         face_value = u_cvshape%n(jloc, ggi)*detwei(ggi)*matvfrac_theta_val*matdens_theta_val
 
@@ -1219,7 +1219,7 @@ contains
                     matdens_bc_type(surface_element_count(matdens)), &
                     nodes_bdy(face_loc(u,1)), &
                     velocity_bc_type(u%dim, surface_element_count(u)))
-          allocate(ctp_mat_local_bdy(x%dim, p%mesh%faces%shape%ndof, u_cvbdyshape%ndof))
+          allocate(ctp_mat_local_bdy(x%dim, p%mesh%faces%shape%loc, u_cvbdyshape%loc))
 
           if((.not.aliased(matvfrac)).and.(.not.have_option(trim(matvfrac%option_path)//"/diagnostic"))) then
             call get_entire_boundary_condition(matvfrac, (/"weakdirichlet"/), matvfrac_bc, matvfrac_bc_type)
@@ -1280,7 +1280,7 @@ contains
 
             ctp_mat_local_bdy = 0.0
 
-            do iloc = 1, p%mesh%faces%shape%ndof
+            do iloc = 1, p%mesh%faces%shape%loc
 
               do face = 1, cvfaces%sfaces
 
@@ -1302,7 +1302,7 @@ contains
                                   (income*ghost_matdens_ele_bdy(iloc) + (1.-income)*matdens_ele_bdy(iloc))/&
                                   norm_ele_bdy(iloc)
 
-                    do jloc = 1, u_cvbdyshape%ndof
+                    do jloc = 1, u_cvbdyshape%loc
 
                       do dim = 1, size(normal_bdy,1)
 

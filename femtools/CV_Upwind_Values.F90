@@ -306,7 +306,7 @@ contains
 
                 allocate(upwind_quadrature)
                 call allocate(upwind_quadrature, upwind_values%sparsity, &
-                            (/1, field%mesh%shape%ndof/), &
+                            (/1, field%mesh%shape%loc/), &
                             name=trim(matrix_prefix)//trim(field%mesh%name)//"CVUpwindQuadrature")
 
                 call calculate_upwind_quadrature_project(x,x_field,upwind_elements, &
@@ -352,7 +352,7 @@ contains
 
                 allocate(upwind_quadrature)
                 call allocate(upwind_quadrature, upwind_values%sparsity, &
-                            (/1, field%mesh%shape%ndof/), &
+                            (/1, field%mesh%shape%loc/), &
                             name=trim(matrix_prefix)//trim(field%mesh%name)//"CVUpwindQuadrature")
 
                 call calculate_all_upwind_project(x, x_field, upwind_elements=upwind_elements, &
@@ -518,20 +518,20 @@ contains
     real, dimension(mesh_dim(field)) :: xc, xc_vector
     ! element node coordinates
     ! we only consider the vertices coordinates if higher order
-    real, dimension(mesh_dim(x), x%mesh%shape%cell%entity_counts(0)) :: x_ele
-    integer, dimension(x%mesh%shape%cell%entity_counts(0)):: vertices
+    real, dimension(mesh_dim(x), x%mesh%shape%numbering%vertices) :: x_ele
+    integer, dimension(x%mesh%shape%numbering%vertices):: vertices
     integer, dimension(:), pointer :: x_nodes
     real, dimension(mesh_dim(x_field), ele_loc(x_field, 1)) :: x_field_ele
     ! simplex volume coordinates
     real, dimension(field%mesh%shape%quadrature%vertices) :: coords, l_coords
     ! element field node values
-    real, dimension(field%mesh%shape%ndof) :: field_ele
+    real, dimension(field%mesh%shape%loc) :: field_ele
     ! the global node numbers of an element
     integer, dimension(:), pointer :: field_nodes
     ! the upwind value
     real :: upwind_value
 
-    real, dimension(field%mesh%shape%ndof) :: l_shape
+    real, dimension(field%mesh%shape%loc) :: l_shape
 
     ! a vector field of normals if we're reflecting
     type(vector_field) :: normals
@@ -738,16 +738,16 @@ contains
     ! the coordinates of a pt just upwind of the node pair
     real, dimension(x%dim) :: xc, xc_vector
     ! we only consider the vertices coordinates if higher order
-    real, dimension(mesh_dim(x), x%mesh%shape%cell%entity_counts(0)) :: x_ele
-    integer, dimension(x%mesh%shape%cell%entity_counts(0)):: vertices
+    real, dimension(mesh_dim(x), x%mesh%shape%numbering%vertices) :: x_ele
+    integer, dimension(x%mesh%shape%numbering%vertices):: vertices
     integer, dimension(:), pointer :: x_nodes
     real, dimension(x_field%dim, ele_loc(x_field, 1)) :: x_field_ele
     real, dimension(field%mesh%shape%quadrature%vertices) :: l_coords
-    real, dimension(field%mesh%shape%ndof) :: field_ele
+    real, dimension(field%mesh%shape%loc) :: field_ele
     integer, dimension(:), pointer :: field_nodes
     real :: upwind_value
 
-    real, dimension(field%mesh%shape%ndof) :: l_shape
+    real, dimension(field%mesh%shape%loc) :: l_shape
 
     type(vector_field) :: normals
     logical, dimension(:), allocatable :: on_boundary
@@ -908,8 +908,8 @@ contains
 
       integer :: i, j, k, l_ele, local_coord, i_field
       integer, dimension(:), pointer :: nodes
-      real, dimension(field%mesh%shape%ndof) :: field_ele
-      real, dimension(field%mesh%shape%ndof) :: l_shape
+      real, dimension(field%mesh%shape%loc) :: field_ele
+      real, dimension(field%mesh%shape%loc) :: l_shape
       real :: upwind_value
 
       integer :: save_pos=0 ! saves the position in the matrix for optimisation
@@ -1003,14 +1003,14 @@ contains
     real, dimension(x%dim) :: grad_c, old_grad_c
     ! element node coordinates
     ! we only consider the vertices coordinates if higher order
-    real, dimension(mesh_dim(x), x%mesh%shape%cell%entity_counts(0)) :: x_ele
-    integer, dimension(x%mesh%shape%cell%entity_counts(0)):: vertices
+    real, dimension(mesh_dim(x), x%mesh%shape%numbering%vertices) :: x_ele
+    integer, dimension(x%mesh%shape%numbering%vertices):: vertices
     integer, dimension(:), pointer :: x_nodes
     real, dimension(x_field%dim, ele_loc(x_field, 1)) :: x_field_ele
     ! simplex volume coordinates
-    real, dimension(x%mesh%shape%ndof) :: coords, l_coords
+    real, dimension(x%mesh%shape%loc) :: coords, l_coords
     ! element field node values
-    real, dimension(field%mesh%shape%ndof) :: field_ele
+    real, dimension(field%mesh%shape%loc) :: field_ele
     ! the upwind value
     real :: upwind_value, old_upwind_value
 
@@ -1246,7 +1246,7 @@ contains
     ! the gradients of the field and old_field at the donor node
     real, dimension(x%dim) :: grad_c, old_grad_c
     ! element field node values
-    real, dimension(field%mesh%shape%ndof) :: field_ele
+    real, dimension(field%mesh%shape%loc) :: field_ele
     ! the upwind value
     real :: upwind_value, old_upwind_value
 

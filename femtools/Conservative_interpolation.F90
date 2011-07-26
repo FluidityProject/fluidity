@@ -124,7 +124,7 @@ module conservative_interpolation_module
     do mesh = 1, mesh_count
       if(field_counts(mesh)>0) then
         B_shape => ele_shape(new_fields(mesh,1),1)
-        nloc = B_shape%ndof
+        nloc = B_shape%loc
         little_mass_matrix(mesh, :nloc, :nloc) = shape_shape(B_shape, B_shape, detwei_B)
       end if
     end do
@@ -195,7 +195,7 @@ module conservative_interpolation_module
         do mesh = 1, mesh_count
           if(field_counts(mesh)>0) then
             B_shape => ele_shape(new_fields(mesh,1),1)
-            nloc = B_shape%ndof
+            nloc = B_shape%loc
             ! This is an inlined eval_shape, optimised for P0 and P1
             ! Evaluate the basis functions at the local coordinates
             basis_at_quad_A = 0.0

@@ -1088,7 +1088,7 @@ module zoltan_integration
     ! For mixed meshes, this should be the loc of the positions mesh
     ! note we know the universal number -- fetch(zoltan_global_new_elements, i)
     ! However, it's constant for now
-    expected_loc = zoltan_global_zz_mesh%shape%ndof
+    expected_loc = zoltan_global_zz_mesh%shape%loc
     
     ! First, count how many we have
     do i=1,key_count(zoltan_global_new_elements)
