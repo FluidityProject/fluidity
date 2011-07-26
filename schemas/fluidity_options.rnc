@@ -2376,7 +2376,7 @@ geometry =
       }
    )
 
-lagrangian_timestepping =
+lagrangian_timestepping = 
    (
       element lagrangian_timestepping {
          ## Number of subdivisions of the timestep
@@ -2432,6 +2432,11 @@ lagrangian_timestepping =
             ## Use explicit Forward Euler method with
             ## guided search particle tracking
             element forward_euler_guided_search {
+               empty
+            }|
+            ## Use classical Runge-Kutta method with
+            ## guided search particle tracking
+            element rk4_guided_search {
                empty
             }
          ),

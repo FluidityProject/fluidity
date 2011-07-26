@@ -3340,6 +3340,11 @@ For the RK4 method, it should be
 guided search particle tracking</a:documentation>
           <empty/>
         </element>
+        <element name="rk4_guided_search">
+          <a:documentation>Use classical Runge-Kutta method with
+guided search particle tracking</a:documentation>
+          <empty/>
+        </element>
       </choice>
       <choice>
         <element name="turn_static_on_boundary">

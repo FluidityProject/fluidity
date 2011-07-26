@@ -99,8 +99,14 @@ contains
   end function get_num_detector_lists
 
   subroutine deallocate_detector_list_array()
+    type(detector_list_ptr), dimension(:), pointer :: detector_lists
+    integer :: i
 
     if (allocated(detector_list_array)) then 
+       call get_registered_detector_lists(detector_lists)
+       do i=1, get_num_detector_lists()
+          call deallocate(detector_lists(i)%ptr)
+       end do
        deallocate(detector_list_array)
        num_detector_lists = 0
     end if
