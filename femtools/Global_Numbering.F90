@@ -660,9 +660,9 @@ contains
 
        entity_receive_level=maxval(vertex_receive_level(vertices))
 
-    else if (all(key_count(&
+    else if (any(key_count(&
          pack(vertex_send_targets(vertices,:),mask=.true.))>0)) then
-       ! It's ours and there's something to send.
+       ! It's ours and there might be something to send.
 
        do halo = 1, size(entity_send_targets) 
           call set_intersection(entity_send_targets(halo),&
