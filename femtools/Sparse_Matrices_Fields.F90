@@ -46,6 +46,10 @@ implicit none
      module procedure csr_mult_T_scalar, csr_mult_T_vector_scalar, csr_mult_T_vector_vector
   end interface
 
+  interface mult_T_addto
+     module procedure csr_mult_T_addto_scalar
+  end interface
+
   interface mult_diag
      module procedure csr_diag_mult_scalar, csr_diag_mult_scalar_v
   end interface
@@ -494,6 +498,25 @@ contains
     end select
     
   end subroutine csr_mult_T_scalar
+
+  subroutine csr_mult_T_addto_scalar(x, A, b)
+    !!< Calculate x=A^T*b
+    type(scalar_field), intent(inout) :: x
+    type(csr_matrix), intent(in) :: A
+    type(scalar_field), intent(in) :: b
+    real, dimension(:), allocatable :: tmp
+
+    select case(b%field_type)
+    case(FIELD_TYPE_NORMAL)
+      call mult_T_addto(x%val, A, b%val)
+    case(FIELD_TYPE_CONSTANT)
+      allocate(tmp(size(x%val)))
+      tmp=b%val(1)
+      call mult_T_addto(x%val, A, tmp)
+      deallocate(tmp)
+    end select
+
+  end subroutine csr_mult_T_addto_scalar
 
   subroutine csr_mult_T_vector_scalar(x, A, b)
     !!< Calculate x=A^T*b Where b is a scalar field, A is a 1*dim block
