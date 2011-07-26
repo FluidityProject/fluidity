@@ -14,11 +14,8 @@ def vel(x,y):
 while(t<tmax):
     t = t + dt
     [k1_x,k1_y] = vel(x,y)
-    [k2_x,k2_y] = vel(x+0.5*dt*k1_x,y+0.5*dt*k1_y)
-    [k3_x,k3_y] = vel(x+0.5*dt*k2_x,y+0.5*dt*k2_y)
-    [k4_x,k4_y] = vel(x+dt*k3_x,y+dt*k3_y)
-    x = x + dt*(k1_x/6.+k2_x/3. + k3_x/3. + k4_x/6.)
-    y = y + dt*(k1_y/6.+k2_y/3. + k3_y/3. + k4_y/6.)
+    x = x + dt*(k1_x)
+    y = y + dt*(k1_y)
 
 plot(x,y,'.')
 show()

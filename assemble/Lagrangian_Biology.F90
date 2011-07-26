@@ -189,7 +189,6 @@ contains
           end if
        end if
     end do
-    deallocate(agent_arrays)
 
   end subroutine lagrangian_biology_cleanup
 

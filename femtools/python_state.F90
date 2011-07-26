@@ -90,16 +90,17 @@ module python_state
     end subroutine python_run_string_keep_locals_c
 
     !! Evaluate the detector val() function from a local namespace in the global dictionary
-    !! Interface: val(ele, local_coords), where
+    !! Interface: val(ele, local_coords, dt), where
     !! ele: elelement number, integer, 
     !! local_coords: vector of size dim
+    !! dt: timestep of the subcycle; val function needs to scale by this
     !! Not wrapped, since this will be called a lot
     subroutine python_run_detector_val(ele, dim, lcoords, dt, dict, dictlen, key, keylen, &
            value, stat) bind(c, name='python_run_detector_val_from_locals_c')
       use :: iso_c_binding
       implicit none
       integer(c_int), intent(in), value :: ele, dim
-      real(c_double), dimension(dim), intent(in) :: lcoords
+      real(c_double), dimension(dim+1), intent(in) :: lcoords
       real(c_double), intent(in) :: dt
       integer(c_int), intent(in), value :: dictlen, keylen
       character(kind=c_char), dimension(dictlen), intent(in) :: dict
