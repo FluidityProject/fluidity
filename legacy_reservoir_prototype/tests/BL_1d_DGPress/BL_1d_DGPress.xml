@@ -5,7 +5,7 @@
   <name>BL_1d_DGPress</name>
   <owner userid="btollit"/>
   <tags>mpml</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>
 ../../../bin/multiphase_prototype BL_1d_DGPress_A.mpml
 
@@ -24,38 +24,53 @@ mv *.d.* BL_1d_DGPress_B_output
 
 rm -f BL_1d_DGPress_B.mpml
     </command_line>
-    <!-- One dimensional BL problem using discontinous pressure for different mesh resolutions checking against an interpolated analytic solution (at 500 points with cubic interpolation) of the first phase saturation -->
+    <!-- One dimensional BL problem using discontinous pressure for different mesh resolutions checking against an interpolated analytic solution (at 500 points with cubic interpolation) of the first phase saturation, as well as a regression check of the projectd to P1CG first phase saturation to previous run -->
   </problem_definition>
   <variables>
-    <variable name="error_max_A" language="python">
+    <variable name="analytic_error_max_A" language="python">
 from fluidity_tools import stat_parser as stat
-error_max_A = stat("BL_1d_DGPress_A.stat")["phase1"]["Error"]["max"][-1]
+analytic_error_max_A = stat("BL_1d_DGPress_A.stat")["phase1"]["AnalyticError"]["max"][-1]
     </variable>
-    <variable name="error_l2norm_A" language="python">
+    <variable name="analytic_error_l2norm_A" language="python">
 from fluidity_tools import stat_parser as stat
-error_l2norm_A = stat("BL_1d_DGPress_A.stat")["phase1"]["Error"]["l2norm"][-1]
+analytic_error_l2norm_A = stat("BL_1d_DGPress_A.stat")["phase1"]["AnalyticError"]["l2norm"][-1]
     </variable>
-    <variable name="error_max_B" language="python">
+    <variable name="analytic_error_max_B" language="python">
 from fluidity_tools import stat_parser as stat
-error_max_B = stat("BL_1d_DGPress_B.stat")["phase1"]["Error"]["max"][-1]
+analytic_error_max_B = stat("BL_1d_DGPress_B.stat")["phase1"]["AnalyticError"]["max"][-1]
     </variable>
-    <variable name="error_l2norm_B" language="python">
+    <variable name="analytic_error_l2norm_B" language="python">
 from fluidity_tools import stat_parser as stat
-error_l2norm_B = stat("BL_1d_DGPress_B.stat")["phase1"]["Error"]["l2norm"][-1]
+analytic_error_l2norm_B = stat("BL_1d_DGPress_B.stat")["phase1"]["AnalyticError"]["l2norm"][-1]
     </variable>
+    <variable name="regression_difference_max_A" language="python">
+from fluidity_tools import stat_parser as stat
+regression_difference_max_A = stat("BL_1d_DGPress_A.stat")["phase1"]["RegressionDifference"]["max"][-1]
+    </variable>
+    <variable name="regression_difference_max_B" language="python">
+from fluidity_tools import stat_parser as stat
+regression_difference_max_B = stat("BL_1d_DGPress_B.stat")["phase1"]["RegressionDifference"]["max"][-1]
+    </variable>
+
   </variables>
   <pass_tests>
-    <test name="Assert max absolute error for mesh A is less than 1.0e-01" language="python">
-assert(abs(error_max_A) &lt; 1.0e-01)
+    <test name="Assert max absolute analytic_error for mesh A is less than 9.7e-02" language="python">
+assert(abs(analytic_error_max_A) &lt; 9.7e-02)
     </test>
-    <test name="Assert l2norm absolute error for mesh A is less than 4.4e-02" language="python">
-assert(abs(error_l2norm_A) &lt; 4.4e-02)
+    <test name="Assert l2norm absolute analytic_error for mesh A is less than 3.6e-02" language="python">
+assert(abs(analytic_error_l2norm_A) &lt; 3.6e-02)
     </test>
-    <test name="Assert max absolute error for mesh B is less than 9.0e-02" language="python">
-assert(abs(error_max_B) &lt; 9.0e-02)
+    <test name="Assert max absolute analytic_error for mesh B is less than 9.6e-02" language="python">
+assert(abs(analytic_error_max_B) &lt; 9.6e-02)
     </test>
-    <test name="Assert l2norm absolute error for mesh B is less than 3.2e-02" language="python">
-assert(abs(error_l2norm_B) &lt; 3.2e-02)
+    <test name="Assert l2norm absolute analytic_error for mesh B is less than 3.9e-02" language="python">
+assert(abs(analytic_error_l2norm_B) &lt; 3.9e-02)
+    </test>
+    <test name="Assert max absolute regression difference for mesh A is less than 1.0e-10" language="python">
+assert(abs(regression_difference_max_A) &lt; 1.0e-10)
+    </test>
+    <test name="Assert max absolute regression difference for mesh B is less than 1.0e-10" language="python">
+assert(abs(regression_difference_max_B) &lt; 1.0e-10)
     </test>
   </pass_tests>
   <warn_tests>

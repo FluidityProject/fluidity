@@ -91,8 +91,9 @@ contains
        mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
        mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
        ncolm, findm, colm, midm, & ! CV-FEM matrix
-       mxnele, ncolele, finele, colele ) ! Element connectivity 
-
+       mxnele, ncolele, finele, colele, & ! Element connectivity 
+       option_path)
+       
     implicit none
     
     !! New variable declaration
@@ -156,7 +157,8 @@ contains
     integer, intent ( in ) :: mxnele, ncolele
     integer, dimension( totele + 1 ), intent (in ) :: finele
     integer, dimension( mxnele ), intent (in ) :: colele
-
+    character(len=*), intent(in), optional :: option_path
+    
     ! Local variables
     real :: acctim, xacc
     integer :: its, itime, ele, iloc, x_nod, cv_nod
@@ -168,6 +170,7 @@ contains
     INTEGER :: IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA
     
     logical :: do_fluidity_advection
+    real :: finish_time
 
     IGOT_T2 = 0
     IGOT_THETA_FLUX = 0 
@@ -181,12 +184,20 @@ contains
 
     call get_option("/timestepping/current_time", acctim)
     call get_option("/timestepping/timestep", dt)
+    call get_option("/timestepping/finish_time", finish_time)
     
     ewrite(3,*) 'In solve_multiphase_field_advection'
-
-    Loop_Time: do itime = 1, ntime
-
+    
+    itime = 0
+    
+    Loop_Time: do 
+       
+       itime = itime + 1
+       
        acctim = acctim + dt
+       
+       if (acctim > finish_time) exit Loop_Time 
+       
        told = t
 
        Loop_Non_Linear_Iterations: do its = 1, nits
@@ -233,7 +244,8 @@ contains
                SUF_T_BC, SUF_T_BC_ROB1, SUF_T_BC_ROB2, WIC_T_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
                T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
-               MEAN_PORE_CV )
+               MEAN_PORE_CV, &
+               option_path = trim(option_path) )
           endif
 
        end do Loop_Non_Linear_Iterations

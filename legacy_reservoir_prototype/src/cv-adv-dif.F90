@@ -29,6 +29,8 @@
 module cv_advection
 
   use fldebug
+  
+  use solvers_module
 
 contains
 
@@ -1645,8 +1647,6 @@ contains
        END DO Loop_CV_ILOC
 
     END DO Loop_Elements
-    !    ewrite(3,*)'before solving for averages' 
-    !   ewrite(3,*)'psi_int: ',psi_int
 
     ! Form average...
     DO CV_NODI=1,CV_NONODS
@@ -1655,15 +1655,17 @@ contains
                * CV_NONODS ) / MASS_CV( CV_NODI )
        END DO
     END DO
-    !    ewrite(3,*)'psi_ave: ',PSI_AVE
-
+    
+    !!! --- HACK THE SOLVER OPTIONS TO BE THE SAME AS THAT OF PRESSURE --- !!!
+    
     ! Solve...
     DO IT = 1, NTSOL
-       CALL SOLVER( MAT,  FEMPSI( 1 + (IT - 1 ) * CV_NONODS ),  FEMPSI_RHS( 1 + ( IT - 1 ) * CV_NONODS ),  &
-            NCOLM, CV_NONODS, FINDM, COLM, MIDM,   &
-            MASS_ERROR_RELAX2_NOIT(1), MASS_ERROR_RELAX2_NOIT(2), MASS_ERROR_RELAX2_NOIT(3), &
-            MASS_ERROR_RELAX2_NOIT(4), INT(MASS_ERROR_RELAX2_NOIT(5)+0.1) )
-       !            1.0, 0.0, 1.0, 200 )
+       CALL SOLVER( MAT,  &
+                    FEMPSI( 1 + (IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
+                    FEMPSI_RHS( 1 + ( IT - 1 ) * CV_NONODS : CV_NONODS + (IT - 1 ) * CV_NONODS ),  &
+                    FINDM, &
+                    COLM, &
+                    option_path = '/material_phase[0]/scalar_field::Pressure' )
     END DO
 
     DEALLOCATE( MASS_CV )

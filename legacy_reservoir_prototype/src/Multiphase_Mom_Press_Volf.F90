@@ -32,7 +32,6 @@ module multiphase_mom_press_volf
   use spact
   use multiphase_1D_engine
   use multiphase_EOS
-  use solvers_module
   use matrix_operations
   use shape_functions
   use printout
@@ -259,7 +258,9 @@ contains
          sum_theta_flux, sum_one_m_theta_flux
     integer :: igot_t2, igot_theta_flux
     integer :: scvngi_theta, cv_ngi, cv_ngi_short, sbcvngi, nface, cv_nodi, IPLIKE_GRAD_SOU
-
+    
+    real :: finish_time
+    integer :: dump_period_in_timesteps
 
     character( len = 500 ) :: dummy_string_phase, dummy_string_dump, dummy_string_comp, dump_name, file_format
     integer :: output_channel
@@ -304,24 +305,25 @@ contains
 
     compold = comp
 
-    !             ewrite(3,*)'satura:',satura
-    !      stop 383
-
     DX = DOMAIN_LENGTH / REAL(TOTELE)
-
-    !       print *,'NTIME, ITIME: ',NTIME, ITIME
 
     call get_option("/timestepping/current_time", acctim)
     call get_option("/timestepping/timestep", dt)
-    call get_option('/io/max_dump_file_count', ntime, default=160)
+    call get_option("/timestepping/finish_time", finish_time)
+    call get_option("/io/dump_period_in_timesteps/constant", dump_period_in_timesteps, default=1)
+
     nstates = option_count("/material_phase")
     
-
-    Loop_Time: DO ITIME = 1, NTIME
-
-       !          print *,'NITS, ITS: ',NITS, ITS
-
+    itime = 0
+    
+    Loop_Time: DO 
+       
+       itime = itime + 1
+       
        ACCTIM = ACCTIM + DT
+       
+       if (ACCTIM > finish_time) exit Loop_Time
+       
        UOLD = U
        NU = U
        NUOLD = U
@@ -350,7 +352,7 @@ contains
 
           V_SOURCE_STORE = V_SOURCE + V_SOURCE_COMP 
 
-          ewrite(3,*)'ITIME,NTIME,ITS,NITS:',ITIME,NTIME,ITS,NITS
+          ewrite(3,*)'ITIME,ITS,NITS:',ITIME,ITS,NITS
 
           ewrite(3,*)'satura:',satura
           ewrite(3,*)'saturaold:',saturaold
@@ -437,7 +439,8 @@ contains
                SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
                IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
-               SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_VOLFRA )
+               SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_VOLFRA, &
+               option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
 
 
           SUM_THETA_FLUX = 0.0
@@ -535,7 +538,8 @@ contains
                      SUF_VOL_BC, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, WIC_VOL_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                      NOIT_DIM, &
                      T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
-                     MEAN_PORE_CV )
+                     MEAN_PORE_CV, &
+                     option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
 
                 do iphase = 1, nphase
                    ewrite(3,*) 'comp:', icomp, iphase, comp(( ICOMP - 1 ) * NPHASE * CV_NONODS + (iphase - 1) * cv_nonods + 1 )
@@ -566,12 +570,11 @@ contains
                   MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
           ENDIF
 
-          ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME,NTIME:',ITS,nits,ITIME,NTIME
+          ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME:',ITS,nits,ITIME
 
        END DO Loop_ITS
 
-       Conditional_TIMDUMP: if( ( mod( itime, ntime_dump ) == 0 ) .or. ( itime == 1 ) .or. &
-            ( itime == ntime )) then
+       Conditional_TIMDUMP: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
 
           ! output the saturation, density and velocity for each phase
           Phase_output_loop: do iphase = 1,nphase

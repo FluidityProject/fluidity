@@ -823,6 +823,9 @@ module mp_prototype
 
       Case( : 0 ) ; ! CV-Adv test case: -2( Cty ), -1( DG ), 0( Std )
 
+         ! THIS CALL IS HARD WIRED TO EXPECT SPUD OPTION SOVLERS FROM
+         ! '/material_phase[0]/scalar_field::Temperature' 
+         ! SO THIS FIELD HAD BETTER EXIST WITHIN THE SIMULATION
          call solve_multiphase_field_advection( state, problem, nphase, ncomp, totele, ndim, &
               u_nloc, xu_nloc, cv_nloc, x_nloc, mat_nloc, &
               cv_snloc, u_snloc, stotel, &
@@ -864,7 +867,8 @@ module mp_prototype
               mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
               mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
               ncolm, findm, colm, midm, & ! CV-FEM matrix
-              mxnele, ncolele, finele, colele ) ! Element connectivity 
+              mxnele, ncolele, finele, colele, &  ! Element connectivity 
+              option_path = '/material_phase[0]/scalar_field::Temperature')
 
       Case( 1,2 ); 
 
