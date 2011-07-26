@@ -511,18 +511,31 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0e-8</real_value>
-          </constant>
+          <python>
+            <string_value type="python" lines="20">def val(X,t):
+  import random
+  random.seed()
+  if(X[1] &gt;= 0.7):
+    return 1.0e-8 + random.uniform(0.0, 1.0e-7)
+  else:
+    return 1.0e-8</string_value>
+          </python>
         </initial_condition>
         <boundary_conditions name="Top">
           <surface_ids>
             <integer_value shape="1" rank="1">333</integer_value>
           </surface_ids>
           <type name="influx">
-            <constant>
-              <real_value rank="0">2.01804273504e-7</real_value>
-            </constant>
+            <python>
+              <string_value type="python" lines="20">def val(X,t):
+  import random
+  random.seed()
+  if(X[1] &gt;= 0.7):
+    return 2.01804273504e-7 + random.uniform(0.0, 1.0e-7)
+  else:
+    return 2.01804273504e-7</string_value>
+            </python>
+            <python/>
           </type>
         </boundary_conditions>
         <boundary_conditions name="Bottom">
