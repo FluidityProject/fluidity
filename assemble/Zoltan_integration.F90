@@ -1590,7 +1590,7 @@ module zoltan_integration
        ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
        detector => detector_list%first
-       do i=1, detector_list%length
+       do while (associated(detector))
 
           old_local_element_number = detector%element
 
@@ -1631,9 +1631,9 @@ module zoltan_integration
 
     ! Check whether we have to perform broadcast, if not return
     do_broadcast=.false.
-    do i=1, size(ndets_being_sent)
-       do_broadcast=do_broadcast .or. ndets_being_sent(i)>0
-    end do
+    if (any(ndets_being_sent > 0)) then
+       do_broadcast=.true.
+    end if
     if (.not. do_broadcast) return
     ewrite(2,*) "Broadcast required, initialising..."
 

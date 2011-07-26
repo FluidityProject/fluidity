@@ -321,7 +321,7 @@ contains
     
     type(rk_gs_parameters), pointer :: parameters
     type(detector_type), pointer :: det0
-    integer :: det_count,j0
+    integer :: j0
     real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
 
     parameters => detector_list%move_parameters
@@ -387,7 +387,7 @@ contains
 
     !Loop over all the detectors
     det0 => detector_list%first
-    do det_count=1, detector_list%length
+    do while (associated(det0))
 
        !Only move Lagrangian detectors
        if (det0%type==LAGRANGIAN_DETECTOR.and..not.det0%search_complete) then

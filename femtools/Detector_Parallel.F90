@@ -122,7 +122,7 @@ contains
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(detector_type), pointer :: detector, node_to_send
     type(vector_field), pointer :: xfield
-    integer :: i, k, nprocs, all_send_lists_empty, processor_owner
+    integer :: k, nprocs, all_send_lists_empty, processor_owner
 
     ewrite(2,*) "In distribute_detectors"  
 
@@ -133,7 +133,7 @@ contains
     allocate(send_list_array(nprocs))
 
     detector => detector_list%first
-    do i = 1, detector_list%length
+    do while (associated(detector))
        assert(detector%element>0)
        processor_owner=element_owner(xfield%mesh,detector%element)
 
@@ -166,7 +166,7 @@ contains
     deallocate(send_list_array)
 
     detector => detector_list%first
-    do i = 1, detector_list%length
+    do while (associated(detector))
        assert(element_owner(xfield%mesh,detector%element)==getprocno())
        detector=>detector%next
     end do
@@ -231,7 +231,8 @@ contains
 
        detector => send_list_array(target_proc)%first
        if (ndet_to_send>0) then
-          do j=1, send_list_array(target_proc)%length
+          j=1
+          do while (associated(detector))
 
              ! translate detector element to universal element
              assert(detector%element>0)
@@ -245,6 +246,7 @@ contains
 
              ! delete also advances detector
              call delete(detector, send_list_array(target_proc))
+             j = j+1
           end do
        end if
 
