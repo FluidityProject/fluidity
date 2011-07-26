@@ -151,13 +151,15 @@ void python_run_string_keep_locals_c(char *str, int strlen,
   }
 
   Py_DECREF(pCode);
+  Py_DECREF(pLocals);
   free(c); 
   free(local_dict);
   free(local_key);
 #endif
 }
 
-void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
+void python_run_detector_val_from_locals_c(int ele, int dim, 
+                                           double lcoords[], double *dt,
                                            char *dict, int dictlen, 
                                            char *key, int keylen,
                                            double value[], int *stat){
@@ -187,16 +189,20 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
   int i;
   PyObject *pLCoords = PyTuple_New(dim+1);
   for(i=0; i<dim+1; i++){
-    PyTuple_SetItem(pLCoords, i, PyFloat_FromDouble(lcoords[i]));
+    PyTuple_SET_ITEM(pLCoords, i, PyFloat_FromDouble(lcoords[i]));
   }
 
+  // Create dt argument
+  PyObject *pDt = PyFloat_FromDouble(*dt);
+
   // Create argument array
-  PyObject **pArgs= malloc(sizeof(PyObject*)*2);
+  PyObject **pArgs= malloc(sizeof(PyObject*)*3);
   pArgs[0] = pEle;
-  pArgs[1] = pLCoords;  
+  pArgs[1] = pLCoords;
+  pArgs[2] = pDt;
 
   // Run val(ele, local_coords)
-  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 2, NULL, 0, NULL, 0, NULL);
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 3, NULL, 0, NULL, 0, NULL);
  
   // Check for Python errors
   *stat=0;
@@ -207,13 +213,18 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[],
   }
 
   // Convert the python result
+  PyObject *result_ref;
   for(i=0; i<dim; i++){
-    value[i] = PyFloat_AsDouble( PySequence_GetItem(pResult, i) );
+    // GetItem returns a new reference that needs a DECREF
+    result_ref = PySequence_GetItem(pResult, i);
+    value[i] = PyFloat_AsDouble( result_ref );
+    Py_DECREF(result_ref);
   }
 
-  Py_DECREF(pFuncCode);
-  Py_DECREF(pLCoords);
   Py_DECREF(pEle);
+  Py_DECREF(pDt);
+  Py_DECREF(pLCoords);
+  Py_DECREF(pFuncCode);
   Py_DECREF(pResult);
   free(pArgs);
   free(local_dict);

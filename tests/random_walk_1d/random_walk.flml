@@ -52,7 +52,8 @@
       <real_value rank="0">6.0</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">21600</real_value>
+      <real_value rank="0">3600</real_value>
+      <comment>21600 - 6h</comment>
     </finish_time>
   </timestepping>
   <material_phase name="Water">
@@ -138,12 +139,12 @@ from math import sqrt
 
 diffusivity = state.scalar_fields['Diffusivity']
 
-def val(ele, local_coord):
+def val(ele, local_coord, dt):
   # Eq. 2 from Visser, 1997:
   # z(n+1) = z(n) + R(2 r^-1 K dt)^-1/2, where r = 1/3
   rnd = random.uniform(-1.,1.,1)
   K = diffusivity.eval_field(ele, local_coord)
-  return [rnd * sqrt(6*K)]</string_value>
+  return [rnd * sqrt(6*K*dt)]</string_value>
             </python>
             <random_seed>
               <integer_value rank="0">113165</integer_value>
@@ -174,18 +175,19 @@ diffusivity = state.scalar_fields['Diffusivity']
 diffusivity_grad = state.vector_fields['Diffusivity_grad']
 coordinate = state.vector_fields['Coordinate']
 
-def val(ele, local_coord):
+def val(ele, local_coord, dt):
   rnd = random.uniform(-1.,1.,1)
   K_grad = diffusivity_grad.eval_field(ele, local_coord)
   
-  position = coordinate.eval_field(ele, local_coord + 0.5*K_grad)
+  position = coordinate.eval_field(ele, local_coord)
+  position = position  + 0.5*dt*K_grad
   lcoord = coordinate.local_coords(ele, position)
   #print "ml805: " + str(lcoord) + " local_coord: " + str(local_coord)
   
   # evaluate diffusivity at an offset (lcoord) to the original position
   K = diffusivity.eval_field(ele, lcoord)
 
-  return [K_grad + rnd * sqrt(6*K)]</string_value>
+  return [K_grad*dt + (rnd * sqrt(6*K*dt))]</string_value>
             </python>
             <random_seed>
               <integer_value rank="0">113165</integer_value>

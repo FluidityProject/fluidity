@@ -94,12 +94,13 @@ module python_state
     !! ele: elelement number, integer, 
     !! local_coords: vector of size dim
     !! Not wrapped, since this will be called a lot
-    subroutine python_run_detector_val(ele, dim, lcoords, dict, dictlen, key, keylen, &
+    subroutine python_run_detector_val(ele, dim, lcoords, dt, dict, dictlen, key, keylen, &
            value, stat) bind(c, name='python_run_detector_val_from_locals_c')
       use :: iso_c_binding
       implicit none
       integer(c_int), intent(in), value :: ele, dim
       real(c_double), dimension(dim), intent(in) :: lcoords
+      real(c_double), intent(in) :: dt
       integer(c_int), intent(in), value :: dictlen, keylen
       character(kind=c_char), dimension(dictlen), intent(in) :: dict
       character(kind=c_char), dimension(keylen), intent(in) :: key
@@ -610,10 +611,11 @@ module python_state
     
   end subroutine python_run_detector_string
 
-  subroutine python_run_detector_val_function(detector, xfield, dict, key, value, stat)
+  subroutine python_run_detector_val_function(detector, xfield, dt, dict, key, value, stat)
     !!< Wrapper function for python_run_string_keep_locals_c
     type(detector_type), pointer, intent(in) :: detector
     type(vector_field), pointer, intent(in) :: xfield
+    real, intent(in) :: dt
     character(len = *), intent(in) :: dict, key
     real, dimension(size(detector%position)), intent(out) :: value
     integer, optional, intent(out) :: stat
@@ -625,7 +627,7 @@ module python_state
 
     stage_local_coords=local_coords(xfield,detector%element,detector%update_vector)
     call python_run_detector_val(detector%element, size(detector%position), &
-            stage_local_coords, dict, len_trim(dict), key,len_trim(key), value, lstat) 
+            stage_local_coords, dt, dict, len_trim(dict), key,len_trim(key), value, lstat) 
 
     if(lstat /= 0) then
       if(present(stat)) then

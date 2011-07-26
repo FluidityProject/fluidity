@@ -100,7 +100,7 @@ contains
           call get_option(trim(schema_buffer)//"/random_walk/random_seed", random_seed)
           
           ! Initialise random number generator
-          call python_run_string("numpy.random.seed("//trim(int2str(random_seed))//"1001)")
+          call python_run_string("numpy.random.seed("//trim(int2str(random_seed))//")")
        else
           agent_arrays(i)%move_parameters%do_random_walk=.false.
        end if

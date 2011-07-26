@@ -237,8 +237,8 @@ contains
           do det = 1, detector_list%length
              if (detector%type==LAGRANGIAN_DETECTOR) then
                 ! Evaluate the RW python function and add to update_vector
-                call python_run_detector_val_function(detector,xfield,trim("random_walk"),trim(detector_list%name),rw_velocity_source)
-                detector%update_vector=detector%update_vector + (dt * rw_velocity_source)  
+                call python_run_detector_val_function(detector,xfield,dt,trim("random_walk"),trim(detector_list%name),rw_velocity_source)
+                detector%update_vector=detector%update_vector + (rw_velocity_source)  
                 detector%search_complete=.false.
              end if
              detector => detector%next
