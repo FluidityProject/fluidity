@@ -49,7 +49,7 @@
     use memory_diagnostics
     use reserve_state_module
     use boundary_conditions_from_options
-      use diagnostic_fields_new, only : &
+    use diagnostic_fields_new, only : &
     & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
     & check_diagnostic_dependencies
     use iso_c_binding
@@ -185,9 +185,6 @@
        FLExit("Multiple material_phases are not supported")
     end if
 
-    call calculate_diagnostic_variables(state)
-    call calculate_diagnostic_variables_new(state)
-
     v_field =>  extract_vector_field(state(1), "Velocity")
     if(has_vector_field(state(1), "InitialVelocity")) then
        v_field_init => extract_vector_field(state(1), "InitialVelocity")
@@ -202,6 +199,10 @@
     call set(u_x, v_field, 1)
     call set(u_y, v_field, 2)
     call project_cartesian_to_local(state(1), v_field)
+
+    call calculate_diagnostic_variables(state)
+    call calculate_diagnostic_variables_new(state)
+
     ! Always output the initial conditions.
     call output_state(state)
 
@@ -335,7 +336,7 @@
 
     subroutine get_parameters()
       implicit none
-      type(vector_field), pointer :: u, v_field, coord
+      type(vector_field), pointer :: u, v_field, adv_v_field, coord
       type(scalar_field), pointer :: u_x, u_y
       type(scalar_field), pointer :: eta
       type(vector_field) :: dummy_field
@@ -363,7 +364,13 @@
 
       if (has_vector_field(state(1), "VelocitySource")) then
          v_field => extract_vector_field(state(1), "VelocitySource")
-        call project_cartesian_to_local(state(1), v_field)
+         call project_cartesian_to_local(state(1), v_field)
+         v_field => extract_vector_field(state(1), "LocalVelocitySource")
+         ! advecting velocity in local coordinates
+         ! read the advecting velocity from the .swml source velocity
+         ! this is a hack.
+         adv_v_field => extract_vector_field(state(1), "NonlinearVelocity")
+         call set(adv_v_field, v_field)
       end if
 
       call get_option("/timestepping/nonlinear_iterations"&
@@ -491,16 +498,16 @@
       type(scalar_field), pointer :: D, d_src
       type(scalar_field), pointer :: u_x, u_y, old_u_x, old_u_y
       !! velocity
-      type(vector_field), pointer :: U
+      type(vector_field), pointer :: U, advecting_u
       !! Source term
       type(vector_field), pointer :: source
 
       !!Intermediate fields
       type(scalar_field) :: d_rhs, delta_d, old_d, md_src
-      type(vector_field) :: u_rhs, delta_u, advecting_u, old_u
+      type(vector_field) :: u_rhs, delta_u, old_u
       type(scalar_field) :: velocity_cpt, old_velocity_cpt
       type(scalar_field), pointer ::passive_tracer, old_passive_tracer
-      integer :: dim, nit, d1
+      integer :: nit, d1
       real :: energy
       logical :: have_source
 
@@ -508,6 +515,7 @@
       D=>extract_scalar_field(state, "LayerThickness")
       U=>extract_vector_field(state, "LocalVelocity")
       old_U=extract_vector_field(state, "OldLocalVelocity")
+      advecting_u=>extract_vector_field(state, "NonlinearVelocity")
       U_x=>extract_scalar_field(state, "Ux")
       old_U_x=>extract_scalar_field(state, "OldUx")
       U_y=>extract_scalar_field(state, "Uy")
@@ -518,17 +526,10 @@
         have_source = .true.
         source => extract_vector_field(state, "LocalVelocitySource")
       end if
-      dim = U%dim
 
-      call execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
+      call execute_timestep_setup(D,U,d_rhs,u_rhs, &
            old_u,old_d,delta_d,delta_u)
 
-      call insert(state,advecting_u,"NonlinearVelocity")
-
-      ! advecting velocity in local coordinates
-      ! read the advecting velocity from the .swml source velocity
-      ! this is a hack.
-      call set(advecting_u,source)
       call set(old_u,u)
       call set(old_u_x, u_x)
       call set(old_u_y, u_y)
@@ -567,17 +568,16 @@
       call deallocate(delta_d)
       call deallocate(delta_u)
       call deallocate(old_d)
-      call deallocate(advecting_u)
 
     end subroutine execute_timestep
 
-    subroutine execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
+    subroutine execute_timestep_setup(D,U,d_rhs,u_rhs, &
          old_u,old_d,delta_d,delta_u)
       implicit none
       type(scalar_field), pointer :: D
       type(scalar_field), intent(inout) :: D_rhs, delta_d, old_d
       type(vector_field), intent(inout), pointer :: U
-      type(vector_field), intent(inout) :: U_rhs, delta_u, advecting_u, old_u
+      type(vector_field), intent(inout) :: U_rhs, delta_u, old_u
       integer :: dim
 
       dim = U%dim
@@ -592,9 +592,6 @@
       call zero(delta_d)
       call allocate(delta_u, dim, U%mesh, "Velocity_update")
       call zero(delta_u)
-      !allocate advecting velocity
-      call allocate(advecting_u, dim, U%mesh, "Advecting_velocity")
-      call zero(advecting_u)
       !allocate previous timestep variables
       call allocate(old_d, D%mesh, "LayerThickness_old")
       call zero(old_d)
@@ -611,7 +608,7 @@
       type(scalar_field) :: f, old_T
       type(scalar_field) :: u_x, old_u_x, u_y, old_u_y
       ! velocity in local coordinates
-      type(vector_field) :: U_local, U_local_old
+      type(vector_field) :: U_local, U_local_old, advecting_u
 
       type(scalar_field), pointer :: T
       type(vector_field), pointer :: X, U
@@ -679,7 +676,14 @@
          call allocate(old_T, T%mesh, "OldPassiveTracer")
          call zero(old_T)
          call insert(state, old_T, "OldPassiveTracer")
+         call deallocate(old_T)
       end if
+
+      !allocate advecting velocity
+      call allocate(advecting_u, mesh_dim(U), U%mesh, "NonlinearVelocity")
+      call zero(advecting_u)
+      call insert(state, advecting_u, "NonlinearVelocity")
+      call deallocate(advecting_u)
 
     end subroutine allocate_and_insert_additional_fields
 
@@ -772,38 +776,31 @@
            inverse_coriolis_mat
       !
       type(scalar_field), pointer :: D
-      type(vector_field), pointer :: U,X,source
+      type(vector_field), pointer :: U, U_local, X
       type(vector_field) :: u_tmp
-      logical :: have_source
 
       ewrite(1,*) '    subroutine set_velocity_from_geostrophic_balance()'
 
       !Pull the fields out of state
       D=>extract_scalar_field(state, "LayerThickness")
-      U=>extract_vector_field(state, "LocalVelocity")
+      U=>extract_vector_field(state, "Velocity")
+      U_local=>extract_vector_field(state, "LocalVelocity")
       X=>extract_vector_field(state, "Coordinate")
-      have_source = .false.
-      if (has_vector_field(state, "VelocitySource")) then
-        have_source = .true.
-        source => extract_vector_field(state, "LocalVelocitySource")
-      end if
 
       ewrite(2,*) 'inside', sum(D%val)
 
-      call allocate(u_tmp,mesh_dim(U),U%mesh,name="tempmem")
+      call allocate(u_tmp,mesh_dim(U_local),U_local%mesh,name="tempmem")
 
       call mult_T(u_tmp,div_mat,D)
       call scale(u_tmp, -g)
 
-      call mult(U, inverse_coriolis_mat, u_tmp)
+      call mult(U_local, inverse_coriolis_mat, u_tmp)
+      ewrite_minmax(U_local)
 
-      if (have_source) then
-        call get_u_rhs(u_tmp,U,D,dt,g, &
-           coriolis_mat,div_mat,u_mass_mat,source)
-     else
-        call get_u_rhs(u_tmp,U,D,dt,g, &
+      call project_local_to_cartesian(state)
+
+      call get_u_rhs(u_tmp,U_local,D,dt,g, &
            coriolis_mat,div_mat)
-     end if
 
       ewrite(3,*) 'SW: TESTING BALANCED INITIAL CONDITION'
       ewrite(3,*) 'SW: infty norm of u_tmp(1)=', maxval(abs(u_tmp%val(1,:)))

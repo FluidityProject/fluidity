@@ -67,6 +67,7 @@ module diagnostic_fields
 
   public :: insert_diagnostic_field, calculate_diagnostic_variable
   public :: calculate_cfl_number, calculate_galerkin_projection
+  public :: calculate_courant_number_dg
   
   interface calculate_diagnostic_variable
      module procedure calculate_scalar_diagnostic_variable_single_state, &
@@ -1638,12 +1639,16 @@ contains
     
     call zero(courant)
     
-    do ele = 1, element_count(courant)
+    if(X%dim==U%dim) then
+       do ele = 1, element_count(courant)
+          call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt)
+       end do
+    else
+       do ele = 1, element_count(courant)
+          call calculate_courant_number_local_dg_ele(courant,x,u,ele,l_dt)
+       end do
+    end if
 
-       call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt)
-
-    end do
-    
     ! the courant values at the edge of the halo are going to be incorrect
     ! this matters when computing the max courant number
     call halo_update(courant)
@@ -1734,7 +1739,8 @@ contains
             &                          detwei_f=detwei_f,&
             &                          normal=normal) 
 
-       Flux_quad = -sum(U_f_quad*normal,1)
+       Flux_quad = sum(U_f_quad*normal,1)
+       print*, Flux_quad
        Flux_quad = max(Flux_quad,0.0)
 
        Flux = Flux + sum(Flux_quad*detwei_f)
@@ -1756,8 +1762,9 @@ contains
     !
     real :: Vol
     real :: Flux
-    integer :: ni, ele_2, face, face_2
+    integer :: ni, ele_2, face, face_2, gi, i, k
     integer, dimension(:), pointer :: neigh
+    real, dimension(ele_ngi(X,ele)) :: detwei
     real, dimension(U%dim, face_ngi(U, 1)) :: n1, n2, U_f_q, U_f2_q
     real, dimension(face_ngi(U,1)) :: u_q_dotn1, u_q_dotn2, u_q_dotn, flux_quad
     type(element_type), pointer :: U_shape
@@ -1767,7 +1774,8 @@ contains
     real, dimension(ele_loc(u,ele)) :: Vals
     !
     !Get element volume
-    Vol = 1.
+    call transform_to_physical(X, ele, detwei=detwei)
+    Vol = sum(detwei)
     
     !Get fluxes
     Flux = 0.0
@@ -1783,18 +1791,18 @@ contains
        
        call get_local_normal(n1, w1, U, local_face_number(U%mesh,face))
        call get_local_normal(n2, w2, U, local_face_number(U%mesh,face_2))
+
        U_f_q = face_val_at_quad(U, face)
        U_f2_q = face_val_at_quad(U, face_2)
 
-       u_q_dotn1 = sum(U_f_q*w1*n1,1)
-       u_q_dotn2 = -sum(U_f2_q*w2*n2,1)
-       u_q_dotn=0.5*(u_q_dotn1+u_q_dotn2)
-
-       Flux_quad = -sum(u_q_dotn,1)
+       u_q_dotn1 = -sum(U_f_q*w1*n1,1)
+       u_q_dotn2 = sum(U_f2_q*w2*n2,1)
+       Flux_quad=0.5*(u_q_dotn1+u_q_dotn2)
        Flux_quad = max(Flux_quad,0.0)
 
        U_shape=>face_shape(U,face)
-       Flux = Flux + sum(Flux_quad*U_shape%quadrature%weight,1)
+
+       Flux = Flux +sum(Flux_quad*U_shape%quadrature%weight,1)
     end do
 
     u_ele => ele_nodes(U,ele)

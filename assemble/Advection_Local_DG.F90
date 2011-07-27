@@ -1147,8 +1147,7 @@ contains
        J_scaled(:,:,gi)=J(:,:,1)/detJ(1)
     end forall
 
-    ! Get outward pointing normals for each element
-    print*, ele, ele_2
+    ! Get outward pointing normals in physical space for each element
     n1=get_face_normal_manifold(X, ele, face)
     if(ele_2<0) then
        ! external boundary
@@ -1156,10 +1155,6 @@ contains
     else
        n2=get_face_normal_manifold(X, ele_2, face_2)
     end if
-    print*, 'n1'
-    print*, n1(:,1)
-    print*, 'n2'
-    print*, n2(:,1)
 
     ! Form 'bending' tensor
     forall(gi=1:face_ngi(X,face))
@@ -1167,11 +1162,6 @@ contains
        forall(i=1:size(Btmp,1)) Btmp(i,i,gi)=Btmp(i,i,gi)+1.0
        B(:,:,gi)=matmul(J_scaled(:,:,gi),Btmp(:,:,gi))
     end forall
-    print*, maxval(abs(B-J_scaled))
-    print*, 'Btmp'
-    print*, Btmp(:,:,1)
-    print*, 'B'
-    print*, B(:,:,1)
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.
