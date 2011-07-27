@@ -4,7 +4,7 @@
   <name>p2p1-cg inverse Helmholtz filter convergence test</name>
   <owner userid="jbull"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml </command_line>
   </problem_definition>
   <variables>
