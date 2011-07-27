@@ -7,14 +7,14 @@ def plot_detector_distribution(filename):
   s = stat_parser(filename)
   
   det_count = zeros((41,600))
-  for i in range(1,4000):
+  for i in range(1,1000):
     for t in range(0,600):
       x = s[str(i)]['position'][0][t]
       det_count[x,t] = det_count[x,t]+1
 
   fig = figure(figsize=(10,6),dpi=90)
   ax = fig.add_axes([.1,.1,.8,.8])
-  cs=ax.contourf(det_count, arange(0,300,5))
+  cs=ax.contourf(det_count, arange(0,100,5))
   pp=colorbar(cs)
 
   return
