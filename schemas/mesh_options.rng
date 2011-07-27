@@ -81,6 +81,26 @@ enforcing continuity by Lagrange multipliers).</a:documentation>
             </element>
           </element>
         </optional>
+        <optional>
+          <element name="constraint_type">
+            <element name="string_value">
+              <a:documentation>Set the constraint type. This is used to implement
+div-conforming elements such as RT0 in a hybridised
+solver.</a:documentation>
+              <choice>
+                <value>BDM</value>
+                <value>BDFM</value>
+                <value>RT</value>
+              </choice>
+            </element>
+            <element name="solver">
+              <ref name="linear_solver_options_sym">
+                <a:documentation>Solver is used to apply projections to div-conforming
+space, and in elliptic solvers</a:documentation>
+              </ref>
+            </element>
+          </element>
+        </optional>
         <zeroOrMore>
           <element name="periodic_boundary_conditions">
             <a:documentation>Make mesh periodic</a:documentation>
