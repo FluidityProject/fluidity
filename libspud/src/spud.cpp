@@ -46,7 +46,6 @@ namespace Spud{
   }
 
   void OptionManager::set_manager(void* m) {
-    manager.reset();
     manager.options = (Spud::OptionManager::Option*) m;
     return;
   }
@@ -553,6 +552,7 @@ namespace Spud{
 
   OptionManager::OptionManager(){
     options = new Option();
+    deallocated = false;
 
     return;
   }
@@ -563,7 +563,11 @@ namespace Spud{
   }
 
   OptionManager::~OptionManager(){
-    delete options;
+    if (!deallocated)
+    {
+      delete options;
+      deallocated = true;
+    }
 
     return;
   }

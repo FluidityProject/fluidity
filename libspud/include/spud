@@ -406,6 +406,7 @@ namespace Spud{
           
       };
       
+      bool deallocated;
       Option* options;
       
   };
