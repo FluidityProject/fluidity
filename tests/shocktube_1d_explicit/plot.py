@@ -11,6 +11,9 @@ for folder in folders:
   t=vt.GetScalarField('Time')[0]
   xyz=vt.GetLocations()
   x=xyz[:,0]
+  xyz0=vt.GetVectorField('DiagnosticCoordinate')
+  print xyz0.shape
+  x0=xyz0[:,0]
 
   p=vt.GetScalarField('Pressure')
   uvw=vt.GetVectorField('Velocity')
@@ -19,13 +22,13 @@ for folder in folders:
   ie=vt.GetScalarField('InternalEnergy')
   
   pylab.figure(1)
-  pylab.plot( x, p,'.', label=folder)
+  pylab.plot( x0, p,'.', label=folder)
   
   pylab.figure(2)
   pylab.plot( x, u,'.', label=folder)
   
   pylab.figure(3)
-  pylab.plot( x, rho,'.', label=folder)
+  pylab.plot( x0, rho,'.', label=folder)
   
   pylab.figure(4)
   pylab.plot( x, ie,'.', label=folder)

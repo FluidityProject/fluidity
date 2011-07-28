@@ -1078,7 +1078,7 @@ contains
 
 
     ! Jacobian matrix and its inverse.
-    real, dimension(X%dim,X%dim-1) :: J
+    real, dimension(X%dim,mesh_dim(X)-1) :: J
     ! Determinant of J
     real :: detJ
     ! Whether the cache can be used
@@ -1140,17 +1140,30 @@ contains
 
        detJ=0.0
        ! Calculate determinant.
-       select case (X%dim)
+       select case (mesh_dim(X))
        case(1)
           detJ=1.0
        case(2)
-          detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+          select case (X%dim)
+          case(2)
+             detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+          case(3)
+             detJ = sqrt(sum(J(:,1)**2))
+          case default
+             FLAbort("Unsupported dimension specified")
+          end select
        case(3)
-          do i=1,3
-             detJ=detJ+ &
-                  (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
-          end do
-          detJ=sqrt(detJ)
+          select case (X%dim)
+          case(3)
+             do i=1,3
+                detJ=detJ+ &
+                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i&
+                     &+1),1))**2
+             end do
+             detJ=sqrt(detJ)
+          case default
+             FLAbort("Unsupported dimension specified")
+          end select
        case default
           FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
        end select
@@ -1310,17 +1323,30 @@ contains
 
        detJ=0.0
        ! Calculate determinant.
-       select case (X%dim)
+       select case (mesh_dim(X))
        case(1)
           detJ=1.0
        case(2)
-          detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+          select case (X%dim)
+          case(2)
+             detJ = sqrt(J(1,1)**2 + J(2,1)**2)
+          case(3)
+             detJ = sqrt(sum(J(:,1)**2))
+          case default
+             FLAbort("Unsupported dimension specified")
+          end select
        case(3)
-          do i=1,3
-             detJ=detJ+ &
-                  (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i+1),1))**2
-          end do
-          detJ=sqrt(detJ)
+          select case (X%dim)
+          case(3)
+             do i=1,3
+                detJ=detJ+ &
+                     (J(cyc3(i+2),1)*J(cyc3(i+1),2)-J(cyc3(i+2),2)*J(cyc3(i&
+                     &+1),1))**2
+             end do
+             detJ=sqrt(detJ)
+          case default
+             FLAbort("Unsupported dimension specified")
+          end select
        case default
           FLAbort("Unsupported dimension specified.  Universe is 3 dimensional (sorry Albert).")   
        end select
