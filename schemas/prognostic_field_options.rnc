@@ -825,6 +825,9 @@ prognostic_velocity_field =
                   element smagorinsky_coefficient {
                      real
                   }
+               }?,
+               element local_assembly {
+                  empty
                }?
             }
          ),

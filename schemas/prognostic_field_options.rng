@@ -969,6 +969,11 @@ suggested value 0.1</a:documentation>
               </element>
             </element>
           </optional>
+          <optional>
+            <element name="local_assembly">
+              <empty/>
+            </element>
+          </optional>
         </element>
       </choice>
       <element name="conservative_advection">
