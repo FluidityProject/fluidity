@@ -242,6 +242,8 @@ contains
     type(integer_set), dimension(:), allocatable :: clr_sets
     integer :: clr, nnid, no_colours, len, ele
     integer :: num_threads, final_timestep
+    !! Did we successfully prepopulate the transform_to_physical_cache?
+    logical :: cache_valid
 
     ewrite(1, *) "In assemble_advection_diffusion_cg"
     
@@ -479,9 +481,7 @@ contains
        endif
 
        p0_mesh = piecewise_constant_mesh(vertex_mesh, "P0Mesh")
-!!       p0_mesh = piecewise_constant_mesh(t%mesh, trim(t%name)//"P0Mesh")
-       ad_sparsity => get_csr_sparsity_firstorder(state, p0_mesh, p0_mesh)
-   !    ad_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, p0_mesh)
+       ad_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, t%mesh)
        call colour_sparsity(ad_sparsity, p0_mesh, node_colour, no_colours)
 
        if(.not. verify_colour_sparsity(ad_sparsity, node_colour)) then
@@ -499,6 +499,11 @@ contains
           call insert(clr_sets(1), ele)
        end do
     end if
+
+#ifdef _OPENMP
+    cache_valid = prepopulate_transform_cache(positions)
+    assert(cache_valid)
+#endif
 
     colour_loop: do clr = 1, no_colours
       len = key_count(clr_sets(clr))
@@ -535,9 +540,8 @@ contains
 #endif
 
     if(num_threads > 1) then
-    call deallocate(node_colour)
-!    call deallocate(vertex_mesh)
-    call deallocate(p0_mesh)
+       call deallocate(node_colour)
+       call deallocate(p0_mesh)
     endif
 !    call profiler_toc("advection_diffusion_loop")
     
@@ -741,9 +745,7 @@ contains
         end if
       case default
         test_function = t_shape
- !!   !$OMP CRITICAL
         call incref(test_function)
- !!   !$OMP END CRITICAL
     end select
     ! Important note: with SUPG the test function derivatives have not been
     ! modified - i.e. dt_t is currently used everywhere. This is fine for P1,
