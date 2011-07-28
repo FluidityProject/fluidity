@@ -1,3 +1,13 @@
+spud (1.1.1) natty; urgency=low
+
+  * Offer two major new features in Diamond: slice view and group view.
+  * Slicing shows all instances of a particular entry, along with its
+    data and attributes.
+  * Grouping modifies the treeview to only show all instances of a
+    particular entry.
+
+ -- Patrick Farrell <patrick.farrell06@imperial.ac.uk>  Tue, 26 Jul 2011 17:37:17 +0100
+
 spud (1.1.0) natty; urgency=low
 
   * Refactor the Fortran calls to C to use iso_c_binding

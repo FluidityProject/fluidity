@@ -21,10 +21,19 @@ import copy
 import StringIO
 from lxml import etree
 
+
+import gobject
+
 import tree
 
-class Choice:
+class Choice(gobject.GObject):
+
+  __gsignals__ = { "on-set-data" : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (str,)),
+                   "on-set-attr"  : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (str, str))}
+
   def __init__(self, l, cardinality=''):
+    gobject.GObject.__init__(self)
+
     self.l = l
     if l == []:
       raise Exception
@@ -33,12 +42,21 @@ class Choice:
     for choice in l:
       assert choice.__class__ is tree.Tree
       name = name + choice.name + ":"
+      choice.connect("on-set-data", self._on_set_data)
+      choice.connect("on-set-attr", self._on_set_attr)
+
     name = name[:-1]
     self.name = name
     self.schemaname = name
     self.cardinality = cardinality
     self.parent = None
     self.set_default_active()
+
+  def _on_set_data(self, node, data):
+    self.emit("on-set-data", data)
+
+  def _on_set_attr(self, node, attr, value):
+    self.emit("on-set-attr", attr, value)
 
   def set_default_active(self):
     self.active = True
@@ -126,3 +144,63 @@ class Choice:
 
   def choices(self):
     return self.l
+
+  def is_comment(self):
+    return False
+
+  def get_comment(self):
+    return None
+
+  def get_display_name(self):
+    """
+    This is a fluidity hack, allowing the name displayed in the treeview on the
+    left to be different to the element name. If it has an attribute name="xxx",
+    element_tag (xxx) is displayed.
+    """
+
+    return self.get_current_tree().get_display_name()
+
+  def get_name(self):
+    return self.get_current_tree().get_name()
+
+  def get_children(self):
+    return [self.get_current_tree()]
+
+  def get_choices(self):
+    return self.l
+
+  def is_hidden(self):
+    """
+    Tests whether the supplied choice should be hidden in view.
+    """
+    return False
+
+  def get_name_path(self, leaf = True):
+    name = self.get_display_name() if leaf else self.get_name()
+
+    if self.parent is None:
+      return name
+    else:
+
+      pname = self.parent.get_name_path(False)
+
+      if name is None:
+        return pname
+      elif pname is None:
+        return name
+      else:
+        return pname + "/" + name
+
+  def get_mixed_data(self):
+    return self
+
+  def is_sliceable(self):
+    return self.get_current_tree().is_sliceable()
+ 
+  def __str__(self):
+    """
+    Returns the display name of the selected tree.
+    """
+    return self.get_display_name()
+
+gobject.type_register(Choice)

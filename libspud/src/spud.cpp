@@ -41,6 +41,16 @@ namespace Spud{
     return;
   }
 
+  void* OptionManager::get_manager() {
+    return (void*) manager.options;
+  }
+
+  void OptionManager::set_manager(void* m) {
+    manager.reset();
+    manager.options = (Spud::OptionManager::Option*) m;
+    return;
+  }
+
   OptionError OptionManager::load_options(const string& filename){
     return manager.options->load_options(filename);
   }

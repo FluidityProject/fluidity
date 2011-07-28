@@ -52,6 +52,8 @@ namespace Spud{
     public:
     
       static void clear_options();
+      static void* get_manager();
+      static void set_manager(void* m);
 
       static OptionError load_options(const std::string& filename);
       static OptionError write_options(const std::string& filename);
@@ -410,6 +412,15 @@ namespace Spud{
   
   inline void clear_options(){
     OptionManager::clear_options();
+  }
+
+  inline void* get_manager(){
+    return OptionManager::get_manager();
+  }
+
+  inline void set_manager(void* m){
+    OptionManager::set_manager(m);
+    return;
   }
 
   inline OptionError load_options(const std::string& filename){
