@@ -289,7 +289,7 @@ contains
     type(mesh_type), intent(in) :: mesh
     integer, intent(in) :: element_number
     logical :: owned
-    integer, dimension(:), pointer :: neighbours=>null()
+    integer, dimension(:), pointer :: neighbours
     integer :: i, n_neigh
 
     neighbours => ele_neigh(mesh, element_number)
