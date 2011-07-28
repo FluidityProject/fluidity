@@ -49,7 +49,6 @@ module zoltan_integration
 
   type(scalar_field), save :: node_quality
   integer, save :: max_coplanar_id, max_size
-  real, parameter :: default_load_imbalance_tolerance = 1.5
 
   public :: zoltan_drive
   private
@@ -101,7 +100,8 @@ module zoltan_integration
     call setup_quality_module_variables(states, metric) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
-    call set_zoltan_parameters(iteration, max_adapt_iteration, zz, load_imbalance_tolerance)
+    load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
+    call set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
 
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
@@ -163,7 +163,8 @@ module zoltan_integration
       
       call setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name = topology_mesh_name)
 
-      call set_zoltan_parameters(iteration, max_adapt_iteration, zz, load_imbalance_tolerance)
+      load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
+      call set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
       
       call reset_zoltan_lists_full(zz, &
        & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
@@ -397,25 +398,14 @@ module zoltan_integration
     
   end subroutine setup_quality_module_variables
 
-  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, zz, load_imbalance_tolerance)
-    integer, intent(in) :: iteration, max_adapt_iteration
-    type(zoltan_struct), pointer, intent(in) :: zz    
-    real, intent(out) :: load_imbalance_tolerance
+  function get_load_imbalance_tolerance(iteration, max_adapt_iteration) result(load_imbalance_tolerance)
+    integer, intent(in) :: iteration, max_adapt_iteration    
+ 
+    real, parameter :: default_load_imbalance_tolerance = 1.5  
+    real, parameter :: final_iteration_load_imbalance_tolerance = 1.075
+    real :: load_imbalance_tolerance
 
-    integer(zoltan_int) :: ierr
-    character (len = FIELD_NAME_LEN) :: method, graph_checking_level
-
-
-    character (len = 10) :: string_load_imbalance_tolerance
-
-    if (debug_level()>1) then
-       ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "10"); assert(ierr == ZOLTAN_OK)
-    else         
-       ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
-    end if
-    
     if (iteration /= max_adapt_iteration) then
-       
        ! if user has passed us the option then use the load imbalance tolerance they supplied
        if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance")) then
           call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance", load_imbalance_tolerance)
@@ -427,16 +417,31 @@ module zoltan_integration
           ! otherwise use default load imbalance tolerance
           load_imbalance_tolerance = default_load_imbalance_tolerance
        end if
-       
-       ! convert our real to a string for passing to Zoltan
-       write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
-       
-       ! set the parameter in Zoltan
-       ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
-       
-    else 
-       ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.075"); assert(ierr == ZOLTAN_OK)
+    else
+       load_imbalance_tolerance = final_iteration_load_imbalance_tolerance
     end if
+
+  end function get_load_imbalance_tolerance
+
+  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
+    integer, intent(in) :: iteration, max_adapt_iteration
+    real, intent(in) :: load_imbalance_tolerance
+    type(zoltan_struct), pointer, intent(in) :: zz    
+
+    integer(zoltan_int) :: ierr
+    character (len = FIELD_NAME_LEN) :: method, graph_checking_level
+    character (len = 10) :: string_load_imbalance_tolerance
+
+    if (debug_level()>1) then
+       ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "10"); assert(ierr == ZOLTAN_OK)
+    else         
+       ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
+    end if
+    
+    ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
+    write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
+    ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
+       
 
     ! If we are not an active process, then let's set the number of local parts to be zero
     if (no_active_processes > 0) then
