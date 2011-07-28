@@ -650,15 +650,7 @@ contains
     logical, intent(in), optional :: flag
     integer :: ierr
 
-    if (present(flag)) then
-       if (flag) then
-          call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, &
-               PETSC_TRUE, ierr)
-       else
-          call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, &
-               PETSC_FALSE, ierr)
-       end if
-    else
+    if (present_and_true(flag).or..not.present(flag)) then
        call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, &
             PETSC_TRUE, ierr)
     end if
