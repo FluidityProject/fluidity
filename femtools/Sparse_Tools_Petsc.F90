@@ -172,7 +172,7 @@ module sparse_tools_petsc
      zero, addto, addto_diag, scale, &
      extract_diagonal, assemble, incref_petsc_csr_matrix, &
      ptap, mult, mult_T, dump_matrix, &
-     csr2petsc_csr, dump_petsc_csr_matrix
+     csr2petsc_csr, dump_petsc_csr_matrix, set_local_assembly
 
 contains
 
@@ -638,6 +638,32 @@ contains
 #endif
   end function petsc_must_assemble_by_column_scalar
 
+  subroutine set_local_assembly(matrix, flag)
+    !!< Set the PETSc option MAT_IGNORE_OFF_PROC_ENTRIES in MATRIX
+    !!< according to FLAG.
+    !!< If flag is missing, assume .true.
+
+    !! When MAT_IGNORE_OFF_PROC_ENTRIES is set, any MatSetValues
+    !! calls to rows that are off-process will be discarded.  This
+    !! makes matrix assembly much faster (no comms are needed).
+    type(petsc_csr_matrix), intent(inout) :: matrix
+    logical, intent(in), optional :: flag
+    integer :: ierr
+
+    if (present(flag)) then
+       if (flag) then
+          call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, &
+               PETSC_TRUE, ierr)
+       else
+          call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, &
+               PETSC_FALSE, ierr)
+       end if
+    else
+       call MatSetOption(matrix%M, MAT_IGNORE_OFF_PROC_ENTRIES, &
+            PETSC_TRUE, ierr)
+    end if
+  end subroutine set_local_assembly
+       
   pure function petsc_csr_block_size(matrix, dim)
     !!< size of each block
     integer :: petsc_csr_block_size
