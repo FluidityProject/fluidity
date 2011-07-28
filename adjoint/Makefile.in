@@ -85,8 +85,4 @@ reverse:
 forward:
 	tapenade -d -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90
 
-../include/simple_advection.mod: simple_advection.o
-../include/simple_advection_d.mod: simple_advection_d.o
-../include/simple_advection_b.mod: simple_advection_b.o
-
 include Makefile.dependencies

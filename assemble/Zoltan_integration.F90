@@ -433,7 +433,7 @@ module zoltan_integration
     character (len = 10) :: string_load_imbalance_tolerance
 
     if (debug_level()>1) then
-       ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "10"); assert(ierr == ZOLTAN_OK)
+       ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "1"); assert(ierr == ZOLTAN_OK)
     else         
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
     end if
@@ -452,26 +452,6 @@ module zoltan_integration
        end if
        ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(no_active_processes)); assert(ierr == ZOLTAN_OK)
     end if
-
-    
-    ! Choose the appropriate partitioning method based on the current adapt iteration
-    ! Idea is to do repartitioning on intermediate adapts but a clean partition on the last
-    ! iteration to produce a load balanced partitioning
-    if (iteration == max_adapt_iteration) then
-       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
-          ! chosen to match what Sam uses
-          ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
-       end if
-    else
-       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
-          ! chosen to match what Sam uses
-          ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
-          ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
-       end if
-    end if
-
     
     if (iteration /= max_adapt_iteration) then
        if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner")) then
@@ -570,6 +550,23 @@ module zoltan_integration
 
     end if
 
+    ! Choose the appropriate partitioning method based on the current adapt iteration
+    ! Idea is to do repartitioning on intermediate adapts but a clean partition on the last
+    ! iteration to produce a load balanced partitioning
+    if (iteration == max_adapt_iteration) then
+       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
+       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+          ! chosen to match what Sam uses
+          ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
+       end if
+    else
+       ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
+       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+          ! chosen to match what Sam uses
+          ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
+          ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
+       end if
+    end if
 
     ierr = Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)
     ierr = Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1"); assert(ierr == ZOLTAN_OK)

@@ -662,53 +662,43 @@ check_for_mpich=""
 check_for_lmpi=""
 
 AC_LANG(C)
-AC_ARG_ENABLE(mpi,
-[AC_HELP_STRING([--enable-mpi],
-[turns on MPI support])])
 
-# various synonyms accepted to disable MPI
-if test "$with_mpi" = no ; then enable_mpi=no; fi
-if test "$with_MPI" = no ; then enable_mpi=no; fi
-if test "$enable_MPI" = no ; then enable_mpi=no; fi
-if test "$enable_mpi" != "no" ; then
-  AC_CHECK_PROGS(MPIF90, mpif90 mpf90, $FC, $PATH)
-  if test "$smart_fortran" = "yes" ; then
-    MPIF77=$MPIF90
-  else
-    AC_CHECK_PROGS(MPIF77, mpif77 mpf77,       $F77, $PATH)
-  fi
-  AC_CHECK_PROGS(MPICC,  mpicc mpcc,        $CC,  $PATH)
-  AC_CHECK_PROGS(MPICXX, mpicxx mpiCC mpCC, $CXX, $PATH)
+AC_ARG_VAR(MPICC, C compiler command for MPI programs)
+AC_ARG_VAR(MPIF90, Fortran 90 compiler command for MPI programs)
+AC_ARG_VAR(MPIF77, Fortran 77 compiler command for MPI programs)
+AC_ARG_VAR(MPICXX, C++ compiler command for MPI programs)
 
-  F77=$MPIF77
-  FC=$MPIF90
-  CC=$MPICC
-  CXX=$MPICXX
-
-  AC_MSG_CHECKING([if we can compile and link without using -lmpi])
-  LIBS_bck="$LIBS"
-  LIBS=""
-  AC_TRY_LINK([
-  #include <mpi.h>
-  ],[
-  int flag;
-  MPI_Initialized(&flag);
-  ],[
-  AC_MSG_RESULT([yes])
-  LIBS="$LIBS_bck"
-  mpi="yes"
-  ],[
-  AC_MSG_RESULT([no])
-  LIBS="$LIBS_bck"
-  check_for_lmpi="yes"
-  ])
+AC_CHECK_PROGS(MPIF90, mpif90 mpf90, $FC, $PATH)
+if test "$smart_fortran" = "yes" ; then
+  MPIF77=$MPIF90
 else
-  AC_MSG_WARN([mpi disabled])
-  MPIF77=$F77
-  MPIF90=$FC
-  MPICC=$CC
-  MPICXX=$CXX
+  AC_CHECK_PROGS(MPIF77, mpif77 mpf77,       $F77, $PATH)
 fi
+AC_CHECK_PROGS(MPICC,  mpicc mpcc,        $CC,  $PATH)
+AC_CHECK_PROGS(MPICXX, mpicxx mpiCC mpCC, $CXX, $PATH)
+
+F77=$MPIF77
+FC=$MPIF90
+CC=$MPICC
+CXX=$MPICXX
+
+AC_MSG_CHECKING([if we can compile and link without using -lmpi])
+LIBS_bck="$LIBS"
+LIBS=""
+AC_TRY_LINK([
+#include <mpi.h>
+],[
+int flag;
+MPI_Initialized(&flag);
+],[
+AC_MSG_RESULT([yes])
+LIBS="$LIBS_bck"
+mpi="yes"
+],[
+AC_MSG_RESULT([no])
+LIBS="$LIBS_bck"
+check_for_lmpi="yes"
+])
 
 if test "$check_for_lmpi" = "yes" ; then
   AC_MSG_CHECKING([if we can compile and link using -lmpi])
@@ -770,8 +760,7 @@ cat >> confdefs.h << EOF
 EOF
   enable_mpi="yes"
 else
-  AC_MSG_WARN([no mpi support found on system])
-  enable_mpi="no"
+  AC_MSG_ERROR([no MPI support found on system])
 fi
 
 # netCDF support

@@ -441,17 +441,6 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
-      <zoltan_options>
-        <partitioner>
-          <zoltan>
-            <method>graph</method>
-          </zoltan>
-        </partitioner>
-        <final_partitioner>
-          <scotch/>
-        </final_partitioner>
-        <zoltan_debug/>
-      </zoltan_options>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>

@@ -149,6 +149,10 @@ module fields_base
           & ele_shape_mesh 
   end interface
 
+  interface ele_n_constraints
+     module procedure ele_n_constraints_vector
+  end interface
+
   interface face_shape
      module procedure face_shape_scalar, face_shape_vector,&
           & face_shape_tensor, face_shape_mesh
@@ -1372,6 +1376,16 @@ contains
     family = field%mesh%shape%numbering%type
   
   end function ele_num_type_tensor
+
+  pure function ele_n_constraints_vector(vfield, ele_number) result&
+       & (ele_n_constraints)
+    integer :: ele_n_constraints
+    type(vector_field), intent(in) :: vfield
+    integer, intent(in) :: ele_number
+    
+    ele_n_constraints = vfield%mesh%shape%constraints%n_constraints
+
+  end function ele_n_constraints_vector
 
   pure function ele_loc_mesh(mesh, ele_number) result (ele_loc)
     ! Return the number of nodes of element ele_number.

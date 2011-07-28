@@ -311,14 +311,6 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
-      <zoltan_options>
-        <partitioner>
-          <scotch/>
-        </partitioner>
-        <final_partitioner>
-          <scotch/>
-        </final_partitioner>
-      </zoltan_options>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>
