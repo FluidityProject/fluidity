@@ -475,7 +475,9 @@ contains
             ! Someone else's.
             
             assert(entity_receive_level(entity)>0)
-            do h=1,entity_receive_level(entity)
+            ! Insert into all receieve halos greater than or equal to the
+            ! receive level.
+            do h=size(mesh%halos),entity_receive_level(entity),-1
                
                call insert(receives(h,entity_owner(entity)),&
                     entity_dofs(entity_dim(entity),entity, dofs_per))
@@ -493,10 +495,12 @@ contains
       do h=1,size(mesh%halos)
          call allocate(mesh%halos(h), &
               nsends=key_count(sends(h,:)), &
-              nreceives=key_count(sends(h,:)), &
+              nreceives=key_count(receives(h,:)), &
               nowned_nodes=local_dofs, &
               data_type=data_type,&
               communicator=thalos(1)%communicator)
+
+         write(mesh%halos(h)%name,'(a,i0,a)') trim(mesh%name)//"Level",h,"Halo"
 
          do p=1,size(mesh%halos(h)%sends)
             mesh%halos(h)%sends(p)%ptr=sorted(set2vector(sends(h,p)))
