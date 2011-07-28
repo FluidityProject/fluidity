@@ -179,6 +179,7 @@ contains
     logical :: cache_valid
     logical :: face_cache_valid
     cache_valid=.true.
+    face_cache_valid=.true.
     ! The caches are not thread safe, so we want a simple way to
     ! construct them if appropriate before entering a threaded
     ! region.
