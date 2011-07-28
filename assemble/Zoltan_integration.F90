@@ -441,7 +441,7 @@ module zoltan_integration
     ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
     write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
     ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
-       
+    ewrite(2,*) 'Initial load_imabalance_tolerance set to ', load_imbalance_tolerance
 
     ! If we are not an active process, then let's set the number of local parts to be zero
     if (no_active_processes > 0) then
@@ -675,6 +675,9 @@ module zoltan_integration
     integer(zoltan_int) :: ierr
     integer :: i, node
     integer :: num_nodes, num_nodes_after_balance, min_num_nodes_after_balance
+    character (len = 10) :: string_load_imbalance_tolerance
+
+    ewrite(1,*) 'in zoltan_load_balance'
 
     num_nodes = zoltan_global_zz_halo%nowned_nodes
       
@@ -695,10 +698,17 @@ module zoltan_integration
        assert(ierr == MPI_SUCCESS)
        
        if (min_num_nodes_after_balance == 0) then
+          ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', load_imbalance_tolerance
           load_imbalance_tolerance = 0.95 * load_imbalance_tolerance
           if (load_imbalance_tolerance < 1.075) then
              FLAbort("Tightening load_imbalance_tolerance to prevent empty partitions being created by Zoltan failed")
           end if
+
+          ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
+          write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
+          ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
+
+          ewrite(2,*) 'Tightened load_imbalance_tolerance to ', load_imbalance_tolerance
        end if
     end do
        
@@ -706,6 +716,9 @@ module zoltan_integration
        node = p1_export_local_ids(i)
        assert(node_owned(zoltan_global_zz_halo, node))
     end do
+
+    ewrite(1,*) 'exiting zoltan_load_balance'
+
   end subroutine zoltan_load_balance
 
   subroutine derive_full_export_lists(states, p1_num_export, p1_export_local_ids, p1_export_procs, &
