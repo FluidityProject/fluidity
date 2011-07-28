@@ -359,63 +359,7 @@ The t argument is for future use only - currently detector locations are only se
               </element>
             </optional>
             <optional>
-              <element name="lagrangian_timestepping">
-                <choice>
-                  <element name="explicit_runge_kutta_guided_search">
-                    <a:documentation>Use explicit runge kutta method with
-binary search</a:documentation>
-                    <element name="subcycles">
-                      <a:documentation>Number of subdivisions of the timestep
-increase this if you are not happy with your 
-detector trajectory accuracy, or if particles
-are jumping out of the domain a lot</a:documentation>
-                      <ref name="integer"/>
-                    </element>
-                    <element name="search_tolerance">
-                      <a:documentation>Tolerance for deciding if detector is in a given
-element. Recommended value 1.0e-10.</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                    <element name="n_stages">
-                      <a:documentation>Number of RK stages
-For the RK4 method, it should be 4.</a:documentation>
-                      <ref name="integer"/>
-                    </element>
-                    <element name="stage_weights">
-                      <a:documentation>ERK stage array. This is an array
-containing the lower-triangular
-part of the Butcher weight matrix
-A that explains how to compute the
-RK stages.  See
-http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-for notation.  The array is stored
-in the following order:
-[a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
-and so the array has size s(s-1)/2
-where s is the number of stages.
-For the RK4 method, it should be
-[0.5,0,0.5,0,0,1]</a:documentation>
-                      <ref name="real_vector"/>
-                    </element>
-                    <element name="timestep_weights">
-                      <a:documentation>ERK timestep weights. This is the
-b vector that explains how to
-compute the timestep from the RK
-stages.  See
-http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-for notation.  It should have size
-s where s is the number of stages.
-For the RK4 method, it should be
-[1/6,1/3,1/3,1/6]</a:documentation>
-                      <ref name="real_vector"/>
-                    </element>
-                  </element>
-                  <element name="binary_search">
-                    <a:documentation>Use binary search algorithm</a:documentation>
-                    <empty/>
-                  </element>
-                </choice>
-              </element>
+              <ref name="lagrangian_timestepping"/>
             </optional>
           </element>
         </optional>
@@ -3337,6 +3281,79 @@ i.e. the free surface or rigid lid.</a:documentation>
           </element>
         </element>
       </optional>
+    </element>
+  </define>
+  <define name="lagrangian_timestepping">
+    <element name="lagrangian_timestepping">
+      <element name="subcycles">
+        <a:documentation>Number of subdivisions of the timestep
+increase this if you are not happy with your 
+detector trajectory accuracy, or if particles
+are jumping out of the domain a lot</a:documentation>
+        <ref name="integer"/>
+      </element>
+      <element name="search_tolerance">
+        <a:documentation>Tolerance for deciding if detector is in a given
+element. Recommended value 1.0e-10.</a:documentation>
+        <ref name="real"/>
+      </element>
+      <choice>
+        <element name="explicit_runge_kutta_guided_search">
+          <a:documentation>Use explicit runge kutta method with
+guided search particle tracking</a:documentation>
+          <element name="n_stages">
+            <a:documentation>Number of RK stages
+For the RK4 method, it should be 4.</a:documentation>
+            <ref name="integer"/>
+          </element>
+          <element name="stage_weights">
+            <a:documentation>ERK stage array. This is an array
+containing the lower-triangular
+part of the Butcher weight matrix
+A that explains how to compute the
+RK stages.  See
+http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+for notation.  The array is stored
+in the following order:
+[a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
+and so the array has size s(s-1)/2
+where s is the number of stages.
+For the RK4 method, it should be
+[0.5,0,0.5,0,0,1]</a:documentation>
+            <ref name="real_vector"/>
+          </element>
+          <element name="timestep_weights">
+            <a:documentation>ERK timestep weights. This is the
+b vector that explains how to
+compute the timestep from the RK
+stages.  See
+http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+for notation.  It should have size
+s where s is the number of stages.
+For the RK4 method, it should be
+[1/6,1/3,1/3,1/6]</a:documentation>
+            <ref name="real_vector"/>
+          </element>
+        </element>
+        <element name="forward_euler_guided_search">
+          <a:documentation>Use explicit Forward Euler method with
+guided search particle tracking</a:documentation>
+          <empty/>
+        </element>
+        <element name="rk4_guided_search">
+          <a:documentation>Use classical Runge-Kutta method with
+guided search particle tracking</a:documentation>
+          <empty/>
+        </element>
+      </choice>
+      <choice>
+        <element name="turn_static_on_boundary">
+          <empty/>
+        </element>
+        <element name="reflect_on_boundary">
+          <empty/>
+        </element>
+      </choice>
     </element>
   </define>
   <!-- Default child of diagnostic scalar field -->
@@ -8521,6 +8538,72 @@ This option is generally only useful for testing. </a:documentation>
               <empty/>
             </element>
           </choice>
+          <optional>
+            <element name="agents">
+              <zeroOrMore>
+                <element name="agent_array">
+                  <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                  <element name="number_of_agents">
+                    <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
+                    <ref name="integer"/>
+                  </element>
+                  <element name="lagrangian">
+                    <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
+                    <empty/>
+                  </element>
+                  <element name="binary_output">
+                    <a:documentation>Enable to write detector output in binary format</a:documentation>
+                    <empty/>
+                  </element>
+                  <element name="initial_position">
+                    <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+The return value must have length number_of_detectors.
+
+*** IMPORTANT NOTE ***
+
+The t argument is for future use only - currently detector locations are only set at simulation start.</a:documentation>
+                    <ref name="python_code"/>
+                  </element>
+                  <optional>
+                    <element name="random_walk">
+                      <element name="python">
+                        <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
+The return value will be added to the lagrangian advection at each sub-timestep. 
+Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
+Functions should be of the form:
+
+ field = state.scalar_fields['Field_name']
+
+ def val(ele, local_coord):
+    # x = field.eval_field(ele, local_coord)
+    return # Return some f(x)</a:documentation>
+                        <ref name="python_code"/>
+                      </element>
+                      <element name="random_seed">
+                        <ref name="integer"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="exclude_from_advection">
+                      <a:documentation/>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <ref name="comment"/>
+                </element>
+              </zeroOrMore>
+              <ref name="lagrangian_timestepping"/>
+            </element>
+          </optional>
           <optional>
             <ref name="hyperlight"/>
           </optional>

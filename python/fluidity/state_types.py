@@ -120,6 +120,15 @@ class ScalarField(Field):
     self.val = v
     self.node_count = self.val.shape[0]
 
+  def eval_field(self,ele,local_coord):
+    if self.mesh.shape.degree==0:
+      n = 1.0
+    else:
+      n = numpy.zeros(self.mesh.shape.loc)
+      for i in range(self.mesh.shape.loc):
+        n[i] = self.mesh.shape.eval_shape(i, local_coord)
+
+    return numpy.dot(self.ele_val(ele),n)
 
 class VectorField(Field):
   "A vector field"
@@ -129,6 +138,38 @@ class VectorField(Field):
     self.val = v
     self.dimension = dim
     self.node_count=self.val.shape[0]
+
+  def local_coords(self, ele, position):
+    dim = self.dimension
+    local_coords = numpy.zeros(dim+1)
+    local_coords = local_coords + position[:]
+    local_coords[dim] = 1.0
+
+    matrix = numpy.zeros((dim+1, len(position)+1))
+    if self.mesh.shape.degree == 1:
+      tmp_matrix = self.ele_val(ele)
+    else:
+      # TODO: implement using vertices
+      tmp_matrix = self.ele_val(ele)
+
+    matrix[:,:] = tmp_matrix[:,:]
+    matrix[:,dim] = 1.0
+    local_coords = numpy.linalg.solve(matrix.transpose(), local_coords)
+    return local_coords
+
+  def eval_field(self,ele,local_coord):
+    if self.mesh.shape.degree==0:
+      n = 1.0
+    else:
+      n = numpy.zeros(self.mesh.shape.loc)
+      for i in range(self.mesh.shape.loc):
+        n[i] = self.mesh.shape.eval_shape(i, local_coord)
+
+    val = numpy.zeros(self.dimension)
+    ele_vals = self.ele_val(ele).transpose()
+    for i in range(len(val)):
+      val[i] = numpy.dot(ele_vals[i],n)
+    return val
     
 class TensorField(Field):
   "A tensor field"
@@ -165,7 +206,7 @@ class Mesh:
 
   def ele_nodes(self,ele_number):
     # Return all nodes associated with the element ele_number
-    base = self.shape.loc*ele_number
+    base = self.shape.loc*(ele_number-1) # Subtract 1, since Python counts from 0
     nodes = []
     for i in range(self.shape.loc):
       # Subtract 1, since the nodes are numbered from 1 in ndglno

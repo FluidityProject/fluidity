@@ -104,6 +104,8 @@ module fluids_module
   use hyperlight
 #endif
   use multiphase_module
+  use lagrangian_biology
+  use detector_parallel, only: deallocate_detector_list_array
 
   implicit none
 
@@ -396,6 +398,11 @@ contains
     ! has a non-zero value before the first adapt.
     if (have_option("/ocean_biology")) then
        call calculate_biology_terms(state(1))
+    end if
+
+    ! Initialise lagrangian biology agents
+    if (have_option("/ocean_biology/lagrangian_ensemble")) then
+       call initialise_lagrangian_biology(state(1))
     end if
 
     ! Initialise radiation specific data types and register radiation diagnostics
@@ -845,6 +852,11 @@ contains
           end if
        end if
 
+       ! Call lagrangian biology after the non-linear iterations
+       if (have_option("/ocean_biology/lagrangian_ensemble")) then
+          call calculate_lagrangian_biology(state, current_time, dt, timestep)
+       end if
+
        if(have_option(trim('/mesh_adaptivity/mesh_movement/vertical_ale'))) then
           ewrite(1,*) 'Entering vertical_ale routine'
           !move the mesh and calculate the grid velocity
@@ -971,6 +983,11 @@ contains
         call keps_cleanup()
     end if
 
+    ! cleanup lagrangian biology
+    if (have_option("/ocean_biology/lagrangian_ensemble")) then
+        call lagrangian_biology_cleanup()
+    end if
+
     if (have_option("/material_phase[0]/sediment")) then
         call sediment_cleanup()
     end if
@@ -982,6 +999,9 @@ contains
 
     ! closing .stat, .convergence and .detector files
     call close_diagnostic_files()
+
+    ! deallocate the array of all detector lists
+    call deallocate_detector_list_array()
 
     ewrite(1, *) "Printing references before final deallocation"
     call print_references(1)
