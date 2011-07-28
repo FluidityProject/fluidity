@@ -59,7 +59,7 @@ MAKE = @MAKE@ -s
 
 AR = @AR@
 
-ARFLAGS	= -cr
+ARFLAGS	= -cq
 
 EVAL = scripts/silenteval
 
