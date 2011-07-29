@@ -70,6 +70,7 @@ module adapt_state_module
   use diagnostic_variables
   use intersection_finder_module
   use diagnostic_variables
+  use diagnostic_fields_wrapper_new, only : calculate_diagnostic_variables_new => calculate_diagnostic_variables
   use pickers
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
