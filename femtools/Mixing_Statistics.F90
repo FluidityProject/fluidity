@@ -366,7 +366,7 @@ contains
     
     do i = 1, size(bounds)
       ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bounds(i)
-      ewrite(2, *) "Heaviside integral > bound = ", integrals(i)
+      ewrite(2, *) "Heaviside integral >= bound = ", integrals(i)
     end do
   
   end function heaviside_integral_line
@@ -489,7 +489,7 @@ contains
     
     do i = 1, size(bounds)
       ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bounds(i)
-      ewrite(2, *) "Heaviside integral > bound = ", integrals(i)
+      ewrite(2, *) "Heaviside integral >= bound = ", integrals(i)
     end do
     
   end function heaviside_integral_tri
@@ -674,7 +674,7 @@ contains
     
     do i = 1, size(bounds)
       ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bounds(i)
-      ewrite(2, *) "Heaviside integral > bound = ", integrals(i)
+      ewrite(2, *) "Heaviside integral >= bound = ", integrals(i)
     end do
 
   end function heaviside_integral_tet
