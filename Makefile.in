@@ -286,8 +286,6 @@ endif
 	@cd preprocessor; $(MAKE)
 	@echo "    MAKE error_measures"
 	@cd error_measures;   	$(MAKE)
-	@echo "    MAKE decomp"
-	@cd decomp;   	$(MAKE)
 	@echo "    MAKE assemble"
 	@cd assemble;   	$(MAKE)
 	@echo "    MAKE diagnostics"
@@ -351,8 +349,6 @@ clean-light:
 	@cd assemble/tests;   $(MAKE) clean
 	@echo "    CLEAN diagnostics"
 	@cd diagnostics;   $(MAKE) clean
-	@echo "    CLEAN decomp"
-	@cd decomp;   $(MAKE) clean
 	@echo "    CLEAN preprocessor"
 	@cd preprocessor; $(MAKE) clean
 	@echo "    CLEAN error_measures/tests"
@@ -526,8 +522,6 @@ endif
 	"register_diagnostics.F90 check_options.F90" $(TESTOPTS)
 	@echo "    Generating error_measures dependencies"
 	@cd error_measures;   	../scripts/create_makefile.py $(TESTOPTS)
-	@echo "    Generating decomp dependencies"
-	@cd decomp;   	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating assemble dependencies"
 	@cd assemble;   	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating diagnostics dependencies"

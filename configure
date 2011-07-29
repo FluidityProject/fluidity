@@ -622,9 +622,9 @@ HAVE_ADJOINT
 HAVE_ZOLTAN
 ZOLTAN
 MPICXX
-MPICC
 MPIF77
 MPIF90
+MPICC
 ENABLE_PSMILE
 FLPSMILE_PATH
 FEMDEM
@@ -735,7 +735,6 @@ enable_buildopt
 enable_verbose
 with_femdem
 with_psmile
-enable_mpi
 with_netcdf
 with_ParMetis
 enable_sam
@@ -771,6 +770,10 @@ CXXFLAGS
 CCC
 CPP
 PYTHON_VERSION
+MPICC
+MPIF90
+MPIF77
+MPICXX
 XMKMF
 CXXCPP'
 
@@ -1401,7 +1404,6 @@ Optional Features:
   --enable-buildopt       Enables build optimisations on ext4 and xfs
                           filesystems
   --enable-verbose        turns on super verbosity
-  --enable-mpi            turns on MPI support
   --enable-sam            use sam rather than zoltan for adaptive load
                           rebalancing
   --disable-petsc-fortran-modules
@@ -1460,6 +1462,10 @@ Some influential environment variables:
               The installed Python version to use, for example '2.3'. This
               string will be appended to the Python interpreter canonical
               name.
+  MPICC       C compiler command for MPI programs
+  MPIF90      Fortran 90 compiler command for MPI programs
+  MPIF77      Fortran 77 compiler command for MPI programs
+  MPICXX      C++ compiler command for MPI programs
   XMKMF       Path to xmkmf, Makefile generator for X Window System
   CXXCPP      C++ preprocessor
 
@@ -11048,18 +11054,13 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-# Check whether --enable-mpi was given.
-if test "${enable_mpi+set}" = set; then :
-  enableval=$enable_mpi;
-fi
 
 
-# various synonyms accepted to disable MPI
-if test "$with_mpi" = no ; then enable_mpi=no; fi
-if test "$with_MPI" = no ; then enable_mpi=no; fi
-if test "$enable_MPI" = no ; then enable_mpi=no; fi
-if test "$enable_mpi" != "no" ; then
-  for ac_prog in mpif90 mpf90
+
+
+
+
+for ac_prog in mpif90 mpf90
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -11102,10 +11103,10 @@ fi
 done
 test -n "$MPIF90" || MPIF90="$FC"
 
-  if test "$smart_fortran" = "yes" ; then
-    MPIF77=$MPIF90
-  else
-    for ac_prog in mpif77 mpf77
+if test "$smart_fortran" = "yes" ; then
+  MPIF77=$MPIF90
+else
+  for ac_prog in mpif77 mpf77
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -11148,8 +11149,8 @@ fi
 done
 test -n "$MPIF77" || MPIF77="$F77"
 
-  fi
-  for ac_prog in mpicc mpcc
+fi
+for ac_prog in mpicc mpcc
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -11192,7 +11193,7 @@ fi
 done
 test -n "$MPICC" || MPICC="$CC"
 
-  for ac_prog in mpicxx mpiCC mpCC
+for ac_prog in mpicxx mpiCC mpCC
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -11236,19 +11237,19 @@ done
 test -n "$MPICXX" || MPICXX="$CXX"
 
 
-  F77=$MPIF77
-  FC=$MPIF90
-  CC=$MPICC
-  CXX=$MPICXX
+F77=$MPIF77
+FC=$MPIF90
+CC=$MPICC
+CXX=$MPICXX
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if we can compile and link without using -lmpi" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if we can compile and link without using -lmpi" >&5
 $as_echo_n "checking if we can compile and link without using -lmpi... " >&6; }
-  LIBS_bck="$LIBS"
-  LIBS=""
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+LIBS_bck="$LIBS"
+LIBS=""
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-  #include <mpi.h>
+#include <mpi.h>
 
 #ifdef F77_DUMMY_MAIN
 
@@ -11270,8 +11271,8 @@ int
 main ()
 {
 
-  int flag;
-  MPI_Initialized(&flag);
+int flag;
+MPI_Initialized(&flag);
 
   ;
   return 0;
@@ -11279,29 +11280,21 @@ main ()
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-  LIBS="$LIBS_bck"
-  mpi="yes"
+LIBS="$LIBS_bck"
+mpi="yes"
 
 else
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-  LIBS="$LIBS_bck"
-  check_for_lmpi="yes"
+LIBS="$LIBS_bck"
+check_for_lmpi="yes"
 
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: mpi disabled" >&5
-$as_echo "$as_me: WARNING: mpi disabled" >&2;}
-  MPIF77=$F77
-  MPIF90=$FC
-  MPICC=$CC
-  MPICXX=$CXX
-fi
 
 if test "$check_for_lmpi" = "yes" ; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if we can compile and link using -lmpi" >&5
@@ -11435,9 +11428,7 @@ cat >> confdefs.h << EOF
 EOF
   enable_mpi="yes"
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: no mpi support found on system" >&5
-$as_echo "$as_me: WARNING: no mpi support found on system" >&2;}
-  enable_mpi="no"
+  as_fn_error $? "no MPI support found on system" "$LINENO" 5
 fi
 
 # netCDF support
@@ -11743,24 +11734,25 @@ if test $zoltan != no; then
 fi
 LIBS=$tmpLIBS
 CPPFLAGS=$tmpCPPFLAGS
-if test $zoltan != no; then
-    # Check that the compiler uses the library we specified...
-    if test -e $zoltan_LIBS_PATH/libzoltan.a; then
-        echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
-    fi
+# Check that the compiler uses the library we specified...
+if test -e $zoltan_LIBS_PATH/libzoltan.a; then
+  echo "note: using $zoltan_LIBS_PATH/libzoltan.a"
+fi
 
-    # Check that the compiler uses the include path we specified...
-    if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
-	    echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
-    fi
+# Check that the compiler uses the include path we specified...
+if test -e $zoltan_INCLUDES_PATH/zoltan.mod; then
+	echo "note: using $zoltan_INCLUDES_PATH/zoltan.mod"
+fi
 
-    ac_ext=c
+
+
+ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Initialize in -lzoltan" >&5
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for Zoltan_Initialize in -lzoltan" >&5
 $as_echo_n "checking for Zoltan_Initialize in -lzoltan... " >&6; }
 if test "${ac_cv_lib_zoltan_Zoltan_Initialize+set}" = set; then :
   $as_echo_n "(cached) " >&6
@@ -11820,24 +11812,18 @@ else
   as_fn_error $? "Could not link in the zoltan library... exiting " "$LINENO" 5
 fi
 
-    # Save variables...
-    ac_ext=c
+# Save variables...
+ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-    ZOLTAN="yes"
+ZOLTAN="yes"
 
 
-    echo $LIBS
-
-else
-    HAVE_ZOLTAN=0
-fi
-
-
+echo $LIBS
 
 fi
 
@@ -14896,7 +14882,7 @@ fi
 
 fi
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile decomp/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile radiation/Makefile radiation/tests/Makefile diagnostics/Makefile main/Makefile scripts/Makefile tools/Makefile python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile qg_strat/Makefile qg_strat/unittests/Makefile tests/lauwerier/Makefile reduced_modelling/Makefile legacy_reservoir_prototype/Makefile"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile radiation/Makefile radiation/tests/Makefile diagnostics/Makefile main/Makefile scripts/Makefile tools/Makefile python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile qg_strat/Makefile qg_strat/unittests/Makefile tests/lauwerier/Makefile reduced_modelling/Makefile legacy_reservoir_prototype/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15606,7 +15592,6 @@ do
     "error_measures/tests/Makefile") CONFIG_FILES="$CONFIG_FILES error_measures/tests/Makefile" ;;
     "parameterisation/Makefile") CONFIG_FILES="$CONFIG_FILES parameterisation/Makefile" ;;
     "parameterisation/tests/Makefile") CONFIG_FILES="$CONFIG_FILES parameterisation/tests/Makefile" ;;
-    "decomp/Makefile") CONFIG_FILES="$CONFIG_FILES decomp/Makefile" ;;
     "fldecomp/Makefile") CONFIG_FILES="$CONFIG_FILES fldecomp/Makefile" ;;
     "assemble/Makefile") CONFIG_FILES="$CONFIG_FILES assemble/Makefile" ;;
     "assemble/tests/Makefile") CONFIG_FILES="$CONFIG_FILES assemble/tests/Makefile" ;;
