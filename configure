@@ -10782,7 +10782,7 @@ $as_echo "no" >&6; }
 fi
 
 
-test -n "$ARFLAGS" || ARFLAGS="cq"
+test -n "$ARFLAGS" || ARFLAGS="cr"
 
 if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}ranlib", so it can be a program name with args.

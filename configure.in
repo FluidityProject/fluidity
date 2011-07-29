@@ -519,7 +519,7 @@ AC_CHECK_PROG(MAKE, gmake, gmake, make, $PATH)
 # Set default for ARFLAGS, since autoconf does not have a macro for
 # it. This allows people to set it when running configure or make.
 AC_CHECK_PROG(AR, ar, ar, ,$PATH)
-test -n "$ARFLAGS" || ARFLAGS="cq"
+test -n "$ARFLAGS" || ARFLAGS="cr"
 
 AC_PROG_RANLIB
 
