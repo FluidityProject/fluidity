@@ -172,14 +172,6 @@ bin/hybridized_helmholtz_solver: fluidity_library main/Hybridized_Helmholtz_Solv
 	@echo "    LD hybridized_helmholtz_solver"
 	@$(EVAL) $(LINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
 
-bin/shallow_water_legacy: fluidity_library main/Shallow_Water_Legacy.F90
-	@cd main; $(MAKE) Shallow_Water_Legacy.o
-	@echo "BUILD shallow_water_legacy"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD shallow_water_legacy"
-	@$(EVAL) $(LINKER) -o bin/shallow_water_legacy main/Shallow_Water_Legacy.o $(LIBS)
-
 bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@cd main; $(MAKE) Burgers_Equation.o
 	@echo "BUILD burgers_equation"
@@ -212,14 +204,6 @@ bin/multiphase_prototype: fluidity_library
 	@mkdir -p bin
 	@echo "    LD multiphase_prototype"
 	@$(EVAL) $(LINKER) -o bin/multiphase_prototype legacy_reservoir_prototype/main.o $(FCFLAGS) $(LIBS)
-
-bin/simple_shallow_water: fluidity_library main/Simple_Shallow_Water.F90
-	@cd main; $(MAKE) Simple_Shallow_Water.o
-	@echo "BUILD simple_shallow_water"
-	@echo "    MKDIR bin"
-	@mkdir -p bin
-	@echo "    LD simple_shallow_water"
-	@$(EVAL) $(LINKER) -o bin/simple_shallow_water main/Simple_Shallow_Water.o $(LIBS)
 
 bin/form_pod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
 	@cd reduced_modelling; $(MAKE) Form_Pod_Basis_Main.o

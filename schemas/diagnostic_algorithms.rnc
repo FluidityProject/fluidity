@@ -757,21 +757,6 @@ projection_scalar_potential_algorithm =
         }
       }
    )
-vector_potential_algorithm =
-   (
-      ## Computes the vector potential A where:
-      ##   F = nabla phi + nabla x A + H
-      ## with a strong Dirichlet boundary condition of zero on all boundaries.
-      element algorithm {
-         attribute name { "vector_potential" },
-         attribute material_phase_support { "single" },
-         vector_source_field,
-         ## Linear solver options.
-         element solver {
-            linear_solver_options_sym
-         }
-      }
-   )
 geostrophic_velocity_algorithm =
    (
       ## Compute the velocity in geostrophic balance with a pressure field
@@ -1372,7 +1357,6 @@ scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 vector_diagnostic_algorithms = vector_time_averaged_algorithm
 vector_diagnostic_algorithms |= vector_sum_algorithm
 vector_diagnostic_algorithms |= vector_scalar_time_averaged_algorithm
-vector_diagnostic_algorithms |= vector_potential_algorithm
 vector_diagnostic_algorithms |= vector_laplacian_algorithm
 vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= vector_difference_algorithm
