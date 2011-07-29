@@ -1764,6 +1764,7 @@ contains
     real :: Flux
     integer :: ni, ele_2, face, face_2, gi, i, k
     integer, dimension(:), pointer :: neigh
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J
     real, dimension(ele_ngi(X,ele)) :: detwei
     real, dimension(U%dim, face_ngi(U, 1)) :: n1, n2, U_f_q, U_f2_q
     real, dimension(face_ngi(U,1)) :: u_q_dotn1, u_q_dotn2, u_q_dotn, flux_quad
@@ -1774,7 +1775,7 @@ contains
     real, dimension(ele_loc(u,ele)) :: Vals
     !
     !Get element volume
-    call transform_to_physical(X, ele, detwei=detwei)
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, detwei=detwei)
     Vol = sum(detwei)
     
     !Get fluxes
