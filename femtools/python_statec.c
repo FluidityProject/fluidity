@@ -1,11 +1,39 @@
 #define ALLOW_IMPORT_ARRAY
 #include "python_statec.h"
+#include "Node_Owner_Finder.h"
 
 void python_init_(void){
 #ifdef HAVE_PYTHON
   // Initialize the Python interpreter
   Py_Initialize();
   PyRun_SimpleString("import string");  
+
+  PyObject* module;
+  module = Py_InitModule("fluidity_api", NULL);
+  assert(module != NULL);
+
+#if PY_MINOR_VERSION > 6
+  
+  printf("version > 6\n");
+  
+  PyObject* cNodeOwnerFinderResetCapsule;
+  cNodeOwnerFinderResetCapsule = PyCapsule_NewcNodeOwnerFinderReset, 
+                                                  "fluidity_api._cNodeOwnerFinderReset", NULL);
+  if (cNodeOwnerFinderResetCapsule != NULL) {
+    printf("cNodeOwnerFinderResetCapsule is not NULL\n");
+    PyModule_AddObject(module, "_cNodeOwnerFinderReset", cNodeOwnerFinderResetCapsule);
+  }
+  
+  PyObject* cNodeOwnerFinderSetInputCapsule;
+  cNodeOwnerFinderSetInputCapsule = PyCapsule_New(cNodeOwnerFinderSetInput, 
+                                                    "fluidity_api._cNodeOwnerFinderSetInput", NULL);
+  if (cNodeOwnerFinderSetInputCapsule != NULL) {
+    printf("cNodeOwnerFinderSetInputCapsule is not NULL\n");
+    PyModule_AddObject(module, "_cNodeOwnerFinderSetInput", cNodeOwnerFinderSetInputCapsule);
+  }
+  
+#endif
+  
 #endif
 #ifdef HAVE_NUMPY
   // Enable use of NumPy arrays in C

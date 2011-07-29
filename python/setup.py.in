@@ -8,6 +8,8 @@ try:
 except KeyError:
   destdir = ""
 
+pickers = Extension('fluidity.pickers', sources = ['fluidity/pickersmodule.c'])
+
 setup(
       name='fluidity',
       version='0.1',
@@ -16,7 +18,8 @@ setup(
       author_email = "patrick.farrell06@imperial.ac.uk",
       url = "http://amcg.ese.ic.ac.uk",
       packages = ['fluidity'],
-      package_dir = {'fluidity': 'fluidity'}
+      package_dir = {'fluidity': 'fluidity'},
+      ext_modules = [pickers]
      )
 
 

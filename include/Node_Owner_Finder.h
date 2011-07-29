@@ -29,6 +29,7 @@
 #ifndef NODE_OWNERSHIP_H
 #define NODE_OWNERSHIP_H
 
+#ifdef __cplusplus
 #include <map>
 #include <vector>
 
@@ -89,6 +90,7 @@ namespace Fluidity {
 extern std::map<int, Fluidity::NodeOwnerFinder*> nodeOwnerFinder;
 
 extern "C" {
+#endif // __cplusplus
 #define cNodeOwnerFinderReset F77_FUNC(cnode_owner_finder_reset, CNODE_OWNER_FINDER_RESET)
   void cNodeOwnerFinderReset(const int* id);
 
@@ -103,6 +105,8 @@ extern "C" {
 
 #define cNodeOwnerFinderGetOutput F77_FUNC(cnode_owner_finder_get_output, CNODE_OWNER_FINDER_GET_OUTPUT)
   void cNodeOwnerFinderGetOutput(const int* id, int* ele_id, const int* index);
-}
 
+#ifdef __cplusplus
+}
+#endif
 #endif

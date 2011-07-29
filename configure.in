@@ -186,6 +186,7 @@ then
 		        ]])],
         [
 	    AC_MSG_NOTICE([Python automagic works.])
+      export HAVE_PYTHON=yes
 	    CPPFLAGS="$CPPFLAGS -DHAVE_PYTHON"],
         [
             AC_MSG_NOTICE([No Python automagic.])
@@ -200,6 +201,7 @@ then
     # Save variables...
         if test "$pythonexists" = "yes";
         then
+          export HAVE_PYTHON=yes
 	    if  test "$fcompiler" = "pgf90"; then
 	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-Xlinker/}
 	        PYTHON_EXTRA_LDFLAGS=${PYTHON_EXTRA_LDFLAGS/-export-dynamic/}
