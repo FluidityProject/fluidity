@@ -38,19 +38,60 @@ pickers_cNodeOwnerFinderSetInput(PyObject *self, PyObject *args)
   void (*cNodeOwnerFinderSetInput)(int* id, const double* positions, const int* enlist, const int* dim, 
           const int* loc, const int* nnodes, const int* nelements) = NULL;
   int id;
-  double positions;
-  int enlist;
+  double *positions;
+  int *enlist;
   int dim;
   int loc;
   int nnodes;
   int nelements;
+  PyObject* pyid;
+  PyObject* pypositions;
+  PyObject* pyenlist;
+  PyObject* pydim;
+  PyObject* pyloc;
+  PyObject* pynnodes;
+  PyObject* pynelements;
+  int pypositionsSize;
+  int enlistSize;
+  
+  pyid = PyTuple_GetItem(args, 0);
+  pypositions = PyTuple_GetItem(args, 1);
+  pyenlist = PyTuple_GetItem(args, 2);
+  pydim = PyTuple_GetItem(args, 3);
+  pyloc = PyTuple_GetItem(args, 4);
+  pynnodes = PyTuple_GetItem(args, 5);
+  pynelements = PyTuple_GetItem(args, 6);
+  
+  PyArg_Parse(pyid, "i", &id);
+  
+  pypositionsSize = PyList_Size(pypositions);
+  positions = malloc(pypositionsSize*sizeof(double));
+  int i;
+  for (i = 0; i < pypositionsSize; i++){
+    double element;
+    PyObject* pylistElement = PyList_GetItem(pypositions, i);
+    PyArg_Parse(pylistElement, "f", &element);
+    positions[i] = element;
+  }
+  
+  enlistSize = PyList_Size(pyenlist);
+  enlist = malloc(enlistSize*sizeof(double));
+  int j;
+  for (j = 0; j < enlistSize; j++){
+    int element;
+    PyObject* pylistElement = PyList_GetItem(pyenlist, j);
+    PyArg_Parse(pylistElement, "i", &element);
+    enlist[j] = element;
+  }
+  
+  PyArg_Parse(pydim, "i", &dim);
+  PyArg_Parse(pyloc, "i", &loc);
+  PyArg_Parse(pynnodes, "i", &nnodes);
+  PyArg_Parse(pynelements, "i", &nelements);
   
   cNodeOwnerFinderSetInput = cNodeOwnerFinderSetInputFunction;
 
-  if (!PyArg_ParseTuple(args, "ifiiiii", &id, &positions, &enlist, &dim, &loc, &nnodes, &nelements))
-    return NULL;
-  
-  (*cNodeOwnerFinderSetInput)(&id, &positions, &enlist, &dim, &loc, &nnodes, &nelements);
+  (*cNodeOwnerFinderSetInput)(&id, positions, enlist, &dim, &loc, &nnodes, &nelements);
   
   Py_RETURN_NONE;
 }

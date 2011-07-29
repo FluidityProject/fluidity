@@ -17,11 +17,14 @@ void python_init_(void){
   printf("version > 6\n");
   
   PyObject* cNodeOwnerFinderResetCapsule;
-  cNodeOwnerFinderResetCapsule = PyCapsule_NewcNodeOwnerFinderReset, 
+  cNodeOwnerFinderResetCapsule = PyCapsule_New(cNodeOwnerFinderReset, 
                                                   "fluidity_api._cNodeOwnerFinderReset", NULL);
   if (cNodeOwnerFinderResetCapsule != NULL) {
     printf("cNodeOwnerFinderResetCapsule is not NULL\n");
     PyModule_AddObject(module, "_cNodeOwnerFinderReset", cNodeOwnerFinderResetCapsule);
+  }
+  else{
+    printf("cNodeOwnerFinderResetCapsule is NULL\n");
   }
   
   PyObject* cNodeOwnerFinderSetInputCapsule;
@@ -30,6 +33,9 @@ void python_init_(void){
   if (cNodeOwnerFinderSetInputCapsule != NULL) {
     printf("cNodeOwnerFinderSetInputCapsule is not NULL\n");
     PyModule_AddObject(module, "_cNodeOwnerFinderSetInput", cNodeOwnerFinderSetInputCapsule);
+  }
+  else{
+    printf("cNodeOwnerFinderSetInputCapsule is NULL\n");
   }
   
 #endif

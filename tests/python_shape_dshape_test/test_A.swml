@@ -257,7 +257,17 @@ import scipy.sparse.linalg
 import fluidity.pickers
 print dir(fluidity.pickers)
 fluidity.pickers.cNodeOwnerFinderReset(0)
-fluidity.pickers.cNodeOwnerFinderSetInput(0, 1.20, 1, 2, 1, 2, 3)
+
+#void cNodeOwnerFinderSetInput(int* id, const double* positions, const int* enlist, const int* dim, const int* loc, const int* nnodes, const int* nelements)
+id = 1
+positions = [0,0.5, 1.0]
+enlist = [1,2,2,3]
+dim = 1
+loc = 2
+nnodes = 2
+nelements = 2
+
+fluidity.pickers.cNodeOwnerFinderSetInput(id, positions, enlist, dim, loc, nnodes, nelements)
 
 coord  = state.vector_fields["Coordinate"]
 source = state.vector_fields["Source"]
