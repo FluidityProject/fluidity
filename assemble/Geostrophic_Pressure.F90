@@ -1822,7 +1822,7 @@ contains
 
       if(lump_rhs) then
         little_lumped_l = sum(shape_shape(shape, shape, detwei * two_omega(ele_val_at_quad(positions, ele))), 2)
-        assert(any(size(little_rhs, 1) == (/2, 3/)))
+        assert(any(size(little_rhs, 2) == (/2, 3/)))
         little_rhs(:, U_) = -little_lumped_l * ele_val(velocity, V_, ele)
         little_rhs(:, V_) = little_lumped_l * ele_val(velocity, U_, ele)
         if(size(little_rhs, 2) == 3) little_rhs(:, W_) = 0.0
@@ -3129,8 +3129,8 @@ contains
     end if
     
     do i = 0, option_count("/material_phase") - 1
-      if(have_option("/material_phase/scalar_field::" // hp_name) .and. &
-        & have_option("/material_phase/vector_field::" // hpg_name)) then
+      if(have_option("/material_phase["//int2str(i)//"]/scalar_field::" // hp_name) .and. &
+        & have_option("/material_phase["//int2str(i)//"/vector_field::" // hpg_name)) then
         FLExit("Cannot use both HydrostaticPressure and HydrostaticPressureGradient")
       end if
     end do
