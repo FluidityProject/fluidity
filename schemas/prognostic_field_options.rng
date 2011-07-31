@@ -756,6 +756,15 @@ upon temperature. This is only valid when you have a temperature field.</a:docum
               </element>
             </element>
           </optional>
+          <optional>
+            <element name="shock_viscosity">
+              <a:documentation>For compressible flows with shocks this adds to artificial
+viscosity near the shock front</a:documentation>
+              <element name="quadratic_shock_viscosity_coefficient">
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
         </element>
         <element name="discontinuous_galerkin">
           <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
