@@ -447,9 +447,9 @@ contains
       pressure=>extract_scalar_field(state, "Pressure")
       ewrite_minmax(pressure)
 
-      have_shock_viscosity=have_option(trim(velocity%option_path)//"/prognostic/spatial_discretisation/shock_viscosity")
+      have_shock_viscosity=have_option(trim(velocity%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity")
       if (have_shock_viscosity) then
-        call get_option(trim(velocity%option_path)//"/prognostic/spatial_discretisation/&
+        call get_option(trim(velocity%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/&
            &shock_viscosity/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
       end if
 

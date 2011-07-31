@@ -478,9 +478,9 @@
          leonard => dummytensor; leonard_av => dummytensor
       end if
 
-      have_shock_viscosity=have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/shock_viscosity")
+      have_shock_viscosity=have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity")
       if (have_shock_viscosity) then
-        call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
+        call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/&
            &shock_viscosity/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
       end if
 
