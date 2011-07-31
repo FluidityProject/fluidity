@@ -228,7 +228,13 @@ contains
           pwc_mesh = piecewise_constant_mesh(positions%mesh, "PiecewiseConstantMesh")
           call allocate(positions_ele, positions%dim, pwc_mesh, positions%name)
           call deallocate(pwc_mesh)
-          call remap_field(positions, positions_ele)
+          do i = 1, element_count(positions)
+             ! Note that we are setting NODE values of ele_postions to
+             !  ELEMENT values of positions. This is an abuse of notation
+             !  caused by halo_verifies assuming all the world's a node halo. 
+             call set(positions_ele,i, sum(ele_val(positions,i),2)&
+                  &/positions%dim)
+          end do
           do i = 1, nhalos
              if(.not. serial_storage_halo(positions%mesh%element_halos(i))) then
                 assert(halo_verifies(positions%mesh%element_halos(i), positions_ele))
