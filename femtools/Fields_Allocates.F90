@@ -1010,6 +1010,8 @@ contains
        select case(mesh%shape%numbering%family)
        case(FAMILY_SIMPLEX)          
           n_faces = mesh%shape%dim + 1
+       case(FAMILY_CUBE)
+          n_faces = 2**mesh%shape%dim
        case default
           FLExit('Element family not supported for trace elements')
        end select

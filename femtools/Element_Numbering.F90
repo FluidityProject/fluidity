@@ -89,6 +89,8 @@ module element_numbering
        & tri_numbering
   type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
        & tri_numbering_trace
+  type(ele_numbering_type), dimension(0:TRI_MAX_DEGREE), target, save ::&
+       & quad_numbering_trace
   type(ele_numbering_type), dimension(1:TRI_BUBBLE_MAX_DEGREE), target, save ::&
        & tri_numbering_bubble
   type(ele_numbering_type), target, save :: tri_numbering_nc
@@ -295,15 +297,17 @@ contains
        
     case (ELEMENT_TRACE)
 
-       if(vertices /= 3) then
-          FLAbort('Trace elements only currently coded for triangles')
-       end if
        if(dimension /= 2) then
-          FLAbort('Trace elements only currently coded for triangles')
+          FLAbort('Trace elements only currently coded for 2D')
        end if
-
-       ele_num=>tri_numbering_trace(degree)
-
+       select case (vertices)
+       case (3)
+          ele_num=>tri_numbering_trace(degree)
+       case (4)
+          ele_num=>quad_numbering_trace(degree)
+       case default
+          FLAbort('Vertex count not supported for trace elements')
+       end select
     case (ELEMENT_BUBBLE)
 
        select case(dimension)
@@ -394,7 +398,8 @@ contains
     call number_point_lagrange
     call number_hexes_lagrange
     call number_quads_lagrange
-
+    call number_quads_trace
+    
   end subroutine number_elements
 
   subroutine number_tets_lagrange
@@ -820,7 +825,7 @@ contains
 
        ! Allocate mappings:
 
-       ele%nodes=(ele%dimension+1)*(ele%degree+1)
+       ele%nodes=(ele%dimension+1)*(ele%degree+1) !faces x floc
        
        ! For trace elements, the first index is the facet number.
        allocate(ele%count2number(1:ele%dimension+1,0:i,0:i))
@@ -835,7 +840,6 @@ contains
        l(1)=ele%degree
        
        cnt=0
-       
        
        facet_loop: do ll=1,ele%dimension+1
           
@@ -857,7 +861,7 @@ contains
           ewrite(3,*) 'Counting error', i, ele%nodes, cnt
           stop
        end if
-       
+
        ! For trace elements, the first local_coordinate is the face number.
        ele%boundary_coord=1
        forall(j=1:ele%vertices)
@@ -867,6 +871,78 @@ contains
     end do degree_loop
     
   end subroutine number_triangles_trace
+
+  subroutine number_quads_trace
+    ! Fill the values in in element_numbering.
+    integer :: i,j, cnt, ll
+    integer, dimension(3) :: l
+    type(ele_numbering_type), pointer :: ele
+
+    quad_numbering_trace%faces=1
+    quad_numbering_trace%vertices=4
+    quad_numbering_trace%edges=4
+    quad_numbering_trace%dimension=2
+    quad_numbering_trace%boundaries=4
+    quad_numbering_trace%family=FAMILY_CUBE
+    quad_numbering_trace%type=ELEMENT_TRACE
+
+    ! Degree 0 elements are a special case.
+    ele=>quad_numbering_trace(0)
+    ele%degree=0
+    
+    degree_loop: do i=0,QUAD_MAX_DEGREE
+       ele=>quad_numbering_trace(i)
+       ele%degree=i 
+
+       ! Allocate mappings:
+
+       ele%nodes= 2**ele%dimension * (ele%degree + 1) ! faces x floc
+       
+       ! For trace elements, the first index is the facet number.
+       allocate(ele%count2number(1:2*ele%dimension,0:i,0:i))
+       allocate(ele%number2count(ele%dimension+1,ele%nodes))
+       allocate(ele%boundary_coord(ele%boundaries))
+       allocate(ele%boundary_val(ele%boundaries))
+
+       ele%count2number=0
+       ele%number2count=0
+
+       l=0
+       l(1)=ele%degree
+       
+       cnt=0
+       
+       facet_loop: do ll=1,2*ele%dimension
+          
+          l=0
+
+          l(1)=ll
+          number_loop: do j=0,ele%degree
+             
+             cnt=cnt+1
+             l(2:3)=(/ele%degree-j,j/)
+             
+             ele%count2number(l(1), l(2), l(3))=cnt
+             ele%number2count(:,cnt)=l
+             
+          end do number_loop
+       end do facet_loop
+
+       ! Sanity test
+       if (ele%nodes/=cnt) then
+          ewrite(0,*) 'Counting error', i, ele%nodes, cnt
+          stop
+       end if
+
+       ! For trace elements, the first local_coordinate is the face number.
+       ele%boundary_coord=1
+       forall(j=1:ele%vertices)
+          ! The first local coordinate labels the face.
+          ele%boundary_val(j)=j
+       end forall
+    end do degree_loop
+    
+  end subroutine number_quads_trace
 
   subroutine number_intervals_lagrange
     ! Fill the values in in element_numbering.
@@ -1159,7 +1235,7 @@ contains
           end do
 
        end do
-              
+
        ! Number faces.
        forall(j=1:ele%vertices)
           ele%boundary_coord(j)=(j+1)/2
@@ -1482,7 +1558,7 @@ contains
           face_num_length=tr(ele_num%degree+1)
        end if
     case (FAMILY_CUBE)
-       if (interior) then
+       if (interior.and.ele_num%type/=ELEMENT_TRACE) then
           face_num_length=(ele_num%degree-1)**2
        else
           face_num_length=(ele_num%degree+1)**2
@@ -1647,6 +1723,8 @@ contains
     integer :: cnt, i, j, k, inc
     ! Local edge vertices for trace elements. 
     integer, dimension(2) :: ln
+    ! array for locating face in quad
+    integer, dimension(7) :: sum2face
     
     select case (ele_num%type)
     case (ELEMENT_LAGRANGIAN)
@@ -1770,7 +1848,50 @@ contains
 
          end do trace_number_loop
          assert(cnt==size(edge_local_num))
+         
+      case (FAMILY_CUBE)
+         l = 0
+         !boundary_coord = (0,0,1,1)
+         !boundary_val = (0,1,0,1)
+         !numbering is
+         !       4
+         !   3      4
+         !  1        2
+         !   1      2
+         !       3
+         sum2face = (/0,0,3,1,0,2,4/)
+         if(sum(nodes)>7) then
+            FLAbort('bad vertex numbers')
+         end if
+         !first local coordinate is face number
+         l(1) = sum2face(sum(nodes))
+         if(l(1)==0) then
+            FLAbort('bad vertex numbers')
+         end if
 
+         if (nodes(2)>nodes(1)) then
+            ! Counting forward
+            ln = (/2,3/)
+         else
+            ! Counting backwards
+            ln = (/3,2/)
+         end if
+
+         l(ln(1))=ele_num%degree
+         cnt=0         
+         trace_number_loop1: do
+            cnt=cnt+1
+                
+            edge_local_num(cnt)=ele_num%count2number(l(1), l(2), l(3))
+
+            ! Advance the index:
+            l(ln)=l(ln)+(/-1,1/)
+            
+            ! Check for completion
+            if (any(l<0)) exit trace_number_loop1
+
+         end do trace_number_loop1
+         assert(cnt==size(edge_local_num))
       case default
          FLAbort("Unknown element family.")
       end select
@@ -2211,7 +2332,7 @@ contains
 
           count_coords=ele_num%number2count(:,n)
 
-          if (ele_num%degree>0) then          
+          if (ele_num%degree>0) then
              do i=1,ele_num%dimension+1
                 if (i<count_coords(1)) then
                    coords(i)=count_coords(i+1)/real(ele_num%degree)
@@ -2223,10 +2344,12 @@ contains
              end do
           else
              ! Degree 0 elements have a single node in the centre of the
-             ! element. 
+             ! face. 
              coords=0.5
              coords(n) = 0.0
           end if
+       case (FAMILY_CUBE)
+          FLAbort('I *thought* this wasn''t needed.')
 
        case default
           

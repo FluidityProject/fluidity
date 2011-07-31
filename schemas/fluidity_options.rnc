@@ -2172,6 +2172,8 @@ prognostic_density_field =
                },
                comment
             }|
+            ## Discontinuous galerkin formulation
+            discontinuous_galerkin_options|
             ## Use a control volume discretisation.
             element control_volumes {
               spatial_control_volume_options

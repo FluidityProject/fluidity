@@ -18,6 +18,22 @@
         </stat>
       </from_file>
     </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">0</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">5</integer_value>
@@ -47,6 +63,14 @@
       <real_value rank="0">0.1</real_value>
       <comment>Only run for shortly to make this a short test. Should normally be run for 1.0s</comment>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">1</integer_value>
+      <comment>This should really be converged - but it seems stable/accurate enough for a short test.</comment>
+      <tolerance>
+        <real_value rank="0">1e-7</real_value>
+        <infinity_norm/>
+      </tolerance>
+    </nonlinear_iterations>
   </timestepping>
   <material_phase name="Gas">
     <equation_of_state>
@@ -60,7 +84,7 @@
     </equation_of_state>
     <scalar_field name="Pressure" rank="0">
       <diagnostic>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <output/>
         <stat/>
@@ -77,16 +101,20 @@
     </scalar_field>
     <scalar_field name="Density" rank="0">
       <prognostic>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FiniteElement">
-              <limit_face_value>
-                <limiter name="Sweby"/>
-              </limit_face_value>
-            </face_value>
-          </control_volumes>
+          <discontinuous_galerkin>
+            <advection_scheme>
+              <upwind/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
+            </advection_scheme>
+            <diffusion_scheme>
+              <compact_discontinuous_galerkin/>
+            </diffusion_scheme>
+          </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
@@ -95,19 +123,10 @@
           <theta>
             <real_value rank="0">1.0</real_value>
           </theta>
-          <control_volumes>
-            <number_advection_iterations>
-              <integer_value rank="0">3</integer_value>
-            </number_advection_iterations>
-          </control_volumes>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
           <relative_error>
             <real_value rank="0">1e-7</real_value>
           </relative_error>
@@ -119,14 +138,21 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-  if X[0]&lt;=0.0:
-    return 1.0
-  else:
-    return 0.2</string_value>
-          </python>
+        <initial_condition name="Left">
+          <region_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">1.0</real_value>
+          </constant>
+        </initial_condition>
+        <initial_condition name="Right">
+          <region_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </region_ids>
+          <constant>
+            <real_value rank="0">0.2</real_value>
+          </constant>
         </initial_condition>
         <output/>
         <stat/>
@@ -236,14 +262,13 @@
           <density name="Density"/>
         </equation>
         <spatial_discretisation>
-          <control_volumes>
-            <face_value name="FiniteElement">
-              <limit_face_value>
-                <limiter name="Sweby"/>
-              </limit_face_value>
-            </face_value>
-            <diffusion_scheme name="ElementGradient"/>
-          </control_volumes>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms/>
+            <mass_terms/>
+          </continuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
@@ -252,11 +277,6 @@
           <theta>
             <real_value rank="0">1.0</real_value>
           </theta>
-          <control_volumes>
-            <number_advection_iterations>
-              <integer_value rank="0">3</integer_value>
-            </number_advection_iterations>
-          </control_volumes>
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
@@ -327,14 +347,14 @@
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
           <string_value lines="20" type="python">import numpy
 import shocktube
-x = state.vector_fields['Coordinate']
+x = state.vector_fields['DiagnosticCoordinate']
 time = state.scalar_fields['Time']
 t=time[0]
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   field.set(i, sol[0])</string_value>
         </algorithm>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -351,7 +371,7 @@ for (i,xi) in enumerate(x.val):
     <scalar_field name="PressureError" rank="0">
       <diagnostic>
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Pressure" source_field_2_name="AnalyticalPressure" material_phase_support="single" source_field_1_type="scalar"/>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -370,14 +390,14 @@ for (i,xi) in enumerate(x.val):
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
           <string_value lines="20" type="python">import numpy
 import shocktube
-x = state.vector_fields['Coordinate']
+x = state.vector_fields['DiagnosticCoordinate']
 time = state.scalar_fields['Time']
 t=time[0]
 for (i,xi) in enumerate(x.val):
   sol=shocktube.solution(xi[0],t)
   field.set(i, sol[2])</string_value>
         </algorithm>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -394,7 +414,7 @@ for (i,xi) in enumerate(x.val):
     <scalar_field name="DensityError" rank="0">
       <diagnostic>
         <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Density" source_field_2_name="AnalyticalDensity" material_phase_support="single" source_field_1_type="scalar"/>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -484,6 +504,25 @@ for (i,xi) in enumerate(x.val):
       <diagnostic>
         <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="AnalyticalVelocity" material_phase_support="single" source_field_1_type="vector"/>
         <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="DiagnosticCoordinate" rank="1">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat>
           <include_in_stat/>
