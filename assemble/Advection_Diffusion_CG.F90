@@ -52,6 +52,7 @@ module advection_diffusion_cg
   private
   
   public :: solve_field_equation_cg, advection_diffusion_cg_check_options
+  public :: shock_viscosity_tensor
   
   character(len = *), parameter, public :: advdif_cg_m_name = "AdvectionDiffusionCGMatrix"
   character(len = *), parameter, public :: advdif_cg_rhs_name = "AdvectionDiffusionCGRHS"
@@ -82,6 +83,7 @@ module advection_diffusion_cg
   integer :: stabilisation_scheme
   integer :: nu_bar_scheme
   real :: nu_bar_scale
+  real :: shock_viscosity_cq
   
   ! equation type
   integer :: equation_type
@@ -107,6 +109,8 @@ module advection_diffusion_cg
   logical :: isotropic_diffusivity
   ! Is the mesh moving?
   logical :: move_mesh
+  ! Do we have a shock viscosity term (only for internal energy eqn)
+  logical :: have_shock_viscosity
 
 contains
 
@@ -217,7 +221,7 @@ contains
     type(scalar_field), intent(in), optional :: extra_discretised_source
 
     character(len = FIELD_NAME_LEN) :: lvelocity_name
-    integer :: i, j, stat
+    integer :: i, stat
     integer, dimension(:), allocatable :: t_bc_types
     type(scalar_field) :: t_bc, t_bc_2
     type(scalar_field), pointer :: absorption, sinking_velocity, source
@@ -413,6 +417,7 @@ contains
     
     call allocate(dummydensity, t%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
     call set(dummydensity, 1.0)
+    have_shock_viscosity=.false.
     ! find out equation type and hence if density is needed or not
     equation_type=equation_type_index(trim(t%option_path))
     select case(equation_type)
@@ -441,6 +446,13 @@ contains
                       
       pressure=>extract_scalar_field(state, "Pressure")
       ewrite_minmax(pressure)
+
+      have_shock_viscosity=have_option(trim(velocity%option_path)//"/prognostic/spatial_discretisation/shock_viscosity")
+      if (have_shock_viscosity) then
+        call get_option(trim(velocity%option_path)//"/prognostic/spatial_discretisation/&
+           &shock_viscosity/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
+      end if
+
     case default
       FLExit("Unknown field equation type for cg advection diffusion.")
     end select
@@ -611,11 +623,12 @@ contains
       
     ! Step 1: Transform
     
-    if(.not. have_advection .and. .not. have_diffusivity) then
-      call transform_to_physical(positions, ele, detwei = detwei)
-    else if(any(stabilisation_scheme == (/STABILISATION_STREAMLINE_UPWIND, STABILISATION_SUPG/))) then
+    if(any(stabilisation_scheme == (/STABILISATION_STREAMLINE_UPWIND, STABILISATION_SUPG/)) &
+          .or. have_shock_viscosity) then
       call transform_to_physical(positions, ele, t_shape, &
         & dshape = dt_t, detwei = detwei, j = j_mat)
+    else if(.not. have_advection .and. .not. have_diffusivity) then
+      call transform_to_physical(positions, ele, detwei = detwei)
     else
       call transform_to_physical(positions, ele, t_shape, &
         & dshape = dt_t, detwei = detwei)
@@ -685,9 +698,14 @@ contains
     if(have_source) call add_source_element_cg(ele, test_function, t, source, detwei, rhs_addto)
     
     ! Pressure
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY) call add_pressurediv_element_cg(ele, test_function, t, &
-                                                                                  velocity, pressure, &
-                                                                                  du_t, detwei, rhs_addto)
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
+      call add_pressurediv_element_cg(ele, test_function, t, &
+        velocity, pressure, &
+        du_t, detwei, rhs_addto)
+      if (have_shock_viscosity) then
+        call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, density, detwei)
+      end if
+    end if
     
     ! Step 4: Insertion
             
@@ -970,7 +988,56 @@ contains
                 shape_rhs(test_function, ele_div_at_quad(velocity, ele, du_t) * ele_val_at_quad(pressure, ele) * detwei)
     
   end subroutine add_pressurediv_element_cg
-  
+
+  subroutine add_shock_viscosity_element_cg(rhs_addto, test_function, nu, ele, du_t, J_mat, density, detwei)
+    real, dimension(:), intent(inout) :: rhs_addto ! uloc
+    type(element_type), intent(in) :: test_function
+    type(vector_field), intent(in):: nu
+    integer, intent(in):: ele
+    real, dimension(:,:,:):: du_t ! uloc x ngi x udim
+    real, dimension(:,:,:):: J_mat ! xdim x xdim x ngi
+    type(scalar_field), intent(in):: density
+    real, dimension(:), intent(in):: detwei ! ngi
+
+    real, dimension(nu%dim,nu%dim,size(detwei)):: gradu_gi, shock_viscosity_gi
+    real, dimension(size(detwei)):: integrand
+    integer:: i, j, k
+
+    gradu_gi=ele_grad_at_quad(nu, ele, du_t)
+    shock_viscosity_gi=shock_viscosity_tensor(nu, ele, du_t, J_mat, density)
+    integrand=0.0
+    do i=1, nu%dim
+      do j=1, nu%dim
+        do k=1, nu%dim
+          integrand=integrand + shock_viscosity_cq * &
+             gradu_gi(i,k,:)*shock_viscosity_gi(i,j,:)*gradu_gi(j,k,:)
+        end do
+      end do
+    end do
+
+    rhs_addto =rhs_addto + shape_rhs(test_function, integrand*detwei)
+    
+  end subroutine add_shock_viscosity_element_cg
+
+  function shock_viscosity_tensor(nu, ele, du_t, J_mat, density) result(viscosity_gi)
+    type(vector_field), intent(in):: nu
+    integer, intent(in):: ele
+    real, dimension(:,:,:):: du_t ! uloc x ngi x udim
+    real, dimension(:,:,:):: J_mat ! xdim x xdim x ngi
+    type(scalar_field), intent(in):: density
+    real, dimension(size(du_t,3), size(du_t,3), size(du_t,2)) :: viscosity_gi ! udim x udim x ngi
+
+    real, dimension(size(du_t,2)):: switch_gi, density_gi
+    integer:: gi
+
+    density_gi=ele_val_at_quad(density, ele)
+    switch_gi = max(-ele_div_at_quad(nu, ele, du_t), 0.0) ! switch to only apply viscosity in flow contractions 
+    do gi=1, size(du_t,2)
+      viscosity_gi(:,:,gi)=density_gi(gi) * switch_gi(gi) * matmul(transpose(J_mat(:,:,gi)), J_mat(:,:,gi))
+    end do
+
+  end function shock_viscosity_tensor
+
   subroutine assemble_advection_diffusion_face_cg(face, bc_type, t, t_bc, t_bc_2, matrix, rhs, positions, velocity, grid_velocity, density, olddensity)
     integer, intent(in) :: face
     integer, intent(in) :: bc_type

@@ -61,6 +61,7 @@
     use Coordinates
     use multiphase_module
     use edge_length_module
+    use advection_diffusion_cg
 
     implicit none
 
@@ -112,6 +113,7 @@
     logical :: have_les
     logical :: have_surface_fs_stabilisation
     logical :: les_second_order, les_fourth_order, wale, dynamic_les
+    logical :: have_shock_viscosity
     logical :: on_sphere
     
     logical :: move_mesh
@@ -135,6 +137,9 @@
     real :: smagorinsky_coefficient
     logical :: have_averaging, have_lilly, have_eddy_visc
     logical :: have_strain, have_filtered_strain, have_filter_width
+
+    ! shock viscosity coefficients
+    real :: shock_viscosity_cq
 
     ! Temperature dependent viscosity coefficients:
     real :: reference_viscosity
@@ -472,7 +477,12 @@
          tnu => dummyvector; mnu => dummyvector; nu_av => dummyvector; tnu_av => dummyvector; mnu_av => dummyvector
          leonard => dummytensor; leonard_av => dummytensor
       end if
-      
+
+      have_shock_viscosity=have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/shock_viscosity")
+      if (have_shock_viscosity) then
+        call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
+           &shock_viscosity/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
+      end if
 
       have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic/&
          &spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")
@@ -1167,7 +1177,7 @@
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
       type(element_type), pointer :: u_shape, p_shape
       real, dimension(ele_ngi(u, ele)) :: detwei, detwei_old, detwei_new
-      real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele)) :: J_mat
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim) :: dug_t
       real, dimension(ele_loc(p, ele), ele_ngi(p, ele), u%dim) :: dp_t
@@ -1216,7 +1226,7 @@
 
       ! transform the velocity derivatives into physical space
       ! (and get detwei)
-      if(stabilisation_scheme==STABILISATION_NONE) then
+      if(stabilisation_scheme==STABILISATION_NONE .and. .not. have_shock_viscosity) then
         call transform_to_physical(X, ele, &
                                   u_shape, dshape=du_t, detwei=detwei)
       !  J_mat = 0.0
@@ -1319,10 +1329,10 @@
       end if
 
       ! Viscous terms
-      if(have_viscosity .or. have_les) then
-        call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
+      if(have_viscosity .or. have_les .or. have_shock_viscosity) then
+        call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
            mnu, tnu, leonard, alpha, &
-           du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
+           du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       end if
       
       ! Get only the viscous terms
@@ -1931,15 +1941,16 @@
       
     end subroutine add_absorption_element_cg
       
-    subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
+    subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
          mnu, tnu, leonard, alpha, &
-         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
+         du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: x
+      type(scalar_field), intent(in) :: density
       type(tensor_field), intent(in) :: viscosity
       type(tensor_field), intent(in) :: grad_u
 
@@ -1948,17 +1959,13 @@
       type(tensor_field), intent(in)    :: leonard
       real, intent(in)                  :: alpha
 
-      ! Local quantities specific to Germano Dynamic LES Model
-      real                                           :: numerator, denominator
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: strain_gi, t_strain_gi
-      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: mesh_size_gi, leonard_gi
-      real, dimension(ele_ngi(u, ele))               :: strain_mod, t_strain_mod
-      type(element_type)                             :: shape_mnu
-      integer, dimension(:), pointer                 :: nodes_mnu
-
+      real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in)           :: du_t
+      real, dimension(ele_ngi(u, ele)), intent(in)                                   :: detwei
+      real, dimension(x%dim, x%dim, ele_ngi(x,ele))                                  :: J_mat
+      real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
+      real, dimension(u%dim, ele_loc(u, ele)), intent(inout)                         :: rhs_addto
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
-    
       ! Non-linear PhaseVolumeFraction
       type(scalar_field), intent(in) :: nvfrac
 
@@ -1970,11 +1977,14 @@
       real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi
       real, dimension(x%dim, ele_loc(u,ele), ele_loc(u,ele))                         :: div_les_viscosity
       real, dimension(x%dim, x%dim, ele_loc(u,ele))                                  :: grad_u_nodes
-      real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in)           :: du_t
-      real, dimension(ele_ngi(u, ele)), intent(in)                                   :: detwei
-      real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
-      real, dimension(u%dim, ele_loc(u, ele)), intent(inout)                         :: rhs_addto
 
+      ! Local quantities specific to Germano Dynamic LES Model
+      real                                           :: numerator, denominator
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: strain_gi, t_strain_gi
+      real, dimension(x%dim, x%dim, ele_ngi(u,ele))  :: mesh_size_gi, leonard_gi
+      real, dimension(ele_ngi(u, ele))               :: strain_mod, t_strain_mod
+      type(element_type)                             :: shape_mnu
+      integer, dimension(:), pointer                 :: nodes_mnu
 
       if (have_viscosity .AND. .not.(have_temperature_dependent_viscosity)) then
          viscosity_gi = ele_val_at_quad(viscosity, ele)
@@ -2112,6 +2122,11 @@
          end if
          viscosity_gi=viscosity_gi+les_tensor_gi
       end if
+
+      if (have_shock_viscosity) then
+        viscosity_gi=viscosity_gi + shock_viscosity_cq * shock_viscosity_tensor(nu, ele, du_t, J_mat, density)
+      end if
+
       ! element viscosity matrix - tensor form
       !  /
       !  | gradN_A^T viscosity gradN_B dV
