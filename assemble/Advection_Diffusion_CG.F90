@@ -231,6 +231,7 @@ contains
     type(vector_field), pointer :: positions, old_positions, new_positions
     type(scalar_field), target :: dummydensity
     type(scalar_field), pointer :: density, olddensity
+    character(len = OPTION_PATH_LEN) :: shock_viscosity_path
     character(len = FIELD_NAME_LEN) :: density_name
     type(scalar_field), pointer :: pressure
         
@@ -447,10 +448,12 @@ contains
       pressure=>extract_scalar_field(state, "Pressure")
       ewrite_minmax(pressure)
 
-      have_shock_viscosity=have_option(trim(velocity%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity")
+      shock_viscosity_path=trim(state%option_path)//"/vector_field::Velocity&
+         &/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
+      have_shock_viscosity=have_option(shock_viscosity_path)
       if (have_shock_viscosity) then
-        call get_option(trim(velocity%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/&
-           &shock_viscosity/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
+        call get_option(trim(shock_viscosity_path)// &
+           & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
       end if
 
     case default
