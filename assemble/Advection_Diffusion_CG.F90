@@ -52,7 +52,7 @@ module advection_diffusion_cg
   private
   
   public :: solve_field_equation_cg, advection_diffusion_cg_check_options
-  public :: shock_viscosity_tensor
+  public :: shock_viscosity_tensor, add_shock_viscosity_element_cg
   public :: add_pressurediv_element_cg
   
   character(len = *), parameter, public :: advdif_cg_m_name = "AdvectionDiffusionCGMatrix"
@@ -419,7 +419,6 @@ contains
     
     call allocate(dummydensity, t%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
     call set(dummydensity, 1.0)
-    have_shock_viscosity=.false.
     ! find out equation type and hence if density is needed or not
     equation_type=equation_type_index(trim(t%option_path))
     select case(equation_type)
@@ -449,6 +448,23 @@ contains
       pressure=>extract_scalar_field(state, "Pressure")
       ewrite_minmax(pressure)
 
+
+    case(FIELD_EQUATION_INTERNALENERGYDENSITY)
+      ewrite(2,*) "Solving internal energy density equation"
+      ! density only needed for shock viscosity term
+      ! should we have an option for density here, like above??
+      density=>extract_scalar_field(state, "Density")
+      ewrite_minmax(density)
+
+      olddensity => dummydensity
+      density_theta = 1.0
+      pressure=>extract_scalar_field(state, "Pressure")
+      ewrite_minmax(pressure)
+    case default
+      FLExit("Unknown field equation type for cg advection diffusion.")
+    end select
+
+    if (equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY) then
       shock_viscosity_path=trim(state%option_path)//"/vector_field::Velocity&
          &/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
       have_shock_viscosity=have_option(shock_viscosity_path)
@@ -462,18 +478,9 @@ contains
         call get_option(trim(shock_viscosity_path)// &
            & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
       end if
-
-    case(FIELD_EQUATION_INTERNALENERGYDENSITY)
-      ewrite(2,*) "Solving internal energy density equation"
-      ! density not needed so use a constant field for assembly
-      density => dummydensity
-      olddensity => dummydensity
-      density_theta = 1.0
-      pressure=>extract_scalar_field(state, "Pressure")
-      ewrite_minmax(pressure)
-    case default
-      FLExit("Unknown field equation type for cg advection diffusion.")
-    end select
+    else
+      have_shock_viscosity=.false.
+    end if
     
     ! Step 3: Assembly
     

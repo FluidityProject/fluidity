@@ -52,7 +52,7 @@ module advection_diffusion_DG
   use sparse_matrices_fields
   use sparsity_patterns_meshes
   use diagnostic_fields, only: calculate_diagnostic_variable
-  use global_parameters, only : FIELD_NAME_LEN
+  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
   use field_options
   use advection_diffusion_cg
 
@@ -83,6 +83,8 @@ module advection_diffusion_DG
   logical :: include_advection, include_diffusion
   ! Whether to include a pressure times divergence of u term (when solving for internal energy(density))
   logical :: include_pressure_divu
+  ! Whether to include a shock viscosity term (when solving for internal energy(density))
+  logical :: include_shock_viscosity
   ! Whether we have a separate diffusion matrix
   logical :: have_diffusion_m
   ! Discretisation to use for diffusion term.
@@ -135,6 +137,9 @@ module advection_diffusion_DG
   integer :: rt0_masslumping_scheme=0 ! choice from values below:
   integer, parameter :: RT0_MASSLUMPING_ARBOGAST=1
   integer, parameter :: RT0_MASSLUMPING_CIRCUMCENTRED=2
+
+  ! coefficient for quadratic shock viscosity
+  integer :: shock_viscosity_cq
 
   ! Are we on a sphere?
   logical :: on_sphere
@@ -716,6 +721,8 @@ contains
     type(scalar_field) :: buoyancy_from_state
     !! Pressure for pressure*divu term
     type(scalar_field), pointer :: pressure
+    !! Density for shock viscosity term
+    type(scalar_field), pointer :: density
     real :: gravity_magnitude
     real :: mixing_diffusion_amplitude
 
@@ -732,6 +739,7 @@ contains
     !! (see below call to get_entire_boundary_condition):
     integer, dimension(:), allocatable :: bc_type
 
+    character(len = OPTION_PATH_LEN) :: shock_viscosity_path
     type(mesh_type), pointer :: mesh_cg
 
     ewrite(1,*) "Writing advection-diffusion equation for "&
@@ -847,8 +855,29 @@ contains
     include_pressure_divu= equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY
     if (include_pressure_divu) then
       pressure => extract_scalar_field(state, "Pressure")
+
+      shock_viscosity_path=trim(state%option_path)//"/vector_field::Velocity&
+      &/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
+      include_shock_viscosity=have_option(shock_viscosity_path)
+      if (.not. include_shock_viscosity) then
+        ! try under Momentum instead
+        shock_viscosity_path=trim(state%option_path)//"/vector_field::Momentum&
+        &/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
+        include_shock_viscosity=have_option(shock_viscosity_path)
+      end if
+      if (include_shock_viscosity) then
+        call get_option(trim(shock_viscosity_path)// &
+        & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
+        ! should we have an option for density here??
+        density=>extract_scalar_field(state, "Density")
+        ewrite_minmax(density)
+      else
+        nullify(density)
+      end if
     else
       nullify(pressure)
+      nullify(density)
+      include_shock_viscosity=.false.
     end if
 
     ! Retrieve scalar options from the options dictionary.
@@ -947,7 +976,7 @@ contains
        
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
-            Absorption, Diffusivity, pressure, bc_value, bc_type, q_mesh, mass, &
+            Absorption, Diffusivity, pressure, density, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude) 
        
     end do element_loop
@@ -1054,7 +1083,7 @@ contains
 
   subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
        & rhs_diff, &
-       & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity, pressure, &
+       & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity, pressure, density, &
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude)
     !!< Construct the advection_diffusion equation for discontinuous elements in
@@ -1085,6 +1114,8 @@ contains
     type(tensor_field), intent(in) :: Diffusivity
     !! Pressure - if (include_pressure_divu) otherwise => null
     type(scalar_field), pointer :: pressure
+    !! Density - if (include_shock_viscosity) otherwise => null
+    type(scalar_field), pointer :: density
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -1269,7 +1300,7 @@ contains
 
     ! Transform Tracer derivatives and weights into physical space. If
     ! necessary, grab J_mat as well.
-    if (stabilisation_scheme==NONE) then
+    if (stabilisation_scheme==NONE .and. .not. include_shock_viscosity) then
        call transform_to_physical(X, ele,&
             & t_shape , dshape=dt_t, detwei=detwei)
     else
@@ -1551,6 +1582,10 @@ contains
 
     if (include_pressure_divu) then
       call add_pressurediv_element_cg(ele, T_shape, t, U_nl, pressure, du_t, detwei, l_T_rhs)
+    end if
+
+    if (include_shock_viscosity) then
+      call add_shock_viscosity_element_cg(l_T_rhs, T_shape, U_nl, ele, du_t, J_mat, density, detwei)
     end if
 
     ! Right hand side field.
