@@ -516,19 +516,10 @@ AC_PROG_INSTALL
 AC_CHECK_PROG(MAKE, gmake, gmake, make, $PATH)
 
 
-AC_ARG_ENABLE(buildopt,
-    [AC_HELP_STRING([--enable-buildopt],
-        [Enables build optimisations on ext4 and xfs filesystems])])
-
-
 # Set default for ARFLAGS, since autoconf does not have a macro for
 # it. This allows people to set it when running configure or make.
 AC_CHECK_PROG(AR, ar, ar, ,$PATH)
 test -n "$ARFLAGS" || ARFLAGS="cr"
-
-if test "$enable_buildopt" == "yes" ; then
-    ARFLAGS="r" 
-fi
 
 AC_PROG_RANLIB
 
