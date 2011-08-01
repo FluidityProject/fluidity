@@ -451,6 +451,12 @@ contains
       shock_viscosity_path=trim(state%option_path)//"/vector_field::Velocity&
          &/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
       have_shock_viscosity=have_option(shock_viscosity_path)
+      if (.not. have_shock_viscosity) then
+        ! try under Momentum instead
+        shock_viscosity_path=trim(state%option_path)//"/vector_field::Momentum&
+           &/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
+        have_shock_viscosity=have_option(shock_viscosity_path)
+      end if
       if (have_shock_viscosity) then
         call get_option(trim(shock_viscosity_path)// &
            & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
