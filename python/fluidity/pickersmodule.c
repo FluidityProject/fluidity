@@ -142,8 +142,6 @@ pickers_cNodeOwnerFinderSetInput(PyObject *self, PyObject *args)
   void (*cNodeOwnerFinderSetInput)(int* id, const double* positions, const int* enlist, const int* dim, 
           const int* loc, const int* nnodes, const int* nelements) = NULL;
   int id;
-  double *positions;
-  int *enlist;
   int dim;
   int loc;
   int nnodes;
@@ -169,17 +167,17 @@ pickers_cNodeOwnerFinderSetInput(PyObject *self, PyObject *args)
   PyArg_Parse(pyid, "i", &id);
   
   pypositionsSize = PyList_Size(pypositions);
-  positions = malloc(pypositionsSize*sizeof(double));
+  double positions [pypositionsSize];
   int i;
   for (i = 0; i < pypositionsSize; i++){
     double element;
     PyObject* pylistElement = PyList_GetItem(pypositions, i);
-    PyArg_Parse(pylistElement, "f", &element);
+    PyArg_Parse(pylistElement, "d", &element);
     positions[i] = element;
   }
   
   enlistSize = PyList_Size(pyenlist);
-  enlist = malloc(enlistSize*sizeof(double));
+  int enlist[enlistSize];
   int j;
   for (j = 0; j < enlistSize; j++){
     int element;
