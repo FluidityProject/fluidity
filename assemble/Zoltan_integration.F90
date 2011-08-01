@@ -406,16 +406,14 @@ module zoltan_integration
     real :: load_imbalance_tolerance
 
     if (iteration /= max_adapt_iteration) then
-       ! if user has passed us the option then use the load imbalance tolerance they supplied
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance")) then
-          call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance", load_imbalance_tolerance)
-          ! check the value is reasonable
-          if (load_imbalance_tolerance < 1.0) then
-             FLExit("load_imbalance_tolerance should be greater than or equal to 1. Default is 1.5")
-          end if
-       else
-          ! otherwise use default load imbalance tolerance
-          load_imbalance_tolerance = default_load_imbalance_tolerance
+       ! if user has passed us the option then use the load imbalance tolerance they supplied,
+       ! else use the default load imbalance tolerance
+       call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance", load_imbalance_tolerance, &
+          & default = default_load_imbalance_tolerance)
+       
+       ! check the value is reasonable
+       if (load_imbalance_tolerance < 1.0) then
+          FLExit("load_imbalance_tolerance should be greater than or equal to 1. Default is 1.5")
        end if
     else
        load_imbalance_tolerance = final_iteration_load_imbalance_tolerance
