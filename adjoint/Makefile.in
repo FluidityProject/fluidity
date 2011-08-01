@@ -66,7 +66,7 @@ OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.f90,%.o,$(wildcar
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
 
 default: $(LIB)
 
