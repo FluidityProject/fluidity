@@ -53,6 +53,8 @@ module advection_diffusion_DG
   use sparsity_patterns_meshes
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
+  use field_options
+  use advection_diffusion_cg
 
   implicit none
 
@@ -79,6 +81,8 @@ module advection_diffusion_DG
   logical :: semi_discrete
   ! Whether to include various terms
   logical :: include_advection, include_diffusion
+  ! Whether to include a pressure times divergence of u term (when solving for internal energy(density))
+  logical :: include_pressure_divu
   ! Whether we have a separate diffusion matrix
   logical :: have_diffusion_m
   ! Discretisation to use for diffusion term.
@@ -101,6 +105,9 @@ module advection_diffusion_DG
   logical :: include_mass
   ! are we moving the mesh?
   logical :: move_mesh
+
+  ! equation type
+  integer :: equation_type
 
   ! Stabilisation schemes.
   integer :: stabilisation_scheme
@@ -160,9 +167,20 @@ contains
     type(mesh_type), pointer :: pmesh
 
     ewrite(1,*) "In solve_advection_diffusion_dg"
-    ewrite(1,*) "Solving advection-diffusion equation for field " // &
-         trim(field_name) // " in state " // trim(state%name)
+
     T=>extract_scalar_field(state, field_name)
+
+    equation_type=equation_type_index(trim(t%option_path))
+    select case(equation_type)
+    case(FIELD_EQUATION_ADVECTIONDIFFUSION)
+      ewrite(1,*) "Solving advection-diffusion equation for field " // &
+           trim(field_name) // " in state " // trim(state%name)
+    case(FIELD_EQUATION_INTERNALENERGYDENSITY)
+      ewrite(1,*) "Solving advection-diffusion equation for field " // &
+           trim(field_name) // " in state " // trim(state%name)
+    case default
+      FLExit("Unknown field equation type for dg advection diffusion.")
+    end select
 
     ! Set local velocity name:
     if(present(velocity_name)) then
@@ -696,6 +714,8 @@ contains
     !! Buoyancy and gravity
     type(scalar_field) :: buoyancy
     type(scalar_field) :: buoyancy_from_state
+    !! Pressure for pressure*divu term
+    type(scalar_field), pointer :: pressure
     real :: gravity_magnitude
     real :: mixing_diffusion_amplitude
 
@@ -824,6 +844,13 @@ contains
        include_advection=.true.
     end if
 
+    include_pressure_divu= equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY
+    if (include_pressure_divu) then
+      pressure => extract_scalar_field(state, "Pressure")
+    else
+      nullify(pressure)
+    end if
+
     ! Retrieve scalar options from the options dictionary.
     if (.not.semi_discrete) then
        call get_option(trim(T%option_path)//&
@@ -920,7 +947,7 @@ contains
        
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
-            Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
+            Absorption, Diffusivity, pressure, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude) 
        
     end do element_loop
@@ -1027,7 +1054,7 @@ contains
 
   subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
        & rhs_diff, &
-       & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
+       & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity, pressure, &
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude)
     !!< Construct the advection_diffusion equation for discontinuous elements in
@@ -1056,6 +1083,8 @@ contains
     type(scalar_field), intent(in) :: T, Source, Absorption
     !! Diffusivity
     type(tensor_field), intent(in) :: Diffusivity
+    !! Pressure - if (include_pressure_divu) otherwise => null
+    type(scalar_field), pointer :: pressure
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -1518,6 +1547,10 @@ contains
     if(move_mesh) then
       l_T_rhs=l_T_rhs &
          -shape_rhs(T_shape, ele_val_at_quad(t, ele)*(detwei_new-detwei_old)/dt)
+    end if
+
+    if (include_pressure_divu) then
+      call add_pressurediv_element_cg(ele, T_shape, t, U_nl, pressure, du_t, detwei, l_T_rhs)
     end if
 
     ! Right hand side field.

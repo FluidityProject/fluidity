@@ -52,6 +52,7 @@ module advection_diffusion_cg
   private
   
   public :: solve_field_equation_cg, advection_diffusion_cg_check_options
+  public :: add_pressurediv_element_cg
   
   character(len = *), parameter, public :: advdif_cg_m_name = "AdvectionDiffusionCGMatrix"
   character(len = *), parameter, public :: advdif_cg_rhs_name = "AdvectionDiffusionCGRHS"
@@ -442,7 +443,7 @@ contains
       pressure=>extract_scalar_field(state, "Pressure")
       ewrite_minmax(pressure)
     case(FIELD_EQUATION_INTERNALENERGYDENSITY)
-      ewrite(2,*) "Solving advection-diffusion equation"
+      ewrite(2,*) "Solving internal energy density equation"
       ! density not needed so use a constant field for assembly
       density => dummydensity
       olddensity => dummydensity
@@ -971,7 +972,7 @@ contains
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
     
-    assert(equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY)
+    !assert(equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY)
     assert(ele_ngi(pressure, ele)==ele_ngi(t, ele))
     
     rhs_addto = rhs_addto - &
