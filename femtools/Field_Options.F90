@@ -105,8 +105,9 @@ module field_options
                                 FIELD_EQUATION_CONSERVATIONOFMASS        = 2, &
                                 FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS = 3, &
                                 FIELD_EQUATION_INTERNALENERGY            = 4, &
-                                FIELD_EQUATION_HEATTRANSFER              = 5, &
-                                FIELD_EQUATION_ELECTRICALPOTENTIAL       = 6
+                                FIELD_EQUATION_INTERNALENERGYDENSITY     = 5, &
+                                FIELD_EQUATION_HEATTRANSFER              = 6, &
+                                FIELD_EQUATION_ELECTRICALPOTENTIAL       = 7
 
 contains
 
@@ -942,6 +943,8 @@ contains
       equation_type_index = FIELD_EQUATION_REDUCEDCONSERVATIONOFMASS
     case ( "InternalEnergy" )
       equation_type_index = FIELD_EQUATION_INTERNALENERGY
+    case ( "InternalEnergyDensity" )
+      equation_type_index = FIELD_EQUATION_INTERNALENERGYDENSITY
     case ( "ElectricalPotential" )
       equation_type_index = FIELD_EQUATION_ELECTRICALPOTENTIAL
     case default

@@ -19,7 +19,7 @@ for folder in folders:
   uvw=vt.GetVectorField('Velocity')
   u=uvw[:,0]
   rho=vt.GetScalarField('Density')
-  ie=vt.GetScalarField('InternalEnergy')
+  ie=vt.GetScalarField('InternalEnergyDensity')
   mom=rho*u
   mflux=mom*u+p
   
@@ -65,8 +65,8 @@ pylab.title('Density')
 pylab.legend()
 
 pylab.figure(4)
-pylab.plot( x, ie,'-', label='analytical')
-pylab.title('Internal Energy')
+pylab.plot( x, rho*ie,'-', label='analytical')
+pylab.title('Internal Energy Density')
 pylab.legend()
 
 pylab.figure(5)

@@ -136,7 +136,7 @@ contains
     end if
 
     ! diagnostic Pressure (only for compressible) calculated from
-    ! Density and InternalEnergie via compressible eos
+    ! Density and InternalEnergy via compressible eos
     sfield => extract_scalar_field(submaterials(submaterials_istate), 'Pressure', stat)
     if(stat==0) then
       diagnostic = have_option(trim(sfield%option_path)//'/diagnostic')
@@ -417,7 +417,7 @@ contains
 
   subroutine calculate_diagnostic_pressure(state, pressure)
     ! diagnostic Pressure (only for compressible) calculated from
-    ! Density and InternalEnergie via compressible eos
+    ! Density and InternalEnergy via compressible eos
     type(state_type), intent(inout):: state
     type(scalar_field), intent(inout):: pressure
 
