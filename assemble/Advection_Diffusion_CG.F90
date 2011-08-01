@@ -416,7 +416,7 @@ contains
     ! find out equation type and hence if density is needed or not
     equation_type=equation_type_index(trim(t%option_path))
     select case(equation_type)
-    case(FIELD_EQUATION_ADVECTIONDIFFUSION)
+    case(FIELD_EQUATION_ADVECTIONDIFFUSION, FIELD_EQUATION_INTERNALENERGYDENSITY)
       ewrite(2,*) "Solving advection-diffusion equation"
       ! density not needed so use a constant field for assembly
       density => dummydensity
@@ -621,7 +621,7 @@ contains
         & dshape = dt_t, detwei = detwei)
     end if
     
-    if(have_advection.or.(equation_type==FIELD_EQUATION_INTERNALENERGY)) then
+    if(have_advection.or. equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY) then
       call transform_to_physical(positions, ele, &
            & ele_shape(velocity, ele), dshape = du_t)
     end if
@@ -685,9 +685,9 @@ contains
     if(have_source) call add_source_element_cg(ele, test_function, t, source, detwei, rhs_addto)
     
     ! Pressure
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY) call add_pressurediv_element_cg(ele, test_function, t, &
-                                                                                  velocity, pressure, &
-                                                                                  du_t, detwei, rhs_addto)
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY) then
+      call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, du_t, detwei, rhs_addto)
+    end if
     
     ! Step 4: Insertion
             
@@ -963,7 +963,7 @@ contains
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
     
-    assert(equation_type==FIELD_EQUATION_INTERNALENERGY)
+    assert(equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY)
     assert(ele_ngi(pressure, ele)==ele_ngi(t, ele))
     
     rhs_addto = rhs_addto - &

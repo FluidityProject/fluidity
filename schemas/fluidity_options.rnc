@@ -3713,6 +3713,25 @@ scalar_field_choice =
                }
             )
          }|
+         ## InternalEnergyDensity field:
+         ##
+         ## Field for the internal energy per unit of volume of a single material.
+         ## Either InternalEnergy (which is the specific internal energy per unit mass)
+         ## or InternalEnergyDensity (per unit volume) are
+         ## required in compressible simulations with full stiffened_gas (perfect gas) eos.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "InternalEnergyDensity" },
+            (
+               element prognostic {
+                  velocity_mesh_choice,
+                  prognostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
          ## SumMaterialVolumeFractions field:
          ##
          ## Sums the prognostic MaterialVolumeFraction fields.

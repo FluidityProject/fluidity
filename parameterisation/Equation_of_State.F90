@@ -398,10 +398,20 @@ contains
     
     if(.not.incompressible) then
       energy_local=>extract_scalar_field(state,'InternalEnergy',stat=stat)
+      if (stat/=0) then
+        ! try InternalEnergyDensity (energy per unit volume) as well
+        energy_local => extract_scalar_field(state,'InternalEnergyDensity', stat=stat)
+      end if
+
       ! drhodp = 1.0/( bulk_sound_speed_squared + (ratio_specific_heats - 1.0)*energy )
       if((stat==0).and.(gstat==0)) then   ! we have an internal energy field and we want to use it
         call allocate(energy_remap, drhodp%mesh, 'RemappedInternalEnergy')
         call remap_field(energy_local, energy_remap)
+        if (energy_local%name=="InternalEnergyDensity") then
+          assert(present(density))
+          ! this is a hack, how to do this properly?
+          energy_local%val=energy_local%val/density%val
+        end if
         
         call addto(drhodp, energy_remap, (ratio_specific_heats-1.0))
         

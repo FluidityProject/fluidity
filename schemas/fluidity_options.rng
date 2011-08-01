@@ -4819,6 +4819,29 @@ with full stiffened_gas (perfect gas) eos.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <a:documentation>InternalEnergyDensity field:
+
+Field for the internal energy per unit of volume of a single material.
+Either InternalEnergy (which is the specific internal energy per unit mass)
+or InternalEnergyDensity (per unit volume) are
+required in compressible simulations with full stiffened_gas (perfect gas) eos.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>InternalEnergyDensity</value>
+        </attribute>
+        <choice>
+          <element name="prognostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="scalar_field">
         <a:documentation>SumMaterialVolumeFractions field:
 
 Sums the prognostic MaterialVolumeFraction fields.

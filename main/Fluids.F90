@@ -671,7 +671,7 @@ contains
                   '/prognostic/equation[0]/name', &
                   option_buffer, default="UnknownEquationType")
              select case(trim(option_buffer))
-             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer" )
+             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "InternalEnergyDensity", "HeatTransfer" )
                 use_advdif=.true.
              case default
                 use_advdif=.false.
@@ -1204,7 +1204,7 @@ contains
               tmpstring, stat=tmpstat)
         if (tmpstat==0) then
           select case(trim(tmpstring))
-          case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy" )
+          case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "InternalEnergyDensity" )
             use_advdif=.true.
           case default
             use_advdif=.false.
