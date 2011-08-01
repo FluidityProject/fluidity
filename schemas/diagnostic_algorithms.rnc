@@ -293,6 +293,12 @@ helmholtz_anisotropic_smoothed_scalar_algorithm =
          element smoothing_length_scale {
              real
          },
+         ## Enforce Dirichlet boundary conditions on the filtered field.
+         element enforce_dirichlet_bcs {
+             element apply_weakly {
+                 empty
+             }?
+         }?,
          ## Solver options.
          element solver {
             linear_solver_options_sym

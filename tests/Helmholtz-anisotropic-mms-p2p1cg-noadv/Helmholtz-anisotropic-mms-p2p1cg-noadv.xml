@@ -30,7 +30,7 @@ ab_convergence = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
     <variable name="bc_convergence" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('output.log','w')
+output=open('output.log','a')
 
 b_error = stat("MMS_B.stat")["NS"]["Difference"]["l2norm"][-1]
 c_error = stat("MMS_C.stat")["NS"]["Difference"]["l2norm"][-1]
@@ -49,7 +49,7 @@ bc_convergence = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
     <variable name="cd_convergence" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log
-output=open('output.log','w')
+output=open('output.log','a')
 
 c_error = stat("MMS_C.stat")["NS"]["Difference"]["l2norm"][-1]
 d_error = stat("MMS_D.stat")["NS"]["Difference"]["l2norm"][-1]

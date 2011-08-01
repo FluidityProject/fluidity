@@ -181,7 +181,7 @@
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="helmholtz_anisotropic_smoothed_scalar" source_field_name="Tracer">
           <smoothing_length_scale>
-            <real_value rank="0">1.</real_value>
+            <real_value rank="0">4.</real_value>
           </smoothing_length_scale>
           <solver>
             <iterative_method name="cg"/>

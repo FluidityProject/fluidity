@@ -91,7 +91,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
+            <real_value shape="2" dim1="dim" rank="1">0.2 0.</real_value>
           </constant>
         </value>
         <output/>
@@ -112,7 +112,9 @@
             <stabilisation>
               <no_stabilisation/>
             </stabilisation>
-            <advection_terms/>
+            <advection_terms>
+              <integrate_advection_by_parts/>
+            </advection_terms>
             <mass_terms/>
           </continuous_galerkin>
           <conservative_advection>
@@ -149,7 +151,7 @@
     x = X[0]; y = X[1]
     # Gaussian
     r=(x**2+y**2)**.5
-    u=exp(-pi*r**2)
+    u=exp(-pi/2*r**2)
     return u</string_value>
           </python>
         </initial_condition>
@@ -158,13 +160,14 @@
             <integer_value shape="4" rank="1">7 8 9 10</integer_value>
           </surface_ids>
           <type name="dirichlet">
+            <apply_weakly/>
             <python>
               <string_value lines="20" type="python">def val(X,t):
     from math import pi, exp 
     x = X[0]; y = X[1]
     # Gaussian
     r=(x**2+y**2)**.5
-    u=exp(-pi*r**2)
+    u=exp(-pi/2*r**2)
     return u</string_value>
             </python>
           </type>
@@ -187,8 +190,11 @@
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="helmholtz_anisotropic_smoothed_scalar" source_field_name="Tracer">
           <smoothing_length_scale>
-            <real_value rank="0">1.</real_value>
+            <real_value rank="0">2.</real_value>
           </smoothing_length_scale>
+          <enforce_dirichlet_bcs>
+            <apply_weakly/>
+          </enforce_dirichlet_bcs>
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>

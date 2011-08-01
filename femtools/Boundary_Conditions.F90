@@ -126,6 +126,10 @@ implicit none
                       apply_dirichlet_conditions_vector_component_lumped
   end interface apply_dirichlet_conditions    
 
+  !interface apply_weak_dirichlet_conditions
+  !   module procedure apply_weak_dirichlet_conditions_scalar
+  !end interface apply_weak_dirichlet_conditions
+
   private
   public add_boundary_condition, add_boundary_condition_surface_elements, &
     get_boundary_condition, get_boundary_condition_count, &
@@ -136,7 +140,7 @@ implicit none
     set_reference_node, &
     get_periodic_boundary_condition, remove_boundary_condition, &
     set_dirichlet_consistent, apply_dirichlet_conditions, &
-    derive_collapsed_bcs
+    apply_weak_dirichlet_conditions_scalar, derive_collapsed_bcs
 
 contains
 
@@ -1914,6 +1918,43 @@ contains
     end do bcloop
     
   end subroutine apply_dirichlet_conditions_scalar_lumped
+
+  subroutine apply_weak_dirichlet_conditions_scalar(matrix, rhs, field, positions, velocity)
+    !!< Apply weak dirichlet boundary conditions from field to the problem
+    !!< defined by matrix and rhs.
+    type(csr_matrix), intent(inout) :: matrix
+    type(scalar_field), intent(inout) :: rhs
+    type(scalar_field), intent(in) :: field
+    type(vector_field), pointer, intent(in) :: positions, velocity
+    integer, dimension(:), pointer:: surface_element_list
+    character(len=FIELD_NAME_LEN):: bctype
+    integer :: i, j, face
+    integer, dimension(face_loc(field, 1)) :: face_nodes
+    real, dimension(face_ngi(field, 1)) :: detwei
+    real, dimension(mesh_dim(field), face_ngi(field, 1)) :: normal
+    real, dimension(velocity%dim, face_ngi(velocity, 1)) :: velocity_at_quad
+    real, dimension(face_loc(field,1), face_loc(field,1)) :: mat_bdy
+    type(element_type), pointer :: shape
+
+    bcloop: do i=1, get_boundary_condition_count(field)
+       call get_boundary_condition(field, i, type=bctype, surface_element_list=surface_element_list)
+
+       if (bctype/="weakdirichlet" .or. bctype/="dirichlet") cycle bcloop
+              
+       do j = 1, size(surface_element_list)
+         face = surface_element_list(j)
+         call transform_facet_to_physical(positions, face, detwei_f = detwei, normal = normal)
+         face_nodes = face_global_nodes(field, face)
+         shape => face_shape(field, face)
+         velocity_at_quad = face_val_at_quad(velocity, face)
+         mat_bdy = shape_shape(shape, shape, detwei * sum(velocity_at_quad * normal, 1))
+         call addto(rhs, face_nodes, -matmul(mat_bdy, face_val(field, face)))
+         call addto(matrix, face_nodes, face_nodes, mat_bdy)
+       end do
+       
+    end do bcloop
+    
+  end subroutine apply_weak_dirichlet_conditions_scalar
 
   subroutine apply_dirichlet_conditions_vector(matrix, rhs, field, dt)
     !!< Apply dirichlet boundary conditions from field to the problem

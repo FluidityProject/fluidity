@@ -939,9 +939,11 @@ Signals.o ../include/signals.mod: Signals.F90 ../include/signal_vars.mod
 	@true
 
 Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
-   ../include/solvers.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns.mod ../include/state_module.mod
+   ../include/boundary_conditions.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/metric_tools.mod ../include/solvers.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/state_module.mod
 
 ../include/solvers.mod: Solvers.o
 	@true

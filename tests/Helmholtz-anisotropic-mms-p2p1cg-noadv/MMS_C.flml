@@ -149,7 +149,7 @@
     x = X[0]; y = X[1]
     # Gaussian
     r=(x**2+y**2)**.5
-    u=exp(-pi*r**2)
+    u=exp(-pi/2*r**2)
     return u</string_value>
           </python>
         </initial_condition>
@@ -164,7 +164,7 @@
     x = X[0]; y = X[1]
     # Gaussian
     r=(x**2+y**2)**.5
-    u=exp(-pi*r**2)
+    u=exp(-pi/2*r**2)
     return u</string_value>
             </python>
           </type>
@@ -187,8 +187,11 @@
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="helmholtz_anisotropic_smoothed_scalar" source_field_name="Tracer">
           <smoothing_length_scale>
-            <real_value rank="0">1.</real_value>
+            <real_value rank="0">2.</real_value>
           </smoothing_length_scale>
+          <enforce_dirichlet_bcs>
+            <apply_weakly/>
+          </enforce_dirichlet_bcs>
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>

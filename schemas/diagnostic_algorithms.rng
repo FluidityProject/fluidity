@@ -401,6 +401,16 @@ this option to these these internal algorithms.</a:documentation>
 2 is recommended.</a:documentation>
         <ref name="real"/>
       </element>
+      <optional>
+        <element name="enforce_dirichlet_bcs">
+          <a:documentation>Enforce Dirichlet boundary conditions on the filtered field.</a:documentation>
+          <optional>
+            <element name="apply_weakly">
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
         <ref name="linear_solver_options_sym"/>

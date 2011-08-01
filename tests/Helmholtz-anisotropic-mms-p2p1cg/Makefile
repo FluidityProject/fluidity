@@ -1,5 +1,5 @@
 PYTHONPATH=PYTHONPATH:/data/JBull/fluidity/turbulence/python/
-input:	clean
+input:
 	gmsh -2 src/MMS_A.geo
 	gmsh -2 src/MMS_B.geo
 	gmsh -2 src/MMS_C.geo
@@ -10,4 +10,4 @@ input:	clean
 	../../scripts/gmsh2triangle --2d src/MMS_D.msh
 
 clean:
-	rm -rf *.vtu *.stat *.node *.ele *.edge *checkpoint*
+	rm -r *.stat *.node *.ele *.edge fluidity.*
