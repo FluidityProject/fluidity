@@ -11,32 +11,33 @@ for folder in folders:
   t=vt.GetScalarField('Time')[0]
   xyz=vt.GetLocations()
   x=xyz[:,0]
+  try:
+    pxyz=vt.GetVectorField('DiagnosticCoordinate')
+  except:
+    pxyz=xyz
+  px=pxyz[:,0]
 
   p=vt.GetScalarField('Pressure')
   uvw=vt.GetVectorField('Velocity')
   u=uvw[:,0]
   rho=vt.GetScalarField('Density')
-  ie=vt.GetScalarField('InternalEnergy')
+  ie=vt.GetScalarField('InternalEnergyDensity')
   mom=vt.GetScalarField('Momentum')
-  mflux=mom*u+p
   
   pylab.figure(1)
-  pylab.plot( x, p,'.', label=folder)
+  pylab.plot( px, p,'.', label=folder)
   
   pylab.figure(2)
   pylab.plot( x, u,'.', label=folder)
   
   pylab.figure(3)
-  pylab.plot( x, rho,'.', label=folder)
+  pylab.plot( px, rho,'.', label=folder)
   
   pylab.figure(4)
-  pylab.plot( x, ie,'.', label=folder)
+  pylab.plot( px, ie,'.', label=folder)
 
   pylab.figure(5)
   pylab.plot( x, mom, '.', label=folder)
-  
-  pylab.figure(6)
-  pylab.plot( x, mflux, '.', label=folder)
   
 sol=numpy.array([shocktube.solution(xi,t) for xi in x])
 p=sol[:,0]
@@ -62,18 +63,13 @@ pylab.title('Density')
 pylab.legend()
 
 pylab.figure(4)
-pylab.plot( x, ie,'-', label='analytical')
-pylab.title('Internal Energy')
+pylab.plot( x, rho*ie,'-', label='analytical')
+pylab.title('Internal Energy Density')
 pylab.legend()
 
 pylab.figure(5)
 pylab.plot( x, mom,'-', label='analytical')
 pylab.title('Momentum')
-pylab.legend()
-
-pylab.figure(6)
-pylab.plot( x, mflux,'-', label='analytical')
-pylab.title('Momentum Flux')
 pylab.legend()
 
 pylab.show()
