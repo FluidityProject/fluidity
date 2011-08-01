@@ -260,14 +260,20 @@ fluidity.pickers.cNodeOwnerFinderReset(0)
 
 #void cNodeOwnerFinderSetInput(int* id, const double* positions, const int* enlist, const int* dim, const int* loc, const int* nnodes, const int* nelements)
 id = 1
-positions = [0,0.5, 1.0]
+positions = [0, 0.5, 1.0]
 enlist = [1,2,2,3]
 dim = 1
 loc = 2
-nnodes = 2
+nnodes = 3
 nelements = 2
-
 fluidity.pickers.cNodeOwnerFinderSetInput(id, positions, enlist, dim, loc, nnodes, nelements)
+
+fluidity.pickers.cNodeOwnerFinderFind(id, [0.25], 1)
+
+print "line 273 ", fluidity.pickers.cNodeOwnerFinderQueryOutput(id)
+
+index = 1
+print fluidity.pickers.cNodeOwnerFinderGetOutput(id,index)
 
 coord  = state.vector_fields["Coordinate"]
 source = state.vector_fields["Source"]

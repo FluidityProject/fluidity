@@ -38,6 +38,39 @@ void python_init_(void){
     printf("cNodeOwnerFinderSetInputCapsule is NULL\n");
   }
   
+  PyObject* cNodeOwnerFinderQueryOutputCapsule;
+  cNodeOwnerFinderQueryOutputCapsule = PyCapsule_New(cNodeOwnerFinderQueryOutput, 
+                                                    "fluidity_api._cNodeOwnerFinderQueryOutput", NULL);
+  if (cNodeOwnerFinderQueryOutputCapsule != NULL) {
+    printf("cNodeOwnerFinderQueryOutputCapsule is not NULL\n");
+    PyModule_AddObject(module, "_cNodeOwnerFinderQueryOutput", cNodeOwnerFinderQueryOutputCapsule);
+  }
+  else{
+    printf("cNodeOwnerFinderQueryOutputCapsule is NULL\n");
+  }
+  
+  PyObject* cNodeOwnerFinderGetOutputCapsule;
+  cNodeOwnerFinderGetOutputCapsule = PyCapsule_New(cNodeOwnerFinderGetOutput, 
+                                                    "fluidity_api._cNodeOwnerFinderGetOutput", NULL);
+  if (cNodeOwnerFinderGetOutputCapsule != NULL) {
+    printf("cNodeOwnerFinderGetOutputCapsule is not NULL\n");
+    PyModule_AddObject(module, "_cNodeOwnerFinderGetOutput", cNodeOwnerFinderGetOutputCapsule);
+  }
+  else{
+    printf("cNodeOwnerFinderGetOutputCapsule is NULL\n");
+  }
+  
+  PyObject* cNodeOwnerFinderFindCapsule;
+  cNodeOwnerFinderFindCapsule = PyCapsule_New(cNodeOwnerFinderFind, 
+                                                    "fluidity_api._cNodeOwnerFinderFind", NULL);
+  if (cNodeOwnerFinderFindCapsule != NULL) {
+    printf("cNodeOwnerFinderFindCapsule is not NULL\n");
+    PyModule_AddObject(module, "_cNodeOwnerFinderFind", cNodeOwnerFinderFindCapsule);
+  }
+  else{
+    printf("cNodeOwnerFinderFindCapsule is NULL\n");
+  }
+  
 #endif
   
 #endif
