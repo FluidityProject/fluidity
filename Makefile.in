@@ -59,7 +59,7 @@ MAKE = @MAKE@ -s
 
 AR = @AR@
 
-ARFLAGS	= @ARFLAGS@
+ARFLAGS	= -cq
 
 EVAL = scripts/silenteval
 
@@ -322,6 +322,8 @@ endif
 	@echo "    MAKE register_diagnostics"
 	@./scripts/make_register_diagnostics
 	@cd preprocessor; $(MAKE) register_diagnostics.o
+	@$(AR) $(ARFLAGS) lib/lib@FLUIDITY@.a */*.o
+
 
 fldecomp: fluidity_library 
 	@echo "BUILD fldecomp"
