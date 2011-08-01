@@ -217,7 +217,7 @@ contains
     type(scalar_field), intent(in), optional :: extra_discretised_source
 
     character(len = FIELD_NAME_LEN) :: lvelocity_name
-    integer :: i, j, stat
+    integer :: i, stat
     integer, dimension(:), allocatable :: t_bc_types
     type(scalar_field) :: t_bc, t_bc_2
     type(scalar_field), pointer :: absorption, sinking_velocity, source
@@ -416,7 +416,7 @@ contains
     ! find out equation type and hence if density is needed or not
     equation_type=equation_type_index(trim(t%option_path))
     select case(equation_type)
-    case(FIELD_EQUATION_ADVECTIONDIFFUSION, FIELD_EQUATION_INTERNALENERGYDENSITY)
+    case(FIELD_EQUATION_ADVECTIONDIFFUSION)
       ewrite(2,*) "Solving advection-diffusion equation"
       ! density not needed so use a constant field for assembly
       density => dummydensity
@@ -439,6 +439,14 @@ contains
       call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", &
                       density_theta)
                       
+      pressure=>extract_scalar_field(state, "Pressure")
+      ewrite_minmax(pressure)
+    case(FIELD_EQUATION_INTERNALENERGYDENSITY)
+      ewrite(2,*) "Solving advection-diffusion equation"
+      ! density not needed so use a constant field for assembly
+      density => dummydensity
+      olddensity => dummydensity
+      density_theta = 1.0
       pressure=>extract_scalar_field(state, "Pressure")
       ewrite_minmax(pressure)
     case default

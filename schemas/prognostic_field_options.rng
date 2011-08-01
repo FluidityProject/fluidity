@@ -2470,6 +2470,18 @@ Uses a nonconservative time discretisation.</a:documentation>
         <ref name="equation_coefficients"/>
       </element>
       <element name="equation">
+        <a:documentation>***UNDER TESTING***
+
+Select the equation used to solve for this field.
+Internal Energy Density equation
+ONLY WORKS FOR CONTROL VOLUME DISCRETISATIONS
+Solve the internal energy (per unit volume) equation for this field.
+Requires pressure and velocity fields to be present.</a:documentation>
+        <attribute name="name">
+          <value>InternalEnergyDensity</value>
+        </attribute>
+      </element>
+      <element name="equation">
         <a:documentation>Option to solve for electrical potential from
 electrokinetic, electrochemical or electrothermal sources </a:documentation>
         <attribute name="name">

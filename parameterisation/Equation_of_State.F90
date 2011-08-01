@@ -398,20 +398,11 @@ contains
     
     if(.not.incompressible) then
       energy_local=>extract_scalar_field(state,'InternalEnergy',stat=stat)
-      if (stat/=0) then
-        ! try InternalEnergyDensity (energy per unit volume) as well
-        energy_local => extract_scalar_field(state,'InternalEnergyDensity', stat=stat)
-      end if
 
       ! drhodp = 1.0/( bulk_sound_speed_squared + (ratio_specific_heats - 1.0)*energy )
       if((stat==0).and.(gstat==0)) then   ! we have an internal energy field and we want to use it
         call allocate(energy_remap, drhodp%mesh, 'RemappedInternalEnergy')
         call remap_field(energy_local, energy_remap)
-        if (energy_local%name=="InternalEnergyDensity") then
-          assert(present(density))
-          ! this is a hack, how to do this properly?
-          energy_local%val=energy_local%val/density%val
-        end if
         
         call addto(drhodp, energy_remap, (ratio_specific_heats-1.0))
         
@@ -457,26 +448,36 @@ contains
         ! pressure is unrelated to density in this case
         call zero(pressure)
       else
-        ! calculate the pressure using the eos and the calculated (probably prognostic)
-        ! density
-        density_local=>extract_scalar_field(state,'Density',stat=stat)
+        ! see if we have InternalEnergyDensity (energy per unit volume)
+        energy_local => extract_scalar_field(state,'InternalEnergyDensity', stat=stat)
         if (stat==0) then
-          assert(pressure%mesh==drhodp%mesh)
-          
-          ! pressure = density_local/drhodp &
-          !          - bulk_sound_speed_squared*reference_density
-          
-          call allocate(density_remap, drhodp%mesh, "RemappedDensity")
-          call remap_field(density_local, density_remap)
-          
-          call set(pressure, drhodp)
-          call invert(pressure)
-          call scale(pressure, density_remap)
-          call addto(pressure, -bulk_sound_speed_squared*reference_density)
-          
-          call deallocate(density_remap)
+          assert(energy_local%mesh==pressure%mesh)
+          assert(gstat==0)
+          call set(pressure, energy_local)
+          call scale(pressure, ratio_specific_heats-1.0)
         else
-          FLExit('No Density in material_phase::'//trim(state%name))
+          ! compute it using drhodp
+          ! calculate the pressure using the eos and the calculated (probably prognostic)
+          ! density
+          density_local=>extract_scalar_field(state,'Density',stat=stat)
+          if (stat==0) then
+            assert(pressure%mesh==drhodp%mesh)
+            
+            ! pressure = density_local/drhodp &
+            !          - bulk_sound_speed_squared*reference_density
+            
+            call allocate(density_remap, drhodp%mesh, "RemappedDensity")
+            call remap_field(density_local, density_remap)
+            
+            call set(pressure, drhodp)
+            call invert(pressure)
+            call scale(pressure, density_remap)
+            call addto(pressure, -bulk_sound_speed_squared*reference_density)
+            
+            call deallocate(density_remap)
+          else
+            FLExit('No Density in material_phase::'//trim(state%name))
+          end if
         end if
       end if
     end if
