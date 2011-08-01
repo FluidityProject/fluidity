@@ -91,7 +91,6 @@ OBJS    = Momentum_Diagnostic_Fields.o \
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
 default: $(LIB)
 
