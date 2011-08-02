@@ -458,9 +458,9 @@ contains
 
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    ewrite(2, *) "alpha = ", alpha
     call anisotropic_smooth_scalar(source_field, positions, velocity, s_field, alpha, path)
 
-    ewrite(2, *) "alpha = ", alpha
     ewrite_minmax(source_field)
     ewrite_minmax(s_field)
 
@@ -486,9 +486,9 @@ contains
 
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
     call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    ewrite(2, *) "alpha = ", alpha
     call anisotropic_smooth_vector(source_field, positions, v_field, alpha, path)
 
-    ewrite(2, *) "alpha = ", alpha
     ewrite_minmax(source_field)
     ewrite_minmax(v_field)
     
@@ -513,9 +513,9 @@ contains
 
     path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
     call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    ewrite(2, *) "alpha = ", alpha
     call anisotropic_smooth_tensor(source_field, positions, t_field, alpha, path)
 
-    ewrite(2, *) "alpha = ", alpha
     ewrite_minmax(source_field)
     ewrite_minmax(t_field)
     

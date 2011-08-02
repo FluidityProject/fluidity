@@ -7,7 +7,7 @@ module smoothing_module
   use sparsity_patterns
   use solvers
   use metric_tools
-  use boundary_conditions, only : apply_dirichlet_conditions, apply_weak_dirichlet_conditions_scalar
+  use boundary_conditions
   use global_parameters, only : OPTION_PATH_LEN
   implicit none
 
@@ -133,13 +133,13 @@ contains
     end do
 
     ! Boundary conditions
-    if(have_option(trim(path)//"/enforce_dirichlet_bcs/apply_weakly")) then
-      ewrite(2, *) "Applying weak Dirichlet boundary conditions to filtered field"
-      call apply_weak_dirichlet_conditions_scalar(M, rhsfield, field_in, positions, velocity)
-    else
-      ewrite(2, *) "Applying strong Dirichlet boundary conditions to filtered field"
-      call apply_dirichlet_conditions(M, rhsfield, field_in)
-    end if
+    !if(have_option(trim(path)//"/enforce_dirichlet_bcs/apply_weakly")) then
+    !  ewrite(2, *) "Applying weak Dirichlet boundary conditions to filtered field"
+    !  call apply_weak_dirichlet_conditions_scalar(M, rhsfield, field_in, positions, velocity)
+    !else
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
+    call apply_dirichlet_conditions(M, rhsfield, field_in)
+    !end if
 
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
@@ -162,30 +162,29 @@ contains
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
-    type(vector_field) :: RHSFIELD
-    integer :: ele
+    type(vector_field) :: rhsfield
+    integer :: ele, dim
 
     !allocate smoothing matrix
-    M_sparsity=make_sparsity(field_in%mesh, &
-         & field_in%mesh, name='HelmholtzVectorSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzVectorSmoothingMatrix")   
-    call deallocate(M_sparsity) 
-    call zero(M)
-    
-    !allocate RHSFIELD
+    M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzVectorSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzVectorSmoothingMatrix")
     call allocate(rhsfield, field_in%dim, field_in%mesh, "HelmholtzVectorSmoothingRHS")
-    call zero(rhsfield)
+    call zero(M); call zero(rhsfield); call zero(field_out)
 
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
        call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
-    call zero(field_out)
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
+    
+    do dim=1, field_in%dim
+      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
+    end do
+
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
-    call deallocate(rhsfield)
-    call deallocate(M)
+    call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
 
   end subroutine anisotropic_smooth_vector
 
@@ -204,7 +203,7 @@ contains
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
-    type(tensor_field) :: RHSFIELD
+    type(tensor_field) :: rhsfield
     integer :: ele
 
     !allocate smoothing matrix
@@ -388,17 +387,18 @@ contains
     ! mesh size tensor=(edge lengths)**2
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
     ! factor 1/24 derives from 2nd moment of filter (see Pope 2000, Geurts&Holm 2002)
-    mesh_tensor_quad = alpha**2 * 1.0/24.0 * length_scale_tensor(dshape_field_in, shape_field_in)
+    mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
     ! Local assembly
-    if(have_option(trim(path)//"/enforce_dirichlet_bcs/apply_weakly")) then
-      field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei)
-      lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
-    else
-      field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei) &
+    !if(have_option(trim(path)//"/enforce_dirichlet_bcs/apply_weakly")) then
+    !  field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei)
+    !  lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
+    !else
+    field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei) &
          & + shape_shape(shape_field_in,shape_field_in, detwei)
-      lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
-    end if
+    ! Add a Neumann term?: - dshape_dot_vector_shape(dshape_field_in, normal_bdy, shape_field_in, detwei)
+    lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
+    !end if
 
     ! Global assembly
     call addto(M, ele_field_in, ele_field_in, field_in_mat)
@@ -414,6 +414,7 @@ contains
     type(vector_field), intent(in) :: field_in
     real, intent(in) :: alpha
     integer, intent(in) :: ele
+    integer :: dim
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: field_in_quad
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
@@ -437,7 +438,7 @@ contains
 
     ! mesh size tensor=(edge lengths)**2
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
-    mesh_tensor_quad = alpha**2 * 1.0/24.0 * length_scale_tensor(dshape_field_in, shape_field_in)
+    mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -447,8 +448,10 @@ contains
     lrhsfield=shape_vector_rhs(shape_field_in, field_in_quad, detwei)
 
     ! Global assembly:
+    !do dim = 1, field_in%dim
+    !  call addto(M, dim, dim, ele_field_in, ele_field_in, field_in_mat)
+    !end do
     call addto(M, ele_field_in, ele_field_in, field_in_mat)
-
     call addto(rhsfield, ele_field_in, lrhsfield)
 
   end subroutine assemble_anisotropic_smooth_vector
@@ -483,7 +486,7 @@ contains
 
     ! mesh size tensor=(edge lengths)**2
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
-    mesh_tensor_quad = alpha**2 * 1.0/24.0 * length_scale_tensor(dshape_field_in, shape_field_in)
+    mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
     ! Local assembly: (1+alpha^2.M) or (1-alpha^2.M)?
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &

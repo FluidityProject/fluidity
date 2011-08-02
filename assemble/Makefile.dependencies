@@ -20,6 +20,7 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/boundary_conditions_from_options.mod ../include/checkpoint.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \
    ../include/diagnostic_fields_wrapper.mod \
+   ../include/diagnostic_fields_wrapper_new.mod \
    ../include/diagnostic_variables.mod \
    ../include/discrete_properties_module.mod ../include/edge_length_module.mod \
    ../include/elements.mod ../include/eventcounter.mod ../include/fdebug.h \
@@ -450,20 +451,6 @@ LES_viscosity.o ../include/les_viscosity_module.mod: LES_viscosity.F90 \
 
 Linear_Shallow_Water.o ../include/linear_shallow_water.mod: \
    Linear_Shallow_Water.F90 ../include/assemble_cmc.mod \
-   ../include/diagnostic_fields_wrapper.mod \
-   ../include/diagnostic_variables.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/populate_state_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/timeloop_utilities.mod \
-   ../include/write_state_module.mod
-
-../include/linear_shallow_water_legacy.mod: Linear_Shallow_Water_Legacy.o
-	@true
-
-Linear_Shallow_Water_Legacy.o ../include/linear_shallow_water_legacy.mod: \
-   Linear_Shallow_Water_Legacy.F90 ../include/assemble_cmc.mod \
    ../include/diagnostic_fields_wrapper.mod \
    ../include/diagnostic_variables.mod ../include/fdebug.h \
    ../include/fields.mod ../include/fldebug.mod \

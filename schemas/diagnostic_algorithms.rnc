@@ -293,12 +293,8 @@ helmholtz_anisotropic_smoothed_scalar_algorithm =
          element smoothing_length_scale {
              real
          },
-         ## Enforce Dirichlet boundary conditions on the filtered field.
-         element enforce_dirichlet_bcs {
-             element apply_weakly {
-                 empty
-             }?
-         }?,
+         ## Enforce boundary conditions on the filtered field.
+         scalar_boundary_conditions*,
          ## Solver options.
          element solver {
             linear_solver_options_sym
@@ -770,21 +766,6 @@ projection_scalar_potential_algorithm =
          element solver {
            linear_solver_options_sym
         }
-      }
-   )
-vector_potential_algorithm =
-   (
-      ## Computes the vector potential A where:
-      ##   F = nabla phi + nabla x A + H
-      ## with a strong Dirichlet boundary condition of zero on all boundaries.
-      element algorithm {
-         attribute name { "vector_potential" },
-         attribute material_phase_support { "single" },
-         vector_source_field,
-         ## Linear solver options.
-         element solver {
-            linear_solver_options_sym
-         }
       }
    )
 geostrophic_velocity_algorithm =
@@ -1395,7 +1376,6 @@ scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 vector_diagnostic_algorithms = vector_time_averaged_algorithm
 vector_diagnostic_algorithms |= vector_sum_algorithm
 vector_diagnostic_algorithms |= vector_scalar_time_averaged_algorithm
-vector_diagnostic_algorithms |= vector_potential_algorithm
 vector_diagnostic_algorithms |= vector_laplacian_algorithm
 vector_diagnostic_algorithms |= vector_galerkin_projection_algorithm
 vector_diagnostic_algorithms |= vector_difference_algorithm
