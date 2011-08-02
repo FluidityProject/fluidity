@@ -304,7 +304,29 @@ endif
 	@echo "    MAKE register_diagnostics"
 	@./scripts/make_register_diagnostics
 	@cd preprocessor; $(MAKE) register_diagnostics.o
-	@$(AR) $(ARFLAGS) lib/lib@FLUIDITY@.a */*.o
+	@echo "    BUILDING fluidity_library"
+	@$(AR) $(ARFLAGS) lib/libfluidity.a \
+debug/*.o \
+libwm/*.o \
+femtools/*.o \
+bathymetry/*.o \
+ocean_forcing/*.o \
+sediments/*.o \
+parameterisation/*.o \
+forward_interfaces/*.o \
+horizontal_adaptivity/*.o \
+preprocessor/*.o \
+error_measures/*.o \
+assemble/*.o \
+diagnostics/*.o \
+radiation/*.o \
+reduced_modelling/*.o \
+adjoint/*.o \
+main/*.o
+ifeq (,yes)
+	@$(AR) $(ARFLAGS) lib/libfluidity.a hyperlight/*.o
+endif
+
 
 
 fldecomp: fluidity_library 
