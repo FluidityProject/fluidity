@@ -67,17 +67,18 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.005</real_value>
+      <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">240.0</real_value>
+      <real_value rank="0">10.0</real_value>
     </finish_time>
-    <steady_state>
+    <nonlinear_iterations>
+      <integer_value rank="0">2</integer_value>
       <tolerance>
-        <real_value rank="0">1.0e-7</real_value>
+        <real_value rank="0">1.0e-12</real_value>
         <infinity_norm/>
       </tolerance>
-    </steady_state>
+    </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -108,7 +109,7 @@
       <fluids>
         <linear>
           <reference_density>
-            <real_value rank="0">2340.0</real_value>
+            <real_value rank="0">1000.0</real_value>
           </reference_density>
         </linear>
       </fluids>
@@ -184,9 +185,9 @@
             <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="TopBottom">
+        <boundary_conditions name="Top">
           <surface_ids>
-            <integer_value shape="2" rank="1">333 444</integer_value>
+            <integer_value shape="1" rank="1">444</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -226,6 +227,21 @@
                   <real_value rank="0">0.0</real_value>
                 </constant>
               </z_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="Bottom">
+          <surface_ids>
+            <integer_value shape="1" rank="1">333</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_weakly/>
+            <align_bc_with_cartesian>
+              <y_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </y_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
@@ -398,9 +414,9 @@
             <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="TopBottom">
+        <boundary_conditions name="Top">
           <surface_ids>
-            <integer_value shape="2" rank="1">333 444</integer_value>
+            <integer_value shape="1" rank="1">444</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -440,6 +456,21 @@
                   <real_value rank="0">0.0</real_value>
                 </constant>
               </z_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="Bottom">
+          <surface_ids>
+            <integer_value shape="1" rank="1">333</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_weakly/>
+            <align_bc_with_cartesian>
+              <y_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </y_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
@@ -515,9 +546,37 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">0.5</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="Top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">444</integer_value>
+          </surface_ids>
+          <type name="influx">
+            <constant>
+              <real_value rank="0">2.0e-7</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="Others">
+          <surface_ids>
+            <integer_value shape="3" rank="1">333 666 777</integer_value>
+          </surface_ids>
+          <type name="zero_flux"/>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <output/>
         <stat/>
         <convergence>
@@ -532,5 +591,10 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <multiphase_properties>
+      <particle_diameter>
+        <real_value rank="0">48e-6</real_value>
+      </particle_diameter>
+    </multiphase_properties>
   </material_phase>
 </fluidity_options>
