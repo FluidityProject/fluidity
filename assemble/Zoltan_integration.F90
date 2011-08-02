@@ -55,11 +55,11 @@ module zoltan_integration
 
   contains
 
-  subroutine zoltan_drive(states, iteration, max_adapt_iteration, metric, full_metric, initialise_fields, &
+  subroutine zoltan_drive(states, final_adapt_iteration, global_min_quality, metric, full_metric, initialise_fields, &
     ignore_extrusion)
     type(state_type), dimension(:), intent(inout), target :: states
-    integer, intent(in) :: iteration
-    integer, intent(in) :: max_adapt_iteration
+    logical, intent(in) :: final_adapt_iteration
+    real, intent(out) :: global_min_quality
     ! the metric is the metric we base the quality functions on
     type(tensor_field), intent(inout), optional :: metric
     ! the full_metric is the metric we need to interpolate
@@ -71,6 +71,7 @@ module zoltan_integration
 
     type(zoltan_struct), pointer :: zz
 
+    integer :: ierr
     logical :: changes
     integer(zoltan_int) :: num_gid_entries, num_lid_entries
     integer(zoltan_int), dimension(:), pointer :: p1_export_global_ids => null()
@@ -95,13 +96,13 @@ module zoltan_integration
     zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
       .and. .not. present_and_true(ignore_extrusion)
 
-    call setup_module_variables(states, iteration, max_adapt_iteration, zz)
+    call setup_module_variables(states, final_adapt_iteration, zz)
     
     call setup_quality_module_variables(states, metric) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
-    load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-    call set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
+    load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
+    call set_zoltan_parameters(final_adapt_iteration, load_imbalance_tolerance, zz)
 
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
@@ -109,6 +110,18 @@ module zoltan_integration
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
        & load_imbalance_tolerance)
 
+    if (.NOT. final_adapt_iteration) then
+       call mpi_allreduce(zoltan_global_local_min_quality, global_min_quality, 1, getPREAL(), &
+          & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+       assert(ierr == MPI_SUCCESS)
+       
+       ewrite(1,*) "minimum local element quality = ", zoltan_global_local_min_quality
+       ewrite(1,*) "global minimum element quality = ", global_min_quality
+       
+    else
+       ! On final iteration we do not calculate the minimum element quality
+       global_min_quality = 1.0
+    end if
 
     if (changes .eqv. .false.) then
       ewrite(1,*) "Zoltan decided no change was necessary, exiting"
@@ -161,10 +174,10 @@ module zoltan_integration
       ! so we don't need to reallocate them either)
       call cleanup_other_module_variables
       
-      call setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name = topology_mesh_name)
+      call setup_module_variables(states, final_adapt_iteration, zz, mesh_name = topology_mesh_name)
 
-      load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-      call set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
+      load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
+      call set_zoltan_parameters(final_adapt_iteration, load_imbalance_tolerance, zz)
       
       call reset_zoltan_lists_full(zz, &
        & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
@@ -231,9 +244,9 @@ module zoltan_integration
 
   end subroutine zoltan_drive
 
-  subroutine setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name)
+  subroutine setup_module_variables(states, final_adapt_iteration, zz, mesh_name)
     type(state_type), dimension(:), intent(inout), target :: states
-    integer, intent(in) :: iteration, max_adapt_iteration
+    logical, intent(in) :: final_adapt_iteration
     type(zoltan_struct), pointer, intent(out) :: zz
     
     character(len=*), optional :: mesh_name
@@ -246,8 +259,7 @@ module zoltan_integration
     
     !call find_mesh_to_adapt(states(1), zoltan_global_zz_mesh)
     
-    zoltan_global_zoltan_iteration = iteration
-    zoltan_global_zoltan_max_adapt_iteration = max_adapt_iteration
+    zoltan_global_final_adapt_iteration = final_adapt_iteration
     
     zoltan_global_max_edge_weight_on_node => extract_scalar_field(states(1), "MaxEdgeWeightOnNodes", stat) 
     if (stat == 0) then
@@ -398,14 +410,14 @@ module zoltan_integration
     
   end subroutine setup_quality_module_variables
 
-  function get_load_imbalance_tolerance(iteration, max_adapt_iteration) result(load_imbalance_tolerance)
-    integer, intent(in) :: iteration, max_adapt_iteration    
+  function get_load_imbalance_tolerance(final_adapt_iteration) result(load_imbalance_tolerance)
+    logical, intent(in) :: final_adapt_iteration    
  
     real, parameter :: default_load_imbalance_tolerance = 1.5  
     real, parameter :: final_iteration_load_imbalance_tolerance = 1.075
     real :: load_imbalance_tolerance
 
-    if (iteration /= max_adapt_iteration) then
+    if (.NOT. final_adapt_iteration) then
        ! if user has passed us the option then use the load imbalance tolerance they supplied,
        ! else use the default load imbalance tolerance
        call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance", load_imbalance_tolerance, &
@@ -421,8 +433,8 @@ module zoltan_integration
 
   end function get_load_imbalance_tolerance
 
-  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
-    integer, intent(in) :: iteration, max_adapt_iteration
+  subroutine set_zoltan_parameters(final_adapt_iteration, load_imbalance_tolerance, zz)
+    logical, intent(in) :: final_adapt_iteration
     real, intent(in) :: load_imbalance_tolerance
     type(zoltan_struct), pointer, intent(in) :: zz    
 
@@ -451,7 +463,7 @@ module zoltan_integration
        ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(no_active_processes)); assert(ierr == ZOLTAN_OK)
     end if
     
-    if (iteration /= max_adapt_iteration) then
+    if (.NOT. final_adapt_iteration) then
        if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner")) then
           
           if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
@@ -551,7 +563,7 @@ module zoltan_integration
     ! Choose the appropriate partitioning method based on the current adapt iteration
     ! Idea is to do repartitioning on intermediate adapts but a clean partition on the last
     ! iteration to produce a load balanced partitioning
-    if (iteration == max_adapt_iteration) then
+    if (final_adapt_iteration) then
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
        if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
           ! chosen to match what Sam uses

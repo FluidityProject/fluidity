@@ -14,7 +14,7 @@ module zoltan_global_variables
   use fields, only: scalar_field, vector_field, mesh_type
 
   ! Needed for zoltan_cb_pack_node_sizes
-  use zoltan, only: zoltan_int
+  use zoltan, only: zoltan_int, zoltan_float
   use data_structures, only: integer_set, integer_hash_table
 
   ! Needed for zoltan_cb_pack_field_size
@@ -37,7 +37,7 @@ module zoltan_global_variables
 
 
   ! Needed for zoltan_cb_get_edge_list
-  integer, save :: zoltan_global_zoltan_iteration, zoltan_global_zoltan_max_adapt_iteration
+  logical, save :: zoltan_global_final_adapt_iteration
   ! elements with quality greater than this value are ok
   ! those with element quality below it need to be adapted
   real, save :: zoltan_global_quality_tolerance
@@ -102,6 +102,8 @@ module zoltan_global_variables
 
   ! Needed for zoltan_cb_unpack_fields
   type(detector_linked_list), target, save :: zoltan_global_unpacked_detectors_list
+
+  real :: zoltan_global_local_min_quality
 
 #endif
 

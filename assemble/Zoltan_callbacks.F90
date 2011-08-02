@@ -192,7 +192,7 @@ contains
     
     my_num_edges = sum(num_edges(1:num_obj))
     
-    if (zoltan_global_zoltan_iteration==zoltan_global_zoltan_max_adapt_iteration) then
+    if (zoltan_global_final_adapt_iteration) then
        
        ! last iteration - hopefully the mesh is of sufficient quality by now
        ! we only want to optimize the edge cut to minimize halo communication
@@ -216,6 +216,7 @@ contains
             MPI_COMM_FEMTOOLS,err)
     end if
     
+    zoltan_global_local_min_quality = 1.0
     
     head = 1
     
@@ -271,6 +272,10 @@ contains
              end if
           end do
           
+          if(min_quality .LT. zoltan_global_local_min_quality) then
+             zoltan_global_local_min_quality = min_quality
+          end if
+
           ! check if the quality is within the tolerance         
           if (min_quality .GT. zoltan_global_quality_tolerance) then
              ! if it is
@@ -324,7 +329,6 @@ contains
        end do
        close(666)
     end if
-    
     
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_edge_list
