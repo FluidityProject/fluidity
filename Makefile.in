@@ -323,7 +323,7 @@ radiation/*.o \
 reduced_modelling/*.o \
 adjoint/*.o \
 main/*.o
-ifeq (,yes)
+ifeq (@HYPERLIGHT@,yes)
 	@$(AR) $(ARFLAGS) lib/libfluidity.a hyperlight/*.o
 endif
 
