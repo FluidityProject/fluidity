@@ -995,7 +995,7 @@ contains
 
     if (max_adapt_iteration .ne. 1) then
        zoltan_min_adapt_iteration = max_adapt_iteration
-       zoltan_max_adapt_iteration = max_adapt_iteration + 2
+       zoltan_max_adapt_iteration = max_adapt_iteration + 4
     else
        zoltan_min_adapt_iteration = max_adapt_iteration
        zoltan_max_adapt_iteration = max_adapt_iteration
