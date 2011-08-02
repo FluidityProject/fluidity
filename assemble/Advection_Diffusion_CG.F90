@@ -728,7 +728,7 @@ contains
         velocity, pressure, &
         du_t, detwei, rhs_addto)
       if (have_shock_viscosity) then
-        call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, density, detwei)
+        call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, density, detwei, shock_viscosity_cq)
       end if
       call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, du_t, detwei, rhs_addto)
     end if
@@ -1015,7 +1015,7 @@ contains
     
   end subroutine add_pressurediv_element_cg
 
-  subroutine add_shock_viscosity_element_cg(rhs_addto, test_function, nu, ele, du_t, J_mat, density, detwei)
+  subroutine add_shock_viscosity_element_cg(rhs_addto, test_function, nu, ele, du_t, J_mat, density, detwei, shock_viscosity_cq)
     real, dimension(:), intent(inout) :: rhs_addto ! uloc
     type(element_type), intent(in) :: test_function
     type(vector_field), intent(in):: nu
@@ -1024,6 +1024,8 @@ contains
     real, dimension(:,:,:):: J_mat ! xdim x xdim x ngi
     type(scalar_field), intent(in):: density
     real, dimension(:), intent(in):: detwei ! ngi
+    ! needs to be passed in as we also want to use this routine in advection_diffusion_dg
+    real, intent(in):: shock_viscosity_cq
 
     real, dimension(nu%dim,nu%dim,size(detwei)):: gradu_gi, shock_viscosity_gi
     real, dimension(size(detwei)):: integrand

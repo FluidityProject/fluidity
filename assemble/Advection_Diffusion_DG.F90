@@ -139,7 +139,7 @@ module advection_diffusion_DG
   integer, parameter :: RT0_MASSLUMPING_CIRCUMCENTRED=2
 
   ! coefficient for quadratic shock viscosity
-  integer :: shock_viscosity_cq
+  real :: shock_viscosity_cq
 
   ! Are we on a sphere?
   logical :: on_sphere
@@ -1585,7 +1585,7 @@ contains
     end if
 
     if (include_shock_viscosity) then
-      call add_shock_viscosity_element_cg(l_T_rhs, T_shape, U_nl, ele, du_t, J_mat, density, detwei)
+      call add_shock_viscosity_element_cg(l_T_rhs, T_shape, U_nl, ele, du_t, J_mat, density, detwei, shock_viscosity_cq)
     end if
 
     ! Right hand side field.
