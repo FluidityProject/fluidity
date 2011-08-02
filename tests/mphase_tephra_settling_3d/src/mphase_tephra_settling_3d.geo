@@ -47,20 +47,21 @@ Plane Surface(23) = {8};
 Plane Surface(24) = {9};
 Plane Surface(25) = {10};
 
-// Top of the box
+// Bottom of the box
 Physical Line(333) = {5};
 // Sides of the box perpendicular to the z axis
 Physical Line(666) = {6,7};
 // Sides of the box perpendicular to the x axis
 Physical Line(777) = {8,9};
-// Bottom of the box
+// Top of the box
 Physical Line(444) = {10};
 
 // This is just to ensure all the interior
 // elements get written out. 
-Physical Surface(26) = {20};
-Physical Surface(27) = {21,22,23,24};
-Physical Surface(28) = {25};
+Physical Surface(333) = {20};
+Physical Surface(666) = {21,22};
+Physical Surface(777) = {23,24};
+Physical Surface(444) = {25};
 
 Surface Loop(800) = {22, 20, 21, 24, 25, 23};
 Volume(900) = {800};

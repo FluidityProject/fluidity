@@ -54,7 +54,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0.0</real_value>
+        <real_value rank="0">1.0</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -64,21 +64,14 @@
   </io>
   <timestepping>
     <current_time>
-      <real_value rank="0">0.0</real_value>
+      <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.001</real_value>
+      <real_value rank="0">0.005</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">240.0</real_value>
     </finish_time>
-    <nonlinear_iterations>
-      <integer_value rank="0">2</integer_value>
-      <tolerance>
-        <real_value rank="0">1.0e-12</real_value>
-        <infinity_norm/>
-      </tolerance>
-    </nonlinear_iterations>
     <steady_state>
       <tolerance>
         <real_value rank="0">1.0e-7</real_value>
@@ -191,41 +184,24 @@
             <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="Top">
+        <boundary_conditions name="TopBottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value shape="2" rank="1">333 444</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <align_bc_with_cartesian>
               <y_component>
                 <constant>
-                  <real_value rank="0">0.0</real_value>
+                  <real_value rank="0">0</real_value>
                 </constant>
               </y_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="Sides_Z">
-          <surface_ids>
-            <integer_value shape="1" rank="1">666</integer_value>
-            <comment>Sides perpendicular to the z axis</comment>
-          </surface_ids>
-          <type name="dirichlet">
-            <apply_weakly/>
-            <align_bc_with_cartesian>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
         <boundary_conditions name="Sides_X">
           <surface_ids>
             <integer_value shape="1" rank="1">777</integer_value>
-            <comment>Sides perpendicular to the x axis</comment>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -238,18 +214,18 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="Bottom">
+        <boundary_conditions name="Sides_Z">
           <surface_ids>
-            <integer_value shape="1" rank="1">444</integer_value>
+            <integer_value shape="1" rank="1">666</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <align_bc_with_cartesian>
-              <y_component>
+              <z_component>
                 <constant>
                   <real_value rank="0">0.0</real_value>
                 </constant>
-              </y_component>
+              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
@@ -351,7 +327,7 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
-        <no_interpolation/>
+        <consistent_interpolation/>
       </prognostic>
     </scalar_field>
     <scalar_field name="Density" rank="0">
@@ -422,41 +398,24 @@
             <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="Top">
+        <boundary_conditions name="TopBottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value shape="2" rank="1">333 444</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <align_bc_with_cartesian>
               <y_component>
                 <constant>
-                  <real_value rank="0">0.0</real_value>
+                  <real_value rank="0">0</real_value>
                 </constant>
               </y_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="Sides_Z">
-          <surface_ids>
-            <integer_value shape="1" rank="1">666</integer_value>
-            <comment>Sides perpendicular to the z axis</comment>
-          </surface_ids>
-          <type name="dirichlet">
-            <apply_weakly/>
-            <align_bc_with_cartesian>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
         <boundary_conditions name="Sides_X">
           <surface_ids>
             <integer_value shape="1" rank="1">777</integer_value>
-            <comment>Sides perpendicular to the x axis</comment>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
@@ -469,18 +428,18 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="Bottom">
+        <boundary_conditions name="Sides_Z">
           <surface_ids>
-            <integer_value shape="1" rank="1">444</integer_value>
+            <integer_value shape="1" rank="1">666</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <align_bc_with_cartesian>
-              <y_component>
+              <z_component>
                 <constant>
                   <real_value rank="0">0.0</real_value>
                 </constant>
-              </y_component>
+              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
