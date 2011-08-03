@@ -1,42 +1,42 @@
 SHELL = sh
 
-SIM = BL_test_1d
+SIM = 1d_mesh
+
+# options for 1d mesh interval script for different mesh resolutions
+LEFT_X    = 0.0
+RIGHT_X   = 100.0
+
+MESH_SIZE_A = 2.5
+MESH_SIZE_B = 0.2
 
 input: clean
-
-	../../../scripts/interval --dx=0.1 0 1 1d_mesh
-
-	@echo "compute input for $(SIM)"
-
-	gfortran -o input_wic_vol_bc_BL1_fcn input_wic_vol_bc_BL1_fcn.f90
-	gfortran -o input_wic_d_bc_BL1_fcn   input_wic_d_bc_BL1_fcn.f90
-	gfortran -o input_wic_u_bc_BL1_fcn   input_wic_u_bc_BL1_fcn.f90
-	gfortran -o input_wic_p_bc_BL1_fcn   input_wic_p_bc_BL1_fcn.f90
-
-	gfortran -o input_suf_vol_bc_BL1_fcn input_suf_vol_bc_BL1_fcn.f90
-	gfortran -o input_suf_d_bc_BL1_fcn   input_suf_d_bc_BL1_fcn.f90
-	gfortran -o input_suf_t_bc_BL1_fcn   input_suf_t_bc_BL1_fcn.f90
-	gfortran -o input_suf_u_bc_BL1_fcn   input_suf_u_bc_BL1_fcn.f90
-
-	gfortran -o input_satura_BL1_func    input_satura_BL1_func.f90
-	gfortran -o input_perm_BL1_func      input_perm_BL1_func.f90
-	gfortran -o input_eos_coef_BL1_func  input_eos_coef_BL1_func.f90
+	@echo "Running INTERVAL script for $(SIM)"
+	../../../scripts/interval --dx=$(MESH_SIZE_A) $(LEFT_X) $(RIGHT_X) $(SIM)
+#	../../../scripts/interval --dx=$(MESH_SIZE_B) $(LEFT_X) $(RIGHT_X) $(SIM)_B
 
 clean:
-	rm -f input_wic_vol_bc_BL1_fcn
-	rm -f input_wic_d_bc_BL1_fcn       
-	rm -f input_wic_u_bc_BL1_fcn        
-	rm -f input_wic_p_bc_BL1_fcn        
-	rm -f input_suf_vol_bc_BL1_fcn        
-	rm -f input_suf_d_bc_BL1_fcn        
-	rm -f input_suf_t_bc_BL1_fcn        
-	rm -f input_suf_u_bc_BL1_fcn       
-	rm -f input_satura_BL1_func        
-	rm -f input_perm_BL1_func        
-	rm -f input_eos_coef_BL1_func       
+	rm -f $(SIM)*.ele
+	rm -f $(SIM)*.node
+	rm -f $(SIM)*.bound
+	rm -f $(SIM)*.edge
+	rm -f $(SIM)*.face
+	rm -f $(SIM)*.vtu 
+	rm -f $(SIM)*.pvtu 
+	rm -f $(SIM)*.s 
+	rm -f $(SIM)*.d.* 
+	rm -f $(SIM)*.stat 
+	rm -f $(SIM)*.log-0 
+	rm -f $(SIM)*.err-0 
+	rm -f $(SIM)*.msh
+	rm -f $(SIM)*.halo
+	rm -f fluidity.err*
+	rm -f fluidity.log*
+	rm -f matrixdump*
+	rm -f first_timestep_adapted_mesh*
 	rm -f gmon.out
 	rm -f *.d.*
-	rm -f flog.dat time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror_int_data.dat fort.*
-	rm -f *.node *.bound *.ele *.face *.stat *.vtu
-	rm -f mirror_new.dat fluidity.*
-	rm -f *.ele *.bound *.face *.node
+	rm -f mirror_int_data.dat input.dat mirror_new.dat
+	rm -f Cubic_Interp.pyc
+	rm -rf $(SIM)_*output
+	rm -f CheckSparsityMatrix.dat
+

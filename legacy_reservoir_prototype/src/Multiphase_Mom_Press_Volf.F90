@@ -261,7 +261,7 @@ contains
     integer :: scvngi_theta, cv_ngi, cv_ngi_short, sbcvngi, nface, cv_nodi, IPLIKE_GRAD_SOU
     
     real :: finish_time
-    integer :: dump_period_in_timesteps
+    integer :: dump_period_in_timesteps, max_dump_file_count
 
     character( len = 500 ) :: dummy_string_phase, dummy_string_dump, dummy_string_comp, dump_name, file_format
     integer :: output_channel
@@ -312,6 +312,8 @@ contains
     call get_option("/timestepping/timestep", dt)
     call get_option("/timestepping/finish_time", finish_time)
     call get_option("/io/dump_period_in_timesteps/constant", dump_period_in_timesteps, default=1)
+    if( have_option( "/io/max_dump_file_count" )) &
+        call get_option( "/io/max_dump_file_count", max_dump_file_count )
 
     nstates = option_count("/material_phase")
     
@@ -323,7 +325,11 @@ contains
        
        ACCTIM = ACCTIM + DT
        
-       if (ACCTIM > finish_time) exit Loop_Time
+       if ( ACCTIM > finish_time ) exit Loop_Time
+       if( have_option( "/io/max_dump_file_count" )) then
+          call get_option( "/io/max_dump_file_count", max_dump_file_count )
+          if ( itime > max_dump_file_count ) exit Loop_Time
+       endif
        
        UOLD = U
        NU = U
