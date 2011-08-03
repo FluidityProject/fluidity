@@ -104,6 +104,7 @@ module zoltan_integration
     load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
     call set_zoltan_parameters(final_adapt_iteration, load_imbalance_tolerance, zz)
 
+    zoltan_global_calculated_local_min_quality = .false.
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
@@ -111,6 +112,9 @@ module zoltan_integration
        & load_imbalance_tolerance)
 
     if (.NOT. final_adapt_iteration) then
+
+       assert(zoltan_global_calculated_local_min_quality)
+
        call mpi_allreduce(zoltan_global_local_min_quality, global_min_quality, 1, getPREAL(), &
           & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
        assert(ierr == MPI_SUCCESS)

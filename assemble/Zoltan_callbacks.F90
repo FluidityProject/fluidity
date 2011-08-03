@@ -170,7 +170,7 @@ contains
     character (len = OPTION_PATH_LEN) :: filename    
     
     ! variables for recording various element quality functional values 
-    real(zoltan_float) :: quality, min_quality, my_min_quality
+    real :: quality, min_quality, my_min_quality
     
     ! variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
     real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight
@@ -290,6 +290,8 @@ contains
        head = head + size(neighbours)
     end do
     
+    zoltan_global_calculated_local_min_quality = .true.
+
     assert(head == sum(num_edges(1:num_obj))+1)
     
     ! calculate the local maximum edge weight
@@ -329,7 +331,7 @@ contains
        end do
        close(666)
     end if
-    
+
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_edge_list
 

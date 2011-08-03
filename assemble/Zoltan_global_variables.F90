@@ -104,6 +104,7 @@ module zoltan_global_variables
   type(detector_linked_list), target, save :: zoltan_global_unpacked_detectors_list
 
   real :: zoltan_global_local_min_quality
+  logical :: zoltan_global_calculated_local_min_quality
 
 #endif
 
