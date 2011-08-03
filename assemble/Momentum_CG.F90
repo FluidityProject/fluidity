@@ -1022,7 +1022,7 @@
              if(include_pressure_and_continuity_bcs .and. velocity_bc_type(dim, sele)==1 )then
                 call addto(ct_rhs, p_nodes_bdy, &
                      -matmul(ct_mat_bdy(dim,:,:), ele_val(velocity_bc, dim, sele)))
-             else if (assemble_ct_matrix) then
+             else if (assemble_ct_matrix_here) then
                 ! for open boundaries add in the boundary integral from integrating by parts - for 
                 ! other bcs leaving this out enforces a dirichlet-type restriction in the normal direction
                 call addto(ct_m, 1, dim, p_nodes_bdy, u_nodes_bdy, ct_mat_bdy(dim,:,:))
