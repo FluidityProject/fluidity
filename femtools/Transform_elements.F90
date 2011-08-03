@@ -196,7 +196,7 @@ contains
 
     if (X%refcount%id /= face_position_id) then
        face_cache_valid=.false.
-    else if (eventcount(EVENT_MESH_MOVEMENT) /= last_mesh_movement) then
+    else if (eventcount(EVENT_MESH_MOVEMENT) /= face_last_mesh_movement) then
        face_cache_valid = .false.
     end if
 
