@@ -524,7 +524,7 @@ contains
          v_field => extract_vector_field(state(i), "VelocityAbsorption", stat)
          if(stat == 0) then
            if(recalculate(trim(v_field%option_path))) then
-             call calculate_porous_media_absorption(state, i, v_field, stat)
+             call calculate_porous_media_absorption(state, i, v_field)
            end if
          end if
        end if

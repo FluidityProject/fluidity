@@ -188,23 +188,20 @@ module porous_media
     brine_salinity = 10**(c(1)+c(2)*logsw+c(3)*logsw**2+c(4)*logsw**3+c(5)*logsw**4)
   end function brine_salinity
 
-  subroutine calculate_porous_media_absorption(state, i, absorption, stat)
+  subroutine calculate_porous_media_absorption(state, i, absorption)
     !!< calculate the absorption term for a vector velocity absorption field
     ! specify interface variables
     type(state_type), dimension(:), intent(inout) :: state
     integer, intent(in) :: i
     type(vector_field), intent(inout) :: absorption
-    integer, intent(out) :: stat
 
     ! specify local variables
-    integer :: j, k, m
+    integer :: j, k, m, stat
     real, dimension(1) :: perm_val
     type(scalar_field) :: s_viscosity, s_permeability
     type(vector_field), pointer :: v_permeability
     type(tensor_field), pointer :: t_viscosity, t_permeability
     integer, dimension(:), pointer :: element_nodes
-
-    stat = -1
 
     ! extract viscosity field as a scalar field
     t_viscosity => extract_tensor_field(state(i), "Viscosity", stat)
@@ -220,15 +217,9 @@ module porous_media
     if (have_option("/porous_media/scalar_field::Permeability")) then
       ! SCALAR PERMEABILITY
       s_permeability = extract_scalar_field(state(1), "Permeability", stat)
-!      ewrite_minmax(s_permeability)
-!      ewrite(3,*) 'permeability: ', s_permeability%val(:)
-!      ewrite(3,*) 'ele_count: ', element_count(s_permeability)
       do m=1,element_count(s_permeability)
-!        ewrite(3,*) 'perm val: ', ele_val(s_permeability, m)
         perm_val = ele_val(s_permeability, m)
-!        ewrite(3,*) 'm: ', m
         element_nodes => ele_nodes(s_viscosity,m)
-!        ewrite(3,*) 'element_nodes', element_nodes
         do k=1,size(element_nodes)
           do j=1,absorption%dim
             call set(absorption, j, element_nodes(k), &
@@ -248,7 +239,7 @@ module porous_media
     elseif (have_option("/porous_media/tensor_field::Permeability")) then
       ! TENSOR PERMEABILITY
       t_permeability => extract_tensor_field(state(1), "Permeability", stat)
-      FLExit("Cannot currently solve porous media problems with a full tensor permeability.")
+      ewrite(1,*) 'Tensor permeability! Absorption is always a vector_field'
     else
       FLExit("Porous media problems require a permeability field.")
     end if

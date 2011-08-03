@@ -126,7 +126,7 @@ module copy_outof_into_state
       type(vector_field), pointer :: velocity, velocity_source
       type(vector_field), pointer :: velocity_bc
 
-      type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2
+      type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2, t_permeability
 
       integer :: nonlinear_iterations, &  !! equal to nits in prototype code
            stat, nstates
@@ -147,10 +147,17 @@ module copy_outof_into_state
       real :: coord_min, coord_max, &
            eos_value!, viscosity_ph1, viscosity_ph2
            
+      real:: const
+      real, dimension(:), allocatable :: const_vec
+      real, dimension(:,:), allocatable :: const_array
+
+           
       integer, dimension(:), allocatable :: cv_ndgln, u_ndgln
       integer, dimension(:), pointer :: element_nodes
       
       real, dimension(:), allocatable :: initial_constant_velocity
+      
+      logical :: is_constant, is_isotropic, is_symmetric, is_diagonal
 
       !! Variables needed by the prototype code
       !! and therefore needing to be pulled out of state or
@@ -642,9 +649,114 @@ module copy_outof_into_state
            perm(k, 1:ndim, 1:ndim)=permeability%val(element_nodes(1))
          end do perm_ele_loop
       elseif (have_option("/porous_media/tensor_field::Permeability")) then
-         FLAbort("Have not coded up tensor permeability yet! Try scalar instead")
-      endif
+         option_path="/porous_media/tensor_field::Permeability"
+         allocate(perm(totele, ndim, ndim))
+         perm = 0.
+         if (have_option(trim(option_path)//"/prescribed")) then
+            option_path=trim(option_path)//"/prescribed/value[0]"
+         else
+            FLAbort("Permeability field not prescribed - sort this out")
+         endif
+         is_isotropic=have_option(trim(option_path)//"/isotropic")
+         is_diagonal=have_option(trim(option_path)//"/diagonal")
+         is_symmetric=have_option(trim(option_path)//"/anisotropic_symmetric")
+
+
+!!!!!!!!!!!!
+
+         if(is_isotropic) then
+       
+            option_path=trim(option_path)//"/isotropic"
+       
+            if(have_option(trim(option_path)//"/constant")) then
+              call get_option(trim(option_path)//"/constant", const)
+              do i=1, ndim
+                perm(1:totele,i,i)=const
+              end do
+            else if(have_option(trim(option_path)//"/python")) then
+              t_permeability => extract_tensor_field(state(1), "Permeability")
+              do k = 1, element_count(t_permeability)
+                element_nodes => ele_nodes(t_permeability,k)
+                do i=1,ndim
+                    perm(k,i,i) = t_permeability%val(i, i, element_nodes(1))
+                end do
+              end do
+            else if (have_option(trim(option_path)//"/generic_function")) then
+              FLExit("Generic functions are obsolete. Use a Python function.")
+            else
+              FLExit("Incorrect initial condition for field")
+            end if
+       
+         else if(is_diagonal) then
+    
+            option_path=trim(option_path)//"/diagonal"
+       
+            if(have_option(trim(option_path)//"/constant")) then
+              allocate(const_vec(ndim))
+              const_vec=0.
+              call get_option(trim(option_path)//"/constant", const_vec)
+              do i=1, ndim
+                perm(1:totele,i,i)=const_vec(i)
+              end do
+              deallocate(const_vec)
+            else if(have_option(trim(option_path)//"/python")) then
+              t_permeability => extract_tensor_field(state(1), "Permeability")
+              do i=1,ndim
+                do j=1,element_count(t_permeability)
+                  perm(j,i,i) = t_permeability%val(i, i, j)
+                end do
+              end do
+            else if (have_option(trim(option_path)//"/generic_function")) then
+              FLExit("Generic functions are obsolete. Use a Python function.")
+            else
+              FLExit("Incorrect initial condition for field")
+            end if
+       
+         else
+
+            ! Set path
+            if(is_symmetric) then
+              option_path=trim(option_path)//"/anisotropic_symmetric"
+            else
+              option_path=trim(option_path)//"/anisotropic_asymmetric"
+            end if
+
+            if(have_option(trim(option_path)//"/constant")) then
+              allocate(const_array(ndim, ndim))
+              const_array=0.
+              call get_option(trim(option_path)//"/constant", const_array)
+              do i=1,ndim
+                do j=1,ndim
+                  perm(1:totele, i, j) = const_array(i, j)
+                end do
+              end do
+              deallocate(const_array)
+            else if (have_option(trim(option_path)//"/python")) then
+              t_permeability => extract_tensor_field(state(1), "Permeability")
+              do k = 1, element_count(t_permeability)
+                element_nodes => ele_nodes(t_permeability,k)
+                do i=1,ndim
+                  do j=1,ndim
+                    perm(k,i,j) = t_permeability%val(i, j, element_nodes(1))
+                  end do
+                end do
+              end do
+              
+            else if (have_option(trim(option_path)//"/generic_function")) then
+              FLExit("Generic functions are obsolete. Use a Python function.")
+            else
+              FLExit("Incorrect initial condition for field")
+            end if
+         end if
+
+      end if
+
+
       ewrite(3,*) "Got permeability: ", perm(1:totele, 1, 1)
+      ewrite(3,*) "p 1 2 ", perm(1:totele, 1, 2)
+      ewrite(3,*) "p 2 1 ", perm(1:totele, 2, 1)
+      ewrite(3,*) "p 2 2 ", perm(1:totele, 2, 2)
+!      stop 84848
 
 !!!
 !!! WIC_X_BC (in which X = D, U, V, W, P, T, COMP and VOL) controls the boundary conditions

@@ -688,7 +688,6 @@ start =
                attribute name { "Porosity" },
                (
                   element prescribed {
-                     velocity_mesh_choice,
                      prescribed_scalar_field
                   }|
                   element aliased {
@@ -702,7 +701,6 @@ start =
                   attribute name { "Permeability" },
                   (
                      element prescribed {
-                        velocity_mesh_choice,
                         prescribed_scalar_field
                      }|
                      element aliased {
@@ -713,14 +711,12 @@ start =
                element vector_field {
                   attribute name { "Permeability" },
                   element prescribed {
-                     velocity_mesh_choice,
                      prescribed_vector_field
                   }
                }|
                element tensor_field {
                   attribute name { "Permeability" },
                   element prescribed { 
-                     velocity_mesh_choice,
                      prescribed_tensor_field
                   }
                }
