@@ -197,7 +197,7 @@ module sparse_tools
        & mult,mult_T, zero_column, addref, incref, decref, has_references, &
        & csr_matrix_pointer, block_csr_matrix_pointer, &
        & csr_sparsity, csr_sparsity_pointer, logical_array_ptr,&
-       & initialise_inactive, has_inactive, mult_addto
+       & initialise_inactive, has_inactive, mult_addto, mult_t_addto
 
   TYPE node
      !!< A node in a linked list
@@ -362,6 +362,10 @@ module sparse_tools
 
   interface mult_T
      module procedure csr_mult_T
+  end interface
+
+  interface mult_T_addto
+     module procedure csr_mult_T_addto
   end interface
     
   interface matmul
@@ -3924,6 +3928,34 @@ contains
     end do
     
   end subroutine csr_mult_T  
+
+  subroutine csr_mult_T_addto(vector_out,mat,vector_in)
+    !!< Multiply the transpose of a csr_matrix by a vector,
+    !!< result is added to vector_out
+
+    !interface variables
+    real, dimension(:), intent(in) :: vector_in
+    type(csr_matrix), intent(in) :: mat
+    real, dimension(:), intent(out) :: vector_out
+
+    !local variables
+    integer :: i, j, k
+
+    ewrite(2,*) 'size(vector_in) = ', size(vector_in)
+    ewrite(2,*) 'size(mat,1) = ', size(mat,1)
+    assert(size(vector_in)==size(mat,1))
+    ewrite(2,*) 'size(vector_out) = ', size(vector_out)
+    ewrite(2,*) 'size(mat,2) = ', size(mat,2)
+    assert(size(vector_out)==size(mat,2))
+
+    do i = 1, size(vector_in)
+      do j=mat%sparsity%findrm(i), mat%sparsity%findrm(i+1)-1
+         k = mat%sparsity%colm(j)
+         vector_out(k) = vector_out(k) + mat%val(j) * vector_in(i)
+      end do
+    end do
+    
+  end subroutine csr_mult_T_addto
 
   subroutine dcsr_mult_T(m,v,mv)
     type(dynamic_csr_matrix), intent(in) :: m

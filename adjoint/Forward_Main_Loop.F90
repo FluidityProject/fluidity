@@ -140,7 +140,7 @@ module forward_main_loop
           material_phase_name = variable_name(1:s_idx - 1)
           field_name = variable_name(s_idx + 2:len_trim(variable_name))
           ierr = adj_dict_find(adj_path_lookup, trim(variable_name), path)
-          if (ierr == ADJ_ERR_OK) then
+          if (ierr == ADJ_OK) then
             has_path = .true.
           else
             has_path = .false.

@@ -823,7 +823,7 @@ def val(X,t):
     vector field about the origin.}
 \end{example}
 
-\subsubsection{Reading fields from a file}
+\subsubsection{Reading fields from a file (using the \option{from\_file} option)}
 \index{field!input}
 A field can be populated using saved data from a file. This is intended primarily
 for picking up prescribed fields from previously run prognostic simulations
@@ -841,6 +841,14 @@ The file mesh must match the mesh of this field (except for piecewise constant
 fields which will be remapped back from the discontinuous nodal values). In
 parallel the process number is appended to the filename, e.g. if the file name
 attribute is set to \option{input.vtu}, process 0 reads from \option{input-0.vtu}.
+
+\subsubsection{Setting an initial condition from a NetCDF file}\label{Sect:setting_from_netcdf}
+
+The initial state of certain fields can be set from external data contained within a NetCDF file.
+This functionality can be used by selecting the \option{\ldots/initial\_condition/from\_netcdf/format}
+option. This feature is currently intended for setting, for example, the initial free surface elevation
+in a Tsunami simulation. This option will not currently work with multi-layered data files. Supported
+NetCDF file conventions include the NetCDF-CF 1.x convention.
 
 \subsubsection{Setting fields from NEMO data}\label{Sect:setting_from_nemo}
 \index{field!from Nemo}

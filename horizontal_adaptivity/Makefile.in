@@ -60,7 +60,7 @@ OBJS = Extrude.o Extrude_radially.o Advancing_front.o Metric_based_extrude.o Com
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
 default: $(LIB)
 
 clean:

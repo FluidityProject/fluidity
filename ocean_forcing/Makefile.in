@@ -71,7 +71,7 @@ NEMOdataload_rotation.o bulk_parameterisations.o forcingERA40_fortran.o NEMO_loa
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
 default: $(LIB)
 
 test_StormMaker:

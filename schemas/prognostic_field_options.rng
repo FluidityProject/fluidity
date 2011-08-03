@@ -1413,6 +1413,12 @@ Fix for low reynolds numbers by adding the viscous terms to the inversed lumped 
             </element>
           </optional>
         </element>
+        <element name="discontinuous_galerkin">
+          <a:documentation>Select this discretisation if Pressure is defined on a discontinous mesh.
+Only works if your Velocity (or Momentum) is continuous. With this option
+the continuity equation is never integrated by parts.</a:documentation>
+          <empty/>
+        </element>
         <element name="control_volumes">
           <empty/>
         </element>
