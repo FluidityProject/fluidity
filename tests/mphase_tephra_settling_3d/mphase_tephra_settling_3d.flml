@@ -281,7 +281,7 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <output/>
         <stat/>
@@ -510,7 +510,7 @@
     </vector_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
