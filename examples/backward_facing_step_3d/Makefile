@@ -1,19 +1,16 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=5100
-JOB=LES-sem-periodic
+JOB=dynles-sem-periodic
 PYTHONPATH=PYTHONPATH:/data/JBull/fluidity/turbulence-dev/python/:/data2/JBull/fluidity/turbulence-dev/python/
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,fine , \
+	@$(foreach NN,med , \
 		echo **********Installing directory $(RE)-$(JOB)-$(NN):; \
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
 		echo **********copying flml: backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
 		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
-		echo **********Generating binary mesh for $(NN) simulation:; \
-		gmsh -3 -optimize_netgen -o step3d-$(NN).msh ../src/step3d-$(NN).geo; \
-		$(SCRIPTS)/gmsh2triangle_large step3d-$(NN).msh; \
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
 		$(BIN)/fldecomp -n $(NPROCS) -f step3d-$(NN); \
 		cd ..; \
@@ -21,7 +18,7 @@ preprocess:
 
 preprocess-periodic:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,fine, \
+	@$(foreach NN,coarse, \
 		install -d $(RE)-$(JOB)-$(NN); \
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
@@ -35,11 +32,11 @@ preprocess-periodic:
 	)
 
 run:
-	@$(foreach NN,coarse2 , \
+	@$(foreach NN,coarse , \
 		echo Running $(NN) case; \
 		cd $(RE)-$(JOB)-$(NN); \
 		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
-		mpiexec -np $(NPROCS) $(BIN)/fluidity -v2 -l $(RE)-$(JOB)-$(NN)-$(NPROCS)p.flml; \
+		mpiexec -np $(NPROCS) $(BIN)/fluidity -v3 -l $(RE)-$(JOB)-$(NN)-$(NPROCS)p.flml; \
 		cd ..; \
 	)
 

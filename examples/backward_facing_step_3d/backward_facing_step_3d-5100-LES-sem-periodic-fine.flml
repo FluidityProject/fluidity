@@ -1,0 +1,606 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">backward_facing_step_3d-dynles-lilly-sem-per-fine</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="step3d-fine-periodic">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="PeriodicMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="PeriodicMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PeriodicMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <periodic_boundary_conditions name="sides">
+          <physical_boundary_ids>
+            <integer_value shape="1" rank="1">55</integer_value>
+          </physical_boundary_ids>
+          <aliased_boundary_ids>
+            <integer_value shape="1" rank="1">56</integer_value>
+          </aliased_boundary_ids>
+          <coordinate_map>
+            <string_value lines="20" type="python">def val(X,t):
+    return [X[0],X[1]-4.0,X[2]]</string_value>
+          </coordinate_map>
+        </periodic_boundary_conditions>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <constant>
+        <integer_value rank="0">200</integer_value>
+      </constant>
+    </dump_period_in_timesteps>
+    <output_mesh name="CoordinateMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">10</integer_value>
+      </checkpoint_period_in_dumps>
+    </checkpointing>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">0.01</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">1000.0</real_value>
+    </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">2</integer_value>
+    </nonlinear_iterations>
+    <adaptive_timestep>
+      <requested_cfl>
+        <real_value rank="0">2.</real_value>
+      </requested_cfl>
+      <courant_number name="CFLNumber">
+        <mesh name="VelocityMesh"/>
+      </courant_number>
+    </adaptive_timestep>
+  </timestepping>
+  <material_phase name="Fluid">
+    <scalar_field name="Pressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <integrate_continuity_by_parts/>
+          </continuous_galerkin>
+        </spatial_discretisation>
+        <scheme>
+          <poisson_pressure_solution>
+            <string_value lines="1">only first timestep</string_value>
+          </poisson_pressure_solution>
+          <use_projection_method/>
+        </scheme>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <boundary_conditions name="out">
+          <surface_ids>
+            <integer_value shape="1" rank="1">53</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <no_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="Boussinesq"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <mass_terms>
+              <lump_mass_matrix/>
+            </mass_terms>
+            <advection_terms/>
+            <stress_terms>
+              <tensor_form/>
+            </stress_terms>
+            <les_model>
+              <second_order>
+                <smagorinsky_coefficient>
+                  <real_value rank="0">0.1</real_value>
+                </smagorinsky_coefficient>
+                <tensor_field name="EddyViscosity" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
+              </second_order>
+            </les_model>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <relaxation>
+            <real_value rank="0">0.5</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="Inflow">
+          <surface_ids>
+            <integer_value shape="1" rank="1">52</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <x_component>
+                <synthetic_eddy_method>
+                  <number_of_eddies>
+                    <integer_value rank="0">1000</integer_value>
+                  </number_of_eddies>
+                  <turbulence_lengthscale>
+                    <constant>
+                      <real_value rank="0">0.31</real_value>
+                      <comment>Rule of thumb for fully developed turbulent pipe flow:
+l=max(0.07D_h,mesh_size) where D_h is the hydraulic diameter.</comment>
+                    </constant>
+                  </turbulence_lengthscale>
+                  <mean_profile>
+                    <python>
+                      <string_value lines="20" type="python">def val(X, t):
+    znod=X[2]-1.0
+    z=[0.0, 0.000588587, 0.00179565, 0.00306398, 0.0043966, 0.005797029, 0.00726840, 0.00881438, 0.0104387, 0.0121454, 0.0139385, 0.0158225, 0.0178018, 0.0198813, 0.02206589, 0.0243610, 0.0267720, 0.0293048, 0.0319655, 0.0347605, 0.0376963, 0.0407802, 0.0440194, 0.0474214, 0.0509948, 0.0547476, 0.0586889, 0.0628279, 0.06717435, 0.0717387, 0.0765312, 0.0815634, 0.08684694, 0.0923940, 0.0982173, 0.1043309, 0.110748, 0.117483, 0.124553, 0.131972, 0.1397579, 0.147927, 0.1565, 0.165493, 0.174928, 0.1848249, 0.1952049, 0.206092, 0.217508, 0.2294779, 0.2420269, 0.255182, 0.268971, 0.283420, 0.298561, 0.314423, 0.331040, 0.348445, 0.366669, 0.385749, 0.405722, 0.426624, 0.448496, 0.471376, 0.495307, 0.520329, 0.5464865, 0.573825, 0.602388, 0.632222, 0.663378, 0.69586, 0.7298379, 0.765243, 0.802165, 0.840655, 0.8807639, 0.922543, 0.966044, 1.01132, 1.058419, 1.10739, 1.15829, 1.21117, 1.26607, 1.323029, 1.382109, 1.44334, 1.506769, 1.57243, 1.64036, 1.71059, 1.78315, 1.85805, 1.935319, 2.01498, 2.09702, 2.181449, 2.268279, 2.357489, 2.44905, 2.54298, 2.63920, 2.737709, 2.838449, 2.94137, 3.04640, 3.15349, 3.26256, 3.37352, 3.48627, 3.60074, 3.71680, 3.83435, 3.95326, 4.07340, 4.19465, 4.316889, 4.43994, 4.56367, 4.68796, 4.812619, 4.93750]
+    u=[0.0, 0.007070139, 0.0215638, 0.0367805, 0.0527451, 0.0694738, 0.0869719, 0.10523, 0.124219, 0.1438929, 0.16417, 0.1849939, 0.2062249, 0.2277559, 0.2494589, 0.271201, 0.29285, 0.314278, 0.335374, 0.3560349, 0.376180, 0.3957459, 0.414688, 0.432975, 0.4505919, 0.467536, 0.483818, 0.499450, 0.514453, 0.528842, 0.542641, 0.5558725, 0.568558, 0.5807189, 0.592376, 0.603538, 0.614210, 0.624418, 0.634229, 0.643737, 0.6530045, 0.662030, 0.670811, 0.679390, 0.687745, 0.695864, 0.7038119, 0.7116245, 0.719273, 0.726732, 0.734114, 0.741489, 0.748870, 0.756229, 0.763510, 0.770734, 0.777884, 0.785012, 0.792242, 0.79957, 0.806988, 0.814520, 0.822115, 0.829851, 0.837721, 0.845702, 0.853843, 0.862176, 0.870651, 0.879453, 0.888448, 0.897730, 0.907208, 0.916883, 0.926578, 0.936257, 0.946011, 0.9558079, 0.965566, 0.9750659, 0.984137, 0.992236, 0.999272, 1.00405, 1.005849, 1.00647, 1.00597, 1.0056, 1.00542, 1.005339, 1.00522, 1.00508, 1.004869, 1.00459, 1.004219, 1.0041, 1.004019, 1.00379, 1.00357, 1.003379, 1.00320, 1.003039, 1.00288, 1.002729, 1.00258, 1.00244, 1.0023, 1.002159, 1.00204, 1.00191, 1.0018, 1.00169, 1.00159, 1.00149, 1.00140, 1.00132, 1.00126, 1.00120, 1.001139, 1.00110, 1.001069, 1.00105, 1.001039]
+    u0=1.5
+    vel=0.0
+    for i in range(len(z)-1):
+        if (znod&gt;=z[i] and znod&lt;=z[i+1]):
+            vel=u0*u[i]+(znod-z[i])*(u0*(u[i+1]-u[i])/(z[i+1]-z[i]))
+    return vel</string_value>
+                      <comment>DNS data courtesy of Le &amp; Moin (1992), ERCOTFAC database. Scaled by mean velocity u0=1.5.</comment>
+                    </python>
+                  </mean_profile>
+                  <Re_stresses_profile>
+                    <python>
+                      <string_value lines="20" type="python">def val(X, t):
+    znod=X[2]-1.0
+    z=[0.0, 0.000588587, 0.00179565, 0.00306398, 0.0043966, 0.005797029, 0.00726840, 0.00881438, 0.0104387, 0.0121454, 0.0139385, 0.0158225, 0.0178018, 0.0198813, 0.02206589, 0.0243610, 0.0267720, 0.0293048, 0.0319655, 0.0347605, 0.0376963, 0.0407802, 0.0440194, 0.0474214, 0.0509948, 0.0547476, 0.0586889, 0.0628279, 0.06717435, 0.0717387, 0.0765312, 0.0815634, 0.08684694, 0.0923940, 0.0982173, 0.1043309, 0.110748, 0.117483, 0.124553, 0.131972, 0.1397579, 0.147927, 0.1565, 0.165493, 0.174928, 0.1848249, 0.1952049, 0.206092, 0.217508, 0.2294779, 0.2420269, 0.255182, 0.268971, 0.283420, 0.298561, 0.314423, 0.331040, 0.348445, 0.366669, 0.385749, 0.405722, 0.426624, 0.448496, 0.471376, 0.495307, 0.520329, 0.5464865, 0.573825, 0.602388, 0.632222, 0.663378, 0.69586, 0.7298379, 0.765243, 0.802165, 0.840655, 0.8807639, 0.922543, 0.966044, 1.01132, 1.058419, 1.10739, 1.15829, 1.21117, 1.26607, 1.323029, 1.382109, 1.44334, 1.506769, 1.57243, 1.64036, 1.71059, 1.78315, 1.85805, 1.935319, 2.01498, 2.09702, 2.181449, 2.268279, 2.357489, 2.44905, 2.54298, 2.63920, 2.737709, 2.838449, 2.94137, 3.04640, 3.15349, 3.26256, 3.37352, 3.48627, 3.60074, 3.71680, 3.83435, 3.95326, 4.07340, 4.19465, 4.316889, 4.43994, 4.56367, 4.68796, 4.812619, 4.93750]
+    u=[0.0, 0.003581079, 0.0109015, 0.0185629, 0.0265699, 0.0349071, 0.0435332, 0.0523773, 0.0613396, 0.0702957, 0.0791058, 0.0876260, 0.0957208, 0.103272, 0.110183, 0.1163769, 0.121801, 0.126423, 0.130243, 0.1332879, 0.135612, 0.1372839, 0.138386, 0.139000, 0.1392009, 0.1390569, 0.138626, 0.1379549, 0.1370879, 0.1360659, 0.1349279, 0.133696, 0.132379, 0.130994, 0.1295669, 0.128133, 0.126692, 0.1252129, 0.1237, 0.12216, 0.120619, 0.119128, 0.117696, 0.116314, 0.114963, 0.113547, 0.112026, 0.110525, 0.109076, 0.10768, 0.106285, 0.104954, 0.103567, 0.102239, 0.100860, 0.09950193, 0.0982260, 0.0968778, 0.0955009, 0.09408854, 0.0926855, 0.09137195, 0.09010314, 0.08865119, 0.0868400, 0.08502515, 0.0833343, 0.0816486, 0.07966739, 0.0773029, 0.07487093, 0.07214589, 0.0691192, 0.0657326, 0.0621178, 0.0582309, 0.0538524, 0.0486687, 0.0429758, 0.03665759, 0.03060279, 0.024962, 0.0204345, 0.0175856, 0.0160840, 0.01443189, 0.0125597, 0.0104087, 0.00875077, 0.00753408, 0.006580869, 0.00571249, 0.00493693, 0.004295629, 0.00391862, 0.00357345, 0.00260458, 0.00200663, 0.00159825, 0.001308989, 0.00109437, 0.000930211, 0.000802321, 0.000701585, 0.000621588, 0.000557596, 0.0005060929, 0.000464369, 0.000430376, 0.000402524, 0.000379596, 0.0003606689, 0.0003450109, 0.000332067, 0.000321393, 0.000312621, 0.000305494, 0.00029975, 0.000295248, 0.000291797, 0.000289311, 0.000287701, 0.000286913]
+    u0=1.5
+    vel=0.0
+    for i in range(len(z)-1):
+        if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
+            vel=u0*u[i]+(znod-z[i])*(u0*(u[i+1]-u[i])/(z[i+1]-z[i]))
+    return vel</string_value>
+                    </python>
+                  </Re_stresses_profile>
+                </synthetic_eddy_method>
+              </x_component>
+              <y_component>
+                <synthetic_eddy_method>
+                  <number_of_eddies>
+                    <integer_value rank="0">1000</integer_value>
+                  </number_of_eddies>
+                  <turbulence_lengthscale>
+                    <constant>
+                      <real_value rank="0">0.31</real_value>
+                    </constant>
+                  </turbulence_lengthscale>
+                  <mean_profile>
+                    <constant>
+                      <real_value rank="0">0.0</real_value>
+                    </constant>
+                  </mean_profile>
+                  <Re_stresses_profile>
+                    <python>
+                      <string_value lines="20" type="python">def val(X, t):
+    znod=X[2]-1.0
+    z=[0.0, 0.000588587, 0.00179565, 0.00306398, 0.0043966, 0.005797029, 0.00726840, 0.00881438, 0.0104387, 0.0121454, 0.0139385, 0.0158225, 0.0178018, 0.0198813, 0.02206589, 0.0243610, 0.0267720, 0.0293048, 0.0319655, 0.0347605, 0.0376963, 0.0407802, 0.0440194, 0.0474214, 0.0509948, 0.0547476, 0.0586889, 0.0628279, 0.06717435, 0.0717387, 0.0765312, 0.0815634, 0.08684694, 0.0923940, 0.0982173, 0.1043309, 0.110748, 0.117483, 0.124553, 0.131972, 0.1397579, 0.147927, 0.1565, 0.165493, 0.174928, 0.1848249, 0.1952049, 0.206092, 0.217508, 0.2294779, 0.2420269, 0.255182, 0.268971, 0.283420, 0.298561, 0.314423, 0.331040, 0.348445, 0.366669, 0.385749, 0.405722, 0.426624, 0.448496, 0.471376, 0.495307, 0.520329, 0.5464865, 0.573825, 0.602388, 0.632222, 0.663378, 0.69586, 0.7298379, 0.765243, 0.802165, 0.840655, 0.8807639, 0.922543, 0.966044, 1.01132, 1.058419, 1.10739, 1.15829, 1.21117, 1.26607, 1.323029, 1.382109, 1.44334, 1.506769, 1.57243, 1.64036, 1.71059, 1.78315, 1.85805, 1.935319, 2.01498, 2.09702, 2.181449, 2.268279, 2.357489, 2.44905, 2.54298, 2.63920, 2.737709, 2.838449, 2.94137, 3.04640, 3.15349, 3.26256, 3.37352, 3.48627, 3.60074, 3.71680, 3.83435, 3.95326, 4.07340, 4.19465, 4.316889, 4.43994, 4.56367, 4.68796, 4.812619, 4.93750]
+    u=[0.0, 0.001565119, 0.00464412, 0.00770098, 0.0107282, 0.0137162, 0.0166541, 0.01952929, 0.02232879, 0.0250391, 0.0276478, 0.0301443, 0.0325212, 0.0347734, 0.0368985, 0.0388961, 0.0407683, 0.0425205, 0.0441616, 0.0457040, 0.047159, 0.0485342, 0.0498337, 0.0510617, 0.0522226, 0.0533220, 0.0543633, 0.0553475, 0.0562710, 0.0571262, 0.0579044, 0.0586008, 0.0592118, 0.0597354, 0.060188, 0.0606116, 0.0610325, 0.0614451, 0.0618159, 0.06211339, 0.0623326, 0.06248619, 0.06258324, 0.0626590, 0.06279225, 0.0630029, 0.0632665, 0.0635825, 0.0639162, 0.0642666, 0.0645845, 0.06482355, 0.0650223, 0.06519464, 0.0653216, 0.0653664, 0.0652911, 0.0651585, 0.0650261, 0.0648032, 0.06439254, 0.0638799, 0.0633559, 0.0627003, 0.06198139, 0.0610353, 0.0598884, 0.0586278, 0.0573405, 0.0559138, 0.054165, 0.05235379, 0.0502827, 0.0478154, 0.0450602, 0.0421558, 0.0391550, 0.0361449, 0.0330625, 0.0298725, 0.0265285, 0.0231967, 0.0199528, 0.01691679, 0.0143263, 0.0122006, 0.0104888, 0.00910759, 0.00799000, 0.00708498, 0.00631583, 0.00564175, 0.00504143, 0.00448040, 0.00394051, 0.003375009, 0.002882309, 0.00243517, 0.00205353, 0.001732639, 0.00146222, 0.00123346, 0.00103920, 0.0008741345, 0.000733893, 0.000614761, 0.000513837, 0.0004285089, 0.000356525, 0.000296068, 0.000245425, 0.000203152, 0.000168072, 0.00013905, 0.000115207, 9.57646e-05, 8.00420e-05, 6.75002e-05, 5.77020e-05, 5.0271e-05, 4.49347e-05, 4.149369e-05, 3.984369e-05]
+    u0=1.5
+    vel=0.0
+    for i in range(len(z)-1):
+        if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
+            vel=u0*u[i]+(znod-z[i])*(u0*(u[i+1]-u[i])/(z[i+1]-z[i]))
+    return vel</string_value>
+                    </python>
+                  </Re_stresses_profile>
+                </synthetic_eddy_method>
+              </y_component>
+              <z_component>
+                <synthetic_eddy_method>
+                  <number_of_eddies>
+                    <integer_value rank="0">1000</integer_value>
+                  </number_of_eddies>
+                  <turbulence_lengthscale>
+                    <constant>
+                      <real_value rank="0">0.31</real_value>
+                    </constant>
+                  </turbulence_lengthscale>
+                  <mean_profile>
+                    <constant>
+                      <real_value rank="0">0.0</real_value>
+                    </constant>
+                  </mean_profile>
+                  <Re_stresses_profile>
+                    <python>
+                      <string_value lines="20" type="python">def val(X, t):
+    znod=X[2]-1.0
+    z=[0.0, 0.000588587, 0.00179565, 0.00306398, 0.0043966, 0.005797029, 0.00726840, 0.00881438, 0.0104387, 0.0121454, 0.0139385, 0.0158225, 0.0178018, 0.0198813, 0.02206589, 0.0243610, 0.0267720, 0.0293048, 0.0319655, 0.0347605, 0.0376963, 0.0407802, 0.0440194, 0.0474214, 0.0509948, 0.0547476, 0.0586889, 0.0628279, 0.06717435, 0.0717387, 0.0765312, 0.0815634, 0.08684694, 0.0923940, 0.0982173, 0.1043309, 0.110748, 0.117483, 0.124553, 0.131972, 0.1397579, 0.147927, 0.1565, 0.165493, 0.174928, 0.1848249, 0.1952049, 0.206092, 0.217508, 0.2294779, 0.2420269, 0.255182, 0.268971, 0.283420, 0.298561, 0.314423, 0.331040, 0.348445, 0.366669, 0.385749, 0.405722, 0.426624, 0.448496, 0.471376, 0.495307, 0.520329, 0.5464865, 0.573825, 0.602388, 0.632222, 0.663378, 0.69586, 0.7298379, 0.765243, 0.802165, 0.840655, 0.8807639, 0.922543, 0.966044, 1.01132, 1.058419, 1.10739, 1.15829, 1.21117, 1.26607, 1.323029, 1.382109, 1.44334, 1.506769, 1.57243, 1.64036, 1.71059, 1.78315, 1.85805, 1.935319, 2.01498, 2.09702, 2.181449, 2.268279, 2.357489, 2.44905, 2.54298, 2.63920, 2.737709, 2.838449, 2.94137, 3.04640, 3.15349, 3.26256, 3.37352, 3.48627, 3.60074, 3.71680, 3.83435, 3.95326, 4.07340, 4.19465, 4.316889, 4.43994, 4.56367, 4.68796, 4.812619, 4.93750]
+    u=[0.0, 2.227329e-05, 0.000111933, 0.0002932389, 0.00056875, 0.000940874, 0.001411369, 0.00198182, 0.00265316, 0.00342500, 0.00429424, 0.00525444, 0.00629720, 0.00741513, 0.00860292, 0.00985507, 0.01116359, 0.0125183, 0.01390929, 0.0153281, 0.0167687, 0.0182265, 0.0196987, 0.0211837, 0.0226794, 0.0241823, 0.0256859, 0.0271827, 0.0286653, 0.0301276, 0.0315618, 0.0329571, 0.0343062, 0.0356112, 0.0368783, 0.0381101, 0.0393060, 0.0404677, 0.0415958, 0.0426795, 0.0437014, 0.0446510, 0.0455249, 0.0463215, 0.0470486, 0.0477259, 0.0483615, 0.0489452, 0.0494582, 0.0498788, 0.05019509, 0.0504165, 0.0505801, 0.0507169, 0.0508223, 0.0508998, 0.0509256, 0.0508409, 0.0506262, 0.0503076, 0.0499165, 0.0494788, 0.04898349, 0.0483849, 0.0476456, 0.0467716, 0.0457839, 0.0446888, 0.0435011, 0.0422476, 0.0409481, 0.0395782, 0.0381366, 0.0366268, 0.0350303, 0.0333313, 0.0315543, 0.029731, 0.0278605, 0.0259733, 0.02404989, 0.0220381, 0.01996869, 0.01784219, 0.0157195, 0.01376879, 0.0120994, 0.0107226, 0.00957856, 0.00858445, 0.00767999, 0.00683525, 0.00604296, 0.00530493, 0.00462451, 0.00397662, 0.00337323, 0.00285272, 0.00241507, 0.00204818, 0.00173970, 0.00147947, 0.00125941, 0.00107309, 0.000915270, 0.000781603, 0.000668422, 0.000572577, 0.000491354, 0.000422396, 0.000363645, 0.000313324, 0.0002698989, 0.0002320579, 0.000198696, 0.000168887, 0.000141864, 0.000117002, 9.37876e-05, 7.180225e-05, 5.07018e-05, 3.019549e-05, 1.002869e-05]
+    u0=1.5
+    vel=0.0
+    for i in range(len(z)-1):
+        if (znod&gt;=z[i] and znod&lt;=z[i+1]) :
+            vel=u0*u[i]+(znod-z[i])*(u0*(u[i+1]-u[i])/(z[i+1]-z[i]))
+    return vel</string_value>
+                    </python>
+                  </Re_stresses_profile>
+                </synthetic_eddy_method>
+              </z_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="NoSlip">
+          <surface_ids>
+            <integer_value shape="1" rank="1">57</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0.</real_value>
+                </constant>
+              </x_component>
+              <y_component>
+                <constant>
+                  <real_value rank="0">0.</real_value>
+                </constant>
+              </y_component>
+              <z_component>
+                <constant>
+                  <real_value rank="0">0.</real_value>
+                </constant>
+              </z_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="FreeSlipTop">
+          <surface_ids>
+            <integer_value shape="1" rank="1">54</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <z_component>
+                <constant>
+                  <real_value rank="0">0.</real_value>
+                </constant>
+              </z_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Viscosity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">3.e-4</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <vector_field name="Absorption" rank="1">
+          <prescribed>
+            <value name="WholeMesh">
+              <python>
+                <string_value lines="20" type="python">def val(X, t):
+    # absorption coefficient
+    k = 0.1
+    if(X[0] &gt; 25.):
+        A = (X[0]-25.)/5.*k
+    else:
+        A = 0.0
+    return [A,A,A]</string_value>
+                <comment>Linear increase of sponge from 0 at x=25 to k at x=30 (outflow). This is to damp eddies in order to prevent inflow through the outflow.</comment>
+              </python>
+            </value>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+            <detectors>
+              <exclude_from_detectors/>
+            </detectors>
+          </prescribed>
+          <default_absorption/>
+        </vector_field>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field name="CFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <exclude_from_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="AveragePressure" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="time_averaged_scalar" source_field_name="Pressure"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="FluctuatingPressure" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="Pressure" source_field_2_name="AveragePressure" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="AverageVelocity" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="Velocity"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="FluctuatingVelocity" rank="1">
+      <diagnostic>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="AverageVelocity" material_phase_support="single" source_field_1_type="vector"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="Vorticity" rank="1">
+      <diagnostic>
+        <algorithm material_phase_support="single" name="curl" source_field_name="Velocity">
+          <lump_mass/>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="ReynoldsStress" rank="1">
+      <diagnostic>
+        <algorithm name="vector_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">V=state.vector_fields["FluctuatingVelocity"]
+
+for n in range(field.node_count):
+	u=V.node_val(n)[0]
+	v=V.node_val(n)[1]
+	field.set(n,[u,v,u*v])</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="AverageReynoldsStress" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="time_averaged_vector" source_field_name="ReynoldsStress">
+          <spin_up_time>
+            <real_value rank="0">100</real_value>
+          </spin_up_time>
+          <absolute_values/>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <tensor_field name="Grad_Velocity" rank="2">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single " name="grad_vector" source_field_name="Velocity"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </diagnostic>
+    </tensor_field>
+  </material_phase>
+</fluidity_options>
