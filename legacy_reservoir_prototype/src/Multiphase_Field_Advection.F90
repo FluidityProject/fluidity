@@ -196,6 +196,12 @@ contains
        
        acctim = acctim + dt
        
+       ewrite(3,*) '********************************'
+       ewrite(3,*) 'NEW TIMESTEP'
+       ewrite(3,*) 'acctim: ', acctim
+       ewrite(3,*) 'finish_time: ', finish_time
+       ewrite(3,*) '********************************'
+       
        if (acctim > finish_time) exit Loop_Time 
        
        told = t
@@ -209,7 +215,7 @@ contains
           !!
           !! Hopefully this approach will be portable to some extent to the
           !! call to intenerge_assem_solve in Multiphase_Mom_Press_Volf
-          do_fluidity_advection = .false.
+          do_fluidity_advection = .true.
           
           if (do_fluidity_advection) then
              call use_fluidity_advection_routines(state, t, cv_ndgln, its, dt)

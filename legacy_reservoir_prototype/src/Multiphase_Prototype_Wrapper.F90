@@ -55,6 +55,7 @@
     use field_equations_cv, only: initialise_advection_convergence
     use memory_diagnostics
     use mp_prototype
+    use tictoc
     implicit none
 
 #ifdef HAVE_PETSC
@@ -148,7 +149,9 @@
 
     call calculate_diagnostic_variables(state)
     call calculate_diagnostic_variables_new(state)
-
+    
+    call tictoc_reset()
+    call tic(TICTOC_ID_SIMULATION)
 
     !--------------------------------------------------------------------------------------------------------
 
@@ -250,6 +253,9 @@
        call deallocate(state(i))
     end do
     deallocate(state)
+
+    call toc(TICTOC_ID_SIMULATION)
+    call tictoc_report(2, TICTOC_ID_SIMULATION)
 
   contains
 

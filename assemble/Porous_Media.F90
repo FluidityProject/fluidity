@@ -197,10 +197,12 @@ module porous_media
     integer, intent(out) :: stat
 
     ! specify local variables
-    integer :: j, k
+    integer :: j, k, m
+    real, dimension(1) :: perm_val
     type(scalar_field) :: s_viscosity, s_permeability
     type(vector_field), pointer :: v_permeability
     type(tensor_field), pointer :: t_viscosity, t_permeability
+    integer, dimension(:), pointer :: element_nodes
 
     stat = -1
 
@@ -213,12 +215,25 @@ module porous_media
     ewrite_minmax(s_viscosity)
 
     ! check permeability field and appropriately compute absorption term
+    ! absorption and viscosity are on the pressure mesh: p2
+    ! permeability is p0dg, ie constant across the element
     if (have_option("/porous_media/scalar_field::Permeability")) then
       ! SCALAR PERMEABILITY
       s_permeability = extract_scalar_field(state(1), "Permeability", stat)
-      do j=1,absorption%dim
-        do k=1,node_count(absorption)
-          call set(absorption, j, k, node_val(s_viscosity, k)/node_val(s_permeability, k))
+!      ewrite_minmax(s_permeability)
+!      ewrite(3,*) 'permeability: ', s_permeability%val(:)
+!      ewrite(3,*) 'ele_count: ', element_count(s_permeability)
+      do m=1,element_count(s_permeability)
+!        ewrite(3,*) 'perm val: ', ele_val(s_permeability, m)
+        perm_val = ele_val(s_permeability, m)
+!        ewrite(3,*) 'm: ', m
+        element_nodes => ele_nodes(s_viscosity,m)
+!        ewrite(3,*) 'element_nodes', element_nodes
+        do k=1,size(element_nodes)
+          do j=1,absorption%dim
+            call set(absorption, j, element_nodes(k), &
+                     node_val(s_viscosity, element_nodes(k))/perm_val(1))
+          end do
         end do
       end do
     elseif (have_option("/porous_media/vector_field::Permeability")) then

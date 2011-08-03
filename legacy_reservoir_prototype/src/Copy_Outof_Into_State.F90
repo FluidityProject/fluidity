@@ -141,13 +141,13 @@ module copy_outof_into_state
       type(vector_field), pointer :: positions
 
       integer :: i, j, k, l, nscalar_fields, cv_nonods, p_nonods, &
-           x_nonods, xu_nonods, u_nonods, cv_nod, &
+           x_nonods, xu_nonods, u_nonods, cv_nod, u_nod, &
            shared_nodes
 
       real :: coord_min, coord_max, &
            eos_value!, viscosity_ph1, viscosity_ph2
            
-      integer, dimension(:), allocatable :: cv_ndgln
+      integer, dimension(:), allocatable :: cv_ndgln, u_ndgln
       integer, dimension(:), pointer :: element_nodes
       
       real, dimension(:), allocatable :: initial_constant_velocity
@@ -339,13 +339,19 @@ module copy_outof_into_state
       
       !! global numbering to allow proper copying of fields
       cv_nod = 0
+      u_nod = 0
       allocate(cv_ndgln(totele*cv_nloc))
+      allocate(u_ndgln(totele*u_nloc))
       do i=1, totele
          do j = 1, cv_nloc
             cv_nod = cv_nod + 1
             cv_ndgln( ( i - 1 ) * cv_nloc + j ) = cv_nod
          end do
          if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
+         do j = 1, u_nloc ! storing velocity nodes
+            u_nod = u_nod + 1
+            u_ndgln( ( i - 1 ) * u_nloc + j ) = u_nod
+         end do
       end do
 !      ewrite(3,*) 'cv_ndgln: ', cv_ndgln
 
@@ -615,29 +621,30 @@ module copy_outof_into_state
 !!! Porosity and Permeability: it WILL be necessary to change the permeability as it
 !!! is defined in the PC as a tensor with dimension ( totele, ndim, ndim )
 !!!
+!!! Assuming for now that porosity is constant across an element
       porosity => extract_scalar_field(state, "Porosity")
+      ewrite(3,*) 'porosity sf: ', porosity%val(:)
       allocate(volfra_pore(totele))
-      ! The porosity will be in element order in 1d
-      do i=1,totele
-         volfra_pore(i)=porosity%val(i)
-      enddo
-      ewrite(3,*) "Got porosity"
+      por_ele_loop: do k = 1,element_count(porosity)
+        element_nodes => ele_nodes(porosity,k)
+        ewrite(3,*) 'element_nodes', element_nodes
+        volfra_pore(k)=porosity%val(element_nodes(1))
+      end do por_ele_loop
+      ewrite(3,*) "Got porosity: ", volfra_pore
 
+! Assuming for now that permeability is constant across an element
       if (have_option("/porous_media/scalar_field::Permeability")) then
          permeability => extract_scalar_field(state(1), "Permeability")
          allocate(perm(totele, ndim, ndim))
          perm = 0.
-         do i=1,totele
-            do j=1,ndim
-               do k=1,ndim
-                  perm(i,j,k)=permeability%val(i)
-               end do
-            end do
-         end do
+         perm_ele_loop: do k = 1,element_count(permeability)
+           element_nodes => ele_nodes(permeability,k)
+           perm(k, 1:ndim, 1:ndim)=permeability%val(element_nodes(1))
+         end do perm_ele_loop
       elseif (have_option("/porous_media/tensor_field::Permeability")) then
          FLAbort("Have not coded up tensor permeability yet! Try scalar instead")
       endif
-      ewrite(3,*) "Got permeability"
+      ewrite(3,*) "Got permeability: ", perm(1:totele, 1, 1)
 
 !!!
 !!! WIC_X_BC (in which X = D, U, V, W, P, T, COMP and VOL) controls the boundary conditions

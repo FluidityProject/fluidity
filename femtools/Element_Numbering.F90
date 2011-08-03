@@ -1796,11 +1796,19 @@ contains
 
     select case (ele_num%dimension)
     case(1)
-       if (interior) then
-          boundary_num_length=0
+       if (ele_num%type/=ELEMENT_OVERLAPPING) then
+          if (interior) then
+             boundary_num_length=0
+          else
+             boundary_num_length=1
+          end if
        else
-          boundary_num_length=ele_num%nodes/2
-       end if       
+          if (interior) then
+             boundary_num_length=0
+          else
+             boundary_num_length=ele_num%nodes/2
+          end if
+       end if
     case (2)
        if (ele_num%type/=ELEMENT_OVERLAPPING) then
           if (interior) then
@@ -1878,7 +1886,7 @@ contains
     integer :: i, k, l
 
     k=0
-
+    
     do i=1,ele_num%nodes
        
        if (ele_num%number2count(ele_num%boundary_coord(boundary),i)==&
