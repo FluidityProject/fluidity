@@ -85,7 +85,7 @@ contains
        suf_w_bc_rob1, suf_w_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
        suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, &
                                 ! Positions and grid velocities
-       x, y, z, nu, nv, nw, ug, vg, wg, &
+       x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
                                 ! Absorption and source terms and coefficients
        u_abs_stab, Mobility, &
        u_absorb, v_absorb, comp_absorb, &
@@ -167,6 +167,7 @@ contains
 
     ! Variables bellow may change on this subroutine, however this should be changed later
     real, dimension( x_nonods ), intent( inout ) :: x, y, z
+    real, dimension( xu_nonods ), intent( inout ) :: xu, yu, zu
     real, dimension( u_nonods * nphase ), intent( inout ) :: nu, nv, nw, ug, vg, wg
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab
     real, intent( in ) :: Mobility
@@ -626,7 +627,7 @@ contains
 
              ! output the fem velocity
              call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
-                  x, u_nonods, u_nonods * nphase, u, iphase )
+                  xu, u_nonods, u_nonods * nphase, u, iphase )
 
              ! close the file for velocity   
              close(output_channel)

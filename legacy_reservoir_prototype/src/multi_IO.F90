@@ -333,7 +333,7 @@ contains
     real :: x_coord
 
     ewrite(3,*) 'In printing_veloc_field'
-
+    
     Loop_Elements: do ele = 1, totele
 
        x_iloc = 1

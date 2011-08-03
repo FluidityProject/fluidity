@@ -908,7 +908,7 @@ module mp_prototype
               suf_w_bc_rob1, suf_w_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
               suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, &
                                 ! Positions and grid velocities
-              x, y, z, nu, nv, nw, ug, vg, wg, &
+              x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
                                 ! Absorption and source terms and coefficients
               u_abs_stab, Mobility, &
               u_absorb, v_absorb, comp_absorb, &
