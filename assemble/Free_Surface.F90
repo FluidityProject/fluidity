@@ -193,7 +193,7 @@ contains
       ! only include the inner product of gravity and surface normal
       ! if the free surface nodes are actually moved (not necessary
       ! for large scale ocean simulations) - otherwise the free surface is assumed flat
-      include_normals = move_mesh
+      include_normals = move_mesh .or. prognostic_fs
       if (include_normals) then
         ewrite(2,*) 'Including inner product of normals in kinematic bc'
         gravity_normal => extract_vector_field(state, "GravityDirection")
@@ -981,13 +981,13 @@ contains
            detwei_bdy, normal_bdy)
       do dim=1, u%dim
         ! we've integrated continuity by parts, but not yet added in the resulting
-        ! surface integral - for the non-viscous free surface this is mainly left
+        ! surface integral - for the non-viscous free surface this is left
         ! out to enforce the kinematic bc
         call addto(ct_m, 1, dim, face_global_nodes(p,sele), &
              face_global_nodes(u,sele), ct_mat_bdy(dim,:,:))
         ! for the viscous bc however we add this bc in the extra rows at the bottom of ct_m
         ! this integral will also enforce the \rho_0 g\eta term in the no_normal_stress bc:
-        !   n\cdot\tau\cdot n + p - \rho_0 g\eta = 0
+        !   n\cdot\tau\cdot n + p - (\rho_0-\rho_external) g\eta = 0
         call addto(ct_m, 1, dim, node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
              face_global_nodes(u,sele), -ct_mat_bdy(dim,:,:))
       end do
