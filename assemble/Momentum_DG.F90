@@ -1918,7 +1918,7 @@ contains
             call local_assembly_bassi_rebay
         end select
         
-        if (boundary_element.and.owned_element) then
+        if (boundary_element.and.assemble_element) then
   
             do dim=1,U%dim
   
@@ -1963,10 +1963,11 @@ contains
                         
                             ! Add BC into RHS
                             !
-                            rhs_addto(dim,:) = rhs_addto(dim,:) &
-                                & -matmul(Viscosity_mat(dim,:,start:finish), &
-                                & ele_val(velocity_bc,dim,face))
-                        
+                            if ( owned_element ) then
+                               rhs_addto(dim,:) = rhs_addto(dim,:) &
+                                    & -matmul(Viscosity_mat(dim,:,start:finish), &
+                                    & ele_val(velocity_bc,dim,face))
+                            end if
                             ! Ensure it is not used again.
                             Viscosity_mat(dim,:,start:finish)=0.0
                             

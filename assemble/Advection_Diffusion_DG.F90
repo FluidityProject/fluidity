@@ -1698,7 +1698,7 @@ contains
           end select
        end select
 
-       if (boundary_element.and.ele_owned) then
+       if (boundary_element) then
           ! Weak application of dirichlet conditions on diffusion term.
 
           do i=1, 2
@@ -1741,10 +1741,11 @@ contains
                       
                        ! Add BC into RHS
                        !
-                       call addto(RHS_diff, local_glno, &
-                            & -matmul(Diffusivity_mat(:,start:finish), &
-                            & ele_val( bc_value, face )))
-
+                       if ( ele_owned ) then
+                          call addto(RHS_diff, local_glno, &
+                               & -matmul(Diffusivity_mat(:,start:finish), &
+                               & ele_val( bc_value, face )))
+                       end if
                        ! Ensure it is not used again.
                        Diffusivity_mat(:,start:finish)=0.0
                       
