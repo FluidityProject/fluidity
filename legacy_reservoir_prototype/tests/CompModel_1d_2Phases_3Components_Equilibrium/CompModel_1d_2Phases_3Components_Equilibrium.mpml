@@ -50,6 +50,22 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="P0DG">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">0</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">5</integer_value>
@@ -258,6 +274,7 @@
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
+            <mesh name="PressureMesh"/>
             <value name="WholeMesh">
               <isotropic>
                 <constant>
@@ -270,6 +287,7 @@
         </tensor_field>
         <vector_field name="Absorption" rank="1">
           <diagnostic>
+            <mesh name="PressureMesh"/>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat>
@@ -515,6 +533,7 @@
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
+            <mesh name="PressureMesh"/>
             <value name="WholeMesh">
               <isotropic>
                 <constant>
@@ -527,6 +546,7 @@
         </tensor_field>
         <vector_field name="Absorption" rank="1">
           <diagnostic>
+            <mesh name="PressureMesh"/>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat>
@@ -771,7 +791,7 @@
   <porous_media>
     <scalar_field name="Porosity">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="P0DG"/>
         <value name="WholeMesh">
           <constant>
             <real_value rank="0">0.5</real_value>
@@ -786,7 +806,7 @@
     </scalar_field>
     <scalar_field name="Permeability">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="P0DG"/>
         <value name="WholeMesh">
           <constant>
             <real_value rank="0">1.0</real_value>
