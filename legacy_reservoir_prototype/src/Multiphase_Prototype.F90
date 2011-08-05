@@ -162,11 +162,6 @@ module mp_prototype
 
       ewrite(3,*) 'In multiphase_prototype'
 
-!!!!!!!!
-!!!!!   Major insert required here to pull everything required out of state
-!!!!!    - for this we need to list everything that's read in and not derived
-!!!!!    - although some derived stuff might be available through state as well
-!!!!!!!!
       call copy_outof_state(state, dt, &
            nonlinear_iterations, nonlinear_iteration_tolerance, &
                                 ! Begin here all the variables from read_scalar
@@ -914,7 +909,7 @@ module mp_prototype
               u_abs_stab, Mobility, &
               u_absorb, v_absorb, comp_absorb, &
               u_source, v_source, comp_source, &
-              t_absorb, t_source, Comp_Sum2One, &
+              t_absorb, t_source, &
                                 ! Diffusion parameters
               udiffusion, &
               tdiffusion, &

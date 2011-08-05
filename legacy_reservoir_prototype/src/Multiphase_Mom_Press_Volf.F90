@@ -97,7 +97,7 @@ contains
        u_abs_stab, Mobility, &
        u_absorb, v_absorb, comp_absorb, &
        u_source, v_source, comp_source, &
-       t_absorb, t_source, Comp_Sum2One, &
+       t_absorb, t_source, &
                                 ! Diffusion parameters
        udiffusion, &
        tdiffusion, &
@@ -173,7 +173,7 @@ contains
     real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: suf_comp_bc_rob1, suf_comp_bc_rob2, suf_t_bc_rob1, suf_t_bc_rob2, &
          suf_vol_bc_rob1, suf_vol_bc_rob2
 
-    ! Variables bellow may change on this subroutine, however this should be changed later
+    ! Variables below may change on this subroutine, however this should be changed later
     real, dimension( x_nonods ), intent( inout ) :: x, y, z
     real, dimension( xu_nonods ), intent( inout ) :: xu, yu, zu
     real, dimension( u_nonods * nphase ), intent( inout ) :: nu, nv, nw, ug, vg, wg
@@ -186,7 +186,6 @@ contains
     real, dimension( cv_pha_nonods ), intent( inout ) :: v_source, comp_source
     real, dimension( cv_nonods, nphase, nphase ), intent( inout ) :: t_absorb
     real, dimension( cv_pha_nonods ), intent( inout ) :: t_source
-    logical, intent( in ) :: Comp_Sum2One
 
     real, dimension( mat_nonods, ndim, ndim, nphase ), intent( inout ) :: udiffusion, tdiffusion
     integer, intent( in ) :: comp_diffusion_opt, ncomp_diff_coef
@@ -579,8 +578,9 @@ contains
 
           END DO Loop_COMPONENTS
 
-          IF( COMP_SUM2ONE .AND. ( NCOMP2 > 1 ) ) THEN 
-             ! make sure the composition sums to 1.0 by putting constraint into V_SOURCE_COMP. 
+          IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
+           "]/is_multiphase_component/Comp_Sum2One") .AND. ( NCOMP2 > 1 ) ) THEN
+             ! make sure the composition sums to 1.0 by putting constraint into V_SOURCE_COMP.
              CALL CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS,  &  
                   MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
           ENDIF
