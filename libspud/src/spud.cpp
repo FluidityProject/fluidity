@@ -46,6 +46,7 @@ namespace Spud{
   }
 
   void OptionManager::set_manager(void* m) {
+    delete manager.options;
     manager.options = (Spud::OptionManager::Option*) m;
     return;
   }

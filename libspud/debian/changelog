@@ -1,3 +1,15 @@
+spud (1.1.3) natty; urgency=low
+
+  * Fix a bug in the setting of tensor data.
+
+ -- Patrick Farrell <patrick.farrell06@imperial.ac.uk>  Fri, 29 Jul 2011 11:32:38 +0100
+
+spud (1.1.2) natty; urgency=low
+
+  * Bugfixes for the bugs caused by the major reorganisation of the code.
+
+ -- Patrick Farrell <patrick.farrell06@imperial.ac.uk>  Fri, 29 Jul 2011 10:03:50 +0100
+
 spud (1.1.1) natty; urgency=low
 
   * Offer two major new features in Diamond: slice view and group view.

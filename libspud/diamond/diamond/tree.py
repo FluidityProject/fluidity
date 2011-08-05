@@ -163,8 +163,8 @@ class Tree(gobject.GObject):
     """
 
     (invalid, new_data) = self.valid_data(datatype, data)
-    if not invalid and isinstance(new_data, str) and not new_data == "":
-      if new_data != data and self.validity_check(new_data, datatype) is None:
+    if not invalid and isinstance(new_data, str) and new_data != "":
+      if new_data != data and self.validity_check(datatype, new_data) is None:
         return None
       else:
         return new_data
@@ -266,7 +266,7 @@ class Tree(gobject.GObject):
 
     sub_tree=etree.Element(self.name)
     
-    for key in self.attrs.keys():
+    for key in self.attrs:
       val = self.attrs[key]
       output_val = val[1]
       if output_val is not None:
@@ -275,17 +275,9 @@ class Tree(gobject.GObject):
     for child in self.children:
       if child.active is True:
         child.write_core(sub_tree)
-#      else:
-#        if child.cardinality == '?':
-#          root=etree.Element(self.name)
-#          child.write_core(root)
-#          comment_buffer = StringIO.StringIO(etree.tostring(root))
-#          comment_text = ("DIAMOND MAGIC COMMENT (inactive optional subtree %s):\n" % child.schemaname)
-#          comment_text = comment_text + base64.b64encode(bz2.compress(comment_buffer.getvalue()))
-#          sub_tree.append(etree.Comment(unicode(comment_text)))
         
     if self.data is not None:
-      sub_tree.text=(unicode(self.data))
+      sub_tree.text = unicode(self.data)
       
     if parent is not None:
       parent.append(sub_tree)
@@ -541,6 +533,9 @@ class Tree(gobject.GObject):
 
   def __str__(self):
     return self.get_display_name()
-   
+  
+  def __repr__(self):
+    return self.get_name_path()
+ 
 gobject.type_register(Tree)
 

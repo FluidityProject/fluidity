@@ -283,9 +283,6 @@ class Diamond:
     # if we have a relative path, make it absolute
     filename = os.path.abspath(filename)
   
-    if filename == self.filename:
-      return
-  
     try:
       os.stat(filename)
     except OSError:
@@ -624,26 +621,43 @@ class Diamond:
       debug.deprint("No selection.")
       return
     iter = self.treestore.get_iter(path)
-    active_tree = self.treestore.get_value(iter, 3)
+    active_tree = self.treestore.get_value(iter, 1)
     name = self.get_spudpath(active_tree)
     clipboard = gtk.clipboard_get()
     clipboard.set_text(name)
     clipboard.store()
 
   def _get_focus_widget(self, parent):
-    """Gets the widget that is a child of parent with the focus."""
+    """
+    Gets the widget that is a child of parent with the focus.
+    """
     focus = parent.get_focus_child()
     if focus is None or (focus.flags() & gtk.HAS_FOCUS):
       return focus
     else:
       return self._get_focus_widget(focus)
 
+  def _handle_clipboard(self, widget, signal):
+    """
+    This finds the currently focused widget.
+    If no widget is focused or the focused widget doesn't support 
+    the given clipboard operation use the treeview (False), otherwise
+    signal the widget to handel the clipboard operation (True).
+    """
+    widget = self._get_focus_widget(self.main_window)
+
+    if widget is None or widget is self.treeview:
+      return False
+
+    if gobject.signal_lookup(signal + "-clipboard", widget):
+      widget.emit(signal + "-clipboard")
+      return True
+    else:
+      return False
+
   def on_copy(self, widget=None):
-    if not isinstance(widget, gtk.MenuItem):
-      widget = self._get_focus_widget(self.main_window)
-      if widget is not self.treeview and gobject.signal_lookup("copy-clipboard", widget):
-        widget.emit("copy-clipboard")
-        return
+    if self._handle_clipboard(widget, "copy"):
+      return
 
     if isinstance(self.selected_node, mixedtree.MixedTree):
       node = self.selected_node.parent
@@ -662,28 +676,38 @@ class Diamond:
     return
 
   def on_paste(self, widget=None):
-    if not isinstance(widget, gtk.MenuItem):
-      widget = self._get_focus_widget(self.main_window)
-      if widget is not self.treeview and gobject.signal_lookup("paste-clipboard", widget):
-        widget.emit("paste-clipboard")
-        return
+    if self._handle_clipboard(widget, "paste"):
+      return
 
     clipboard = gtk.clipboard_get()
     ios = StringIO.StringIO(clipboard.wait_for_text())
     
     if self.selected_iter is not None:    
-      node = self.treestore.get_value(self.selected_iter, 1)
+      node = self.treestore.get_value(self.selected_iter, 0)
 
     if node != None:
+  
+      expand = not node.active
+      if expand:
+        self.expand_tree(self.selected_iter)
 
       newnode = self.s.read(ios, node)
 
       if newnode is None:
+        if expand:
+          self.collapse_tree(self.selected_iter, False)
         self.statusbar.set_statusbar("Trying to paste invalid XML.")
         return
 
-      if not node.active:
-        self.expand_tree(self.selected_iter)
+      if node.parent is not None:
+        newnode.set_parent(node.parent)
+        children = node.parent.get_children()
+        children.insert(children.index(node), newnode)
+        children.remove(node)
+ 
+      iter = self.set_treestore(self.selected_iter, [newnode], True, True)
+      newnode.recompute_validity()
+      self.treeview.get_selection().select_iter(iter)
 
       # Extract and display validation errors
       lost_eles, added_eles, lost_attrs, added_attrs = self.s.read_errors()
@@ -710,12 +734,6 @@ class Diamond:
         dialogs.long_message(self.main_window, msg)
  
       self.set_saved(False)     
-   
-      self.treeview.freeze_child_notify()
-      iter = self.set_treestore(self.selected_iter, [newnode], True, True)
-      self.treeview.thaw_child_notify()
-      
-      self.treeview.get_selection().select_iter(iter)
 
     return
 
@@ -851,21 +869,23 @@ class Diamond:
     self.treeview.get_selection().set_select_function(self.options_tree_select_func)
     self.options_tree_select_func_enabled = True
 
+    # Node column
+    column = gtk.TreeViewColumn("Node")
+    column.set_property("expand", True)
+    column.set_resizable(True)
+
     self.cellcombo = cellCombo = gtk.CellRendererCombo()
     cellCombo.set_property("text-column", 0)
     cellCombo.set_property("editable", True)
     cellCombo.set_property("has-entry", False)
     cellCombo.connect("changed", self.cellcombo_changed)
-
-    # Node column
-    column = gtk.TreeViewColumn("Node", cellCombo)
-    column.set_property("expand", True)
-    column.set_resizable(True)
+    column.pack_start(cellCombo)
     column.set_cell_data_func(cellCombo, self.set_combobox_liststore)
 
     self.choicecell = choiceCell = gtk.CellRendererPixbuf()
     column.pack_end(choiceCell, expand=False)
     column.set_cell_data_func(choiceCell, self.set_cellpicture_choice)
+
     optionsTree.append_column(column)
 
     self.imgcell = cellPicture = gtk.CellRendererPixbuf()
@@ -907,7 +927,7 @@ class Diamond:
     if replace:
       replacediter = iter
       iter = self.treestore.iter_parent(replacediter)
-    else:
+    else: 
       self.remove_children(iter)
   
     for t in new_tree:
@@ -959,7 +979,7 @@ class Diamond:
       self.treestore.remove(replacediter)
       return child_iter
    
-    return
+    return iter
 
   def expand_choice_or_tree(self, choice_or_tree):
     """
@@ -1035,9 +1055,9 @@ class Diamond:
     foreground colour.
     """
 
-    choice_or_tree, active_tree, liststore = self.treestore.get(iter, 0, 1, 2)
+    choice_or_tree, active_tree, liststore = treemodel.get(iter, 0, 1, 2)
 
-    if self.groupmode and self.treestore.iter_parent(iter) is None:
+    if self.groupmode and treemodel.iter_parent(iter) is None:
       cellCombo.set_property("text", choice_or_tree.get_name_path())
     else:
       cellCombo.set_property("text", str(choice_or_tree))
@@ -1051,7 +1071,7 @@ class Diamond:
     elif isinstance(choice_or_tree, choice.Choice):
       cellCombo.set_property("editable", True)
 
-    if self.treestore_iter_is_active(iter):
+    if self.iter_is_active(treemodel, iter):
       if active_tree.valid is True:
         cellCombo.set_property("foreground", "black")
       else:
@@ -1061,13 +1081,13 @@ class Diamond:
 
     return
 
-  def set_cellpicture_choice(self, column, cell, model, iter):
+  def set_cellpicture_choice(self, column, cell, treemodel, iter):
     """
     This hook function sets up the other gtk.CellRendererPixbuf, the one that gives
     the clue to the user whether this is a choice or not.
     """
     
-    choice_or_tree = self.treestore.get_value(iter, 0)
+    choice_or_tree = treemodel.get_value(iter, 0)
     if isinstance(choice_or_tree, tree.Tree):
       cell.set_property("stock-id", None)
     elif isinstance(choice_or_tree, choice.Choice):
@@ -1075,14 +1095,14 @@ class Diamond:
 
     return
 
-  def set_cellpicture_cardinality(self, column, cell, model, iter):
+  def set_cellpicture_cardinality(self, column, cell, treemodel, iter):
     """
     This hook function sets up the gtk.CellRendererPixbuf on the extreme right-hand
     side for each row; this paints a plus or minus or nothing depending on whether
     something can be added or removed or has to be there.
     """
 
-    choice_or_tree = self.treestore.get_value(iter, 0)
+    choice_or_tree = treemodel.get_value(iter, 0)
     if choice_or_tree.cardinality == "":
       cell.set_property("stock-id", None)
     elif choice_or_tree.cardinality == "?" or choice_or_tree.cardinality == "*":
@@ -1119,7 +1139,7 @@ class Diamond:
 
     return
   
-  def collapse_tree(self, iter):
+  def collapse_tree(self, iter, confirm = True):
     """
     Collapses part of the tree.
     """
@@ -1147,7 +1167,7 @@ class Diamond:
         self.set_saved(False)
         self.remove_children(iter)
       else:
-        self.delete_tree(iter)
+        self.delete_tree(iter, confirm)
 
     elif choice_or_tree.cardinality == "+":
       count = parent_tree.count_children_by_schemaname(choice_or_tree.schemaname)
@@ -1155,20 +1175,23 @@ class Diamond:
         # do nothing
         return
       else: # count > 2
-        self.delete_tree(iter)
+        self.delete_tree(iter, confirm)
   
     parent_tree.recompute_validity()
     self.treeview.queue_draw()
     return
 
-  def delete_tree(self, iter):
+  def delete_tree(self, iter, confirm):
     choice_or_tree, = self.treestore.get(iter, 0)
     parent_tree = choice_or_tree.parent
     isSelected = self.treeview.get_selection().iter_is_selected(iter)
     sibling = self.treestore.iter_next(iter)
 
-    confirm = dialogs.prompt(self.main_window, "Are you sure you want to delete this node?")
-    if confirm == gtk.RESPONSE_YES:
+    if confirm:
+      response = dialogs.prompt(self.main_window, "Are you sure you want to delete this node?")
+
+    # not A or B == A implies B
+    if not confirm or response == gtk.RESPONSE_YES:
       parent_tree.delete_child_by_ref(choice_or_tree)
       self.remove_children(iter)
       self.treestore.remove(iter)
@@ -1226,10 +1249,10 @@ class Diamond:
     if not self.data.store():
       return False
 
-    if isinstance(self.selected_node, mixedtree.MixedTree) \
-       and self.geometry_dim_tree is not None \
-       and self.selected_node.parent is self.geometry_dim_tree.parent \
-       and self.selected_node.data is not None:
+    if (isinstance(self.selected_node, mixedtree.MixedTree)
+       and self.geometry_dim_tree is not None
+       and self.selected_node.parent is self.geometry_dim_tree.parent
+       and self.selected_node.data is not None):
       self.geometry_dim_tree.set_data(self.selected_node.data)
 
     return True
@@ -1511,7 +1534,7 @@ class Diamond:
 
     painted_tree = active_tree.get_mixed_data()
 
-    if not isinstance(iter_or_tree, tree.Tree) and not self.treestore_iter_is_active(iter_or_tree):
+    if not isinstance(iter_or_tree, tree.Tree) and not self.iter_is_active(self.treestore, iter_or_tree):
       painted_tree = tree.Tree(painted_tree.name, painted_tree.schemaname, painted_tree.attrs, doc = painted_tree.doc)
       painted_tree.active = False
     elif lock_geometry_dim and self.geometry_dim_tree is not None and self.geometry_dim_tree.data is not None:
@@ -1537,8 +1560,8 @@ class Diamond:
     iter = self.treestore.get_iter_first()
     if iter is None:
       return None
-    for name in names[1:len(names) - 1]:
-      while self.treestore.get_value(iter, 0) != name:
+    for name in names[1:-1]:
+      while str(self.treestore.get_value(iter, 0)) != name:
         iter = self.treestore.iter_next(iter)
         if iter is None:
           return None
@@ -1622,17 +1645,17 @@ class Diamond:
     
     return
 
-  def treestore_iter_is_active(self, iter):
+  def iter_is_active(self, treemodel, iter):
     """
     Test whether the node at the given iter in the LHS treestore is active.
     """
 
     while iter is not None:
-      choice_or_tree = self.treestore.get_value(iter, 0)
-      active_tree = self.treestore.get_value(iter, 1)
+      choice_or_tree = treemodel.get_value(iter, 0)
+      active_tree = treemodel.get_value(iter, 1)
       if not choice_or_tree.active or not active_tree.active:
         return False
-      iter = self.treestore.iter_parent(iter)
+      iter = treemodel.iter_parent(iter)
 
     return True
 

@@ -128,7 +128,7 @@ lib/libspatialindex.a:
 
 lib/libspud.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install; cp python/libspud.py ../python
+	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install; cd ..; cp lib/python*/site-packages/libspud.so python/
 
 libfemtools: sub_system
 	@echo '    MKDIR lib'; mkdir -p lib
@@ -142,6 +142,9 @@ ifeq (@FEMDEM@,yes)
 	@echo '    MAKE 3dfemdem library'
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
+
+main.o: include/libspud.h
+include/libspud.h: lib/libspud.a
 
 bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 	@echo "BUILD fluidity"
