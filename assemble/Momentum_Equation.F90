@@ -1427,6 +1427,7 @@
          !! Local variables
          ! Change in velocity
          type(vector_field) :: delta_u
+         type(vector_field), pointer :: positions
 
          ewrite(1,*) 'Entering advance_velocity'
 
@@ -1471,6 +1472,7 @@
          call zero(delta_u)
 
          ! Impose any reference nodes on velocity
+         positions => extract_vector_field(state(istate), "Coordinate")
          call impose_reference_velocity_node(big_m(istate), mom_rhs(istate), trim(u%option_path), positions)
 
          call profiler_toc(u, "assembly")

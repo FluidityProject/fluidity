@@ -2348,6 +2348,7 @@ contains
     character(len=*), intent(in) :: option_path
     type(vector_field), intent(inout):: positions
 
+    character(len=OPTION_PATH_LEN):: reference_node_path
     integer :: reference_node, stat, stat2
     logical, dimension(blocks(big_m, 1)) :: mask
     logical :: apply_reference_node, apply_reference_node_from_coordinates, reference_node_owned
@@ -2359,13 +2360,16 @@ contains
 
     if(apply_reference_node) then
 
-      call get_option(trim(complete_field_path(option_path, stat=stat2))//&
-          &"/reference_node", reference_node)
+      reference_node_path=trim(complete_field_path(option_path, stat=stat2))//&
+          &"/reference_node"
+      call get_option(reference_node_path, reference_node)
 
     elseif(apply_reference_node_from_coordinates) then
 
        ewrite(1,*) 'Imposing_reference_pressure_node at user-specified coordinates'    
        call find_reference_node_from_coordinates(positions,rhs%mesh,option_path,reference_node,reference_node_owned)
+       reference_node_path=trim(complete_field_path(option_path, stat=stat2))//&
+          &"/reference_coordinates"
 
     else
 
@@ -2375,17 +2379,13 @@ contains
     end if
 
     mask = .true.
-    if(have_option(trim(complete_field_path(option_path))//&
-                   &"/reference_node/specify_components")) then
-       mask(1) = have_option(trim(complete_field_path(option_path))//&
-                            &"/reference_node/specify_components/x_component")
+    if(have_option(trim(reference_node_path)//"/specify_components")) then
+       mask(1) = have_option(trim(reference_node_path)//"/specify_components/x_component")
        if(blocks(big_m,1)>1) then
-         mask(2) = have_option(trim(complete_field_path(option_path))//&
-                              &"/reference_node/specify_components/y_component")
+         mask(2) = have_option(trim(reference_node_path)//"/specify_components/y_component")
        end if
        if(blocks(big_m,2)>2) then
-         mask(3) = have_option(trim(complete_field_path(option_path))//&
-                              &"/reference_node/specify_components/z_component")
+         mask(3) = have_option(trim(reference_node_path)//"/specify_components/z_component")
        end if
        ewrite(1,*) 'Imposing_reference_velocity_node on specified components: ', mask
     else
