@@ -54,7 +54,7 @@ OBJS = Sediment.o Sediment_Diagnostics.o \
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
 default: $(LIB)
 
 clean:
