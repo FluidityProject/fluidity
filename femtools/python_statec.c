@@ -5,15 +5,15 @@ void python_init_(void){
 #ifdef HAVE_PYTHON
   // Initialize the Python interpreter
   Py_Initialize();
-  PyRun_SimpleString("import string");  
+  PyRun_SimpleString("import string");
 
   PyObject* m;
-  m = Py_InitModule("fluidity_api", NULL);
+  m = Py_InitModule("spud_manager", NULL);
   assert(m != NULL);
 
 #if PY_MINOR_VERSION > 6
   void* manager = spud_get_manager();
-  PyObject* manager_capsule = PyCapsule_New(manager, "fluidity_api._spud_manager", NULL);
+  PyObject* manager_capsule = PyCapsule_New(manager, "spud_manager._spud_manager", NULL);
   assert(manager_capsule != NULL);
 
   PyModule_AddObject(m, "_spud_manager", manager_capsule);
