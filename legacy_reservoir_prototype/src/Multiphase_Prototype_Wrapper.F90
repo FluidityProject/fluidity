@@ -220,20 +220,8 @@
 
        ! Call the multiphase_prototype code  
        call multiphase_prototype(state, dt, &
-                                 nonlinear_iterations, nonlinear_iteration_tolerance)
-       
-       ! find the current time - that reached by the prototype
-       call get_option("/timestepping/current_time", current_time)
-       
-       ! find the time step size from options dict
-       call get_option("/timestepping/timestep", dt)
-       
-       ! calc diagnostic fields 
-       call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
-       call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
-       
-       ! Call the modern and significantly less satanic version of study
-       call write_diagnostics(state, current_time, dt, timestep)
+                                 nonlinear_iterations, nonlinear_iteration_tolerance, &
+                                 dump_no)
        
        ! exit this time loop as the prototype has its own
        exit

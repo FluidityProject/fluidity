@@ -36,6 +36,13 @@ module multiphase_mom_press_volf
   use shape_functions
   use printout
   use Compositional_Terms
+  use copy_outof_into_state
+  use write_state_module
+  use diagnostic_variables
+  use diagnostic_fields_wrapper
+  use diagnostic_fields_new, only : &
+         & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
+         & check_diagnostic_dependencies
   
   use fldebug
   use state_module
@@ -57,7 +64,7 @@ contains
        u_ele_type, p_ele_type, cv_ele_type, &
        cv_sele_type, u_sele_type, &
                                 ! Total time loop and initialisation parameters
-       ntime_dump, nits, nits_internal, &
+       ntime_dump, nits, nits_internal, dump_no, &
        nits_flux_lim_volfra, nits_flux_lim_comp, & 
        ndpset, &
                                 ! Discretisation parameters
@@ -125,8 +132,9 @@ contains
          ntime_dump, nits, nits_internal, &
          nits_flux_lim_volfra, nits_flux_lim_comp, & 
          ndpset 
-    real :: dt
-    integer :: ntime
+    real :: dt, current_time
+    integer :: ntime, dump_no
+    
     ! The following need to be changed later in the other subrts as it should be controlled by the 
     ! input files
     real, intent( inout ) :: v_beta, v_theta
@@ -514,7 +522,7 @@ contains
                 COMP_USE_THETA_FLUX = .FALSE.
 
                 CALL INTENERGE_ASSEM_SOLVE(  &
-                     NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparcity pattern matrix
+                     NCOLACV, FINACV, COLACV, MIDACV, & ! CV sparsity pattern matrix
                      NCOLCT, FINDCT, COLCT, &
                      CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
                      U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
@@ -580,6 +588,9 @@ contains
           ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME:',ITS,nits,ITIME
 
        END DO Loop_ITS
+
+       call set_option("/timestepping/current_time", ACCTIM)
+       call set_option("/timestepping/timestep", dt)
 
        Conditional_TIMDUMP: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
 
@@ -728,14 +739,31 @@ contains
                x, cv_nonods, cv_p, 1 )
 
           ! close the file for pressure   
-          close(output_channel)   
+          close(output_channel)
 
+          !! Output vtus from state
+          ! Start by copying the interesting files back into state:
+          call copy_into_state(state, satura, p, nphase, cv_ndgln, p_ndgln)
+
+          ! find the current time - that reached by the prototype
+          call get_option("/timestepping/current_time", current_time)
+       
+          ! calc diagnostic fields 
+          call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
+          call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+       
+          ! Call the modern and significantly less satanic version of study
+          call write_diagnostics(state, current_time, dt, itime)
+          
+          ! Make the vtu dump number dump_no the same as the prototype output number
+          dump_no = itime
+          
+          ! Write state out to vtu
+          call write_state(dump_no, state)
+       
        end if Conditional_TIMDUMP
 
     END DO Loop_Time
-
-    call set_option("/timestepping/current_time", ACCTIM)
-    call set_option("/timestepping/timestep", dt)
 
     ewrite(3,*) 'Leaving solve_multiphase_mom_press_volf'
 

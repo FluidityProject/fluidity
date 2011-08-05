@@ -48,7 +48,8 @@ module mp_prototype
   contains
 
     subroutine multiphase_prototype(state, dt, &
-         nonlinear_iterations, nonlinear_iteration_tolerance)
+         nonlinear_iterations, nonlinear_iteration_tolerance, &
+         dump_no)
 
       implicit none
 
@@ -56,7 +57,7 @@ module mp_prototype
 
       type(state_type), dimension(:), pointer :: state
 
-      integer :: nonlinear_iterations  !! equal to nits in prototype code
+      integer :: dump_no, nonlinear_iterations  !! equal to nits in prototype code
 
       real :: dt 
       real :: nonlinear_iteration_tolerance
@@ -880,7 +881,7 @@ module mp_prototype
               u_ele_type, p_ele_type, cv_ele_type, &
               cv_sele_type, u_sele_type, &
                                 ! Total time loop and initialisation parameters
-              ntime_dump, nits, nits_internal, &
+              ntime_dump, nits, nits_internal, dump_no, &
               nits_flux_lim_volfra, nits_flux_lim_comp, & 
               ndpset, &
                                 ! Discretisation parameters
@@ -937,8 +938,6 @@ module mp_prototype
               mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
 
       end Select
-
-      call copy_into_state(state, satura, p, nphase, cv_ndgln, p_ndgln)
 
       ewrite(3,*) 'Leaving multiphase_prototype'
       close( 357 )
