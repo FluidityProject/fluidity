@@ -924,6 +924,16 @@ contains
 
     call make_global_numbering_new(mesh)
 
+    if (associated(model%element_halos)) then
+       assert(element_halo_count(model) > 0)
+
+       allocate(mesh%element_halos(size(model%element_halos)))
+       do i=1,size(mesh%element_halos)
+          mesh%element_halos(i)=model%element_halos(i)
+          call incref(mesh%element_halos(i))
+       end do
+    end if
+
     call deallocate(lshape)
 
 !!$    if (mesh%continuity>=0) then

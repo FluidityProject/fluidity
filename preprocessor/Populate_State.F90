@@ -385,14 +385,6 @@ contains
           call insert(states, mesh, mesh%name)
           call insert(states, position, position%name)
 #ifdef DDEBUG
-          call print_halo(position%mesh%element_halos(1), 0)
-          mesh=piecewise_constant_mesh(position%mesh,"foo")
-          call print_halo(mesh%halos(2), 0)
-          print *,"ndglno"
-          print '(3i4)',position%mesh%ndglno
-          print '(1i4)',mesh%ndglno
-          print '(1i4)',int(uid%val)
-          ! Now that we've got uids, we can verify the halos.
           call verify_halos(position)
 #endif
           call deallocate(position)

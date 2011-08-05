@@ -325,12 +325,6 @@ contains
                        sorted(int(ele_val(uid, ele1)))
       end do
       
-      do ele1=1,entity
-         print '(12i4)',entity_sort_list(ele1,:)&
-              &,entity_receive_level(ele1)&
-              &,set2vector(entity_send_targets(ele1,2)) 
-      end do
-
       assert(entity==sum(entity_counts))
 
     end subroutine create_topology_halos
@@ -509,6 +503,8 @@ contains
             mesh%halos(h)%receives(p)%ptr=sorted(set2vector(receives(h,p)))
          end do
 
+         call create_global_to_universal_numbering(mesh%halos(h))
+         call create_ownership(mesh%halos(h))
       end do
 
       call deallocate(sends)
