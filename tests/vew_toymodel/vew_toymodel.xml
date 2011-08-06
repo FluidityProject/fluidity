@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>vew_toymodel</name>
+  <owner userid="mlange"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>
+../../bin/fluidity -v2 -l toymodel.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="biomass" language="python">
+import fluidity_tools
+from math import sqrt
+biomass = fluidity_tools.stat_parser("vew-tm.stat")['water']['LBiomass']['integral'][:]
+    </variable>    
+  </variables>
+  <pass_tests>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

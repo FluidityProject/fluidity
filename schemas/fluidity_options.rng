@@ -8598,6 +8598,31 @@ Functions should be of the form:
                       <empty/>
                     </element>
                   </optional>
+                  <zeroOrMore>
+                    <element name="variable">
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="initial_value">
+                        <ref name="real"/>
+                      </element>
+                      <optional>
+                        <element name="scalar_field">
+                          <a:documentation>Biomass of the biology agents</a:documentation>
+                          <attribute name="rank">
+                            <value>0</value>
+                          </attribute>
+                          <attribute name="name">
+                            <data type="string"/>
+                          </attribute>
+                          <element name="diagnostic">
+                            <ref name="velocity_mesh_choice"/>
+                            <ref name="diagnostic_scalar_field_no_adapt"/>
+                          </element>
+                        </element>
+                      </optional>
+                    </element>
+                  </zeroOrMore>
                   <ref name="comment"/>
                 </element>
               </zeroOrMore>

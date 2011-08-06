@@ -6776,6 +6776,21 @@ biology =
                   element exclude_from_advection {
                      empty
                   }?,
+                  element variable {
+                     attribute name { xsd:string },
+                     element initial_value{
+                        real
+                     },
+                     ## Biomass of the biology agents
+                     element scalar_field {
+                        attribute rank { "0" },
+                        attribute name { xsd:string },
+                        element diagnostic {
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field_no_adapt
+                        }
+                     }?
+                  }*,
                   comment
                }*,
                lagrangian_timestepping

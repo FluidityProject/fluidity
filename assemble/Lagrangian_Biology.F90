@@ -32,7 +32,7 @@ module lagrangian_biology
   use spud
   use state_module
   use fields
-  use global_parameters, only: PYTHON_FUNC_LEN
+  use global_parameters, only: PYTHON_FUNC_LEN, OPTION_PATH_LEN
   use parallel_tools
   use mpi_interfaces
   use pickers_inquire
@@ -62,10 +62,12 @@ contains
     type(vector_field), pointer :: xfield
     type(element_type), pointer :: shape
     character(len=PYTHON_FUNC_LEN) :: func
-    character(len = 254) :: buffer, schema_buffer
+    character(len=OPTION_PATH_LEN) :: buffer, schema_buffer, biovar_buffer
     real, allocatable, dimension(:,:) :: coords
+    real, allocatable, dimension(:) :: initial_values
     real:: current_time
-    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type, random_seed
+    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type, &
+               random_seed, biovar_count
 
     if (.not.have_option("/ocean_biology/lagrangian_ensemble")) return
 
@@ -135,6 +137,41 @@ contains
 
        ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
 
+       ! Biology parameters
+       biovar_count = option_count(trim(schema_buffer)//"/variable")
+       if (biovar_count > 0) then
+          agent_arrays(i)%has_biology=.true.
+
+          allocate(agent_arrays(i)%biovar_list(biovar_count))
+          allocate(agent_arrays(i)%biofield_list(biovar_count))
+          allocate(agent_arrays(i)%has_biofield(biovar_count))
+          allocate(initial_values(biovar_count))
+          do j=1, biovar_count
+             write(biovar_buffer, "(a,i0,a)") trim(schema_buffer)//"/variable[",j-1,"]"
+             call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(j))
+             call get_option(trim(biovar_buffer)//"/initial_value", initial_values(j))
+
+             ! Record according diagnostic field
+             if (have_option(trim(biovar_buffer)//"/scalar_field")) then
+                agent_arrays(i)%has_biofield(j) = .true.
+                call get_option(trim(biovar_buffer)//"/scalar_field/name", agent_arrays(i)%biofield_list(j))
+             else
+                agent_arrays(i)%has_biofield(j) = .false.
+             end if
+          end do
+
+          ! Initialise agent variables
+          agent => agent_arrays(i)%first
+          do while (associated(agent))
+             allocate(agent%biology(biovar_count))
+             do j=1, biovar_count
+                agent%biology(j) = initial_values(j)
+             end do
+             agent => agent%next
+          end do
+          deallocate(initial_values)
+       end if
+
        ! Create simple position-only agent I/O header 
        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
        if (getprocno() == 1) then
@@ -197,7 +234,8 @@ contains
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
 
-    integer :: i
+    type(scalar_field), pointer :: sfield
+    integer :: i, j
 
     do i = 1, size(agent_arrays)
        ! Move lagrangian detectors
@@ -206,8 +244,49 @@ contains
        end if
 
        call write_detectors(state, agent_arrays(i), time, dt)
+
+       ! Calculate diagnostic fields from agents variables
+       if (agent_arrays(i)%has_biology) then
+          do j=1, size(agent_arrays(i)%biovar_list)
+             if (agent_arrays(i)%has_biofield(j)) then
+                sfield=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
+                call set_diagnostic_field_from_agents(agent_arrays(i), j, sfield)
+             end if
+          end do
+       end if
     end do
 
   end subroutine calculate_lagrangian_biology
+
+  subroutine set_diagnostic_field_from_agents(agent_list, biovar_id, sfield)
+    type(detector_linked_list), intent(inout) :: agent_list
+    integer, intent(in) :: biovar_id
+    type(scalar_field), intent(inout) :: sfield
+
+    type(detector_type), pointer :: agent
+    type(element_type), pointer :: shape
+    integer, dimension(ele_loc(sfield, agent_list%first%element)) :: element_nodes
+    real :: value, scaled_value
+    integer :: i
+
+    ewrite(2,*) "In set_diagnostic_field_from_agents"
+
+    call zero(sfield)
+
+    agent => agent_list%first
+    do while (associated(agent))
+       value = agent%biology(biovar_id)
+       shape => ele_shape(sfield, agent%element)
+       element_nodes = ele_nodes(sfield, agent%element)
+       do i=1, ele_loc(sfield, agent%element)
+          !ewrite(2,*) "ml805 eval_shape: ", eval_shape(shape, i, agent%local_coords)
+          scaled_value = value * eval_shape(shape, i, agent%local_coords)
+          call addto(sfield, element_nodes(i), scaled_value)
+       end do
+
+       agent => agent%next
+    end do
+
+  end subroutine set_diagnostic_field_from_agents
 
 end module lagrangian_biology

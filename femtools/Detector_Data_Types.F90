@@ -63,12 +63,17 @@ module detector_data_types
      integer :: id_number
      !! ID of the parent list, needed for Zoltan to map the detector back
      integer :: list_id
+
      !! RK timestepping stages (first index is stage no., second index is dim)
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
      real, dimension(:), allocatable :: update_vector
      !! Have we completed the search?
      logical :: search_complete
+
+     !! Biology variables
+     real, dimension(:), allocatable :: biology
+
      !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null() 
@@ -106,6 +111,12 @@ module detector_data_types
 
      !! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
      type(rk_gs_parameters), pointer :: move_parameters => null()
+
+     !! Biology options
+     logical :: has_biology=.false.
+     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: biovar_list
+     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: biofield_list
+     logical, dimension(:), allocatable :: has_biofield
 
      !! Optional array for detector names; names are held in read order
      character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
