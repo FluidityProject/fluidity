@@ -267,19 +267,9 @@ start =
                      pressure_mesh_choice,
                      prognostic_layerthickness_field
                   }
-               },        
-               ## Lagrange multiplier for hybridised solver
-               element scalar_field {
-                  attribute rank { "0" },
-                  attribute name { "LagrangeMultiplier" },
-                  element prognostic {
-                     mesh_choice,
-                     prognostic_lagrangemultiplier_field
-                  }
                }?,
                scalar_field_choice*,
                vector_field_choice*
-               #tensor_field_choice*
             )
          },
         element mesh_adaptivity {
@@ -502,9 +492,17 @@ input_choice_initial_condition_vector =
       }|
       ## Set balanced velocity from height field
       element balanced {
-         empty
-      }
-   )  
+               ## Solver
+         element solver {
+            linear_solver_options_sym
+         }?
+      }|
+      ## project velocity from a DG field
+      element dg_projection {
+         ## Field to project from
+         attribute source_field { xsd:string }
+      }         
+   )
 
 # Choice of input method for initial/boundary conditions
 # version for real symmetric tensor

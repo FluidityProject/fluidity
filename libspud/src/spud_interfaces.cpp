@@ -25,8 +25,8 @@
     USA
 */
 
-#include "cspud.h"
 #include "spud.h"
+#include "spud"
 
 using namespace std;
 
@@ -34,54 +34,50 @@ using namespace Spud;
 
 extern "C" {
 
-  void cspud_clear_options(){
+  void spud_clear_options(){
     clear_options();
     
     return;
   }
 
-  void cspud_load_options(const char* filename, const int* filename_len)
+  int spud_load_options(const char* filename, const int filename_len)
   {
-    load_options(string(filename, *filename_len));
-
-    return;
+    return load_options(string(filename, filename_len));
   }
 
-  void cspud_write_options(const char* filename, const int* filename_len)
+  int spud_write_options(const char* filename, const int filename_len)
   {
-    write_options(string(filename, *filename_len));
-
-    return;
+    return write_options(string(filename, filename_len));
   }
 
-  int cspud_get_child_name(const char* key, const int* key_len, const int* index, char* child_name, const int* child_name_len){
+  int spud_get_child_name(const char* key, const int key_len, const int index, char* child_name, const int child_name_len){
     string child_name_handle;
-    OptionError get_name_err = get_child_name(string(key, *key_len), *index, child_name_handle);
+    OptionError get_name_err = get_child_name(string(key, key_len), index, child_name_handle);
     if(get_name_err != SPUD_NO_ERROR){
       return get_name_err;
     }
 
-    int copy_len = (int)child_name_handle.size() > *child_name_len ? *child_name_len : child_name_handle.size();
+    int copy_len = (int)child_name_handle.size() > child_name_len ? child_name_len : child_name_handle.size();
     memcpy(child_name, child_name_handle.c_str(), copy_len);
 
     return SPUD_NO_ERROR;
   }
 
-  int cspud_number_of_children(const char* key, const int* key_len){
-    return number_of_children(string(key, *key_len));
+  int spud_get_number_of_children(const char* key, const int key_len, int* child_count){
+    return get_number_of_children(string(key, key_len), *child_count);
   }
 
-  int cspud_option_count(const char* key, const int* key_len){
-    return option_count(string(key, *key_len));
+  int spud_option_count(const char* key, const int key_len){
+    return option_count(string(key, key_len));
   }
 
-  int cspud_have_option(const char* key, const int* key_len){
-    return have_option(string(key, *key_len)) ? 1 : 0;
+  int spud_have_option(const char* key, const int key_len){
+    return have_option(string(key, key_len)) ? 1 : 0;
   }
 
-  int cspud_get_option_type(const char* key, const int* key_len, int* type){
+  int spud_get_option_type(const char* key, const int key_len, int* type){
     OptionType type_handle;
-    OptionError get_type_err = get_option_type(string(key, *key_len), type_handle);
+    OptionError get_type_err = get_option_type(string(key, key_len), type_handle);
     if(get_type_err != SPUD_NO_ERROR){
       return get_type_err;
     }
@@ -91,13 +87,13 @@ extern "C" {
     return SPUD_NO_ERROR;
   }
 
-  int cspud_get_option_rank(const char* key, const int* key_len, int* rank){
-    return get_option_rank(string(key, *key_len), *rank);
+  int spud_get_option_rank(const char* key, const int key_len, int* rank){
+    return get_option_rank(string(key, key_len), *rank);
   }
 
-  int cspud_get_option_shape(const char* key, const int* key_len, int* shape){
+  int spud_get_option_shape(const char* key, const int key_len, int* shape){
     vector<int> shape_handle;
-    OptionError get_shape_err = get_option_shape(string(key, *key_len), shape_handle);
+    OptionError get_shape_err = get_option_shape(string(key, key_len), shape_handle);
     if(get_shape_err != SPUD_NO_ERROR){
       return get_shape_err;
     }
@@ -110,8 +106,8 @@ extern "C" {
     return SPUD_NO_ERROR;
   }
 
-  int cspud_get_option(const char* key, const int* key_len, void* val){
-    string key_handle(key, *key_len);
+  int spud_get_option(const char* key, const int key_len, void* val){
+    string key_handle(key, key_len);
 
     OptionType type;
     OptionError get_type_err = get_option_type(key_handle, type);
@@ -201,24 +197,24 @@ extern "C" {
     return SPUD_NO_ERROR;
   }
 
-  int cspud_add_option(const char* key, const int* key_len){
-    return add_option(string(key, *key_len));
+  int spud_add_option(const char* key, const int key_len){
+    return add_option(string(key, key_len));
   }
 
-  int cspud_set_option(const char* key, const int* key_len, const void* val, const int* type, const int* rank, const int* shape){
-    string key_handle(key, *key_len);
+  int spud_set_option(const char* key, const int key_len, const void* val, const int type, const int rank, const int* shape){
+    string key_handle(key, key_len);
 
-    if(*type == SPUD_DOUBLE){
-      if(*rank == 0){
+    if(type == SPUD_DOUBLE){
+      if(rank == 0){
         double val_handle = *((double*)val);
         return set_option(key_handle, val_handle);
-      }else if(*rank == 1){
+      }else if(rank == 1){
         vector<double> val_handle;
         for(int i = 0;i < shape[0];i++){
           val_handle.push_back(((double*)val)[i]);
         }
         return set_option(key_handle, val_handle);
-      }else if(*rank == 2){
+      }else if(rank == 2){
         vector< vector<double> > val_handle;
         for(int i = 0;i < shape[0];i++){
           val_handle.push_back(vector<double>());
@@ -230,17 +226,17 @@ extern "C" {
       }else{
         return SPUD_RANK_ERROR;
       }
-    }else if(*type == SPUD_INT){
-      if(*rank == 0){
+    }else if(type == SPUD_INT){
+      if(rank == 0){
         int val_handle = *((int*)val);
         return set_option(key_handle, val_handle);
-      }else if(*rank == 1){
+      }else if(rank == 1){
         vector<int> val_handle;
         for(int i = 0;i < shape[0];i++){
           val_handle.push_back(((int*)val)[i]);
         }
         return set_option(key_handle, val_handle);
-      }else if(*rank == 2){
+      }else if(rank == 2){
         vector< vector<int> > val_handle;
         for(int i = 0;i < shape[0];i++){
           val_handle.push_back(vector<int>());
@@ -252,29 +248,29 @@ extern "C" {
       }else{
         return SPUD_RANK_ERROR;
       }
-    }else if(*type == SPUD_STRING){
+    }else if(type == SPUD_STRING){
       return set_option(key_handle, string((char*)val, shape[0]));
     }else{
       return SPUD_TYPE_ERROR;
     }
   }
 
-  int cspud_set_option_attribute(const char* key, const int* key_len, const char* val, const int* val_len){
-    return set_option_attribute(string(key, *key_len), string(val, *val_len));
+  int spud_set_option_attribute(const char* key, const int key_len, const char* val, const int val_len){
+    return set_option_attribute(string(key, key_len), string(val, val_len));
   }
   
-  int cspud_move_option(const char* key1, const int* key1_len, const char* key2, const int* key2_len){
-    return move_option(string(key1, *key1_len), string(key2, *key2_len));
+  int spud_move_option(const char* key1, const int key1_len, const char* key2, const int key2_len){
+    return move_option(string(key1, key1_len), string(key2, key2_len));
   }
 
-  int cspud_copy_option(const char* key1, const int* key1_len, const char* key2, const int* key2_len){
-    return copy_option(string(key1, *key1_len), string(key2, *key2_len));
+  int spud_copy_option(const char* key1, const int key1_len, const char* key2, const int key2_len){
+    return copy_option(string(key1, key1_len), string(key2, key2_len));
   }
-  int cspud_delete_option(const char* key, const int* key_len){
-    return delete_option(string(key, *key_len));
+  int spud_delete_option(const char* key, const int key_len){
+    return delete_option(string(key, key_len));
   }
 
-  void cspud_print_options(){
+  void spud_print_options(){
     print_options();
 
     return;

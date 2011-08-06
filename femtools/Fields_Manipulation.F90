@@ -199,33 +199,35 @@ implicit none
     
   contains
 
-  subroutine tensor_second_invariant(source_field,s_field)
-      !!< This routine computes the second invariant of an infield tensor field
-      type(tensor_field), intent(in):: source_field
-      type(scalar_field), intent(inout) :: s_field
+  subroutine tensor_second_invariant(t_field,second_invariant)
+      !!< This routine computes the second invariant of an infield tensor field t_field.
+      !!< Note - currently assumes that tensor field t_field is symmetric.
+      type(tensor_field), intent(in):: t_field
+      type(scalar_field), intent(inout) :: second_invariant
 
-      real, dimension(source_field%dim(1)) :: evals
-      real, dimension(source_field%dim(1), source_field%dim(2)) :: evecs
-      real, dimension(3) :: v
+      type(tensor_field) :: t_field_local
 
-      real :: s
-      integer :: node, dimen
+      integer :: node, dim1, dim2
+      real :: val
 
-      v = 0.0
+      ! Remap t_field to second invariant mesh if required:
+      call allocate(t_field_local, second_invariant%mesh, "LocalTensorField")  
+      call remap_field(t_field, t_field_local)
 
-      ! Making sure the second invariant gets evaluated over the whole mesh
-      do node=1,node_count(s_field)
-             call eigendecomposition_symmetric(node_val(source_field, node), evecs, evals)
-             do dimen=1,source_field%dim(1)
-               v(dimen)=evals(dimen)
-             end do
-             s = -(v(1)*v(2) + v(2)*v(3) + v(3)*v(1))
-             call set(s_field, node, s)
+      do node = 1, node_count(second_invariant)
+         val = 0.
+         do dim1 = 1, t_field_local%dim(1)
+            do dim2 = 1, t_field_local%dim(2) 
+               val = val + node_val(t_field_local,dim1,dim2,node)**2
+            end do
+         end do
+         call set(second_invariant,node,sqrt(val/2.))
       end do
 
+      call deallocate(t_field_local)
+               
   end subroutine tensor_second_invariant
 
-  
   subroutine zero_scalar(field)
     !!< Set all entries in the field provided to 0.0
     type(scalar_field), intent(inout) :: field

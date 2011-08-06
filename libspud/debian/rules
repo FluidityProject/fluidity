@@ -61,6 +61,7 @@ install-spudtools: install-prereq
 	$(MAKE) install-spudtools DESTDIR=$(CURDIR)/debian/spudtools
 
 install-diamond: build-diamond install-prereq $(PYVERS:%=install-python%)
+	dh_install
 install-prereq:
 	dh_testdir
 	dh_testroot
