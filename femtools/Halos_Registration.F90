@@ -187,7 +187,7 @@ contains
     else
       allocate(mesh%element_halos(2))
       call derive_element_halo_from_node_halo(mesh, &
-        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+        & ordering_scheme = HALO_ORDER_GENERAL, create_caches = .true.)
     end if
 
     ewrite(1, *) "Exiting read_halos_mesh"
