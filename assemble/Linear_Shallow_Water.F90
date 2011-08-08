@@ -51,14 +51,14 @@ module linear_shallow_water
 contains 
   subroutine setup_wave_matrices(state,u_sparsity,wave_sparsity,ct_sparsity, &
        h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,div_mat,&
-       wave_mat,big_mat,dt,theta,D0,g)
+       wave_mat,inverse_big_mat,dt,theta,D0,g)
     implicit none
     type(state_type), intent(inout) :: state
     type(csr_sparsity), intent(inout) :: u_sparsity, wave_sparsity, &
          ct_sparsity
     type(csr_matrix), intent(inout) :: h_mass_mat, wave_mat
     type(block_csr_matrix), intent(inout) :: u_mass_mat, coriolis_mat,&
-         inverse_coriolis_mat, div_mat, big_mat
+         inverse_coriolis_mat, div_mat, inverse_big_mat
     real , intent(in) :: dt,theta,D0,g
     !! Layer thickness
     type(scalar_field), pointer :: D, f
@@ -96,25 +96,25 @@ contains
     call zero(div_mat)
     call allocate(wave_mat,wave_sparsity)
     call zero(wave_mat)
-    call allocate(big_mat,u_sparsity,(/dim,dim/))
-    call zero(big_mat)
+    call allocate(inverse_big_mat,u_sparsity,(/dim,dim/))
+    call zero(inverse_big_mat)
 
     !Assemble matrices
     do ele = 1, ele_count(D)
        call assemble_shallow_water_matrices_ele(D,f,U,X,down,ele, &
             h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
-            div_mat,big_mat,dt,theta)
+            div_mat,inverse_big_mat,dt,theta)
     end do
 
     if(have_option("/physical_parameters/coriolis") .and. have_option("/debug/check_inverse_coriolis_matrix")) then
-       call check_big_mat(U,big_mat,u_mass_mat,coriolis_mat,theta,dt)
+       call check_inverse_big_mat(U,inverse_big_mat,u_mass_mat,coriolis_mat,theta,dt)
     end if
 
     !Construct wave mat
-    call assemble_cmc_dg(wave_mat, div_mat, div_mat, big_mat)
+    call assemble_cmc_dg(wave_mat, div_mat, div_mat, inverse_big_mat)
 
     if(have_option("/debug/check_wave_matrix")) then
-      call check_wave_mat(wave_mat,div_mat,big_mat,u,d)
+      call check_wave_mat(wave_mat,div_mat,inverse_big_mat,u,d)
     end if
 
     call scale(wave_mat,dt*dt*theta*theta*g*D0)
@@ -122,8 +122,8 @@ contains
 
   end subroutine setup_wave_matrices
 
-    subroutine check_wave_mat(wave_mat,div_mat,big_mat,u,d)
-      type(block_csr_matrix), intent(in) :: div_mat,big_mat
+    subroutine check_wave_mat(wave_mat,div_mat,inverse_big_mat,u,d)
+      type(block_csr_matrix), intent(in) :: div_mat,inverse_big_mat
       type(csr_matrix), intent(in) :: wave_mat
       type(scalar_field), intent(inout) :: d
       type(vector_field), intent(inout) :: u
@@ -142,7 +142,7 @@ contains
          
          call mult(d_mem2,wave_mat,d_mem1)
          call mult_t(u_mem1,div_mat,d_mem1)
-         call mult(u_mem2,big_mat,u_mem1)
+         call mult(u_mem2,inverse_big_mat,u_mem1)
          call mult(d_mem1,div_mat,u_mem2)
          
          call addto(d_mem1,d_mem2,scale=-1.0)
@@ -160,10 +160,10 @@ contains
 
     end subroutine check_wave_mat
 
-    subroutine check_big_mat(U,big_mat,u_mass_mat,coriolis_mat,theta,dt)
+    subroutine check_inverse_big_mat(U,inverse_big_mat,u_mass_mat,coriolis_mat,theta,dt)
       implicit none
       type(vector_field), intent(inout) :: U
-      type(block_csr_matrix), intent(in) :: big_mat, coriolis_mat, u_mass_mat
+      type(block_csr_matrix), intent(in) :: inverse_big_mat, coriolis_mat, u_mass_mat
       real, intent(in) :: theta, dt
       !
       integer :: n,ntests=20, dim,d1
@@ -185,9 +185,9 @@ contains
          !Then coriolis
          call mult(u_mem2,coriolis_mat,u_test)
          call addto(u_mem1,u_mem2,scale=dt*theta)
-         !The application of the inverse of big_mat is now in u_mem1
-         !Now apply big_mat to u_mem1 and put it in u_mem2
-         call mult(u_mem2,big_mat,u_mem1)
+         !The application of the inverse of inverse_big_mat is now in u_mem1
+         !Now apply inverse_big_mat to u_mem1 and put it in u_mem2
+         call mult(u_mem2,inverse_big_mat,u_mem1)
          !Now subtract u_test from it
          call addto(u_mem2,u_test,scale=-1.0)
          !Now check the residual
@@ -205,7 +205,7 @@ contains
       call deallocate(u_test)
       call deallocate(u_mem1)
       call deallocate(u_mem2)
-    end subroutine check_big_mat
+    end subroutine check_inverse_big_mat
 
     subroutine check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
            &,h_mass_mat, coriolis_mat,div_mat)
@@ -280,8 +280,6 @@ contains
       type(scalar_field), intent(in) :: delta_D
       type(block_csr_matrix), intent(in) :: div_mat
       real, intent(in) :: theta, dt, g
-      !Add the contribution to the rhs of momentum equation which
-      !contains implicit D
       type(vector_field) :: vec
       integer :: dim
 
@@ -295,56 +293,44 @@ contains
 
     end subroutine update_u_rhs
 
-    subroutine get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
+    subroutine get_h_tilde_rhs(h_rhs, U, h, div_mat, &
+         H0, dt, theta)
       implicit none
-      type(scalar_field), intent(inout) :: d_rhs
-      type(vector_field), intent(inout) :: u_rhs,U
-      type(scalar_field), intent(inout) :: D
-      type(block_csr_matrix), intent(in) :: div_mat, big_mat
-      real, intent(in) :: D0, dt, theta
-      !Construct the contribution to the right-hand side of the D wave eqn
+      type(scalar_field), intent(inout) :: h_rhs
+      type(vector_field), intent(inout) :: U
+      type(scalar_field), intent(inout) :: h
+      type(block_csr_matrix), intent(in) :: div_mat
+      real, intent(in) :: H0, dt, theta
       type(scalar_field) :: rhs2
-      integer :: dim
-      type(vector_field) :: vec
-      !
-      dim = mesh_dim(D)
 
-      call zero(d_rhs)
+      call zero(h_rhs)
 
-      call allocate(rhs2, D%mesh, "workingmem")
-      call allocate(vec, dim, U%mesh, "workingvecmem")
+      call allocate(rhs2, h%mesh, "workingmem")
 
-      !Contribution to u^{n+1} from explicit bits
-      call mult(vec,big_mat,u_rhs)
-      call scale(vec,theta)
-      !Contribution from previous timestep
-      call addto(vec,U)
-      !Continuity operator
-      call mult(rhs2, div_mat, vec)
-      call addto(d_rhs, rhs2, scale=dt*D0)
+      call mult(rhs2, div_mat, U)
+      call addto(h_rhs, rhs2, scale=dt*H0*(1-theta))
 
       call deallocate(rhs2)
-      call deallocate(vec)
 
-    end subroutine get_d_rhs
+    end subroutine get_h_tilde_rhs
 
-    subroutine get_u_rhs(u_rhs,U,D,dt,g, &
-         coriolis_mat,div_mat,u_mass_mat,source)
+    subroutine get_u_tilde_rhs(u_rhs, U, h, dt, g, theta, &
+         coriolis_mat, div_mat, u_mass_mat, source)
       implicit none
       type(vector_field), intent(inout) :: u_rhs
       type(vector_field), intent(inout) :: U
       type(vector_field), intent(in), optional :: source
-      type(scalar_field), intent(inout) :: D
+      type(scalar_field), intent(inout) :: h
       type(block_csr_matrix), intent(in) :: coriolis_mat, div_mat 
       type(block_csr_matrix), intent(in), optional :: u_mass_mat
-      real, intent(in) :: dt, g
+      real, intent(in) :: dt, g, theta
       !Construct the explicit contribution to the right-hand side 
       !of the u equation
 
       integer :: dim, i
       type(vector_field) :: rhs2, vec
 
-      ewrite(2,*) 'outside', sum(D%val)
+      ewrite(2,*) 'outside', sum(h%val)
 
       dim = mesh_dim(U)
 
@@ -354,12 +340,12 @@ contains
       call zero(u_rhs)
 
       !Coriolis term
-      call mult(rhs2,coriolis_mat,U)
-      call addto(U_rhs,rhs2,scale=-dt)
+      call mult(rhs2, coriolis_mat, U)
+      call addto(U_rhs, rhs2, scale=dt*(1-theta))
 
       !Pressure gradient
-      call mult_T(vec,div_mat,D)
-      call addto(u_rhs,vec,scale=-dt*g)
+      call mult_T(vec, div_mat, h)
+      call addto(u_rhs, vec, scale=dt*g*(1-theta))
 
       !Source term
       if (present(source)) then
@@ -373,24 +359,24 @@ contains
 
       call deallocate(rhs2)
       call deallocate(vec)
-    end subroutine get_u_rhs
+    end subroutine get_u_tilde_rhs
 
     subroutine assemble_shallow_water_matrices_ele(D,f,U,X,down,ele, &
          h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
-         div_mat,big_mat,dt,theta)
+         div_mat,inverse_big_mat,dt,theta)
 
       implicit none
       type(scalar_field), intent(in) :: D, f
       type(vector_field), intent(in) :: U, X, down
       type(csr_matrix), intent(inout) :: h_mass_mat
       type(block_csr_matrix), intent(inout) :: u_mass_mat, coriolis_mat,&
-           inverse_coriolis_mat, div_mat, big_mat
+           inverse_coriolis_mat, div_mat, inverse_big_mat
 
       integer, intent(in) :: ele
       real, intent(in) :: dt,theta
 
       !Assemble h_mass_mat, u_mass_mat, coriolis_mat, inverse_coriolis_mat,
-      !div_mat and then big_mat
+      !div_mat and then inverse_big_mat
       real, dimension(ele_ngi(D, ele)) :: detwei
       integer, dimension(:), pointer :: D_ele, U_ele
       type(element_type) :: D_shape, u_shape
@@ -480,7 +466,7 @@ contains
 
       do dim1 = 1, dim
          do dim2 = 1, dim
-            call addto(big_mat,dim1,dim2,u_ele,u_ele, &
+            call addto(inverse_big_mat,dim1,dim2,u_ele,u_ele, &
                  l_big_mat(nloc*(dim1-1)+1:nloc*dim1, &
                  nloc*(dim2-1)+1:nloc*dim2))
          end do
