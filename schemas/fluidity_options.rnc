@@ -6711,19 +6711,6 @@ biology =
          }|
          ## Lagrangian particle biology from the VEW project.
          element lagrangian_ensemble {
-            (
-               ## Python code specifying the biology model. This takes
-               ## in velocity and light and outputs Phytoplankton, if
-               ## those fields exist.
-               element biology_algorithm {
-                  python_code
-               }|
-               ## Do not calculate biology
-               ## This option is generally only useful for testing. 
-               element disable_biology {
-                  empty
-               }
-            ),
             element agents {
                ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
                element agent_array {
@@ -6791,6 +6778,17 @@ biology =
                         }
                      }?
                   }*,
+                  (
+                     ## Python code specifying the biology model for this type of agent.
+                     element biology_update {
+                        python_code
+                     }|
+                     ## Do not calculate biology
+                     ## This option is generally only useful for testing. 
+                     element disable_biology {
+                        empty
+                     }
+                  ),
                   comment
                }*,
                lagrangian_timestepping

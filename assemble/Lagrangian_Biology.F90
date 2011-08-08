@@ -140,7 +140,6 @@ contains
        ! Biology parameters
        biovar_count = option_count(trim(schema_buffer)//"/variable")
        if (biovar_count > 0) then
-          agent_arrays(i)%has_biology=.true.
 
           allocate(agent_arrays(i)%biovar_list(biovar_count))
           allocate(agent_arrays(i)%biofield_list(biovar_count))
@@ -159,6 +158,12 @@ contains
                 agent_arrays(i)%has_biofield(j) = .false.
              end if
           end do
+
+          ! Store the python update code
+          if (have_option(trim(schema_buffer)//"/biology_update")) then
+             call get_option(trim(schema_buffer)//"/biology_update", agent_arrays(i)%biovar_pycode)
+             agent_arrays(i)%has_biology=.true.
+          end if
 
           ! Initialise agent variables
           agent => agent_arrays(i)%first
@@ -234,8 +239,14 @@ contains
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
 
+    type(detector_type), pointer :: agent
     type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: xfield
     integer :: i, j
+
+    ewrite(1,*) "In calculate_lagrangian_biology"
+
+    xfield=>extract_vector_field(state(1), "Coordinate")
 
     do i = 1, size(agent_arrays)
        ! Move lagrangian detectors
@@ -243,7 +254,26 @@ contains
           call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
        end if
 
-       call write_detectors(state, agent_arrays(i), time, dt)
+       ! Prepare python state if the Random Walk didn't do so
+       if (.not. agent_arrays(i)%move_parameters%do_random_walk) then
+          call python_reset()
+          call python_add_state(state(1))
+       end if
+
+
+       if (agent_arrays(i)%has_biology) then
+          ! Compile python function to set bio-variable, and store in the global dictionary
+          call python_run_detector_string(trim(agent_arrays(i)%biovar_pycode), trim(agent_arrays(i)%name), trim("biology_update"))
+
+          ewrite(2,*) "Updating biology agents..."
+
+          ! Update agent biology
+          agent=>agent_arrays(i)%first
+          do while (associated(agent))
+             call python_calc_agent_biology(agent, xfield, dt, trim(agent_arrays(i)%name), trim("biology_update"))
+             agent=>agent%next
+          end do
+       end if
 
        ! Calculate diagnostic fields from agents variables
        if (agent_arrays(i)%has_biology) then
@@ -254,6 +284,8 @@ contains
              end if
           end do
        end if
+
+       call write_detectors(state, agent_arrays(i), time, dt)
     end do
 
   end subroutine calculate_lagrangian_biology

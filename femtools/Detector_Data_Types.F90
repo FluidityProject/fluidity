@@ -114,12 +114,14 @@ module detector_data_types
 
      !! Biology options
      logical :: has_biology=.false.
-     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: biovar_list
-     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: biofield_list
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biovar_list
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_list
      logical, dimension(:), allocatable :: has_biofield
+     character(len=PYTHON_FUNC_LEN) :: biovar_pycode
+
 
      !! Optional array for detector names; names are held in read order
-     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
 
      !! List of scalar/vector fields to include in detector output
      type(stringlist), dimension(:), allocatable :: sfield_list

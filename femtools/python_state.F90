@@ -40,6 +40,7 @@ module python_state
   public :: python_add_state, python_add_states, python_add_states_time
   public :: python_run_string, python_run_file
   public :: python_run_detector_string, python_run_detector_val_function
+  public :: python_calc_agent_biology
   public :: python_shell
   public :: python_fetch_real
 
@@ -108,6 +109,21 @@ module python_state
       real(c_double), dimension(dim), intent(out) :: value
       integer(c_int), intent(out) :: stat
     end subroutine python_run_detector_val
+
+    !! Evaluate the detector val() function for agent-based biology
+    subroutine python_run_agent_biology(ele, dim, lcoords, dt, dict, &
+           dictlen, key, keylen, biovars, n_biovars, stat) bind(c, name='python_run_agent_biology_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: ele, dim, n_biovars
+      real(c_double), dimension(dim+1), intent(in) :: lcoords
+      real(c_double), intent(in) :: dt
+      integer(c_int), intent(in), value :: dictlen, keylen
+      character(kind=c_char), dimension(dictlen), intent(in) :: dict
+      character(kind=c_char), dimension(keylen), intent(in) :: key
+      real(c_double), dimension(n_biovars), intent(inout) :: biovars
+      integer(c_int), intent(out) :: stat
+    end subroutine python_run_agent_biology
 
   end interface
 
@@ -640,6 +656,34 @@ module python_state
     end if
     
   end subroutine python_run_detector_val_function
+
+  subroutine python_calc_agent_biology(agent, xfield, dt, dict, key, stat)
+    !!< Wrapper function for python_run_agent_biology_c
+    type(detector_type), pointer, intent(in) :: agent
+    type(vector_field), pointer, intent(in) :: xfield
+    real, intent(in) :: dt
+    character(len = *), intent(in) :: dict, key
+    integer, optional, intent(out) :: stat
+    
+    integer :: lstat
+    real, dimension(size(agent%local_coords)) :: stage_local_coords
+
+    if(present(stat)) stat = 0
+
+    stage_local_coords=local_coords(xfield,agent%element,agent%position)
+    call python_run_agent_biology(agent%element, size(agent%position), stage_local_coords, &
+           dt, dict, len_trim(dict), key,len_trim(key), agent%biology, size(agent%biology), lstat) 
+
+    if(lstat /= 0) then
+      if(present(stat)) then
+        stat = -1
+      else
+        ewrite(-1, *) "Python error in biology update function of agent array"
+        FLExit("Dying")
+      end if
+    end if
+    
+  end subroutine python_calc_agent_biology
   
   subroutine python_run_file(s, stat)
     !!< Wrapper for function for python_run_filec
