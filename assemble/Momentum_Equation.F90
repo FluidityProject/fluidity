@@ -1427,6 +1427,7 @@
          !! Local variables
          ! Change in velocity
          type(vector_field) :: delta_u
+         type(vector_field), pointer :: positions
 
          ewrite(1,*) 'Entering advance_velocity'
 
@@ -1471,7 +1472,8 @@
          call zero(delta_u)
 
          ! Impose any reference nodes on velocity
-         call impose_reference_velocity_node(big_m(istate), mom_rhs(istate), trim(u%option_path))
+         positions => extract_vector_field(state(istate), "Coordinate")
+         call impose_reference_velocity_node(big_m(istate), mom_rhs(istate), trim(u%option_path), positions)
 
          call profiler_toc(u, "assembly")
 
@@ -1700,13 +1702,13 @@
             ! Writes out the pressure and velocity before the correction is added in
             ! (as the corrected fields are already available in the convergence files)
             if (.not. p%mesh==p_theta%mesh) then
-              FLAbort("FIXME")
+              !FLAbort("FIXME")
             end if
             call vtk_write_fields("pressure_correction", pdv_count, x, p%mesh, &
-                  sfields=(/ delta_p, p, old_p, p_theta /))
+                  sfields=(/ p, old_p /))
             ! same thing but now on velocity mesh:
             call vtk_write_fields("velocity_before_correction", pdv_count, x, u%mesh, &
-                  sfields=(/ delta_p, p, old_p, p_theta /), vfields=(/ u /))
+                  sfields=(/ p, old_p /), vfields=(/ u /))
          end if
 
          call profiler_tic(p, "assembly")

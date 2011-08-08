@@ -274,7 +274,7 @@
 
          ewrite(1,*) 'Imposing_reference_pressure_node from user-specified coordinates'
          positions => extract_vector_field(state, "Coordinate")
-         call find_reference_pressure_node_from_coordinates(positions,rhs,option_path,reference_node,reference_node_owned)
+         call find_reference_node_from_coordinates(positions,rhs%mesh,option_path,reference_node,reference_node_owned)
          if(IsParallel()) then
             if (reference_node_owned) then
                allocate(ghost_nodes(1:1))
