@@ -212,7 +212,7 @@ def read_physics_file(f):
   for i in range(nLayers-1):
     data = f.readline().split(",")
     depth.append(float(data[2]))
-    irrad.append(float(data[3]))
+    irrad.append(float(data[4]))
   return irrad, depth
 
 if not persistent.has_key('irradiance_fh'):
@@ -654,7 +654,8 @@ def val(ele, local_coord, dt):
             </initial_value>
           </variable>
           <biology_update>
-            <string_value lines="20" type="python">from __builtin__ import str
+            <string_value lines="20" type="python">from fluidity.lagrangian_biology import photosynthesis, reproduction
+from __builtin__ import str
 
 name = dict({
 'Biomass' :         0,   # Sub-population size
@@ -672,7 +673,31 @@ temperature = state.scalar_fields['Temperature']
 irradiance = state.scalar_fields['Irradiance']
 
 def val(ele, local_coord, dt, var):
-  var[name['Biomass']] = var[name['Biomass']] + 1.0
+  ### Phase 1 ###
+  
+  # Housekeeping
+  var[name['IngAmmonium']] = var[name['IngAmmonium']] / var[name['Biomass']]
+  var[name['IngNitrate']] = var[name['IngNitrate']] / var[name['Biomass']]
+  var[name['IngSilicate']] = var[name['IngSilicate']] / var[name['Biomass']]
+  stepInHours = dt/3600.
+  
+  # External environment
+  ambientTemperature = temperature.eval_field(ele, local_coord)
+  ambientVisIrrad = irradiance.eval_field(ele, local_coord)
+  #print "In bio val, temperature: "+str(ambientTemperature)+" irradiance: "+str(ambientVisIrrad)
+  
+  # Nutrient uptake 
+  # (omitted for now, since we don't have depletion fields)
+  
+  ### Phase 2 ###
+  # Photosynthesis
+  (P_phot_c, Theta_c, E_0) = photosynthesis(var, name, ambientTemperature, ambientVisIrrad)
+  #print "In bio val, P_phot_c: "+str(P_phot_c)+" Theta_c: "+str(Theta_c)+" E_0: "+str(E_0)
+  
+  # Reproduction
+  C_d = reproduction(var, name, P_phot_c, Theta_c, E_0, stepInHours)
+  #print "In bio val, C_d: "+str(C_d)
+  
   return var</string_value>
           </biology_update>
         </agent_array>
