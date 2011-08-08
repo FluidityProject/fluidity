@@ -1673,14 +1673,10 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! to imposing a reference pressure node, but initial testing suggests that
     ! it leads to improved rates of convergence.    
     if (remove_null_space) then
-      nspecnulls = option_count(trim(solver_option_path)//'/remove_null_space/null_space/specify_components')
-      nnulls = option_count(trim(solver_option_path)//'/remove_null_space/null_space')
-      if(nspecnulls > 0) then
-        assert(nnulls == nspecnulls)
+      if(have_option(trim(solver_option_path)//'/remove_null_space/specify_components')) then
         if(.not.present(null_space_array)) then
           FLAbort("Need a null_space_array to specify components of a nullspace.")
         end if
-        assert(nspecnulls==size(null_space_array))
         ewrite(2,*) 'Adding null-space removal options for specific components to KSP'
         ewrite(2,*) 'size(null_space_array) = ', size(null_space_array)
         call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_FALSE,size(null_space_array),null_space_array,sp,ierr)
@@ -2273,58 +2269,89 @@ type(vector_field), optional, intent(in):: vfield
 
 Vec, allocatable, dimension(:), intent(out) :: null_space_array
 
-  logical :: remove_null_space
-  integer :: i, nnulls, nspecnulls, nodes
-  real    :: denom
-  real, allocatable, dimension(:) :: components
-  type(vector_field) :: nullvector
+   logical :: remove_null_space
+   integer :: i, nnulls, nodes
+   real, allocatable, dimension(:) :: components
+   type(vector_field) :: nullvector
 
-  ! If requested, remove nullspace from residual field.
-  remove_null_space=have_option(trim(solver_option_path)//'/remove_null_space')
-  nnulls = 0
-  nspecnulls = 0
-  if (remove_null_space) then
-     nnulls = option_count(trim(solver_option_path)//'/remove_null_space/null_space')
-     nspecnulls = option_count(trim(solver_option_path)//'/remove_null_space/null_space/specify_components')
-     if ((nnulls>1).and.(nspecnulls/=nnulls)) then
-       FLExit("Cannot specify multiple nullspaces to remove without them all being on subcomponents.")
+   ! Setup an array of null space vectors for later use in setting up the ksp
+
+   ! Do we actually need a null space array or will a constant do?
+   if(.not.have_option(trim(solver_option_path)//'/remove_null_space/specify_components')) return
+
+   ! need a null space array, therefore we need a vfield
+   if(.not.present(vfield)) then
+     FLAbort("Cannot set up nullspace on components without a vfield.")
+   end if
+
+   ! count how many null spaces we want
+   nnulls = 0
+   if (have_option(trim(solver_option_path)//&
+                          &"/remove_null_space/specify_components/x_component")) then
+     nnulls = nnulls + 1
+   end if
+   if (have_option(trim(solver_option_path)//&
+                          &"/remove_null_space/specify_components/y_component") &
+       .and. (vfield%dim>1)) then
+     nnulls = nnulls + 1
+   end if
+   if (have_option(trim(solver_option_path)//&
+                          &"/remove_null_space/specify_components/z_component") &
+       .and. (vfield%dim>2)) then
+     nnulls = nnulls + 1
+   end if
+
+   ! were any specified?  maybe FLExit here if none are specified as it's a bit odd
+   if(nnulls>0) then
+     ewrite(2,*) "Setting up array of "//int2str(nnulls)//" null spaces."
+     ! get the number of nodes to normalise the null space vector
+     call mesh_stats(vfield, nodes=nodes)
+     ! allocate a vector field
+     call allocate(nullvector, vfield%dim, vfield%mesh, name="NullSpaceVector")
+     ! and the array of null spaces
+     allocate(null_space_array(nnulls))
+     ! and a component array
+     allocate(components(vfield%dim))
+     
+     ! now loop back over the components building up the null spaces we want
+     i = 0
+     if (have_option(trim(solver_option_path)//&
+                            &"/remove_null_space/specify_components/x_component")) then
+       i = i + 1
+       components = 0.0
+       components(1) = 1.0
+       components = components/nodes
+       call set(nullvector, components)
+       null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
+       call field2petsc(nullvector, petsc_numbering, null_space_array(i))
      end if
-     if(nspecnulls>0) then
-       if(.not.present(vfield)) then
-         FLAbort("Cannot set up nullspace on components without a vfield.")
-       end if
-       allocate(components(vfield%dim))
-       allocate(null_space_array(nnulls))
-       call mesh_stats(vfield, nodes=nodes)
-       do i = 0, nnulls-1
-         call allocate(nullvector, vfield%dim, vfield%mesh, name="NullSpaceVector")
-         if (have_option(trim(solver_option_path)//'/remove_null_space/null_space['//int2str(i)//']/specify_components')) then
-           components = 0.0
-           if (have_option(trim(solver_option_path)//&
-                                  &"/remove_null_space/null_space["//int2str(i)//"]/specify_components/x_component")) then
-             components(1) = 1.0
-           end if
-           if (have_option(trim(solver_option_path)//&
-                                  &"/remove_null_space/null_space["//int2str(i)//"]/specify_components/y_component") &
-               .and. (vfield%dim>1)) then
-             components(2) = 1.0
-           end if
-           if (have_option(trim(solver_option_path)//&
-                                  &"/remove_null_space/null_space["//int2str(i)//"]/specify_components/z_component") &
-               .and. (vfield%dim>2)) then
-             components(3) = 1.0
-           end if
-         end if
-         denom = sum(components)*nodes
-         components = components/denom
-         call set(nullvector, components)
-         null_space_array(i+1)=PetscNumberingCreateVec(petsc_numbering)
-         call field2petsc(nullvector, petsc_numbering, null_space_array(i+1))
-         call deallocate(nullvector)
-       end do
-       deallocate(components)
+
+     if (have_option(trim(solver_option_path)//&
+                            &"/remove_null_space/specify_components/y_component") &
+         .and. (vfield%dim>1)) then
+       i = i + 1
+       components = 0.0
+       components(2) = 1.0
+       components = components/nodes
+       call set(nullvector, components)
+       null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
+       call field2petsc(nullvector, petsc_numbering, null_space_array(i))
      end if
-  end if
+
+     if (have_option(trim(solver_option_path)//&
+                            &"/remove_null_space/specify_components/z_component") &
+         .and. (vfield%dim>2)) then
+       i = i + 1
+       components = 0.0
+       components(3) = 1.0
+       components = components/nodes
+       call set(nullvector, components)
+       null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
+       call field2petsc(nullvector, petsc_numbering, null_space_array(i))
+     end if
+     call deallocate(nullvector)
+     deallocate(components)
+   end if
 
 end subroutine create_null_space_array
 

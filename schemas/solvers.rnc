@@ -386,31 +386,25 @@ generic_solver_options =
       ## Remove Null-space from residual after applying preconditioner.
       element remove_null_space {
          (
-           ## If this field has multiple components (i.e. a vector field) then you may describe multiple null
-           ## spaces to remove.  Otherwise (i.e. for scalar fields) it defaults to a single null_space on
-           ## all components.
-           element null_space {
-             ## This nullspace applies to all components (or this field is scalar)
-             ##
-             ## Therefore you shouldn't specify more than one null_space
-             element all_components {
-               empty
-             }|
-             ## Specify individual components of a vector field that describes the null space
-             ##
-             ## ONLY MAKES SENSE FOR VECTOR FIELDS
-             element specify_components {
-               element x_component {
-                  empty
-               }?,
-               element y_component {
-                  empty
-               }?,
-               element z_component {
-                  empty
-               }?
-             }
-           }+
+           ## This nullspace applies to all components (or this field is scalar)
+           element all_components {
+             empty
+           }|
+           ## Specify individual components of a vector field that describes the null spaces
+           ## (each component selected will set up an independent null space)
+           ##
+           ## ONLY MAKES SENSE FOR VECTOR FIELDS
+           element specify_components {
+             element x_component {
+                empty
+             }?,
+             element y_component {
+                empty
+             }?,
+             element z_component {
+                empty
+             }?
+           }
          )
       }?,
       (
