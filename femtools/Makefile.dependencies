@@ -949,11 +949,12 @@ Smoothing_module.o ../include/smoothing_module.mod: Smoothing_module.F90 \
 Solvers.o ../include/solvers.mod: Solvers.F90 ../include/elements.mod \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/multigrid.mod ../include/parallel_tools.mod \
-   ../include/petsc_tools.mod ../include/profiler.mod \
-   ../include/signal_vars.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/spud.mod ../include/vtk_interfaces.mod
+   ../include/meshdiagnostics.mod ../include/multigrid.mod \
+   ../include/parallel_tools.mod ../include/petsc_tools.mod \
+   ../include/profiler.mod ../include/signal_vars.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/spud.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/sparse_matrices_fields.mod: Sparse_Matrices_Fields.o
 	@true

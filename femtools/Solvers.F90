@@ -42,6 +42,7 @@ module solvers
   use profiler
   use vtk_interfaces
   use parallel_tools
+  use MeshDiagnostics
 #ifdef HAVE_PETSC_MODULES
   use petsc 
 #if PETSC_VERSION_MINOR==0
@@ -98,7 +99,7 @@ module solvers
 private
 
 public petsc_solve, set_solver_options, &
-   complete_solver_option_path
+   complete_solver_option_path, create_null_space_array
 
 ! meant for unit-testing solver code only:
 public petsc_solve_setup, petsc_solve_core, petsc_solve_destroy, &
@@ -701,6 +702,8 @@ integer, optional, intent(in) :: internal_smoothing_option
   type(mesh_type), pointer:: mesh
   integer i, j
   KSP, pointer:: ksp_pointer
+
+  Vec, dimension(:), allocatable :: null_space_array
   
   ! Initialise profiler
   if(present(sfield)) then
@@ -854,6 +857,7 @@ integer, optional, intent(in) :: internal_smoothing_option
 
   ewrite(1, *) 'Matrix assembly completed.'
   
+  call create_null_space_array(solver_option_path, petsc_numbering, null_space_array, vfield=vfield)
 
   if (IsParallel()) then
     parallel= (associated(halo))
@@ -874,7 +878,8 @@ integer, optional, intent(in) :: internal_smoothing_option
       startfromzero_in=startfromzero_in, &
       prolongators=prolongators, surface_node_list=surface_node_list, &
       matrix_csr=matrix, &
-      internal_smoothing_option=internal_smoothing_option)
+      internal_smoothing_option=internal_smoothing_option, &
+      null_space_array=null_space_array)
   else
     ewrite(2, *) 'Using solver options defined at: ', trim(solver_option_path)
     call SetupKSP(ksp, A, A, solver_option_path, parallel, &
@@ -882,7 +887,8 @@ integer, optional, intent(in) :: internal_smoothing_option
       startfromzero_in=startfromzero_in, &
       prolongators=prolongators, surface_node_list=surface_node_list, &
       matrix_csr=matrix, &
-      internal_smoothing_option=internal_smoothing_option)
+      internal_smoothing_option=internal_smoothing_option, &
+      null_space_array=null_space_array)
   end if
   
   if (.not. have_cache .and. have_option(trim(solver_option_path)// &
@@ -926,6 +932,13 @@ integer, optional, intent(in) :: internal_smoothing_option
     ewrite(2,*) "Time spent in Petsc setup: ", time2-time1
   end if
 
+  if (allocated(null_space_array)) then
+    do i = 1, size(null_space_array)
+      call VecDestroy(null_space_array(i), ierr)
+    end do
+    deallocate(null_space_array)
+  end if
+  
   if(present(sfield)) then
      call profiler_toc(sfield, "petsc_setup")
   else if(present(vfield)) then
@@ -980,6 +993,9 @@ integer, dimension(:), optional, intent(in) :: surface_node_list
   integer ierr
   logical parallel, timing
 
+  integer :: i
+  Vec, allocatable, dimension(:) :: null_space_array
+
   if (present(sfield)) then
     if (present(option_path)) then
       solver_option_path=complete_solver_option_path(option_path)
@@ -999,7 +1015,7 @@ integer, dimension(:), optional, intent(in) :: surface_node_list
       solver_option_path=complete_solver_option_path(tfield%option_path)
     end if
   else
-    FLAbort("Need to provide either sfield or vfield to petsc_solve_setup.")
+    FLAbort("Need to provide either sfield, vfield or tfield to petsc_solve_setup.")
   end if
 
   timing=(debug_level()>=2)
@@ -1015,6 +1031,8 @@ integer, dimension(:), optional, intent(in) :: surface_node_list
     ewrite(2,*) 'Ignoring setting from solver option.'
     startfromzero=.true.
   end if
+
+  call create_null_space_array(solver_option_path, matrix%column_numbering, null_space_array, vfield=vfield)
   
   if (IsParallel()) then
     parallel= associated(matrix%row_halo)
@@ -1026,10 +1044,18 @@ integer, dimension(:), optional, intent(in) :: surface_node_list
   call SetupKSP(ksp, matrix%M, matrix%M, solver_option_path, parallel, &
       matrix%column_numbering, &
       startfromzero_in=startfromzero_in, &
-      prolongators=prolongators, surface_node_list=surface_node_list)
+      prolongators=prolongators, surface_node_list=surface_node_list, &
+      null_space_array=null_space_array)
   
   b=PetscNumberingCreateVec(matrix%column_numbering)
   call VecDuplicate(b, y, ierr)
+
+  if (allocated(null_space_array)) then
+    do i = 1, size(null_space_array)
+      call VecDestroy(null_space_array(i), ierr)
+    end do
+    deallocate(null_space_array)
+  end if
   
   if (timing) then
     call cpu_time(time2)
@@ -1510,7 +1536,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        petsc_numbering, &
        startfromzero_in, &
        prolongators, surface_node_list, matrix_csr, &
-       internal_smoothing_option)
+       internal_smoothing_option, &
+       null_space_array)
   !!< Creates the KSP solver context and calls
   !!< setup_ksp_from_options
     KSP, intent(out) :: ksp
@@ -1529,6 +1556,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
     integer, optional, intent(in) :: internal_smoothing_option
+    Vec, dimension(:), optional, intent(in) :: null_space_array
     
     PetscErrorCode ierr
     
@@ -1545,7 +1573,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       prolongators=prolongators, &
       surface_node_list=surface_node_list, &
       matrix_csr=matrix_csr, &
-      internal_smoothing_option=internal_smoothing_option)
+      internal_smoothing_option=internal_smoothing_option, &
+      null_space_array=null_space_array)
       
   end subroutine SetupKSP
     
@@ -1553,7 +1582,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
       petsc_numbering, &
       startfromzero_in, &
       prolongators, surface_node_list, matrix_csr, &
-      internal_smoothing_option)
+      internal_smoothing_option, null_space_array)
   !!< Sets options for the given ksp according to the options
   !!< in the options tree.
     KSP, intent(out) :: ksp
@@ -1571,6 +1600,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
     integer, optional, intent(in) :: internal_smoothing_option
+    Vec, dimension(:), optional, intent(in) :: null_space_array
     
     ! hack to satisfy interface for MatNullSpaceCreate
     ! only works as the array won't actually be used
@@ -1583,6 +1613,8 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     MatNullSpace sp ! Nullspace object
     
     logical startfromzero, remove_null_space
+
+    integer nnulls, nspecnulls
     
     ewrite(1,*) "Inside setup_ksp_from_options"
     
@@ -1641,10 +1673,23 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! to imposing a reference pressure node, but initial testing suggests that
     ! it leads to improved rates of convergence.    
     if (remove_null_space) then
-       ewrite(2,*) 'Adding null-space removal options to KSP'
-       call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL_OBJECT_ARRAY,sp,ierr)
-       call KSPSetNullSpace(ksp,sp,ierr)
-       call MatNullSpaceDestroy(sp,ierr)
+      nspecnulls = option_count(trim(solver_option_path)//'/remove_null_space/null_space/specify_components')
+      nnulls = option_count(trim(solver_option_path)//'/remove_null_space/null_space')
+      if(nspecnulls > 0) then
+        assert(nnulls == nspecnulls)
+        if(.not.present(null_space_array)) then
+          FLAbort("Need a null_space_array to specify components of a nullspace.")
+        end if
+        assert(nspecnulls==size(null_space_array))
+        ewrite(2,*) 'Adding null-space removal options for specific components to KSP'
+        ewrite(2,*) 'size(null_space_array) = ', size(null_space_array)
+        call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_FALSE,size(null_space_array),null_space_array,sp,ierr)
+      else
+        ewrite(2,*) 'Adding constant null-space removal options to KSP'
+        call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL_OBJECT_ARRAY,sp,ierr)
+      end if
+      call KSPSetNullSpace(ksp,sp,ierr)
+      call MatNullSpaceDestroy(sp,ierr)
     end if
 
     ! Inquire about settings as they may have changed by PETSc options:
@@ -2218,5 +2263,69 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   ierr=0
   
 end subroutine MyKSPMonitor
+
+subroutine create_null_space_array(solver_option_path, petsc_numbering, null_space_array, vfield)
+!! returns the option path to solver/ block for new options, otherwise ""
+character(len=*), intent(out):: solver_option_path
+type(petsc_numbering_type), intent(in):: petsc_numbering
+!! provide a vector field to be solved for
+type(vector_field), optional, intent(in):: vfield
+
+Vec, allocatable, dimension(:), intent(out) :: null_space_array
+
+  logical :: remove_null_space
+  integer :: i, nnulls, nspecnulls, nodes
+  real    :: denom
+  real, allocatable, dimension(:) :: components
+  type(vector_field) :: nullvector
+
+  ! If requested, remove nullspace from residual field.
+  remove_null_space=have_option(trim(solver_option_path)//'/remove_null_space')
+  nnulls = 0
+  nspecnulls = 0
+  if (remove_null_space) then
+     nnulls = option_count(trim(solver_option_path)//'/remove_null_space/null_space')
+     nspecnulls = option_count(trim(solver_option_path)//'/remove_null_space/null_space/specify_components')
+     if ((nnulls>1).and.(nspecnulls/=nnulls)) then
+       FLExit("Cannot specify multiple nullspaces to remove without them all being on subcomponents.")
+     end if
+     if(nspecnulls>0) then
+       if(.not.present(vfield)) then
+         FLAbort("Cannot set up nullspace on components without a vfield.")
+       end if
+       allocate(components(vfield%dim))
+       allocate(null_space_array(nnulls))
+       call mesh_stats(vfield, nodes=nodes)
+       do i = 0, nnulls-1
+         call allocate(nullvector, vfield%dim, vfield%mesh, name="NullSpaceVector")
+         if (have_option(trim(solver_option_path)//'/remove_null_space/null_space['//int2str(i)//']/specify_components')) then
+           components = 0.0
+           if (have_option(trim(solver_option_path)//&
+                                  &"/remove_null_space/null_space["//int2str(i)//"]/specify_components/x_component")) then
+             components(1) = 1.0
+           end if
+           if (have_option(trim(solver_option_path)//&
+                                  &"/remove_null_space/null_space["//int2str(i)//"]/specify_components/y_component") &
+               .and. (vfield%dim>1)) then
+             components(2) = 1.0
+           end if
+           if (have_option(trim(solver_option_path)//&
+                                  &"/remove_null_space/null_space["//int2str(i)//"]/specify_components/z_component") &
+               .and. (vfield%dim>2)) then
+             components(3) = 1.0
+           end if
+         end if
+         denom = sum(components)*nodes
+         components = components/denom
+         call set(nullvector, components)
+         null_space_array(i+1)=PetscNumberingCreateVec(petsc_numbering)
+         call field2petsc(nullvector, petsc_numbering, null_space_array(i+1))
+         call deallocate(nullvector)
+       end do
+       deallocate(components)
+     end if
+  end if
+
+end subroutine create_null_space_array
 
 end module solvers

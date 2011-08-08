@@ -401,10 +401,42 @@ start at zero in which case this switch will have no effect (see the log output)
     </optional>
     <optional>
       <element name="remove_null_space">
-        <a:documentation>Remove Null-space from residual after applying preconditioner.
-This often leads to better convergence rates, when compared to
-imposing a reference_node to pin the solution.</a:documentation>
-        <empty/>
+        <a:documentation>Remove Null-space from residual after applying preconditioner.</a:documentation>
+        <oneOrMore>
+          <element name="null_space">
+            <a:documentation>If this field has multiple components (i.e. a vector field) then you may describe multiple null
+spaces to remove.  Otherwise (i.e. for scalar fields) it defaults to a single null_space on
+all components.</a:documentation>
+            <choice>
+              <element name="all_components">
+                <a:documentation>This nullspace applies to all components (or this field is scalar)
+
+Therefore you shouldn't specify more than one null_space</a:documentation>
+                <empty/>
+              </element>
+              <element name="specify_components">
+                <a:documentation>Specify individual components of a vector field that describes the null space
+
+ONLY MAKES SENSE FOR VECTOR FIELDS</a:documentation>
+                <optional>
+                  <element name="x_component">
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="y_component">
+                    <empty/>
+                  </element>
+                </optional>
+                <optional>
+                  <element name="z_component">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </choice>
+          </element>
+        </oneOrMore>
       </element>
     </optional>
     <choice>
