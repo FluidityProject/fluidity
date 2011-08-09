@@ -285,8 +285,7 @@
           <surface_ids>
             <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
-          <type name="free_surface">
-            <no_normal_stress/>
+          <type name="explicit_free_surface">
             <external_density>
               <real_value rank="0">2.0</real_value>
             </external_density>
@@ -296,9 +295,7 @@
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
-          <type name="free_surface">
-            <no_normal_stress/>
-          </type>
+          <type name="explicit_free_surface"/>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
@@ -377,6 +374,20 @@
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.e-6</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
         <output/>
         <stat>
           <surface_integral type="value" name="Top">

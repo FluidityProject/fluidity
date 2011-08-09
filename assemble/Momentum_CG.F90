@@ -61,6 +61,7 @@
     use Coordinates
     use multiphase_module
     use edge_length_module
+    use physics_from_options
 
     implicit none
 
@@ -127,7 +128,7 @@
     ! the ids have to correspond to the order of the arguments in
     ! the calls to get_entire_boundary_condition below
     integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW=2, &
-                          BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4
+                          BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4, BC_TYPE_EXPLICIT_FREE_SURFACE = 5
     integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1, PRESSURE_BC_DIRICHLET = 2
 
     ! Stabilisation schemes.
@@ -210,6 +211,7 @@
 
       type(scalar_field), pointer :: buoyancy
       type(scalar_field), pointer :: gp
+      type(scalar_field), pointer :: free_surface, old_free_surface
       type(vector_field), pointer :: gravity
       type(vector_field), pointer :: oldu, nu, ug, source, absorption
       type(tensor_field), pointer :: viscosity
@@ -265,6 +267,13 @@
       ! Volume fraction fields for multi-phase flow simulation
       type(scalar_field), pointer :: vfrac
       type(scalar_field) :: nvfrac ! Non-linear version
+
+      integer :: i
+      real:: rho0, rho_external, coef
+      character(len=FIELD_NAME_LEN):: bctype
+      character(len=OPTION_PATH_LEN):: fs_option_path
+      integer, dimension(:), pointer:: surface_element_list
+      real, dimension(:), allocatable :: fs_coef
 
       ewrite(1,*) 'Entering construct_momentum_cg'
     
@@ -505,6 +514,49 @@
         gp => dummyscalar
       end if
 
+      free_surface=>extract_scalar_field(state, "FreeSurface", stat)
+      if(stat==0) then
+        if(have_option(trim(free_surface%option_path)//"/prognostic").and.has_boundary_condition(u, "explicit_free_surface")) then
+
+          old_free_surface=>extract_scalar_field(state, "OldFreeSurface", stat)
+          if(stat/=0) then
+            old_free_surface => free_surface
+          end if
+
+          if (.not.have_gravity) then
+            FLExit("For a free surface you need gravity")
+          end if
+
+          allocate(fs_coef(surface_element_count(u)))
+          ! reference density
+          call get_reference_density_from_options(rho0, state%option_path)
+          do i=1, get_boundary_condition_count(u)
+            call get_boundary_condition(u, i, type=bctype, &
+                surface_element_list=surface_element_list, &
+                option_path=fs_option_path)
+            if (bctype=="explicit_free_surface") then
+              call get_option(trim(fs_option_path)//"/type[0]/external_density", &
+                    rho_external, default=0.0)
+              coef = gravity_magnitude*(rho0-rho_external)
+              fs_coef(surface_element_list) = coef
+            end if
+          end do
+
+        else
+
+          free_surface=>dummyscalar
+          old_free_surface=>dummyscalar
+          allocate(fs_coef(0))
+
+        end if
+      else
+
+        free_surface=>dummyscalar
+        old_free_surface=>dummyscalar
+        allocate(fs_coef(0))
+
+      end if
+
       on_sphere = have_option('/geometry/spherical_earth/')
 
       call get_option("/timestepping/timestep", dt)
@@ -696,10 +748,11 @@
          allocate(velocity_bc_type(u%dim, surface_element_count(u)))
          call get_entire_boundary_condition(u, &
            & (/ &
-             "weakdirichlet      ", &
-             "no_normal_flow     ", &
-             "internal           ", &
-             "free_surface       " &
+             "weakdirichlet        ", &
+             "no_normal_flow       ", &
+             "internal             ", &
+             "free_surface         ", &
+             "explicit_free_surface" &
            & /), velocity_bc, velocity_bc_type)
 
          allocate(pressure_bc_type(surface_element_count(p)))
@@ -730,7 +783,8 @@
                  inverse_masslump, x, u, nu, ug, density, p, gravity, &
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
-                 assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
+                 assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac, &
+                 free_surface, old_free_surface, fs_coef)
             
          end do surface_element_loop
 
@@ -904,7 +958,7 @@
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix_here, include_pressure_and_continuity_bcs,&
-                                                     oldu, nvfrac)
+                                                     oldu, nvfrac, free_surface, old_free_surface, fs_coef)
 
       integer, intent(in) :: sele
 
@@ -933,6 +987,10 @@
       ! Volume fraction field
       type(scalar_field), intent(in) :: nvfrac
 
+      type(scalar_field), intent(in) :: free_surface, old_free_surface
+      real, dimension(:), intent(in) :: fs_coef
+      ! old_free_surface is only here as we may want to theta weight it for consistency later
+
       ! local
       integer :: dim, dim2, i
 
@@ -951,6 +1009,7 @@
 
       real, dimension(u%dim, face_ngi(u, sele)) :: relu_gi
       real, dimension(face_ngi(u, sele)) :: density_gi
+      real, dimension(face_ngi(free_surface, sele)) :: fs_gi, old_fs_gi
 
       real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
@@ -1107,12 +1166,21 @@
             if (assemble_inverse_masslump.and.(.not.(abs_lump_on_submesh))) then
               call addto(masslump, u_nodes_bdy, theta*lumped_fs_surfacestab)
             else
-              FLExit("Error?") 
+              FLAbort("Error?") 
             end if
           end if
         end if
 
       end if
+
+      if (velocity_bc_type(1,sele)==BC_TYPE_EXPLICIT_FREE_SURFACE) then
+        fs_gi = face_val_at_quad(free_surface, sele)
+        old_fs_gi = face_val_at_quad(old_free_surface, sele) ! not used yet!
+
+        call addto(rhs, u_nodes_bdy, shape_vector_rhs(u_shape, normal_bdy, detwei_bdy*fs_coef(sele)*fs_gi))
+        
+      end if
+
 
     end subroutine construct_momentum_surface_element_cg
 

@@ -333,9 +333,13 @@
              if (stat/=0) then
                old_free_surface => free_surface
              end if
-             allocate(p_mesh)
-             call extend_pressure_mesh_for_viscous_free_surface(state(istate), &
-                p%mesh, free_surface, p_mesh)
+             
+             u => extract_vector_field(state, "Velocity")
+             if (has_boundary_condition(u, "free_surface")) then
+               allocate(p_mesh)
+               call extend_pressure_mesh_for_viscous_free_surface(state(istate), &
+                  p%mesh, free_surface, p_mesh)
+             end if
            end if
 
          end if
@@ -408,7 +412,7 @@
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
 
-               if (prognostic_fs) then
+               if (prognostic_fs.and.has_boundary_condition(u, "free_surface")) then
                  call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m(istate)%ptr, u, free_surface)
                end if
                call profiler_toc(p, "assembly")
@@ -516,7 +520,7 @@
                theta_pg=1.0
             end if
 
-            if (prognostic_fs) then
+            if (prognostic_fs.and.has_boundary_condition(u, "free_surface")) then
                allocate(p_theta)
                ! allocate p_theta on the extended mesh:
                call allocate(p_theta, p_mesh, "PressureAndFreeSurfaceTheta")
@@ -657,7 +661,7 @@
                call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                  test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
             end if
-            if (prognostic_fs .and. reassemble_ct_m) then
+            if (prognostic_fs .and. has_boundary_condition(u, "free_surface") .and. reassemble_ct_m) then
               call add_viscous_free_surface_integrals(state(istate), ct_m(istate)%ptr, u, p, free_surface)
             end if
             call profiler_toc(p, "assembly")
@@ -1031,6 +1035,10 @@
                         FLAbort("Don't know how to correct the velocity.")
                      end if
 
+                     if(prognostic_fs.and.has_boundary_condition(u, "explicit_free_surface")) then
+                       call update_explicit_free_surface(state(istate), free_surface, old_free_surface, u, dt)
+                     end if
+
                      call profiler_toc(u, "assembly")
 
                      if(use_compressible_projection) then
@@ -1144,11 +1152,12 @@
          end do finalisation_loop
          call profiler_toc("finalisation_loop")
 
-         if (prognostic_fs) then
+         u => extract_vector_field(state, "Velocity")
+         if (prognostic_fs.and.has_boundary_condition(u, "free_surface")) then
            call deallocate(p_mesh)
            deallocate(p_mesh)
          end if
-         if(prognostic_fs .or. use_theta_pg) then
+         if((prognostic_fs.and.has_boundary_condition(u, "free_surface")) .or. use_theta_pg) then
             call deallocate(p_theta)
             deallocate(p_theta)
          end if
@@ -1718,7 +1727,7 @@
             call scale(delta_p, 1.0/theta_divergence)
          end if
 
-         if (prognostic_fs) then
+         if (prognostic_fs.and.has_boundary_condition(u, "free_surface")) then
            call update_pressure_and_viscous_free_surface(state(prognostic_p_istate), p, free_surface, delta_p, theta_pg)
          else
            ! Add the change in pressure to the pressure

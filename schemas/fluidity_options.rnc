@@ -2765,6 +2765,17 @@ velocity_boundary_conditions =
               }?
            )
          }|
+         element type {
+           attribute name { "explicit_free_surface" },
+           (
+              ## When selected a hydrostatic pressure distribution on the outside is assumed
+              ## using the specified density, i.e. instead of applying p=0 (resp.
+              ## no_normal_stress=0) we apply p=p_external (resp. no_normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g
+              element external_density {
+                 real
+              }?
+           )
+         }|
          ## Apply quadratic drag. Specify drag coefficient. If you
          ## want to exactly replicate results from using the OCEDRA
          ## option, set this to 0.003 and remember to apply to both
@@ -3479,11 +3490,12 @@ scalar_field_choice =
                }|
                ## Free Surface
                ## NOTE: the prognostic FreeSurface field only works in combination
-               ## with the free_surface boundary condition applied to the Velocity
+               ## with the free_surface or explicit_free_surface boundary condition applied to the Velocity
                ## field in combination with the no_normal_stress_option.
                ## It gives you a 3D field (constant over the vertical)
                ## of the free surface elevation. Initial and boundary conditions
                ## for free surface should be set on this field.
+               ## Solver options must be set for the explicit_free_surface.
                element prognostic {
                   ## Must be on the same mesh as Pressure
                   pressure_mesh_choice,
@@ -3508,6 +3520,10 @@ scalar_field_choice =
                         input_choice_initial_condition_real
                      }
                   )+,
+                  ## Solver - only necessary in combination with an explicit_free_surface bc under Velocity.
+                  element solver {
+                     linear_solver_options_sym
+                  }?,
                   prognostic_scalar_output_options,
                   prognostic_scalar_stat_options,
                   scalar_convergence_options,
