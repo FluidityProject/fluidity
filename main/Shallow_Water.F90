@@ -172,6 +172,7 @@
     timestep=0
 
     call populate_state(state)
+
     ! Read in any control variables
     call adjoint_load_controls(timestep, dt, state)
     call adjoint_register_initial_eta_condition(state)
@@ -199,13 +200,6 @@
 
     ! Always output the initial conditions.
     call output_state(state)
-
-    hybridized = .false.
-    v_field => extract_vector_field(state(1),"Velocity")
-    if(associated(v_field%mesh%shape%constraints)) then
-       if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
-            & .true.
-    end if
 
     if(hybridized) then
        !project velocity into div-conforming space
@@ -389,6 +383,14 @@
 
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
+
+      hybridized = .false.
+      v_field => extract_vector_field(state(1),"Velocity")
+      if(associated(v_field%mesh%shape%constraints)) then
+         if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE)&
+              & hybridized =&
+              & .true.
+      end if
 
       if(.not.hybridized) then
          call setup_wave_matrices(state(1),u_sparsity,&
