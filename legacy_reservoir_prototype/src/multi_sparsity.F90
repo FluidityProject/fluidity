@@ -120,7 +120,7 @@
 
       INTEGER, ALLOCATABLE, DIMENSION( : ) :: MIDACV_LOC, FINACV_LOC, COLACV_LOC, COLELE_PHA, FINELE_PHA, &
            MIDELE_PHA, CENTCT
-      LOGICAL, parameter :: OldSetUp = .true.
+      LOGICAL, parameter :: OldSetUp = .false.
       logical :: presym
       integer, dimension( : ), allocatable :: tempvec1, tempvec2, tempvec3, dummyvec
       integer :: tempnct
@@ -179,17 +179,15 @@
       ! Now form the global matrix: FINMCY, COLMCY and MIDMCY for the 
       ! momentum and continuity eqns: 
 
-     if ( OldSetUp ) then
+      if ( OldSetUp .or. ( cv_nonods /= totele * cv_nloc )) then
          CALL DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE)
-        NC = NCT
-      !   call swapprint( .true., cv_nonods, mx_nct, nct, findct, colct, centct )
+         NC = NCT
+         !   call swapprint( .true., cv_nonods, mx_nct, nct, findct, colct, centct )
       else
          call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, u_ndgln, cv_ndgln, &
               nct, findct, colct, centct )
          nc = nct
-      !   call swapprint( .false., cv_nonods, mx_nct, nct, findct, colct, centct )
       endif
-!stop 12
 
       ! Convert CT sparsity to C sparsity.
       CALL CONV_CT2C( CV_NONODS, NCT, FINDCT, COLCT, U_NONODS, MX_NC, FINDC, COLC )
@@ -213,7 +211,7 @@
          end if
 
       ELSE
-         if (  OldSetUp ) then
+         if ( OldSetUp ) then
             CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
                  MIDCMC, FINDCMC, COLCMC )
             ewrite(3,*)'findcmc: ', findcmc(1:cv_nonods+1)
@@ -236,10 +234,14 @@
             ewrite(3,*)'colcmc: ', colcmc(1:mx_ncolcmc )
             ewrite(3,*)'midcmc: ', midcmc(1:cv_nonods)
             deallocate( dummyvec )
+            deallocate( tempvec1 )
+            deallocate( tempvec2 )
+            deallocate( tempvec3 )
+
          end if
          !stop 98
       ENDIF
-      ewrite( 3, *)CV_NONODS /= TOTELE*CV_NLOC
+      ewrite( 3, *)'CV_NONODS /= TOTELE*CV_NLOC: ', CV_NONODS /= TOTELE*CV_NLOC
       !stop 98
       if(MX_NCOLCMC < NCOLCMC) FLAbort(" Incorrect number of computed dimension of CMC sparcity matrix")
 
@@ -261,12 +263,40 @@
       ALLOCATE( FINACV_LOC( CV_NONODS + 1 ))
       ALLOCATE( COLACV_LOC( MXNACV_LOC ))
 
-      CALL DEF_SPAR( 1 , CV_NONODS, MXNACV_LOC, NACV_LOC, &
-           MIDACV_LOC, FINACV_LOC, COLACV_LOC )
+   !!   if( .not. OldSetUp ) then
+         CALL DEF_SPAR( 1 , CV_NONODS, MXNACV_LOC, NACV_LOC, &
+              MIDACV_LOC, FINACV_LOC, COLACV_LOC )
 
-      NCOLACV = NPHASE * NACV_LOC + ( NPHASE - 1 ) * NPHASE * CV_NONODS
-      NACV_LOC = NCOLACV
+         NCOLACV = NPHASE * NACV_LOC + ( NPHASE - 1 ) * NPHASE * CV_NONODS
+         NACV_LOC = NCOLACV
+         ewrite(3,*)'totele,cv_nonods,cv_nloc:', totele,cv_nonods,cv_nloc
+         ewrite(3,*)'finacv_loc:', size( finacv_loc ), finacv_loc( 1 : cv_nonods + 1 )
+         ewrite(3,*)'colacv_loc:', size( colacv_loc ), colacv_loc( 1 : mxnacv_loc )
+         ewrite(3,*)'midacv_loc:', size( midacv_loc ), midacv_loc( 1 : cv_nonods )
 
+         !stop 98874
+    !!     allocate( tempvec1( cv_nonods + 1 ))
+     !!    allocate( tempvec2( mxnacv_loc ))
+     !!    allocate( tempvec3( cv_nonods ))
+     !!    tempvec1( 1 : cv_nonods + 1 ) = finacv_loc( 1 : cv_nonods + 1 )
+     !!    tempvec2( 1 : mxnacv_loc ) = colacv_loc( 1 : mxnacv_loc )
+     !!    tempvec3( 1 : cv_nonods ) = midacv_loc( 1 : cv_nonods )
+        !! call swapprint( .true., cv_nonods, mxnacv_loc, nacv_loc, finacv_loc, colacv_loc, midacv_loc )
+
+         ! else
+         !!nacv_loc = 0
+         !!nct = 0
+         !!call posinm_colour( totele, cv_nonods, cv_nloc, colacv_loc, nct, mxnacv_loc, finacv_loc, midacv_loc, &
+        !!                 u_nonods, u_nloc, u_ndgln, cv_ndgln )
+       !!  call pousinmc2( totele, cv_nonods, cv_nloc, u_nonods, u_nloc, mxnacv_loc, cv_ndgln, u_ndgln, &
+       !!       nct, finacv_loc, colacv_loc, midacv_loc )
+         !!nacv_loc = nct
+         !!call swapprint( .false., cv_nonods, mxnacv_loc, nacv_loc, finacv_loc, colacv_loc, midacv_loc )
+         !!call comparematrices( cv_nonods + 1, tempvec1, finacv_loc )
+         !!call comparematrices( nacv_loc,      tempvec2, colacv_loc )
+         !!call comparematrices( cv_nonods,     tempvec3, midacv_loc )
+  !!    end if
+  !!    stop 9887
 
       ewrite(3,*) 'going into EXTEN_SPARSE_MULTI_PHASE sbrt 2nd time'
       CALL EXTEN_SPARSE_MULTI_PHASE( CV_NONODS, MXNACV_LOC, FINACV_LOC, COLACV_LOC, &
@@ -909,10 +939,10 @@
                   cycle
                end if
 
-               if ( list % id == -1 ) then ! Check if the list is initalised
-                  list % id = globj
-                  cycle
-               end if
+         !      if ( list % id == -1 ) then ! Check if the list is initalised
+         !         list % id = globj
+         !         cycle
+         !      end if
 
                Conditional1: if ( globj < list % id ) then ! Insert at start of list
                   allocate( current )
@@ -1190,7 +1220,6 @@
       return
     end subroutine poscmc
 
-
     subroutine comparematrices( n, vec1, vec2 )
       implicit none
       integer :: n
@@ -1288,27 +1317,145 @@
     end subroutine checksparsity
 
     subroutine swapprint( first, n, nc, nc2, fin, col, mid )
-     implicit none
-     logical, intent( in ) :: first
-     integer, intent( in ) :: n, nc
-     integer, intent( inout ) :: nc2
-     integer, dimension( n + 1 ), intent( inout ) :: fin
-     integer, dimension( nc ), intent( inout ) :: col
-     integer, dimension( n ), intent( inout ) :: mid
+      implicit none
+      logical, intent( in ) :: first
+      integer, intent( in ) :: n, nc
+      integer, intent( inout ) :: nc2
+      integer, dimension( n + 1 ), intent( inout ) :: fin
+      integer, dimension( nc ), intent( inout ) :: col
+      integer, dimension( n ), intent( inout ) :: mid
 
-     ewrite(3,*)'fin:', size( fin ), fin( 1 : n+1 )
-     ewrite(3,*)'col:', nc2, col( 1 : nc2 )
-     ewrite(3,*)'mid:', mid( 1 : n )
+      ewrite(3,*)'fin:', size( fin ), fin( 1 : n+1 )
+      ewrite(3,*)'col:', nc2, col( 1 : nc )
+      ewrite(3,*)'mid:', size( mid ), mid( 1 : n )
 
-     if( first ) then
-        fin = 0
-        col = 0
-        mid = 0
-     end if
+      if( first ) then
+         fin = 0
+         col = 0
+         mid = 0
+      end if
 
-     return
-   end subroutine swapprint
+      return
+    end subroutine swapprint
 
   end module spact
+
+
+  module spact2
+    use fldebug
+    use shape_functions
+
+  type cv_faces_type
+    ! loc = number of vertices, faces = number of faces
+    ! degree = degree of polynomial, dim = dimensions of parent element
+    integer :: loc, faces, coords, degree, dim
+    integer :: sloc, sfaces, scoords
+    ! corners = volume coordinates of corners of faces
+    ! faces x loc x face vertices
+    real, dimension(:,:,:), pointer :: corners, scorners
+    ! neiloc = relates faces to faces and vice versa
+    ! loc x faces
+    integer, dimension(:,:), pointer :: neiloc, sneiloc
+    ! shape = shape function used in quadrature of faces
+    ! 1 dimension lower than parent element
+  !  type(element_type) :: shape
+  end type cv_faces_type
+
+  contains
+
+    subroutine sparse_cvdomain( ndim, totele, cv_nloc, u_nloc,  &
+         cv_ele_type, cv_ndgln, u_ndgln, &
+         ncolgpts, findgpts, colgpts )
+      implicit none
+      integer, intent( in ) :: ndim, totele, cv_nloc, u_nloc, cv_ele_type
+      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+      integer, dimension( totele * u_nloc ), intent( in ) :: u_ndgln
+      integer, intent( inout ) :: ncolgpts
+      integer, dimension( cv_nloc + 1 ), intent( inout ) :: findgpts
+      integer, dimension( cv_nloc * totele ), intent( inout ) :: colgpts
+
+      ! Local variables: 
+      integer, dimension( : , : ), allocatable :: cv_neiloc
+      ! integer, dimension( : ), allocatable :: 
+      integer :: cv_ele_type2, u_nloc2, cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, &
+           ele, cv_iloc, cv_jloc, cv_nodi, gcount, gi
+
+      Conditional_CVELETYPE: if( cv_ele_type == 2 ) then
+         cv_ele_type2 = 1
+         u_nloc2 = u_nloc / cv_nloc
+
+         call retrieve_ngi2( ndim, cv_ele_type2, cv_nloc, u_nloc2, &
+              cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface ) ! obtain cv_ngi and scvngi
+
+         allocate( cv_neiloc( cv_nloc, scvngi ))
+         call volnei( cv_neiloc, cv_nloc, scvngi, cv_ele_type2 ) ! obtain cv_neiloc
+
+         call gaussiloc( findgpts, colgpts( 1 : cv_nloc * scvngi ), ncolgpts, &
+              cv_neiloc, cv_nloc, scvngi ) 
+         !  findgpts and colgpts has the address of Gauss point around iloc
+
+         Loop_Elements1: do ele = 1, totele
+
+            Loop_cviloc: do cv_iloc = 1, cv_nloc
+               cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+
+               ! Loop over quadrature (gauss) points in ele neighbouring iloc
+               Loop_GaussCount: do gcount = findgpts( cv_iloc ), findgpts( cv_iloc + 1 ), 1 
+                  gi = colgpts( gcount ) ! colgpts stores the local Gauss-point number in ele
+                  cv_jloc = cv_neiloc( cv_iloc, gi ) ! get the neighbouring node for node iloc and Gauss point gi
+
+               end do Loop_GaussCount
+
+            end do Loop_cviloc
+
+         end do Loop_Elements1
+
+      end if Conditional_CVELETYPE
+
+      return
+    end subroutine sparse_cvdomain
+
+
+
+    subroutine retrieve_ngi2( ndim, cv_ele_type, cv_nloc, u_nloc, &
+         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
+      implicit none
+      integer, intent( in ) :: ndim, cv_ele_type, cv_nloc, u_nloc
+      integer, intent( inout ) :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
+      !! It is necessary to extend it 2/3-D
+
+      Conditional_NDIM: Select Case( ndim )
+      case( 1 )
+
+         Conditional_CV_NLOC: Select Case( cv_nloc )
+
+         case( 1 )
+            cv_ngi = 1
+            scvngi = 2
+         case( 2 )
+            cv_ngi = 12
+            scvngi = 3
+         case( 3 )
+            cv_ngi = 12
+            scvngi = 4
+            if( ( u_nloc == 4 ) .or. ( u_nloc == 5 )) cv_ngi = 18
+
+         case default; FLExit("Invalid integer for u_nloc ")
+
+         end Select Conditional_CV_NLOC
+         sbcvngi = 1
+         nface = 2
+         cv_ngi_short = cv_ngi
+         if( cv_ele_type == 2 ) cv_ngi = cv_ngi * cv_nloc
+
+      case default ; FLExit("Invalid integer for problem dimension")
+      end Select Conditional_NDIM
+
+      return
+    end subroutine retrieve_ngi2
+
+
+
+  end module spact2
 
 
