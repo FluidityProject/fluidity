@@ -2272,6 +2272,9 @@ contains
     
     integer, dimension(size(ele_num%number2count, 1)) :: count_coords
     integer :: i
+    integer, allocatable, dimension(:) :: boundary2element,&
+         &boundary2count_component
+    real, allocatable, dimension(:) :: boundary2local_coordinate
 
     select case(ele_num%type)
     case (ELEMENT_LAGRANGIAN)
@@ -2332,11 +2335,26 @@ contains
 
           count_coords=ele_num%number2count(:,n)
 
+          !for trace elements, the first count coordinate is the 
+          !boundary number.
+          !The other coordinates are the count coordinates on the 
+          !boundary.
+          !the mapping from boundary count coordinates to 
+          !element count coordinates is done in ascending component
+          !order
+
+          !e.g. for triangles, the first boundary count coordinate for
+          !boundary 2 is element count coordinate 1, and the second
+          !boundary count coordinate is element count coordinate 3
+
           if (ele_num%degree>0) then
+             !loop over boundaries
              do i=1,ele_num%dimension+1
                 if (i<count_coords(1)) then
                    coords(i)=count_coords(i+1)/real(ele_num%degree)
                 else if (i==count_coords(1)) then
+                   !we are on boundary corresponding to ith local coordinate 
+                   !being zero
                    coords(i)=0.0
                 else
                    coords(i)=count_coords(i)/real(ele_num%degree)
@@ -2349,8 +2367,64 @@ contains
              coords(n) = 0.0
           end if
        case (FAMILY_CUBE)
-          FLAbort('I *thought* this wasn''t needed.')
+          !for trace elements, the first count coordinate is the 
+          !boundary number.
+          !The other coordinates are the count coordinates on the 
+          !boundary.
 
+          if(ele_num%dimension==2) then
+             !special case for quads because the boundary element 
+             !type is simplex, not cubes
+
+             !the mapping from boundary count coordinates to 
+             !element count
+             !coordinates is done in ascending component order
+          
+             count_coords=ele_num%number2count(:,n)
+
+             !numbering is
+             !       4
+             !   3      4
+             !  1        2
+             !   1      2
+             !       3
+             
+             !local coordinates are
+             !  0,1 -- 1,1
+             !   |      |
+             !  0,0 -- 1,0
+
+             allocate(boundary2element(4),boundary2count_component(4),&
+                  &boundary2local_coordinate(4))
+             !boundary2element(i) is the element count coordinate
+             !component corresponding to boundary element component i
+             boundary2element = (/2,2,1,1/)
+             !boundary2count_component is the component of the 
+             !element local coordinates that is held constant on 
+             !this boundary
+             boundary2count_component = (/1,1,2,2/)
+             !boundary2local_coordinate is the value of the 
+             !local coordinate on that boundary
+             boundary2local_coordinate = (/0.,1.,0.,1./)
+             
+             if(ele_num%degree>0) then
+                !count_coords(2) increases with increasing element count
+                !coordinate component boundar2element(count_coords(1))
+                coords(boundary2element(count_coords(1))=&
+                     &count_coords(2)/real(ele_num%degree)
+             else
+                !special case for degree 0 trace space,
+                !a single node in the middle of the face
+                coords(boundary2element(count_coords(1))=0.5
+             end if
+             coords(boundary2count_component(count_coords(1))=&
+                  &boundary2local_coordinate(count_coords(1))
+
+             deallocate(boundary2element,boundary2count_component,&
+                  &boundary2local_coordinate)
+          else 
+             FLAbort('Haven''t implemented the dimension yet.')
+          end if
        case default
           
           FLAbort('Unknown element family.')
