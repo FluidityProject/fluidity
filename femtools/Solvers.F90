@@ -2280,6 +2280,7 @@ Vec, allocatable, dimension(:), intent(out) :: null_space_array
    real, allocatable, dimension(:) :: components
    logical, allocatable, dimension(:) :: mask
    type(vector_field) :: nullvector
+   type(scalar_field) :: nullscalar
 
    ! Setup an array of null space vectors for later use in setting up the ksp
 

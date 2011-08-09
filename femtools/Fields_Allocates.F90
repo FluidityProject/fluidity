@@ -190,7 +190,7 @@ contains
 
   subroutine allocate_scalar_field(field, mesh, name, field_type, py_func, py_positions)
     type(scalar_field), intent(out) :: field
-    type(mesh_type), intent(inout), target :: mesh
+    type(mesh_type), intent(in), target :: mesh
     character(len=*), intent(in),optional :: name
     integer, intent(in), optional :: field_type
 
