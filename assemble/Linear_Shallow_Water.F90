@@ -78,14 +78,11 @@ contains
 
     !construct/extract sparsities
     u_sparsity=get_csr_sparsity_firstorder(state, U%mesh, U%mesh)
-!    call insert(state, u_sparsity, "U_sparsity")
-    call deallocate(u_sparsity)
+    call insert(state, u_sparsity, "U_sparsity")
     wave_sparsity=get_csr_sparsity_firstorder(state, D%mesh, D%mesh)
     call insert(state, wave_sparsity, "Wave_sparsity")
-    call deallocate(wave_sparsity)
     ct_sparsity=get_csr_sparsity_firstorder(state, D%mesh, U%mesh)
     call insert(state, ct_sparsity, "CT_sparsity")
-    call deallocate(ct_sparsity)
 
     !allocate, zero, insert and deallocate matrices
     call allocate(h_mass_mat,wave_sparsity)

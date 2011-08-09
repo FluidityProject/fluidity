@@ -293,11 +293,6 @@
 #endif
     call write_diagnostics(state,current_time,dt,timestep)
 
-    if (.not. adjoint) then
-      call deallocate(matrices)
-      call print_references(0)
-    endif
-
     call deallocate(state)
     call deallocate_transform_cache
     call deallocate_reserve_state
@@ -305,6 +300,11 @@
     call uninitialise_diagnostics
     ! Clean up registered diagnostics
     call destroy_registered_diagnostics 
+
+    if (.not. adjoint) then
+      call deallocate(matrices)
+      call print_references(0)
+    endif
 
 #ifdef HAVE_ADJOINT
     if (adjoint) then
@@ -536,9 +536,8 @@
       !!Intermediate fields
       type(scalar_field) :: d_rhs, delta_d, old_d, md_src
       type(vector_field) :: u_rhs, delta_u, advecting_u, old_u
-      type(scalar_field) :: velocity_cpt, old_velocity_cpt
       type(scalar_field), pointer ::passive_tracer, old_passive_tracer
-      integer :: dim, nit, d1
+      integer :: nit, d1
       real :: energy
       logical :: have_source
 
@@ -546,8 +545,6 @@
       D=>extract_scalar_field(state, "LayerThickness")
       U=>extract_vector_field(state, "LocalVelocity")
       old_U=extract_vector_field(state, "OldLocalVelocity")
-
-      dim = U%dim
 
       call execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
            old_u,old_d,delta_d,delta_u)
@@ -594,7 +591,7 @@
             call set(D,D_rhs)
             call set(U,U_rhs)
          else
-            call solve_timestep(state)
+            call solve_timestep(state, D0, dt, theta, g)
          end if
 
       end do
@@ -643,7 +640,7 @@
 
     end subroutine execute_timestep_setup
 
-    subroutine solve_timestep(state)
+    subroutine solve_timestep(state, D0, dt, theta, g)
       !Wave equation step
       ! M\Delta u + \Delta t F(\theta\Delta u + u^n) + \Delta t C(\theta
       ! \Delta\eta + \eta^n) = 0
@@ -657,13 +654,13 @@
       !  = \Delta t HC^T(u^n + \theta(M+\theta\Delta t F)^{-1}r)
       implicit none
       type(state_type), intent(in) :: state
+      real, intent(in) :: D0, dt, theta, g
 
       type(scalar_field), pointer :: D, delta_d, d_rhs, d_src, md_src
       type(vector_field), pointer :: U, delta_U, u_rhs, source, advecting_u, old_u
       type(block_csr_matrix), pointer :: u_mass_mat, div_mat, coriolis_mat, &
            &inverse_coriolis_mat
       type(csr_matrix), pointer :: h_mass_mat
-      real :: D0, dt, theta, g
       logical :: have_source
 
       ! Extract fields
