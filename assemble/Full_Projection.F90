@@ -418,12 +418,10 @@
       call MatDestroy(pmat,ierr) ! Destroy preconditioning matrix if allocated.
       if(have_auxiliary_matrix) call MatDestroy(S,ierr) ! Destroy stabilization matrix
 
-      if (allocated(null_space_array_u)) then
-        do i = 1, size(null_space_array_u)
-          call VecDestroy(null_space_array_u(i), ierr)
-        end do
-        deallocate(null_space_array_u)
-      end if
+      do i = 1, size(null_space_array_u)
+        call VecDestroy(null_space_array_u(i), ierr)
+      end do
+      deallocate(null_space_array_u)
 
       call deallocate( petsc_numbering_u )
       ! petsc_numbering_p is passed back and destroyed there      

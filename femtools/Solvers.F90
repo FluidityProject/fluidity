@@ -932,12 +932,10 @@ integer, optional, intent(in) :: internal_smoothing_option
     ewrite(2,*) "Time spent in Petsc setup: ", time2-time1
   end if
 
-  if (allocated(null_space_array)) then
-    do i = 1, size(null_space_array)
-      call VecDestroy(null_space_array(i), ierr)
-    end do
-    deallocate(null_space_array)
-  end if
+  do i = 1, size(null_space_array)
+    call VecDestroy(null_space_array(i), ierr)
+  end do
+  deallocate(null_space_array)
   
   if(present(sfield)) then
      call profiler_toc(sfield, "petsc_setup")
@@ -1050,12 +1048,10 @@ integer, dimension(:), optional, intent(in) :: surface_node_list
   b=PetscNumberingCreateVec(matrix%column_numbering)
   call VecDuplicate(b, y, ierr)
 
-  if (allocated(null_space_array)) then
-    do i = 1, size(null_space_array)
-      call VecDestroy(null_space_array(i), ierr)
-    end do
-    deallocate(null_space_array)
-  end if
+  do i = 1, size(null_space_array)
+    call VecDestroy(null_space_array(i), ierr)
+  end do
+  deallocate(null_space_array)
   
   if (timing) then
     call cpu_time(time2)
@@ -1673,14 +1669,19 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! to imposing a reference pressure node, but initial testing suggests that
     ! it leads to improved rates of convergence.    
     if (remove_null_space) then
-      if(have_option(trim(solver_option_path)//'/remove_null_space/specify_components')) then
-        if(.not.present(null_space_array)) then
+      if(present(null_space_array)) then
+        if(size(null_space_array)==0) then
+          ewrite(2,*) 'Adding constant null-space removal options to KSP'
+          call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL_OBJECT_ARRAY,sp,ierr)
+        else
+          ewrite(2,*) 'Adding null-space removal options for vector components to KSP'
+          ewrite(2,*) 'size(null_space_array) = ', size(null_space_array)
+          call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_FALSE,size(null_space_array),null_space_array,sp,ierr)
+        end if
+      else
+        if(have_option(trim(solver_option_path)//'/remove_null_space/specify_components')) then
           FLAbort("Need a null_space_array to specify components of a nullspace.")
         end if
-        ewrite(2,*) 'Adding null-space removal options for specific components to KSP'
-        ewrite(2,*) 'size(null_space_array) = ', size(null_space_array)
-        call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_FALSE,size(null_space_array),null_space_array,sp,ierr)
-      else
         ewrite(2,*) 'Adding constant null-space removal options to KSP'
         call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_TRUE,0,PETSC_NULL_OBJECT_ARRAY,sp,ierr)
       end if
@@ -2270,88 +2271,92 @@ type(vector_field), optional, intent(in):: vfield
 Vec, allocatable, dimension(:), intent(out) :: null_space_array
 
    logical :: remove_null_space
-   integer :: i, nnulls, nodes
+   integer :: i, nnulls, nodes, comp
    real, allocatable, dimension(:) :: components
+   logical, allocatable, dimension(:) :: mask
    type(vector_field) :: nullvector
 
    ! Setup an array of null space vectors for later use in setting up the ksp
 
-   ! Do we actually need a null space array or will a constant do?
-   if(.not.have_option(trim(solver_option_path)//'/remove_null_space/specify_components')) return
+   if(have_option(trim(solver_option_path)//'/remove_null_space')) then
+     if(present(vfield)) then
+       allocate(mask(vfield%dim))
+       if(have_option(trim(solver_option_path)//'/remove_null_space/specify_components')) then
+         ! count how many null spaces we want
+         nnulls = 0
+         mask = .false.
+         if (have_option(trim(solver_option_path)//&
+                                &"/remove_null_space/specify_components/x_component")) then
+           nnulls = nnulls + 1
+           mask(1) = .true.
+         end if
+         if (have_option(trim(solver_option_path)//&
+                                &"/remove_null_space/specify_components/y_component")) then
+           if(vfield%dim<2) then
+             FLExit("Requested the removal of a y component null space on a less than 2d vector.")
+           end if
+           nnulls = nnulls + 1
+           mask(2) = .true.
+         end if
+         if (have_option(trim(solver_option_path)//&
+                                &"/remove_null_space/specify_components/z_component")) then
+           if(vfield%dim<3) then
+             FLExit("Requested the removal of a z component null space on a less than 3d vector.")
+           end if
+           nnulls = nnulls + 1
+           mask(3) = .true.
+         end if
+         if(nnulls==0) then
+           FLExit("Requested null space removal on specific components but have not specified which components.")
+         end if
+       else
+         nnulls = vfield%dim
+         mask = .true.
+       end if
 
-   ! need a null space array, therefore we need a vfield
-   if(.not.present(vfield)) then
-     FLAbort("Cannot set up nullspace on components without a vfield.")
-   end if
+       ! allocate the array of null spaces
+       allocate(null_space_array(nnulls))
 
-   ! count how many null spaces we want
-   nnulls = 0
-   if (have_option(trim(solver_option_path)//&
-                          &"/remove_null_space/specify_components/x_component")) then
-     nnulls = nnulls + 1
-   end if
-   if (have_option(trim(solver_option_path)//&
-                          &"/remove_null_space/specify_components/y_component") &
-       .and. (vfield%dim>1)) then
-     nnulls = nnulls + 1
-   end if
-   if (have_option(trim(solver_option_path)//&
-                          &"/remove_null_space/specify_components/z_component") &
-       .and. (vfield%dim>2)) then
-     nnulls = nnulls + 1
-   end if
+       ewrite(2,*) "Setting up array of "//int2str(nnulls)//" null spaces."
+       ! get the number of nodes to normalise the null space vector
+       call mesh_stats(vfield, nodes=nodes)
+       ! allocate a vector field
+       call allocate(nullvector, vfield%dim, vfield%mesh, name="NullSpaceVector")
+       ! and a component array
+       allocate(components(vfield%dim))
+       
+       ! now loop back over the components building up the null spaces we want
+       i = 0
+       do comp = 1, vfield%dim
+         if (mask(comp)) then
+           i = i + 1
+           components = 0.0
+           components(comp) = 1.0
+           components = components/real(nodes)
+           call set(nullvector, components)
+           null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
+           call field2petsc(nullvector, petsc_numbering, null_space_array(i))
+         end if
+       end do
+       assert(i==nnulls)
 
-   ! were any specified?  maybe FLExit here if none are specified as it's a bit odd
-   if(nnulls>0) then
-     ewrite(2,*) "Setting up array of "//int2str(nnulls)//" null spaces."
-     ! get the number of nodes to normalise the null space vector
-     call mesh_stats(vfield, nodes=nodes)
-     ! allocate a vector field
-     call allocate(nullvector, vfield%dim, vfield%mesh, name="NullSpaceVector")
-     ! and the array of null spaces
-     allocate(null_space_array(nnulls))
-     ! and a component array
-     allocate(components(vfield%dim))
-     
-     ! now loop back over the components building up the null spaces we want
-     i = 0
-     if (have_option(trim(solver_option_path)//&
-                            &"/remove_null_space/specify_components/x_component")) then
-       i = i + 1
-       components = 0.0
-       components(1) = 1.0
-       components = components/nodes
-       call set(nullvector, components)
-       null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
-       call field2petsc(nullvector, petsc_numbering, null_space_array(i))
+       call deallocate(nullvector)
+       deallocate(components)
+
+     else
+       if(have_option(trim(solver_option_path)//'/remove_null_space/specify_components')) then
+         FLExit("Cannot specify components of a null space to remove on a non-vector field.")
+       end if
+
+       ! allocate the array of null spaces
+       allocate(null_space_array(0))
+
      end if
-
-     if (have_option(trim(solver_option_path)//&
-                            &"/remove_null_space/specify_components/y_component") &
-         .and. (vfield%dim>1)) then
-       i = i + 1
-       components = 0.0
-       components(2) = 1.0
-       components = components/nodes
-       call set(nullvector, components)
-       null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
-       call field2petsc(nullvector, petsc_numbering, null_space_array(i))
-     end if
-
-     if (have_option(trim(solver_option_path)//&
-                            &"/remove_null_space/specify_components/z_component") &
-         .and. (vfield%dim>2)) then
-       i = i + 1
-       components = 0.0
-       components(3) = 1.0
-       components = components/nodes
-       call set(nullvector, components)
-       null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
-       call field2petsc(nullvector, petsc_numbering, null_space_array(i))
-     end if
-     call deallocate(nullvector)
-     deallocate(components)
+   else
+     allocate(null_space_array(0))
    end if
+    
+
 
 end subroutine create_null_space_array
 
