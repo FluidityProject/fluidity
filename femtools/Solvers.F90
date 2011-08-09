@@ -857,7 +857,7 @@ integer, optional, intent(in) :: internal_smoothing_option
 
   ewrite(1, *) 'Matrix assembly completed.'
   
-  call create_null_space_array(solver_option_path, petsc_numbering, null_space_array, vfield=vfield)
+  call create_null_space_array(solver_option_path, petsc_numbering, null_space_array, vfield=vfield, sfield=sfield)
 
   if (IsParallel()) then
     parallel= (associated(halo))
@@ -1030,7 +1030,7 @@ integer, dimension(:), optional, intent(in) :: surface_node_list
     startfromzero=.true.
   end if
 
-  call create_null_space_array(solver_option_path, matrix%column_numbering, null_space_array, vfield=vfield)
+  call create_null_space_array(solver_option_path, matrix%column_numbering, null_space_array, vfield=vfield, sfield=sfield)
   
   if (IsParallel()) then
     parallel= associated(matrix%row_halo)
@@ -2363,7 +2363,7 @@ Vec, allocatable, dimension(:), intent(out) :: null_space_array
        call set(nullscalar, 1./sqrt(real(nodes)))
 
        allocate(null_space_array(1))
-       null_space_array(0:0)=PetscNumberingCreateVec(petsc_numbering)
+       null_space_array(0)=PetscNumberingCreateVec(petsc_numbering)
        call field2petsc(nullscalar, petsc_numbering, null_space_array(0))
 
        call deallocate(nullscalar)
