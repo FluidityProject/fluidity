@@ -58,14 +58,14 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1.0</real_value>
+      <real_value rank="0">100.0</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">1000</real_value>
     </finish_time>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.e-16</real_value>
+        <real_value rank="0">1.e-6</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>

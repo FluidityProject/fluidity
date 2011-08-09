@@ -65,7 +65,7 @@
     </finish_time>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.e-16</real_value>
+        <real_value rank="0">1.e-6</real_value>
         <infinity_norm/>
       </tolerance>
     </steady_state>
