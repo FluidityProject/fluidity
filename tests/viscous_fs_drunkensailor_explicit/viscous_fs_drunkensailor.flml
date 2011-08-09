@@ -57,23 +57,14 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">7.884e10</real_value>
-      <comment>Equivalent to 2500 years.</comment>
+      <real_value rank="0">157680000000.0</real_value>
+      <comment>78840000000.0 is equivalent to 2500 years.
+157680000000.0 is equivalent to 5000 years.</comment>
     </timestep>
     <finish_time>
       <real_value rank="0">1.73448e14</real_value>
+      <comment>173369160000000.0 is equivalent to </comment>
     </finish_time>
-    <nonlinear_iterations>
-      <integer_value rank="0">2</integer_value>
-    </nonlinear_iterations>
-    <adaptive_timestep>
-      <requested_cfl>
-        <real_value rank="0">2.0</real_value>
-      </requested_cfl>
-      <courant_number name="CFLNumber">
-        <mesh name="VelocityMesh"/>
-      </courant_number>
-    </adaptive_timestep>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -242,7 +233,7 @@
         </initial_condition>
         <boundary_conditions name="Free_Slip_Sides">
           <surface_ids>
-            <integer_value shape="2" rank="1">8 10</integer_value>
+            <integer_value shape="2" rank="1">7 9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -256,7 +247,7 @@
         </boundary_conditions>
         <boundary_conditions name="Rigid_Bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">7</integer_value>
+            <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
@@ -275,7 +266,7 @@
         </boundary_conditions>
         <boundary_conditions name="Free_Surface">
           <surface_ids>
-            <integer_value shape="1" rank="1">9</integer_value>
+            <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
           <type name="explicit_free_surface"/>
         </boundary_conditions>
@@ -343,9 +334,6 @@
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
-            <number_advection_iterations>
-              <integer_value rank="0">3</integer_value>
-            </number_advection_iterations>
             <maximum_courant_number_per_subcycle>
               <real_value rank="0">0.25</real_value>
               <courant_number name="ControlVolumeCFLNumber"/>
@@ -500,6 +488,23 @@
           <exclude_from_detectors/>
         </detectors>
       </prescribed>
+    </scalar_field>
+    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
     </scalar_field>
     <tensor_field name="MaterialViscosity" rank="2">
       <prescribed>
