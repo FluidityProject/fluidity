@@ -1188,7 +1188,7 @@
         it_fs_gi = face_val_at_quad(it_free_surface, sele)
         old_fs_gi = face_val_at_quad(old_free_surface, sele) ! not used yet!
 
-        call addto(rhs, u_nodes_bdy, shape_vector_rhs(u_shape, normal_bdy, detwei_bdy*fs_coef(sele)*it_fs_gi))
+        call addto(rhs, u_nodes_bdy, shape_vector_rhs(u_shape, normal_bdy, -detwei_bdy*fs_coef(sele)*it_fs_gi))
         
       end if
 

@@ -499,9 +499,9 @@ contains
       call addto(fs_rhs, ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)),  &
                                                shape_rhs(face_shape(free_surface,sele),  &
                                                          detwei_bdy* &
-                                                         (dt*sum(face_val_at_quad(u,sele)*normal_bdy, dim=1)/ &
-                                                         sum(face_val_at_quad(gravity_normal,sele)*normal_bdy, dim=1) + &
-                                                         face_val_at_quad(old_free_surface,sele))))
+                                                         (face_val_at_quad(old_free_surface,sele) - &
+                                                         dt*sum(face_val_at_quad(u,sele)*normal_bdy, dim=1)/ &
+                                                         sum(face_val_at_quad(gravity_normal,sele)*normal_bdy, dim=1))))
 
     end subroutine add_boundary_integral_sele
 

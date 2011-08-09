@@ -57,13 +57,13 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">157680000000.0</real_value>
+      <real_value rank="0">78840000000.0</real_value>
       <comment>78840000000.0 is equivalent to 2500 years.
 157680000000.0 is equivalent to 5000 years.</comment>
     </timestep>
     <finish_time>
       <real_value rank="0">1.73448e14</real_value>
-      <comment>173369160000000.0 is equivalent to </comment>
+      <comment>173369160000000.0 is equivalent to</comment>
     </finish_time>
   </timestepping>
   <physical_parameters>
