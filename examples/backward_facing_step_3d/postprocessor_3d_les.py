@@ -7,6 +7,7 @@ import vtktools
 import numpy
 import pylab
 import re
+from math import log
 
 def get_filelist(sample, start):
 
@@ -155,7 +156,6 @@ def meanvelo(filelist,xarray,zarray,yarray):
   ##### Create output array of correct shape
   profiles=numpy.zeros([xarray.size, yarray.size], float)
 
-  filecount = 0
   file = filelist[-1]
   #for file in filelist:
   datafile = vtktools.vtu(file)
@@ -182,80 +182,43 @@ def meanvelo(filelist,xarray,zarray,yarray):
     usum += uav
   usum = usum / len(zarray)
   profiles[:,:] = usum
- 
+
   print "\n...Finished extracting data.\n"
   return profiles
 
 #########################################################################
 
-def reynolds_stresses(filelist,xarray,zarray,yarray):
+def plusvelo(filelist,profiles,yarray):
 
-  print "\nRunning Reynolds stress profile script on files at times...\n"
-  ##### check for no files
-  if (len(filelist) < 0):
-    print "No files!"
-    sys.exit(1)
+  print "\nCalculating mean velocity profiles in wall units.\n"
+  file = filelist[-1]
+  #for file in filelist:
+  datafile = vtktools.vtu(file)
 
-  ##### create arrays of points
-  pts=[]
-  for i in range(len(xarray)):
-    for k in range(len(yarray)):
-      pts.append([xarray[i], zarray, yarray[k]])
-  pts=numpy.array(pts)
+  ##### Velocity gradient at wall at x=19
+  x1 = numpy.array([[20.0,2.0,0.0]])
+  graduz = abs(datafile.ProbeData(x1, "Grad_Velocity")[:,2,0])
+  visc  = datafile.ProbeData(x1, "Viscosity")[0,0,0]
+  print "graduz from vtu: ", graduz
 
-  zzzz = []
-  for i in range(len(xarray)):
-    for k in range(len(yarray)):
-      zzzz.append(yarray[k])
+  u1 = abs(datafile.ProbeData(x1, "AverageVelocity")[:,0])
+  x2 = numpy.array([[20.0,2.0,0.1]])
+  u2 = abs(datafile.ProbeData(x2, "AverageVelocity")[:,0])
+  grad_uz = (u2-u1)/0.1
+  print "u1, u2, grad_uz linear interp: ", u1, u2, grad_uz
 
-  ##### Create output array of correct shape
-  profiles=numpy.zeros([xarray.size, yarray.size, 3], float)
+  ##### Wall shear stress tw, u*, y+
+  twall = visc * grad_uz
+  ustar = twall**0.5
+  yplus = numpy.zeros([yarray.size],float)
+  for i in range(len(yarray)):
+    yplus[i] = ustar/visc*yarray[i]
+  #print "yplus: ", yplus
 
-  filecount = 0
-  for file in filelist:
-      datafile = vtktools.vtu(file)
-      t = min(datafile.GetScalarField("Time"))
-      print file, ', elapsed time = ', t
+  # U in wall units
+  uplus = profiles/ustar
 
-      ##### Get instantaneous velocity components
-      uvw   = datafile.ProbeData(pts, "Velocity")
-      udash = datafile.ProbeData(pts, "FluctuatingVelocity")
-      grad  = datafile.ProbeData(pts, "Grad_Velocity")
-      visc  = datafile.ProbeData(pts, "Viscosity")[0,0,0]
-
-      # max velocity for normalising
-      #umax = max(abs(datafile.GetVectorField("Velocity")[:,0]))
-      # WARNING!!! UMAX IS NOT SAFE IN PARALLEL PERIODIC!
-
-      umax = 1.55
-
-      # which component is du/dz? check vtus
-      graduz = grad[:,2,0]
-      graduzmax = max(abs(datafile.GetField("Grad_Velocity")[:,2,0]))
-
-      ##### Wall shear stress tw, u*, y+
-      twall = visc * graduz
-      ustar = twall**0.5
-      yplus = ustar*zzzz/visc
-      
-      # Reynolds components (normalised)
-      u = (udash[:,0])/umax
-      v = (udash[:,1])/umax
-      uv= -1.0*udash[:,0] * udash[:,1]/umax**2
-      u = u.reshape([xarray.size,yarray.size])
-      v = v.reshape([xarray.size,yarray.size])
-      uv = uv.reshape([xarray.size,yarray.size])
-
-      profiles[:,:,0] += u
-      profiles[:,:,1] += v
-      profiles[:,:,2] += uv
-
-  ##### Time averaging
-  profiles[:,:,:] = abs(profiles[:,:,:]/len(filelist))
-
-  print "\n...Finished extracting data.\n"
-
-  return profiles, yplus
+  return yplus, uplus
 
 #########################################################################
 
@@ -273,11 +236,6 @@ def reynolds_stresses2(filelist,xarray,zarray,yarray):
     for k in range(len(yarray)):
       pts.append([xarray[i], zarray, yarray[k]])
   pts=numpy.array(pts)
-
-  zzzz = []
-  for i in range(len(xarray)):
-    for k in range(len(yarray)):
-      zzzz.append(yarray[k])
 
   ##### Create output array of correct shape
   profiles=numpy.zeros([xarray.size, yarray.size, 3], float)
@@ -437,7 +395,7 @@ def plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray):
 
 #########################################################################
 
-def plot_meanvelo(Re,type,mesh,vprofiles,xarray,zarray,yarray):
+def plot_meanvelo(Re,type,mesh,vprofiles,xarray,yarray):
 
   # get profiles from ERCOFTAC data
   datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC360-table.dat', 'r')
@@ -537,7 +495,57 @@ def plot_meanvelo(Re,type,mesh,vprofiles,xarray,zarray,yarray):
 
 #########################################################################
 
-def plot_reynolds_stresses2(Re,type,mesh,rprofiles,xarray,zarray,yarray):
+def plot_plusvelo(Re,type,mesh,uplus,yplus,xarray):
+
+  print "\nPlotting mean velocity profiles in wall units...\n"
+  plot1 = pylab.figure(figsize = (16.5, 8.5))
+  pylab.suptitle("Streamwise Evolution of U+ (velocity in wall units): Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh", fontsize=20)
+
+  # get profiles from Le&Moin uplus graph. x=19
+  Le = open('../Le-profiles/Le-profile1-uplus-x19.dat', 'r').readlines()
+  Le_uplus = [float(line.split()[1]) for line in Le]
+  Le_yplus = [float(line.split()[0]) for line in Le]
+  jd = open('../Le-profiles/JD-profile1-uplus-x19.dat', 'r').readlines()
+  jd_uplus = [float(line.split()[1]) for line in jd]
+  jd_yplus = [float(line.split()[0]) for line in jd]
+  size = 15
+
+  # log law of the wall
+  loglaw=numpy.zeros(yplus.size)
+  for i in range(len(yplus)):
+    if(yplus[i]>10.0):
+      loglaw[i] = 1/0.41*log(yplus[i]) + 5.0
+    else:
+      loglaw[i] = yplus[i]
+
+  ax = pylab.subplot(111)
+  ax.plot(yplus, uplus[0,:], linestyle="dotted")
+  ax.plot(yplus, uplus[1,:], linestyle="dotted")
+  ax.plot(yplus, uplus[2,:], linestyle="dotted")
+  ax.plot(yplus, uplus[3,:], linestyle="dotted")
+  ax.plot(yplus, uplus[4,:], linestyle="solid", color="black")
+  # reference data:
+  ax.plot(Le_yplus, Le_uplus, linestyle="dashed", color="black")
+  ax.plot(jd_yplus, jd_uplus, linestyle="none", color="black", marker = 'o', markerfacecolor='black', markersize=6, markeredgecolor='black')
+  ax.plot(yplus, loglaw, linestyle="dashdot", color="black")
+  #ax.grid("True")
+  for tick in ax.xaxis.get_major_ticks():
+    tick.label1.set_fontsize(size)
+  for tick in ax.yaxis.get_major_ticks():
+    tick.label1.set_fontsize(size)
+
+  pylab.legend(("x/h=10.0","x/h=12.5","x/h=15.0","x/h=17.5","x/h=19","Le&Moin DNS x/h=19","Jovic&Driver expt x/h=19", "log law"),loc="lower right")
+  ax.set_ylabel('mean U-velocity in wall units U+', fontsize=24)
+  ax.set_xlabel('y+', fontsize=24)
+  ax.set_xscale('log')
+  ax.set_xlim(1, 1000)
+  #ax.set_ylim(10, 20)
+  pylab.savefig("../velo_plus_profiles_3d"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
+  return
+
+#########################################################################
+
+def plot_reynolds_stresses2(Re,type,mesh,rprofiles,xarray,zarray,yarray,yplus):
   ##### Plot Reynolds stress profiles at different points behind step using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
   pylab.suptitle("Time-averaged Reynolds stress profiles: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh", fontsize=20)
@@ -664,7 +672,7 @@ def main():
     ##### Points to generate profiles:
     xarray = numpy.array([4.0, 6.0, 10.0, 19.0])
     zarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
-    yarray = numpy.array([0.01,0.02,0.03,0.04,0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0])
+    yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23,0.24,0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5.0])
 
     ##### Call reattachment_length function
     #reattachment_length = numpy.array(reatt_length(filelist, zarray))
@@ -672,32 +680,31 @@ def main():
     #plot_length(Re,type,mesh,reattachment_length)
 
     ##### Call meanvelo function
+    #vprofiles = meanvelo(filelist, xarray, zarray, yarray)
+    #numpy.save("mean_velo_profiles_3d_parallel"+str(Re)+"_"+str(mesh), vprofiles)
+    #print "Showing plot of velocity profiles."
+    #plot_meanvelo(Re,type,mesh,vprofiles,xarray,yarray)
+    # points used by Le & Moin in U+ plot:
+    xarray=numpy.array([10.0,12.5,15.0,17.5,19.0])
     vprofiles = meanvelo(filelist, xarray, zarray, yarray)
-    numpy.save("mean_velo_profiles_3d_parallel"+str(Re)+"_"+str(mesh), vprofiles)
-    print "Showing plot of velocity profiles."
-    plot_meanvelo(Re,type,mesh,vprofiles,xarray,zarray,yarray)
-
-    ##### Call Reynolds stress function
-    #zarray = 2.0
-    #rprofiles, yplus = reynolds_stresses(filelist, xarray, zarray, yarray)
-    #numpy.save("reynolds_stresses_profiles_3d_parallel"+str(Re)+"_"+str(mesh), rprofiles)
-    #plot_reynolds_stresses(Re,type,mesh,rprofiles,xarray,zarray,yarray,yplus)
+    yplus, uplus = plusvelo(filelist,vprofiles, yarray)
+    plot_plusvelo(Re,type,mesh,uplus,yplus,xarray)
 
     ##### Call Reynolds stress2 function
-    zarray = 2.0
-    rprofiles2 = reynolds_stresses2(filelist, xarray, zarray, yarray)
-    numpy.save("reynolds_stresses_profiles_3d_parallel"+str(Re)+"_"+str(mesh), rprofiles2)
-    plot_reynolds_stresses2(Re,type,mesh,rprofiles2,xarray,zarray,yarray)
+    #zarray = 2.0
+    #rprofiles2 = reynolds_stresses2(filelist, xarray, zarray, yarray)
+    #numpy.save("reynolds_stresses_profiles_3d_parallel"+str(Re)+"_"+str(mesh), rprofiles2)
+    #plot_reynolds_stresses2(Re,type,mesh,rprofiles2,xarray,zarray,yarray)
 
     ##### Plot inlet region
-    xarray = numpy.array([-10.0, -7.0, -3.0, 0.0])
-    yarray = numpy.array([1.0,1.01,1.02,1.03,1.04,1.05,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.5,4.6,4.7,4.8,4.9,5.0])
-    rprofiles = reynolds_stresses2(filelist, xarray, zarray, yarray)
-    zarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
-    vprofiles = meanvelo(filelist, xarray, zarray, yarray)
-    numpy.save("inlet_profiles_3d_parallel"+str(Re)+"_"+str(mesh), vprofiles)
-    print "Showing plot of inlet profiles."
-    plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray)
+    #xarray = numpy.array([-10.0, -7.0, -3.0, 0.0])
+    #yarray = numpy.array([1.0,1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1,1.11,1.12,1.13,1.14,1.15,1.16,1.17,1.18,1.19,1.2,1.21,1.22,1.23,1.24,1.25,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.5,4.6,4.7,4.8,4.9,5.0])
+    #rprofiles = reynolds_stresses2(filelist, xarray, zarray, yarray)
+    #zarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
+    #vprofiles = meanvelo(filelist, xarray, zarray, yarray)
+    #numpy.save("inlet_profiles_3d_parallel"+str(Re)+"_"+str(mesh), vprofiles)
+    #print "Showing plot of inlet profiles."
+    #plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray)
     #pylab.show()
 
     print "\nAll done.\n"
