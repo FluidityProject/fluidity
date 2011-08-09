@@ -64,8 +64,8 @@ Wm4System.o Wm4Vector2.o Wm4Vector3.o
 	$(CXX) $(CXXFLAGS) -I. -I../include -c $<
 
 $(LIB): $(OBJS)
-	$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 	cp *.h ../include/
+
 default: $(LIB)
 
 clean:

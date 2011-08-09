@@ -65,7 +65,7 @@ OBJS = Form_metric.o Assemble_metric.o Interpolation_metric.o Edge_lengths.o \
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
 default: $(LIB)
 
 clean:
