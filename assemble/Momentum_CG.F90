@@ -211,7 +211,7 @@
 
       type(scalar_field), pointer :: buoyancy
       type(scalar_field), pointer :: gp
-      type(scalar_field), pointer :: free_surface, old_free_surface
+      type(scalar_field), pointer :: free_surface, it_free_surface, old_free_surface
       type(vector_field), pointer :: gravity
       type(vector_field), pointer :: oldu, nu, ug, source, absorption
       type(tensor_field), pointer :: viscosity
@@ -518,10 +518,17 @@
       if(stat==0) then
         if(have_option(trim(free_surface%option_path)//"/prognostic").and.has_boundary_condition(u, "explicit_free_surface")) then
 
+          it_free_surface=>extract_scalar_field(state, "IteratedFreeSurface", stat)
+          if(stat/=0) then
+            it_free_surface => free_surface
+          end if
+          ewrite_minmax(it_free_surface)
+
           old_free_surface=>extract_scalar_field(state, "OldFreeSurface", stat)
           if(stat/=0) then
             old_free_surface => free_surface
           end if
+          ewrite_minmax(old_free_surface)
 
           if (.not.have_gravity) then
             FLExit("For a free surface you need gravity")
@@ -546,6 +553,7 @@
 
           free_surface=>dummyscalar
           old_free_surface=>dummyscalar
+          it_free_surface=>dummyscalar
           allocate(fs_coef(0))
 
         end if
@@ -553,6 +561,7 @@
 
         free_surface=>dummyscalar
         old_free_surface=>dummyscalar
+        it_free_surface=>dummyscalar
         allocate(fs_coef(0))
 
       end if
@@ -784,7 +793,7 @@
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
                  assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac, &
-                 free_surface, old_free_surface, fs_coef)
+                 it_free_surface, old_free_surface, fs_coef)
             
          end do surface_element_loop
 
@@ -913,6 +922,8 @@
       call deallocate(dummyscalar)
       deallocate(dummyscalar)
 
+      deallocate(fs_coef)
+
       if(multiphase) then
          call deallocate(nvfrac)
       end if
@@ -958,7 +969,7 @@
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
                                                      assemble_ct_matrix_here, include_pressure_and_continuity_bcs,&
-                                                     oldu, nvfrac, free_surface, old_free_surface, fs_coef)
+                                                     oldu, nvfrac, it_free_surface, old_free_surface, fs_coef)
 
       integer, intent(in) :: sele
 
@@ -987,7 +998,7 @@
       ! Volume fraction field
       type(scalar_field), intent(in) :: nvfrac
 
-      type(scalar_field), intent(in) :: free_surface, old_free_surface
+      type(scalar_field), intent(in) :: it_free_surface, old_free_surface
       real, dimension(:), intent(in) :: fs_coef
       ! old_free_surface is only here as we may want to theta weight it for consistency later
 
@@ -1009,7 +1020,7 @@
 
       real, dimension(u%dim, face_ngi(u, sele)) :: relu_gi
       real, dimension(face_ngi(u, sele)) :: density_gi
-      real, dimension(face_ngi(free_surface, sele)) :: fs_gi, old_fs_gi
+      real, dimension(face_ngi(it_free_surface, sele)) :: it_fs_gi, old_fs_gi
 
       real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
@@ -1174,10 +1185,10 @@
       end if
 
       if (velocity_bc_type(1,sele)==BC_TYPE_EXPLICIT_FREE_SURFACE) then
-        fs_gi = face_val_at_quad(free_surface, sele)
+        it_fs_gi = face_val_at_quad(it_free_surface, sele)
         old_fs_gi = face_val_at_quad(old_free_surface, sele) ! not used yet!
 
-        call addto(rhs, u_nodes_bdy, shape_vector_rhs(u_shape, normal_bdy, detwei_bdy*fs_coef(sele)*fs_gi))
+        call addto(rhs, u_nodes_bdy, shape_vector_rhs(u_shape, normal_bdy, detwei_bdy*fs_coef(sele)*it_fs_gi))
         
       end if
 
