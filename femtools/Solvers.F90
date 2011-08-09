@@ -932,7 +932,7 @@ integer, optional, intent(in) :: internal_smoothing_option
     ewrite(2,*) "Time spent in Petsc setup: ", time2-time1
   end if
 
-  do i = 1, size(null_space_array)
+  do i = 0, size(null_space_array)-1
     call VecDestroy(null_space_array(i), ierr)
   end do
   deallocate(null_space_array)
@@ -1048,7 +1048,7 @@ integer, dimension(:), optional, intent(in) :: surface_node_list
   b=PetscNumberingCreateVec(matrix%column_numbering)
   call VecDuplicate(b, y, ierr)
 
-  do i = 1, size(null_space_array)
+  do i = 0, size(null_space_array)-1
     call VecDestroy(null_space_array(i), ierr)
   end do
   deallocate(null_space_array)
@@ -1552,7 +1552,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
     integer, optional, intent(in) :: internal_smoothing_option
-    Vec, dimension(:), optional, intent(in) :: null_space_array
+    Vec, dimension(0:), optional :: null_space_array
     
     PetscErrorCode ierr
     
@@ -1596,7 +1596,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     integer, dimension(:), optional, intent(in) :: surface_node_list
     type(csr_matrix), optional, intent(in) :: matrix_csr
     integer, optional, intent(in) :: internal_smoothing_option
-    Vec, dimension(:), optional, intent(in) :: null_space_array
+    Vec, dimension(0:), optional :: null_space_array
     
     ! hack to satisfy interface for MatNullSpaceCreate
     ! only works as the array won't actually be used
@@ -1610,7 +1610,7 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     
     logical startfromzero, remove_null_space
 
-    integer nnulls, nspecnulls
+    integer i
     
     ewrite(1,*) "Inside setup_ksp_from_options"
     
@@ -1676,6 +1676,10 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
         else
           ewrite(2,*) 'Adding null-space removal options for vector components to KSP'
           ewrite(2,*) 'size(null_space_array) = ', size(null_space_array)
+          do i = 0, size(null_space_array)-1
+            ewrite(2,*) 'i = ', i
+            call VecView(null_space_array(i), PETSC_VIEWER_STDOUT_SELF, ierr)
+          end do
           call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_FALSE,size(null_space_array),null_space_array,sp,ierr)
         end if
       else
@@ -2261,12 +2265,13 @@ subroutine MyKSPMonitor(ksp,n,rnorm,dummy,ierr)
   
 end subroutine MyKSPMonitor
 
-subroutine create_null_space_array(solver_option_path, petsc_numbering, null_space_array, vfield)
+subroutine create_null_space_array(solver_option_path, petsc_numbering, null_space_array, vfield, sfield)
 !! returns the option path to solver/ block for new options, otherwise ""
 character(len=*), intent(out):: solver_option_path
 type(petsc_numbering_type), intent(in):: petsc_numbering
 !! provide a vector field to be solved for
 type(vector_field), optional, intent(in):: vfield
+type(scalar_field), optional, intent(in):: sfield
 
 Vec, allocatable, dimension(:), intent(out) :: null_space_array
 
@@ -2315,7 +2320,7 @@ Vec, allocatable, dimension(:), intent(out) :: null_space_array
        end if
 
        ! allocate the array of null spaces
-       allocate(null_space_array(nnulls))
+       allocate(null_space_array(0:nnulls-1))
 
        ewrite(2,*) "Setting up array of "//int2str(nnulls)//" null spaces."
        ! get the number of nodes to normalise the null space vector
@@ -2326,30 +2331,44 @@ Vec, allocatable, dimension(:), intent(out) :: null_space_array
        allocate(components(vfield%dim))
        
        ! now loop back over the components building up the null spaces we want
-       i = 0
+       i = -1
        do comp = 1, vfield%dim
          if (mask(comp)) then
            i = i + 1
            components = 0.0
            components(comp) = 1.0
-           components = components/real(nodes)
+           components = components/sqrt(real(nodes))
            call set(nullvector, components)
            null_space_array(i)=PetscNumberingCreateVec(petsc_numbering)
            call field2petsc(nullvector, petsc_numbering, null_space_array(i))
          end if
        end do
-       assert(i==nnulls)
+       assert(i==nnulls-1)
 
        call deallocate(nullvector)
        deallocate(components)
+       deallocate(mask)
 
-     else
+     else if(present(sfield)) then
        if(have_option(trim(solver_option_path)//'/remove_null_space/specify_components')) then
          FLExit("Cannot specify components of a null space to remove on a non-vector field.")
        end if
 
-       ! allocate the array of null spaces
-       allocate(null_space_array(0))
+!       ! allocate the array of null spaces
+!       allocate(null_space_array(0))
+
+       call mesh_stats(sfield, nodes=nodes)
+       call allocate(nullscalar, sfield%mesh, name="NullSpaceScalar")
+       call set(nullscalar, 1./sqrt(real(nodes)))
+
+       allocate(null_space_array(1))
+       null_space_array(0:0)=PetscNumberingCreateVec(petsc_numbering)
+       call field2petsc(nullscalar, petsc_numbering, null_space_array(0))
+
+       call deallocate(nullscalar)
+
+     else
+       FLAbort("Need sfield or vfield.")
 
      end if
    else
