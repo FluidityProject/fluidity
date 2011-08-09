@@ -495,7 +495,7 @@ input_choice_initial_condition_vector =
                ## Solver
          element solver {
             linear_solver_options_sym
-         }
+         }?
       }|
       ## project velocity from a DG field
       element dg_projection {
