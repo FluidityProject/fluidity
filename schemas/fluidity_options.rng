@@ -3729,8 +3729,7 @@ IN DEVELOPMENT</a:documentation>
         <optional>
           <element name="external_density">
             <a:documentation>When selected a hydrostatic pressure distribution on the outside is assumed
-using the specified density, i.e. instead of applying p=0 (resp.
-no_normal_stress=0) we apply p=p_external (resp. no_normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g</a:documentation>
+using the specified density.</a:documentation>
             <ref name="real"/>
           </element>
         </optional>
