@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>viscous_fs_topbottom</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v2 -l viscous_fs_topbottom.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="freesurfacemaxend" language="python">from fluidity_tools import stat_parser as stat
+freesurfacemaxend = stat("viscous_fs_topbottom.stat")["Fluid"]["FreeSurface"]["max"][-1]</variable>
+  </variables>
+  <pass_tests>
+    <test name="check_fs_at_end" language="python">assert abs(freesurfacemaxend-0.178135683326) &lt; 0.001</test>
+  </pass_tests>
+</testproblem>
