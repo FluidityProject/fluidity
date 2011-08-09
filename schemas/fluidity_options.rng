@@ -8603,6 +8603,7 @@ Functions should be of the form:
                             <data type="string"/>
                           </attribute>
                           <element name="diagnostic">
+                            <ref name="internal_algorithm"/>
                             <ref name="velocity_mesh_choice"/>
                             <ref name="diagnostic_scalar_field_no_adapt"/>
                           </element>

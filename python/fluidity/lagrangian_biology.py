@@ -32,12 +32,33 @@ param_V_S_ref =        0.03
 param_z_sink =         0.04
 param_Zeta =           2.3
 
-def photosynthesis(vars, name, ambientTemperature, ambientVisIrrad):
-  """Photsynthesis according to Sinerchia ..."""
+def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate):
+  
+  ### Phase 1 ###
+  
+  # Housekeeping
+  vars[name['IngAmmonium']] = vars[name['IngAmmonium']] / vars[name['Biomass']]
+  vars[name['IngNitrate']] = vars[name['IngNitrate']] / vars[name['Biomass']]
+  vars[name['IngSilicate']] = vars[name['IngSilicate']] / vars[name['Biomass']]
+  stepInHours = dt/3600.
+  biomass_old = vars[name['Biomass']]
+  
+  # External environment
+  ambientTemperature = temperature.eval_field(ele, local_coord)
+  ambientVisIrrad = irradiance.eval_field(ele, local_coord)
+  ambientAmmonium = ammonium.eval_field(ele, local_coord)
+  ambientNitrate = nitrate.eval_field(ele, local_coord)
+  ambientSilicate = silicate.eval_field(ele, local_coord)
+  
+  # Nutrient uptake 
+  # (omitted for now, since we don't have depletion fields)
+  
+  ### Phase 2 ###
 
   T_K = ambientTemperature + 273.0
   T_function = math.exp(34.12969283 - 10000/T_K)
 
+  # Photosynthesis
   Q_N = ((((vars[name['AmmoniumPool']])+(vars[name['IngAmmonium']])+(vars[name['NitratePool']])+(vars[name['IngNitrate']]))) / (vars[name['CarbonPool']]))
   Q_s = ((((vars[name['SilicatePool']])+(vars[name['IngSilicate']]))) / (vars[name['CarbonPool']]))
 
@@ -59,10 +80,7 @@ def photosynthesis(vars, name, ambientTemperature, ambientVisIrrad):
   else:
     P_phot_c = P_max_c*(1.0 - math.exp(-0.284400e-2*Theta_c*E_0 / P_max_c))
 
-  return (P_phot_c, Theta_c, E_0)
-
-def reproduction(vars, name, P_phot_c, Theta_c, E_0, stepInHours):
-
+  # Reproduction
   Theta_N = ((vars[name['ChlorophyllPool']]) / (((vars[name['AmmoniumPool']])+(vars[name['IngAmmonium']])+(vars[name['NitratePool']])+(vars[name['IngNitrate']]))))
 
   #Rho_Chl = (((((E_0) > (0.0))&&((Theta_c) > (0.0))))?(((param_Theta_max_N)*((P_phot_c) / (((3600.0)*(param_Alpha_Chl)*(Theta_c)*(E_0)))))):(0.0))
@@ -80,7 +98,96 @@ def reproduction(vars, name, P_phot_c, Theta_c, E_0, stepInHours):
   else:
     C_d = 1.0
 
-  return C_d
+  # Update chemical pools 
+  Q_nitrate = ((((vars[name['NitratePool']])+(vars[name['IngNitrate']]))) / (vars[name['CarbonPool']]))
+  Q_ammonium = ((((vars[name['AmmoniumPool']])+(vars[name['IngAmmonium']]))) / (vars[name['CarbonPool']]))
+  omega = ((((param_k_AR) / (((param_k_AR)+(ambientAmmonium))))*((((param_k_AR)+(ambientNitrate))) / (((param_k_AR)+(ambientAmmonium)+(ambientNitrate))))))
+
+  #V_max_C = (((((vars[AMMONIUM_POOL])+(vars[NITRATE_POOL]))) < (1000.0))?(((((Q_ammonium)+(Q_nitrate))) < (param_Q_Nmin))?(((param_V_ref_c)*(T_function))):(((((Q_ammonium)+(Q_nitrate))) > (param_Q_Nmax))?(0.0):(((param_V_ref_c)*(pow(((param_Q_Nmax) - (((Q_ammonium)+(Q_nitrate)))) / ((param_Q_Nmax) - (param_Q_Nmin)), 0.05))*(T_function))))):(0.0))
+  if ((((vars[name['AmmoniumPool']])+(vars[name['NitratePool']]))) < (1000.0)):
+    if ((((Q_ammonium)+(Q_nitrate))) < (param_Q_Nmin)):
+      V_max_C = (((param_V_ref_c)*(T_function)))
+    else:
+      if ((((Q_ammonium)+(Q_nitrate))) > (param_Q_Nmax)):
+        V_max_C = 0.0
+      else:
+        V_max_C = (((param_V_ref_c)*(math.pow(((param_Q_Nmax) - (((Q_ammonium)+(Q_nitrate)))) / ((param_Q_Nmax) - (param_Q_Nmin)), 0.05))*(T_function)))
+  else:
+    V_max_C = 0.0
+
+  V_C_ammonium = (((V_max_C)*((ambientAmmonium) / (((param_k_AR)+(ambientAmmonium))))))
+  V_C_nitrate = (((V_max_C)*((ambientNitrate) / (((param_k_AR)+(ambientNitrate))))*(omega)))
+
+  #V_S_max = (((vars[CARBON_POOL]) >= (param_C_minS))?(((Q_s) <= (param_Q_S_min))?(((param_V_S_ref)*(T_function))):(((Q_s) >= (param_Q_S_max))?(0.0):(((param_V_S_ref)*(pow(((param_Q_S_max) - (Q_s)) / ((param_Q_S_max) - (param_Q_S_min)), 0.05))*(T_function))))):(0.0))
+  if ((vars[name['CarbonPool']]) >= (param_C_minS)):
+    if ((Q_s) <= (param_Q_S_min)):
+      V_S_max = (((param_V_S_ref)*(T_function)))
+    else:
+      if ((Q_s) >= (param_Q_S_max)):
+        V_S_max = 0.0
+      else:
+         V_S_max = (((param_V_S_ref)*(math.pow(((param_Q_S_max) - (Q_s)) / ((param_Q_S_max) - (param_Q_S_min)), 0.05))*(T_function)))
+  else:
+    V_S_max = 0.0
+
+  V_S_S = (((V_S_max)*((ambientSilicate) / (((ambientSilicate)+(param_k_S))))))
+
+  # Ingestion rates
+  IngAmmonium = biomass_old*((vars[name['CarbonPool']])*(V_C_ammonium)*(stepInHours))
+  IngNitrate = biomass_old*((vars[name['CarbonPool']])*(V_C_nitrate)*(stepInHours))
+  IngSilicate = biomass_old*((vars[name['SilicatePool']])*(V_S_S)*(stepInHours))
+
+  # Ammonium excretion 
+  RelAmmonium = biomass_old*((((vars[name['AmmoniumPool']])+(vars[name['NitratePool']])))*(param_R_N)*(stepInHours)*(T_function))
+
+  AmmoniumPoolNew = (((((vars[name['AmmoniumPool']])+(vars[name['IngAmmonium']])+(vars[name['IngNitrate']]))) - (((vars[name['AmmoniumPool']])*(param_R_N)*(stepInHours)*(T_function)))) / (C_d))
+  NitratePoolNew = (0.0)
+  SilicatePoolNew = ((((vars[name['SilicatePool']])+(vars[name['IngSilicate']]))) / (C_d))
+
+  # Mortality, determine death...
+  if ((vars[name['CarbonPool']]) <= (param_C_starve)):
+    death_flag = True
+  else:
+    death_flag =  False
+
+  # ...before updating carbon pool and chlorophyll
+  if (death_flag):
+    ### TODO: state change! ###
+    print "Warning: Diatom death occured, but state not changed!"
+
+    CarbonPoolNew = 0.0
+    ChlorophyllPoolNew = 0.0;
+  else:
+    CarbonPoolNew = (((((((vars[name['CarbonPool']])*((P_phot_c)-(((R_C)*(T_function))))*(stepInHours)))+(vars[name['CarbonPool']]))) - (0.0)) / (C_d))
+
+    if (Theta_N <= param_Theta_max_N):
+      ChlorophyllPoolNew = vars[name['ChlorophyllPool']] + Rho_Chl * (vars[name['IngAmmonium']] + vars[name['IngNitrate']])
+    else:
+      ChlorophyllPoolNew = param_Theta_max_N * (vars[name['AmmoniumPool']] + vars[name['NitratePool']])
+    ChlorophyllPoolNew = ChlorophyllPoolNew - (vars[name['ChlorophyllPool']] * param_R_Chl * stepInHours * T_function)
+    if (ChlorophyllPoolNew > 0.0):
+      ChlorophyllPoolNew = ChlorophyllPoolNew / C_d
+    else:
+      ChlorophyllPoolNew = 0.0
+
+  ### Phase 3 (output and housekeeping) ###
+
+  # Ensemble update (reproduction) */
+  if ((C_d) == (2.0)):
+    vars[name['Biomass']] = biomass_old*2
+
+  # External
+  vars[name['IngAmmonium']] = IngAmmonium
+  vars[name['IngNitrate']] = IngNitrate
+  vars[name['IngSilicate']] = IngSilicate
+  vars[name['RelAmmonium']] = RelAmmonium
+
+  # Internal
+  vars[name['AmmoniumPool']] = AmmoniumPoolNew
+  vars[name['NitratePool']] = NitratePoolNew
+  vars[name['SilicatePool']] = SilicatePoolNew
+  vars[name['CarbonPool']] = CarbonPoolNew
+  vars[name['ChlorophyllPool']] = ChlorophyllPoolNew
 
 
 #####################################

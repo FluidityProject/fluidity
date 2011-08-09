@@ -6773,6 +6773,7 @@ biology =
                         attribute rank { "0" },
                         attribute name { xsd:string },
                         element diagnostic {
+                           internal_algorithm,
                            velocity_mesh_choice,
                            diagnostic_scalar_field_no_adapt
                         }
