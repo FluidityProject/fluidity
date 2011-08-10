@@ -2069,9 +2069,6 @@ contains
         if(have_explicit_free_surface .and. .not. have_option(trim(option_path)//"/solver")) then
           FLExit("The explicit_free_surface needs solver options.")
         end if 
-        if (have_free_surface .and. .not. fs_meshname==p_meshname) then
-          FLExit("The prognostic FreeSurface field and the Pressure field have to be on the same mesh for the zero pressure free_surface bc.")
-        end if
         if (.not. have_option('/geometry/ocean_boundaries')) then
           ewrite(0,*) "Warning: your prognostic free surface will only be " // &
             "defined at the free surface nodes and not extrapolated downwards, " // &

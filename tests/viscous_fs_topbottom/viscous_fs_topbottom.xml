@@ -3,14 +3,92 @@
   <name>viscous_fs_topbottom</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity -v2 -l viscous_fs_topbottom.flml</command_line>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v2 viscous_fs_topbottom_A.flml &gt;&amp; A.log &amp;&amp; fluidity -v2 viscous_fs_topbottom_B.flml &gt;&amp; B.log &amp;&amp; fluidity -v2 viscous_fs_topbottom_C.flml &gt;&amp; C.log &amp;&amp; fluidity -v2 viscous_fs_topbottom_D.flml &gt;&amp; D.log</command_line>
   </problem_definition>
   <variables>
-    <variable name="freesurfacemaxend" language="python">from fluidity_tools import stat_parser as stat
-freesurfacemaxend = stat("viscous_fs_topbottom.stat")["Fluid"]["FreeSurface"]["max"][-1]</variable>
+    <variable name="freesurfacemaxendA" language="python">from fluidity_tools import stat_parser as stat
+freesurfacemaxendA = stat("viscous_fs_topbottom_A.stat")["Fluid"]["FreeSurface"]["max"][-1]</variable>
+    <variable name="freesurfacemaxendB" language="python">from fluidity_tools import stat_parser as stat
+freesurfacemaxendB = stat("viscous_fs_topbottom_B.stat")["Fluid"]["FreeSurface"]["max"][-1]</variable>
+    <variable name="ab_convergence_fs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, sqrt
+
+file1 = "viscous_fs_topbottom_A.stat"
+file2 = "viscous_fs_topbottom_B.stat"
+
+error1 = sqrt(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][-1])
+error2 = sqrt(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][-1])
+
+error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"][-1]
+error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"][-1]
+
+print error1
+print error2
+
+print error_inf1
+print error_inf2
+
+ratio = error1 / error2
+ratio_inf = error_inf1 / error_inf2
+ab_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
+    </variable>
+    <variable name="freesurfacemaxendC" language="python">from fluidity_tools import stat_parser as stat
+freesurfacemaxendC = stat("viscous_fs_topbottom_C.stat")["Fluid"]["FreeSurface"]["max"][-1]</variable>
+    <variable name="bc_convergence_fs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, sqrt
+
+file1 = "viscous_fs_topbottom_B.stat"
+file2 = "viscous_fs_topbottom_C.stat"
+
+error1 = sqrt(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][-1])
+error2 = sqrt(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][-1])
+
+error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"][-1]
+error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"][-1]
+
+print error1
+print error2
+
+print error_inf1
+print error_inf2
+
+ratio = error1 / error2
+ratio_inf = error_inf1 / error_inf2
+bc_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
+    </variable>
+    <variable name="freesurfacemaxendD" language="python">from fluidity_tools import stat_parser as stat
+freesurfacemaxendD = stat("viscous_fs_topbottom_D.stat")["Fluid"]["FreeSurface"]["max"][-1]</variable>
+    <variable name="cd_convergence_fs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, sqrt
+
+file1 = "viscous_fs_topbottom_C.stat"
+file2 = "viscous_fs_topbottom_D.stat"
+
+error1 = sqrt(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][-1])
+error2 = sqrt(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][-1])
+
+error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"][-1]
+error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"][-1]
+
+print error1
+print error2
+
+print error_inf1
+print error_inf2
+
+ratio = error1 / error2
+ratio_inf = error_inf1 / error_inf2
+cd_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
+    </variable>
   </variables>
   <pass_tests>
-    <test name="check_fs_at_end" language="python">assert abs(freesurfacemaxend-0.178135683326) &lt; 0.001</test>
+    <test name="check_fs_at_endA" language="python">assert abs(freesurfacemaxendA-0.178135683326) &lt; 0.005</test>
+    <test name="check_fs_at_endB" language="python">assert abs(freesurfacemaxendB-0.178135683326) &lt; 0.001</test>
+    <test name="check_fs_at_endC" language="python">assert abs(freesurfacemaxendC-0.178135683326) &lt; 0.001</test>
+    <test name="check_fs_at_endD" language="python">assert abs(freesurfacemaxendD-0.178135683326) &lt; 0.001</test>
   </pass_tests>
 </testproblem>

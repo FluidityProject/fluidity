@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">viscous_fs_topbottom</string_value>
+    <string_value lines="1">viscous_fs_topbottom_C</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">stokes</string_value>
@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="src/square">
+      <from_file file_name="src/squareC">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -19,6 +19,27 @@
       </from_file>
     </mesh>
     <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="FreeSurfaceMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="FreeSurfaceSquaredMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
@@ -58,7 +79,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1.5</real_value>
+      <real_value rank="0">100.0</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">1000</real_value>
@@ -197,7 +218,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -285,7 +306,8 @@
           <surface_ids>
             <integer_value shape="1" rank="1">6</integer_value>
           </surface_ids>
-          <type name="explicit_free_surface">
+          <type name="free_surface">
+            <no_normal_stress/>
             <external_density>
               <real_value rank="0">2.0</real_value>
             </external_density>
@@ -295,7 +317,9 @@
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
-          <type name="explicit_free_surface"/>
+          <type name="free_surface">
+            <no_normal_stress/>
+          </type>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
@@ -368,26 +392,12 @@
     </scalar_field>
     <scalar_field name="FreeSurface" rank="0">
       <prognostic>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="FreeSurfaceMesh"/>
         <initial_condition name="WholeMesh">
           <constant>
             <real_value rank="0">0.0</real_value>
           </constant>
         </initial_condition>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.e-6</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
         <output/>
         <stat>
           <surface_integral type="value" name="Top">
@@ -412,6 +422,97 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
+    </scalar_field>
+    <scalar_field name="AnalyticalFreeSurface" rank="0">
+      <prescribed>
+        <mesh name="FreeSurfaceMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+  from math import *
+  dx = 1./80.
+  wavelength=1.0
+  k=2.0*pi/wavelength
+  Q=1.0
+  zprime=0.5
+  gamma=-1.0 # (rho_0-rho_u)/rho_0
+  
+  M=(k*zprime*sinh(k)*cosh(k*zprime-k)-k*sinh(k*zprime)-sinh(k)*sinh(k*zprime-k))/(2.*k*sinh(k)**2)
+  N=(k*zprime*sinh(k)*cosh(k*zprime)-k*cosh(k)*sinh(k*zprime)-sinh(k)*sinh(k*zprime))/(2.*k*sinh(k)**2)
+  
+  if(X[1]&lt;dx/2.):
+    return -N*cos(k*X[0])*2.*k/Q
+  elif(X[1]&gt;(1.-dx/2.)):
+    return -M*cos(k*X[0])*2.*k/Q/gamma
+  else:
+    return 0.0</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="FreeSurfaceDifference" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="FreeSurface" source_field_2_name="AnalyticalFreeSurface" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="FreeSurfaceSquaredMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="DifferenceSquared" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">fsd = state.scalar_fields["FreeSurfaceDifference"]
+
+assert(field.node_count==fsd.node_count)
+
+for i in range(field.node_count):
+  field.set(i, fsd.node_val(i)*fsd.node_val(i))</string_value>
+        </algorithm>
+        <mesh name="FreeSurfaceSquaredMesh"/>
+        <output/>
+        <stat>
+          <surface_integral type="value" name="SurfaceL2Norm">
+            <surface_ids>
+              <integer_value shape="1" rank="1">6 8</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="TopSurfaceL2Norm">
+            <surface_ids>
+              <integer_value shape="1" rank="1">8</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="value" name="BottomSurfaceL2Norm">
+            <surface_ids>
+              <integer_value shape="1" rank="1">6</integer_value>
+            </surface_ids>
+          </surface_integral>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
     </scalar_field>
   </material_phase>
 </fluidity_options>
