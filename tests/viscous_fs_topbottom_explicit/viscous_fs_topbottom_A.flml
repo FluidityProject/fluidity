@@ -31,6 +31,32 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="FreeSurfaceMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">1</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="FreeSurfaceSquaredMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">5</integer_value>
@@ -197,7 +223,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -368,7 +394,7 @@
     </scalar_field>
     <scalar_field name="FreeSurface" rank="0">
       <prognostic>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="FreeSurfaceMesh"/>
         <initial_condition name="WholeMesh">
           <constant>
             <real_value rank="0">0.0</real_value>
@@ -415,7 +441,7 @@
     </scalar_field>
     <scalar_field name="AnalyticalFreeSurface" rank="0">
       <prescribed>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="FreeSurfaceMesh"/>
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(X,t):
@@ -447,10 +473,10 @@
     </scalar_field>
     <scalar_field name="FreeSurfaceDifference" rank="0">
       <diagnostic>
-        <algorithm name="scalar_difference" source_field_1_name="FreeSurface" source_field_2_name="AnalyticalFreeSurface" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar">
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="FreeSurface" source_field_2_name="AnalyticalFreeSurface" material_phase_support="single" source_field_1_type="scalar">
           <absolute_difference/>
         </algorithm>
-        <mesh name="VelocityMesh"/>
+        <mesh name="FreeSurfaceSquaredMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -467,14 +493,14 @@
     <scalar_field name="DifferenceSquared" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value type="python" lines="20">fsd = state.scalar_fields["FreeSurfaceDifference"]
+          <string_value lines="20" type="python">fsd = state.scalar_fields["FreeSurfaceDifference"]
 
 assert(field.node_count==fsd.node_count)
 
 for i in range(field.node_count):
   field.set(i, fsd.node_val(i)*fsd.node_val(i))</string_value>
         </algorithm>
-        <mesh name="VelocityMesh"/>
+        <mesh name="FreeSurfaceSquaredMesh"/>
         <output/>
         <stat>
           <surface_integral type="value" name="SurfaceL2Norm">

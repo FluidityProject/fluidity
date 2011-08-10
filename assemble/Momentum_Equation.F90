@@ -413,7 +413,7 @@
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
 
                if (prognostic_fs.and.has_boundary_condition(u, "free_surface")) then
-                 call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m(istate)%ptr, u, free_surface)
+                 call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m(istate)%ptr, u, p, free_surface)
                end if
                call profiler_toc(p, "assembly")
 
@@ -760,7 +760,7 @@
                      call allocate(schur_auxiliary_matrix, schur_auxiliary_matrix_sparsity,&
                         name="schur_auxiliary_matrix")
                      if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then
-                       call extend_schur_auxiliary_matrix_for_viscous_free_surface(state(istate), schur_auxiliary_matrix, u, free_surface)
+                       call extend_schur_auxiliary_matrix_for_viscous_free_surface(state(istate), schur_auxiliary_matrix, u, p, free_surface)
                      end if
                      ! Initialize matrix:
                      call zero(schur_auxiliary_matrix)
@@ -836,7 +836,7 @@
                   call allocate(scaled_pressure_mass_matrix, scaled_pressure_mass_matrix_sparsity,&
                            name="scaled_pressure_mass_matrix")
                   if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then
-                    call extend_schur_auxiliary_matrix_for_viscous_free_surface(state(istate), scaled_pressure_mass_matrix, u, free_surface)
+                    call extend_schur_auxiliary_matrix_for_viscous_free_surface(state(istate), scaled_pressure_mass_matrix, u, p, free_surface)
                   end if
                   call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix)
                   if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then

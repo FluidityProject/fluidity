@@ -899,7 +899,7 @@ contains
 
   end subroutine update_pressure_and_viscous_free_surface
 
-  subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, fs)
+  subroutine extend_matrices_for_viscous_free_surface(state, cmc_m, ct_m, u, p, fs)
     ! extend ct_m with some extra rows to enforce the kinematic bc
     ! in the transpose of this the extra columns are used to enforce the
     ! \rho_0 g\eta term in the no_normal_stress bc (see next routine
@@ -911,6 +911,7 @@ contains
     type(csr_matrix), pointer:: cmc_m
     type(block_csr_matrix), pointer:: ct_m
     type(vector_field), intent(in):: u
+    type(scalar_field), intent(in):: p
     type(scalar_field), intent(inout):: fs
 
     type(integer_set):: fs_nodes
@@ -924,9 +925,8 @@ contains
     assert(have_option(trim(fs%option_path)//"/prognostic"))
 
     ! normal matrices have n/o rows=n/o pressure dofs, we need to add f.s. dofs
-    ! (we here use fs%mesh is pressure mesh)
-    extend_ct_m = size(ct_m,1)==node_count(fs)
-    extend_cmc_m = size(cmc_m,1)==node_count(fs)
+    extend_ct_m = size(ct_m,1)==node_count(p)
+    extend_cmc_m = size(cmc_m,1)==node_count(p)
     ! check whether we have anything to do at all
     if (.not. (extend_ct_m .or. extend_cmc_m)) return
 
@@ -980,7 +980,7 @@ contains
 
   end subroutine extend_matrices_for_viscous_free_surface
   
-  subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface(state, schur_auxiliary_matrix, u, fs)
+  subroutine extend_schur_auxiliary_matrix_for_viscous_free_surface(state, schur_auxiliary_matrix, u, p, fs)
     ! Schur auxiliary matrix needs to be extended
     ! in both rows and columns to store the extra entries as a result 
     ! of extending ct_m, for the mass matrix of the time derivative in the 
@@ -988,6 +988,7 @@ contains
     type(state_type), intent(in):: state
     type(csr_matrix), intent(inout) :: schur_auxiliary_matrix
     type(vector_field), intent(in):: u
+    type(scalar_field), intent(in):: p
     type(scalar_field), intent(inout):: fs
 
     type(integer_set):: fs_nodes
@@ -999,8 +1000,7 @@ contains
     assert(have_option(trim(fs%option_path)//"/prognostic"))
 
     ! normal matrices have n/o rows=n/o pressure dofs, we need to add f.s. dofs
-    ! (we here use fs%mesh is pressure mesh)
-    extend = size(schur_auxiliary_matrix,1)==node_count(fs)
+    extend = size(schur_auxiliary_matrix,1)==node_count(p)
     ! check whether we have anything to do at all
     if (.not. extend) return
 
@@ -1087,6 +1087,7 @@ contains
       integer, intent(in):: sele
 
       real, dimension(u%dim, face_loc(p, sele), face_loc(u, sele)) :: ct_mat_bdy
+      real, dimension(u%dim, face_loc(fs, sele), face_loc(u, sele)) :: ht_mat_bdy
       real, dimension(face_ngi(u, sele)) :: detwei_bdy
       real, dimension(u%dim, face_ngi(u, sele)) :: normal_bdy
       integer:: dim
@@ -1094,6 +1095,8 @@ contains
       call transform_facet_to_physical(x, sele, &
            detwei_f=detwei_bdy, normal=normal_bdy)
       ct_mat_bdy = shape_shape_vector(face_shape(p, sele), face_shape(u, sele), &
+           detwei_bdy, normal_bdy)
+      ht_mat_bdy = shape_shape_vector(face_shape(fs, sele), face_shape(u, sele), &
            detwei_bdy, normal_bdy)
       do dim=1, u%dim
         ! we've integrated continuity by parts, but not yet added in the resulting
@@ -1105,7 +1108,7 @@ contains
         ! this integral will also enforce the \rho_0 g\eta term in the no_normal_stress bc:
         !   n\cdot\tau\cdot n + p - (\rho_0-\rho_external) g\eta = 0
         call addto(ct_m, 1, dim, node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
-             face_global_nodes(u,sele), -ct_mat_bdy(dim,:,:))
+             face_global_nodes(u,sele), -ht_mat_bdy(dim,:,:))
       end do
 
     end subroutine add_boundary_integral_sele
@@ -1187,7 +1190,7 @@ contains
       
       call transform_facet_to_physical(x, sele, &
            detwei_f=detwei_bdy)
-      mat_bdy = shape_shape(face_shape(p, sele), face_shape(p, sele), &
+      mat_bdy = shape_shape(face_shape(fs, sele), face_shape(fs, sele), &
            detwei_bdy*face_val_at_quad(inverse_viscosity_component, sele))
       call addto(mass, node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
                        node_count(p)+ele_nodes(fs_mesh, fetch(sele_to_fs_ele, sele)), &
@@ -2066,7 +2069,10 @@ contains
             "no_normal_stress option underneath it or the explicit_free_surface boundary condition under Velocity."
           FLExit("Exit")
         end if
-        if(have_explicit_free_surface .and. .not. have_option(trim(option_path)//"/solver")) then
+        if (have_free_surface .and. .not. fs_meshname==p_meshname) then
+          FLExit("The diagnostic FreeSurface field and the Pressure field have to be on the same mesh")
+        end if
+        if (have_explicit_free_surface .and. .not. have_option(trim(option_path)//"/solver")) then
           FLExit("The explicit_free_surface needs solver options.")
         end if 
         if (.not. have_option('/geometry/ocean_boundaries')) then
