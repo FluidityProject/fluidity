@@ -349,17 +349,24 @@ module copy_outof_into_state
       u_nod = 0
       allocate(cv_ndgln(totele*cv_nloc))
       allocate(u_ndgln(totele*u_nloc))
-      do i=1, totele
-         do j = 1, cv_nloc
-            cv_nod = cv_nod + 1
-            cv_ndgln( ( i - 1 ) * cv_nloc + j ) = cv_nod
-         end do
-         if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
-         do j = 1, u_nloc ! storing velocity nodes
-            u_nod = u_nod + 1
-            u_ndgln( ( i - 1 ) * u_nloc + j ) = u_nod
-         end do
-      end do
+      select case(ndim)
+        case(1)
+          do i=1, totele
+            do j = 1, cv_nloc
+              cv_nod = cv_nod + 1
+              cv_ndgln( ( i - 1 ) * cv_nloc + j ) = cv_nod
+            end do
+            if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
+            do j = 1, u_nloc ! storing velocity nodes
+              u_nod = u_nod + 1
+              u_ndgln( ( i - 1 ) * u_nloc + j ) = u_nod
+            end do
+          end do
+        case default
+          ewrite(3,*) '*************************************************************'
+          ewrite(3,*) 'We do not have global numbering set up for this dimension yet'
+          ewrite(3,*) '*************************************************************'
+      end select
 !      ewrite(3,*) 'cv_ndgln: ', cv_ndgln
 
 
@@ -630,14 +637,14 @@ module copy_outof_into_state
 !!!
 !!! Assuming for now that porosity is constant across an element
       porosity => extract_scalar_field(state, "Porosity")
-      ewrite(3,*) 'porosity sf: ', porosity%val(:)
+!      ewrite(3,*) 'porosity sf: ', porosity%val(:)
       allocate(volfra_pore(totele))
       por_ele_loop: do k = 1,element_count(porosity)
         element_nodes => ele_nodes(porosity,k)
-        ewrite(3,*) 'element_nodes', element_nodes
+!        ewrite(3,*) 'element_nodes', element_nodes
         volfra_pore(k)=porosity%val(element_nodes(1))
       end do por_ele_loop
-      ewrite(3,*) "Got porosity: ", volfra_pore
+!      ewrite(3,*) "Got porosity: ", volfra_pore
 
 ! Assuming for now that permeability is constant across an element
       if (have_option("/porous_media/scalar_field::Permeability")) then
@@ -752,10 +759,10 @@ module copy_outof_into_state
       end if
 
 
-      ewrite(3,*) "Got permeability: ", perm(1:totele, 1, 1)
-      ewrite(3,*) "p 1 2 ", perm(1:totele, 1, 2)
-      ewrite(3,*) "p 2 1 ", perm(1:totele, 2, 1)
-      ewrite(3,*) "p 2 2 ", perm(1:totele, 2, 2)
+!      ewrite(3,*) "Got permeability: ", perm(1:totele, 1, 1)
+!      ewrite(3,*) "p 1 2 ", perm(1:totele, 1, 2)
+!      ewrite(3,*) "p 2 1 ", perm(1:totele, 2, 1)
+!      ewrite(3,*) "p 2 2 ", perm(1:totele, 2, 2)
 !      stop 84848
 
 !!!
@@ -788,8 +795,8 @@ module copy_outof_into_state
                     "ComponentMassFraction/prognostic/" // &
                     "boundary_conditions[0]/type::dirichlet/constant", Component_Suf_BC )
                     
-               ewrite(3,*) 'csufid', component_sufid_bc
-               ewrite(3,*) 'nphases, j, ncomps, i', nphases, j, ncomps, i
+!               ewrite(3,*) 'csufid', component_sufid_bc
+!               ewrite(3,*) 'nphases, j, ncomps, i', nphases, j, ncomps, i
 
                do k=1,shape_option(1)
                   wic_comp_bc( component_sufid_bc(1) + nphases*(j-1) ) = Component_BC_Type
@@ -1062,7 +1069,7 @@ module copy_outof_into_state
          initial_constant_velocity=0.
          call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
                          initial_constant_velocity, stat)
-         ewrite(3,*) 'initial_constant_velocity', initial_constant_velocity
+!         ewrite(3,*) 'initial_constant_velocity', initial_constant_velocity
          if (stat==0) then
             u((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(1)
             if (ndim>1) v((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(2)
@@ -1136,7 +1143,7 @@ module copy_outof_into_state
          endif Conditional_Velocity_BC
 
       enddo Loop_Velocity
-      ewrite(3,*) 'u: ', u
+!      ewrite(3,*) 'u: ', u
 
 
       allocate(uabs_option(nphases))
@@ -1182,7 +1189,7 @@ module copy_outof_into_state
             call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/compressible/stiffened_gas/eos_option2", eos_coefs(i, 2))
             eos_coefs(i, 3:ncoef) = 0.
          endif
-         ewrite(3,*) 'i, eos_coefs', i, eos_coefs(i, :)
+!         ewrite(3,*) 'i, eos_coefs', i, eos_coefs(i, :)
       enddo
       cp_coefs = 1.
 
@@ -1305,22 +1312,32 @@ module copy_outof_into_state
 
             Loop_Temperature: do i = 1, nphases
                scalarfield => extract_scalar_field(state(i), "Temperature")
-               ewrite(3,*) 'temperature: ', scalarfield%val(:)
+!               ewrite(3,*) 'temperature: ', scalarfield%val(:)
+!               ewrite(3,*) 'element_count: ', element_count(scalarfield)
+!               ewrite(3,*) 'node_count: ', node_count(scalarfield)
+!               ewrite(3,*) 'cv_nonods*nphases= ', cv_nonods * nphases
+!               ewrite(3,*) 'cv_ndgln: ', cv_ndgln
                if (.not.allocated(t)) allocate( t( cv_nonods * nphases ))
+               
+               if (ndim==1) then
 
-               t_ele_loop: do k = 1,element_count(scalarfield)
+                 t_ele_loop: do k = 1,element_count(scalarfield)
             
-                  element_nodes => ele_nodes(scalarfield,k)
-                  ewrite(3,*) 'element_nodes', element_nodes
+                   element_nodes => ele_nodes(scalarfield,k)
+!                  ewrite(3,*) 'element_nodes', element_nodes
             
-                  t_node_loop: do j = 1,size(element_nodes)
+                   t_node_loop: do j = 1,size(element_nodes)
                   
-                     t((cv_ndgln((k-1)*size(element_nodes)+j)) + (i-1)*node_count(scalarfield)) = &
-                        scalarfield%val(element_nodes(j))
+!                     t( (cv_ndgln( (k-1)*size(element_nodes)+j) ) + (i-1)*node_count(scalarfield) ) = &
+!                        scalarfield%val(element_nodes(j))
             
-                  end do t_node_loop
+                   end do t_node_loop
             
-               end do t_ele_loop
+                 end do t_ele_loop
+               else
+               !! Global node numbering not working in multi-d
+                 t=0.
+               endif
 
                scalarfield_source => extract_scalar_field( state( i ), trim( field_name ) // &
                     "Source", stat)
@@ -1380,7 +1397,7 @@ module copy_outof_into_state
 
       end if
 
-      ewrite(3,*)'temperature field:',t
+!      ewrite(3,*)'temperature field:',t
 
       ewrite(3,*) 'Getting component source'
       allocate(comp_source(cv_nonods*nphases))
@@ -1404,9 +1421,8 @@ module copy_outof_into_state
                   call get_option("/material_phase[" // int2str(i-1) //"]/scalar_field[" // int2str(j-1) //&
                        &"]/material_phase_name", material_phase_name)
                   do k=1,nphases
-                     ewrite(3,*) 'mp_name, state_name', trim(material_phase_name), state(k)%name
+!                     ewrite(3,*) 'mp_name, state_name', trim(material_phase_name), state(k)%name
                      if (trim(material_phase_name) == state(k)%name) then
-                        ewrite(3,*) 'here'
                         do l=1,node_count(componentmassfraction)
                            comp( ((i-(1+nphases))*nphases+(k-1))*node_count(componentmassfraction)+l ) = componentmassfraction%val(l)
                         enddo
@@ -1440,7 +1456,6 @@ module copy_outof_into_state
          do i=1, ncomps
             call get_option('material_phase['// int2str(i+nphases-1) //']/is_multiphase_component/' // &
                  'KComp_Sigmoid/k_comp', k_comp(i, 1, 1))
-            ewrite(3,*) 'i, kcomp', i, k_comp(i, 1, 1)
             k_comp(i, 1:nphases, 1:nphases) = k_comp(i, 1, 1)
          end do
       end if

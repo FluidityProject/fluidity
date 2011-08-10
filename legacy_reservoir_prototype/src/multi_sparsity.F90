@@ -30,6 +30,7 @@
   module spact
 
     use fldebug
+    use shape_functions
     integer, parameter :: nface_p1 = 3, internal_faces = 1
 
   contains
