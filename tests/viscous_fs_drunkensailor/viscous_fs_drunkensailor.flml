@@ -46,7 +46,7 @@
         <integer_value rank="0">1</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <output_mesh name="CoordinateMesh"/>
+    <output_mesh name="VelocityMesh"/>
     <convergence>
       <convergence_file/>
     </convergence>
@@ -166,7 +166,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -273,7 +273,7 @@
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>
-            <mesh name="CoordinateMesh"/>
+            <mesh name="VelocityMesh"/>
             <algorithm name="bulk_viscosity" material_phase_support="multiple "/>
             <output/>
             <stat>
@@ -305,7 +305,7 @@
     </vector_field>
     <scalar_field name="MaterialVolumeFraction" rank="0">
       <prognostic>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <coupled_cv>
@@ -447,7 +447,7 @@
     <scalar_field name="ControlVolumeDivergence" rank="0">
       <diagnostic field_name="Velocity">
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -479,7 +479,7 @@
     <scalar_field name="ControlVolumeCFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -495,7 +495,7 @@
     </scalar_field>
     <tensor_field name="MaterialViscosity" rank="2">
       <prescribed>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <anisotropic_symmetric>
             <constant>
@@ -523,7 +523,7 @@
     <scalar_field name="MaterialVolumeFraction" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -539,7 +539,7 @@
     </scalar_field>
     <tensor_field name="MaterialViscosity" rank="2">
       <prescribed>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <anisotropic_symmetric>
             <constant>
