@@ -337,7 +337,7 @@
           <python>
             <string_value lines="20" type="python">def val(X,t):
   from math import *
-  dx = 1./20.
+  dx = 1./80.
   wavelength=1.0
   k=2.0*pi/wavelength
   amp = 0.1
@@ -381,7 +381,7 @@
           <python>
             <string_value lines="20" type="python">def val(X,t):
   from math import *
-  dx = 1./20.
+  dx = 1./80.
   wavelength=1.0
   k=2.0*pi/wavelength
   D=1.0
