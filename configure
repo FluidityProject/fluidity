@@ -735,9 +735,9 @@ enable_verbose
 with_femdem
 with_psmile
 with_netcdf
-with_ParMetis
 enable_sam
 with_zoltan
+with_ParMetis
 with_adjoint
 enable_petsc_fortran_modules
 with_x
@@ -1433,8 +1433,8 @@ Optional Packages:
                           specify the oasis4 path
   --with-netcdf[=netcdf_ROOT]
                           specify where to find lib/ and include/ for netCDF
-  --with-ParMetis=PFX        Prefix where ParMetis is installed
   --with-zoltan=prefix        Prefix where zoltan is installed
+  --with-ParMetis=PFX        Prefix where ParMetis is installed
   --with-adjoint=prefix        Prefix where libadjoint is installed
   --with-x                use the X Window System
   --with-arpack-lib[=<lib>]
@@ -11584,104 +11584,6 @@ fi
 fi
 
 # Parmetis and zoltan
-
-# Set variables...
-
-# Check whether --with-ParMetis was given.
-if test "${with_ParMetis+set}" = set; then :
-  withval=$with_ParMetis; ParMetis="$withval"
-fi
-
-ParMetis_LIBS_PATH="$ParMetis/lib"
-
-# Check that the compiler uses the library we specified...
-if test -e $ParMetis_LIBS_PATH/libparmetis.a; then
-	echo "note: using $ParMetis_LIBS_PATH/libparmetis.a"
-fi
-
-# Ensure the comiler finds the library...
-tmpLIBS=$LIBS
-tmpCPPFLAGS=$CPPFLAGS
-
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm"
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ParMETIS_V3_AdaptiveRepart in -lparmetis" >&5
-$as_echo_n "checking for ParMETIS_V3_AdaptiveRepart in -lparmetis... " >&6; }
-if test "${ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lparmetis  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ParMETIS_V3_AdaptiveRepart ();
-#ifdef F77_DUMMY_MAIN
-
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int F77_DUMMY_MAIN() { return 1; }
-
-#endif
-#ifdef FC_DUMMY_MAIN
-#ifndef FC_DUMMY_MAIN_EQ_F77
-#  ifdef __cplusplus
-     extern "C"
-#  endif
-   int FC_DUMMY_MAIN() { return 1; }
-#endif
-#endif
-int
-main ()
-{
-return ParMETIS_V3_AdaptiveRepart ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart=yes
-else
-  ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&5
-$as_echo "$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&6; }
-if test "x$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" = x""yes; then :
-
-$as_echo "#define HAVE_PARMETIS 1" >>confdefs.h
-
-else
-  as_fn_error $? "Could not link in the ParMetis library... exiting " "$LINENO" 5
-fi
-
-tmpLIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis"
-# Save variables...
-ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-LIBS=$tmpLIBS
-CPPFLAGS=$tmpCPPFLAGS
-
-
 # Check whether --enable-sam was given.
 if test "${enable_sam+set}" = set; then :
   enableval=$enable_sam;
@@ -11814,6 +11716,102 @@ echo $LIBS
 fi
 
 
+
+# Set variables...
+
+# Check whether --with-ParMetis was given.
+if test "${with_ParMetis+set}" = set; then :
+  withval=$with_ParMetis; ParMetis="$withval"
+fi
+
+ParMetis_LIBS_PATH="$ParMetis/lib"
+
+# Check that the compiler uses the library we specified...
+if test -e $ParMetis_LIBS_PATH/libparmetis.a; then
+	echo "note: using $ParMetis_LIBS_PATH/libparmetis.a"
+fi
+
+# Ensure the comiler finds the library...
+tmpLIBS=$LIBS
+tmpCPPFLAGS=$CPPFLAGS
+
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+LIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis -lm"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ParMETIS_V3_AdaptiveRepart in -lparmetis" >&5
+$as_echo_n "checking for ParMETIS_V3_AdaptiveRepart in -lparmetis... " >&6; }
+if test "${ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lparmetis  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char ParMETIS_V3_AdaptiveRepart ();
+#ifdef F77_DUMMY_MAIN
+
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+
+#endif
+#ifdef FC_DUMMY_MAIN
+#ifndef FC_DUMMY_MAIN_EQ_F77
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int FC_DUMMY_MAIN() { return 1; }
+#endif
+#endif
+int
+main ()
+{
+return ParMETIS_V3_AdaptiveRepart ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart=yes
+else
+  ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&5
+$as_echo "$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" >&6; }
+if test "x$ac_cv_lib_parmetis_ParMETIS_V3_AdaptiveRepart" = x""yes; then :
+
+$as_echo "#define HAVE_PARMETIS 1" >>confdefs.h
+
+else
+  as_fn_error $? "Could not link in the ParMetis library... exiting " "$LINENO" 5
+fi
+
+tmpLIBS="$tmpLIBS -L$ParMetis_LIBS_PATH -lparmetis -lmetis"
+# Save variables...
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+LIBS=$tmpLIBS
+CPPFLAGS=$tmpCPPFLAGS
 
 
 HAVE_ADJOINT=no
