@@ -117,6 +117,7 @@ module detector_data_types
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biovar_list
      integer, dimension(:), allocatable :: biofield_type
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_list
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: chemfield_list
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
 
 

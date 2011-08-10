@@ -32,7 +32,7 @@ param_V_S_ref =        0.03
 param_z_sink =         0.04
 param_Zeta =           2.3
 
-def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate):
+def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate, amm_depletion, nit_depletion, sil_depletion):
   
   ### Phase 1 ###
   
@@ -49,9 +49,14 @@ def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradian
   ambientAmmonium = ammonium.eval_field(ele, local_coord)
   ambientNitrate = nitrate.eval_field(ele, local_coord)
   ambientSilicate = silicate.eval_field(ele, local_coord)
+  ammoniumDepleted = amm_depletion.eval_field(ele, local_coord)
+  nitrateDepleted = nit_depletion.eval_field(ele, local_coord)
+  silicateDepleted = sil_depletion.eval_field(ele, local_coord)
   
   # Nutrient uptake 
-  # (omitted for now, since we don't have depletion fields)
+  vars[name['IngAmmonium']] = vars[name['IngAmmonium']] * ammoniumDepleted
+  vars[name['IngNitrate']] = vars[name['IngNitrate']] * nitrateDepleted
+  vars[name['IngSilicate']] = vars[name['IngSilicate']] * silicateDepleted
   
   ### Phase 2 ###
 

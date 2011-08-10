@@ -150,6 +150,7 @@ contains
           allocate(agent_arrays(i)%biovar_list(biovar_total))
           allocate(agent_arrays(i)%biofield_type(biovar_total))
           allocate(agent_arrays(i)%biofield_list(biovar_total))
+          allocate(agent_arrays(i)%chemfield_list(biovar_total))
           allocate(initial_values(biovar_total))
 
           ! Add internal state variables
@@ -176,6 +177,7 @@ contains
              initial_values(index)=0.0
              agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
              agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Request"
+             call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
 
              index = index+1
           end do
@@ -187,6 +189,7 @@ contains
              initial_values(index)=0.0
              agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
              agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Release"
+             call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
 
              index = index+1
           end do
@@ -272,9 +275,10 @@ contains
     integer, intent(in) :: timestep
 
     type(detector_type), pointer :: agent
-    type(scalar_field), pointer :: sfield
+    type(scalar_field), pointer :: sfield, request_field, chemical_field, absorption_field, &
+                                   depletion_field, release_field, source_field
     type(vector_field), pointer :: xfield
-    integer :: i, j
+    integer :: i, j, n
 
     ewrite(1,*) "In calculate_lagrangian_biology"
 
@@ -305,14 +309,43 @@ contains
              call python_calc_agent_biology(agent, xfield, dt, trim(agent_arrays(i)%name), trim("biology_update"))
              agent=>agent%next
           end do
-       end if
 
-       ! Calculate diagnostic fields from agents variables
-       if (agent_arrays(i)%has_biology) then
+          ! Calculate diagnostic fields from agents variables
           do j=1, size(agent_arrays(i)%biovar_list)
              if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
                 sfield=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
                 call set_diagnostic_field_from_agents(agent_arrays(i), j, sfield)
+             end if
+          end do
+
+          do j=1, size(agent_arrays(i)%biovar_list)
+             ! Handle chemical uptake
+             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
+                request_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
+                chemical_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%chemfield_list(j)))
+                absorption_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%chemfield_list(j))//"Absorption")
+                depletion_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%biovar_list(j))//"Depletion")
+                call zero(depletion_field)
+
+                do n=1, node_count(request_field)
+                   if (node_val(request_field,n) > node_val(chemical_field,n)) then
+                      ! Scale back the request
+                      call set(depletion_field, n, node_val(chemical_field,n) / node_val(request_field,n))
+                   else
+                      call set(depletion_field, n, 1.0)
+                   end if
+
+                   call addto(absorption_field, n, node_val(request_field,n) * node_val(depletion_field,n))
+                end do
+             end if
+
+             ! Handle chemical release
+             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
+                release_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
+                source_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%chemfield_list(j))//"Source")
+                do n=1, node_count(release_field)
+                   call addto(source_field, n, node_val(release_field,n))
+                end do
              end if
           end do
        end if
@@ -343,7 +376,6 @@ contains
        shape => ele_shape(sfield, agent%element)
        element_nodes = ele_nodes(sfield, agent%element)
        do i=1, ele_loc(sfield, agent%element)
-          !ewrite(2,*) "ml805 eval_shape: ", eval_shape(shape, i, agent%local_coords)
           scaled_value = value * eval_shape(shape, i, agent%local_coords)
           call addto(sfield, element_nodes(i), scaled_value)
        end do

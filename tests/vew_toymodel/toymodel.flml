@@ -575,7 +575,7 @@ def val(X,t):
           <initial_position>
             <string_value lines="20" type="python">def val(t):
   from numpy import arange
-  # 4000 agents, evenly spaced in [0:40]
+  # 4000 agents, evenly spaced in [0:200]m
   positions = arange(-200.,0.0,0.05).reshape(4000,1)
   return positions</string_value>
           </initial_position>
@@ -811,9 +811,12 @@ irradiance = state.scalar_fields['Irradiance']
 ammonium = state.scalar_fields['Ammonium']
 nitrate = state.scalar_fields['Nitrate']
 silicate = state.scalar_fields['Silicate']
+amm_depletion = state.scalar_fields['IngAmmoniumDepletion']
+nit_depletion = state.scalar_fields['IngNitrateDepletion']
+sil_depletion = state.scalar_fields['IngSilicateDepletion']
 
 def val(ele, local_coord, dt, vars):
-  bio.update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate)  
+  bio.update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate, amm_depletion, nit_depletion, sil_depletion)  
   return vars</string_value>
           </biology_update>
         </agent_array>
