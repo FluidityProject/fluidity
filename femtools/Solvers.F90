@@ -1676,10 +1676,10 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
         else
           ewrite(2,*) 'Adding null-space removal options for vector components to KSP'
           ewrite(2,*) 'size(null_space_array) = ', size(null_space_array)
-          do i = 0, size(null_space_array)-1
-            ewrite(2,*) 'i = ', i
-            call VecView(null_space_array(i), PETSC_VIEWER_STDOUT_SELF, ierr)
-          end do
+!          do i = 0, size(null_space_array)-1
+!            ewrite(2,*) 'i = ', i
+!            call VecView(null_space_array(i), PETSC_VIEWER_STDOUT_SELF, ierr)
+!          end do
           call MatNullSpaceCreate(PETSC_COMM_WORLD,PETSC_FALSE,size(null_space_array),null_space_array,sp,ierr)
         end if
       else
@@ -2362,7 +2362,7 @@ Vec, allocatable, dimension(:), intent(out) :: null_space_array
        call allocate(nullscalar, sfield%mesh, name="NullSpaceScalar")
        call set(nullscalar, 1./sqrt(real(nodes)))
 
-       allocate(null_space_array(1))
+       allocate(null_space_array(0:0))
        null_space_array(0)=PetscNumberingCreateVec(petsc_numbering)
        call field2petsc(nullscalar, petsc_numbering, null_space_array(0))
 
