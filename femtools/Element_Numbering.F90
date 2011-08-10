@@ -2275,6 +2275,8 @@ contains
     integer, allocatable, dimension(:) :: boundary2element,&
          &boundary2count_component
     real, allocatable, dimension(:) :: boundary2local_coordinate
+    ! for debugging
+    real,  dimension(size(ele_num%number2count, 1)) :: l_coords
 
     select case(ele_num%type)
     case (ELEMENT_LAGRANGIAN)
@@ -2367,6 +2369,7 @@ contains
              coords(n) = 0.0
           end if
        case (FAMILY_CUBE)
+
           !for trace elements, the first count coordinate is the 
           !boundary number.
           !The other coordinates are the count coordinates on the 
@@ -2379,7 +2382,7 @@ contains
              !the mapping from boundary count coordinates to 
              !element count
              !coordinates is done in ascending component order
-          
+             coords = 0.
              count_coords=ele_num%number2count(:,n)
 
              !numbering is
@@ -2409,10 +2412,10 @@ contains
              
              i = boundary2element(count_coords(1))
              if(ele_num%degree>0) then
-                !count_coords(2) increases with increasing element count
+                !count_coords(3) increases with increasing element count
                 !coordinate component boundar2element(count_coords(1))
-                coords(boundary2element(i))=&
-                     &count_coords(2)/real(ele_num%degree)
+                coords(i)=&
+                     &count_coords(3)/real(ele_num%degree)
              else
                 !special case for degree 0 trace space,
                 !a single node in the middle of the face
@@ -2421,6 +2424,8 @@ contains
              i = boundary2count_component(count_coords(1))
              coords(i)=&
                   &boundary2local_coordinate(count_coords(1))
+
+             l_coords = coords
 
              deallocate(boundary2element,boundary2count_component,&
                   &boundary2local_coordinate)

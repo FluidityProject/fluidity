@@ -518,7 +518,7 @@ contains
     integer :: i
 
     eval_shape=1.0
-          
+    
     do i=1,size(shape%spoly,1)
        
        ! Raw shape function
