@@ -793,6 +793,8 @@ EOF
 fi
 
 # Parmetis and zoltan
+ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
+
 AC_ARG_ENABLE(sam,
     [AC_HELP_STRING([--enable-sam],
 	    [use sam rather than zoltan for adaptive load rebalancing])])
@@ -809,7 +811,7 @@ else
 fi
 AC_SUBST(HAVE_ZOLTAN)
 
-ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
+
 
 HAVE_ADJOINT=no
 CAN_USE_ADJOINT=yes
