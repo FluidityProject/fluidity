@@ -108,8 +108,7 @@ discontinuous_galerkin_options =
          dg_advection_scheme,
          dg_diffusion_scheme,
          dg_upwind_stabilisation,
-         dg_mass_terms,
-         dg_local_assembly
+         dg_mass_terms
       } 
    )
 
@@ -475,16 +474,6 @@ dg_mass_terms =
             empty
          }?
       }?   
-   )
-
-dg_local_assembly =
-   (
-      ## Should we perform local assembly of DG terms.
-      ## If this is set, we assemble in the halo elements,
-      ## doing more work
-      element local_assembly {
-         empty
-      }?
    )
 
 pure_cv_options = 

@@ -583,8 +583,7 @@ contains
       &"/prognostic/tensor_field::SurfaceTension&
       &/diagnostic/integrate_by_parts")
 
-    local_assembly = have_option(trim(U%option_path)//"/prognostic/&
-         &spatial_discretisation/discontinuous_galerkin/local_assembly")
+    local_assembly = have_option("/local_assembly")
     if (local_assembly) then
        ewrite(2, *)'Using local assembly routines in construct_momentum_dg'
     end if

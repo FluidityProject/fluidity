@@ -356,8 +356,7 @@ contains
        FLAbort("Unknown diffusion scheme for DG Advection Diffusion")
     end if
 
-    local_assembly = have_option(trim(T%option_path)//"/prognostic/&
-         &spatial_discretisation/discontinuous_galerkin/local_assembly")
+    local_assembly = have_option("/local_assembly")
     if ( local_assembly ) then
        ewrite(2, *)'Using local assembly routines for advection_diffusion_dg'
     end if
