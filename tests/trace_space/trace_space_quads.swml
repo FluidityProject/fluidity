@@ -235,7 +235,7 @@
   x = X[0]
   y = X[1]
   #return cos(x)*cos(y)
-  return x</string_value>
+  return 2*y + x</string_value>
           </python>
         </initial_condition>
         <mean_layer_thickness>
@@ -270,7 +270,7 @@
   x = X[0]
   y = X[1]
   #return cos(x)*cos(y)
-  return x</string_value>
+  return 2*y + x</string_value>
           </python>
         </initial_condition>
         <output/>
