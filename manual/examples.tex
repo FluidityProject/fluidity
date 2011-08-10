@@ -1337,10 +1337,9 @@ In this example, \fluidity\ is used to replicate the conditions under which plum
 \item 2D flow
 \item Multi-phase flow
 \item Incompressible flow
-\item Mesh adaptivity
 \end{itemize}
 
-The simulation illustrated here took $\sim$? hours to run in parallel on 4 Intel Xeon ? ?.?? GHz processors.
+The simulation illustrated here took $\sim$1 hour to run in parallel over four processes on two (dual-core) Intel Xeon E5430 2.66 GHz processors.
 
 \subsection{Problem specification}
 The simulation uses a 0.3 x 0.7 metre domain, replicating the cross-section of the water tank used in the experiments, with an initial characteristic element size of 0.01 metres. No normal flow boundary conditions are imposed along with a zero velocity initial condition. The parameters for density, viscosity, particle diameter and gravity are $\rho_p = 2340\ \mathrm{kgm^{-3}}$, $\rho_l = 1000\ \mathrm{kgm^{-3}}$, $\mu_l = 0.001\ \mathrm{Pa\cdot s}$, $d = 48\times 10^{-6}\ \mathrm{m}$, and $\mathbf{g} = 9.8\ \mathrm{ms^{-2}}$ respectively (with the subscripts $p$ and $l$ denoting the properties of the particle and liquid phase).
