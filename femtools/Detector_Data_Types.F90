@@ -115,8 +115,8 @@ module detector_data_types
      !! Biology options
      logical :: has_biology=.false.
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biovar_list
+     integer, dimension(:), allocatable :: biofield_type
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_list
-     logical, dimension(:), allocatable :: has_biofield
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
 
 

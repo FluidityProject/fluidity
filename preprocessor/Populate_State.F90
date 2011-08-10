@@ -1426,7 +1426,8 @@ contains
       ! Allocate diagnostic fields to represent agent variables
       type(state_type), intent(inout) :: state
 
-      character(len=OPTION_PATH_LEN) :: agent_path, field_name, array_buffer, var_buffer
+      character(len=OPTION_PATH_LEN) :: agent_path, array_buffer, var_buffer
+      character(len=FIELD_NAME_LEN) :: var_name, field_name
       integer :: i, j, agent_array_count, agent_var_count
 
       ! Go through all agent arrays and allocate the specified diagnostic fields
@@ -1438,14 +1439,52 @@ contains
          agent_var_count = option_count(trim(array_buffer)//"/variable")
          do j=1, agent_var_count
             write(var_buffer, "(a,i0,a)") trim(array_buffer)//"/variable[",j-1,"]"
+            call get_option(trim(var_buffer)//"/name", var_name)
+
+            ! Add diagnostic field
             if (have_option(trim(var_buffer)//"/scalar_field")) then
                call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
                call allocate_and_insert_scalar_field(&
-                     trim(var_buffer)//"/scalar_field", &
+                        trim(var_buffer)//"/scalar_field", &
+                        state, field_name=trim(field_name), &
+                        dont_allocate_prognostic_value_spaces&
+                        =dont_allocate_prognostic_value_spaces)
+            end if
+         end do
+
+         ! Add request and depletion fields for uptake variables
+         agent_var_count = option_count(trim(array_buffer)//"/uptake_variable")
+         do j=1, agent_var_count
+            write(var_buffer, "(a,i0,a)") trim(array_buffer)//"/uptake_variable[",j-1,"]"
+            call get_option(trim(var_buffer)//"/name", var_name)
+
+            field_name = trim(var_name)//"Request"
+            call allocate_and_insert_scalar_field(&
+                     trim(var_buffer)//"/scalar_field::Request", &
                      state, field_name=trim(field_name), &
                      dont_allocate_prognostic_value_spaces&
                      =dont_allocate_prognostic_value_spaces)
-            end if
+
+            field_name = trim(var_name)//"Depletion"
+            call allocate_and_insert_scalar_field(&
+                     trim(var_buffer)//"/scalar_field::Depletion", &
+                     state, field_name=trim(field_name), &
+                     dont_allocate_prognostic_value_spaces&
+                     =dont_allocate_prognostic_value_spaces)
+         end do
+
+         ! Add release fields for excretion variables
+         agent_var_count = option_count(trim(array_buffer)//"/release_variable")
+         do j=1, agent_var_count
+            write(var_buffer, "(a,i0,a)") trim(array_buffer)//"/release_variable[",j-1,"]"
+            call get_option(trim(var_buffer)//"/name", var_name)
+
+            field_name = trim(var_name)//"Release"
+            call allocate_and_insert_scalar_field(&
+                     trim(var_buffer)//"/scalar_field::Release", &
+                     state, field_name=trim(field_name), &
+                     dont_allocate_prognostic_value_spaces&
+                     =dont_allocate_prognostic_value_spaces)
          end do
       end do
 

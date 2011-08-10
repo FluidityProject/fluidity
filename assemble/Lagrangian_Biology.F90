@@ -53,6 +53,8 @@ implicit none
 
   type(detector_linked_list), dimension(:), allocatable, target, save :: agent_arrays
 
+  integer, parameter :: BIOFIELD_NONE=0, BIOFIELD_DIAG=1, BIOFIELD_UPTAKE=2, BIOFIELD_RELEASE=3
+
 contains
 
   subroutine initialise_lagrangian_biology(state)
@@ -66,8 +68,8 @@ contains
     real, allocatable, dimension(:,:) :: coords
     real, allocatable, dimension(:) :: initial_values
     real:: current_time
-    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type, &
-               random_seed, biovar_count
+    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type, random_seed, &
+               biovar_index, biovar_total, biovar_internal, biovar_uptake, biovar_release, index
 
     if (.not.have_option("/ocean_biology/lagrangian_ensemble")) return
 
@@ -138,25 +140,55 @@ contains
        ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
 
        ! Biology parameters
-       biovar_count = option_count(trim(schema_buffer)//"/variable")
-       if (biovar_count > 0) then
+       biovar_internal = option_count(trim(schema_buffer)//"/variable") 
+       biovar_uptake = option_count(trim(schema_buffer)//"/uptake_variable")
+       biovar_release = option_count(trim(schema_buffer)//"/release_variable")
+       biovar_total = biovar_internal + biovar_uptake + biovar_release
+       if (biovar_total > 0) then
 
-          allocate(agent_arrays(i)%biovar_list(biovar_count))
-          allocate(agent_arrays(i)%biofield_list(biovar_count))
-          allocate(agent_arrays(i)%has_biofield(biovar_count))
-          allocate(initial_values(biovar_count))
-          do j=1, biovar_count
+          ! Allocate variable arrays
+          allocate(agent_arrays(i)%biovar_list(biovar_total))
+          allocate(agent_arrays(i)%biofield_type(biovar_total))
+          allocate(agent_arrays(i)%biofield_list(biovar_total))
+          allocate(initial_values(biovar_total))
+
+          ! Add internal state variables
+          index = 1
+          do j=1, biovar_internal
              write(biovar_buffer, "(a,i0,a)") trim(schema_buffer)//"/variable[",j-1,"]"
-             call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(j))
-             call get_option(trim(biovar_buffer)//"/initial_value", initial_values(j))
+             call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
+             call get_option(trim(biovar_buffer)//"/initial_value", initial_values(index))
 
              ! Record according diagnostic field
              if (have_option(trim(biovar_buffer)//"/scalar_field")) then
-                agent_arrays(i)%has_biofield(j) = .true.
-                call get_option(trim(biovar_buffer)//"/scalar_field/name", agent_arrays(i)%biofield_list(j))
+                agent_arrays(i)%biofield_type(index) = BIOFIELD_DIAG
+                call get_option(trim(biovar_buffer)//"/scalar_field/name", agent_arrays(i)%biofield_list(index))
              else
-                agent_arrays(i)%has_biofield(j) = .false.
+                agent_arrays(i)%biofield_type(index) = BIOFIELD_NONE
              end if
+             index = index+1
+          end do
+
+          ! Add uptake variables
+          do j=1, biovar_uptake
+             write(biovar_buffer, "(a,i0,a)") trim(schema_buffer)//"/uptake_variable[",j-1,"]"
+             call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
+             initial_values(index)=0.0
+             agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
+             agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Request"
+
+             index = index+1
+          end do
+
+          ! Add release variables
+          do j=1, biovar_release
+             write(biovar_buffer, "(a,i0,a)") trim(schema_buffer)//"/release_variable[",j-1,"]"
+             call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
+             initial_values(index)=0.0
+             agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
+             agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Release"
+
+             index = index+1
           end do
 
           ! Store the python update code
@@ -168,8 +200,8 @@ contains
           ! Initialise agent variables
           agent => agent_arrays(i)%first
           do while (associated(agent))
-             allocate(agent%biology(biovar_count))
-             do j=1, biovar_count
+             allocate(agent%biology(biovar_total))
+             do j=1, biovar_total
                 agent%biology(j) = initial_values(j)
              end do
              agent => agent%next
@@ -278,7 +310,7 @@ contains
        ! Calculate diagnostic fields from agents variables
        if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovar_list)
-             if (agent_arrays(i)%has_biofield(j)) then
+             if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
                 sfield=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
                 call set_diagnostic_field_from_agents(agent_arrays(i), j, sfield)
              end if
