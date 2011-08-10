@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>tephra_settling</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="medium" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- This is a 2D simulation of the formation of density currents. We consider a -->
+    <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
+    <!-- Density currents/plumes should eventually form when the bulk density is large enough. -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="tephra_u_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("tephra_settling.stat")
+tephra_u_max=s["Tephra"]["Velocity%magnitude"]["max"]
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Tephra velocity is between 0.0 and 0.03" language="python">
+assert abs(tephra_u_max.all() - 0.03) &lt;= 0.03
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>
