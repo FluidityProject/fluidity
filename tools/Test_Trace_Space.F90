@@ -100,7 +100,7 @@
     call test_local_coords(state(1))
     call test_face_local_nodes(state(1))
     call test_trace_values(state(1))
-    !call test_trace_projection(state(1))
+    call test_trace_projection(state(1))
 
     ewrite(1,*) 'TEST PASSED'
 

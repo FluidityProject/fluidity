@@ -1950,6 +1950,11 @@ implicit none
     integer :: fromloc, toloc, ele, i
     integer, dimension(:), pointer :: from_ele, to_ele
     
+    !4debugging
+    real, dimension(size(from_field%mesh%shape%spoly,1)) :: l
+
+    ewrite(1,*) 'REMOVE DEBUGGING STUFF'
+    
     if(present(stat)) stat = 0
 
     assert(to_field%dim>=from_field%dim)
@@ -2008,7 +2013,7 @@ implicit none
             FLAbort("Trying to remap from a bubble to a lagrange vector field")
           end if
         end if
-
+        
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
           do fromloc=1,size(locweight,2)

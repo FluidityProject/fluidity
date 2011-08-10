@@ -2264,19 +2264,32 @@ contains
   ! Local coordinate calculations.
   !------------------------------------------------------------------------
 
+  pure function local_coords_len(ele_num)
+    type(ele_numbering_type), intent(in) :: ele_num
+    integer :: local_coords_len
+    !
+    if(ele_num%type==ELEMENT_TRACE) then
+       if((ele_num%family==FAMILY_CUBE)) then
+          local_coords_len = ele_num%dimension
+       else
+          local_coords_len = size(ele_num%number2count, 1)
+       end if
+    else
+       local_coords_len = size(ele_num%number2count, 1)
+    end if
+  end function local_coords_len
+
   function ele_num_local_coords(n, ele_num) result (coords)
     ! Work out the local coordinates of node n in ele_num.
     integer, intent(in) :: n
     type(ele_numbering_type), intent(in) :: ele_num    
-    real, dimension(size(ele_num%number2count, 1)) :: coords
+    real, dimension(local_coords_len(ele_num)) :: coords
     
     integer, dimension(size(ele_num%number2count, 1)) :: count_coords
     integer :: i
     integer, allocatable, dimension(:) :: boundary2element,&
          &boundary2count_component
     real, allocatable, dimension(:) :: boundary2local_coordinate
-    ! for debugging
-    real,  dimension(size(ele_num%number2count, 1)) :: l_coords
 
     select case(ele_num%type)
     case (ELEMENT_LAGRANGIAN)
@@ -2408,24 +2421,22 @@ contains
              boundary2count_component = (/1,1,2,2/)
              !boundary2local_coordinate is the value of the 
              !local coordinate on that boundary
-             boundary2local_coordinate = (/0.,1.,0.,1./)
+             boundary2local_coordinate = (/-1.,1.,-1.,1./)
              
              i = boundary2element(count_coords(1))
              if(ele_num%degree>0) then
                 !count_coords(3) increases with increasing element count
                 !coordinate component boundar2element(count_coords(1))
                 coords(i)=&
-                     &count_coords(3)/real(ele_num%degree)
+                     &2.*count_coords(3)/real(ele_num%degree)-1.
              else
                 !special case for degree 0 trace space,
                 !a single node in the middle of the face
-                coords(i)=0.5
+                coords(i)=0.
              end if
              i = boundary2count_component(count_coords(1))
              coords(i)=&
                   &boundary2local_coordinate(count_coords(1))
-
-             l_coords = coords
 
              deallocate(boundary2element,boundary2count_component,&
                   &boundary2local_coordinate)
