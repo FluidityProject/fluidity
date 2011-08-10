@@ -9,6 +9,10 @@ run:
 	@echo **********Running simulation
 	mpiexec -n 4 ../../bin/fluidity -v2 -l tephra_settling.flml
 
+postprocess:
+	@echo **********Running postprocessing script
+	python postprocess.py
+
 input: clean preprocess
 
 clean:
