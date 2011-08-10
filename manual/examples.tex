@@ -1170,7 +1170,7 @@ The mesh used is a layered mesh, which is created within fluidity from the two d
 
 The velocity is solved for using a discontinuous galerkin discretisation to make the results more accurate. A continuous galerkin discretisation is used for both pressure and temperature, with a polynomial order of 2 for pressure and 1 for temperature.  This discretisation is sometimes referred to as p1dgp2. For this discretisation, the quadrature degree has to be set to 4.   To make it more stable, subcycling is switched on under velocity with a maximum courant number per subcycle of 0.1. There is a diagnostic free surface field which requires a free surface boundary condition under Velocity.
 
-The timestep is 7200 s and there are two non-linear iterations.  The timestep is constrained by the courant condition, but is allowed to be bigger that would otherwise be expected because  an Absorption field is added under Velocity.  If this field was not added the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \\* \option{\ldots/Absorption/include\_pressure\_correction} option is turned on. 
+The timestep is 7200 s and there are two non-linear iterations.  The timestep is constrained by the courant condition, but is allowed to be bigger than would otherwise be expected because an Absorption field is added under Velocity.  If this field was not added the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \\* \option{\ldots/Absorption/include\_pressure\_correction} option is turned on. 
 
 \subsection{Results}
 
@@ -1337,16 +1337,15 @@ In this example, \fluidity\ is used to replicate the conditions under which plum
 \item 2D flow
 \item Multi-phase flow
 \item Incompressible flow
+\item Adaptive timestepping
 \end{itemize}
 
 The simulation illustrated here took $\sim$1 hour to run in parallel over four processes on two (dual-core) Intel Xeon E5430 2.66 GHz processors.
 
 \subsection{Problem specification}
-The simulation uses a 0.3 x 0.7 metre domain, replicating the cross-section of the water tank used in the experiments, with an initial characteristic element size of 0.01 metres. No normal flow boundary conditions are imposed along with a zero velocity initial condition. The parameters for density, viscosity, particle diameter and gravity are $\rho_p = 2340\ \mathrm{kgm^{-3}}$, $\rho_l = 1000\ \mathrm{kgm^{-3}}$, $\mu_l = 0.001\ \mathrm{Pa\cdot s}$, $d = 48\times 10^{-6}\ \mathrm{m}$, and $\mathbf{g} = 9.8\ \mathrm{ms^{-2}}$ respectively (with the subscripts $p$ and $l$ denoting the properties of the particle and liquid phase).
+The simulation uses a 0.3 x 0.7 metre domain, replicating the cross-section of the water tank used in the experiments, with an initial characteristic element size of 0.01 metres. No normal flow boundary conditions are weakly imposed along with a zero velocity initial condition. The parameters for density, viscosity, particle diameter and gravity are $\rho_p = 2340\ \mathrm{kgm^{-3}}$, $\rho_l = 1000\ \mathrm{kgm^{-3}}$, $\mu_l = 0.001\ \mathrm{Pa\cdot s}$, $d = 48\times 10^{-6}\ \mathrm{m}$, and $\mathbf{g} = 9.8\ \mathrm{ms^{-2}}$ respectively (with the subscripts $p$ and $l$ denoting the properties of the particle/tephra and liquid phase).
 
-The experiments by Carey introduced tephra particles into the tank from above using a delivery system and a particle disperser; eventually, a layer of tephra formed on top of the water. This is represented here using an inflow boundary condition at the top of the domain to allow tephra to flux in at a rate of $0.000472\ \mathrm{kgm^{-2}s^{-1}}$.
-
-The results of the experiments showed that tephra particles initially settled at an average Stokes velocity of $0.2\ \mathrm{cms^{-1}}$. When the concentration was high enough, plumes formed and travelled to the bottom of the tank at an average velocity of $2\ \mathrm{cms^{-1}}$ --- 10 times greater than that of single particles.
+The experiments by Carey introduced tephra particles into the tank from above using a delivery system and a particle disperser; eventually, a layer of tephra formed on top of the water. This is represented here using an inflow boundary condition at the top of the domain to allow tephra to flux in at a rate of $0.000472\ \mathrm{kgm^{-2}s^{-1}}$. The results of the experiments showed that tephra particles initially settled at an average Stokes velocity of $0.2\ \mathrm{cms^{-1}}$. When the concentration was high enough, plumes formed and travelled to the bottom of the tank at an average velocity of $2\ \mathrm{cms^{-1}}$ --- 10 times greater than that of single particles.
 
 \subsection{Results}
 Several timesteps of the example simulation (when run on a mesh with characteristic element size $\Delta x = 0.0025\ \mathrm{m}$) can be seen in Figure \ref{fig:tephra_settling}. Similar images can be generated by visualising the vtu files using Paraview.
@@ -1370,3 +1369,4 @@ The following graph (reproducible by typing \textit{make postprocess} at the com
    \caption{Maximum velocity of the tephra phase against time.}
    \label{fig:tephra_settling_velocity}
 \end{figure}
+
