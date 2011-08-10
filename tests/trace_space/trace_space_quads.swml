@@ -263,9 +263,13 @@
           </diagnostics>
         </solver>
         <initial_condition name="Initial">
-          <constant>
-            <real_value rank="0">0.</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+  from math import cos
+  x = X[0]
+  y = X[1]
+  return cos(x)*cos(y)</string_value>
+          </python>
         </initial_condition>
         <output/>
         <stat/>

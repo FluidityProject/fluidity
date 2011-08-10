@@ -2407,17 +2407,19 @@ contains
              !local coordinate on that boundary
              boundary2local_coordinate = (/0.,1.,0.,1./)
              
+             i = boundary2element(count_coords(1))
              if(ele_num%degree>0) then
                 !count_coords(2) increases with increasing element count
                 !coordinate component boundar2element(count_coords(1))
-                coords(boundary2element(count_coords(1))=&
+                coords(boundary2element(i))=&
                      &count_coords(2)/real(ele_num%degree)
              else
                 !special case for degree 0 trace space,
                 !a single node in the middle of the face
-                coords(boundary2element(count_coords(1))=0.5
+                coords(i)=0.5
              end if
-             coords(boundary2count_component(count_coords(1))=&
+             i = boundary2count_component(count_coords(1))
+             coords(i)=&
                   &boundary2local_coordinate(count_coords(1))
 
              deallocate(boundary2element,boundary2count_component,&
