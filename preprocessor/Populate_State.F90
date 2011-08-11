@@ -1189,7 +1189,7 @@ contains
     end if
 
     ! agent-based lagrangian biology model
-    if (have_option("/ocean_biology/lagrangian_ensemble/agents")) then 
+    if (have_option("/ocean_biology/lagrangian_ensemble/functional_group")) then 
        call allocate_and_insert_biology_agents(states(1))
     end if
 
@@ -1426,36 +1426,55 @@ contains
       ! Allocate diagnostic fields to represent agent variables
       type(state_type), intent(inout) :: state
 
-      character(len=OPTION_PATH_LEN) :: agent_path, array_buffer, var_buffer
-      character(len=FIELD_NAME_LEN) :: var_name, field_name
-      integer :: i, j, agent_array_count, agent_var_count
+      character(len=OPTION_PATH_LEN) :: fg_path, fg_buffer, var_buffer, stage_buffer
+      character(len=FIELD_NAME_LEN) :: var_name, field_name, stage_name
+      integer :: i, j, k, var_count, fg_count, stage_count
 
       ! Go through all agent arrays and allocate the specified diagnostic fields
-      agent_path = "/ocean_biology/lagrangian_ensemble/agents/agent_array"
-      agent_array_count = option_count(trim(agent_path))
-      do i=1, agent_array_count
-         write(array_buffer, "(a,i0,a)") trim(agent_path)//"[",i-1,"]"
+      fg_path = "/ocean_biology/lagrangian_ensemble/functional_group"
+      fg_count = option_count(trim(fg_path))
+      do i=1, fg_count
+         write(fg_buffer, "(a,i0,a)") trim(fg_path)//"[",i-1,"]"
 
-         agent_var_count = option_count(trim(array_buffer)//"/variable")
-         do j=1, agent_var_count
-            write(var_buffer, "(a,i0,a)") trim(array_buffer)//"/variable[",j-1,"]"
+         var_count = option_count(trim(fg_buffer)//"/variable")
+         do j=1, var_count
+            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/variable[",j-1,"]"
             call get_option(trim(var_buffer)//"/name", var_name)
 
             ! Add diagnostic field
             if (have_option(trim(var_buffer)//"/scalar_field")) then
                call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
-               call allocate_and_insert_scalar_field(&
-                        trim(var_buffer)//"/scalar_field", &
-                        state, field_name=trim(field_name), &
-                        dont_allocate_prognostic_value_spaces&
-                        =dont_allocate_prognostic_value_spaces)
+
+               ! One for each stage, ie. BiomassLiving and BiomassDead
+               if (have_option(trim(var_buffer)//"/scalar_field/per_stage")) then
+                  stage_count = option_count(trim(fg_buffer)//"/stage_array")
+                  do k=1, stage_count
+                     write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stage_array[",k-1,"]"
+                     call get_option(trim(stage_buffer)//"/name", stage_name)
+
+                     call allocate_and_insert_scalar_field(&
+                           trim(var_buffer)//"/scalar_field", &
+                           state, field_name=trim(field_name)//trim(stage_name), &
+                           dont_allocate_prognostic_value_spaces&
+                           =dont_allocate_prognostic_value_spaces)
+                  end do
+               end if
+
+               ! Or a global one,ie. ParticulateChemical
+               if (have_option(trim(var_buffer)//"/scalar_field/global")) then
+                  call allocate_and_insert_scalar_field(&
+                           trim(var_buffer)//"/scalar_field", &
+                           state, field_name=trim(field_name), &
+                           dont_allocate_prognostic_value_spaces&
+                           =dont_allocate_prognostic_value_spaces)
+               end if
             end if
          end do
 
          ! Add request and depletion fields for uptake variables
-         agent_var_count = option_count(trim(array_buffer)//"/uptake_variable")
-         do j=1, agent_var_count
-            write(var_buffer, "(a,i0,a)") trim(array_buffer)//"/uptake_variable[",j-1,"]"
+         var_count = option_count(trim(fg_buffer)//"/uptake_variable")
+         do j=1, var_count
+            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/uptake_variable[",j-1,"]"
             call get_option(trim(var_buffer)//"/name", var_name)
 
             field_name = trim(var_name)//"Request"
@@ -1474,9 +1493,9 @@ contains
          end do
 
          ! Add release fields for excretion variables
-         agent_var_count = option_count(trim(array_buffer)//"/release_variable")
-         do j=1, agent_var_count
-            write(var_buffer, "(a,i0,a)") trim(array_buffer)//"/release_variable[",j-1,"]"
+         var_count = option_count(trim(fg_buffer)//"/release_variable")
+         do j=1, var_count
+            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/release_variable[",j-1,"]"
             call get_option(trim(var_buffer)//"/name", var_name)
 
             field_name = trim(var_name)//"Release"

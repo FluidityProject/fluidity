@@ -64,193 +64,216 @@ contains
     type(vector_field), pointer :: xfield
     type(element_type), pointer :: shape
     character(len=PYTHON_FUNC_LEN) :: func
-    character(len=OPTION_PATH_LEN) :: buffer, schema_buffer, biovar_buffer
+    character(len=OPTION_PATH_LEN) :: buffer, fg_buffer, stage_buffer, biovar_buffer
+    character(len=FIELD_NAME_LEN) :: field_name, fg_name, stage_name
     real, allocatable, dimension(:,:) :: coords
     real, allocatable, dimension(:) :: initial_values
     real:: current_time
-    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type, random_seed, &
-               biovar_index, biovar_total, biovar_internal, biovar_uptake, biovar_release, index
+    integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, column, &
+               ierror, det_type, random_seed, biovar_index, biovar_total, biovar_internal, &
+               biovar_uptake, biovar_release, index
 
     if (.not.have_option("/ocean_biology/lagrangian_ensemble")) return
 
     ewrite(1,*) "In initialise_lagrangian_biology"
-
-    n_agent_arrays = option_count("/ocean_biology/lagrangian_ensemble/agents/agent_array")
-    allocate(agent_arrays(n_agent_arrays))
 
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
     xfield=>extract_vector_field(state, "Coordinate")
     shape=>ele_shape(xfield,1)
 
-    ewrite(2,*) "Found", n_agent_arrays, "agent arrays"
+    ! Determine how many arrays we need across all functional groups
+    n_agent_arrays = 0
+    n_fgroups = option_count("/ocean_biology/lagrangian_ensemble/functional_group")
+    do fg=1, n_fgroups
+       write(fg_buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/functional_group[",i-1,"]"
 
-    do i = 1, n_agent_arrays
-       write(schema_buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/agents/agent_array[",i-1,"]"
-       call get_option(trim(schema_buffer)//"/number_of_agents", n_agents)
-       call get_option(trim(schema_buffer)//"/name", agent_arrays(i)%name)
+       n_agent_arrays = n_agent_arrays + option_count(trim(fg_buffer)//"/stage_array")
+    end do
 
-       ! Register the agent array, so Zoltan/Adaptivity will not forget about it
-       call register_detector_list(agent_arrays(i))
-       agent_arrays(i)%total_num_det=n_agents
+    allocate(agent_arrays(n_agent_arrays))
+    ewrite(2,*) "Found a total of ", n_agent_arrays, " agent arrays in ", n_fgroups, " functional groups"
 
-       ! Get options for lagrangian detector movement
-       call read_detector_move_options(agent_arrays(i),"/ocean_biology/lagrangian_ensemble/agents")
+    ! We create an agent array for each stage of each Functional Group
+    do fg=1, n_fgroups
+       write(fg_buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/functional_group[",i-1,"]"
+       call get_option(trim(fg_buffer)//"/name", fg_name)
+       n_fg_arrays = option_count(trim(fg_buffer)//"/stage_array")
 
-       ! Get options for Random Walk
-       if (have_option(trim(schema_buffer)//"/random_walk")) then
-          agent_arrays(i)%move_parameters%do_random_walk=.true.
-          call get_option(trim(schema_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
-          call get_option(trim(schema_buffer)//"/random_walk/random_seed", random_seed)
+       do i = 1, n_fg_arrays
+          write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stage_array[",i-1,"]"
+          call get_option(trim(stage_buffer)//"/number_of_agents", n_agents)
+          call get_option(trim(stage_buffer)//"/name", stage_name)
+          agent_arrays(i)%name = trim(fg_name)//trim(stage_name)
+
+          ! Register the agent array, so Zoltan/Adaptivity will not forget about it
+          call register_detector_list(agent_arrays(i))
+          agent_arrays(i)%total_num_det=n_agents
+
+          ! Get options for lagrangian detector movement
+          call read_detector_move_options(agent_arrays(i),trim(fg_buffer))
+
+          ! Get options for Random Walk
+          if (have_option(trim(stage_buffer)//"/random_walk")) then
+             agent_arrays(i)%move_parameters%do_random_walk=.true.
+             call get_option(trim(stage_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
+             call get_option(trim(stage_buffer)//"/random_walk/random_seed", random_seed)
           
-          ! Initialise random number generator
-          call python_run_string("numpy.random.seed("//trim(int2str(random_seed))//")")
-       else
-          agent_arrays(i)%move_parameters%do_random_walk=.false.
-       end if
-       agent_arrays(i)%total_num_det=n_agents
+             ! Initialise random number generator
+             call python_run_string("numpy.random.seed("//trim(int2str(random_seed))//")")
+          else
+             agent_arrays(i)%move_parameters%do_random_walk=.false.
+          end if
+          agent_arrays(i)%total_num_det=n_agents
 
-       ! Collect other meta-information
-       if (have_option(trim(schema_buffer)//"/binary_output")) then
-          agent_arrays(i)%binary_output=.true.
-       else
-          agent_arrays(i)%binary_output=.false.
-       end if
-       if (have_option(trim(schema_buffer)//"/lagrangian")) then
-          det_type=LAGRANGIAN_DETECTOR
-       else
-          det_type=STATIC_DETECTOR
-       end if
-       if (have_option(trim(schema_buffer)//"/exclude_from_advection")) then
-          agent_arrays(i)%move_parameters%do_velocity_advect=.false.
-       else
-          agent_arrays(i)%move_parameters%do_velocity_advect=.true.
-       end if
-
-       ! Create agent and insert into list
-       call get_option(trim(schema_buffer)//"/initial_position", func)
-       allocate(coords(dim,n_agents))
-       call set_detector_coords_from_python(coords, n_agents, func, current_time)
-
-       do j = 1, n_agents
-          call create_single_detector(agent_arrays(i), xfield, coords(:,j), j, det_type, trim(int2str(j)))
-       end do
-       deallocate(coords)
-
-       ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
-
-       ! Biology parameters
-       biovar_internal = option_count(trim(schema_buffer)//"/variable") 
-       biovar_uptake = option_count(trim(schema_buffer)//"/uptake_variable")
-       biovar_release = option_count(trim(schema_buffer)//"/release_variable")
-       biovar_total = biovar_internal + biovar_uptake + biovar_release
-       if (biovar_total > 0) then
-
-          ! Allocate variable arrays
-          allocate(agent_arrays(i)%biovar_list(biovar_total))
-          allocate(agent_arrays(i)%biofield_type(biovar_total))
-          allocate(agent_arrays(i)%biofield_list(biovar_total))
-          allocate(agent_arrays(i)%chemfield_list(biovar_total))
-          allocate(initial_values(biovar_total))
-
-          ! Add internal state variables
-          index = 1
-          do j=1, biovar_internal
-             write(biovar_buffer, "(a,i0,a)") trim(schema_buffer)//"/variable[",j-1,"]"
-             call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
-             call get_option(trim(biovar_buffer)//"/initial_value", initial_values(index))
-
-             ! Record according diagnostic field
-             if (have_option(trim(biovar_buffer)//"/scalar_field")) then
-                agent_arrays(i)%biofield_type(index) = BIOFIELD_DIAG
-                call get_option(trim(biovar_buffer)//"/scalar_field/name", agent_arrays(i)%biofield_list(index))
-             else
-                agent_arrays(i)%biofield_type(index) = BIOFIELD_NONE
-             end if
-             index = index+1
-          end do
-
-          ! Add uptake variables
-          do j=1, biovar_uptake
-             write(biovar_buffer, "(a,i0,a)") trim(schema_buffer)//"/uptake_variable[",j-1,"]"
-             call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
-             initial_values(index)=0.0
-             agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
-             agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Request"
-             call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
-
-             index = index+1
-          end do
-
-          ! Add release variables
-          do j=1, biovar_release
-             write(biovar_buffer, "(a,i0,a)") trim(schema_buffer)//"/release_variable[",j-1,"]"
-             call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
-             initial_values(index)=0.0
-             agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
-             agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Release"
-             call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
-
-             index = index+1
-          end do
-
-          ! Store the python update code
-          if (have_option(trim(schema_buffer)//"/biology_update")) then
-             call get_option(trim(schema_buffer)//"/biology_update", agent_arrays(i)%biovar_pycode)
-             agent_arrays(i)%has_biology=.true.
+          ! Collect other meta-information
+          if (have_option(trim(stage_buffer)//"/binary_output")) then
+             agent_arrays(i)%binary_output=.true.
+          else
+             agent_arrays(i)%binary_output=.false.
+          end if
+          if (have_option(trim(stage_buffer)//"/lagrangian")) then
+             det_type=LAGRANGIAN_DETECTOR
+          else
+             det_type=STATIC_DETECTOR
+          end if
+          if (have_option(trim(stage_buffer)//"/exclude_from_advection")) then
+             agent_arrays(i)%move_parameters%do_velocity_advect=.false.
+          else
+             agent_arrays(i)%move_parameters%do_velocity_advect=.true.
           end if
 
-          ! Initialise agent variables
-          agent => agent_arrays(i)%first
-          do while (associated(agent))
-             allocate(agent%biology(biovar_total))
-             do j=1, biovar_total
-                agent%biology(j) = initial_values(j)
-             end do
-             agent => agent%next
+          ! Create agent and insert into list
+          call get_option(trim(stage_buffer)//"/initial_position", func)
+          allocate(coords(dim,n_agents))
+          call set_detector_coords_from_python(coords, n_agents, func, current_time)
+
+          do j = 1, n_agents
+             call create_single_detector(agent_arrays(i), xfield, coords(:,j), j, det_type, trim(int2str(j)))
           end do
-          deallocate(initial_values)
-       end if
+          deallocate(coords)
 
-       ! Create simple position-only agent I/O header 
-       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       if (getprocno() == 1) then
-          agent_arrays(i)%output_unit=free_unit()
-          open(unit=agent_arrays(i)%output_unit, file=trim(agent_arrays(i)%name)//'.detectors', action="write")
-          write(agent_arrays(i)%output_unit, '(a)') "<header>"
+          ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
 
-          call initialise_constant_diagnostics(agent_arrays(i)%output_unit, binary_format = agent_arrays(i)%binary_output)
+          ! Biology parameters
+          biovar_internal = option_count(trim(fg_buffer)//"/variable") 
+          biovar_uptake = option_count(trim(fg_buffer)//"/uptake_variable")
+          biovar_release = option_count(trim(fg_buffer)//"/release_variable")
+          biovar_total = biovar_internal + biovar_uptake + biovar_release
+          if (biovar_total > 0) then
 
-          ! Initial columns are elapsed time and dt.
-          column=1
-          buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
-          write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
-          column=column+1
-          buffer=field_tag(name="dt", column=column, statistic="value")
-          write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
+             ! Allocate variable arrays
+             allocate(agent_arrays(i)%biovar_list(biovar_total))
+             allocate(agent_arrays(i)%biofield_type(biovar_total))
+             allocate(agent_arrays(i)%biofield_list(biovar_total))
+             allocate(agent_arrays(i)%chemfield_list(biovar_total))
+             allocate(initial_values(biovar_total))
 
-          ! Next columns contain the positions of all the detectors.
-          positionloop: do j=1, n_agents
-             buffer=field_tag(name=trim(int2str(j)), column=column+1, statistic="position",components=dim)
+             ! Add internal state variables
+             index = 1
+             do j=1, biovar_internal
+                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variable[",j-1,"]"
+                call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
+                call get_option(trim(biovar_buffer)//"/initial_value", initial_values(index))
+
+                ! Record according diagnostic field
+                if (have_option(trim(biovar_buffer)//"/scalar_field")) then
+                   agent_arrays(i)%biofield_type(index) = BIOFIELD_DIAG
+                   call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)
+                   if (have_option(trim(biovar_buffer)//"/scalar_field/per_stage")) then
+                      agent_arrays(i)%biofield_list(index) = trim(field_name)//trim(stage_name)
+                   else
+                      agent_arrays(i)%biofield_list(index) = trim(field_name)
+                   end if
+                else
+                   agent_arrays(i)%biofield_type(index) = BIOFIELD_NONE
+                end if
+                index = index+1
+             end do
+
+             ! Add uptake variables
+             do j=1, biovar_uptake
+                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/uptake_variable[",j-1,"]"
+                call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
+                initial_values(index)=0.0
+                agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
+                agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Request"
+                call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
+
+                index = index+1
+             end do
+
+             ! Add release variables
+             do j=1, biovar_release
+                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/release_variable[",j-1,"]"
+                call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
+                initial_values(index)=0.0
+                agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
+                agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Release"
+                call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
+
+                index = index+1
+             end do
+
+             ! Store the python update code
+             if (have_option(trim(stage_buffer)//"/biology_update")) then
+                call get_option(trim(stage_buffer)//"/biology_update", agent_arrays(i)%biovar_pycode)
+                agent_arrays(i)%has_biology=.true.
+             end if
+
+             ! Initialise agent variables
+             agent => agent_arrays(i)%first
+             do while (associated(agent))
+                allocate(agent%biology(biovar_total))
+                do j=1, biovar_total
+                   agent%biology(j) = initial_values(j)
+                end do
+                agent => agent%next
+             end do
+             deallocate(initial_values)
+          end if
+
+          ! Create simple position-only agent I/O header 
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          if (getprocno() == 1) then
+             agent_arrays(i)%output_unit=free_unit()
+             open(unit=agent_arrays(i)%output_unit, file=trim(agent_arrays(i)%name)//'.detectors', action="write")
+             write(agent_arrays(i)%output_unit, '(a)') "<header>"
+
+             call initialise_constant_diagnostics(agent_arrays(i)%output_unit, binary_format = agent_arrays(i)%binary_output)
+
+             ! Initial columns are elapsed time and dt.
+             column=1
+             buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
              write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
-             column=column+dim
-          end do positionloop
+             column=column+1
+             buffer=field_tag(name="dt", column=column, statistic="value")
+             write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
 
-          write(agent_arrays(i)%output_unit, '(a)') "</header>"
-          flush(agent_arrays(i)%output_unit)
-          close(agent_arrays(i)%output_unit)
-       end if
+             ! Next columns contain the positions of all the detectors.
+             positionloop: do j=1, n_agents
+                buffer=field_tag(name=trim(int2str(j)), column=column+1, statistic="position",components=dim)
+                write(agent_arrays(i)%output_unit, '(a)') trim(buffer)
+                column=column+dim
+             end do positionloop
 
-       ! bit of hack to delete any existing .detectors.dat file
-       ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
-       ! gradually overwritten, mixing detector output from the current with that of a previous run
-       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(i)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
-       call MPI_FILE_CLOSE(agent_arrays(i)%mpi_fh, ierror)
+             write(agent_arrays(i)%output_unit, '(a)') "</header>"
+             flush(agent_arrays(i)%output_unit)
+             close(agent_arrays(i)%output_unit)
+          end if
+
+          ! bit of hack to delete any existing .detectors.dat file
+          ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
+          ! gradually overwritten, mixing detector output from the current with that of a previous run
+          call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(i)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
+          call MPI_FILE_CLOSE(agent_arrays(i)%mpi_fh, ierror)
     
-       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(i)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
-       assert(ierror == MPI_SUCCESS)
-       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    end do 
+          call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(i)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
+          assert(ierror == MPI_SUCCESS)
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       end do 
+
+    end do
 
   end subroutine initialise_lagrangian_biology
 

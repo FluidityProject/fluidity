@@ -8525,10 +8525,118 @@ This option is generally only useful for testing. </a:documentation>
         </element>
         <element name="lagrangian_ensemble">
           <a:documentation>Lagrangian particle biology from the VEW project.</a:documentation>
-          <optional>
-            <element name="agents">
+          <zeroOrMore>
+            <element name="functional_group">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
               <zeroOrMore>
-                <element name="agent_array">
+                <choice>
+                  <element name="variable">
+                    <a:documentation>Internal state variable of a biology agent</a:documentation>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                    <element name="initial_value">
+                      <ref name="real"/>
+                    </element>
+                    <optional>
+                      <element name="scalar_field">
+                        <a:documentation>Biology agent field</a:documentation>
+                        <attribute name="rank">
+                          <value>0</value>
+                        </attribute>
+                        <attribute name="name">
+                          <data type="string"/>
+                        </attribute>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field_no_adapt"/>
+                        </element>
+                        <choice>
+                          <element name="per_stage">
+                            <empty/>
+                          </element>
+                          <element name="global">
+                            <empty/>
+                          </element>
+                        </choice>
+                      </element>
+                    </optional>
+                  </element>
+                  <element name="uptake_variable">
+                    <a:documentation>Specify a chemical field from which the agent absorbs dissolved matter.
+The associated request field "&lt;var_name&gt;Request" gets scaled by availability 
+on the chemical_field, and added to the "&lt;chem_field&gt;Absorption". 
+The resulting scale factor gets published via the "&lt;var_name&gt;Depletion" field.</a:documentation>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                    <element name="chemical_field">
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
+                    <element name="scalar_field">
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>Request</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field_no_adapt"/>
+                      </element>
+                    </element>
+                    <element name="scalar_field">
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>Depletion</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field_no_adapt"/>
+                      </element>
+                    </element>
+                  </element>
+                  <element name="release_variable">
+                    <a:documentation>Specify a chemical field to which the agent release matter
+The associated diagnostic field acts as a request to this field,
+which gets scaled by availability on the uptake field.
+The resulting depletion factor gets published via 
+an automatically inserted field "&lt;diagnostic_field&gt;_depletion"</a:documentation>
+                    <attribute name="name">
+                      <data type="string"/>
+                    </attribute>
+                    <element name="chemical_field">
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
+                    <element name="scalar_field">
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>Release</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field_no_adapt"/>
+                      </element>
+                    </element>
+                  </element>
+                </choice>
+              </zeroOrMore>
+              <zeroOrMore>
+                <element name="stage_array">
                   <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
                   <attribute name="name">
                     <data type="string"/>
@@ -8585,103 +8693,6 @@ Functions should be of the form:
                       <empty/>
                     </element>
                   </optional>
-                  <zeroOrMore>
-                    <choice>
-                      <element name="variable">
-                        <a:documentation>Internal state variable of a biology agent</a:documentation>
-                        <attribute name="name">
-                          <data type="string"/>
-                        </attribute>
-                        <element name="initial_value">
-                          <ref name="real"/>
-                        </element>
-                        <optional>
-                          <element name="scalar_field">
-                            <a:documentation>Biology agent field</a:documentation>
-                            <attribute name="rank">
-                              <value>0</value>
-                            </attribute>
-                            <attribute name="name">
-                              <data type="string"/>
-                            </attribute>
-                            <element name="diagnostic">
-                              <ref name="internal_algorithm"/>
-                              <ref name="velocity_mesh_choice"/>
-                              <ref name="diagnostic_scalar_field_no_adapt"/>
-                            </element>
-                          </element>
-                        </optional>
-                      </element>
-                      <element name="uptake_variable">
-                        <a:documentation>Specify a chemical field from which the agent absorbs dissolved matter.
-The associated request field "&lt;var_name&gt;Request" gets scaled by availability 
-on the chemical_field, and added to the "&lt;chem_field&gt;Absorption". 
-The resulting scale factor gets published via the "&lt;var_name&gt;Depletion" field.</a:documentation>
-                        <attribute name="name">
-                          <data type="string"/>
-                        </attribute>
-                        <element name="chemical_field">
-                          <attribute name="name">
-                            <data type="string"/>
-                          </attribute>
-                        </element>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>Request</value>
-                          </attribute>
-                          <element name="diagnostic">
-                            <ref name="internal_algorithm"/>
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="diagnostic_scalar_field_no_adapt"/>
-                          </element>
-                        </element>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>Depletion</value>
-                          </attribute>
-                          <element name="diagnostic">
-                            <ref name="internal_algorithm"/>
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="diagnostic_scalar_field_no_adapt"/>
-                          </element>
-                        </element>
-                      </element>
-                      <element name="release_variable">
-                        <a:documentation>Specify a chemical field to which the agent release matter
-The associated diagnostic field acts as a request to this field,
-which gets scaled by availability on the uptake field.
-The resulting depletion factor gets published via 
-an automatically inserted field "&lt;diagnostic_field&gt;_depletion"</a:documentation>
-                        <attribute name="name">
-                          <data type="string"/>
-                        </attribute>
-                        <element name="chemical_field">
-                          <attribute name="name">
-                            <data type="string"/>
-                          </attribute>
-                        </element>
-                        <element name="scalar_field">
-                          <attribute name="rank">
-                            <value>0</value>
-                          </attribute>
-                          <attribute name="name">
-                            <value>Release</value>
-                          </attribute>
-                          <element name="diagnostic">
-                            <ref name="internal_algorithm"/>
-                            <ref name="velocity_mesh_choice"/>
-                            <ref name="diagnostic_scalar_field_no_adapt"/>
-                          </element>
-                        </element>
-                      </element>
-                    </choice>
-                  </zeroOrMore>
                   <choice>
                     <element name="biology_update">
                       <a:documentation>Python code specifying the biology model for this type of agent.</a:documentation>
@@ -8698,7 +8709,7 @@ This option is generally only useful for testing. </a:documentation>
               </zeroOrMore>
               <ref name="lagrangian_timestepping"/>
             </element>
-          </optional>
+          </zeroOrMore>
           <optional>
             <ref name="hyperlight"/>
           </optional>
