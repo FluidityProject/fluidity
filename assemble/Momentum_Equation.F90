@@ -219,12 +219,12 @@
          ! with free-surface or compressible pressure projection pressures 
          ! are at integer time levels and we apply a theta weighting to the
          ! pressure gradient term
-         real :: theta_pg
-         ! in this case p_theta=theta_pg*p+(1-theta_pg)*old_p
-         type(scalar_field), pointer :: old_p, p_theta
+         real :: theta_pg, theta_u
          ! With free-surface or compressible-projection the velocity divergence is
          ! calculated at time n+theta_divergence instead of at the end of the timestep
          real :: theta_divergence
+         ! in this case p_theta=theta_pg*p+(1-theta_pg)*old_p
+         type(scalar_field), pointer :: old_p, p_theta
          type(vector_field), pointer :: old_u
          ! all of this only applies if use_theta_pg .eqv. .true.
          ! without a free surface, or with a free surface and theta==1
@@ -498,15 +498,17 @@
                end if
 
 
+               call get_option( trim(u%option_path)//'/prognostic/temporal_discretisation/theta', &
+                     theta_u)
                ! With free surface or compressible-projection pressures are at integer
                ! time levels and we apply a theta-weighting to the pressure gradient term
                ! Also, obtain theta-weighting to be used in divergence term
-               call get_option( trim(u%option_path)//'/prognostic/temporal_discretisation/theta', &
-                     theta_pg, default=1.0)
+               call get_option( trim(u%option_path)//'/prognostic/temporal_discretisation/theta_pressure_gradient', &
+                     theta_pg, default=theta_u)
                use_theta_pg = (theta_pg/=1.0)
                call get_option( trim(u%option_path)//&
                      '/prognostic/temporal_discretisation/theta_divergence', &
-                     theta_divergence, default=theta_pg)
+                     theta_divergence, default=theta_u)
                use_theta_divergence = (theta_divergence/=1.0)
                ewrite(2,*) "Pressure gradient is evaluated at n+theta_pg"
                ewrite(2,*) "theta_pg: ", theta_pg
