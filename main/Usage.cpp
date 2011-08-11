@@ -200,8 +200,15 @@ void usage(char *cmd){
       <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing)."
       <<" Sets default value for -v to 2.\n"
       <<" -N, --no-local-assembly\n\tDo not perform local assembly of linear systems"
-      <<" (default)\n"
-      <<" -L, --local-assembly\n\tPerform local assembly of linear systems\n"
+#ifndef _OPENMP
+      <<" (default)"
+#endif
+      <<"\n"
+      <<" -L, --local-assembly\n\tPerform local assembly of linear systems"
+#ifdef _OPENMP
+      <<" (default)"
+#endif
+      <<"\n"
       <<" -v <level>, --verbose\n\tVerbose output to stdout, default level 0\n"
       <<" -V, --version\n\tVersion\n";
   return;
@@ -296,8 +303,12 @@ void ParseArguments(int argc, char** argv){
           cerr << "ERROR: can't specify both local-assembly and no-local-assembly\n";
           exit(-1);
       }
-      // Default to off
+      // Default to on if compiled with OpenMP, off otherwise
+#ifdef _OPENMP
+      local_assembly = 1;
+#else
       local_assembly = 0;
+#endif
       if ( got_local_assembly ) {
           local_assembly = 1;
       }
@@ -387,7 +398,7 @@ void ParseArguments(int argc, char** argv){
   // Shove local assembly option into options tree.
   if ( local_assembly ) {
       stat = add_option("/local_assembly");
-      assert(stat == SPUD_NEW_KEY_WARNING || stat == SPUD_NO_ERROR );
+      assert(stat == SPUD_NEW_KEY_WARNING || stat == SPUD_NO_ERROR);
   }
 
   // Environmental stuff -- this needs to me moved out of here and
