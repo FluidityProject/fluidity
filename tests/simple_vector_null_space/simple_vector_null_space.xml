@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>simple_vector_null_space</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v2 -l simple.flml</command_line>
+  </problem_definition>
+  <variables>
+  </variables>
+  <pass_tests/>
+</testproblem>
