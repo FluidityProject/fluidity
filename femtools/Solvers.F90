@@ -1619,7 +1619,6 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     ! =========================================================
     call KSPGetPC(ksp, pc, ierr)
     remove_null_space=have_option(trim(solver_option_path)//'/remove_null_space')
-    remove_null_space=.false.
     call setup_pc_from_options(pc, pmat, &
        trim(solver_option_path)//'/preconditioner[0]', &
        prolongators=prolongators, surface_node_list=surface_node_list, &
