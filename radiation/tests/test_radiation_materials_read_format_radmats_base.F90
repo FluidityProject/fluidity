@@ -139,7 +139,6 @@ subroutine test_radiation_materials_read_format_radmats_base
                                               number_non_thermal_groups = 1 ) 
          
    call test_read_velocity_style_data_format_radmats(file_unit           = file_unit_1, &
-                                                     keyword_line_number = 1044, &
                                                      keyword_find        = (/16/), &
                                                      record_len          = 132, &
                                                      dataset_radmat      = particle_radmat_1%dataset_radmats(1), &
@@ -147,7 +146,6 @@ subroutine test_radiation_materials_read_format_radmats_base
                                                      keyword_list        = keyword_list)
    
    call test_read_velocity_style_data_format_radmats(file_unit           = file_unit_1, &
-                                                     keyword_line_number = 1060, &
                                                      keyword_find        = (/17/), &
                                                      record_len          = 132, &
                                                      dataset_radmat      = particle_radmat_1%dataset_radmats(1), &
@@ -1257,7 +1255,6 @@ contains
    ! --------------------------------------------------------------------------
 
    subroutine test_read_velocity_style_data_format_radmats(file_unit, &
-                                                           keyword_line_number, &
                                                            keyword_find, &
                                                            record_len, &
                                                            dataset_radmat, &
@@ -1265,10 +1262,8 @@ contains
                                                            keyword_list)
       
       !!< Test the procedure that reads in a velocity style data numbers
-      !!< This assumes that the keyword is at the keyword_line_number which is read to first
       
       integer, intent(in) :: file_unit
-      integer, intent(in) :: keyword_line_number 
       integer, dimension(1), intent(in) :: keyword_find
       integer, intent(in) :: record_len  
       type(dataset_radmat_type), intent(in) :: dataset_radmat
@@ -1276,21 +1271,10 @@ contains
       character(len=21), dimension(:), intent(in) :: keyword_list
       
       ! local variables
-      integer :: line_number
       integer :: rmat
       integer :: pmat
       integer :: number_of_groups
       type(dataset_radmat_type) :: dataset_radmat_format_radmats
-                  
-      line_number = 0
-      rewind(unit=file_unit)
-            
-      ! go to the desired keyword line
-      call go_to_line_seq(file_unit, &
-                          line_number, &
-                          go_to_line_number=keyword_line_number, &
-                          exit_if_eor=.false., &
-                          exit_if_eof=.false.)
           
       ! intiialise the read in data type
       call allocate(dataset_radmat_format_radmats, &

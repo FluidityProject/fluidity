@@ -157,7 +157,7 @@
 
     subroutine construct_momentum_cg(u, p, density, x, &
                                      big_m, rhs, ct_m, ct_rhs, mass, inverse_masslump, visc_inverse_masslump, &
-                                     state, assemble_ct_matrix, cg_pressure)
+                                     state, assemble_ct_matrix_here, include_pressure_and_continuity_bcs)
       !!< Assembles the momentum matrix and rhs for the LinearMomentum,
       !!< Boussinesq and Drainage equation types such that
       !!< big_m*u = rhs + ct_m*p
@@ -184,7 +184,7 @@
       ! NOTE: you have to call deallocate_cg_mass after you're done
       ! with mass and inverse_masslump
       
-      ! the pressure gradient matrix (might be null if assemble_ct_matrix=.false.)
+      ! the pressure gradient matrix (might be null if assemble_ct_matrix_here=.false.)
       type(block_csr_matrix), pointer :: ct_m
       ! the pressure gradient rhs
       type(scalar_field), intent(inout) :: ct_rhs
@@ -192,8 +192,14 @@
       type(vector_field), intent(inout) :: rhs
       ! bucket full of fields
       type(state_type), intent(inout) :: state
-      ! do we want to get a cg pressure gradient matrix?
-      logical, intent(in) :: assemble_ct_matrix, cg_pressure
+      ! do we need to assemble the pressure gradient/divergence matrix ct_m
+      ! this is not necessarily the same as assemble_ct_m in Momentum_equation.F90
+      ! if we have a cv pressure it is assembled elsewhere
+      logical, intent(in) :: assemble_ct_matrix_here
+      ! whether include the pressure bc integrals on the rhs of the momentum
+      ! equation (containing the prescribed value of the dirichlet bc)
+      ! and add dirichlet bcs for the continuity equation to ct_rhs
+      logical, intent(in):: include_pressure_and_continuity_bcs
 
       type(scalar_field), pointer :: buoyancy
       type(scalar_field), pointer :: gp
@@ -236,7 +242,7 @@
       ! for temperature dependent viscosity :
       type(scalar_field), pointer :: temperature
 
-      integer :: stat, dim, ele, sele, dim2
+      integer :: stat, dim, ele, sele
 
       ! Fields for vertical velocity relaxation
       type(scalar_field), pointer :: dtt, dtb
@@ -666,7 +672,7 @@
               viscosity, grad_u, &
               mnu, tnu, leonard, alpha, &
               gp, surfacetension, &
-              assemble_ct_matrix, cg_pressure, on_sphere, depth, &
+              assemble_ct_matrix_here, on_sphere, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac)
       end do element_loop
 
@@ -717,7 +723,7 @@
                  inverse_masslump, x, u, nu, ug, density, p, gravity, &
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
-                 assemble_ct_matrix, cg_pressure, oldu, nvfrac)
+                 assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
             
          end do surface_element_loop
 
@@ -890,7 +896,7 @@
                                                      masslump, x, u, nu, ug, density, p, gravity, &
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
-                                                     assemble_ct_matrix, cg_pressure,&
+                                                     assemble_ct_matrix_here, include_pressure_and_continuity_bcs,&
                                                      oldu, nvfrac)
 
       integer, intent(in) :: sele
@@ -915,7 +921,7 @@
       type(scalar_field), intent(in) :: pressure_bc
       integer, dimension(:), intent(in) :: pressure_bc_type
       
-      logical, intent(in) :: assemble_ct_matrix, cg_pressure
+      logical, intent(in) :: assemble_ct_matrix_here, include_pressure_and_continuity_bcs
 
       ! Volume fraction field
       type(scalar_field), intent(in) :: nvfrac
@@ -966,9 +972,16 @@
               relu_gi = relu_gi - face_val_at_quad(ug, sele)
             end if
             
-            adv_mat_bdy = shape_shape(u_shape, u_shape, &
-                 detwei_bdy*sum(relu_gi*normal_bdy,1)*&
-                 face_val_at_quad(density, sele))
+            if(multiphase) then
+               adv_mat_bdy = shape_shape(u_shape, u_shape, &
+                  detwei_bdy*sum(relu_gi*normal_bdy,1)*&
+                  face_val_at_quad(density, sele)*face_val_at_quad(nvfrac, sele))
+            else
+               adv_mat_bdy = shape_shape(u_shape, u_shape, &
+                  detwei_bdy*sum(relu_gi*normal_bdy,1)*&
+                  face_val_at_quad(density, sele))
+            end if
+
             do dim = 1, u%dim
                
                if(velocity_bc_type(dim, sele)==1) then
@@ -988,7 +1001,7 @@
       end if
       
       ! now do surface integrals for divergence/pressure gradient matrix
-      if(integrate_continuity_by_parts.and.cg_pressure) then
+      if(integrate_continuity_by_parts.and. (assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
          
         if (velocity_bc_type(1,sele)/=2 .and. velocity_bc_type(1,sele)/=4) then
 
@@ -999,10 +1012,10 @@
           end if
 
           do dim = 1, u%dim
-             if(velocity_bc_type(dim, sele)==1 )then
+             if(include_pressure_and_continuity_bcs .and. velocity_bc_type(dim, sele)==1 )then
                 call addto(ct_rhs, p_nodes_bdy, &
                      -matmul(ct_mat_bdy(dim,:,:), ele_val(velocity_bc, dim, sele)))
-             else if (assemble_ct_matrix) then
+             else if (assemble_ct_matrix_here) then
                 call addto(ct_m, 1, dim, p_nodes_bdy, u_nodes_bdy, ct_mat_bdy(dim,:,:))
              end if
              if(pressure_bc_type(sele)>0) then
@@ -1102,7 +1115,7 @@
                                             viscosity, grad_u, &
                                             mnu, tnu, leonard, alpha, &
                                             gp, surfacetension, &
-                                            assemble_ct_matrix, cg_pressure, on_sphere, depth, &
+                                            assemble_ct_matrix_here, on_sphere, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac)
 
       !!< Assembles the local element matrix contributions and places them in big_m
@@ -1137,7 +1150,7 @@
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
 
-      logical, intent(in) :: assemble_ct_matrix, cg_pressure, on_sphere
+      logical, intent(in) :: assemble_ct_matrix_here, on_sphere
 
       ! Wetting and Drying
       type(scalar_field), intent(in) :: depth
@@ -1212,12 +1225,10 @@
                                   u_shape, dshape=du_t, detwei=detwei, J=J_mat)
       end if
 
-      if(assemble_ct_matrix.and.cg_pressure.and.integrate_continuity_by_parts) then
+      if(assemble_ct_matrix_here .and.integrate_continuity_by_parts) then
         ! transform the pressure derivatives into physical space
         call transform_to_physical(x, ele, &
                                   p_shape, dshape=dp_t)
-      !else
-      !  dp_t = 0.0
       end if
       
       if(move_mesh) then
@@ -1252,7 +1263,7 @@
       ! i.e. du_t is currently used everywhere. This is fine for P1, but is not
       ! consistent for P>1.
 
-      if(assemble_ct_matrix.and.cg_pressure) then
+      if(assemble_ct_matrix_here) then
 
          if(integrate_continuity_by_parts) then
             if(multiphase) then
@@ -1269,8 +1280,6 @@
                grad_p_u_mat = shape_dshape(p_shape, du_t, detwei)
             end if
          end if
-      !else
-      !  grad_p_u_mat = 0.0
       end if
 
       ! Step 3: Assemble contributions
@@ -1341,7 +1350,7 @@
       ! add to the rhs
       call addto(rhs, u_ele, rhs_addto)
       
-      if(assemble_ct_matrix.and.cg_pressure) then
+      if(assemble_ct_matrix_here) then
         call addto(ct_m, p_ele, u_ele, spread(grad_p_u_mat, 1, 1))
       end if
       
@@ -1490,9 +1499,10 @@
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
     
-      integer :: dim
+      integer :: dim, i
       real, dimension(ele_ngi(u, ele)) :: density_gi, div_relu_gi
-      real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
+      real, dimension(ele_ngi(u, ele)) :: nvfrac_gi, relu_dot_grad_nvfrac_gi
+      real, dimension(u%dim, ele_ngi(u, ele)) :: grad_nvfrac_gi
       real, dimension(ele_loc(u, ele), ele_loc(u, ele)) :: advection_mat
       real, dimension(u%dim, ele_ngi(u, ele)) :: relu_gi
       type(element_type), pointer :: u_shape
@@ -1513,6 +1523,7 @@
 
       if(multiphase) then
          nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+         grad_nvfrac_gi = ele_grad_at_quad(nvfrac, ele, du_t)
       end if
 
       if(integrate_advection_by_parts) then
@@ -1520,8 +1531,25 @@
         !    /                                            /
         !  - | (grad N_A dot nu) N_B rho dV - (1. - beta) | N_A ( div nu ) N_B rho dV
         !    /                                            /
-        advection_mat = -dshape_dot_vector_shape(du_t, relu_gi, u_shape, detwei*density_gi)  &
-                      -(1.-beta)*shape_shape(test_function, u_shape, div_relu_gi*detwei*density_gi)
+        if(multiphase) then
+            ! element advection matrix
+            !    /                                                  /
+            !  - | (grad N_A dot nu) N_B rho vfrac dV - (1. - beta) | N_A ( div(nu vfrac) ) N_B rho dV
+            !    /                                                  /
+
+            ! We need to compute \int{N_A div(nu vfrac) N_B},
+            ! so split up the div using the product rule and compute
+            ! \int{N_A vfrac div(nu) N_B} + \int{N_A nu grad(vfrac) N_B}
+            do i = 1, ele_ngi(u, ele)
+               relu_dot_grad_nvfrac_gi(i) = dot_product(relu_gi(:,i), grad_nvfrac_gi(:,i))
+            end do
+            advection_mat = -dshape_dot_vector_shape(du_t, relu_gi, u_shape, detwei*density_gi*nvfrac_gi)  &
+                            -(1.-beta)*(shape_shape(test_function, u_shape, div_relu_gi*detwei*density_gi*nvfrac_gi) + &
+                                       shape_shape(test_function, u_shape, detwei*density_gi*relu_dot_grad_nvfrac_gi))
+        else
+            advection_mat = -dshape_dot_vector_shape(du_t, relu_gi, u_shape, detwei*density_gi)  &
+                           -(1.-beta)*shape_shape(test_function, u_shape, div_relu_gi*detwei*density_gi)
+        end if
       else
         ! element advection matrix
         !  /                                     /
@@ -2102,13 +2130,9 @@
           assert(u%dim > 0)
 
           if(multiphase) then
-             ! We need to compute \int{grad(N_A vfrac) viscosity grad(N_B)},
-             ! so split up grad(N_A vfrac) using the product rule and compute
-             ! \int{grad(N_A) vfrac viscosity grad(N_B)} + \int{N_A grad(vfrac) viscosity grad(N_B)}
+             ! We need to compute \int{grad(N_A) vfrac viscosity grad(N_B)}
              viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei*viscosity_gi(1, 1, :)*&
-                                         ele_val_at_quad(nvfrac, ele)) + &
-                                         shape_vector_dot_dshape(test_function, ele_grad_at_quad(nvfrac, ele, du_t), &
-                                         du_t, detwei*viscosity_gi(1, 1, :))
+                                         ele_val_at_quad(nvfrac, ele))
           else
              viscosity_mat(1, 1, :, :) = dshape_dot_dshape(du_t, du_t, detwei * viscosity_gi(1, 1, :))
           end if
@@ -2421,7 +2445,7 @@
       ! Correction to u one dimension at a time.
       type(scalar_field) :: delta_u, inverse_masslump_component
 
-      integer :: dim, i
+      integer :: dim
 
       ewrite(1,*) 'correct_masslumped_velocity'
 
@@ -2454,8 +2478,6 @@
 
       ! Correction to u one dimension at a time.
       type(vector_field) :: delta_u1, delta_u2
-
-      integer :: i
 
       ewrite(1,*) 'correct_velocity_cg'
 

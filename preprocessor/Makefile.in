@@ -71,22 +71,22 @@ OBJS = Populate_State.o Populate_Sub_State.o Reserve_State.o Field_Priority_List
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
 default: $(LIB)
 
-.PHONY:check_options
+# This gets run last by the fluidity build process.
+check_options.o: check_options.F90
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $<
+	mkdir -p ../lib
+
 
 # This gets run last by the fluidity build process.
-check_options: check_options.o
+register_diagnostics.o: register_diagnostics.F90
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) -c $<
 	mkdir -p ../lib
-	$(AR) $(ARFLAGS) $(LIB) check_options.o &> check.log
 
-.PHONY:register_diagnostics
-
-# This gets run last by the fluidity build process.
-register_diagnostics: register_diagnostics.o
-	mkdir -p ../lib
-	$(AR) $(ARFLAGS) $(LIB) register_diagnostics.o &> register_diagnostics.log
 
 clean:
 	rm -f *.o *.d *.mod
