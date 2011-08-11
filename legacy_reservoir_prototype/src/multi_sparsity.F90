@@ -121,7 +121,7 @@
 
       INTEGER, ALLOCATABLE, DIMENSION( : ) :: MIDACV_LOC, FINACV_LOC, COLACV_LOC, COLELE_PHA, FINELE_PHA, &
            MIDELE_PHA, CENTCT
-      LOGICAL, parameter :: OldSetUp = .false.
+      LOGICAL, parameter :: OldSetUp = .true.
       logical :: presym
       integer, dimension( : ), allocatable :: tempvec1, tempvec2, tempvec3, dummyvec
       integer :: tempnct
@@ -197,7 +197,7 @@
 
       IF(CV_NONODS /= TOTELE*CV_NLOC) THEN ! Continuous pressure
 
-         if ( .not. OldSetUp ) then
+         if ( OldSetUp ) then
             CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
                                 !    CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
                  MIDCMC, FINDCMC, COLCMC )
@@ -1345,6 +1345,86 @@
   module spact2
     use fldebug
     use shape_functions
+implicit none
+
+!! The data type below were copied from fluidity-legacy 
+  type refcount_type
+     !!< Type to hold reference count for an arbitrary object.
+     type(refcount_type), pointer :: prev=>null(), next=>null()
+     integer :: count=0
+     integer :: id
+     !!>character(len=FIELD_NAME_LEN) :: name
+     !!>character(len=FIELD_NAME_LEN) :: type
+     logical :: tagged=.false.
+  end type refcount_type
+
+  type polynomial
+     real, dimension(:), pointer :: coefs=>null()
+     integer :: degree=-1
+  end type polynomial
+
+  type ele_numbering_type
+     ! Type to record element numbering details.
+     ! Differentiate tets from other elements.
+     integer :: faces, vertices, edges, boundaries
+     integer :: degree ! Degree of polynomials.
+     integer :: dimension ! 2D or 3D
+     integer :: nodes
+     !!>integer :: type=ELEMENT_LAGRANGIAN
+     integer :: family
+     ! Map local count coordinates to local number.
+     integer, dimension(:,:,:), pointer :: count2number
+     ! Map local number to local count coordinates.
+     integer, dimension(:,:), pointer :: number2count
+     ! Count coordinate which is held constant for each element boundary.
+     integer, dimension(:), pointer :: boundary_coord
+     ! Value of that count coordinate on the element boundary.
+     integer, dimension(:), pointer :: boundary_val
+  end type ele_numbering_type
+  
+  type quadrature_type
+     !!< A data type which describes quadrature information. For most
+     !!< developers, quadrature can be treated as an opaque data type which
+     !!< will only be encountered when creating element_type variables to
+     !!< represent shape functions.  
+     integer :: dimension !! Dimension of the elements for which quadrature
+     !!< is required.  
+     integer :: degree !! Degree of accuracy of quadrature. 
+     integer :: loc !! Number of vertices of the element.
+     integer :: ngi !! Number of quadrature points.
+     real, pointer :: weight(:)=>null() !! Quadrature weights.
+     real, pointer :: l(:,:)=>null() !! Locations of quadrature points.
+     character(len=0) :: name !! Fake name for reference counting.
+     !! Reference count to prevent memory leaks.
+     type(refcount_type), pointer :: refcount=>null()
+  end type quadrature_type
+
+
+  type element_type
+     !!< Type to encode shape and quadrature information for an element.
+     integer :: dim !! 2d or 3d?
+     integer :: loc !! Number of nodes.
+     integer :: ngi !! Number of gauss points.
+     integer :: degree !! Polynomial degree of element.
+     !! Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces. 
+     !! n is loc x ngi, dn is loc x ngi x dim
+     !! dn_s is loc x ngi x face x dim 
+     real, pointer :: n(:,:)=>null(), dn(:,:,:)=>null()
+     real, pointer :: n_s(:,:,:)=>null(), dn_s(:,:,:,:)=>null()
+     !! Polynomials defining shape functions and their derivatives.
+     type(polynomial), dimension(:,:), pointer :: spoly=>null(), dspoly=>null()
+     !! Link back to the node numbering used for this element.
+     type(ele_numbering_type), pointer :: numbering=>null()
+     !! Link back to the quadrature used for this element.
+     type(quadrature_type) :: quadrature
+     type(quadrature_type), pointer :: surface_quadrature=>null()
+     !! Pointer to the superconvergence data for this element.
+     !!>type(superconvergence_type), pointer :: superconvergence=>null()
+     !! Reference count to prevent memory leaks.
+     type(refcount_type), pointer :: refcount=>null()
+     !! Dummy name to satisfy reference counting
+     character(len=0) :: name
+  end type element_type
 
   type cv_faces_type
     ! loc = number of vertices, faces = number of faces
@@ -1359,7 +1439,8 @@
     integer, dimension(:,:), pointer :: neiloc, sneiloc
     ! shape = shape function used in quadrature of faces
     ! 1 dimension lower than parent element
-  !  type(element_type) :: shape
+    logical, dimension( : , : ), pointer :: onface
+    type(element_type) :: shape
   end type cv_faces_type
 
   contains
@@ -1376,23 +1457,37 @@
       integer, dimension( cv_nloc * totele ), intent( inout ) :: colgpts
 
       ! Local variables: 
-      integer, dimension( : , : ), allocatable :: cv_neiloc
-      ! integer, dimension( : ), allocatable :: 
+      type( cv_faces_type ) :: cvfaces
+      type( element_type ) :: cvshape
+     !! integer, dimension( : , : ), allocatable :: cv_neiloc
+     !! integer, dimension( : ), allocatable :: 
       integer :: cv_ele_type2, u_nloc2, cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, &
-           ele, cv_iloc, cv_jloc, cv_nodi, gcount, gi
+           ele, cv_iloc, cv_jloc, cv_nodi, gcount, gi, iloc
 
       Conditional_CVELETYPE: if( cv_ele_type == 2 ) then
          cv_ele_type2 = 1
          u_nloc2 = u_nloc / cv_nloc
 
+
          call retrieve_ngi2( ndim, cv_ele_type2, cv_nloc, u_nloc2, &
               cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface ) ! obtain cv_ngi and scvngi
 
-         allocate( cv_neiloc( cv_nloc, scvngi ))
-         call volnei( cv_neiloc, cv_nloc, scvngi, cv_ele_type2 ) ! obtain cv_neiloc
+      !!   allocate( cv_neiloc( cv_nloc, scvngi ))
+      !!   call volnei( cv_neiloc, cv_nloc, scvngi, cv_ele_type2 ) ! obtain cv_neiloc
+         cvfaces % loc = cv_nloc
+         cvshape % ngi = scvngi
+         call volnei( cvfaces % neiloc, cvfaces % loc, cvshape % ngi, cv_ele_type2 ) ! obtain cv_neiloc
 
-         call gaussiloc( findgpts, colgpts( 1 : cv_nloc * scvngi ), ncolgpts, &
-              cv_neiloc, cv_nloc, scvngi ) 
+         cvfaces % onface = .false.
+         do iloc = 1, cvfaces % loc
+            cvfaces % onface( iloc, iloc ) = .true.
+            cvfaces % onface( iloc, iloc + 1 ) = .true.
+         end do
+
+        !! call gaussiloc( findgpts, colgpts( 1 : cv_nloc * scvngi ), ncolgpts, &
+        !!      cv_neiloc, cv_nloc, scvngi ) 
+         call gaussiloc( findgpts, colgpts( 1 : cv_nloc * cvshape % ngi ), ncolgpts, &
+              cvfaces % neiloc, cv_nloc, cvshape % ngi ) 
          !  findgpts and colgpts has the address of Gauss point around iloc
 
          Loop_Elements1: do ele = 1, totele
@@ -1403,7 +1498,8 @@
                ! Loop over quadrature (gauss) points in ele neighbouring iloc
                Loop_GaussCount: do gcount = findgpts( cv_iloc ), findgpts( cv_iloc + 1 ), 1 
                   gi = colgpts( gcount ) ! colgpts stores the local Gauss-point number in ele
-                  cv_jloc = cv_neiloc( cv_iloc, gi ) ! get the neighbouring node for node iloc and Gauss point gi
+                !!  cv_jloc = cv_neiloc( cv_iloc, gi ) ! get the neighbouring node for node iloc and Gauss point gi
+                  cv_jloc = cvfaces % neiloc( cv_iloc, gi ) ! get the neighbouring node for node iloc and Gauss point gi
 
                end do Loop_GaussCount
 
