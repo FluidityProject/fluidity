@@ -9,8 +9,7 @@
   <variables>
     <variable name="ab_convergence_fs" language="python">
 from fluidity_tools import stat_parser as stat
-from math import log
-from numpy import sqrt
+from math import log, sqrt
 
 file1 = "viscous_fs_top_A.stat"
 file2 = "viscous_fs_top_B.stat"
@@ -30,6 +29,46 @@ print error_inf2
 ratio = error1 / error2
 ratio_inf = error_inf1 / error_inf2
 ab_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
+    </variable>
+    <variable name="ab_convergence_maxfs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, pi, cos, sin, cosh, sinh, exp
+from numpy import sqrt, interp
+from scipy.integrate import quad
+
+file1 = "viscous_fs_top_A.stat"
+file2 = "viscous_fs_top_B.stat"
+
+stat1 = stat(file1)
+stat2 = stat(file2)
+
+def analytical(t):
+  wavelength=1.0
+  k=2.0*pi/wavelength
+  D=1.0
+  rhog=1.0
+  amp = 0.1
+  F0 = amp
+  relaxation_time = 2.0*(D*k + sinh(D*k)*cosh(D*k))*k/(rhog*sinh(D*k)**2)
+  return exp(-t/relaxation_time)*F0
+
+def numerical(statn, t):
+  return interp([t], statn["ElapsedTime"]["value"], statn["Fluid"]["FreeSurface"]["max"])[0]
+
+def error(statn, t):
+  return abs(analytical(t)-numerical(statn, t))
+
+quad1 = quad(lambda t: error(stat1, t)**2, stat1["ElapsedTime"]["value"][0], stat1["ElapsedTime"]["value"][-1], limit=1000)
+quad2 = quad(lambda t: error(stat2, t)**2, stat2["ElapsedTime"]["value"][0], stat2["ElapsedTime"]["value"][-1], limit=1000)
+
+error1 = sqrt(quad1[0])
+error2 = sqrt(quad2[0])
+
+print error1, quad1[-1]
+print error2, quad2[-1]
+
+ratio = error1 / error2
+ab_convergence_maxfs = log(ratio, 2)
     </variable>
     <variable name="bc_convergence_fs" language="python">
 from fluidity_tools import stat_parser as stat
@@ -54,6 +93,46 @@ ratio = error1 / error2
 ratio_inf = error_inf1 / error_inf2
 bc_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
     </variable>
+    <variable name="bc_convergence_maxfs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, pi, cos, sin, cosh, sinh, exp
+from numpy import sqrt, interp
+from scipy.integrate import quad
+
+file1 = "viscous_fs_top_B.stat"
+file2 = "viscous_fs_top_C.stat"
+
+stat1 = stat(file1)
+stat2 = stat(file2)
+
+def analytical(t):
+  wavelength=1.0
+  k=2.0*pi/wavelength
+  D=1.0
+  rhog=1.0
+  amp = 0.1
+  F0 = amp
+  relaxation_time = 2.0*(D*k + sinh(D*k)*cosh(D*k))*k/(rhog*sinh(D*k)**2)
+  return exp(-t/relaxation_time)*F0
+
+def numerical(statn, t):
+  return interp([t], statn["ElapsedTime"]["value"], statn["Fluid"]["FreeSurface"]["max"])[0]
+
+def error(statn, t):
+  return abs(analytical(t)-numerical(statn, t))
+
+quad1 = quad(lambda t: error(stat1, t)**2, stat1["ElapsedTime"]["value"][0], stat1["ElapsedTime"]["value"][-1], limit=1000)
+quad2 = quad(lambda t: error(stat2, t)**2, stat2["ElapsedTime"]["value"][0], stat2["ElapsedTime"]["value"][-1], limit=1000)
+
+error1 = sqrt(quad1[0])
+error2 = sqrt(quad2[0])
+
+print error1, quad1[-1]
+print error2, quad2[-1]
+
+ratio = error1 / error2
+bc_convergence_maxfs = log(ratio, 2)
+    </variable>
     <variable name="cd_convergence_fs" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log, sqrt
@@ -77,6 +156,46 @@ ratio = error1 / error2
 ratio_inf = error_inf1 / error_inf2
 cd_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
     </variable>
+    <variable name="cd_convergence_maxfs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, pi, cos, sin, cosh, sinh, exp
+from numpy import sqrt, interp
+from scipy.integrate import quad
+
+file1 = "viscous_fs_top_C.stat"
+file2 = "viscous_fs_top_D.stat"
+
+stat1 = stat(file1)
+stat2 = stat(file2)
+
+def analytical(t):
+  wavelength=1.0
+  k=2.0*pi/wavelength
+  D=1.0
+  rhog=1.0
+  amp = 0.1
+  F0 = amp
+  relaxation_time = 2.0*(D*k + sinh(D*k)*cosh(D*k))*k/(rhog*sinh(D*k)**2)
+  return exp(-t/relaxation_time)*F0
+
+def numerical(statn, t):
+  return interp([t], statn["ElapsedTime"]["value"], statn["Fluid"]["FreeSurface"]["max"])[0]
+
+def error(statn, t):
+  return abs(analytical(t)-numerical(statn, t))
+
+quad1 = quad(lambda t: error(stat1, t)**2, stat1["ElapsedTime"]["value"][0], stat1["ElapsedTime"]["value"][-1], limit=1000)
+quad2 = quad(lambda t: error(stat2, t)**2, stat2["ElapsedTime"]["value"][0], stat2["ElapsedTime"]["value"][-1], limit=1000)
+
+error1 = sqrt(quad1[0])
+error2 = sqrt(quad2[0])
+
+print error1, quad1[-1]
+print error2, quad2[-1]
+
+ratio = error1 / error2
+cd_convergence_maxfs = log(ratio, 2)
+    </variable>
     <variable name="de_convergence_fs" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log, sqrt
@@ -99,6 +218,46 @@ print error_inf2
 ratio = error1 / error2
 ratio_inf = error_inf1 / error_inf2
 de_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
+    </variable>
+    <variable name="de_convergence_maxfs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, pi, cos, sin, cosh, sinh, exp
+from numpy import sqrt, interp
+from scipy.integrate import quad
+
+file1 = "viscous_fs_top_D.stat"
+file2 = "viscous_fs_top_E.stat"
+
+stat1 = stat(file1)
+stat2 = stat(file2)
+
+def analytical(t):
+  wavelength=1.0
+  k=2.0*pi/wavelength
+  D=1.0
+  rhog=1.0
+  amp = 0.1
+  F0 = amp
+  relaxation_time = 2.0*(D*k + sinh(D*k)*cosh(D*k))*k/(rhog*sinh(D*k)**2)
+  return exp(-t/relaxation_time)*F0
+
+def numerical(statn, t):
+  return interp([t], statn["ElapsedTime"]["value"], statn["Fluid"]["FreeSurface"]["max"])[0]
+
+def error(statn, t):
+  return abs(analytical(t)-numerical(statn, t))
+
+quad1 = quad(lambda t: error(stat1, t)**2, stat1["ElapsedTime"]["value"][0], stat1["ElapsedTime"]["value"][-1], limit=1000)
+quad2 = quad(lambda t: error(stat2, t)**2, stat2["ElapsedTime"]["value"][0], stat2["ElapsedTime"]["value"][-1], limit=1000)
+
+error1 = sqrt(quad1[0])
+error2 = sqrt(quad2[0])
+
+print error1, quad1[-1]
+print error2, quad2[-1]
+
+ratio = error1 / error2
+de_convergence_maxfs = log(ratio, 2)
     </variable>
   </variables>
   <pass_tests/>
