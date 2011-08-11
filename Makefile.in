@@ -143,6 +143,16 @@ ifeq (@FEMDEM@,yes)
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
 
+main.o: include/version.h
+
+include/version.h:
+	@echo "DEFINE __FLUIDITY_VERSION__"
+	@grep "$(VERSION)" include/version.h >/dev/null 2>&1 || \
+	printf "#ifndef _FLUIDITY_VERSION_H\n\
+	#define _FLUIDITY_VERSION_H\n\
+	#define __FLUIDITY_VERSION__ \"$(VERSION)\"\n\
+	#endif /* _FLUIDITY_VERSION_H */\n" > include/version.h
+
 bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 	@echo "BUILD fluidity"
 	@echo "    MKDIR bin"
@@ -255,8 +265,6 @@ python_clean:
 
 fluidity_library: lib/lib@FLUIDITY@.a
 lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system 
-	@echo "DEFINE __FLUIDITY_VERSION__"
-	@grep "$(VERSION)" include/confdefs.h >/dev/null 2>&1 || (echo "#undef __FLUIDITY_VERSION__" >> include/confdefs.h && echo "#define __FLUIDITY_VERSION__ \"$(VERSION)\"" >> include/confdefs.h)
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
