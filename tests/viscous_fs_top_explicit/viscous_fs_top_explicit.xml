@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>viscous_fs_top_explicit</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>fluidity -v2 viscous_fs_top_A.flml &gt;&amp; A.log &amp;&amp; fluidity -v2 viscous_fs_top_B.flml &gt;&amp; B.log &amp;&amp; fluidity -v2 viscous_fs_top_C.flml &gt;&amp; C.log &amp;&amp; fluidity -v2 viscous_fs_top_D.flml &gt;&amp; D.log &amp;&amp; fluidity -v2 viscous_fs_top_E.flml &gt;&amp; E.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ab_convergence_fs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+from numpy import sqrt
+
+file1 = "viscous_fs_top_A.stat"
+file2 = "viscous_fs_top_B.stat"
+
+error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
+error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
+
+error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+
+print error1
+print error2
+
+print error_inf1
+print error_inf2
+
+ratio = error1 / error2
+ratio_inf = error_inf1 / error_inf2
+ab_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_fs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, sqrt
+
+file1 = "viscous_fs_top_B.stat"
+file2 = "viscous_fs_top_C.stat"
+
+error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
+error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
+
+error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+
+print error1
+print error2
+
+print error_inf1
+print error_inf2
+
+ratio = error1 / error2
+ratio_inf = error_inf1 / error_inf2
+bc_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence_fs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, sqrt
+
+file1 = "viscous_fs_top_C.stat"
+file2 = "viscous_fs_top_D.stat"
+
+error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
+error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
+
+error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+
+print error1
+print error2
+
+print error_inf1
+print error_inf2
+
+ratio = error1 / error2
+ratio_inf = error_inf1 / error_inf2
+cd_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
+    </variable>
+    <variable name="de_convergence_fs" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log, sqrt
+
+file1 = "viscous_fs_top_D.stat"
+file2 = "viscous_fs_top_E.stat"
+
+error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
+error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
+
+error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+
+print error1
+print error2
+
+print error_inf1
+print error_inf2
+
+ratio = error1 / error2
+ratio_inf = error_inf1 / error_inf2
+de_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
+    </variable>
+  </variables>
+  <pass_tests/>
+</testproblem>
