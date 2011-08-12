@@ -181,7 +181,7 @@
       ! momentum and continuity eqns: 
 
       if ( OldSetUp .or. ( cv_nonods /= totele * cv_nloc )) then
-         CALL DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE)
+         CALL DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE, cv_ndgln)
          NC = NCT
          !   call swapprint( .true., cv_nonods, mx_nct, nct, findct, colct, centct )
       else
@@ -189,6 +189,9 @@
               nct, findct, colct, centct )
          nc = nct
       endif
+      
+      ewrite(3,*) 'findct: ', findct
+      ewrite(3,*) 'colct: ', colct(1:totele*cv_nloc*u_nloc)
 
       ! Convert CT sparsity to C sparsity.
       CALL CONV_CT2C( CV_NONODS, NCT, FINDCT, COLCT, U_NONODS, MX_NC, FINDC, COLC )
@@ -300,8 +303,9 @@
   !!    stop 9887
 
       ewrite(3,*) 'going into EXTEN_SPARSE_MULTI_PHASE sbrt 2nd time'
+      colacv=0
       CALL EXTEN_SPARSE_MULTI_PHASE( CV_NONODS, MXNACV_LOC, FINACV_LOC, COLACV_LOC, &
-           NPHASE, CV_PHA_NONODS, MX_NCOLACV, FINACV, COLACV, MIDACV )  
+           NPHASE, CV_PHA_NONODS, MX_NCOLACV, FINACV, COLACV, MIDACV )
 
       ! Sparsity of CV-FEM
       ewrite(3,*)'going to find sparsity of colm MX_NCOLM:',MX_NCOLM
@@ -485,7 +489,7 @@
 
 
 
-    SUBROUTINE DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE)
+    SUBROUTINE DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE, cv_ndgln)
       ! define sparsity...
       ! SEMI_BAND_WID is the semi band width.
       IMPLICIT NONE
@@ -495,33 +499,68 @@
       INTEGER, DIMENSION( MX_NCT ), intent( inout ) :: COLCT
       INTEGER, intent( in ) :: TOTELE, CV_NLOC, U_NLOC, U_ELE_TYPE
       INTEGER, DIMENSION ( U_NLOC * TOTELE ), intent( in ) :: U_NDGLN
+      integer, dimension (cv_nloc * totele ), intent( in ) :: cv_ndgln
       ! Local variables...
-      INTEGER :: CV_NOD, U_NOD, JLOC, COUNT, ELE, ELE1, ELE2, CV_NODI, CV_ILOC, ILEV
+      INTEGER :: CV_NOD, U_NOD, JLOC, COUNT, ELE, ELE1, ELE2, CV_NODI, CV_ILOC, ILEV, count2, rep
+      integer, dimension(cv_nonods) :: cv_ndgln_small
+      logical :: repeated, finished_colct
 
       ewrite(3,*) 'In DEF_SPAR_CT_DG'
 
+      COUNT = 2
+      !! Get condensed form of cv_ndgln, ie without any repeats
+      !! This can then be used as the index for the loop below
+      cv_ndgln_small=0
+      rep = 1
+      cv_ndgln_small(1)=cv_ndgln(1)
+      do cv_nod=2,size(cv_ndgln)
+        repeated = .false.
+        do cv_nodi=1,cv_nod-rep
+          if (cv_ndgln(cv_nod)==cv_ndgln_small(cv_nodi)) then
+            repeated=.true.
+            rep=rep+1
+          end if
+        end do
+        if (.not.repeated) then
+          cv_ndgln_small(count) = cv_ndgln(cv_nod)
+          count = count+1
+        end if
+      end do
+      
+      finished_colct=.false.
       COUNT = 0
+      count2 = 1
+      
 
       IF(CV_NONODS /= CV_NLOC*TOTELE ) THEN
          ! Have a cty CV_NOD
-         loop_cvnod: DO CV_NOD = 1, CV_NONODS
+        do while (.not.finished_colct)
+          loop_cvnod: DO CV_NOD = 1, CV_NONODS
 
-            FINDCT( CV_NOD ) = COUNT + 1
-            ELE1 = 1 + ( CV_NOD - 2 ) / ( CV_NLOC - 1 )
-            ELE2 = 1 + ( CV_NOD - 1 ) / ( CV_NLOC - 1 )
+            cv_nodi = cv_ndgln_small(cv_nod)
+            if (cv_nodi==count2) then
 
-            loop_elements: DO ELE = MAX( 1 , ELE1 ), MIN( TOTELE , ELE2 ), 1
+              FINDCT( cv_nodi ) = COUNT + 1
+              ELE1 = 1 + ( CV_NOD - 2 ) / ( CV_NLOC - 1 )
+              ELE2 = 1 + ( CV_NOD - 1 ) / ( CV_NLOC - 1 )
 
-               DO JLOC = 1 ,U_NLOC
+              loop_elements: DO ELE = MAX( 1 , ELE1 ), MIN( TOTELE , ELE2 ), 1
+
+                DO JLOC = 1 ,U_NLOC
                   U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + JLOC )
                   COUNT = COUNT + 1
-                  ewrite(3,*) u_nod
+!                  ewrite(3,*) u_nod
                   COLCT( COUNT ) = U_NOD
-               END DO
+                END DO
 
-            END DO loop_elements
+              END DO loop_elements
+            
+            end if
 
-         END DO loop_cvnod
+          END DO loop_cvnod
+          if (count2==cv_nonods) finished_colct = .true.
+          count2 = count2+1
+        end do
       ELSE
          ! Have a discontinuous CV_NOD
          loop_elements2: DO ELE = 1,TOTELE 
@@ -655,7 +694,6 @@
 
 
       DEALLOCATE( IN_ROW_C )
-      EWRITE(3,*) 'HERE'
 
       ewrite(3,*) 'Leaving CONV_CT2C'
 

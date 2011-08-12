@@ -617,7 +617,8 @@ contains
     ! into the matrix (ACV) and the RHS
 
     ewrite(3,*)'x,ftheta:'
-
+    ewrite(3,*) 'cv_ndgln: ', cv_ndgln
+    
     Loop_Elements: DO ELE = 1, TOTELE
 
 
@@ -704,13 +705,18 @@ contains
                    DO U_KLOC = 1, U_NLOC
                       U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
                       JCOUNT = 0
+!                      ewrite(3,*) 'cv_nodi: ', cv_nodi
+!                      ewrite(3,*) 'findct: ', findct
+!                      ewrite(3,*) 'colct: ', colct
                       DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
+!                         ewrite(3,*) 'u_nodk, count, colct(count): ', u_nodk, count, colct(count)
                          IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                       END DO
                       JCOUNT_KLOC( U_KLOC ) = JCOUNT
                    END DO
+!                   ewrite(3,*) 'jcount_kloc: ', jcount_kloc
                    IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
-                      ewrite(3,*)'CV_NODI,CV_NODJ,ELE,ELE2:',CV_NODI,CV_NODJ,ELE,ELE2
+!                      ewrite(3,*)'CV_NODI,CV_NODJ,ELE,ELE2:',CV_NODI,CV_NODJ,ELE,ELE2
                       DO U_KLOC = 1, U_NLOC
                          U_NODK = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC )
                          !             ewrite(3,*)'U_NODK:',U_NODK
@@ -726,7 +732,7 @@ contains
                    ENDIF
 
                 ENDIF Conditional_GETCT1
-
+                
                 ! Compute the distance HDC between the nodes either side of the CV face 
                 ! (this is needed to compute the local courant number and the non-linear
                 ! theta)
@@ -1035,7 +1041,7 @@ contains
 
     END DO Loop_Elements
 
-
+!    stop 123
 
     IF(GET_GTHETA) THEN
        DO CV_NODI = 1, CV_NONODS
@@ -1156,6 +1162,8 @@ contains
 
 
     ewrite(3,*)'upwind fraction:'
+    ewrite(3,*) 'x_ndgln: ', x_ndgln
+    ewrite(3,*) 'x: ', x
     do iphase=1,nphase
        ewrite(3,*)'for phase iphase=',iphase
        do ele=1,totele-1
@@ -1164,8 +1172,12 @@ contains
              mat_nodi = mat_ndgln((ele-1)*cv_nloc+cv_iloc)
              cv_nodi_IPHA=cv_nodi +(IPHASE-1)*CV_NONODS
 
+             ewrite(3,*) 'ele, cv_iloc, cv_nodi: ', ele, cv_iloc, cv_nodi
+             ewrite(3,*) 'x_ndgln(1), x_ndgln(2): ', x_ndgln((ele-1)*x_nloc+cv_iloc), x_ndgln((ele-1)*x_nloc+cv_iloc+1)
              if(cv_nonods==x_nonods) then
-                ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
+!                ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
+                ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &
+                        UP_WIND_NOD(cv_nodi_IPHA)
              else
                 if(cv_iloc==cv_nloc) then
                    ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),  &
@@ -5687,7 +5699,8 @@ contains
     !    stop 3983
 
     ! Calculate CV_SLOC2LOC    
-    !    ewrite(3,*)'sele2=',sele2
+    ewrite(3,*)'sele, cv_snloc: ',sele, cv_snloc
+    ewrite(3,*) 'cv_sndgln: ', cv_sndgln
     DO CV_SKLOC = 1, CV_SNLOC  
        CV_SKNOD = CV_SNDGLN(( SELE - 1 ) * CV_SNLOC + CV_SKLOC )
        DO CV_JLOC = 1, CV_NLOC  
@@ -5697,6 +5710,7 @@ contains
        CV_SLOC2LOC( CV_SKLOC ) = CV_KLOC
        IF(CV_KLOC.EQ.CV_ILOC) CV_SILOC=CV_SKLOC
     END DO
+    ewrite(3,*) 'cv_sloc2loc: ', cv_sloc2loc
 
     ! Calculate U_SLOC2LOC  
     DO U_SKLOC = 1, U_SNLOC  
@@ -5814,6 +5828,7 @@ contains
 
     !      DO U_KLOC_LEV = 1, U_NLOC_LEV
     !  U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
+    
     DO U_KLOC = 1, U_NLOC
 
        JCOUNT_IPHA = JCOUNT_KLOC( U_KLOC )  +  (IPHASE - 1 ) * NCOLCT * NDIM

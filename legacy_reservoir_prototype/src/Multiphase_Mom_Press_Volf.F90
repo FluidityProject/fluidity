@@ -511,7 +511,7 @@ contains
                   COMP_DIFFUSION, NCOMP_DIFF_COEF, COMP_DIFF_COEF( ICOMP, :, : ), &
                   X_NONODS, X, Y, Z, NU, NV, NW, U_NONODS, CV_NONODS, &
                   MAT_NDGLN, U_NDGLN, X_NDGLN, &
-                  U_ELE_TYPE, P_ELE_TYPE ) 
+                  U_ELE_TYPE, P_ELE_TYPE )
 
 
              ! bear in mind there are 3 internal iterations

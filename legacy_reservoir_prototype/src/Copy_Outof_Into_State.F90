@@ -35,6 +35,7 @@ module copy_outof_into_state
   use fldebug
   use state_module
   use fields
+  use field_options
   use spud
   use populate_state_module
   use diagnostic_variables
@@ -63,6 +64,8 @@ module copy_outof_into_state
          problem, nphases, ncomps, totele, ndim, nlev, &
          u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
          cv_snloc, u_snloc, p_snloc, stotel, &
+         cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, &
+         cv_sndgln, p_sndgln, &
          ncoef, nuabs_coefs, &
          u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
          cv_sele_type, u_sele_type, &
@@ -139,25 +142,27 @@ module copy_outof_into_state
       !! temporary variables only needed for interfacing purposes
 
       type(vector_field), pointer :: positions
+      type(vector_field) :: cv_positions
 
       integer :: i, j, k, l, nscalar_fields, cv_nonods, p_nonods, &
-           x_nonods, xu_nonods, u_nonods, cv_nod, u_nod, &
+           x_nonods, xu_nonods, u_nonods, cv_nod, u_nod, xu_nod, x_nod, &
            shared_nodes
 
       real :: coord_min, coord_max, &
            eos_value!, viscosity_ph1, viscosity_ph2
            
-      real:: const
+      real:: const, dx
       real, dimension(:), allocatable :: const_vec
       real, dimension(:,:), allocatable :: const_array
 
            
-      integer, dimension(:), allocatable :: cv_ndgln, u_ndgln
+      integer, dimension(:), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, &
+                                            cv_sndgln, p_sndgln
       integer, dimension(:), pointer :: element_nodes
       
       real, dimension(:), allocatable :: initial_constant_velocity
       
-      logical :: is_constant, is_isotropic, is_symmetric, is_diagonal
+      logical :: is_constant, is_isotropic, is_symmetric, is_diagonal, ndgln_switch
 
       !! Variables needed by the prototype code
       !! and therefore needing to be pulled out of state or
@@ -278,6 +283,7 @@ module copy_outof_into_state
       !! Let's get the meshes out here, as we're going to need them for a whole
       !! load of things:
       cmesh = extract_mesh(state, "CoordinateMesh")
+      
       if (have_option("/geometry/mesh::VelocityMesh")) then
          vmesh = extract_mesh(state, "VelocityMesh")
       else
@@ -289,8 +295,24 @@ module copy_outof_into_state
          pmesh = cmesh
       endif
       positions => extract_vector_field(state, "Coordinate")
+      ewrite(3,*) 'positions: ', positions%val(1,:)
 
+      cv_positions = get_coordinate_field(state(1), pmesh)
+      ewrite(3,*) 'cv_positions: ', cv_positions%val(1,:)
+
+      ! This is a strictly 1d property, so will have a suitably 1d method for finding it in state!
+      coord_min=1.0e9
+      coord_max=-1.0e-9
+      do i=1,node_count(positions)
+         coord_min=min(coord_min,positions%val(X_,i))
+         coord_max=max(coord_max,positions%val(X_,i))
+      end do
+
+      domain_length = coord_max - coord_min
       totele = ele_count(cmesh)
+
+      ! Still need dx for the old way of setting up x (and y, z)
+      dx = domain_length/totele
 
       call get_option("/geometry/dimension",ndim)
 
@@ -343,32 +365,126 @@ module copy_outof_into_state
       p_snloc = 1
       ! x_snloc = 1
       stotel = surface_element_count(cmesh)
+
+      x_nonods = max(( x_nloc - 1 ) * totele + 1, totele )
+      allocate(x(x_nonods))
+      allocate(y(x_nonods))
+      allocate(z(x_nonods))
+      y=0.
+      z=0.
+      !!!!!!
+      !!  x, y, z are ordered in the global numbering order, and not in spatial order
+      !!  This seems to be consistent with other places in the code (cv-adv-dif, etc)
+      !!!!!!
+      !! Switch on (true) or off (false) using Fluidity node numbering
+      ndgln_switch=.false.
+
+      xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
+
+      allocate(cv_ndgln(totele*cv_nloc))
+      allocate(p_ndgln(totele*p_nloc))
+      allocate(u_ndgln(totele*u_nloc))
+      allocate(xu_ndgln(totele*xu_nloc))
+      allocate(x_ndgln(totele*cv_nloc))
       
+      allocate(xu(xu_nonods))
+      allocate(yu(xu_nonods))
+      allocate(zu(xu_nonods))
+      xu=0.
+      yu=0.
+      zu=0.
+
+      u_nonods = u_nloc * totele
+
+      allocate( nu( u_nonods * nphases ))
+      allocate( nv( u_nonods * nphases ))
+      allocate( nw( u_nonods * nphases ))
+      allocate( ug( u_nonods * nphases ))
+      allocate( vg( u_nonods * nphases ))
+      allocate( wg( u_nonods * nphases ))
+      nu=1.
+      nv=0.
+      nw=0.
+      if (ndim>1) nv=1.
+      if (ndim>2) nw=1.
+      ug=0.
+      vg=0.
+      wg=0.
+
+
       !! global numbering to allow proper copying of fields
       cv_nod = 0
       u_nod = 0
-      allocate(cv_ndgln(totele*cv_nloc))
-      allocate(u_ndgln(totele*u_nloc))
-      select case(ndim)
-        case(1)
-          do i=1, totele
+      xu_nod = 0
+      x_nod = 0
+      pressure => extract_scalar_field(state(1), "Pressure")
+      velocity => extract_vector_field(state(1), "Velocity")
+      do k = 1,totele
+         if (ndgln_switch) then
+            element_nodes => ele_nodes(pressure,k)
+            do j = 1,size(element_nodes)
+               cv_ndgln((k-1)*size(element_nodes)+j) = element_nodes(j)            
+            end do
+         else
             do j = 1, cv_nloc
-              cv_nod = cv_nod + 1
-              cv_ndgln( ( i - 1 ) * cv_nloc + j ) = cv_nod
+               cv_nod = cv_nod + 1
+               cv_ndgln( ( k - 1 ) * cv_nloc + j ) = cv_nod
             end do
             if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
-            do j = 1, u_nloc ! storing velocity nodes
-              u_nod = u_nod + 1
-              u_ndgln( ( i - 1 ) * u_nloc + j ) = u_nod
-            end do
+         end if
+         do j = 1,u_nloc
+            u_nod = u_nod + 1
+            u_ndgln((k-1)*u_nloc+j) = u_nod
+         end do
+         do j = 1, xu_nloc
+            xu_nod = xu_nod + 1
+            xu_ndgln((k-1)*xu_nloc+j) = xu_nod
+            xu( xu_nod ) = positions%val(1,xu_nod)
+!            if (ndim>1) yu((k-1)*xu_nloc+j) = positions%val(2,xu_nod)
+!            if (ndim>2) zu((k-1)*xu_nloc+j) = positions%val(3,xu_nod)
+         end do
+         if( xu_nloc /= 1 ) xu_nod = xu_nod - 1
+      end do
+      
+      ewrite(3,*) 'xu_ndgln: ', xu_ndgln
+      ewrite(3,*) 'xu: ', xu
+      
+      p_ndgln = cv_ndgln
+      x_ndgln = cv_ndgln
+      
+      x_nod=0
+      if (ndgln_switch) then
+         x = cv_positions%val(1,:)
+         if (ndim>1) y = cv_positions%val(2,:)
+         if (ndim>2) z = cv_positions%val(3,:)
+      else
+         ! Do it the old way
+        do i=1,totele
+          do j = 1, x_nloc
+            x_nod = x_nod + 1
+            x_ndgln( ( i - 1 ) * x_nloc + j ) = x_nod
+            if ( x_nloc == 1 ) then
+               x( x_nod ) = ( real( i - 1 ) + 0.5 ) * dx 
+            else
+               x( x_nod ) = real( i - 1 ) * dx + real( j - 1 ) * dx / real ( x_nloc - 1 )
+            end if
           end do
+          if( x_nloc /= 1 ) x_nod = x_nod - 1
+        end do
+      end if
+      
+      allocate(cv_sndgln(stotel*cv_snloc))
+      allocate(p_sndgln(stotel*p_snloc))
+      
+      select case(ndim)
+        case(1)
+          cv_sndgln( 1 ) = 1
+          cv_sndgln( 2 ) = cv_ndgln(size(cv_ndgln))
+          p_sndgln( 1 ) = 1
+          p_sndgln( 2 ) = p_ndgln(size(p_ndgln))
         case default
-          ewrite(3,*) '*************************************************************'
-          ewrite(3,*) 'We do not have global numbering set up for this dimension yet'
-          ewrite(3,*) '*************************************************************'
+          FLAbort("Don't have surface global node numbers for this dimension yet")
       end select
-!      ewrite(3,*) 'cv_ndgln: ', cv_ndgln
-
 
       !! EoS things are going to be done very differently
       !! Currently the default value of ncoef is 10 so I'm going
@@ -508,15 +624,6 @@ module copy_outof_into_state
            'temporal_discretisation/theta', v_theta)
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
            'temporal_discretisation/theta', u_theta)
-
-      ! This is a strictly 1d property, so will have a suitably 1d method for finding it in state!
-      coord_min=1.0e9
-      coord_max=-1.0e-9
-      do i=1,node_count(positions)
-         coord_min=min(coord_min,positions%val(X_,i))
-         coord_max=max(coord_max,positions%val(X_,i))
-      end do
-      domain_length = coord_max - coord_min
 
       !! I'm going to get this one from the PhaseVolumeFraction scalar_field
       lump_eqns = have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
@@ -1193,38 +1300,6 @@ module copy_outof_into_state
       enddo
       cp_coefs = 1.
 
-      ! These are (nearly) all initialised to zero in the input files
-      x_nonods = max(( x_nloc - 1 ) * totele + 1, totele )
-      xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
-      allocate(x(x_nonods))
-      allocate(y(x_nonods))
-      allocate(z(x_nonods))
-      x=0.
-      y=0.
-      z=0.
-      allocate(xu(xu_nonods))
-      allocate(yu(xu_nonods))
-      allocate(zu(xu_nonods))
-      xu=0.
-      yu=0.
-      zu=0.
-      u_nonods = u_nloc * totele
-
-      allocate( nu( u_nonods * nphases ))
-      allocate( nv( u_nonods * nphases ))
-      allocate( nw( u_nonods * nphases ))
-      allocate( ug( u_nonods * nphases ))
-      allocate( vg( u_nonods * nphases ))
-      allocate( wg( u_nonods * nphases ))
-      nu=1.
-      nv=0.
-      nw=0.
-      if (ndim>1) nv=1.
-      if (ndim>2) nw=1.
-      ug=0.
-      vg=0.
-      wg=0.
-
       ewrite(3,*) 'Getting source terms -- gravity '
       ! Gravity is associated with the u_source term
       call get_option( "/physical_parameters/gravity/magnitude", gravity_magnitude, stat )
@@ -1313,31 +1388,21 @@ module copy_outof_into_state
             Loop_Temperature: do i = 1, nphases
                scalarfield => extract_scalar_field(state(i), "Temperature")
 !               ewrite(3,*) 'temperature: ', scalarfield%val(:)
-!               ewrite(3,*) 'element_count: ', element_count(scalarfield)
-!               ewrite(3,*) 'node_count: ', node_count(scalarfield)
-!               ewrite(3,*) 'cv_nonods*nphases= ', cv_nonods * nphases
-!               ewrite(3,*) 'cv_ndgln: ', cv_ndgln
                if (.not.allocated(t)) allocate( t( cv_nonods * nphases ))
-               
-               if (ndim==1) then
 
-                 t_ele_loop: do k = 1,element_count(scalarfield)
+               t_ele_loop: do k = 1,element_count(scalarfield)
             
-                   element_nodes => ele_nodes(scalarfield,k)
+                  element_nodes => ele_nodes(scalarfield,k)
 !                  ewrite(3,*) 'element_nodes', element_nodes
             
-                   t_node_loop: do j = 1,size(element_nodes)
+                  t_node_loop: do j = 1,size(element_nodes)
                   
-!                     t( (cv_ndgln( (k-1)*size(element_nodes)+j) ) + (i-1)*node_count(scalarfield) ) = &
-!                        scalarfield%val(element_nodes(j))
+                     t((cv_ndgln((k-1)*size(element_nodes)+j)) + (i-1)*node_count(scalarfield)) = &
+                        scalarfield%val(element_nodes(j))
             
-                   end do t_node_loop
+                  end do t_node_loop
             
-                 end do t_ele_loop
-               else
-               !! Global node numbering not working in multi-d
-                 t=0.
-               endif
+               end do t_ele_loop
 
                scalarfield_source => extract_scalar_field( state( i ), trim( field_name ) // &
                     "Source", stat)
@@ -1421,7 +1486,7 @@ module copy_outof_into_state
                   call get_option("/material_phase[" // int2str(i-1) //"]/scalar_field[" // int2str(j-1) //&
                        &"]/material_phase_name", material_phase_name)
                   do k=1,nphases
-!                     ewrite(3,*) 'mp_name, state_name', trim(material_phase_name), state(k)%name
+                     ewrite(3,*) 'mp_name, state_name', trim(material_phase_name), state(k)%name
                      if (trim(material_phase_name) == state(k)%name) then
                         do l=1,node_count(componentmassfraction)
                            comp( ((i-(1+nphases))*nphases+(k-1))*node_count(componentmassfraction)+l ) = componentmassfraction%val(l)
@@ -1456,6 +1521,7 @@ module copy_outof_into_state
          do i=1, ncomps
             call get_option('material_phase['// int2str(i+nphases-1) //']/is_multiphase_component/' // &
                  'KComp_Sigmoid/k_comp', k_comp(i, 1, 1))
+!            ewrite(3,*) 'i, kcomp', i, k_comp(i, 1, 1)
             k_comp(i, 1:nphases, 1:nphases) = k_comp(i, 1, 1)
          end do
       end if

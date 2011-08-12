@@ -2704,36 +2704,25 @@ contains
 
 
   subroutine allocating_global_nodes( ndim, totele, domain_length, &
-       u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+       u_nloc, cv_nloc, mat_nloc, &
+       u_nonods, &
        cv_snloc, u_snloc, p_snloc, stotel, &
-       cv_nonods, u_nonods, x_nonods, xu_nonods, &
        u_ele_type, cv_ele_type, &
-       x, xu, &
-       u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-       mat_ndgln, cv_sndgln, u_sndgln, p_sndgln )
+       mat_ndgln, u_sndgln)
     use printout
 
     implicit none
     integer, intent( in ) :: ndim, totele
     real, intent( in ) :: domain_length
-    integer, intent( in ) :: u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+    integer, intent( in ) :: u_nloc, cv_nloc, mat_nloc, &
+         u_nonods, &
          cv_snloc, u_snloc, p_snloc, stotel, &
-         cv_nonods, u_nonods, x_nonods, xu_nonods, &
          u_ele_type, cv_ele_type
-    real, dimension( x_nonods ), intent( inout )  :: x    
-    real, dimension( xu_nonods ), intent( inout ) :: xu
-    integer, dimension( totele * u_nloc ), intent( inout )  :: u_ndgln
-    integer, dimension( totele * xu_nloc ), intent( inout )  :: xu_ndgln
-    integer, dimension( totele * cv_nloc ), intent( inout )  :: cv_ndgln
-    integer, dimension( totele * cv_nloc ), intent( inout )  :: x_ndgln
-    integer, dimension( totele * p_nloc ), intent( inout )  :: p_ndgln
     integer, dimension( totele * mat_nloc ), intent( inout )  :: mat_ndgln
     integer, dimension( stotel * u_snloc ), intent( inout )  :: u_sndgln
-    integer, dimension( stotel * cv_snloc ), intent( inout )  :: cv_sndgln
-    integer, dimension( stotel * p_snloc ), intent( inout )  :: p_sndgln
 
     ! Local variables:
-    integer :: u_nloc2, u_nod, xu_nod, cv_nod, x_nod, mat_nod, p_nod
+    integer :: u_nloc2, mat_nod
     real :: dx
     integer :: ele, iloc, cv_iloc
     character( len = 100 ) :: name
@@ -2754,10 +2743,6 @@ contains
     Conditional_NDIM: if( ndim == 1 ) then ! This needs to be updated for 2-3D
 
        dx = domain_length / real( totele )
-       cv_sndgln( 1 ) = 1
-       cv_sndgln( 2 ) = cv_nonods
-       p_sndgln( 1 ) = 1
-       p_sndgln( 2 ) = cv_nonods
 
        if( cv_ele_type == 2 ) then
           u_nloc2 = u_nloc / cv_nloc
@@ -2772,62 +2757,10 @@ contains
        name = '####u_sndgln####'
        !call mirror_array_int( 357, name,  stotel * u_snloc, u_sndgln )
 
-       u_nod = 0
-       xu_nod = 0 
-       cv_nod = 0
-       x_nod = 0
        mat_nod = 0
-       p_nod = 0
        ewrite(3,*) 'totele:', totele
 
        Loop_Elements: do ele = 1, totele
-
-          Loop_U: do iloc = 1, u_nloc ! storing velocity nodes
-             u_nod = u_nod + 1
-             u_ndgln( ( ele - 1 ) * u_nloc + iloc ) = u_nod
-          end do Loop_U
-
-          Loop_XU:do iloc = 1, xu_nloc
-             xu_nod = xu_nod + 1
-             xu_ndgln( ( ele - 1 ) * xu_nloc + iloc ) = xu_nod
-             if ( xu_nloc == 1 ) then
-                xu( xu_nod ) = ( real( ele - 1 ) + 0.5 ) * dx
-             else
-                if( u_ele_type == 2 ) then
-                   xu( xu_nod ) = real( ele - 1 ) * dx + real ( mod( iloc, cv_nloc ) - 1 ) &
-                        * dx / real ( xu_nloc - 1 )
-                else
-                   xu( xu_nod ) = real( ele - 1 ) * dx + real ( iloc - 1 ) &
-                        * dx / real ( xu_nloc - 1 )
-                end if
-             end if
-          end do Loop_XU
-          if( xu_nloc /= 1 ) xu_nod = xu_nod - 1
-
-          Loop_P: do iloc = 1, p_nloc
-             p_nod = p_nod + 1
-             p_ndgln( ( ele - 1 ) * p_nloc + iloc ) = p_nod
-          end do Loop_P
-          !if( problem == 2 ) p_nod = p_nod - 1
-          if( cv_nonods /= totele * cv_nloc ) p_nod = p_nod - 1
-
-          Loop_CV: do iloc = 1, cv_nloc
-             cv_nod = cv_nod + 1
-             cv_ndgln( ( ele - 1 ) * cv_nloc + iloc ) = cv_nod
-          end do Loop_CV
-          !if( problem == 2 ) cv_nod = cv_nod - 1
-          if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
-
-          Loop_X: do iloc = 1, x_nloc
-             x_nod = x_nod + 1
-             x_ndgln( ( ele - 1 ) * x_nloc + iloc ) = x_nod
-             if ( x_nloc == 1 ) then
-                x( x_nod ) = ( real( ele - 1 ) + 0.5 ) * dx 
-             else
-                x( x_nod ) = real( ele - 1 ) * dx + real( iloc - 1 ) * dx / real ( x_nloc - 1 )
-             end if
-          end do Loop_X
-          if( x_nloc /= 1 ) x_nod = x_nod - 1
 
           Loop_Mat: do iloc = 1, mat_nloc
              mat_nod = mat_nod + 1

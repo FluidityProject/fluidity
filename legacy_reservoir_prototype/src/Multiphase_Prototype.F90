@@ -168,6 +168,8 @@ module mp_prototype
            problem, nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
+           cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, &
+           cv_sndgln, p_sndgln, &
            ncoef, nuabs_coefs, &
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
            cv_sele_type, u_sele_type, &
@@ -225,7 +227,6 @@ module mp_prototype
       !      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
 
       if( u_snloc < 0 ) u_snloc = 1 * nlev
-      mat_nloc = cv_nloc
       cv_pha_nonods = cv_nonods * nphase
       u_pha_nonods = u_nonods * nphase
       ncp_coefs = nphase
@@ -239,37 +240,35 @@ module mp_prototype
       opt_vel_upwind_coefs = 0.
 
       ! Set up Global node number for velocity and scalar fields
-      allocate( u_ndgln( totele * u_nloc ))
-      allocate( xu_ndgln( totele * xu_nloc ))
-      allocate( cv_ndgln( totele * cv_nloc ))
+!      allocate( u_ndgln( totele * u_nloc ))
+!      allocate( xu_ndgln( totele * xu_nloc ))
+!      allocate( cv_ndgln( totele * cv_nloc ))
       ewrite(3,*) 'totele, cv_nloc', totele, cv_nloc
-      allocate( x_ndgln( totele * cv_nloc ))
-      allocate( p_ndgln( totele * p_nloc ))
+!      allocate( x_ndgln( totele * cv_nloc ))
+!      allocate( p_ndgln( totele * p_nloc ))
       allocate( mat_ndgln( totele * mat_nloc ))
       allocate( u_sndgln( stotel * u_snloc ))
-      allocate( cv_sndgln( stotel * cv_snloc ))
+!      allocate( cv_sndgln( stotel * cv_snloc ))
       allocate( x_sndgln( stotel * cv_snloc ))
-      allocate( p_sndgln( stotel * p_snloc ))
+!      allocate( p_sndgln( stotel * p_snloc ))
 
-      u_ndgln = 0
-      xu_ndgln = 0
-      cv_ndgln = 0
-      x_ndgln = 0
-      p_ndgln = 0
+!      u_ndgln = 0
+!      xu_ndgln = 0
+!      cv_ndgln = 0
+!      x_ndgln = 0
+!      p_ndgln = 0
       mat_ndgln =0
       u_sndgln = 0
-      cv_sndgln =0
+!      cv_sndgln =0
       x_sndgln = 0
-      p_sndgln = 0
+!      p_sndgln = 0
 
       call allocating_global_nodes( ndim, totele, domain_length, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           u_nloc, cv_nloc, mat_nloc, &
+           u_nonods, &
            cv_snloc, u_snloc, p_snloc, stotel, &
-           cv_nonods, u_nonods, x_nonods, xu_nonods, &
            u_ele_type, cv_ele_type, &
-           x, xu,  &
-           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, cv_sndgln, u_sndgln, p_sndgln )
+           mat_ndgln, u_sndgln)
 
       ewrite(3,*) 'cv_ele_type', cv_ele_type
       ewrite(3,*) 'cv_sele_type', cv_sele_type
@@ -415,16 +414,16 @@ module mp_prototype
       !      allocate( x_sndgln( stotel * cv_snloc ))
       !      allocate( p_sndgln( stotel * p_snloc ))
 
-      u_ndgln = 0
-      xu_ndgln = 0
-      cv_ndgln = 0
-      x_ndgln = 0
-      p_ndgln = 0
+!      u_ndgln = 0
+!      xu_ndgln = 0
+!      cv_ndgln = 0
+!      x_ndgln = 0
+!      p_ndgln = 0
       mat_ndgln =0
       u_sndgln = 0
-      cv_sndgln =0
+!      cv_sndgln =0
       x_sndgln = 0
-      p_sndgln = 0
+!      p_sndgln = 0
 
 
       ! Allocating solver parameters into the following arrays (dimension = 4)
@@ -513,13 +512,11 @@ module mp_prototype
 
      ! if ( .not. do_old_output ) call allocating_global_nodes( ndim, totele, domain_length, &
       call allocating_global_nodes( ndim, totele, domain_length, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
+           u_nloc, cv_nloc, mat_nloc, &
+           u_nonods, &
            cv_snloc, u_snloc, p_snloc, stotel, &
-           cv_nonods, u_nonods, x_nonods, xu_nonods, &
            u_ele_type, cv_ele_type, &
-           x, xu,  &
-           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, cv_sndgln, u_sndgln, p_sndgln )
+           mat_ndgln, u_sndgln )
       ! Initialising T and Told. This should be properly initialised through a generic function
 
       if ( do_old_output ) call initialise_scalar_fields( &
