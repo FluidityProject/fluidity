@@ -1293,7 +1293,7 @@ contains
 
       ! Boundary condition types
       integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NEUMANN = 2, BC_TYPE_INTERNAL = 3, &
-                            BC_TYPE_ZEROFLUX = 4, BC_TYPE_INFLUX = 5
+                            BC_TYPE_ZEROFLUX = 4, BC_TYPE_FLUX = 5
 
       ewrite(1, *) "In assemble_advectiondiffusion_m_cv"
 
@@ -1637,7 +1637,7 @@ contains
         "neumann      ", &
         "internal     ", &
         "zero_flux    ", &
-        "influx       "/), tfield_bc, tfield_bc_type)
+        "flux         "/), tfield_bc, tfield_bc_type)
       if(include_density) then
         allocate(tdensity_bc_type(surface_element_count(tdensity)))
         call get_entire_boundary_condition(tdensity, (/"weakdirichlet"/), tdensity_bc, tdensity_bc_type)
@@ -1680,7 +1680,7 @@ contains
         end if
 
         ! deal with bcs for tfield
-        if(tfield_bc_type(sele)==BC_TYPE_WEAKDIRICHLET .or. tfield_bc_type(sele)==BC_TYPE_INFLUX) then
+        if(tfield_bc_type(sele)==BC_TYPE_WEAKDIRICHLET .or. tfield_bc_type(sele)==BC_TYPE_FLUX) then
           ghost_tfield_ele_bdy=ele_val(tfield_bc, sele)
         else
           ghost_tfield_ele_bdy=face_val(tfield, sele)
@@ -1750,7 +1750,7 @@ contains
                   ! u.n
                   if(move_mesh) then
                     divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_INFLUX)) then
+                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX)) then
                       ! If we have zero flux, or a flux BC, set u.n = 0
                       udotn = 0.0
                     else
@@ -1758,7 +1758,7 @@ contains
                     end if
                   else
                     divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_INFLUX)) then
+                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX)) then
                       udotn = 0.0
                     else
                       udotn = divudotn
@@ -1819,11 +1819,11 @@ contains
                 ! d(field)/dt = flux_val_at_boundary
                 ! We add the flux_val_at_boundary contribution to rhs_local_bdy, after setting the advection
                 ! and diffusion terms to zero at the boundary.
-                if(tfield_bc_type(sele)==BC_TYPE_INFLUX) then
+                if(tfield_bc_type(sele)==BC_TYPE_FLUX) then
                    rhs_local_bdy(iloc) = rhs_local_bdy(iloc) + detwei_bdy(ggi)*ghost_tfield_ele_bdy(iloc)
                 end if
 
-                if(assemble_diffusion .and. tfield_bc_type(sele)/=BC_TYPE_INFLUX) then
+                if(assemble_diffusion .and. tfield_bc_type(sele)/=BC_TYPE_FLUX) then
                   ! Here we keep grad_rhs_local_bdy = 0 and div_rhs_local_bdy = 0 if
                   ! we have a flux boundary condition.
 
@@ -1942,7 +1942,7 @@ contains
         ! assemble RHS - this contains the advection boundary terms, or
         ! a RHS term from the flux boundary condition, so that
         ! we have the equation in the form d(field)/dt = flux_val
-        if(include_advection .or. tfield_bc_type(sele)==BC_TYPE_INFLUX) then
+        if(include_advection .or. tfield_bc_type(sele)==BC_TYPE_FLUX) then
           call addto(rhs, nodes_bdy, rhs_local_bdy)
         end if
 

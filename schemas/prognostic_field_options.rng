@@ -91,7 +91,7 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
           </element>
         </element>
         <element name="type">
-          <a:documentation>Influx boundary condition. Mainly used in the PhaseVolumeFraction field 
+          <a:documentation>Flux boundary condition. Mainly used in the PhaseVolumeFraction field 
 for multiphase flow simulations. Currently only works with a control_volume 
 discretisation.
 
@@ -99,7 +99,7 @@ This works in the same way as the Neumann boundary condition, except it enforces
 a weak no normal flow across the boundary when solving the advection-diffusion
 equation.</a:documentation>
           <attribute name="name">
-            <value>influx</value>
+            <value>flux</value>
           </attribute>
           <ref name="input_choice_real"/>
         </element>

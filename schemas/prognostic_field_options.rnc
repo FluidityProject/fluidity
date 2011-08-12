@@ -68,7 +68,7 @@ scalar_boundary_conditions =
                "low_Re"|"high_Re"
                }
             }|
-            ## Influx boundary condition. Mainly used in the PhaseVolumeFraction field 
+            ## Flux boundary condition. Mainly used in the PhaseVolumeFraction field 
             ## for multiphase flow simulations. Currently only works with a control_volume 
             ## discretisation.
             ##
@@ -76,7 +76,7 @@ scalar_boundary_conditions =
             ## a weak no normal flow across the boundary when solving the advection-diffusion
             ## equation.
             element type {
-               attribute name { "influx" },
+               attribute name { "flux" },
                input_choice_real
             }
          )
