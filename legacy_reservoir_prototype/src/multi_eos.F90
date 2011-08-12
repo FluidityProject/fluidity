@@ -331,6 +331,7 @@
       REAL, DIMENSION( :, :, :), allocatable :: INV_PERM
 
       ewrite(3,*) 'In calculate_absorption2'
+      ewrite(3,*) 'mat_ndgln: ', mat_ndgln
 
       ALLOCATE( INV_PERM( TOTELE, NDIM, NDIM ))
 

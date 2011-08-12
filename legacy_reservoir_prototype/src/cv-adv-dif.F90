@@ -1162,8 +1162,7 @@ contains
 
 
     ewrite(3,*)'upwind fraction:'
-    ewrite(3,*) 'x_ndgln: ', x_ndgln
-    ewrite(3,*) 'x: ', x
+    ewrite(3,*) 'This is wrong now, but up_wind_nod is not used anyway I think'
     do iphase=1,nphase
        ewrite(3,*)'for phase iphase=',iphase
        do ele=1,totele-1
@@ -1172,8 +1171,6 @@ contains
              mat_nodi = mat_ndgln((ele-1)*cv_nloc+cv_iloc)
              cv_nodi_IPHA=cv_nodi +(IPHASE-1)*CV_NONODS
 
-             ewrite(3,*) 'ele, cv_iloc, cv_nodi: ', ele, cv_iloc, cv_nodi
-             ewrite(3,*) 'x_ndgln(1), x_ndgln(2): ', x_ndgln((ele-1)*x_nloc+cv_iloc), x_ndgln((ele-1)*x_nloc+cv_iloc+1)
              if(cv_nonods==x_nonods) then
 !                ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
                 ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &

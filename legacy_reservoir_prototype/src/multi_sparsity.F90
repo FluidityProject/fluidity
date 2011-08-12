@@ -204,6 +204,9 @@
             CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
                                 !    CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
                  MIDCMC, FINDCMC, COLCMC )
+            ewrite(3,*)'findcmc: ', findcmc(1:cv_nonods+1)
+            ewrite(3,*)'colcmc: ', colcmc( 1:ncolcmc )
+            ewrite(3,*)'midcmc: ', midcmc( 1:cv_nonods)
          else
             allocate( dummyvec( u_nonods ))
             dummyvec = 0

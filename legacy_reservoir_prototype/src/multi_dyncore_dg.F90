@@ -711,6 +711,10 @@ contains
             P_ERROR_RELAX2_NOIT(3), &
             P_ERROR_RELAX2_NOIT(4), P_ERROR_RELAX2_NOIT(5)
        ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
+       
+       ewrite(3,*) 'CMC: ', CMC
+       ewrite(3,*) 'FINDCMC: ', FINDCMC
+       ewrite(3,*) 'COLCMC: ', COLCMC
 
        CALL SOLVER( CMC, DP, P_RHS, &
             FINDCMC, COLCMC, &
@@ -883,8 +887,8 @@ contains
        U, V, W, UOLD, VOLD, WOLD,  &
        CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
        DT, &
-       NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
+       NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        NCOLCMC, FINDCMC, COLCMC, MASS_MN_PRES, & ! pressure matrix for projection method
        NCOLACV, FINACV, COLACV, MIDACV, & ! For CV discretisation method

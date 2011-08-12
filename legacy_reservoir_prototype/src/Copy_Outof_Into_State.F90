@@ -62,10 +62,10 @@ module copy_outof_into_state
          nonlinear_iterations, nonlinear_iteration_tolerance, &
                                 ! Begin here all the variables from read_scalar
          problem, nphases, ncomps, totele, ndim, nlev, &
-         u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
+         u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
          cv_snloc, u_snloc, p_snloc, stotel, &
-         cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, &
-         cv_sndgln, p_sndgln, &
+         cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, mat_ndgln, &
+         cv_sndgln, p_sndgln, u_sndgln, &
          ncoef, nuabs_coefs, &
          u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
          cv_sele_type, u_sele_type, &
@@ -113,7 +113,7 @@ module copy_outof_into_state
          perm, K_Comp, &
          comp_diffusion, &
                                 ! Now adding other things which we have taken inside this routine to define
-         cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods)
+         cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods, mat_nonods)
 
       !! New variables
 
@@ -144,9 +144,9 @@ module copy_outof_into_state
       type(vector_field), pointer :: positions
       type(vector_field) :: cv_positions
 
-      integer :: i, j, k, l, nscalar_fields, cv_nonods, p_nonods, &
-           x_nonods, xu_nonods, u_nonods, cv_nod, u_nod, xu_nod, x_nod, &
-           shared_nodes
+      integer :: i, j, k, l, nscalar_fields, cv_nonods, p_nonods, mat_nonods, &
+           x_nonods, xu_nonods, u_nonods, cv_nod, u_nod, xu_nod, x_nod, mat_nod, &
+           shared_nodes, u_nloc2
 
       real :: coord_min, coord_max, &
            eos_value!, viscosity_ph1, viscosity_ph2
@@ -156,8 +156,8 @@ module copy_outof_into_state
       real, dimension(:,:), allocatable :: const_array
 
            
-      integer, dimension(:), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, &
-                                            cv_sndgln, p_sndgln
+      integer, dimension(:), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, mat_ndgln, &
+                                            cv_sndgln, p_sndgln, u_sndgln
       integer, dimension(:), pointer :: element_nodes
       
       real, dimension(:), allocatable :: initial_constant_velocity
@@ -170,7 +170,7 @@ module copy_outof_into_state
 
       ! Scalars (from read_scalar())
       integer :: problem, nphases, ncomps, totele, ndim, nlev, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
+           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
            ncoef, nuabs_coefs, &
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
@@ -312,7 +312,7 @@ module copy_outof_into_state
       totele = ele_count(cmesh)
 
       ! Still need dx for the old way of setting up x (and y, z)
-      dx = domain_length/totele
+      dx = domain_length/real(totele)
 
       call get_option("/geometry/dimension",ndim)
 
@@ -342,6 +342,7 @@ module copy_outof_into_state
       end select
       x_nloc = cv_nloc
       p_nloc = cv_nloc
+      mat_nloc = cv_nloc
       u_nloc = cv_nloc * xu_nloc
 
       if (pmesh%continuity>=0) then
@@ -365,6 +366,8 @@ module copy_outof_into_state
       p_snloc = 1
       ! x_snloc = 1
       stotel = surface_element_count(cmesh)
+      
+      mat_nonods = mat_nloc*totele
 
       x_nonods = max(( x_nloc - 1 ) * totele + 1, totele )
       allocate(x(x_nonods))
@@ -372,6 +375,16 @@ module copy_outof_into_state
       allocate(z(x_nonods))
       y=0.
       z=0.
+      
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!
+      !! GLOBAL NUMBERING SECTION
+      !!
+      !! nb. This could all be moved to a separate subrtn now, but it needed to be moved
+      !! as it's needed by the field setup bits below
+      !!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      
       !!!!!!
       !!  x, y, z are ordered in the global numbering order, and not in spatial order
       !!  This seems to be consistent with other places in the code (cv-adv-dif, etc)
@@ -386,6 +399,7 @@ module copy_outof_into_state
       allocate(u_ndgln(totele*u_nloc))
       allocate(xu_ndgln(totele*xu_nloc))
       allocate(x_ndgln(totele*cv_nloc))
+      allocate(mat_ndgln(totele*mat_nloc))
       
       allocate(xu(xu_nonods))
       allocate(yu(xu_nonods))
@@ -417,6 +431,7 @@ module copy_outof_into_state
       u_nod = 0
       xu_nod = 0
       x_nod = 0
+      mat_nod = 0
       pressure => extract_scalar_field(state(1), "Pressure")
       velocity => extract_vector_field(state(1), "Velocity")
       do k = 1,totele
@@ -432,6 +447,11 @@ module copy_outof_into_state
             end do
             if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
          end if
+         !! mat_ndgln on the cv mesh but always discontinuous
+         do j = 1, mat_nloc
+             mat_nod = mat_nod + 1
+             mat_ndgln( ( k - 1 ) * mat_nloc + j ) = mat_nod
+         end do
          do j = 1,u_nloc
             u_nod = u_nod + 1
             u_ndgln((k-1)*u_nloc+j) = u_nod
@@ -472,30 +492,9 @@ module copy_outof_into_state
           if( x_nloc /= 1 ) x_nod = x_nod - 1
         end do
       end if
+
+!!!! Surface node numbering:
       
-      allocate(cv_sndgln(stotel*cv_snloc))
-      allocate(p_sndgln(stotel*p_snloc))
-      
-      select case(ndim)
-        case(1)
-          cv_sndgln( 1 ) = 1
-          cv_sndgln( 2 ) = cv_ndgln(size(cv_ndgln))
-          p_sndgln( 1 ) = 1
-          p_sndgln( 2 ) = p_ndgln(size(p_ndgln))
-        case default
-          FLAbort("Don't have surface global node numbers for this dimension yet")
-      end select
-
-      !! EoS things are going to be done very differently
-      !! Currently the default value of ncoef is 10 so I'm going
-      !! to put that here until we have a more concrete idea of what
-      !! we're dealing with
-      ncoef = 10
-
-      !! I don't understand why absorption needs a coefficient, or what it is
-      !! but it's equal to 1 in all the test cases
-      nuabs_coefs = 1
-
       call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/polynomial_degree', u_ele_type, default=1)
       call get_option('/geometry/mesh::PressureMesh/from_mesh/mesh_shape/polynomial_degree', p_ele_type, default=1)
 !      ewrite(3,*) 'u_ele_type', u_ele_type
@@ -517,6 +516,44 @@ module copy_outof_into_state
          cv_ele_type = 1
          u_ele_type = 1
       end if
+
+      allocate(cv_sndgln(stotel*cv_snloc))
+      allocate(p_sndgln(stotel*p_snloc))
+      allocate(u_sndgln(stotel*u_snloc))
+      
+      ewrite(3,*) 'u_ele_type, cv_nloc: ', u_ele_type, cv_nloc
+      
+      select case(ndim)
+        case(1)
+          cv_sndgln( 1 ) = 1
+          cv_sndgln( 2 ) = cv_ndgln(size(cv_ndgln))
+          p_sndgln( 1 ) = 1
+          p_sndgln( 2 ) = p_ndgln(size(p_ndgln))
+          if( u_ele_type == 2 ) then
+             u_nloc2 = u_nloc / cv_nloc
+             do j = 1, cv_nloc
+                u_sndgln( j ) = 1 + ( j-1 ) * u_nloc2
+                u_sndgln( j + cv_nloc ) = u_nonods - u_nloc + j * u_nloc2
+             end do
+          else
+             u_sndgln( 1 ) = 1
+             u_sndgln( 2 ) = u_nonods
+          end if
+        case default
+          FLAbort("Don't have surface global node numbers for this dimension yet")
+      end select
+      
+      ewrite(3,*) 'u_sndgln: ', u_sndgln
+
+      !! EoS things are going to be done very differently
+      !! Currently the default value of ncoef is 10 so I'm going
+      !! to put that here until we have a more concrete idea of what
+      !! we're dealing with
+      ncoef = 10
+
+      !! I don't understand why absorption needs a coefficient, or what it is
+      !! but it's equal to 1 in all the test cases
+      nuabs_coefs = 1
 
       ewrite(3,*) ' Getting iteration info'
       call get_option( '/timestepping/nonlinear_iterations', nonlinear_iterations, &
