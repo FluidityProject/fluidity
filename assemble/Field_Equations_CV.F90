@@ -1676,7 +1676,7 @@ contains
         end if
 
         ! deal with bcs for tfield
-        if(tfield_bc_type(sele)==1) then
+        if(tfield_bc_type(sele)==1 .or. tfield_bc_type(sele)==5) then
           ghost_tfield_ele_bdy=ele_val(tfield_bc, sele)
         else
           ghost_tfield_ele_bdy=face_val(tfield, sele)
@@ -1747,7 +1747,7 @@ contains
                   if(move_mesh) then
                     divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
                     if((tfield_bc_type(sele)==4 .or. tfield_bc_type(sele)==5)) then
-                      ! If we have zero flux, or an influx BC, set u.n = 0
+                      ! If we have zero flux, or a flux BC, set u.n = 0
                       udotn = 0.0
                     else
                       udotn = dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
@@ -1811,7 +1811,17 @@ contains
                   end if
                 end if
 
-                if(assemble_diffusion) then
+                ! If we have a flux boundary condition, then we need to set up the equation so that
+                ! d(field)/dt = flux_val_at_boundary
+                ! We add the flux_val_at_boundary contribution to rhs_local_bdy, after setting the advection
+                ! and diffusion terms to zero at the boundary.
+                if(tfield_bc_type(sele)==5) then
+                   rhs_local_bdy(iloc) = rhs_local_bdy(iloc) + detwei_bdy(ggi)*ghost_tfield_ele_bdy(iloc)
+                end if
+
+                if(assemble_diffusion .and. tfield_bc_type(sele)/=5) then
+                  ! Here we keep grad_rhs_local_bdy = 0 and div_rhs_local_bdy = 0 if
+                  ! we have a flux boundary condition.
 
                   select case(tfield_options%diffusionscheme)
                   case(CV_DIFFUSION_BASSIREBAY)
@@ -1832,7 +1842,7 @@ contains
 
                     else
 
-                      if(tfield_bc_type(sele)==2 .or. tfield_bc_type(sele)==5) then
+                      if(tfield_bc_type(sele)==2) then
 
                         ! assemble div_rhs
                         div_rhs_local_bdy(iloc) = div_rhs_local_bdy(iloc) &
@@ -1852,7 +1862,7 @@ contains
 
                   case(CV_DIFFUSION_ELEMENTGRADIENT)
 
-                    if(tfield_bc_type(sele)==2 .or. tfield_bc_type(sele)==5) then
+                    if(tfield_bc_type(sele)==2) then
 
                       div_rhs_local_bdy(iloc) = div_rhs_local_bdy(iloc) &
                                   -detwei_bdy(ggi)*ghost_gradtfield_ele_bdy(iloc)
@@ -1911,7 +1921,7 @@ contains
             ! assume zero neumann for the moment
             ! call addto(diff_rhs, nodes_bdy, -matmul(diff_mat_local_bdy, ghost_gradtfield_ele_bdy))
 
-            elseif(tfield_bc_type(sele)==2 .or. tfield_bc_type(sele)==5) then
+            elseif(tfield_bc_type(sele)==2) then
 
               call addto(diff_rhs, nodes_bdy, div_rhs_local_bdy)
 
@@ -1925,8 +1935,10 @@ contains
           end select
         end if
 
-        ! assemble rhs
-        if(include_advection) then
+        ! assemble RHS - this contains the advection boundary terms, or
+        ! a RHS term from the flux boundary condition, so that
+        ! we have the equation in the form d(field)/dt = flux_val
+        if(include_advection .or. tfield_bc_type(sele)==5) then
           call addto(rhs, nodes_bdy, rhs_local_bdy)
         end if
 
