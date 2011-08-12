@@ -153,6 +153,9 @@
     ! Are we running a multi-phase flow simulation?
     logical :: multiphase
 
+    ! Are we doing local assembly?
+    logical :: local_assembly
+
   contains
 
     subroutine construct_momentum_cg(u, p, density, x, &
@@ -661,6 +664,13 @@
         call allocate( visc_inverse_masslump, u%dim, u%mesh, "ViscousInverseLumpedMass")
         call zero(visc_inverse_masslump)
       end if
+
+      local_assembly = have_option("/local_assembly")
+      if (local_assembly) then
+         ewrite(2, *)'Using local assembly routines in construct_momentum_cg'
+      end if
+
+      call set_local_assembly(big_m, local_assembly)
       
       ! ----- Volume integrals over elements -------------
       
