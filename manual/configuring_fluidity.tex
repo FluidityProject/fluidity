@@ -1418,6 +1418,14 @@ velocity and temperature are required. More information can be found in section 
 
 For control volume discretisations only this options prevents the field fluxing from the boundary.
 
+\subsubsection{Flux}
+\index{boundary conditions!flux}
+
+For control volume discretisations only, this option allows a given flux $h$ of field $c$ through the boundary. In other words, we have
+\begin{equation*}
+   \frac{\partial c}{\partial t} = h
+\end{equation*}
+
 \subsubsection{Free surface}
 \index{boundary conditions!free surface}
 \index{free surface!boundary condition}
