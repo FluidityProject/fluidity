@@ -39,6 +39,7 @@ module adjoint_main_loop
     use global_parameters, only: OPTION_PATH_LEN, running_adjoint
     use adjoint_global_variables
     use adjoint_functional_evaluation
+    use adjoint_controls
     use populate_state_module
     use signal_vars
     use mangle_options_tree
@@ -53,17 +54,35 @@ module adjoint_main_loop
     implicit none
 
     private
-    public :: adjoint_main_loop_register_diagnostic
 #ifdef HAVE_ADJOINT
     public :: compute_adjoint
+    contains
 #endif
 
-    contains
 
 #ifdef HAVE_ADJOINT
-    subroutine compute_adjoint(state, dump_no)
+    ! Computes the adjoint equation
+    ! The optional adjoint timestep callback is called for each functional after every timestep in the adjoint loop.
+    ! It is commonly used to compute the diangostics from the adjoint solution, e.g. the total derivative of the functional.
+    subroutine compute_adjoint(state, dump_no, adjoint_timestep_callback, adjoint_timestep_callback_data)
+      use iso_c_binding, only: c_ptr
       type(state_type), dimension(:), intent(inout) :: state
       integer, intent(inout) :: dump_no
+      optional :: adjoint_timestep_callback
+      ! Data is a void pointer used to pass variables into the callback
+      type(c_ptr), intent(in), optional :: adjoint_timestep_callback_data
+      interface 
+        subroutine adjoint_timestep_callback(state, timestep, functional_name, data)
+          use iso_c_binding, only: c_ptr
+          use global_parameters, only: OPTION_PATH_LEN
+          use state_module
+          type(state_type), dimension(:), intent(inout) :: state
+          integer, intent(in) :: timestep
+          character(len=OPTION_PATH_LEN), intent(in) :: functional_name
+          ! Data is a void pointer used to pass variables into the callback
+          type(c_ptr), intent(in) :: data
+        end subroutine adjoint_timestep_callback
+      end interface
 
       type(adj_vector) :: rhs
       type(adj_vector) :: soln
@@ -80,10 +99,12 @@ module adjoint_main_loop
       integer :: end_timestep, start_timestep, no_timesteps, timestep
       real :: start_time, end_time
 
-      character(len=OPTION_PATH_LEN) :: simulation_base_name, functional_name
+      character(len=OPTION_PATH_LEN) :: simulation_base_name
       type(stat_type), dimension(:), allocatable :: functional_stats
+      real :: J
+      real, dimension(:), pointer :: fn_value
 
-      character(len=ADJ_NAME_LEN) :: variable_name, field_name, material_phase_name
+      character(len=ADJ_NAME_LEN) :: variable_name, field_name, material_phase_name, functional_name
       type(scalar_field) :: sfield_soln, sfield_rhs
       type(vector_field) :: vfield_soln, vfield_rhs
       type(csr_matrix) :: csr_mat
@@ -99,7 +120,7 @@ module adjoint_main_loop
       call get_option("/simulation_name", simulation_base_name)
       running_adjoint = .true.
 
-      if (have_option("/adjoint/html_output")) then
+      if (have_option("/adjoint/debug/html_output")) then
         ! Switch the html output on if you are interested what the adjointer has registered
         ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
         ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)
@@ -112,24 +133,36 @@ module adjoint_main_loop
       allocate(functional_stats(no_functionals))
 
       do functional=0,no_functionals-1
+        call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+        if (have_option("/adjoint/functional::" // trim(functional_name) // "/disable_adjoint_run")) then
+         cycle
+        end if 
         default_stat = functional_stats(functional + 1)
         call initialise_walltime
-        call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
         call initialise_diagnostics(trim(simulation_base_name) // '_' // trim(functional_name), state)
         functional_stats(functional + 1) = default_stat
-
+        
+        ! Register the callback to compute J
+        ierr = adj_register_functional_callback(adjointer, trim(functional_name), c_funloc(libadjoint_evaluate_functional))
+        call adj_chkierr(ierr)
+       
         ! Register the callback to compute delJ/delu
         ierr = adj_register_functional_derivative_callback(adjointer, trim(functional_name), c_funloc(libadjoint_functional_derivative))
         call adj_chkierr(ierr)
       end do
+
+      ! Insert the fields for storing the derivatives of the functionals with respect to the controls into the state
+       if (have_option("/adjoint/controls")) then
+        call allocate_and_insert_control_derivative_fields(state)
+      end if
 
       ierr = adj_timestep_count(adjointer, no_timesteps)
       call adj_chkierr(ierr)
 
       do timestep=no_timesteps-1,0,-1
         ierr = adj_timestep_get_times(adjointer, timestep, start_time, end_time)
-        call adj_chkierr(ierr)
-        current_time = end_time
+        call adj_chkierr(ierr) 
+        current_time = start_time ! the usual convention in fluidity: time is what is /about to be/ computed
         call set_option("/timestepping/current_time", current_time)
 
         ierr = adj_timestep_start_equation(adjointer, timestep, start_timestep)
@@ -145,18 +178,6 @@ module adjoint_main_loop
           call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
           call set_option("/simulation_name", trim(simulation_base_name) // "_" // trim(functional_name))
           default_stat = functional_stats(functional + 1)
-          ! We don't want to compute a functional for the dummy timestep added at the end to act
-          ! as a container for the last equation
-          if (start_time == end_time) then
-            assert(timestep == no_timesteps-1)
-            if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
-              call set_diagnostic(name=trim(functional_name), statistic="value", value=(/0.0/))
-              call set_diagnostic(name=trim(functional_name) // "_component", statistic="value", value=(/0.0/))
-            end if
-            functional_computed = .true.
-          else
-            functional_computed = .false.
-          end if
 
           do equation=end_timestep,start_timestep,-1
             ierr = adj_get_adjoint_equation(adjointer, equation, trim(functional_name), lhs, rhs, adj_var)
@@ -168,7 +189,7 @@ module adjoint_main_loop
             material_phase_name = variable_name(1:s_idx - 1)
             field_name = variable_name(s_idx + 2:len_trim(variable_name))
             ierr = adj_dict_find(adj_path_lookup, trim(variable_name), path)
-            if (ierr == ADJ_ERR_OK) then
+            if (ierr == ADJ_OK) then
               path = adjoint_field_path(path)
               has_path = .true.
             else
@@ -201,9 +222,7 @@ module adjoint_main_loop
                       end if
 
                       call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
-                      !call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
-                      ewrite(1,*) "Scalar field: ", trim(sfield_soln%name)
-                      ewrite(1,*) sfield_soln%val
+                      call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     FLAbort("Cannot map between scalar fields with a block_csr_matrix .. ")
@@ -242,7 +261,7 @@ module adjoint_main_loop
                       end if
 
                       call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=path)
-                      call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
+                      !call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
                     endif
                   case(ADJ_BLOCK_CSR_MATRIX)
                     call matrix_from_adj_matrix(lhs, block_csr_mat)
@@ -284,7 +303,16 @@ module adjoint_main_loop
               call adjoint_cleanup
               return
             end if
-          end do
+          end do ! End of equation loop
+          
+          ! Callback for the computation of the functional total derivatives
+          if (present(adjoint_timestep_callback)) then
+            call adjoint_timestep_callback(state, timestep, trim(functional_name), data=adjoint_timestep_callback_data)
+          end if
+          if (have_option("/adjoint/controls")) then
+            ! Write the functional's total derivatives to file
+            call adjoint_write_control_derivatives(state, timestep, trim(functional_name))
+          end if
 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
           call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
@@ -298,13 +326,13 @@ module adjoint_main_loop
           endif
 
           functional_stats(functional + 1) = default_stat
-        end do
+        end do ! End of functional loop
 
         ! Now forget
         ierr = adj_forget_adjoint_equation(adjointer, start_timestep)
         call adj_chkierr(ierr)
         current_time = start_time
-      end do
+      end do ! End of timestep loop
 
       call get_option("/timestepping/finish_time", finish_time)
       assert(current_time == finish_time)
@@ -316,6 +344,10 @@ module adjoint_main_loop
       subroutine adjoint_cleanup
         ! Clean up stat files
         do functional=0,no_functionals-1
+          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          if (have_option("/adjoint/functional::" // trim(functional_name) // "/disable_adjoint_run")) then
+           cycle
+          end if 
           default_stat = functional_stats(functional + 1)
           call close_diagnostic_files
           call uninitialise_diagnostics
@@ -327,23 +359,7 @@ module adjoint_main_loop
         call adj_chkierr(ierr)
       end subroutine adjoint_cleanup
     end subroutine compute_adjoint
+
 #endif
-
-    subroutine adjoint_main_loop_register_diagnostic
-      integer :: functional, no_functionals
-      character(len=OPTION_PATH_LEN) :: functional_name
-
-      no_functionals = option_count("/adjoint/functional")
-      
-      do functional=0,no_functionals-1
-        ! Register a diagnostic for each functional 
-        if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
-          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
-          call register_diagnostic(dim=1, name=trim(functional_name) // "_component", statistic="value")
-          call register_diagnostic(dim=1, name=trim(functional_name), statistic="value")
-        end if
-      end do
-
-       end subroutine adjoint_main_loop_register_diagnostic
 
 end module adjoint_main_loop

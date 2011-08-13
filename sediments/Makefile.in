@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @FCFLAGS@ -I/usr/local/include -I./
 
 CC      = @CC@
 CFLAGS  = @CFLAGS@ -I../include -I/usr/local/include
@@ -50,15 +50,14 @@ OBJS = Sediment.o Sediment_Diagnostics.o \
 	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
-default: $(LIB)
 
-Sediment_Diagnostics.o: Sediment.o
+default: $(LIB)
 
 clean:
 	rm -f *.o *.d *.mod
+
+include Makefile.dependencies

@@ -482,7 +482,7 @@ contains
 
         do field=1,tensor_field_count(meshes_new(mesh))
           field_t => extract_tensor_field(meshes_new(mesh), field)
-          p_field_t => extract_tensor_field(periodic_new(mesh), trim(field_v%name))
+          p_field_t => extract_tensor_field(periodic_new(mesh), trim(field_t%name))
           assert(trim(field_t%name) == trim(p_field_t%name))
           call remap_field(field_t, p_field_t, stat=stat)
         end do

@@ -7,20 +7,6 @@
 To compute the adjoint you must specify code for the functional
 derivative. If the functional is also specified, then it will be
 output in the .stat file.</a:documentation>
-      <optional>
-        <element name="replay_forward_run">
-          <a:documentation>Rerun the forward equation using libadjoint. 
-This is a debugging option to check if the libadjoint callbacks are implemented correctly.</a:documentation>
-          <empty/>
-        </element>
-      </optional>
-      <optional>
-        <element name="html_output">
-          <a:documentation>Activate the visualisation of the forward and adjoint equations solved. 
-This option creates an html file for both the forward and adjoint system.</a:documentation>
-          <empty/>
-        </element>
-      </optional>
       <oneOrMore>
         <element name="functional">
           <a:documentation>A functional to be computed.
@@ -53,26 +39,31 @@ and you may supply both.</a:documentation>
  This code must compute a real number J, which is the value of the functional associated with this particular
  timestep.
  
- Here is a simple example for a tracking functional, measuring the L2-norm of the error between the
- solution TracerField and a given field TracerObservations:
+ Here is a simple example for the functional that evaluates the L2-norm of a field "LayerThickness" at time T=1:
  &lt;span font_desc="monospace 10" foreground="blue"&gt;
- import numpy
- observ = states[n]["Fluid"].scalar_fields["TracerObservations"]
- soln   = states[n]["Fluid"].scalar_fields["TracerField"]
- coord  = states[n]["Fluid"].vector_fields["Coordinate"]
  J = 0.0
-  
- for ele in range(coord.ele_count):
-   t = Transform(coord, ele) # transform to physical
-   shape = soln.ele_shape(ele)
-   mass = t.shape_shape(shape, shape) # the local mass matrix for this element
-   ele_error = observ.ele_val(ele) - soln.ele_val(ele)
-   J = J + 0.5 * numpy.dot(ele_error, numpy.dot(mass, ele_error))
+ T = 1.0 # the time at which to evaluate
+ if time &amp;lt; T &amp;lt;= time+dt:
+   import numpy
+   eta_prev = states[n-1]["Fluid"].scalar_fields["LayerThickness"]
+   eta      = states[n]["Fluid"].scalar_fields["LayerThickness"]
+   
+   # We want to temporally interpolate to evaluate eta at t=1.0
+   alpha = (time + dt - T) / dt
+   assert 0 &amp;lt;= alpha &amp;lt; 1
+   tmp_eta = alpha * eta_prev.val + (1-alpha) * eta.val
+   
+   # Now we want to integrate that over space
+   coord = states[0]["Fluid"].vector_fields["Coordinate"]
+   assert eta.element_count == eta_prev.element_count == coord.element_count
+   for ele in range(coord.element_count):
+     t = Transform(ele, coord)
+     shape = eta_prev.ele_shape(ele)
+     mass = t.shape_shape(shape, shape)
+     nodes = eta_prev.ele_nodes(ele)
+     J = J + numpy.dot(tmp_eta[nodes], numpy.dot(mass, tmp_eta[nodes]))
  &lt;/span&gt;
 
- This applies for a steady-state simulation; for a time-dependent simulation
- one should either evaluate the fields at a particular time, or integrate
- through time.
  &lt;span weight="bold"&gt;
  If you intend to use automatic differentiation, and want to use
  primitives such as sin, cos, exp, etc., you must use those
@@ -110,29 +101,7 @@ the functional. In this example, the relevant reduction would be a sum.</a:docum
  derivative, which is a scalar/vector/tensor field associated with the derivative to be computed.
 
  This code must set the entries of derivative.val. The code should check which variable we are differentiating
- with respect to by inspecting derivative.name.
- 
- Here is a simple example for a tracking functional, measuring the L2-norm of the error between the
- solution TracerField and a given field TracerObservations at each timestep:
- &lt;span font_desc="monospace 10" foreground="blue"&gt;
- import numpy
- observ = states[n]["Fluid"].scalar_fields["TracerObservations"]
- soln   = states[n]["Fluid"].scalar_fields["TracerField"]
- coord  = states[n]["Fluid"].vector_fields["Coordinate"]
- derivative.val[:] = 0.0
-  
- if derivative.name == "TracerField": # the functional only depends on this
-   for ele in range(coord.ele_count):
-     t = Transform(coord, ele) # transform to physical
-     shape = soln.ele_shape(ele)
-     mass = t.shape_shape(shape, shape) # the local mass matrix for this element
-     ele_error = observ.ele_val(ele) - soln.ele_val(ele)
-     derivative.addto(derivative.ele_nodes(ele), numpy.dot(mass, ele_error))
- &lt;/span&gt;
-
- This applies for a steady-state simulation; for a time-dependent simulation
- one should either evaluate the fields at a particular time, or integrate
- through time.</a:documentation>
+ with respect to by inspecting derivative.name.</a:documentation>
                 <attribute name="name">
                   <value>functional_derivative</value>
                 </attribute>
@@ -147,13 +116,14 @@ the functional. In this example, the relevant reduction would be a sum.</a:docum
  This code defines a function that informs the model what variables at which time levels
  will be necessary for the functional computation at this point.
 
- Here is a simple example for a tracking functional, measuring the L2-norm of the error between the
- solution TracerField and a given field TracerObservations at each timestep:
+ Here is a simple example for the functional that evaluates the L2-norm of a field "LayerThickness" at time T=1:
  &lt;span font_desc="monospace 10" foreground="blue"&gt;
  def dependencies(times, timestep):
-   return {"Fluid::TracerObservations": [timestep],
-                "Fluid::TracerField": [timestep],
-                "Fluid::Coordinate": [timestep]}
+   if times[0] &amp;lt; 1.0 &amp;lt;= times[1]:
+     return {"Fluid::Coordinate": [0],
+             "Fluid::LayerThickness": [timestep-1, timestep]}
+   else:
+     return {}
  &lt;/span&gt;
 </a:documentation>
               <attribute name="name">
@@ -162,8 +132,112 @@ the functional. In this example, the relevant reduction would be a sum.</a:docum
               <ref name="python_code"/>
             </element>
           </element>
+          <optional>
+            <element name="disable_adjoint_run">
+              <a:documentation>Disables the adjoint run for this functional.
+The functional values are still computed during the forward run.
+The resulting stat file is equivalent to the one with this option disabled, 
+but all adjoint related entries will be zeroed.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </oneOrMore>
+      <optional>
+        <element name="controls">
+          <a:documentation>Specifies any control variables </a:documentation>
+          <zeroOrMore>
+            <element name="control">
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <choice>
+                <element name="type">
+                  <a:documentation>Initial condition </a:documentation>
+                  <attribute name="name">
+                    <value>initial_condition</value>
+                  </attribute>
+                  <attribute name="field_name">
+                    <data type="string"/>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+                <element name="type">
+                  <a:documentation>Source term. Note that the source term has to exist in both the forward and in the adjoint run (using the exist_in_both flag)</a:documentation>
+                  <attribute name="name">
+                    <value>source_term</value>
+                  </attribute>
+                  <attribute name="field_name">
+                    <data type="string"/>
+                  </attribute>
+                  <ref name="comment"/>
+                </element>
+              </choice>
+              <optional>
+                <element name="bounds">
+                  <a:documentation>Defines bounds on the control variables.</a:documentation>
+                  <optional>
+                    <element name="upper_bound">
+                      <a:documentation>Defines an upper bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.</a:documentation>
+                      <attribute name="field_name">
+                        <data type="string"/>
+                      </attribute>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="lower_bound">
+                      <a:documentation>Defines an lower bound for this control. The field name must be a a valid field in the state with the same type (e.g. scalar, vector or tensor) and mesh than the control.</a:documentation>
+                      <attribute name="field_name">
+                        <data type="string"/>
+                      </attribute>
+                      <ref name="comment"/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+            </element>
+          </zeroOrMore>
+          <optional>
+            <element name="load_controls">
+              <a:documentation>Load controls values from the control files.
+This is used for optimality only and should be left disabled.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
+        <element name="debug">
+          <a:documentation>Debugging options for adjoint model development</a:documentation>
+          <optional>
+            <element name="replay_forward_run">
+              <a:documentation>Rerun the forward equation using libadjoint. 
+This is a debugging option to check if the libadjoint callbacks are implemented correctly.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="html_output">
+              <a:documentation>Activate the visualisation of the forward and adjoint equations solved. 
+This option creates an html file for both the forward and adjoint system.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="check_action_transposes">
+              <a:documentation>Check the transposes of all action callbacks.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="check_action_derivative">
+              <a:documentation>Check all supplied derivative callbacks of nonlinear operators.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="adjoint_storage">

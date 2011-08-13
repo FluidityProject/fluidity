@@ -55,6 +55,8 @@ module elements
      type(quadrature_type), pointer :: surface_quadrature=>null()
      !! Pointer to the superconvergence data for this element.
      type(superconvergence_type), pointer :: superconvergence=>null()
+     !! Pointer to constraints data for this element
+     type(constraints_type), pointer :: constraints=>null()
      !! Reference count to prevent memory leaks.
      type(refcount_type), pointer :: refcount=>null()
      !! Dummy name to satisfy reference counting
@@ -79,12 +81,41 @@ module elements
     real, pointer :: dn(:, :, :)
   end type superconvergence_type
 
+  type constraints_type
+     !!< A type to encode the constraints from the local Lagrange basis for 
+     !!< (Pn)^d vector-valued elements to another local basis, possibly for 
+     !!< a proper subspace. This new basis must have DOFs consisting
+     !!< of either normal components on faces corresponding to a Lagrange
+     !!< basis for the normal component when restricted to each face,
+     !!< or coefficients of basis
+     !!< functions with vanishing normal components on all faces.
+     !! type of constraints
+     integer :: type
+     !! local dimension
+     integer :: dim
+     !! order of local Lagrange basis
+     integer :: degree
+     !! number of nodes for local Lagrange basis
+     integer :: loc
+     !! Number of constraints
+     integer :: n_constraints
+     !! basis of functions that are orthogonal to the 
+     !! constrained vector space 
+     !! dimension n_constraints x loc x dim
+     real, pointer :: orthogonal(:,:,:)=> null()
+  end type constraints_type
+
+  integer, parameter :: CONSTRAINT_NONE =0, CONSTRAINT_BDFM = 1,&
+       & CONSTRAINT_RT = 2, CONSTRAINT_BDM = 3
+
   interface allocate
      module procedure allocate_element, allocate_element_with_surface
+     module procedure allocate_constraints_type
   end interface
 
   interface deallocate
      module procedure deallocate_element
+     module procedure deallocate_constraints
   end interface
 
   interface local_coords
@@ -119,44 +150,64 @@ module elements
 
 contains
 
-  subroutine allocate_element(element, dim, loc, ngi, coords, type, stat)
+  subroutine allocate_element(element, ele_num, ngi, type, stat)
     !!< Allocate memory for an element_type. 
     type(element_type), intent(inout) :: element
-    !! Dim is the dimension of the element, loc is number of nodes, ngi is
-    !! number of gauss points. 
-    integer, intent(in) :: dim,loc,ngi    
-    !! Number of local coordinates.
-    integer, intent(in) :: coords
+    !! Number of quadrature points
+    integer, intent(in) :: ngi    
+    !! Element numbering
+    type(ele_numbering_type), intent(in) :: ele_num
     !! Stat returns zero for success and nonzero otherwise.
-    integer, intent(out), optional :: stat
-    !! define element type
     integer, intent(in), optional :: type
+    integer, intent(out), optional :: stat
+    !
+    integer :: lstat, coords, ltype
 
-    integer :: lstat, ltype
-
-    if (present(type)) then
-       ltype=type
+    if(present(type)) then
+       ltype = type
     else
-       ltype=ELEMENT_LAGRANGIAN
+       ltype = ele_num%type
     end if
 
-    select case(ltype)
-    case(ELEMENT_LAGRANGIAN, ELEMENT_NONCONFORMING, ELEMENT_BUBBLE)
+    select case(ele_num%family)
+    case (FAMILY_SIMPLEX)
+       coords=ele_num%dimension+1
+    case (FAMILY_CUBE)
+       if(ele_num%type==ELEMENT_TRACE .and. ele_num%dimension==2) then
+          !For trace elements the local coordinate is face number
+          !then the local coordinates on the face
+          !For quads, the face is an interval element which has
+          !two local coordinates.
+          coords=3
+       else
+          coords=ele_num%dimension
+       end if
+    case default
+       FLAbort('Illegal element family.')
+    end select
 
-      allocate(element%n(loc,ngi),element%dn(loc,ngi,dim), &
-          element%spoly(coords,loc), element%dspoly(coords,loc), stat=lstat)
+    select case(ltype)
+    case(ELEMENT_LAGRANGIAN, ELEMENT_NONCONFORMING, &
+         &ELEMENT_BUBBLE, ELEMENT_TRACE)
+
+       allocate(element%n(ele_num%nodes,ngi),&
+            &element%dn(ele_num%nodes,ngi,ele_num%dimension), &
+            &element%spoly(coords,ele_num%nodes), &
+            &element%dspoly(coords,ele_num%nodes), stat=lstat)
 
     case(ELEMENT_CONTROLVOLUME_SURFACE)
 
-      allocate(element%n(loc,ngi),element%dn(loc,ngi,dim-1), &
-          stat=lstat)
+       allocate(element%n(ele_num%nodes,ngi),&
+            &element%dn(ele_num%nodes,ngi,ele_num%dimension-1), &
+            stat=lstat)
 
       element%spoly=>null()
       element%dspoly=>null()
 
     case(ELEMENT_CONTROLVOLUMEBDY_SURFACE)
 
-      allocate(element%n(loc,ngi),element%dn(loc,ngi,dim), &
+      allocate(element%n(ele_num%nodes,ngi),&
+           &element%dn(ele_num%nodes,ngi,ele_num%dimension), &
           stat=lstat)
 
       element%spoly=>null()
@@ -168,9 +219,9 @@ contains
 
     end select
 
-    element%loc=loc
+    element%loc=ele_num%nodes
     element%ngi=ngi
-    element%dim=dim
+    element%dim=ele_num%dimension
 
     nullify(element%refcount) ! Hack for gfortran component initialisation
     !                         bug.
@@ -223,6 +274,79 @@ contains
 
   end subroutine allocate_element_with_surface
 
+  subroutine allocate_constraints_type(constraint, element, type, stat)
+    !!< Allocate memory for a constraints type
+    type(element_type), intent(in) :: element
+    type(constraints_type), intent(inout) :: constraint
+    integer, intent(in) :: type !type of constraint
+    !! Stat returns zero for success and nonzero otherwise.
+    integer, intent(out), optional :: stat
+    !
+    integer :: lstat
+
+    lstat = 0
+    constraint%type = type
+    constraint%dim = element%dim
+    constraint%loc = element%loc
+    constraint%degree = element%degree
+
+    select case (type) 
+    case (CONSTRAINT_BDFM)
+       select case(element%numbering%family)
+       case (FAMILY_SIMPLEX)
+          if(constraint%degree<3) then
+             constraint%n_constraints = constraint%dim+1
+          else
+             FLAbort('High order not supported yet')
+          end if
+       case (FAMILY_CUBE)
+          FLExit('Haven''t implemented BDFM1 on quads yet.')
+       case default
+          FLAbort('Illegal element family.')
+       end select
+    case (CONSTRAINT_RT)
+       select case(element%numbering%family)
+       case (FAMILY_SIMPLEX)
+          FLExit('Haven''t implemented RT0 on simplices yet.')
+          if(constraint%degree<3) then
+             constraint%n_constraints = constraint%dim+1
+          else
+             FLAbort('High order not supported yet')
+          end if
+       case (FAMILY_CUBE)
+          if(constraint%degree<3) then
+             constraint%n_constraints = 2**(constraint%dim)
+          else
+             FLAbort('High order not supported yet')
+          end if
+       case default
+          FLAbort('Illegal element family.')
+       end select
+    case (CONSTRAINT_BDM)
+       constraint%n_constraints = 0
+    case (CONSTRAINT_NONE)
+       constraint%n_constraints = 0
+    case default
+       FLExit('Unknown constraint type')
+    end select
+
+    if(constraint%n_constraints>0) then
+       allocate(&
+            constraint%orthogonal(constraint%n_constraints,&
+            constraint%loc,constraint%dim),stat=lstat)
+       if(lstat==0) then
+          call make_constraints(constraint,element%numbering%family)
+       end if
+    end if
+
+    if (present(stat)) then
+       stat=lstat
+    else if (lstat/=0) then
+       FLAbort("Unable to allocate element.")
+    end if
+
+  end subroutine allocate_constraints_type
+
   subroutine deallocate_element(element, stat)
     type(element_type), intent(inout) :: element
     integer, intent(out), optional :: stat
@@ -266,6 +390,13 @@ contains
     deallocate(element%n,element%dn, stat=tstat)
     lstat=max(lstat,tstat)
 
+    if(associated(element%constraints)) then
+       call deallocate(element%constraints,stat=tstat)
+       lstat = max(lstat,tstat)
+
+       deallocate(element%constraints, stat=tstat)
+       lstat = max(lstat,tstat)
+    end if
     if (present(stat)) then
        stat=lstat
     else if (lstat/=0) then
@@ -273,6 +404,26 @@ contains
     end if
 
   end subroutine deallocate_element
+
+  subroutine deallocate_constraints(constraint, stat)
+    type(constraints_type), intent(inout) :: constraint
+    integer, intent(out), optional :: stat
+    
+    integer :: lstat
+
+    lstat = 0
+
+    if(associated(constraint%orthogonal)) then
+       deallocate(constraint%orthogonal,stat=lstat)
+    end if
+
+    if (present(stat)) then
+       stat=lstat
+    else if (lstat/=0) then
+       FLAbort("Unable to deallocate constraints.")
+    end if
+
+  end subroutine deallocate_constraints
 
   function element_local_coords(n, element) result (coords)
     !!< Work out the local coordinates of node n in element. This is just a
@@ -575,7 +726,7 @@ contains
        diffl4=-1.0
        
     else if (vertices==2**dimension) then
-       ! Hypercube. The dependent coordinate is redundent.
+       ! Hypercube. The dependent coordinate is redundant.
        diffl4=0.0
     
     else if (vertices==6.and.dimension==3) then
@@ -589,6 +740,244 @@ contains
     end if
        
   end function diffl4
+
+  subroutine make_constraints(constraint,family)
+    type(constraints_type), intent(inout) :: constraint
+    integer, intent(in) :: family
+    !
+    select case(family)
+    case (FAMILY_SIMPLEX)
+       select case(constraint%type)
+       case (CONSTRAINT_BDM)
+          !do nothing
+       case (CONSTRAINT_BDFM)
+          select case(constraint%dim)
+          case (2)
+             select case(constraint%degree)
+             case (1)
+                !BDFM0 is the same as RT0
+                call make_constraints_rt0_triangle(constraint)
+             case (2)
+                call make_constraints_bdfm1_triangle(constraint)
+             case default
+                FLExit('Unknown constraints type')
+             end select
+          case default
+             FLExit('Unsupported dimension')
+          end select
+       case (CONSTRAINT_RT)
+          select case(constraint%dim)
+          case (2)
+             select case(constraint%degree)
+             case (1)
+                call make_constraints_rt0_triangle(constraint)
+             case default
+                FLExit('Unknown constraints type')
+             end select
+          case default
+             FLExit('Unsupported dimension')
+          end select
+       case default
+          FLExit('Unknown constraints type')
+       end select
+    case (FAMILY_CUBE)
+       select case(constraint%type)
+       case (CONSTRAINT_BDM)
+          !do nothing
+       case (CONSTRAINT_RT)
+          select case(constraint%dim)
+          case (2)
+             select case(constraint%degree)
+             case (1)
+                call make_constraints_rt0_square(constraint)
+             case (2)
+                FLExit('Haven''t implemented it yet!')
+                !call make_constraints_rt1_square(constraint)
+             case default
+                FLExit('Unknown constraints type')
+             end select
+          case default
+             FLExit('Unsupported dimension')
+          end select
+       case default
+          FLExit('Unknown constraints type')
+       end select
+    case default
+       FLExit('Unknown element numbering family')
+    end select
+  end subroutine make_constraints
+
+  subroutine make_constraints_bdfm1_triangle(constraint)
+    implicit none
+    type(constraints_type), intent(inout) :: constraint
+    real, dimension(3,2) :: n
+    integer, dimension(3,3) :: face_loc
+    integer :: dim1, face, floc
+    real, dimension(3) :: c
+
+    if(constraint%dim/=2) then
+       FLExit('Only implemented for 2D so far')
+    end if
+
+    !BDFM1 constraint requires that normal components are linear.
+    !This means that the normal components at the edge centres
+    !need to be constrained to the average of the normal components 
+    !at each end of the edge.
+
+    !DOFS    FACES
+    ! 3      
+    ! 5 2    1 3
+    ! 6 4 1   2
+
+    !constraint equations are:
+    ! (0.5 u_3 - u_5 + 0.5 u_6).n_1 = 0
+    ! (0.5 u_1 - u_4 + 0.5 u_6).n_2 = 0    
+    ! (0.5 u_1 - u_2 + 0.5 u_3).n_3 = 0
+
+    !face local nodes to element local nodes
+    face_loc(1,:) = (/ 3,5,6 /)
+    face_loc(2,:) = (/ 1,4,6 /)
+    face_loc(3,:) = (/ 1,2,3 /)
+
+    !normals
+    n(1,:) = (/ -1., 0. /)
+    n(2,:) = (/  0.,-1. /)
+    n(3,:) = (/ 1./sqrt(2.),1./sqrt(2.) /)
+
+    !coefficients in each face
+    c = (/ 0.5,-1.,0.5 /)
+
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !for basis function loc, dimension dim1 in equation i.
+
+    constraint%orthogonal = 0.
+    do face = 1, 3
+       do floc = 1,3
+          do dim1 = 1, 2
+             constraint%orthogonal(face,face_loc(face,floc),dim1) = &
+                  c(floc)*n(face,dim1)
+          end do
+       end do
+    end do
+    !! dimension n_constraints x loc x dim
+  end subroutine make_constraints_bdfm1_triangle
+
+  subroutine make_constraints_rt0_triangle(constraint)
+    implicit none
+    type(constraints_type), intent(inout) :: constraint
+    real, dimension(3,2) :: n
+    integer, dimension(3,2) :: face_loc
+    integer :: dim1, face, floc, count
+    real, dimension(2) :: c
+
+    if(constraint%dim/=2) then
+       FLExit('Only implemented for 2D so far')
+    end if
+
+    !RT0 constraint requires that normal components are constant.
+    !This means that both the normal components at each end of the 
+    !edge need to have the same value.
+
+    !DOFS    FACES
+    ! 2      
+    !        1 3
+    ! 3   1   2
+
+    !constraint equations are:
+    ! (u_2 - u_3).n_1 = 0
+    ! (u_1 - u_3).n_2 = 0    
+    ! (u_1 - u_2).n_3 = 0
+
+    !face local nodes to element local nodes
+    face_loc(1,:) = (/ 2,3 /)
+    face_loc(2,:) = (/ 1,3 /)
+    face_loc(3,:) = (/ 1,2 /)
+
+    !normals
+    n(1,:) = (/ -1., 0. /)
+    n(2,:) = (/  0.,-1. /)
+    n(3,:) = (/ 1./sqrt(2.),1./sqrt(2.) /)
+
+    !constraint coefficients
+    c = (/ 1., -1. /)
+
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !for basis function loc, dimension dim1 in equation i.
+
+    constraint%orthogonal = 0.
+    count = 0
+    do face = 1, 3
+       count = count + 1
+       do floc = 1,2
+          do dim1 = 1, 2
+             constraint%orthogonal(count,face_loc(face,floc),dim1)&
+                  = c(floc)*n(face,dim1)
+          end do
+       end do
+    end do
+    assert(count==3)
+    !! dimension n_constraints x loc x dim
+  end subroutine make_constraints_rt0_triangle
+
+  subroutine make_constraints_rt0_square(constraint)
+    implicit none
+    type(constraints_type), intent(inout) :: constraint
+    real, dimension(4,2) :: n
+    integer, dimension(4,2) :: face_loc
+    integer :: dim1, face, floc, count
+    real, dimension(2) :: c
+
+    if(constraint%dim/=2) then
+       FLExit('Only implemented for 2D so far')
+    end if
+
+    !RT0 constraint requires that normal components are constant.
+    !This means that both the normal components at each end of the 
+    !edge need to have the same value.
+
+    !DOFS    FACES
+    ! 3   4   3
+    !        4 2
+    ! 1   2   1
+
+    !constraint equations are:
+    ! (u_1 - u_2).n_1 = 0
+    ! (u_2 - u_4).n_2 = 0    
+    ! (u_3 - u_4).n_3 = 0
+    ! (u_3 - u_1).n_4 = 0
+
+    !face local nodes to element local nodes
+    face_loc(1,:) = (/ 1,2 /)
+    face_loc(2,:) = (/ 2,4 /)
+    face_loc(3,:) = (/ 3,4 /)
+    face_loc(4,:) = (/ 3,1 /)
+
+    !normals
+    n(1,:) = (/  0., -1. /)
+    n(2,:) = (/  1.,  0. /)
+    n(3,:) = (/  0.,  1. /)
+    n(4,:) = (/ -1.,  0. /)
+
+    !constraint%orthogonal(i,loc,dim1) stores the coefficient 
+    !for basis function loc, dimension dim1 in equation i.
+
+    !constraint coefficients
+    c = (/ 1., -1. /)
+
+    constraint%orthogonal = 0.
+    count  = 0
+    do face = 1, 4
+       count = count + 1
+       do floc = 1,2
+          do dim1 = 1, 2
+             constraint%orthogonal(count,face_loc(face,floc),dim1)&
+                  = c(floc)*n(face,dim1)
+          end do
+       end do
+    end do
+    assert(count==4)
+    !! dimension n_constraints x loc x dim
+  end subroutine make_constraints_rt0_square
 
 #include "Reference_count_element_type.F90"
 

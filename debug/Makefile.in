@@ -28,7 +28,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -52,12 +52,10 @@ OBJS = C++_Debug.o Debug.o Debug_Parameters.o Diagnostic_Output.o
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
@@ -67,18 +65,15 @@ OBJS = C++_Debug.o Debug.o Debug_Parameters.o Diagnostic_Output.o
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
+
 default: $(LIB)
+
 
 $(F90LIB): $(F90LIB_OBJS)
 	@mkdir -p ../lib
 	$(AR) $(ARFLAGS) $(F90LIB).a $(F90LIB_OBJS)
-	cp *.mod ../include/
 
 clean:
 	rm -f *.o *.mod
-	
-Debug.o: Debug_Parameters.o
 
-Diagnostic_Output.o: Debug_Parameters.o
+include Makefile.dependencies

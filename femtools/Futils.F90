@@ -56,6 +56,14 @@ module futils
 #endif
   end type real_vector
 
+  type real_matrix
+#ifdef DDEBUG
+     real, dimension(:,:), pointer :: ptr=>null()
+#else
+     real, dimension(:,:), pointer :: ptr
+#endif
+  end type real_matrix
+
   type integer_vector
 #ifdef DDEBUG
      integer, dimension(:), pointer :: ptr=>null()

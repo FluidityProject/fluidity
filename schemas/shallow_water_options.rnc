@@ -267,10 +267,9 @@ start =
                      pressure_mesh_choice,
                      prognostic_layerthickness_field
                   }
-               },                  
+               }?,
                scalar_field_choice*,
                vector_field_choice*
-               #tensor_field_choice*
             )
          },
         element mesh_adaptivity {
@@ -493,9 +492,17 @@ input_choice_initial_condition_vector =
       }|
       ## Set balanced velocity from height field
       element balanced {
-         empty
-      }
-   )  
+               ## Solver
+         element solver {
+            linear_solver_options_sym
+         }?
+      }|
+      ## project velocity from a DG field
+      element dg_projection {
+         ## Field to project from
+         attribute source_field { xsd:string }
+      }         
+   )
 
 # Choice of input method for initial/boundary conditions
 # version for real symmetric tensor
@@ -771,6 +778,28 @@ prognostic_layerthickness_field =
       interpolation_algorithm_scalar
    )
 
+prognostic_lagrangemultiplier_field =
+   (
+      ## Spatial discretisation options
+      element spatial_discretisation {
+         empty
+      },
+      ## Solver
+      element solver {
+         linear_solver_options_asym
+      },
+      ## Initial condition is not used for shallow water or Helmholtz 
+      ## solves but is required for test_trace_space.
+      element initial_condition {
+         attribute name { string },
+         region_ids,
+         input_choice_initial_condition_real
+      }?,
+      prognostic_scalar_output_options,
+      prognostic_scalar_stat_options,
+      adaptivity_options_prognostic_scalar_field,
+      interpolation_algorithm_scalar
+   )
 
 prognostic_scalar_field =
    (

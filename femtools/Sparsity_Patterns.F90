@@ -326,9 +326,11 @@ contains
 
     end do
 
-    ! I think it's the continuity colmesh which determines whether you need
-    ! boundary integrals.
-    if (continuity(colmesh)<0) then 
+    ! add in entries for boundary integrals if both row and column mesh are discontinuous
+    ! if rowmesh is continuous then we're only interested in coupling between continuous face nodes
+    !   and discontinuous nodes on the same face pair - the connection to the discontinuous nodes on the other
+    !   side will be added from the adjacent element, so nothing extra to do in this case
+    if (continuity(colmesh)<0 .and. (continuity(rowmesh)<0 .or. l_include_all_neighbour_element_nodes)) then 
        assert(has_faces(colmesh))
        
        do ele=1,element_count(colmesh)
@@ -380,7 +382,7 @@ contains
     ! We have to figure out how many columns we have in this matrix
     columns = -1
     do i=1,size(lists)
-      columns = max(columns, maxval(lists(i)))
+      if(lists(i)%length/=0) columns = max(columns, maxval(lists(i)))
     end do
 
     call allocate(sparsity, rows=size(lists), columns=columns, &
