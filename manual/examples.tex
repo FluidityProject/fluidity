@@ -44,7 +44,7 @@ examples plots are created and put in the directory.
   \ref{sect:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
   \ref{sect:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 18 hr. \\
   \ref{sect:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr. \\
-  \ref{sect:tephra_settling} Tephra settling & \texttt{tephra\_settling} & 4 & 1 hr. \\
+  \ref{sect:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 2 hr. \\
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
@@ -1340,7 +1340,7 @@ In this example, \fluidity\ is used to replicate the conditions under which plum
 \item Adaptive timestepping
 \end{itemize}
 
-The simulation illustrated here took $\sim$1 hour to run in parallel over four processes on two (dual-core) Intel Xeon E5430 2.66 GHz processors.
+The simulation illustrated here took $\sim$2 hours to run in serial on an Intel Xeon E5430 2.66 GHz processor.
 
 \subsection{Problem specification}
 The simulation uses a 0.3 x 0.7 metre domain, replicating the cross-section of the water tank used in the experiments, with an initial characteristic element size of 0.01 metres. No normal flow boundary conditions are weakly imposed along with a zero velocity initial condition. The parameters for density, viscosity, particle diameter and gravity are $\rho_p = 2340\ \mathrm{kgm^{-3}}$, $\rho_l = 1000\ \mathrm{kgm^{-3}}$, $\mu_l = 0.001\ \mathrm{Pa\cdot s}$, $d = 48\times 10^{-6}\ \mathrm{m}$, and $\mathbf{g} = 9.8\ \mathrm{ms^{-2}}$ respectively (with the subscripts $p$ and $l$ denoting the properties of the particle/tephra and liquid phase).
