@@ -1823,9 +1823,7 @@ contains
                    rhs_local_bdy(iloc) = rhs_local_bdy(iloc) + detwei_bdy(ggi)*ghost_tfield_ele_bdy(iloc)
                 end if
 
-                if(assemble_diffusion .and. tfield_bc_type(sele)/=BC_TYPE_FLUX) then
-                  ! Here we keep grad_rhs_local_bdy = 0 and div_rhs_local_bdy = 0 if
-                  ! we have a flux boundary condition.
+                if(assemble_diffusion) then
 
                   select case(tfield_options%diffusionscheme)
                   case(CV_DIFFUSION_BASSIREBAY)
