@@ -2077,7 +2077,7 @@ Inter-phase interactions can be included under \option{../multiphase\_properties
 \begin{equation}\label{eq:multiphase_drag_term}
 \mathbf{F}_D = \frac{3\ \alpha_p\ C_D\ \alpha_f\ \rho_f\ |\mathbf{u}_f-\mathbf{u}_p|\ (\mathbf{u}_f-\mathbf{u}_p)}{4\ d},
 \end{equation}
-where $f$ and $p$ denote the fluid (i.e. continuous) and particle (i.e. dispersed) phases respectively. The drag coefficient $C_D$ is:
+where $f$ and $p$ denote the fluid (i.e. continuous) and particle (i.e. dispersed) phases respectively, and $d$ is the diameter of a single particle in the dispersed phase. The drag coefficient $C_D$ is defined as:
 \begin{equation}\label{eq:drag_coefficient}
 C_D = \frac{24}{\mathrm{Re}},
 \end{equation}
@@ -2085,8 +2085,9 @@ with
 \begin{equation}\label{eq:particle_reynolds_number}
 \mathrm{Re} = \frac{\alpha_f\ \rho_f\ d\ |\mathbf{u}_f-\mathbf{u}_p|}{\mu_f}.
 \end{equation}
+Note that $\mu_f$ denotes the isotropic viscosity of the fluid (i.e. continuous) phase.
 
-Specifying the \option{../multiphase\_properties/particle\_diameter} option in a dispersed \option{matierial\_phase} enables fluid-particle interaction between itself and the continuous phase.
+Within a dispersed phase, entering a value for $d$ in the \option{../multiphase\_properties/particle\_diameter} option enables fluid-particle interaction between itself and the continuous phase.
 
 \subsubsection{Current limitations}
 \begin{itemize}
