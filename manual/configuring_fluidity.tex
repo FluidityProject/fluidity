@@ -264,7 +264,7 @@ after an adapt.
 There are futher options under individual fields, for example to exclude data from the stat file.
 
 \subsubsection{Detectors}
-\index{detectors!options}
+\index{detectors!options}\label{detectors_options}
 Note that the algorithm used to determine the element containing a detector (of
 any kind) assumes that the detector is known to be within the simulation domain.
 For points outside the simulation domain the field values will be extrapolated
@@ -1410,13 +1410,19 @@ velocity and temperature are required. More information can be found in section 
 
 For control volume discretisations only this options prevents the field fluxing from the boundary.
 
-\subsubsection{Free surface}
+\subsubsection{Free surface}\label{subsec:free_surface_bc}
 \index{boundary conditions!free surface}
+\index{boundary conditions!wetting and drying}
 \index{free surface!boundary condition}
 
 The \option{\ldots/free\_surface} option allows the height of upper surface to vary according
 to the pressure and velocity fields. This boundary condition is available on the velocity field only. It is
 recommended you activate a diagnostic Free Surface field also.
+
+By default, the mesh geometry is not influenced by the free-surface calculation, however \fluidity\ can deform the mesh according to the free-surface elevation. 
+This option is available at \option{/mesh\_adaptivity/mesh\_movement/free\_surface}.
+
+Wetting and drying can be activated under \option{/mesh\_adaptivity/mesh\_movement/free\_surface/wetting\_and\_drying}.
 
 \subsubsection{Drag}
 \index{boundary conditions!drag}

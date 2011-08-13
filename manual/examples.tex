@@ -1327,37 +1327,43 @@ positive correlation closely delineating $y=x$.
 \label{sect: hokkaido-nansei-oki_tsunami}
 
 \subsection{Overview}
-This examples demonstrates the capabilities of simulating wetting and drying processes in \fluidity\ .
+Thigs examples demonstrates the capabilities of simulating wetting and drying processes in \fluidity\ .
 The event of interest is the Okushiri tsunami in 1993 caused by the Hokkaido Nansei-Oki earthquake offshore of southwestern Hokkaido Island, Japan. 
 This earthquake reached a magnitude of 7.8 (Mw) and the resulting tsunami hit a lightly populated part of the Okushiri island, Japan with a runup height of up to 30m.
 
-To investigate the danger of such events, the Research Institute for Electric Power Industry (CRIEPI) in Abiko, Japan constructed a $1/400$ laboratory model of the area around the island \cite{androsov2008tsunami}. 
+To investigate the danger of such events, the Research Institute for Electric Power Industry (CRIEPI) in Abiko, Japan constructed a $1/400$ laboratory model of the area around the island \cite{liu2008advanced}. 
 The following configuration simulates this laboratory setup and uses the experimental measurements to benchmark \fluidity\ .
 
+Fluidity features used in this example:
+\begin{itemize}
+\item Free surface with wetting and drying, see \ref{subsec:free_surface_bc}.
+\item Detectors, see \ref{detectors_options}.
+\end{itemize}
+
 \subsection{Configuration}
-The configuration resembles the experimental setup as close as possible. 
+The simulation configuration resembles the experimental setup as close as possible. 
 The considered domain is a basin with walls on the sides but the left where the water level can be enforced. 
-The basin measures $5.448\mbox{m} \times 3.402\mbox{m}$ and the bathymetry and coastal topography closely correspond to measurement data, see Figure.
-Three surface elevation gauge stations, marked as dots in Figure \ref{fic:monai_inputwave} (a), were deployed in the experiment.
+The basin measures $5.448\mbox{m} \times 3.402\mbox{m}$ and the bathymetry and coastal topography closely correspond to measurement data, see Figure \ref{fig:monai_inputwave}.
+Three surface elevation gauge stations were deployed in the experiment.
+Detectors  extract the surface elevation information at every timestep. 
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.7\textwidth]{./examples_images/hokkaido-nansei-oki_tsunami/MonaiValleyDomainWithInputWave2_png.pdf}
 \end{center}
-\caption{The bathymetry and the three gauge stations (a) and the horizontal mesh (b) used for the Okushiri tsunami test case.}\label{fig:monai_inputwave}
+\caption{The bathymetry and the three gauge stations used for the Hokkaido-Nansei-Oki tsunami example.}\label{fig:monai_inputwave}
 \end{figure}
 
-The mesh used for the simulation is vertically aligned, one element deep and horizontally unstructured mesh consisting of $19,464$ tetrahedral elements with increased resolution near the inundation areas, see Figure \ref{fic:monai_inputwave} (b). 
+The mesh used for the simulation is vertically aligned, one element deep and horizontally unstructured mesh consisting of $111,513$ tetrahedral elements with increased resolution near the inundation areas.
 The equations are solved with the $P_1-P_1$ finite element pair, a backward Euler time discretisation with a time-step of $0.1$s.
 The wetting and drying algorithm in \fluidity\ requires the user to set a minimal water level thickness, which is here set to $d_0=0.5$mm. If the water surface reaches that level at a point, this point is defined to be dry.
 The isotropic kinematic viscosity and gravity magnitude are set to $0.01\mbox{m}^{2}\mbox{s}^{-1}$ and $9.81\mbox{ms}^{-2}$, respectively.
-On the left boundary the tsunami wave shown in \ref{pic:monai_results} (a) is prescribed and no-normal flow boundary conditions are applied at the other sides of the domain and the bottom to resemble the solid boundaries in the experiment.
+On the left boundary the tsunami wave shown in \ref{fig:monai_inputwave} is prescribed and no-normal flow boundary conditions are applied at the other sides of the domain and the bottom to resemble the solid boundaries in the experiment.
 In addition, a Manning-Strickler drag is used at the bottom with $n=0.002\mbox{sm}^{-\frac{1}{3}}$.
-To prevent wave breaking in the simulation, this coefficient is increased to $0.2\mbox{sm}^{-\frac{1}{3}}$ in a rectangular area with a side length of $0.5$m centred at $3.4$m $\times 1.7$m (which is the centre of the island in the domain) and a fourth order stabilization is applied, see \cite{pain2001tetrahedral, piggott2008new}.
+To prevent wave breaking in the simulation, this coefficient is increased to $0.2\mbox{sm}^{-\frac{1}{3}}$ in a rectangular area with a side length of $0.5$m centred at $3.4$m $\times 1.7$m (which is the centre of the island in the domain) and a fourth order stabilization is applied. 
 
 \subsection{Results}
 The result of this example is shown in Figure \ref{fig:monai_results}. 
-The plot shows the measurements of the laboratory experiment compared to the values from the simulation.
-  at the gauge station plotted against the laboratory measurements are shown in Figure \ref{fic:monai_results} (b). 
+The plot shows the surface elevation measurements at the three gauge stations of the laboratory experiment compared to the values from the simulation.
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.7\textwidth]{./examples_images/hokkaido-nansei-oki_tsunami/MonaiValley_C_p1p1_nu0_01_kmkstab_drag0_002_butcircularoundisland0_2-crop-crop_final2.pdf}
@@ -1368,9 +1374,10 @@ The plot shows the measurements of the laboratory experiment compared to the val
 \subsection{Exercises}
 \begin{enumerate}
 \item Add more detectors to the simulation.
-\item Change the viscosity parameter. If we had honey oceans would that makes any difference to the danger of tsunamis events?
+\item Increase the wetting and drying threshold parameter. Which effects does it have to the result?
+\item Change the viscosity parameter. Does it make a difference to the inundation of the tsunami event?
 \item Remove the fourth order stabilization (active the "remove\_stabilisation\_term" in /material\_phase::water/scalar\_field::Pressure/prognostic/reference\_node). 
-      The simulation will run for some while and the terminate. If you look at the results, can you figure out what the reason is why blows up? 
-      (Hint: In \fluidity\ the water elevation is a function from the horizontal position to the height, i.e. in a plane each x, y coordinate has a water elevation values assigned to it)
+      The simulation will run for some while and the terminate. If you look at the results, can you figure out the reason why it blows up? 
+      (Hint: In \fluidity\ the water elevation is a function of the horizontal positions mapping to the height, i.e. in a plane each $x$, $y$ coordinate has a water elevation value $z$ assigned to it)
 \end{enumerate}
 
