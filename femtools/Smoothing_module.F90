@@ -7,7 +7,7 @@ module smoothing_module
   use sparsity_patterns
   use solvers
   use metric_tools
-  use boundary_conditions
+  use boundary_conditions, only: apply_dirichlet_conditions
   use global_parameters, only : OPTION_PATH_LEN
   implicit none
 
@@ -133,13 +133,8 @@ contains
     end do
 
     ! Boundary conditions
-    !if(have_option(trim(path)//"/enforce_dirichlet_bcs/apply_weakly")) then
-    !  ewrite(2, *) "Applying weak Dirichlet boundary conditions to filtered field"
-    !  call apply_weak_dirichlet_conditions_scalar(M, rhsfield, field_in, positions, velocity)
-    !else
     ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
     call apply_dirichlet_conditions(M, rhsfield, field_in)
-    !end if
 
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
@@ -390,15 +385,9 @@ contains
     mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
     ! Local assembly
-    !if(have_option(trim(path)//"/enforce_dirichlet_bcs/apply_weakly")) then
-    !  field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei)
-    !  lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
-    !else
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei) &
          & + shape_shape(shape_field_in,shape_field_in, detwei)
-    ! Add a Neumann term?: - dshape_dot_vector_shape(dshape_field_in, normal_bdy, shape_field_in, detwei)
     lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
-    !end if
 
     ! Global assembly
     call addto(M, ele_field_in, ele_field_in, field_in_mat)
@@ -448,9 +437,6 @@ contains
     lrhsfield=shape_vector_rhs(shape_field_in, field_in_quad, detwei)
 
     ! Global assembly:
-    !do dim = 1, field_in%dim
-    !  call addto(M, dim, dim, ele_field_in, ele_field_in, field_in_mat)
-    !end do
     call addto(M, ele_field_in, ele_field_in, field_in_mat)
     call addto(rhsfield, ele_field_in, lrhsfield)
 
@@ -488,7 +474,7 @@ contains
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
     mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
-    ! Local assembly: (1+alpha^2.M) or (1-alpha^2.M)?
+    ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
          dshape_field_in, detwei) + shape_shape(shape_field_in&
          &,shape_field_in, detwei)
