@@ -168,20 +168,20 @@ def meanvelo(filelist,x,y):
 
 #########################################################################
 
-def plot_length(Re,type,mesh,reattachment_length):
+def plot_length(type,reattachment_length):
   ##### Plot time series of reattachment length using pylab(matplotlib)
   plot1 = pylab.figure()
-  pylab.title("Time series of reattachment length: Re="+str(Re)+", "+str(type)+"-Re BCs, "+str(mesh)+" mesh")
+  pylab.title("Time series of reattachment length: Re=4700, "+str(type))
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
   pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
-  pylab.savefig("../reatt_len_2D_"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
+  pylab.savefig("../reatt_len_2D_"+str(type)+".pdf")
   return
 
 def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time):
   ##### Plot velocity profiles at different points behind step, and at 3 times using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
-  pylab.suptitle("Evolution of U-velocity: Re="+str(Re)+", "+str(type)+"-Re BCs, "+str(mesh)+" mesh", fontsize=20)
+  pylab.suptitle("Evolution of U-velocity: Re=4700, "+str(type), fontsize=20)
 
   size = 15
 
@@ -237,27 +237,24 @@ def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time):
   bx.set_xlabel('Normalised U-velocity (U/Umax)', fontsize=24)
   ax.set_ylabel('z/h', fontsize=24)
 
-  pylab.savefig("../velo_profiles_2d_"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
+  pylab.savefig("../velo_profiles_2d_"+str(type)+".pdf")
   return
 
 #########################################################################
 
 def main():
     ##### Which run is being processed?
-    Re = sys.argv[1]
-    type = sys.argv[2]
-    mesh = sys.argv[3]
-    print "\nRe, bc type, mesh: ", Re, type, mesh
+    type = sys.argv[1]
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=20, start=20)
+    filelist = get_filelist(sample=20, start=0)
 
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))
     av_length = sum(reatt_length[:,0]) / len(reatt_length[:,0])
-    numpy.save("reatt_len_2D_"+str(Re)+"_"+str(mesh), reatt_length)
+    numpy.save("reatt_len_2D_"+str(type), reatt_length)
     print "\nTime-averaged reattachment length (in step heights): ", av_length
-    plot_length(Re,type,mesh,reatt_length)
+    plot_length(type,reatt_length)
 
     ##### Points to generate profiles:
     xarray = numpy.array([2.0, 4.0, 6.0, 10.0])
@@ -265,9 +262,9 @@ def main():
 
     ##### Call meanvelo function
     profiles, time = meanvelo(filelist, xarray, yarray)
-    numpy.save("velo_profiles_2d_"+str(Re)+"_"+str(mesh), profiles)
-    plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time)
-    #pylab.show()
+    numpy.save("velo_profiles_2d_"+str(type), profiles)
+    plot_meanvelo(type,profiles,xarray,yarray,time)
+    pylab.show()
 
     print "\nAll done.\n"
 

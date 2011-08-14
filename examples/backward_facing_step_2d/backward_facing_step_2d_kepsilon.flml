@@ -1,17 +1,17 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">backward_facing_step_3d-keps-high-per-coarse</string_value>
+    <string_value lines="1">backward_facing_step_2d_kepsilon</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
     <dimension>
-      <integer_value rank="0">3</integer_value>
+      <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="step3d-coarse-periodic">
+      <from_file file_name="step2d-med">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -20,7 +20,7 @@
     </mesh>
     <mesh name="VelocityMesh">
       <from_mesh>
-        <mesh name="PeriodicMesh"/>
+        <mesh name="CoordinateMesh"/>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -28,27 +28,7 @@
     </mesh>
     <mesh name="PressureMesh">
       <from_mesh>
-        <mesh name="PeriodicMesh"/>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
-    <mesh name="PeriodicMesh">
-      <from_mesh>
         <mesh name="CoordinateMesh"/>
-        <periodic_boundary_conditions name="sides">
-          <physical_boundary_ids>
-            <integer_value shape="1" rank="1">55</integer_value>
-          </physical_boundary_ids>
-          <aliased_boundary_ids>
-            <integer_value shape="1" rank="1">56</integer_value>
-          </aliased_boundary_ids>
-          <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
-    return [X[0],X[1]-4.0,X[2]]</string_value>
-          </coordinate_map>
-        </periodic_boundary_conditions>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -56,7 +36,7 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">4</integer_value>
+        <integer_value rank="0">3</integer_value>
       </degree>
     </quadrature>
   </geometry>
@@ -66,15 +46,10 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">0</integer_value>
+        <integer_value rank="0">10</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
-    <checkpointing>
-      <checkpoint_period_in_dumps>
-        <integer_value rank="0">10</integer_value>
-      </checkpoint_period_in_dumps>
-    </checkpointing>
     <stat/>
   </io>
   <timestepping>
@@ -85,14 +60,14 @@
       <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">1000.0</real_value>
+      <real_value rank="0">300.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
-        <real_value rank="0">2.</real_value>
+        <real_value rank="0">1.0</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
@@ -136,7 +111,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -146,12 +121,10 @@
               </control_volumes>
             </temporal_discretisation>
             <solver>
-              <iterative_method name="gmres">
-                <restart>
-                  <integer_value rank="0">30</integer_value>
-                </restart>
-              </iterative_method>
-              <preconditioner name="sor"/>
+              <iterative_method name="cg"/>
+              <preconditioner name="hypre">
+                <hypre_type name="boomeramg"/>
+              </preconditioner>
               <relative_error>
                 <real_value rank="0">1.e-7</real_value>
               </relative_error>
@@ -170,7 +143,7 @@
             </initial_condition>
             <boundary_conditions name="inflow">
               <surface_ids>
-                <integer_value shape="1" rank="1">52</integer_value>
+                <integer_value shape="1" rank="1">9</integer_value>
               </surface_ids>
               <type name="dirichlet">
                 <constant>
@@ -178,20 +151,18 @@
                 </constant>
               </type>
             </boundary_conditions>
-            <boundary_conditions name="bottom">
+            <boundary_conditions name="walls">
               <surface_ids>
-                <integer_value shape="2" rank="1">57</integer_value>
+                <integer_value shape="2" rank="1">10 12</integer_value>
               </surface_ids>
               <type name="k_epsilon">
-                <string_value>high_Re</string_value>
+                <string_value>low_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
-                <output>
-                  <exclude_from_vtu/>
-                </output>
+                <output/>
                 <stat>
                   <exclude_from_stat/>
                 </stat>
@@ -256,7 +227,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.5</real_value>
               </theta>
               <control_volumes>
                 <number_advection_iterations>
@@ -266,12 +237,10 @@
               </control_volumes>
             </temporal_discretisation>
             <solver>
-              <iterative_method name="gmres">
-                <restart>
-                  <integer_value rank="0">30</integer_value>
-                </restart>
-              </iterative_method>
-              <preconditioner name="sor"/>
+              <iterative_method name="cg"/>
+              <preconditioner name="hypre">
+                <hypre_type name="boomeramg"/>
+              </preconditioner>
               <relative_error>
                 <real_value rank="0">1.e-7</real_value>
               </relative_error>
@@ -290,7 +259,7 @@
             </initial_condition>
             <boundary_conditions name="inflow">
               <surface_ids>
-                <integer_value shape="1" rank="1">52</integer_value>
+                <integer_value shape="1" rank="1">9</integer_value>
               </surface_ids>
               <type name="dirichlet">
                 <constant>
@@ -298,20 +267,18 @@
                 </constant>
               </type>
             </boundary_conditions>
-            <boundary_conditions name="bottom">
+            <boundary_conditions name="walls">
               <surface_ids>
-                <integer_value shape="2" rank="1">57</integer_value>
+                <integer_value shape="2" rank="1">10 12</integer_value>
               </surface_ids>
               <type name="k_epsilon">
-                <string_value>high_Re</string_value>
+                <string_value>low_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
-                <output>
-                  <exclude_from_vtu/>
-                </output>
+                <output/>
                 <stat>
                   <exclude_from_stat/>
                 </stat>
@@ -357,24 +324,21 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">3.e-4</real_value>
+                  <real_value rank="0">3.4e-4</real_value>
+                  <comment>Re=4700, same as FLUENT 2D run. Armaly range = [70, 8000]</comment>
                 </constant>
               </isotropic>
             </value>
-            <output>
-              <exclude_from_vtu/>
-            </output>
+            <output/>
           </prescribed>
         </tensor_field>
         <tensor_field name="EddyViscosity" rank="2">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
             <mesh name="VelocityMesh"/>
-            <output>
-              <exclude_from_vtu/>
-            </output>
+            <output/>
             <stat>
-              <exclude_from_stat/>
+              <include_in_stat/>
             </stat>
           </diagnostic>
         </tensor_field>
@@ -416,7 +380,7 @@
           <string_value>explicit</string_value>
         </source_absorption>
         <lengthscale_limit>
-          <real_value rank="0">4</real_value>
+          <real_value rank="0">1.0</real_value>
         </lengthscale_limit>
         <C_mu>
           <real_value rank="0">.09</real_value>
@@ -439,9 +403,7 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <integrate_continuity_by_parts/>
-          </continuous_galerkin>
+          <continuous_galerkin/>
         </spatial_discretisation>
         <scheme>
           <poisson_pressure_solution>
@@ -451,9 +413,9 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
+          <preconditioner name="mg"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0E-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -463,16 +425,6 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <boundary_conditions name="out">
-          <surface_ids>
-            <integer_value shape="1" rank="1">53</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">0.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -524,7 +476,7 @@
           </iterative_method>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
+            <real_value rank="0">1.0E-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -536,78 +488,54 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="Inflow">
           <surface_ids>
-            <integer_value shape="1" rank="1">52</integer_value>
+            <integer_value shape="1" rank="1">9</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <python>
                   <string_value lines="20" type="python">def val(X, t):
-    from math import log
-    h = 1.0
-    y0 = 0.01
-    kappa = 0.41
-    utau = 0.1
-    if( (X[2]-h)&lt;y0):
-        u = 0.0
-    else:
-        u = (utau/kappa)*log( (X[2]-h)/y0 )
-    return u</string_value>
+   from math import log
+   Z=X[1]-1.0
+   if X[1]&gt;1.5:
+     Z=2.0-X[1]
+   d=0.1
+   if Z&gt;=d:
+      u=log(Z/d)
+   else:
+      u=0.0
+   return u</string_value>
                 </python>
               </x_component>
               <y_component>
                 <constant>
-                  <real_value rank="0">0.0</real_value>
+                  <real_value rank="0">0.</real_value>
                 </constant>
               </y_component>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="NoSlip">
+        <boundary_conditions name="walls">
           <surface_ids>
-            <integer_value shape="1" rank="1">57</integer_value>
+            <integer_value shape="2" rank="1">10 12</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
               <x_component>
                 <constant>
-                  <real_value rank="0">0.</real_value>
+                  <real_value rank="0">0.0</real_value>
                 </constant>
               </x_component>
               <y_component>
                 <constant>
-                  <real_value rank="0">0.</real_value>
+                  <real_value rank="0">0.0</real_value>
                 </constant>
               </y_component>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0.</real_value>
-                </constant>
-              </z_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
-        <boundary_conditions name="FreeSlipTop">
-          <surface_ids>
-            <integer_value shape="1" rank="1">54</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <z_component>
-                <constant>
-                  <real_value rank="0">0.</real_value>
-                </constant>
-              </z_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
@@ -616,35 +544,10 @@
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat>
-              <exclude_from_stat/>
+              <include_in_stat/>
             </stat>
           </diagnostic>
         </tensor_field>
-        <vector_field name="Absorption" rank="1">
-          <prescribed>
-            <value name="WholeMesh">
-              <python>
-                <string_value lines="20" type="python">def val(X, t):
-    # absorption coefficient
-    k = 0.1
-    if(X[0] &gt; 25.):
-        A = (X[0]-25.)/5.*k
-    else:
-        A = 0.0
-    return [A,A,A]</string_value>
-                <comment>Linear increase of sponge from 0 at x=25 to k at x=30 (outflow). This is to damp eddies in order to prevent inflow through the outflow.</comment>
-              </python>
-            </value>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
-            <detectors>
-              <exclude_from_detectors/>
-            </detectors>
-          </prescribed>
-          <default_absorption/>
-        </vector_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -664,6 +567,26 @@
         <steady_state>
           <include_in_steady_state/>
         </steady_state>
+        <adaptivity_options>
+          <absolute_measure>
+            <vector_field name="InterpolationErrorBound" rank="1">
+              <prescribed>
+                <value name="WholeMesh">
+                  <constant>
+                    <real_value shape="2" dim1="dim" rank="1">0.01 0.01</real_value>
+                  </constant>
+                </value>
+                <output/>
+                <stat>
+                  <include_in_stat/>
+                </stat>
+                <detectors>
+                  <exclude_from_detectors/>
+                </detectors>
+              </prescribed>
+            </vector_field>
+          </absolute_measure>
+        </adaptivity_options>
         <consistent_interpolation/>
       </prognostic>
     </vector_field>
