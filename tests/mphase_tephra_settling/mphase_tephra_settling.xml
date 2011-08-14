@@ -17,12 +17,12 @@
   <variables>
     <variable name="tephra_u_max" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("tephra_settling.stat")
+s = stat_parser("mphase_tephra_settling.stat")
 tephra_u_max=s["Tephra"]["Velocity%magnitude"]["max"]
     </variable>
     <variable name="time" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("tephra_settling.stat")
+s = stat_parser("mphase_tephra_settling.stat")
 time=s["ElapsedTime"]["value"]
     </variable>
   </variables>
