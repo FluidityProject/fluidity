@@ -637,12 +637,6 @@ default/recommended value: 2.0</a:documentation>
                     <ref name="linear_solver_options_sym"/>
                   </element>
                   <optional>
-                    <element name="enable_averaging">
-                      <a:documentation>Enable averaging of the velocity field to stabilise the model.</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                  <optional>
                     <element name="enable_lilly">
                       <a:documentation>Use the Lilly modification to the model (see Lilly 1991).
 </a:documentation>

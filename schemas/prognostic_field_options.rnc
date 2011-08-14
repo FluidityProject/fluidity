@@ -547,10 +547,6 @@ prognostic_velocity_field =
                      element solver {
                         linear_solver_options_sym
                      },
-                     ## Enable averaging of the velocity field to stabilise the model.
-                     element enable_averaging {
-                        empty
-                     }?,
                      ## Use the Lilly modification to the model (see Lilly 1991).
                      ## 
                      element enable_lilly {

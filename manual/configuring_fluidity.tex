@@ -1352,6 +1352,42 @@ However, if using a sufficiently fine near-wall mesh, roughly the correct veloci
 
 If using Dirichlet conditions, it is recommended that $k$ and $\epsilon$ be set to small values, chosen such that the eddy viscosity on the boundaries is of order $O(\nu)$ (background viscosity), and both fields perhaps of order $O(1/Re)$.
 
+\subsection{Large Eddy Simulation Models}
+
+LES models are available as options under \option{\ldots/Velocity/prognostic/spatial\_discretisation/continuous\_galerkin/les\_model}. See \ref{Sect:LES} for details of the various LES models available. These models require a prescribed viscosity (\ldots/Velocity/prognostic/tensor\_field::Viscosity/prescribed), to which an eddy viscosity is added to account for subgrid-scale turbulence.
+
+\subsubsection{Second-Order Smagorinsky}
+
+The modified second-order Smagorinsky model of \citet{bentham2003} is available under \option{\ldots/les\_model/second\_order}. The Smagorinsky coefficient (\option{\ldots/second\_order/smagorinsky\_coefficient}) must be set; its value should be that suggested by the literature for a particular flow type. A reasonable all-round figure is 0.1. The eddy viscosity is available as an optional diagnostic field (\option{\ldots/second\_order/tensor\_field::EddyViscosity}).
+
+\subsubsection{Fourth-Order Smagorinsky}
+
+The fourth-order Smagorinsky model of \citet{bentham2003} is available under \option{\ldots/les\_model/fourth\_order}. The Smagorinsky coefficient (\option{\ldots/second\_order/smagorinsky\_coefficient}) must be set; 0.1 is recommended. A fine mesh is required to get good results from this model.
+
+\subsubsection{WALE}
+
+The wall-adapted local eddy viscosity (WALE) model is available under \option{\ldots/les\_model/wale}. The Smagorinsky coefficient (\option{\ldots/second\_order/smagorinsky\_coefficient}) must be set; 0.1 is recommended.
+
+\subsubsection{Dynamic LES}
+
+The Germano dynamic LES model is available under \option{\ldots/les\_model/dynamic\_les}. The following options have to be set: first, the filter width ratio $\alpha$ (\option{\ldots/dynamic\_les/alpha}); 2 is recommended. Second, the solver options (\option{\ldots/dynamic\_les/solver}) are for solving the inverse Helmholtz equation for the test-filtered velocity; cg/SOR is recommended.
+
+Optional options:
+\begin{itemize}
+\item \option{\ldots/dynamic\_les/enable\_lilly}: use the Lilly modification to the Germano model. It is recommended.
+\item \option{\ldots/dynamic\_les/enable\_backscatter}: allows negative eddy viscosity, which may result in more realistic turbulent flow if the mesh resolution is fine enough.
+\end{itemize}
+
+Several diagnostic fields are available if desired:
+
+\begin{itemize}
+\item \option{\ldots/dynamic\_les/vector\_field::FilteredVelocity}: the velocity field filtered with the test filter.
+\item \option{\ldots/dynamic\_les/tensor\_field::FilterWidth}: the mesh size tensor
+\item \option{\ldots/dynamic\_les/tensor\_field::StrainRate}: the strain rate $\overline S_{ij}$.
+\item \option{\ldots/dynamic\_les/tensor\_field::FilteredStrainRate}: the filtered strain rate $\widetilde{\overline S}_{ij}$.
+\item \option{\ldots/dynamic\_les/tensor\_field::EddyViscosity}: the eddy viscosity $\nu_T$.
+\end{itemize}
+
 \section{Boundary conditions}\label{Sect:BCs_configure}
 \index{boundary conditions}
 

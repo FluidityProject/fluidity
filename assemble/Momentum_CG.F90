@@ -133,7 +133,7 @@
     
     ! LES coefficients and options
     real :: smagorinsky_coefficient
-    logical :: have_averaging, have_lilly, have_eddy_visc, backscatter
+    logical :: have_lilly, have_eddy_visc, backscatter
     logical :: have_strain, have_filtered_strain, have_filter_width
 
     ! Temperature dependent viscosity coefficients:
@@ -235,8 +235,8 @@
       ! For 4th order:
       type(tensor_field):: grad_u
       ! For Germano Dynamic LES:
-      type(vector_field), pointer :: nu_av, tnu, tnu_av
-      type(tensor_field), pointer :: leonard, leonard_av
+      type(vector_field), pointer :: tnu
+      type(tensor_field), pointer :: leonard
       real                        :: alpha
 
       ! for temperature dependent viscosity :
@@ -387,9 +387,6 @@
                  smagorinsky_coefficient)
          end if
          if(dynamic_les) then
-           ! Are we using averaged velocity to stabilise the model? NOT WORKING
-           have_averaging = have_option(trim(les_option_path)//"/dynamic_les/enable_averaging")
-
            ! Are we using the Lilly (1991) modification?
            have_lilly = have_option(trim(les_option_path)//"/dynamic_les/enable_lilly")
 
@@ -416,23 +413,6 @@
            call allocate(leonard, u%mesh, "LeonardTensor")
            call zero(leonard)
 
-           ! Option to use time-averaged quantities. EXPERIMENTAL - DOES NOT WORK.
-           if(have_averaging) then
-             ewrite(2,*) "Initialising dynamic LES averaged fields"
-             ! Test-filtered velocity field
-             allocate(nu_av); allocate(tnu_av); allocate(leonard_av)
-             call allocate(nu_av, u%dim, u%mesh, "AverageVelocity")
-             call allocate(tnu_av, u%dim, u%mesh, "FilteredAverageVelocity")
-             call allocate(leonard_av, u%mesh, "AverageLeonardTensor")
-             call zero(nu_av); call zero(tnu_av); call zero(leonard_av)
-
-             ewrite(2,*) "Calculating averaged velocity"
-             !nu_av => vector_source_field(state, nu)
-             !call calculate_time_averaged_vector(state, nu_av)
-           else
-             nu_av => dummyvector
-           end if
-
            ! Get (test filter)/(mesh filter) size ratio alpha.
            ! Default value is 2, in which case filtering using Helmholtz smoother
            ! is equivalent to lumped-mass smoothing - see manual
@@ -441,22 +421,15 @@
            ! Calculate test-filtered velocity field and Leonard tensor field.
            ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
            call leonard_tensor(nu, x, tnu, leonard, alpha, les_option_path)
-           if(have_averaging) then
-             call leonard_tensor(nu_av, x, tnu_av, leonard_av, alpha, les_option_path)
-           else
-             tnu_av => dummyvector; leonard_av => dummytensor
-           end if
 
            ewrite_minmax(leonard)
          else
-           have_averaging=.false.; have_lilly=.false.; have_eddy_visc=.false.
-           have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.;
-           backscatter=.false.
+           have_lilly=.false.; have_eddy_visc=.false.; backscatter=.false.
+           have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
-         tnu => dummyvector; nu_av => dummyvector; tnu_av => dummyvector;
-         leonard => dummytensor; leonard_av => dummytensor
+         tnu => dummyvector; leonard => dummytensor
       end if
       
 
@@ -825,10 +798,6 @@
           call deallocate(tnu); deallocate(tnu)
         end if
         call deallocate(leonard); deallocate(leonard)
-        if (have_averaging) then
-          call deallocate(tnu_av); deallocate(tnu_av)
-          call deallocate(leonard_av); deallocate(leonard_av)
-        end if
       end if
 
       call deallocate(dummytensor)
@@ -2034,18 +2003,6 @@
             strain_gi = les_strain_rate(du_t, ele_val(nu, ele))
             ! Get strain S2 for test-filtered velocity (dim,dim,ngi)
             t_strain_gi = les_strain_rate(du_t, ele_val(tnu, ele))
-
-            ! Strain at nodes (dim,dim,loc)
-            !strain_loc = shape_tensor_rhs(shape_nu, strain_gi, detwei)
-            !t_strain_loc = shape_tensor_rhs(shape_nu, t_strain_gi, detwei)
-            ! Calculate grad(strain) - this is needed for 2nd order term in expansion
-            !do i=1, mesh_dim(u)
-            !  do j=1, mesh_dim(u)
-            !    grad_strain_gi(i,j,:)=matmul(strain_loc, du_t(:,:,i))
-            !    grad_t_strain_gi(i,j,:)=matmul(t_strain_loc, du_t(:,:,i))
-            !  end do
-            !end do
-
             ! Filter width G1 associated with mesh size (units length^2)
             mesh_size_gi = length_scale_tensor(du_t, ele_shape(u, ele))
             ! Leonard tensor L at gi
@@ -2068,19 +2025,17 @@
                 do gi=1, ele_ngi(nu, ele)
                   ! |S1|*L.S1
                   numerator = sum( leonard_gi(:,:,gi)*strain_gi(:,:,gi) )*strain_mod(gi)
-                  !ewrite(2,*) "numer: ", numerator
+
                   ! alpha^2*|S2|*S2.S1
                   ! This term is WRONG until I find a way of filtering the strain rate product. The difference may be quite small though.
                   denominator = -alpha**2*t_strain_mod(gi)*sum(t_strain_gi(:,:,gi)*strain_gi(:,:,gi))
-                  !ewrite(2,*) "denom: ", denominator
+
                   ! Dynamic eddy viscosity m_ij = C*S1
-                  ! N.B. If averaging, beware of operator not applying to every term.
                   les_tensor_gi(:,:,gi) = numerator/denominator
 
                   ! Whether or not to allow negative eddy viscosity (backscattering)
                   ! but do not allow (viscosity+eddy_viscosity) < 0.
                   if(any(les_tensor_gi(:,:,gi) < 0.0)) then
-                    !ewrite(2,*) "clipping: ", les_tensor_gi(:,:,gi)
                     if(backscatter) then
                       les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi), epsilon(0.0) - viscosity_gi(:,:,gi))
                     else
@@ -2096,13 +2051,11 @@
                   ! This term is WRONG until I find a way of filtering the strain rate product. The difference may be quite small though.
                   denominator = -alpha**2*(t_strain_mod(gi))**2*sum(t_strain_gi(:,:,gi)*t_strain_gi(:,:,gi))
                   ! Dynamic eddy viscosity m_ij
-                  ! N.B. If averaging, beware of operator not applying to every term.
                   les_tensor_gi(:,:,gi) = numerator/denominator
 
                   ! Whether or not to allow negative eddy viscosity (backscattering)
                   ! but do not allow (viscosity+eddy_viscosity) < 0.
                   if(any(les_tensor_gi(:,:,gi) < 0.0)) then
-                    !ewrite(2,*) "clipping: ", les_tensor_gi(:,:,gi)
                     if(backscatter) then
                       les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi), epsilon(0.0) - viscosity_gi(:,:,gi))
                     else
