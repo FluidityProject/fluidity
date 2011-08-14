@@ -1,4 +1,3 @@
-PYTHONPATH=PYTHONPATH:/data/JBull/fluidity/turbulence/python/
 input:	clean
 	gmsh -2 -algo frontal -o MMS_A.msh src/MMS_A_structured.geo
 	gmsh -2 -algo frontal -o MMS_B.msh src/MMS_B_structured.geo
