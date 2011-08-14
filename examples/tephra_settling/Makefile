@@ -19,4 +19,5 @@ clean:
 	rm -f *.msh
 	rm -f *.ele *.edge *.node *.poly *.halo
 	rm -f matrixdump* *.log* *.err*
+	rm -f tephra_velocity.pdf
 
