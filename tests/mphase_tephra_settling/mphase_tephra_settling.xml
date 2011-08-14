@@ -15,32 +15,22 @@
   </problem_definition>
   
   <variables>
-    <variable name="water_u1" language="python">
+    <variable name="tephra_u_max" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_tephra_settling.stat")
-water_u1=s["Water"]["Velocity%1"]["integral"]
-    </variable>
-    
-    <variable name="water_u2" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("mphase_tephra_settling.stat")
-water_u2=s["Water"]["Velocity%2"]["integral"]
-    </variable>
-    
-    <variable name="tephra_u1" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("mphase_tephra_settling.stat")
-tephra_u1=s["Tephra"]["Velocity%1"]["integral"]
-    </variable>
-    
-    <variable name="tephra_u2" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("mphase_tephra_settling.stat")
-tephra_u2=s["Tephra"]["Velocity%2"]["integral"]
+s = stat_parser("tephra_settling.stat")
+tephra_u_max=s["Tephra"]["Velocity%magnitude"]["max"]
     </variable>
   </variables>
     
   <pass_tests>
+    <test name="Maximum Tephra velocity is less than 0.0025 for the first 30 seconds" language="python">
+assert tephra_u_max[0:30].all() &lt; 0.0025
+    </test>
+
+    <test name="Maximum Tephra velocity is between 0.002 and 0.05 for the rest of the simulation" language="python">
+assert min(tephra_u_max[30:]) &gt; 0.002
+assert max(tephra_u_max[30:]) &lt; 0.05
+    </test>
   </pass_tests>
   
   <warn_tests>
