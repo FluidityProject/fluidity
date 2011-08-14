@@ -8555,10 +8555,10 @@ This option is generally only useful for testing. </a:documentation>
                           <ref name="diagnostic_scalar_field_no_adapt"/>
                         </element>
                         <choice>
-                          <element name="per_stage">
+                          <element name="global">
                             <empty/>
                           </element>
-                          <element name="global">
+                          <element name="per_stage">
                             <empty/>
                           </element>
                         </choice>

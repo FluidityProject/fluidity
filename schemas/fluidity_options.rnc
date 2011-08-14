@@ -6730,10 +6730,10 @@ biology =
                            diagnostic_scalar_field_no_adapt
                         },
                         (
-                           element per_stage {
+                           element global {
                               empty
                            }|
-                           element global {
+                           element per_stage {
                               empty
                            }
                         )

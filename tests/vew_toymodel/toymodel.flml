@@ -36,11 +36,11 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period>
+    <dump_period_in_timesteps>
       <constant>
-        <real_value rank="0">21600</real_value>
+        <integer_value rank="0">1</integer_value>
       </constant>
-    </dump_period>
+    </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
     <stat/>
   </io>
@@ -320,32 +320,24 @@ def val(X,t):
           </python>
         </initial_condition>
         <scalar_field name="Source" rank="0">
-          <prescribed>
-            <value name="WholeMesh">
-              <constant>
-                <real_value rank="0">0.0</real_value>
-              </constant>
-            </value>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat/>
             <detectors>
-              <exclude_from_detectors/>
+              <include_in_detectors/>
             </detectors>
-          </prescribed>
+          </diagnostic>
         </scalar_field>
         <scalar_field name="Absorption" rank="0">
-          <prescribed>
-            <value name="WholeMesh">
-              <constant>
-                <real_value rank="0">0.0</real_value>
-              </constant>
-            </value>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat/>
             <detectors>
-              <exclude_from_detectors/>
+              <include_in_detectors/>
             </detectors>
-          </prescribed>
+          </diagnostic>
         </scalar_field>
         <output/>
         <stat/>
@@ -425,18 +417,14 @@ def val(X,t):
           </python>
         </initial_condition>
         <scalar_field name="Absorption" rank="0">
-          <prescribed>
-            <value name="WholeMesh">
-              <constant>
-                <real_value rank="0">0.0</real_value>
-              </constant>
-            </value>
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat/>
             <detectors>
-              <exclude_from_detectors/>
+              <include_in_detectors/>
             </detectors>
-          </prescribed>
+          </diagnostic>
         </scalar_field>
         <output/>
         <stat/>
@@ -515,19 +503,25 @@ def val(X,t):
   return conc</string_value>
           </python>
         </initial_condition>
-        <scalar_field name="Absorption" rank="0">
-          <prescribed>
-            <value name="WholeMesh">
-              <constant>
-                <real_value rank="0">0.0</real_value>
-              </constant>
-            </value>
+        <scalar_field name="Source" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat/>
             <detectors>
-              <exclude_from_detectors/>
+              <include_in_detectors/>
             </detectors>
-          </prescribed>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="Absorption" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output/>
+            <stat/>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+          </diagnostic>
         </scalar_field>
         <output/>
         <stat/>
@@ -604,21 +598,69 @@ def val(X,t):
           <initial_value>
             <real_value rank="0">1.5e-8</real_value>
           </initial_value>
+          <scalar_field name="ParticulateCarbon" rank="0">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="VelocityMesh"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+            <global/>
+          </scalar_field>
         </variable>
         <variable name="ChlorophyllPool">
           <initial_value>
             <real_value rank="0">2.7e-9</real_value>
           </initial_value>
+          <scalar_field name="ParticulateChlorophyll" rank="0">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="VelocityMesh"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+            <global/>
+          </scalar_field>
         </variable>
         <variable name="NitratePool">
           <initial_value>
             <real_value rank="0">0.0</real_value>
           </initial_value>
+          <scalar_field name="ParticulateNitrate" rank="0">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="VelocityMesh"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+            <global/>
+          </scalar_field>
         </variable>
         <variable name="SilicatePool">
           <initial_value>
             <real_value rank="0">1.05e-9</real_value>
           </initial_value>
+          <scalar_field name="ParticulateSilicate" rank="0">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="VelocityMesh"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+            <global/>
+          </scalar_field>
         </variable>
         <uptake_variable name="IngAmmonium">
           <chemical_field name="Ammonium"/>
@@ -709,6 +751,20 @@ def val(X,t):
             </diagnostic>
           </scalar_field>
         </release_variable>
+        <release_variable name="RelSilicate">
+          <chemical_field name="Silicate"/>
+          <scalar_field name="Release" rank="0">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <mesh name="VelocityMesh"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+          </scalar_field>
+        </release_variable>
         <stage_array name="Living">
           <number_of_agents>
             <integer_value rank="0">4000</integer_value>
@@ -762,6 +818,7 @@ name = dict({
 'IngNitrate' :      7,   # Nitrate uptake
 'IngSilicate' :     8,   # Silicate uptake
 'RelAmmonium' :     9,   # Ammonium release
+'RelSilicate' :     10   # Silicate release
 })
 
 temperature = state.scalar_fields['Temperature']
@@ -816,7 +873,33 @@ def val(ele, local_coord, dt):
               <integer_value rank="0">10001</integer_value>
             </random_seed>
           </random_walk>
-          <disable_biology/>
+          <biology_update>
+            <string_value type="python" lines="20">import fluidity.lagrangian_biology as bio
+from __builtin__ import str
+
+name = dict({
+'Biomass' :         0,   # Sub-population size
+'AmmoniumPool' :    1,   # Current ammonium pool
+'CarbonPool' :      2,   # Current carbon pool
+'ChlorophyllPool' : 3,   # Current chlorophyll pool
+'NitratePool' :     4,   # Current nitrate pool
+'SilicatePool' :    5,   # Current silicate pool
+'IngAmmonium' :     6,   # Ammonium uptake
+'IngNitrate' :      7,   # Nitrate uptake
+'IngSilicate' :     8,   # Silicate uptake
+'RelAmmonium' :     9,   # Ammonium release
+'RelSilicate' :     10   # Silicate release
+})
+
+temperature = state.scalar_fields['Temperature']
+amm_depletion = state.scalar_fields['IngAmmoniumDepletion']
+nit_depletion = state.scalar_fields['IngNitrateDepletion']
+sil_depletion = state.scalar_fields['IngSilicateDepletion']
+
+def val(ele, local_coord, dt, vars):
+  bio.update_dead_diatom(ele, local_coord, dt, vars, name, temperature, amm_depletion, nit_depletion, sil_depletion)  
+  return vars</string_value>
+          </biology_update>
         </stage_array>
         <lagrangian_timestepping>
           <subcycles>

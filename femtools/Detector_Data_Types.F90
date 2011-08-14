@@ -113,13 +113,13 @@ module detector_data_types
      type(rk_gs_parameters), pointer :: move_parameters => null()
 
      !! Biology options
+     integer :: fg_id
      logical :: has_biology=.false.
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biovar_list
      integer, dimension(:), allocatable :: biofield_type
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_list
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: chemfield_list
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
-
 
      !! Optional array for detector names; names are held in read order
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: detector_names

@@ -186,6 +186,7 @@ def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradian
   vars[name['IngNitrate']] = IngNitrate
   vars[name['IngSilicate']] = IngSilicate
   vars[name['RelAmmonium']] = RelAmmonium
+  vars[name['RelSilicate']] = 0.0
 
   # Internal
   vars[name['AmmoniumPool']] = AmmoniumPoolNew
@@ -194,6 +195,63 @@ def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradian
   vars[name['CarbonPool']] = CarbonPoolNew
   vars[name['ChlorophyllPool']] = ChlorophyllPoolNew
 
+
+
+def update_dead_diatom(ele, local_coord, dt, vars, name, temperature, amm_depletion, nit_depletion, sil_depletion):
+
+  ### Phase 1 ###
+  
+  # Housekeeping
+  vars[name['IngAmmonium']] = vars[name['IngAmmonium']] / vars[name['Biomass']]
+  vars[name['IngNitrate']] = vars[name['IngNitrate']] / vars[name['Biomass']]
+  vars[name['IngSilicate']] = vars[name['IngSilicate']] / vars[name['Biomass']]
+  stepInHours = dt/3600.
+  biomass_old = vars[name['Biomass']]
+  
+  # External environment
+  ambientTemperature = temperature.eval_field(ele, local_coord)
+  ammoniumDepleted = amm_depletion.eval_field(ele, local_coord)
+  nitrateDepleted = nit_depletion.eval_field(ele, local_coord)
+  silicateDepleted = sil_depletion.eval_field(ele, local_coord)
+  
+  # Nutrient uptake 
+  vars[name['IngAmmonium']] = vars[name['IngAmmonium']] * ammoniumDepleted
+  vars[name['IngNitrate']] = vars[name['IngNitrate']] * nitrateDepleted
+  vars[name['IngSilicate']] = vars[name['IngSilicate']] * silicateDepleted
+
+  ### Phase 2 ###
+
+  Si_reminT = (((param_S_dis)*(math.pow(param_Q_remS, ((((ambientTemperature)+(273.0))) - (param_T_refS)) / (10.0)))))
+  N_reminT = (((param_Ndis)*(math.pow(param_Q_remN, ((((ambientTemperature)+(273.0))) - (param_T_refN)) / (10.0)))))
+  relAmountSi = biomass_old*((vars[name['SilicatePool']])*(Si_reminT)*(stepInHours));
+
+  SilicatePoolNew = ((((vars[name['SilicatePool']])+(vars[name['IngSilicate']]))) - (((vars[name['SilicatePool']])*(Si_reminT)*(stepInHours))))
+  if (SilicatePoolNew < 0.0):
+    SilicatePoolNew = 0.0
+  relAmountAmm = biomass_old*((((vars[name['AmmoniumPool']])+(vars[name['NitratePool']])))*(N_reminT)*(stepInHours))
+
+  AmmoniumPoolNew = ((((vars[name['AmmoniumPool']])+(vars[name['IngAmmonium']]))) - (((vars[name['AmmoniumPool']])*(N_reminT)*(stepInHours))))
+  if (AmmoniumPoolNew < 0.0):
+    AmmoniumPoolNew = 0.0
+  NitratePoolNew = ((((vars[name['NitratePool']])+(vars[name['IngNitrate']]))) - (((vars[name['NitratePool']])*(N_reminT)*(stepInHours))))
+  if (NitratePoolNew < 0.0):
+    NitratePoolNew = 0.0
+
+  ### Phase 3 (output and housekeeping) ###
+
+  # External
+  vars[name['IngAmmonium']] = 0.0
+  vars[name['IngNitrate']] = 0.0
+  vars[name['IngSilicate']] = 0.0
+  vars[name['RelAmmonium']] = relAmountAmm
+  vars[name['RelSilicate']] = relAmountSi
+
+  # Internal
+  vars[name['AmmoniumPool']] = AmmoniumPoolNew
+  vars[name['NitratePool']] = NitratePoolNew
+  vars[name['SilicatePool']] = SilicatePoolNew
+  vars[name['CarbonPool']] = 0.0
+  vars[name['ChlorophyllPool']] = 0.0
 
 #####################################
 ## Utiliy functions for Hyperlight ##

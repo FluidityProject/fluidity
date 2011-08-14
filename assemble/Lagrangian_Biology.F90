@@ -105,6 +105,7 @@ contains
           call get_option(trim(stage_buffer)//"/number_of_agents", n_agents)
           call get_option(trim(stage_buffer)//"/name", stage_name)
           agent_arrays(i)%name = trim(fg_name)//trim(stage_name)
+          agent_arrays(i)%fg_id = fg
 
           ! Register the agent array, so Zoltan/Adaptivity will not forget about it
           call register_detector_list(agent_arrays(i))
@@ -301,7 +302,7 @@ contains
     type(scalar_field), pointer :: sfield, request_field, chemical_field, absorption_field, &
                                    depletion_field, release_field, source_field
     type(vector_field), pointer :: xfield
-    integer :: i, j, n
+    integer :: i, j, n, current_fg
 
     ewrite(1,*) "In calculate_lagrangian_biology"
 
@@ -333,14 +334,32 @@ contains
              agent=>agent%next
           end do
 
-          ! Calculate diagnostic fields from agents variables
+          ! Reset the diagnostic fields associated with the agent array
+          do j=1, size(agent_arrays(i)%biovar_list)
+             if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
+                sfield=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
+                call zero(sfield)
+             end if
+          end do
+       end if
+    end do
+
+    ! Calculate diagnostic fields from agents variables
+    do i = 1, size(agent_arrays)
+       if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovar_list)
              if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
                 sfield=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
                 call set_diagnostic_field_from_agents(agent_arrays(i), j, sfield)
              end if
           end do
+       end if
+    end do
 
+    current_fg = 1
+    do i = 1, size(agent_arrays)
+       ! We only want to do this for each functional group
+       if (agent_arrays(i)%has_biology.and.agent_arrays(i)%fg_id>=current_fg) then
           do j=1, size(agent_arrays(i)%biovar_list)
              ! Handle chemical uptake
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
@@ -358,7 +377,7 @@ contains
                       call set(depletion_field, n, 1.0)
                    end if
 
-                   call addto(absorption_field, n, node_val(request_field,n) * node_val(depletion_field,n))
+                   call set(absorption_field, n, node_val(request_field,n) * node_val(depletion_field,n))
                 end do
              end if
 
@@ -367,12 +386,17 @@ contains
                 release_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
                 source_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%chemfield_list(j))//"Source")
                 do n=1, node_count(release_field)
-                   call addto(source_field, n, node_val(release_field,n))
+                   call set(source_field, n, node_val(release_field,n))
                 end do
              end if
           end do
-       end if
 
+          current_fg = current_fg + 1
+       end if
+    end do
+
+    ! Output agent positions
+    do i = 1, size(agent_arrays)
        call write_detectors(state, agent_arrays(i), time, dt)
     end do
 
@@ -390,8 +414,6 @@ contains
     integer :: i
 
     ewrite(2,*) "In set_diagnostic_field_from_agents"
-
-    call zero(sfield)
 
     agent => agent_list%first
     do while (associated(agent))
