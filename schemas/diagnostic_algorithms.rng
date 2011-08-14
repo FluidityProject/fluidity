@@ -401,11 +401,6 @@ this option to these these internal algorithms.</a:documentation>
 2 is recommended.</a:documentation>
         <ref name="real"/>
       </element>
-      <zeroOrMore>
-        <ref name="scalar_boundary_conditions">
-          <a:documentation>Enforce boundary conditions on the filtered field.</a:documentation>
-        </ref>
-      </zeroOrMore>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
         <ref name="linear_solver_options_sym"/>

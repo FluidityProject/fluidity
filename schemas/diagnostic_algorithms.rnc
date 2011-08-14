@@ -293,8 +293,6 @@ helmholtz_anisotropic_smoothed_scalar_algorithm =
          element smoothing_length_scale {
              real
          },
-         ## Enforce boundary conditions on the filtered field.
-         scalar_boundary_conditions*,
          ## Solver options.
          element solver {
             linear_solver_options_sym
