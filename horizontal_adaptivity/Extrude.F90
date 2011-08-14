@@ -155,7 +155,7 @@ module hadapt_extrude
 
     ! combine the 1d vertical meshes into a full mesh
     call combine_z_meshes(h_mesh, z_meshes, out_mesh, &
-       full_shape, mesh_name, option_path)
+       full_shape, mesh_name, option_path, sigma_layers)
        
     do column=1, node_count(h_mesh)
       if (.not. node_owned(h_mesh, column)) cycle

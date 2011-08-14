@@ -1,16 +1,19 @@
-import numpy,sys,copy,operator
+import numpy,sys,copy,operator,scipy
+import scipy.sparse
 
 class State:
   def __init__(self,n=""):
     self.scalar_fields = {}
     self.vector_fields = {}
     self.tensor_fields = {}
+    self.csr_matrices = {}
     self.meshes = {}
     self.name = n
   def __repr__(self):
     return '(State) %s' % self.name
   def print_fields(self):
-    print "scalar: ",self.scalar_fields,"\nvector:",self.vector_fields,"\ntensor:",self.tensor_fields,"\n"
+    print "scalar: ",self.scalar_fields,"\nvector:",self.vector_fields,"\ntensor:", \
+    self.tensor_fields,"\ncsr_matrices:", self.csr_matrices
 
 class Field:
   def __init__(self,n,ft,op,description):
@@ -138,6 +141,12 @@ class TensorField(Field):
     self.val = v
     self.dimension = numpy.array([dim0,dim1])
     self.node_count=self.val.shape[0]
+
+class CsrMatrix(scipy.sparse.csr_matrix):
+  "A csr matrix"
+  def __init__(self, *args, **kwargs):
+    scipy.sparse.csr_matrix.__init__(self, *args, **kwargs)
+    self.format = 'csr'
 
 
 class Mesh:

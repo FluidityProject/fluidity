@@ -59,7 +59,7 @@ MAKE = @MAKE@ -s
 
 AR = @AR@
 
-ARFLAGS	= -cq
+ARFLAGS	= -cr
 
 EVAL = scripts/silenteval
 
@@ -142,6 +142,16 @@ ifeq (@FEMDEM@,yes)
 	@echo '    MAKE 3dfemdem library'
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
+
+main.o: include/version.h
+
+include/version.h:
+	@echo "DEFINE __FLUIDITY_VERSION__"
+	@grep "$(VERSION)" include/version.h >/dev/null 2>&1 || \
+	printf "#ifndef _FLUIDITY_VERSION_H\n\
+	#define _FLUIDITY_VERSION_H\n\
+	#define __FLUIDITY_VERSION__ \"$(VERSION)\"\n\
+	#endif /* _FLUIDITY_VERSION_H */\n" > include/version.h
 
 bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 	@echo "BUILD fluidity"
@@ -255,8 +265,6 @@ python_clean:
 
 fluidity_library: lib/lib@FLUIDITY@.a
 lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system 
-	@echo "DEFINE __FLUIDITY_VERSION__"
-	@grep "$(VERSION)" include/confdefs.h >/dev/null 2>&1 || (echo "#undef __FLUIDITY_VERSION__" >> include/confdefs.h && echo "#define __FLUIDITY_VERSION__ \"$(VERSION)\"" >> include/confdefs.h)
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
@@ -304,7 +312,29 @@ endif
 	@echo "    MAKE register_diagnostics"
 	@./scripts/make_register_diagnostics
 	@cd preprocessor; $(MAKE) register_diagnostics.o
-	@$(AR) $(ARFLAGS) lib/lib@FLUIDITY@.a */*.o
+	@echo "    BUILDING fluidity_library"
+	@$(AR) $(ARFLAGS) lib/libfluidity.a \
+debug/*.o \
+libwm/*.o \
+femtools/*.o \
+bathymetry/*.o \
+ocean_forcing/*.o \
+sediments/*.o \
+parameterisation/*.o \
+forward_interfaces/*.o \
+horizontal_adaptivity/*.o \
+preprocessor/*.o \
+error_measures/*.o \
+assemble/*.o \
+diagnostics/*.o \
+radiation/*.o \
+reduced_modelling/*.o \
+adjoint/*.o \
+main/*.o
+ifeq (@HYPERLIGHT@,yes)
+	@$(AR) $(ARFLAGS) lib/libfluidity.a hyperlight/*.o
+endif
+
 
 
 fldecomp: fluidity_library 

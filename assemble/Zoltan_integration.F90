@@ -56,7 +56,7 @@ module zoltan_integration
   contains
 
   subroutine zoltan_drive(states, iteration, max_adapt_iteration, metric, full_metric, initialise_fields, &
-    ignore_extrusion)
+    ignore_extrusion, flredecomping)
     type(state_type), dimension(:), intent(inout), target :: states
     integer, intent(in) :: iteration
     integer, intent(in) :: max_adapt_iteration
@@ -68,6 +68,8 @@ module zoltan_integration
     logical, intent(in), optional :: initialise_fields
     ! if present and true: only redistribute horizontal meshes and fields thereon
     logical, intent(in), optional :: ignore_extrusion
+    ! Are we flredecomping? If so, this should be true
+    logical, intent(in), optional :: flredecomping
 
     type(zoltan_struct), pointer :: zz
 
@@ -89,6 +91,13 @@ module zoltan_integration
     integer(zoltan_int) :: p1_num_export_full
     type(vector_field) :: zoltan_global_new_positions_m1d
     real :: load_imbalance_tolerance
+    logical :: flredecomp
+
+    if (.not. present(flredecomping)) then
+        flredecomp = .false.
+    else
+        flredecomp = flredecomping
+    end if
 
     ewrite(1,*) "In zoltan_drive"
 
@@ -107,7 +116,7 @@ module zoltan_integration
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       & load_imbalance_tolerance)
+       & load_imbalance_tolerance, flredecomp)
 
 
     if (changes .eqv. .false.) then
@@ -651,7 +660,7 @@ module zoltan_integration
   subroutine zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       load_imbalance_tolerance)
+       load_imbalance_tolerance,flredecomp)
 
     type(zoltan_struct), pointer, intent(in) :: zz    
     logical, intent(out) :: changes    
@@ -666,6 +675,7 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
     real, intent(inout) :: load_imbalance_tolerance
+    logical, intent(in) :: flredecomp
 
     integer(zoltan_int) :: ierr
     integer :: i, node
@@ -675,37 +685,45 @@ module zoltan_integration
     ewrite(1,*) 'in zoltan_load_balance'
 
     num_nodes = zoltan_global_zz_halo%nowned_nodes
-      
-    min_num_nodes_after_balance = 0
-    do while (min_num_nodes_after_balance == 0)
 
-       ! import_* aren't used because we set RETURN_LISTS to be only EXPORT
+    ! Special case when flredecomping - don't check for empty partitions
+    if (flredecomp) then
        ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
             &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
        assert(ierr == ZOLTAN_OK)
-       
-       ! calculate how many owned nodes we'd have after doing the planned load balancing
-       num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
-       
-       ! find the minimum number of owned nodes any process would have after doing the planned load balancing
-       call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
-            & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
-       assert(ierr == MPI_SUCCESS)
-       
-       if (min_num_nodes_after_balance == 0) then
-          ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', load_imbalance_tolerance
-          load_imbalance_tolerance = 0.95 * load_imbalance_tolerance
-          if (load_imbalance_tolerance < 1.075) then
-             FLAbort("Tightening load_imbalance_tolerance to prevent empty partitions being created by Zoltan failed")
-          end if
+    else
+      
+        min_num_nodes_after_balance = 0
+        do while (min_num_nodes_after_balance == 0)
 
-          ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
-          write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
-          ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
+           ! import_* aren't used because we set RETURN_LISTS to be only EXPORT
+           ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
+                &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+           assert(ierr == ZOLTAN_OK)
+           
+           ! calculate how many owned nodes we'd have after doing the planned load balancing
+           num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+           
+           ! find the minimum number of owned nodes any process would have after doing the planned load balancing
+           call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
+                & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+           assert(ierr == MPI_SUCCESS)
+           
+           if (min_num_nodes_after_balance == 0) then
+              ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', load_imbalance_tolerance
+              load_imbalance_tolerance = 0.95 * load_imbalance_tolerance
+              if (load_imbalance_tolerance < 1.075) then
+                 FLAbort("Tightening load_imbalance_tolerance to prevent empty partitions being created by Zoltan failed")
+              end if
 
-          ewrite(2,*) 'Tightened load_imbalance_tolerance to ', load_imbalance_tolerance
-       end if
-    end do
+              ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
+              write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
+              ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
+
+              ewrite(2,*) 'Tightened load_imbalance_tolerance to ', load_imbalance_tolerance
+           end if
+        end do
+    end if
        
     do i=1,p1_num_export
        node = p1_export_local_ids(i)
