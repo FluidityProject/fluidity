@@ -8537,9 +8537,6 @@ This option is generally only useful for testing. </a:documentation>
                     <attribute name="name">
                       <data type="string"/>
                     </attribute>
-                    <element name="initial_value">
-                      <ref name="real"/>
-                    </element>
                     <optional>
                       <element name="scalar_field">
                         <a:documentation>Biology agent field</a:documentation>
@@ -8666,6 +8663,11 @@ The return value must have length number_of_detectors.
 
 The t argument is for future use only - currently detector locations are only set at simulation start.</a:documentation>
                     <ref name="python_code"/>
+                  </element>
+                  <element name="initial_state">
+                    <element name="values">
+                      <ref name="real_vector"/>
+                    </element>
                   </element>
                   <optional>
                     <element name="random_walk">

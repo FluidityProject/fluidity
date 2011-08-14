@@ -67,7 +67,6 @@ contains
     character(len=OPTION_PATH_LEN) :: buffer, fg_buffer, stage_buffer, biovar_buffer
     character(len=FIELD_NAME_LEN) :: field_name, fg_name, stage_name
     real, allocatable, dimension(:,:) :: coords
-    real, allocatable, dimension(:) :: initial_values
     real:: current_time
     integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, column, &
                ierror, det_type, random_seed, biovar_index, biovar_total, biovar_internal, &
@@ -168,14 +167,12 @@ contains
              allocate(agent_arrays(i)%biofield_type(biovar_total))
              allocate(agent_arrays(i)%biofield_list(biovar_total))
              allocate(agent_arrays(i)%chemfield_list(biovar_total))
-             allocate(initial_values(biovar_total))
 
              ! Add internal state variables
              index = 1
              do j=1, biovar_internal
                 write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variable[",j-1,"]"
                 call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
-                call get_option(trim(biovar_buffer)//"/initial_value", initial_values(index))
 
                 ! Record according diagnostic field
                 if (have_option(trim(biovar_buffer)//"/scalar_field")) then
@@ -196,7 +193,6 @@ contains
              do j=1, biovar_uptake
                 write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/uptake_variable[",j-1,"]"
                 call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
-                initial_values(index)=0.0
                 agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
                 agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Request"
                 call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
@@ -208,7 +204,6 @@ contains
              do j=1, biovar_release
                 write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/release_variable[",j-1,"]"
                 call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
-                initial_values(index)=0.0
                 agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
                 agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Release"
                 call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
@@ -226,12 +221,9 @@ contains
              agent => agent_arrays(i)%first
              do while (associated(agent))
                 allocate(agent%biology(biovar_total))
-                do j=1, biovar_total
-                   agent%biology(j) = initial_values(j)
-                end do
+                call get_option(trim(stage_buffer)//"/initial_state/values", agent%biology)
                 agent => agent%next
              end do
-             deallocate(initial_values)
           end if
 
           ! Create simple position-only agent I/O header 

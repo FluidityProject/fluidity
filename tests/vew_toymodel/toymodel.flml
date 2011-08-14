@@ -561,9 +561,6 @@ def val(X,t):
     <lagrangian_ensemble>
       <functional_group name="Diatom">
         <variable name="Biomass">
-          <initial_value>
-            <real_value rank="0">50000</real_value>
-          </initial_value>
           <scalar_field name="Biomass" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
@@ -578,9 +575,6 @@ def val(X,t):
           </scalar_field>
         </variable>
         <variable name="AmmoniumPool">
-          <initial_value>
-            <real_value rank="0">2.2e-9</real_value>
-          </initial_value>
           <scalar_field name="ParticulateAmmonium" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
@@ -595,9 +589,6 @@ def val(X,t):
           </scalar_field>
         </variable>
         <variable name="CarbonPool">
-          <initial_value>
-            <real_value rank="0">1.5e-8</real_value>
-          </initial_value>
           <scalar_field name="ParticulateCarbon" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
@@ -612,9 +603,6 @@ def val(X,t):
           </scalar_field>
         </variable>
         <variable name="ChlorophyllPool">
-          <initial_value>
-            <real_value rank="0">2.7e-9</real_value>
-          </initial_value>
           <scalar_field name="ParticulateChlorophyll" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
@@ -629,9 +617,6 @@ def val(X,t):
           </scalar_field>
         </variable>
         <variable name="NitratePool">
-          <initial_value>
-            <real_value rank="0">0.0</real_value>
-          </initial_value>
           <scalar_field name="ParticulateNitrate" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
@@ -646,9 +631,6 @@ def val(X,t):
           </scalar_field>
         </variable>
         <variable name="SilicatePool">
-          <initial_value>
-            <real_value rank="0">1.05e-9</real_value>
-          </initial_value>
           <scalar_field name="ParticulateSilicate" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
@@ -778,6 +760,11 @@ def val(X,t):
   positions = arange(-200.,0.0,0.05).reshape(4000,1)
   return positions</string_value>
           </initial_position>
+          <initial_state>
+            <values>
+              <real_value shape="11" rank="1">50000.0 2.2e-9 1.5e-8 2.7e-9 0.0 1.05e-9 0.0 0.0 0.0 0.0 0.0</real_value>
+            </values>
+          </initial_state>
           <random_walk>
             <python>
               <string_value lines="20" type="python">from numpy import random
@@ -837,7 +824,7 @@ def val(ele, local_coord, dt, vars):
         </stage_array>
         <stage_array name="Dead">
           <number_of_agents>
-            <integer_value rank="0">200</integer_value>
+            <integer_value rank="0">0</integer_value>
           </number_of_agents>
           <lagrangian/>
           <binary_output/>
@@ -845,9 +832,14 @@ def val(ele, local_coord, dt, vars):
             <string_value lines="20" type="python">def val(t):
   from numpy import arange
   # one agent per m in [0:200]m
-  positions = arange(-200.,0.0,1.0).reshape(200,1)
-  return positions</string_value>
+  #positions = arange(-200.,0.0,1.0).reshape(200,1)
+  return [] #positions</string_value>
           </initial_position>
+          <initial_state>
+            <values>
+              <real_value shape="11" rank="1">0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0</real_value>
+            </values>
+          </initial_state>
           <random_walk>
             <python>
               <string_value lines="20" type="python">from numpy import random
@@ -874,7 +866,7 @@ def val(ele, local_coord, dt):
             </random_seed>
           </random_walk>
           <biology_update>
-            <string_value type="python" lines="20">import fluidity.lagrangian_biology as bio
+            <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
 from __builtin__ import str
 
 name = dict({

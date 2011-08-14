@@ -6717,9 +6717,6 @@ biology =
                   ## Internal state variable of a biology agent
                   element variable {
                      attribute name { xsd:string },
-                     element initial_value{
-                        real
-                     },
                      ## Biology agent field
                      element scalar_field {
                         attribute rank { "0" },
@@ -6816,6 +6813,11 @@ biology =
                   ## The t argument is for future use only - currently detector locations are only set at simulation start.
                   element initial_position {
                      python_code
+                  },
+                  element initial_state {
+                     element values {
+                        real_vector
+                     }
                   },
                   element random_walk {
                      ## Python function prescribing additional agent displacement due to turbulence. 
