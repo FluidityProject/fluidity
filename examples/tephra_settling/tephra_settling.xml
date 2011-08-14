@@ -7,8 +7,8 @@
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="medium" nprocs="1">
-    <command_line>make run</command_line>
+  <problem_definition length="long" nprocs="1">
+    <command_line>mpiexec ../../bin/fluidity -v2 -l tephra_settling.flml</command_line>
     <!-- This is a 2D simulation of the formation of density currents. We consider a -->
     <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
     <!-- Density currents/plumes should eventually form when the bulk density is large enough. -->
@@ -23,8 +23,13 @@ tephra_u_max=s["Tephra"]["Velocity%magnitude"]["max"]
   </variables>
     
   <pass_tests>
-    <test name="Tephra velocity is between 0.0 and 0.03" language="python">
-assert abs(tephra_u_max.all() - 0.03) &lt;= 0.03
+    <test name="Maximum Tephra velocity is less than 0.0025 for the first 30 seconds" language="python">
+assert tephra_u_max[0:30].all() &lt; 0.0025
+    </test>
+
+    <test name="Maximum Tephra velocity is between 0.002 and 0.05 for the rest of the simulation" language="python">
+assert min(tephra_u_max[30:]) &gt; 0.002
+assert max(tephra_u_max[30:]) &lt; 0.05
     </test>
   </pass_tests>
   
