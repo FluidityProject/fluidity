@@ -1404,7 +1404,9 @@ The return value must be a string.</a:documentation>
 system state.</a:documentation>
             <element name="format">
               <a:documentation>Input mesh file format.</a:documentation>
-              <value>triangle</value>
+              <attribute name="name">
+                <value>triangle</value>
+              </attribute>
               <ref name="comment"/>
             </element>
             <ref name="comment"/>
