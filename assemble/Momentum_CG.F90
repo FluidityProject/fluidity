@@ -1020,7 +1020,7 @@
 
       real, dimension(u%dim, face_ngi(u, sele)) :: relu_gi
       real, dimension(face_ngi(u, sele)) :: density_gi
-      real, dimension(face_ngi(it_free_surface, sele)) :: it_fs_gi, old_fs_gi
+      real, dimension(face_ngi(it_free_surface, sele)) :: it_fs_gi, old_fs_gi, fs_gi
 
       real, dimension(u%dim, face_loc(u, sele)) :: oldu_val
       real, dimension(u%dim, face_ngi(u, sele)) :: ndotk_k
@@ -1187,8 +1187,9 @@
       if (velocity_bc_type(1,sele)==BC_TYPE_EXPLICIT_FREE_SURFACE) then
         it_fs_gi = face_val_at_quad(it_free_surface, sele)
         old_fs_gi = face_val_at_quad(old_free_surface, sele) ! not used yet!
+        fs_gi = theta*it_fs_gi + (1.-theta)*old_fs_gi
 
-        call addto(rhs, u_nodes_bdy, shape_vector_rhs(u_shape, normal_bdy, -detwei_bdy*fs_coef(sele)*it_fs_gi))
+        call addto(rhs, u_nodes_bdy, shape_vector_rhs(u_shape, normal_bdy, -detwei_bdy*fs_coef(sele)*fs_gi))
         
       end if
 
