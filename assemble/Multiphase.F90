@@ -379,7 +379,7 @@
                dg = continuity(u) < 0
     
                ! ----- Volume integrals over elements -------------           
-               call profiler_tic("element_loop")
+               call profiler_tic(u, "element_loop")
                element_loop: do ele = 1, element_count(u)
 
                   if(.not.dg .or. (dg .and. element_owned(u,ele))) then
@@ -397,7 +397,7 @@
                   end if
 
                end do element_loop
-               call profiler_toc("element_loop")
+               call profiler_toc(u, "element_loop")
 
                call deallocate(nvfrac_fluid)
                call deallocate(nvfrac_particle)
