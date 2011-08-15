@@ -96,7 +96,7 @@ default: bin/@FLUIDITY@
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
-	lib/libspud.a lib/libjudy.a
+	lib/libspud.a lib/libjudy.a include/version.h
  
 lib/libjudy.a:
 	@echo '    MKDIR lib'; mkdir -p lib
