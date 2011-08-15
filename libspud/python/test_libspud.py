@@ -5,7 +5,7 @@ libspud.load_options('test.flml')
 
 libspud.print_options()
 
-print libspud.number_of_children('/geometry')
+print libspud.get_number_of_children('/geometry')
 print libspud.get_child_name('geometry', 0)
 
 print libspud.option_count('/problem_type')
