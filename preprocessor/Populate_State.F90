@@ -1184,12 +1184,12 @@ contains
     end if
 
     ! solar irradiance submodel (hyperlight)
-    if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then 
+    if (have_option("/embedded_models/hyperlight")) then 
        call allocate_and_insert_irradiance(states(1))
     end if
 
     ! agent-based lagrangian biology model
-    if (have_option("/ocean_biology/lagrangian_ensemble/functional_group")) then 
+    if (have_option("/embedded_models/lagrangian_ensemble_biology/functional_group")) then 
        call allocate_and_insert_biology_agents(states(1))
     end if
 
@@ -1399,7 +1399,7 @@ contains
       character(len=OPTION_PATH_LEN) :: light_path, field_name
 
       ! Replicate irradiance template field for all wavebands
-      light_path = "/ocean_biology/lagrangian_ensemble/hyperlight"      
+      light_path = "/embedded_models/hyperlight"      
       frequency_field_loop: do j=0,35         
          lambda = 350.0 + (j * 10.0)
          field_name="Irradiance_"//int2str(NINT(lambda))
@@ -1412,7 +1412,7 @@ contains
       end do frequency_field_loop
 
       ! Create PAR irradiance field
-      if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight/scalar_field::IrradiancePAR")) then 
+      if (have_option("/embedded_models/hyperlight/scalar_field::IrradiancePAR")) then 
          call allocate_and_insert_scalar_field(&
                   trim(light_path)&
                   //"/scalar_field::IrradiancePAR", &
@@ -1431,7 +1431,7 @@ contains
       integer :: i, j, k, var_count, fg_count, stage_count
 
       ! Go through all agent arrays and allocate the specified diagnostic fields
-      fg_path = "/ocean_biology/lagrangian_ensemble/functional_group"
+      fg_path = "/embedded_models/lagrangian_ensemble_biology/functional_group"
       fg_count = option_count(trim(fg_path))
       do i=1, fg_count
          write(fg_buffer, "(a,i0,a)") trim(fg_path)//"[",i-1,"]"

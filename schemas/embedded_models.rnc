@@ -6,6 +6,10 @@ embedded_models =
       element embedded_models {
          comment, 
          
-         radiation?
+         radiation?,
+
+         hyperlight?,
+
+         lagrangian_biology?
       }
    )

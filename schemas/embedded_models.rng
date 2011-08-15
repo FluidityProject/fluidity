@@ -8,6 +8,12 @@
       <optional>
         <ref name="radiation"/>
       </optional>
+      <optional>
+        <ref name="hyperlight"/>
+      </optional>
+      <optional>
+        <ref name="lagrangian_biology"/>
+      </optional>
     </element>
   </define>
 </grammar>

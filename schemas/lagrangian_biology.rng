@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name="lagrangian_biology">
+    <element name="lagrangian_ensemble_biology">
+      <a:documentation>Lagrangian particle biology from the VEW project.</a:documentation>
+      <zeroOrMore>
+        <element name="functional_group">
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <element name="variable">
+            <a:documentation>An agent's stage determines the update function</a:documentation>
+            <attribute name="name">
+              <value>Stage</value>
+            </attribute>
+          </element>
+          <element name="variable">
+            <a:documentation>An agent's stage determines the update function</a:documentation>
+            <attribute name="name">
+              <value>Biomass</value>
+            </attribute>
+            <optional>
+              <ref name="agent_diagnostic_field"/>
+            </optional>
+          </element>
+          <zeroOrMore>
+            <choice>
+              <element name="variable">
+                <a:documentation>Internal state variable of a biology agent</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <optional>
+                  <ref name="agent_diagnostic_field"/>
+                </optional>
+              </element>
+              <element name="uptake_variable">
+                <a:documentation>Specify a chemical field from which the agent absorbs dissolved matter.
+The associated request field "&lt;var_name&gt;Request" gets scaled by availability 
+on the chemical_field, and added to the "&lt;chem_field&gt;Absorption". 
+The resulting scale factor gets published via the "&lt;var_name&gt;Depletion" field.</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <element name="chemical_field">
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                </element>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Request</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field_no_adapt"/>
+                  </element>
+                </element>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Depletion</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field_no_adapt"/>
+                  </element>
+                </element>
+              </element>
+              <element name="release_variable">
+                <a:documentation>Specify a chemical field to which the agent release matter
+The associated diagnostic field acts as a request to this field,
+which gets scaled by availability on the uptake field.
+The resulting depletion factor gets published via 
+an automatically inserted field "&lt;diagnostic_field&gt;_depletion"</a:documentation>
+                <attribute name="name">
+                  <data type="string"/>
+                </attribute>
+                <element name="chemical_field">
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                </element>
+                <element name="scalar_field">
+                  <attribute name="rank">
+                    <value>0</value>
+                  </attribute>
+                  <attribute name="name">
+                    <value>Release</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="diagnostic_scalar_field_no_adapt"/>
+                  </element>
+                </element>
+              </element>
+            </choice>
+          </zeroOrMore>
+          <zeroOrMore>
+            <element name="stage_array">
+              <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+              <element name="id">
+                <a:documentation>Stage identifier</a:documentation>
+                <ref name="real"/>
+              </element>
+              <element name="number_of_agents">
+                <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
+                <ref name="integer"/>
+              </element>
+              <element name="lagrangian">
+                <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
+                <empty/>
+              </element>
+              <element name="binary_output">
+                <a:documentation>Enable to write detector output in binary format</a:documentation>
+                <empty/>
+              </element>
+              <element name="initial_position">
+                <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+The return value must have length number_of_detectors.
+
+*** IMPORTANT NOTE ***
+
+The t argument is for future use only - currently detector locations are only set at simulation start.</a:documentation>
+                <ref name="python_code"/>
+              </element>
+              <element name="initial_state">
+                <element name="values">
+                  <ref name="real_vector"/>
+                </element>
+              </element>
+              <optional>
+                <element name="random_walk">
+                  <element name="python">
+                    <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
+The return value will be added to the lagrangian advection at each sub-timestep. 
+Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
+Functions should be of the form:
+
+ field = state.scalar_fields['Field_name']
+
+ def val(ele, local_coord):
+    # x = field.eval_field(ele, local_coord)
+    return # Return some f(x)</a:documentation>
+                    <ref name="python_code"/>
+                  </element>
+                  <element name="random_seed">
+                    <ref name="integer"/>
+                  </element>
+                </element>
+              </optional>
+              <optional>
+                <element name="exclude_from_advection">
+                  <a:documentation/>
+                  <empty/>
+                </element>
+              </optional>
+              <choice>
+                <element name="biology_update">
+                  <a:documentation>Python code specifying the biology model for this type of agent.</a:documentation>
+                  <ref name="python_code"/>
+                </element>
+                <element name="disable_biology">
+                  <a:documentation>Do not calculate biology
+This option is generally only useful for testing. </a:documentation>
+                  <empty/>
+                </element>
+              </choice>
+              <ref name="comment"/>
+            </element>
+          </zeroOrMore>
+          <ref name="lagrangian_timestepping"/>
+        </element>
+      </zeroOrMore>
+    </element>
+  </define>
+  <define name="agent_diagnostic_field">
+    <element name="scalar_field">
+      <a:documentation>Biology agent field</a:documentation>
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <element name="diagnostic">
+        <ref name="internal_algorithm"/>
+        <ref name="velocity_mesh_choice"/>
+        <ref name="diagnostic_scalar_field_no_adapt"/>
+      </element>
+      <choice>
+        <element name="global">
+          <empty/>
+        </element>
+        <element name="per_stage">
+          <empty/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <define name="hyperlight">
+    <element name="hyperlight">
+      <a:documentation>Hyperlight solar irradiance model, which 
+computes a fast approximation to the Radiative Transfer Equation.
+NOTE: This module requires fluidity to be compiled with the 
+--enable-hyperlight flag.</a:documentation>
+      <element name="scalar_field">
+        <a:documentation>Hydrolight always computes the scalar irradiance 
+for 36 regular wavebands of width 10nm in PAR. 
+Particular wavebands or total PAR irradiance need 
+to be derived from these fixed bands.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>IrradianceTemplate</value>
+        </attribute>
+        <element name="prescribed">
+          <ref name="velocity_mesh_choice"/>
+          <ref name="prescribed_scalar_field"/>
+        </element>
+      </element>
+      <optional>
+        <element name="scalar_field">
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>IrradiancePAR</value>
+          </attribute>
+          <element name="diagnostic">
+            <ref name="velocity_mesh_choice"/>
+            <ref name="scalar_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_scalar_field_no_adapt"/>
+          </element>
+        </element>
+      </optional>
+      <element name="CDOM">
+        <a:documentation>F, the ratio for correlated CDOM</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="BF_chl">
+        <a:documentation>BF_chl, the backscatter fraction for chlorophyll-bearing particles</a:documentation>
+        <ref name="real"/>
+      </element>
+      <optional>
+        <element name="CloudCover">
+          <a:documentation>Parameter for GC sky irradiance model - 
+if provided this overwrites the values from the forcing routines.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="WindSpeed">
+          <a:documentation>Parameter for GC sky irradiance model - 
+if provided this overwrites the values from the forcing routines.</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="EuphoticRatio">
+          <a:documentation>Optional performance parameter that determines the percentage of 
+surface irradiance at which the model stops computing.
+Default is 0.01 = 1% (standard definition of euphotic depth)</a:documentation>
+          <ref name="real"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+</grammar>

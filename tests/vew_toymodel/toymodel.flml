@@ -557,9 +557,10 @@ def val(X,t):
       </diagnostic>
     </vector_field>
   </material_phase>
-  <ocean_biology>
-    <lagrangian_ensemble>
+  <embedded_models>
+    <lagrangian_ensemble_biology>
       <functional_group name="Diatom">
+        <variable name="Stage"/>
         <variable name="Biomass">
           <scalar_field name="Biomass" rank="0">
             <diagnostic>
@@ -748,6 +749,9 @@ def val(X,t):
           </scalar_field>
         </release_variable>
         <stage_array name="Living">
+          <id>
+            <real_value rank="0">0.0</real_value>
+          </id>
           <number_of_agents>
             <integer_value rank="0">4000</integer_value>
           </number_of_agents>
@@ -762,7 +766,7 @@ def val(X,t):
           </initial_position>
           <initial_state>
             <values>
-              <real_value shape="11" rank="1">50000.0 2.2e-9 1.5e-8 2.7e-9 0.0 1.05e-9 0.0 0.0 0.0 0.0 0.0</real_value>
+              <real_value shape="12" rank="1">0.0 50000.0 2.2e-9 1.5e-8 2.7e-9 0.0 1.05e-9 0.0 0.0 0.0 0.0 0.0</real_value>
             </values>
           </initial_state>
           <random_walk>
@@ -795,17 +799,18 @@ def val(ele, local_coord, dt):
 from __builtin__ import str
 
 name = dict({
-'Biomass' :         0,   # Sub-population size
-'AmmoniumPool' :    1,   # Current ammonium pool
-'CarbonPool' :      2,   # Current carbon pool
-'ChlorophyllPool' : 3,   # Current chlorophyll pool
-'NitratePool' :     4,   # Current nitrate pool
-'SilicatePool' :    5,   # Current silicate pool
-'IngAmmonium' :     6,   # Ammonium uptake
-'IngNitrate' :      7,   # Nitrate uptake
-'IngSilicate' :     8,   # Silicate uptake
-'RelAmmonium' :     9,   # Ammonium release
-'RelSilicate' :     10   # Silicate release
+'Stage' :           0,   # 
+'Biomass' :         1,   # Sub-population size
+'AmmoniumPool' :    2,   # Current ammonium pool
+'CarbonPool' :      3,   # Current carbon pool
+'ChlorophyllPool' : 4,   # Current chlorophyll pool
+'NitratePool' :     5,   # Current nitrate pool
+'SilicatePool' :    6,   # Current silicate pool
+'IngAmmonium' :     7,   # Ammonium uptake
+'IngNitrate' :      8,   # Nitrate uptake
+'IngSilicate' :     9,   # Silicate uptake
+'RelAmmonium' :     10,   # Ammonium release
+'RelSilicate' :     11   # Silicate release
 })
 
 temperature = state.scalar_fields['Temperature']
@@ -823,6 +828,9 @@ def val(ele, local_coord, dt, vars):
           </biology_update>
         </stage_array>
         <stage_array name="Dead">
+          <id>
+            <real_value rank="0">1.0</real_value>
+          </id>
           <number_of_agents>
             <integer_value rank="0">0</integer_value>
           </number_of_agents>
@@ -837,7 +845,7 @@ def val(ele, local_coord, dt, vars):
           </initial_position>
           <initial_state>
             <values>
-              <real_value shape="11" rank="1">0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0</real_value>
+              <real_value shape="12" rank="1">1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0</real_value>
             </values>
           </initial_state>
           <random_walk>
@@ -870,17 +878,18 @@ def val(ele, local_coord, dt):
 from __builtin__ import str
 
 name = dict({
-'Biomass' :         0,   # Sub-population size
-'AmmoniumPool' :    1,   # Current ammonium pool
-'CarbonPool' :      2,   # Current carbon pool
-'ChlorophyllPool' : 3,   # Current chlorophyll pool
-'NitratePool' :     4,   # Current nitrate pool
-'SilicatePool' :    5,   # Current silicate pool
-'IngAmmonium' :     6,   # Ammonium uptake
-'IngNitrate' :      7,   # Nitrate uptake
-'IngSilicate' :     8,   # Silicate uptake
-'RelAmmonium' :     9,   # Ammonium release
-'RelSilicate' :     10   # Silicate release
+'Stage' :           0,   # 
+'Biomass' :         1,   # Sub-population size
+'AmmoniumPool' :    2,   # Current ammonium pool
+'CarbonPool' :      3,   # Current carbon pool
+'ChlorophyllPool' : 4,   # Current chlorophyll pool
+'NitratePool' :     5,   # Current nitrate pool
+'SilicatePool' :    6,   # Current silicate pool
+'IngAmmonium' :     7,   # Ammonium uptake
+'IngNitrate' :      8,   # Nitrate uptake
+'IngSilicate' :     9,   # Silicate uptake
+'RelAmmonium' :     10,   # Ammonium release
+'RelSilicate' :     11   # Silicate release
 })
 
 temperature = state.scalar_fields['Temperature']
@@ -904,6 +913,6 @@ def val(ele, local_coord, dt, vars):
           <reflect_on_boundary/>
         </lagrangian_timestepping>
       </functional_group>
-    </lagrangian_ensemble>
-  </ocean_biology>
+    </lagrangian_ensemble_biology>
+  </embedded_models>
 </fluidity_options>

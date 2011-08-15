@@ -72,7 +72,7 @@ contains
                ierror, det_type, random_seed, biovar_index, biovar_total, biovar_internal, &
                biovar_uptake, biovar_release, index
 
-    if (.not.have_option("/ocean_biology/lagrangian_ensemble")) return
+    if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
     ewrite(1,*) "In initialise_lagrangian_biology"
 
@@ -83,9 +83,9 @@ contains
 
     ! Determine how many arrays we need across all functional groups
     n_agent_arrays = 0
-    n_fgroups = option_count("/ocean_biology/lagrangian_ensemble/functional_group")
+    n_fgroups = option_count("/embedded_models/lagrangian_ensemble_biology/functional_group")
     do fg=1, n_fgroups
-       write(fg_buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/functional_group[",i-1,"]"
+       write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",i-1,"]"
 
        n_agent_arrays = n_agent_arrays + option_count(trim(fg_buffer)//"/stage_array")
     end do
@@ -95,7 +95,7 @@ contains
 
     ! We create an agent array for each stage of each Functional Group
     do fg=1, n_fgroups
-       write(fg_buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/functional_group[",i-1,"]"
+       write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",i-1,"]"
        call get_option(trim(fg_buffer)//"/name", fg_name)
        n_fg_arrays = option_count(trim(fg_buffer)//"/stage_array")
 
@@ -323,6 +323,7 @@ contains
           agent=>agent_arrays(i)%first
           do while (associated(agent))
              call python_calc_agent_biology(agent, xfield, dt, trim(agent_arrays(i)%name), trim("biology_update"))
+
              agent=>agent%next
           end do
 
