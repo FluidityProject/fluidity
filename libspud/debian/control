@@ -50,3 +50,15 @@ Description: An automatic options system for scientific models.
  schema-aware editor such as Diamond. Spudtools contains the schema
  for the spud base language and the spud-preprocess script for
  converting schemas between the compact and xml syntaxes.
+
+Package: python-spud
+Section: python
+Architecture: any
+XB-Python-Version: ${python:Versions}
+Depends: libspud-dev (= ${binary:Version}), ${python:Depends}, ${misc:Depends}
+Description: An automatic options system for scientific models (python interface).
+ Spud is an automatic options system which reads an xml options file 
+ into a dictionary for immediate access from within the model. The xml 
+ file is generated using a spud-compatible RELAX NG schema and a
+ schema-aware editor such as Diamond. This package contains the Python
+ bindings for libspud.

@@ -79,7 +79,10 @@ install-python%:
 	    echo "Failed to locate python egg, was it built correctly?" && exit 1 ; \
 	fi
 
-binary-arch: build-libspud install-libspud install-spudtools
+install-pyspud:
+	$(MAKE) install-pyspud DESTDIR=$(CURDIR)/debian/python-spud
+
+binary-arch: build-libspud install-libspud install-spudtools install-pyspud
 	dh_testdir
 	dh_testroot
 	dh_installchangelogs 
@@ -92,7 +95,7 @@ binary-arch: build-libspud install-libspud install-spudtools
 #	dh_installemacsen
 #	dh_installpam
 #	dh_installmime
-#	dh_python
+	dh_python2
 #	dh_installinit
 #	dh_installcron
 #	dh_installinfo
