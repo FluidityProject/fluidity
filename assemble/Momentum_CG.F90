@@ -566,7 +566,7 @@
 
       end if
 
-      on_sphere = have_option('/geometry/spherical_earth/')
+      on_sphere = have_option('/geometry/spherical_earth')
 
       call get_option("/timestepping/timestep", dt)
       call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/theta", &
@@ -740,7 +740,7 @@
               viscosity, grad_u, &
               mnu, tnu, leonard, alpha, &
               gp, surfacetension, &
-              assemble_ct_matrix_here, on_sphere, depth, &
+              assemble_ct_matrix_here, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac)
       end do element_loop
 
@@ -1203,7 +1203,7 @@
                                             viscosity, grad_u, &
                                             mnu, tnu, leonard, alpha, &
                                             gp, surfacetension, &
-                                            assemble_ct_matrix_here, on_sphere, depth, &
+                                            assemble_ct_matrix_here, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac)
 
       !!< Assembles the local element matrix contributions and places them in big_m
@@ -1238,7 +1238,7 @@
       type(scalar_field), intent(in) :: gp
       type(tensor_field), intent(in) :: surfacetension
 
-      logical, intent(in) :: assemble_ct_matrix_here, on_sphere
+      logical, intent(in) :: assemble_ct_matrix_here
 
       ! Wetting and Drying
       type(scalar_field), intent(in) :: depth
@@ -1390,7 +1390,7 @@
       
       ! Buoyancy terms
       if(have_gravity) then
-        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, nvfrac, on_sphere, detwei, rhs_addto)
+        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
       end if
       
       ! Surface tension
@@ -1710,7 +1710,7 @@
       
     end subroutine add_sources_element_cg
     
-    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, nvfrac, on_sphere, detwei, rhs_addto)
+    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1720,7 +1720,6 @@
       type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, ele_loc(u, ele)), intent(inout) :: rhs_addto
-      logical, intent(in) :: on_sphere
       
       real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
       real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
