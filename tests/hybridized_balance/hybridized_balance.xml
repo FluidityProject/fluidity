@@ -55,10 +55,10 @@ assert(abs(DeltaDBDM) &lt; 1.0e-8)
 assert(abs(DeltaUBDM) &lt; 1.0e-8)
     </test>
     <test name="BDFM D steady state" language="python">
-assert(abs(DeltaDBDFM) &lt; 1.0e-8)
+assert(abs(DeltaDBDFM) &lt; 5.0e-8)
     </test>
     <test name="BDFM U steady state" language="python">
-assert(abs(DeltaUBDFM) &lt; 1.0e-8)
+assert(abs(DeltaUBDFM) &lt; 5.0e-8)
     </test>
   </pass_tests>
   <warn_tests>
