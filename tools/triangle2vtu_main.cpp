@@ -61,7 +61,6 @@ int main(int argc, char** argv){
   }
 
   int filename_len=strlen(argv[1]);
-  cerr << "String length is " << filename_len;
   triangle2vtu(argv[1], &filename_len);
 
 #ifdef HAVE_MPI

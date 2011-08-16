@@ -42,7 +42,7 @@ subroutine triangle2vtu(filename, filename_len)
   type(vector_field), target :: positions
   type(scalar_field) :: mapA, mapB, regions
 
-  positions=read_triangle_files('sphere_ico', quad_degree=3, no_faces=.true.)
+  positions=read_triangle_files(filename, quad_degree=3, no_faces=.true.)
 
   ! For supermesh stuff.
   ! It tests for the existence of the mapping files
