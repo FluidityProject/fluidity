@@ -486,8 +486,8 @@ end subroutine melt_allocate_surface
         !P = P*1.0e4
         P = 0.0
         if (have_option("/geometry/ocean_boundaries/scalar_field::DistanceToBottom")) then
-           	P= P + (1100.0-node_val(re_DistanceToTop,the_node))*9.81*1000.0
-           	!ewrite(1,*) "P with DistanceToTop included", P
+          P= P + (1100.0-node_val(re_DistanceToTop,the_node))*9.81*1000.0
+          !ewrite(1,*) "P with DistanceToTop included", P
         endif
         ! Pressure from the schema
         P = node_val(re_pressure,the_node)
@@ -532,7 +532,7 @@ end subroutine melt_allocate_surface
         !! Heat flux to the ocean
         loc_heatflux = c0*(gammaT*speed+ loc_meltrate)*(T-loc_Tb) ! or loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
         !! Salt flux to the ocean        
-	loc_saltflux = (gammaS*speed+loc_meltrate)*(S-loc_Sb)
+        loc_saltflux = (gammaS*speed+loc_meltrate)*(S-loc_Sb)
       
         !! These are needed to implement BCs.
         call set(MeltRate, the_node, loc_meltrate)
@@ -614,17 +614,17 @@ subroutine melt_bc(state)
 
 
             do i=1,node_count(T_bc)                
-		Kt = (sum(node_val(unit_normal_vectors,i)*Kt_ar))
+                Kt = (sum(node_val(unit_normal_vectors,i)*Kt_ar))
                 Tz = node_val(Tflux,i)/(-Kt*c0) 
                 call set(T_bc,i,Tz)                        
             enddo
 
 !! BC for S
             do i=1,node_count(S_bc)
-            	Ks = abs(sum(node_val(unit_normal_vectors,i)*Ks_ar))
-            	Sz = node_val(Sflux,i)/(-Ks) 
+              Ks = abs(sum(node_val(unit_normal_vectors,i)*Ks_ar))
+              Sz = node_val(Sflux,i)/(-Ks) 
                 call set(S_bc,i,Sz)
-       	    enddo
+            enddo
 
             !If the fluxes were constant
             if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_temperature")) then
@@ -666,7 +666,7 @@ subroutine melt_bc(state)
             call set(ice_surfaceT,i,node_val(T_bc,the_node))
         enddo
 
-        ! Salinity 	
+        ! Salinity
         call get_boundary_condition(SS, 'salinity_iceshelf_BC', surface_mesh=ice_mesh) 
         call allocate(ice_surfaceS, ice_mesh, name="ice_surfaceS")        
         do i=1,node_count(ice_surfaceS)

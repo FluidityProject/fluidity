@@ -6443,7 +6443,7 @@ forcing =
                         }
                      )
            }?,
-	   element HydroStaticP {
+           element HydroStaticP {
                 (
                    ## Python function prescribing real input. Functions should be of the form:
                    ##
@@ -6457,17 +6457,17 @@ forcing =
                    }
                 )  
             }?, 
-            ## Boundary stuff   
-           element calculate_boundaries {
+            ## Boundary stuff
+            element calculate_boundaries {
                      element string_value {
                      "neumann"|"dirichlet"
                      },
-		     ## This is for specifying Kt and Ks
+                     ## This is for specifying Kt and Ks
                      element Kt_x {real}?,
-		     element Kt_y {real}?,
+                     element Kt_y {real}?,
                      element Kt_z {real}?,
                      element Ks_x {real}?,
-		     element Ks_y {real}?,
+                     element Ks_y {real}?,
                      element Ks_z {real}?,
                      ##This is for testing the BC implementation on ice-ocean ice-ocean interface. 
                      ##By setting this value, the temperature of ice-ocean interface is fixed to this value.
