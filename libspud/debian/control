@@ -25,7 +25,7 @@ Description: A schema-driven interface for writing XML documents
 
 Package: libspud-dev
 Architecture: any
-Depends: ${shlibs:Depends}, spudtools
+Depends: ${shlibs:Depends}, spudtools, libtinyxml-dev
 Recommends: diamond
 Section: libdevel
 Suggests:
