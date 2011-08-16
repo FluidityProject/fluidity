@@ -49,20 +49,28 @@ module linear_shallow_water
     logical :: is_shallow_water=.false.
 
 contains 
-  subroutine setup_wave_matrices(state,dt,theta,D0,g)
+  subroutine setup_wave_matrices(state,dt,theta)
     implicit none
     type(state_type), intent(inout) :: state
-    real , intent(in) :: dt,theta,D0,g
+    real, intent(in) :: dt, theta
     !! Layer thickness
     type(scalar_field), pointer :: D, f
     !! velocity.
     type(vector_field), pointer :: U, X, down
     type(csr_sparsity) :: u_sparsity, wave_sparsity, &
          ct_sparsity
-    type(csr_matrix) :: h_mass_mat, wave_mat
+    type(csr_matrix) :: wave_mat, h_mass_mat
     type(block_csr_matrix) :: u_mass_mat, coriolis_mat,&
          inverse_coriolis_mat, div_mat, inverse_big_mat
+    real :: D0, g
     integer :: dim, ele
+
+    ! Get options
+    !D0
+    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+         &rognostic/mean_layer_thickness",D0)
+    !gravity
+    call get_option("/physical_parameters/gravity/magnitude", g)
 
     ewrite(2,*) 'dt',dt,'theta',theta
     ewrite(2,*) 'D0',D0,'g',g
@@ -128,7 +136,7 @@ contains
     end do
 
     if(have_option("/physical_parameters/coriolis") .and. have_option("/debug/check_inverse_coriolis_matrix")) then
-       call check_big_mat(U,inverse_big_mat,u_mass_mat,coriolis_mat,theta,dt)
+       call check_big_mat(U,inverse_big_mat,u_mass_mat,coriolis_mat,dt,theta)
     end if
 
     !Construct wave mat
@@ -140,6 +148,7 @@ contains
 
     call scale(wave_mat,dt*dt*theta*theta*g*D0)
     call addto(wave_mat,h_mass_mat)
+
 
   end subroutine setup_wave_matrices
 
@@ -181,11 +190,11 @@ contains
 
     end subroutine check_wave_mat
 
-    subroutine check_big_mat(U,inverse_big_mat,u_mass_mat,coriolis_mat,theta,dt)
+    subroutine check_big_mat(U,inverse_big_mat,u_mass_mat,coriolis_mat,dt,theta)
       implicit none
       type(vector_field), intent(inout) :: U
       type(block_csr_matrix), intent(in) :: inverse_big_mat, coriolis_mat, u_mass_mat
-      real, intent(in) :: theta, dt
+      real, intent(in) :: dt, theta
       !
       integer :: n,ntests=20, dim,d1
       type(vector_field) :: u_test, u_mem1, u_mem2
@@ -228,20 +237,28 @@ contains
       call deallocate(u_mem2)
     end subroutine check_big_mat
 
-    subroutine check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
+    subroutine check_solution(delta_u,delta_d,d,u,dt,theta,u_mass_mat&
            &,h_mass_mat, coriolis_mat,div_mat)
       type(scalar_field), intent(inout) :: delta_d,d
       type(vector_field), intent(inout) :: delta_u,u
       type(csr_matrix), intent(in) :: h_mass_mat
       type(block_csr_matrix), intent(in) :: u_mass_mat,coriolis_mat,div_mat
-      real, intent(in) :: dt,theta,g,D0
+      real, intent(in) :: dt, theta
       !
       type(scalar_field) :: h_residual, h_mem
       type(vector_field) :: u_residual, u_mem
+      real :: g, D0
       integer :: dim
       !
       dim = mesh_dim(u)
       !
+      ! Get options
+      !D0
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+           &rognostic/mean_layer_thickness",D0)
+      !gravity
+      call get_option("/physical_parameters/gravity/magnitude", g)
+
       call allocate(h_residual,d%mesh,'hresidual')
       call allocate(u_residual,mesh_dim(u),u%mesh,'uresidual')
       call allocate(h_mem,d%mesh,'hmem')
@@ -294,17 +311,22 @@ contains
       !
     end subroutine check_solution
 
-    subroutine update_u_rhs(u_rhs,U,delta_D,div_mat,theta,dt,g)
+    subroutine update_u_rhs(u_rhs,U,delta_D,div_mat,dt,theta)
       implicit none
       type(vector_field), intent(inout) :: u_rhs
       type(vector_field), intent(in) :: U
       type(scalar_field), intent(in) :: delta_D
       type(block_csr_matrix), intent(in) :: div_mat
-      real, intent(in) :: theta, dt, g
+      real, intent(in) :: dt, theta
       !Add the contribution to the rhs of momentum equation which
       !contains implicit D
       type(vector_field) :: vec
+      real :: g
       integer :: dim
+
+      ! Get options
+      !gravity
+      call get_option("/physical_parameters/gravity/magnitude", g)
 
       dim = mesh_dim(U)
       call allocate(vec, dim, U%mesh, "workingvecmem")
@@ -316,19 +338,24 @@ contains
 
     end subroutine update_u_rhs
 
-    subroutine get_d_rhs(d_rhs,u_rhs,D,U,div_mat,inverse_big_mat,D0,dt,theta)
+    subroutine get_d_rhs(d_rhs,u_rhs,D,U,div_mat,inverse_big_mat,dt,theta)
       implicit none
       type(scalar_field), intent(inout) :: d_rhs
       type(vector_field), intent(inout) :: u_rhs,U
       type(scalar_field), intent(inout) :: D
       type(block_csr_matrix), intent(in) :: div_mat, inverse_big_mat
-      real, intent(in) :: D0, dt, theta
+      real, intent(in) :: dt, theta
       !Construct the contribution to the right-hand side of the D wave eqn
       type(scalar_field) :: rhs2
-      integer :: dim
       type(vector_field) :: vec
+      real :: D0
+      integer :: dim
       !
       dim = mesh_dim(D)
+
+      !D0
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+           &rognostic/mean_layer_thickness",D0)
 
       call zero(d_rhs)
 
@@ -349,7 +376,7 @@ contains
 
     end subroutine get_d_rhs
 
-    subroutine get_u_rhs(u_rhs,U,D,dt,g, &
+    subroutine get_u_rhs(u_rhs,U,D,dt, &
          coriolis_mat,div_mat,u_mass_mat,source)
       implicit none
       type(vector_field), intent(inout) :: u_rhs
@@ -358,16 +385,20 @@ contains
       type(scalar_field), intent(inout) :: D
       type(block_csr_matrix), intent(in) :: coriolis_mat, div_mat 
       type(block_csr_matrix), intent(in), optional :: u_mass_mat
-      real, intent(in) :: dt, g
+      real, intent(in) :: dt
       !Construct the explicit contribution to the right-hand side 
       !of the u equation
 
+      real :: g
       integer :: dim, i
       type(vector_field) :: rhs2, vec
 
       ewrite(2,*) 'outside', sum(D%val)
 
       dim = mesh_dim(U)
+
+      !gravity
+      call get_option("/physical_parameters/gravity/magnitude", g)
 
       call allocate(rhs2, dim, U%mesh, "workingmem")
       call allocate(vec, dim, U%mesh, "workingvecmem")
@@ -408,7 +439,7 @@ contains
            inverse_coriolis_mat, div_mat, inverse_big_mat
 
       integer, intent(in) :: ele
-      real, intent(in) :: dt,theta
+      real, intent(in) :: dt, theta
 
       !Assemble h_mass_mat, u_mass_mat, coriolis_mat, inverse_coriolis_mat,
       !div_mat and then inverse_big_mat
@@ -555,10 +586,9 @@ contains
 
     end subroutine assemble_shallow_water_matrices_ele
 
-    subroutine get_linear_energy(state,d0,g,energy_out)
+    subroutine get_linear_energy(state,energy_out)
       implicit none
       real, optional, intent(out) :: energy_out
-      real, intent(in) :: d0,g
       type(state_type), intent(inout) :: state
       !
       type(scalar_field), pointer :: d
@@ -567,8 +597,15 @@ contains
       type(csr_matrix), pointer :: h_mass_mat
       type(scalar_field) :: Md
       type(vector_field) :: Mu
+      real :: d0,g
       real :: D_l2,u_l2, energy
       integer :: d1, dim
+
+      !D0
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+           &rognostic/mean_layer_thickness",D0)
+      !gravity
+      call get_option("/physical_parameters/gravity/magnitude", g)
 
       D=>extract_scalar_field(state, "LayerThickness")
       U=>extract_vector_field(state, "LocalVelocity")

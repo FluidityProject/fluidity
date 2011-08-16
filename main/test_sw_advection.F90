@@ -206,8 +206,7 @@
     ! Always output the initial conditions.
     call output_state(state)
 
-    call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
-    ewrite(2,*) 'Initial Energy:', energy
+    call get_linear_energy(state(1), energy)
 
     timestep=0
     timestep_loop: do
@@ -250,7 +249,7 @@
 
     end do timestep_loop
 
-    call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+    call get_linear_energy(state(1),energy)
     ewrite(2,*) 'Final Energy:', energy
 
     ! One last dump
@@ -354,10 +353,7 @@
 
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
-      call setup_wave_matrices(state(1),u_sparsity,wave_sparsity,ct_sparsity, &
-           h_mass_mat,u_mass_mat,coriolis_mat,inverse_coriolis_mat,&
-           div_mat,wave_mat,big_mat, &
-           dt,theta,D0,g)
+      call setup_wave_matrices(state(1),dt,theta)
 
       v_field => extract_vector_field(state(1), "Velocity")
       call project_cartesian_to_local(state(1), v_field)
@@ -560,7 +556,7 @@
 
       !Update the variables
 
-      call get_linear_energy(state,u_mass_mat,h_mass_mat,d0,g,energy)
+      call get_linear_energy(state,energy)
       ewrite(2,*) 'Energy = ',energy
 
       call deallocate(d_rhs)
@@ -799,7 +795,7 @@
 
       call project_local_to_cartesian(state)
 
-      call get_u_rhs(u_tmp,U_local,D,dt,g, &
+      call get_u_rhs(u_tmp,U_local,D,dt, &
            coriolis_mat,div_mat)
 
       ewrite(3,*) 'SW: TESTING BALANCED INITIAL CONDITION'
