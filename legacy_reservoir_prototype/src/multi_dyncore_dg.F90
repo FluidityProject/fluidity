@@ -89,7 +89,7 @@ contains
        THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
        SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
-       T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM, &
+       NITS_FLUX_LIM, &
        MEAN_PORE_CV, &
        option_path )
 
@@ -149,7 +149,6 @@ contains
     LOGICAL, intent( in ) :: LUMP_EQNS
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
     INTEGER, INTENT( IN ) :: NOIT_DIM
-    REAL, DIMENSION( NOIT_DIM ), intent( in ) :: T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT
     REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
     character(len=*), intent(in), optional :: option_path
     
@@ -197,7 +196,7 @@ contains
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
-            MASS_ERROR_RELAX2_NOIT, MEAN_PORE_CV )
+            MEAN_PORE_CV )
 
        Conditional_Lumping: IF(LUMP_EQNS) THEN
           ! Lump the multi-phase flow eqns together
@@ -235,8 +234,6 @@ contains
                trim(option_path))
 
           ewrite(3,*)'cv_rhs:', cv_rhs
-          ewrite(3,*)'T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1', T_ERROR_RELAX2_NOIT(1), T_ERROR_RELAX2_NOIT(2), T_ERROR_RELAX2_NOIT(3), &
-               T_ERROR_RELAX2_NOIT(4), INT(T_ERROR_RELAX2_NOIT(5)+0.1)
           ewrite(3,*)'SUF_T_BC:',SUF_T_BC
           ewrite(3,*)'ACV:',  (acv(i),i= FINACV(1), FINACV(2)-1)
           ewrite(3,*)'T_ABSORB:',((T_ABSORB(1,i,j), i=1,nphase),j=1,nphase)
@@ -285,7 +282,7 @@ contains
        THETA_FLUX, ONE_M_THETA_FLUX, &
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
-       SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM, &
+       NITS_FLUX_LIM, &
        option_path )
 
     implicit none
@@ -334,7 +331,6 @@ contains
     INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
     INTEGER, INTENT( IN ) :: NOIT_DIM
-    REAL, DIMENSION( NOIT_DIM ), intent( in ) :: SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT
     character(len=*), intent(in), optional :: option_path
 
     ! Local Variables
@@ -405,7 +401,7 @@ contains
             THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
             SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
             NOIT_DIM, &
-            MASS_ERROR_RELAX2_NOIT, MEAN_PORE_CV )
+            MEAN_PORE_CV )
 
        CALL SOLVER( ACV, SATURA, CV_RHS, &
             FINACV, COLACV, &
@@ -472,8 +468,7 @@ contains
        THETA_FLUX, ONE_M_THETA_FLUX, &
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
-       GL_ERROR_RELAX2_NOIT, U_ERROR_RELAX2_NOIT, P_ERROR_RELAX2_NOIT, &
-       MASS_ERROR_RELAX2_NOIT, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+       IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
 
     IMPLICIT NONE
     INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, &
@@ -547,21 +542,11 @@ contains
     REAL, DIMENSION( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), intent( inout ) :: &
          THETA_FLUX, ONE_M_THETA_FLUX
     INTEGER, INTENT( IN ) :: NOIT_DIM
-    REAL, DIMENSION( NOIT_DIM ), intent( in ) :: GL_ERROR_RELAX2_NOIT, U_ERROR_RELAX2_NOIT, &
-         P_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT
     REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS*NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
          PLIKE_GRAD_SOU_GRAD
 
     ! Local Variables
     LOGICAL, PARAMETER :: GLOBAL_SOLVE = .FALSE. 
-    !    REAL, PARAMETER :: GL_RELAX = 1.0, GL_RELAX_DIAABS = 0., GL_RELAX_DIA = 1.
-    !    INTEGER, PARAMETER :: GL_N_LIN_ITS = 200
-
-    !    REAL, PARAMETER :: U_RELAX = 1.0, U_RELAX_DIAABS = 0., U_RELAX_DIA = 1.
-    !    INTEGER, PARAMETER :: U_N_LIN_ITS = 200
-
-    !    REAL, PARAMETER :: P_RELAX = 1.0, P_RELAX_DIAABS = 0., P_RELAX_DIA = 1.
-    !    INTEGER, PARAMETER :: P_N_LIN_ITS = 8000
 
     REAL, DIMENSION( : ), allocatable :: ACV, CT, CT_RHS, DIAG_SCALE_PRES, &
          U_RHS, MCY_RHS, C, MCY, &
@@ -639,7 +624,7 @@ contains
          THETA_FLUX, ONE_M_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         MASS_ERROR_RELAX2_NOIT, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
 
 
     IF( GLOBAL_SOLVE ) THEN 
@@ -707,9 +692,6 @@ contains
 
        DP = 0.0
 
-       ewrite(3,*)'b4 pressure solve P_RHS:', P_ERROR_RELAX2_NOIT(1), P_ERROR_RELAX2_NOIT(2), &
-            P_ERROR_RELAX2_NOIT(3), &
-            P_ERROR_RELAX2_NOIT(4), P_ERROR_RELAX2_NOIT(5)
        ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
        
        ewrite(3,*) 'CMC: ', CMC
@@ -912,7 +894,7 @@ contains
        THETA_FLUX, ONE_M_THETA_FLUX, &
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
-       MASS_ERROR_RELAX2_NOIT, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+       IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
     implicit none
 
     ! Assembly the force balance, cty and if .not.GLOBAL_SOLVE pressure eqn. 
@@ -998,7 +980,6 @@ contains
     LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
     INTEGER, INTENT( IN ) :: NOIT_DIM
-    REAL, DIMENSION( NOIT_DIM ), intent( in ) :: MASS_ERROR_RELAX2_NOIT
     REAL, DIMENSION( IPLIKE_GRAD_SOU * CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
          PLIKE_GRAD_SOU_GRAD
 
@@ -1045,7 +1026,7 @@ contains
          THETA_FLUX, ONE_M_THETA_FLUX, &
          IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         MASS_ERROR_RELAX2_NOIT, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+         IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
 
     IF(.NOT.GLOBAL_SOLVE) THEN
        ! form pres eqn. 
@@ -1156,7 +1137,7 @@ contains
        THETA_FLUX, ONE_M_THETA_FLUX, &
        IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
-       MASS_ERROR_RELAX2_NOIT, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+       IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
     implicit none
 
     ! Form the global CTY and momentum eqns and combine to form one large matrix eqn. 
@@ -1235,7 +1216,6 @@ contains
     LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
     INTEGER, INTENT( IN ) :: NOIT_DIM
-    REAL, DIMENSION( NOIT_DIM ), intent( in ) :: MASS_ERROR_RELAX2_NOIT
     REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS*NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
          PLIKE_GRAD_SOU_GRAD
 
@@ -1334,7 +1314,7 @@ contains
          THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
          SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
-         MASS_ERROR_RELAX2_NOIT, MEAN_PORE_CV )
+         MEAN_PORE_CV )
 
     IF(GLOBAL_SOLVE) THEN
        ! Put CT into global matrix MCY...

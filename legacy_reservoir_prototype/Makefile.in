@@ -87,24 +87,3 @@ Multiphase_Prototype_Wrapper.o: Multiphase_Prototype.o
 clean:
 	@rm -f *.o *.d *.mod $(PROG_EXEC)
 	@cd tests; make clean
-
-# commands for running test cases
-# all the tests
-test: tests
-
-tests: shorttest mediumtest
-
-# all the short tests
-shorttest: shorttests
-
-# all the medium tests
-mediumtest: mediumtests⋅
-
-# the short tests - less than 2 min
-shorttests:
-	@cd tests; ../tools/testharness_MultiphasePrototype.py -l short
-
-# the medium tests - greater than 2 min, less than 10 min
-mediumtests:
-	@cd tests; ../tools/testharness_MultiphasePrototype.py -l medium
-

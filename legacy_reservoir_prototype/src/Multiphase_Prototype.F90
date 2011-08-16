@@ -29,7 +29,6 @@
 
 module mp_prototype
   ! Prototype modules
-  use input_var
   use multiphase_mom_press_volf
   use multiphase_field_advection
   use spact
@@ -51,8 +50,6 @@ module mp_prototype
          nonlinear_iterations, nonlinear_iteration_tolerance, &
          dump_no)
 
-      implicit none
-
       !! New variable declaration
 
       type(state_type), dimension(:), pointer :: state
@@ -61,8 +58,6 @@ module mp_prototype
 
       real :: dt 
       real :: nonlinear_iteration_tolerance
-
-      logical :: do_old_output
 
 
       !! Old variable declaration
@@ -87,17 +82,7 @@ module mp_prototype
       logical :: lump_eqns, volfra_use_theta_flux, volfra_get_theta_flux, &
            comp_use_theta_flux, comp_get_theta_flux, KComp_Sigmoid, Comp_Sum2One
 
-      real :: volfra_error, volfra_relax, volfra_relax_diag, volfra_relax_row,  & 
-           scalar_error, scalar_relax, scalar_relax_diag, scalar_relax_row, & 
-           global_error, global_relax, global_relax_diag, global_relax_row, & 
-           velocity_error, velocity_relax, velocity_relax_diag, velocity_relax_row, & 
-           pressure_error, pressure_relax, pressure_relax_diag, pressure_relax_row, &
-           mass_matrix_error, mass_matrix_relax, mass_matrix_relax_diag, mass_matrix_relax_row 
-
-      integer :: volfra_relax_number_iterations, scalar_relax_number_iterations, &
-           global_relax_number_iterations,  velocity_relax_number_iterations, &
-           pressure_relax_number_iterations, mass_matrix_relax_number_iterations, &
-           in_ele_upwind, dg_ele_upwind
+      integer :: in_ele_upwind, dg_ele_upwind
 
       integer :: comp_diffusion_opt, ncomp_diff_coef, capil_pres_opt, ncapil_pres_coef
       real, dimension( : , : , : ), allocatable :: comp_diff_coef, capil_pres_coef
@@ -115,9 +100,6 @@ module mp_prototype
            suf_vol_bc_rob1, suf_vol_bc_rob2, &
            suf_comp_bc_rob1, suf_comp_bc_rob2, &
            opt_vel_upwind_coefs
-
-      real, dimension( : ), allocatable :: sat_error_relax2_noit, t_error_relax2_noit, gl_error_relax2_noit, &
-           u_error_relax2_noit, p_error_relax2_noit, mass_error_relax2_noit
 
       real, dimension( : ), allocatable :: x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg
 
@@ -154,15 +136,13 @@ module mp_prototype
       integer :: ncolacv, ncolmcy, ncolele, ncolct, ncolc, ncolcmc, ncolm
       integer :: nkcomp
 
-      integer :: option_debug
-      integer, parameter :: unit_input = 5, unit_debug = 101, new_unit_debug = 304
-      integer :: i, j, k
+      integer, parameter :: new_unit_debug = 304
 
       open( new_unit_debug, file = 'mirror_new.dat', status = 'unknown' )
 
       ewrite(3,*) 'In multiphase_prototype'
 
-      call copy_outof_state(state, dt, &
+      call copy_outof_state(state, &
            nonlinear_iterations, nonlinear_iteration_tolerance, &
                                 ! Begin here all the variables from read_scalar
            problem, nphase, ncomp, totele, ndim, nlev, &
@@ -183,16 +163,7 @@ module mp_prototype
            lump_eqns, volfra_use_theta_flux, volfra_get_theta_flux, &
            comp_use_theta_flux, comp_get_theta_flux, &
                                 ! Now the variables from read_all
-           volfra_relax_number_iterations, scalar_relax_number_iterations, &
-           global_relax_number_iterations,  velocity_relax_number_iterations, &
-           pressure_relax_number_iterations, mass_matrix_relax_number_iterations, &
            in_ele_upwind, dg_ele_upwind, &
-           volfra_error, volfra_relax, volfra_relax_diag, volfra_relax_row,  & 
-           scalar_error, scalar_relax, scalar_relax_diag, scalar_relax_row, & 
-           global_error, global_relax, global_relax_diag, global_relax_row, & 
-           velocity_error, velocity_relax, velocity_relax_diag, velocity_relax_row, & 
-           pressure_error, pressure_relax, pressure_relax_diag, pressure_relax_row, &
-           mass_matrix_error, mass_matrix_relax, mass_matrix_relax_diag, mass_matrix_relax_row, &
            Mobility, alpha_beta, &
            KComp_Sigmoid, Comp_Sum2One, &
            wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, &
@@ -222,7 +193,6 @@ module mp_prototype
 
       ! Going to move to here a load of random things
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
-      !      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
 
       if( u_snloc < 0 ) u_snloc = 1 * nlev
       cv_pha_nonods = cv_nonods * nphase
@@ -274,41 +244,6 @@ module mp_prototype
            u,  &
            den, satura, comp, p, cv_p, volfra_pore, perm )
 
-      !! Ok, done with the new input, now we need to check that everything's
-      !! as it was before, so we're going to do the old input routines too
-      !! and compare the mirror files.
-
-      do_old_output=.false.
-
-      if( do_old_output ) then
-      
-         open( unit_input, file = 'input.dat', status = 'unknown' )
-         open( unit_debug, file = 'mirror_int_data.dat', status = 'unknown' )
-         call read_scalar( unit_input, option_debug, problem, nphase, ncomp, totele, ndim, nlev, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
-           cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
-           ncoef, nuabs_coefs, &
-           u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
-           cv_sele_type, u_sele_type, ntime, ntime_dump, nits, nits_internal, noit_dim, &
-           nits_flux_lim_volfra, nits_flux_lim_comp, &
-           ndpset, &
-           dt, patmos, p_ini, t_ini, &
-           t_beta, v_beta, t_theta, v_theta, u_theta, &
-           t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
-           u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
-           lump_eqns, & 
-           volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux, &
-           capil_pres_opt, ncapil_pres_coef, comp_diffusion_opt, ncomp_diff_coef, &
-           domain_length )
-      endif
-
-      if( option_debug == 357 )then
-         open( 357, file = 'flog.dat', status = 'unknown')
-      else
-         open( 357, file = '/dev/null', status = 'unknown')
-      endif
-
-
       ! Variables in which the dimensions depend upon input data
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ))
       allocate( tdiffusion( mat_nonods, ndim, ndim, nphase ))
@@ -319,43 +254,7 @@ module mp_prototype
 
       nkcomp = Combination( ncomp, 2 )
 
-      if( do_old_output ) call read_all( unit_input, nphase, ncomp, totele, ndim, &
-           cv_snloc, u_snloc, p_snloc, stotel, &
-           ncoef, nuabs_coefs, ncp_coefs, & 
-           cv_nonods, u_nonods, &
-           mat_nonods, x_nonods, xu_nonods, &
-           nopt_vel_upwind_coefs, &
-           wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, wic_comp_bc, & 
-           suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
-           suf_u_bc, suf_v_bc, suf_w_bc, suf_one_bc, suf_comp_bc, &
-           suf_u_bc_rob1, suf_u_bc_rob2, suf_v_bc_rob1, suf_v_bc_rob2, &
-           suf_w_bc_rob1, suf_w_bc_rob2, suf_t_bc_rob1, suf_t_bc_rob2, &
-           suf_vol_bc_rob1, suf_vol_bc_rob2, &
-           suf_comp_bc_rob1, suf_comp_bc_rob2, &
-           opt_vel_upwind_coefs, &
-           volfra_error, volfra_relax, volfra_relax_diag, volfra_relax_row, volfra_relax_number_iterations, & 
-           scalar_error, scalar_relax, scalar_relax_diag, scalar_relax_row, scalar_relax_number_iterations, & 
-           global_error, global_relax, global_relax_diag, global_relax_row, global_relax_number_iterations, & 
-           velocity_error, velocity_relax, velocity_relax_diag, velocity_relax_row, velocity_relax_number_iterations, & 
-           pressure_error, pressure_relax, pressure_relax_diag, pressure_relax_row, pressure_relax_number_iterations, & 
-           mass_matrix_error, mass_matrix_relax, mass_matrix_relax_diag, mass_matrix_relax_row, mass_matrix_relax_number_iterations, &
-           in_ele_upwind, dg_ele_upwind, &
-           x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
-           uabs_option, uabs_coefs, u_abs_stab, Mobility, &
-           u_absorb, t_absorb, v_absorb, comp_absorb, &
-           u_source, t_source, v_source, comp_source, udiffusion, tdiffusion, &
-           ncomp_diff_coef, comp_diffusion, comp_diff_coef, &
-           ncapil_pres_coef, capil_pres_coef, & 
-           u, v, w, &
-           den, satura, comp, volfra, t, cv_one, p, cv_p, volfra_pore, Viscosity, perm, &
-           KComp_Sigmoid, K_Comp, Comp_Sum2One, alpha_beta, &
-           eos_option, cp_option, eos_coefs, cp_coefs )
-
-
-      close( unit_input )
-
       nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
-      !      ewrite(3,*)'mat_nloc, cv_nloc, mat_nonods: ',mat_nloc, cv_nloc, mat_nonods
 
       if( u_snloc < 0 ) u_snloc = 1 * nlev
       cv_pha_nonods = cv_nonods * nphase
@@ -369,50 +268,6 @@ module mp_prototype
       ! anyway
       !      allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
       opt_vel_upwind_coefs = 0.
-
-      ! Allocating solver parameters into the following arrays (dimension = 4)
-      allocate( sat_error_relax2_noit( noit_dim ))
-      allocate( t_error_relax2_noit( noit_dim ))
-      allocate( gl_error_relax2_noit( noit_dim ))
-      allocate( u_error_relax2_noit( noit_dim ))
-      allocate( p_error_relax2_noit( noit_dim ))
-      allocate( mass_error_relax2_noit( noit_dim ))
-
-      sat_error_relax2_noit( 1 ) = volfra_error
-      sat_error_relax2_noit( 2 ) = volfra_relax
-      sat_error_relax2_noit( 3 ) = volfra_relax_diag
-      sat_error_relax2_noit( 4 ) = volfra_relax_row
-      sat_error_relax2_noit( 5 ) = real( volfra_relax_number_iterations )
-
-      t_error_relax2_noit( 1 ) = scalar_error
-      t_error_relax2_noit( 2 ) = scalar_relax
-      t_error_relax2_noit( 3 ) = scalar_relax_diag
-      t_error_relax2_noit( 4 ) = scalar_relax_row
-      t_error_relax2_noit( 5 ) = real( scalar_relax_number_iterations )
-
-      gl_error_relax2_noit( 1 ) = global_error
-      gl_error_relax2_noit( 2 ) = global_relax
-      gl_error_relax2_noit( 3 ) = global_relax_diag
-      gl_error_relax2_noit( 4 ) = global_relax_row
-      gl_error_relax2_noit( 5 ) = real( global_relax_number_iterations )
-
-      u_error_relax2_noit( 1 ) = velocity_error
-      u_error_relax2_noit( 2 ) = velocity_relax
-      u_error_relax2_noit( 3 ) = velocity_relax_diag
-      u_error_relax2_noit( 4 ) = velocity_relax_row
-      u_error_relax2_noit( 5 ) = real( velocity_relax_number_iterations )
-
-      p_error_relax2_noit( 1 ) = pressure_error
-      p_error_relax2_noit( 2 ) = pressure_relax
-      p_error_relax2_noit( 3 ) = pressure_relax_diag
-      p_error_relax2_noit( 4 ) = pressure_relax_row
-      p_error_relax2_noit( 5 ) = real( pressure_relax_number_iterations )
-
-      mass_error_relax2_noit( 1 ) = mass_matrix_error 
-      mass_error_relax2_noit( 2 ) = mass_matrix_relax
-      mass_error_relax2_noit( 3 ) = mass_matrix_relax_diag 
-      mass_error_relax2_noit( 4 ) = mass_matrix_relax_row 
-      mass_error_relax2_noit( 5 ) = real( mass_matrix_relax_number_iterations )
 
       ! Set up scalar and vector fields for previous time-step
       allocate( uold( u_pha_nonods ))
@@ -453,46 +308,6 @@ module mp_prototype
       pold = 0.
       cv_pold = 0.
       told = t
-
-      ! Initialising T and Told. This should be properly initialised through a generic function
-
-      if ( do_old_output ) call initialise_scalar_fields( &
-           problem, ndim, nphase, totele, domain_length, &
-           x_nloc, cv_nloc, x_nonods, cv_nonods,  &
-           x_ndgln, cv_ndgln, &
-           x, told, t )
-
-      ! Mirroring Input dat
-
-      if( do_old_output ) call mirror_data( unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
-           cv_snloc,  p_snloc, stotel, &
-           ncoef, nuabs_coefs, &
-           u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
-           cv_sele_type, u_sele_type, &
-           ntime, nits, ndpset, &
-           dt, patmos, p_ini, t_ini, &
-           t_beta, v_beta, t_theta, v_theta, u_theta, &
-           t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
-           u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
-           domain_length, u_snloc, mat_nloc, cv_nonods, u_nonods, &
-           p_nonods, mat_nonods, ncp_coefs, x_nonods, xu_nonods, &
-           nlenmcy, &
-           nopt_vel_upwind_coefs, &
-           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
-           wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
-           suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
-           wic_comp_bc, suf_comp_bc, &
-           suf_u_bc, &
-           suf_u_bc_rob1, suf_u_bc_rob2, &
-           opt_vel_upwind_coefs, &
-           x, xu, nu, ug, &
-           uabs_option, u_abs_stab, u_absorb, &
-           u_source, &
-           u,  &
-           den, satura, comp, p, cv_p, volfra_pore, perm )
-
 
       ! Sparsity patterns
       allocate( finmcy( nlenmcy + 1 )) ! Force balance plus cty multi-phase eqns
@@ -557,9 +372,7 @@ module mp_prototype
            mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
            mx_ncolm, ncolm, findm, colm, midm, u_ele_type )
 
-      close( unit_debug )
-
-      if( .not. do_old_output ) call check_sparsity( &
+      call check_sparsity( &
            u_nonods * nphase, cv_nonods * nphase, &
            u_nonods, cv_nonods, totele, &
            mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
@@ -570,184 +383,6 @@ module mp_prototype
            mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
            mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
            mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
-
-      ! Just double-checking the sizes -- Start
-      if( do_old_output ) call mirror_data( unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
-           cv_snloc,  p_snloc, stotel, &
-           ncoef, nuabs_coefs, &
-           u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
-           cv_sele_type, u_sele_type, &
-           ntime, nits, ndpset, &
-           dt, patmos, p_ini, t_ini, &
-           t_beta, v_beta, t_theta, v_theta, u_theta, &
-           t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
-           u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
-           domain_length, u_snloc, mat_nloc, cv_nonods, u_nonods, &
-           p_nonods, mat_nonods, ncp_coefs, x_nonods, xu_nonods, &
-           nlenmcy, &
-           nopt_vel_upwind_coefs, &
-           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
-           wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
-           suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
-           wic_comp_bc, suf_comp_bc, &
-           suf_u_bc, &
-           suf_u_bc_rob1, suf_u_bc_rob2, &
-           opt_vel_upwind_coefs, &
-           x, xu, nu, ug, &
-           uabs_option, u_abs_stab, u_absorb, &
-           u_source, &
-           u,  &
-           den, satura, comp, p, cv_p, volfra_pore, perm )
-
-      ! Just double-checking the sizes -- Start
-      if( do_old_output ) then
-         ewrite( 3, * ) 'problem, nphase, ncomp, totele, ndim, nlev: ', &
-              problem, nphase, ncomp, totele, ndim, nlev
-
-         ewrite( 3, * ) 'u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc: ' , &
-              u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc
-
-         ewrite( 3, * ) 'ncoef, nuabs_coefs, u_ele_type, p_ele_type, mat_ele_type: ', &
-              ncoef, nuabs_coefs, u_ele_type, p_ele_type, mat_ele_type
-
-         ewrite( 3, * ) 'cv_ele_type, cv_sele_type, u_sele_type, ntime, nits: ', &
-              cv_ele_type, cv_sele_type, u_sele_type, ntime, nits
-
-         ewrite( 3, * ) 'ndpset, t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt: ', &
-              ndpset, t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt
-
-         ewrite( 3, * ) 'u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, u_snloc, mat_nloc: ', & 
-              u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, u_snloc, mat_nloc
-
-         ewrite( 3, * ) 'cv_nonods, u_nonods, p_nonods, mat_nonods, ncp_coefs: ', &
-              cv_nonods, u_nonods, p_nonods, mat_nonods, ncp_coefs
-
-         ewrite( 3, * ) 'x_nonods, xu_nonods, nlenmcy: ', &
-              x_nonods, xu_nonods, nlenmcy
-
-         ewrite( 3, * ) 'dt, patmos, p_ini, t_ini: ', dt, patmos, p_ini, t_ini
-
-         ewrite( 3, * ) 't_beta, v_beta, t_theta, v_theta, u_theta: ', &
-              t_beta, v_beta, t_theta, v_theta, u_theta
-
-         ewrite( 3, * ) 'domain_length: ', domain_length
-
-         ewrite( 3, * ) 'wic_vol_bc( stotel * nphase ):', ( wic_vol_bc( i ), i = 1, stotel * nphase )
-
-         ewrite( 3, * ) 'wic_d_bc( stotel * nphase ):', ( wic_d_bc( i ), i = 1, stotel * nphase )
-
-         ewrite( 3, * ) 'wic_u_bc( stotel * nphase ):', ( wic_u_bc( i ), i = 1, stotel * nphase )
-
-         ewrite( 3, * ) 'wic_p_bc( stotel * nphase ):', ( wic_p_bc( i ), i = 1, stotel * nphase )
-
-         ewrite( 3, * ) 'wic_t_bc( stotel * nphase ):', ( wic_t_bc( i ), i = 1, stotel * nphase )
-
-         ewrite( 3, * ) 'suf_vol_bc( stotel * cv_snloc * nphase ):', &
-              ( suf_vol_bc( i ), i = 1, stotel * cv_snloc * nphase )
-
-         ewrite( 3, * ) 'suf_d_bc( stotel * cv_snloc * nphase ):', &
-              ( suf_d_bc( i ), i = 1, stotel * cv_snloc * nphase )
-
-         ewrite( 3, * ) 'suf_cpd_bc( stotel * cv_snloc * nphase ):', &
-              ( suf_cpd_bc( i ), i = 1, stotel * cv_snloc * nphase )
-
-         ewrite( 3, * ) 'suf_t_bc( stotel * cv_snloc * nphase ):', &
-              ( suf_t_bc( i ), i = 1, stotel * cv_snloc * nphase )
-
-         ewrite( 3, * ) 'suf_p_bc( stotel * p_snloc * nphase ):', &
-              ( suf_p_bc( i ), i = 1, stotel * p_snloc * nphase )
-
-         ewrite( 3, * ) 'suf_u_bc( stotel * u_snloc * nphase ):', &
-              ( suf_u_bc( i ), i = 1, stotel * u_snloc * nphase )
-
-         ewrite( 3, * ) 'suf_u_bc_rob1( stotel * u_snloc * nphase ):', &
-              ( suf_u_bc_rob1( i ), i = 1, stotel * u_snloc * nphase )
-
-         ewrite( 3, * ) 'suf_u_bc_rob2( stotel * u_snloc * nphase ):', &
-              ( suf_u_bc_rob2( i ), i = 1, stotel * u_snloc * nphase  )
-
-         ewrite( 3, * ) 'suf_t_bc_rob1( stotel * cv_snloc * nphase ):', &
-              ( suf_u_bc_rob1( i ), i = 1, stotel * cv_snloc * nphase )
-
-         ewrite( 3, * ) 'suf_t_bc_rob2( stotel * cv_snloc * nphase ):', &
-              ( suf_u_bc_rob2( i ), i = 1, stotel * cv_snloc * nphase  )
-
-         ewrite( 3, * ) 'opt_vel_upwind_coefs( nopt_vel_upwind_coefs ):', &
-              ( opt_vel_upwind_coefs( i ), i = 1, nopt_vel_upwind_coefs )
-
-         ewrite( 3, * ) 'x( x_nonods ):', ( x( i ), i = 1, x_nonods )
-
-         ewrite( 3, * ) 'xu( xu_nonods ):', ( xu( i ), i = 1, xu_nonods )
-
-         ewrite( 3, * ) 'nu( u_nonods * nphase ):', &
-              ( nu( i ), i = 1, u_nonods * nphase )
-
-         ewrite( 3, * ) 'ug( u_nonods * nphase ):', &
-              ( ug( i ), i = 1, u_nonods * nphase )
-
-         ewrite( 3, * ) 'uabs_option( nphase ):', &
-              ( uabs_option( i ), i = 1, nphase )
-
-         ewrite( 3, * ) 'u_ndgln', size( u_ndgln ), ( u_ndgln( i ), i = 1, totele * u_nloc )
-         ewrite( 3, * ) 'xu_ndgln', size( xu_ndgln ), ( xu_ndgln( i ), i = 1, totele * xu_nloc )
-         ewrite( 3, * ) 'cv_ndgln', size( cv_ndgln ), ( cv_ndgln( i ), i = 1, totele * cv_nloc )
-         ewrite( 3, * ) 'x_ndgln', size( x_ndgln ), ( x_ndgln( i ), i = 1,  totele * cv_nloc )
-         ewrite( 3, * ) 'p_ndgln',  size( p_ndgln ), ( p_ndgln( i ), i = 1, totele * p_nloc )
-         ewrite( 3, * ) 'mat_ndgln', size( mat_ndgln ), ( mat_ndgln( i ), i = 1, totele * mat_nloc )
-         ewrite( 3, * ) 'u_sndgln', size( u_sndgln), ( u_sndgln( i ), i = 1, stotel * u_snloc )
-         ewrite( 3, * ) 'cv_sndgln', size( cv_sndgln ), ( cv_sndgln( i ), i = 1, stotel * cv_snloc )
-         ewrite( 3, * ) 'x_sndgln',  size( x_sndgln ),( x_sndgln( i ), i = 1, stotel * cv_snloc )
-         ewrite( 3, * ) 'p_sndgln', size( p_sndgln ), ( p_sndgln( i ), i = 1, stotel * p_snloc )
-
-         ewrite( 3, * ) 'u_abs_stab( mat_nonods, ndim * nphase, ndim * nphase ):'
-         do i = 1, mat_nonods
-            do j = 1, ndim * nphase
-               ewrite( 3, * ) i , j, ( u_abs_stab( i, j, k ), k = 1, ndim * nphase )
-            end do
-         end do
-
-         ewrite( 3, * ) 'u_absorb( mat_nonods, ndim * nphase, ndim * nphase ):'
-         do i = 1, mat_nonods
-            do j = 1, ndim * nphase
-               ewrite( 3, * ) i , j, ( u_absorb( i, j, k ), k = 1, ndim * nphase )
-            end do
-         end do
-
-         ewrite( 3, * ) 'u_source( u_nonods * nphase ):', size(u_source), &
-              ( u_source( i ), i = 1, u_nonods * nphase )
-
-         ewrite( 3, * ) 'u( u_nonods * nphase ):', size(u),&
-              ( u( i ), i = 1, u_nonods * nphase )
-
-         ewrite( 3, * ) 'den( cv_nonods * nphase ):', size(den),&
-              ( den( i ), i = 1, cv_nonods * nphase )
-
-         ewrite( 3, * ) 'satura( cv_nonods * nphase ):', size(satura), &
-              ( satura( i ), i = 1, cv_nonods * nphase )
-
-         ewrite( 3, * ) 'comp( cv_nonods * nphase * ncomp ):', size(comp), &
-              ( comp( i ), i = 1, cv_nonods * nphase * ncomp )
-
-         ewrite( 3, * ) 'p( cv_nonods ):', size(p),&
-              ( p( i ), i = 1, cv_nonods )
-
-         ewrite( 3, * ) 'cv_p( cv_nonods ):', size(cv_p), &
-              ( cv_p( i ), i = 1, cv_nonods )
-
-         ewrite( 3, * ) 'volfra_pore( totele ):', size(volfra_pore), &
-              ( volfra_pore( i ), i = 1, totele )
-
-         ewrite( 3, * ) 'perm( totele, ndim, ndim ):', size(perm)
-         do i = 1, totele
-            do j = 1, ndim
-               ewrite( 3, * ) i , j, ( perm( i, j, k ), k = 1, ndim )
-            end do
-         end do
-
-      end if
-      ! Just double-checking the sizes -- End
 
       Select Case( problem )
 
@@ -772,8 +407,6 @@ module mp_prototype
               volfra_use_theta_flux, volfra_get_theta_flux, &
               opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
               noit_dim, &
-              sat_error_relax2_noit, t_error_relax2_noit, gl_error_relax2_noit, &
-              u_error_relax2_noit, p_error_relax2_noit, mass_error_relax2_noit, &
               in_ele_upwind, dg_ele_upwind, &
                                 ! Total nodes for different meshes
               cv_nonods, u_nonods, mat_nonods, x_nonods, &
@@ -824,8 +457,6 @@ module mp_prototype
               volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux, &
               opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
               noit_dim, &
-              sat_error_relax2_noit, t_error_relax2_noit, gl_error_relax2_noit, &
-              u_error_relax2_noit, p_error_relax2_noit, mass_error_relax2_noit, &
               in_ele_upwind, dg_ele_upwind, &
                                 ! Total nodes for different meshes
               domain_length, &
@@ -872,10 +503,30 @@ module mp_prototype
       end Select
 
       ewrite(3,*) 'Leaving multiphase_prototype'
-      close( 357 )
 
-      return
     end subroutine multiphase_prototype
+
+    integer function Combination( n, r )
+      ! This function performs the combinatorial:
+      ! C(n,r) = n! / ( (n-r)! r! )
+      integer :: n, r
+
+      Combination = Permut( n ) / ( Permut( n - r ) * Permut( r ))
+
+    end function Combination
+
+    integer function Permut( n )
+      ! This function performs probabilistic permutation:
+      ! P(n) = n!
+      integer :: n
+      integer :: i
+
+      permut = 1
+      do i = 1, n
+         permut = permut * i
+      end do
+
+    end function permut
 
   end module mp_prototype
 

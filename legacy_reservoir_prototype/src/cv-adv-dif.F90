@@ -61,7 +61,7 @@ contains
        THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
        SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
        NOIT_DIM, &
-       MASS_ERROR_RELAX2_NOIT, MEAN_PORE_CV )
+       MEAN_PORE_CV )
     !  =====================================================================
     !     In this subroutine the advection terms in the advection-diffusion
     !     equation (in the matrix and RHS) are calculated as ACV and CV_RHS. 
@@ -241,7 +241,6 @@ contains
     INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
     INTEGER, INTENT( IN ) :: NOIT_DIM
-    REAL, DIMENSION( NOIT_DIM ), intent( in ) :: MASS_ERROR_RELAX2_NOIT
     REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
 
     ! Local variables - Allocatable Arrays
@@ -516,8 +515,7 @@ contains
          NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
          CV_NGI_SHORT, CV_NLOC, CVN_SHORT, CVWEIGHT_SHORT, &
          CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
-         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
-         MASS_ERROR_RELAX2_NOIT ) 
+         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM) 
 
     NORMALISE = .false.
     IF( NORMALISE ) THEN
@@ -1444,8 +1442,7 @@ contains
        XC_CV,YC_CV,ZC_CV, MASS_CV, MASS_ELE, &
        NDIM, NPHASE, CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
        CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
-       X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
-       MASS_ERROR_RELAX2_NOIT )
+       X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM)
 
     ! determine FEMT (finite element wise) etc from T (control volume wise) 
     IMPLICIT NONE
@@ -1466,7 +1463,6 @@ contains
     INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
     INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
     INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
-    REAL, DIMENSION( 5 ), intent( in ) :: MASS_ERROR_RELAX2_NOIT
     ! Local variables
     REAL, DIMENSION( : ), allocatable :: PSI, FEMPSI, PSI_AVE, PSI_INT
     INTEGER :: NTSOL,NTSOL_AVE,NTSOL_INT,ELE,CV_ILOC,X_INOD,CV_INOD,NL,NFIELD
@@ -1510,8 +1506,7 @@ contains
          PSI_AVE,NTSOL_AVE, PSI_INT,NTSOL_INT, MASS_ELE, &
          CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
          CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
-         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
-         MASS_ERROR_RELAX2_NOIT )
+         X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM)
 
     NL=CV_NONODS*NPHASE
     FEMT( 1 : NL ) = FEMPSI( 1 + 0 * NL : NL + 0 * NL ) 
@@ -1546,8 +1541,7 @@ contains
        PSI_AVE, NTSOL_AVE, PSI_INT, NTSOL_INT, MASS_ELE, &
        CV_NONODS, TOTELE, CV_NDGLN, X_NLOC, X_NDGLN, &
        CV_NGI, CV_NLOC, CVN, CVWEIGHT, N, NLX, NLY, NLZ, &
-       X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM, &
-       MASS_ERROR_RELAX2_NOIT )
+       X_NONODS, X, Y, Z, NCOLM, FINDM, COLM, MIDM)
 
     ! Determine FEMT (finite element wise) etc from T (control volume wise)
     ! Also integrate PSI_INT over each CV and avergae PSI_AVE over each CV. 
@@ -1571,7 +1565,6 @@ contains
     INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDM
     INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
     INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
-    REAL, DIMENSION( 5 ), intent( in ) :: MASS_ERROR_RELAX2_NOIT
     ! Local variables
     LOGICAL :: D1, D3, DCYL
     REAL, DIMENSION( : ), allocatable :: MASS_CV, FEMPSI_RHS, &

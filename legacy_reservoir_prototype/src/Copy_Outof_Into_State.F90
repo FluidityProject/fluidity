@@ -58,7 +58,7 @@ module copy_outof_into_state
   
   contains
   
-    subroutine copy_outof_state(state, dt, &
+    subroutine copy_outof_state(state, &
          nonlinear_iterations, nonlinear_iteration_tolerance, &
                                 ! Begin here all the variables from read_scalar
          problem, nphases, ncomps, totele, ndim, nlev, &
@@ -79,16 +79,7 @@ module copy_outof_into_state
          lump_eqns, volfra_use_theta_flux, volfra_get_theta_flux, &
          comp_use_theta_flux, comp_get_theta_flux, &
                                 ! Now the variables from read_all
-         volfra_relax_number_iterations, scalar_relax_number_iterations, &
-         global_relax_number_iterations,  velocity_relax_number_iterations, &
-         pressure_relax_number_iterations, mass_matrix_relax_number_iterations, &
          in_ele_upwind, dg_ele_upwind, &
-         volfra_error, volfra_relax, volfra_relax_diag, volfra_relax_row,  & 
-         scalar_error, scalar_relax, scalar_relax_diag, scalar_relax_row, & 
-         global_error, global_relax, global_relax_diag, global_relax_row, & 
-         velocity_error, velocity_relax, velocity_relax_diag, velocity_relax_row, & 
-         pressure_error, pressure_relax, pressure_relax_diag, pressure_relax_row, &
-         mass_matrix_error, mass_matrix_relax, mass_matrix_relax_diag, mass_matrix_relax_row, &
          Mobility, alpha_beta, &
          KComp_Sigmoid, Comp_Sum2One, &
          wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, &
@@ -193,18 +184,9 @@ module copy_outof_into_state
 
       ! Others (from read_all())
 
-      integer :: volfra_relax_number_iterations, scalar_relax_number_iterations, &
-           global_relax_number_iterations,  velocity_relax_number_iterations, &
-           pressure_relax_number_iterations, mass_matrix_relax_number_iterations, &
-           in_ele_upwind, dg_ele_upwind
+      integer :: in_ele_upwind, dg_ele_upwind
 
-      real :: volfra_error, volfra_relax, volfra_relax_diag, volfra_relax_row,  & 
-           scalar_error, scalar_relax, scalar_relax_diag, scalar_relax_row, & 
-           global_error, global_relax, global_relax_diag, global_relax_row, & 
-           velocity_error, velocity_relax, velocity_relax_diag, velocity_relax_row, & 
-           pressure_error, pressure_relax, pressure_relax_diag, pressure_relax_row, &
-           mass_matrix_error, mass_matrix_relax, mass_matrix_relax_diag, mass_matrix_relax_row, &
-           Mobility, alpha_beta
+      real :: Mobility, alpha_beta
 
       logical :: KComp_Sigmoid, Comp_Sum2One
 
@@ -672,65 +654,6 @@ module copy_outof_into_state
       comp_get_theta_flux = .TRUE.
 
       ewrite(3,*) 'Finished stuff from read_scalar'
-
-
-      ! Others (from read_all())
-      !!
-      !! Most of the options below should be replaced by PETSc options soon, i.e., still at the second part of
-      !! of the first stage of the integration.  So let's keep as it is for the moment and remove them
-      !! as soon as we have all PETSc data structure enabled.
-
-      Conditional_VolumeFraction_Solver: if( have_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic' )) then
-         call get_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-              'solver/max_iterations', volfra_relax_number_iterations, default = 100 )
-         call get_option( '/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
-              'solver/relative_error', volfra_error, default = 1.e-5 )
-         volfra_relax = 1.
-         volfra_relax_diag = 0.
-         volfra_relax_row = 1.
-      endif Conditional_VolumeFraction_Solver
-
-      Conditional_Pressure_Solver: if( have_option( '/material_phase[0]/scalar_field::Pressure' )) then
-         call get_option( '/material_phase[0]/scalar_field::Pressure/prognostic/solver/max_iterations', &
-              pressure_relax_number_iterations, default = 4000 )
-         call get_option( "/material_phase[0]/scalar_field::Pressure/prognostic/solver/relative_error", &
-              pressure_error, default = 1.e-3 )
-         pressure_relax = 1.
-         pressure_relax_diag = 0.
-         pressure_relax_row = 1.
-      endif Conditional_Pressure_Solver
-
-      Conditional_Velocity_Solver: if( have_option( "/material_phase[0]/vector_field::Velocity" )) then
-         call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/max_iterations", &
-              velocity_relax_number_iterations, default = 100 )
-         call get_option( "/material_phase[0]/vector_field::Velocity/prognostic/solver/relative_error", &
-              velocity_error, default = 1.e-5 ) 
-         velocity_relax = 1.
-         velocity_relax_diag = 0.
-         velocity_relax_row = 1.
-      end if Conditional_Velocity_Solver
-
-      ewrite(3,*) "Got first lot of solver options"
-
-      scalar_relax_number_iterations = 100
-      global_relax_number_iterations = 100
-      mass_matrix_relax_number_iterations = 200 
-
-      scalar_error = 1.e-10
-      global_error = 1.e-10
-      mass_matrix_error = 1.e-10
-
-      scalar_relax = 1.
-      global_relax = 1.
-      mass_matrix_relax = 1. 
-
-      scalar_relax_diag = 0.
-      global_relax_diag = 0.
-      mass_matrix_relax_diag = 0. 
-
-      scalar_relax_row = 1.
-      global_relax_row = 1.
-      mass_matrix_relax_row = 1. 
 
       ! IN/DG_ELE_UPWIND are options for optimisation of upwinding across faces in the overlapping
       ! formulation. The data structure and options for this formulation need to be added later. 

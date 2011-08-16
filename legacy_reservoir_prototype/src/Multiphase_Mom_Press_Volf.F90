@@ -75,8 +75,6 @@ contains
        volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux, &
        opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
        noit_dim, &
-       sat_error_relax2_noit, t_error_relax2_noit, gl_error_relax2_noit, &
-       u_error_relax2_noit, p_error_relax2_noit, mass_error_relax2_noit, &
        in_ele_upwind, dg_ele_upwind, &
                                 ! Total nodes for different meshes
        domain_length, &
@@ -146,8 +144,6 @@ contains
     integer, intent( in ) :: nopt_vel_upwind_coefs
     real, dimension( nopt_vel_upwind_coefs ), intent( inout ) :: opt_vel_upwind_coefs
     integer, intent( in ) :: noit_dim
-    real, dimension( noit_dim ), intent( in ) :: sat_error_relax2_noit, t_error_relax2_noit, gl_error_relax2_noit, &
-         u_error_relax2_noit, p_error_relax2_noit, mass_error_relax2_noit
     integer, intent( in ) :: in_ele_upwind, dg_ele_upwind
 
     real, intent( in )  :: domain_length 
@@ -268,7 +264,9 @@ contains
     integer :: scvngi_theta, cv_ngi, cv_ngi_short, sbcvngi, nface, cv_nodi, IPLIKE_GRAD_SOU
     
     real :: finish_time
-    integer :: dump_period_in_timesteps, max_dump_file_count
+    integer :: dump_period_in_timesteps
+    integer :: final_timestep
+    integer :: stat
 
     character( len = 500 ) :: dummy_string_phase, dummy_string_dump, dummy_string_comp, dump_name, file_format
     integer :: output_channel
@@ -319,8 +317,6 @@ contains
     call get_option("/timestepping/timestep", dt)
     call get_option("/timestepping/finish_time", finish_time)
     call get_option("/io/dump_period_in_timesteps/constant", dump_period_in_timesteps, default=1)
-    if( have_option( "/io/max_dump_file_count" )) &
-        call get_option( "/io/max_dump_file_count", max_dump_file_count )
 
     nstates = option_count("/material_phase")
     
@@ -332,12 +328,28 @@ contains
        
        ACCTIM = ACCTIM + DT
        
-       if ( ACCTIM > finish_time ) exit Loop_Time
-       if( have_option( "/io/max_dump_file_count" )) then
-          call get_option( "/io/max_dump_file_count", max_dump_file_count )
-          if ( itime > max_dump_file_count ) exit Loop_Time
-       endif
+       if ( ACCTIM > finish_time ) then 
+          
+          ewrite(1, *) "Passed final time"
+          
+          exit Loop_Time
        
+       end if 
+       
+       call get_option("/timestepping/final_timestep", final_timestep, stat)
+       
+       if(stat == SPUD_NO_ERROR) then
+       
+          if(itime > final_timestep) then
+
+             ewrite(1, *) "Passed final timestep"
+             
+             exit Loop_Time
+             
+          end if
+          
+       end if              
+              
        UOLD = U
        NU = U
        NUOLD = U
@@ -412,8 +424,7 @@ contains
                SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
                IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
-               GL_ERROR_RELAX2_NOIT, U_ERROR_RELAX2_NOIT, P_ERROR_RELAX2_NOIT, &
-               MASS_ERROR_RELAX2_NOIT, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ) 
+               IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ) 
 
 
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
@@ -453,7 +464,7 @@ contains
                SUM_THETA_FLUX, SUM_ONE_M_THETA_FLUX, &
                IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
-               SAT_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_VOLFRA, &
+               NITS_FLUX_LIM_VOLFRA, &
                option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
 
 
@@ -551,7 +562,7 @@ contains
                      THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
                      SUF_VOL_BC, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, WIC_VOL_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                      NOIT_DIM, &
-                     T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
+                     NITS_FLUX_LIM_COMP, &
                      MEAN_PORE_CV, &
                      option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
 

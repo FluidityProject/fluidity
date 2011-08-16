@@ -67,8 +67,6 @@ contains
        use_theta_flux, get_theta_flux, &
        opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
        noit_dim, &
-       sat_error_relax2_noit, t_error_relax2_noit, gl_error_relax2_noit, &
-       u_error_relax2_noit, p_error_relax2_noit, mass_error_relax2_noit, &
        in_ele_upwind, dg_ele_upwind, &
                                 ! Total nodes for different meshes
        cv_nonods, u_nonods, mat_nonods, x_nonods, &
@@ -116,8 +114,6 @@ contains
     integer, intent( in ) :: nopt_vel_upwind_coefs, cv_nonods, u_nonods, mat_nonods, x_nonods
     real, dimension( nopt_vel_upwind_coefs ), intent( inout ) :: opt_vel_upwind_coefs
     integer, intent( in ) :: noit_dim
-    real, dimension( noit_dim ), intent( in ) :: sat_error_relax2_noit, t_error_relax2_noit, gl_error_relax2_noit, &
-         u_error_relax2_noit, p_error_relax2_noit, mass_error_relax2_noit
     integer, intent( in ) :: in_ele_upwind, dg_ele_upwind
 
     integer, dimension( totele * u_nloc ), intent( in )  :: u_ndgln
@@ -249,7 +245,7 @@ contains
                T, T, T, &
                SUF_T_BC, SUF_T_BC_ROB1, SUF_T_BC_ROB2, WIC_T_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
-               T_ERROR_RELAX2_NOIT, MASS_ERROR_RELAX2_NOIT, NITS_FLUX_LIM_COMP, &
+               NITS_FLUX_LIM_COMP, &
                MEAN_PORE_CV, &
                option_path = trim(option_path) )
           endif
