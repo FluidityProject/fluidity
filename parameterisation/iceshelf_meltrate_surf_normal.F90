@@ -48,21 +48,26 @@ module iceshelf_meltrate_surf_normal
   use pickers_inquire
   use transform_elements
   use state_fields_module
+  use global_parameters, only: PYTHON_FUNC_LEN
+  use embed_python
 implicit none
 
   private
   real, save                      :: c0, cI, L, TI, &
                                      a, b, gammaT, gammaS,Cd, dist_meltrate
   integer, save                   :: nnodes,dimen
- 
+  real, save                       :: T_steady,S_steady
   type(vector_field), save        :: surface_positions
   type(vector_field), save        :: funky_positions 
-  type(integer_set), save         :: sf_nodes !Nodes at the surface
+  type(vector_field), save        :: unit_normal_vectors !Normal to the iceshelf
+!  type(integer_set), save         :: sf_nodes !Nodes at the surface
+  integer, dimension(:), pointer, save :: sf_nodes_point
+
   !BC
-  integer, dimension(:), pointer, save :: ice_element_list
+!  integer, dimension(:), pointer, save :: ice_element_list
   ! these are the fields and variables for the surface values
   type(scalar_field), save             :: ice_surfaceT,ice_surfaceS! these are used to populate the bcs
-  public :: melt_surf_init, melt_allocate_surface, melt_surf_calc, melt_bc
+  public :: melt_surf_init, melt_allocate_surface, melt_surf_calc, melt_bc, melt_cleanup
 
 
 
@@ -82,14 +87,19 @@ contains
      character(len=FIELD_NAME_LEN)       :: bc_type
     type(integer_set)                   :: surface_ids
     integer, dimension(:),allocatable   :: surf_id
-    integer, dimension(:), allocatable  :: sf_nodes_ar
+!    integer, dimension(:), allocatable  :: sf_nodes_ar
     integer, dimension(2) :: shape_option
     type(mesh_type), pointer            :: mesh
     type(mesh_type)                     :: surface_mesh
     integer, dimension(:), pointer      :: surface_nodes ! allocated and returned by create_surface_mesh
     integer, dimension(:), allocatable  :: surface_element_list
-     integer                             :: i,the_node
-      
+    integer                             :: i,the_node
+!read the hydrostatic pressure     
+    character(len=PYTHON_FUNC_LEN) :: func  
+    real :: current_time
+    type(vector_field), pointer         :: positions
+    type(scalar_field), pointer         :: HydroSP
+
     melt_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
 
  
@@ -107,16 +117,25 @@ contains
  
     gammaT = sqrt(Cd)/(12.5*(7.0**(2.0/3.0))-9.0)
     gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
-
+    
+! When steady BC options is enabled
+    if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_temperature")) then
+        call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_temperature",T_steady)
+        write(1,*) "melt_init, T_steady", T_steady 
+    endif
+    if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_salinity")) then
+        call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_salinity",S_steady) 
+        write(1,*) "melt_init, S_steady", S_steady 
+    endif      
     !! bc= Dirichlet initialize T and S at the ice-ocean interface
     !hack
     !This change with bc type
-    call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries", bc_type)   
-       
+    if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries")) then
+    
+        call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries", bc_type)          
         select case(bc_type)
         case("neumann")
-         
-            
+       
         case("dirichlet") 
         !! Define the values at ice-ocean interface    
         ! Get the surface_id of the ice-ocean interface
@@ -137,15 +156,34 @@ contains
                 
                 call set(T,the_node,0.0)
                 call set(S,the_node,34.0)
-               
+                if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_temperature")) then
+                    call set(T,the_node,T_steady)
+                endif
+                if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_salinity")) then
+                    call set(S,the_node,S_steady)
+                endif  
             enddo
 !            T_bc => extract_scalar_field(state,"Tb")
 !            S_bc => extract_scalar_field(state,"Sb")
         case default
-            FLAbort('Unknown BC for TKE')
-        end select 
-    
+            FLAbort('Unknown BC for ice-ocean')
+        end select
+    else
+     
+    endif
 
+! Read the hydrostatic pressure
+! /ocean_forcing/iceshelf_meltrate/Holland08/HydroStaticP/python
+    if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/HydroStaticP")) then
+       call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/HydroStaticP/python", func)
+       ! Get current time
+         call get_option("/timestepping/current_time", current_time)
+       ! Set initial condition from python function
+       HydroSP => extract_scalar_field(state,"HydroStaticP")
+       positions => extract_vector_field(state,"Coordinate")
+       call set_from_python_function(HydroSP, trim(func), positions, current_time)
+       ewrite(1,*) "---------HydroSP---------------------------------"
+    endif
     ewrite(1,*) "---------End melt_surf_init---------------------------------"
 
  end subroutine melt_surf_init
@@ -156,10 +194,10 @@ subroutine melt_allocate_surface(state)
     type(vector_field), pointer         :: positions   
     type(mesh_type), pointer            :: mesh
     type(mesh_type)                     :: surface_mesh
-    type(integer_set)                   :: surface_elements
+!    type(integer_set)                   :: surface_elements
     integer, dimension(:), pointer      :: surface_nodes ! allocated and returned by create_surface_mesh
     integer, dimension(:), allocatable  :: surface_element_list
-    integer    :: ele, face,i,j,k
+    integer    :: face,i,j,k
 !! The local coordinates of the coordinate in the owning element
 !!    real, dimension(:), allocatable    :: local_coord, local_coord_surf
     real, dimension(:), allocatable     :: coord
@@ -168,7 +206,7 @@ subroutine melt_allocate_surface(state)
     real, dimension(:), allocatable     :: av_normal !Average of normal
 !!    integer, dimension(:), pointer      :: ele_faces,face_neighs
     type(element_type), pointer     :: x_shape_f
-    real                                :: al,be,ga
+!    real                                :: al,be
     real, dimension(:), allocatable     :: xyz !New location of surface_mesh, dist_meltrate away from the boundary
 !integer, save         :: melt_surfaceID
     character(len=OPTION_PATH_LEN)      :: path
@@ -198,13 +236,16 @@ subroutine melt_allocate_surface(state)
 ! Input, mesh, surface_id
 ! Output surface_mesh,surface_element_list
     call melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
+    ewrite(1,*) "line238 after melt_surf_mesh size(surface_nodes)", size(surface_nodes)
 
+    allocate(sf_nodes_point(size(surface_nodes)))
+    sf_nodes_point = surface_nodes
     positions => extract_vector_field(state,"Coordinate")
 !SINK THE surface_mesh!!
 !   call get_option("/geometry/dimension/", dimension)
     call allocate(surface_positions,positions%dim,mesh,"MySurfacePosition")
     call allocate(funky_positions,surface_positions%dim, surface_positions%mesh,"MyFunkyPosition")
-    
+    call allocate(unit_normal_vectors,surface_positions%dim, surface_positions%mesh,"MyFunkyUnitVec")
 
 ! Remap the positions vector to the surface mesh, surface_positions
     call remap_field_to_surface(positions, surface_positions, surface_element_list)  
@@ -266,9 +307,7 @@ subroutine melt_allocate_surface(state)
 !        ewrite(1,*) "table(4,1:3),normal_z: ", table(4,1:3)
 !!In this loop, we will average adjacent normal vectors, using the area of the surface elements.
     
-    !allocate(sf_nodes_ar(size(node_occupants(1,:))))
-    call allocate(sf_nodes)
-!    call insert(sf_nodes,sf_nodes_ar)
+    
     do i=1,size(node_occupants(1,:))
         node = node_occupants(1,i)
         av_normal(:) = 0.0
@@ -295,34 +334,24 @@ subroutine melt_allocate_surface(state)
         ! Shift the location of the surface nodes.
         !The coordinate of the surface node.
         
-        coord = node_val(positions,node) 
-        
+        coord = node_val(positions,node)     
         ! dist_meltrate = ||xyz - coord|| xyz and coord are vectors
-        xyz = av_normal*dist_meltrate + coord
-        
-        call set(funky_positions,node,xyz) ! Set the coordinate of sinked nodes, funky positions.
-       
+        xyz = av_normal*dist_meltrate + coord        
+        call set(funky_positions,node,xyz) ! Set the coordinate of sinked nodes, funky positions.       
         call set(surface_positions,node,coord) !Original coordinate of the surface
-!!        ewrite(1,*) "--------------------------------"
-!!        ewrite(1,*) "node: ", node
-!!        ewrite(1,*) "av_normal: ", av_normal
-!!        ewrite(1,*) "funky: ", xyz
-!!        ewrite(1,*) "coord: ", coord
-!!        ! Save the corresponding node number.
-!!        !sf_nodes_ar(i) = node
-        call insert(sf_nodes,node)
-       
+        call set(unit_normal_vectors,node,av_normal) !save the unit normal vector for Kt and Ks calculation
+
         node = 0
     enddo
-     
-
+    
+! Now deallocate junks
     deallocate(coord)
     deallocate(table)
     deallocate(node_occupants)    
     deallocate(av_normal)
     deallocate(xyz)
     call deallocate(surface_ids)
-     ewrite(1,*) "-------End melt_allocate_surface---------"
+    ewrite(1,*) "-------End melt_allocate_surface---------"
 end subroutine melt_allocate_surface
 
 
@@ -338,27 +367,28 @@ end subroutine melt_allocate_surface
     type(scalar_field), pointer         :: T_loc,S_loc,P_loc
     type(vector_field), pointer         :: V_loc,Location,Location_org 
     real, dimension(:), allocatable     :: vel
-    integer                             :: i,j,k
+    integer                             :: i,j
     ! Some internal variables  
     real                                :: speed, T,S,P,Aa,Bb,Cc,topo
     real                                ::loc_Tb,loc_Sb,loc_meltrate,loc_heatflux,loc_saltflux
     ! Aa*Sb^2+Bv*Sb+Cc
     real :: arg = -1.0
     !Sink mesh part
-    integer                             :: ele,face,node,stat,the_node
+    integer                             :: ele,node,stat,the_node
     real, dimension(:), allocatable     :: local_coord,coord
-    type(element_type), pointer         :: x_shape_f
+!    type(element_type), pointer         :: x_shape_f
     integer, dimension(:), allocatable  :: surface_node_list,node_lists 
-    type(scalar_field)                  :: re_temperature,re_salinity,re_pressure
+    type(scalar_field)                  :: re_temperature,re_salinity,re_pressure,re_DistanceToTop
     type(vector_field)                  :: re_velocity
   
     
     ewrite(1,*) "-------Begin melt_surf_calc------------"
 
     MeltRate => extract_scalar_field(state,"MeltRate")
+    call set(MeltRate,0.0)
     Tb => extract_scalar_field(state,"Tb")
     Sb => extract_scalar_field(state,"Sb")
-    call set(MeltRate,setnan(arg))
+!    call set(MeltRate,setnan(arg))
     call set(Tb,setnan(arg))
     call set(Sb,setnan(arg))
     Heat_flux => extract_scalar_field(state,"Heat_flux")
@@ -366,7 +396,7 @@ end subroutine melt_allocate_surface
     call set(Heat_flux,setnan(arg))
     call set(Salt_flux,setnan(arg))
     
-! Debugging
+! Local far field values
     T_loc => extract_scalar_field(state,"Tloc")
     S_loc => extract_scalar_field(state,"Sloc")
     P_loc => extract_scalar_field(state,"Ploc")
@@ -383,32 +413,32 @@ end subroutine melt_allocate_surface
     call set(Location_org,vel)
     
     positions => extract_vector_field(state,"Coordinate")
-    !my positions
-  
-      ! Surface node list
-    allocate(surface_node_list(key_count(sf_nodes)))
-    ! Make it to vector from integer_set.
+
+    ! Surface node list
+    allocate(surface_node_list(size(sf_nodes_point)))
     ! sf_nodes is calculated in "melt_allocate_surface"
-    surface_node_list=set2vector(sf_nodes)
+    surface_node_list=sf_nodes_point
     
     ! Remap temperature, salinity, pressure, and velocity onto positions mesh
     scalarfield => extract_scalar_field(state,"Temperature")
-    
     call allocate(re_temperature,positions%mesh,name="ReTemperature")
-    
     call remap_field(scalarfield,re_temperature,stat)
    
     ! Salinity
     scalarfield=> extract_scalar_field(state,"Salinity")
- 
     call allocate(re_salinity,positions%mesh, name="ReSalinity")
     call remap_field(scalarfield,re_salinity,stat)
 
-    ! Pressure
-    scalarfield => extract_scalar_field(state,"Pressure")
+    ! Pressure read the hydrostatic pressure, specified at schema
+    scalarfield => extract_scalar_field(state,"HydroStaticP")
     call allocate(re_pressure,positions%mesh, name="RePressure")
     call remap_field(scalarfield,re_pressure,stat)
    
+    if (have_option("/geometry/ocean_boundaries/scalar_field::DistanceToBottom")) then
+        scalarfield => extract_scalar_field(state,"DistanceToBottom")
+        call allocate(re_DistanceToTop,positions%mesh, name="ReDistanceToBottom")
+        call remap_field(scalarfield,re_DistanceToTop,stat)   
+    endif
     ! Velocity    
     velocity => extract_vector_field(state,"Velocity")
     call allocate(re_velocity,velocity%dim,positions%mesh,name="ReVelocity")
@@ -416,23 +446,16 @@ end subroutine melt_allocate_surface
  
     allocate(local_coord(positions%dim+1))
     allocate(coord(positions%dim))
-   
-  
 
-
-!!!!!!!!!!!!!!!!!!!!!!!!!
-     !surface_positions
-
-    !! Loope over the surface nodes to calculate melt rate etc.
+!! Loope over the surface nodes to calculate melt rate etc.
     do i=1,size(surface_node_list)
         the_node = surface_node_list(i)
         !!! Interpolating   
         coord = node_val(funky_positions,the_node)
-        call picker_inquire(positions, coord, ele, local_coord,global=.true.)
+        call picker_inquire(positions, coord, ele, local_coord,global=.false.)
 
         !! If sum(local_coord) is not equal to 1,      
-        !! we know that this coord (funky position) does not exist in the domain.
-        
+        !! we know that this coord (funky position) does not exist in the domain.        
         if (sum(local_coord) .gt. 2.0) then 
             ewrite(1,*) "Funk coord: ", node_val(funky_positions,the_node)
             !! node_val(surface_positions,the_node) = node_val(positions,the_node)
@@ -458,7 +481,15 @@ end subroutine melt_allocate_surface
             vel = vel + node_val(re_velocity,node)*local_coord(j)
         enddo
         deallocate(node_lists)
-        ! Luckly P needs to be at the surface for the three equations
+        
+        ! Pressure needs to be in Pa. 
+        !P = P*1.0e4
+        P = 0.0
+        if (have_option("/geometry/ocean_boundaries/scalar_field::DistanceToBottom")) then
+           	P= P + (1100.0-node_val(re_DistanceToTop,the_node))*9.81*1000.0
+           	!ewrite(1,*) "P with DistanceToTop included", P
+        endif
+        ! Pressure from the schema
         P = node_val(re_pressure,the_node)
         speed = sqrt(sum(vel**2))
         
@@ -477,8 +508,7 @@ end subroutine melt_allocate_surface
         Bb = Bb - c0*gammaT*speed*T + c0*gammaT*speed*(b+topo)
 
         Cc = gammaS*speed*S*L +gammaS*speed*S*cI*(b+topo) + gammaS*speed*S*(-cI*TI)
-        
-        
+                
         !! This could be a linear equation if Aa=0
         if (Aa .eq. 0.0) then
             loc_Sb = -Cc/Bb
@@ -490,46 +520,50 @@ end subroutine melt_allocate_surface
             if (loc_Sb .lt. 0.0) then
                 loc_Sb = (-Bb - sqrt(Bb**2 - 4.0*Aa*Cc))/(2.0*Aa)
             endif
+
+         if (loc_Sb .lt. 0.0) then
+                ewrite(1,*) "loc_Sb: ",  loc_Sb   
+                FLExit("Sb is negative. The range of Salinity is not right.")
+            endif
         endif
         !ewrite(1,*) "----------iceshelf, loc_Sb----", loc_Sb
         loc_Tb = a*loc_Sb + b + topo
         loc_meltrate = gammaS*speed*(S-loc_Sb)/loc_Sb
         !! Heat flux to the ocean
         loc_heatflux = c0*(gammaT*speed+ loc_meltrate)*(T-loc_Tb) ! or loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
-        loc_saltflux = (gammaS*speed+loc_meltrate)*(S-loc_Sb)
-        !! Some debugging
-        !!ewrite(1,*) "melt_rate: ",loc_meltrate
-        !!ewrite(1,*) "tLHS: ", c0*gammaT*speed*(T-loc_Tb)
-        !!ewrite(1,*) "tRHS: ", loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
-        !!ewrite(1,*) "sLHS: ", gammaS*speed*(S-loc_Sb)
-        !!ewrite(1,*) "sRHS: ", loc_meltrate*loc_Sb
-        !!ewrite(1,*) "bLHS: ", loc_Tb
-        !!ewrite(1,*) "bRHS: ", a*loc_Sb + b + topo
-
+        !! Salt flux to the ocean        
+	loc_saltflux = (gammaS*speed+loc_meltrate)*(S-loc_Sb)
+      
         !! These are needed to implement BCs.
         call set(MeltRate, the_node, loc_meltrate)
         call set(Tb, the_node, loc_Tb)
         call set(Sb, the_node, loc_Sb)
         call set(Heat_flux, the_node,loc_heatflux)
         call set(Salt_flux, the_node,loc_saltflux)
-        !! More or less for debugging purposes.
+        
+        !!Far field values
         call set(T_loc,the_node,T)
         call set(S_loc,the_node,S)
         call set(P_loc,the_node,P)
         call set(V_loc,the_node,vel)
         call set(Location,the_node,node_val(funky_positions,the_node))
         call set(Location_org,the_node,node_val(positions,the_node))
-        !! BC test
-        !!call set(TT,the_node,11.1)
-!         ewrite(1,*) "----------iceshelf, loc_saltflux----", the_node,loc_saltflux
-!        ewrite(1,*) "----------melt_surf_calc, loc_Tb----", the_node,loc_Tb
-!        ewrite(1,*) "----------iceshelf, surfaceS----",node_val(re_salinity,the_node)
-!        ewrite(1,*) "----------line 477 iceshelf, loc_meltrate----",loc_meltrate
-!        ewrite(1,*) "----------iceshelf, node_val(TT,the_node)----",node_val(TT,the_node)
+
     enddo
 
+    
+! deallocate the following stuff
+!    type(scalar_field) re_temperature,re_salinity,re_pressure,re_DistanceToTop
+!    type(vector_field)                  :: re_velocity
     deallocate(local_coord)
     deallocate(coord)
+    call deallocate(re_temperature)
+    call deallocate(re_salinity)
+    call deallocate(re_pressure)
+    call deallocate(re_velocity)
+    if (have_option("/geometry/ocean_boundaries/scalar_field::DistanceToBottom")) then
+        call deallocate(re_DistanceToTop)   
+    endif 
     ewrite(1,*) "-----END melt_surf_calc-------"
 end subroutine melt_surf_calc
 
@@ -541,51 +575,102 @@ subroutine melt_bc(state)
     type(scalar_field), pointer         :: scalar_surface
     type(mesh_type), pointer            :: ice_mesh
     character(len=FIELD_NAME_LEN)       :: bc_type
-    type(scalar_field), pointer         :: T_bc,S_bc
+    type(scalar_field)                  :: T_bc,S_bc
+    type(scalar_field), pointer         :: Tflux,Sflux
+    type(scalar_field), pointer         :: Tb,Sb
     integer, dimension(:), allocatable  :: surface_node_list
     integer                             :: i, the_node
-!! Insert BC for temperature and salinity. This could be a separate subroutine
-
+    real                                :: Tz,Sz
+    real                                :: Kt,Ks
+    real                                :: Kt_ar(3), Ks_ar(3)
+!! See ./preprocessor/Boundary_Conditions_From_options.F90 populate_iceshelf_boundary_conditions(states(1)) as well
+!!
     
         TT=> extract_scalar_field(state,"Temperature")
-        SS => extract_scalar_field(state,"Salinity")
-        
+        SS=> extract_scalar_field(state,"Salinity")
+
+    call allocate(T_bc,TT%mesh, name="T_boundary")
+    call allocate(S_bc,SS%mesh, name="S_boundary")
+        ! Surface node list
+        allocate(surface_node_list(size(sf_nodes_point)))
+        ! Make it to vector from integer_set.
+        ! sf_nodes is calculated in "melt_allocate_surface"
+        surface_node_list=sf_nodes_point
+!        ewrite(1,*) "surface_node_list at line647", surface_node_list
         !This change with bc type
         call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries", bc_type)   
        
         select case(bc_type)
         case("neumann")
-            T_bc => extract_scalar_field(state,"Heat_flux")
-            S_bc => extract_scalar_field(state,"Salt_flux")
-            do i=1,node_count(T_bc)
-                call set(T_bc,node_val(T_bc,i)*10.0**3)
-                call set(S_bc,node_val(S_bc,i)*10.0**3)
+            Tflux => extract_scalar_field(state,"Heat_flux")
+            Sflux => extract_scalar_field(state,"Salt_flux")
+           
+            call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/Kt_x", Kt_ar(1)) 
+            call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/Kt_y", Kt_ar(2)) 
+            call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/Kt_z", Kt_ar(3)) 
+            call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/Ks_x", Ks_ar(1)) 
+            call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/Ks_y", Ks_ar(2)) 
+            call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/Ks_z", Ks_ar(3)) 
+
+
+            do i=1,node_count(T_bc)                
+		Kt = (sum(node_val(unit_normal_vectors,i)*Kt_ar))
+                Tz = node_val(Tflux,i)/(-Kt*c0) 
+                call set(T_bc,i,Tz)                        
             enddo
+
+!! BC for S
+            do i=1,node_count(S_bc)
+            	Ks = abs(sum(node_val(unit_normal_vectors,i)*Ks_ar))
+            	Sz = node_val(Sflux,i)/(-Ks) 
+                call set(S_bc,i,Sz)
+       	    enddo
+
+            !If the fluxes were constant
+            if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_temperature")) then
+                    call set(T_bc,T_steady)
+            endif
+            if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_salinity")) then
+                    call set(S_bc,S_steady)
+            endif  
             
         case("dirichlet") 
-            T_bc => extract_scalar_field(state,"Tb")
-            S_bc => extract_scalar_field(state,"Sb")
+            Tb => extract_scalar_field(state,"Tb")
+            Sb => extract_scalar_field(state,"Sb")
+            do i=1,node_count(T_bc)
+                call set(T_bc,i,node_val(Tb,i))
+                call set(S_bc,i,node_val(Sb,i))
+            enddo  
+            !When testing BC implementation
+            if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_temperature")) then
+                    call set(T_bc,T_steady)
+                    write(1,*) "melt_bc, T_steady", T_steady 
+                    
+            endif
+            if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries/bc_value_salinity")) then
+                    call set(S_bc,S_steady)
+                    write(1,*) "melt_bc, S_steady", S_steady
+            endif
+           
         case default
-            FLAbort('Unknown BC for TKE')
+            FLAbort('Unknown BC for ice-ocean interface')
         end select 
     
-    
-        ! Surface node list
-        allocate(surface_node_list(key_count(sf_nodes)))
-        ! Make it to vector from integer_set.
-        ! sf_nodes is calculated in "melt_allocate_surface"
-        surface_node_list=set2vector(sf_nodes)
-        
         ! create a surface mesh to place values onto. This is for the top surface
         call get_boundary_condition(TT, 'temperature_iceshelf_BC', surface_mesh=ice_mesh) 
         call allocate(ice_surfaceT, ice_mesh, name="ice_surfaceT")
-        call get_boundary_condition(SS, 'salinity_iceshelf_BC', surface_mesh=ice_mesh) 
-        call allocate(ice_surfaceS, ice_mesh, name="ice_surfaceS")
         ! Define ice_surfaceT according to Heat_flux?
-        ewrite(1,*) "node_count(ice_surfaceT)",node_count(ice_surfaceT)
-        do i=1,node_count(ice_surfaceT)
+ 
+        do i=1,node_count(ice_surfaceT) 
             the_node = surface_node_list(i)
             call set(ice_surfaceT,i,node_val(T_bc,the_node))
+        enddo
+
+        ! Salinity 	
+        call get_boundary_condition(SS, 'salinity_iceshelf_BC', surface_mesh=ice_mesh) 
+        call allocate(ice_surfaceS, ice_mesh, name="ice_surfaceS")        
+        do i=1,node_count(ice_surfaceS)
+            the_node = surface_node_list(i)         
             call set(ice_surfaceS,i,node_val(S_bc,the_node))
         enddo
         !! Temperature
@@ -594,15 +679,33 @@ subroutine melt_bc(state)
         !! Salinity
         scalar_surface => extract_surface_field(SS, 'salinity_iceshelf_BC', "value")    
         call remap_field(ice_surfaceS, scalar_surface)
-!        ewrite(1,*) "iceBC, ice_element_list",ice_element_list 
-!        ewrite(1,*) "iceBC, node_count(scalar_surface)", node_count(scalar_surface)
-!        ewrite(1,*) "node_val(scalar_surface,1): ", node_val(scalar_surface,1)
 
-!! Insert BC for salinity
-      
-
+        call deallocate(T_bc)
+        call deallocate(S_bc)
+        call deallocate(ice_surfaceT)
+        call deallocate(ice_surfaceS)
 end subroutine melt_bc
 
+!----------
+! melt_cleanup 
+!----------
+subroutine melt_cleanup()
+!!!  type(vector_field), save        :: surface_positions
+!!!  type(vector_field), save        :: funky_positions 
+!!!  type(vector_field), save        :: unit_normal_vectors !Normal to the iceshelf
+!!!  type(integer_set), save         :: sf_nodes !Nodes at the surface
+!!!  !BC
+!!!  integer, dimension(:), pointer, save :: ice_element_list
+!!!  ! these are the fields and variables for the surface values
+!!!  type(scalar_field), save             :: ice_surfaceT,ice_surfaceS! these are used to populate the bcs
+    ewrite(1,*) "Cleaning up melt variables"
+    call deallocate(surface_positions)
+    call deallocate(funky_positions)
+    call deallocate(unit_normal_vectors)
+!    call deallocate(sf_nodes)
+
+    deallocate(sf_nodes_point)
+end subroutine melt_cleanup
 
 
 !!------------------------------------------------------------------!
@@ -617,7 +720,7 @@ subroutine melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_el
     integer, dimension(:), pointer, intent(out)       :: surface_nodes ! allocated and returned by create_surface_mesh
     integer, dimension(:), allocatable, intent(out)   :: surface_element_list
     !    integer, dimension(:), allocatable                :: surface_nodes_out
-    type(scalar_field)                                :: surface_field   
+     
     type(integer_set)                                 :: surface_elements
     integer :: i
     ! create a set of surface elements that have surface id in 'surface_ids'

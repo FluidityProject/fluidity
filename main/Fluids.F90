@@ -980,6 +980,11 @@ contains
        call radiation_cleanup(particles)
     end if
 
+    ! melt rate cleanup
+    if( have_option("/ocean_forcing/iceshelf_meltrate/Holland08") ) then
+       call melt_cleanup()
+    end if
+
     ! closing .stat, .convergence and .detector files
     call close_diagnostic_files()
 
