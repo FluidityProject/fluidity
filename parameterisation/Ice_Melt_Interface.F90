@@ -59,7 +59,8 @@ implicit none
   real, save                      :: T_steady, S_steady
   type(vector_field), save        :: surface_positions
   type(vector_field), save        :: funky_positions 
-  type(vector_field), save        :: unit_normal_vectors !Normal to the iceshelf
+  ! Normals to the iceshelf interface surface
+  type(vector_field), save        :: unit_normal_vectors
   integer, dimension(:), pointer, save :: sf_nodes_point
 
   ! Fields and variables for the interface surface
@@ -102,6 +103,7 @@ contains
     ewrite(1,*) "Melt interface initialisation begins"
 
     ! Get the 6 model constants
+    ! TODO: Check these exist first and error with a useful message if not
     call get_option(trim(option_path)//'c0', c0, default = 39/74.0)
     call get_option(trim(option_path)//'cI', cI, default = 2009.0)
     call get_option(trim(option_path)//'/L', L, default = 3.35e5)
