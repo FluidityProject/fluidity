@@ -86,7 +86,7 @@ module fluids_module
   use discrete_properties_module
   use gls
   use k_epsilon
-  use iceshelf_meltrate_surf_normal
+  use ice_melt_interface
   use halos
   use memory_diagnostics
   use free_surface_module

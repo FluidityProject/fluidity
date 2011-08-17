@@ -27,7 +27,7 @@
 
 #include "fdebug.h"
 
-module iceshelf_meltrate_surf_normal
+module ice_melt_interface
   use quadrature
   use elements
   use field_derivatives
@@ -750,4 +750,4 @@ contains
     calc_area3 = (s*(s-a)*(s-b)*(s-c))**0.5
   end function
 
-end module iceshelf_meltrate_surf_normal
+end module ice_melt_interface
