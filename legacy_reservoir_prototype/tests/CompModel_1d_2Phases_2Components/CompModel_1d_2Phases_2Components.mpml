@@ -680,7 +680,7 @@
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase1" field_name="Velocity"/>
     </vector_field>
-    <scalar_field material_phase_name="phase1" name="Phase1ComponentMassFraction" rank="0">
+    <scalar_field material_phase_name="phase1" name="ComponentMassFractionPhase1" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -745,7 +745,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field material_phase_name="phase2" name="Phase2ComponentMassFraction" rank="0">
+    <scalar_field material_phase_name="phase2" name="ComponentMassFractionPhase2" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -821,7 +821,7 @@
     <vector_field name="Velocity" rank="1">
       <aliased material_phase_name="phase2" field_name="Velocity"/>
     </vector_field>
-    <scalar_field material_phase_name="phase1" name="Phase1ComponentMassFraction" rank="0">
+    <scalar_field material_phase_name="phase1" name="ComponentMassFractionPhase1" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
@@ -886,7 +886,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field material_phase_name="phase2" name="Phase2ComponentMassFraction" rank="0">
+    <scalar_field material_phase_name="phase2" name="ComponentMassFractionPhase2" rank="0">
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>

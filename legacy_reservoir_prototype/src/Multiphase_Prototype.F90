@@ -153,7 +153,7 @@ module mp_prototype
            ncoef, nuabs_coefs, &
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
            cv_sele_type, u_sele_type, &
-           ntime, ntime_dump, nits, nits_internal, ndpset, noit_dim, &
+           nits, nits_internal, ndpset, noit_dim, &
            nits_flux_lim_volfra, nits_flux_lim_comp, &
            t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
            u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &

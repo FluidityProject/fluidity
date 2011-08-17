@@ -43,9 +43,6 @@ module copy_outof_into_state
   use diagnostic_fields_wrapper
   use global_parameters, only: option_path_len
   use diagnostic_fields_wrapper_new
-!  use diagnostic_fields_new, only : &
-!    & calculate_diagnostic_variables_new => calculate_diagnostic_variables, &
-!    & check_diagnostic_dependencies
 
   use element_numbering
   use boundary_conditions
@@ -69,7 +66,7 @@ module copy_outof_into_state
          ncoef, nuabs_coefs, &
          u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
          cv_sele_type, u_sele_type, &
-         ntime, ntime_dump, nits, nits_internal, ndpset, noit_dim, &
+         nits, nits_internal, ndpset, noit_dim, &
          nits_flux_lim_volfra, nits_flux_lim_comp, &
          t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
          u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
@@ -106,10 +103,12 @@ module copy_outof_into_state
                                 ! Now adding other things which we have taken inside this routine to define
          cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods, mat_nonods)
 
-      !! New variables
-
-      type(state_type), dimension(:), pointer :: state
-      type(mesh_type) :: cmesh, vmesh, pmesh !! coordinate, velocity and pressure meshes
+      type(state_type), dimension(:), intent(inout) :: state
+      
+      ! coordinate, velocity and pressure meshes
+      type(mesh_type), pointer :: cmesh => null()
+      type(mesh_type), pointer :: vmesh => null()
+      type(mesh_type), pointer :: pmesh  => null()
 
       type(scalar_field), pointer :: porosity, permeability, density, pressure, &
            phasevolumefraction, pvf_source, &
@@ -122,10 +121,8 @@ module copy_outof_into_state
 
       type(tensor_field), pointer :: viscosity_ph1, viscosity_ph2, t_permeability
 
-      integer :: nonlinear_iterations, &  !! equal to nits in prototype code
-           stat, nstates
+      integer :: nonlinear_iterations, stat, nstates
 
-      real :: dt
       real :: nonlinear_iteration_tolerance
 
       character(len=OPTION_PATH_LEN) :: field_name, material_phase_name, option_path
@@ -139,10 +136,9 @@ module copy_outof_into_state
            x_nonods, xu_nonods, u_nonods, cv_nod, u_nod, xu_nod, x_nod, mat_nod, &
            shared_nodes, u_nloc2
 
-      real :: coord_min, coord_max, &
-           eos_value!, viscosity_ph1, viscosity_ph2
+      real :: coord_min, coord_max, eos_value
            
-      real:: const, dx
+      real :: const, dx
       real, dimension(:), allocatable :: const_vec
       real, dimension(:,:), allocatable :: const_array
 
@@ -153,7 +149,7 @@ module copy_outof_into_state
       
       real, dimension(:), allocatable :: initial_constant_velocity
       
-      logical :: is_constant, is_isotropic, is_symmetric, is_diagonal, ndgln_switch
+      logical :: is_isotropic, is_symmetric, is_diagonal, ndgln_switch
 
       !! Variables needed by the prototype code
       !! and therefore needing to be pulled out of state or
@@ -167,7 +163,7 @@ module copy_outof_into_state
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
            cv_sele_type, u_sele_type
 
-      integer :: ntime, ntime_dump, nits, nits_internal, ndpset, noit_dim, &
+      integer :: nits, nits_internal, ndpset, noit_dim, &
            nits_flux_lim_volfra, nits_flux_lim_comp
 
       integer :: t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
@@ -225,62 +221,58 @@ module copy_outof_into_state
 
       ! Gravity terms to be linked with u_source
       logical :: have_gravity
-      !!  real :: gravity_magnitude, gravity_direction, delta_den
       real :: gravity_magnitude, delta_den, grm
       type(vector_field) :: gravity_direction
-      !      type( vector_field ), pointer :: gravity
-      !      type(vector_field), pointer :: dummyvector
 
       integer :: nobcs    
-
-      !! Finish declaration of variables needed from user input
-
+      
+      character(len=option_path_len) :: vel_element_type
+      
       ewrite(3,*) 'In copy_outof_state'
 
-      !! Here are all of the needed items
-      !! I suggest we work through them one by one
-      !! according to Alex and Brendan's markup of the input file
-      !! Shuffle the order as necessary, but it would be worth keeping
-      !! related items together as much as possible. JHS
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!! these does not matter -- most of them can be deleted quite soon
       problem = 1
       nlev = 3
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
       nstates = option_count("/material_phase")
+      
       ewrite(3,*) ' nstates:', nstates
-      !! Assume there are the same number of components in each phase (will need to check this eventually)
-      nscalar_fields = option_count("/material_phase[0]/scalar_field")
+      
+      ! Assume there are the same number of components in each phase (will need to check this eventually)
       ncomps=0
       do i=1,nstates
          if (have_option("/material_phase[" // int2str(i-1) // "]/is_multiphase_component")) then
             ncomps=ncomps+1
          end if
       end do
+      
       nphases=nstates-ncomps
-      !! Going to assume for now that phases have been inserted into state before components
+      
+      assert(nphases > 0)
+      
       ewrite(3,*) 'nphases, ncomps:',nphases, ncomps
 
-      !! Let's get the meshes out here, as we're going to need them for a whole
-      !! load of things:
-      cmesh = extract_mesh(state, "CoordinateMesh")
+      ! Get the coordinate, velocity and pressure mesh (which must exist)
+      cmesh => extract_mesh(state, "CoordinateMesh", stat=stat)
       
-      if (have_option("/geometry/mesh::VelocityMesh")) then
-         vmesh = extract_mesh(state, "VelocityMesh")
-      else
-         vmesh = cmesh
-      endif
-      if (have_option("/geometry/mesh::PressureMesh")) then
-         pmesh = extract_mesh(state, "PressureMesh")
-      else
-         pmesh = cmesh
-      endif
-      positions => extract_vector_field(state, "Coordinate")
-      ewrite(3,*) 'positions: ', positions%val(1,:)
+      if (stat /= 0) then
+         FLExit('Require mesh with name CoordinateMesh')
+      end if 
+      
+      vmesh => extract_mesh(state, "VelocityMesh", stat=stat)
+      
+      if (stat /= 0) then
+         FLExit('Require mesh with name VelocityMesh')
+      end if 
+      
+      pmesh => extract_mesh(state, "PressureMesh", stat=stat)
+      
+      if (stat /= 0) then
+         FLExit('Require mesh with name PressureMesh')
+      end if 
 
+      positions => extract_vector_field(state, "Coordinate")
+      
       cv_positions = get_coordinate_field(state(1), pmesh)
-      ewrite(3,*) 'cv_positions: ', cv_positions%val(1,:)
 
       ! This is a strictly 1d property, so will have a suitably 1d method for finding it in state!
       coord_min=1.0e9
@@ -297,7 +289,10 @@ module copy_outof_into_state
       dx = domain_length/real(totele)
 
       call get_option("/geometry/dimension",ndim)
-
+            
+      ! get the vel element type.
+      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type',vel_element_type)
+      
       select case(ndim)
         case(1)
           xu_nloc = 2
@@ -325,7 +320,9 @@ module copy_outof_into_state
       x_nloc = cv_nloc
       p_nloc = cv_nloc
       mat_nloc = cv_nloc
-      u_nloc = cv_nloc * xu_nloc
+      u_nloc = xu_nloc      
+      
+      if (trim(vel_element_type) == 'overlapping') u_nloc = cv_nloc * xu_nloc
 
       if (pmesh%continuity>=0) then
          ! Continuous pressure mesh
@@ -442,11 +439,12 @@ module copy_outof_into_state
             xu_nod = xu_nod + 1
             xu_ndgln((k-1)*xu_nloc+j) = xu_nod
             xu( xu_nod ) = positions%val(1,xu_nod)
-!            if (ndim>1) yu((k-1)*xu_nloc+j) = positions%val(2,xu_nod)
-!            if (ndim>2) zu((k-1)*xu_nloc+j) = positions%val(3,xu_nod)
+            if (ndim>1) yu(xu_nod) = positions%val(2,xu_nod)
+            if (ndim>2) zu(xu_nod) = positions%val(3,xu_nod)
          end do
          if( xu_nloc /= 1 ) xu_nod = xu_nod - 1
       end do
+      ewrite(3,*) 'cv_ndgln: ', cv_ndgln
       
       ewrite(3,*) 'xu_ndgln: ', xu_ndgln
       ewrite(3,*) 'xu: ', xu
@@ -474,26 +472,34 @@ module copy_outof_into_state
           if( x_nloc /= 1 ) x_nod = x_nod - 1
         end do
       end if
-
-!!!! Surface node numbering:
+            
+      ! get the vel element type.
+      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type',vel_element_type)
       
-      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/polynomial_degree', u_ele_type, default=1)
-      call get_option('/geometry/mesh::PressureMesh/from_mesh/mesh_shape/polynomial_degree', p_ele_type, default=1)
-!      ewrite(3,*) 'u_ele_type', u_ele_type
-      u_ele_type = 2 ! this will need to be changed later -- switcher for the 
-      !! Sufficient to set this to 1 for now? It is 1 in all test cases
+      have_vel_overlapping: if (trim(vel_element_type) == 'overlapping') then
+      
+         u_ele_type = 2
+      
+      else have_vel_overlapping
+      
+         u_ele_type = 1
+      
+      end if have_vel_overlapping
+      
+      ! what these actually do is unknown
       mat_ele_type = 1
-      !! Sufficient to set this to 2 for now? It is 2 in all test cases
-      !! which presumably means discontinuous
-      !! Will need to update once schema is changed
-      cv_ele_type = p_ele_type !2
-      !! These aren't used 
+      p_ele_type = 2
+      cv_ele_type = 2
+      
+      ! These aren't used 
       cv_sele_type = 1
       u_sele_type = 1
-
+      
+      ! This is not a good way to do this. If there is one phase 
+      ! then momentum needs solving also, not just a 'field' transport.
       if( nphases == 1 ) then
-         problem = 0 ! Single-phase advection (continuous)
-         if( pmesh%continuity < 0 ) problem = -1
+         problem = 0 ! one field advection (continuous)
+         if( pmesh%continuity < 0 ) problem = -1 ! one field advection (discontinuous)
          p_ele_type = 1
          cv_ele_type = 1
          u_ele_type = 1
@@ -553,15 +559,14 @@ module copy_outof_into_state
       call get_option('/material_phase[0]/scalar_field::component1/&
            &prognostic/temporal_discretisation/control_volumes/number_advection_iterations',&
            &nits_internal, default=1)
-
+      
+      ! a mystery
       ndpset = 0
       noit_dim = 5
-      !! These two are always equal to 3 except for the 2phase, 3comp, non-equilibrium test, where they are 1
-      !! Change in schema ??
-      !! still need to do this!
+
       call get_option("/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/" // &
            "max_iterations_flux_limiter", nits_flux_lim_volfra, default=3)
-      call get_option("/material_phase[" // int2str(nphases) // "]/scalar_field::Phase1ComponentMassFraction/" // &
+      call get_option("/material_phase[" // int2str(nphases) // "]/scalar_field::ComponentMassFractionPhase1/" // &
            "prognostic/max_iterations_flux_limiter", nits_flux_lim_comp, default=3)
 
 
@@ -580,12 +585,13 @@ module copy_outof_into_state
 
       if (have_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
            'spatial_discretisation/control_volumes/face_value::FiniteElement/limit_face_value')) then
-         t_disopt = 8 !! Unless all the other options, but need to be able to get 8 here
+         t_disopt = 8 
       else
          t_disopt = 1
       endif
-
-      u_disopt = 1 ! Ditto, except that this probably IS used, being velocity. Hmm.
+      
+      ! hard wired option
+      u_disopt = 1
 
       if (have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
            'spatial_discretisation/control_volumes/face_value::FirstOrderUpwind')) then
@@ -625,6 +631,8 @@ module copy_outof_into_state
            &atmospheric_pressure', patmos, default=0.0)
       call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/&
            &initial_condition::WholeMesh/constant',p_ini, default=0.0)
+
+      nscalar_fields = option_count("/material_phase[0]/scalar_field")      
 
       t_ini = 0.0
       if (nscalar_fields>2) then ! we might have an extra scalar_field so might need t
@@ -668,12 +676,8 @@ module copy_outof_into_state
       Viscosity = 0.
 
       viscosity_ph1 => extract_tensor_field(state(1), "Viscosity")
-
-!!!
-!!! This will be changed later, as we just need the viscosity of one phase 
-!!! and the mobility. All test cases will need to be updated, when we move to 
-!!! this. Also for the single phase advection, both mobility and viscosity need
-!!! to be initialised although will not be used.     
+      
+      ! why is mobility needed as a scalar variable?
       if( have_option( "/physical_parameters/mobility" ))then
          call get_option( "/physical_parameters/mobility", Mobility )
          Viscosity( 1 : cv_nonods ) = Viscosity_Ph1%val( 1, 1, 1 )
@@ -704,14 +708,13 @@ module copy_outof_into_state
 !!!
 !!! Assuming for now that porosity is constant across an element
       porosity => extract_scalar_field(state, "Porosity")
-!      ewrite(3,*) 'porosity sf: ', porosity%val(:)
+
       allocate(volfra_pore(totele))
       por_ele_loop: do k = 1,element_count(porosity)
         element_nodes => ele_nodes(porosity,k)
-!        ewrite(3,*) 'element_nodes', element_nodes
+
         volfra_pore(k)=porosity%val(element_nodes(1))
       end do por_ele_loop
-!      ewrite(3,*) "Got porosity: ", volfra_pore
 
 ! Assuming for now that permeability is constant across an element
       if (have_option("/porous_media/scalar_field::Permeability")) then
@@ -734,9 +737,6 @@ module copy_outof_into_state
          is_isotropic=have_option(trim(option_path)//"/isotropic")
          is_diagonal=have_option(trim(option_path)//"/diagonal")
          is_symmetric=have_option(trim(option_path)//"/anisotropic_symmetric")
-
-
-!!!!!!!!!!!!
 
          if(is_isotropic) then
        
@@ -825,13 +825,6 @@ module copy_outof_into_state
 
       end if
 
-
-!      ewrite(3,*) "Got permeability: ", perm(1:totele, 1, 1)
-!      ewrite(3,*) "p 1 2 ", perm(1:totele, 1, 2)
-!      ewrite(3,*) "p 2 1 ", perm(1:totele, 2, 1)
-!      ewrite(3,*) "p 2 2 ", perm(1:totele, 2, 2)
-!      stop 84848
-
 !!!
 !!! WIC_X_BC (in which X = D, U, V, W, P, T, COMP and VOL) controls the boundary conditions
 !!! type applied. == 1 (Dirichlet), = 2 (Robin), = 3 (Newman) 
@@ -846,24 +839,21 @@ module copy_outof_into_state
 
       Loop_Component_BC: do i=nphases, nphases+ncomps-1
          do j=1,nphases
-            if( have_option("/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
-                 "ComponentMassFraction/prognostic/" // &
-                 "boundary_conditions[0]/type::dirichlet" )) then
+            if( have_option("/material_phase[" // int2str(i) // "]/scalar_field::ComponentMassFractionPhase" // &
+                 int2str(j) //"/prognostic/" // "boundary_conditions[0]/type::dirichlet" )) then
 
                shape_option=option_shape("/material_phase[" // int2str(i) // &
-                    "]/scalar_field::Phase" // int2str(j) // &
-                    "ComponentMassFraction/prognostic/boundary_conditions[0]/surface_ids")
+                    "]/scalar_field::ComponentMassFractionPhase" // &
+                    int2str(j) //"/prognostic/boundary_conditions[0]/surface_ids")
+               
                allocate(component_sufid_bc(1:shape_option(1)))
                Component_BC_Type = 1
-               call get_option( "/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
-                    "ComponentMassFraction/prognostic/" // &
-                    "boundary_conditions[0]/surface_ids", component_sufid_bc )
-               call get_option( "/material_phase[" // int2str(i) // "]/scalar_field::Phase" // int2str(j) // &
-                    "ComponentMassFraction/prognostic/" // &
-                    "boundary_conditions[0]/type::dirichlet/constant", Component_Suf_BC )
-                    
-!               ewrite(3,*) 'csufid', component_sufid_bc
-!               ewrite(3,*) 'nphases, j, ncomps, i', nphases, j, ncomps, i
+               
+               call get_option( "/material_phase[" // int2str(i) // "]/scalar_field::ComponentMassFractionPhase" // & 
+                    int2str(j) //"/prognostic/" // "boundary_conditions[0]/surface_ids", component_sufid_bc )
+               
+               call get_option( "/material_phase[" // int2str(i) // "]/scalar_field::ComponentMassFractionPhase" // &
+                    int2str(j) //"/prognostic/" // "boundary_conditions[0]/type::dirichlet/constant", Component_Suf_BC )
 
                do k=1,shape_option(1)
                   wic_comp_bc( component_sufid_bc(1) + nphases*(j-1) ) = Component_BC_Type
@@ -872,9 +862,9 @@ module copy_outof_into_state
                deallocate(Component_sufid_bc)
             endif
 
-         enddo
+         end do
 
-      enddo Loop_Component_BC
+      end do Loop_Component_BC
 
       allocate( suf_cpd_bc( stotel * 1 * nphases ))
       suf_cpd_bc = 0.      
@@ -915,14 +905,6 @@ module copy_outof_into_state
 
 !!!
 !!!  End of Boundary Conditions Section
-!!!
-
-
-!!!
-!!! Initial conditions for all fields:
-!!! Density and pressure might need re-ordering because of the
-!!! peculiarity of the quadratic element setup
-!!! see copy_into_state() below
 !!!
 
 !!!
@@ -981,8 +963,6 @@ module copy_outof_into_state
 
          endif Conditional_Density_BC
          
-!         ewrite(3,*) 'den ', den
-
       enddo Loop_Density
 
 !!!
@@ -1136,14 +1116,12 @@ module copy_outof_into_state
          initial_constant_velocity=0.
          call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
                          initial_constant_velocity, stat)
-!         ewrite(3,*) 'initial_constant_velocity', initial_constant_velocity
+
          if (stat==0) then
             u((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(1)
             if (ndim>1) v((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(2)
             if (ndim>2) w((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(3)
          endif
-
-!         ewrite(3,*) 'size veloc: ', size(velocity%val(1, :))
          
          ! This will make sure that the fields in the PC *does not* contain any boundary conditions
          ! elements. This need to be changed along with the future data structure to take into 
@@ -1210,7 +1188,6 @@ module copy_outof_into_state
          endif Conditional_Velocity_BC
 
       enddo Loop_Velocity
-!      ewrite(3,*) 'u: ', u
 
 
       allocate(uabs_option(nphases))
@@ -1256,7 +1233,7 @@ module copy_outof_into_state
             call get_option("/material_phase[" // int2str(i-1) // "]/equation_of_state/compressible/stiffened_gas/eos_option2", eos_coefs(i, 2))
             eos_coefs(i, 3:ncoef) = 0.
          endif
-!         ewrite(3,*) 'i, eos_coefs', i, eos_coefs(i, :)
+
       enddo
       cp_coefs = 1.
 
@@ -1347,13 +1324,12 @@ module copy_outof_into_state
 
             Loop_Temperature: do i = 1, nphases
                scalarfield => extract_scalar_field(state(i), "Temperature")
-!               ewrite(3,*) 'temperature: ', scalarfield%val(:)
+
                if (.not.allocated(t)) allocate( t( cv_nonods * nphases ))
 
                t_ele_loop: do k = 1,element_count(scalarfield)
             
                   element_nodes => ele_nodes(scalarfield,k)
-!                  ewrite(3,*) 'element_nodes', element_nodes
             
                   t_node_loop: do j = 1,size(element_nodes)
                   
@@ -1422,8 +1398,6 @@ module copy_outof_into_state
 
       end if
 
-!      ewrite(3,*)'temperature field:',t
-
       ewrite(3,*) 'Getting component source'
       allocate(comp_source(cv_nonods*nphases))
       comp_source=0.
@@ -1437,17 +1411,16 @@ module copy_outof_into_state
       ! should match up
       if (ncomps>0) then
          allocate(comp(cv_nonods*nphases*ncomps))
-         !! Assume for now that components have been inserted in state
-         !! AFTER all the phases
+         ! Assume for now that components have been inserted in state AFTER all the phases
          do i=nstates-ncomps+1,nstates
             do j=1,option_count("/material_phase[" // int2str(i-1) //"]/scalar_field")
                componentmassfraction => extract_scalar_field(state(i), j)
-               if (componentmassfraction%name(7:27) == "ComponentMassFraction") then
+               if (componentmassfraction%name(1:21) == "ComponentMassFraction") then
                   call get_option("/material_phase[" // int2str(i-1) //"]/scalar_field[" // int2str(j-1) //&
                        &"]/material_phase_name", material_phase_name)
                   do k=1,nphases
                      ewrite(3,*) 'mp_name, state_name', trim(material_phase_name), state(k)%name
-                     if (trim(material_phase_name) == state(k)%name) then
+                     if (trim(material_phase_name) == trim(state(k)%name)) then
                         do l=1,node_count(componentmassfraction)
                            comp( ((i-(1+nphases))*nphases+(k-1))*node_count(componentmassfraction)+l ) = componentmassfraction%val(l)
                         enddo
@@ -1481,7 +1454,6 @@ module copy_outof_into_state
          do i=1, ncomps
             call get_option('material_phase['// int2str(i+nphases-1) //']/is_multiphase_component/' // &
                  'KComp_Sigmoid/k_comp', k_comp(i, 1, 1))
-!            ewrite(3,*) 'i, kcomp', i, k_comp(i, 1, 1)
             k_comp(i, 1:nphases, 1:nphases) = k_comp(i, 1, 1)
          end do
       end if
@@ -1497,30 +1469,54 @@ module copy_outof_into_state
 
     end subroutine copy_outof_state
 
-
-
-    subroutine copy_into_state(state, saturations, proto_pressure, nphase, cv_ndgln, p_ndgln)
+    subroutine copy_into_state(state, &
+                               proto_saturations, &
+                               proto_pressure, &
+                               proto_velocity_u, &
+                               proto_velocity_v, &
+                               proto_velocity_w, &                               
+                               proto_densities, &
+                               proto_components, &
+                               ncomp, &
+                               nphase, &
+                               cv_ndgln, &
+                               p_ndgln, &
+                               u_ndgln, &
+                               ndim)
       
-      !!< Copy prototype saturations and pressure into fluidity state array for output
+      !!< Copy prototype solution arrays into fluidity state array for output
       
       type(state_type), dimension(:), intent(inout) :: state
-      real, dimension(:), intent(in) :: saturations
+      real, dimension(:), intent(in) :: proto_saturations
       real, dimension(:), intent(in) :: proto_pressure
+      real, dimension(:), intent(in) :: proto_velocity_u
+      real, dimension(:), intent(in) :: proto_velocity_v
+      real, dimension(:), intent(in) :: proto_velocity_w      
+      real, dimension(:), intent(in) :: proto_densities
+      real, dimension(:), intent(in) :: proto_components
+      integer, intent(in) :: ncomp      
       integer, intent(in) :: nphase
       integer, dimension(:), intent(in) :: cv_ndgln
       integer, dimension(:), intent(in) :: p_ndgln
+      integer, dimension(:), intent(in) :: u_ndgln
+      integer, intent(in) :: ndim
       
       ! local variables        
       integer :: stat
-      integer :: i,j,p
-      integer, dimension(:), pointer :: element_nodes
-      type(scalar_field), pointer :: phasevolumefraction
-      type(scalar_field), pointer :: pressure
+      integer :: i,j,k,p,ele,jloc
+      integer :: number_nodes
+      integer :: nstates
+      integer :: nloc
+      integer, dimension(:), pointer :: element_nodes => null()
+      type(scalar_field), pointer :: phasevolumefraction => null()
+      type(scalar_field), pointer :: pressure => null()
+      type(vector_field), pointer :: velocity => null()
+      type(scalar_field), pointer :: density => null()
+      type(scalar_field), pointer :: componentmassfraction => null()
+      character(len=option_path_len) :: material_phase_name
 
       ewrite(3,*) "In copy_into_state"
-      
-      ! set volume fraction fields for each phase into state
-      
+            
       assert(size(state) >= nphase)
       
       phase_loop: do p = 1,nphase
@@ -1535,21 +1531,159 @@ module copy_outof_into_state
          
          end if
          
+         number_nodes = node_count(phasevolumefraction)
+         
          volf_ele_loop: do i = 1,element_count(phasevolumefraction)
             
             element_nodes => ele_nodes(phasevolumefraction,i)
             
-            volf_node_loop: do j = 1,size(element_nodes)
+            nloc = size(element_nodes)
+            
+            volf_node_loop: do j = 1,nloc
                
                call set(phasevolumefraction, &
                         element_nodes(j), &
-                        saturations((cv_ndgln((i-1)*size(element_nodes)+j)) + (p-1)*node_count(phasevolumefraction)))
+                        proto_saturations((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
             
             end do volf_node_loop
             
          end do volf_ele_loop
-      
+         
+         density => extract_scalar_field(state(p), "Density", stat=stat)
+         
+         if (stat /= 0) then 
+            
+            ewrite(1,*) 'Issue in prototype interface for phase ',p
+            
+            FLAbort('Failed to extract phase density from state in copy_into_state')
+         
+         end if
+
+         number_nodes = node_count(density)
+         
+         den_ele_loop: do i = 1,element_count(density)
+            
+            element_nodes => ele_nodes(density,i)
+            
+            nloc = size(element_nodes)
+            
+            den_node_loop: do j = 1,nloc
+               
+               call set(density, &
+                        element_nodes(j), &
+                        proto_densities((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+            
+            end do den_node_loop
+            
+         end do den_ele_loop
+         
+         velocity => extract_vector_field(state(p), "Velocity", stat=stat)
+         
+         if (stat /= 0) then 
+            
+            ewrite(1,*) 'Issue in prototype interface for phase ',p
+            
+            FLAbort('Failed to extract phase velocity from state in copy_into_state')
+         
+         end if
+
+         number_nodes = node_count(velocity)
+         
+         vel_ele_loop: do i = 1,element_count(velocity)
+            
+            element_nodes => ele_nodes(velocity,i)
+            
+            nloc = size(element_nodes)
+            
+            vel_node_loop: do j = 1,nloc
+               
+               ! set u
+               call set(velocity, &
+                        1, &
+                        element_nodes(j), &
+                        proto_velocity_u((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+               
+               ! set v
+               if (ndim > 1) call set(velocity, &
+                                      2, &
+                                      element_nodes(j), &
+                                      proto_velocity_v((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+               
+               ! set w
+               if (ndim > 2) call set(velocity, &
+                                      3, &
+                                      element_nodes(j), &
+                                      proto_velocity_w((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+            
+            end do vel_node_loop
+            
+         end do vel_ele_loop
+             
       end do phase_loop
+         
+      ! comp is stored in the order
+      !   comp1 phase1
+      !   comp1 phase2
+      !   comp2 phase1
+      !   comp2 phase2
+      !   etc
+      have_comp: if (ncomp > 0) then
+         
+         ! there is a state for each phase and each component
+         nstates = size(state)
+         
+         ! Assume for now that components have been inserted in state AFTER all the phases
+         comp_loop: do i = nstates-ncomp+1,nstates
+            
+            ! inspect each scalar field of this state   
+            sfield_loop: do j = 1,option_count("/material_phase[" // int2str(i-1) //"]/scalar_field")
+               
+               ! extract each scalar field of this state
+               componentmassfraction => extract_scalar_field(state(i), j)
+               
+               ! determine if this scalar field has the magic name for components   
+               is_compfrac: if (componentmassfraction%name(1:21) == "ComponentMassFraction") then
+                  
+                  ! find the phase this component fraction is associated with   
+                  call get_option("/material_phase[" // int2str(i-1) //"]/scalar_field[" // int2str(j-1) //&
+                                 &"]/material_phase_name", material_phase_name)
+                  
+                  ! find the phase index   
+                  phase_index_loop: do k = 1,nphase
+                     
+                     phase_name_check: if (trim(material_phase_name) == state(k)%name) then
+
+                        number_nodes = node_count(componentmassfraction)
+         
+                        comp_ele_loop: do ele = 1,element_count(componentmassfraction)
+            
+                           element_nodes => ele_nodes(componentmassfraction,ele)
+                           
+                           nloc = size(element_nodes)
+                           
+                           comp_node_loop: do jloc= 1,nloc
+               
+                              call set(componentmassfraction, &
+                                       element_nodes(jloc), &
+                                       proto_components((cv_ndgln((ele-1)*nloc+jloc)) + ((i-(1+nphase))*nphase+(k-1))*number_nodes))
+            
+                           end do comp_node_loop
+            
+                        end do comp_ele_loop
+                        
+                        cycle sfield_loop
+                        
+                     end if phase_name_check
+                  
+                  end do phase_index_loop
+               
+               end if is_compfrac
+            
+            end do sfield_loop
+         
+         end do comp_loop
+      
+      end if have_comp
          
       pressure => extract_scalar_field(state(1), "Pressure")    
       
@@ -1557,11 +1691,13 @@ module copy_outof_into_state
         
         element_nodes => ele_nodes(pressure,i)
         
-        press_node_loop: do j = 1,size(element_nodes)
+        nloc = size(element_nodes)
+        
+        press_node_loop: do j = 1,nloc
           
           call set(pressure, &
                    element_nodes(j), &
-                   proto_pressure(p_ndgln((i-1)*size(element_nodes)+j)))
+                   proto_pressure(p_ndgln((i-1)*nloc+j)))
         
         end do press_node_loop
       

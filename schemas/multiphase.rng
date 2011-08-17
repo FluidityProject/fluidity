@@ -2337,7 +2337,7 @@ Required in porous_media and multiphase problem types</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Phase1ComponentMassFraction
+        <a:documentation>ComponentMassFractionPhase1
 Optional in multiphase problem types
 
 attribute material_phase_name associates this
@@ -2346,7 +2346,7 @@ mass fraction with a particular phase</a:documentation>
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>Phase1ComponentMassFraction</value>
+          <value>ComponentMassFractionPhase1</value>
         </attribute>
         <attribute name="material_phase_name">
           <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
@@ -2378,7 +2378,7 @@ mass fraction with a particular phase</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Phase2ComponentMassFraction
+        <a:documentation>ComponentMassFractionPhase2
 Optional in multiphase problem types
 
 attribute material_phase_name associates this
@@ -2387,7 +2387,7 @@ mass fraction with a particular phase</a:documentation>
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>Phase2ComponentMassFraction</value>
+          <value>ComponentMassFractionPhase2</value>
         </attribute>
         <attribute name="material_phase_name">
           <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
@@ -2419,7 +2419,7 @@ mass fraction with a particular phase</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Phase3ComponentMassFraction
+        <a:documentation>ComponentMassFractionPhase3
 Optional in multiphase problem types
 
 attribute material_phase_name associates this
@@ -2428,7 +2428,7 @@ mass fraction with a particular phase</a:documentation>
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>Phase3ComponentMassFraction</value>
+          <value>ComponentMassFractionPhase3</value>
         </attribute>
         <attribute name="material_phase_name">
           <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
@@ -2460,7 +2460,7 @@ mass fraction with a particular phase</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Phase4ComponentMassFraction
+        <a:documentation>ComponentMassFractionPhase4
 Optional in multiphase problem types
 
 attribute material_phase_name associates this
@@ -2469,7 +2469,7 @@ mass fraction with a particular phase</a:documentation>
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>Phase4ComponentMassFraction</value>
+          <value>ComponentMassFractionPhase4</value>
         </attribute>
         <attribute name="material_phase_name">
           <a:documentation>Specify the phase to which this component fraction relates</a:documentation>

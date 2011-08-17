@@ -754,7 +754,20 @@ contains
 
           !! Output vtus from state
           ! Start by copying the interesting files back into state:
-          call copy_into_state(state, satura, p, nphase, cv_ndgln, p_ndgln)
+          call copy_into_state(state, &
+                               satura, &
+                               p, &
+                               u, &
+                               v, &
+                               w, &
+                               den, &
+                               comp, &
+                               ncomp, &
+                               nphase, &
+                               cv_ndgln, &
+                               p_ndgln, &
+                               u_ndgln, &
+                               ndim)
 
           ! find the current time - that reached by the prototype
           call get_option("/timestepping/current_time", current_time)

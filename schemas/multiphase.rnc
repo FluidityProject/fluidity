@@ -1921,14 +1921,14 @@ scalar_field_choice =
                }
             )
          }|
-         ## Phase1ComponentMassFraction
+         ## ComponentMassFractionPhase1
          ## Optional in multiphase problem types
          ##
          ## attribute material_phase_name associates this
          ## mass fraction with a particular phase
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "Phase1ComponentMassFraction" },
+            attribute name { "ComponentMassFractionPhase1" },
             ## Specify the phase to which this component fraction relates
             attribute material_phase_name { xsd:string },
             (
@@ -1950,14 +1950,14 @@ scalar_field_choice =
                }
             )
          }|
-         ## Phase2ComponentMassFraction
+         ## ComponentMassFractionPhase2
          ## Optional in multiphase problem types
          ##
          ## attribute material_phase_name associates this
          ## mass fraction with a particular phase
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "Phase2ComponentMassFraction" },
+            attribute name { "ComponentMassFractionPhase2" },
             ## Specify the phase to which this component fraction relates
             attribute material_phase_name { xsd:string },
             (
@@ -1979,14 +1979,14 @@ scalar_field_choice =
                }
             )
          }|
-         ## Phase3ComponentMassFraction
+         ## ComponentMassFractionPhase3
          ## Optional in multiphase problem types
          ##
          ## attribute material_phase_name associates this
          ## mass fraction with a particular phase
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "Phase3ComponentMassFraction" },
+            attribute name { "ComponentMassFractionPhase3" },
             ## Specify the phase to which this component fraction relates
             attribute material_phase_name { xsd:string },
             (
@@ -2008,14 +2008,14 @@ scalar_field_choice =
                }
             )
          }|
-         ## Phase4ComponentMassFraction
+         ## ComponentMassFractionPhase4
          ## Optional in multiphase problem types
          ##
          ## attribute material_phase_name associates this
          ## mass fraction with a particular phase
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "Phase4ComponentMassFraction" },
+            attribute name { "ComponentMassFractionPhase4" },
             ## Specify the phase to which this component fraction relates
             attribute material_phase_name { xsd:string },
             (
