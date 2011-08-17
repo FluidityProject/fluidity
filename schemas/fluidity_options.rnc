@@ -2903,6 +2903,23 @@ velocity_boundary_conditions =
          ## When activated wall treatment is not applied on the wall-outflow edge.
          element type{
             attribute name { "outflow" }
+         }|
+         ## Flux boundary condition. 
+         ##
+         ## Weakly enforces a flux across a boundary
+         element type {
+            attribute name { "flux" },
+            element align_bc_with_cartesian {
+               element x_component {
+                  input_choice_real_bc_component
+               }?,
+               element y_component {
+                  input_choice_real_bc_component
+               }?,
+               element z_component {
+                  input_choice_real_bc_component
+               }?
+            }
          }
       )
    )

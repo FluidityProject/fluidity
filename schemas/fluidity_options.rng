@@ -3897,6 +3897,31 @@ When activated wall treatment is not applied on the wall-outflow edge.</a:docume
           <value>outflow</value>
         </attribute>
       </element>
+      <element name="type">
+        <a:documentation>Flux boundary condition. 
+
+Weakly enforces a flux across a boundary</a:documentation>
+        <attribute name="name">
+          <value>flux</value>
+        </attribute>
+        <element name="align_bc_with_cartesian">
+          <optional>
+            <element name="x_component">
+              <ref name="input_choice_real_bc_component"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="y_component">
+              <ref name="input_choice_real_bc_component"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="z_component">
+              <ref name="input_choice_real_bc_component"/>
+            </element>
+          </optional>
+        </element>
+      </element>
     </choice>
   </define>
   <!-- Output options for prognostic fields -->

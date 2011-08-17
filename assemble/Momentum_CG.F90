@@ -128,7 +128,8 @@
     ! the ids have to correspond to the order of the arguments in
     ! the calls to get_entire_boundary_condition below
     integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW=2, &
-                          BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4, BC_TYPE_EXPLICIT_FREE_SURFACE = 5
+                          BC_TYPE_INTERNAL = 3, BC_TYPE_FREE_SURFACE = 4, &
+                          BC_TYPE_EXPLICIT_FREE_SURFACE = 5, BC_TYPE_FLUX = 6
     integer, parameter :: PRESSURE_BC_TYPE_WEAKDIRICHLET = 1, PRESSURE_BC_DIRICHLET = 2
 
     ! Stabilisation schemes.
@@ -761,7 +762,8 @@
              "no_normal_flow       ", &
              "internal             ", &
              "free_surface         ", &
-             "explicit_free_surface" &
+             "explicit_free_surface", &
+             "flux                 " &
            & /), velocity_bc, velocity_bc_type)
 
          allocate(pressure_bc_type(surface_element_count(p)))
@@ -1191,6 +1193,14 @@
 
         call addto(rhs, u_nodes_bdy, shape_vector_rhs(u_shape, normal_bdy, -detwei_bdy*fs_coef(sele)*fs_gi))
         
+      end if
+
+      if (any(velocity_bc_type(:,sele)==BC_TYPE_FLUX)) then
+        do dim = 1, u%dim
+          if(velocity_bc_type(dim,sele)==BC_TYPE_FLUX) then
+            call addto(rhs, dim, u_nodes_bdy, shape_rhs(u_shape, ele_val_at_quad(velocity_bc, sele, dim)*detwei_bdy))
+          end if
+        end do
       end if
 
 
