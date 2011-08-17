@@ -8150,7 +8150,7 @@ for the interface melt parameterisation</a:documentation>
                     <value>0</value>
                   </attribute>
                   <attribute name="name">
-                    <value>hydrostatic_pressure</value>
+                    <value>subshelf_hydrostatic_pressure</value>
                   </attribute>
                   <element name="diagnostic">
                     <ref name="internal_algorithm"/>
@@ -8160,7 +8160,7 @@ for the interface melt parameterisation</a:documentation>
                 </element>
               </optional>
               <optional>
-                <element name="hydrostatic_pressure">
+                <element name="subshelf_hydrostatic_pressure">
                   <element name="python">
                     <a:documentation>Python function prescribing real input. Functions should be of the form:
 

@@ -170,13 +170,13 @@ contains
     endif
 
     ! Read the hydrostatic pressure
-    if(have_option(trim(option_path)//'/hydrostatic_pressure')) then
-       call get_option(trim(option_path)//'/hydrostatic_pressure/python', func)
+    if(have_option(trim(option_path)//'/subshelf_hydrostatic_pressure')) then
+       call get_option(trim(option_path)//'/subshelf_hydrostatic_pressure/python', func)
        ! Get current time
          call get_option("/timestepping/current_time", current_time)
        ! Set initial condition from python function
        ! TODO: This field should be generated automatically and is not needed in the schema
-       HydroSP => extract_scalar_field(state,"hydrostatic_pressure")
+       HydroSP => extract_scalar_field(state,"subshelf_hydrostatic_pressure")
        positions => extract_vector_field(state,"Coordinate")
        call set_from_python_function(HydroSP, trim(func), positions, current_time)
        ewrite(1,*) "Melt interface initialsation, found hydrostatic pressure field"
@@ -266,7 +266,7 @@ contains
     call remap_field(scalarfield,re_salinity,stat)
 
     ! Pressure read the hydrostatic pressure, specified at schema
-    scalarfield => extract_scalar_field(state,"hydrostatic_pressure")
+    scalarfield => extract_scalar_field(state,"subshelf_hydrostatic_pressure")
     call allocate(re_pressure,positions%mesh, name="RePressure")
     call remap_field(scalarfield,re_pressure,stat)
    
