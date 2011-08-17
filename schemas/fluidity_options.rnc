@@ -6431,10 +6431,12 @@ forcing =
                         diagnostic_vector_field
                         }
                      )
-           }?, 
+           }?,
+           ## Provide the hydrostatic pressure under the shelf
+           ## for the interface melt parameterisation
            element scalar_field {
                      attribute rank { "0" },
-                     attribute name { "HydroStaticP" },
+                     attribute name { "hydrostatic_pressure" },
                      (
                        element diagnostic {
                         internal_algorithm,
@@ -6443,7 +6445,7 @@ forcing =
                         }
                      )
            }?,
-           element HydroStaticP {
+           element hydrostatic_pressure {
                 (
                    ## Python function prescribing real input. Functions should be of the form:
                    ##

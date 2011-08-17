@@ -406,15 +406,9 @@ contains
 
     call initialise_diagnostics(filename, state)
 
-    ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
+    ! Initialise melt interface paramerisation
     if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
-        call melt_surf_init(state(1))
-        call melt_allocate_surface(state(1))
-        call melt_surf_calc(state(1))
-         !BC for ice melt
-          if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
-            call melt_bc(state(1))
-          endif
+        call melt_interface_initialisation(state(1))
     end if
     
     ! Checkpoint at start
@@ -659,13 +653,12 @@ contains
                 endif
              end if
 
-            ! Calculate the meltrate
-            if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
-                if( (trim(field_name_list(it))=="MeltRate")) then
-                    call melt_surf_calc(state(1))
+            ! Calculate the (ice) interface meltrate using the parameterisation described in Holland et al. 2008 doi:10.1175/2007JCLI1909.1
+            if (have_option("/ocean_forcing/iceshelf_meltrate/Holland08")) then
+                if ((trim(field_name_list(it)) == "MeltRate")) then
+                    call melt_interface_calculate(state(1))
                 endif
             end if
-
 
              call get_option(trim(field_optionpath_list(it))//&
                   '/prognostic/equation[0]/name', &
@@ -742,9 +735,9 @@ contains
             call keps_eddyvisc(state(1))
           end if
           
-          !BC for ice melt
+          ! Boundary conditions for the (ice) melt interface parameterisation
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries')) then
-            call melt_bc(state(1))
+            call melt_interface_boundary_condition(state(1))
           endif
           
           if(option_count("/material_phase/scalar_field/prognostic/spatial_discretisation/coupled_cv")>0) then
@@ -861,10 +854,7 @@ contains
        end if
 
        current_time=current_time+DT
-!       ! Calculate the meltrate
-!       if(have_option("/ocean_forcing/iceshelf_meltrate/Holland08/") ) then
-!          call melt_surf_calc(state(1))
-!       end if
+
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
@@ -982,7 +972,7 @@ contains
 
     ! melt rate cleanup
     if( have_option("/ocean_forcing/iceshelf_meltrate/Holland08") ) then
-       call melt_cleanup()
+       call melt_interface_cleanup()
     end if
 
     ! closing .stat, .convergence and .detector files
