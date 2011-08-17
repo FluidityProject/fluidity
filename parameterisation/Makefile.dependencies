@@ -27,11 +27,11 @@ Gls_vertical_turbulence_model.o ../include/gls.mod: \
    ../include/sparse_matrices_fields.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_module.mod
 
-../include/iceshelf_meltrate_surf_normal.mod: iceshelf_meltrate_surf_normal.o
+../include/ice_melt_interface.mod: ice_melt_interface.o
 	@true
 
-iceshelf_meltrate_surf_normal.o ../include/iceshelf_meltrate_surf_normal.mod: \
-   iceshelf_meltrate_surf_normal.F90 ../include/boundary_conditions.mod \
+ice_melt_interface.o ../include/ice_melt_interface.mod: \
+   ice_melt_interface.F90 ../include/boundary_conditions.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
    ../include/field_derivatives.mod ../include/field_options.mod \
    ../include/fields.mod ../include/fields_allocates.mod \

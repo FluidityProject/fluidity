@@ -333,7 +333,7 @@ contains
             !TODO: Use a maxval here instead
         endif
         ! constant = -7.53e-8 [C Pa^(-1)] comes from Holland and Jenkins Table 1
-        ! TODO: Define as a constant explicitly
+        ! TODO: Define as a constant explicitly, i.e. real, parameter :: topo = -7.53e-8
         topo = -7.53e-8*P
         
         ! Define Aa,Bb,Cc
