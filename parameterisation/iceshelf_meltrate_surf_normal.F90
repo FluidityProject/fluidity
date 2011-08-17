@@ -114,7 +114,7 @@ contains
     gammaT = sqrt(Cd)/(12.5*(7.0**(2.0/3.0))-9.0)
     gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
     
-! When steady BC options is enabled
+    ! When steady BC options is enabled
     if (have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')) then
         call get_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature',T_steady)
         write(1,*) "melt_init, T_steady", T_steady 
