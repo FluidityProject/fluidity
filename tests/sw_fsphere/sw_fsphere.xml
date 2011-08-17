@@ -21,7 +21,7 @@ maxdh=max(abs(dh.min()),abs(dh.max()))
     <variable name="maxdu" language="python">
 from vtktools import VtuDiff, vtu
 vtu1=vtu('fsphere_0.vtu')
-vtu2=vtu('fsphere_1.vtu')
+vtu2=vtu('fsphere_10.vtu')
 diff=VtuDiff(vtu1,vtu2)
 du=diff.GetField('Velocity')
 maxdu=max(abs(du.min()),abs(du.max()))

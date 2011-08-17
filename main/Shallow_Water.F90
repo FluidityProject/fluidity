@@ -218,6 +218,7 @@
     call adjoint_write_controls(timestep, dt, state)
     timestep_loop: do
        timestep=timestep+1
+       if (simulation_completed(current_time, timestep)) exit timestep_loop
        ewrite (1,*) "SW: start of timestep ", timestep, current_time
 
        ! this may already have been done in populate_state, but now
