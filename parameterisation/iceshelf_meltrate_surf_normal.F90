@@ -65,7 +65,7 @@ implicit none
   ! Fields and variables for the interface surface
   type(scalar_field), save        :: ice_surfaceT, ice_surfaceS! these are used to populate the bcs
   
-  public :: melt_interface_initialisation, melt_interface_calculate, melt_interface_boundary_condition, melt_cleanup
+  public :: melt_interface_initialisation, melt_interface_calculate, melt_interface_boundary_condition, melt_interface_cleanup
 
 contains
 
@@ -181,11 +181,11 @@ contains
     endif
 
     ! Additional initialisation routines
-    call melt_interface_allocate_surface(state(1))
-    call melt_interface_calculation(state(1))
+    call melt_interface_allocate_surface(state)
+    call melt_interface_calculate(state)
     ! Boundary conditions for the (ice) melt interface parameterisation
     if (have_option(trim(option_path)//'/calculate_boundaries')) then
-      call melt_interface_boundary_condition(state(1))
+      call melt_interface_boundary_condition(state)
     endif
 
     ewrite(1,*) "Melt interface initialisation end"
@@ -522,14 +522,14 @@ contains
   end subroutine melt_interface_boundary_condition
 
 
-  subroutine melt_cleanup()
+  subroutine melt_interface_cleanup()
     ewrite(1,*) "Melt interface, Cleaning up melt variables"
     call deallocate(surface_positions)
     call deallocate(funky_positions)
     call deallocate(unit_normal_vectors)
 
     deallocate(sf_nodes_point)
-  end subroutine melt_cleanup
+  end subroutine melt_interface_cleanup
 
 
   !------------------------------------------------------------------!
@@ -560,7 +560,6 @@ contains
     integer, dimension(:,:), allocatable :: node_occupants
     integer                              :: st,en,node,dim_vec
     real                                 :: area_sum
-    integer, dimension(:), allocatable   :: sf_nodes_ar
     integer, dimension(2) :: shape_option
 
     option_path = "/ocean_forcing/iceshelf_meltrate/Holland08/melt_surfaceID"
@@ -568,9 +567,9 @@ contains
     ewrite(1,*) "Melt interface allocation of surface parameters"
 
     ! Get the surface_id of the ice-ocean interface
-    shape_option=option_shape(trim(path))
+    shape_option=option_shape(trim(option_path))
     allocate(interface_surface_id(1:shape_option(1)))
-    call get_option(trim(path), interface_surface_id)
+    call get_option(trim(option_path), interface_surface_id)
     call allocate(surface_ids)
     call insert(surface_ids,interface_surface_id)
 
