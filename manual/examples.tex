@@ -487,7 +487,10 @@ right hand end of the geometry.
 Please note, this 3D example is intended to be run in parallel (see \ref{decomp_meshes_parallel}).
 This is because the mesh must be fine enough, and the Reynolds number high enough, in order to
 generate turbulence over the step and resolve its passage downstream. More information on running
-Fluidity in parallel is found in \ref{sect:running_fluidity_in_parallel}.
+\fluidity\ in parallel is found in \ref{sect:running_fluidity_in_parallel}.
+
+It also makes use of mesh adaptivity. For the 2d case this means that \fluidity\ has be configured with the
+\option{--enable-2d-adaptivity} flag. In 3d no extra flag is required.
 
 In practice the example is run in a very similar way to the other examples.
 To run in serial, the example is run in exactly the same way to the other examples, using
