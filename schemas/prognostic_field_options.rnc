@@ -68,13 +68,11 @@ scalar_boundary_conditions =
                "low_Re"|"high_Re"
                }
             }|
-            ## Flux boundary condition. Mainly used in the PhaseVolumeFraction field 
-            ## for multiphase flow simulations. Currently only works with a control_volume 
+            ## Flux boundary condition. Currently only works with a control_volume 
             ## discretisation.
             ##
-            ## This works in the same way as the Neumann boundary condition, except it enforces
-            ## a weak no normal flow across the boundary when solving the advection-diffusion
-            ## equation.
+            ## This weakly enforces the total (advective plus diffusive) flux across 
+            ## a boundary when solving the advection-diffusion equation.
             element type {
                attribute name { "flux" },
                input_choice_real
