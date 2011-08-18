@@ -66,7 +66,7 @@ implicit none
   ! Fields and variables for the interface surface
   type(scalar_field), save        :: ice_surfaceT, ice_surfaceS! these are used to populate the bcs
   
-  public :: melt_interface_initialisation, melt_interface_calculate, melt_interface_boundary_condition, melt_interface_cleanup
+  public :: melt_interface_initialisation, melt_interface_calculate, melt_interface_boundary_condition, melt_interface_cleanup, melt_interface_allocate_surface
 
 contains
 
@@ -104,7 +104,7 @@ contains
 
     ! Get the 6 model constants
     ! TODO: Check these exist first and error with a useful message if not
-    call get_option(trim(option_path)//'c0', c0, default = 39/74.0)
+    call get_option(trim(option_path)//'c0', c0, default = 3974.0)
     call get_option(trim(option_path)//'cI', cI, default = 2009.0)
     call get_option(trim(option_path)//'/L', L, default = 3.35e5)
     call get_option(trim(option_path)//'/TI', TI, default = -25.0)
