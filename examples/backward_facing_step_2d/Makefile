@@ -1,42 +1,27 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
-preprocess: 
-	@echo **********Generating a 2D mesh:
-	echo **********Installing directories.
-	install -d kepsilon
-	install -d nomodel
-	cd kepsilon
-	ln -s ../backward_facing_step_2d_kepsilon.flml .
-	echo **********Generating mesh for k_epsilon simulation.
-	gmsh -2 -optimize -o step2d-med.msh ../src/step2d-med.geo
-	$(SCRIPTS)/gmsh2triangle -2 step2d-med.msh
-	cd ..
-	cd nomodel
-	ln -s ../backward_facing_step_2d.flml .
-	echo **********Generating mesh for reference simulation.
-	gmsh -2 -optimize -o step2d-med.msh ../src/step2d-med.geo
-	$(SCRIPTS)/gmsh2triangle -2 step2d-med.msh
+preprocess:
+	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make preprocess TYPE=type, where type is reference or kepsilon"; false; fi;
+	echo **********Installing directory for $(TYPE) run:
+	install -d $(TYPE); \
+	cd $(TYPE); \
+	ln -s ../backward_facing_step_2d_$(TYPE).flml .; \
+	echo **********Generating mesh for $(TYPE) simulation.; \
+	gmsh -2 -optimize -o step2d-med.msh ../src/step2d-med.geo; \
+	$(SCRIPTS)/gmsh2triangle -2 step2d-med.msh; \
 	cd ..
 
 run:
-	@echo **********Running the k_epsilon simulation:
-	cd kepsilon
-	$(BIN)/fluidity -v2 -l backward_facing_step_2d_kepsilon.flml
-	cd ..
-	@echo **********Running the reference simulation:
-	cd nomodel
-	$(BIN)/fluidity -v2 -l backward_facing_step_2d.flml
-	cd ..
+	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make run TYPE=type, where type is reference or kepsilon"; false; fi;
+	@echo **********Running the $(TYPE) simulation:
+	cd $(TYPE) &&  $(BIN)/fluidity -v2 -l backward_facing_step_2d_$(TYPE).flml &&  cd ..
 
 postprocess:
+	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make postprocess TYPE=type, where type is reference or kepsilon"; false; fi;
 	@echo **********Calling the velocity data extraction and reattachment length calculation python script:
-	cd kepsilon
-	ln -s ../postprocessor_2d.py .
-	./postprocessor_2d.py kepsilon
-	cd ..
-	cd nomodel
-	ln -s ../postprocessor_2d.py .
-	./postprocessor_2d.py reference
+	cd $(TYPE); \
+	ln -s ../postprocessor_2d.py .; \
+	./postprocessor_2d.py $(TYPE); \
 	cd ..
 
 input: clean preprocess

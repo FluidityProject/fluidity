@@ -338,7 +338,7 @@
             <mesh name="VelocityMesh"/>
             <output/>
             <stat>
-              <include_in_stat/>
+              <exclude_from_stat/>
             </stat>
           </diagnostic>
         </tensor_field>
@@ -355,7 +355,7 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <exclude_from_steady_state/>
+              <include_in_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
@@ -544,7 +544,7 @@
             <algorithm name="Internal" material_phase_support="multiple"/>
             <output/>
             <stat>
-              <include_in_stat/>
+              <exclude_from_stat/>
             </stat>
           </diagnostic>
         </tensor_field>
@@ -565,7 +565,7 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
         <adaptivity_options>
           <absolute_measure>
@@ -578,7 +578,7 @@
                 </value>
                 <output/>
                 <stat>
-                  <include_in_stat/>
+                  <exclude_from_stat/>
                 </stat>
                 <detectors>
                   <exclude_from_detectors/>

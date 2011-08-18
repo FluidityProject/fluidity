@@ -175,10 +175,10 @@ def plot_length(type,reattachment_length):
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
   pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
-  pylab.savefig("../reatt_len_2D_"+str(type)+".pdf")
+  pylab.savefig("../reattachment_length_"+str(type)+".pdf")
   return
 
-def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time):
+def plot_meanvelo(type,profiles,xarray,yarray,time):
   ##### Plot velocity profiles at different points behind step, and at 3 times using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
   pylab.suptitle("Evolution of U-velocity: Re=4700, "+str(type), fontsize=20)
@@ -188,8 +188,12 @@ def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time):
   ax = pylab.subplot(141)
   shift=0.0
   leg_end = []
+
   for i in range(len(time)):
-    ax.plot(profiles[i,0,:]+shift,yarray, linestyle="solid")
+    if(i==len(time)-1):
+      ax.plot(profiles[i,0,:]+shift,yarray, linestyle="solid",color='black')
+    else:
+      ax.plot(profiles[i,0,:]+shift,yarray, linestyle="dashed")
     shift+=0.0
     leg_end.append("%.1f secs"%time[i])
   pylab.legend((leg_end), loc="lower right")
@@ -203,7 +207,10 @@ def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time):
   bx = pylab.subplot(142, sharex=ax, sharey=ax)
   shift=0.0
   for i in range(len(time)):
-    bx.plot(profiles[i,1,:]+shift,yarray, linestyle="solid")
+    if(i==len(time)-1):
+      bx.plot(profiles[i,1,:]+shift,yarray, linestyle="solid",color='black')
+    else:
+      bx.plot(profiles[i,1,:]+shift,yarray, linestyle="dashed")
     shift+=0.0
   bx.set_title('(a) x/h='+str(xarray[1]), fontsize=16)
   #bx.grid("True")
@@ -214,7 +221,10 @@ def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time):
   cx = pylab.subplot(143, sharex=ax, sharey=ax)
   shift=0.0
   for i in range(len(time)):
-    cx.plot(profiles[i,2,:]+shift,yarray, linestyle="solid")
+    if(i==len(time)-1):
+      cx.plot(profiles[i,2,:]+shift,yarray, linestyle="solid",color='black')
+    else:
+      cx.plot(profiles[i,2,:]+shift,yarray, linestyle="dashed")
     shift+=0.0
   cx.set_title('(a) x/h='+str(xarray[2]), fontsize=16)
   #bx.grid("True")
@@ -225,7 +235,10 @@ def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time):
   dx = pylab.subplot(144, sharex=ax, sharey=ax)
   shift=0.0
   for i in range(len(time)):
-    dx.plot(profiles[i,3,:]+shift,yarray, linestyle="solid")
+    if(i==len(time)-1):
+      dx.plot(profiles[i,3,:]+shift,yarray, linestyle="solid",color='black')
+    else:
+      dx.plot(profiles[i,3,:]+shift,yarray, linestyle="dashed")
     shift+=0.0
   dx.set_title('(a) x/h='+str(xarray[3]), fontsize=16)
   #bx.grid("True")
@@ -237,7 +250,7 @@ def plot_meanvelo(Re,type,mesh,profiles,xarray,yarray,time):
   bx.set_xlabel('Normalised U-velocity (U/Umax)', fontsize=24)
   ax.set_ylabel('z/h', fontsize=24)
 
-  pylab.savefig("../velo_profiles_2d_"+str(type)+".pdf")
+  pylab.savefig("../velocity_profiles_"+str(type)+".pdf")
   return
 
 #########################################################################
@@ -252,7 +265,7 @@ def main():
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))
     av_length = sum(reatt_length[:,0]) / len(reatt_length[:,0])
-    numpy.save("reatt_len_2D_"+str(type), reatt_length)
+    numpy.save("reattachment_length_"+str(type), reatt_length)
     print "\nTime-averaged reattachment length (in step heights): ", av_length
     plot_length(type,reatt_length)
 
@@ -260,9 +273,12 @@ def main():
     xarray = numpy.array([2.0, 4.0, 6.0, 10.0])
     yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.91,1.92,1.93,1.94])
 
+    ##### Only process every nth file by taking integer multiples of n:
+    filelist = get_filelist(sample=50, start=0)
+
     ##### Call meanvelo function
     profiles, time = meanvelo(filelist, xarray, yarray)
-    numpy.save("velo_profiles_2d_"+str(type), profiles)
+    numpy.save("velocity_profiles_"+str(type), profiles)
     plot_meanvelo(type,profiles,xarray,yarray,time)
     pylab.show()
 

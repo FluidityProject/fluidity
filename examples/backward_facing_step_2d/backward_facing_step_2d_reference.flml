@@ -238,7 +238,7 @@
         </tensor_field>
         <output/>
         <stat>
-          <include_in_stat/>
+          <exclude_from_stat/>
           <previous_time_step>
             <exclude_from_stat/>
           </previous_time_step>
@@ -266,7 +266,7 @@
                 </value>
                 <output/>
                 <stat>
-                  <include_in_stat/>
+                  <exclude_from_stat/>
                 </stat>
                 <detectors>
                   <exclude_from_detectors/>
