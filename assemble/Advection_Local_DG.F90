@@ -70,8 +70,6 @@ module advection_local_DG
   ! Whether to include various terms
   logical :: include_advection
   
-  logical :: include_mass
-
 contains
 
   subroutine solve_advection_dg_subcycle(field_name, state, velocity_name)
@@ -287,16 +285,15 @@ contains
        call zero(U_nl)
        include_advection=.false.
     end if
+ 
+    print*, 'include_advection', include_advection
 
-    include_mass = .not. have_option(trim(T%option_path)//&
-           "/prognostic/spatial_discretisation/discontinuous_galerkin/mass_terms/exclude_mass_terms")
-           
     assert(has_faces(X%mesh))
     assert(has_faces(T%mesh))
     
     call zero(big_m)
     call zero(RHS)
-    if (present(mass)) call zero(mass)
+    call zero(mass)
 
     element_loop: do ele=1,element_count(T)
        
@@ -323,7 +320,7 @@ contains
     !! Right hand side vector.
     type(scalar_field), intent(inout) :: rhs
     !! Optional separate mass matrix.
-    type(csr_matrix), intent(inout), optional :: mass
+    type(csr_matrix), intent(inout) :: mass
     
     !! Position and velocity.
     type(vector_field), intent(in) :: X, U_nl
@@ -423,15 +420,7 @@ contains
    ! Advection.
    l_T_mat= Advection_mat
 
-   if (present(mass)) then
-      ! Return mass separately.
-      call addto(mass, t_ele, t_ele, mass_mat)
-   else
-      if(include_mass) then
-         ! Put mass in the matrix.
-         l_T_mat=l_T_mat+mass_mat
-      end if
-   end if
+   call addto(mass, t_ele, t_ele, mass_mat)
 
    call addto(big_m, t_ele, t_ele, l_T_mat)
 

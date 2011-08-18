@@ -59,6 +59,7 @@
     use manifold_tools
     use FEFields
     use adjoint_controls
+    use field_copies_diagnostics
 #ifdef HAVE_ADJOINT
     use libadjoint_data_callbacks
     use shallow_water_adjoint_callbacks
@@ -538,9 +539,9 @@
       type(vector_field), pointer :: source
 
       !!Intermediate fields
-      type(scalar_field) :: h_DG, h_rhs, delta_h, old_h, md_src
+      type(scalar_field) :: h_DG, h_rhs, delta_h, old_h, old_h_DG, md_src
       type(vector_field) :: u_rhs, delta_u, old_u
-      type(scalar_field), pointer ::passive_tracer, old_passive_tracer
+      type(scalar_field), pointer ::h_projected, passive_tracer, old_passive_tracer
       integer :: nit, d1
       real :: itheta, energy
       logical :: have_source
@@ -551,13 +552,14 @@
 
       !Pull the fields out of state
       h=>extract_scalar_field(state, "LayerThickness")
+      h_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
       X=>extract_vector_field(state, "Coordinate")
       U=>extract_vector_field(state, "LocalVelocity")
       old_U=extract_vector_field(state, "OldLocalVelocity")
       advecting_u=>extract_vector_field(state, "NonlinearVelocity")
 
       call execute_timestep_setup(h,h_DG,U,h_rhs,u_rhs, &
-           old_u,old_h,delta_h,delta_u)
+           old_u,old_h,old_h_DG,delta_h,delta_u)
 
       ! advecting velocity in local coordinates
       call set(advecting_u,u)
@@ -568,6 +570,7 @@
 
          call set(u,old_u)
          call set(h,old_h)
+         call set(h_DG,old_h_DG)
 
          if(.not.hybridized) then
             call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=0.0)
@@ -583,10 +586,16 @@
          end if
          !pressure advection
          if(.not.exclude_pressure_advection) then
-            call project_field(h, h_DG, X) 
-            call solve_scalar_advection_dg_subcycle("DGLayerThickness", state, dt, &
+            call project_field(h, h_DG, X)
+            call set(old_h_DG,h_DG)
+            call vtk_write_fields('test', 0, X, U%mesh, sfields=(/h, h_DG/), vfields=(/advecting_u/))
+            ewrite_minmax(h_DG)
+            call solve_advection_dg_subcycle("DGLayerThickness", state, &
                  "NonlinearVelocity")
-            call project_field(h_DG, h, X) 
+            call vtk_write_fields('test', 1, X, U%mesh, sfields=(/h, h_DG/), vfields=(/advecting_u/))
+            call calculate_scalar_galerkin_projection(state, h_projected)
+            call set(h, h_projected)
+            call vtk_write_fields('test', 2, X, U%mesh, sfields=(/h, h_DG/), vfields=(/advecting_u/))
          end if
 
          if(has_scalar_field(state,"PassiveTracer")) then
@@ -619,10 +628,10 @@
     end subroutine execute_timestep
 
     subroutine execute_timestep_setup(D,h_DG,U,d_rhs,u_rhs, &
-         old_u,old_d,delta_d,delta_u)
+         old_u,old_d,old_h_DG,delta_d,delta_u)
       implicit none
       type(scalar_field), pointer :: D
-      type(scalar_field), intent(inout) :: h_DG, D_rhs, delta_d, old_d
+      type(scalar_field), intent(inout) :: h_DG, old_h_DG, D_rhs, delta_d, old_d
       type(vector_field), intent(inout), pointer :: U
       type(vector_field), intent(inout) :: U_rhs, delta_u, old_u
       integer :: dim
@@ -632,6 +641,7 @@
       ! allocate DG h field
       call allocate(h_DG, U%mesh, "DGLayerThickness")
       call zero(h_DG)
+      h_DG%option_path=D%option_path
       call insert(state, h_DG, "DGLayerThickness")
       call deallocate(h_DG)
       !allocate RHS variables
@@ -653,6 +663,10 @@
       call insert(state, delta_u, "LocalVelocity_update")
       call deallocate(delta_u)
       !allocate previous timestep variables
+      call allocate(old_h_DG, U%mesh, "OldDGLayerThickness")
+      call zero(old_h_DG)
+      call insert(state, old_h_DG, "OldDGLayerThickness")
+      call deallocate(old_h_DG)
       call allocate(old_d, D%mesh, "LayerThickness_old")
       call zero(old_d)
       call insert(state, old_d, "LayerThickness_old")
