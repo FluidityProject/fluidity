@@ -27,10 +27,10 @@ Gls_vertical_turbulence_model.o ../include/gls.mod: \
    ../include/sparse_matrices_fields.mod ../include/spud.mod \
    ../include/state_fields_module.mod ../include/state_module.mod
 
-../include/ice_melt_interface.mod: ice_melt_interface.o
+../include/ice_melt_interface.mod: Ice_Melt_Interface.o
 	@true
 
-ice_melt_interface.o ../include/ice_melt_interface.mod: \
+Ice_Melt_Interface.o ../include/ice_melt_interface.mod: \
    Ice_Melt_Interface.F90 ../include/boundary_conditions.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
    ../include/field_derivatives.mod ../include/field_options.mod \
