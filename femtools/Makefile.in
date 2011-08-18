@@ -156,6 +156,9 @@ FETools.o: FETools.F90
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
 
+../include/version.h:
+	@$(MAKE) -C ../ include/version.h
+
 # The refcount template dependencies are not actually needed for
 # Reference_counting.o but they are needed by everything which depends on
 # Reference_counting.o
