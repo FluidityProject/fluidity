@@ -734,13 +734,13 @@ contains
     integer :: gi
     real, dimension(X%dim,ele_ngi(X,ele)) :: normal_gi
     real, dimension(ele_ngi(X,ele)) :: orientation_gi
+    integer :: l_orientation
     real :: norm
 
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J)
 
     select case(mesh_dim(X)) 
     case (2)
-       !Coriolis only makes sense for 2d surfaces embedded in 3d
        do gi = 1, ele_ngi(X,ele)
           normal_gi(:,gi) = cross_product(J(1,:,gi),J(2,:,gi))
           norm = sqrt(sum(normal_gi(:,gi)**2))
@@ -752,16 +752,17 @@ contains
        if(any(abs(orientation_gi-orientation_gi(1))>1.0e-8)) then
           FLAbort('Nasty geometry problem')
        end if
-       do gi = 1, ele_ngi(X,ele)
-          up_gi(:,gi) = normal_gi(:,gi)*orientation_gi(gi)
-       end do
-       if(present(orientation)) then
-          if(orientation_gi(1)>0.0) then
-             orientation = 1
-          else
-             orientation = -1
-          end if
+       if(orientation_gi(1)>0.0) then
+          l_orientation = 1
+       else
+          l_orientation = -1
        end if
+       if(present(orientation)) then
+          orientation =l_orientation
+       end if
+       do gi = 1, ele_ngi(X,ele)
+          up_gi(:,gi) = normal_gi(:,gi)*l_orientation
+       end do
     case default
        FLAbort('not implemented')
     end select
@@ -1048,7 +1049,7 @@ contains
     type(vector_field), intent(in) :: U_cart,X
     integer, intent(in) :: face,face2,ele,ele2
     real, dimension(X%dim, face_ngi(U_cart, face)) :: n1,n2
-    real, dimension(X%dim, face_ngi(U_cart, face)) :: u1,u2,x1
+    real, dimension(X%dim, face_ngi(U_cart, face)) :: u1,u2,x1,x2
     real, dimension(face_ngi(U_cart, face)) :: jump_at_quad
     integer :: dim1
     !
@@ -1056,6 +1057,13 @@ contains
     x1 = face_val_at_quad(X,face)
     if(ele2>0) then
        u2 = face_val_at_quad(U_cart,face2)
+       x2 = face_val_at_quad(X,face)
+       if(any(x1.ne.x2)) then
+          ewrite(0,*) 'Face 1 X', x1
+          ewrite(0,*) 'Face 2 X', x2
+          FLExit('Something wrong with mesh?')
+       end if
+
     else
        u2 = 0.
     end if
@@ -1471,7 +1479,6 @@ contains
     do ele = 1, ele_count(U_local)
        call check_continuity_ele(U_cart,X,ele)
     end do
-
     !Stage 1b: verify that projection is idempotent
     ewrite(2,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
     call solve_hybridized_helmholtz(state,U_Rhs=U_local,&
@@ -1679,6 +1686,10 @@ contains
 
     call get_up_gi(X,ele,up_gi)
 
+    !debugging stuff
+    do dim1 = 1, X%dim
+       ewrite(1,*) 'dim, up_gi',dim1,up_gi(dim1,:)
+    end do
     coriolis_rhs = 0.
     l_u_mat = 0.
     !metrics for velocity mass and coriolis matrices

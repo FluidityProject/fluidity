@@ -20,7 +20,7 @@ def make_node_file(filename,X,Y,Z):
 
 def make_ele_file(filename,EVList):
     print "Creating .ele file "+filename+"."
-    elements = numpy.size(EVList,1)
+    elements = numpy.size(EVList,0)
     f = open(filename+'.ele','w')
     f.write(str(elements)+' 3 1\n')
     for ele in range(elements):
