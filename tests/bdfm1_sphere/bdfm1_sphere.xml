@@ -13,7 +13,7 @@
     <variable name="maxdh" language="python">
 from vtktools import VtuDiff, vtu
 vtu1=vtu('fsphere_0.vtu')
-vtu2=vtu('fsphere_31.vtu')
+vtu2=vtu('fsphere_9.vtu')
 diff=VtuDiff(vtu1,vtu2)
 h=vtu1.GetField('LayerThickness')
 dh=diff.GetField('LayerThickness')

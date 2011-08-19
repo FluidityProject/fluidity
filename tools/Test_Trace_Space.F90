@@ -230,7 +230,6 @@
             end if
          end do
       end do
-      stop
       L=>extract_scalar_field(state, "LagrangeMultiplier")
       X=>extract_vector_field(state, "Coordinate")
       call allocate(L_projected,L%mesh, "ProjectedLagrangeMultiplier")
@@ -388,16 +387,16 @@
       D_face = face_val(D,face)
       L_face = face_val(L,face)
 
-      print *, "face_nodes D", face_local_nodes(D,face)
-      print *, "face_nodes L", face_local_nodes(L,face)
-      print *, "D_face", D_face
-      print *, "L_face", L_face
-      if(any(abs(D_face-L_face)>1.0e-10)) then
-         print *, 'BAD'
-         !FLExit('Test Trace Values Failed')
-      else
-         print *, 'NOT BAD'
-      end if
+      !print *, "face_nodes D", face_local_nodes(D,face)
+      !print *, "face_nodes L", face_local_nodes(L,face)
+      !print *, "D_face", D_face
+      !print *, "L_face", L_face
+      !if(any(abs(D_face-L_face)>1.0e-10)) then
+      !   print *, 'BAD'
+      !   !FLExit('Test Trace Values Failed')
+      !else
+      !   print *, 'NOT BAD'
+      !end if
     end subroutine test_trace_values_face
 
     subroutine read_command_line()
