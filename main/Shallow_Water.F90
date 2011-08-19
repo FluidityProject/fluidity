@@ -552,7 +552,9 @@
 
       !Pull the fields out of state
       h=>extract_scalar_field(state, "LayerThickness")
-      h_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
+      if(has_scalar_field(state, "ProjectedLayerThickness")) then
+            h_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
+      end if
       X=>extract_vector_field(state, "Coordinate")
       U=>extract_vector_field(state, "LocalVelocity")
       old_U=extract_vector_field(state, "OldLocalVelocity")
@@ -1144,6 +1146,9 @@
       type(adj_equation) :: equation
       type(adj_variable) :: local_u0, cartesian_u0, eta0
       logical :: check_transposes
+      real :: g
+
+      call get_option("/physical_parameters/gravity/magnitude", g)
 
       ! balanced is whether we derived the u initial condition from eta0 and geostrophic balance.
       ! if balanced is false, we just read in an initial condition as usual
@@ -1275,6 +1280,11 @@
       type(vector_field), pointer :: u_ptr
       type(adj_vector) :: u_vec, eta_vec
       logical :: check_transposes
+      real :: D0, g
+
+      call get_option("/physical_parameters/gravity/magnitude", g)
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+         &rognostic/mean_layer_thickness",D0)
 
       check_transposes = have_option("/adjoint/debug/check_action_transposes")
 

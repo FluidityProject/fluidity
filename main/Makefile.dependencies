@@ -83,6 +83,7 @@ Shallow_Water.o : Shallow_Water.F90 \
    ../include/diagnostic_fields_new.mod \
    ../include/diagnostic_fields_wrapper.mod \
    ../include/diagnostic_variables.mod ../include/fdebug.h \
+   ../include/fefields.mod ../include/field_copies_diagnostics.mod \
    ../include/fields.mod ../include/fldebug.mod \
    ../include/forward_main_loop.mod ../include/global_parameters.mod \
    ../include/hybridized_helmholtz.mod \
