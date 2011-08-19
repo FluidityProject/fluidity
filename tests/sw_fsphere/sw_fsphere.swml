@@ -8,7 +8,7 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="sphere_ico">
+      <from_file file_name="sphere">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
@@ -112,14 +112,28 @@ val=spherical_down()</string_value>
         <equation name="ShallowWater"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
+            <viscosity_scheme>
+              <compact_discontinuous_galerkin/>
+            </viscosity_scheme>
             <advection_scheme>
               <none/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
             </advection_scheme>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.</real_value>
           </conservative_advection>
         </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0"/>
+          </theta>
+          <relaxation>
+            <real_value rank="0"/>
+          </relaxation>
+        </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
           <preconditioner name="lu"/>
@@ -138,15 +152,6 @@ val=spherical_down()</string_value>
           <balanced/>
         </initial_condition>
         <output/>
-        <stat>
-          <include_in_stat/>
-          <previous_time_step>
-            <exclude_from_stat/>
-          </previous_time_step>
-          <nonlinear_field>
-            <exclude_from_stat/>
-          </nonlinear_field>
-        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
