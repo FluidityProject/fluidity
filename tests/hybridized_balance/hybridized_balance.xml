@@ -49,10 +49,10 @@ f.close()
   </variables>
   <pass_tests>
     <test name="BDM D steady state" language="python">
-assert(abs(DeltaDBDM) &lt; 1.0e-8)
+assert(abs(DeltaDBDM) &lt; 5.0e-8)
     </test>
     <test name="BDM U steady state" language="python">
-assert(abs(DeltaUBDM) &lt; 1.0e-8)
+assert(abs(DeltaUBDM) &lt; 5.0e-8)
     </test>
     <test name="BDFM D steady state" language="python">
 assert(abs(DeltaDBDFM) &lt; 5.0e-8)
