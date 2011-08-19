@@ -13,7 +13,7 @@
     <variable name="maxdh" language="python">
 from vtktools import VtuDiff, vtu
 vtu1=vtu('fsphere_0.vtu')
-vtu2=vtu('fsphere_10.vtu')
+vtu2=vtu('fsphere_31.vtu')
 diff=VtuDiff(vtu1,vtu2)
 h=vtu1.GetField('LayerThickness')
 dh=diff.GetField('LayerThickness')
@@ -29,9 +29,11 @@ maxdu=max(abs(du.min()),abs(du.max()))
     </variable>
   </variables>
   <pass_tests>
-    <test name="Nothing happens" language="python">
-assert maxdh &lt; 1e-10
-assert maxdu &lt; 1e-10
+    <test name="Nothing happens to h" language="python">
+assert maxdh &lt; 1e-8
+    </test>
+    <test name="Nothing happens to u" language="python">
+assert maxdu &lt; 1e-8
     </test>
   </pass_tests>
   <warn_tests>

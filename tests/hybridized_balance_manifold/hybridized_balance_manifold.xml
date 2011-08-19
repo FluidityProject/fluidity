@@ -6,7 +6,7 @@
   <owner userid="colin"/>
   <tags>flml swml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>shallow_water -v 3 hybridized_balance_manifold1.swml &gt; 1.log 2&gt;&amp;1; shallow_water -v 3 hybridized_balance_manifold2.swml &gt; 2.log 2&gt;&amp;1; shallow_water -v 3 hybridized_balance_manifold3.swml &gt; 3.log 2&gt;&amp;1;
+    <command_line>shallow_water -v 3 hybridized_balance_manifold1.swml &gt; 1.log 2&gt;&amp;1; shallow_water -v 3 hybridized_balance_manifold2.swml &gt; 2.log 2&gt;&amp;1; shallow_water -v 3 hybridized_balance_manifold3.swml &gt; 3.log 2&gt;&amp;1; shallow_water -v 3 energy_manifold.swml &gt; energy.log 2&gt;&amp;1; 
     </command_line>
   </problem_definition>
   <variables>
@@ -64,6 +64,15 @@ for line in f:
       DeltaU3 = double(line)
 f.close()
     </variable>
+    <variable name="DeltaE" language="python">
+from numpy import double
+f = open('energy.log', 'r')
+for line in f:
+   if 'Percentage Change in energy:=' in line:
+      line = line.replace('Percentage Change in energy:=','')
+      DeltaE = double(line)
+f.close()
+    </variable>
   </variables>
   <pass_tests>
     <test name="Flat D steady state" language="python">
@@ -83,6 +92,9 @@ assert(abs(DeltaD3) &lt; 1.0e-8)
     </test>
     <test name="Random U steady state" language="python">
 assert(abs(DeltaU3) &lt; 1.0e-8)
+    </test>
+    <test name="Energy conserved" language="python">
+assert(abs(DeltaE) &lt; 1.0e-8)
     </test>
   </pass_tests>
   <warn_tests>

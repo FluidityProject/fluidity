@@ -146,7 +146,8 @@ contains
 
     !compute rescaling weights for local coordinates
     allocate(weights(element_count(X)))
-    call get_weights(X,weights)
+    weights = 1.0
+    !call get_weights(X,weights)
     
     !Assemble matrices
     do ele = 1, ele_count(D)
@@ -1466,7 +1467,8 @@ contains
 
     !compute rescaling weights for local coordinates
     allocate(weights(element_count(X)))
-    call get_weights(X,weights)
+    weights = 1.0
+    !call get_weights(X,weights)
 
     !STAGE 1: Set velocity from streamfunction
     do ele = 1, element_count(D)

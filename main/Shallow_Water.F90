@@ -201,6 +201,7 @@
     ! Always output the initial conditions.
     call output_state(state)
 
+    !This needs an option to switch on as we don't always want to do it.
     !if(hybridized) then
     !   !project velocity into div-conforming space
     !   v_field => extract_vector_field(state(1),"LocalVelocity")
