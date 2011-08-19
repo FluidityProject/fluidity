@@ -49,7 +49,7 @@ implicit none
   private
 
   public :: initialise_lagrangian_biology, lagrangian_biology_cleanup, &
-            calculate_lagrangian_biology
+            update_lagrangian_biology, calculate_agent_diagnostics
 
   type(detector_linked_list), dimension(:), allocatable, target, save :: agent_arrays
 
@@ -58,7 +58,7 @@ implicit none
 contains
 
   subroutine initialise_lagrangian_biology(state)
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
 
     type(detector_type), pointer :: agent
     type(vector_field), pointer :: xfield
@@ -105,6 +105,7 @@ contains
           call get_option(trim(stage_buffer)//"/name", stage_name)
           agent_arrays(i)%name = trim(fg_name)//trim(stage_name)
           agent_arrays(i)%fg_id = fg
+          call get_option(trim(stage_buffer)//"/id", agent_arrays(i)%stage_id)
 
           ! Register the agent array, so Zoltan/Adaptivity will not forget about it
           call register_detector_list(agent_arrays(i))
@@ -152,6 +153,13 @@ contains
              call create_single_detector(agent_arrays(i), xfield, coords(:,j), j, det_type, trim(int2str(j)))
           end do
           deallocate(coords)
+
+          ! Set agent%list_id, because we need it to detect stage changes
+          agent=>agent_arrays(i)%first
+          do while (associated(agent))
+             agent%list_id=agent_arrays(i)%id
+             agent=>agent%next
+          end do
 
           ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
 
@@ -285,16 +293,15 @@ contains
 
   end subroutine lagrangian_biology_cleanup
 
-  subroutine calculate_lagrangian_biology(state, time, dt, timestep)
-    type(state_type), dimension(:), intent(in) :: state
+  subroutine update_lagrangian_biology(state, time, dt, timestep)
+    type(state_type), dimension(:), intent(inout) :: state
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
 
     type(detector_type), pointer :: agent
-    type(scalar_field), pointer :: sfield, request_field, chemical_field, absorption_field, &
-                                   depletion_field, release_field, source_field
+    type(detector_linked_list) :: stage_change_list
     type(vector_field), pointer :: xfield
-    integer :: i, j, n, current_fg
+    integer :: i, j
 
     ewrite(1,*) "In calculate_lagrangian_biology"
 
@@ -324,26 +331,72 @@ contains
           do while (associated(agent))
              call python_calc_agent_biology(agent, xfield, dt, trim(agent_arrays(i)%name), trim("biology_update"))
 
+             ! Check for stage change
+             if (agent%biology(1) /= agent_arrays(i)%stage_id) then
+                call move(agent, agent_arrays(i), stage_change_list)
+             end if
              agent=>agent%next
           end do
 
+       end if
+    end do
+
+    ! Handle stage changes within FG
+    agent=>stage_change_list%first
+    do while (associated(agent))
+       do j=1, size(agent_arrays)
+          if (agent_arrays(j)%fg_id == agent_arrays(agent%list_id)%fg_id) then
+             if (agent_arrays(j)%stage_id==agent%biology(1)) then
+                call move(agent, stage_change_list, agent_arrays(j))
+             end if
+          end if
+       end do
+       agent=>agent%next
+    end do
+
+    ! Output agent positions
+    do i = 1, size(agent_arrays)
+       call write_detectors(state, agent_arrays(i), time, dt)
+    end do
+
+  end subroutine update_lagrangian_biology
+
+  subroutine calculate_agent_diagnostics(state)
+    type(state_type), intent(inout) :: state
+
+    type(scalar_field), pointer :: sfield, request_field, chemical_field, absorption_field, &
+                                   depletion_field, release_field, source_field
+    type(vector_field), pointer :: xfield
+    integer :: i, j, n, current_fg
+
+    xfield=>extract_vector_field(state, "Coordinate")
+
+    do i = 1, size(agent_arrays)
+       if (agent_arrays(i)%has_biology) then
           ! Reset the diagnostic fields associated with the agent array
           do j=1, size(agent_arrays(i)%biovar_list)
              if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
-                sfield=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
+                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
+                call zero(sfield)
+             end if
+             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
+                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Absorption")
+                call zero(sfield)
+             end if
+             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
+                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Source")
                 call zero(sfield)
              end if
           end do
        end if
     end do
 
-    ! Calculate diagnostic fields from agents variables
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovar_list)
              if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
-                sfield=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
-                call set_diagnostic_field_from_agents(agent_arrays(i), j, sfield)
+                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
+                call addto_diagnostic_field_from_agents(agent_arrays(i), j, sfield, xfield)
              end if
           end do
        end if
@@ -356,11 +409,10 @@ contains
           do j=1, size(agent_arrays(i)%biovar_list)
              ! Handle chemical uptake
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
-                request_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
-                chemical_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%chemfield_list(j)))
-                absorption_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%chemfield_list(j))//"Absorption")
-                depletion_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%biovar_list(j))//"Depletion")
-                call zero(depletion_field)
+                request_field=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
+                chemical_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j)))
+                absorption_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Absorption")
+                depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%biovar_list(j))//"Depletion")
 
                 do n=1, node_count(request_field)
                    if (node_val(request_field,n) > node_val(chemical_field,n)) then
@@ -370,16 +422,16 @@ contains
                       call set(depletion_field, n, 1.0)
                    end if
 
-                   call set(absorption_field, n, node_val(request_field,n) * node_val(depletion_field,n))
+                   call addto(absorption_field, n, node_val(request_field,n) * node_val(depletion_field,n))
                 end do
              end if
 
              ! Handle chemical release
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
-                release_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%biofield_list(j)))
-                source_field=>extract_scalar_field(state(1), trim(agent_arrays(i)%chemfield_list(j))//"Source")
+                release_field=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
+                source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Source")
                 do n=1, node_count(release_field)
-                   call set(source_field, n, node_val(release_field,n))
+                   call addto(source_field, n, node_val(release_field,n))
                 end do
              end if
           end do
@@ -388,39 +440,38 @@ contains
        end if
     end do
 
-    ! Output agent positions
-    do i = 1, size(agent_arrays)
-       call write_detectors(state, agent_arrays(i), time, dt)
-    end do
+  end subroutine calculate_agent_diagnostics
 
-  end subroutine calculate_lagrangian_biology
-
-  subroutine set_diagnostic_field_from_agents(agent_list, biovar_id, sfield)
+  subroutine addto_diagnostic_field_from_agents(agent_list, biovar_id, sfield, xfield)
     type(detector_linked_list), intent(inout) :: agent_list
     integer, intent(in) :: biovar_id
-    type(scalar_field), intent(inout) :: sfield
+    type(scalar_field), pointer, intent(inout) :: sfield
+    type(vector_field), pointer, intent(inout) :: xfield
 
     type(detector_type), pointer :: agent
     type(element_type), pointer :: shape
     integer, dimension(ele_loc(sfield, agent_list%first%element)) :: element_nodes
-    real :: value, scaled_value
-    integer :: i
+    real :: value, scaled_value, ele_volume, shape_val
+    integer :: i, j
 
-    ewrite(2,*) "In set_diagnostic_field_from_agents"
+    ewrite(2,*) "In addto_diagnostic_field_from_agents: ", sfield%name
 
     agent => agent_list%first
     do while (associated(agent))
        value = agent%biology(biovar_id)
        shape => ele_shape(sfield, agent%element)
+       ele_volume = element_volume(xfield, agent%element)
        element_nodes = ele_nodes(sfield, agent%element)
+
        do i=1, ele_loc(sfield, agent%element)
-          scaled_value = value * eval_shape(shape, i, agent%local_coords)
+          shape_val = eval_shape(shape, i, agent%local_coords)
+          scaled_value = value * shape_val / ele_volume
           call addto(sfield, element_nodes(i), scaled_value)
        end do
 
        agent => agent%next
     end do
 
-  end subroutine set_diagnostic_field_from_agents
+  end subroutine addto_diagnostic_field_from_agents
 
 end module lagrangian_biology

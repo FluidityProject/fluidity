@@ -54,6 +54,9 @@
     <finish_time>
       <real_value rank="0">63072000</real_value>
     </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">2</integer_value>
+    </nonlinear_iterations>
   </timestepping>
   <material_phase name="water">
     <subgridscale_parameterisations>

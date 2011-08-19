@@ -403,6 +403,7 @@ contains
     ! Initialise lagrangian biology agents
     if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
        call initialise_lagrangian_biology(state(1))
+       call calculate_agent_diagnostics(state(1))
     end if
 
     ! Initialise radiation specific data types and register radiation diagnostics
@@ -509,6 +510,11 @@ contains
        end if
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
+
+       ! Calculate diagnostic fields from agents variables before any fields get solved
+       if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
+          call calculate_agent_diagnostics(state(1))
+       end if
 
        call copy_to_stored_values(state,"Old")
        if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
@@ -843,6 +849,12 @@ contains
           end if
        end if
 
+       ! Update lagrangian biology after the non-linear iterations
+       if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
+          ! Update biology agents
+          call update_lagrangian_biology(state, current_time, dt, timestep)
+       end if
+
        if (have_option("/implicit_solids")) then
           call implicit_solids_update(state(1))
           if (have_option("/timestepping/nonlinear_iterations/tolerance")) then
@@ -850,11 +862,6 @@ contains
                 call implicit_solids_nonlinear_iteration_converged()
              end if
           end if
-       end if
-
-       ! Call lagrangian biology after the non-linear iterations
-       if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
-          call calculate_lagrangian_biology(state, current_time, dt, timestep)
        end if
 
        if(have_option(trim('/mesh_adaptivity/mesh_movement/vertical_ale'))) then

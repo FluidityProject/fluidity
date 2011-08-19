@@ -157,8 +157,8 @@ def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradian
 
   # ...before updating carbon pool and chlorophyll
   if (death_flag):
-    ### TODO: state change! ###
-    print "Warning: Diatom death occured, but state not changed!"
+    ###  state change! ###
+    vars[name['Stage']] = 1.0
 
     CarbonPoolNew = 0.0
     ChlorophyllPoolNew = 0.0;
