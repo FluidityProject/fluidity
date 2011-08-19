@@ -52,6 +52,7 @@ module hybridized_helmholtz
 contains
   subroutine solve_hybridized_helmholtz(state,D_rhs,U_Rhs,&
        &D_out,U_out,&
+       &dt_in,theta_in,&
        &compute_cartesian,&
        &check_continuity,output_dense,&
        &projection,poisson,u_rhs_local,&
@@ -77,6 +78,7 @@ contains
     type(vector_field), intent(inout), optional :: U_rhs
     type(scalar_field), intent(inout), optional :: D_out
     type(vector_field), intent(inout), optional :: U_out
+    real, intent(in), optional :: theta_in,dt_in
     logical, intent(in), optional :: compute_cartesian, &
          &check_continuity,output_dense, projection,poisson
     logical, intent(in), optional :: u_rhs_local !means u_rhs is in local coords
@@ -137,13 +139,21 @@ contains
     !get parameters
     call get_option("/physical_parameters/gravity/magnitude", g)
     !theta
-    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
-         &prognostic/temporal_discretisation/theta",theta)
+    if(present(theta_in)) then
+       theta = theta_in
+    else
+       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
+            &prognostic/temporal_discretisation/theta",theta)
+    end if
     !D0
     call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
          &p&
          &rognostic/mean_layer_thickness",D0)
-    call get_option("/timestepping/timestep", dt)
+    if(present(dt_in)) then
+       dt = dt_in
+    else
+       call get_option("/timestepping/timestep", dt)
+    end if
 
     !compute rescaling weights for local coordinates
     allocate(weights(element_count(X)))
@@ -1673,5 +1683,30 @@ contains
          &u_rhs_local=.true.)
 
   end subroutine project_to_constrained_space
+
+  subroutine solve_linear_timestep_hybridized(&
+       &state,dt_in,theta_in)
+    implicit none
+    type(state_type), intent(inout) :: state
+    real, intent(in) :: dt_in, theta_in
+    !
+    type(vector_field), pointer :: u,u_rhs
+    type(scalar_field), pointer :: d,d_rhs
+    
+    D=>extract_scalar_field(state, "LayerThickness")
+    d_rhs=>extract_scalar_field(state, "LayerThickness_RHS")
+    U=>extract_vector_field(state, "LocalVelocity")
+    u_rhs=>extract_vector_field(state, "LocalVelocity_RHS")
+    
+    call solve_hybridized_helmholtz(&
+         &state,&
+         &U_out=U_rhs,D_out=d_rhs,&
+         &compute_cartesian=.true.,&
+         &check_continuity=.true.,output_dense=.false.)
+    ewrite(1,*) 'jump in D', maxval(abs(d_rhs%val-d%val))
+    ewrite(1,*) 'jump in U', maxval(abs(U_rhs%val-U%val))
+    call set(d,d_rhs)
+    call set(U,U_rhs)
+  end subroutine solve_linear_timestep_hybridized
 
 end module hybridized_helmholtz

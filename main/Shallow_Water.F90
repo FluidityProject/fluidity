@@ -587,9 +587,6 @@
 
          if(.not.hybridized) then
             call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=0.0)
-            call set(advecting_u,old_u)
-            call scale(advecting_u,(1-itheta))
-            call addto(advecting_u,u,scale=itheta)
          end if
 
          !velocity advection step
@@ -620,21 +617,14 @@
          end if
 
          if(hybridized) then
-            call solve_hybridized_helmholtz(&
-                 &state,&
-                 &U_out=U_rhs,D_out=h_rhs,&
-                 &compute_cartesian=.true.,&
-                 &check_continuity=.true.,output_dense=.false.)
-            ewrite(1,*) 'jump in D', maxval(abs(h_rhs%val-h%val))
-            ewrite(1,*) 'jump in U', maxval(abs(U_rhs%val-U%val))
-            call set(h,h_rhs)
-            call set(U,U_rhs)
+            call solve_linear_timestep_hybridized(&
+                 &state,dt_in=dt,theta_in=0.5)
          else
             call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=1.0)
-            call set(advecting_u,old_u)
-            call scale(advecting_u,(1-itheta))
-            call addto(advecting_u,u,scale=itheta)
          end if
+         call set(advecting_u,old_u)
+         call scale(advecting_u,(1-itheta))
+         call addto(advecting_u,u,scale=itheta)
 
       end do
 
