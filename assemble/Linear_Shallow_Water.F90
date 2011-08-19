@@ -43,6 +43,7 @@ module linear_shallow_water
     use diagnostic_variables
     use diagnostic_fields_wrapper
     use assemble_cmc
+    use manifold_tools
     use global_parameters, only: option_path_len, running_adjoint
     implicit none
 
@@ -560,29 +561,6 @@ contains
            end do
         end do
       end if
-
-      contains
-        !function for getting normal to surface
-        !only works for flat elements
-        function get_up_vec(X_val, up) result (up_vec_out)
-          real, dimension(:,:), intent(in) :: X_val           !(dim,loc)
-          real, dimension(:), intent(in) :: up
-          real, dimension(size(X_val,1)) :: up_vec_out
-          !
-          real, dimension(size(X_val,1)) :: t1,t2
-          ! if elements are triangles:
-          if(size(X_val,2)==3) then
-             t1 = X_val(:,2)-X_val(:,1)
-             t2 = X_val(:,3)-X_val(:,1)
-             up_vec_out(1) = t1(2)*t2(3)-t1(3)*t2(2)
-             up_vec_out(2) = -(t1(1)*t2(3)-t1(3)*t2(1))
-             up_vec_out(3) = t1(1)*t2(2)-t1(2)*t2(1)
-             up_vec_out = up_vec_out*dot_product(up_vec_out, up)
-             up_vec_out = up_vec_out/sqrt(sum(up_vec_out**2))
-          else
-             up_vec_out = up
-          end if
-        end function get_up_vec
 
     end subroutine assemble_shallow_water_matrices_ele
 
