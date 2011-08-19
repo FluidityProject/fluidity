@@ -193,7 +193,7 @@
        if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
             & .true.
     end if
-
+    
     call get_parameters
 
     ! No support for multiphase or multimaterial at this stage.
@@ -585,7 +585,10 @@
          call set(h,old_h)
          call set(h_DG,old_h_DG)
 
-         if(.not.hybridized) then
+         if(hybridized) then
+            call solve_linear_timestep_hybridized(&
+                 &state,dt_in=0.5*dt,theta_in=0.0)
+         else
             call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=0.0)
          end if
 
@@ -618,7 +621,7 @@
 
          if(hybridized) then
             call solve_linear_timestep_hybridized(&
-                 &state,dt_in=dt,theta_in=0.5)
+                 &state,dt_in=0.5*dt,theta_in=1.0)
          else
             call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=1.0)
          end if
