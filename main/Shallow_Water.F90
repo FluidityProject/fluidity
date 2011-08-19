@@ -201,11 +201,11 @@
     ! Always output the initial conditions.
     call output_state(state)
 
-    if(hybridized) then
-       !project velocity into div-conforming space
-       v_field => extract_vector_field(state(1),"LocalVelocity")
-       call project_to_constrained_space(state(1),v_field)
-    end if
+    !if(hybridized) then
+    !   !project velocity into div-conforming space
+    !   v_field => extract_vector_field(state(1),"LocalVelocity")
+    !   call project_to_constrained_space(state(1),v_field)
+    !end if
 
     if(hybridized) then
        call compute_energy_hybridized(state(1),energy)

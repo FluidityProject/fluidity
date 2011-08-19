@@ -1523,9 +1523,9 @@ contains
     
     do dim1 = 1, mesh_dim(D)
        ewrite(2,*) 'Balance equation', maxval(abs(balance_eqn%val(dim1,:)))/b_val
-       !assert(maxval(abs(balance_eqn%val(dim1,:)))/b_val<1.0e-6)
+       !assert(maxval(abs(balance_eqn%val(dim1,:)))/b_val<1.0e-8)
     end do
- 
+    
  !Clean up after yourself
     call deallocate(Coriolis_term)
     call deallocate(D_rhs)
@@ -1686,10 +1686,6 @@ contains
 
     call get_up_gi(X,ele,up_gi)
 
-    !debugging stuff
-    do dim1 = 1, X%dim
-       ewrite(1,*) 'dim, up_gi',dim1,up_gi(dim1,:)
-    end do
     coriolis_rhs = 0.
     l_u_mat = 0.
     !metrics for velocity mass and coriolis matrices

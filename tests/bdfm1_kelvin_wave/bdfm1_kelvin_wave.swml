@@ -132,7 +132,7 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">100</real_value>
+      <real_value rank="0">5000</real_value>
       <comment>params["finish_time"]=4*2*pi*r0/c</comment>
     </finish_time>
   </timestepping>
