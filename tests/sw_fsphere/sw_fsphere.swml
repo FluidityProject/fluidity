@@ -8,7 +8,7 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="sphere">
+      <from_file file_name="sphere_ico">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>

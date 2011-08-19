@@ -172,6 +172,7 @@
     timestep=0
 
     call populate_state(state)
+
     ! Read in any control variables
     call adjoint_load_controls(timestep, dt, state)
     call adjoint_register_initial_eta_condition(state)
@@ -207,11 +208,12 @@
     ! Always output the initial conditions.
     call output_state(state)
 
-    if(hybridized) then
-       !project velocity into div-conforming space
-       v_field => extract_vector_field(state(1),"LocalVelocity")
-       call project_to_constrained_space(state(1),v_field)
-    end if
+    !This needs an option to switch on as we don't always want to do it.
+    !if(hybridized) then
+    !   !project velocity into div-conforming space
+    !   v_field => extract_vector_field(state(1),"LocalVelocity")
+    !   call project_to_constrained_space(state(1),v_field)
+    !end if
 
     if(hybridized) then
        call compute_energy_hybridized(state(1),energy)
@@ -228,6 +230,7 @@
 
     timestep_loop: do
        timestep=timestep+1
+       if (simulation_completed(current_time, timestep)) exit timestep_loop
        ewrite (1,*) "SW: start of timestep ", timestep, current_time
 
        ! this may already have been done in populate_state, but now
@@ -381,6 +384,14 @@
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta",theta)
+
+      hybridized = .false.
+      v_field => extract_vector_field(state(1),"Velocity")
+      if(associated(v_field%mesh%shape%constraints)) then
+         if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE)&
+              & hybridized =&
+              & .true.
+      end if
 
       if(.not.hybridized) then
          ! This is here so that matrices are available for adjoint and
