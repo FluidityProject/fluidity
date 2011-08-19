@@ -10,6 +10,9 @@
     <mesh name="CoordinateMesh">
       <from_file file_name="sphere">
         <format name="triangle"/>
+        <dimension>
+          <integer_value rank="0">2</integer_value>
+        </dimension>
         <stat>
           <include_in_stat/>
         </stat>
@@ -64,7 +67,7 @@
       <real_value rank="0">100.0</real_value>
     </timestep>
     <nonlinear_iterations>
-      <integer_value rank="0">1</integer_value>
+      <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
     <finish_time>
       <real_value rank="0">864000</real_value>
@@ -111,7 +114,7 @@ val=coriolis(omega)</string_value>
         <spatial_discretisation>
           <discontinuous_galerkin>
             <advection_scheme>
-              <none/>
+              <upwind/>
             </advection_scheme>
           </discontinuous_galerkin>
           <conservative_advection>

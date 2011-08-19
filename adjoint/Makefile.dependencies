@@ -70,10 +70,9 @@ Burgers_Adjoint_Callbacks.o ../include/burgers_adjoint_callbacks.mod: \
 Burgers_Control_Callbacks.o ../include/burgers_adjoint_controls.mod: \
    Burgers_Control_Callbacks.F90 ../include/fdebug.h ../include/fields.mod \
    ../include/global_parameters.mod \
-   ../include/mangle_dirichlet_rows_module.mod \
-   ../include/manifold_projections.mod ../include/python_state.mod \
-   ../include/sparse_matrices_fields.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/mangle_dirichlet_rows_module.mod ../include/manifold_tools.mod \
+   ../include/python_state.mod ../include/sparse_matrices_fields.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/forward_main_loop.mod: Forward_Main_Loop.o
 	@true
@@ -128,7 +127,7 @@ Shallow_Water_Adjoint_Callbacks.o \
    Shallow_Water_Adjoint_Callbacks.F90 ../include/adjoint_global_variables.mod \
    ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
    ../include/libadjoint_data_callbacks.mod ../include/mangle_options_tree.mod \
-   ../include/manifold_projections.mod ../include/populate_state_module.mod \
+   ../include/manifold_tools.mod ../include/populate_state_module.mod \
    ../include/sparse_matrices_fields.mod ../include/spud.mod \
    ../include/state_module.mod
 
@@ -140,7 +139,7 @@ Shallow_Water_Control_Callbacks.o \
    ../include/shallow_water_adjoint_controls.mod: \
    Shallow_Water_Control_Callbacks.F90 ../include/fdebug.h \
    ../include/fields.mod ../include/global_parameters.mod \
-   ../include/manifold_projections.mod ../include/python_state.mod \
+   ../include/manifold_tools.mod ../include/python_state.mod \
    ../include/sparse_matrices_fields.mod ../include/spud.mod \
    ../include/state_module.mod
 

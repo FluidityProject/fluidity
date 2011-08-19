@@ -714,6 +714,39 @@ contains
 
   end function dshape_dot_vector_shape
 
+  function dshape_dot_vector_tensor_shape(dshape, vector, tensor, shape, detwei) result (R)
+    !!< 
+    !!< Evaluate ((Grad N1 dot vector) x tensor) (N2)
+    !!<
+    real, dimension(:,:,:), intent(in) :: dshape
+    real, dimension(size(dshape,3),size(dshape,2)), intent(in) :: vector
+    real, dimension(:,:,:), intent(in) :: tensor
+    type(element_type), intent(in) :: shape
+    real, dimension(size(dshape,2)) :: detwei
+
+    real, dimension(size(tensor,1),size(tensor,2),size(dshape,1),shape%loc) ::&
+         & R
+    real, dimension(size(dshape,1),size(dshape,2)) :: dshape_dot_vector
+
+    integer :: dshape_loc
+    integer :: iloc,jloc,i,j
+
+    assert(size(tensor,3)==shape%ngi)
+    dshape_loc=size(dshape,1)
+
+    dshape_dot_vector=0.
+    forall(iloc=1:dshape_loc)
+       dshape_dot_vector(iloc,:)=sum(dshape(iloc,:,:)*transpose(vector(:,:)),2)
+    end forall
+
+    forall(iloc=1:dshape_loc,jloc=1:shape%loc,i=1:size(tensor,1),j=1:size(tensor,2))
+       ! Main mass matrix.
+       R(i,j,iloc,jloc)=&
+            sum(dshape_dot_vector(iloc,:)*shape%n(jloc,:)*tensor(i,j,:)*detwei)
+    end forall
+
+  end function dshape_dot_vector_tensor_shape
+
   function dshape_dot_tensor_shape(dshape, tensor, shape, detwei) result (R)
     !!<          /
     !!< Evaluate | (Grad N1 dot tensor) (N2)
@@ -764,6 +797,32 @@ contains
     end forall
 
   end function shape_vector_dot_dshape
+
+  function shape_vector_dot_dshape_tensor(shape, vector, dshape, tensor, detwei) result (R)
+    !!< 
+    !!< Evaluate (Grad N1 dot vector) (N2)
+    !!< 
+    type(element_type), intent(in) :: shape
+    real, dimension(:,:,:), intent(in) :: dshape
+    real, dimension(size(dshape,3),size(dshape,2)), intent(in) :: vector
+    real, dimension(:,:,:), intent(in) :: tensor
+    real, dimension(size(dshape,2)) :: detwei
+
+    real, dimension(size(tensor,1), size(tensor,2), shape%loc, size(dshape,1)) :: R
+
+    integer :: iloc,jloc,i,j
+    integer :: dshape_loc, dim
+
+
+    dshape_loc=size(dshape,1)
+    dim=size(dshape,3)
+
+    forall(iloc=1:shape%loc,jloc=1:dshape_loc,i=1:size(tensor,1),j=1:size(tensor,2))
+       R(i,j,iloc,jloc)= dot_product(shape%n(iloc,:) * &
+            sum(dshape(jloc,:,:)*transpose(vector),2), tensor(i,j,:)*detwei)
+    end forall
+
+  end function shape_vector_dot_dshape_tensor
 
   function shape_curl_shape_2d(shape, dshape, detwei) result (R)
     !!<            /          

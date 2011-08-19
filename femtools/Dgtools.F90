@@ -495,6 +495,7 @@ contains
     type(csr_matrix) :: mass_comp
     type(scalar_field) :: s_field
     !
+    assert(block_mass%diagonal)
     do i = 1, v_field%dim
        mass_comp = block(block_mass,i,i)
        s_field = extract_scalar_field_from_vector_field(v_field,i)

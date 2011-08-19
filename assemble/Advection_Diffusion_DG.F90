@@ -1354,6 +1354,9 @@ contains
       mass_mat = shape_shape(T_shape, T_shape, detwei)
     end if
 
+    print*, 'mass_mat'
+    print*, mass_mat
+
     if (include_advection) then
 
       ! Advecting velocity at quadrature points.
@@ -1406,6 +1409,9 @@ contains
              end if
           end if
        end if
+
+       print*, 'Advection_mat'
+       print*, Advection_mat
        
        ! Add stabilisation to the advection term if requested by the user.
        if (stabilisation_scheme==UPWIND) then
@@ -2457,7 +2463,6 @@ contains
        nnAdvection_in=shape_shape(T_shape, T_shape_2, &
             &                       outer_advection_integral * detwei) 
 
-
     end if
     if (include_diffusion.or.have_buoyancy_adjustment_by_vertical_diffusion) then
        
@@ -2488,6 +2493,11 @@ contains
     !----------------------------------------------------------------------
     ! Perform global assembly.
     !----------------------------------------------------------------------
+
+    print*, 'nnAdvection_in'
+    print*, nnAdvection_in
+    print*, 'nnAdvection_out'
+    print*, nnAdvection_out
 
     ! Insert advection in matrix.
     if (include_advection) then

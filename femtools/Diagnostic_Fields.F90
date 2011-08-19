@@ -59,6 +59,7 @@ module diagnostic_fields
   use interpolation_module
   use Vector_Tools
   use streamfunction
+  use manifold_tools
 
   implicit none
 
@@ -66,6 +67,7 @@ module diagnostic_fields
 
   public :: insert_diagnostic_field, calculate_diagnostic_variable
   public :: calculate_cfl_number, calculate_galerkin_projection
+  public :: calculate_courant_number_dg
   
   interface calculate_diagnostic_variable
      module procedure calculate_scalar_diagnostic_variable_single_state, &
@@ -165,6 +167,9 @@ contains
 
       case("DG_CourantNumber")
         call calculate_courant_number_DG(state, d_field, dt=dt)
+        
+      case("DG_CourantNumber_Local")
+        call calculate_courant_number_local_DG(state, d_field, dt=dt)
         
       case("CVMaterialDensityCFLNumber")
         call calculate_matdens_courant_number_cv(state, d_field, dt=dt)
@@ -1634,16 +1639,63 @@ contains
     
     call zero(courant)
     
+    if(X%dim==U%dim) then
+       do ele = 1, element_count(courant)
+          call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt)
+       end do
+    else
+       do ele = 1, element_count(courant)
+          call calculate_courant_number_local_dg_ele(courant,x,u,ele,l_dt)
+       end do
+    end if
+
+    ! the courant values at the edge of the halo are going to be incorrect
+    ! this matters when computing the max courant number
+    call halo_update(courant)
+
+  end subroutine calculate_courant_number_dg
+
+  subroutine calculate_courant_number_local_dg(state, courant, dt)
+    !!< Calculate courant number for DG velocity fields
+    !!< == positive fluxes of unit function into element
+    !!< *dt/volume of element
+
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: courant
+    real, intent(in), optional :: dt
+    !
+    type(vector_field), pointer :: u, x
+    real :: l_dt
+    integer :: ele, stat
+
+    u=>extract_vector_field(state, "NonlinearVelocity",stat)
+    if(stat.ne.0) then    
+       u=>extract_vector_field(state, "Velocity",stat)
+       if(stat.ne.0) then
+          FLExit('Missing velocity field!')
+       end if
+    end if
+    x=>extract_vector_field(state, "Coordinate")
+
+    if(present(dt)) then
+       l_dt = dt
+    else
+       call get_option("/timestepping/timestep",l_dt)
+    end if
+    
+    call zero(courant)
+    
     do ele = 1, element_count(courant)
 
-       call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt)
+       call calculate_courant_number_local_dg_ele(courant,x,u,ele,l_dt)
+
     end do
     
     ! the courant values at the edge of the halo are going to be incorrect
     ! this matters when computing the max courant number
     call halo_update(courant)
 
-  end subroutine calculate_courant_number_dg
+  end subroutine calculate_courant_number_local_dg
 
   subroutine calculate_courant_number_dg_ele(courant,x,u,ele,dt)
     type(vector_field), intent(in) :: x, u
@@ -1687,7 +1739,8 @@ contains
             &                          detwei_f=detwei_f,&
             &                          normal=normal) 
 
-       Flux_quad = -sum(U_f_quad*normal,1)
+       Flux_quad = sum(U_f_quad*normal,1)
+       print*, Flux_quad
        Flux_quad = max(Flux_quad,0.0)
 
        Flux = Flux + sum(Flux_quad*detwei_f)
@@ -1700,6 +1753,66 @@ contains
     call set(Courant,U_ele,Vals)
 
   end subroutine calculate_courant_number_dg_ele
+
+  subroutine calculate_courant_number_local_dg_ele(courant,x,u,ele,dt)
+    type(vector_field), intent(in) :: x, u
+    type(scalar_field), intent(inout) :: courant
+    real, intent(in) :: dt
+    integer, intent(in) :: ele
+    !
+    real :: Vol
+    real :: Flux
+    integer :: ni, ele_2, face, face_2, gi, i, k
+    integer, dimension(:), pointer :: neigh
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(X,ele)) :: detwei
+    real, dimension(U%dim, face_ngi(U, 1)) :: n1, n2, U_f_q, U_f2_q
+    real, dimension(face_ngi(U,1)) :: u_q_dotn1, u_q_dotn2, u_q_dotn, flux_quad
+    type(element_type), pointer :: U_shape
+    integer, dimension(:), pointer :: u_ele
+    real, dimension(ele_loc(u,ele)) :: Vols
+    real :: val, w1, w2
+    real, dimension(ele_loc(u,ele)) :: Vals
+    !
+    !Get element volume
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, detwei=detwei)
+    Vol = sum(detwei)
+    
+    !Get fluxes
+    Flux = 0.0
+    neigh=>ele_neigh(U, ele)
+    do ni = 1, size(neigh)
+       ele_2=neigh(ni)
+       face=ele_face(U, ele, ele_2)
+       if(ele_2<0.0) then
+          face_2 = face
+       else
+          face_2=ele_face(U, ele_2, ele)
+       end if
+       
+       call get_local_normal(n1, w1, U, local_face_number(U%mesh,face))
+       call get_local_normal(n2, w2, U, local_face_number(U%mesh,face_2))
+
+       U_f_q = face_val_at_quad(U, face)
+       U_f2_q = face_val_at_quad(U, face_2)
+
+       u_q_dotn1 = -sum(U_f_q*w1*n1,1)
+       u_q_dotn2 = sum(U_f2_q*w2*n2,1)
+       Flux_quad=0.5*(u_q_dotn1+u_q_dotn2)
+       Flux_quad = max(Flux_quad,0.0)
+
+       U_shape=>face_shape(U,face)
+
+       Flux = Flux +sum(Flux_quad*U_shape%quadrature%weight,1)
+    end do
+
+    u_ele => ele_nodes(U,ele)
+
+    Val = Flux/Vol*dt
+    Vals = Val
+    call set(Courant,U_ele,Vals)
+
+  end subroutine calculate_courant_number_local_dg_ele
 
    subroutine calculate_courant_number_cv(state, courant, dt)
 

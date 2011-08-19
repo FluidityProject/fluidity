@@ -27,7 +27,7 @@
 
 #include "fdebug.h"
   program shallow_water
-    use advection_diffusion_dg
+    use advection_local_DG
     use advection_diffusion_cg
     use linear_shallow_water
     use spud
@@ -56,8 +56,10 @@
     & check_diagnostic_dependencies
     use iso_c_binding
     use mangle_options_tree
-    use manifold_projections
+    use manifold_tools
+    use FEFields
     use adjoint_controls
+    use field_copies_diagnostics
 #ifdef HAVE_ADJOINT
     use libadjoint_data_callbacks
     use shallow_water_adjoint_callbacks
@@ -104,33 +106,31 @@
                                          ! matrices in this state so that
                                          ! the adjoint callbacks can use
                                          ! them
-    real :: D0, g, theta, itheta
     logical :: exclude_velocity_advection, exclude_pressure_advection
+    logical :: prescribed_velocity
     logical :: hybridized
-   integer :: timestep, nonlinear_iterations
+    integer :: timestep, nonlinear_iterations
     integer :: ierr
 
     type(vector_field), pointer :: v_field
-    !! Sparsity for matrices.
-    type(csr_sparsity) :: ct_sparsity,u_sparsity,wave_sparsity
 
     !! Mass matrices
-    type(csr_matrix) :: h_mass_mat
-    type(block_csr_matrix) :: u_mass_mat
+    type(csr_matrix), pointer :: h_mass_mat
+    type(block_csr_matrix), pointer :: u_mass_mat
     !! Coriolis matrix
-    type(block_csr_matrix) :: coriolis_mat
+    type(block_csr_matrix), pointer :: coriolis_mat
     !! inverse Coriolis matrix
-    type(block_csr_matrix) :: inverse_coriolis_mat
+    type(block_csr_matrix), pointer :: inverse_coriolis_mat
     !! div matrix
-    type(block_csr_matrix) :: div_mat
+    type(block_csr_matrix), pointer :: div_mat
     !! Wave matrix
-    type(csr_matrix) :: wave_mat
-    !! U momentum matrix
-    type(block_csr_matrix) :: big_mat
+    type(csr_matrix), pointer :: wave_mat
+    !! inverseU momentum matrix
+    type(block_csr_matrix), pointer :: inverse_big_mat
     character(len = OPTION_PATH_LEN) :: simulation_name
     logical :: adjoint
     integer, save :: dump_no=0
-    real :: energy
+    real :: theta, energy
 #ifdef HAVE_ADJOINT
     ierr = adj_create_adjointer(adjointer)
     ! Register the data callbacks
@@ -186,6 +186,13 @@
     call get_option('/simulation_name',simulation_name)
     call initialise_diagnostics(trim(simulation_name),state)
 
+    hybridized = .false.
+    v_field => extract_vector_field(state(1),"Velocity")
+    if(associated(v_field%mesh%shape%constraints)) then
+       if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
+            & .true.
+    end if
+
     call get_parameters
 
     ! No support for multiphase or multimaterial at this stage.
@@ -200,13 +207,6 @@
     ! Always output the initial conditions.
     call output_state(state)
 
-    hybridized = .false.
-    v_field => extract_vector_field(state(1),"Velocity")
-    if(associated(v_field%mesh%shape%constraints)) then
-       if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
-            & .true.
-    end if
-
     if(hybridized) then
        !project velocity into div-conforming space
        v_field => extract_vector_field(state(1),"LocalVelocity")
@@ -216,12 +216,16 @@
     if(hybridized) then
        call compute_energy_hybridized(state(1),energy)
     else
-       call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+       call get_linear_energy(state(1),energy)
     end if
     ewrite(2,*) 'Initial Energy:', energy
 
     ! Register the control variables to disk if desired
     call adjoint_write_controls(timestep, dt, state)
+
+    ! get theta
+    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta",theta)
+
     timestep_loop: do
        timestep=timestep+1
        ewrite (1,*) "SW: start of timestep ", timestep, current_time
@@ -246,11 +250,14 @@
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=current_time + dt)
 
-       call project_local_to_cartesian(state(1))
+       if(.not. prescribed_velocity) then
+          call project_local_to_cartesian(state(1))
+       end if
        call calculate_diagnostic_variables(state,&
             & exclude_nonrecalculated = .true.)
        call calculate_diagnostic_variables_new(state,&
             & exclude_nonrecalculated = .true.)
+
        call adjoint_register_timestep(timestep, dt, state)
        ! Save the control variables to disk if desired
        call adjoint_write_controls(timestep, dt, state)
@@ -265,41 +272,35 @@
 #ifdef HAVE_ADJOINT
        call calculate_functional_values(timestep-1)
 #endif
-       call write_diagnostics(state,current_time, dt, timestep)
 
        !Update the variables
        if(hybridized) then
           call compute_energy_hybridized(state(1),energy)
        else
-          call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+          call get_linear_energy(state(1),energy)
        end if
        ewrite(2,*) 'Energy = ',energy
        
+       call write_diagnostics(state,current_time, dt, timestep)
+
     end do timestep_loop
 
     if(hybridized) then
        call compute_energy_hybridized(state(1),energy)
     else
-       call get_linear_energy(state(1),u_mass_mat,h_mass_mat,d0,g,energy)
+       call get_linear_energy(state(1),energy)
     end if
     ewrite(2,*) 'Final Energy:', energy
 
     ! One last dump
     call output_state(state)
+    call write_diagnostics(state,current_time, dt, timestep)
+
 #ifdef HAVE_ADJOINT
     call calculate_functional_values(timestep-1)
 #endif
     call write_diagnostics(state,current_time,dt,timestep)
 
-    if(.not.hybridized) then
-       call deallocate(h_mass_mat)
-       call deallocate(u_mass_mat)
-       call deallocate(coriolis_mat)
-       call deallocate(inverse_coriolis_mat)
-       call deallocate(div_mat)
-       call deallocate(wave_mat)
-       call deallocate(big_mat)
-    end if
     call deallocate(state)
     call deallocate_transform_cache
     call deallocate_reserve_state
@@ -375,30 +376,20 @@
       type(vector_field), pointer :: u, v_field, coord
       type(scalar_field), pointer :: eta
       type(vector_field) :: dummy_field
-
-      !Get some parameters
-      !gravity
-      call get_option("/physical_parameters/gravity/magnitude", g)
-      !theta
-      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta",theta)
-      !itheta
-
-      !D0
-      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
-           &rognostic/mean_layer_thickness",D0)
+      real :: theta
 
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta",theta)
 
       if(.not.hybridized) then
-         call setup_wave_matrices(state(1),u_sparsity,&
-              wave_sparsity,&
-              ct_sparsity,&
-              h_mass_mat,u_mass_mat,&
-              coriolis_mat,inverse_coriolis_mat,&
-              div_mat,wave_mat,big_mat, &
-              dt,theta,D0,g)
+         ! This is here so that matrices are available for adjoint and
+         ! for inverse_coriolis_mat which is needed for setting the
+         ! initial velocity from geostrophic balance. Otherwise this
+         ! is replaced by the call in solve_linear_timestep.
+         call setup_wave_matrices(state(1),dt,theta)
       end if
+
       v_field => extract_vector_field(state(1), "Velocity")
       call project_cartesian_to_local(state(1), v_field)
       if (has_vector_field(state(1), "VelocitySource")) then
@@ -412,20 +403,19 @@
            have_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
            &gnostic/spatial_discretisation/continuous_galerkin/advection_terms&
            &/exclude_advection_terms")
+      prescribed_velocity=have_option("/material_phase::Fluid/vector_field::Velocity/prescribed")
       exclude_velocity_advection = &
            have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
            &ic/spatial_discretisation/discontinuous_galerkin/advection_scheme/&
-           &none")
-      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
-           &gnostic/temporal_discretisation/relaxation",itheta)
-         ! Geostrophic balanced initial condition, if required
+           &none" ).or. prescribed_velocity
+
+      ! Geostrophic balanced initial condition, if required
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
            &/initial_condition::WholeMesh/balanced")) then
          if(hybridized) then
             call set_velocity_from_geostrophic_balance_hybridized(state(1))
          else
-            call set_velocity_from_geostrophic_balance(state(1), &
-                 div_mat, coriolis_mat, inverse_coriolis_mat)
+            call set_velocity_from_geostrophic_balance(state(1))
          end if
          call adjoint_register_initial_u_condition(balanced=.true.)
       else
@@ -434,6 +424,14 @@
 
       if(.not.hybridized) then
          ! Set up the state of cached matrices
+         u_mass_mat=>extract_block_csr_matrix(state(1), "LocalVelocityMassMatrix")
+         h_mass_mat=>extract_csr_matrix(state(1), "LayerThicknessMassMatrix")
+         coriolis_mat=>extract_block_csr_matrix(state(1), "CoriolisMatrix")
+         inverse_coriolis_mat=>extract_block_csr_matrix(state(1),&
+              & "InverseCoriolisMatrix")
+         div_mat=>extract_block_csr_matrix(state(1), "DivergenceMatrix")
+         wave_mat=>extract_csr_matrix(state(1), "WaveMatrix")
+         inverse_big_mat=>extract_block_csr_matrix(state(1), "InverseBigMatrix")
          call insert(matrices, u_mass_mat, "LocalVelocityMassMatrix")
          call insert(matrices, h_mass_mat, "LayerThicknessMassMatrix")
          call insert(matrices, coriolis_mat, "CoriolisMatrix")
@@ -441,7 +439,7 @@
               & "InverseCoriolisMatrix")
          call insert(matrices, div_mat, "DivergenceMatrix")
          call insert(matrices, wave_mat, "WaveMatrix")
-         call insert(matrices, big_mat, "InverseBigMatrix")
+         call insert(matrices, inverse_big_mat, "InverseBigMatrix")
       end if
       ! Also save the velocity and pressure mesh and the dimension
       eta => extract_scalar_field(state, "LayerThickness")
@@ -534,183 +532,273 @@
       real, intent(in) :: dt
 
       !! Layer thickness
-      type(scalar_field), pointer :: D, d_src
+      type(scalar_field), pointer :: h, d_src
       !! velocity
-      type(vector_field), pointer :: U
+      type(vector_field), pointer :: X, U, advecting_U
       !! Source term
       type(vector_field), pointer :: source
 
       !!Intermediate fields
-      type(scalar_field) :: d_rhs, delta_d, old_d, md_src
-      type(vector_field) :: u_rhs, delta_u, advecting_u, old_u
-      type(scalar_field) :: velocity_cpt, old_velocity_cpt
-      integer :: dim, nit, d1
-      real :: energy
+      type(scalar_field) :: h_DG, h_rhs, delta_h, old_h, old_h_DG, md_src
+      type(vector_field) :: u_rhs, delta_u, old_u
+      type(scalar_field), pointer ::h_projected, passive_tracer, old_passive_tracer
+      integer :: nit, d1
+      real :: itheta, energy
       logical :: have_source
 
+      ! get itheta
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
+           &gnostic/temporal_discretisation/relaxation",itheta)
+
       !Pull the fields out of state
-      D=>extract_scalar_field(state, "LayerThickness")
-      U=>extract_vector_field(state, "LocalVelocity")
-      have_source = .false.
-      if (has_vector_field(state, "LocalVelocitySource")) then
-        have_source = .true.
-        source => extract_vector_field(state, "LocalVelocitySource")
+      h=>extract_scalar_field(state, "LayerThickness")
+      if(has_scalar_field(state, "ProjectedLayerThickness")) then
+            h_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
       end if
-      dim = U%dim
+      X=>extract_vector_field(state, "Coordinate")
+      U=>extract_vector_field(state, "LocalVelocity")
+      old_U=extract_vector_field(state, "OldLocalVelocity")
+      advecting_u=>extract_vector_field(state, "NonlinearVelocity")
 
-      call execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
-           old_u,old_d,delta_d,delta_u)
+      call execute_timestep_setup(h,h_DG,U,h_rhs,u_rhs, &
+           old_u,old_h,old_h_DG,delta_h,delta_u)
 
-      call insert(state,advecting_u,"NonlinearVelocity")
-
+      ! advecting velocity in local coordinates
       call set(advecting_u,u)
       call set(old_u,u)
-      call set(old_d,d)
+      call set(old_h,h)
 
       do nit = 1, nonlinear_iterations
 
          call set(u,old_u)
-         call set(d,old_d)
+         call set(h,old_h)
+         call set(h_DG,old_h_DG)
+
+         if(.not.hybridized) then
+            call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=0.0)
+            call set(advecting_u,old_u)
+            call scale(advecting_u,(1-itheta))
+            call addto(advecting_u,u,scale=itheta)
+         end if
 
          !velocity advection step
          if(.not.exclude_velocity_advection) then
-            do d1 = 1, dim
-               velocity_cpt = extract_scalar_field(u,d1)
-               old_velocity_cpt = extract_scalar_field(old_u,d1)
-               call insert(state,velocity_cpt,"VelocityComponent")
-               call insert(state,old_velocity_cpt,"VelocityComponentOld")
-               call solve_advection_diffusion_dg("VelocityComponent", state)
-            end do
+            call solve_vector_advection_dg_subcycle("LocalVelocity", state, "NonlinearVelocity")
+            ewrite_minmax(u)
          end if
          !pressure advection
          if(.not.exclude_pressure_advection) then
-            call solve_field_equation_cg("LayerThickness", state, dt, &
+            call project_field(h, h_DG, X)
+            call set(old_h_DG,h_DG)
+            call vtk_write_fields('test', 0, X, U%mesh, sfields=(/h, h_DG/), vfields=(/advecting_u/))
+            ewrite_minmax(h_DG)
+            call solve_advection_dg_subcycle("DGLayerThickness", state, &
                  "NonlinearVelocity")
+            call vtk_write_fields('test', 1, X, U%mesh, sfields=(/h, h_DG/), vfields=(/advecting_u/))
+            call calculate_scalar_galerkin_projection(state, h_projected)
+            call set(h, h_projected)
+            call vtk_write_fields('test', 2, X, U%mesh, sfields=(/h, h_DG/), vfields=(/advecting_u/))
+         end if
+
+         if(has_scalar_field(state,"PassiveTracer")) then
+            ewrite(1,*) "Solving for PassiveTracer"
+            old_passive_tracer=>extract_scalar_field(state, 'OldPassiveTracer')
+            passive_tracer=>extract_scalar_field(state, 'PassiveTracer')
+            call set(old_passive_tracer, passive_tracer)
+            call solve_advection_dg_subcycle("PassiveTracer", state, "NonlinearVelocity")
          end if
 
          if(hybridized) then
             call solve_hybridized_helmholtz(&
                  &state,&
-                 &U_out=U_rhs,D_out=D_rhs,&
+                 &U_out=U_rhs,D_out=h_rhs,&
                  &compute_cartesian=.true.,&
                  &check_continuity=.true.,output_dense=.false.)
-            ewrite(1,*) 'jump in D', maxval(abs(D_rhs%val-D%val))
+            ewrite(1,*) 'jump in D', maxval(abs(h_rhs%val-h%val))
             ewrite(1,*) 'jump in U', maxval(abs(U_rhs%val-U%val))
-            call set(D,D_rhs)
+            call set(h,h_rhs)
             call set(U,U_rhs)
          else
-            !Wave equation step
-            ! M\Delta u + \Delta t F(\theta\Delta u + u^n) + \Delta t C(\theta
-            ! \Delta\eta + \eta^n) = 0
-            ! M\Delta h - \Delta t HC^T(\theta\Delta u + u^n) = 0
-            ! SO
-            ! (M+\theta\Delta t F)\Delta u =
-            !   -\theta\Delta t g C\Delta\eta + \Delta t(-Fu^n - gC\eta^n)
-            ! SET r = \Delta t(-Fu^n - gC\eta^n)
-            ! THEN SUBSTITUTION GIVES
-            ! (M + \theta^2\Delta t^2 gH C^T(M+\theta\Delta t F)^{-1}C)\Delta\eta
-            !  = \Delta t HC^T(u^n + \theta(M+\theta\Delta t F)^{-1}r)
-
-            !Construct explicit parts of u rhs
-            if (have_source) then
-               call get_u_rhs(u_rhs,U,D,dt,g, &
-                    coriolis_mat,div_mat,u_mass_mat, source)
-            else
-               call get_u_rhs(u_rhs,U,D,dt,g, &
-                    coriolis_mat,div_mat)
-            end if
-
-            !Construct explicit parts of h rhs in wave equation
-            call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,big_mat,D0,dt,theta)
-
-            if (has_scalar_field(state, "LayerThicknessSource")) then
-               d_src => extract_scalar_field(state, "LayerThicknessSource")
-               call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
-               call zero(md_src)
-               call mult(md_src, h_mass_mat, d_src)
-               call addto(d_rhs, md_src, scale=dt)
-               call deallocate(md_src)
-            endif
-
-            !Solve wave equation for D update
-            delta_d%option_path = d%option_path
-            call petsc_solve(delta_d, wave_mat, d_rhs)
-
-            !Add the new D contributions into the RHS for u
-            call update_u_rhs(u_rhs,U,delta_D,div_mat,theta,dt,g)
-
-            !Solve momentum equation for U update
-            call zero(delta_u)
-            call mult(delta_u, big_mat, u_rhs)
-
-            !Check the equation was solved correctly
-            if(have_option("/debug/check_solution")) then
-               call check_solution(delta_u,delta_d,d,u,dt,theta,g,D0,u_mass_mat&
-                    &,h_mass_mat, coriolis_mat,div_mat)
-            end if
+            call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=1.0)
+            call set(advecting_u,old_u)
+            call scale(advecting_u,(1-itheta))
+            call addto(advecting_u,u,scale=itheta)
          end if
-
-         call addto(u,delta_u)
-         call addto(d,delta_d)
-
-         call set(advecting_u,old_u)
-         call scale(advecting_u,(1-itheta))
-         call addto(advecting_u,u,scale=itheta)
 
       end do
 
-      call deallocate(d_rhs)
-      call deallocate(u_rhs)
-      call deallocate(delta_d)
-      call deallocate(delta_u)
-      call deallocate(old_u)
-      call deallocate(old_d)
-      call deallocate(advecting_u)
-
     end subroutine execute_timestep
 
-    subroutine execute_timestep_setup(D,U,d_rhs,u_rhs,advecting_u, &
-         old_u,old_d,delta_d,delta_u)
+    subroutine execute_timestep_setup(D,h_DG,U,d_rhs,u_rhs, &
+         old_u,old_d,old_h_DG,delta_d,delta_u)
       implicit none
       type(scalar_field), pointer :: D
-      type(scalar_field), intent(inout) :: D_rhs, delta_d, old_d
+      type(scalar_field), intent(inout) :: h_DG, old_h_DG, D_rhs, delta_d, old_d
       type(vector_field), intent(inout), pointer :: U
-      type(vector_field), intent(inout) :: U_rhs, delta_u, advecting_u, old_u
+      type(vector_field), intent(inout) :: U_rhs, delta_u, old_u
       integer :: dim
 
       dim = U%dim
 
+      ! allocate DG h field
+      call allocate(h_DG, U%mesh, "DGLayerThickness")
+      call zero(h_DG)
+      h_DG%option_path=D%option_path
+      call insert(state, h_DG, "DGLayerThickness")
+      call deallocate(h_DG)
       !allocate RHS variables
       call allocate(d_rhs, D%mesh, "LayerThickness_RHS")
       call zero(d_rhs)
-      call allocate(u_rhs, dim, U%mesh, "Velocity_RHS")
+      call insert(state, d_rhs, "LayerThickness_RHS")
+      call deallocate(d_rhs)
+      call allocate(u_rhs, dim, U%mesh, "LocalVelocity_RHS")
       call zero(u_rhs)
+      call insert(state, u_rhs, "LocalVelocity_RHS")
+      call deallocate(u_rhs)
       !allocate update variables
       call allocate(delta_d, D%mesh, "LayerThickness_update")
       call zero(delta_d)
-      call allocate(delta_u, dim, U%mesh, "Velocity_update")
+      call insert(state, delta_d, "LayerThickness_update")
+      call deallocate(delta_d)
+      call allocate(delta_u, dim, U%mesh, "LocalVelocity_update")
       call zero(delta_u)
-      !allocate advecting velocity
-      call allocate(advecting_u,dim,U%mesh, "Advecting_velocity")
-      call zero(advecting_u)
+      call insert(state, delta_u, "LocalVelocity_update")
+      call deallocate(delta_u)
       !allocate previous timestep variables
+      call allocate(old_h_DG, U%mesh, "OldDGLayerThickness")
+      call zero(old_h_DG)
+      call insert(state, old_h_DG, "OldDGLayerThickness")
+      call deallocate(old_h_DG)
       call allocate(old_d, D%mesh, "LayerThickness_old")
       call zero(old_d)
-      call allocate(old_u, U%dim, U%mesh, "Velocity_old")
-      call zero(old_u)
+      call insert(state, old_d, "LayerThickness_old")
+      call deallocate(old_d)
 
     end subroutine execute_timestep_setup
 
+    subroutine solve_linear_timestep(state, dt_in, theta_in)
+      !Wave equation step
+      ! M\Delta u + \Delta t F(\theta\Delta u + u^n) + \Delta t C(\theta
+      ! \Delta\eta + \eta^n) = 0
+      ! M\Delta h - \Delta t HC^T(\theta\Delta u + u^n) = 0
+      ! SO
+      ! (M+\theta\Delta t F)\Delta u =
+      !   -\theta\Delta t g C\Delta\eta + \Delta t(-Fu^n - gC\eta^n)
+      ! SET r = \Delta t(-Fu^n - gC\eta^n)
+      ! THEN SUBSTITUTION GIVES
+      ! (M + \theta^2\Delta t^2 gH C^T(M+\theta\Delta t F)^{-1}C)\Delta\eta
+      !  = \Delta t HC^T(u^n + \theta(M+\theta\Delta t F)^{-1}r)
+      implicit none
+      type(state_type), intent(inout) :: state
+      real, intent(in), optional :: dt_in, theta_in
+
+      type(scalar_field), pointer :: D, delta_d, d_rhs, d_src, md_src
+      type(vector_field), pointer :: U, delta_U, u_rhs, source, old_u
+      type(block_csr_matrix), pointer :: u_mass_mat, div_mat, coriolis_mat, &
+           &inverse_coriolis_mat
+      type(csr_matrix), pointer :: h_mass_mat
+      real :: ldt, ltheta
+      logical :: have_source
+
+      if(present(dt_in)) then
+         ldt=dt_in
+      else
+         !set ldt from options tree
+         call get_option("/timestepping/timestep", ldt)
+      end if
+
+      if(present(theta_in)) then
+         ltheta=theta_in
+      else
+         !set ltheta from options tree
+         call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta", ltheta)
+      end if
+
+      call setup_wave_matrices(state, ldt, ltheta)
+
+      ! Extract fields
+      D=>extract_scalar_field(state, "LayerThickness")
+      delta_d=>extract_scalar_field(state, "LayerThickness_update")
+      d_rhs=>extract_scalar_field(state, "LayerThickness_RHS")
+      U=>extract_vector_field(state, "LocalVelocity")
+      delta_U=>extract_vector_field(state, "LocalVelocity_update")
+      u_rhs=>extract_vector_field(state, "LocalVelocity_RHS")
+      old_u=>extract_vector_field(state, "OldLocalVelocity")
+
+      ! Extract matrices
+      u_mass_mat=>extract_block_csr_matrix(state, "LocalVelocityMassMatrix")
+      div_mat=>extract_block_csr_matrix(state, "DivergenceMatrix")
+      coriolis_mat=>extract_block_csr_matrix(state, "CoriolisMatrix")
+      inverse_coriolis_mat=>extract_block_csr_matrix(state, "InverseCoriolisMatrix")
+      h_mass_mat=>extract_csr_matrix(state, "LayerThicknessMassMatrix")
+      wave_mat=>extract_csr_matrix(state, "WaveMatrix")
+
+      have_source = .false.
+      if (has_vector_field(state, "LocalVelocitySource")) then
+        have_source = .true.
+        source => extract_vector_field(state, "LocalVelocitySource")
+      end if
+
+      !Construct explicit parts of u rhs
+      if (have_source) then
+         call get_u_rhs(u_rhs,U,D,ldt, &
+              coriolis_mat,div_mat,u_mass_mat, source)
+      else
+         call get_u_rhs(u_rhs,U,D,ldt, &
+              coriolis_mat,div_mat)
+      end if
+
+      !Construct explicit parts of h rhs in wave equation
+      call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,inverse_big_mat,ldt,ltheta)
+
+      if (has_scalar_field(state, "LayerThicknessSource")) then
+         d_src => extract_scalar_field(state, "LayerThicknessSource")
+         call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
+         call zero(md_src)
+         call mult(md_src, h_mass_mat, d_src)
+         call addto(d_rhs, md_src, scale=ldt)
+         call deallocate(md_src)
+      endif
+
+      !Solve wave equation for D update
+      delta_d%option_path = d%option_path
+      call petsc_solve(delta_d, wave_mat, d_rhs)
+      
+      if(.not. prescribed_velocity) then
+
+         !Add the new D contributions into the RHS for u
+         call update_u_rhs(u_rhs,U,delta_D,div_mat,ldt,ltheta)
+
+         !Solve momentum equation for U update
+         call zero(delta_u)
+         call mult(delta_u, inverse_big_mat, u_rhs)
+
+         !Check the equation was solved correctly
+         if(have_option("/debug/check_solution")) then
+            call check_solution(delta_u,delta_d,d,u,ldt,ltheta,u_mass_mat&
+                       &,h_mass_mat, coriolis_mat,div_mat)
+         end if
+
+         call addto(u,delta_u)
+
+      end if
+
+      call addto(d,delta_d)
+
+    end subroutine solve_linear_timestep
+
     subroutine allocate_and_insert_additional_fields(state, adjoint)
-      !!< Allocate and insert fields not specified in schema
+      !!< Allocate and insert fields not specified under material_phase
+      !!< in schema
       type(state_type), intent(inout) :: state
       logical, intent(in), optional :: adjoint
 
-      ! coriolis
-      type(scalar_field) :: f
+      ! coriolis, old passive tracer
+      type(scalar_field) :: f, old_T
       ! velocity in local coordinates
-      type(vector_field) :: U_local
+      type(vector_field) :: U_local, U_local_old, advecting_u
 
+      type(scalar_field), pointer :: T
       type(vector_field), pointer :: X, U
       character(len=PYTHON_FUNC_LEN) :: coriolis
       integer :: stat
@@ -742,6 +830,10 @@
         call zero(U_local)
         call insert(state, U_local, "LocalVelocity")
         call deallocate(U_local)
+        call allocate(U_local_old, mesh_dim(U), U%mesh, "OldLocalVelocity")
+        call zero(U_local_old)
+        call insert(state, U_local_old, "OldLocalVelocity")
+        call deallocate(U_local_old)
       endif
 
       if (has_vector_field(state, "VelocitySource")) then
@@ -750,6 +842,19 @@
         call insert(state, U_local, "LocalVelocitySource")
         call deallocate(U_local)
       end if
+
+      if(has_scalar_field(state, "PassiveTracer")) then
+         T=>extract_scalar_field(state, "PassiveTracer")
+         call allocate(old_T, T%mesh, "OldPassiveTracer")
+         call zero(old_T)
+         call insert(state, old_T, "OldPassiveTracer")
+      end if
+
+      !allocate advecting velocity
+      call allocate(advecting_u, mesh_dim(U), U%mesh, "NonlinearVelocity")
+      call zero(advecting_u)
+      call insert(state, advecting_u, "NonlinearVelocity")
+      call deallocate(advecting_u)
 
     end subroutine allocate_and_insert_additional_fields
 
@@ -826,26 +931,30 @@
       logical, intent(in), optional :: adjoint
 
       ! project the local velocity to cartesian coordinates
-      call project_local_to_cartesian(state(1), adjoint)
-
+      if(.not. prescribed_velocity) then
+         call project_local_to_cartesian(state(1), adjoint)
+      end if
       ! Now we're ready to call write_state
 
       call write_state(dump_no, state, adjoint)
     end subroutine output_state
 
-    subroutine set_velocity_from_geostrophic_balance(state,div_mat,&
-         coriolis_mat, inverse_coriolis_mat)
+    subroutine set_velocity_from_geostrophic_balance(state)
       implicit none
       type(state_type), intent(inout) :: state
-      type(block_csr_matrix), intent(in) :: div_mat, coriolis_mat, &
-           inverse_coriolis_mat
       !
       type(scalar_field), pointer :: D
       type(vector_field), pointer :: U,X,source
       type(vector_field) :: u_tmp
+      type(block_csr_matrix), pointer :: u_mass_mat, div_mat, coriolis_mat, &
+           inverse_coriolis_mat
+      real :: g
       logical :: have_source
 
       ewrite(1,*) '    subroutine set_velocity_from_geostrophic_balance()'
+
+      !gravity
+      call get_option("/physical_parameters/gravity/magnitude", g)
 
       !Pull the fields out of state
       D=>extract_scalar_field(state, "LayerThickness")
@@ -857,6 +966,12 @@
         source => extract_vector_field(state, "LocalVelocitySource")
       end if
 
+      !Pull matrices out of state
+      u_mass_mat=>extract_block_csr_matrix(state, "LocalVelocityMassMatrix")
+      div_mat=>extract_block_csr_matrix(state, "DivergenceMatrix")
+      coriolis_mat=>extract_block_csr_matrix(state, "CoriolisMatrix")
+      inverse_coriolis_mat=>extract_block_csr_matrix(state, "InverseCoriolisMatrix")
+
       ewrite(2,*) 'inside', sum(D%val)
 
       call allocate(u_tmp,mesh_dim(U),U%mesh,name="tempmem")
@@ -867,10 +982,10 @@
       call mult(U, inverse_coriolis_mat, u_tmp)
 
       if (have_source) then
-        call get_u_rhs(u_tmp,U,D,dt,g, &
+        call get_u_rhs(u_tmp,U,D,dt, &
            coriolis_mat,div_mat,u_mass_mat,source)
      else
-        call get_u_rhs(u_tmp,U,D,dt,g, &
+        call get_u_rhs(u_tmp,U,D,dt, &
            coriolis_mat,div_mat)
      end if
 
@@ -1031,6 +1146,9 @@
       type(adj_equation) :: equation
       type(adj_variable) :: local_u0, cartesian_u0, eta0
       logical :: check_transposes
+      real :: g
+
+      call get_option("/physical_parameters/gravity/magnitude", g)
 
       ! balanced is whether we derived the u initial condition from eta0 and geostrophic balance.
       ! if balanced is false, we just read in an initial condition as usual
@@ -1162,6 +1280,11 @@
       type(vector_field), pointer :: u_ptr
       type(adj_vector) :: u_vec, eta_vec
       logical :: check_transposes
+      real :: D0, g
+
+      call get_option("/physical_parameters/gravity/magnitude", g)
+      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+         &rognostic/mean_layer_thickness",D0)
 
       check_transposes = have_option("/adjoint/debug/check_action_transposes")
 

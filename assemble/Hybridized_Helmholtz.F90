@@ -46,7 +46,7 @@ module hybridized_helmholtz
     use FUtils, only : real_vector, real_matrix
     use global_parameters, only: option_path_len
     use vector_tools, only: solve
-    use manifold_projections
+    use manifold_tools
     implicit none
 
 contains
@@ -56,6 +56,7 @@ contains
        &check_continuity,output_dense,&
        &projection,poisson,u_rhs_local,&
        &solver_option_path)
+
     ! Subroutine to solve hybridized helmholtz equation
     ! If D_rhs (scalar pressure field) is present, then solve:
     ! <w,u> + <w,fu^\perp> - g <div w,d> + <<[w],d>> = <w,U_rhs>
@@ -141,7 +142,7 @@ contains
          &p&
          &rognostic/mean_layer_thickness",D0)
     call get_option("/timestepping/timestep", dt)
-    
+
     !Assemble matrices
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
@@ -155,6 +156,7 @@ contains
     ewrite(1,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
 
     !Solve the equations
+
     if(present(solver_option_path)) then
        call petsc_solve(lambda,lambda_mat,lambda_rhs,&
             option_path=solver_option_path)
@@ -192,6 +194,7 @@ contains
           call project_local_to_cartesian(X,U,U_cart)
        end if
     end if
+
     if(l_check_continuity) then
        ewrite(1,*) 'Checking continuity'
 
@@ -671,6 +674,7 @@ contains
     !velocity mass matrix and Coriolis matrix (done in local coordinates)
     l_u_mat = shape_shape_tensor(u_shape, u_shape, &
          u_shape%quadrature%weight, Metric+l_dt*theta*Metricf)
+
     do dim1 = 1, mdim
        do dim2 = 1, mdim
           local_solver_matrix(u_start(dim1):u_end(dim1),&
@@ -853,73 +857,6 @@ contains
 
   end subroutine get_scalar_continuity_face_mat
 
-  subroutine get_local_normal(norm,weight,U,face)
-    !Function returns normal to face on local 2D element
-    implicit none
-    type(vector_field), intent(in) :: U
-    integer, intent(in) :: face
-    real, dimension(U%dim, face_ngi(U,face)), intent(out) :: norm
-    real, intent(out) :: weight
-
-    integer :: i
-
-    select case(U%mesh%shape%numbering%family)
-    case (FAMILY_SIMPLEX)
-       if(U%dim==1) then
-          if(face==1) then
-             forall(i=1:face_ngi(U,face)) norm(1,i)=1.
-          else if(face==2) then
-             forall(i=1:face_ngi(U,face)) norm(1,i)=-1.
-          else 
-             FLAbort('Funny face?')
-          end if
-          weight = 1.0
-
-       else if(U%dim==2) then
-          if(face==1) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/-1.,0./)
-          else if(face==2) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
-          else if(face==3) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/1/sqrt(2.),1&
-                  &/sqrt(2.)/)
-          else 
-             FLAbort('Funny face?')
-          end if
-
-          !Integral is taken on one of the edges of the local 2D element
-          !This edge must be transformed to the local 1D element
-          !to do numerical integration, with the following weight factors
-          if(face==3) then
-             weight = sqrt(2.)
-          else
-             weight = 1.0
-          end if
-
-       else
-          FLAbort('Dimension not supported.')
-       end if
-    case (FAMILY_CUBE)
-       if(U%dim==2) then
-          if(face==1) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/-1.,0./)
-          else if(face==2) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/ 1.,0./)
-          else if(face==3) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,-1./)
-          else if(face==4) then
-             forall(i=1:face_ngi(U,face)) norm(1:2,i)=(/0.,1./)
-          else
-             FLAbort('Funny face?')
-          end if
-          weight = 1.0
-       else
-          FLAbort('Dimension not supported.')
-       end if
-    end select
-
-  end subroutine get_local_normal
-
   subroutine compute_cartesian_ele(U_cart,U,X,ele)
     implicit none
     type(vector_field), intent(inout) :: U_cart
@@ -1069,82 +1006,6 @@ contains
     end if
     
   end subroutine check_continuity_face
-
-  function get_face_normal_manifold(X,ele,face) result (normal)
-    implicit none
-    type(vector_field), intent(in) :: X
-    integer, intent(in) :: ele, face
-    real, dimension(X%dim,face_ngi(X,face)) :: normal
-    !
-    real, dimension(ele_ngi(X,ele)) :: detwei
-    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
-    real, dimension(face_ngi(X,face)) :: detwei_f
-    real, dimension(mesh_dim(X)-1, X%dim, face_ngi(X,face)) :: J_f
-    real, dimension(ele_loc(X,ele),ele_loc(X,ele)) :: X_mass_mat
-    real, dimension(mesh_dim(X), X%dim, ele_loc(X,ele)) :: J_loc
-    real, dimension(ele_loc(X,ele)) :: J_loc_rhs
-    real, dimension(mesh_dim(X), X%dim, face_ngi(X,face)) :: J_face_gi
-    integer :: dim1, dim2, gi
-    real, dimension(X%dim) :: ele_normal_gi, edge_tangent_gi, X_mid_ele,&
-         &X_mid_face
-    type(element_type) :: X_shape, X_face_shape
-    real, dimension(X%dim,ele_loc(X,ele)) :: X_ele
-    real, dimension(X%dim,face_loc(X,face)) :: X_face
-
-    call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
-         detwei=detwei)
-    call compute_jacobian(face_val(X,face),face_Shape(X,face), J=J_f, &
-         detwei=detwei_f)
-
-    !Jacobian can be expanded without error in X function space
-    !so we map it to the basis function DOFs by projection
-    X_shape = ele_shape(X,ele)
-    X_face_shape = face_shape(X,face)
-    X_mass_mat = shape_shape(X_shape,X_shape,detwei)
-    do dim1 = 1, mesh_dim(X)
-       do dim2 = 1, X%dim
-          J_loc_rhs = shape_rhs(X_shape,J(dim1,dim2,:)*detwei)
-          call solve(X_mass_mat,J_loc_rhs)
-          J_loc(dim1,dim2,:) = J_loc_rhs
-       end do
-    end do
-
-    do dim1 = 1, mesh_dim(X)
-       do dim2 = 1, X%dim
-          J_face_gi(dim1,dim2,:) = &
-               & matmul(transpose(X_face_shape%n),&
-               J_loc(dim1,dim2,face_local_nodes(X,face)))
-       end do
-    end do
-
-    X_mid_ele = sum(ele_val(X,ele),2)/size(ele_val(X,ele),2)
-    X_mid_face = sum(face_val(X,face),2)/size(face_val(X,face),2)
-    select case(X%dim)
-    case (3)
-       select case (mesh_dim(X))
-       case (2)
-          do gi = 1, face_ngi(X,face)
-             !Get normal to element e on face quad points
-             ele_normal_gi = cross_product(J_face_gi(1,:,gi),&
-                  &J_face_gi(2,:,gi))
-             ele_normal_gi = ele_normal_gi/(norm2(ele_normal_gi))
-             !Get tangent to face f
-             edge_tangent_gi = J_f(1,:,gi)
-             edge_tangent_gi = edge_tangent_gi/norm2(edge_tangent_gi)
-             !Compute normal to face f in manifold
-             normal(:,gi) = cross_product(ele_normal_gi,edge_tangent_gi)
-             if(dot_product(normal(:,gi),X_mid_face-X_mid_ele)<0) then
-                normal(:,gi)=-normal(:,gi)
-             end if
-          end do
-       case default
-          FLAbort('dimension combination not implemented')
-       end select
-    case default
-       FLAbort('dimension combination not implemented')
-    end select
-
-  end function get_face_normal_manifold
 
   subroutine reconstruct_lambda_nc(lambda,lambda_nc,X,ele)
     type(scalar_field), intent(in) :: lambda
@@ -1709,7 +1570,6 @@ contains
     up_gi = -ele_val_at_quad(down,ele)
 
     call get_up_gi(X,ele,up_gi)
-
     coriolis_rhs = 0.
     l_u_mat = 0.
     !metrics for velocity mass and coriolis matrices

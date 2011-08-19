@@ -80,7 +80,7 @@ contains
     ! An array of submaterials of the current phase in state(istate).
     type(state_type), dimension(:), pointer :: submaterials
     
-    ewrite(1, *) "In calculate_diagnostic_variables"
+    ewrite(1, *) "In calculate_diagnostic_variables (Diagnostic_fields_wrapper)"
  
     do i = 1, size(state)
 

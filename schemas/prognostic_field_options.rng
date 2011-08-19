@@ -969,6 +969,13 @@ suggested value 0.1</a:documentation>
               </element>
             </element>
           </optional>
+          <optional>
+            <element name="slope_limiter">
+              <empty>
+                <a:documentation>If present the vertex based slope limiter (the only one that works!) will be used.</a:documentation>
+              </empty>
+            </element>
+          </optional>
         </element>
       </choice>
       <element name="conservative_advection">
@@ -1011,11 +1018,18 @@ suggested value 0.1</a:documentation>
       </optional>
       <optional>
         <element name="discontinuous_galerkin">
-          <element name="maximum_courant_number_per_subcycle">
-            <a:documentation>Use timestep subcycling to solve this equation.
+          <choice>
+            <element name="maximum_courant_number_per_subcycle">
+              <a:documentation>Use timestep subcycling to solve this equation.
 Specify the maximum courant number per subcycle.</a:documentation>
-            <ref name="real"/>
-          </element>
+              <ref name="real"/>
+            </element>
+            <element name="number_advection_subcycles">
+              <a:documentation>Use timestep subcycling to solve this equation.
+Specify the number of subcycles.</a:documentation>
+              <ref name="integer"/>
+            </element>
+          </choice>
         </element>
       </optional>
     </element>

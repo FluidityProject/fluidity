@@ -162,6 +162,7 @@ bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 	@$(EVAL) $(LINKER) -o $(PROGRAM) main.o $(LIBS)
 
 sw: bin/shallow_water
+test_sw: bin/test_sw_advection
 be: bin/burgers_equation
 mp: bin/multiphase_prototype
 hh: bin/hybridized_helmholtz_solver
@@ -174,6 +175,14 @@ bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow
 	@echo "    LD shallow_water"
 	@$(EVAL) $(LINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
 	@$(EVAL) $(LINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
+
+bin/test_sw_advection: fluidity_library main/test_sw_advection.F90
+	@cd main; $(MAKE) test_sw_advection.o
+	@echo "BUILD test_sw_advection"
+	@echo "    MKDIR bin"
+	@mkdir -p bin
+	@echo "    LD test_sw_advection"
+	@$(EVAL) $(LINKER) -o bin/test_sw_advection main/test_sw_advection.o $(LIBS)
 
 bin/hybridized_helmholtz_solver: fluidity_library main/Hybridized_Helmholtz_Solver.F90
 	@cd main; $(MAKE) Hybridized_Helmholtz_Solver.o

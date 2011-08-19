@@ -39,7 +39,7 @@ module shallow_water_adjoint_callbacks
     use spud, only: get_option
     use adjoint_global_variables, only: adj_path_lookup
     use mangle_options_tree, only: adjoint_field_path
-    use manifold_projections
+    use manifold_tools
     use global_parameters, only: running_adjoint
     use populate_state_module
     implicit none
