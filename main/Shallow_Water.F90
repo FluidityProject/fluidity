@@ -224,7 +224,7 @@
     call adjoint_write_controls(timestep, dt, state)
 
     ! get theta
-    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta",theta)
+    call get_option("/timestepping/theta",theta)
 
     timestep_loop: do
        timestep=timestep+1
@@ -547,7 +547,7 @@
       logical :: have_source
 
       ! get itheta
-      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
+      call get_option("/material_phase::Fluid/scalar_field::Velocity/pro&
            &gnostic/temporal_discretisation/relaxation",itheta)
 
       !Pull the fields out of state

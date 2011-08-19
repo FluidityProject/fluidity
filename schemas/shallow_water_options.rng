@@ -241,6 +241,13 @@ above, is zero at the reference data/time.</a:documentation>
 then this is the initial time step size.</a:documentation>
           <ref name="real"/>
         </element>
+        <element name="theta">
+          <a:documentation>Implicit/explicit control (THETA)
+ =0.  -- explicit
+ =0.5 -- Crank-Nicolson
+ =1.  -- implicit</a:documentation>
+          <ref name="real"/>
+        </element>
         <element name="nonlinear_iterations">
           <a:documentation>How many nonlinear iterations in the timestepping loop</a:documentation>
           <ref name="integer"/>
@@ -305,7 +312,7 @@ This is usually disabled.</a:documentation>
                     <value>VelocityMesh</value>
                   </attribute>
                 </element>
-                <ref name="prognostic_velocity_field"/>
+                <ref name="prognostic_sw_velocity_field"/>
               </element>
               <element name="prescribed">
                 <element name="mesh">
@@ -686,6 +693,225 @@ An example that returns the three-dimensional identity:
       </element>
     </choice>
   </define>
+  <define name="prognostic_sw_velocity_field">
+    <ref name="velocity_equation_choice"/>
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <element name="discontinuous_galerkin">
+        <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
+a discontinuous velocity field for this to work!</a:documentation>
+        <optional>
+          <element name="mass_terms">
+            <a:documentation>Discretisation options for the mass terms in the velocity equation.</a:documentation>
+            <optional>
+              <element name="lump_mass_matrix">
+                <a:documentation>Lump the mass matrix</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <element name="exclude_mass_terms">
+                <a:documentation>Remove the mass terms from the equation.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+        </optional>
+        <element name="advection_scheme">
+          <choice>
+            <element name="upwind">
+              <a:documentation>Straightforward upwinding of the nonlinear velocity.</a:documentation>
+              <empty/>
+            </element>
+            <element name="none">
+              <a:documentation>Disable advection</a:documentation>
+              <empty/>
+            </element>
+          </choice>
+        </element>
+        <optional>
+          <element name="slope_limiter">
+            <empty>
+              <a:documentation>If present the vertex based slope limiter (the only one that works!) will be used.</a:documentation>
+            </empty>
+          </element>
+        </optional>
+      </element>
+    </element>
+    <element name="temporal_discretisation">
+      <a:documentation>Temporal discretisation options</a:documentation>
+      <element name="relaxation">
+        <a:documentation>Non-linear relaxation term
+ = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
+ = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
+ 0 &lt;= ITHETA &lt;= 1</a:documentation>
+        <ref name="real"/>
+      </element>
+      <optional>
+        <element name="discontinuous_galerkin">
+          <choice>
+            <element name="maximum_courant_number_per_subcycle">
+              <a:documentation>Use timestep subcycling to solve this equation.
+Specify the maximum courant number per subcycle.</a:documentation>
+              <ref name="real"/>
+            </element>
+            <element name="number_advection_subcycles">
+              <a:documentation>Use timestep subcycling to solve this equation.
+Specify the number of subcycles.</a:documentation>
+              <ref name="integer"/>
+            </element>
+          </choice>
+        </element>
+      </optional>
+      <element name="solver">
+        <a:documentation>Solver</a:documentation>
+        <ref name="linear_solver_options_asym"/>
+      </element>
+      <oneOrMore>
+        <choice>
+          <element name="initial_condition">
+            <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+            <attribute name="name">
+              <value>WholeMesh</value>
+            </attribute>
+            <ref name="input_choice_initial_condition_vector"/>
+          </element>
+          <element name="initial_condition">
+            <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+            <attribute name="name">
+              <data type="string" datatypeLibrary=""/>
+            </attribute>
+            <optional>
+              <ref name="region_ids"/>
+            </optional>
+            <ref name="input_choice_initial_condition_vector"/>
+          </element>
+        </choice>
+      </oneOrMore>
+      <zeroOrMore>
+        <element name="prescribed_region">
+          <a:documentation>Prescribed different regions of the field</a:documentation>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <ref name="region_ids"/>
+          <ref name="input_choice_initial_condition_vector"/>
+        </element>
+      </zeroOrMore>
+    </element>
+    <optional>
+      <element name="vector_field">
+        <a:documentation>Source</a:documentation>
+        <attribute name="name">
+          <value>Source</value>
+        </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <ref name="prescribed_vector_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <choice>
+              <ref name="vector_python_diagnostic_algorithm"/>
+              <ref name="imposed_material_velocity_source_algorithm"/>
+              <ref name="internal_velocity_source_algorithm"/>
+            </choice>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+        </choice>
+        <optional>
+          <element name="lump_source">
+            <empty/>
+          </element>
+        </optional>
+      </element>
+    </optional>
+    <optional>
+      <element name="vector_field">
+        <a:documentation>Absorption
+
+Note: When in spherical geometry the absorption is now automatically rotated.
+The input values below correspond to setting the diagonal of the absorption matrix
+in the rotated frame of reference. The columns correspond to phi, theta and r 
+respectively.</a:documentation>
+        <attribute name="name">
+          <value>Absorption</value>
+        </attribute>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <ref name="prescribed_vector_field_no_adapt"/>
+          </element>
+          <element name="diagnostic">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
+            <choice>
+              <ref name="vector_python_diagnostic_algorithm"/>
+              <ref name="imposed_material_velocity_absorption_algorithm"/>
+              <ref name="internal_velocity_absorption_algorithm"/>
+            </choice>
+            <ref name="diagnostic_vector_field"/>
+          </element>
+        </choice>
+        <choice>
+          <element name="default_absorption">
+            <a:documentation>Default absorption: no lumping, is fully evaluated before the
+the pressure correction.</a:documentation>
+            <empty/>
+          </element>
+          <element name="lump_absorption">
+            <a:documentation>Lump the inclusion of absorbtion terms.</a:documentation>
+            <optional>
+              <element name="use_submesh">
+                <a:documentation>Lump on the submesh.
+This only works for simplex meshes and is only
+strictly valid on 2d meshes.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="include_pressure_correction">
+            <a:documentation>Includes the pressure correction to the velocity in the
+absorption term (for theta&gt;0). This makes the absorption
+term more implicit. The absorption term is lumped if and
+only if the mass matrix is lumped (lump_mass_matrix).</a:documentation>
+            <empty/>
+          </element>
+        </choice>
+      </element>
+    </optional>
+    <ref name="prognostic_vector_output_options"/>
+    <ref name="vector_convergence_options"/>
+    <ref name="prognostic_detector_options"/>
+    <ref name="vector_steady_state_options"/>
+    <ref name="adaptivity_options_prognostic_vector_field"/>
+    <ref name="interpolation_algorithm_vector"/>
+    <optional>
+      <ref name="discrete_properties_algorithm_vector"/>
+    </optional>
+  </define>
   <define name="prognostic_layerthickness_field">
     <element name="spatial_discretisation">
       <a:documentation>Spatial discretisation options</a:documentation>
@@ -715,20 +941,6 @@ conservative_advection below).</a:documentation>
     </element>
     <element name="temporal_discretisation">
       <a:documentation>Temporal discretisation options</a:documentation>
-      <element name="theta">
-        <a:documentation>Implicit/explicit control (THETA)
- =0.  -- explicit
- =0.5 -- Crank-Nicolson
- =1.  -- implicit</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="relaxation">
-        <a:documentation>Non-linear relaxation term
- =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
- =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
- 0. &lt; ITHETA &lt; 1.</a:documentation>
-        <ref name="real"/>
-      </element>
       <optional>
         <ref name="temporal_discontinuous_galerkin_options"/>
       </optional>
