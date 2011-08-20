@@ -136,6 +136,8 @@ contains
         case("dirichlet") 
         !! Define the values at ice-ocean interface    
         ! Get the surface_id of the ice-ocean interface
+        ! Note this code needs working through
+        !  - Neumann is definitely the best choice here!
             shape_option=option_shape(trim(option_path)//"/melt_surfaceID")
             allocate(interface_surface_id(1:shape_option(1)))
             call get_option(trim(option_path)//'/melt_surfaceID',interface_surface_id)
