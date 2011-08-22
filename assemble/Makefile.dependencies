@@ -365,6 +365,21 @@ Gradient_Matrix_CG.o ../include/gradient_matrix_cg.mod: Gradient_Matrix_CG.F90 \
    ../include/quadrature.mod ../include/spud.mod ../include/state_module.mod \
    ../include/transform_elements.mod
 
+../include/hybridized_helmholtz.mod: Hybridized_Helmholtz.o
+	@true
+
+Hybridized_Helmholtz.o ../include/hybridized_helmholtz.mod: \
+   Hybridized_Helmholtz.F90 ../include/assemble_cmc.mod \
+   ../include/diagnostic_fields_wrapper.mod \
+   ../include/diagnostic_variables.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/manifold_projections.mod \
+   ../include/populate_state_module.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/timeloop_utilities.mod \
+   ../include/vector_tools.mod ../include/write_state_module.mod
+
 ../include/hydrostatic_pressure.mod: Hydrostatic_Pressure.o
 	@true
 

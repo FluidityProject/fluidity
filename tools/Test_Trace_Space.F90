@@ -98,6 +98,7 @@
 #endif
 
     call test_local_coords(state(1))
+    call test_face_local_nodes(state(1))
     call test_trace_values(state(1))
     call test_trace_projection(state(1))
 
@@ -110,7 +111,70 @@
 
   contains
 
+    subroutine test_face_local_nodes(state)
+      implicit none
+      type(state_type), intent(inout) :: state
+      !
+      type(scalar_field), pointer :: L
+      integer :: ele
+
+      L=>extract_scalar_field(state, "LagrangeMultiplier")
+
+      do ele = 1, ele_count(L)
+         call test_face_local_nodes_ele(L,ele)
+      end do
+      
+    end subroutine test_face_local_nodes
+
+    subroutine test_face_local_nodes_ele(L,ele)
+      implicit none
+      type(scalar_field), intent(in) :: L
+      integer, intent(in) :: ele
+      !
+      integer, dimension(:), pointer :: neigh
+      integer :: ni,ele2,face,face2
+      
+      neigh => ele_neigh(L,ele)
+      do ni = 1, size(neigh)
+         ele2 = neigh(ni)
+         face = ele_face(L,ele,ele2)
+         if(ele2>0) then
+            face2 = ele_face(L,ele2,ele)
+         else
+            face2 = -1
+         end if
+         call test_face_local_nodes_face(L,ele,face,face2)
+      end do
+    end subroutine test_face_local_nodes_ele
+
+    subroutine test_face_local_nodes_face(L,ele,face,face2)
+      implicit none
+      type(scalar_field), intent(in) :: L
+      integer, intent(in) :: ele,face,face2
+      !
+      integer, dimension(face_loc(L,face)) :: nods1, nods2, nods3, nods_loc
+      integer, dimension(:), pointer :: L_ele
+
+      L_ele => ele_nodes(L,ele)
+      nods1 = face_global_nodes(L,face)
+      if(face2>0) then
+         nods2 = face_global_nodes(L,face2)
+      end if
+      nods_loc = face_local_nodes(L,face)
+      nods3 = L_ele(nods_loc)
+
+      if(face2>0) then
+         if(any(nods1/=nods2)) then
+            FLAbort('Global node numbers don''t agree on face')
+         end if
+      end if
+      if(any(nods1/=nods3)) then
+         FLAbort('Face global nodes doesn''t match global numbers')
+      end if
+    end subroutine test_face_local_nodes_face
+
     subroutine test_trace_projection(state)
+      implicit none
       !this subroutine checks the values of the local coordinates 
       !for the trace function
       type(state_type), intent(inout) :: state
@@ -154,6 +218,7 @@
 
     subroutine assemble_trace_projection_ele(ele,D,L_projected_rhs&
          &,X,L_mass_mat)
+      implicit none
       integer, intent(in) :: ele
       type(scalar_field), intent(inout) :: D,L_projected_rhs
       type(vector_field), intent(inout) :: X
@@ -176,6 +241,7 @@
 
     subroutine assemble_trace_projection_face(face,D,L_projected_rhs,X&
          &,L_mass_mat)
+      implicit none
       integer, intent(in) :: face
       type(scalar_field), intent(inout) :: D,L_projected_rhs
       type(vector_field), intent(inout) :: X
@@ -201,6 +267,7 @@
     end subroutine assemble_trace_projection_face
 
     subroutine test_local_coords(state)
+      implicit none
       !this subroutine checks the values of the local coordinates 
       !for the trace function
       type(state_type), intent(inout) :: state
@@ -224,6 +291,7 @@
     end subroutine test_local_coords
 
     subroutine test_trace_values(state)
+      implicit none
       !This subroutine assumes that the layer thickness 
       !is initialised from the same field as the lagrange
       !multiplier and compares values
@@ -242,6 +310,7 @@
     end subroutine test_trace_values
 
     subroutine test_trace_values_ele(D,L,ele)
+      implicit none
       type(scalar_field), intent(inout) :: D,L
       integer, intent(in) :: ele
       !
@@ -262,6 +331,7 @@
     end subroutine test_trace_values_ele
 
     subroutine test_trace_values_face(D,L,face)
+      implicit none
       type(scalar_field), intent(inout) :: D,L
       integer, intent(in) :: face
       !

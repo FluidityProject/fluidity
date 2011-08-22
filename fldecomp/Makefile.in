@@ -48,7 +48,7 @@ LIBS    = -L../lib $(LIB_FLUIDITY)  @BLAS_LIBS@ @LIB_FEMDEM@ \
 	../lib/libadaptivity.a ../lib/libvtkfortran.a \
 	../lib/libspatialindex.a ../lib/libspud.a
 
-OBJS = fldmain.o fldgmsh.o fldtriangle.o
+OBJS = fldmain.o fldgmsh.o fldtriangle.o partition.o
 
 FLDECOMP = ../bin/fldecomp
 

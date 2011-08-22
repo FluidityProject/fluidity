@@ -54,6 +54,19 @@ mesh_info =
                "continuous" | "discontinuous"
             }
          }?,
+         element constraint_type {
+            ## Set the constraint type. This is used to implement
+            ## div-conforming elements such as RT0 in a hybridised
+            ## solver.
+            element string_value{
+               "BDM" | "BDFM" | "RT"
+            },
+            element solver {
+               ## Solver is used to apply projections to div-conforming
+               ## space, and in elliptic solvers
+               linear_solver_options_sym
+            }
+         }?,
          ## Make mesh periodic
          element periodic_boundary_conditions {
             attribute name { xsd:string },
