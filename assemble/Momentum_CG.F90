@@ -121,8 +121,8 @@
     logical :: assemble_mass_matrix
     logical :: assemble_inverse_masslump
 
-    ! implicitness parameter, timestep, conservation parameter
-    real :: theta, dt, beta, gravity_magnitude
+    ! implicitness parameter, timestep, conservation parameter, nonlinear theta factor
+    real :: theta, dt, beta, gravity_magnitude, itheta
 
     ! Boundary condition types for velocity, and pressure
     ! the ids have to correspond to the order of the arguments in
@@ -574,6 +574,8 @@
                       theta)
       call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
            &conservative_advection", beta)
+      call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/relaxation", &
+                      itheta)
 
       lump_mass=have_option(trim(u%option_path)//&
           &"/prognostic/spatial_discretisation&
@@ -1189,7 +1191,7 @@
       if (velocity_bc_type(1,sele)==BC_TYPE_EXPLICIT_FREE_SURFACE) then
         it_fs_gi = face_val_at_quad(it_free_surface, sele)
         old_fs_gi = face_val_at_quad(old_free_surface, sele) ! not used yet!
-        fs_gi = theta*it_fs_gi + (1.-theta)*old_fs_gi
+        fs_gi = itheta*it_fs_gi + (1.-itheta)*old_fs_gi
 
         call addto(rhs, u_nodes_bdy, shape_vector_rhs(u_shape, normal_bdy, -detwei_bdy*fs_coef(sele)*fs_gi))
         
