@@ -23,15 +23,17 @@ def plot_diffusivity(file):
   u=vtktools.vtu(file)
   z = u.GetLocations()[:,2]
   K = u.GetScalarField("Diffusivity")
-  #K_grad = u.GetVectorField("Diffusivity_grad")[:,2]
+  K_grad = u.GetVectorField("Diffusivity_grad")[:,2]
 
   fig = figure(figsize=(5,6),dpi=90)
   ax = fig.add_axes([.1,.1,.8,.8])
   ax.plot(K, z)
+  ax.set_xlim(0.0,0.03)
 
-  #fig = figure(figsize=(5,6),dpi=90)
-  #ax = fig.add_axes([.1,.1,.8,.8])
-  #ax.plot(K_grad, z)
+  fig = figure(figsize=(5,6),dpi=90)
+  ax = fig.add_axes([.1,.1,.8,.8])
+  ax.plot(K_grad, z)
+  ax.set_xlim(-0.02,0.01)
   return
 
 
@@ -41,6 +43,6 @@ plot_diffusivity("random_walk_3d_0.vtu")
 
 plot_detector_distribution("Naive_RW.detectors", 600, 1000, 40)
 
-#plot_detector_distribution("Diffusive_RW.detectors", 600, 1000, 40)
+plot_detector_distribution("Diffusive_RW.detectors", 600, 1000, 40)
 
 show()
