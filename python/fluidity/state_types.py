@@ -142,7 +142,7 @@ class VectorField(Field):
   def local_coords(self, ele, position):
     dim = self.dimension
     local_coords = numpy.zeros(dim+1)
-    local_coords = local_coords + position[:]
+    local_coords[0:dim] = local_coords[0:dim] + position[0:dim]
     local_coords[dim] = 1.0
 
     matrix = numpy.zeros((dim+1, len(position)+1))
@@ -152,7 +152,7 @@ class VectorField(Field):
       # TODO: implement using vertices
       tmp_matrix = self.ele_val(ele)
 
-    matrix[:,:] = tmp_matrix[:,:]
+    matrix[:,0:dim] = tmp_matrix[:,0:dim]
     matrix[:,dim] = 1.0
     local_coords = numpy.linalg.solve(matrix.transpose(), local_coords)
     return local_coords
