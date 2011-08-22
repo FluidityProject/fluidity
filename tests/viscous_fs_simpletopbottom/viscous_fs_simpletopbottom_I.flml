@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">viscous_fs_simpletopbottom_H</string_value>
+    <string_value lines="1">viscous_fs_simpletopbottom_I</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">stokes</string_value>
@@ -71,7 +71,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.25</real_value>
+      <real_value rank="0">0.125</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">64.0</real_value>

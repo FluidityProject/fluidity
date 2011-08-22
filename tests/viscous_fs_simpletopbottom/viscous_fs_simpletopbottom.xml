@@ -3,149 +3,59 @@
   <name>viscous_fs_simpletopbottom</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
-    <command_line>fluidity -v2 viscous_fs_simpletopbottom_A.flml &gt;&amp; A.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_B.flml &gt;&amp; B.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_C.flml &gt;&amp; C.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_D.flml &gt;&amp; D.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_E.flml &gt;&amp; E.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_F.flml &gt;&amp; F.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_G.flml &gt;&amp; G.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_H.flml &gt;&amp; H.log</command_line>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 viscous_fs_simpletopbottom_E.flml &gt;&amp; E.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_F.flml &gt;&amp; F.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_G.flml &gt;&amp; G.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_H.flml &gt;&amp; H.log</command_line>
   </problem_definition>
   <variables>
-    <variable name="ab_convergence_fs" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log
-from numpy import sqrt
+    <variable name="finish_time_e" language="python">from fluidity_tools import stat_parser as stat
 
-file1 = "viscous_fs_simpletopbottom_A.stat"
-file2 = "viscous_fs_simpletopbottom_B.stat"
+file1 = "viscous_fs_simpletopbottom_E.stat"
 
-error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
-error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
-
-error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-
-print error1
-print error2
-
-print error_inf1
-print error_inf2
-
-ratio = error1 / error2
-ratio_inf = error_inf1 / error_inf2
-ab_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
-    </variable>
-    <variable name="bc_convergence_fs" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log, sqrt
-
-file1 = "viscous_fs_simpletopbottom_B.stat"
-file2 = "viscous_fs_simpletopbottom_C.stat"
-
-error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
-error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
-
-error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-
-print error1
-print error2
-
-print error_inf1
-print error_inf2
-
-ratio = error1 / error2
-ratio_inf = error_inf1 / error_inf2
-bc_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
-    </variable>
-    <variable name="cd_convergence_fs" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log, sqrt
-
-file1 = "viscous_fs_simpletopbottom_C.stat"
-file2 = "viscous_fs_simpletopbottom_D.stat"
-
-error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
-error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
-
-error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-
-print error1
-print error2
-
-print error_inf1
-print error_inf2
-
-ratio = error1 / error2
-ratio_inf = error_inf1 / error_inf2
-cd_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
-    </variable>
-    <variable name="de_convergence_fs" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log, sqrt
-
-file1 = "viscous_fs_simpletopbottom_D.stat"
-file2 = "viscous_fs_simpletopbottom_E.stat"
-
-error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
-error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
-
-error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-
-print error1
-print error2
-
-print error_inf1
-print error_inf2
-
-ratio = error1 / error2
-ratio_inf = error_inf1 / error_inf2
-de_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
-    </variable>
-    <variable name="ef_convergence_fs" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log, sqrt
+finish_time_e = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+    <variable name="ef_convergence_fs" language="python">import calculate_order
 
 file1 = "viscous_fs_simpletopbottom_E.stat"
 file2 = "viscous_fs_simpletopbottom_F.stat"
 
-error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
-error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
+ef_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
+    <variable name="finish_time_f" language="python">from fluidity_tools import stat_parser as stat
 
-error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+file1 = "viscous_fs_simpletopbottom_F.stat"
 
-print error1
-print error2
+finish_time_f = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+    <variable name="fg_convergence_fs" language="python">import calculate_order
 
-print error_inf1
-print error_inf2
+file1 = "viscous_fs_simpletopbottom_F.stat"
+file2 = "viscous_fs_simpletopbottom_G.stat"
 
-ratio = error1 / error2
-ratio_inf = error_inf1 / error_inf2
-ef_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
-    </variable>
-    <variable name="gh_convergence_fs" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log, sqrt
+fg_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
+    <variable name="finish_time_g" language="python">from fluidity_tools import stat_parser as stat
+
+file1 = "viscous_fs_simpletopbottom_G.stat"
+
+finish_time_g = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+    <variable name="gh_convergence_fs" language="python">import calculate_order
 
 file1 = "viscous_fs_simpletopbottom_G.stat"
 file2 = "viscous_fs_simpletopbottom_H.stat"
 
-error1 = sqrt(sum(stat(file1)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file1)["dt"]["value"][1:]))
-error2 = sqrt(sum(stat(file2)["Fluid"]["DifferenceSquared"]["surface_integral%SurfaceL2Norm"][1:]*stat(file2)["dt"]["value"][1:]))
+gh_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
+    <variable name="finish_time_h" language="python">from fluidity_tools import stat_parser as stat
 
-error_inf1 = stat(file1)["Fluid"]["FreeSurfaceDifference"]["max"].max()
-error_inf2 = stat(file2)["Fluid"]["FreeSurfaceDifference"]["max"].max()
+file1 = "viscous_fs_simpletopbottom_H.stat"
 
-print error1
-print error2
-
-print error_inf1
-print error_inf2
-
-ratio = error1 / error2
-ratio_inf = error_inf1 / error_inf2
-gh_convergence_fs = [log(ratio, 2), log(ratio_inf, 2)]
-    </variable>
+finish_time_h = stat(file1)["ElapsedTime"]["value"][-1]</variable>
   </variables>
-  <pass_tests/>
+  <pass_tests>
+    <test name="efinish" language="python">assert(abs(finish_time_e-64.0)&lt;2.0)</test>
+    <test name="ffinish" language="python">assert(abs(finish_time_f-64.0)&lt;1.0)</test>
+    <test name="gfinish" language="python">assert(abs(finish_time_g-64.0)&lt;0.5)</test>
+    <test name="hfinish" language="python">assert(abs(finish_time_h-64.0)&lt;0.25)</test>
+    <test name="eftop" language="python">assert(ef_convergence_fs[0]&gt;2.0)</test>
+    <test name="fgtop" language="python">assert(fg_convergence_fs[0]&gt;2.0)</test>
+    <test name="ghtop" language="python">assert(gh_convergence_fs[0]&gt;2.0)</test>
+    <test name="efbot" language="python">assert(ef_convergence_fs[1]&gt;2.0)</test>
+    <test name="fgbot" language="python">assert(fg_convergence_fs[1]&gt;2.0)</test>
+    <test name="ghbot" language="python">assert(gh_convergence_fs[1]&gt;2.0)</test>
+  </pass_tests>
 </testproblem>

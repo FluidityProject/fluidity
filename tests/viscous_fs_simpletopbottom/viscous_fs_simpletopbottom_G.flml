@@ -54,11 +54,11 @@
     <dump_format>
       <string_value>vtk</string_value>
     </dump_format>
-    <dump_period_in_timesteps>
+    <dump_period>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <real_value rank="0">1.0</real_value>
       </constant>
-    </dump_period_in_timesteps>
+    </dump_period>
     <output_mesh name="CoordinateMesh"/>
     <stat>
       <output_at_start/>
@@ -71,16 +71,17 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1.0</real_value>
+      <real_value rank="0">0.5</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">500</real_value>
+      <real_value rank="0">64.0</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
     <gravity>
       <magnitude>
-        <real_value rank="0">1.0</real_value>
+        <real_value rank="0">12.225727727</real_value>
+        <comment>solution.nond_factor()</comment>
       </magnitude>
       <vector_field name="GravityDirection" rank="1">
         <prescribed>
@@ -240,6 +241,9 @@
           <relaxation>
             <real_value rank="0">1.0</real_value>
           </relaxation>
+          <theta_pressure_gradient>
+            <real_value rank="0">0.5</real_value>
+          </theta_pressure_gradient>
         </temporal_discretisation>
         <reference_coordinates>
           <real_value shape="2" dim1="dim" rank="1">0.25 0.5</real_value>
@@ -338,23 +342,19 @@
         <mesh name="CoordinateMesh"/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
-  from math import pi, cos, sin, cosh, sinh, exp, sqrt
-  dx = 1./80.
-  wavelength=1.0
-  k=2.0*pi/wavelength
-  ampf = 0.1
-  ampg = 0.1
-  
-  F0 = ampf*cos(k*X[0])  
-  G0 = ampg*cos(k*X[0])
-  if(X[1]&lt;dx/2):
-    return G0
-  elif(X[1]&gt;(1.-dx/2.)):
-    return F0
+            <string_value lines="20" type="python">import solution
+global dx, F, G
+dx = solution.dx
+F = solution.nond_F
+G = solution.nond_G
+
+def val(X,t):
+  if(X[1]&gt;(1.-dx/2.)):
+    return F(X[0], t)
+  elif(X[1]&lt;dx/2.):
+    return G(X[0], t)
   else:
-    return 0.0
-</string_value>
+    return 0.0</string_value>
           </python>
         </initial_condition>
         <output/>
@@ -387,29 +387,17 @@
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
-  from math import pi, cos, sin, cosh, sinh, exp, sqrt
-  dx = 1./80.
-  wavelength=1.0
-  k=2.0*pi/wavelength
-  D=1.0
-  rhog=1.0
-  delta_rho=1.0
-  ampf = 0.1
-  ampg = 0.1
-  
-  F0 = ampf*cos(k*X[0])
-  relaxation_time_F = -((delta_rho*k**2 + k**2*rhog)*D*sinh(D*k)**2 - (delta_rho*k**2 + k**2*rhog)*D*cosh(D*k)**2 - (delta_rho*k + k*rhog)*sinh(D*k)*cosh(D*k) - sqrt((delta_rho**2*k**2 + 2*delta_rho*k**2*rhog + k**2*rhog**2)*D**2*cosh(D*k)**4 - 2*(delta_rho**2*k + 2*delta_rho*k*rhog + k*rhog**2)*D*sinh(D*k)**3*cosh(D*k) + 2*(delta_rho**2*k + 2*delta_rho*k*rhog + k*rhog**2)*D*sinh(D*k)*cosh(D*k)**3 + ((delta_rho**2*k**2 - 2*delta_rho*k**2*rhog + k**2*rhog**2)*D**2 - 4*delta_rho*rhog)*sinh(D*k)**4 - (2*(delta_rho**2*k**2 + k**2*rhog**2)*D**2 - delta_rho**2 - 2*delta_rho*rhog - rhog**2)*sinh(D*k)**2*cosh(D*k)**2)*k)/(delta_rho*rhog*sinh(D*k)**2)
-  F = exp(-t/relaxation_time_F)*F0
-  
-  G0 = ampg*cos(k*X[0])
-  relaxation_time_G = ((delta_rho*k**2 + k**2*rhog)*D*sinh(D*k)**2 - (delta_rho*k**2 + k**2*rhog)*D*cosh(D*k)**2 - (delta_rho*k + k*rhog)*sinh(D*k)*cosh(D*k) + sqrt((delta_rho**2*k**2 + 2*delta_rho*k**2*rhog + k**2*rhog**2)*D**2*cosh(D*k)**4 - 2*(delta_rho**2*k + 2*delta_rho*k*rhog + k*rhog**2)*D*sinh(D*k)**3*cosh(D*k) + 2*(delta_rho**2*k + 2*delta_rho*k*rhog + k*rhog**2)*D*sinh(D*k)*cosh(D*k)**3 + ((delta_rho**2*k**2 - 2*delta_rho*k**2*rhog + k**2*rhog**2)*D**2 - 4*delta_rho*rhog)*sinh(D*k)**4 - (2*(delta_rho**2*k**2 + k**2*rhog**2)*D**2 - delta_rho**2 - 2*delta_rho*rhog - rhog**2)*sinh(D*k)**2*cosh(D*k)**2)*k)/(delta_rho*rhog*sinh(D*k)**2)
-  G = exp(-t/relaxation_time_F)*G0
-  
-  if(X[1]&lt;dx/2):
-    return G
-  elif(X[1]&gt;(1.-dx/2.)):
-    return F
+            <string_value lines="20" type="python">import solution
+global dx, F, G
+dx = solution.dx
+F = solution.nond_F
+G = solution.nond_G
+
+def val(X,t):
+  if(X[1]&gt;(1.-dx/2.)):
+    return F(X[0], t)
+  elif(X[1]&lt;dx/2.):
+    return G(X[0], t)
   else:
     return 0.0</string_value>
           </python>
