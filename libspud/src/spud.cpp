@@ -41,6 +41,16 @@ namespace Spud{
     return;
   }
 
+  void* OptionManager::get_manager() {
+    return (void*) manager.options;
+  }
+
+  void OptionManager::set_manager(void* m) {
+    delete manager.options;
+    manager.options = (Spud::OptionManager::Option*) m;
+    return;
+  }
+
   OptionError OptionManager::load_options(const string& filename){
     return manager.options->load_options(filename);
   }
@@ -543,6 +553,7 @@ namespace Spud{
 
   OptionManager::OptionManager(){
     options = new Option();
+    deallocated = false;
 
     return;
   }
@@ -553,7 +564,11 @@ namespace Spud{
   }
 
   OptionManager::~OptionManager(){
-    delete options;
+    if (!deallocated)
+    {
+      delete options;
+      deallocated = true;
+    }
 
     return;
   }

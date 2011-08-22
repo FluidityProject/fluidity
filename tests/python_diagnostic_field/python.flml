@@ -108,7 +108,13 @@
 
 for i in range(field.node_count):  
         X_n=X.node_val(i)
-	field.set(i, X_n[0]*X_n[1])</string_value>
+	field.set(i, X_n[0]*X_n[1])
+	
+import sys
+if sys.version_info[1] &gt;= 7:
+  import libspud
+  name = libspud.get_option("/simulation_name")
+  assert name == "python"</string_value>
         </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>

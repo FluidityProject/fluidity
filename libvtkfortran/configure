@@ -599,7 +599,6 @@ CXXCPP
 DEFINE_MPI
 LINKER
 OPTIMIZATION_FFLAGS
-VERSION
 MPICXX
 MPIF90
 RANLIB
@@ -6676,12 +6675,6 @@ $as_echo "$as_me: WARNING: no mpi support found on system" >&2;}
   enable_mpi="no"
 fi
 
-VERSION=`svnversion .`
-
-cat >> confdefs.h << EOF
-#undef __FLUIDITY_VERSION__
-#define __FLUIDITY_VERSION__ "$VERSION"
-EOF
 
 
 

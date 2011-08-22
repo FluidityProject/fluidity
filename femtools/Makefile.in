@@ -128,7 +128,7 @@ endif
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
 default: $(LIB)
 
 $(F90LIB): $(F90LIB_OBJS)

@@ -2931,6 +2931,9 @@ parts.</a:documentation>
           </element>
           <ref name="comment"/>
         </element>
+        <ref name="discontinuous_galerkin_options">
+          <a:documentation>Discontinuous galerkin formulation</a:documentation>
+        </ref>
         <element name="control_volumes">
           <a:documentation>Use a control volume discretisation.</a:documentation>
           <ref name="spatial_control_volume_options"/>

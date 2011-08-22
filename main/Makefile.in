@@ -64,11 +64,13 @@ OBJS = Fluids.o Usage.o mainfl.o
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
 default: $(LIB)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
+
+Usage.o: ../include/Usage.h ../include/version.h
 
 clean:
 	rm -f *.o *.d *.mod
