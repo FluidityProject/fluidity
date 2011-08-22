@@ -618,41 +618,41 @@ prognostic_sw_velocity_field =
                   integer
                }
             )
-         }?,
-         ## Solver
-         element solver {
-            linear_solver_options_asym
-         },
-         (
-            ## Initial condition for WholeMesh
-            ##
-            ## Only specify one condition if not using mesh regions.
-            ## Otherwise select other initial_condition option, specify region_ids
-            ## and distinct names.  Then add extra intial conditions for other regions.
-            element initial_condition {
-               attribute name { "WholeMesh" },
-               input_choice_initial_condition_vector
-            }|
-            ## Multiple initial_conditions are allowed if specifying
-            ## different values in different
-            ## regions of the mesh (defined by region_ids).  In this case
-            ## each initial_condition
-            ## requires a distinct name for the options dictionary.
-            element initial_condition {
-               attribute name { string },
-               region_ids?,
-               input_choice_initial_condition_vector
-            }
-         )+,
-         (
-            ## Prescribed different regions of the field
-               element prescribed_region {
-               attribute name { string },
-               region_ids,
-               input_choice_initial_condition_vector
-            }
-         )*
+         }?
       },
+      ## Solver
+      element solver {
+         linear_solver_options_asym
+      },
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_vector
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids?,
+            input_choice_initial_condition_vector
+         }
+      )+,
+      (
+         ## Prescribed different regions of the field
+            element prescribed_region {
+            attribute name { string },
+            region_ids,
+            input_choice_initial_condition_vector
+         }
+      )*,
       ## Source
       element vector_field {
          attribute name { "Source" },
@@ -676,63 +676,14 @@ prognostic_sw_velocity_field =
             empty
          }?
       }?,
-      ## Absorption
-      ##
-      ## Note: When in spherical geometry the absorption is now automatically rotated.
-      ## The input values below correspond to setting the diagonal of the absorption matrix
-      ## in the rotated frame of reference. The columns correspond to phi, theta and r 
-      ## respectively.
-      element vector_field {
-         attribute name { "Absorption" },
-         attribute rank { "1" },
-         (
-            element prescribed {
-               mesh_choice?,
-               prescribed_vector_field_no_adapt
-            }|
-            element diagnostic { 
-               mesh_choice?,
-               (
-                  vector_python_diagnostic_algorithm |
-                  imposed_material_velocity_absorption_algorithm |
-                  internal_velocity_absorption_algorithm
-               ),
-               diagnostic_vector_field
-            }
-         ),
-         (
-           ## Default absorption: no lumping, is fully evaluated before the
-           ## the pressure correction.
-           element default_absorption {
-              empty
-           }|
-           ## Lump the inclusion of absorbtion terms.
-           element lump_absorption {
-              ## Lump on the submesh.
-              ## This only works for simplex meshes and is only
-              ## strictly valid on 2d meshes.
-              element use_submesh {
-                empty
-              }?
-           }|
-           ## Includes the pressure correction to the velocity in the
-           ## absorption term (for theta>0). This makes the absorption
-           ## term more implicit. The absorption term is lumped if and
-           ## only if the mass matrix is lumped (lump_mass_matrix).
-           element include_pressure_correction {
-              empty
-           }
-         )
-      }?,
-      prognostic_vector_output_options,
-      vector_convergence_options,
-      prognostic_detector_options,
-      vector_steady_state_options,
-      adaptivity_options_prognostic_vector_field,
-      interpolation_algorithm_vector,
-      discrete_properties_algorithm_vector?
-   )
-
+   prognostic_vector_output_options,
+   vector_convergence_options,
+   prognostic_detector_options,
+   vector_steady_state_options,
+   adaptivity_options_prognostic_vector_field,
+   interpolation_algorithm_vector,
+   discrete_properties_algorithm_vector?
+)
 
 prognostic_layerthickness_field =
    (

@@ -763,50 +763,50 @@ Specify the number of subcycles.</a:documentation>
           </choice>
         </element>
       </optional>
-      <element name="solver">
-        <a:documentation>Solver</a:documentation>
-        <ref name="linear_solver_options_asym"/>
-      </element>
-      <oneOrMore>
-        <choice>
-          <element name="initial_condition">
-            <a:documentation>Initial condition for WholeMesh
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_asym"/>
+    </element>
+    <oneOrMore>
+      <choice>
+        <element name="initial_condition">
+          <a:documentation>Initial condition for WholeMesh
 
 Only specify one condition if not using mesh regions.
 Otherwise select other initial_condition option, specify region_ids
 and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
-            <attribute name="name">
-              <value>WholeMesh</value>
-            </attribute>
-            <ref name="input_choice_initial_condition_vector"/>
-          </element>
-          <element name="initial_condition">
-            <a:documentation>Multiple initial_conditions are allowed if specifying
+          <attribute name="name">
+            <value>WholeMesh</value>
+          </attribute>
+          <ref name="input_choice_initial_condition_vector"/>
+        </element>
+        <element name="initial_condition">
+          <a:documentation>Multiple initial_conditions are allowed if specifying
 different values in different
 regions of the mesh (defined by region_ids).  In this case
 each initial_condition
 requires a distinct name for the options dictionary.</a:documentation>
-            <attribute name="name">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <optional>
-              <ref name="region_ids"/>
-            </optional>
-            <ref name="input_choice_initial_condition_vector"/>
-          </element>
-        </choice>
-      </oneOrMore>
-      <zeroOrMore>
-        <element name="prescribed_region">
-          <a:documentation>Prescribed different regions of the field</a:documentation>
           <attribute name="name">
             <data type="string" datatypeLibrary=""/>
           </attribute>
-          <ref name="region_ids"/>
+          <optional>
+            <ref name="region_ids"/>
+          </optional>
           <ref name="input_choice_initial_condition_vector"/>
         </element>
-      </zeroOrMore>
-    </element>
+      </choice>
+    </oneOrMore>
+    <zeroOrMore>
+      <element name="prescribed_region">
+        <a:documentation>Prescribed different regions of the field</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <ref name="region_ids"/>
+        <ref name="input_choice_initial_condition_vector"/>
+      </element>
+    </zeroOrMore>
     <optional>
       <element name="vector_field">
         <a:documentation>Source</a:documentation>
@@ -840,66 +840,6 @@ requires a distinct name for the options dictionary.</a:documentation>
             <empty/>
           </element>
         </optional>
-      </element>
-    </optional>
-    <optional>
-      <element name="vector_field">
-        <a:documentation>Absorption
-
-Note: When in spherical geometry the absorption is now automatically rotated.
-The input values below correspond to setting the diagonal of the absorption matrix
-in the rotated frame of reference. The columns correspond to phi, theta and r 
-respectively.</a:documentation>
-        <attribute name="name">
-          <value>Absorption</value>
-        </attribute>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <choice>
-          <element name="prescribed">
-            <optional>
-              <ref name="mesh_choice"/>
-            </optional>
-            <ref name="prescribed_vector_field_no_adapt"/>
-          </element>
-          <element name="diagnostic">
-            <optional>
-              <ref name="mesh_choice"/>
-            </optional>
-            <choice>
-              <ref name="vector_python_diagnostic_algorithm"/>
-              <ref name="imposed_material_velocity_absorption_algorithm"/>
-              <ref name="internal_velocity_absorption_algorithm"/>
-            </choice>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-        </choice>
-        <choice>
-          <element name="default_absorption">
-            <a:documentation>Default absorption: no lumping, is fully evaluated before the
-the pressure correction.</a:documentation>
-            <empty/>
-          </element>
-          <element name="lump_absorption">
-            <a:documentation>Lump the inclusion of absorbtion terms.</a:documentation>
-            <optional>
-              <element name="use_submesh">
-                <a:documentation>Lump on the submesh.
-This only works for simplex meshes and is only
-strictly valid on 2d meshes.</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-          <element name="include_pressure_correction">
-            <a:documentation>Includes the pressure correction to the velocity in the
-absorption term (for theta&gt;0). This makes the absorption
-term more implicit. The absorption term is lumped if and
-only if the mass matrix is lumped (lump_mass_matrix).</a:documentation>
-            <empty/>
-          </element>
-        </choice>
       </element>
     </optional>
     <ref name="prognostic_vector_output_options"/>
