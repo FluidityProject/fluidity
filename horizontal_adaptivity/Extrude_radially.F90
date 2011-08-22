@@ -285,7 +285,7 @@ module hadapt_extrude_radially
 
     ! combine the 1d radial meshes into a full mesh
     call combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
-       full_shape, mesh_name, option_path)
+       full_shape, mesh_name, option_path, sigma_layers)
 
 !     vtk_write_state(filename, index, model, state, write_region_ids, stat)
 !     call vtk_write_fields("extruded_mesh", 0, out_mesh, out_mesh%mesh, vfields=(/out_mesh/))

@@ -331,12 +331,6 @@ else
   enable_mpi="no"
 fi
 
-VERSION=`svnversion .`
-AC_SUBST(VERSION)
-cat >> confdefs.h << EOF
-#undef __FLUIDITY_VERSION__
-#define __FLUIDITY_VERSION__ "$VERSION"
-EOF
 AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
 
