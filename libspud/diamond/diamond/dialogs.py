@@ -165,6 +165,9 @@ def prompt_response(dialog, response_id):
   function namespace, to allow response return in other functions.
   """
 
+  if response_id == gtk.RESPONSE_DELETE_EVENT:
+    response_id = gtk.RESPONSE_CANCEL
+
   prompt_response.response = response_id
   close_dialog(dialog, response_id)
 

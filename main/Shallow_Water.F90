@@ -172,6 +172,7 @@
     timestep=0
 
     call populate_state(state)
+
     ! Read in any control variables
     call adjoint_load_controls(timestep, dt, state)
     call adjoint_register_initial_eta_condition(state)
@@ -192,7 +193,7 @@
        if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
             & .true.
     end if
-
+    
     call get_parameters
 
     ! No support for multiphase or multimaterial at this stage.
@@ -207,11 +208,12 @@
     ! Always output the initial conditions.
     call output_state(state)
 
-    if(hybridized) then
-       !project velocity into div-conforming space
-       v_field => extract_vector_field(state(1),"LocalVelocity")
-       call project_to_constrained_space(state(1),v_field)
-    end if
+    !This needs an option to switch on as we don't always want to do it.
+    !if(hybridized) then
+    !   !project velocity into div-conforming space
+    !   v_field => extract_vector_field(state(1),"LocalVelocity")
+    !   call project_to_constrained_space(state(1),v_field)
+    !end if
 
     if(hybridized) then
        call compute_energy_hybridized(state(1),energy)
@@ -228,6 +230,7 @@
 
     timestep_loop: do
        timestep=timestep+1
+       if (simulation_completed(current_time, timestep)) exit timestep_loop
        ewrite (1,*) "SW: start of timestep ", timestep, current_time
 
        ! this may already have been done in populate_state, but now
@@ -381,6 +384,14 @@
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/theta",theta)
+
+      hybridized = .false.
+      v_field => extract_vector_field(state(1),"Velocity")
+      if(associated(v_field%mesh%shape%constraints)) then
+         if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE)&
+              & hybridized =&
+              & .true.
+      end if
 
       if(.not.hybridized) then
          ! This is here so that matrices are available for adjoint and
@@ -577,16 +588,17 @@
          call set(h,old_h)
          call set(h_DG,old_h_DG)
 
-         if(.not.hybridized) then
+         if(hybridized) then
+            call solve_linear_timestep_hybridized(&
+                 &state,dt_in=0.5*dt,theta_in=0.0)
+         else
             call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=0.0)
-            call set(advecting_u,old_u)
-            call scale(advecting_u,(1-itheta))
-            call addto(advecting_u,u,scale=itheta)
          end if
 
          !velocity advection step
          if(.not.exclude_velocity_advection) then
-            call solve_vector_advection_dg_subcycle("LocalVelocity", state, "NonlinearVelocity")
+            call solve_vector_advection_dg_subcycle("LocalVelocity", state,&
+                 & "NonlinearVelocity")
             ewrite_minmax(u)
          end if
          !pressure advection
@@ -612,21 +624,14 @@
          end if
 
          if(hybridized) then
-            call solve_hybridized_helmholtz(&
-                 &state,&
-                 &U_out=U_rhs,D_out=h_rhs,&
-                 &compute_cartesian=.true.,&
-                 &check_continuity=.true.,output_dense=.false.)
-            ewrite(1,*) 'jump in D', maxval(abs(h_rhs%val-h%val))
-            ewrite(1,*) 'jump in U', maxval(abs(U_rhs%val-U%val))
-            call set(h,h_rhs)
-            call set(U,U_rhs)
+            call solve_linear_timestep_hybridized(&
+                 &state,dt_in=0.5*dt,theta_in=1.0)
          else
             call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=1.0)
-            call set(advecting_u,old_u)
-            call scale(advecting_u,(1-itheta))
-            call addto(advecting_u,u,scale=itheta)
          end if
+         call set(advecting_u,old_u)
+         call scale(advecting_u,(1-itheta))
+         call addto(advecting_u,u,scale=itheta)
 
       end do
 

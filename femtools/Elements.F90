@@ -431,7 +431,7 @@ contains
     !!< instead of on an element numbering.
     integer, intent(in) :: n
     type(element_type), intent(in) :: element    
-    real, dimension(size(element%numbering%number2count, 1)) :: coords
+    real, dimension(local_coords_len(element%numbering)) :: coords
     
     coords=local_coords(n, element%numbering)
 
@@ -518,12 +518,11 @@ contains
     integer :: i
 
     eval_shape=1.0
-          
+    
     do i=1,size(shape%spoly,1)
        
        ! Raw shape function
        eval_shape=eval_shape*eval(shape%spoly(i,node), l(i))
-             
     end do
 
   end function eval_shape_node

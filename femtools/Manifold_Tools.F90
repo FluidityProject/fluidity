@@ -41,7 +41,8 @@ module manifold_tools
   end interface
   private 
 
-  public :: project_cartesian_to_local, project_local_to_cartesian, get_local_normal, get_face_normal_manifold, get_up_vec
+  public :: project_cartesian_to_local, project_local_to_cartesian,&
+       & get_local_normal, get_face_normal_manifold, get_up_vec, get_weights
 
   contains 
 
@@ -250,11 +251,14 @@ module manifold_tools
 
   end subroutine project_local_to_cartesian_state
 
-  subroutine project_local_to_cartesian_generic(X, in_field_local, out_field_cartesian, transpose)
+  subroutine project_local_to_cartesian_generic(X, in_field_local,&
+       & out_field_cartesian, transpose,weights)
     !!< Project the local velocity to cartesian coordinates
     type(vector_field), intent(in) :: X
     type(vector_field), intent(inout) :: out_field_cartesian, in_field_local
     logical, intent(in), optional :: transpose
+    !array of weights for each element to rescale velocity by
+    real, intent(in), dimension(:), optional :: weights
 
     integer :: ele
 
@@ -266,16 +270,19 @@ module manifold_tools
       end do
     else
       do ele=1, element_count(out_field_cartesian)
-         call project_local_to_cartesian_ele(ele, X, out_field_cartesian, in_field_local)
+         call project_local_to_cartesian_ele(ele, X, out_field_cartesian,&
+              & in_field_local,weights)
       end do
     end if
   end subroutine project_local_to_cartesian_generic
   
-  subroutine project_local_to_cartesian_ele(ele, X, U_cartesian, U_local)
+  subroutine project_local_to_cartesian_ele(ele, X, U_cartesian, U_local,&
+       &weights)
     !!< Project the local velocity to cartesian
     integer, intent(in) :: ele
     type(vector_field), intent(in) :: X, U_local
     type(vector_field), intent(inout) :: U_cartesian
+    real, dimension(:), intent(in), optional :: weights
 
     real, dimension(ele_loc(U_cartesian,ele), ele_loc(U_cartesian,ele)) :: mass
     real, dimension(mesh_dim(U_local), X%dim, ele_ngi(X,ele)) :: J
@@ -292,7 +299,6 @@ module manifold_tools
     U_quad=ele_val_at_quad(U_local,ele)
 
     mass=shape_shape(U_shape, U_shape, detwei)
-    call invert(mass)
 
     U_cartesian_gi=0.
     do gi=1, ele_ngi(X,ele)
@@ -300,9 +306,13 @@ module manifold_tools
     end do
 
     rhs=shape_vector_rhs(U_shape, U_cartesian_gi, U_shape%quadrature%weight)
+    if(present(weights)) then
+       rhs = rhs*weights(ele)
+    end if
 
     do d=1,U_cartesian%dim
-       call set(U_cartesian, d, ele_nodes(U_cartesian,ele), matmul(mass,rhs(d,:)))
+       call solve(mass,rhs(d,:))
+       call set(U_cartesian, d, ele_nodes(U_cartesian,ele),rhs(d,:))
     end do
 
   end subroutine project_local_to_cartesian_ele
@@ -503,5 +513,36 @@ module manifold_tools
        up_vec_out = up
     end if
   end function get_up_vec
+
+  subroutine get_weights(X,weights)
+    !subroutine to compute weights to rescale the local velocity
+    type(vector_field), intent(in) :: X
+    real, dimension(:), intent(inout) :: weights
+    !
+    integer :: ele
+    
+    do ele = 1, element_count(X)
+       call get_weights_ele(X,weights,ele)
+    end do
+  end subroutine get_weights
+
+  subroutine get_weights_ele(X,weights,ele)
+    !subroutine to compute weights to rescale the local velocity
+    type(vector_field), intent(in) :: X
+    real, dimension(:), intent(inout) :: weights
+    integer, intent(in) :: ele
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(X,ele)) :: detwei
+    
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detwei=detwei)
+    
+    !area = 0.5*base*height
+    !for an equilateral triangle this is
+    ! 0.5*base*sqrt(3./4.)*base = sqrt(3.0)/4.0*base^2
+    ! so base = sqrt(4.0*area/sqrt(3.0))
+    weights(ele) = sqrt(4.0*sum(detwei)/sqrt(3.0))
+    
+  end subroutine get_weights_ele
 
 end module manifold_tools

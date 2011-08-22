@@ -660,7 +660,7 @@ implicit none
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
        
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,:)
+             field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,:)
           end do
 
        else
@@ -676,28 +676,28 @@ implicit none
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
        
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val(1)*lfield2%val(i,1)
+             field1%val(i,:)=field1%val(i,:)+lscale%val(1)*lfield2%val(i,1)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_NORMAL) .and. &
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
 
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val(1)*lfield2%val(i,:)
+             field1%val(i,:)=field1%val(i,:)+lscale%val(1)*lfield2%val(i,:)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_CONSTANT) .and. &
             (lscale%field_type==FIELD_TYPE_NORMAL)) then
 
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,1)
+             field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,1)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_NORMAL) .and. &
             (lscale%field_type==FIELD_TYPE_NORMAL)) then
 
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,:)
+             field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,:)
           end do
 
        else
@@ -1950,6 +1950,11 @@ implicit none
     integer :: fromloc, toloc, ele, i
     integer, dimension(:), pointer :: from_ele, to_ele
     
+    !4debugging
+    real, dimension(size(from_field%mesh%shape%spoly,1)) :: l
+
+    ewrite(1,*) 'REMOVE DEBUGGING STUFF'
+    
     if(present(stat)) stat = 0
 
     assert(to_field%dim>=from_field%dim)
@@ -2008,7 +2013,7 @@ implicit none
             FLAbort("Trying to remap from a bubble to a lagrange vector field")
           end if
         end if
-
+        
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
           do fromloc=1,size(locweight,2)

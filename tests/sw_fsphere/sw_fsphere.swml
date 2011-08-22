@@ -122,35 +122,26 @@ val=spherical_down()</string_value>
         </spatial_discretisation>
         <temporal_discretisation>
           <relaxation>
-            <real_value rank="0"/>
+            <real_value rank="0">1.0</real_value>
           </relaxation>
-          <discontinuous_galerkin>
-            <maximum_courant_number_per_subcycle>
-              <real_value rank="0"/>
-            </maximum_courant_number_per_subcycle>
-          </discontinuous_galerkin>
-          <solver>
-            <iterative_method name="gmres">
-              <restart>
-                <integer_value rank="0"/>
-              </restart>
-            </iterative_method>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0"/>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0"/>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-          <initial_condition name="WholeMesh">
-            <balanced/>
-          </initial_condition>
         </temporal_discretisation>
+        <solver>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <balanced/>
+        </initial_condition>
         <output/>
         <convergence>
           <include_in_convergence/>
