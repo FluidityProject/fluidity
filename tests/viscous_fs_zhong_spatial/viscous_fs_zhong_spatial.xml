@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>viscous_fs_zhong</name>
+  <owner userid="cwilson"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v2 viscous_fs_zhong_A.flml &gt;&amp; A.log &amp;&amp; fluidity -v2 viscous_fs_zhong_B.flml &gt;&amp; B.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="finish_time_a" language="python">from fluidity_tools import stat_parser as stat
+
+file1 = "viscous_fs_zhong_A.stat"
+
+finish_time_a = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+    <variable name="ab_convergence_fs" language="python">import calculate_order
+
+file1 = "viscous_fs_zhong_A.stat"
+file2 = "viscous_fs_zhong_B.stat"
+
+ab_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
+    <variable name="finish_time_b" language="python">from fluidity_tools import stat_parser as stat
+
+file1 = "viscous_fs_zhong_B.stat"
+
+finish_time_b = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+<!--    <variable name="bc_convergence_fs" language="python">import calculate_order
+
+file1 = "viscous_fs_zhong_B.stat"
+file2 = "viscous_fs_zhong_C.stat"
+
+bc_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
+    <variable name="finish_time_c" language="python">from fluidity_tools import stat_parser as stat
+
+file1 = "viscous_fs_zhong_C.stat"
+
+finish_time_c = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+    <variable name="cd_convergence_fs" language="python">import calculate_order
+
+file1 = "viscous_fs_zhong_C.stat"
+file2 = "viscous_fs_zhong_D.stat"
+
+cd_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
+    <variable name="finish_time_d" language="python">from fluidity_tools import stat_parser as stat
+
+file1 = "viscous_fs_zhong_D.stat"
+
+finish_time_d = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+    <variable name="de_convergence_fs" language="python">import calculate_order
+
+file1 = "viscous_fs_zhong_D.stat"
+file2 = "viscous_fs_zhong_E.stat"
+
+de_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
+    <variable name="finish_time_e" language="python">from fluidity_tools import stat_parser as stat
+
+file1 = "viscous_fs_zhong_E.stat"
+
+finish_time_e = stat(file1)["ElapsedTime"]["value"][-1]</variable>-->
+  </variables>
+  <pass_tests>
+    <test name="afinish" language="python">assert(finish_time_a&gt;64.0)</test>
+    <test name="bfinish" language="python">assert(finish_time_b&gt;64.0)</test>
+    <test name="abtop" language="python">assert(ab_convergence_fs[0]&gt;2.0)</test>
+    <test name="abbot" language="python">assert(ab_convergence_fs[1]&gt;2.0)</test>
+  </pass_tests>
+</testproblem>
