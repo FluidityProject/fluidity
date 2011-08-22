@@ -4,7 +4,7 @@
   <owner userid="cwilson"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity -v2 viscous_fs_simpletopbottom_E.flml &gt;&amp; E.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_F.flml &gt;&amp; F.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_G.flml &gt;&amp; G.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_H.flml &gt;&amp; H.log</command_line>
+    <command_line>fluidity -v2 viscous_fs_simpletopbottom_E.flml &gt;&amp; E.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_F.flml &gt;&amp; F.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_G.flml &gt;&amp; G.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_H.flml &gt;&amp; H.log &amp;&amp; fluidity -v2 viscous_fs_simpletopbottom_I.flml &gt;&amp; I.log</command_line>
   </problem_definition>
   <variables>
     <variable name="finish_time_e" language="python">from fluidity_tools import stat_parser as stat
@@ -45,17 +45,31 @@ gh_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
 file1 = "viscous_fs_simpletopbottom_H.stat"
 
 finish_time_h = stat(file1)["ElapsedTime"]["value"][-1]</variable>
+    <variable name="hi_convergence_fs" language="python">import calculate_order
+
+file1 = "viscous_fs_simpletopbottom_H.stat"
+file2 = "viscous_fs_simpletopbottom_I.stat"
+
+hi_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
+    <variable name="finish_time_i" language="python">from fluidity_tools import stat_parser as stat
+
+file1 = "viscous_fs_simpletopbottom_I.stat"
+
+finish_time_i = stat(file1)["ElapsedTime"]["value"][-1]</variable>
   </variables>
   <pass_tests>
-    <test name="efinish" language="python">assert(abs(finish_time_e-64.0)&lt;2.0)</test>
-    <test name="ffinish" language="python">assert(abs(finish_time_f-64.0)&lt;1.0)</test>
-    <test name="gfinish" language="python">assert(abs(finish_time_g-64.0)&lt;0.5)</test>
-    <test name="hfinish" language="python">assert(abs(finish_time_h-64.0)&lt;0.25)</test>
+    <test name="efinish" language="python">assert(abs(finish_time_e-4.0)&lt;2.0)</test>
+    <test name="ffinish" language="python">assert(abs(finish_time_f-4.0)&lt;1.0)</test>
+    <test name="gfinish" language="python">assert(abs(finish_time_g-4.0)&lt;0.5)</test>
+    <test name="hfinish" language="python">assert(abs(finish_time_h-4.0)&lt;0.25)</test>
+    <test name="ifinish" language="python">assert(abs(finish_time_i-4.0)&lt;0.125)</test>
     <test name="eftop" language="python">assert(ef_convergence_fs[0]&gt;2.0)</test>
     <test name="fgtop" language="python">assert(fg_convergence_fs[0]&gt;2.0)</test>
     <test name="ghtop" language="python">assert(gh_convergence_fs[0]&gt;2.0)</test>
+    <test name="hitop" language="python">assert(hi_convergence_fs[0]&gt;2.0)</test>
     <test name="efbot" language="python">assert(ef_convergence_fs[1]&gt;2.0)</test>
     <test name="fgbot" language="python">assert(fg_convergence_fs[1]&gt;2.0)</test>
     <test name="ghbot" language="python">assert(gh_convergence_fs[1]&gt;2.0)</test>
+    <test name="hibot" language="python">assert(hi_convergence_fs[1]&gt;2.0)</test>
   </pass_tests>
 </testproblem>
