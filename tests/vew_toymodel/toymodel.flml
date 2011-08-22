@@ -26,6 +26,17 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="DGMesh">
+      <from_mesh>
+        <mesh name="VelocityMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">4</integer_value>
@@ -568,7 +579,7 @@ def val(X,t):
           <scalar_field name="Biomass" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -582,7 +593,7 @@ def val(X,t):
           <scalar_field name="ParticulateAmmonium" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -596,7 +607,7 @@ def val(X,t):
           <scalar_field name="ParticulateCarbon" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -610,7 +621,7 @@ def val(X,t):
           <scalar_field name="ParticulateChlorophyll" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -624,7 +635,7 @@ def val(X,t):
           <scalar_field name="ParticulateNitrate" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -638,7 +649,7 @@ def val(X,t):
           <scalar_field name="ParticulateSilicate" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -653,7 +664,7 @@ def val(X,t):
           <scalar_field name="Request" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -664,7 +675,7 @@ def val(X,t):
           <scalar_field name="Depletion" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -678,7 +689,7 @@ def val(X,t):
           <scalar_field name="Request" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -689,7 +700,7 @@ def val(X,t):
           <scalar_field name="Depletion" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -703,7 +714,7 @@ def val(X,t):
           <scalar_field name="Request" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -714,7 +725,7 @@ def val(X,t):
           <scalar_field name="Depletion" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -728,7 +739,7 @@ def val(X,t):
           <scalar_field name="Release" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>
@@ -742,7 +753,7 @@ def val(X,t):
           <scalar_field name="Release" rank="0">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="VelocityMesh"/>
+              <mesh name="DGMesh"/>
               <output/>
               <stat/>
               <detectors>

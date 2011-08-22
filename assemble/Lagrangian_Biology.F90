@@ -459,13 +459,11 @@ contains
     agent => agent_list%first
     do while (associated(agent))
        value = agent%biology(biovar_id)
-       shape => ele_shape(sfield, agent%element)
        ele_volume = element_volume(xfield, agent%element)
        element_nodes = ele_nodes(sfield, agent%element)
 
        do i=1, ele_loc(sfield, agent%element)
-          shape_val = eval_shape(shape, i, agent%local_coords)
-          scaled_value = value * shape_val / ele_volume
+          scaled_value = value / ele_volume
           call addto(sfield, element_nodes(i), scaled_value)
        end do
 
