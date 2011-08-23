@@ -63,13 +63,13 @@ finish_time_i = stat(file1)["ElapsedTime"]["value"][-1]</variable>
     <test name="gfinish" language="python">assert(abs(finish_time_g-4.0)&lt;0.5)</test>
     <test name="hfinish" language="python">assert(abs(finish_time_h-4.0)&lt;0.25)</test>
     <test name="ifinish" language="python">assert(abs(finish_time_i-4.0)&lt;0.125)</test>
-    <test name="eftop" language="python">assert(ef_convergence_fs[0]&gt;2.0)</test>
-    <test name="fgtop" language="python">assert(fg_convergence_fs[0]&gt;2.0)</test>
+    <test name="eftop" language="python">assert(ef_convergence_fs[0]&gt;1.6)</test>
+    <test name="fgtop" language="python">assert(fg_convergence_fs[0]&gt;1.9)</test>
     <test name="ghtop" language="python">assert(gh_convergence_fs[0]&gt;2.0)</test>
-    <test name="hitop" language="python">assert(hi_convergence_fs[0]&gt;2.0)</test>
-    <test name="efbot" language="python">assert(ef_convergence_fs[1]&gt;2.0)</test>
-    <test name="fgbot" language="python">assert(fg_convergence_fs[1]&gt;2.0)</test>
+    <test name="hitop" language="python">assert(hi_convergence_fs[0]&gt;1.8)</test>
+    <test name="efbot" language="python">assert(ef_convergence_fs[1]&gt;1.6)</test>
+    <test name="fgbot" language="python">assert(fg_convergence_fs[1]&gt;1.9)</test>
     <test name="ghbot" language="python">assert(gh_convergence_fs[1]&gt;2.0)</test>
-    <test name="hibot" language="python">assert(hi_convergence_fs[1]&gt;2.0)</test>
+    <test name="hibot" language="python">assert(hi_convergence_fs[1]&gt;1.8)</test>
   </pass_tests>
 </testproblem>
