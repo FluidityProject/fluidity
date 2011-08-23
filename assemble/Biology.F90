@@ -370,23 +370,21 @@ contains
           face_2=face
        end if
        
-       !if (.not. ele_2<=-1 .and. .not. face>surface_element_count(light%mesh)) then
-          call construct_light_interface(ele, ele_2, face, face_2, ni,&
+       call construct_light_interface(face, face_2,&
             & light_mat, rhs, X, g, light, &
             & bc_value, bc_type)  
-       !end if  
     end do neighbourloop
 
   end subroutine construct_light_element
 
-  subroutine construct_light_interface(ele, ele_2, face, face_2, ni,&
+  subroutine construct_light_interface(face, face_2,&
             & light_mat, rhs, X, g, light, bc_value, bc_type)
     !!< Construct the element boundary integrals on the ni-th face of
     !!< element ele. For continuous discretisation, this is only boundary
     !!< faces. For DG it's all of them.
     implicit none
 
-    integer, intent(in) :: ele, ele_2, face, face_2, ni
+    integer, intent(in) :: face, face_2
     type(csr_matrix), intent(inout) :: light_mat
     type(scalar_field), intent(inout) :: rhs
     ! We pass these additional fields to save on state lookups.
@@ -400,7 +398,7 @@ contains
 
     ! Face objects and numberings.
     type(element_type), pointer ::l_shape, l_shape_2
-    integer, dimension(face_loc(light,face)) :: l_face, l_face_l
+    integer, dimension(face_loc(light,face)) :: l_face
     integer, dimension(face_loc(light,face_2)) :: l_face_2
 
     ! Note that both sides of the face can be assumed to have the same
