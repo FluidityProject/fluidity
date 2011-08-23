@@ -369,11 +369,12 @@ contains
           ! External face.
           face_2=face
        end if
-
-       call construct_light_interface(ele, ele_2, face, face_2, ni,&
+       
+       !if (.not. ele_2<=-1 .and. .not. face>surface_element_count(light%mesh)) then
+          call construct_light_interface(ele, ele_2, face, face_2, ni,&
             & light_mat, rhs, X, g, light, &
             & bc_value, bc_type)  
-            
+       !end if  
     end do neighbourloop
 
   end subroutine construct_light_element
@@ -428,7 +429,7 @@ contains
     ! Boundary nodes have both faces the same.
     boundary=(face==face_2)
     dirichlet=.false.
-    if (boundary) then
+    if (boundary .and. face < size(bc_type)) then
        if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
           dirichlet=.true.
        end if

@@ -752,7 +752,7 @@ biology.six_component(state, p)</string_value>
                 <integer_value rank="0">30</integer_value>
               </restart>
             </iterative_method>
-            <preconditioner name="ilu"/>
+            <preconditioner name="sor"/>
             <relative_error>
               <real_value rank="0">1e-6</real_value>
             </relative_error>

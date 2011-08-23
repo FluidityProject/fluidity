@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
-  <name>biology_6_comopnent</name>
+  <name>biology_6_component_parallel</name>
   <owner userid="jhill1"/>
-  <tags>flml biology</tags>
+  <tags>flml biology parallel</tags>
   <problem_definition length="short" nprocs="1">
       <command_line>mpiexec -n 2 ../../bin/fluidity biology_conservation_parallel.flml; fluidity biology_conservation.flml; </command_line>
     <!-- PZNDAC model running in a water column not solving for any physics. No sinking of detritus, so everything conserved -->
