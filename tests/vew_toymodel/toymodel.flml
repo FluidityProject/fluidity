@@ -812,20 +812,7 @@ def val(ele, local_coord, dt):
             <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
 from __builtin__ import str
 
-name = dict({
-'Stage' :           0,   # 
-'Biomass' :         1,   # Sub-population size
-'AmmoniumPool' :    2,   # Current ammonium pool
-'CarbonPool' :      3,   # Current carbon pool
-'ChlorophyllPool' : 4,   # Current chlorophyll pool
-'NitratePool' :     5,   # Current nitrate pool
-'SilicatePool' :    6,   # Current silicate pool
-'IngAmmonium' :     7,   # Ammonium uptake
-'IngNitrate' :      8,   # Nitrate uptake
-'IngSilicate' :     9,   # Silicate uptake
-'RelAmmonium' :     10,   # Ammonium release
-'RelSilicate' :     11   # Silicate release
-})
+name = persistent['fg_var_names']['Diatom']
 
 temperature = state.scalar_fields['Temperature']
 irradiance = state.scalar_fields['Irradiance']
@@ -837,6 +824,7 @@ nit_depletion = state.scalar_fields['IngNitrateDepletion']
 sil_depletion = state.scalar_fields['IngSilicateDepletion']
 
 def val(ele, local_coord, dt, vars):
+  #print "ml805 vars: " + str(vars)
   bio.update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate, amm_depletion, nit_depletion, sil_depletion)  
   return vars</string_value>
           </biology_update>
@@ -891,20 +879,7 @@ def val(ele, local_coord, dt):
             <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
 from __builtin__ import str
 
-name = dict({
-'Stage' :           0,   # 
-'Biomass' :         1,   # Sub-population size
-'AmmoniumPool' :    2,   # Current ammonium pool
-'CarbonPool' :      3,   # Current carbon pool
-'ChlorophyllPool' : 4,   # Current chlorophyll pool
-'NitratePool' :     5,   # Current nitrate pool
-'SilicatePool' :    6,   # Current silicate pool
-'IngAmmonium' :     7,   # Ammonium uptake
-'IngNitrate' :      8,   # Nitrate uptake
-'IngSilicate' :     9,   # Silicate uptake
-'RelAmmonium' :     10,   # Ammonium release
-'RelSilicate' :     11   # Silicate release
-})
+name = persistent['fg_var_names']['Diatom']
 
 temperature = state.scalar_fields['Temperature']
 amm_depletion = state.scalar_fields['IngAmmoniumDepletion']

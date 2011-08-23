@@ -93,6 +93,9 @@ contains
     allocate(agent_arrays(n_agent_arrays))
     ewrite(2,*) "Found a total of ", n_agent_arrays, " agent arrays in ", n_fgroups, " functional groups"
 
+    ! Create a persistent dictionary of FG variable name mappings
+    call python_run_string("persistent['fg_var_names'] = dict()")
+
     ! We create an agent array for each stage of each Functional Group
     do fg=1, n_fgroups
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",i-1,"]"
@@ -225,6 +228,12 @@ contains
                 agent_arrays(i)%has_biology=.true.
              end if
 
+             ! Now we know the variable names for the FG, so we populate the mapping dict
+             call python_run_string("persistent['fg_var_names']['"//trim(fg_name)//"'] = dict()")
+             do j=1, biovar_total
+                call python_run_string("persistent['fg_var_names']['"//trim(fg_name)//"']['"//trim(agent_arrays(i)%biovar_list(j))//"']="//trim(int2str(j-1)))
+             end do
+
              ! Initialise agent variables
              agent => agent_arrays(i)%first
              do while (associated(agent))
@@ -307,18 +316,15 @@ contains
 
     xfield=>extract_vector_field(state(1), "Coordinate")
 
+    ! Prepare python-state
+    call python_reset()
+    call python_add_state(state(1))
+
     do i = 1, size(agent_arrays)
        ! Move lagrangian detectors
        if (check_any_lagrangian(agent_arrays(i))) then
           call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
        end if
-
-       ! Prepare python state if the Random Walk didn't do so
-       if (.not. agent_arrays(i)%move_parameters%do_random_walk) then
-          call python_reset()
-          call python_add_state(state(1))
-       end if
-
 
        if (agent_arrays(i)%has_biology) then
           ! Compile python function to set bio-variable, and store in the global dictionary
@@ -415,14 +421,14 @@ contains
                 depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%biovar_list(j))//"Depletion")
 
                 do n=1, node_count(request_field)
-                   if (node_val(request_field,n) > node_val(chemical_field,n)) then
+                   !if (node_val(request_field,n) > node_val(chemical_field,n)) then
                       ! Scale back the request
-                      call set(depletion_field, n, node_val(chemical_field,n) / node_val(request_field,n))
-                   else
-                      call set(depletion_field, n, 1.0)
-                   end if
+                   !   call set(depletion_field, n, node_val(chemical_field,n) / node_val(request_field,n))
+                   !else
+                   !   call set(depletion_field, n, 1.0)
+                   !end if
 
-                   call addto(absorption_field, n, node_val(request_field,n) * node_val(depletion_field,n))
+                   !call addto(absorption_field, n, node_val(request_field,n) * node_val(depletion_field,n))
                 end do
              end if
 
@@ -431,7 +437,7 @@ contains
                 release_field=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
                 source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Source")
                 do n=1, node_count(release_field)
-                   call addto(source_field, n, node_val(release_field,n))
+                   !call addto(source_field, n, node_val(release_field,n))
                 end do
              end if
           end do

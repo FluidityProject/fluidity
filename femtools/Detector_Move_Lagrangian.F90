@@ -180,12 +180,8 @@ contains
 
     ! For Random Walk first run the user code, so we can pull fields from state
     if (parameters%do_random_walk) then
-       ! Prepare python-state
-       call python_reset()
-       call python_add_state(state(1))
-
        ! Run the user's code and store val object in "random_walk" dict
-       call python_run_detector_string(trim(parameters%rw_pycode), trim("random_walk"), trim(detector_list%name))
+       call python_run_detector_string(trim(parameters%rw_pycode), trim(detector_list%name), trim("random_walk"))
     end if
 
     ! Pull some information from state
@@ -260,7 +256,7 @@ contains
           do det = 1, detector_list%length
              if (detector%type==LAGRANGIAN_DETECTOR) then
                 ! Evaluate the RW python function and add to update_vector
-                call python_run_detector_val_function(detector,xfield,rk_dt,trim("random_walk"),trim(detector_list%name),rw_velocity_source)
+                call python_run_detector_val_function(detector,xfield,rk_dt,trim(detector_list%name),trim("random_walk"),rw_velocity_source)
                 detector%update_vector=detector%update_vector + (rw_velocity_source)  
                 detector%search_complete=.false.
              end if
@@ -295,11 +291,6 @@ contains
 
     deallocate(send_list_array)
     deallocate(rw_velocity_source)
-    
-    ! Delete the global Random Walk dicts from python
-    if (parameters%do_random_walk) then
-       call python_run_string("random_walk.clear()")
-    end if
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
