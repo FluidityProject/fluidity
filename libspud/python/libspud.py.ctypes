@@ -59,106 +59,116 @@ spud_exceptions = {SPUD_KEY_ERROR: SpudKeyError,
 
 libspud = cdll.LoadLibrary('@prefix@'  + '/lib/libspud.so')
 
-cclear_options = libspud.cspud_clear_options_
+cclear_options = libspud.spud_clear_options
 cclear_options.argtypes = []
 cclear_options.restype = None
 
 def clear_options():
   cclear_options()
 
-cload_options = libspud.cspud_load_options_
-cload_options.argtypes = [c_char_p, POINTER(c_int)]
-cload_options.restype = None
+cload_options = libspud.spud_load_options
+cload_options.argtypes = [c_char_p, c_int]
+cload_options.restype = c_int
 
 def load_options(s):
-  cload_options(s, byref(c_int(len(s))))
+  out = cload_options(s, c_int(len(s)))
+  if out != SPUD_NO_ERROR:
+    raise spud_exceptions[out]
 
-cwrite_options = libspud.cspud_write_options_
-cwrite_options.argtypes = [c_char_p, POINTER(c_int)]
-cwrite_options.restype = None
+cwrite_options = libspud.spud_write_options
+cwrite_options.argtypes = [c_char_p, c_int]
+cwrite_options.restype = c_int
 
 def write_options(filename):
-  cwrite_options(filename, byref(c_int(len(filename))))
+  out = cwrite_options(filename, c_int(len(filename)))
+  if out != SPUD_NO_ERROR:
+    raise spud_exceptions[out]
 
-cget_child_name = libspud.cspud_get_child_name_
-cget_child_name.argtypes = [c_char_p, POINTER(c_int), POINTER(c_int), c_char_p, POINTER(c_int)]
+cget_child_name = libspud.spud_get_child_name
+cget_child_name.argtypes = [c_char_p, c_int, c_int, c_char_p, c_int]
 cget_child_name.restype = c_int
 
 def get_child_name(s, idx):
   val = create_string_buffer(OPTION_PATH_LEN)
-  out = cget_child_name(s, byref(c_int(len(s))), byref(c_int(idx)), val, byref(c_int(len(val))))
+  out = cget_child_name(s, c_int(len(s)), c_int(idx), val, c_int(len(val)))
   
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
     
   return val.value.strip()
   
-cnumber_of_children = libspud.cspud_number_of_children_
-cnumber_of_children.argtypes = [c_char_p, POINTER(c_int)]
-cnumber_of_children.restype = c_int
+cget_number_of_children = libspud.spud_get_number_of_children
+cget_number_of_children.argtypes = [c_char_p, c_int, POINTER(c_int)]
+cget_number_of_children.restype = c_int
 
-def number_of_children(s):
-  return cnumber_of_children(s, byref(c_int(len(s))))
+def get_number_of_children(s):
+  val = c_int()
+  out = cget_number_of_children(s, c_int(len(s)), byref(val))
+  
+  if out != SPUD_NO_ERROR:
+    raise spud_exceptions[out]
+  
+  return val.value
     
-coption_count = libspud.cspud_option_count_
-coption_count.argtypes = [c_char_p, POINTER(c_int)]
+coption_count = libspud.spud_option_count
+coption_count.argtypes = [c_char_p, c_int]
 coption_count.restype = c_int
 
 def option_count(s):
-  return coption_count(s, byref(c_int(len(s))))
+  return coption_count(s, c_int(len(s)))
    
-chave_option = libspud.cspud_have_option_
-chave_option.argtypes = [c_char_p, POINTER(c_int)]
+chave_option = libspud.spud_have_option
+chave_option.argtypes = [c_char_p, c_int]
 chave_option.restype = c_int
 
 def have_option(s):
-  out = chave_option(s, byref(c_int(len(s))))
+  out = chave_option(s, c_int(len(s)))
   
   if out == 1:
     return True
   else:
     return False
 
-cget_option_type = libspud.cspud_get_option_type_
-cget_option_type.argtypes = [c_char_p, POINTER(c_int), POINTER(c_int)]
+cget_option_type = libspud.spud_get_option_type
+cget_option_type.argtypes = [c_char_p, c_int, POINTER(c_int)]
 cget_option_type.restype = c_int
 
 def get_option_type(s):
   val = c_int()
-  out = cget_option_type(s, byref(c_int(len(s))), byref(val))
+  out = cget_option_type(s, c_int(len(s)), byref(val))
 
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
   return pytype_map[val.value]
   
-cget_option_rank = libspud.cspud_get_option_rank_
-cget_option_rank.argtypes = [c_char_p, POINTER(c_int), POINTER(c_int)]
+cget_option_rank = libspud.spud_get_option_rank
+cget_option_rank.argtypes = [c_char_p, c_int, POINTER(c_int)]
 cget_option_rank.restype = c_int
 
 def get_option_rank(s):
   rank = c_int()
-  out = cget_option_rank(s, byref(c_int(len(s))), byref(rank))
+  out = cget_option_rank(s, c_int(len(s)), byref(rank))
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
   return rank.value
   
-cget_option_shape = libspud.cspud_get_option_shape_
-cget_option_shape.argtypes = [c_char_p, POINTER(c_int), POINTER(c_int)]
+cget_option_shape = libspud.spud_get_option_shape
+cget_option_shape.argtypes = [c_char_p, c_int, POINTER(c_int)]
 cget_option_shape.restype = int
 
 def get_option_shape(s):
   shape_type = c_int * 2
   shape = shape_type()
-  out = cget_option_shape(s, byref(c_int(len(s))), shape)
+  out = cget_option_shape(s, c_int(len(s)), shape)
 
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
   return tuple(shape)
 
-cget_option = libspud.cspud_get_option_
-cget_option.argtypes = [c_char_p, POINTER(c_int), c_void_p]
+cget_option = libspud.spud_get_option
+cget_option.argtypes = [c_char_p, c_int, c_void_p]
 cget_option.restype = c_int
 
 def get_option(s):
@@ -177,7 +187,7 @@ def get_option(s):
     for i in range(rank-1, -1, -1): val_type = val_type*shape[i]
     val = val_type()
 
-  out = cget_option(s, byref(c_int(len(s))), byref(val))
+  out = cget_option(s, c_int(len(s)), byref(val))
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
@@ -189,20 +199,20 @@ def get_option(s):
     val_out = val.value
   return val_out
 
-cadd_option = libspud.cspud_add_option_
-cadd_option.argtypes = [c_char_p, POINTER(c_int)]
+cadd_option = libspud.spud_add_option
+cadd_option.argtypes = [c_char_p, c_int]
 cadd_option.restype = c_int
 
 def add_option(s):
-  out = cadd_option(s, byref(c_int(len(s))))
+  out = cadd_option(s, c_int(len(s)))
 
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
   return
 
-cset_option = libspud.cspud_set_option_
-cset_option.argtypes = [c_char_p, POINTER(c_int), c_void_p, POINTER(c_int), POINTER(c_int), POINTER(c_int)]
+cset_option = libspud.spud_set_option
+cset_option.argtypes = [c_char_p, c_int, c_void_p, c_int, c_int, POINTER(c_int)]
 cset_option.restype = c_int
 
 def set_option(s, val):
@@ -246,50 +256,50 @@ def set_option(s, val):
   if py_type is str:
     shape = shape_type(len(val), -1)
     rank = 1
-    out = cset_option(s, byref(c_int(len(s))), (c_val), byref(c_int(spud_code)), byref(c_int(rank)), shape)
+    out = cset_option(s, c_int(len(s)), (c_val), c_int(spud_code), c_int(rank), shape)
   else:
-    out = cset_option(s, byref(c_int(len(s))), byref(c_val), byref(c_int(spud_code)), byref(c_int(rank)), shape)
+    out = cset_option(s, c_int(len(s)), byref(c_val), c_int(spud_code), c_int(rank), shape)
 
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
     
-cset_option_attribute = libspud.cspud_set_option_attribute_
-cset_option_attribute.argtypes = [c_char_p, POINTER(c_int), c_char_p, POINTER(c_int)]
+cset_option_attribute = libspud.spud_set_option_attribute
+cset_option_attribute.argtypes = [c_char_p, c_int, c_char_p, c_int]
 cset_option_attribute.restype = c_int
 
 def set_option_attribute(s, val):
-  out = cset_option_attribute(s, byref(c_int(len(s))), val, byref(c_int(len(val))))
+  out = cset_option_attribute(s, c_int(len(s)), val, c_int(len(val)))
   
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
   return
   
-cdelete_option = libspud.cspud_delete_option_
-cdelete_option.argtypes = [c_char_p, POINTER(c_int)]
+cdelete_option = libspud.spud_delete_option
+cdelete_option.argtypes = [c_char_p, c_int]
 cdelete_option.restype = c_int
 
 def delete_option(s):
-  out = cdelete_option(s, byref(c_int(len(s))))
+  out = cdelete_option(s, c_int(len(s)))
   
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
   return
 
-cmove_option = libspud.cspud_move_option_
-cmove_option.argtypes = [c_char_p, POINTER(c_int), c_char_p, POINTER(c_int)]
+cmove_option = libspud.spud_move_option
+cmove_option.argtypes = [c_char_p, c_int, c_char_p, c_int]
 cmove_option.restype = c_int
 
 def move_option(s1, s2):
-  out = cmove_option(s1, byref(c_int(len(s1))), s2, byref(c_int(len(s2))))
+  out = cmove_option(s1, c_int(len(s1)), s2, c_int(len(s2)))
   
   if out != SPUD_NO_ERROR:
     raise spud_exceptions[out]
 
   return
 
-cprint_options = libspud.cspud_print_options_
+cprint_options = libspud.spud_print_options
 cprint_options.restype = None
 cprint_options.argtypes = []
 

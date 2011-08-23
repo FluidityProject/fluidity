@@ -5,6 +5,8 @@ input: clean
 clean:
 	# serial
 	rm -f  *.ele *.edge *.face *.msh *.node *.poly *.vtu *.s *.d.1 *.stat *.detectors*
+	rm -f matrix*
+	rm -f fluidity.*
 	# parallel
 	rm -rf biology_conservation_parallel_*
 	rm -rf *.halo

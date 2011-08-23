@@ -62,13 +62,13 @@ ammonium2=d["water"]["Ammonium"]["integral"][-1]
     <variable name="DifferencePerNode" language="python">
 from numpy import array, zeros
 import vtktools
-u=vtktools.vtu('biology_conservation_parallel_0.vtu')
+u=vtktools.vtu('biology_conservation_parallel_0.pvtu')
 z1 = u.GetScalarField('Zooplankton')
 p1 = u.GetScalarField('Phytoplankton')
 n1 = u.GetScalarField('Nutrient')
 d1 = u.GetScalarField('Detritus')
 a1 = u.GetScalarField('Ammonium')
-u=vtktools.vtu('biology_conservation_parallel_2.vtu')
+u=vtktools.vtu('biology_conservation_parallel_2.pvtu')
 z2 = u.GetScalarField('Zooplankton')
 p2 = u.GetScalarField('Phytoplankton')
 n2 = u.GetScalarField('Nutrient')
@@ -92,7 +92,7 @@ PhotoRadiationParallel=d["water"]["PhotosyntheticRadiation"]["integral"][0]
   </variables>
   <pass_tests>
       <test name="Check photosyntetic radiation is the same from serial to parallel" language="python">
-        assert( abs(PhotoRadiationParallel - PhotoRadiationSerial) &lt; 1e-10)
+          assert( (abs(PhotoRadiationParallel - PhotoRadiationSerial)/PhotoRadiationSerial) &lt; 1e-4)
       </test>
 <!-- Note that Chlorophyll mass is already contained in the Phytoplankton, so
      we don't need to consider it in the mass balance              -->
@@ -100,7 +100,7 @@ PhotoRadiationParallel=d["water"]["PhotosyntheticRadiation"]["integral"][0]
 before = nutrients1 + detritus1 + phytoplankton1 + zooplankton1 + ammonium1
 after = nutrients2 + detritus2 + phytoplankton2 + zooplankton2 + ammonium2
 print before, after, before-after
-assert (abs(before - after) &lt; 1e-4)
+assert (abs(before - after)/before &lt; 1e-6)
     </test>
     <test name="Pointwise conservation" language="python">
 nNodes = len(DifferencePerNode)

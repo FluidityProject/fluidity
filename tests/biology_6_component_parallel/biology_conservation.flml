@@ -43,17 +43,6 @@
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="PhotoMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">5</integer_value>
@@ -71,18 +60,6 @@
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
     <stat/>
-    <detectors>
-      <static_detector name="Max">
-        <location>
-          <real_value shape="3" dim1="dim" rank="1">1. 99. -10</real_value>
-        </location>
-      </static_detector>
-      <static_detector name="Min">
-        <location>
-          <real_value shape="3" dim1="dim" rank="1">99. 1. -10.</real_value>
-        </location>
-      </static_detector>
-    </detectors>
   </io>
   <timestepping>
     <current_time>
@@ -741,7 +718,7 @@ biology.six_component(state, p)</string_value>
       </source_and_sink_algorithm>
       <scalar_field name="PhotosyntheticRadiation" rank="0">
         <prognostic>
-          <mesh name="PhotoMesh"/>
+          <mesh name="CoordinateMesh"/>
           <equation name="PhotosyntheticRadiation"/>
           <spatial_discretisation>
             <discontinuous_galerkin/>
@@ -752,7 +729,7 @@ biology.six_component(state, p)</string_value>
                 <integer_value rank="0">30</integer_value>
               </restart>
             </iterative_method>
-            <preconditioner name="ilu"/>
+            <preconditioner name="none"/>
             <relative_error>
               <real_value rank="0">1e-6</real_value>
             </relative_error>
