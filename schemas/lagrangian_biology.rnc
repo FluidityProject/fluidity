@@ -5,67 +5,102 @@ lagrangian_biology =
          element functional_group {
             attribute name { xsd:string },
             ## An agent's stage determines the update function
-            element variable {
+            element state_variable {
                attribute name { 'Stage' }
             },
-            ## An agent's stage determines the update function
-            element variable {
+            ## Dynamic size of the ensemble the agent represents
+            element state_variable {
                attribute name { 'Biomass' },
-               agent_diagnostic_field?
+               ## Biology agent field
+               element scalar_field {
+                  attribute name { 'Biomass' },
+                  element diagnostic {
+                     internal_algorithm,
+                     mesh_choice,
+                     diagnostic_scalar_field_no_adapt
+                  },
+                  ## A diagnostic 'Biomass<stage>' field is created for each agent stage
+                  element per_stage {
+                     empty
+                  }
+               }
             },
             (
                ## Internal state variable of a biology agent
-               element variable {
-                  attribute name { xsd:string },
-                  agent_diagnostic_field?
+               element state_variable {
+                  attribute name { xsd:string }
                }|
-               ## Specify a chemical field from which the agent absorbs dissolved matter.
-               ## The associated request field "<var_name>Request" gets scaled by availability 
-               ## on the chemical_field, and added to the "<chem_field>Absorption". 
-               ## The resulting scale factor gets published via the "<var_name>Depletion" field.
-               element uptake_variable{
+               ## State variable representing the internal chemical pool of an agent
+               element chemical_variable {
                   attribute name { xsd:string },
+                  ## Eulerian diagnostic field representing the particulate amount of this chemical
+                  ## Must be on a discontinuous mesh
+                  element scalar_field {
+                     attribute name { 'Particulate' },
+                     element diagnostic {
+                        internal_algorithm,
+                        mesh_choice,
+                        diagnostic_scalar_field_no_adapt
+                     },
+                     ## Option to create a diagnostic field for each stage
+                     element per_stage {
+                        empty
+                     }?
+                  }?,
+                  ## Name of the field representing the dissolved chemical in the environment.
+                  ## Needed if uptake or release are specified.
                   element chemical_field {
                      attribute name { xsd:string }
-                  },
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "Request" },
-                     element diagnostic {
-                        internal_algorithm,
-                        velocity_mesh_choice,
-                        diagnostic_scalar_field_no_adapt
+                  }?,
+                  element uptake {
+                     ## Request field on a discontinuous mesh mesh
+                     element scalar_field {
+                        attribute name { "DGRequest" },
+                        element diagnostic {
+                           internal_algorithm,
+                           mesh_choice,
+                           diagnostic_scalar_field_no_adapt
+                        }
+                     },
+                     ## Request field projected onto a continuous mesh
+                     element scalar_field {
+                        attribute name { "CGRequest" },
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field_no_adapt
+                        }
+                     },
+                     ## Depletion factor
+                     element scalar_field {
+                        attribute name { "Depletion" },
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field_no_adapt
+                        }
                      }
-                  },
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "Depletion" },
-                     element diagnostic {
-                        internal_algorithm,
-                        velocity_mesh_choice,
-                        diagnostic_scalar_field_no_adapt
+                  }?,
+                  element release {
+                     ## Release field on a discontinuous mesh mesh
+                     element scalar_field {
+                        attribute name { "DGRelease" },
+                        element diagnostic {
+                           internal_algorithm,
+                           mesh_choice,
+                           diagnostic_scalar_field_no_adapt
+                        }
+                     },
+                     ## Release field projected onto a continuous mesh
+                     element scalar_field {
+                        attribute name { "CGRelease" },
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field_no_adapt
+                        }
                      }
-                  }
-               }|
-               ## Specify a chemical field to which the agent release matter
-               ## The associated diagnostic field acts as a request to this field,
-               ## which gets scaled by availability on the uptake field.
-               ## The resulting depletion factor gets published via 
-               ## an automatically inserted field "<diagnostic_field>_depletion"
-               element release_variable{
-                  attribute name { xsd:string },
-                  element chemical_field {
-                     attribute name { xsd:string }
-                  },
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "Release" },
-                     element diagnostic {
-                        internal_algorithm,
-                        velocity_mesh_choice,
-                        diagnostic_scalar_field_no_adapt
-                     }
-                  }
+                  }?
                }
             )*,
             ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
@@ -141,28 +176,6 @@ lagrangian_biology =
             }*,
             lagrangian_timestepping
          }*
-      }
-   )
-
-agent_diagnostic_field = 
-   (
-      ## Biology agent field
-      element scalar_field {
-         attribute rank { "0" },
-         attribute name { xsd:string },
-         element diagnostic {
-            internal_algorithm,
-            velocity_mesh_choice,
-            diagnostic_scalar_field_no_adapt
-         },
-         (
-            element global {
-               empty
-            }|
-            element per_stage {
-               empty
-            }
-         )
       }
    )
 

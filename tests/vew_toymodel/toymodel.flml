@@ -574,9 +574,9 @@ def val(X,t):
   <embedded_models>
     <lagrangian_ensemble_biology>
       <functional_group name="Diatom">
-        <variable name="Stage"/>
-        <variable name="Biomass">
-          <scalar_field name="Biomass" rank="0">
+        <state_variable name="Stage"/>
+        <state_variable name="Biomass">
+          <scalar_field name="Biomass">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
               <mesh name="DGMesh"/>
@@ -588,9 +588,9 @@ def val(X,t):
             </diagnostic>
             <per_stage/>
           </scalar_field>
-        </variable>
-        <variable name="AmmoniumPool">
-          <scalar_field name="ParticulateAmmonium" rank="0">
+        </state_variable>
+        <chemical_variable name="Ammonium">
+          <scalar_field name="Particulate">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
               <mesh name="DGMesh"/>
@@ -600,68 +600,70 @@ def val(X,t):
                 <include_in_detectors/>
               </detectors>
             </diagnostic>
-            <global/>
           </scalar_field>
-        </variable>
-        <variable name="CarbonPool">
-          <scalar_field name="ParticulateCarbon" rank="0">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="DGMesh"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-            <global/>
-          </scalar_field>
-        </variable>
-        <variable name="ChlorophyllPool">
-          <scalar_field name="ParticulateChlorophyll" rank="0">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="DGMesh"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-            <global/>
-          </scalar_field>
-        </variable>
-        <variable name="NitratePool">
-          <scalar_field name="ParticulateNitrate" rank="0">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="DGMesh"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-            <global/>
-          </scalar_field>
-        </variable>
-        <variable name="SilicatePool">
-          <scalar_field name="ParticulateSilicate" rank="0">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="DGMesh"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-            <global/>
-          </scalar_field>
-        </variable>
-        <uptake_variable name="IngAmmonium">
           <chemical_field name="Ammonium"/>
-          <scalar_field name="Request" rank="0">
+          <uptake>
+            <scalar_field name="DGRequest">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="DGMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="CGRequest">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Depletion">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </uptake>
+          <release>
+            <scalar_field name="DGRelease">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="DGMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="CGRelease">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </release>
+        </chemical_variable>
+        <chemical_variable name="Nitrate">
+          <scalar_field name="Particulate">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
               <mesh name="DGMesh"/>
@@ -672,21 +674,45 @@ def val(X,t):
               </detectors>
             </diagnostic>
           </scalar_field>
-          <scalar_field name="Depletion" rank="0">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="DGMesh"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-          </scalar_field>
-        </uptake_variable>
-        <uptake_variable name="IngNitrate">
           <chemical_field name="Nitrate"/>
-          <scalar_field name="Request" rank="0">
+          <uptake>
+            <scalar_field name="DGRequest">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="DGMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="CGRequest">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Depletion">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </uptake>
+        </chemical_variable>
+        <chemical_variable name="Silicate">
+          <scalar_field name="Particulate">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
               <mesh name="DGMesh"/>
@@ -697,21 +723,69 @@ def val(X,t):
               </detectors>
             </diagnostic>
           </scalar_field>
-          <scalar_field name="Depletion" rank="0">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="DGMesh"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-          </scalar_field>
-        </uptake_variable>
-        <uptake_variable name="IngSilicate">
           <chemical_field name="Silicate"/>
-          <scalar_field name="Request" rank="0">
+          <uptake>
+            <scalar_field name="DGRequest">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="DGMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="CGRequest">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Depletion">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </uptake>
+          <release>
+            <scalar_field name="DGRelease">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="DGMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="CGRelease">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <mesh name="VelocityMesh"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </release>
+        </chemical_variable>
+        <chemical_variable name="Chlorophyll">
+          <scalar_field name="Particulate">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
               <mesh name="DGMesh"/>
@@ -722,7 +796,9 @@ def val(X,t):
               </detectors>
             </diagnostic>
           </scalar_field>
-          <scalar_field name="Depletion" rank="0">
+        </chemical_variable>
+        <chemical_variable name="Carbon">
+          <scalar_field name="Particulate">
             <diagnostic>
               <algorithm name="Internal" material_phase_support="multiple"/>
               <mesh name="DGMesh"/>
@@ -733,35 +809,7 @@ def val(X,t):
               </detectors>
             </diagnostic>
           </scalar_field>
-        </uptake_variable>
-        <release_variable name="RelAmmonium">
-          <chemical_field name="Ammonium"/>
-          <scalar_field name="Release" rank="0">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="DGMesh"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-          </scalar_field>
-        </release_variable>
-        <release_variable name="RelSilicate">
-          <chemical_field name="Silicate"/>
-          <scalar_field name="Release" rank="0">
-            <diagnostic>
-              <algorithm name="Internal" material_phase_support="multiple"/>
-              <mesh name="DGMesh"/>
-              <output/>
-              <stat/>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-            </diagnostic>
-          </scalar_field>
-        </release_variable>
+        </chemical_variable>
         <stage_array name="Living">
           <id>
             <real_value rank="0">0.0</real_value>
@@ -780,7 +828,7 @@ def val(X,t):
           </initial_position>
           <initial_state>
             <values>
-              <real_value shape="12" rank="1">0.0 50000.0 2.2e-9 1.5e-8 2.7e-9 0.0 1.05e-9 0.0 0.0 0.0 0.0 0.0</real_value>
+              <real_value shape="12" rank="1">0.0 50000.0 2.2e-9 0.0 0.0 0.0 0.0 1.05e-9 0.0 0.0 2.7e-9 1.5e-8</real_value>
             </values>
           </initial_state>
           <random_walk>
@@ -819,12 +867,11 @@ irradiance = state.scalar_fields['Irradiance']
 ammonium = state.scalar_fields['Ammonium']
 nitrate = state.scalar_fields['Nitrate']
 silicate = state.scalar_fields['Silicate']
-amm_depletion = state.scalar_fields['IngAmmoniumDepletion']
-nit_depletion = state.scalar_fields['IngNitrateDepletion']
-sil_depletion = state.scalar_fields['IngSilicateDepletion']
+amm_depletion = state.scalar_fields['DiatomDepletionAmmonium']
+nit_depletion = state.scalar_fields['DiatomDepletionNitrate']
+sil_depletion = state.scalar_fields['DiatomDepletionSilicate']
 
 def val(ele, local_coord, dt, vars):
-  #print "ml805 vars: " + str(vars)
   bio.update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate, amm_depletion, nit_depletion, sil_depletion)  
   return vars</string_value>
           </biology_update>
@@ -882,9 +929,9 @@ from __builtin__ import str
 name = persistent['fg_var_names']['Diatom']
 
 temperature = state.scalar_fields['Temperature']
-amm_depletion = state.scalar_fields['IngAmmoniumDepletion']
-nit_depletion = state.scalar_fields['IngNitrateDepletion']
-sil_depletion = state.scalar_fields['IngSilicateDepletion']
+amm_depletion = state.scalar_fields['DiatomDepletionAmmonium']
+nit_depletion = state.scalar_fields['DiatomDepletionNitrate']
+sil_depletion = state.scalar_fields['DiatomDepletionSilicate']
 
 def val(ele, local_coord, dt, vars):
   bio.update_dead_diatom(ele, local_coord, dt, vars, name, temperature, amm_depletion, nit_depletion, sil_depletion)  

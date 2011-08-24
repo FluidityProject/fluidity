@@ -65,12 +65,12 @@ contains
     type(element_type), pointer :: shape
     character(len=PYTHON_FUNC_LEN) :: func
     character(len=OPTION_PATH_LEN) :: buffer, fg_buffer, stage_buffer, biovar_buffer
-    character(len=FIELD_NAME_LEN) :: field_name, fg_name, stage_name
+    character(len=FIELD_NAME_LEN) :: field_name, fg_name, stage_name, biovar_name
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, column, &
-               ierror, det_type, random_seed, biovar_index, biovar_total, biovar_internal, &
-               biovar_uptake, biovar_release, index
+               ierror, det_type, random_seed, biovar_index, biovar_total, biovar_state, &
+               biovar_chemical, biovar_uptake, biovar_release, index
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
@@ -85,7 +85,7 @@ contains
     n_agent_arrays = 0
     n_fgroups = option_count("/embedded_models/lagrangian_ensemble_biology/functional_group")
     do fg=1, n_fgroups
-       write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",i-1,"]"
+       write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
 
        n_agent_arrays = n_agent_arrays + option_count(trim(fg_buffer)//"/stage_array")
     end do
@@ -98,7 +98,7 @@ contains
 
     ! We create an agent array for each stage of each Functional Group
     do fg=1, n_fgroups
-       write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",i-1,"]"
+       write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
        call get_option(trim(fg_buffer)//"/name", fg_name)
        n_fg_arrays = option_count(trim(fg_buffer)//"/stage_array")
 
@@ -166,11 +166,24 @@ contains
 
           ewrite(2,*) "Found", agent_arrays(i)%length, "local agents in array", i
 
-          ! Biology parameters
-          biovar_internal = option_count(trim(fg_buffer)//"/variable") 
-          biovar_uptake = option_count(trim(fg_buffer)//"/uptake_variable")
-          biovar_release = option_count(trim(fg_buffer)//"/release_variable")
-          biovar_total = biovar_internal + biovar_uptake + biovar_release
+          !!! Biology setup !!!
+
+          ! First determine number of biovars
+          biovar_state = option_count(trim(fg_buffer)//"/state_variable") 
+          biovar_chemical = option_count(trim(fg_buffer)//"/chemical_variable")
+          biovar_uptake = 0
+          biovar_release = 0
+          do j=1, biovar_chemical
+             write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/chemical_variable[",j-1,"]"
+             if (have_option(trim(biovar_buffer)//"/uptake")) then
+                biovar_uptake = biovar_uptake + 1
+             end if
+             if (have_option(trim(biovar_buffer)//"/release")) then
+                biovar_release = biovar_release + 1
+             end if
+          end do
+          biovar_total = biovar_state + biovar_chemical + biovar_uptake + biovar_release
+
           if (biovar_total > 0) then
 
              ! Allocate variable arrays
@@ -181,8 +194,8 @@ contains
 
              ! Add internal state variables
              index = 1
-             do j=1, biovar_internal
-                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variable[",j-1,"]"
+             do j=1, biovar_state
+                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/state_variable[",j-1,"]"
                 call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
 
                 ! Record according diagnostic field
@@ -190,9 +203,9 @@ contains
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_DIAG
                    call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)
                    if (have_option(trim(biovar_buffer)//"/scalar_field/per_stage")) then
-                      agent_arrays(i)%biofield_list(index) = trim(field_name)//trim(stage_name)
+                      agent_arrays(i)%biofield_list(index) = trim(fg_name)//trim(field_name)//trim(stage_name)
                    else
-                      agent_arrays(i)%biofield_list(index) = trim(field_name)
+                      agent_arrays(i)%biofield_list(index) = trim(fg_name)//trim(field_name)
                    end if
                 else
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_NONE
@@ -200,26 +213,50 @@ contains
                 index = index+1
              end do
 
-             ! Add uptake variables
-             do j=1, biovar_uptake
-                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/uptake_variable[",j-1,"]"
-                call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
-                agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
-                agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Request"
-                call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
+             ! Add chemical variables
+             do j=1, biovar_chemical
+                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/chemical_variable[",j-1,"]"
+                call get_option(trim(biovar_buffer)//"/name", biovar_name)
 
+                ! Chemical pool variable and according diagnostic fields
+                agent_arrays(i)%biovar_list(index) = trim(biovar_name)//"Pool"
+                if (have_option(trim(biovar_buffer)//"scalar_field")) then
+                   agent_arrays(i)%biofield_type(index) = BIOFIELD_DIAG
+                   call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)
+                   if (have_option(trim(biovar_buffer)//"/scalar_field/per_stage")) then
+                      agent_arrays(i)%biofield_list(index) = trim(fg_name)//trim(field_name)//trim(biovar_name)//trim(stage_name)
+                   else
+                      agent_arrays(i)%biofield_list(index) = trim(fg_name)//trim(field_name)//trim(biovar_name)
+                   end if
+                else
+                   agent_arrays(i)%biofield_type(index) = BIOFIELD_NONE
+                end if
                 index = index+1
-             end do
 
-             ! Add release variables
-             do j=1, biovar_release
-                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/release_variable[",j-1,"]"
-                call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
-                agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
-                agent_arrays(i)%biofield_list(index) = trim(agent_arrays(i)%biovar_list(index))//"Release"
-                call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
+                ! Chemical uptake
+                if (have_option(trim(biovar_buffer)//"/uptake")) then
+                   if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
+                      FLExit("No chemical field specified for "//trim(biovar_name)//" uptake in functional group "//trim(fg_name))
+                   end if
+                   agent_arrays(i)%biovar_list(index) = trim(biovar_name)//"Ing"
+                   agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
+                   agent_arrays(i)%biofield_list(index) = trim(fg_name)//"DGRequest"//trim(biovar_name)
+                   call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
+                   index = index+1
+                end if
 
-                index = index+1
+                ! Chemical release
+                if (have_option(trim(biovar_buffer)//"/release")) then
+                   if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
+                      FLExit("No chemical field specified for "//trim(biovar_name)//" release in functional group "//trim(fg_name))
+                   end if
+                   agent_arrays(i)%biovar_list(index) = trim(biovar_name)//"Rel"
+                   agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
+                   agent_arrays(i)%biofield_list(index) = trim(fg_name)//"DGRelease"//trim(biovar_name)
+                   call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
+                   index = index+1
+                end if
+
              end do
 
              ! Store the python update code
@@ -415,10 +452,10 @@ contains
           do j=1, size(agent_arrays(i)%biovar_list)
              ! Handle chemical uptake
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
-                request_field=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
-                chemical_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j)))
-                absorption_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Absorption")
-                depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%biovar_list(j))//"Depletion")
+                !request_field=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
+                !chemical_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j)))
+                !absorption_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Absorption")
+                !depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%biovar_list(j))//"Depletion")
 
                 do n=1, node_count(request_field)
                    !if (node_val(request_field,n) > node_val(chemical_field,n)) then
@@ -434,8 +471,8 @@ contains
 
              ! Handle chemical release
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
-                release_field=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
-                source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Source")
+                !release_field=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
+                !source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Source")
                 do n=1, node_count(release_field)
                    !call addto(source_field, n, node_val(release_field,n))
                 end do

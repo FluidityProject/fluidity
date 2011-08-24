@@ -1426,19 +1426,20 @@ contains
       ! Allocate diagnostic fields to represent agent variables
       type(state_type), intent(inout) :: state
 
-      character(len=OPTION_PATH_LEN) :: fg_path, fg_buffer, var_buffer, stage_buffer
-      character(len=FIELD_NAME_LEN) :: var_name, field_name, stage_name
-      integer :: i, j, k, var_count, fg_count, stage_count
+      character(len=OPTION_PATH_LEN) :: fg_path, fg_buffer, var_buffer, stage_buffer, field_buffer
+      character(len=FIELD_NAME_LEN) :: var_name, field_name, stage_name, fg_name
+      integer :: i, j, k, var_count, fg_count, stage_count, field_count
 
       ! Go through all agent arrays and allocate the specified diagnostic fields
       fg_path = "/embedded_models/lagrangian_ensemble_biology/functional_group"
       fg_count = option_count(trim(fg_path))
       do i=1, fg_count
          write(fg_buffer, "(a,i0,a)") trim(fg_path)//"[",i-1,"]"
+         call get_option(trim(fg_buffer)//"/name", fg_name)
 
-         var_count = option_count(trim(fg_buffer)//"/variable")
+         var_count = option_count(trim(fg_buffer)//"/state_variable")
          do j=1, var_count
-            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/variable[",j-1,"]"
+            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/state_variable[",j-1,"]"
             call get_option(trim(var_buffer)//"/name", var_name)
 
             ! Add diagnostic field
@@ -1454,17 +1455,15 @@ contains
 
                      call allocate_and_insert_scalar_field(&
                            trim(var_buffer)//"/scalar_field", &
-                           state, field_name=trim(field_name)//trim(stage_name), &
+                           state, field_name=trim(fg_name)//trim(field_name)//trim(stage_name), &
                            dont_allocate_prognostic_value_spaces&
                            =dont_allocate_prognostic_value_spaces)
                   end do
-               end if
-
-               ! Or a global one,ie. ParticulateChemical
-               if (have_option(trim(var_buffer)//"/scalar_field/global")) then
+               else
+                  ! Or a global one, ie. ParticulateChemical
                   call allocate_and_insert_scalar_field(&
                            trim(var_buffer)//"/scalar_field", &
-                           state, field_name=trim(field_name), &
+                           state, field_name=trim(fg_name)//trim(field_name), &
                            dont_allocate_prognostic_value_spaces&
                            =dont_allocate_prognostic_value_spaces)
                end if
@@ -1472,38 +1471,37 @@ contains
          end do
 
          ! Add request and depletion fields for uptake variables
-         var_count = option_count(trim(fg_buffer)//"/uptake_variable")
+         var_count = option_count(trim(fg_buffer)//"/chemical_variable")
          do j=1, var_count
-            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/uptake_variable[",j-1,"]"
+            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/chemical_variable[",j-1,"]"
             call get_option(trim(var_buffer)//"/name", var_name)
 
-            field_name = trim(var_name)//"Request"
-            call allocate_and_insert_scalar_field(&
-                     trim(var_buffer)//"/scalar_field::Request", &
-                     state, field_name=trim(field_name), &
+            if (have_option(trim(var_buffer)//"/uptake")) then
+               field_count = option_count(trim(var_buffer)//"/uptake/scalar_field")
+               do k=1, field_count
+                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field[",k-1,"]"
+                  call get_option(trim(field_buffer)//"/name", field_name)
+                  call allocate_and_insert_scalar_field(&
+                     trim(field_buffer), state, &
+                     field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
                      dont_allocate_prognostic_value_spaces&
                      =dont_allocate_prognostic_value_spaces)
+               end do
+            end if
 
-            field_name = trim(var_name)//"Depletion"
-            call allocate_and_insert_scalar_field(&
-                     trim(var_buffer)//"/scalar_field::Depletion", &
-                     state, field_name=trim(field_name), &
+            if (have_option(trim(var_buffer)//"/release")) then
+               field_count = option_count(trim(var_buffer)//"/release/scalar_field")
+               do k=1, field_count
+                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/release/scalar_field[",k-1,"]"
+                  call get_option(trim(field_buffer)//"/name", field_name)
+                  call allocate_and_insert_scalar_field(&
+                     trim(field_buffer), state, &
+                     field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
                      dont_allocate_prognostic_value_spaces&
                      =dont_allocate_prognostic_value_spaces)
-         end do
+               end do
+            end if
 
-         ! Add release fields for excretion variables
-         var_count = option_count(trim(fg_buffer)//"/release_variable")
-         do j=1, var_count
-            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/release_variable[",j-1,"]"
-            call get_option(trim(var_buffer)//"/name", var_name)
-
-            field_name = trim(var_name)//"Release"
-            call allocate_and_insert_scalar_field(&
-                     trim(var_buffer)//"/scalar_field::Release", &
-                     state, field_name=trim(field_name), &
-                     dont_allocate_prognostic_value_spaces&
-                     =dont_allocate_prognostic_value_spaces)
          end do
       end do
 
