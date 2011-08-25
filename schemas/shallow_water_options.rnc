@@ -200,6 +200,13 @@ start =
             element timestep {
                real
             },
+            ## Implicit/explicit control (THETA)
+            ##  =0.  -- explicit
+            ##  =0.5 -- Crank-Nicolson
+            ##  =1.  -- implicit
+	    element theta {
+               real
+            },
             ## How many nonlinear iterations in the timestepping loop
             element nonlinear_iterations {
                integer
@@ -248,7 +255,7 @@ start =
                         element mesh {
                            attribute name { "VelocityMesh" }
                         },
-                        prognostic_velocity_field
+                        prognostic_sw_velocity_field
                      }|
                      element prescribed {
                         element mesh {
@@ -552,6 +559,132 @@ input_choice_real_dim_tensor =
       }
    )
 
+prognostic_sw_velocity_field =
+   (
+      velocity_equation_choice,
+      ## Spatial discretisation options
+      element spatial_discretisation {
+         ## Discontinuous galerkin formulation. Confusingly it is not necessary to provide
+         ## a discontinuous velocity field for this to work!
+         element discontinuous_galerkin {
+            ## Discretisation options for the mass terms in the velocity equation.
+            element mass_terms{
+               ## Lump the mass matrix
+               element lump_mass_matrix {
+                 empty
+               }?,
+               ## Remove the mass terms from the equation.
+               element exclude_mass_terms {
+                  empty
+               }?
+            }?,
+            element advection_scheme {
+               (
+                  ## Straightforward upwinding of the nonlinear velocity.
+                  element upwind {
+                     empty
+                  }|
+                  ## Disable advection
+                  element none {
+                     empty
+                  }
+               )
+            },
+            element slope_limiter {
+               ## If present the vertex based slope limiter (the only one that works!) will be used.
+               empty
+            }?
+         }
+      },
+      ## Temporal discretisation options
+      element temporal_discretisation {
+         ## Non-linear relaxation term
+         ##  = 0  -- previous timestep velocity solution used in non-linear terms of momentum equations
+         ##  = 1  -- previous iteration velocity solution used in non-linear terms of momentum equations
+         ##  0 <= ITHETA <= 1
+         element relaxation {
+            real
+         },
+         element discontinuous_galerkin {
+            (
+               ## Use timestep subcycling to solve this equation.
+               ## Specify the maximum courant number per subcycle.
+               element maximum_courant_number_per_subcycle {
+                  real
+               }|
+               ## Use timestep subcycling to solve this equation.
+               ## Specify the number of subcycles.
+               element number_advection_subcycles {
+                  integer
+               }
+            )
+         }?
+      },
+      ## Solver
+      element solver {
+         linear_solver_options_asym
+      },
+      (
+         ## Initial condition for WholeMesh
+         ##
+         ## Only specify one condition if not using mesh regions.
+         ## Otherwise select other initial_condition option, specify region_ids
+         ## and distinct names.  Then add extra intial conditions for other regions.
+         element initial_condition {
+            attribute name { "WholeMesh" },
+            input_choice_initial_condition_vector
+         }|
+         ## Multiple initial_conditions are allowed if specifying
+         ## different values in different
+         ## regions of the mesh (defined by region_ids).  In this case
+         ## each initial_condition
+         ## requires a distinct name for the options dictionary.
+         element initial_condition {
+            attribute name { string },
+            region_ids?,
+            input_choice_initial_condition_vector
+         }
+      )+,
+      (
+         ## Prescribed different regions of the field
+            element prescribed_region {
+            attribute name { string },
+            region_ids,
+            input_choice_initial_condition_vector
+         }
+      )*,
+      ## Source
+      element vector_field {
+         attribute name { "Source" },
+         attribute rank { "1" },
+         (
+            element prescribed {
+               mesh_choice?,
+               prescribed_vector_field_no_adapt
+            }|
+            element diagnostic {
+               mesh_choice?,
+               (
+                  vector_python_diagnostic_algorithm |
+                  imposed_material_velocity_source_algorithm |
+                  internal_velocity_source_algorithm
+               ),
+               diagnostic_vector_field
+            }
+         ),
+         element lump_source {
+            empty
+         }?
+      }?,
+   prognostic_vector_output_options,
+   vector_convergence_options,
+   prognostic_detector_options,
+   vector_steady_state_options,
+   adaptivity_options_prognostic_vector_field,
+   interpolation_algorithm_vector,
+   discrete_properties_algorithm_vector?
+)
+
 prognostic_layerthickness_field =
    (
       ## Spatial discretisation options
@@ -582,20 +715,6 @@ prognostic_layerthickness_field =
       },
       ## Temporal discretisation options
       element temporal_discretisation {
-         ## Implicit/explicit control (THETA)
-         ##  =0.  -- explicit
-         ##  =0.5 -- Crank-Nicolson
-         ##  =1.  -- implicit
-         element theta {
-            real
-         },
-         ## Non-linear relaxation term
-         ##  =0.  -- previous timestep velocity solution used in non-linear terms of momentum equations
-         ##  =1.  -- previous iteration velocity solution used in non-linear terms of momentum equations
-         ##  0. < ITHETA < 1.
-         element relaxation {
-            real
-         },
          temporal_discontinuous_galerkin_options?
       },
       ## Solver

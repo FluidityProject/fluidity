@@ -226,7 +226,7 @@
     call adjoint_write_controls(timestep, dt, state)
 
     ! get theta
-    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta",theta)
+    call get_option("/timestepping/theta",theta)
 
     timestep_loop: do
        timestep=timestep+1
@@ -383,7 +383,7 @@
 
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
-      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta",theta)
+      call get_option("/timestepping/theta",theta)
 
       hybridized = .false.
       v_field => extract_vector_field(state(1),"Velocity")
@@ -558,13 +558,16 @@
       logical :: have_source
 
       ! get itheta
-      call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
+      call get_option("/material_phase::Fluid/vector_field::Velocity/pro&
            &gnostic/temporal_discretisation/relaxation",itheta)
 
       !Pull the fields out of state
       h=>extract_scalar_field(state, "LayerThickness")
+      ! Hack to get current tests to run. Proper checks will be set up
+      ! when we've figured out exactly what we're going to do with
+      ! pressure advection.
       if(has_scalar_field(state, "ProjectedLayerThickness")) then
-            h_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
+         h_projected=>extract_scalar_field(state, "ProjectedLayerThickness")
       end if
       X=>extract_vector_field(state, "Coordinate")
       U=>extract_vector_field(state, "LocalVelocity")
@@ -716,7 +719,7 @@
          ltheta=theta_in
       else
          !set ltheta from options tree
-         call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/temporal_discretisation/theta", ltheta)
+         call get_option("/timestepping/theta", ltheta)
       end if
 
       call setup_wave_matrices(state, ldt, ltheta)

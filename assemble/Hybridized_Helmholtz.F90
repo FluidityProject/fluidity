@@ -139,11 +139,11 @@ contains
     !get parameters
     call get_option("/physical_parameters/gravity/magnitude", g)
     !theta
+
     if(present(theta_in)) then
        theta = theta_in
     else
-       call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
-            &prognostic/temporal_discretisation/theta",theta)
+       call get_option("/timestepping/theta",theta)
     end if
     !D0
     call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&

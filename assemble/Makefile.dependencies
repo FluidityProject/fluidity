@@ -470,8 +470,9 @@ Linear_Shallow_Water.o ../include/linear_shallow_water.mod: \
    ../include/diagnostic_fields_wrapper.mod \
    ../include/diagnostic_variables.mod ../include/fdebug.h \
    ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/populate_state_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/global_parameters.mod ../include/manifold_tools.mod \
+   ../include/populate_state_module.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_module.mod ../include/timeloop_utilities.mod \
    ../include/write_state_module.mod
