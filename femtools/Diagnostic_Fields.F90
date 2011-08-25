@@ -1740,7 +1740,6 @@ contains
             &                          normal=normal) 
 
        Flux_quad = sum(U_f_quad*normal,1)
-       print*, Flux_quad
        Flux_quad = max(Flux_quad,0.0)
 
        Flux = Flux + sum(Flux_quad*detwei_f)

@@ -286,8 +286,6 @@ contains
        include_advection=.false.
     end if
  
-    print*, 'include_advection', include_advection
-
     assert(has_faces(X%mesh))
     assert(has_faces(T%mesh))
     
@@ -714,11 +712,7 @@ contains
 
     end if
 
-    print*, limit_slope
-
     do i=1, subcycles
-
-       print*, 'subcycle=', i
 
        call mult_t(U_cartesian_tmp, L, U)
        call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
@@ -730,14 +724,6 @@ contains
        call mult(delta_U, inv_mass_local, delta_U_tmp)
        call mult_t(U_cartesian_tmp, L, delta_U)
        call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
-!       print*, 'here!'
-!       do ele=1,element_count(delta_U)
-!          print*, ele_nodes(delta_U, ele)
-!          print*, ele_val(X,ele)
-!       end do
-!       do j=1, node_count(delta_U)
-!          print*, U_cartesian%val(1,j), U_cartesian%val(2,j)
-!       end do
 
        ! U = U + dt/s * dU
        call addto(U, delta_U, scale=-dt/subcycles)
@@ -1181,7 +1167,6 @@ contains
     ! Outflow boundary integral.
     do dim1 = 1, dim
        do dim2 = 1, X%dim
-!          print*, dim1, dim2, nnAdvection_out(dim1,dim2,:,:)
           call addto(A, dim1, dim2, U_face, U_face, nnAdvection_out(dim1,dim2,:,:))
        end do
     end do
