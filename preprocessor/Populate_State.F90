@@ -1428,7 +1428,7 @@ contains
 
       character(len=OPTION_PATH_LEN) :: fg_path, fg_buffer, var_buffer, stage_buffer, field_buffer
       character(len=FIELD_NAME_LEN) :: var_name, field_name, stage_name, fg_name
-      integer :: i, j, k, var_count, fg_count, stage_count, field_count
+      integer :: i, j, k, var_count, fg_count, stage_count
 
       ! Go through all agent arrays and allocate the specified diagnostic fields
       fg_path = "/embedded_models/lagrangian_ensemble_biology/functional_group"
@@ -1477,29 +1477,68 @@ contains
             call get_option(trim(var_buffer)//"/name", var_name)
 
             if (have_option(trim(var_buffer)//"/uptake")) then
-               field_count = option_count(trim(var_buffer)//"/uptake/scalar_field")
-               do k=1, field_count
-                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field[",k-1,"]"
+
+               ! DGRequest
+               if (have_option(trim(var_buffer)//"/uptake/scalar_field::DGRequest")) then
+                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::DGRequest"
                   call get_option(trim(field_buffer)//"/name", field_name)
-                  call allocate_and_insert_scalar_field(&
-                     trim(field_buffer), state, &
+                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
                      field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
-                     dont_allocate_prognostic_value_spaces&
-                     =dont_allocate_prognostic_value_spaces)
-               end do
+                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               else
+                  FLExit("Chemical uptake requires a DGRequest field")
+               end if
+
+               ! CGRequest
+               if (have_option(trim(var_buffer)//"/uptake/scalar_field::CGRequest")) then
+                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::CGRequest"
+                  call get_option(trim(field_buffer)//"/name", field_name)
+                  ! Setting the DG source field 
+                  call set_option_attribute(trim(field_buffer)//"/diagnostic/algorithm/source_field_name", trim(fg_name)//"DGRequest"//trim(var_name))
+                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
+                     field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               else
+                  FLExit("Chemical uptake requires a CGRequest field")
+               end if
+
+               ! Depletion field
+               if (have_option(trim(var_buffer)//"/uptake/scalar_field::Depletion")) then
+                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::Depletion"
+                  call get_option(trim(field_buffer)//"/name", field_name)
+                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
+                     field_name=trim(var_name)//trim(field_name), &
+                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               else
+                  FLExit("Chemical uptake requires a Depletion field")
+               end if
             end if
 
             if (have_option(trim(var_buffer)//"/release")) then
-               field_count = option_count(trim(var_buffer)//"/release/scalar_field")
-               do k=1, field_count
-                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/release/scalar_field[",k-1,"]"
+
+               ! DGRelease
+               if (have_option(trim(var_buffer)//"/release/scalar_field::DGRelease")) then
+                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/release/scalar_field::DGRelease"
                   call get_option(trim(field_buffer)//"/name", field_name)
-                  call allocate_and_insert_scalar_field(&
-                     trim(field_buffer), state, &
+                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
                      field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
-                     dont_allocate_prognostic_value_spaces&
-                     =dont_allocate_prognostic_value_spaces)
-               end do
+                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               else
+                  FLExit("Chemical release requires a DGRelease field")
+               end if
+
+               ! CGRelease
+               if (have_option(trim(var_buffer)//"/release/scalar_field::CGRelease")) then
+                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/release/scalar_field::CGRelease"
+                  call get_option(trim(field_buffer)//"/name", field_name)
+                  ! Setting the DG source field 
+                  call set_option_attribute(trim(field_buffer)//"/diagnostic/algorithm/source_field_name", trim(fg_name)//"DGRelease"//trim(var_name))
+                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
+                     field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               else
+                  FLExit("Chemical release requires a CGRelease field")
+               end if
             end if
 
          end do

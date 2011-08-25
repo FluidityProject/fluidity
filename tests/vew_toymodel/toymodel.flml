@@ -616,13 +616,35 @@ def val(X,t):
             </scalar_field>
             <scalar_field name="CGRequest">
               <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
+                <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="DGRequest">
+                  <solver>
+                    <iterative_method name="cg"/>
+                    <preconditioner name="sor"/>
+                    <relative_error>
+                      <real_value rank="0">1.0e-7</real_value>
+                    </relative_error>
+                    <max_iterations>
+                      <integer_value rank="0">2000</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures/>
+                    <diagnostics>
+                      <monitors/>
+                    </diagnostics>
+                  </solver>
+                </algorithm>
                 <mesh name="VelocityMesh"/>
                 <output/>
                 <stat/>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <steady_state>
+                  <include_in_steady_state/>
+                </steady_state>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Depletion">
@@ -651,13 +673,35 @@ def val(X,t):
             </scalar_field>
             <scalar_field name="CGRelease">
               <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
+                <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="DGRequest">
+                  <solver>
+                    <iterative_method name="cg"/>
+                    <preconditioner name="sor"/>
+                    <relative_error>
+                      <real_value rank="0">1.0e-7</real_value>
+                    </relative_error>
+                    <max_iterations>
+                      <integer_value rank="0">2000</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures/>
+                    <diagnostics>
+                      <monitors/>
+                    </diagnostics>
+                  </solver>
+                </algorithm>
                 <mesh name="VelocityMesh"/>
                 <output/>
                 <stat/>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <steady_state>
+                  <include_in_steady_state/>
+                </steady_state>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
           </release>
@@ -689,13 +733,35 @@ def val(X,t):
             </scalar_field>
             <scalar_field name="CGRequest">
               <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
+                <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="DGRequest">
+                  <solver>
+                    <iterative_method name="cg"/>
+                    <preconditioner name="sor"/>
+                    <relative_error>
+                      <real_value rank="0">1.0e-7</real_value>
+                    </relative_error>
+                    <max_iterations>
+                      <integer_value rank="0">2000</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures/>
+                    <diagnostics>
+                      <monitors/>
+                    </diagnostics>
+                  </solver>
+                </algorithm>
                 <mesh name="VelocityMesh"/>
                 <output/>
                 <stat/>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <steady_state>
+                  <include_in_steady_state/>
+                </steady_state>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Depletion">
@@ -738,13 +804,35 @@ def val(X,t):
             </scalar_field>
             <scalar_field name="CGRequest">
               <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
+                <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="DGRequest">
+                  <solver>
+                    <iterative_method name="cg"/>
+                    <preconditioner name="sor"/>
+                    <relative_error>
+                      <real_value rank="0">1.0e-7</real_value>
+                    </relative_error>
+                    <max_iterations>
+                      <integer_value rank="0">2000</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures/>
+                    <diagnostics>
+                      <monitors/>
+                    </diagnostics>
+                  </solver>
+                </algorithm>
                 <mesh name="VelocityMesh"/>
                 <output/>
                 <stat/>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <steady_state>
+                  <include_in_steady_state/>
+                </steady_state>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
             <scalar_field name="Depletion">
@@ -773,13 +861,35 @@ def val(X,t):
             </scalar_field>
             <scalar_field name="CGRelease">
               <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
+                <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="DGRequest">
+                  <solver>
+                    <iterative_method name="cg"/>
+                    <preconditioner name="sor"/>
+                    <relative_error>
+                      <real_value rank="0">1.0e-7</real_value>
+                    </relative_error>
+                    <max_iterations>
+                      <integer_value rank="0">2000</integer_value>
+                    </max_iterations>
+                    <never_ignore_solver_failures/>
+                    <diagnostics>
+                      <monitors/>
+                    </diagnostics>
+                  </solver>
+                </algorithm>
                 <mesh name="VelocityMesh"/>
                 <output/>
                 <stat/>
+                <convergence>
+                  <include_in_convergence/>
+                </convergence>
                 <detectors>
                   <include_in_detectors/>
                 </detectors>
+                <steady_state>
+                  <include_in_steady_state/>
+                </steady_state>
+                <do_not_recalculate/>
               </diagnostic>
             </scalar_field>
           </release>
@@ -867,9 +977,9 @@ irradiance = state.scalar_fields['Irradiance']
 ammonium = state.scalar_fields['Ammonium']
 nitrate = state.scalar_fields['Nitrate']
 silicate = state.scalar_fields['Silicate']
-amm_depletion = state.scalar_fields['DiatomDepletionAmmonium']
-nit_depletion = state.scalar_fields['DiatomDepletionNitrate']
-sil_depletion = state.scalar_fields['DiatomDepletionSilicate']
+amm_depletion = state.scalar_fields['AmmoniumDepletion']
+nit_depletion = state.scalar_fields['NitrateDepletion']
+sil_depletion = state.scalar_fields['SilicateDepletion']
 
 def val(ele, local_coord, dt, vars):
   bio.update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate, amm_depletion, nit_depletion, sil_depletion)  
@@ -929,9 +1039,9 @@ from __builtin__ import str
 name = persistent['fg_var_names']['Diatom']
 
 temperature = state.scalar_fields['Temperature']
-amm_depletion = state.scalar_fields['DiatomDepletionAmmonium']
-nit_depletion = state.scalar_fields['DiatomDepletionNitrate']
-sil_depletion = state.scalar_fields['DiatomDepletionSilicate']
+amm_depletion = state.scalar_fields['AmmoniumDepletion']
+nit_depletion = state.scalar_fields['NitrateDepletion']
+sil_depletion = state.scalar_fields['SilicateDepletion']
 
 def val(ele, local_coord, dt, vars):
   bio.update_dead_diatom(ele, local_coord, dt, vars, name, temperature, amm_depletion, nit_depletion, sil_depletion)  

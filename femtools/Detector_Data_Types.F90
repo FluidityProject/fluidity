@@ -116,10 +116,11 @@ module detector_data_types
      integer :: fg_id
      real :: stage_id
      logical :: has_biology=.false.
-     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biovar_list
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biovar_name
      integer, dimension(:), allocatable :: biofield_type
-     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_list
-     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: chemfield_list
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_dg_name
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_cg_name
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: chemfield_name
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
 
      !! Optional array for detector names; names are held in read order

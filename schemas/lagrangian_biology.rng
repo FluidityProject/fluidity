@@ -96,9 +96,29 @@ Needed if uptake or release are specified.</a:documentation>
                         <value>CGRequest</value>
                       </attribute>
                       <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
+                        <element name="algorithm">
+                          <a:documentation>Galerkin projects the source field.</a:documentation>
+                          <attribute name="name">
+                            <value>scalar_galerkin_projection</value>
+                          </attribute>
+                          <attribute name="material_phase_support">
+                            <value>single</value>
+                          </attribute>
+                          <attribute name="source_field_name">
+                            <value>DGRequest</value>
+                          </attribute>
+                          <attribute name="source_field_type">
+                            <value>scalar</value>
+                          </attribute>
+                          <optional>
+                            <element name="solver">
+                              <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
+                              <ref name="linear_solver_options_sym"/>
+                            </element>
+                          </optional>
+                        </element>
                         <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
+                        <ref name="diagnostic_scalar_field"/>
                       </element>
                     </element>
                     <element name="scalar_field">
@@ -133,9 +153,29 @@ Needed if uptake or release are specified.</a:documentation>
                         <value>CGRelease</value>
                       </attribute>
                       <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
+                        <element name="algorithm">
+                          <a:documentation>Galerkin projects the source field.</a:documentation>
+                          <attribute name="name">
+                            <value>scalar_galerkin_projection</value>
+                          </attribute>
+                          <attribute name="material_phase_support">
+                            <value>single</value>
+                          </attribute>
+                          <attribute name="source_field_name">
+                            <value>DGRequest</value>
+                          </attribute>
+                          <attribute name="source_field_type">
+                            <value>scalar</value>
+                          </attribute>
+                          <optional>
+                            <element name="solver">
+                              <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
+                              <ref name="linear_solver_options_sym"/>
+                            </element>
+                          </optional>
+                        </element>
                         <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
+                        <ref name="diagnostic_scalar_field"/>
                       </element>
                     </element>
                   </element>

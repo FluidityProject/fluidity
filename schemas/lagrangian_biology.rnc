@@ -66,9 +66,19 @@ lagrangian_biology =
                      element scalar_field {
                         attribute name { "CGRequest" },
                         element diagnostic {
-                           internal_algorithm,
+                           ## Galerkin projects the source field.
+                           element algorithm {
+                              attribute name { "scalar_galerkin_projection" },
+                              attribute material_phase_support { "single" },
+                              attribute source_field_name { "DGRequest" },
+                              attribute source_field_type { "scalar" },
+                              ## Solver options. Required if projecting onto a continuous mesh.
+                              element solver {
+                                 linear_solver_options_sym
+                              }?
+                           },
                            velocity_mesh_choice,
-                           diagnostic_scalar_field_no_adapt
+                           diagnostic_scalar_field
                         }
                      },
                      ## Depletion factor
@@ -95,9 +105,19 @@ lagrangian_biology =
                      element scalar_field {
                         attribute name { "CGRelease" },
                         element diagnostic {
-                           internal_algorithm,
+                           ## Galerkin projects the source field.
+                           element algorithm {
+                              attribute name { "scalar_galerkin_projection" },
+                              attribute material_phase_support { "single" },
+                              attribute source_field_name { "DGRequest" },
+                              attribute source_field_type { "scalar" },
+                              ## Solver options. Required if projecting onto a continuous mesh.
+                              element solver {
+                                 linear_solver_options_sym
+                              }?
+                           },
                            velocity_mesh_choice,
-                           diagnostic_scalar_field_no_adapt
+                           diagnostic_scalar_field
                         }
                      }
                   }?

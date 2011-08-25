@@ -43,6 +43,7 @@ module lagrangian_biology
   use diagnostic_variables, only: initialise_constant_diagnostics, field_tag, &
                                   write_detectors, create_single_detector
   use python_state
+  use diagnostic_fields
 
 implicit none
 
@@ -187,25 +188,26 @@ contains
           if (biovar_total > 0) then
 
              ! Allocate variable arrays
-             allocate(agent_arrays(i)%biovar_list(biovar_total))
+             allocate(agent_arrays(i)%biovar_name(biovar_total))
              allocate(agent_arrays(i)%biofield_type(biovar_total))
-             allocate(agent_arrays(i)%biofield_list(biovar_total))
-             allocate(agent_arrays(i)%chemfield_list(biovar_total))
+             allocate(agent_arrays(i)%biofield_dg_name(biovar_total))
+             allocate(agent_arrays(i)%biofield_cg_name(biovar_total))
+             allocate(agent_arrays(i)%chemfield_name(biovar_total))
 
              ! Add internal state variables
              index = 1
              do j=1, biovar_state
                 write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/state_variable[",j-1,"]"
-                call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_list(index))
+                call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_name(index))
 
                 ! Record according diagnostic field
                 if (have_option(trim(biovar_buffer)//"/scalar_field")) then
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_DIAG
                    call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)
                    if (have_option(trim(biovar_buffer)//"/scalar_field/per_stage")) then
-                      agent_arrays(i)%biofield_list(index) = trim(fg_name)//trim(field_name)//trim(stage_name)
+                      agent_arrays(i)%biofield_dg_name(index) = trim(fg_name)//trim(field_name)//trim(stage_name)
                    else
-                      agent_arrays(i)%biofield_list(index) = trim(fg_name)//trim(field_name)
+                      agent_arrays(i)%biofield_dg_name(index) = trim(fg_name)//trim(field_name)
                    end if
                 else
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_NONE
@@ -219,14 +221,14 @@ contains
                 call get_option(trim(biovar_buffer)//"/name", biovar_name)
 
                 ! Chemical pool variable and according diagnostic fields
-                agent_arrays(i)%biovar_list(index) = trim(biovar_name)//"Pool"
+                agent_arrays(i)%biovar_name(index) = trim(biovar_name)//"Pool"
                 if (have_option(trim(biovar_buffer)//"scalar_field")) then
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_DIAG
                    call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)
                    if (have_option(trim(biovar_buffer)//"/scalar_field/per_stage")) then
-                      agent_arrays(i)%biofield_list(index) = trim(fg_name)//trim(field_name)//trim(biovar_name)//trim(stage_name)
+                      agent_arrays(i)%biofield_dg_name(index) = trim(fg_name)//trim(field_name)//trim(biovar_name)//trim(stage_name)
                    else
-                      agent_arrays(i)%biofield_list(index) = trim(fg_name)//trim(field_name)//trim(biovar_name)
+                      agent_arrays(i)%biofield_dg_name(index) = trim(fg_name)//trim(field_name)//trim(biovar_name)
                    end if
                 else
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_NONE
@@ -238,10 +240,11 @@ contains
                    if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
                       FLExit("No chemical field specified for "//trim(biovar_name)//" uptake in functional group "//trim(fg_name))
                    end if
-                   agent_arrays(i)%biovar_list(index) = trim(biovar_name)//"Ing"
+                   agent_arrays(i)%biovar_name(index) = trim(biovar_name)//"Ing"
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
-                   agent_arrays(i)%biofield_list(index) = trim(fg_name)//"DGRequest"//trim(biovar_name)
-                   call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
+                   agent_arrays(i)%biofield_dg_name(index) = trim(fg_name)//"DGRequest"//trim(biovar_name)
+                   agent_arrays(i)%biofield_cg_name(index) = trim(fg_name)//"CGRequest"//trim(biovar_name)
+                   call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_name(index))
                    index = index+1
                 end if
 
@@ -250,10 +253,11 @@ contains
                    if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
                       FLExit("No chemical field specified for "//trim(biovar_name)//" release in functional group "//trim(fg_name))
                    end if
-                   agent_arrays(i)%biovar_list(index) = trim(biovar_name)//"Rel"
+                   agent_arrays(i)%biovar_name(index) = trim(biovar_name)//"Rel"
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
-                   agent_arrays(i)%biofield_list(index) = trim(fg_name)//"DGRelease"//trim(biovar_name)
-                   call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_list(index))
+                   agent_arrays(i)%biofield_dg_name(index) = trim(fg_name)//"DGRelease"//trim(biovar_name)
+                   agent_arrays(i)%biofield_cg_name(index) = trim(fg_name)//"CGRelease"//trim(biovar_name)
+                   call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_name(index))
                    index = index+1
                 end if
 
@@ -268,7 +272,7 @@ contains
              ! Now we know the variable names for the FG, so we populate the mapping dict
              call python_run_string("persistent['fg_var_names']['"//trim(fg_name)//"'] = dict()")
              do j=1, biovar_total
-                call python_run_string("persistent['fg_var_names']['"//trim(fg_name)//"']['"//trim(agent_arrays(i)%biovar_list(j))//"']="//trim(int2str(j-1)))
+                call python_run_string("persistent['fg_var_names']['"//trim(fg_name)//"']['"//trim(agent_arrays(i)%biovar_name(j))//"']="//trim(int2str(j-1)))
              end do
 
              ! Initialise agent variables
@@ -407,27 +411,29 @@ contains
   subroutine calculate_agent_diagnostics(state)
     type(state_type), intent(inout) :: state
 
-    type(scalar_field), pointer :: sfield, request_field, chemical_field, absorption_field, &
-                                   depletion_field, release_field, source_field
+    type(scalar_field), pointer :: sfield, request_field_dg, request_field_cg, chemical_field, absorption_field, &
+                                   depletion_field, release_field_dg, release_field_cg, source_field
     type(vector_field), pointer :: xfield
     integer :: i, j, n, current_fg
+
+    ewrite(1,*) "In calculate_agent_diagnostics"
 
     xfield=>extract_vector_field(state, "Coordinate")
 
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
           ! Reset the diagnostic fields associated with the agent array
-          do j=1, size(agent_arrays(i)%biovar_list)
+          do j=1, size(agent_arrays(i)%biovar_name)
              if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
-                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
+                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
                 call zero(sfield)
              end if
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
-                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Absorption")
+                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Absorption")
                 call zero(sfield)
              end if
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
-                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Source")
+                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Source")
                 call zero(sfield)
              end if
           end do
@@ -436,9 +442,9 @@ contains
 
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
-          do j=1, size(agent_arrays(i)%biovar_list)
+          do j=1, size(agent_arrays(i)%biovar_name)
              if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
-                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
+                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
                 call addto_diagnostic_field_from_agents(agent_arrays(i), j, sfield, xfield)
              end if
           end do
@@ -449,32 +455,42 @@ contains
     do i = 1, size(agent_arrays)
        ! We only want to do this for each functional group
        if (agent_arrays(i)%has_biology.and.agent_arrays(i)%fg_id>=current_fg) then
-          do j=1, size(agent_arrays(i)%biovar_list)
+          do j=1, size(agent_arrays(i)%biovar_name)
              ! Handle chemical uptake
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
-                !request_field=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
-                !chemical_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j)))
-                !absorption_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Absorption")
-                !depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%biovar_list(j))//"Depletion")
 
-                do n=1, node_count(request_field)
-                   !if (node_val(request_field,n) > node_val(chemical_field,n)) then
+                request_field_dg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
+                request_field_cg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_cg_name(j)))
+                chemical_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j)))
+                absorption_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Absorption")
+                depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Depletion")
+
+                ewrite(2,*) "Galerkin projecting request field: ", trim(agent_arrays(i)%biofield_dg_name(j))
+                call calculate_galerkin_projection(state, request_field_cg)
+
+                do n=1, node_count(request_field_cg)
+                   if (node_val(request_field_cg,n) > node_val(chemical_field,n)) then
                       ! Scale back the request
-                   !   call set(depletion_field, n, node_val(chemical_field,n) / node_val(request_field,n))
-                   !else
-                   !   call set(depletion_field, n, 1.0)
-                   !end if
+                      call set(depletion_field, n, node_val(chemical_field,n) / node_val(request_field_cg,n))
+                   else
+                      call set(depletion_field, n, 1.0)
+                   end if
 
-                   !call addto(absorption_field, n, node_val(request_field,n) * node_val(depletion_field,n))
+                   call set(absorption_field, n, node_val(request_field_cg,n) * node_val(depletion_field,n))
                 end do
              end if
 
              ! Handle chemical release
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
-                !release_field=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_list(j)))
-                !source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_list(j))//"Source")
-                do n=1, node_count(release_field)
-                   !call addto(source_field, n, node_val(release_field,n))
+                release_field_dg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
+                release_field_cg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_cg_name(j)))
+                source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Source")
+
+                ewrite(2,*) "Galerkin projecting release field: ", trim(agent_arrays(i)%biofield_dg_name(j))
+                call calculate_galerkin_projection(state, release_field_cg)
+
+                do n=1, node_count(release_field_cg)
+                   call set(source_field, n, node_val(release_field_cg,n))
                 end do
              end if
           end do
@@ -482,6 +498,8 @@ contains
           current_fg = current_fg + 1
        end if
     end do
+
+    ewrite(2,*) "Exiting calculate_agent_diagnostics"
 
   end subroutine calculate_agent_diagnostics
 
