@@ -25,6 +25,7 @@
 !    USA
 
 #include "fdebug.h"
+#include "version.h"
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.
@@ -196,9 +197,15 @@ contains
     type(mesh_type), intent(in) :: mesh
 
     logical :: stat_mesh
+    integer :: stat
+    character(len = OPTION_PATH_LEN) :: stat_test_path
 
-    stat_mesh = have_option(trim(complete_mesh_path(mesh%option_path)) // "/stat/include_in_stat") &
-      & .and. .not. have_option(trim(complete_mesh_path(mesh%option_path)) // "/stat/exclude_from_stat")
+    stat_mesh = .false.
+    stat_test_path=trim(complete_mesh_path(mesh%option_path,stat))
+    if(stat==0) then
+       stat_mesh = have_option(trim(stat_test_path) // "/stat/include_in_stat") &
+            &.and..not.have_option(trim(stat_test_path) // "/stat/exclude_from_stat")
+    end if
 
   end function stat_mesh
 
@@ -590,6 +597,7 @@ contains
         ! Headers for output statistics for each mesh
         mesh => extract_mesh(state(1), default_stat%mesh_list(i))
 
+        
         if(stat_mesh(mesh)) then
           column = column + 1
           buffer = field_tag(name = mesh%name, column = column, statistic = "nodes")

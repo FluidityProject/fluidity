@@ -207,7 +207,9 @@ implicit none
     norm=0
 
     do ele=1, element_count(field)
-       norm=norm+norm2_cv(field, X, ele)
+       if(element_owned(field, ele)) then
+         norm=norm+norm2_cv(field, X, ele)
+       end if
     end do
 
     call allsum(norm)
@@ -278,8 +280,10 @@ implicit none
     integral=0
 
     do ele=1, element_count(field)
-       integral=integral &
-            +integral_cv(field, X, ele)
+       if (element_owned(field, ele)) then
+         integral=integral &
+              +integral_cv(field, X, ele)
+       end if
     end do
 
     call allsum(integral)

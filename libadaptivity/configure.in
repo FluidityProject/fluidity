@@ -808,12 +808,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 #AC_C_CONST
 #AC_C_INLINE
 
-VERSION=`svnversion .`
-AC_SUBST(VERSION)
-cat >> confdefs.h << EOF
-#undef __FLUIDITY_VERSION__
-#define __FLUIDITY_VERSION__ "$VERSION"
-EOF
 AC_SUBST(FORTRAN_REAL_8)
 AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)

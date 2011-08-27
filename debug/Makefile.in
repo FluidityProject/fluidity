@@ -65,7 +65,7 @@ OBJS = C++_Debug.o Debug.o Debug_Parameters.o Diagnostic_Output.o
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
+
 default: $(LIB)
 
 
