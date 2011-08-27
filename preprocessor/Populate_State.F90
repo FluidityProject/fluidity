@@ -1437,6 +1437,32 @@ contains
          write(fg_buffer, "(a,i0,a)") trim(fg_path)//"[",i-1,"]"
          call get_option(trim(fg_buffer)//"/name", fg_name)
 
+         ! Allocate agent count fields
+         if (have_option(trim(fg_buffer)//"/scalar_field::Agents")) then
+            write(field_buffer, "(a,i0,a)") trim(fg_buffer)//"/scalar_field::Agents"
+            call get_option(trim(field_buffer)//"/name", field_name)
+
+            ! One for each stage, ie. AgentsLiving and AgentsDead
+            if (have_option(trim(field_buffer)//"/per_stage")) then
+               stage_count = option_count(trim(fg_buffer)//"/stage_array")
+               do k=1, stage_count
+                  write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stage_array[",k-1,"]"
+                  call get_option(trim(stage_buffer)//"/name", stage_name)
+
+                  call allocate_and_insert_scalar_field(trim(field_buffer), &
+                           state, field_name=trim(fg_name)//trim(field_name)//trim(stage_name), &
+                           dont_allocate_prognostic_value_spaces&
+                           =dont_allocate_prognostic_value_spaces)
+               end do
+            else
+               ! Or a global one, ie. ParticulateChemical
+               call allocate_and_insert_scalar_field(trim(field_buffer), &
+                           state, field_name=trim(fg_name)//trim(field_name), &
+                           dont_allocate_prognostic_value_spaces&
+                           =dont_allocate_prognostic_value_spaces)
+            end if
+         end if
+
          var_count = option_count(trim(fg_buffer)//"/state_variable")
          do j=1, var_count
             write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/state_variable[",j-1,"]"

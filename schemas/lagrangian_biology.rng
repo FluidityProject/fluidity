@@ -264,6 +264,23 @@ This option is generally only useful for testing. </a:documentation>
               <ref name="comment"/>
             </element>
           </zeroOrMore>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>Number of agents</a:documentation>
+              <attribute name="name">
+                <value>Agents</value>
+              </attribute>
+              <element name="diagnostic">
+                <ref name="internal_algorithm"/>
+                <ref name="mesh_choice"/>
+                <ref name="diagnostic_scalar_field_no_adapt"/>
+              </element>
+              <element name="per_stage">
+                <a:documentation>A diagnostic 'Agents&lt;stage&gt;' field is created for each agent stage</a:documentation>
+                <empty/>
+              </element>
+            </element>
+          </optional>
           <ref name="lagrangian_timestepping"/>
         </element>
       </zeroOrMore>

@@ -108,6 +108,8 @@ contains
           call get_option(trim(stage_buffer)//"/number_of_agents", n_agents)
           call get_option(trim(stage_buffer)//"/name", stage_name)
           agent_arrays(i)%name = trim(fg_name)//trim(stage_name)
+          agent_arrays(i)%fg_name = trim(fg_name)
+          agent_arrays(i)%stage_name = trim(stage_name)
           agent_arrays(i)%fg_id = fg
           call get_option(trim(stage_buffer)//"/id", agent_arrays(i)%stage_id)
 
@@ -422,6 +424,10 @@ contains
 
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
+
+          sfield=>extract_scalar_field(state, trim(agent_arrays(i)%fg_name)//"Agents"//trim(agent_arrays(i)%stage_name))
+          call zero(sfield)
+
           ! Reset the diagnostic fields associated with the agent array
           do j=1, size(agent_arrays(i)%biovar_name)
              if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
@@ -442,6 +448,9 @@ contains
 
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
+          sfield=>extract_scalar_field(state, trim(agent_arrays(i)%fg_name)//"Agents"//trim(agent_arrays(i)%stage_name))
+          call addto_agent_count(agent_arrays(i), sfield)
+
           do j=1, size(agent_arrays(i)%biovar_name)
              if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
                 sfield=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
@@ -532,5 +541,25 @@ contains
     end do
 
   end subroutine addto_diagnostic_field_from_agents
+
+  subroutine addto_agent_count(agent_list, sfield)
+    type(detector_linked_list), intent(inout) :: agent_list
+    type(scalar_field), pointer, intent(inout) :: sfield
+
+    type(detector_type), pointer :: agent
+    integer, dimension(ele_loc(sfield, agent_list%first%element)) :: element_nodes
+    integer :: i
+
+    agent => agent_list%first
+    do while (associated(agent))
+       element_nodes = ele_nodes(sfield, agent%element)
+       do i=1, ele_loc(sfield, agent%element)
+          call addto(sfield, element_nodes(i), 1.0)
+       end do
+
+       agent => agent%next
+    end do
+
+  end subroutine addto_agent_count
 
 end module lagrangian_biology

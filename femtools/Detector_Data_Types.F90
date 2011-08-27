@@ -116,6 +116,7 @@ module detector_data_types
      integer :: fg_id
      real :: stage_id
      logical :: has_biology=.false.
+     character(len=FIELD_NAME_LEN) :: fg_name, stage_name
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biovar_name
      integer, dimension(:), allocatable :: biofield_type
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_dg_name

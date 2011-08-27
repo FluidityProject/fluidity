@@ -1048,6 +1048,18 @@ def val(ele, local_coord, dt, vars):
   return vars</string_value>
           </biology_update>
         </stage_array>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="DGMesh"/>
+            <output/>
+            <stat/>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+          </diagnostic>
+          <per_stage/>
+        </scalar_field>
         <lagrangian_timestepping>
           <subcycles>
             <integer_value rank="0">1</integer_value>

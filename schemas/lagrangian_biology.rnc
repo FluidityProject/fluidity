@@ -194,6 +194,19 @@ lagrangian_biology =
                ),
                comment
             }*,
+            ## Number of agents
+            element scalar_field {
+               attribute name { 'Agents' },
+               element diagnostic {
+                  internal_algorithm,
+                  mesh_choice,
+                  diagnostic_scalar_field_no_adapt
+               },
+               ## A diagnostic 'Agents<stage>' field is created for each agent stage
+               element per_stage {
+                  empty
+               }
+            }?,
             lagrangian_timestepping
          }*
       }
