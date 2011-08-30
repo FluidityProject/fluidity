@@ -192,7 +192,7 @@ contains
     
     my_num_edges = sum(num_edges(1:num_obj))
     
-    if (zoltan_global_final_adapt_iteration) then
+    if (.NOT. zoltan_global_calculate_edge_weights) then
        
        ! last iteration - hopefully the mesh is of sufficient quality by now
        ! we only want to optimize the edge cut to minimize halo communication

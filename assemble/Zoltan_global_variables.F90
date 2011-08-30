@@ -37,7 +37,7 @@ module zoltan_global_variables
 
 
   ! Needed for zoltan_cb_get_edge_list
-  logical, save :: zoltan_global_final_adapt_iteration
+  logical, save :: zoltan_global_calculate_edge_weights
   ! elements with quality greater than this value are ok
   ! those with element quality below it need to be adapted
   real, save :: zoltan_global_quality_tolerance
