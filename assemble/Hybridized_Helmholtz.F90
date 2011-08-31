@@ -1319,7 +1319,7 @@ contains
     integer :: ele,dim1
     real :: g
     logical :: elliptic_method
-    real :: u_max, b_val
+    real :: u_max, b_val, h_mean, area
     real, dimension(:), allocatable :: weights
 
     D=>extract_scalar_field(state, "LayerThickness")
@@ -1370,7 +1370,16 @@ contains
     do ele = 1, element_count(D)
        call project_streamfunction_for_balance_ele(D,psi,X,f,g,ele)
     end do
-    
+
+    !Subtract off the mean part
+    h_mean = 0.
+    area = 0.
+    do ele = 1, element_count(D)
+       call assemble_mean_ele(D,X,h_mean,area,ele)
+    end do
+    h_mean = h_mean/area
+    D%val = D%val - h_mean
+
     !debugging tests
     call zero(Coriolis_term)
     do ele = 1, element_count(D)
@@ -1709,4 +1718,21 @@ contains
     call set(U,U_rhs)
   end subroutine solve_linear_timestep_hybridized
 
+  subroutine assemble_mean_ele(D,X,mean,area,ele)
+    type(scalar_field), intent(in) :: D
+    type(vector_field), intent(in) :: X
+    real, intent(inout) :: mean,area
+    integer, intent(in) :: ele
+    !
+    real, dimension(ele_ngi(D,ele)) :: D_gi, detwei
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+
+    D_gi = ele_val_at_quad(D,ele)
+    call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, &
+         detwei=detwei)
+    
+    mean = mean + sum(detwei*D_gi)
+    area = area + sum(detwei)
+    
+  end subroutine assemble_mean_ele
 end module hybridized_helmholtz
