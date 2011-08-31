@@ -145,8 +145,11 @@ class TensorField(Field):
 class CsrMatrix(scipy.sparse.csr_matrix):
   "A csr matrix"
   def __init__(self, *args, **kwargs):
-    scipy.sparse.csr_matrix.__init__(self, *args, **kwargs)
-    self.format = 'csr'
+    try:
+      scipy.sparse.csr_matrix.__init__(self, *args, **kwargs)
+      self.format = 'csr'
+    except TypeError: # old version of scipy
+      pass
 
 
 class Mesh:
