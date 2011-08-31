@@ -537,10 +537,7 @@ contains
                             det0%update_vector(j) = det0%update_vector(j) - (2 * D * face_normal(j))
                          end do
 
-                         ! move on to the next detector
                          deallocate(face_nodes)
-                         det0 => det0%next
-                         exit search_loop
                       else
                          ! Turn detector static inside the domain
                          ewrite(1,*) "WARNING: detector attempted to leave computational &
