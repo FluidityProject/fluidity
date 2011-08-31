@@ -565,8 +565,9 @@
     </scalar_field>
     <scalar_field name="SumVelocityDivergence" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
+        <integrate_divergence_by_parts/>
         <output/>
         <stat/>
         <detectors>
