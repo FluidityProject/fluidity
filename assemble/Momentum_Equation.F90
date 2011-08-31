@@ -253,7 +253,9 @@
          ! An array of submaterials of the current phase in state(istate).
          type(state_type), dimension(:), pointer :: submaterials
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
-         integer :: submaterials_istate 
+         integer :: submaterials_istate
+         ! Do we have fluid-particle drag between phases?
+         logical :: have_fp_drag
 
          ewrite(1,*) 'Entering solve_momentum'
 
@@ -273,6 +275,8 @@
          else
             multiphase = .false.
          end if
+         ! Do we have fluid-particle drag (for multi-phase simulations)?
+         have_fp_drag = option_count("/material_phase/multiphase_properties/particle_diameter") > 0
 
          ! Get the pressure p^{n}, and get the assembly options for the divergence and CMC matrices
          ! find the first non-aliased pressure
@@ -566,6 +570,15 @@
                      assemble_ct_matrix_here=reassemble_ct_m .and. .not. cv_pressure, &
                      include_pressure_and_continuity_bcs=.not. cv_pressure)
             end if
+            
+            ! Add in multiphase interactions (e.g. fluid-particle drag) if necessary
+            ! Note: this is done outside of construct_momentum_cg/dg to keep things
+            ! neater in Momentum_CG/DG.F90, since we would need to pass around multiple phases 
+            ! and their fields otherwise.
+            if(multiphase .and. have_fp_drag) then
+               call add_fluid_particle_drag(state, istate, u, x, big_m(istate), mom_rhs(istate))
+            end if
+            
             call profiler_toc(u, "assembly")
 
             if(has_scalar_field(state(istate), hp_name)) then

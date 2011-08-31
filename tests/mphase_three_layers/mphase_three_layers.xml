@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>mphase_three_layers</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="medium" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- 2D multi-phase test case to check that the volume fraction fields are behaving properly. -->
+   
+    <!-- The test case considers a square 2D domain filled with three incompressible fluids starting with zero velocity fields. -->
+    <!-- \rho_1 = 1.1, \rho_2 = 1.0, \rho_3 = 0.9) and the volume fraction of each phase is initially set to vfrac_1 = 0.33, -->
+    <!-- vfrac_2 = 0.33, vfrac_3 = 0.34 everywhere. The fluids should eventually form three distinct layers due to the density differences. -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="f1_vfrac_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+f1_vfrac_max = s["Fluid1"]["PhaseVolumeFraction"]["max"][-1]
+    </variable>
+    
+    <variable name="f1_vfrac_min" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+f1_vfrac_min = s["Fluid1"]["PhaseVolumeFraction"]["min"][-1]
+    </variable>
+    
+    <variable name="f2_vfrac_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+f2_vfrac_max = s["Fluid2"]["PhaseVolumeFraction"]["max"][-1]
+    </variable>
+    
+    <variable name="f2_vfrac_min" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+f2_vfrac_min = s["Fluid2"]["PhaseVolumeFraction"]["min"][-1]
+    </variable>
+    
+    <variable name="f3_vfrac_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+f3_vfrac_max = s["Fluid3"]["PhaseVolumeFraction"]["max"][-1]
+    </variable>
+    
+    <variable name="f3_vfrac_min" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+f3_vfrac_min = s["Fluid3"]["PhaseVolumeFraction"]["min"][-1]
+    </variable>
+    
+    <variable name="f1_vfrac_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+f1_vfrac_integral = s["Fluid1"]["PhaseVolumeFraction"]["integral"][-1]
+    </variable>
+    
+    <variable name="f2_vfrac_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+f2_vfrac_integral = s["Fluid2"]["PhaseVolumeFraction"]["integral"][-1]
+    </variable>
+    
+    <variable name="f3_vfrac_integral" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+f3_vfrac_integral = s["Fluid3"]["PhaseVolumeFraction"]["integral"][-1]
+    </variable>
+    
+    <variable name="divergence" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_three_layers.stat")
+divergence = s["Fluid1"]["SumVelocityDivergence"]["max"][-1]
+    </variable>
+    
+    <variable name="f1_vfrac" language="python">
+import vtktools
+
+file = vtktools.vtu('mphase_three_layers_300.vtu')
+file.GetFieldNames()
+f1_vfrac = file.GetScalarField('Fluid1::PhaseVolumeFraction')
+    </variable>
+    
+    <variable name="f2_vfrac" language="python">
+import vtktools
+
+file = vtktools.vtu('mphase_three_layers_300.vtu')
+file.GetFieldNames()
+f2_vfrac = file.GetScalarField('Fluid2::PhaseVolumeFraction')
+    </variable>
+    
+    <variable name="f3_vfrac" language="python">
+import vtktools
+
+file = vtktools.vtu('mphase_three_layers_300.vtu')
+file.GetFieldNames()
+f3_vfrac = file.GetScalarField('Fluid3::PhaseVolumeFraction')
+    </variable>
+    
+    <!-- Using y co-ordinates only here -->
+    <variable name="positions" language="python">
+import vtktools
+
+file = vtktools.vtu('mphase_three_layers_300.vtu')
+file.GetFieldNames()
+p = file.GetLocations()
+positions = p[:,1]
+    </variable>
+    
+  </variables>
+    
+  <pass_tests>
+    <test name="Fluid 1 has max(vfrac) in [0.8, 1.0]" language="python">
+assert abs(f1_vfrac_max - 1.0) &lt; 2e-1
+    </test>
+    <test name="Fluid 1 has min(vfrac) in [0.0, 0.1]" language="python">
+assert abs(f1_vfrac_min) &lt; 1e-1
+    </test>
+    <test name="Fluid 2 has max(vfrac) in [0.5, 1.0]" language="python">
+assert abs(f2_vfrac_max - 1.0) &lt; 5e-1
+    </test>
+    <test name="Fluid 2 has min(vfrac) in [0.0, 0.2]" language="python">
+assert abs(f2_vfrac_min) &lt; 2e-1
+    </test>
+    <test name="Fluid 3 has max(vfrac) in [0.8, 1.0]" language="python">
+assert abs(f3_vfrac_max - 1.0) &lt; 2e-1
+    </test>
+    <test name="Fluid 3 has min(vfrac) in [0.0, 0.1]" language="python">
+assert abs(f3_vfrac_min) &lt; 1e-1
+    </test>
+    
+    <test name="Fluid 1 has vfrac in [0.4, 1.0] in lower third of domain" language="python">
+nnodes = len(f1_vfrac)
+
+vals = []
+for i in range(nnodes):
+   if(positions[i] &lt; (1.0/3.0)):
+      assert abs(f1_vfrac[i] - 0.7) &lt; 0.3
+      vals.append(f1_vfrac[i])
+      
+print "Max vfrac in lower third of domain = ", max(vals)
+print "Min vfrac in lower third of domain = ", min(vals)
+      
+assert max(vals) &lt; 1.0
+assert min(vals) &gt; 0.4
+    </test>
+    <test name="Fluid 1 has vfrac in [0.0, 0.6] in the rest of the domain" language="python">
+nnodes = len(f1_vfrac)
+
+vals = []
+for i in range(nnodes):
+   if(positions[i] &gt; (1.0/3.0)):
+      assert abs(f1_vfrac[i] - 0.3) &lt; 0.3
+      vals.append(f1_vfrac[i])
+
+print "Max vfrac in the rest of the domain = ", max(vals)
+print "Min vfrac in the rest of the domain = ", min(vals)
+
+assert max(vals) &lt; 0.6
+assert min(vals) &gt; 0.0
+    </test>
+    
+    <test name="SumVelocityDivergence is less than 1e-9" language="python">
+assert abs(divergence) &lt; 1e-9
+    </test>
+    
+    <test name="PhaseVolumeFraction for Fluid 1 is conserved" language="python">
+assert abs(f1_vfrac_integral - 0.33) &lt; 1e-6
+    </test>
+    <test name="PhaseVolumeFraction for Fluid 2 is conserved" language="python">
+assert abs(f2_vfrac_integral - 0.33) &lt; 1e-6
+    </test>
+    <test name="PhaseVolumeFraction for Fluid 3 is conserved" language="python">
+assert abs(f3_vfrac_integral - 0.34) &lt; 1e-6
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

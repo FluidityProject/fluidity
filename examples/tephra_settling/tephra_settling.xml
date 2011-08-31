@@ -3,12 +3,12 @@
 
 <testproblem>
    
-  <name>mphase_tephra_settling</name>
+  <name>tephra_settling</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="special" nprocs="1">
-    <command_line>make run</command_line>
+  <problem_definition length="long" nprocs="1">
+    <command_line>mpiexec ../../bin/fluidity -v2 -l tephra_settling.flml</command_line>
     <!-- This is a 2D simulation of the formation of density currents. We consider a -->
     <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
     <!-- Density currents/plumes should eventually form when the bulk density is large enough. -->
@@ -17,12 +17,12 @@
   <variables>
     <variable name="tephra_u_max" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_tephra_settling.stat")
+s = stat_parser("tephra_settling.stat")
 tephra_u_max=s["Tephra"]["Velocity%magnitude"]["max"]
     </variable>
     <variable name="time" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_tephra_settling.stat")
+s = stat_parser("tephra_settling.stat")
 time=s["ElapsedTime"]["value"]
     </variable>
   </variables>
