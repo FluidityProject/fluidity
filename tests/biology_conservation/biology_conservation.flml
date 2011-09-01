@@ -181,11 +181,7 @@
           <surface_ids>
             <integer_value shape="2" rank="1">111 333</integer_value>
           </surface_ids>
-          <type name="neumann">
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
-          </type>
+          <type name="zero_flux"/>
         </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
@@ -285,11 +281,7 @@
           <surface_ids>
             <integer_value shape="2" rank="1">111 333</integer_value>
           </surface_ids>
-          <type name="neumann">
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
-          </type>
+          <type name="zero_flux"/>
         </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
@@ -368,11 +360,7 @@
           <surface_ids>
             <integer_value shape="2" rank="1">111 333</integer_value>
           </surface_ids>
-          <type name="neumann">
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
-          </type>
+          <type name="zero_flux"/>
         </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
@@ -461,11 +449,7 @@
           <surface_ids>
             <integer_value shape="2" rank="1">111 333</integer_value>
           </surface_ids>
-          <type name="neumann">
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
-          </type>
+          <type name="zero_flux"/>
         </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
