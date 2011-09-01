@@ -17,7 +17,7 @@ subroutine test_metric_based_extrusion
   type(tensor_field) :: metric
   type(vector_field) :: adapted_mesh
 
-  interface                                                                                                                                                  
+  interface
     function metric_func(pos)
       real, dimension(:), intent(in) :: pos
       real, dimension(size(pos), size(pos)) :: metric_func
