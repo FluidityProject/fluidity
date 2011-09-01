@@ -949,7 +949,7 @@ contains
 
     character(len = FIELD_NAME_LEN) :: metric_name
     integer :: i, j, max_adapt_iteration
-    integer :: zoltan_min_adapt_iteration, zoltan_max_adapt_iteration
+    integer :: zoltan_min_adapt_iterations, zoltan_max_adapt_iterations, zoltan_additional_adapt_iterations
     logical :: finished_adapting, final_adapt_iteration
     integer, dimension(:), pointer :: node_ownership
     type(state_type), dimension(size(states)) :: interpolate_states
@@ -992,15 +992,18 @@ contains
     ! TODO: Replace this with reading appropriate options
 #ifdef HAVE_ZOLTAN
 
+    ! TODO: Replace with a call to get option with appropriate default
+    zoltan_additional_adapt_iterations = 2
+
     call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", &
        & quality_tolerance, default = 0.6)
 
     if (max_adapt_iteration .ne. 1) then
-       zoltan_min_adapt_iteration = max_adapt_iteration
-       zoltan_max_adapt_iteration = max_adapt_iteration + 4
+       zoltan_min_adapt_iterations = adapt_iterations()
+       zoltan_max_adapt_iterations = zoltan_min_adapt_iterations + zoltan_additional_adapt_iterations
     else
-       zoltan_min_adapt_iteration = max_adapt_iteration
-       zoltan_max_adapt_iteration = max_adapt_iteration
+       zoltan_min_adapt_iterations = adapt_iterations()
+       zoltan_max_adapt_iterations = zoltan_min_adapt_iterations
     end if
 #endif
 
@@ -1273,7 +1276,7 @@ contains
          i = i + 1
 
 #ifdef HAVE_ZOLTAN
-         if (i .eq. zoltan_max_adapt_iteration) then
+         if (i .eq. zoltan_max_adapt_iterations) then
 
             ewrite(2,*) "The next iteration will be final adapt iteration else we'll go over the maximum adapt iterations."
 
@@ -1286,7 +1289,7 @@ contains
 
             final_adapt_iteration = .true.
          else
-            if((global_min_quality .gt. quality_tolerance) .and. (i .ge. zoltan_min_adapt_iteration)) then
+            if((global_min_quality .gt. quality_tolerance) .and. (i .ge. zoltan_min_adapt_iterations)) then
                ewrite(2,*) "The next iteration will be final adapt iteration as the mesh is of high enough quality and we have done the minimum number of adapt iterations."
                final_adapt_iteration = .true.
             end if
