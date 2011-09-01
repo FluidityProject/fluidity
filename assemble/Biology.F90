@@ -210,13 +210,9 @@ contains
     g=extract_vector_field(state, "GravityDirection")
     light=extract_scalar_field(state, "PhotosyntheticRadiation")
     P=extract_scalar_field(state, "Phytoplankton")
-    
-    if(continuity(light)<0) then
-      ! could be cleverer with this and check if diffusion is assembled
-      sparsity=>get_csr_sparsity_secondorder(state, light%mesh, light%mesh)
-    else
-      sparsity=>get_csr_sparsity_firstorder(state, light%mesh, light%mesh)
-    end if
+
+    ! Only need first order sparsity as we have no diffusion
+    sparsity=>get_csr_sparsity_firstorder(state, light%mesh, light%mesh)
 
     call get_option(trim(light%option_path)//&
          "/prognostic/absorption_coefficients/water", k_w)
