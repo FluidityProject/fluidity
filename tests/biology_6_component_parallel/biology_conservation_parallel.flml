@@ -171,11 +171,7 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="neumann">
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
-          </type>
+          <type name="zero_flux"/>
         </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
@@ -275,11 +271,7 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="neumann">
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
-          </type>
+          <type name="zero_flux"/>
         </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
@@ -358,11 +350,7 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="neumann">
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
-          </type>
+          <type name="zero_flux"/>
         </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
@@ -451,11 +439,7 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="neumann">
-            <constant>
-              <real_value rank="0">0</real_value>
-            </constant>
-          </type>
+          <type name="zero_flux"/>
         </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
@@ -579,6 +563,12 @@
             <real_value rank="0">0.01</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="NoFlux">
+          <surface_ids>
+            <integer_value shape="2" rank="1">1 2</integer_value>
+          </surface_ids>
+          <type name="zero_flux"/>
+        </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -647,6 +637,12 @@
             <real_value rank="0">1.0</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="NoFlux">
+          <surface_ids>
+            <integer_value shape="2" rank="1">1 2</integer_value>
+          </surface_ids>
+          <type name="zero_flux"/>
+        </boundary_conditions>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
