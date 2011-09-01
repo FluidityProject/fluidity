@@ -962,6 +962,15 @@ hr_adaptivity =
             element load_imbalance_tolerance {
                 real
             }?,
+            ## Additional adapt iterations.
+            ## Zoltan returns the minimum element quality to adaptivity. By setting additional adapt
+            ## iterations to a value greater than zero we allow Zoltan to do adapt_iterations plus
+            ## additional_adapt_iterations calls to adaptivity. Additional calls over adapt iterations
+            ## are only allowed if Zoltan returns a minimum element quality below the element quality
+            ## cut off. Default is 2. 
+            element additional_adapt_iterations {
+                integer
+            }?,
             ## Zoltan Debugging
             ## 
             ## Turn on more verbose output for use when debugging Zoltan.

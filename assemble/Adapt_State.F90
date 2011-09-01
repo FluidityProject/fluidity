@@ -989,11 +989,13 @@ contains
 #endif
 
 
-    ! TODO: Replace this with reading appropriate options
 #ifdef HAVE_ZOLTAN
 
-    ! TODO: Replace with a call to get option with appropriate default
-    zoltan_additional_adapt_iterations = 2
+    call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/additional_adapt_iterations", &
+       & zoltan_additional_adapt_iterations, default = 2)
+    if (zoltan_additional_adapt_iterations < 0) then
+       FLExit("Zoltan additional adapt iterations must not be negative.")
+    end if
 
     call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", &
        & quality_tolerance, default = 0.6)

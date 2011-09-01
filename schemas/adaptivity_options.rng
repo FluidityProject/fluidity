@@ -1127,6 +1127,17 @@ require more adapt iterations to produce a fully adapted final mesh.</a:document
             </element>
           </optional>
           <optional>
+            <element name="additional_adapt_iterations">
+              <a:documentation>Additional adapt iterations.
+Zoltan returns the minimum element quality to adaptivity. By setting additional adapt
+iterations to a value greater than zero we allow Zoltan to do adapt_iterations plus
+additional_adapt_iterations calls to adaptivity. Additional calls over adapt iterations
+are only allowed if Zoltan returns a minimum element quality below the element quality
+cut off. Default is 2. </a:documentation>
+              <ref name="integer"/>
+            </element>
+          </optional>
+          <optional>
             <element name="zoltan_debug">
               <a:documentation>Zoltan Debugging
 
