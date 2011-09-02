@@ -10,11 +10,12 @@
   </problem_definition>
   <variables>
     <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser 
-s = stat_parser("iceshelf_dg.stat")
-elapsedtime=s["ElapsedTime"]["value"][-1]</variable>
+s = stat_parser("shelf2d.stat")
+ElapsedTime=s["ElapsedTime"]["value"][-1]
+  </variable>
   </variables>
   <pass_tests>
-    <test name="endtime" language="python">assert(elapsedtime - 1.0 &lt; 1E-10)</test>
+    <test name="endtime" language="python">assert abs(ElapsedTime - 0.05) &lt; 1E-10</test>
   </pass_tests>
   <warn_tests>
   </warn_tests>
