@@ -705,7 +705,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <scalar_field name="MeltRate" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -722,7 +722,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <scalar_field name="Tb" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -739,7 +739,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <scalar_field name="Sb" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -756,7 +756,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <scalar_field name="Heat_flux" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -773,7 +773,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <scalar_field name="Salt_flux" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -790,7 +790,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <scalar_field name="Tloc" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -807,7 +807,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <scalar_field name="Sloc" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -824,7 +824,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <scalar_field name="Ploc" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -841,7 +841,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <vector_field name="Vloc" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat>
               <include_in_stat/>
@@ -860,7 +860,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <vector_field name="Location" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat>
               <include_in_stat/>
@@ -879,7 +879,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <vector_field name="Location_org" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat>
               <include_in_stat/>
@@ -898,7 +898,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         <scalar_field name="subshelf_hydrostatic_pressure" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="VelocityMesh"/>
+            <mesh name="CoordinateMesh"/>
             <output/>
             <stat/>
             <convergence>
