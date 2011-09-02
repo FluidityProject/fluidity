@@ -440,6 +440,19 @@ contains
     TT=> extract_scalar_field(state,"Temperature")
     SS=> extract_scalar_field(state,"Salinity")
     velocity => extract_vector_field(state,"Velocity")     
+!! Remapt the contious mesh to discon, unit_normal vecotr     
+        
+    call allocate(unit_normal_vectors_vel,velocity%dim,velocity%mesh,"MyVelocitySurfaceMesh")
+    
+    allocate(vel(velocity%dim))
+    vel = 0.0
+    call set(unit_normal_vectors_vel,vel)
+    deallocate(vel)
+    
+    call remap_field(unit_normal_vectors,unit_normal_vectors_vel,stat)
+   
+    call allocate(T_bc,TT%mesh, name="T_boundary")
+    call allocate(S_bc,SS%mesh, name="S_boundary")
 
     ! Surface node list
     option_path = '/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries'  
@@ -580,6 +593,7 @@ contains
     call deallocate(ice_surfaceS)
     call deallocate(unit_normal_vectors_vel)
     call deallocate(surface_mesh)
+
     ewrite(1,*) "Melt interface boundary condition end"
 
   end subroutine melt_interface_boundary_condition
