@@ -123,6 +123,20 @@ contains
     STOP
   END SUBROUTINE FLExit_pinpoint
 
+  SUBROUTINE FLHere_pinpoint(HereStr, FromFile, LineNumber)
+
+    CHARACTER*(*) HereStr, FromFile
+    INTEGER LineNumber
+    LOGICAL UsingMPI
+    INTEGER IERR
+#ifndef NDEBUG
+    ewrite(-1,FMT='(3A,I0,2A)') "Here at: ", FromFile, ":", LineNumber, " ", HereStr
+#else
+    ewrite(-1,FMT='(2A)') "Here: ", HereStr
+#endif
+    
+  END SUBROUTINE FLHere_pinpoint
+
   subroutine write_minmax_real_array(array, array_expression)
     ! the array to print its min and max of
     real, dimension(:), intent(in):: array

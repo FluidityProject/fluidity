@@ -55,6 +55,7 @@
 
 #define FLAbort(X) call FLAbort_pinpoint(X, __FILE__, __LINE__)
 #define FLExit(X) call FLExit_pinpoint(X, __FILE__, __LINE__)
+#define FLHere(X) call FLHere_pinpoint(X, __FILE__, __LINE__)
 
 ! #define FORTRAN_DISALLOWS_LONG_LINES
 #ifdef NDEBUG
