@@ -204,7 +204,7 @@ contains
 
     ! Initialise Hyperlight
 #ifdef HAVE_HYPERLIGHT
-    if (have_option("ocean_biology/lagrangian_ensemble/hyperlight")) then
+    if (have_option("embedded_models/hyperlight")) then
        if (.not.have_option("/material_phase[0]/scalar_field::Chlorophyll")) then
           FLExit("You need Chlorophyll scalar field for Hyperlight")
        else
@@ -212,7 +212,7 @@ contains
        end if
     end if
 #else
-    if (have_option("ocean_biology/lagrangian_ensemble/hyperlight")) then
+    if (have_option("embedded_models/hyperlight")) then
        ewrite(-1,*) "Hyperlight module was selected, but not compiled."
        FLExit("Please re-compile fluidity with the --enable-hyperlight option.")
     end if
@@ -401,7 +401,7 @@ contains
     end if
 
     ! Initialise lagrangian biology agents
-    if (have_option("/ocean_biology/lagrangian_ensemble")) then
+    if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
        call initialise_lagrangian_biology(state(1))
     end if
 
@@ -853,7 +853,7 @@ contains
        end if
 
        ! Call lagrangian biology after the non-linear iterations
-       if (have_option("/ocean_biology/lagrangian_ensemble")) then
+       if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
           call calculate_lagrangian_biology(state, current_time, dt, timestep)
        end if
 
@@ -984,7 +984,7 @@ contains
     end if
 
     ! cleanup lagrangian biology
-    if (have_option("/ocean_biology/lagrangian_ensemble")) then
+    if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
         call lagrangian_biology_cleanup()
     end if
 

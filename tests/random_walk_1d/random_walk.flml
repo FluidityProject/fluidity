@@ -115,10 +115,9 @@ def val(X, t):
       </diagnostic>
     </vector_field>
   </material_phase>
-  <ocean_biology>
-    <lagrangian_ensemble>
-      <disable_biology/>
-      <agents>
+  <embedded_models>
+    <lagrangian_ensemble_biology>
+      <functional_group>
         <agent_array name="Naive_RW">
           <number_of_agents>
             <integer_value rank="0">1000</integer_value>
@@ -205,7 +204,7 @@ def val(ele, local_coord, dt):
           <forward_euler_guided_search/>
           <reflect_on_boundary/>
         </lagrangian_timestepping>
-      </agents>
-    </lagrangian_ensemble>
-  </ocean_biology>
+      </functional_group>
+    </lagrangian_ensemble_biology>
+  </embedded_models>
 </fluidity_options>

@@ -67,11 +67,11 @@ contains
     real:: current_time
     integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type, random_seed
 
-    if (.not.have_option("/ocean_biology/lagrangian_ensemble")) return
+    if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
     ewrite(1,*) "In initialise_lagrangian_biology"
 
-    n_agent_arrays = option_count("/ocean_biology/lagrangian_ensemble/agents/agent_array")
+    n_agent_arrays = option_count("/embedded_models/lagrangian_ensemble_biology/functional_group/agent_array")
     allocate(agent_arrays(n_agent_arrays))
 
     call get_option("/geometry/dimension",dim)
@@ -82,7 +82,7 @@ contains
     ewrite(2,*) "Found", n_agent_arrays, "agent arrays"
 
     do i = 1, n_agent_arrays
-       write(schema_buffer, "(a,i0,a)") "/ocean_biology/lagrangian_ensemble/agents/agent_array[",i-1,"]"
+       write(schema_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group/agent_array[",i-1,"]"
        call get_option(trim(schema_buffer)//"/number_of_agents", n_agents)
        call get_option(trim(schema_buffer)//"/name", agent_arrays(i)%name)
 
@@ -91,7 +91,7 @@ contains
        agent_arrays(i)%total_num_det=n_agents
 
        ! Get options for lagrangian detector movement
-       call read_detector_move_options(agent_arrays(i),"/ocean_biology/lagrangian_ensemble/agents")
+       call read_detector_move_options(agent_arrays(i),"/embedded_models/lagrangian_ensemble_biology/functional_group")
 
        ! Get options for Random Walk
        if (have_option(trim(schema_buffer)//"/random_walk")) then
@@ -117,7 +117,7 @@ contains
        else
           det_type=STATIC_DETECTOR
        end if
-       if (have_option(trim(schema_buffer)//"/exclude_from_advection")) then
+       if (have_option(trim(schema_buffer)//"/debug/exclude_from_advection")) then
           agent_arrays(i)%move_parameters%do_velocity_advect=.false.
        else
           agent_arrays(i)%move_parameters%do_velocity_advect=.true.
