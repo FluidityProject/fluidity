@@ -352,9 +352,9 @@ contains
         loc_Tb = a*loc_Sb + b + topo
         loc_meltrate = gammaS*speed*(S-loc_Sb)/loc_Sb
         !! Heat flux to the ocean
-        loc_heatflux = c0*(gammaT*speed+ loc_meltrate)*(T-loc_Tb) ! or loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
+        loc_heatflux = (gammaT*speed+ loc_meltrate)*(loc_Tb - T) ! or loc_meltrate*L + loc_meltrate*cI*(loc_Tb-TI)
         !! Salt flux to the ocean        
-        loc_saltflux = (gammaS*speed+loc_meltrate)*(S-loc_Sb)
+        loc_saltflux = (gammaS*speed+loc_meltrate)*(loc_Sb - S)
       
         !! These are needed to implement BCs.
         call set(MeltRate, the_node, loc_meltrate)
@@ -393,7 +393,7 @@ contains
     type(state_type), intent(inout)     :: state
     ! Boundary conditions
     type(scalar_field), pointer         :: TT,SS
-    type(scalar_field), pointer         :: scalar_surface
+    type(scalar_field), pointer         :: scalar_surface, scalar_surface2
     type(mesh_type), pointer            :: ice_mesh
     character(len=FIELD_NAME_LEN)       :: bc_type
     type(scalar_field)                  :: T_bc,S_bc
@@ -491,7 +491,7 @@ contains
         the_node = surface_nodes(i)
         !                Kt = (sum(node_val(unit_normal_vectors_vel,the_node)*Kt_ar))
         !                Tz = node_val(heat_flux_vel,the_node)/(-Kt*c0)
-        Tz = -node_val(heat_flux_vel,the_node)/(c0)
+        Tz = node_val(heat_flux_vel,the_node)
         call set(scalar_surface,i,Tz)
       enddo
 
@@ -499,14 +499,14 @@ contains
       call get_boundary_condition(SS, 'salinity_iceshelf_BC', surface_mesh=ice_mesh) 
       call allocate(ice_surfaceS, ice_mesh, name="ice_surfaceS")        
       !! Salinity
-      scalar_surface => extract_surface_field(SS, 'salinity_iceshelf_BC', "value") 
+      scalar_surface2 => extract_surface_field(SS, 'salinity_iceshelf_BC', "value") 
       do i=1,node_count(ice_surfaceS)
         the_node = surface_nodes(i) 
         !                Ks = abs(sum(node_val(unit_normal_vectors_vel,the_node)*Ks_ar))
         !                Sz = node_val(salt_flux_vel,the_node)/(-Ks) 
-        Sz = -node_val(salt_flux_vel,the_node)      
+        Sz = node_val(salt_flux_vel,the_node)      
         !call set(ice_surfaceS,i,Sz)
-        call set(scalar_surface,i,Sz)
+        call set(scalar_surface2,i,Sz)
       enddo
       ! Deallocate the heat_flux and salt_flux on velocity mesh
       call deallocate(heat_flux_vel)
