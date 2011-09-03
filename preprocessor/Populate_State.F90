@@ -4051,7 +4051,7 @@ contains
           FLExit("For ocean problems you should use continuous galerkin pressure")
        end if
        if (.not.have_option(trim(pressure_path)//"/solver/preconditioner/vertical_lumping")) then
-          FLExit("Switch on pressure/vertical lumping")
+          ewrite(0,*)("WARNING: Vertical lumping not used during pressure solve.  Consider switching on pressure/vertical_lumping.")
        end if
        if (.not.have_option(trim(pressure_path)//"/spatial_discretisation/continuous_galerkin/remove_stabilisation_term")) then
           FLExit("Use remove stabilisation term under pressure")
