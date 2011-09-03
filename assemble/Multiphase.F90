@@ -329,7 +329,7 @@
          end if
 
          if(not_found) then
-            FLAbort("No fluid phase found for the fluid-particle drag.")
+            FLExit("No fluid phase found for the fluid-particle drag.")
          end if
 
          ! If we have a fluid-particle pair, then assemble the drag term
