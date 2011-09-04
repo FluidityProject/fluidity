@@ -1050,7 +1050,6 @@ contains
             size(mesh%faces%surface_node_list), name='Surface'//trim(mesh%name))
 #endif
     end if
-    call addref(mesh)
 
   end function make_mesh
 
@@ -1134,7 +1133,7 @@ contains
 
        ! create mesh%faces%face_list an integer csr matrix storing the
        !     face number between each (directed) pair of adjacent elements
-       !     note that this is an assymetric matrix A
+       !     note that this is an asymmetric matrix A
        !     where A_ij gives the boundary of element i facing element j
        !       and A_ji the boundary of element j facing element i
        !       (i.e. there are 2 opposite faces between two elements)
@@ -1369,10 +1368,11 @@ contains
 
         ! find the matching boundary of this element
         do j=1, mesh%shape%numbering%boundaries
+           print *,mesh%ndglno( (ele-1)*nloc+ &
+                facet_dofs(mesh%shape, j))
            if (neigh(j)<=0 .or. internal_face) then
               if (SetContains(snodes, mesh%ndglno( (ele-1)*nloc+ &
-                   boundary_numbering(mesh%shape%numbering, j) &
-                   ))) exit
+                   facet_dofs(mesh%shape, j)))) exit
            end if
         end do
           

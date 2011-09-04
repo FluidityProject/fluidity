@@ -304,12 +304,12 @@ contains
        end if
     end if
 
-    call entity_dofs(element)
-    call facet_dofs(element)
+    call create_entity_dofs(element)
+    call create_facet_dofs(element)
     
   contains
     
-    subroutine entity_dofs(element)
+    subroutine create_entity_dofs(element)
       ! Create lists of the dofs on each entity.
       type(element_type), intent(inout) :: element
       
@@ -409,9 +409,9 @@ contains
          end do
       end do
 
-    end subroutine entity_dofs
+    end subroutine create_entity_dofs
     
-    subroutine facet_dofs(element)
+    subroutine create_facet_dofs(element)
       ! Create lists of the dofs on each facet.
       type(element_type), intent(inout) :: element
       
@@ -433,7 +433,7 @@ contains
               & numbering)
       end do
 
-    end subroutine facet_dofs
+    end subroutine create_facet_dofs
 
   end function make_element_shape
 

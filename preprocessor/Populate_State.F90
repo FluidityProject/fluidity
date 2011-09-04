@@ -172,7 +172,7 @@ contains
     type(mesh_type) :: mesh
     type(vector_field) :: position
     type(vector_field), pointer :: position_ptr
-    type(scalar_field) :: canonical_numbering
+    type(scalar_field), target :: canonical_numbering
     type(scalar_field), pointer :: uid
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
@@ -352,7 +352,11 @@ contains
 
           ! Reorder the mesh according to the canonical numbering.
           canonical_numbering=universal_number_field(mesh)
+          ! Temporarily point the uid until this is done properly below.
+          canonical_numbering%mesh%uid=>canonical_numbering
           call order_elements(canonical_numbering)
+          mesh=canonical_numbering%mesh
+          position%mesh=mesh
           
           ! coplanar ids are create here already and stored on the mesh, 
           ! so its derived meshes get the same coplanar ids
@@ -709,12 +713,20 @@ contains
            canonical_numbering=periodic_universal_ID_field(&
                 extract_scalar_field(states(1), 'CanonicalNumbering'), &
                 mesh)
-           call order_elements(canonical_numbering, [ position%mesh ])
            call insert(states, canonical_numbering, "CanonicalNumbering")
            call deallocate(canonical_numbering)
            uid=>extract_scalar_field(states(1),"CanonicalNumbering")
            periodic_position%mesh%uid=>uid
            position%mesh%uid=>uid
+           uid%mesh%uid=>uid
+
+           call order_elements(uid, [ position%mesh ])
+           ! Because we've fiddled with mesh faces, the copy of
+           !  CoordinateMesh in state is out of date.
+           mesh=position%mesh
+           call insert(states, mesh, "CoordinateMesh")
+           mesh=canonical_numbering%mesh
+           periodic_position%mesh=mesh
 
            mesh = periodic_position%mesh
            call incref(mesh)

@@ -266,86 +266,128 @@ contains
     
     type(mesh_type), dimension(:), intent(in), target, optional :: meshes
 
-    integer :: ele, m, i
+    integer :: ele, m, i, face, ndof, facet_ndof, new_ele
     integer, dimension(:), pointer :: nodes, facet_row, neigh_row
     real, dimension(:), allocatable :: unn
-    integer, dimension(:), allocatable :: perm, invperm, facet, facet_perm
+    integer, dimension(:), allocatable :: perm, ndglno, element_owner,&
+         & boundary_id, surface_facets
     integer, dimension(2) :: tmpent
     type(cell_type), pointer :: cell
     type(mesh_type), pointer :: mesh
+    type(mesh_type) :: p0_mesh
 
     assert(numbering%mesh%shape%degree==1)
 
-    allocate(unn(ele_loc(numbering,1)))
-    allocate(perm(ele_loc(numbering,1)))
-    allocate(invperm(ele_loc(numbering,1)))
-    allocate(facet_perm(ele_loc(numbering,1)))
-    allocate(facet(face_loc(numbering,1)))
+    facet_ndof=face_loc(numbering,1)
+    ndof=ele_loc(numbering,1)
+    allocate(unn(ndof))
+    allocate(perm(ndof))
     cell=>numbering%mesh%shape%cell
+
+    ! First record the information required to rebuild faces.
+    allocate(surface_facets(facet_ndof*surface_element_count(numbering%mesh)))
+    do face=1,surface_element_count(numbering%mesh)
+       surface_facets((face-1)*facet_ndof+1:face*facet_ndof)&
+            &=face_global_nodes(numbering,face)
+    end do
+    if (numbering%mesh%faces%has_internal_boundaries) then
+       allocate(element_owner(surface_element_count(numbering%mesh)))
+       element_owner=numbering%mesh%faces&
+            &%face_element_list(1:surface_element_count(numbering%mesh)) 
+    end if
+    allocate(boundary_id(surface_element_count(numbering%mesh)))
+    boundary_id=numbering%mesh%faces%boundary_ids
     
+    ! Next re-order the vertices in each element.
     do ele=1,element_count(numbering%mesh)
        nodes=>ele_nodes(numbering,ele)
        unn=ele_val(numbering, ele)
        
        ! Establish the node permutation.
        call qsort(unn, perm)
-       invperm=inverse_permutation(perm)
-
-       ! Now establish the resulting facet permutation.
-       do i=1, facet_count(cell)
-          ! Look up the vertices on the current facet.
-          facet=entity_vertices(cell, [cell%dimension-1,i])
-          ! Select new vertices according to the node permutation.
-          facet=invperm(facet)
-          ! Look up the new facet number.
-          tmpent=vertices_entity(cell, sorted(facet))
-          facet_perm(i)=tmpent(2)
-       end do
 
        nodes=nodes(perm)
-       neigh_row=>ele_neigh(numbering, ele)
-       facet_row=>ele_faces(numbering, ele)
        
-       numbering%mesh%faces%local_face_number(facet_row)=facet_perm
-
-       neigh_row=neigh_row(facet_perm)
-       facet_row=facet_row(facet_perm)
-       
+       ! Re-order any additional meshes.
        if (present(meshes)) then
           do m=1, size(meshes)
              mesh=>meshes(m)
              nodes=>ele_nodes(mesh, ele)
              nodes=nodes(perm)
-             neigh_row=>ele_neigh(numbering, ele)
-             facet_row=>ele_faces(numbering, ele)
-
-             mesh%faces%local_face_number(facet_row)=facet_perm
-
-             neigh_row=neigh_row(facet_perm)
-             facet_row=facet_row(facet_perm)
           end do
        end if
     end do
  
-    ! This process invalidates the surface mesh(es) so we rebuild them.
-    ! The new surface meshes will be the same size as the old ones so we
-    !  don't bother with memory allocation registration.
+    ! Now re-order the elements.
     mesh=>numbering%mesh
-    call deallocate(mesh%faces%surface_mesh)
-    deallocate(mesh%faces%surface_node_list)
-    call create_surface_mesh(mesh%faces%surface_mesh, &
-            mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))
     
+    p0_mesh=piecewise_constant_mesh(mesh,"ReorderMesh")
+    allocate(ndglno(size(mesh%ndglno)))
+    ndglno=mesh%ndglno
+    do ele=1,element_count(mesh)
+       new_ele=p0_mesh%ndglno(ele)
+       
+       mesh%ndglno((new_ele-1)*ndof+1:new_ele*ndof)&
+            =ndglno((ele-1)*ndof+1:ele*ndof)
+    end do
     if (present(meshes)) then
        do m=1, size(meshes)
           mesh=>meshes(m)
-          call deallocate(mesh%faces%surface_mesh)
-          deallocate(mesh%faces%surface_node_list)
-          call create_surface_mesh(mesh%faces%surface_mesh, &
-               mesh%faces%surface_node_list, mesh, name='Surface'//trim(mesh%name))          
+          ndglno=mesh%ndglno
+          do ele=1,element_count(mesh)
+             new_ele=p0_mesh%ndglno(ele)
+             
+             mesh%ndglno((new_ele-1)*ndof+1:new_ele*ndof)&
+                  =ndglno((ele-1)*ndof+1:ele*ndof)
+          end do
+       end do
+    end if
+    call deallocate(p0_mesh)
+
+    ! The faces are now invalid so re-establish them.
+    mesh=>numbering%mesh
+    call deallocate_faces(mesh)
+    ! Ordering is significant in the NElist and EElist.
+    call remove_nelist(mesh) 
+    call add_nelist(mesh) 
+    call remove_eelist(mesh) 
+    call add_eelist(mesh) 
+    if (allocated(element_owner)) then
+       call add_faces(mesh, &
+            &               sndgln=surface_facets, &
+            &               boundary_ids=boundary_id, &
+            &               element_owner=element_owner)
+    else
+       call add_faces(mesh, &
+            &               sndgln=surface_facets, &
+            &               boundary_ids=boundary_id)
+    end if
+    
+    ! Since we have renumbered the elements, the element halo is now
+    !  invalid.
+    call deallocate(mesh%element_halos)
+    call derive_element_halo_from_node_halo(mesh, &
+        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+
+    if (present(meshes)) then
+       do m=1, size(meshes)
+          mesh=>meshes(m)
+          call deallocate_faces(mesh)
+          call remove_nelist(mesh) 
+          call add_nelist(mesh) 
+          call remove_eelist(mesh) 
+          call add_eelist(mesh) 
+          call add_faces(mesh, model=numbering%mesh)
+          call deallocate(mesh%element_halos)
+          do i=1,size(mesh%element_halos)
+             mesh%element_halos(i)=numbering%mesh%element_halos(i)
+             call incref(mesh%element_halos(i))
+          end do
        end do
     end if
 
+    
   end subroutine order_elements
+
 
 end module fields_halos

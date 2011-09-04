@@ -394,6 +394,16 @@ contains
 
   end subroutine deallocate_constraints
 
+  function facet_dofs(element, facet)
+    !!< Return a pointer to the list of local dofs on facet.
+    type(element_type), intent(in) :: element    
+    integer, intent(in) :: facet
+    integer, dimension(:), pointer :: facet_dofs
+    
+    facet_dofs=>element%facet2dofs(facet)%dofs
+
+  end function facet_dofs
+
   function element_local_coords(n, element) result (coords)
     !!< Work out the local coordinates of node n in element. This is just a
     !!< wrapper function which allows local_coords to be called on an element
