@@ -8248,25 +8248,34 @@ Journal of Atmospheric and Oceanic Technology, 2005, 22, 1080-1094</a:documentat
           </element>
           <optional>
             <element name="input_file_type">
-              <element name="type">
-                <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
-                <group>
+              <choice>
+                <element name="type">
+                  <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
                   <attribute name="name">
                     <value>ERA40</value>
                   </attribute>
+                  <optional>
+                    <element name="no_accumulation">
+                      <a:documentation>The data from ERA40 website included accumulated values (ppt, ro, ssrd, strd).
+If these values have been already ammended to instantaneous values, then switch this
+flag on and the accumulation correction will not be applied.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>NSEP</value>
+                  </attribute>
                   <empty/>
-                </group>
-                <!--
-                  }|
-                  element type {
-                     attribute name { "NSEP" },
-                     empty
-                  }|
-                  element type {
-                     attribute name { "ICOM" },
-                     empty
-                -->
-              </element>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>ICOM</value>
+                  </attribute>
+                  <empty/>
+                </element>
+              </choice>
             </element>
           </optional>
           <optional>

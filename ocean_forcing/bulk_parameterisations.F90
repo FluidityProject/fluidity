@@ -64,7 +64,6 @@ module bulk_parameterisations
                        OneOverDensity = 1.0 / ocean_density, &
                        ocean_heat_capacity = 4000.0, &
                        kelvin_centrigrade = 273.15, &
-                       accumulated_correction = 6.0*60.0*60.0, & ! Assumes data every 6 hours.
                        heat_convert = 1.0 / (ocean_density * ocean_heat_capacity), &
                        one_over_density = 1.0 / ocean_density
 

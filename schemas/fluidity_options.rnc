@@ -6508,15 +6508,20 @@ forcing =
                 ## What kind of file is this? Currently only ERA40 files are supported
                 element type {
                     attribute name { "ERA40" },
+                    ## The data from ERA40 website included accumulated values (ppt, ro, ssrd, strd).
+                    ## If these values have been already ammended to instantaneous values, then switch this
+                    ## flag on and the accumulation correction will not be applied.
+                    element no_accumulation {
+                        empty
+                    }?
+                }|
+                element type {
+                    attribute name { "NSEP" },
                     empty
-                #}|
-                #element type {
-                #    attribute name { "NSEP" },
-                #    empty
-                #}|
-                #element type {
-                #    attribute name { "ICOM" },
-                #    empty
+                }|
+                element type {
+                    attribute name { "ICOM" },
+                    empty
                 }
             }?,
             ## Adding a latitude and longitude here (specified as two real numbers)
