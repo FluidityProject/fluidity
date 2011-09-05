@@ -237,6 +237,8 @@ start =
          ## The physical parameters
          element physical_parameters {
             gravity_options,
+	    ## Use this option to create a Coriolis parameter field if 
+	    ## if isn't present as a field in state.
             element coriolis {
                python_code
             }?

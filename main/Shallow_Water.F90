@@ -806,7 +806,7 @@
       ! velocity in local coordinates
       type(vector_field) :: U_local, U_local_old, advecting_u
 
-      type(scalar_field), pointer :: T
+      type(scalar_field), pointer :: T, f_ptr
       type(vector_field), pointer :: X, U
       character(len=PYTHON_FUNC_LEN) :: coriolis
       integer :: stat
@@ -818,15 +818,18 @@
         U=>extract_vector_field(state, "Velocity")
       end if
 
-      call allocate(f, X%mesh, "Coriolis")
-      call get_option("/physical_parameters/coriolis", coriolis, stat)
-      if(stat==0) then
-         call set_from_python_function(f, coriolis, X, time=0.0)
-      else
-         call zero(f)
+      f_ptr => extract_scalar_field(state,"Coriolis",stat=stat)
+      if(stat.ne.0) then
+         call allocate(f, U%mesh, "Coriolis")
+         call get_option("/physical_parameters/coriolis", coriolis, stat)
+         if(stat==0) then
+            call set_from_python_function(f, coriolis, X, time=0.0)
+         else
+            call zero(f)
+         end if
+         call insert(state, f, "Coriolis")
+         call deallocate(f)
       end if
-      call insert(state, f, "Coriolis")
-      call deallocate(f)
 
       if (present_and_true(adjoint)) then
         call allocate(U_local, mesh_dim(U), U%mesh, "AdjointLocalVelocity")
