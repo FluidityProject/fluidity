@@ -22,3 +22,5 @@ sys.path.append(".")
 import channel_viscous
 
 channel_viscous.generate_meshfile("channel",layers)
+channel_viscous.generate_meshfile_rot("channel_rot",layers)
+channel_viscous.meshfile2tube("channel")

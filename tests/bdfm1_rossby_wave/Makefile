@@ -1,7 +1,7 @@
 PROJECT = rossby
 
 input: clean
-	./generate_mesh 10
+	./generate_mesh 25
 
 clean:
 	rm -f $(PROJECT) $(PROJECT)0 $(PROJECT).fld

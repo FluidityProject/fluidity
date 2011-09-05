@@ -764,9 +764,18 @@ contains
        do gi = 1, ele_ngi(X,ele)
           orientation_gi(gi) = dot_product(normal_gi(:,gi),up_gi(:,gi))
        end do
-       if(any(abs(orientation_gi-orientation_gi(1))>1.0e-8)) then
-          FLAbort('Nasty geometry problem')
-       end if
+       do gi = 1, ele_ngi(X,ele)
+          if(sign(1.0,orientation_gi(gi)).ne.sign(1.0,orientation_gi(1))) then
+             ewrite(0,*) 'gi=',gi
+             ewrite(0,*) 'normal=',normal_gi(:,gi)
+             ewrite(0,*) 'up=',up_gi(:,gi)
+             ewrite(0,*) 'orientation=',orientation_gi(gi)
+             ewrite(0,*) 'orientation(1)=',orientation_gi(1)
+             FLAbort('Nasty geometry problem')
+          end if
+       end do
+
+
        if(orientation_gi(1)>0.0) then
           l_orientation = 1
        else
