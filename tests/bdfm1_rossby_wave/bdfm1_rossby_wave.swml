@@ -293,7 +293,7 @@ time = distance/speed = (1+8*pi**2)</comment>
             <string_value lines="20" type="python">def val(X,t):
   e = 1.0e-3
   y = X[1]
-  return (1-e*y)/e</string_value>
+  return (1+e*y)/e</string_value>
           </python>
         </value>
         <output/>
