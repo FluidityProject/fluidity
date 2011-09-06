@@ -171,6 +171,7 @@ contains
 
     ! Random Walk velocity source
     real, dimension(:), allocatable :: rw_velocity_source
+    real, dimension(:,:), allocatable :: rw_displacement
 
     ewrite(1,*) "In move_lagrangian_detectors for detectors list: ", detector_list%name
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
@@ -185,7 +186,7 @@ contains
        call python_add_state(state(1))
 
        ! Run the user's code and store val object in "random_walk" dict
-       call python_run_detector_string(trim(parameters%rw_pycode), trim("random_walk"), trim(detector_list%name))
+       !call python_run_detector_string(trim(parameters%rw_pycode), trim("random_walk"), trim(detector_list%name))
     end if
 
     ! Pull some information from state
@@ -256,14 +257,26 @@ contains
 
        ! Add the Random Walk displacement 
        if (parameters%do_random_walk) then
+          allocate(rw_displacement(xfield%dim,detector_list%length))
+
+          !detector => detector_list%first
+          !do det = 1, detector_list%length
+          !   if (detector%type==LAGRANGIAN_DETECTOR) then
+          !      ! Evaluate the RW python function and add to update_vector
+          !      call python_run_detector_val_function(detector,xfield,rk_dt,trim("random_walk"),trim(detector_list%name),rw_velocity_source)
+          !      detector%update_vector=detector%update_vector + (rw_velocity_source)  
+          !      detector%search_complete=.false.
+          !   end if
+          !   detector => detector%next
+          !end do
+
+          call python_evaluate_random_walk(detector_list, xfield, rk_dt, rw_displacement)
+
           detector => detector_list%first
           do det = 1, detector_list%length
-             if (detector%type==LAGRANGIAN_DETECTOR) then
-                ! Evaluate the RW python function and add to update_vector
-                call python_run_detector_val_function(detector,xfield,rk_dt,trim("random_walk"),trim(detector_list%name),rw_velocity_source)
-                detector%update_vector=detector%update_vector + (rw_velocity_source)  
-                detector%search_complete=.false.
-             end if
+             detector%update_vector=detector%update_vector + rw_displacement(:,det)
+             detector%search_complete=.false.
+
              detector => detector%next
           end do
 
@@ -280,6 +293,8 @@ contains
           if (all_send_lists_empty>0) then
              call exchange_detectors(state(1),detector_list, send_list_array)
           end if
+
+          deallocate(rw_displacement)
        end if
 
        ! After everything is done, we update detector%position
@@ -297,9 +312,9 @@ contains
     deallocate(rw_velocity_source)
     
     ! Delete the global Random Walk dicts from python
-    if (parameters%do_random_walk) then
-       call python_run_string("random_walk.clear()")
-    end if
+    !if (parameters%do_random_walk) then
+    !   call python_run_string("random_walk.clear()")
+    !end if
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element

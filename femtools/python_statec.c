@@ -112,7 +112,92 @@ void python_run_stringc_(char *s,int *slen, int *stat){
 #endif
 }
 
-void python_run_string_keep_locals_c(char *str, int strlen, 
+void python_evaluate_detector_func_c(char *str, int strlen, int num_det, int dim, 
+                                   int elements[], double *local_coords, double dt,
+                                   double *result, int *stat) {
+#ifdef HAVE_PYTHON
+  /* 
+   */
+  char *c = fix_string(str,strlen);
+  int tlen=8+strlen;
+  char t[tlen];
+  snprintf(t, tlen, "%s\n",c);
+
+  // Get a reference to the main module and global dictionary
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pGlobals = PyModule_GetDict(pMain);
+  PyObject *pLocals = PyDict_New();
+
+  // Execute the user's code.
+  PyObject *pCode = PyRun_String(t, Py_file_input, pGlobals, pLocals);
+
+  // Check for Python errors
+  if(!pCode){
+    PyErr_Print();
+    *stat=-1;
+    return;
+  }
+
+  // Extract val function from the local dict and its code object
+  PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
+  PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
+
+  // Create dt argument (constant)
+  PyObject *pDt = PyFloat_FromDouble(dt);
+
+  int i, j;
+  PyObject **pArgs= malloc(sizeof(PyObject*)*3);  
+  for(i=0;i<num_det;i++){
+
+    // Create ele argument
+    PyObject *pEle = PyInt_FromLong( (long)elements[i] );
+
+    // Create local_coords argument
+    PyObject *pLCoords = PyTuple_New(dim+1);
+    for(j=0;j<dim+1;j++){
+      PyTuple_SET_ITEM(pLCoords, j, PyFloat_FromDouble(local_coords[i*(dim+1)+j]));
+    }
+
+    // Create argument array
+    pArgs[0] = pEle;
+    pArgs[1] = pLCoords;
+    pArgs[2] = pDt;
+
+    // Run val(ele, local_coords, dt)
+    PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 3, NULL, 0, NULL, 0, NULL);
+
+    // Check for Python errors
+    *stat=0;
+    if(!pResult){
+      PyErr_Print();
+      *stat=-1;
+      return;
+    }
+
+    // Convert the python result
+    PyObject *result_ref;
+    for(j=0; j<dim; j++){
+      // GetItem returns a new reference that needs a DECREF
+      result_ref = PySequence_ITEM(pResult, j);
+      result[i*(dim)+j] = PyFloat_AsDouble(result_ref);
+      Py_DECREF(result_ref);
+    }
+
+    Py_DECREF(pEle);
+    Py_DECREF(pResult);
+    Py_DECREF(pLCoords);
+  }
+
+  Py_DECREF(pDt);
+  Py_DECREF(pFuncCode);
+  Py_DECREF(pCode);
+  Py_DECREF(pLocals);
+  free(c); 
+  free(pArgs);
+#endif
+}
+
+void python_run_string_store_locals_c(char *str, int strlen, 
                                      char *dict, int dictlen, 
                                      char *key, int keylen, int *stat){
 #ifdef HAVE_PYTHON
