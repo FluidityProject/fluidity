@@ -286,6 +286,8 @@ This is usually disabled.</a:documentation>
         <ref name="gravity_options"/>
         <optional>
           <element name="coriolis">
+            <a:documentation>Use this option to create a Coriolis parameter field if 
+if isn't present as a field in state.</a:documentation>
             <ref name="python_code"/>
           </element>
         </optional>
@@ -633,6 +635,16 @@ where X and the return value are tuples of length geometry dimension.</a:documen
             <a:documentation>Solver</a:documentation>
             <ref name="linear_solver_options_sym"/>
           </element>
+        </optional>
+        <optional>
+          <choice>
+            <element name="streamfunction_projection">
+              <empty/>
+            </element>
+            <element name="elliptic_solver">
+              <empty/>
+            </element>
+          </choice>
         </optional>
       </element>
       <element name="dg_projection">

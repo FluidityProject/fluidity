@@ -102,6 +102,9 @@ contains
 
     ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
 
+    ewrite(1,*) present_and_true(poisson)
+    ewrite(1,*) present_and_true(projection)
+
     l_compute_cartesian = .false.
     if(present(compute_cartesian)) l_compute_cartesian = compute_cartesian
     if(present(check_continuity)) l_check_continuity = check_continuity
@@ -147,8 +150,7 @@ contains
     end if
     !D0
     call get_option("/material_phase::Fluid/scalar_field::LayerThickness/&
-         &p&
-         &rognostic/mean_layer_thickness",D0)
+         &prognostic/mean_layer_thickness",D0)
     if(present(dt_in)) then
        dt = dt_in
     else
@@ -292,6 +294,9 @@ contains
     logical :: have_constraint
     integer :: constraint_choice, n_constraints, constraints_start
 
+    ewrite(1,*) present_and_true(poisson), 'here'
+    ewrite(1,*) present_and_true(projection)
+
     !Get some sizes
     lloc = ele_loc(lambda_rhs,ele)
     mdim = mesh_dim(U)
@@ -346,7 +351,7 @@ contains
     !boundaries
     call get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
          & g,dt,theta,D0,weight,have_constraint,local_solver_rhs,&
-         projection)
+         projection=projection,poisson=poisson)
 
     !!!Construct the continuity matrix that multiplies lambda in 
     !!! the U equation
@@ -610,12 +615,17 @@ contains
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(constraints_type), pointer :: constraints
     integer :: i1, c_start, c_end
-    real :: l_dt
+    real :: l_dt,l_theta
 
     if(present_and_true(projection)) then
        l_dt = 0.
+       l_theta = 0.
+    else if(present_and_true(poisson)) then
+       l_dt = 1.
+       l_theta = 1.
     else
        l_dt = dt
+       l_theta = theta
     end if
 
     mdim = mesh_dim(U)
@@ -639,7 +649,7 @@ contains
     D_ele => ele_nodes(D, ele)
     U_ele => ele_nodes(U, ele)
     
-    if(present_and_true(projection)) then
+    if(present_and_true(projection).or.present_and_true(poisson)) then
        f_gi = 0.
     else
        f_gi = ele_val_at_quad(f,ele)
@@ -670,34 +680,37 @@ contains
     !dt*theta*<\phi,div u>         + D_0<\phi,h>         = 0 
 
     !pressure mass matrix (done in global coordinates)
-    local_solver_matrix(d_start:d_end,d_start:d_end)=&
-         &shape_shape(d_shape,d_shape,detwei)
+    !not included in pressure solver
+    if(.not.present_and_true(poisson)) then
+       local_solver_matrix(d_start:d_end,d_start:d_end)=&
+            &shape_shape(d_shape,d_shape,detwei)
        if(present(local_solver_rhs)) then
           local_solver_rhs(d_start:d_end,d_start:d_end) = &
                shape_shape(d_shape,d_shape,detwei)
        end if
+    end if
     !divergence matrix (done in local coordinates)
     l_div_mat = dshape_shape(u_shape%dn,d_shape,&
          &D_shape%quadrature%weight)
     do dim1 = 1, mdim
        !pressure gradient term [integrated by parts so minus sign]
        local_solver_matrix(u_start(dim1):u_end(dim1),d_start:d_end)=&
-            & -g*l_dt*theta*weight*l_div_mat(dim1,:,:)
+            & -g*l_dt*l_theta*weight*l_div_mat(dim1,:,:)
        if(present(local_solver_rhs)) then
           local_solver_rhs(u_start(dim1):u_end(dim1),d_start:d_end)=&
-               & -g*(theta-1.0)*l_dt*weight*l_div_mat(dim1,:,:)
+               & -g*(l_theta-1.0)*l_dt*weight*l_div_mat(dim1,:,:)
        end if
        !divergence continuity term
        local_solver_matrix(d_start:d_end,u_start(dim1):u_end(dim1))=&
-            & d0*l_dt*theta*weight*transpose(l_div_mat(dim1,:,:))
+            & d0*l_dt*l_theta*weight*transpose(l_div_mat(dim1,:,:))
        if(present(local_solver_rhs)) then
           local_solver_rhs(d_start:d_end,u_start(dim1):u_end(dim1))=&
-               & d0*(theta-1.0)*l_dt*weight*transpose(l_div_mat(dim1,:,:))
+               & d0*(l_theta-1.0)*l_dt*weight*transpose(l_div_mat(dim1,:,:))
        end if
     end do
     !velocity mass matrix and Coriolis matrix (done in local coordinates)
     l_u_mat = shape_shape_tensor(u_shape, u_shape, &
-         u_shape%quadrature%weight, Metric+l_dt*theta*Metricf)
+         u_shape%quadrature%weight, Metric+l_dt*l_theta*Metricf)
 
     do dim1 = 1, mdim
        do dim2 = 1, mdim
@@ -710,7 +723,7 @@ contains
     if(present(local_solver_rhs)) then
        l_u_mat = shape_shape_tensor(u_shape, u_shape, &
             u_shape%quadrature%weight, &
-            Metric+(theta-1.0)*l_dt*Metricf)
+            Metric+(l_theta-1.0)*l_dt*Metricf)
        do dim1 = 1, mdim
           do dim2 = 1, mdim
              local_solver_rhs(u_start(dim1):u_end(dim1),&
@@ -1322,9 +1335,9 @@ contains
     type(state_type), intent(inout) :: state
     !
     type(scalar_field), pointer :: D,psi,f
-    type(scalar_field) :: D_rhs
+    type(scalar_field) :: D_rhs,tmp_field
     type(vector_field), pointer :: U_local,down,X, U_cart
-    type(vector_field) :: Coriolis_term, Balance_eqn, tmp_field
+    type(vector_field) :: Coriolis_term, Balance_eqn, tmpV_field
     integer :: ele,dim1
     real :: g
     logical :: elliptic_method
@@ -1339,8 +1352,9 @@ contains
     X=>extract_vector_field(state, "Coordinate")
     down=>extract_vector_field(state, "GravityDirection")
     call get_option("/physical_parameters/gravity/magnitude", g)
-    call allocate(tmp_field,mesh_dim(U_local), U_local%mesh, "tmp_field")
-       call allocate(D_rhs,D%mesh,'BalancedSolverRHS')
+    call allocate(tmpV_field,mesh_dim(U_local), U_local%mesh, "tmpV_field")
+    call allocate(D_rhs,D%mesh,'BalancedSolverRHS')
+    call allocate(tmp_field,D%mesh,'TmpField')
     call allocate(Coriolis_term,mesh_dim(U_local),&
          U_local%mesh,"CoriolisTerm")
     call allocate(balance_eqn,mesh_dim(D),u_local%mesh,'BalancedEquation')
@@ -1364,31 +1378,62 @@ contains
     !Stage 1b: verify that projection is idempotent
     ewrite(2,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
     call solve_hybridized_helmholtz(state,U_Rhs=U_local,&
-         &U_out=tmp_field,&
+         &U_out=tmpV_field,D_out=tmp_field,&
          &compute_cartesian=.true.,&
          &check_continuity=.true.,projection=.true.,&
+         &poisson=.false.,&
          &u_rhs_local=.true.)!verified that projection is idempotent
-    ewrite(2,*) maxval(abs(U_local%val-tmp_field%val)), 'continuity'
+    ewrite(2,*) maxval(abs(U_local%val-tmpV_field%val)), 'continuity'
     u_max = 0.
     do dim1 = 1, mesh_dim(D)
        u_max = max(u_max,maxval(abs(U_local%val)))
     end do
-    assert(maxval(abs(U_local%val-tmp_field%val)/max(1.0,u_max))<1.0e-8)
+    assert(maxval(abs(U_local%val-tmpV_field%val)/max(1.0,u_max))<1.0e-8)
 
-    !Project the streamfunction into pressure space
-    do ele = 1, element_count(D)
-       call project_streamfunction_for_balance_ele(D,psi,X,f,g,ele)
-    end do
+    if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
+         &/initial_condition::WholeMesh/balanced/elliptic_solver")) then
 
-    !Subtract off the mean part
-    h_mean = 0.
-    area = 0.
-    do ele = 1, element_count(D)
-       call assemble_mean_ele(D,X,h_mean,area,ele)
-    end do
-    h_mean = h_mean/area
-    D%val = D%val - h_mean
+       !Construct Coriolis term
+       call zero(Coriolis_term)
+       do ele = 1, element_count(D)
+          !weights not needed since both sides of equation are multiplied
+          !by weight(ele)^2 in each element
+          call set_coriolis_term_ele(Coriolis_term,f,down,U_local,X,ele)
+       end do
 
+       !Project Coriolis term into div-conforming space
+       call project_to_constrained_space(state,Coriolis_term)
+       
+       !Calculate divergence of Coriolis term 
+       call zero(d_rhs)
+       do ele = 1, element_count(D)
+          call compute_divergence_ele(Coriolis_term,d_rhs,X,ele)
+       end do
+
+       !Solve for balanced layer depth
+       ewrite(1,*) 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+       call solve_hybridized_helmholtz(state,d_Rhs=d_rhs,&
+            &U_out=tmpV_field,d_out=tmp_field,&
+            &compute_cartesian=.true.,&
+            &check_continuity=.true.,projection=.false.,&
+            &poisson=.true.,u_rhs_local=.true.,&
+            &solver_option_path="/material_phase::Fluid/vector_field::Velocity/prognostic/initial_condition::WholeMesh/balanced")
+       D%val = tmp_field%val
+    else
+       !Project the streamfunction into pressure space
+       do ele = 1, element_count(D)
+          call project_streamfunction_for_balance_ele(D,psi,X,f,g,ele)
+       end do
+
+       !Subtract off the mean part
+       h_mean = 0.
+       area = 0.
+       do ele = 1, element_count(D)
+          call assemble_mean_ele(D,X,h_mean,area,ele)
+       end do
+       h_mean = h_mean/area
+       D%val = D%val - h_mean
+    end if
     !debugging tests
     call zero(Coriolis_term)
     do ele = 1, element_count(D)
@@ -1414,13 +1459,14 @@ contains
     
     do dim1 = 1, mesh_dim(D)
        ewrite(2,*) 'Balance equation', maxval(abs(balance_eqn%val(dim1,:)))/b_val
-       !assert(maxval(abs(balance_eqn%val(dim1,:)))/b_val<1.0e-8)
+       assert(maxval(abs(balance_eqn%val(dim1,:)))/b_val<1.0e-8)
     end do
     
  !Clean up after yourself
     call deallocate(Coriolis_term)
     call deallocate(D_rhs)
     call deallocate(balance_eqn)
+    call deallocate(tmpV_field)
     call deallocate(tmp_field)
 
     deallocate(weights)
@@ -1693,12 +1739,24 @@ contains
     implicit none
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout) :: v_field
+    !
+    type(vector_field) :: v_field_out
+    type(scalar_field) :: tmp_field
+    type(scalar_field), pointer :: D
+
+    call allocate(v_field_out,v_field%dim,v_field%mesh,"TmpVField")
+    D=>extract_scalar_field(state, "LayerThickness")
+    call allocate(tmp_field,D%mesh,"TmpSField")
 
     call solve_hybridized_helmholtz(state,&
-         &U_rhs=v_field,&
+         &U_rhs=v_field,U_out=v_field_out,D_out=tmp_field,&
          &compute_cartesian=.true.,&
          &check_continuity=.true.,projection=.true.,&
          &u_rhs_local=.true.)
+
+    call set(V_field,V_field_out)
+    call deallocate(v_field_out)
+    call deallocate(tmp_field)
 
   end subroutine project_to_constrained_space
 
@@ -1744,4 +1802,44 @@ contains
     area = area + sum(detwei)
     
   end subroutine assemble_mean_ele
+
+  subroutine compute_divergence_ele(V,Div_V,X,ele)
+    !subroutine to compute the divergence of V in element ele
+    !and insert the values into Div_V
+    !V is represented by a div-conforming space
+    !and Div_V is represented by the divergence of that space
+    implicit none
+    type(vector_field), intent(in) :: V, X
+    type(scalar_field), intent(inout) :: Div_V
+    integer, intent(in) :: ele
+    !
+    real, dimension(ele_ngi(Div_V,ele)) :: detwei
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    integer :: dim1
+    real, dimension(V%dim, ele_loc(V,ele)) :: U_loc
+    type(element_type) :: u_shape, d_shape
+    real, dimension(ele_loc(Div_V,ele)) :: Div_loc
+    real, dimension(mesh_dim(V),ele_loc(V,ele),ele_loc(Div_V,ele)) :: l_div_mat
+    real, dimension(ele_loc(Div_V,ele),ele_loc(Div_V,ele)) :: d_mass_mat
+    !
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detwei=detwei)
+    
+    u_shape = ele_shape(V,ele)
+    d_shape = ele_shape(Div_V,ele)
+    U_loc = ele_val(V,ele)
+    
+    l_div_mat = dshape_shape(u_shape%dn,d_shape,&
+         &D_shape%quadrature%weight)
+
+    div_loc = 0.
+    do dim1 = 1, V%dim
+       div_loc = div_loc + matmul(transpose(l_div_mat(dim1,:,:))&
+            &,U_loc(dim1,:))
+    end do
+    d_mass_mat = shape_shape(d_shape,d_shape,detwei)
+    call solve(d_mass_mat,div_loc)
+
+    call set(div_V,ele_nodes(div_V,ele),div_loc)
+  end subroutine compute_divergence_ele
 end module hybridized_helmholtz
