@@ -818,8 +818,8 @@
 
 
          ! Do we have a prognostic pressure field we can actually solve for?
-         call profiler_tic(p, "assembly")
          if(prognostic_p .and. .not.reduced_model) then
+            call profiler_tic(p, "assembly")
 
             u => extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
             x => extract_vector_field(state(prognostic_p_istate), "Coordinate")
@@ -851,8 +851,8 @@
             call allocate(projec_rhs, p%mesh, "ProjectionRHS")
             call zero(projec_rhs)
 
+            call profiler_toc(p, "assembly")
          end if ! end of prognostic pressure
-         call profiler_toc(p, "assembly")
 
 
          if (.not.reduced_model) then
@@ -926,8 +926,8 @@
 
 
             !! Solve for delta_p -- the pressure correction term
-            call profiler_tic(p, "assembly")
             if(prognostic_p) then
+               call profiler_tic(p, "assembly")
 
                ! Get the intermediate velocity u^{*} and the coordinate vector field
                u=>extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
@@ -943,9 +943,8 @@
                                     schur_auxiliary_matrix, stiff_nodes_list)
 
                call deallocate(projec_rhs)
-
+               call profiler_toc(p, "assembly")
             end if
-            call profiler_toc(p, "assembly")
 
 
             !! Correct and update velocity fields to u^{n+1} using pressure correction term delta_p
