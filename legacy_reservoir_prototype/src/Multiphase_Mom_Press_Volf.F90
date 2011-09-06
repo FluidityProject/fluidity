@@ -47,6 +47,7 @@ module multiphase_mom_press_volf
   use fldebug
   use state_module
   use spud
+  use signal_vars
 
   IMPLICIT NONE
 
@@ -365,13 +366,17 @@ contains
 
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                T, CV_P )
-
+          
+          if (SIG_INT) exit Loop_ITS
+          
           ! Calculate absorption for momentum eqns    
           CALL calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
                CV_NDGLN, MAT_NDGLN, &
                U_ABSORB, PERM, MOBILITY, &
                OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS )
-
+          
+          if (SIG_INT) exit Loop_ITS
+          
           IF( have_option("/material_phase[0]/multiphase_properties/capillary_pressure") ) THEN
              CALL calculate_capillary_pressure( state, CV_NONODS, NPHASE, PLIKE_GRAD_SOU_GRAD, SATURA )
           ENDIF
@@ -426,10 +431,13 @@ contains
                NOIT_DIM, &
                IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ) 
 
-
+          if (SIG_INT) exit Loop_ITS
+          
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                T, CV_P )
-
+          
+          if (SIG_INT) exit Loop_ITS
+          
           NU = U
           NV = V
           NW = W
@@ -467,7 +475,8 @@ contains
                NITS_FLUX_LIM_VOLFRA, &
                option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
 
-
+          if (SIG_INT) exit Loop_ITS
+          
           SUM_THETA_FLUX = 0.0
           SUM_ONE_M_THETA_FLUX = 0.0
           V_SOURCE_COMP = 0.0
@@ -585,7 +594,8 @@ contains
                    END DO
                 END DO
              END DO
-
+             
+             if (SIG_INT) exit Loop_COMPONENTS
 
           END DO Loop_COMPONENTS
 
@@ -597,7 +607,9 @@ contains
           ENDIF
 
           ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME:',ITS,nits,ITIME
-
+          
+          if (SIG_INT) exit Loop_ITS
+          
        END DO Loop_ITS
 
        call set_option("/timestepping/current_time", ACCTIM)
@@ -786,7 +798,9 @@ contains
           call write_state(dump_no, state)
        
        end if Conditional_TIMDUMP
-
+       
+       if (SIG_INT) exit Loop_Time
+       
     END DO Loop_Time
 
     ewrite(3,*) 'Leaving solve_multiphase_mom_press_volf'
