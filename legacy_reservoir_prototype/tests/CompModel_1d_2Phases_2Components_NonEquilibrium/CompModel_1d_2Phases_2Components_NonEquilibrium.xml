@@ -2,16 +2,16 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>CompModel_1d_2Phases_3Components_LVI_NonEquilibrium_A</name>
+  <name>CompModel_1d_2Phases_2Components_NonEquilibrium_A</name>
   <owner userid="btollit"/>
   <tags>mpml</tags>
   <problem_definition length="special" nprocs="1">
     <command_line>
-../../../bin/multiphase_prototype CompModel_1d_2Phases_3Components_LVI_NonEquilibrium_A.mpml
+../../../bin/multiphase_prototype CompModel_1d_2Phases_2Components_NonEquilibrium_A.mpml
 
-mkdir CompModel_1d_2Phases_3Components_LVI_NonEquilibrium_A_output
+mkdir CompModel_1d_2Phases_2Components_NonEquilibrium_A_output
 
-mv *.d.* CompModel_1d_2Phases_3Components_LVI_NonEquilibrium_A_output
+mv *.d.* CompModel_1d_2Phases_2Components_NonEquilibrium_A_output
     </command_line>
     <!--  -->
   </problem_definition>

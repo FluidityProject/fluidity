@@ -1,14 +1,14 @@
 <?xml version='1.0' encoding='utf-8'?>
 <multiphase_options>
   <simulation_name>
-    <string_value lines="1">BL_test_10elements_1d</string_value>
+    <string_value lines="1">CompModel_1d_2Phases_2Components_NonEquilibrium_A</string_value>
   </simulation_name>
   <geometry>
     <dimension>
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="1d_mesh">
+      <from_file file_name="CompModel_1d_2Phases_2Components_NonEquilibrium_A">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -78,11 +78,11 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <integer_value rank="0">20</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <max_dump_file_count>
-      <integer_value rank="0">1</integer_value>
+      <integer_value rank="0">1000</integer_value>
     </max_dump_file_count>
     <output_mesh name="PressureMesh"/>
     <stat/>
@@ -92,7 +92,7 @@
       <real_value rank="0">0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1.</real_value>
+      <real_value rank="0">0.000025</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">10.0</real_value>
@@ -105,9 +105,9 @@
     <equation_of_state>
       <incompressible>
         <linear>
-          <specify_all>
-            <real_value shape="10" rank="1">1. 0.01 0. 0. 0. 0. 0. 0. 0. 0.</real_value>
-          </specify_all>
+          <all_equal>
+            <real_value rank="0">1.</real_value>
+          </all_equal>
         </linear>
       </incompressible>
     </equation_of_state>
@@ -402,7 +402,7 @@
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">0.5</real_value>
           </constant>
         </value>
         <output/>
@@ -422,9 +422,9 @@
     <equation_of_state>
       <incompressible>
         <linear>
-          <specify_all>
-            <real_value shape="10" rank="1">1. 0. 0. 0. 0. 0. 0. 0. 0. 0.</real_value>
-          </specify_all>
+          <all_equal>
+            <real_value rank="0">1.0</real_value>
+          </all_equal>
         </linear>
       </incompressible>
     </equation_of_state>
@@ -664,6 +664,96 @@
         <Corey/>
       </relperm_type>
     </multiphase_properties>
+  </material_phase>
+  <material_phase name="Component1">
+    <is_multiphase_component>
+      <alpha_beta>
+        <real_value rank="0">1.</real_value>
+      </alpha_beta>
+      <KComp_Sigmoid>
+        <k_comp>
+          <real_value rank="0">4.5</real_value>
+        </k_comp>
+      </KComp_Sigmoid>
+    </is_multiphase_component>
+    <vector_field name="Velocity" rank="1">
+      <aliased material_phase_name="phase1" field_name="Velocity"/>
+    </vector_field>
+    <scalar_field material_phase_name="phase1" name="ComponentMassFractionPhase1" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field material_phase_name="phase2" name="ComponentMassFractionPhase2" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+  </material_phase>
+  <material_phase name="Component2">
+    <is_multiphase_component>
+      <alpha_beta>
+        <real_value rank="0">1.</real_value>
+      </alpha_beta>
+      <KComp_Sigmoid>
+        <k_comp>
+          <real_value rank="0">0.2</real_value>
+        </k_comp>
+      </KComp_Sigmoid>
+    </is_multiphase_component>
+    <vector_field name="Velocity" rank="1">
+      <aliased material_phase_name="phase2" field_name="Velocity"/>
+    </vector_field>
+    <scalar_field material_phase_name="phase1" name="ComponentMassFractionPhase1" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field material_phase_name="phase2" name="ComponentMassFractionPhase2" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">1.</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
   </material_phase>
   <porous_media>
     <scalar_field name="Porosity">

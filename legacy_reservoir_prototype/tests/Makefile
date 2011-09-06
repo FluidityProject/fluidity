@@ -4,7 +4,6 @@ input: clean
 	
 clean:
 	rm -f gmon.out  input.dat  mirror_int_data.dat  time_count
-	$(MAKE) -C Sodds_shock_tube_1phase_1d clean
 	$(MAKE) -C Advection_1D clean
 	$(MAKE) -C BL_1d clean
 	$(MAKE) -C BL_1d_Compressible clean
