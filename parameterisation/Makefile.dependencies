@@ -33,7 +33,7 @@ Gls_vertical_turbulence_model.o ../include/gls.mod: \
 Ice_Melt_Interface.o ../include/ice_melt_interface.mod: \
    Ice_Melt_Interface.F90 ../include/boundary_conditions.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
-   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/field_derivatives.mod ../include/fields_base.mod ../include/field_options.mod \
    ../include/fields.mod ../include/fields_allocates.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/integer_set_module.mod \

@@ -32,6 +32,7 @@ module ice_melt_interface
   use elements
   use field_derivatives
   use fields
+  use fields_base
   use field_options
   use fields_allocates
   use state_module
@@ -66,7 +67,7 @@ implicit none
   ! Fields and variables for the interface surface
   type(scalar_field), save        :: ice_surfaceT, ice_surfaceS! these are used to populate the bcs
   
-  public :: melt_interface_initialisation, melt_interface_calculate, melt_interface_boundary_condition, melt_interface_cleanup, melt_interface_allocate_surface
+  public :: melt_interface_initialisation, populate_iceshelf_boundary_conditions,   melt_interface_calculate, melt_interface_boundary_condition, melt_interface_cleanup, melt_interface_allocate_surface
 
 contains
 
@@ -196,6 +197,64 @@ contains
 
   end subroutine melt_interface_initialisation
 
+  subroutine populate_iceshelf_boundary_conditions(state)
+    type(state_type), intent(in)       :: state
+    type(scalar_field), pointer        :: Tbc,Sbc
+    type(scalar_field), pointer        :: T,S
+    type(integer_set), pointer                  :: sf_nodes
+    character(len=FIELD_NAME_LEN)        :: bc_type
+    integer, dimension(:), allocatable   :: surf_id
+    integer, dimension(2)                :: shape_option
+    integer                              :: stat
+    integer, dimension(:), allocatable   :: ssurface_element_lists
+    type(integer_set)                    :: surface_elements,surface_ids
+    type(mesh_type), pointer             :: mesh
+    type(vector_field), pointer           :: positions
+    integer, dimension(:), allocatable   :: surf_nodes
+    integer                              :: face,the_node
+    integer :: i,st,en,dim_vec
+    !!
+    type(mesh_type), pointer           :: surface_mesh
+    integer, dimension(:), pointer     :: surface_element_list
+    type(scalar_field)                 :: scalar_surface_field
+    
+    ewrite(1,*) "-----*** Begin iceshelf BC-----"
+    ! Get vector of surface ids
+    shape_option=option_shape("/ocean_forcing/iceshelf_meltrate/Holland08/melt_surfaceID")
+    allocate(surf_id(1:shape_option(1)))
+    call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/melt_surfaceID", surf_id)
+    ewrite(1,*) "surf_id", surf_id
+    call get_option("/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries", bc_type)   
+    call allocate(surface_ids) 
+    call insert(surface_ids,surf_id)
+    ewrite(1,*) "set2vector(surface_ids)", set2vector(surface_ids)
+    
+    ewrite(1,*) "bc_type: ", bc_type
+     ! Add boundary condition
+    T => extract_scalar_field(state,"Temperature") 
+    S => extract_scalar_field(state,"Salinity")
+!    do i=1,node_count(T)
+!        ewrite(1,*) "line2100,i,node_val(T,i): ",i, node_val(T,i)
+!    enddo
+    call add_boundary_condition(T, 'temperature_iceshelf_BC', bc_type, surf_id)
+    call add_boundary_condition(S, 'salinity_iceshelf_BC', bc_type, surf_id)
+    deallocate(surf_id)
+
+    ! mesh of only the part of the surface where this b.c. applies for temperature
+    call get_boundary_condition(T, 'temperature_iceshelf_BC', surface_mesh=surface_mesh)
+    call allocate(scalar_surface_field, surface_mesh, name="value")
+    call insert_surface_field(T, 'temperature_iceshelf_BC', scalar_surface_field)
+    call deallocate(scalar_surface_field)
+    
+    ! mesh of only the part of the surface where this b.c. applies for salinity
+    call get_boundary_condition(S, 'salinity_iceshelf_BC', surface_mesh=surface_mesh)
+    call allocate(scalar_surface_field, surface_mesh, name="value")
+    call insert_surface_field(S, 'salinity_iceshelf_BC', scalar_surface_field)
+    call deallocate(scalar_surface_field)
+     
+    ewrite(1,*) "-----*** End iceshelf BC-----"
+  end subroutine populate_iceshelf_boundary_conditions 
+  
   subroutine melt_interface_calculate(state)
     ! Calculate the melt rate
 

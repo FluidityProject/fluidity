@@ -11,7 +11,7 @@ Boundary_Conditions_From_Options.o \
    ../include/fields.mod ../include/fields_base.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos_base.mod \
    ../include/halos_numbering.mod ../include/initialise_fields_module.mod \
-   ../include/integer_set_module.mod ../include/k_epsilon.mod \
+   ../include/integer_set_module.mod ../include/k_epsilon.mod ../include/ice_melt_interface.mod \
    ../include/pickers_inquire.mod ../include/quadrature.mod \
    ../include/samplenetcdf.mod ../include/sediment.mod \
    ../include/sparse_tools_petsc.mod ../include/spud.mod \
