@@ -5,7 +5,20 @@ void python_init_(void){
 #ifdef HAVE_PYTHON
   // Initialize the Python interpreter
   Py_Initialize();
-  PyRun_SimpleString("import string");  
+  PyRun_SimpleString("import string");
+
+  PyObject* m;
+  m = Py_InitModule("spud_manager", NULL);
+  assert(m != NULL);
+
+#if PY_MINOR_VERSION > 6
+  void* manager = spud_get_manager();
+  PyObject* manager_capsule = PyCapsule_New(manager, "spud_manager._spud_manager", NULL);
+  assert(manager_capsule != NULL);
+
+  PyModule_AddObject(m, "_spud_manager", manager_capsule);
+#endif
+
 #endif
 #ifdef HAVE_NUMPY
   // Enable use of NumPy arrays in C
@@ -200,6 +213,50 @@ void python_add_scalar_(int *sx,double x[],char *name,int *nlen, int *field_type
   Py_DECREF(pft);
 #endif
 }
+
+void python_add_csr_matrix_(int *valSize, double val[], int *col_indSize, int col_ind [], int *row_ptrSize, \
+                            int row_ptr [], char *name, int *namelen, char *state, int *statelen, int *numCols)
+{
+#ifdef HAVE_NUMPY
+  // Add the Fortran csr matrix to the dictionary of the Python interpreter
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pDict = PyModule_GetDict(pMain);
+  
+  // Fix the Fortran strings for C and Python
+  char *namefixed = fix_string(name,*namelen);
+  PyObject *pnumCols = PyInt_FromLong(*numCols);
+  PyDict_SetItemString(pDict,"numCols",pnumCols); 
+  PyObject *pnumRows = PyInt_FromLong((*row_ptrSize) - 1);
+  PyDict_SetItemString(pDict,"numRows",pnumRows); 
+  
+  // Create the array
+  python_add_array_double_1d(val,valSize,"val");
+  python_add_array_integer_1d(col_ind,col_indSize,"col_ind");
+  python_add_array_integer_1d(row_ptr,row_ptrSize,"row_ptr");
+
+  PyObject *pname = PyString_FromString(namefixed);
+  PyDict_SetItemString(pDict,"name",pname); 
+
+  PyRun_SimpleString("name = string.strip(name)");
+
+  char *statefixed = fix_string(state,*statelen);
+  int tlen=150+*statelen;
+  char t[tlen];
+  
+  snprintf(t, tlen, "matrix = CsrMatrix((val,col_ind - 1,row_ptr - 1), shape=(numRows,numCols)); states['%s'].csr_matrices['%s'] = matrix",statefixed,namefixed);
+  PyRun_SimpleString(t);
+
+  // Clean up
+  PyRun_SimpleString("del val; del col_ind; del row_ptr; del numRows; del numCols; del matrix");
+  free(namefixed); 
+  free(statefixed);
+
+  Py_DECREF(pname);
+  Py_DECREF(pnumCols);
+  Py_DECREF(pnumRows);
+#endif
+}
+
 
 
 void python_add_vector_(int *num_dim, int *s, 

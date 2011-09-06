@@ -91,7 +91,7 @@ are termed reactions and are common when dealing with chemistry or biology.
 \index{boundary conditions!scalar}
 
 To form a well-posed system upon which to attempt a numerical discretisation, the
-set of equations (discussed above) describing the behavior of the 
+set of equations (discussed above) describing the behaviour of the 
 system must be supplemented with appropriate boundary conditions.
 
 
@@ -305,13 +305,13 @@ and $\gamma$ is the isothermal compressibility
 \gamma = \frac{1}{\rho}\frac{\pp\rho}{\pp p}.
 \end{equation}
 
-For ocean modeling applications the most important compositional variation is salinity $S$ (the volume fraction of salt) and the compressibility of water $\gamma$ is so small that the pressure dependence can be neglected, giving the simple linear equation of state
+For ocean modelling applications the most important compositional variation is salinity $S$ (the volume fraction of salt) and the compressibility of water $\gamma$ is so small that the pressure dependence can be neglected, giving the simple linear equation of state
 \begin{equation}
 \rho = \rho_0(1 - \alpha(T-T_0) + \beta(S-S_0)),
 \end{equation}
 where $\beta$ is the saline contraction coefficient (not to be confused with the beta plane parameters defined in the section \ref{sect:coriolis}.)
 
-\subsubsection{Pade equation of state for ocean modeling}\label{Sect:PadeDescription}
+\subsubsection{Pade equation of state for ocean modelling}\label{Sect:PadeDescription}
 \index{equation of state!Pade approximation}
 
 Within \fluidity it is also possible to relate the density of sea water to the in situ temperature and salinity through the Pad{\'e} approximation to the equation of state. This approximation offers an accurate and computationally efficient method for calculating the density of seawater and is described by \citet{mcdougall2003}.
@@ -560,7 +560,7 @@ must therefore be included in the horizontal momentum equations.
 \index{density!reference}
 \index{Boussinesq!approximation}
 
-Under certain conditions, one is able to assume that density does not vary greatly about a mean reference density, that is, the density at a position $\vec x$ can be wriiten as
+Under certain conditions, one is able to assume that density does not vary greatly about a mean reference density, that is, the density at a position $\vec x$ can be written as
 \begin{equation}
 \rho(\bmx,t) = \rho_0 + \rho'(\bmx,t),
 \end{equation}
@@ -689,7 +689,7 @@ is required. This can be applied as:
 \end{equation}    
 where $\eta$ is the corrected tidal potential, $\eta_{eq}$ is the uncorrected equilibrium tidal potential
 and $k$ (0.3) and $h$ (0.61) are Love numbers (after \citealp{Love1909}).
-Both $k$ and $h$ are dimensionless measures of the elastic behavior of the solid Earth. $k$ accounts for the enhancement to the
+Both $k$ and $h$ are dimensionless measures of the elastic behaviour of the solid Earth. $k$ accounts for the enhancement to the
 Earth's gravitational potential brought about by the re-distribution of the Earth's mass whereas $h$
 is a correction for the physical distortion to the Earth's surface \citep{Pugh1987}.
 
@@ -699,9 +699,9 @@ corresponds to a $<$1\% change to the equilibrium tidal potential.
 These errors are sufficiently small that the stated values are a suitable approximation to
 use in body tide corrections to the majority of tidal constituents.
 
-\subsection{Multi-material Simulations}
+\subsection{Multi-material simulations}
 \index{multi-material flow}
-The ability to differentiate between regions with distinct material properties is of fundamental importance in the modeling of many physical systems.  Two different approaches exist for achieving this: the multi-material approach and the multi-phase approach.  The Multi-material approach is currently implemented within \fluidity. Multi-phase is currently under development and is therefore not discussed here. 
+The ability to differentiate between regions with distinct material properties is of fundamental importance in the modelling of many physical systems. Two different approaches exist for achieving this: the multi-material approach and the multi-phase approach. The multi-material approach is implemented within \fluidity, and the multi-phase approach (discussed in the next subsection) is currently under development.
 In situations where the model can resolve physical mixing of immiscible materials, or where there is no mixing, only one velocity field (and hence one momentum equation) is required to describe the flow of all materials. The \emph{multi-material} approach, considers all materials to be immiscible materials separated by a sharp interface.
 
 In a multi-material approach, the various forms of the conservation equations can be solved for multiple material flows if the point-wise mass density $\rho$ in the equations is defined as the bulk density at each point.  If the flow comprises $n$ materials and the volume fraction of the $i^{th}$ material is denoted $\phi_i$ then the bulk density is given by:
@@ -723,3 +723,21 @@ The transport of the $i^{th}$ volume fraction is given by
 \end{equation}
 where the volume fraction field at time zero must be specified.
 
+\subsection{Multi-phase simulations}
+\index{multi-phase flow}
+Multi-phase flows are defined by \cite{prosperettiEtAl2007} to be flows in which two or more phases of matter (solid, liquid, gas, etc) are simultaneously present and are allowed to inter-penetrate. Simple examples include the flow of a fizzy drink which is composed of a liquid and a finite number of gas bubbles, the transportation of solid sediment particles in a river, and the flow of blood cells around the human body.
+
+Further to the above definition, each phase is classed as either \textit{continuous} or \textit{dispersed}, where a continuous phase is a connected liquid or gas substance in which dispersed phases (comprising a finite number of solid particles, liquid droplets and/or gas bubbles) may be immersed \citep{croweEtAl1998}.
+
+To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate set of continuity and momentum equations) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Thus, for each phase $i$, the governing equations (based on those derived in \cite{ishii1975}) are:
+\begin{equation}
+\frac{\partial}{\partial t}\left(\alpha_i\rho_i\right) + \nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\right) = 0,
+\end{equation}
+\begin{equation}
+\frac{\partial}{\partial t}\left(\alpha_i\rho_i\mathbf{u}_i\right) +
+\nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\mathbf{u}_i\right) =
+-\alpha_i\nabla p + \alpha_i\rho_i\mathbf{g} +
+\nabla\cdot\left(\alpha_i\tautens_i\right) +
+\mathbf{F}_i,
+\end{equation}
+where $\mathbf{u}_i$, $\rho_i$, $\tautens_i$ and $\alpha_i$ are the velocity, density, stress tensor and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. The model currently assumes a common pressure field $p$ and no mass transfer between phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.

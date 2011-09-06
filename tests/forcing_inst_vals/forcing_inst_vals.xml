@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+    <name>forcing</name>
+  <owner userid="jhill1"/>
+  <tags>flml forcing</tags>
+    <problem_definition length="short" nprocs="1">
+        <command_line>fluidity -v2 -l forcing-ncar.flml;
+                      fluidity -v2 -l forcing-ncar_inst.flml;
+        </command_line>
+  </problem_definition>  
+  <variables>  
+     <variable name="FinalTimeNcarOrig" language="python">
+import fluidity_tools
+FinalTimeNcarOrig = fluidity_tools.stat_parser("forcing-ncar.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTemperatureIntegralNcarOrig" language="python">
+import fluidity_tools
+FinalTemperatureIntegralNcarOrig = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Temperature']['integral'][-1]
+    </variable>
+    <variable name="FinalSalinityMinNcarOrig" language="python">
+import fluidity_tools
+FinalSalinityMinNcarOrig = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Salinity']['min'][-1]
+    </variable>
+     <variable name="FinalTimeNcarInst" language="python">
+import fluidity_tools
+FinalTimeNcarInst = fluidity_tools.stat_parser("forcing-ncar_inst.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTemperatureIntegralNcarInst" language="python">
+import fluidity_tools
+FinalTemperatureIntegralNcarInst = fluidity_tools.stat_parser("forcing-ncar_inst.stat")['Fluid']['Temperature']['integral'][-1]
+    </variable>
+    <variable name="FinalSalinityMinNcarInst" language="python">
+import fluidity_tools
+FinalSalinityMinNcarInst = fluidity_tools.stat_parser("forcing-ncar_inst.stat")['Fluid']['Salinity']['min'][-1]
+    </variable>
+
+</variables>   
+
+
+  <pass_tests> 
+    <test name="Ncar: Final time is 1440 seconds" language="python">
+assert FinalTimeNcarOrig ==1440 
+    </test>
+    <test name="Times match" language="python">
+assert (abs(FinalTimeNcarOrig - FinalTimeNcarInst)/FinalTimeNcarOrig &lt; 1e-10)
+    </test>
+    <test name="Temperature matches" language="python">
+assert(abs(FinalTemperatureIntegralNcarOrig - FinalTemperatureIntegralNcarInst)/FinalTemperatureIntegralNcarOrig &lt; 1e-10)
+    </test>
+    <test name="Salinity matches" language="python">
+assert (abs(FinalSalinityMinNcarOrig-FinalSalinityMinNcarInst)/FinalSalinityMinNcarOrig &lt; 2e-10)
+    </test>
+  </pass_tests>
+</testproblem>

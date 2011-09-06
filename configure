@@ -611,7 +611,6 @@ USE_CPP
 LINKER
 OPTIMIZATION_FFLAGS
 FORTRAN_REAL_8
-VERSION
 PROFILING_FLAG
 X_EXTRA_LIBS
 X_LIBS
@@ -11835,7 +11834,6 @@ if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
   exit 1
 fi
 
-echo "with_adjoint: " $with_adjoint
 if test "$with_adjoint" != "no"; then
   if test "$CAN_USE_ADJOINT" != "no"; then
 
@@ -13522,12 +13520,6 @@ fi
 #AC_C_CONST
 #AC_C_INLINE
 
-VERSION=`svnversion .`
-
-cat >> confdefs.h << EOF
-#undef __FLUIDITY_VERSION__
-#define __FLUIDITY_VERSION__ "$VERSION"
-EOF
 
 
 

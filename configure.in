@@ -832,7 +832,6 @@ if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
   exit 1
 fi
 
-echo "with_adjoint: " $with_adjoint
 if test "$with_adjoint" != "no"; then
   if test "$CAN_USE_ADJOINT" != "no"; then
     ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
@@ -1111,12 +1110,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 #AC_C_CONST
 #AC_C_INLINE
 
-VERSION=`svnversion .`
-AC_SUBST(VERSION)
-cat >> confdefs.h << EOF
-#undef __FLUIDITY_VERSION__
-#define __FLUIDITY_VERSION__ "$VERSION"
-EOF
 AC_SUBST(FORTRAN_REAL_8)
 AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
