@@ -733,7 +733,8 @@ module zoltan_integration
              load_imbalance_tolerance = 0.95 * load_imbalance_tolerance
              if (load_imbalance_tolerance < 1.075) then
 
-                ewrite(1,*) 'Could not prevent empty partions by tightening load_imbalance_tolerance. Attempting to load balance with no edge-weights'
+                ewrite(1,*) 'Could not prevent empty partions by tightening load_imbalance_tolerance.'
+                ewrite(1,*) 'Attempting to load balance with no edge-weights.'
                 
                 ! Reset the load_imbalance_tolerance
                 ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.075"); assert(ierr == ZOLTAN_OK)

@@ -1282,11 +1282,10 @@ contains
 
             ewrite(2,*) "The next iteration will be final adapt iteration else we'll go over the maximum adapt iterations."
 
-            ! TODO: Turn this into a warning
             if (global_min_quality .le. quality_tolerance) then
-               ewrite(2,*) "Mesh quality is below element quality tolerance."
-               ewrite(2,*) "min_quality = ", global_min_quality
-               ewrite(2,*) "quality_tolerance = ", quality_tolerance
+               ewrite(-1,*) "Mesh contains elements with quality below element quality tolerance. May need to increase number of adapt iterations to ensure good quality mesh."
+               ewrite(-1,*) "min_quality = ", global_min_quality
+               ewrite(-1,*) "quality_tolerance = ", quality_tolerance
             end if
 
             final_adapt_iteration = .true.
