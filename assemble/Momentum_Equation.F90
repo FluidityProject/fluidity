@@ -844,6 +844,11 @@
                   if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then
                     call add_viscous_free_surface_scaled_mass_integrals(state(istate), scaled_pressure_mass_matrix, u, p, free_surface)
                   end if
+                  if (has_boundary_condition(u, "free_surface")) then
+                     ewrite(2,*) "Adding free surface to scaled pressure mass matrix preconditioner"
+                     call add_free_surface_to_cmc_projection(state(istate), &
+                           scaled_pressure_mass_matrix, dt, theta_pg, theta_divergence, assemble_cmc=.true.)
+                  end if
                end if
 
             end if ! end of prognostic pressure
