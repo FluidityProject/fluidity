@@ -1,18 +1,18 @@
 SHELL = sh
 
-SIM = 1d_mesh
+SIM = BL_1d_Compressible
 
 # options for 1d mesh interval script for different mesh resolutions
 LEFT_X    = 0.0
 RIGHT_X   = 100.0
 
-MESH_SIZE_A = 2.5
-MESH_SIZE_B = 0.2
+MESH_SIZE_A = 10.0
+MESH_SIZE_B = 5.0
 
 input: clean
 	@echo "Running INTERVAL script for $(SIM)"
-	../../../scripts/interval --dx=$(MESH_SIZE_A) $(LEFT_X) $(RIGHT_X) $(SIM)
-#	../../../scripts/interval --dx=$(MESH_SIZE_B) $(LEFT_X) $(RIGHT_X) $(SIM)_B
+	../../../scripts/interval --dx=$(MESH_SIZE_A) $(LEFT_X) $(RIGHT_X) $(SIM)_A
+	../../../scripts/interval --dx=$(MESH_SIZE_B) $(LEFT_X) $(RIGHT_X) $(SIM)_B
 
 clean:
 	rm -f $(SIM)*.ele
@@ -39,4 +39,3 @@ clean:
 	rm -f Cubic_Interp.pyc
 	rm -rf $(SIM)_*output
 	rm -f CheckSparsityMatrix.dat
-
