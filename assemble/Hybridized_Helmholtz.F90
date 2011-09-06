@@ -49,13 +49,14 @@ module hybridized_helmholtz
     use manifold_tools
     implicit none
 
-contains
+contains 
   subroutine solve_hybridized_helmholtz(state,D_rhs,U_Rhs,&
        &D_out,U_out,&
        &dt_in,theta_in,&
        &compute_cartesian,&
        &check_continuity,output_dense,&
-       &projection,poisson,u_rhs_local,&
+       &projection,poisson,&
+       &u_rhs_local,&
        &solver_option_path)
 
     ! Subroutine to solve hybridized helmholtz equation
@@ -99,11 +100,9 @@ contains
     character(len=OPTION_PATH_LEN) :: constraint_option_string
     real :: u_max
     real, dimension(:), allocatable :: weights
+    logical :: l_projection,l_poisson
 
     ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
-
-    ewrite(1,*) present_and_true(poisson)
-    ewrite(1,*) present_and_true(projection)
 
     l_compute_cartesian = .false.
     if(present(compute_cartesian)) l_compute_cartesian = compute_cartesian
@@ -111,6 +110,18 @@ contains
     if(l_check_continuity) l_compute_cartesian = .true.
     l_output_dense = .false.
     if(present(output_dense)) l_output_dense = output_dense
+
+    if(present(projection)) then
+       l_projection = projection
+    else
+       l_projection = .false.
+    end if
+    if(present(poisson)) then
+       l_poisson = poisson
+    end if
+    if(l_poisson.and.l_projection) then
+       FLAbort('Can''t do projection and poisson')
+    end if
 
     !Pull the fields out of state
     D=>extract_scalar_field(state, "LayerThickness")
@@ -168,14 +179,13 @@ contains
             &g,dt,theta,D0,weights(ele),lambda_mat=lambda_mat,&
             &lambda_rhs=lambda_rhs,D_rhs=D_rhs,U_rhs=U_rhs,&
             &continuity_mat=continuity_mat,&
-            &projection=projection,poisson=poisson,&
+            &projection=l_projection,poisson=l_poisson,&
             &u_rhs_local=u_rhs_local)
     end do
 
     ewrite(2,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
 
     !Solve the equations
-
     if(present(solver_option_path)) then
        call petsc_solve(lambda,lambda_mat,lambda_rhs,&
             option_path=solver_option_path)
@@ -192,7 +202,7 @@ contains
             &g,dt,theta,D0,weights(ele),&
             &D_rhs=D_rhs,U_rhs=U_rhs,lambda=lambda,&
             &D_out=D_out,U_out=U_out,&
-            &projection=projection,poisson=poisson,&
+            &projection=l_projection,poisson=l_poisson,&
             &u_rhs_local=u_rhs_local)
     end do
 
@@ -285,7 +295,7 @@ contains
     real, dimension(:),allocatable,target :: Rhs_loc
     real, dimension(:,:), allocatable :: local_solver_matrix, local_solver_rhs
     type(element_type) :: U_shape
-    integer :: stat, d_start, d_end, dim1, mdim, uloc,dloc, lloc
+    integer :: stat, d_start, d_end, dim1, mdim, uloc,dloc, lloc, iloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(real_vector), dimension(mesh_dim(U)) :: rhs_u_ptr
     real, dimension(:), pointer :: rhs_d_ptr
@@ -293,9 +303,6 @@ contains
          & continuity_mat_u_ptr
     logical :: have_constraint
     integer :: constraint_choice, n_constraints, constraints_start
-
-    ewrite(1,*) present_and_true(poisson), 'here'
-    ewrite(1,*) present_and_true(projection)
 
     !Get some sizes
     lloc = ele_loc(lambda_rhs,ele)
@@ -350,8 +357,15 @@ contains
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
     call get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
-         & g,dt,theta,D0,weight,have_constraint,local_solver_rhs,&
-         projection=projection,poisson=poisson)
+         & g,dt,theta,D0,weight,have_constraint,&
+         & projection=projection,poisson=poisson,&
+         & local_solver_rhs=local_solver_rhs)
+    if(poisson.and.(ele==1)) then
+          !Fix the zero level of D
+       local_solver_matrix(d_start,:) = 0.
+       local_solver_matrix(:,d_start) = 0.
+       local_solver_matrix(d_start,d_start) = 1.
+    end if
 
     !!!Construct the continuity matrix that multiplies lambda in 
     !!! the U equation
@@ -398,6 +412,10 @@ contains
     rhs_loc=0.
     lambda_rhs_loc = 0.
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,weight,D_rhs,U_rhs,u_rhs_local)
+    if(poisson.and.(ele==1)) then
+       !Fix the zero level of D
+       rhs_loc(d_start)=0.0
+    end if
     if(.not.(present(d_rhs).or.present(u_rhs)))then
        assert(.not.present_and_true(projection))
        assert(.not.present_and_true(poisson))
@@ -433,7 +451,7 @@ contains
     !
     real, allocatable, dimension(:,:,:) :: continuity_face_mat
     integer :: ni, face
-    integer, dimension(:), pointer :: neigh
+    integer, dimension(:), pointer :: neigh, d_nodes
     type(element_type) :: U_shape
     integer :: d_start, d_end, dim1, mdim, uloc,dloc,lloc
     integer, dimension(mesh_dim(U)) :: U_start, U_end
@@ -490,11 +508,21 @@ contains
     !boundaries
     call get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
          & g,dt,theta,D0,weight,have_constraint,&
-         & local_solver_rhs=local_solver_rhs,projection=projection,&
-         & poisson=poisson)
+         & projection=projection,poisson=poisson,&
+         & local_solver_rhs=local_solver_rhs)
+    if(poisson.and.(ele==1)) then
+          !Fix the zero level of D
+       local_solver_matrix(d_start,:) = 0.
+       local_solver_matrix(:,d_start) = 0.
+       local_solver_matrix(d_start,d_start) = 1.
+    end if
 
     !Construct the rhs sources for U from lambda
     call assemble_rhs_ele(Rhs_loc,D,U,X,ele,weight,D_rhs,U_rhs,U_rhs_local)
+    if(poisson.and.(ele==1)) then
+       !Fix the zero level of D
+       rhs_loc(d_start)=0.0
+    end if
     if(.not.(present(d_rhs).or.present(u_rhs)))then
        assert(.not.present_and_true(projection))
        assert(.not.present_and_true(poisson))
@@ -528,8 +556,6 @@ contains
     ! (u)   (M    C)^{-1}(0)   (M    C)^{-1}(L)
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
 
-    call solve(local_solver_matrix,Rhs_loc)
-    rhs_loc = matmul(local_solver_matrix,rhs_loc)
     call solve(local_solver_matrix,Rhs_loc)
 
     do dim1 = 1, mdim
@@ -575,7 +601,7 @@ contains
 
   subroutine get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
        & g,dt,theta,D0,weight,have_constraint, &
-       & local_solver_rhs,projection,poisson)
+       & projection,poisson,local_solver_rhs)
     !Subroutine to get the matrix and rhs for obtaining U and D within
     !element ele from the lagrange multipliers on the boundaries.
     !This matrix-vector system is referred to as the "local solver" in the 
@@ -594,7 +620,7 @@ contains
          &, intent(inout) :: local_solver_matrix
     real, dimension(:,:)&
          &, intent(inout), optional :: local_solver_rhs
-    logical, intent(in), optional :: projection, poisson
+    logical, intent(in) :: projection, poisson
     logical, intent(in) :: have_constraint
     !
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
@@ -617,10 +643,10 @@ contains
     integer :: i1, c_start, c_end
     real :: l_dt,l_theta
 
-    if(present_and_true(projection)) then
+    if(projection) then
        l_dt = 0.
        l_theta = 0.
-    else if(present_and_true(poisson)) then
+    else if(poisson) then
        l_dt = 1.
        l_theta = 1.
     else
@@ -649,7 +675,7 @@ contains
     D_ele => ele_nodes(D, ele)
     U_ele => ele_nodes(U, ele)
     
-    if(present_and_true(projection).or.present_and_true(poisson)) then
+    if(projection.or.poisson) then
        f_gi = 0.
     else
        f_gi = ele_val_at_quad(f,ele)
@@ -681,7 +707,7 @@ contains
 
     !pressure mass matrix (done in global coordinates)
     !not included in pressure solver
-    if(.not.present_and_true(poisson)) then
+    if(.not.poisson) then
        local_solver_matrix(d_start:d_end,d_start:d_end)=&
             &shape_shape(d_shape,d_shape,detwei)
        if(present(local_solver_rhs)) then
@@ -1376,19 +1402,19 @@ contains
        call check_continuity_ele(U_cart,X,ele)
     end do
     !Stage 1b: verify that projection is idempotent
-    ewrite(2,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
-    call solve_hybridized_helmholtz(state,U_Rhs=U_local,&
-         &U_out=tmpV_field,D_out=tmp_field,&
-         &compute_cartesian=.true.,&
-         &check_continuity=.true.,projection=.true.,&
-         &poisson=.false.,&
-         &u_rhs_local=.true.)!verified that projection is idempotent
-    ewrite(2,*) maxval(abs(U_local%val-tmpV_field%val)), 'continuity'
-    u_max = 0.
-    do dim1 = 1, mesh_dim(D)
-       u_max = max(u_max,maxval(abs(U_local%val)))
-    end do
-    assert(maxval(abs(U_local%val-tmpV_field%val)/max(1.0,u_max))<1.0e-8)
+    !ewrite(2,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
+    !call solve_hybridized_helmholtz(state,U_Rhs=U_local,&
+    !     &U_out=tmpV_field,D_out=tmp_field,&
+    !     &compute_cartesian=.true.,&
+    !     &check_continuity=.true.,projection=.true.,&
+    !     &poisson=.false.,&
+    !     &u_rhs_local=.true.)!verified that projection is idempotent
+    !ewrite(2,*) maxval(abs(U_local%val-tmpV_field%val)), 'continuity'
+    !u_max = 0.
+    !do dim1 = 1, mesh_dim(D)
+    !   u_max = max(u_max,maxval(abs(U_local%val)))
+    !end do
+    !assert(maxval(abs(U_local%val-tmpV_field%val)/max(1.0,u_max))<1.0e-8)
 
     if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
          &/initial_condition::WholeMesh/balanced/elliptic_solver")) then
@@ -1415,9 +1441,8 @@ contains
        call solve_hybridized_helmholtz(state,d_Rhs=d_rhs,&
             &U_out=tmpV_field,d_out=tmp_field,&
             &compute_cartesian=.true.,&
-            &check_continuity=.true.,projection=.false.,&
-            &poisson=.true.,u_rhs_local=.true.,&
-            &solver_option_path="/material_phase::Fluid/vector_field::Velocity/prognostic/initial_condition::WholeMesh/balanced")
+            &check_continuity=.true.,&
+            &poisson=.true.,u_rhs_local=.true.)
        D%val = tmp_field%val
     else
        !Project the streamfunction into pressure space
@@ -1748,10 +1773,13 @@ contains
     D=>extract_scalar_field(state, "LayerThickness")
     call allocate(tmp_field,D%mesh,"TmpSField")
 
+    ewrite(1,*) 'PPPPPPPPPPPPPPPPPPPPPPPPPP'
+
     call solve_hybridized_helmholtz(state,&
          &U_rhs=v_field,U_out=v_field_out,D_out=tmp_field,&
          &compute_cartesian=.true.,&
          &check_continuity=.true.,projection=.true.,&
+         &poisson=.false.,&
          &u_rhs_local=.true.)
 
     call set(V_field,V_field_out)
