@@ -4,7 +4,7 @@
 <testproblem>
   <name>iceshelf_cube</name>
   <owner userid="skimura"/>
-  <tags>flml</tags>
+  <tags>flml iceshelf</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity -v3 -l shelf3d.flml</command_line>
   </problem_definition>
