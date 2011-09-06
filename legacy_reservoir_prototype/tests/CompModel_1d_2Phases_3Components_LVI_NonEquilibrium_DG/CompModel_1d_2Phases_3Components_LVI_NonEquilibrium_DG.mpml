@@ -682,7 +682,7 @@
     </vector_field>
     <scalar_field material_phase_name="phase1" name="ComponentMassFractionPhase1" rank="0">
       <prognostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <continuous_galerkin>

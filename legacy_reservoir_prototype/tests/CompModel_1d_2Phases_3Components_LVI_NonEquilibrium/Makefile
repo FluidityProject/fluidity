@@ -1,37 +1,39 @@
 SHELL = sh
 
-SIM = InputComp2P3C_
+SIM = CompModel_1d_2Phases_3Components_LVI_NonEquilibrium
+
+# options for 1d mesh interval script for different mesh resolutions
+LEFT_X    = 0.0
+RIGHT_X   = 4.0
+
+MESH_SIZE_A = 0.0125
 
 input: clean
-
-	../../../scripts/interval --dx=0.0125 0 4 1d_mesh
-
-	@echo "compute input for $(SIM)"
-	gfortran -o $(SIM)KComp   $(SIM)KComp.f90
-	gfortran -o $(SIM)permability   $(SIM)permability.f90
-	gfortran -o $(SIM)saturation    $(SIM)saturation.f90
-	gfortran -o $(SIM)suf_t_bc      $(SIM)suf_t_bc.f90
-	gfortran -o $(SIM)suf_vol_bc    $(SIM)suf_vol_bc.f90
-	gfortran -o $(SIM)suf_comp_bc   $(SIM)suf_comp_bc.f90
-	gfortran -o $(SIM)wic_d_bc      $(SIM)wic_d_bc.f90
-	gfortran -o $(SIM)wic_p_bc      $(SIM)wic_p_bc.f90
-	gfortran -o $(SIM)wic_vol_bc    $(SIM)wic_vol_bc.f90
-	gfortran -o $(SIM)EOSCoeff      $(SIM)EOSCoeff.f90
-	gfortran -o $(SIM)Comp2         $(SIM)Comp2.f90
+	@echo "Running INTERVAL script for $(SIM)"
+	../../../scripts/interval --dx=$(MESH_SIZE_A) $(LEFT_X) $(RIGHT_X) $(SIM)_A
 
 clean:
-	rm -f $(SIM)KComp 
-	rm -f $(SIM)permability
-	rm -f $(SIM)saturation 
-	rm -f $(SIM)suf_t_bc
-	rm -f $(SIM)suf_vol_bc 
-	rm -f $(SIM)suf_comp_bc 
-	rm -f $(SIM)wic_d_bc
-	rm -f $(SIM)wic_p_bc
-	rm -f $(SIM)wic_vol_bc
-	rm -f $(SIM)EOSCoeff
-	rm -f $(SIM)Comp2
+	rm -f $(SIM)*.ele
+	rm -f $(SIM)*.node
+	rm -f $(SIM)*.bound
+	rm -f $(SIM)*.edge
+	rm -f $(SIM)*.face
+	rm -f $(SIM)*.vtu 
+	rm -f $(SIM)*.pvtu 
+	rm -f $(SIM)*.s 
+	rm -f $(SIM)*.d.* 
+	rm -f $(SIM)*.stat 
+	rm -f $(SIM)*.log-0 
+	rm -f $(SIM)*.err-0 
+	rm -f $(SIM)*.msh
+	rm -f $(SIM)*.halo
+	rm -f fluidity.err*
+	rm -f fluidity.log*
+	rm -f matrixdump*
+	rm -f first_timestep_adapted_mesh*
 	rm -f gmon.out
-	rm -f *.d.* fluidity.* matrixdump* *.stat
-	rm -f time_count tempfile CheckSparsityMatrix.dat filedim fvalues mirror* fort.* flog.dat
-	rm -f *.ele *.bound *.face *.node
+	rm -f *.d.*
+	rm -f mirror_int_data.dat input.dat mirror_new.dat
+	rm -f Cubic_Interp.pyc
+	rm -rf $(SIM)_*output
+	rm -f CheckSparsityMatrix.dat

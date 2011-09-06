@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>BL_1d</name>
+  <owner userid="btollit"/>
+  <tags>mpml</tags>
+  <problem_definition length="special" nprocs="1">
+    <command_line>
+../../../bin/multiphase_prototype BL_1d_A.mpml
+
+mkdir BL_1d_A_output
+
+mv *.d.* BL_1d_A_output
+    </command_line>
+    <!--  -->
+  </problem_definition>
+  <variables>
+
+  </variables>
+  <pass_tests>
+
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
