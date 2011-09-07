@@ -170,6 +170,9 @@ Regularise the domain so all spatial extents are of the same length
 (the smallest of the spatial extents),
 i.e. scale so the domain has an aspect ratio of 1:1, or 1:1:1.
 Note this option should not be used in conjunction with checkpointing (at present).</a:documentation>
+          <element name="adhere_to_output_mesh_continuity">
+            <a:documentation>Select to disable automatically using a discontinuous output
+mesh when there are discontinuous fields to output.</a:documentation>
             <ref name="comment"/>
           </element>
         </optional>

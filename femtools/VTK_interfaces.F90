@@ -253,29 +253,37 @@ contains
     type(tensor_field) :: t_model
     real, dimension(position%dim) :: spatialextent
     logical :: dgify_fields ! should we DG-ify the fields -- make them discontinous?
+    logical :: adhere_out_cty 
     integer, allocatable, dimension(:)::ghost_levels
     real, allocatable, dimension(:,:) :: tempval
     integer :: lstat
     
     if (present(stat)) stat = 0
-    
+    if (have_option("/io/adhere_to_output_mesh_continuity")) then
+      adhere_out_cty = .true.
+    else
+      adhere_out_cty = .true.
+    end if
+
     dgify_fields = .false.
-    if (present(sfields)) then
-      do i=1,size(sfields)
-        if ( (sfields(i)%mesh%continuity .lt. 0 .and. sfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
-      end do
+    if (.not. adhere_out_cty) then
+      if (present(sfields)) then
+        do i=1,size(sfields)
+          if ( (sfields(i)%mesh%continuity .lt. 0 .and. sfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
+        end do
+      end if
+      if (present(vfields)) then
+        do i=1,size(vfields)
+          if ( (vfields(i)%mesh%continuity .lt. 0 .and. vfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
+        end do
+      end if
+      if (present(tfields)) then
+        do i=1,size(tfields)
+          if ( (tfields(i)%mesh%continuity .lt. 0 .and. tfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
+        end do
+      end if
     end if
-    if (present(vfields)) then
-      do i=1,size(vfields)
-        if ( (vfields(i)%mesh%continuity .lt. 0 .and. vfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
-      end do
-    end if
-    if (present(tfields)) then
-      do i=1,size(tfields)
-        if ( (tfields(i)%mesh%continuity .lt. 0 .and. tfields(i)%mesh%shape%degree /= 0) ) dgify_fields = .true.
-      end do
-    end if
-    
+
     if (present_and_true(write_inactive_parts)) then
       nparts = getnprocs()
     else
@@ -427,7 +435,7 @@ contains
     ! if this is being called from something other than the main output routines
     ! then these tests can be disabled by passing in the optional stat argument
     ! to vtk_write_fields
-    if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+    if((lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) .and. (.not. adhere_out_cty)) then
       if(present(stat)) then
         stat = lstat
       else
@@ -490,7 +498,7 @@ contains
             ! if this is being called from something other than the main output routines
             ! then these tests can be disabled by passing in the optional stat argument
             ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            if((lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) .and. (.not. adhere_out_cty)) then
               if(present(stat)) then
                 stat = lstat
               else
@@ -581,7 +589,7 @@ contains
             ! if this is being called from something other than the main output routines
             ! then these tests can be disabled by passing in the optional stat argument
             ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            if((lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) .and. (.not. adhere_out_cty)) then
               if(present(stat)) then
                 stat = lstat
               else
@@ -662,7 +670,7 @@ contains
             ! if this is being called from something other than the main output routines
             ! then these tests can be disabled by passing in the optional stat argument
             ! to vtk_write_fields
-            if(lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            if((lstat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) .and. (.not. adhere_out_cty)) then
               if(present(stat)) then
                 stat = lstat
               else
