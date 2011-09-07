@@ -1,6 +1,6 @@
 SHELL = sh
 
-SIM = Advection_1D
+SIM = Advection_TopHat_1D
 
 # options for 1d mesh interval script for different mesh resolutions
 LEFT_X    = 0.0

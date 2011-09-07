@@ -174,42 +174,6 @@
       call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
     end if
 
-    ! ******************************
-    ! *** Start of timestep loop ***
-    ! ******************************
-    timestep_loop: do
-       timestep = timestep + 1
-
-       ewrite(1, *) "********************"
-       ewrite(1, *) "*** NEW TIMESTEP ***"
-       ewrite(1, *) "********************"
-       ewrite(1, *) "Current simulation time: ", current_time
-       ewrite(1, *) "Timestep number: ", timestep
-       ewrite(1, *) "Timestep size (dt): ", dt
-       !    if(.not. allfequals(dt)) then
-       !       ewrite(-1, *) "Timestep size (dt): ", dt
-       !       FLAbort("The timestep is not global across all processes!")
-       !    end if
-
-       if(simulation_completed(current_time, timestep)) exit timestep_loop
-
-       if( &
-                                ! Do not dump at the start of the simulation (this is handled by write_state call earlier)
-            current_time > simulation_start_time &
-                                ! Do not dump at the end of the simulation (this is handled by later write_state call)
-            .and. current_time < finish_time &
-                                ! Test write_state conditions
-            .and. do_write_state(current_time, timestep) &
-            ) then
-          ! Intermediate dumps
-          if(do_checkpoint_simulation(dump_no)) then
-             call checkpoint_simulation(state, cp_no = dump_no)
-          end if
-          call write_state(dump_no, state)
-       end if
-
-       ewrite(2,*)'nonlinear_iterations:',nonlinear_iterations
-
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
        call set_boundary_conditions_values(state, shift_time=.true.)
@@ -222,14 +186,6 @@
        call multiphase_prototype(state, dt, &
                                  nonlinear_iterations, nonlinear_iteration_tolerance, &
                                  dump_no)
-       
-       ! exit this time loop as the prototype has its own
-       exit
-
-    end do timestep_loop
-    ! ****************************
-    ! *** END OF TIMESTEP LOOP ***
-    ! ****************************
 
     ! Dump at end, unless explicitly disabled
     if(.not. have_option("/io/disable_dump_at_end")) then

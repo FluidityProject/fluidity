@@ -2,16 +2,16 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>Advection_1D</name>
+  <name>Advection_TopHat_1D</name>
   <owner userid="btollit"/>
   <tags>mpml</tags>
   <problem_definition length="special" nprocs="1">
     <command_line>
-../../../bin/multiphase_prototype Advection_1D_A.mpml
+../../../bin/multiphase_prototype Advection_TopHat_1D_A.mpml
 
-mkdir Advection_1D_A_output
+mkdir Advection_TopHat_1D_A_output
 
-mv *.d.* Advection_1D_A_output
+mv *.d.* Advection_TopHat_1D_A_output
     </command_line>
     <!--  -->
   </problem_definition>

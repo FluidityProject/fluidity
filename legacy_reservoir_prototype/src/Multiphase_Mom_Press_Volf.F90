@@ -48,6 +48,7 @@ module multiphase_mom_press_volf
   use state_module
   use spud
   use signal_vars
+  use populate_state_module
 
   IMPLICIT NONE
 
@@ -367,6 +368,10 @@ contains
        SATURAOLD = SATURA
        TOLD = T
        COMPOLD = COMP
+
+       ! evaluate prescribed fields at time = current_time+dt
+       call set_prescribed_field_values(state, exclude_interpolated=.true., &
+            exclude_nonreprescribed=.true., time=ACCTIM)
 
        ! Non linear its:
        Loop_ITS: DO ITS = 1, NITS
