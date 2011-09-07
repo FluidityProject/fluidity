@@ -26,6 +26,7 @@
             <element name="agent_array">
               <a:documentation>Arrays of lagrangian detectors with an additional Random Walk displacement scheme to simulate turbulent displacement.
 In the future, these agents will carry biology information for Lagrangian Ensemble biology algorithms.</a:documentation>
+              <ref name="comment"/>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
@@ -71,23 +72,27 @@ Functions should be of the form:
     return # Return some f(x)</a:documentation>
                     <ref name="python_code"/>
                   </element>
-                  <element name="random_seed">
-                    <ref name="integer"/>
-                  </element>
                 </element>
               </optional>
               <optional>
-                <element name="exclude_from_advection">
-                  <a:documentation/>
-                  <empty/>
+                <element name="debug">
+                  <a:documentation>Debug options</a:documentation>
+                  <optional>
+                    <element name="exclude_from_advection">
+                      <a:documentation>Skip velocity advection algorithm (RK-GS)</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
               </optional>
-              <ref name="comment"/>
             </element>
           </zeroOrMore>
           <ref name="lagrangian_timestepping"/>
         </element>
       </optional>
+      <element name="random_seed">
+        <ref name="integer"/>
+      </element>
     </element>
   </define>
   <define name="hyperlight">

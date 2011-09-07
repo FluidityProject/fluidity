@@ -97,7 +97,7 @@ contains
        if (have_option(trim(schema_buffer)//"/random_walk")) then
           agent_arrays(i)%move_parameters%do_random_walk=.true.
           call get_option(trim(schema_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
-          call get_option(trim(schema_buffer)//"/random_walk/random_seed", random_seed)
+          call get_option("/embedded_models/lagrangian_ensemble_biology/random_seed", random_seed)
           
           ! Initialise random number generator
           call python_run_string("numpy.random.seed("//trim(int2str(random_seed))//")")

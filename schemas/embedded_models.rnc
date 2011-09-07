@@ -65,9 +65,6 @@ lagrangian_biology =
                   ##     return # Return some f(x)
                   element python{
                      python_code
-                  },
-                  element random_seed{
-                     integer
                   }
                }?,
                ## Debug options
@@ -75,11 +72,14 @@ lagrangian_biology =
                   ## Skip velocity advection algorithm (RK-GS)
                   element exclude_from_advection {
                      empty
-                  }?,
+                  }?
                }?
             }*, 
             lagrangian_timestepping
-         }?
+         }?,
+         element random_seed{
+            integer
+         }
       }
    )
 

@@ -146,11 +146,7 @@ def val(ele, local_coord, dt):
   K = diffusivity.eval_field(ele, local_coord)
   return [0.0, 0.0, rnd * sqrt(6*K*dt)]</string_value>
             </python>
-            <random_seed>
-              <integer_value rank="0">113165</integer_value>
-            </random_seed>
           </random_walk>
-          <exclude_from_advection/>
         </agent_array>
         <agent_array name="Diffusive_RW">
           <number_of_agents>
@@ -189,11 +185,7 @@ def val(ele, local_coord, dt):
 
   return [0.0, 0.0, K_grad[2]*dt + (rnd * sqrt(6*K*dt))]</string_value>
             </python>
-            <random_seed>
-              <integer_value rank="0">113165</integer_value>
-            </random_seed>
           </random_walk>
-          <exclude_from_advection/>
         </agent_array>
         <lagrangian_timestepping>
           <subcycles>
@@ -206,6 +198,9 @@ def val(ele, local_coord, dt):
           <reflect_on_boundary/>
         </lagrangian_timestepping>
       </functional_group>
+      <random_seed>
+        <integer_value rank="0">157834</integer_value>
+      </random_seed>
     </lagrangian_ensemble_biology>
   </embedded_models>
 </fluidity_options>
