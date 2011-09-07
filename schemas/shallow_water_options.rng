@@ -349,6 +349,19 @@ if isn't present as a field in state.</a:documentation>
               </element>
             </element>
           </optional>
+          <optional>
+            <element name="scalar_field">
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>InitialLayerThickness</value>
+              </attribute>
+              <element name="diagnostic">
+                <ref name="pressure_mesh_choice"/>
+              </element>
+            </element>
+          </optional>
           <zeroOrMore>
             <ref name="scalar_field_choice"/>
           </zeroOrMore>

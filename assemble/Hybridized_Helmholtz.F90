@@ -56,8 +56,7 @@ contains
        &compute_cartesian,&
        &check_continuity,output_dense,&
        &projection,poisson,&
-       &u_rhs_local,&
-       &solver_option_path)
+       &u_rhs_local)
 
     ! Subroutine to solve hybridized helmholtz equation
     ! If D_rhs (scalar pressure field) is present, then solve:
@@ -83,7 +82,6 @@ contains
     logical, intent(in), optional :: compute_cartesian, &
          &check_continuity,output_dense, projection,poisson
     logical, intent(in), optional :: u_rhs_local !means u_rhs is in local coords
-    character(len=OPTION_PATH_LEN), intent(in), optional :: solver_option_path
     !
     type(vector_field), pointer :: X, U, down, U_cart
     type(scalar_field), pointer :: D,f, lambda_nc
@@ -119,6 +117,8 @@ contains
     if(present(poisson)) then
        l_poisson = poisson
     end if
+    ewrite(2,*) 'Projection = ', l_projection
+    ewrite(2,*) 'Poisson = ', l_poisson
     if(l_poisson.and.l_projection) then
        FLAbort('Can''t do projection and poisson')
     end if
@@ -186,15 +186,9 @@ contains
     ewrite(2,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
 
     !Solve the equations
-    if(present(solver_option_path)) then
-       call petsc_solve(lambda,lambda_mat,lambda_rhs,&
-            option_path=solver_option_path)
-    else
-       call petsc_solve(lambda,lambda_mat,lambda_rhs,&
-            option_path=trim(U_cart%mesh%option_path)//&
-            &"/from_mesh/constraint_type")
-    end if
-    ewrite(2,*) 'LAMBDA', maxval(abs(lambda%val))
+    call petsc_solve(lambda,lambda_mat,lambda_rhs,&
+         option_path=trim(U_cart%mesh%option_path)//&
+         &"/from_mesh/constraint_type")
 
     !Reconstruct U and D from lambda
     do ele = 1, ele_count(D)
@@ -205,6 +199,11 @@ contains
             &projection=l_projection,poisson=l_poisson,&
             &u_rhs_local=u_rhs_local)
     end do
+
+    if(l_poisson) then
+       call check_zero_level(D_out)
+    end if
+    ewrite(2,*) 'LAMBDA', maxval(abs(lambda%val))
 
     if(l_output_dense) then
        allocate(lambda_mat_dense(node_count(lambda),node_count(lambda)))
@@ -557,7 +556,6 @@ contains
     ! (h) = (-C^T N)     (j) + (-C^T N)     (0)(l)
 
     call solve(local_solver_matrix,Rhs_loc)
-
     do dim1 = 1, mdim
        U_solved(dim1,:) = rhs_loc(u_start(dim1):u_end(dim1))
        if(.not.(present_and_true(poisson))) then
@@ -641,17 +639,20 @@ contains
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(constraints_type), pointer :: constraints
     integer :: i1, c_start, c_end
-    real :: l_dt,l_theta
+    real :: l_dt,l_theta,l_d0
 
     if(projection) then
        l_dt = 0.
        l_theta = 0.
+       l_d0 = 1.
     else if(poisson) then
        l_dt = 1.
        l_theta = 1.
+       l_d0 = 1.
     else
        l_dt = dt
        l_theta = theta
+       l_d0 = d0
     end if
 
     mdim = mesh_dim(U)
@@ -728,10 +729,10 @@ contains
        end if
        !divergence continuity term
        local_solver_matrix(d_start:d_end,u_start(dim1):u_end(dim1))=&
-            & d0*l_dt*l_theta*weight*transpose(l_div_mat(dim1,:,:))
+            & l_d0*l_dt*l_theta*weight*transpose(l_div_mat(dim1,:,:))
        if(present(local_solver_rhs)) then
           local_solver_rhs(d_start:d_end,u_start(dim1):u_end(dim1))=&
-               & d0*(l_theta-1.0)*l_dt*weight*transpose(l_div_mat(dim1,:,:))
+               & l_d0*(l_theta-1.0)*l_dt*weight*transpose(l_div_mat(dim1,:,:))
        end if
     end do
     !velocity mass matrix and Coriolis matrix (done in local coordinates)
@@ -1360,11 +1361,11 @@ contains
     implicit none
     type(state_type), intent(inout) :: state
     !
-    type(scalar_field), pointer :: D,psi,f
+    type(scalar_field), pointer :: D,psi,f, D_initial
     type(scalar_field) :: D_rhs,tmp_field
     type(vector_field), pointer :: U_local,down,X, U_cart
     type(vector_field) :: Coriolis_term, Balance_eqn, tmpV_field
-    integer :: ele,dim1
+    integer :: ele,dim1,i1, stat
     real :: g
     logical :: elliptic_method
     real :: u_max, b_val, h_mean, area
@@ -1402,23 +1403,19 @@ contains
        call check_continuity_ele(U_cart,X,ele)
     end do
     !Stage 1b: verify that projection is idempotent
-    !ewrite(2,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
-    !call solve_hybridized_helmholtz(state,U_Rhs=U_local,&
-    !     &U_out=tmpV_field,D_out=tmp_field,&
-    !     &compute_cartesian=.true.,&
-    !     &check_continuity=.true.,projection=.true.,&
-    !     &poisson=.false.,&
-    !     &u_rhs_local=.true.)!verified that projection is idempotent
-    !ewrite(2,*) maxval(abs(U_local%val-tmpV_field%val)), 'continuity'
-    !u_max = 0.
-    !do dim1 = 1, mesh_dim(D)
-    !   u_max = max(u_max,maxval(abs(U_local%val)))
-    !end do
-    !assert(maxval(abs(U_local%val-tmpV_field%val)/max(1.0,u_max))<1.0e-8)
+    ewrite(2,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
+    tmpV_field%val = U_local%val
+    call project_to_constrained_space(state,tmpV_field)
+    ewrite(2,*) maxval(abs(U_local%val-tmpV_field%val)), 'continuity'
+    u_max = 0.
+    do dim1 = 1, mesh_dim(D)
+       u_max = max(u_max,maxval(abs(U_local%val)))
+    end do
+    assert(maxval(abs(U_local%val-tmpV_field%val)/max(1.0,u_max))<1.0e-8)
 
     if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
          &/initial_condition::WholeMesh/balanced/elliptic_solver")) then
-
+       ewrite(2,*) 'Using elliptic solver'
        !Construct Coriolis term
        call zero(Coriolis_term)
        do ele = 1, element_count(D)
@@ -1429,15 +1426,16 @@ contains
 
        !Project Coriolis term into div-conforming space
        call project_to_constrained_space(state,Coriolis_term)
-       
+
        !Calculate divergence of Coriolis term 
        call zero(d_rhs)
+
        do ele = 1, element_count(D)
           call compute_divergence_ele(Coriolis_term,d_rhs,X,ele)
        end do
 
        !Solve for balanced layer depth
-       ewrite(1,*) 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+       ewrite(2,*) 'Solving elliptic problem for balanced layer depth.'
        call solve_hybridized_helmholtz(state,d_Rhs=d_rhs,&
             &U_out=tmpV_field,d_out=tmp_field,&
             &compute_cartesian=.true.,&
@@ -1445,20 +1443,27 @@ contains
             &poisson=.true.,u_rhs_local=.true.)
        D%val = tmp_field%val
     else
+       ewrite(2,*) 'Using streamfunction projection'
        !Project the streamfunction into pressure space
        do ele = 1, element_count(D)
           call project_streamfunction_for_balance_ele(D,psi,X,f,g,ele)
        end do
-
-       !Subtract off the mean part
-       h_mean = 0.
-       area = 0.
-       do ele = 1, element_count(D)
-          call assemble_mean_ele(D,X,h_mean,area,ele)
-       end do
-       h_mean = h_mean/area
-       D%val = D%val - h_mean
     end if
+
+    !Subtract off the mean part
+    h_mean = 0.
+    area = 0.
+    do ele = 1, element_count(D)
+       call assemble_mean_ele(D,X,h_mean,area,ele)
+    end do
+    h_mean = h_mean/area
+    D%val = D%val - h_mean
+
+    D_initial=>extract_scalar_field(state, "InitialLayerThickness",stat)    
+    if(stat==0) then
+       D_initial%val = D%val
+    end if
+
     !debugging tests
     call zero(Coriolis_term)
     do ele = 1, element_count(D)
@@ -1472,6 +1477,7 @@ contains
        call set_pressure_force_ele(balance_eqn,D,X,g,ele,weights(ele))
     end do
     call addto(balance_eqn,coriolis_term,scale=1.0)
+    ewrite(2,*) 'Project balance equation into div-conforming space'
     ewrite(2,*) 'CJC b4',maxval(abs(balance_eqn%val)),&
          & maxval(abs(coriolis_term%val))
     b_val = maxval(abs(balance_eqn%val))
@@ -1480,11 +1486,12 @@ contains
          &U_out=balance_eqn,&
          &compute_cartesian=.true.,&
          &check_continuity=.true.,projection=.true.,&
+         &poisson=.false.,&
          &u_rhs_local=.true.)
     
     do dim1 = 1, mesh_dim(D)
        ewrite(2,*) 'Balance equation', maxval(abs(balance_eqn%val(dim1,:)))/b_val
-       assert(maxval(abs(balance_eqn%val(dim1,:)))/b_val<1.0e-8)
+       !assert(maxval(abs(balance_eqn%val(dim1,:)))/b_val<1.0e-8)
     end do
     
  !Clean up after yourself
@@ -1773,7 +1780,7 @@ contains
     D=>extract_scalar_field(state, "LayerThickness")
     call allocate(tmp_field,D%mesh,"TmpSField")
 
-    ewrite(1,*) 'PPPPPPPPPPPPPPPPPPPPPPPPPP'
+    ewrite(1,*) 'Project to constrained space'
 
     call solve_hybridized_helmholtz(state,&
          &U_rhs=v_field,U_out=v_field_out,D_out=tmp_field,&
@@ -1785,6 +1792,8 @@ contains
     call set(V_field,V_field_out)
     call deallocate(v_field_out)
     call deallocate(tmp_field)
+
+    ewrite(1,*) 'END: Project to constrained space'
 
   end subroutine project_to_constrained_space
 
@@ -1806,6 +1815,7 @@ contains
          &state,&
          &U_out=U_rhs,D_out=d_rhs,&
          &compute_cartesian=.true.,&
+         &projection=.false.,poisson=.false.,&
          &check_continuity=.true.,output_dense=.false.)
     ewrite(1,*) 'jump in D', maxval(abs(d_rhs%val-d%val))
     ewrite(1,*) 'jump in U', maxval(abs(U_rhs%val-U%val))
@@ -1868,6 +1878,24 @@ contains
     d_mass_mat = shape_shape(d_shape,d_shape,detwei)
     call solve(d_mass_mat,div_loc)
 
+    !dn is loc x ngi x dim
+    !div_gi = 0.
+    !do iloc = 1, ele_loc(Div_V,ele)
+    !   div_gi = div_gi + matmul(u_shape%dn(iloc,:,:),U_loc(:,iloc))
+    !end do
+    !div_loc = shape_rhs(d_shape,div_gi) !no detwei as cancels
+    !d_mass_mat = shape_shape(d_shape,d_shape,detwei)
+    !call solve(d_mass_mat,div_loc)
+
     call set(div_V,ele_nodes(div_V,ele),div_loc)
   end subroutine compute_divergence_ele
+
+  subroutine check_zero_level(D)
+    type(scalar_field), intent(in) :: D
+    !
+    real, dimension(ele_loc(D,1)) :: D_val
+    
+    D_val = ele_val(D,1)
+    assert(abs(D_val(1))<1.0e-10)
+  end subroutine check_zero_level
 end module hybridized_helmholtz
