@@ -755,6 +755,8 @@ module zoltan_integration
                 
                 if (min_num_nodes_after_balance == 0) then
                    FLAbort("Could not stop Zoltan creating empty partitions.")
+                else
+                   ewrite(-1,*) 'Load balancing was carried out without edge-weighting being applied. Mesh may not be of expected quality.'
                 end if
              else
                 ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
