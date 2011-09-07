@@ -47,7 +47,7 @@ module momentum_DG
   use boundary_conditions_from_options
   use solvers
   use dgtools
-  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, timestep
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
   use coriolis_module
   use halos
   use sparsity_patterns
@@ -64,7 +64,6 @@ module momentum_DG
   use Profiler
 #ifdef _OPENMP
   use omp_lib
-  use timeloop_utilities
 #endif
   use multiphase_module
 
@@ -277,7 +276,7 @@ contains
 
     !! Is the transform_to_physical cache we prepopulated valid
     logical :: cache_valid
-    integer :: num_threads, final_timestep
+    integer :: num_threads
 
     ! Volume fraction fields for multi-phase flow simulation
     type(scalar_field), pointer :: vfrac
@@ -675,16 +674,15 @@ contains
 
 #ifdef _OPENMP
       num_threads = omp_get_max_threads()
-      print *, "num_threads=", num_threads,"M_DG"
 #else 
       num_threads=1
 #endif
 
     if(num_threads>1) then
 
-      !! working out the options for different schemes of different terms
-      call set_coriolis_parameters
-      compact_stencil = have_option(trim(u%option_path)//&
+       !! working out the options for different schemes of different terms
+       call set_coriolis_parameters
+       compact_stencil = have_option(trim(u%option_path)//&
             "/prognostic/spatial_discretisation&
             &/discontinuous_galerkin/viscosity_scheme&
             &/interior_penalty") .or. &
@@ -693,11 +691,10 @@ contains
             &/discontinuous_galerkin/viscosity_scheme&
             &/compact_discontinuous_galerkin")
 
-      compact_stencil=.false.
+       compact_stencil=.false.
        call find_linear_parent_mesh(state, u%mesh, cg_mesh, stat)
-      !! generate the dual graph of the mesh
-   !!   p0_mesh = piecewise_constant_mesh(x%mesh, trim(x%name)//"P0Mesh")
-      p0_mesh = piecewise_constant_mesh(cg_mesh, "P0Mesh")
+       !! generate the dual graph of the mesh
+       p0_mesh = piecewise_constant_mesh(cg_mesh, "P0Mesh")
 
        !! the sparse pattern of the dual graph.
        if ((have_viscosity.or.have_dg_les) .and. (.not. compact_stencil)) then
@@ -715,13 +712,11 @@ contains
        !! "colours" is an array of type(integer_set)
        call colour_sparsity(dependency_sparsity, p0_mesh, node_colour, no_colours)
 
-       if(.not. verify_colour_sparsity(dependency_sparsity, node_colour)) then
-        FLAbort("The neighbours are using same colours, wrong!!.")
-       endif 
+       assert(verify_colour_sparsity(dependency_sparsity, node_colour))
 
        allocate(clr_sets(no_colours))
        clr_sets=colour_sets(dependency_sparsity, node_colour, no_colours)
-       PRINT *, "colouring passed"
+       ewrite(3,*)'Colouring passed in Momentum-DG'
     else
        no_colours = 1
        allocate(clr_sets(no_colours))
@@ -763,21 +758,9 @@ contains
     call deallocate(clr_sets)
     deallocate(clr_sets)
 
-#ifdef DDEBUG
-#ifdef _OPENMP
-!    call get_option("/timestepping/final_timestep", final_timestep)
-!    print *, "final_timestep=", final_timestep
-!    print *, "the current timestep=", timestep
-!    if(timestep .eq. final_timestep) then
-!       print *, "dump bloody dg matrix"
-!       call dump_petsc_csr_matrix(big_m)
-!    endif
-#endif
-#endif
-
     if(num_threads > 1) then
-    call deallocate(node_colour)
-    call deallocate(p0_mesh)
+       call deallocate(node_colour)
+       call deallocate(p0_mesh)
     endif
     
     call profiler_toc(u, "element_loop")

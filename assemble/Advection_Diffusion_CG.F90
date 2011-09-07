@@ -39,7 +39,7 @@ module advection_diffusion_cg
   use boundary_conditions_from_options
   use field_options
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, timestep
+  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
   use profiler
   use spud
   use petsc_solve_state_module
@@ -48,8 +48,10 @@ module advection_diffusion_cg
   use sparsity_patterns_meshes
   use sparse_tools_petsc
   use colouring
+#ifdef _OPENMP
   use omp_lib
-  
+#endif
+
   implicit none
   
   private
@@ -239,11 +241,10 @@ contains
     type(mesh_type) :: p0_mesh
     type(mesh_type), pointer :: vertex_mesh
     type(csr_sparsity), pointer :: ad_sparsity
-    type(petsc_csr_matrix) :: petsccsrmatix
     type(scalar_field) :: node_colour
     type(integer_set), dimension(:), allocatable :: clr_sets
     integer :: clr, nnid, no_colours, len, ele
-    integer :: num_threads, final_timestep
+    integer :: num_threads
     !! Did we successfully prepopulate the transform_to_physical_cache?
     logical :: cache_valid
 
@@ -472,32 +473,29 @@ contains
     call zero(matrix)
     call zero(rhs)
     
-!    call profiler_tic("advection_diffusion_loop")
+    call profiler_tic(t, "advection_diffusion_loop")
 
 #ifdef _OPENMP
       num_threads = omp_get_max_threads()
-      print *, "num_threads=", num_threads, "AD_CG"
-#else 
+#else
       num_threads=1
 #endif
 
     if(num_threads>1) then
        call find_linear_parent_mesh(state, t%mesh, vertex_mesh, stat)
        if (stat .ne. 0) then
-         FLAbort(" t CG parent mesh could not be found")
+          FLAbort(" t CG parent mesh could not be found")
        endif
 
        p0_mesh = piecewise_constant_mesh(vertex_mesh, "P0Mesh")
        ad_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, t%mesh)
        call colour_sparsity(ad_sparsity, p0_mesh, node_colour, no_colours)
 
-       if(.not. verify_colour_sparsity(ad_sparsity, node_colour)) then
-        FLAbort("The neighbours are using same colours, wrong!!.")
-       endif 
+       assert(verify_colour_sparsity(ad_sparsity, node_colour))
 
        allocate(clr_sets(no_colours))
        clr_sets=colour_sets(ad_sparsity, node_colour, no_colours)
-       PRINT *, "Temperature colouring passed"
+       ewrite(3,*)'Colouring passed in AD-CG'
     else
        no_colours = 1
        allocate(clr_sets(no_colours))
@@ -517,41 +515,26 @@ contains
       !$OMP PARALLEL DO DEFAULT(SHARED) &
       !$OMP SCHEDULE(STATIC) &
       !$OMP PRIVATE(nnid, ele)
-!!      !$OMP PRIVATE(equation_type, local_dt, dt_theta, theta, beta) &
- !!     !$OMP PRIVATE(stabilisation_scheme, nu_bar_scheme, nu_bar_scale)
- !!     !$OMP PRIVATE(density_theta)
-      element_loop: do nnid = 1, len 
-       ele = fetch(clr_sets(clr), nnid)       
-       call assemble_advection_diffusion_element_cg(ele, t, matrix, rhs, &
-                                positions, old_positions, new_positions, &
-                                         velocity, grid_velocity, &
-                                         source, absorption, diffusivity, &
-                                         density, olddensity, pressure)
+      element_loop: do nnid = 1, len
+         ele = fetch(clr_sets(clr), nnid)
+         call assemble_advection_diffusion_element_cg(ele, t, matrix, rhs, &
+              positions, old_positions, new_positions, &
+              velocity, grid_velocity, &
+              source, absorption, diffusivity, &
+              density, olddensity, pressure)
       end do element_loop
       !$OMP END PARALLEL DO
-
     end do colour_loop
 
     call deallocate(clr_sets)
     deallocate(clr_sets)
 
-#ifdef DDEBUG
-#ifdef _OPENMP
-!    call get_option("/timestepping/final_timestep", final_timestep)
-!    if(timestep .eq. final_timestep) then
-!!       print *, "dump bloody cg matrix"
-!       petsccsrmatix=csr2petsc_csr(matrix)
-!       call dump_petsc_csr_matrix(petsccsrmatix)
-!    endif
-#endif
-#endif
-
     if(num_threads > 1) then
        call deallocate(node_colour)
        call deallocate(p0_mesh)
     endif
-!    call profiler_toc("advection_diffusion_loop")
-    
+    call profiler_toc(t, "advection_diffusion_loop")
+
     ! as part of assembly include the already discretised optional source
     ! needed before applying direchlet boundary conditions
     call addto_rhs_extra_discretised_source(rhs, extra_discretised_source = extra_discretised_source)
