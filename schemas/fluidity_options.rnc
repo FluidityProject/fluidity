@@ -138,6 +138,8 @@ start =
             ## i.e. scale so the domain has an aspect ratio of 1:1, or 1:1:1.
             ## Note this option should not be used in conjunction with checkpointing (at present).
             element regularise_spatial_aspect {
+               comment
+            }?,
             ## Select to disable automatically using a discontinuous output
             ## mesh when there are discontinuous fields to output.
             element adhere_to_output_mesh_continuity {
