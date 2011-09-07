@@ -712,7 +712,7 @@ contains
            !  one. The positions mesh numbering will be adjusted accordingly.
            canonical_numbering=periodic_universal_ID_field(&
                 extract_scalar_field(states(1), 'CanonicalNumbering'), &
-                mesh)
+                periodic_position%mesh)
            call insert(states, canonical_numbering, "CanonicalNumbering")
            call deallocate(canonical_numbering)
            uid=>extract_scalar_field(states(1),"CanonicalNumbering")
