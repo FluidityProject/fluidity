@@ -1368,8 +1368,6 @@ contains
 
         ! find the matching boundary of this element
         do j=1, mesh%shape%numbering%boundaries
-           print *,mesh%ndglno( (ele-1)*nloc+ &
-                facet_dofs(mesh%shape, j))
            if (neigh(j)<=0 .or. internal_face) then
               if (SetContains(snodes, mesh%ndglno( (ele-1)*nloc+ &
                    facet_dofs(mesh%shape, j)))) exit

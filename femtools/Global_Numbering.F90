@@ -441,7 +441,7 @@ contains
       type(halo_type), dimension(:), intent(in) :: thalos
       
       type(integer_set), dimension(:,:), allocatable :: sends, receives
-      integer :: local_dofs, data_type, entity, h, k, p, rank
+      integer :: local_dofs, data_type, entity, h, hh, k, p, rank
 
       allocate(sends(size(thalos), size(thalos(1)%sends)), &
            receives(size(thalos), size(thalos(1)%receives)))
@@ -452,6 +452,12 @@ contains
 
       rank=getprocno()
       local_dofs=0
+
+      if (size(mesh%shape%entity2dofs(cell%dimension-1,1)%dofs)==0) then
+         data_type=HALO_TYPE_DG_NODE
+      else
+         data_type=HALO_TYPE_CG_NODE
+      end if
 
       do entity=1,size(visit_order)
          if (entity_owner(entity)==rank) then
@@ -480,16 +486,17 @@ contains
          end if
       end do
 
-      if (all(cell%entity_counts(:cell%dimension-1)==0)) then
-         data_type=HALO_TYPE_DG_NODE
-      else
-         data_type=HALO_TYPE_CG_NODE
-      end if
-
       do h=1,size(mesh%halos)
+         if (data_type==HALO_TYPE_CG_NODE) then
+            hh=h
+         else
+            ! DG case: all halos are level 2.
+            hh=2
+         end if
+
          call allocate(mesh%halos(h), &
-              nsends=key_count(sends(h,:)), &
-              nreceives=key_count(receives(h,:)), &
+              nsends=key_count(sends(hh,:)), &
+              nreceives=key_count(receives(hh,:)), &
               nowned_nodes=local_dofs, &
               data_type=data_type,&
               communicator=thalos(1)%communicator)
@@ -497,10 +504,10 @@ contains
          write(mesh%halos(h)%name,'(a,i0,a)') trim(mesh%name)//"Level",h,"Halo"
 
          do p=1,size(mesh%halos(h)%sends)
-            mesh%halos(h)%sends(p)%ptr=sorted(set2vector(sends(h,p)))
+            mesh%halos(h)%sends(p)%ptr=sorted(set2vector(sends(hh,p)))
          end do
          do p=1,size(mesh%halos(h)%receives)
-            mesh%halos(h)%receives(p)%ptr=sorted(set2vector(receives(h,p)))
+            mesh%halos(h)%receives(p)%ptr=sorted(set2vector(receives(hh,p)))
          end do
 
          call create_global_to_universal_numbering(mesh%halos(h))

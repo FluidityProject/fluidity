@@ -365,9 +365,18 @@ contains
     
     ! Since we have renumbered the elements, the element halo is now
     !  invalid.
-    call deallocate(mesh%element_halos)
-    call derive_element_halo_from_node_halo(mesh, &
-        & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+    if (associated(mesh%element_halos)) then
+       if (present(meshes)) then
+          do m=1, size(meshes)
+             mesh=>meshes(m)
+             call deallocate(mesh%element_halos)
+          end do
+       end if
+       call deallocate(mesh%element_halos)
+       call nullify(mesh%element_halos)
+       call derive_element_halo_from_node_halo(mesh, &
+            & ordering_scheme = HALO_ORDER_TRAILING_RECEIVES, create_caches = .true.)
+    end if
 
     if (present(meshes)) then
        do m=1, size(meshes)
@@ -378,11 +387,12 @@ contains
           call remove_eelist(mesh) 
           call add_eelist(mesh) 
           call add_faces(mesh, model=numbering%mesh)
-          call deallocate(mesh%element_halos)
-          do i=1,size(mesh%element_halos)
-             mesh%element_halos(i)=numbering%mesh%element_halos(i)
-             call incref(mesh%element_halos(i))
-          end do
+          if (associated(mesh%element_halos)) then
+             do i=1,size(mesh%element_halos)
+                mesh%element_halos(i)=numbering%mesh%element_halos(i)
+                call incref(mesh%element_halos(i))
+             end do
+          end if
        end do
     end if
 
