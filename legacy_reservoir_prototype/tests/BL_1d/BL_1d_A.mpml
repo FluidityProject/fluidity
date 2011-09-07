@@ -415,21 +415,6 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="Temperature" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
     <scalar_field name="InterpolatedAnalyticSaturation" rank="0">
       <prescribed>
         <mesh name="PressureMesh"/>
@@ -766,9 +751,6 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="Temperature" rank="0">
-      <aliased material_phase_name="phase1" field_name="Temperature"/>
     </scalar_field>
     <multiphase_properties>
       <relperm_type>

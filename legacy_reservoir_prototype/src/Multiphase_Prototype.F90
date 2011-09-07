@@ -30,7 +30,6 @@
 module mp_prototype
   ! Prototype modules
   use multiphase_mom_press_volf
-  use multiphase_field_advection
   use spact
   use printout
   
@@ -62,7 +61,7 @@ module mp_prototype
 
       !! Old variable declaration
 
-      integer :: problem, nphase, ncomp, totele, ndim, nlev, &
+      integer :: nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, x_snloc, stotel, &
            ncoef, nuabs_coefs, &
@@ -137,6 +136,8 @@ module mp_prototype
       integer :: nkcomp
 
       integer, parameter :: new_unit_debug = 304
+      
+      logical :: have_temperature_fields
 
       open( new_unit_debug, file = 'mirror_new.dat', status = 'unknown' )
 
@@ -145,7 +146,7 @@ module mp_prototype
       call copy_outof_state(state, &
            nonlinear_iterations, nonlinear_iteration_tolerance, &
                                 ! Begin here all the variables from read_scalar
-           problem, nphase, ncomp, totele, ndim, nlev, &
+           nphase, ncomp, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
            cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, mat_ndgln, &
@@ -187,7 +188,8 @@ module mp_prototype
            perm, K_Comp, &
            comp_diffusion, &
                                 ! Now adding other things which we have taken inside this routine to define
-           cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods, mat_nonods)
+           cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods, mat_nonods, &
+           have_temperature_fields)
 
       ! Test ground for sorting out memory problems
 
@@ -214,35 +216,6 @@ module mp_prototype
       ewrite(3,*) 'cv_ele_type', cv_ele_type
       ewrite(3,*) 'cv_sele_type', cv_sele_type
       ewrite(3,*) 'u_sele_type', u_sele_type
-      ! Mirroring Input dat
-      if( .true. ) call mirror_data( new_unit_debug, problem, nphase, ncomp, totele, ndim, nlev, &
-           u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, &
-           cv_snloc,  p_snloc, stotel, &
-           ncoef, nuabs_coefs, &
-           u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
-           cv_sele_type, u_sele_type, &
-           ntime, nits, ndpset, &
-           dt, patmos, p_ini, t_ini, &
-           t_beta, v_beta, t_theta, v_theta, u_theta, &
-           t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
-           u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
-           domain_length, u_snloc, mat_nloc, cv_nonods, u_nonods, &
-           p_nonods, mat_nonods, ncp_coefs, x_nonods, xu_nonods, &
-           nlenmcy, &
-           nopt_vel_upwind_coefs, &
-           u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, p_ndgln, &
-           mat_ndgln, u_sndgln, cv_sndgln, x_sndgln, p_sndgln, &
-           wic_vol_bc, wic_d_bc, wic_u_bc, wic_p_bc, wic_t_bc, & 
-           suf_vol_bc, suf_d_bc, suf_cpd_bc, suf_t_bc, suf_p_bc, &
-           wic_comp_bc, suf_comp_bc, &
-           suf_u_bc, &
-           suf_u_bc_rob1, suf_u_bc_rob2, &
-           opt_vel_upwind_coefs, &
-           x, xu, nu, ug, &
-           uabs_option, u_abs_stab, u_absorb, &
-           u_source, &
-           u,  &
-           den, satura, comp, p, cv_p, volfra_pore, perm )
 
       ! Variables in which the dimensions depend upon input data
       allocate( udiffusion( mat_nonods, ndim, ndim, nphase ))
@@ -333,16 +306,7 @@ module mp_prototype
       mx_nct = cv_nonods * ( 2 * u_nloc + 1 ) * ndim * nphase
       mx_nc = mx_nct  
 
-      ! select case( problem )
-      ! case( -2 ); ! CV-Adv (Cty)
-      !    mx_ncolcmc = ( 2 * cv_nloc + 1 ) * cv_nonods
-      ! case( -1 ); ! CV-Adv (DG)
-      !    mx_ncolcmc = ( 2 * cv_nloc + 1 ) * cv_nonods
-      ! case( 0 ); ! CV-Adv (Std)
-      !    mx_ncolcmc = ( 2 * cv_nloc + 3 ) * cv_nonods
-      ! case( 1, 2); ! BL-test1
       mx_ncolcmc = ( 2 * ( cv_nloc + 2 ) + 1 ) * cv_nonods
-      ! end select
 
       mx_ncoldgm_pha = mxnele * ( u_nloc * ndim )**2 * nphase + totele * ( u_nloc * ndim * nphase )**2
       mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc
@@ -383,62 +347,11 @@ module mp_prototype
            mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
            mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
            mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
-
-      Select Case( problem )
-
-      Case( : 0 ) ; ! CV-Adv test case: -2( Cty ), -1( DG ), 0( Std )
-
-         ! THIS CALL IS HARD WIRED TO EXPECT SPUD OPTION SOVLERS FROM
-         ! '/material_phase[0]/scalar_field::Temperature' 
-         ! SO THIS FIELD HAD BETTER EXIST WITHIN THE SIMULATION
-         call solve_multiphase_field_advection( state, problem, nphase, ncomp, totele, ndim, &
-              u_nloc, xu_nloc, cv_nloc, x_nloc, mat_nloc, &
-              cv_snloc, u_snloc, stotel, &
-              domain_length, &
-                                ! Element types
-              u_ele_type, p_ele_type, cv_ele_type, &
-              cv_sele_type, u_sele_type, &
-                                ! Total time loop and initialisation parameters
-              ntime, ntime_dump, nits, &
-              nits_flux_lim_volfra, nits_flux_lim_comp, &
-              dt,  &
-                                ! Discretisation parameters
-              t_beta, t_theta, t_disopt, t_dg_vel_int_opt, lump_eqns, &
-              volfra_use_theta_flux, volfra_get_theta_flux, &
-              opt_vel_upwind_coefs, nopt_vel_upwind_coefs, &
-              noit_dim, &
-              in_ele_upwind, dg_ele_upwind, &
-                                ! Total nodes for different meshes
-              cv_nonods, u_nonods, mat_nonods, x_nonods, &
-              u_ndgln, xu_ndgln, cv_ndgln, x_ndgln, &
-              mat_ndgln, u_sndgln, cv_sndgln, &
-                                ! Boundary conditions and surface elements
-              wic_d_bc, wic_u_bc, wic_t_bc, &
-              suf_d_bc, suf_t_bc, suf_u_bc, suf_v_bc, suf_w_bc, &
-              suf_t_bc_rob1, suf_t_bc_rob2, &
-                                ! Positions and grid velocities
-              x, y, z, nu, nv, nw, ug, vg, wg, &
-                                ! Absorption and source terms and coefficients
-              t_absorb, t_source, &
-                                ! Diffusion parameters
-              tdiffusion, &
-                                ! Scalar fields
-             ! t, p, cv_one, volfra_pore, deriv, &
-              t, p, den, volfra_pore, deriv, &
-              told, nuold, nvold, nwold, &
-                                ! Matrices sparsity
-              mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
-              mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
-              ncolm, findm, colm, midm, & ! CV-FEM matrix
-              mxnele, ncolele, finele, colele, &  ! Element connectivity 
-              option_path = '/material_phase[0]/scalar_field::Temperature')
-
-      Case( 1,2 ); 
       
-         ewrite(3,*) 'mat_nloc, mat_nonods: ', mat_nloc, mat_nonods
-         ewrite(3,*) 'mat_ndgln: ', mat_ndgln
+      ewrite(3,*) 'mat_nloc, mat_nonods: ', mat_nloc, mat_nonods
+      ewrite(3,*) 'mat_ndgln: ', mat_ndgln
 
-         call solve_multiphase_mom_press_volf( state, nphase, ncomp, totele, ndim, &
+      call solve_multiphase_mom_press_volf( state, nphase, ncomp, totele, ndim, &
                                 ! Nodes et misc
               u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
               cv_snloc, u_snloc, p_snloc, stotel, &
@@ -498,9 +411,8 @@ module mp_prototype
               mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
               mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
               mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
-              mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
-
-      end Select
+              mx_ncolm, ncolm, findm, colm, midm, & ! CV-FEM matrix
+              have_temperature_fields, cv_one ) 
 
       ewrite(3,*) 'Leaving multiphase_prototype'
 

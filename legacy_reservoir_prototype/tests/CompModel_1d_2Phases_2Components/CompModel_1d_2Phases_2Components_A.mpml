@@ -135,7 +135,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -251,7 +251,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -366,7 +366,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -510,7 +510,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -625,7 +625,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -675,6 +675,11 @@
       <alpha_beta>
         <real_value rank="0">1.</real_value>
       </alpha_beta>
+      <KComp_Sigmoid>
+        <k_comp>
+          <real_value rank="0">4.5</real_value>
+        </k_comp>
+      </KComp_Sigmoid>
       <Comp_Sum2One/>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
@@ -709,7 +714,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -774,7 +779,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -816,6 +821,11 @@
       <alpha_beta>
         <real_value rank="0">1.</real_value>
       </alpha_beta>
+      <KComp_Sigmoid>
+        <k_comp>
+          <real_value rank="0">0.2</real_value>
+        </k_comp>
+      </KComp_Sigmoid>
       <Comp_Sum2One/>
     </is_multiphase_component>
     <vector_field name="Velocity" rank="1">
@@ -850,7 +860,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
@@ -915,7 +925,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">500</integer_value>
+            <integer_value rank="0">1000</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>

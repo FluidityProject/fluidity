@@ -58,7 +58,7 @@ module copy_outof_into_state
     subroutine copy_outof_state(state, &
          nonlinear_iterations, nonlinear_iteration_tolerance, &
                                 ! Begin here all the variables from read_scalar
-         problem, nphases, ncomps, totele, ndim, nlev, &
+         nphases, ncomps, totele, ndim, nlev, &
          u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
          cv_snloc, u_snloc, p_snloc, stotel, &
          cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, mat_ndgln, &
@@ -101,9 +101,12 @@ module copy_outof_into_state
          perm, K_Comp, &
          comp_diffusion, &
                                 ! Now adding other things which we have taken inside this routine to define
-         cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods, mat_nonods)
+         cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods, mat_nonods, &
+         have_temperature_fields)
 
       type(state_type), dimension(:), intent(inout) :: state
+      
+      logical, intent(inout) :: have_temperature_fields
       
       ! coordinate, velocity and pressure meshes
       type(mesh_type), pointer :: cmesh => null()
@@ -156,7 +159,7 @@ module copy_outof_into_state
       !! derived from information in state:
 
       ! Scalars (from read_scalar())
-      integer :: problem, nphases, ncomps, totele, ndim, nlev, &
+      integer :: nphases, ncomps, totele, ndim, nlev, &
            u_nloc, xu_nloc, cv_nloc, x_nloc, p_nloc, mat_nloc, &
            cv_snloc, u_snloc, p_snloc, stotel, &
            ncoef, nuabs_coefs, &
@@ -230,7 +233,6 @@ module copy_outof_into_state
       
       ewrite(3,*) 'In copy_outof_state'
 
-      problem = 1
       nlev = 3
 
       nstates = option_count("/material_phase")
@@ -494,16 +496,6 @@ module copy_outof_into_state
       ! These aren't used 
       cv_sele_type = 1
       u_sele_type = 1
-      
-      ! This is not a good way to do this. If there is one phase 
-      ! then momentum needs solving also, not just a 'field' transport.
-      if( nphases == 1 ) then
-         problem = 0 ! one field advection (continuous)
-         if( pmesh%continuity < 0 ) problem = -1 ! one field advection (discontinuous)
-         p_ele_type = 1
-         cv_ele_type = 1
-         u_ele_type = 1
-      end if
 
       allocate(cv_sndgln(stotel*cv_snloc))
       allocate(p_sndgln(stotel*p_snloc))
@@ -1316,16 +1308,20 @@ module copy_outof_into_state
          endif
       enddo
 
-      ewrite(3,*) 'Getting dummy temperature field'
-      if ( nscalar_fields > 2 ) then ! we might have an extra scalar_field so might need t
-         ! Assuming that it's a temperature field
+      ewrite(3,*) 'Getting temperature field'
+      
+      allocate( t( cv_nonods * nphases ))
+      t = 0.0
+      
+      if ( nscalar_fields > 2 ) then 
+      
          Conditional_ExtraScalarField: if( have_option( "/material_phase[0]/" // &
               "scalar_field::Temperature" ))then
-
+            
+            have_temperature_fields = .true.
+            
             Loop_Temperature: do i = 1, nphases
                scalarfield => extract_scalar_field(state(i), "Temperature")
-
-               if (.not.allocated(t)) allocate( t( cv_nonods * nphases ))
 
                t_ele_loop: do k = 1,element_count(scalarfield)
             
@@ -1392,8 +1388,12 @@ module copy_outof_into_state
 
                endif Conditional_Temperature_BC
 
-            enddo Loop_Temperature
-
+            end do Loop_Temperature
+         
+         else 
+         
+            have_temperature_fields = .false.
+         
          end if Conditional_ExtraScalarField
 
       end if
@@ -1459,11 +1459,11 @@ module copy_outof_into_state
       end if
 
       allocate( comp_diffusion( cv_nloc*totele, ndim, ndim, nphases ))
-      comp_diffusion=0.
+      comp_diffusion=0.0
       allocate( comp_diff_coef( ncomps, ncomp_diff_coef, nphases ))
-      comp_diff_coef=0.
+      comp_diff_coef=0.0
       allocate( cv_one( nphases * cv_nonods ))
-      cv_one = 0.
+      cv_one = 1.0
 
       ewrite(3,*) "Leaving copy_outof_state"
 
@@ -1471,6 +1471,7 @@ module copy_outof_into_state
 
     subroutine copy_into_state(state, &
                                proto_saturations, &
+                               proto_temperatures, &
                                proto_pressure, &
                                proto_velocity_u, &
                                proto_velocity_v, &
@@ -1488,6 +1489,7 @@ module copy_outof_into_state
       
       type(state_type), dimension(:), intent(inout) :: state
       real, dimension(:), intent(in) :: proto_saturations
+      real, dimension(:), intent(in) :: proto_temperatures      
       real, dimension(:), intent(in) :: proto_pressure
       real, dimension(:), intent(in) :: proto_velocity_u
       real, dimension(:), intent(in) :: proto_velocity_v
@@ -1509,6 +1511,7 @@ module copy_outof_into_state
       integer :: nloc
       integer, dimension(:), pointer :: element_nodes => null()
       type(scalar_field), pointer :: phasevolumefraction => null()
+      type(scalar_field), pointer :: phasetemperature => null()      
       type(scalar_field), pointer :: pressure => null()
       type(vector_field), pointer :: velocity => null()
       type(scalar_field), pointer :: density => null()
@@ -1548,6 +1551,32 @@ module copy_outof_into_state
             end do volf_node_loop
             
          end do volf_ele_loop
+
+         phasetemperature => extract_scalar_field(state(p), "Temperature", stat=stat)
+         
+         found_temp: if (stat == 0) then 
+            
+            ewrite(1,*) 'In copy in to state and found temperature for phase ',p
+                     
+            number_nodes = node_count(phasetemperature)
+         
+            temp_ele_loop: do i = 1,element_count(phasetemperature)
+            
+               element_nodes => ele_nodes(phasetemperature,i)
+            
+               nloc = size(element_nodes)
+            
+               temp_node_loop: do j = 1,nloc
+               
+                  call set(phasetemperature, &
+                           element_nodes(j), &
+                           proto_temperatures((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+            
+               end do temp_node_loop
+            
+            end do temp_ele_loop
+         
+         end if found_temp
          
          density => extract_scalar_field(state(p), "Density", stat=stat)
          

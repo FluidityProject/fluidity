@@ -1,13 +1,13 @@
 SHELL = sh
 
-SIM = Advection_1d
+SIM = Advection_1D
 
 # options for 1d mesh interval script for different mesh resolutions
 LEFT_X    = 0.0
 RIGHT_X   = 1.0
 
-MESH_SIZE_A = 0.1
-MESH_SIZE_B = 0.05
+MESH_SIZE_A = 0.01
+MESH_SIZE_B = 0.005
 
 input: clean
 	@echo "Running INTERVAL script for $(SIM)"
