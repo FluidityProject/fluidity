@@ -251,6 +251,7 @@ contains
     type(scalar_field) :: l_model
     type(vector_field) :: v_model(3)
     type(tensor_field) :: t_model
+    real, dimension(position%dim) :: spatialextent
     logical :: dgify_fields ! should we DG-ify the fields -- make them discontinous?
     integer, allocatable, dimension(:)::ghost_levels
     real, allocatable, dimension(:,:) :: tempval
@@ -450,6 +451,24 @@ contains
     do i=1, position%dim
       v_field_buffer(:,i)=v_model(position%dim)%val(i,:)
     end do
+
+    ! Regularise the domain so all spatial extents are of the same length
+    ! (the smallest of the spatial extents)
+    ! i.e. scale so the domain has an aspect ratio of 1:1, or 1:1:1
+    if (have_option("/io/regularise_spatial_aspect")) then
+      spatialextent = 1.0
+      do i=1, position%dim
+        spatialextent(i) = abs(  maxval( v_model(position%dim)%val(i,:) ) - minval( v_model(position%dim)%val(i,:) ) )
+        ewrite(3,*) "Spatial: ", minval( v_model(position%dim)%val(i,:) ),  maxval( v_model(position%dim)%val(i,:) )
+      end do
+      ewrite(3,*) "Regularised spatial aspect, spatial extents: ", spatialextent
+      spatialextent(:) = minval(spatialextent(:)) / spatialextent(:)
+      ewrite(3,*) "Regularised spatial aspect, spatial scalings: ", spatialextent
+      do i=1, position%dim
+        v_field_buffer(:,i)= spatialextent(i) * v_field_buffer(:,i)
+      end do
+    end if
+
     do i=position%dim+1, 3
       v_field_buffer(:,i)=0.0
     end do
