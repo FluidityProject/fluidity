@@ -655,7 +655,7 @@ contains
             PETSC_TRUE, ierr)
     end if
   end subroutine set_local_assembly
-       
+
   pure function petsc_csr_block_size(matrix, dim)
     !!< size of each block
     integer :: petsc_csr_block_size
