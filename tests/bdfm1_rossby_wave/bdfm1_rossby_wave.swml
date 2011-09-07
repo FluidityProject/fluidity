@@ -134,10 +134,11 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">79.95683520871486</real_value>
+      <real_value rank="0">19.989208802178716</real_value>
       <comment>speed = 2*pi/(1+8*pi**2)
 distance = 2*pi
-time = distance/speed = (1+8*pi**2)</comment>
+time = distance/speed = (1+8*pi**2)
+divided by 4</comment>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -263,6 +264,11 @@ time = distance/speed = (1+8*pi**2)</comment>
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="InitialLayerThickness" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+      </diagnostic>
+    </scalar_field>
     <scalar_field name="Streamfunction" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
@@ -305,6 +311,26 @@ time = distance/speed = (1+8*pi**2)</comment>
           <exists_in_forward/>
         </adjoint_storage>
       </prescribed>
+    </scalar_field>
+    <scalar_field rank="0">
+      <diagnostic>
+        <algorithm name="scalar_sum" source_field_1_name="LayerThickness" source_field_2_name="InitialLayerThickness" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
     </scalar_field>
   </material_phase>
   <debug>
