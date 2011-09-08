@@ -66,20 +66,20 @@ module multiphase_diagnostics
          type(vector_field), pointer :: u_continuous, u_particle
          type(vector_field), pointer :: x
          type(tensor_field), pointer :: viscosity
-         type(scalar_field), pointer :: density
+         type(scalar_field), pointer :: density, vfrac
 
          ! Counters over the elements and Gauss points
          integer :: ele, gi
          ! Transformed quadrature weights.
          real, dimension(ele_ngi(s_field, 1)) :: detwei
-         ! Inverse of the local coordinate change matrix.
-         real, dimension(mesh_dim(s_field), mesh_dim(s_field), ele_ngi(s_field, 1)) :: J
 
          ! Field values at each quadrature point.
-         real, dimension(mesh_dim(s_field), ele_ngi(s_field, 1)) :: particle_re_gi
+         real, dimension(ele_ngi(s_field, 1)) :: particle_re_gi
          real, dimension(mesh_dim(s_field), ele_ngi(s_field, 1)) :: u_continuous_gi, u_particle_gi
          real, dimension(mesh_dim(s_field), mesh_dim(s_field), ele_ngi(s_field, 1)) :: viscosity_gi
-         real, dimension(ele_ngi(s_field, 1)) :: density_gi
+         real, dimension(ele_ngi(s_field, 1)) :: density_gi, vfrac_gi
+
+         real, dimension(:), allocatable :: magnitude ! |v_f - v_p|
 
          ! Current element global node numbers.
          integer, dimension(:), pointer :: particle_re_nodes
@@ -111,36 +111,44 @@ module multiphase_diagnostics
          x => extract_vector_field(states(state_index), "Coordinate")
          viscosity => extract_tensor_field(states(continuous_state_index), "Viscosity")
          density => extract_scalar_field(states(continuous_state_index), "Density")
+         vfrac => extract_scalar_field(states(continuous_state_index), "PhaseVolumeFraction")
 
          ! Loop through and integrate over each element
          do ele = 1, element_count(s_field)
 
+            allocate(magnitude(ele_ngi(u_continuous,ele)))
+
             particle_re_nodes => ele_nodes(s_field, ele)
             particle_re_shape => ele_shape(s_field, ele)
 
-            call compute_jacobian(ele_val(x,ele), ele_shape(x,ele), J=J, detwei=detwei)
+            call transform_to_physical(x, ele, detwei = detwei)
 
             ! Calculate the particle_re number at each quadrature point.
             u_particle_gi = ele_val_at_quad(u_particle, ele)
             u_continuous_gi = ele_val_at_quad(u_continuous, ele)
             viscosity_gi = ele_val_at_quad(viscosity, ele)
             density_gi = ele_val_at_quad(density, ele)
-            do gi = 1, size(detwei)
-               particle_re_gi(:,gi) = matmul(u_continuous_gi(:,gi) - u_particle_gi(:,gi), J(:,:,gi))
+            vfrac_gi = ele_val_at_quad(vfrac, ele)
 
-               ! Divide through by the viscosity of the particle
-               particle_re_gi(:,gi) = matmul(inverse(viscosity_gi(:,:,gi)), particle_re_gi(:,gi)) 
+            do gi = 1, ele_ngi(u_continuous, ele)
+               magnitude(gi) = norm2(u_continuous_gi(:,gi) - u_particle_gi(:,gi))
             end do
+
+            ! Compute the particle Reynolds number
+            ! (Assumes isotropic viscosity for now)
+            particle_re_gi = (vfrac_gi*density_gi*magnitude*d) / viscosity_gi(1,1,:)
 
             ! Invert the mass matrix to get the particle_re value at each node
             particle_re_mat = matmul(inverse(shape_shape(particle_re_shape, particle_re_shape, detwei)), &
-                  shape_shape(particle_re_shape, particle_re_shape, detwei*d*density_gi*maxval(abs(particle_re_gi),1)))
+                  shape_shape(particle_re_shape, particle_re_shape, detwei*particle_re_gi))
 
             ! (Taken from the GridReynoldsNumber field above)
             ! particle_re is inherently discontinuous. In the case where a continuous
             ! mesh is provided for particle_re, the following takes the safest option
             ! of taking the maximum value at a node.
             s_field%val(particle_re_nodes) = max(s_field%val(particle_re_nodes), sum(particle_re_mat,2))
+
+            deallocate(magnitude)
 
          end do
 
