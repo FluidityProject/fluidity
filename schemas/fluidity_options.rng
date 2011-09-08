@@ -15,6 +15,7 @@
   <include href="temporal_discretisation.rng"/>
   <include href="embedded_models.rng"/>
   <include href="radiation.rng"/>
+  <include href="flredecomp.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -2772,6 +2773,9 @@ Y3D FEMDEM mesh format only supported.</a:documentation>
       </optional>
       <optional>
         <ref name="embedded_models"/>
+      </optional>
+      <optional>
+        <ref name="flredecomp"/>
       </optional>
     </element>
   </start>
