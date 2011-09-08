@@ -215,7 +215,12 @@ contains
          entity=entity+entity_counts(mesh_dim(mesh))
       end if
 
+#ifdef DDEBUG
+      if (.not.have_facets.and.mesh_dim(mesh)==2) then
+         entity=entity+entity_counts(1)
+      end if
       assert(sum(entity_counts)==entity)
+#endif
 
     end subroutine number_topology
 

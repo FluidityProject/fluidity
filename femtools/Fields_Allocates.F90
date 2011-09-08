@@ -1706,7 +1706,8 @@ contains
     integer, dimension(:), allocatable:: nod2sufnod
     integer, dimension(mesh%faces%shape%ndof):: glnodes
     integer i, j, sele, sufnod, snloc
-    
+    type(mesh_type), pointer :: topology
+
     snloc=mesh%faces%shape%ndof
     
     if (present(surface_elements)) then
@@ -1765,7 +1766,10 @@ contains
     if (.not. present(surface_elements)) then
        deallocate(lsurface_elements)
     end if
-  
+    
+    topology=>mesh_topology(mesh)
+    surface_mesh%topology=>topology%faces%surface_mesh
+
   end subroutine create_surface_mesh
     
   logical function SetContains(a, b)
