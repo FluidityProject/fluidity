@@ -524,8 +524,7 @@
               <string_value lines="20" type="python">def val(X,t):
   import random
   random.seed()
-  return 2.01804273504e-7 + random.uniform(-9.4966666666e-08, 5.9354320988e-08)
-  </string_value>
+  return random.uniform(1.06837606838e-07, 2.61158594492e-07)</string_value>
               <comment>Flux rate is between 0.09 and 0.22 g/cm^2/hr.</comment>
             </python>
           </type>
@@ -558,7 +557,7 @@
     </scalar_field>
     <scalar_field name="SumVelocityDivergence" rank="0">
       <diagnostic>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <integrate_divergence_by_parts/>
         <output/>
