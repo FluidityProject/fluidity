@@ -491,10 +491,6 @@ contains
     mesh => extract_mesh(state,"VelocityMesh")
     call melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
 
-    TT=> extract_scalar_field(state,"Tb")
-        
-  
-    
     TT=> extract_scalar_field(state,"Temperature")
     SS=> extract_scalar_field(state,"Salinity")
     velocity => extract_vector_field(state,"Velocity")     
