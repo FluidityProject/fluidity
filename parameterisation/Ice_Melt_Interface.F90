@@ -461,7 +461,6 @@ contains
     integer                             :: i, the_node
     real                                :: Tz,Sz
     real                                :: Kt,Ks
-    real                                :: Kt_ar(3), Ks_ar(3)
     character(len=OPTION_PATH_LEN)      :: option_path
 
     type(mesh_type), pointer            :: mesh
@@ -532,13 +531,6 @@ contains
       call allocate(salt_flux_vel,SS%mesh,"MySaltFluxSurfaceMesh")
       call set(salt_flux_vel,0.0)
       call remap_field(Sflux,salt_flux_vel,stat)  
-
-      call get_option(trim(option_path)//'/Kt_x', Kt_ar(1)) 
-      call get_option(trim(option_path)//'/Kt_y', Kt_ar(2)) 
-      call get_option(trim(option_path)//'/Kt_z', Kt_ar(3)) 
-      call get_option(trim(option_path)//'/Ks_x', Ks_ar(1)) 
-      call get_option(trim(option_path)//'/Ks_y', Ks_ar(2)) 
-      call get_option(trim(option_path)//'/Ks_z', Ks_ar(3)) 
 
       ! create a surface mesh to place values onto. This is for the top surface
       call get_boundary_condition(TT, 'temperature_iceshelf_BC', surface_mesh=ice_mesh) 

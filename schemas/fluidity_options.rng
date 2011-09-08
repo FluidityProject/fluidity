@@ -8200,37 +8200,6 @@ for the interface melt parameterisation</a:documentation>
                     </choice>
                   </element>
                   <optional>
-                    <element name="Kt_x">
-                      <a:documentation>This is for specifying Kt and Ks</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="Kt_y">
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="Kt_z">
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="Ks_x">
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="Ks_y">
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="Ks_z">
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                  <optional>
                     <element name="bc_value_temperature">
                       <a:documentation>This is for testing the BC implementation on ice-ocean ice-ocean interface. 
 By setting this value, the temperature of ice-ocean interface is fixed to this value.</a:documentation>
