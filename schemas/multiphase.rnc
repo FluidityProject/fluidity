@@ -1906,8 +1906,7 @@ scalar_field_choice =
                element prognostic {
                   velocity_mesh_choice,
                   prognostic_scalar_field,
-                  cap_option?,
-                  flux_limiter_iterations?
+                  cap_option?
                }|
                element prescribed {
                   velocity_mesh_choice,
@@ -1935,8 +1934,7 @@ scalar_field_choice =
                element prognostic {
                   velocity_mesh_choice,
                   prognostic_scalar_field,
-                  cap_option?,
-                  flux_limiter_iterations?
+                  cap_option?
                }|
                element prescribed {
                   velocity_mesh_choice,
@@ -1964,8 +1962,7 @@ scalar_field_choice =
                element prognostic {
                   velocity_mesh_choice,
                   prognostic_scalar_field,
-                  cap_option?,
-                  flux_limiter_iterations?
+                  cap_option?
                }|
                element prescribed {
                   velocity_mesh_choice,
@@ -1993,8 +1990,7 @@ scalar_field_choice =
                element prognostic {
                   velocity_mesh_choice,
                   prognostic_scalar_field,
-                  cap_option?,
-                  flux_limiter_iterations?
+                  cap_option?
                }|
                element prescribed {
                   velocity_mesh_choice,
@@ -2022,8 +2018,7 @@ scalar_field_choice =
                element prognostic {
                   velocity_mesh_choice,
                   prognostic_scalar_field,
-                  cap_option?,
-                  flux_limiter_iterations?
+                  cap_option?
                }|
                element prescribed {
                   velocity_mesh_choice,
@@ -2941,12 +2936,6 @@ cap_option =
             real
          }?
       }
-   )
-   
-flux_limiter_iterations =
-   (
-     ## Number of iterations for the multiphase flux limiter
-     element max_iterations_flux_limiter { integer }
    )
 
 limiter_options =

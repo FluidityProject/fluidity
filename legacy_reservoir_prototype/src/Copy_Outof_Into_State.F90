@@ -71,10 +71,11 @@ module copy_outof_into_state
          t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
          u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
          capil_pres_opt, ncapil_pres_coef, comp_diffusion_opt, ncomp_diff_coef, &
-         patmos, p_ini, t_ini, t_beta, v_beta, t_theta, v_theta, &
+         patmos, p_ini, t_beta, v_beta, t_theta, v_theta, &
          u_theta, domain_length, &
          lump_eqns, volfra_use_theta_flux, volfra_get_theta_flux, &
          comp_use_theta_flux, comp_get_theta_flux, &
+         t_use_theta_flux, t_get_theta_flux, &
                                 ! Now the variables from read_all
          in_ele_upwind, dg_ele_upwind, &
          Mobility, alpha_beta, &
@@ -102,7 +103,7 @@ module copy_outof_into_state
          comp_diffusion, &
                                 ! Now adding other things which we have taken inside this routine to define
          cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods, mat_nonods, &
-         have_temperature_fields)
+         have_temperature_fields, nits_flux_lim_t)
 
       type(state_type), dimension(:), intent(inout) :: state
       
@@ -135,7 +136,7 @@ module copy_outof_into_state
       type(vector_field), pointer :: positions
       type(vector_field) :: cv_positions
 
-      integer :: i, j, k, l, nscalar_fields, cv_nonods, p_nonods, mat_nonods, &
+      integer :: i, j, k, l, cv_nonods, p_nonods, mat_nonods, &
            x_nonods, xu_nonods, u_nonods, cv_nod, u_nod, xu_nod, x_nod, mat_nod, &
            shared_nodes, u_nloc2
 
@@ -167,18 +168,18 @@ module copy_outof_into_state
            cv_sele_type, u_sele_type
 
       integer :: nits, nits_internal, ndpset, noit_dim, &
-           nits_flux_lim_volfra, nits_flux_lim_comp
+           nits_flux_lim_volfra, nits_flux_lim_comp, nits_flux_lim_t
 
       integer :: t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
            u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt
 
       integer :: capil_pres_opt, ncapil_pres_coef, comp_diffusion_opt, ncomp_diff_coef
 
-      real :: patmos, p_ini, t_ini, t_beta, v_beta, t_theta, v_theta, &
+      real :: patmos, p_ini, t_beta, v_beta, t_theta, v_theta, &
            u_theta, domain_length
 
       logical :: lump_eqns, volfra_use_theta_flux, volfra_get_theta_flux, &
-           comp_use_theta_flux, comp_get_theta_flux
+           comp_use_theta_flux, comp_get_theta_flux, t_use_theta_flux, t_get_theta_flux
 
 
       ! Others (from read_all())
@@ -555,12 +556,16 @@ module copy_outof_into_state
       ! a mystery
       ndpset = 0
       noit_dim = 5
-
+      
+      ! Get the number of advection CV face value iterations.
       call get_option("/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/" // &
-           "max_iterations_flux_limiter", nits_flux_lim_volfra, default=3)
+           "temporal_discretisation/control_volumes/number_advection_iterations", nits_flux_lim_volfra, default=3)
+      
       call get_option("/material_phase[" // int2str(nphases) // "]/scalar_field::ComponentMassFractionPhase1/" // &
-           "prognostic/max_iterations_flux_limiter", nits_flux_lim_comp, default=3)
-
+           "temporal_discretisation/control_volumes/number_advection_iterations", nits_flux_lim_comp, default=3)
+      
+      call get_option("/material_phase[0]/scalar_field::Temperature/prognostic/" // &
+           "temporal_discretisation/control_volumes/number_advection_iterations", nits_flux_lim_t, default=3)
 
       !! disopt options: going to need to change the schema I think
       !       =0      1st order in space          Theta=specified    UNIVERSAL
@@ -624,21 +629,15 @@ module copy_outof_into_state
       call get_option('/material_phase[0]/scalar_field::Pressure/prognostic/&
            &initial_condition::WholeMesh/constant',p_ini, default=0.0)
 
-      nscalar_fields = option_count("/material_phase[0]/scalar_field")      
-
-      t_ini = 0.0
-      if (nscalar_fields>2) then ! we might have an extra scalar_field so might need t
-         call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
-              'spatial_discretisation/conservative_advection', t_beta, default=0.)
-      end if
+      call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+           'spatial_discretisation/conservative_advection', t_beta, default=0.5)
 
       call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
            'spatial_discretisation/conservative_advection', v_beta)
 
-      if (nscalar_fields>2) then ! we might have an extra scalar_field so might need t
-         call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
-              'temporal_discretisation/theta', t_theta, default=0.)
-      end if
+      call get_option('/material_phase[0]/scalar_field::Temperature/prognostic/' // &
+           'temporal_discretisation/theta', t_theta, default=0.5)
+
       call get_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
            'temporal_discretisation/theta', v_theta)
       call get_option('/material_phase[0]/vector_field::Velocity/prognostic/' // &
@@ -652,6 +651,8 @@ module copy_outof_into_state
       volfra_get_theta_flux = .TRUE.
       comp_use_theta_flux = .FALSE.
       comp_get_theta_flux = .TRUE.
+      t_use_theta_flux = .FALSE.
+      t_get_theta_flux = .TRUE.
 
       ewrite(3,*) 'Finished stuff from read_scalar'
 
@@ -1312,9 +1313,7 @@ module copy_outof_into_state
       
       allocate( t( cv_nonods * nphases ))
       t = 0.0
-      
-      if ( nscalar_fields > 2 ) then 
-      
+            
          Conditional_ExtraScalarField: if( have_option( "/material_phase[0]/" // &
               "scalar_field::Temperature" ))then
             
@@ -1395,8 +1394,6 @@ module copy_outof_into_state
             have_temperature_fields = .false.
          
          end if Conditional_ExtraScalarField
-
-      end if
 
       ewrite(3,*) 'Getting component source'
       allocate(comp_source(cv_nonods*nphases))

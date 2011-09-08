@@ -2318,9 +2318,6 @@ Required in porous_media and multiphase problem types</a:documentation>
             <optional>
               <ref name="cap_option"/>
             </optional>
-            <optional>
-              <ref name="flux_limiter_iterations"/>
-            </optional>
           </element>
           <element name="prescribed">
             <ref name="velocity_mesh_choice"/>
@@ -2358,9 +2355,6 @@ mass fraction with a particular phase</a:documentation>
             <ref name="prognostic_scalar_field"/>
             <optional>
               <ref name="cap_option"/>
-            </optional>
-            <optional>
-              <ref name="flux_limiter_iterations"/>
             </optional>
           </element>
           <element name="prescribed">
@@ -2400,9 +2394,6 @@ mass fraction with a particular phase</a:documentation>
             <optional>
               <ref name="cap_option"/>
             </optional>
-            <optional>
-              <ref name="flux_limiter_iterations"/>
-            </optional>
           </element>
           <element name="prescribed">
             <ref name="velocity_mesh_choice"/>
@@ -2441,9 +2432,6 @@ mass fraction with a particular phase</a:documentation>
             <optional>
               <ref name="cap_option"/>
             </optional>
-            <optional>
-              <ref name="flux_limiter_iterations"/>
-            </optional>
           </element>
           <element name="prescribed">
             <ref name="velocity_mesh_choice"/>
@@ -2481,9 +2469,6 @@ mass fraction with a particular phase</a:documentation>
             <ref name="prognostic_scalar_field"/>
             <optional>
               <ref name="cap_option"/>
-            </optional>
-            <optional>
-              <ref name="flux_limiter_iterations"/>
             </optional>
           </element>
           <element name="prescribed">
@@ -3604,12 +3589,6 @@ Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
           <ref name="real"/>
         </element>
       </optional>
-    </element>
-  </define>
-  <define name="flux_limiter_iterations">
-    <element name="max_iterations_flux_limiter">
-      <a:documentation>Number of iterations for the multiphase flux limiter</a:documentation>
-      <ref name="integer"/>
     </element>
   </define>
   <define name="limiter_options">

@@ -395,9 +395,6 @@
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
-        <max_iterations_flux_limiter>
-          <integer_value rank="0">1</integer_value>
-        </max_iterations_flux_limiter>
       </prognostic>
     </scalar_field>
     <scalar_field name="Temperature" rank="0">
@@ -738,9 +735,6 @@
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
-        <max_iterations_flux_limiter>
-          <integer_value rank="0">1</integer_value>
-        </max_iterations_flux_limiter>
       </prognostic>
     </scalar_field>
     <scalar_field material_phase_name="phase2" name="ComponentMassFractionPhase2" rank="0">

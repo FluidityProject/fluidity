@@ -119,7 +119,7 @@ contains
        mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
        mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
        mx_ncolm, ncolm, findm, colm, midm, & ! CV-FEM matrix
-       have_temperature_fields, cv_one )
+       have_temperature_fields, cv_one, nits_flux_lim_t, t_use_theta_flux, t_get_theta_flux )
        
     implicit none
     
@@ -144,6 +144,7 @@ contains
     integer, intent( in ) :: t_disopt, t_dg_vel_int_opt
     logical, intent( in ) :: lump_eqns
     logical, intent( inout ) :: volfra_use_theta_flux, volfra_get_theta_flux, comp_use_theta_flux, comp_get_theta_flux
+    logical, intent( inout ) :: t_use_theta_flux, t_get_theta_flux    
     integer, intent( in ) :: nopt_vel_upwind_coefs
     real, dimension( nopt_vel_upwind_coefs ), intent( inout ) :: opt_vel_upwind_coefs
     integer, intent( in ) :: noit_dim
@@ -243,6 +244,7 @@ contains
     
     logical, intent(in) :: have_temperature_fields
     real, dimension( cv_nonods * nphase ), intent( inout ) :: cv_one
+    integer, intent(in) :: nits_flux_lim_t
     
     ! Local variables
     real :: acctim ! Accumulated time
@@ -404,11 +406,11 @@ contains
                NCOLM, FINDM, COLM, MIDM, &
                XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
                OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, T_FEMT, CV_ONE, &
-               IGOT_T2,T,TOLD, IGOT_THETA_FLUX, SCVNGI_THETA, VOLFRA_GET_THETA_FLUX, VOLFRA_USE_THETA_FLUX, &
+               IGOT_T2,T,TOLD, IGOT_THETA_FLUX, SCVNGI_THETA, T_GET_THETA_FLUX, T_USE_THETA_FLUX, &
                T, T, T, &
                SUF_T_BC, SUF_T_BC_ROB1, SUF_T_BC_ROB2, WIC_T_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
                NOIT_DIM, &
-               NITS_FLUX_LIM_COMP, &
+               nits_flux_lim_t, &
                MEAN_PORE_CV, &
                option_path = '/material_phase[0]/scalar_field::Temperature' )
                

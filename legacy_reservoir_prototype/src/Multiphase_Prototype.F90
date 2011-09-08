@@ -69,9 +69,9 @@ module mp_prototype
            cv_sele_type, u_sele_type
 
       integer :: ntime, ntime_dump, nits, nits_internal, ndpset, noit_dim, &
-           nits_flux_lim_volfra, nits_flux_lim_comp
+           nits_flux_lim_volfra, nits_flux_lim_comp, nits_flux_lim_t
 
-      real :: patmos, p_ini, t_ini, t_beta, v_beta, t_theta, v_theta, &
+      real :: patmos, p_ini, t_beta, v_beta, t_theta, v_theta, &
            u_theta, domain_length, Mobility
 
       integer :: t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
@@ -79,7 +79,8 @@ module mp_prototype
            nopt_vel_upwind_coefs
 
       logical :: lump_eqns, volfra_use_theta_flux, volfra_get_theta_flux, &
-           comp_use_theta_flux, comp_get_theta_flux, KComp_Sigmoid, Comp_Sum2One
+           comp_use_theta_flux, comp_get_theta_flux, KComp_Sigmoid, Comp_Sum2One, &
+           t_use_theta_flux, t_get_theta_flux
 
       integer :: in_ele_upwind, dg_ele_upwind
 
@@ -159,10 +160,11 @@ module mp_prototype
            t_disopt, u_disopt, v_disopt, t_dg_vel_int_opt, &
            u_dg_vel_int_opt, v_dg_vel_int_opt, w_dg_vel_int_opt, &
            capil_pres_opt, ncapil_pres_coef, comp_diffusion_opt, ncomp_diff_coef, &
-           patmos, p_ini, t_ini, t_beta, v_beta, t_theta, v_theta, &
+           patmos, p_ini, t_beta, v_beta, t_theta, v_theta, &
            u_theta, domain_length, &
            lump_eqns, volfra_use_theta_flux, volfra_get_theta_flux, &
            comp_use_theta_flux, comp_get_theta_flux, &
+           t_use_theta_flux, t_get_theta_flux, &
                                 ! Now the variables from read_all
            in_ele_upwind, dg_ele_upwind, &
            Mobility, alpha_beta, &
@@ -189,7 +191,7 @@ module mp_prototype
            comp_diffusion, &
                                 ! Now adding other things which we have taken inside this routine to define
            cv_nonods, p_nonods, u_nonods, x_nonods, xu_nonods, mat_nonods, &
-           have_temperature_fields)
+           have_temperature_fields, nits_flux_lim_t)
 
       ! Test ground for sorting out memory problems
 
@@ -412,7 +414,7 @@ module mp_prototype
               mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
               mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
               mx_ncolm, ncolm, findm, colm, midm, & ! CV-FEM matrix
-              have_temperature_fields, cv_one ) 
+              have_temperature_fields, cv_one, nits_flux_lim_t, t_use_theta_flux, t_get_theta_flux) 
 
       ewrite(3,*) 'Leaving multiphase_prototype'
 
