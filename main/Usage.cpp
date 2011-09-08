@@ -197,8 +197,7 @@ void usage(char *cmd){
   cerr<<"\n\nUsage: "<<cmd<<" [options ...] [simulation-file]\n"
       <<"\nOptions:\n"
       <<" -h, --help\n\tHelp! Prints this message.\n"
-      <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing)."
-      <<" Sets default value for -v to 2.\n"
+      <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing).\n"
       <<" -v <level>, --verbose\n\tVerbose output to stdout, default level 0\n"
       <<" -V, --version\n\tVersion\n";
   return;
