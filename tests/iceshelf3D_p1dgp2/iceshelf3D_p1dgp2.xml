@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>iceshelf3D_p1dgp2</name>
+  <owner userid="skimura"/>
+  <tags>flml iceshelf</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 -l shelf3d_p1dgp2.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="err_p2" language="python">   
+from fluidity_tools import stat_parser
+import vtktools
+from numpy import mean, sum
+
+
+def check_TS_budget(fname,TimeIndex):
+    pick = TimeIndex
+    fname_stat = fname+".stat"
+    stat=stat_parser(fname_stat)
+    time = stat["ElapsedTime"]["value"] 
+    Tint = stat["fluid"]["Temperature"]["integral"]
+    Sint = stat["fluid"]["Salinity"]["integral"]
+    ####Fluxes
+    HF_surfV = stat["fluid"]["Heat_flux"]["surface_integral%surfTvalue"]
+    SF_surfV = stat["fluid"]["Salt_flux"]["surface_integral%surfSvalue"]
+
+    dtime = time[pick]-time[pick-1]
+    ## Scalar fluxes predicted from the output betwee time[pick] and time[pick-1]
+    dT = (Tint[pick]-Tint[pick-1])/dtime
+    dS = (Sint[pick]-Sint[pick-1])/dtime
+    ## Scalar fluxes predicted from the boundary condition
+    dT_bc = HF_surfV[pick]
+    dS_bc = SF_surfV[pick]
+    ## Calculate the relative error
+    errT = abs(dT_bc-dT)/abs(dT)
+    errS = abs(dS_bc-dS)/abs(dS)
+    print "*************check_TS_budget*******************"
+    print "fname: ", fname
+    print "time[TimeIndex]: ", time[pick]
+    print "dT,dT_bc: ", dT,dT_bc
+    print "dS,dS_bc: ", dS,dS_bc
+    print "****************************************"
+    return errT,errS
+
+fname = "shelf3d_p1dgp2"
+TimeIndex=1
+[errT_p2,errS_p2]=check_TS_budget(fname,TimeIndex)
+err_p2 = max(errT_p2, errS_p2)    
+    </variable>
+    <variable name="R2_p2" language="python"> 
+from fluidity_tools import stat_parser
+import vtktools
+from numpy import mean, sum
+
+def Gade_line_file(fname,TimeIndex):
+    fname_a = fname+"_"+str(TimeIndex)+".vtu"
+    datafile = vtktools.vtu(fname_a)
+    T=datafile.GetScalarField("Temperature")
+    S=datafile.GetScalarField("Salinity")
+
+    ###Construct Gade line, need the first time
+    T1=0.0
+    S1=35.0
+
+    S_gade=S
+    c0=3974.0
+    cI=2009.0
+    L=3.35e5
+    Li=L
+    TI=-25
+    a=-0.0573
+    b=0.0832
+    Cd = 1.5e-3
+    Tf=a*S1+b
+    dTdS1 = ((T1-Tf)+Li/c0+(cI/c0)*(Tf-TI)) /(S1-0)
+    T_gade = dTdS1*(S_gade-S1) +T1
+    #Compare T_gade and T_1
+    #Calculate R2 = 
+    T_bar = mean(T)
+    SS_tot = sum((T-T_bar)**2)
+    SS_err = sum((T_gade-T)**2)
+    R2 = 1-(SS_err)/(SS_tot)
+    ### 
+    print "**************Gade_line_file*****************"
+    print "fname: ", fname_a
+    print "R2: ", R2
+    
+    return R2,T,S
+fname = "shelf3d_p1dgp2"
+TimeIndex=1  
+[R2_p2,Tp1,Sp2] = Gade_line_file(fname,TimeIndex)
+R2_p2 = R2_p2
+      </variable>
+  </variables>
+  <pass_tests>
+    <test name="Checking heat and salt budget." language="python">
+assert err_p2 &lt; 1e-5
+    </test>
+    <test name="Checking Gade line. R2 is computed." language="python">
+assert R2_p2 > 0.98
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
