@@ -943,24 +943,6 @@ Setup similar to that described in Holland et al. 2008.</comment>
         </subshelf_hydrostatic_pressure>
         <calculate_boundaries>
           <string_value>neumann</string_value>
-          <Kt_x>
-            <real_value rank="0">1.0</real_value>
-          </Kt_x>
-          <Kt_y>
-            <real_value rank="0">1.0</real_value>
-          </Kt_y>
-          <Kt_z>
-            <real_value rank="0">1.0</real_value>
-          </Kt_z>
-          <Ks_x>
-            <real_value rank="0">1.0</real_value>
-          </Ks_x>
-          <Ks_y>
-            <real_value rank="0">1.0</real_value>
-          </Ks_y>
-          <Ks_z>
-            <real_value rank="0">1.0</real_value>
-          </Ks_z>
         </calculate_boundaries>
       </Holland08>
     </iceshelf_meltrate>
