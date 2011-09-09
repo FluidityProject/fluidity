@@ -105,7 +105,7 @@ contains
     call melt_interface_read_coefficients(c0=c0, cI=cI, L=L, TI=TI, a=a, b=b, gammaT=gammaT, gammaS=gammaS, farfield_distance=farfield_distance, T_steady=T_steady, S_steady=S_steady)
 
     calculate_boundary_temperature=have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')
-    calculate_boundary_salinity=have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')
+    calculate_boundary_salinity=have_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity')
     if (calculate_boundary_temperature) write(3,*) "Melt interface, initialised T_steady", T_steady 
     if (calculate_boundary_salinity) write(3,*) "Melt interface, initialised S_steady", S_steady 
 
@@ -132,12 +132,10 @@ contains
 
         T => extract_scalar_field(state,"Temperature")
         S => extract_scalar_field(state,"Salinity")
-        do i=1,size(surface_nodes)
+        do i=1, size(surface_nodes)
           the_node = surface_nodes(i)
-          call set(T,the_node,0.0)
-          call set(S,the_node,34.0)
-          if (calculate_boundary_temperature) call set(T,the_node,T_steady)
-          if (calculate_boundary_salinity) call set(S,the_node,S_steady)
+          call set(T,the_node,T_steady)
+          call set(S,the_node,S_steady)
         enddo
       case default
         FLAbort('Unknown boundary type for ice-ocean interface.')
@@ -439,11 +437,14 @@ contains
     integer                             :: stat
     real, dimension(:), allocatable     :: vel
     real                                :: T_steady, S_steady
+    logical :: calculate_boundary_temperature, calculate_boundary_salinity
     character(len=*), parameter         :: option_path = '/ocean_forcing/iceshelf_meltrate/Holland08'
     character(len=*), parameter         :: option_path_bc = '/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries'
 
     ewrite(1,*) "Melt interface boundary condition begins"
     call melt_interface_read_coefficients(T_steady=T_steady, S_steady=S_steady)
+    calculate_boundary_temperature=have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')
+    calculate_boundary_salinity=have_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity')
 
 !! See ./preprocessor/Boundary_Conditions_From_options.F90 populate_iceshelf_boundary_conditions(states(1)) as well
     ! Get the surface_id of the ice-ocean interface
@@ -529,7 +530,7 @@ contains
       call deallocate(salt_flux_vel)
 
       ! If the fluxes were constant
-      if (have_option(trim(option_path_bc)//'/bc_value_temperature')) then
+      if (calculate_boundary_temperature) then
         call set(T_bc,T_steady)
         ! create a surface mesh to place values onto. This is for the top surface
         call get_boundary_condition(TT, 'temperature_iceshelf_BC', surface_mesh=ice_mesh) 
@@ -565,17 +566,17 @@ contains
         call set(S_bc,i,node_val(Sb,i))
       enddo  
       ! When testing BC implementation
-      if (have_option(trim(option_path_bc)//'/bc_value_temperature')) then
+      if (calculate_boundary_temperature) then
         call set(T_bc,T_steady)
-        write(1,*) "melt_bc, T_steady", T_steady 
+        ewrite(3,*) "Melt interface, initialised T_steady", T_steady 
       endif
-      if (have_option(trim(option_path_bc)//'/bc_value_salinity')) then
+      if (calculate_boundary_salinity) then
         call set(S_bc,S_steady)
-        write(1,*) "melt_bc, S_steady", S_steady
+        ewrite(3,*) "Melt interface, initialised S_steady", S_steady 
       endif
        
     case default
-      FLAbort('Unknown BC for ice-ocean interface')
+      FLAbort('Unknown boundary condition for ice-ocean interface')
     end select 
 
     ! create a surface mesh to place values onto. This is for the top surface
@@ -875,7 +876,7 @@ contains
 
     ! When steady boundary options are enabled
     if (present(T_steady)) call get_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature',T_steady, default = 0.0)
-    if (present(S_steady)) call get_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity',S_steady, default = 0.0) 
+    if (present(S_steady)) call get_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity',S_steady, default = 34.0) 
 
   end subroutine melt_interface_read_coefficients
 
