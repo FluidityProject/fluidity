@@ -78,7 +78,7 @@ contains
   subroutine melt_interface_initialisation(state)
 
     type(state_type), intent(inout)     :: state
-    character(len=OPTION_PATH_LEN)      :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
+    character                           :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
     type(scalar_field), pointer         :: T, S
     ! For the case when Dirichlet boundary conditions are used
     character(len=FIELD_NAME_LEN)       :: bc_type
@@ -437,8 +437,8 @@ contains
     type(scalar_field), pointer         :: Tb,Sb
     integer                             :: i, the_node
     real                                :: Tz,Sz
-    character(len=OPTION_PATH_LEN)      :: option_path
-
+    character                           :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
+    character                           :: option_path_bc = '/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries'  
     type(mesh_type), pointer            :: mesh
     type(mesh_type)                     :: surface_mesh
     integer, dimension(:), pointer      :: surface_nodes ! allocated and returned by create_surface_mesh
@@ -450,17 +450,15 @@ contains
     type(scalar_field)                  :: heat_flux_vel,salt_flux_vel
     type(vector_field), pointer         :: velocity
     integer                             :: stat
-    character(len=OPTION_PATH_LEN)      :: path
     real, dimension(:), allocatable     :: vel
 
     ewrite(1,*) "Melt interface boundary condition begins"
 
 !! See ./preprocessor/Boundary_Conditions_From_options.F90 populate_iceshelf_boundary_conditions(states(1)) as well
-    path = "/ocean_forcing/iceshelf_meltrate/Holland08"
     ! Get the surface_id of the ice-ocean interface
-    shape_option=option_shape(trim(path)//"/melt_surfaceID")
+    shape_option=option_shape(trim(option_path)//"/melt_surfaceID")
     allocate(surf_id(1:shape_option(1)))
-    call get_option(trim(path)//'/melt_surfaceID',surf_id)
+    call get_option(trim(option_path)//'/melt_surfaceID',surf_id)
     call allocate(surface_ids)
     call insert(surface_ids,surf_id)
 
@@ -490,9 +488,8 @@ contains
     call allocate(S_bc,SS%mesh, name="S_boundary")
 
     ! Surface node list
-    option_path = '/ocean_forcing/iceshelf_meltrate/Holland08/calculate_boundaries'  
     ! This change with bc type
-    call get_option(trim(option_path), bc_type)   
+    call get_option(trim(option_path_bc), bc_type)   
      
     select case(bc_type)
     case("neumann")
@@ -541,7 +538,7 @@ contains
       call deallocate(salt_flux_vel)
 
       ! If the fluxes were constant
-      if (have_option(trim(option_path)//'/bc_value_temperature')) then
+      if (have_option(trim(option_path_bc)//'/bc_value_temperature')) then
         call set(T_bc,T_steady)
         ! create a surface mesh to place values onto. This is for the top surface
         call get_boundary_condition(TT, 'temperature_iceshelf_BC', surface_mesh=ice_mesh) 
@@ -555,7 +552,7 @@ contains
         call remap_field(ice_surfaceT, scalar_surface)
       endif
 
-      if (have_option(trim(option_path)//'/bc_value_salinity')) then
+      if (have_option(trim(option_path_bc)//'/bc_value_salinity')) then
         call set(S_bc,S_steady)
         ! Salinity 	
         call get_boundary_condition(SS, 'salinity_iceshelf_BC', surface_mesh=ice_mesh) 
@@ -577,11 +574,11 @@ contains
         call set(S_bc,i,node_val(Sb,i))
       enddo  
       ! When testing BC implementation
-      if (have_option(trim(option_path)//'/bc_value_temperature')) then
+      if (have_option(trim(option_path_bc)//'/bc_value_temperature')) then
         call set(T_bc,T_steady)
         write(1,*) "melt_bc, T_steady", T_steady 
       endif
-      if (have_option(trim(option_path)//'/bc_value_salinity')) then
+      if (have_option(trim(option_path_bc)//'/bc_value_salinity')) then
         call set(S_bc,S_steady)
         write(1,*) "melt_bc, S_steady", S_steady
       endif
@@ -656,7 +653,7 @@ contains
     real, dimension(:), allocatable     :: av_normal !Average of normal
     type(element_type), pointer     :: x_shape_f
     real, dimension(:), allocatable     :: xyz !New location of surface_mesh, farfield_distance away from the boundary
-    character(len=OPTION_PATH_LEN)      :: option_path
+    character                           :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08/melt_surfaceID"
     type(integer_set)                   :: surface_ids
     integer, dimension(:),allocatable   :: interface_surface_id
 
@@ -671,7 +668,6 @@ contains
     real, dimension(:), allocatable     :: vel
     real :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
 
-    option_path = "/ocean_forcing/iceshelf_meltrate/Holland08/melt_surfaceID"
 
     ewrite(1,*) "Melt interface allocation of surface parameters"
     
@@ -870,7 +866,7 @@ contains
 
   subroutine melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance)
     real, intent(out) :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
-    character(len=OPTION_PATH_LEN)      :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
+    character                           :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
     real :: Cd 
 
     ! Get the 6 model constants
