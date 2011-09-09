@@ -99,6 +99,12 @@ module zoltan_integration
         flredecomp = flredecomping
     end if
 
+    if (flredecomp) then
+       zoltan_global_base_option_path = '/flredecomp'
+    else
+       zoltan_global_base_option_path = '/mesh_adaptivity/hr_adaptivity/zoltan_options'
+    end if
+
     ewrite(1,*) "In zoltan_drive"
 
     zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
@@ -252,7 +258,7 @@ module zoltan_integration
     integer, dimension(:), allocatable :: sndgln
     integer :: old_element_number, universal_element_number, face_number, universal_surface_element_number
     integer, dimension(:), allocatable :: interleaved_surface_ids
-    
+
     !call find_mesh_to_adapt(states(1), zoltan_global_zz_mesh)
     
     zoltan_global_zoltan_iteration = iteration
@@ -264,8 +270,8 @@ module zoltan_integration
     end if
     
     ! set quality_tolerance
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff")) then
-       call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", zoltan_global_quality_tolerance)
+    if (have_option(trim(zoltan_global_base_option_path) // "/element_quality_cutoff")) then
+       call get_option(trim(zoltan_global_base_option_path) // "/element_quality_cutoff", zoltan_global_quality_tolerance)
        ! check that the value is reasonable
        if (zoltan_global_quality_tolerance < 0. .or. zoltan_global_quality_tolerance > 1.) then
           FLExit("element_quality_cutoff should be between 0 and 1. Default is 0.6")
@@ -417,7 +423,7 @@ module zoltan_integration
     if (iteration /= max_adapt_iteration) then
        ! if user has passed us the option then use the load imbalance tolerance they supplied,
        ! else use the default load imbalance tolerance
-       call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance", load_imbalance_tolerance, &
+       call get_option(trim(zoltan_global_base_option_path) // "/load_imbalance_tolerance", load_imbalance_tolerance, &
           & default = default_load_imbalance_tolerance)
        
        ! check the value is reasonable
@@ -461,23 +467,23 @@ module zoltan_integration
     end if
     
     if (iteration /= max_adapt_iteration) then
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner")) then
+       if (have_option(trim(zoltan_global_base_option_path) // "/partitioner")) then
           
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+          if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
              ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
-             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+             if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
+                call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
              else
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
           
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/zoltan")) then
              
-             call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan/method", method)
+             call get_option(trim(zoltan_global_base_option_path) // "/partitioner/zoltan/method", method)
              
              if (trim(method) == "graph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
@@ -489,12 +495,12 @@ module zoltan_integration
              
           end if
        
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/scotch")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/scotch")) then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
              ! Probably not going to want graph checking unless debugging
-             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+             if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
+                call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
              else
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
@@ -509,23 +515,23 @@ module zoltan_integration
 
     else
 
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner")) then
+       if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")) then
           
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/metis"))  then
+          if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
              ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
-             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+             if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
+                call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
              else
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
           
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/zoltan")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/zoltan")) then
              
-             call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/zoltan/method", method)
+             call get_option(trim(zoltan_global_base_option_path) // "/final_partitioner/zoltan/method", method)
              
              if (trim(method) == "graph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
@@ -537,12 +543,12 @@ module zoltan_integration
              
           end if
        
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/scotch")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/scotch")) then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
              ! Probably not going to want graph checking unless debugging
-             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+             if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
+                call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
              else
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
@@ -562,13 +568,13 @@ module zoltan_integration
     ! iteration to produce a load balanced partitioning
     if (iteration == max_adapt_iteration) then
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+       if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis"))  then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
        end if
     else
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+       if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
           ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
