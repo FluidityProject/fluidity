@@ -488,7 +488,9 @@ contains
     call allocate(surface_ids)
     call insert(surface_ids,surf_id)
 
-    mesh => extract_mesh(state,"VelocityMesh")
+    TT=> extract_scalar_field(state,"Temperature")
+    SS=> extract_scalar_field(state,"Salinity")
+    velocity => extract_vector_field(state,"Velocity")     
 
     if (node_count(TT) .eq. node_count(velocity)) then
       mesh => extract_mesh(state,"VelocityMesh")
@@ -497,9 +499,6 @@ contains
     endif
     call melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
 
-    TT=> extract_scalar_field(state,"Temperature")
-    SS=> extract_scalar_field(state,"Salinity")
-    velocity => extract_vector_field(state,"Velocity")     
 !! Remapt the contious mesh to discon, unit_normal vecotr     
         
     call allocate(unit_normal_vectors_vel,velocity%dim,TT%mesh,"MyVelocitySurfaceMesh")
