@@ -447,8 +447,10 @@ contains
     type(vector_field), pointer         :: velocity
     integer                             :: stat
     real, dimension(:), allocatable     :: vel
+    real                                :: T_steady, S_steady
 
     ewrite(1,*) "Melt interface boundary condition begins"
+    call melt_interface_read_coefficients(T_steady=T_steady, S_steady=S_steady)
 
 !! See ./preprocessor/Boundary_Conditions_From_options.F90 populate_iceshelf_boundary_conditions(states(1)) as well
     ! Get the surface_id of the ice-ocean interface
