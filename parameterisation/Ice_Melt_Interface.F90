@@ -54,8 +54,6 @@ module ice_melt_interface
 implicit none
 
   private
-  real, save                      :: c0, cI, L, TI, &
-                                     a, b, gammaT, gammaS,Cd, dist_meltrate
   integer, save                   :: nnodes, dimen
   real, save                      :: T_steady, S_steady
   type(vector_field), save        :: surface_positions
@@ -80,13 +78,13 @@ contains
   subroutine melt_interface_initialisation(state)
 
     type(state_type), intent(inout)     :: state
-    character(len=OPTION_PATH_LEN)      :: option_path
+    character(len=OPTION_PATH_LEN)      :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
     type(scalar_field), pointer         :: T, S
     ! For the case when Dirichlet boundary conditions are used
     character(len=FIELD_NAME_LEN)       :: bc_type
     type(integer_set)                   :: surface_ids
     integer, dimension(:),allocatable   :: interface_surface_id
-    integer, dimension(2) :: shape_option
+    integer, dimension(2)               :: shape_option
     type(mesh_type), pointer            :: mesh
     type(mesh_type)                     :: surface_mesh
     ! Allocated and returned by create_surface_mesh
@@ -94,29 +92,16 @@ contains
     integer, dimension(:), allocatable  :: surface_element_list
     integer                             :: i,the_node
     ! For input of the hydrostatic pressure     
-    character(len=PYTHON_FUNC_LEN) :: func  
-    real :: current_time
+    character(len=PYTHON_FUNC_LEN)      :: func  
+    real                                :: current_time
     type(vector_field), pointer         :: positions
     type(scalar_field), pointer         :: HydroSP
-
-    option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
+    real :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
 
     ewrite(1,*) "Melt interface initialisation begins"
 
-    ! Get the 6 model constants
-    ! TODO: Check these exist first and error with a useful message if not
-    call get_option(trim(option_path)//'c0', c0, default = 3974.0)
-    call get_option(trim(option_path)//'cI', cI, default = 2009.0)
-    call get_option(trim(option_path)//'/L', L, default = 3.35e5)
-    call get_option(trim(option_path)//'/TI', TI, default = -25.0)
-    call get_option(trim(option_path)//'/a', a, default = -0.0573)
-    call get_option(trim(option_path)//'/b', b, default = 0.0832)
-    call get_option(trim(option_path)//'/Cd', Cd, default = 1.5e-3)
-    call get_option(trim(option_path)//'/melt_LayerLength', dist_meltrate)
- 
-    gammaT = sqrt(Cd)/(12.5*(7.0**(2.0/3.0))-9.0)
-    gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
-    
+    call melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance)
+   
     ! When steady BC options is enabled
     if (have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')) then
         call get_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature',T_steady)
@@ -259,6 +244,7 @@ contains
     integer                             :: i
     ! Some internal variables  
     real                                :: speed, T,S,P,Aa,Bb,Cc,topo
+    real :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
     real                                ::loc_Tb,loc_Sb,loc_meltrate,loc_heatflux,loc_saltflux
     ! Aa*Sb^2+Bv*Sb+Cc
     ! Sink mesh part
@@ -269,6 +255,8 @@ contains
     type(scalar_field), pointer         :: temperature, salinity
   
     ewrite(1,*) "Melt interface calculation begins"
+    
+    call melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance)
 
     !! All the variable under /ocean_forcing/iceshelf_meltrate/Holland08 should be in coordinate mesh
     !! coordinate mesh = continous mesh 
@@ -667,7 +655,7 @@ contains
     real, dimension(:,:), allocatable   :: normal
     real, dimension(:), allocatable     :: av_normal !Average of normal
     type(element_type), pointer     :: x_shape_f
-    real, dimension(:), allocatable     :: xyz !New location of surface_mesh, dist_meltrate away from the boundary
+    real, dimension(:), allocatable     :: xyz !New location of surface_mesh, farfield_distance away from the boundary
     character(len=OPTION_PATH_LEN)      :: option_path
     type(integer_set)                   :: surface_ids
     integer, dimension(:),allocatable   :: interface_surface_id
@@ -681,10 +669,13 @@ contains
     real, dimension(:), allocatable     :: local_coord
     integer                             :: ele, counter,Nit
     real, dimension(:), allocatable     :: vel
+    real :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
 
     option_path = "/ocean_forcing/iceshelf_meltrate/Holland08/melt_surfaceID"
 
     ewrite(1,*) "Melt interface allocation of surface parameters"
+    
+    call melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance)
 
     ! Get the surface_id of the ice-ocean interface
     shape_option=option_shape(trim(option_path))
@@ -795,13 +786,13 @@ contains
         ! normalize 
         av_normal = av_normal/(sum(av_normal*av_normal))**(0.5) 
          
-        dist_meltrate = abs(dist_meltrate)
+        farfield_distance = abs(farfield_distance)
         ! Shift the location of the surface nodes.
         !The coordinate of the surface node.
         
         coord = node_val(positions,node)     
-        ! dist_meltrate = ||xyz - coord|| xyz and coord are vectors
-        xyz = av_normal*dist_meltrate + coord        
+        ! farfield_distance = ||xyz - coord|| xyz and coord are vectors
+        xyz = av_normal*farfield_distance + coord        
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ! have options /ocean_forcing/iceshelf_meltrate/Holland08/melt_LayerRelax
@@ -814,7 +805,7 @@ contains
         
           counter = 1
           do while (sum(local_coord) .gt. 2.0 .and. counter .lt. Nit)
-            xyz = av_normal*(dist_meltrate-counter*(dist_meltrate/Nit)) + coord
+            xyz = av_normal*(farfield_distance-counter*(farfield_distance/Nit)) + coord
             call picker_inquire(positions, xyz, ele, local_coord,global=.false.)
             counter = counter+1
           enddo 
@@ -876,6 +867,27 @@ contains
     surface_element_list=set2vector(surface_elements)
     call create_surface_mesh(surface_mesh, surface_nodes, mesh, surface_element_list, name=trim(mesh%name)//"ToshisMesh")
   end subroutine melt_surf_mesh
+
+  subroutine melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance)
+    real, intent(out) :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
+    character(len=OPTION_PATH_LEN)      :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
+    real :: Cd 
+
+    ! Get the 6 model constants
+    ! TODO: Check these exist first and error with a useful message if not - in preprocessor
+    call get_option(trim(option_path)//'c0', c0, default = 3974.0)
+    call get_option(trim(option_path)//'cI', cI, default = 2009.0)
+    call get_option(trim(option_path)//'/L', L, default = 3.35e5)
+    call get_option(trim(option_path)//'/TI', TI, default = -25.0)
+    call get_option(trim(option_path)//'/a', a, default = -0.0573)
+    call get_option(trim(option_path)//'/b', b, default = 0.0832)
+    call get_option(trim(option_path)//'/melt_LayerLength', farfield_distance)
+ 
+    call get_option(trim(option_path)//'/Cd', Cd, default = 1.5e-3)
+    gammaT = sqrt(Cd)/(12.5*(7.0**(2.0/3.0))-9.0)
+    gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
+  
+  end subroutine melt_interface_read_coefficients
 
   subroutine scalar_finder_ele(scalar,ele,element_dim,local_coord,scalar_out)
     type(scalar_field), pointer, intent(in)           :: scalar
