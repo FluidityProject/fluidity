@@ -94,6 +94,14 @@ libspud_print_options(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject*
+libspud_clear_options(PyObject *self, PyObject *args)
+{
+    spud_clear_options();
+
+    Py_RETURN_NONE;
+}
+
 static PyObject *
 libspud_get_number_of_children(PyObject *self, PyObject *args)
 {
@@ -323,12 +331,12 @@ spud_get_option_aux_scalar_or_string(const char *key, int key_len, int type, int
     int outcomeGetOption;
 
     if (type == SPUD_DOUBLE){
-        float val;
+        double val;
         outcomeGetOption = spud_get_option(key, key_len, &val);
         if (error_checking(outcomeGetOption, "get option aux scalar or string") == NULL){
             return NULL;
         }
-        return Py_BuildValue("f", val);
+        return Py_BuildValue("d", val);
     }
     else if (type == SPUD_INT){
         int val;
@@ -750,35 +758,38 @@ libspud_write_options(PyObject *self, PyObject *args)
 
 static PyMethodDef libspudMethods[] = {
     {"load_options",  libspud_load_options, METH_VARARGS,
-     "load options from xml file."},
+     PyDoc_STR("Reads the xml file into the options tree.")},
     {"print_options",  libspud_print_options, METH_VARARGS,
-     "print options from xml file."},
+     PyDoc_STR("Print the entire options tree to standard output.")},
+    {"clear_options",  libspud_clear_options, METH_VARARGS,
+     PyDoc_STR("Clears the entire options tree.")},
     {"get_number_of_children",  libspud_get_number_of_children, METH_VARARGS,
-     "get number of children from xml file."},
+     PyDoc_STR("get number of children under key.")},
     {"get_child_name",  libspud_get_child_name, METH_VARARGS,
-     "get child name from xml file."},
+     PyDoc_STR("Get name of the indexth child of key.")},
     {"option_count",  libspud_option_count, METH_VARARGS,
-     "option count from xml file."},
+     PyDoc_STR("Return the number of options matching key.")},
     {"have_option",  libspud_have_option, METH_VARARGS,
-     "have option from xml file."},
+     PyDoc_STR("Checks whether key is present in options dictionary.")},
     {"get_option_type",  libspud_get_option_type, METH_VARARGS,
-     "get option type from xml file."},
+     PyDoc_STR("Returns the type of option specified by key.")},
     {"get_option_rank",  libspud_get_option_rank, METH_VARARGS,
-     "get option rank from xml file."},
+     PyDoc_STR("Return the rank of option specified by key.")},
     {"get_option_shape",  libspud_get_option_shape, METH_VARARGS,
-     "get option shape from xml file."},
+     PyDoc_STR("Return the shape of option specified by key.")},
     {"get_option",  libspud_get_option, METH_VARARGS,
-     "get option from xml file."},
+     PyDoc_STR("Retrives option values from the options dictionary.")},
     {"set_option",  libspud_set_option, METH_VARARGS,
-     "set option from xml file."},
+     PyDoc_STR("Sets options in the options tree.")},
     {"write_options",  libspud_write_options, METH_VARARGS,
-     "write options from xml file."},
+     PyDoc_STR("Write options tree out to the xml file specified by name.")},
     {"delete_option",  libspud_delete_option, METH_VARARGS,
-     "delete option from xml file."},
+     PyDoc_STR("Delete options at the specified key.")},
     {"set_option_attribute",  libspud_set_option_attribute, METH_VARARGS,
-     "set option attribute from xml file."},
+     PyDoc_STR("As set_option, but additionally attempts to mark the option at the \
+     specified key as an attribute. Set_option_attribute accepts only string data for val.")},
     {"add_option",  libspud_add_option, METH_VARARGS,
-     "add option from xml file."},
+     PyDoc_STR("Creates a new option at the supplied key.")},
     {NULL, NULL, 0, NULL},
             /* Sentinel */
 };
