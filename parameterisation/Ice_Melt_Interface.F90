@@ -199,23 +199,13 @@ contains
 
   subroutine populate_iceshelf_boundary_conditions(state)
     type(state_type), intent(in)       :: state
-    type(scalar_field), pointer        :: Tbc,Sbc
     type(scalar_field), pointer        :: T,S
-    type(integer_set), pointer                  :: sf_nodes
     character(len=FIELD_NAME_LEN)        :: bc_type
     integer, dimension(:), allocatable   :: surf_id
     integer, dimension(2)                :: shape_option
-    integer                              :: stat
-    integer, dimension(:), allocatable   :: ssurface_element_lists
-    type(integer_set)                    :: surface_elements,surface_ids
-    type(mesh_type), pointer             :: mesh
-    type(vector_field), pointer           :: positions
-    integer, dimension(:), allocatable   :: surf_nodes
-    integer                              :: face,the_node
-    integer :: i,st,en,dim_vec
+    type(integer_set)                    :: surface_ids
     !!
     type(mesh_type), pointer           :: surface_mesh
-    integer, dimension(:), pointer     :: surface_element_list
     type(scalar_field)                 :: scalar_surface_field
     
     ewrite(1,*) "-----*** Begin iceshelf BC-----"
@@ -271,11 +261,10 @@ contains
     real                                :: speed, T,S,P,Aa,Bb,Cc,topo
     real                                ::loc_Tb,loc_Sb,loc_meltrate,loc_heatflux,loc_saltflux
     ! Aa*Sb^2+Bv*Sb+Cc
-    real :: arg = -1.0
     ! Sink mesh part
     integer                             :: ele,stat,the_node
     real, dimension(:), allocatable     :: local_coord,coord
-    integer, dimension(:), allocatable  :: surface_node_list,node_lists 
+    integer, dimension(:), allocatable  :: surface_node_list
     type(scalar_field)                  :: re_pressure,re_DistanceToTop
     type(scalar_field), pointer         :: temperature, salinity
   
@@ -460,7 +449,6 @@ contains
     type(scalar_field), pointer         :: Tb,Sb
     integer                             :: i, the_node
     real                                :: Tz,Sz
-    real                                :: Kt,Ks
     character(len=OPTION_PATH_LEN)      :: option_path
 
     type(mesh_type), pointer            :: mesh
