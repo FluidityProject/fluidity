@@ -306,5 +306,4 @@ AC_SUBST(LIBS)
 
 AC_OUTPUT(Makefile src/tests/Makefile examples/Makefile
           bin/spud-preprocess
-          python/libspud.py
           diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py)

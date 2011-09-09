@@ -45,7 +45,8 @@ module shape_functions
   
 contains
 
-  function make_element_shape_from_element(model, vertices, dim, degree, quad, type,&
+  function make_element_shape_from_element(model, vertices, dim, degree,&
+       & quad, type, constraint_type_choice, &
        stat, quad_s)  result (shape)
     !!< This function enables element shapes to be derived from other
     !!< element shapes by specifying which attributes to change.
@@ -53,6 +54,8 @@ contains
     type(element_type), intent(in) :: model
     !! Vertices is the number of vertices of the element, not the number of nodes!
     !! dim may be 1, 2, or 3.
+    !! Element constraints
+    integer, intent(in), optional :: constraint_type_choice
     !! Degree is the degree of the Lagrange polynomials.
     integer, intent(in), optional :: vertices, dim, degree
     type(quadrature_type), intent(in), target, optional :: quad
@@ -97,19 +100,19 @@ contains
     else
        lquad_s=>null()
     end if
-
+    
     if (associated(lquad_s)) then
        shape = make_element_shape(lvertices, ldim, ldegree, lquad, ltype,&
-            stat, lquad_s)
+            stat, lquad_s, constraint_type_choice=constraint_type_choice)
     else
        shape = make_element_shape(lvertices, ldim, ldegree, lquad, ltype,&
-            stat)
+            stat, constraint_type_choice=constraint_type_choice)
     end if
 
   end function make_element_shape_from_element
 
   function make_element_shape(vertices, dim, degree, quad, type,&
-       stat, quad_s)  result (shape)
+       stat, quad_s, constraint_type_choice)  result (shape)
     !!< Generate the shape functions for an element. The result is a suitable
     !!< element_type.
     !!
@@ -122,14 +125,16 @@ contains
     type(quadrature_type), intent(in), target :: quad
     integer, intent(in), optional :: type
     integer, intent(out), optional :: stat
+    integer, intent(in), optional :: constraint_type_choice
     type(quadrature_type), intent(in), optional, target :: quad_s
     real, pointer :: g(:)=> null()
-    
+
     type(ele_numbering_type), pointer :: ele_num
     ! Count coordinates of each point 
     integer, dimension(dim+1) :: counts
     integer :: i,j,k
     integer :: ltype, coords,surface_count
+    type(constraints_type), pointer :: constraint
 
     ! Check that the quadrature and the element shapes match.
     assert(quad%vertices==vertices)
@@ -145,7 +150,7 @@ contains
 
     ! Get the local numbering of our element
     ele_num=>find_element_numbering(vertices, dim, degree, type)
-    
+
     if (.not.associated(ele_num)) then
        if (present(stat)) then
           stat=1
@@ -153,8 +158,8 @@ contains
        else
           FLAbort('Element numbering unavailable.')
        end if
-    end if    
-    
+    end if
+
     shape%numbering=>ele_num
     shape%quadrature=quad
     call incref(quad)
@@ -164,24 +169,32 @@ contains
     case (FAMILY_SIMPLEX)
        coords=dim+1
     case (FAMILY_CUBE)
-       coords=dim
+       if(ele_num%type==ELEMENT_TRACE .and. dim==2) then
+          !For trace elements the local coordinate is face number
+          !then the local coordinates on the face
+          !For quads, the face is an interval element which has
+          !two local coordinates.
+          coords=3
+       else
+          coords=dim
+       end if
     case default
        FLAbort('Illegal element family.')
     end select
 
     if (present(quad_s)) then
        select case(dim)
-          case(2)
-              call allocate(shape, dim, ele_num%nodes, quad%ngi,&
-            ele_num%edges, quad_s%ngi,coords,.true.)
-              surface_count=ele_num%edges
-           case(3)
-              call allocate(shape, dim, ele_num%nodes, quad%ngi,&
-            ele_num%faces, quad_s%ngi,coords,.true.)
-              surface_count=ele_num%edges
-           case default
-              FLAbort("Unsupported dimension count.  Can only generate surface shape functions for elements that exist in 2 or 3 dimensions.")
-        end select
+       case(2)
+          call allocate(shape, dim, ele_num%nodes, quad%ngi,&
+               ele_num%edges, quad_s%ngi,coords,.true.)
+          surface_count=ele_num%edges
+       case(3)
+          call allocate(shape, dim, ele_num%nodes, quad%ngi,&
+               ele_num%faces, quad_s%ngi,coords,.true.)
+          surface_count=ele_num%edges
+       case default
+          FLAbort("Unsupported dimension count.  Can only generate surface shape functions for elements that exist in 2 or 3 dimensions.")
+       end select
     else
        call allocate(shape, ele_num, quad%ngi)
     end if
@@ -193,10 +206,10 @@ contains
     do i=1,shape%loc
 
        counts(1:coords)=ele_num%number2count(:,i)
-       
+
        ! Construct appropriate polynomials.
        do j=1,coords
-          
+
           select case(ltype)
           case(ELEMENT_LAGRANGIAN)
              select case(ele_num%family)
@@ -209,7 +222,7 @@ contains
                 ! note that local coordinates run from -1.0 to 1.0
                 shape%spoly(j,i)&
                      =lagrange_polynomial(counts(j), degree, 2.0/degree, &
-                       origin=-1.0)
+                     origin=-1.0)
 
              end select
 
@@ -218,30 +231,30 @@ contains
 
           case(ELEMENT_BUBBLE)
              if(i==shape%loc) then
-               
-               ! the last node is the bubble shape function
-               shape%spoly(j,i) = (/1.0, 0.0/)
-               
+
+                ! the last node is the bubble shape function
+                shape%spoly(j,i) = (/1.0, 0.0/)
+
              else
-             
-               select case(ele_num%family)
-               case (FAMILY_SIMPLEX)
-                  ! Raw polynomial.
-                  shape%spoly(j,i)&
-                       =lagrange_polynomial(counts(j)/coords, counts(j)/coords, 1.0/degree)
-                       
-               end select
+
+                select case(ele_num%family)
+                case (FAMILY_SIMPLEX)
+                   ! Raw polynomial.
+                   shape%spoly(j,i)&
+                        =lagrange_polynomial(counts(j)/coords, counts(j)/coords, 1.0/degree)
+
+                end select
 
              end if
 
           case(ELEMENT_NONCONFORMING)
-             
+
              shape%spoly(j,i)=nonconforming_polynomial(counts(j))
 
           case default
 
              FLAbort('An unsupported element type has been selected.')
-             
+
           end select
 
           ! Derivative
@@ -260,12 +273,12 @@ contains
              FLAbort('Shouldn''t be happening')
           end if
        else
-       ! Loop over all the quadrature points.
+          ! Loop over all the quadrature points.
           do j=1,quad%ngi
-             
+
              ! Raw shape function
              shape%n(i,j)=eval_shape(shape, i, quad%l(j,:))
-             
+
              ! Directional derivatives.
              shape%dn(i,j,:)=eval_dshape(shape, i, quad%l(j,:))
           end do
@@ -301,6 +314,15 @@ contains
     if(ele_num%type.ne.ELEMENT_TRACE) then
        shape%superconvergence => get_superconvergence(shape)
     end if
+
+    if(present(constraint_type_choice)) then
+       if(constraint_type_choice/=CONSTRAINT_NONE) then
+          allocate(constraint)
+          shape%constraints=>constraint
+          call allocate(shape%constraints,shape,constraint_type_choice)
+       end if
+    end if
+
   end function make_element_shape
 
   function lagrange_polynomial(n,degree,dx, origin) result (poly)

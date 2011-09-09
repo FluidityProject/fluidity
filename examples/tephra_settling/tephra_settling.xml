@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>tephra_settling</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="long" nprocs="1">
+    <command_line>mpiexec ../../bin/fluidity -v2 -l tephra_settling.flml</command_line>
+    <!-- This is a 2D simulation of the formation of density currents. We consider a -->
+    <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
+    <!-- Density currents/plumes should eventually form when the bulk density is large enough. -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="tephra_u_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("tephra_settling.stat")
+tephra_u_max=s["Tephra"]["Velocity%magnitude"]["max"]
+    </variable>
+    <variable name="time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("tephra_settling.stat")
+time=s["ElapsedTime"]["value"]
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Maximum Tephra velocity is less than 0.0025 for the first 30 seconds" language="python">
+for t in range(0,len(time)):
+   if(time[t] &gt; 30.0):
+      assert tephra_u_max[0:t-1].all() &lt; 0.0025
+      break
+    </test>
+
+    <test name="Maximum Tephra velocity is between 0.002 and 0.05 for the rest of the simulation" language="python">
+for t in range(0,len(time)):
+   if(time[t] &gt; 30.0):
+      assert min(tephra_u_max[t:]) &gt; 0.002
+      assert max(tephra_u_max[t:]) &lt; 0.05
+      break
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>
