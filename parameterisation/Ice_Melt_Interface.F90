@@ -97,59 +97,51 @@ contains
     real :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
     real                                :: T_steady, S_steady
     logical :: calculate_boundaries_T, calculate_boundaries_S
+    logical :: calculate_boundary_temperature, calculate_boundary_salinity
     character(len=*), parameter         :: option_path = '/ocean_forcing/iceshelf_meltrate/Holland08'
 
-    ewrite(1,*) "Melt interface initialisation begins"
+    ewrite(1,*) 'Melt interface initialisation begins'
 
     call melt_interface_read_coefficients(c0=c0, cI=cI, L=L, TI=TI, a=a, b=b, gammaT=gammaT, gammaS=gammaS, farfield_distance=farfield_distance, T_steady=T_steady, S_steady=S_steady)
 
-    !have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')
-    !have_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity') 
-    !write(3,*) "melt_interface, initialised T_steady", T_steady 
-    !write(3,*) "melt_interface, initialised S_steady", S_steady 
+    calculate_boundary_temperature=have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')
+    calculate_boundary_salinity=have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')
+    if (calculate_boundary_temperature) write(3,*) "Melt interface, initialised T_steady", T_steady 
+    if (calculate_boundary_salinity) write(3,*) "Melt interface, initialised S_steady", S_steady 
 
     ! bc= Dirichlet initialize T and S at the ice-ocean interface
     ! This change with bc type
     if (have_option(trim(option_path)//'/calculate_boundaries')) then
-    
-        call get_option(trim(option_path)//'/calculate_boundaries', bc_type)          
-        select case(bc_type)
-        case("neumann")
-       
-        case("dirichlet") 
-        !! Define the values at ice-ocean interface    
+      call get_option(trim(option_path)//'/calculate_boundaries', bc_type)          
+      select case(bc_type)
+      case('neumann')
+        ewrite(3,*) 'Calculating steady Neumann boundary condition - nothing to be done here.' 
+      case('dirichlet') 
+        ewrite(3,*) 'Calculating steady Dirichlet boundary condition - nothing to be done here.' 
+        ! Define values of temperature and salinity at ice-ocean interface    
         ! Get the surface_id of the ice-ocean interface
-        ! Note this code needs working through
-        !  - Neumann is definitely the best choice here!
-            shape_option=option_shape(trim(option_path)//"/melt_surfaceID")
-            allocate(interface_surface_id(1:shape_option(1)))
-            call get_option(trim(option_path)//'/melt_surfaceID',interface_surface_id)
-            call allocate(surface_ids)
-            call insert(surface_ids,interface_surface_id)
-            mesh => extract_mesh(state,"VelocityMesh")
-            ! Input, mesh, surface_id
-            ! Output surface_mesh,surface_element_list
-            call melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
+        ! Note this code needs working through - Neumann is definitely the best choice here!
+        shape_option = option_shape(trim(option_path)//"/melt_surfaceID")
+        allocate(interface_surface_id(1:shape_option(1)))
+        call get_option(trim(option_path)//'/melt_surfaceID', interface_surface_id)
+        call allocate(surface_ids)
+        call insert(surface_ids,interface_surface_id)
+        mesh => extract_mesh(state,"VelocityMesh")
+        ! Obtain surface_mesh, surface_element_list, from mesh and surface_id
+        call melt_surf_mesh(mesh,surface_ids,surface_mesh,surface_nodes,surface_element_list)
 
-            T => extract_scalar_field(state,"Temperature")
-            S => extract_scalar_field(state,"Salinity")
-            do i=1,size(surface_nodes)
-                the_node = surface_nodes(i)
-                
-                call set(T,the_node,0.0)
-                call set(S,the_node,34.0)
-                if (have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')) then
-                    call set(T,the_node,T_steady)
-                endif
-                if (have_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity')) then
-                    call set(S,the_node,S_steady)
-                endif  
-            enddo
-            ! T_bc => extract_scalar_field(state,"Tb")
-            ! S_bc => extract_scalar_field(state,"Sb")
-        case default
-            FLAbort('Unknown BC for ice-ocean')
-        end select
+        T => extract_scalar_field(state,"Temperature")
+        S => extract_scalar_field(state,"Salinity")
+        do i=1,size(surface_nodes)
+          the_node = surface_nodes(i)
+          call set(T,the_node,0.0)
+          call set(S,the_node,34.0)
+          if (calculate_boundary_temperature) call set(T,the_node,T_steady)
+          if (calculate_boundary_salinity) call set(S,the_node,S_steady)
+        enddo
+      case default
+        FLAbort('Unknown boundary type for ice-ocean interface.')
+      end select
     else
      
     endif
