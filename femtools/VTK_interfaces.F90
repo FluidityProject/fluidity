@@ -258,11 +258,6 @@ contains
     integer :: lstat
     
     if (present(stat)) stat = 0
-    !if (have_option("/io/adhere_to_output_mesh_continuity")) then
-    !  adhere_out_cty = .true.
-    !else
-    !  adhere_out_cty = .false.
-    !end if
     adhere_out_cty = have_option('/io/adhere_to_output_mesh_continuity')
 
     dgify_fields = .false.
