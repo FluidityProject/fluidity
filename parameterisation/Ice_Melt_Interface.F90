@@ -55,7 +55,6 @@ implicit none
 
   private
   integer, save                   :: nnodes, dimen
-  real, save                      :: T_steady, S_steady
   type(vector_field), save        :: surface_positions
   type(vector_field), save        :: funky_positions 
   ! Normals to the iceshelf interface surface
@@ -65,7 +64,7 @@ implicit none
   ! Fields and variables for the interface surface
   type(scalar_field), save        :: ice_surfaceT, ice_surfaceS! these are used to populate the bcs
   
-  public :: melt_interface_initialisation, populate_iceshelf_boundary_conditions,   melt_interface_calculate, melt_interface_boundary_condition, melt_interface_cleanup, melt_interface_allocate_surface
+  public :: melt_interface_initialisation, populate_iceshelf_boundary_conditions, melt_interface_calculate, melt_interface_boundary_condition, melt_interface_cleanup, melt_interface_allocate_surface
 
 contains
 
@@ -97,20 +96,17 @@ contains
     type(vector_field), pointer         :: positions
     type(scalar_field), pointer         :: HydroSP
     real :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
-
+    real                                :: T_steady, S_steady
+    logical :: calculate_boundaries_T, calculate_boundaries_S
     ewrite(1,*) "Melt interface initialisation begins"
 
-    call melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance)
-   
-    ! When steady BC options is enabled
-    if (have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')) then
-        call get_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature',T_steady)
-        write(1,*) "melt_init, T_steady", T_steady 
-    endif
-    if (have_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity')) then
-        call get_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity',S_steady) 
-        write(1,*) "melt_init, S_steady", S_steady 
-    endif      
+    call melt_interface_read_coefficients(c0=c0, cI=cI, L=L, TI=TI, a=a, b=b, gammaT=gammaT, gammaS=gammaS, farfield_distance=farfield_distance, T_steady=T_steady, S_steady=S_steady)
+
+    !have_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature')
+    !have_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity') 
+    !write(3,*) "melt_interface, initialised T_steady", T_steady 
+    !write(3,*) "melt_interface, initialised S_steady", S_steady 
+
     ! bc= Dirichlet initialize T and S at the ice-ocean interface
     ! This change with bc type
     if (have_option(trim(option_path)//'/calculate_boundaries')) then
@@ -256,7 +252,7 @@ contains
   
     ewrite(1,*) "Melt interface calculation begins"
     
-    call melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance)
+    call melt_interface_read_coefficients(c0=c0, cI=cI, L=L, TI=TI, a=a, b=b, gammaT=gammaT, gammaS=gammaS, farfield_distance=farfield_distance)
 
     !! All the variable under /ocean_forcing/iceshelf_meltrate/Holland08 should be in coordinate mesh
     !! coordinate mesh = continous mesh 
@@ -671,7 +667,7 @@ contains
 
     ewrite(1,*) "Melt interface allocation of surface parameters"
     
-    call melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance)
+    call melt_interface_read_coefficients(c0=c0, cI=cI, L=L, TI=TI, a=a, b=b, gammaT=gammaT, gammaS=gammaS, farfield_distance=farfield_distance)
 
     ! Get the surface_id of the ice-ocean interface
     shape_option=option_shape(trim(option_path))
@@ -864,25 +860,29 @@ contains
     call create_surface_mesh(surface_mesh, surface_nodes, mesh, surface_element_list, name=trim(mesh%name)//"ToshisMesh")
   end subroutine melt_surf_mesh
 
-  subroutine melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance)
-    real, intent(out) :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
-    character                           :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
+  subroutine melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady)
+    real, intent(out), optional :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady
+    character :: option_path = "/ocean_forcing/iceshelf_meltrate/Holland08"
     real :: Cd 
 
     ! Get the 6 model constants
     ! TODO: Check these exist first and error with a useful message if not - in preprocessor
-    call get_option(trim(option_path)//'c0', c0, default = 3974.0)
-    call get_option(trim(option_path)//'cI', cI, default = 2009.0)
-    call get_option(trim(option_path)//'/L', L, default = 3.35e5)
-    call get_option(trim(option_path)//'/TI', TI, default = -25.0)
-    call get_option(trim(option_path)//'/a', a, default = -0.0573)
-    call get_option(trim(option_path)//'/b', b, default = 0.0832)
-    call get_option(trim(option_path)//'/melt_LayerLength', farfield_distance)
+    if present(c0) call get_option(trim(option_path)//'c0', c0, default = 3974.0)
+    if present(cI) call get_option(trim(option_path)//'cI', cI, default = 2009.0)
+    if present(L)  call get_option(trim(option_path)//'/L', L, default = 3.35e5)
+    if present(TI) call get_option(trim(option_path)//'/TI', TI, default = -25.0)
+    if present(a)  call get_option(trim(option_path)//'/a', a, default = -0.0573)
+    if present(b)  call get_option(trim(option_path)//'/b', b, default = 0.0832)
+    if present(farfield_distance) call get_option(trim(option_path)//'/melt_LayerLength', farfield_distance)
  
-    call get_option(trim(option_path)//'/Cd', Cd, default = 1.5e-3)
-    gammaT = sqrt(Cd)/(12.5*(7.0**(2.0/3.0))-9.0)
-    gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
-  
+    if present(gammaT).or.present(gammaS) call get_option(trim(option_path)//'/Cd', Cd, default = 1.5e-3)
+    if present(gammaT) gammaT = sqrt(Cd)/(12.5*(7.0**(2.0/3.0))-9.0)
+    if present(gammaS) gammaS = sqrt(Cd)/(12.5*(700.0**(2.0/3.0))-9.0)
+
+    ! When steady boundary options are enabled
+    if present(T_steady) call get_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature',T_steady, default = 0.0)
+    if present(S_steady) call get_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity',S_steady, default = 0.0) 
+
   end subroutine melt_interface_read_coefficients
 
   subroutine scalar_finder_ele(scalar,ele,element_dim,local_coord,scalar_out)
