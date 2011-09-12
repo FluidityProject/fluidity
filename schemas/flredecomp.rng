@@ -7,10 +7,11 @@
       <ref name="comment"/>
       <optional>
         <element name="final_partitioner">
-          <a:documentation>Select which partitioner to use after the final adapt iteration.
-Graph partitioners available are ParMETIS and Zoltan PHG. The 
-Zoltan PHG hypergraph partitoner is also available.
-Default is the Zoltan PHG graph partitioner.</a:documentation>
+          <a:documentation>Select which partitioner to use when flredecomping.
+Graph partitioners available are ParMETIS, PT-Scotch
+and Zoltan PHG. The Zoltan PHG hypergraph partitoner
+is also available.
+Default is ParMETIS graph partitioner.</a:documentation>
           <choice>
             <element name="metis">
               <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
@@ -18,7 +19,7 @@ closely as possible the setup used previously by Sam.</a:documentation>
               <empty/>
             </element>
             <element name="scotch">
-              <a:documentation>Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE* </a:documentation>
+              <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
               <empty/>
             </element>
             <element name="zoltan">
@@ -60,8 +61,7 @@ graph checking are provided by Zoltan.
 Edge counts for each owned node are calculated in zoltan_cb_get_num_edges.
 This option dumps the edge count for each owned node.
 Dump is to the current directory, in a file called edge_counts_*.dat
-One dump file is created for each rank.
-Will get overwritten at each adapt.</a:documentation>
+One dump file is created for each rank.</a:documentation>
               <empty/>
             </element>
           </optional>

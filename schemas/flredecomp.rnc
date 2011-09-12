@@ -5,17 +5,18 @@ flredecomp =
       ## Options for the flredecomp program
       element flredecomp {
         comment, 
-        ## Select which partitioner to use after the final adapt iteration.
-        ## Graph partitioners available are ParMETIS and Zoltan PHG. The 
-        ## Zoltan PHG hypergraph partitoner is also available.
-        ## Default is the Zoltan PHG graph partitioner.
+        ## Select which partitioner to use when flredecomping.
+        ## Graph partitioners available are ParMETIS, PT-Scotch
+        ## and Zoltan PHG. The Zoltan PHG hypergraph partitoner
+        ## is also available.
+        ## Default is ParMETIS graph partitioner.
         element final_partitioner {
             ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
             ## closely as possible the setup used previously by Sam.
             element metis {
                 empty
             }|
-            ## Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE* 
+            ## Use the PT-Scotch graph partitioner.
             element scotch {
                 empty
             }|
@@ -46,7 +47,6 @@ flredecomp =
            ## This option dumps the edge count for each owned node.
            ## Dump is to the current directory, in a file called edge_counts_*.dat
            ## One dump file is created for each rank.
-           ## Will get overwritten at each adapt.
            element dump_edge_counts {
               empty
            }?,
