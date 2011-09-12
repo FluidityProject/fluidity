@@ -116,7 +116,7 @@ module zoltan_integration
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
     load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-    call set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
+    call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, load_imbalance_tolerance, zz)
 
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
@@ -179,7 +179,7 @@ module zoltan_integration
       call setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name = topology_mesh_name)
 
       load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-      call set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
+      call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, load_imbalance_tolerance, zz)
       
       call reset_zoltan_lists_full(zz, &
        & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
@@ -436,8 +436,9 @@ module zoltan_integration
 
   end function get_load_imbalance_tolerance
 
-  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
+  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, load_imbalance_tolerance, zz)
     integer, intent(in) :: iteration, max_adapt_iteration
+    logical, intent(in) :: flredecomp
     real, intent(in) :: load_imbalance_tolerance
     type(zoltan_struct), pointer, intent(in) :: zz    
 
@@ -450,14 +451,14 @@ module zoltan_integration
     else         
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
     end if
-    
+
     ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
     write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
     ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
-    ewrite(2,*) 'Initial load_imabalance_tolerance set to ', load_imbalance_tolerance
+    ewrite(2,*) 'Initial load_imbalance_tolerance set to ', load_imbalance_tolerance
 
-    ! If we are not an active process, then let's set the number of local parts to be zero
-    if (no_active_processes > 0) then
+    ! For flredecomp if we are not an active process, then let's set the number of local parts to be zero
+    if (flredecomp) then
        if (getprocno() > no_active_processes) then
           ierr = Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS", "0"); assert(ierr == ZOLTAN_OK)
        else
@@ -506,7 +507,7 @@ module zoltan_integration
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
-          
+         
        else
           ! Use the Zoltan graph partitioner by default
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
@@ -556,9 +557,14 @@ module zoltan_integration
           end if
           
        else
-          ! Use the Zoltan graph partitioner by default
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+          if (flredecomp) then
+             ! Use ParMETIS by default when flredecomping
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+          else
+             ! Use the Zoltan graph partitioner by default for adaptivity
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+          end if
        end if
 
     end if
@@ -568,7 +574,8 @@ module zoltan_integration
     ! iteration to produce a load balanced partitioning
     if (iteration == max_adapt_iteration) then
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
-       if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis"))  then
+       if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis") .OR. &
+          & (flredecomp .AND. .NOT.(have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")))) then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
        end if
@@ -680,6 +687,12 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids 
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
+
+    ! These variables are needed when flredecomping as we then use Zoltan_LB_Partition
+    integer(zoltan_int), dimension(:), pointer :: import_to_part
+    integer(zoltan_int), dimension(:), pointer :: export_to_part
+    integer(zoltan_int), dimension(:), pointer :: null_pointer => null()
+
     real, intent(inout) :: load_imbalance_tolerance
     logical, intent(in) :: flredecomp
 
@@ -694,15 +707,22 @@ module zoltan_integration
 
     ! Special case when flredecomping - don't check for empty partitions
     if (flredecomp) then
-       ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
-            &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+       ! Need to use Zoltan_LB_Partition when flredecomping as NUM_LOCAL_PART and NUM_GLOBAL_PART are
+       ! meant to be invalid for Zoltan_LB_Balance (actually appear to be valid even then but better
+       ! to follow the doc)
+       ierr = Zoltan_LB_Partition(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
+          & p1_import_local_ids, p1_import_procs, import_to_part, p1_num_export, p1_export_global_ids,  &
+          & p1_export_local_ids, p1_export_procs, export_to_part)
        assert(ierr == ZOLTAN_OK)
+
+       ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, import_to_part); assert(ierr == ZOLTAN_OK)
+       ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, export_to_part); assert(ierr == ZOLTAN_OK)
+
     else
       
         min_num_nodes_after_balance = 0
         do while (min_num_nodes_after_balance == 0)
 
-           ! import_* aren't used because we set RETURN_LISTS to be only EXPORT
            ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
                 &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
            assert(ierr == ZOLTAN_OK)
