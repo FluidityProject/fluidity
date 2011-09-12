@@ -56,7 +56,7 @@ module zoltan_integration
   contains
 
   subroutine zoltan_drive(states, iteration, max_adapt_iteration, metric, full_metric, initialise_fields, &
-    ignore_extrusion, flredecomping)
+    ignore_extrusion, flredecomping, input_procs, target_procs)
     type(state_type), dimension(:), intent(inout), target :: states
     integer, intent(in) :: iteration
     integer, intent(in) :: max_adapt_iteration
@@ -70,6 +70,8 @@ module zoltan_integration
     logical, intent(in), optional :: ignore_extrusion
     ! Are we flredecomping? If so, this should be true
     logical, intent(in), optional :: flredecomping
+    ! If flredecomping then these values should be provided
+    integer, intent(in), optional :: input_procs, target_procs
 
     type(zoltan_struct), pointer :: zz
 
@@ -92,6 +94,9 @@ module zoltan_integration
     type(vector_field) :: zoltan_global_new_positions_m1d
     real :: load_imbalance_tolerance
     logical :: flredecomp
+    integer :: flredecomp_input_procs = -1, flredecomp_target_procs = -1
+
+    ewrite(1,*) "In zoltan_drive"
 
     if (.not. present(flredecomping)) then
         flredecomp = .false.
@@ -100,12 +105,30 @@ module zoltan_integration
     end if
 
     if (flredecomp) then
+       ! check for required optional arguments
+       if (present(input_procs)) then
+          flredecomp_input_procs = input_procs
+       else
+          FLAbort("input_procs must be supplied when flredecomping.")
+       end if
+       if (present(target_procs)) then
+          flredecomp_target_procs = target_procs
+       else
+          FLAbort("target_procs must be supplied when flredecomping.")
+       end if
+
        zoltan_global_base_option_path = '/flredecomp'
     else
+       ! check invalid optional arguments haven't been supplied
+       if (present(input_procs)) then
+          FLAbort("input_procs should only be provided when flredecomping.")
+       end if
+       if (present(target_procs)) then
+          FLAbort("target_procs should only be provided when flredecomping.")
+       end if
+       
        zoltan_global_base_option_path = '/mesh_adaptivity/hr_adaptivity/zoltan_options'
     end if
-
-    ewrite(1,*) "In zoltan_drive"
 
     zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
       .and. .not. present_and_true(ignore_extrusion)
@@ -122,7 +145,7 @@ module zoltan_integration
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       & load_imbalance_tolerance, flredecomp)
+       & load_imbalance_tolerance, flredecomp, flredecomp_input_procs, flredecomp_target_procs)
 
 
     if (changes .eqv. .false.) then
@@ -673,7 +696,7 @@ module zoltan_integration
   subroutine zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       load_imbalance_tolerance,flredecomp)
+       load_imbalance_tolerance, flredecomp, input_procs, target_procs)
 
     type(zoltan_struct), pointer, intent(in) :: zz    
     logical, intent(out) :: changes    
@@ -688,6 +711,8 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
 
+    integer, intent(in) :: input_procs, target_procs
+
     ! These variables are needed when flredecomping as we then use Zoltan_LB_Partition
     integer(zoltan_int), dimension(:), pointer :: import_to_part
     integer(zoltan_int), dimension(:), pointer :: export_to_part
@@ -698,7 +723,9 @@ module zoltan_integration
 
     integer(zoltan_int) :: ierr
     integer :: i, node
-    integer :: num_nodes, num_nodes_after_balance, min_num_nodes_after_balance
+    integer :: num_nodes, num_nodes_before_balance, num_nodes_after_balance
+    integer :: min_num_nodes_after_balance, total_num_nodes_before_balance, total_num_nodes_after_balance
+    integer :: num_empty_partitions, empty_partition
     character (len = 10) :: string_load_imbalance_tolerance
 
     ewrite(1,*) 'in zoltan_load_balance'
@@ -707,6 +734,11 @@ module zoltan_integration
 
     ! Special case when flredecomping - don't check for empty partitions
     if (flredecomp) then
+
+       ! calculate total number of owned nodes before the load balance
+       call mpi_allreduce(num_nodes, total_num_nodes_before_balance, 1, getPINTEGER(), &
+          & MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
+
        ! Need to use Zoltan_LB_Partition when flredecomping as NUM_LOCAL_PART and NUM_GLOBAL_PART are
        ! meant to be invalid for Zoltan_LB_Balance (actually appear to be valid even then but better
        ! to follow the doc)
@@ -714,6 +746,41 @@ module zoltan_integration
           & p1_import_local_ids, p1_import_procs, import_to_part, p1_num_export, p1_export_global_ids,  &
           & p1_export_local_ids, p1_export_procs, export_to_part)
        assert(ierr == ZOLTAN_OK)
+
+       ! calculate how many owned nodes we'd have after doing the planned load balancing
+       num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+
+       ! calculate total number of owned nodes after the load balance
+       call mpi_allreduce(num_nodes_after_balance, total_num_nodes_after_balance, 1, getPINTEGER(), &
+          & MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
+
+       if (total_num_nodes_before_balance .NE. total_num_nodes_after_balance) then
+          FLAbort("The total number of nodes before load balancing does not equal the total number of nodes after the load balancing.")
+       end if
+
+       if (target_procs < input_procs) then
+          ! We're expecting some processes to have empty partitions when using flredecomp to
+          ! reduce the number of active processes. The plan is to calculate the number of 
+          ! processes with an empty partition after the load balance and check this is how
+          ! many we'd expect to be empty
+          if (num_nodes_after_balance > 0) then
+             empty_partition = 0
+          else
+             empty_partition = 1
+          end if
+          call mpi_allreduce(empty_partition, num_empty_partitions, 1, getPINTEGER(), &
+             & MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
+          
+          if (num_empty_partitions /= (input_procs - target_procs)) then
+             FLAbort("The correct number of processes did not have empty partitons after the load balancing.")
+          end if
+       else
+          ! If using flredecomp to increase the number of active processes then no process
+          ! should have an empty partition after the load balance
+          if (num_nodes_after_balance == 0) then
+             FLAbort("After load balancing process would have an empty partition.")
+          end if
+       end if
 
        ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, import_to_part); assert(ierr == ZOLTAN_OK)
        ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, export_to_part); assert(ierr == ZOLTAN_OK)
