@@ -421,10 +421,6 @@ endif
 	@cd legacy_reservoir_prototype; $(MAKE) clean
 	@echo "    CLEAN legacy_reservoir_prototype"
 	@cd main; $(MAKE) clean
-	@echo "    CLEAN qg_strat"
-	@cd qg_strat; $(MAKE) clean
-	@echo "    CLEAN qg_strat/unittests"
-	@cd qg_strat/unittests; $(MAKE) clean
 	@rm -fr bin/* lib
 
 clean: clean-light clean-test python_clean

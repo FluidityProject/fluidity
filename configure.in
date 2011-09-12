@@ -1538,7 +1538,6 @@ AC_OUTPUT(Makefile
       	  libalgencan/Makefile
           libwm/Makefile
           libvtkfortran/Makefile 
-          qg_strat/Makefile qg_strat/unittests/Makefile
           tests/lauwerier/Makefile
 	  reduced_modelling/Makefile
           legacy_reservoir_prototype/Makefile)

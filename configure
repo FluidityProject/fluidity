@@ -14860,7 +14860,7 @@ fi
 
 fi
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile radiation/Makefile radiation/tests/Makefile diagnostics/Makefile main/Makefile scripts/Makefile tools/Makefile python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile qg_strat/Makefile qg_strat/unittests/Makefile tests/lauwerier/Makefile reduced_modelling/Makefile legacy_reservoir_prototype/Makefile"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile radiation/Makefile radiation/tests/Makefile diagnostics/Makefile main/Makefile scripts/Makefile tools/Makefile python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile tests/lauwerier/Makefile reduced_modelling/Makefile legacy_reservoir_prototype/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15595,8 +15595,6 @@ do
     "libalgencan/Makefile") CONFIG_FILES="$CONFIG_FILES libalgencan/Makefile" ;;
     "libwm/Makefile") CONFIG_FILES="$CONFIG_FILES libwm/Makefile" ;;
     "libvtkfortran/Makefile") CONFIG_FILES="$CONFIG_FILES libvtkfortran/Makefile" ;;
-    "qg_strat/Makefile") CONFIG_FILES="$CONFIG_FILES qg_strat/Makefile" ;;
-    "qg_strat/unittests/Makefile") CONFIG_FILES="$CONFIG_FILES qg_strat/unittests/Makefile" ;;
     "tests/lauwerier/Makefile") CONFIG_FILES="$CONFIG_FILES tests/lauwerier/Makefile" ;;
     "reduced_modelling/Makefile") CONFIG_FILES="$CONFIG_FILES reduced_modelling/Makefile" ;;
     "legacy_reservoir_prototype/Makefile") CONFIG_FILES="$CONFIG_FILES legacy_reservoir_prototype/Makefile" ;;
