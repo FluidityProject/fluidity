@@ -53,19 +53,28 @@ lagrangian_biology =
                },
                ## Additional particle advection to simulate turbulent displacement. 
                element random_walk {
-                  ## Python function prescribing additional agent displacement due to turbulence. 
-                  ## The return value will be added to the lagrangian advection at each sub-timestep. 
-                  ## Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
-                  ## Functions should be of the form:
-                  ## 
-                  ##  field = state.scalar_fields['Field_name']
-                  ##
-                  ##  def val(ele, local_coord):
-                  ##     # x = field.eval_field(ele, local_coord)
-                  ##     return # Return some f(x)
-                  element python{
-                     python_code
-                  }
+                  (
+                     ## Python function prescribing additional agent displacement due to turbulence. 
+                     ## The return value will be added to the lagrangian advection at each sub-timestep. 
+                     ## Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
+                     ## Functions should be of the form:
+                     ## 
+                     ##  field = state.scalar_fields['Field_name']
+                     ##
+                     ##  def val(ele, local_coord):
+                     ##     # x = field.eval_field(ele, local_coord)
+                     ##     return # Return some f(x)
+                     element python{
+                        python_code
+                     }|
+                     ## Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
+                     ## Described in Visser, 1997 and Ross and Sharples, 2004.
+                     ## Requires name of diffusivity field and according gradient field.
+                     element diffusive_random_walk {
+                        attribute diffusivity_field { xsd:string },
+                        attribute diffusivity_gradient { xsd:string }
+                     }
+                  )
                }?,
                ## Debug options
                element debug {

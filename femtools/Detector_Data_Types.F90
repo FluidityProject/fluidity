@@ -91,6 +91,10 @@ module detector_data_types
 
     ! Python code to execute for Random Walk
     character(len=PYTHON_FUNC_LEN) :: rw_pycode
+
+    ! Field names for internal Random Walk schemes
+    logical :: use_internal_rw=.false.
+    character(len=FIELD_NAME_LEN) :: diffusivity_field, diffusivity_grad
   end type rk_gs_parameters
 
   type detector_linked_list

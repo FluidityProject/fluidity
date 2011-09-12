@@ -43,4 +43,6 @@ plot_detector_distribution("Naive_RW.detectors", 600, 1000, 40)
 
 plot_detector_distribution("Diffusive_RW.detectors", 600, 1000, 40)
 
+plot_detector_distribution("Diffusive_RW_intern.detectors", 600, 1000, 40)
+
 show()

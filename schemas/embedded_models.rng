@@ -59,8 +59,9 @@ The t argument is for future use only - currently detector locations are only se
               <optional>
                 <element name="random_walk">
                   <a:documentation>Additional particle advection to simulate turbulent displacement. </a:documentation>
-                  <element name="python">
-                    <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
+                  <choice>
+                    <element name="python">
+                      <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
 The return value will be added to the lagrangian advection at each sub-timestep. 
 Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
 Functions should be of the form:
@@ -70,8 +71,20 @@ Functions should be of the form:
  def val(ele, local_coord):
     # x = field.eval_field(ele, local_coord)
     return # Return some f(x)</a:documentation>
-                    <ref name="python_code"/>
-                  </element>
+                      <ref name="python_code"/>
+                    </element>
+                    <element name="diffusive_random_walk">
+                      <a:documentation>Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
+Described in Visser, 1997 and Ross and Sharples, 2004.
+Requires name of diffusivity field and according gradient field.</a:documentation>
+                      <attribute name="diffusivity_field">
+                        <data type="string"/>
+                      </attribute>
+                      <attribute name="diffusivity_gradient">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
+                  </choice>
                 </element>
               </optional>
               <optional>
