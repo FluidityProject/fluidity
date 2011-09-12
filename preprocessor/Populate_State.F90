@@ -2061,7 +2061,6 @@ contains
     !!<
     !!< At this stage only prescribed diffusivity, the Generic Length Scale ocean model
     !!< and the K-Epsilon turbulence model are handled via this route.
-    !!< Gent-McWilliams diffusivity is calculated on the fly and
     !!< Mellor-Yamada is pending a rewrite.
     type(state_type), dimension(:), intent(inout) :: states
     type(scalar_field), pointer :: sfield

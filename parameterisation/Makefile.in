@@ -41,7 +41,7 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS = Gent_McWilliams.o Equation_of_State.o \
+OBJS = Equation_of_State.o \
 Gls_vertical_turbulence_model.o \
 k_epsilon.o \
 iceshelf_meltrate_surf_normal.o

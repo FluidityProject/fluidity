@@ -712,68 +712,6 @@ start =
                   #                  }
                   #               )
                }?,
-               ## You MUST add the following additional fields for this:
-               ##  DistanceToTop
-               ##  DistanceToBottom
-               ##  DistanceToSideBoundaries
-               ##  PerturbationDensity
-               element Gent_McWilliams {
-                  ## This is the diffusivity along density
-                  ## surfaces. At the moment the dianeutral
-                  ## diffusivity is hardcoded to be 10^-7 x
-                  ## isoneutral_diffusivity.
-                  element isoneutral_diffusivity {
-                     real
-                  },
-                  ## This is the diffusivity that parameterises the
-                  ## effects of the baroclinic eddies.
-                  element GentMcWilliams_diffusivity {
-                     real
-                  },
-                  ## The vertical and off-diagonal components of the
-                  ## Gent-McWilliams diffusivity tensor need to be
-                  ## tapered to zero near the boundaries of the
-                  ## domain. A taper should also be applied where the
-                  ## density slope is large - define "large" by
-                  ## setting maximum_density_slope below.
-                  element tapering {
-                     ## Where the slope of the density surface is
-                     ## greater than or equal to the
-                     ## maximum_density_slope, an exponential taper is
-                     ## applied to the isoneutral diffusivity and a
-                     ## linear taper is applied to the GentMcWilliams
-                     ## diffusivity.
-                     element maximum_density_slope {
-                        real
-                     },
-                     ## The exponential taper has the form
-                     ## tanh((S_max-sqrt(S.S))/S_d) where S_mac is the
-                     ## maximum_density_slope, S is the local slope of
-                     ## the density surface and S_d is a parameter
-                     ## that controls the width of the tapering
-                     ## region.
-                     element width_of_exponential_taper_region {
-                        real
-                     },
-                     ## If the slope of the density surface is less
-                     ## than the maximum_density_slope but we are
-                     ## still near the surface, a sine taper is
-                     ## applies to both the diffusivities - "near" is
-                     ## defined as d < R1 |S| where d is the distance
-                     ## to the top, |S| is the slope of the density
-                     ## surface and R1 is the
-                     ## first_baroclinic_Rossby_radius.
-                     element first_baroclinic_Rossby_radius {
-                        real
-                     },
-                     ## Near the bottom and side boundaries the
-                     ## Gent-McWlliams diffusivity is tapered to zero
-                     ## by multiplying by c*DistanceToBoundary
-                     element constant_for_linear_taper {
-                        real
-                     }
-                  }
-               }?,
                ## This is the generic length scale (vertical turbulence mixed layer) model, 
                ## based here on Warner et al 2005, Ocean Modelling 8:81-113,
                ## which is itself based on the works of Umlauf and Burchard 2003.
