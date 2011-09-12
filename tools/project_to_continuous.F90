@@ -27,8 +27,8 @@
 #include "confdefs.h"
 #include "fdebug.h"
 
-subroutine project_to_continuous(vtuname, vtuname_len, meshname,&
-     & meshname_len) 
+subroutine project_to_continuous(vtuname_, vtuname_len, meshname_,&
+     & meshname_len) bind(c)
   !!< Given a vtu file containing fields on a discontinuous mesh, and the
   !!< triangle files for the corresponding continuous mesh, produce a vtu
   !!< with its fields projected onto the continuous mesh.
@@ -40,10 +40,16 @@ subroutine project_to_continuous(vtuname, vtuname_len, meshname,&
   use sparse_tools
   use fefields
   use sparse_matrices_fields
+  use iso_c_binding
   implicit none
-  integer, intent(in):: vtuname_len, meshname_len
-  character(len=vtuname_len), intent(in):: vtuname
-  character(len=meshname_len), intent(in):: meshname
+
+  character(kind=c_char, len=1) :: vtuname_(*)
+  integer(kind=c_size_t), value :: vtuname_len
+  character(kind=c_char, len=1) :: meshname_(*)
+  integer(kind=c_size_t), value :: meshname_len
+
+  character(len=vtuname_len):: vtuname
+  character(len=meshname_len):: meshname
 
   type(state_type) :: dg_state, cg_state
   type(vector_field) :: cg_coordinate
@@ -55,6 +61,14 @@ subroutine project_to_continuous(vtuname, vtuname_len, meshname,&
   type(tensor_field) :: dg_tensor, cg_tensor
 
   integer :: i, j, k
+
+! now turn into proper fortran strings (is there an easier way to do this?)
+  do i=1, vtuname_len
+    vtuname(i:i)=vtuname_(i)
+  end do
+  do i=1, meshname_len
+    meshname(i:i)=meshname_(i)
+  end do
 
   call vtk_read_state(vtuname, dg_state, quad_degree=6)
   
