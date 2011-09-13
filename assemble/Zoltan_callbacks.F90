@@ -271,7 +271,9 @@ contains
                 min_quality = quality
              end if
           end do
-          
+
+          ! Keep track of the lowest quality element of all those we've looked at
+          ! Will be used in zoltan_drive to calculate a global minimum element quality
           if(min_quality .LT. zoltan_global_local_min_quality) then
              zoltan_global_local_min_quality = min_quality
           end if
