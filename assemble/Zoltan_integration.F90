@@ -19,7 +19,7 @@ module zoltan_integration
   use vtk_interfaces
   use zoltan
   use linked_lists
-  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name, no_active_processes
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
   use data_structures
   use populate_state_module
   use reserve_state_module
@@ -139,7 +139,7 @@ module zoltan_integration
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
     load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-    call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, load_imbalance_tolerance, zz)
+    call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
 
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
@@ -202,7 +202,7 @@ module zoltan_integration
       call setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name = topology_mesh_name)
 
       load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-      call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, load_imbalance_tolerance, zz)
+      call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
       
       call reset_zoltan_lists_full(zz, &
        & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
@@ -459,9 +459,11 @@ module zoltan_integration
 
   end function get_load_imbalance_tolerance
 
-  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, load_imbalance_tolerance, zz)
+  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, target_procs, &
+     & load_imbalance_tolerance, zz)
     integer, intent(in) :: iteration, max_adapt_iteration
     logical, intent(in) :: flredecomp
+    integer, intent(in) :: target_procs
     real, intent(in) :: load_imbalance_tolerance
     type(zoltan_struct), pointer, intent(in) :: zz    
 
@@ -482,12 +484,12 @@ module zoltan_integration
 
     ! For flredecomp if we are not an active process, then let's set the number of local parts to be zero
     if (flredecomp) then
-       if (getprocno() > no_active_processes) then
+       if (getprocno() > target_procs) then
           ierr = Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS", "0"); assert(ierr == ZOLTAN_OK)
        else
           ierr = Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS", "1"); assert(ierr == ZOLTAN_OK)
        end if
-       ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(no_active_processes)); assert(ierr == ZOLTAN_OK)
+       ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(target_procs)); assert(ierr == ZOLTAN_OK)
     end if
     
     if (iteration /= max_adapt_iteration) then
