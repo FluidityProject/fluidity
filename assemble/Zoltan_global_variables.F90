@@ -48,6 +48,9 @@ module zoltan_global_variables
   type(scalar_field), save, pointer :: zoltan_global_max_edge_weight_on_node
   logical, save :: zoltan_global_output_edge_weights = .false.
   type(csr_sparsity), save, pointer :: zoltan_global_zz_nelist
+  ! used for calculating local minimum element_quality during the edge-weight calculation
+  real, save :: zoltan_global_local_min_quality
+  logical, save :: zoltan_global_calculated_local_min_quality
 
 
   ! Needed for zoltan_cb_pack_node_sizes
@@ -105,9 +108,6 @@ module zoltan_global_variables
 
   ! Needed for zoltan_cb_unpack_fields
   type(detector_linked_list), target, save :: zoltan_global_unpacked_detectors_list
-
-  real :: zoltan_global_local_min_quality
-  logical :: zoltan_global_calculated_local_min_quality
 
   ! Option path set based on whether being called from adaptivity or flredecomp
   character(len = OPTION_PATH_LEN), save :: zoltan_global_base_option_path
