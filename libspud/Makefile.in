@@ -72,6 +72,8 @@ unittest: libspud.la
 doc: 
 	@cd doc; $(MAKE) spud_manual.pdf
 
+build: install-libspud
+
 install: install-libspud install-spudtools install-diamond install-pyspud
 
 install-libspud: libspud.la

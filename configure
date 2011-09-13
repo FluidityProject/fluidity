@@ -602,6 +602,7 @@ MODINC_FLAG
 ARFLAGS
 CXXCPP
 SPATIALINDEXDIR
+SPUD_ONLY
 JUDY_CFLAGS
 CLEAN_LIBADAPT
 BUILD_LIBADAPT
@@ -13661,16 +13662,19 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
        { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xt4; disabling shared libraries" >&5
 $as_echo "$as_me: Building on hector xt4; disabling shared libraries" >&6;}
        SHFLAG=--disable-shared
+       SPUD_ONLY="yes"
     else
        # Check if we're on hector xe6
        if echo $(hostname) | grep -q "^hector-xe6"; then
          { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xe6; disabling shared libraries" >&5
 $as_echo "$as_me: Building on hector xe6; disabling shared libraries" >&6;}
          SHFLAG=--disable-shared
+         SPUD_ONLY="yes"
        else
          SHFLAG=--enable-shared
        fi
     fi
+
 
     cd libspud
     # We don't really want to use the same FFLAGS and LIBS as fluidity has

@@ -1212,15 +1212,18 @@ if test -d libspud ; then
        # Assume we are on hector xt4
        AC_MSG_NOTICE([Building on hector xt4; disabling shared libraries])
        SHFLAG=--disable-shared
+       SPUD_ONLY="yes"
     else
        # Check if we're on hector xe6
        if echo $(hostname) | grep -q "^hector-xe6"; then
          AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
          SHFLAG=--disable-shared
+         SPUD_ONLY="yes"
        else
          SHFLAG=--enable-shared
        fi
     fi
+    AC_SUBST(SPUD_ONLY)
 
     cd libspud
     # We don't really want to use the same FFLAGS and LIBS as fluidity has
