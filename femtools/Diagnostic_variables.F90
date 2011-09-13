@@ -25,6 +25,7 @@
 !    USA
 
 #include "fdebug.h"
+#include "version.h"
 
 module diagnostic_variables
   !!< A module to calculate and output diagnostics. This replaces the .s file.

@@ -138,6 +138,18 @@ module python_state
       character(len=oplen) :: option_path
       character(len=mesh_name_len) :: mesh_name
     end subroutine python_add_scalar
+    
+    subroutine python_add_csr_matrix(valuesSize, values, col_indSize, col_ind, row_ptrSize, &
+      row_ptr, name, namelen, state_name,snlen, numCols)
+      implicit none
+      integer :: valuesSize,col_indSize,row_ptrSize,namelen,snlen,numCols
+      real, dimension(valuesSize) :: values
+      integer, dimension(col_indSize) :: col_ind
+      integer, dimension(row_ptrSize) :: row_ptr
+      character(len=namelen) :: name
+      character(len=snlen) :: state_name
+    end subroutine python_add_csr_matrix
+    
     subroutine python_add_vector(numdim,sx,x,&
       &name,nlen,field_type,option_path,oplen,state_name,snlen,&
       &mesh_name,mesh_name_len)
@@ -215,6 +227,7 @@ module python_state
     module procedure python_add_scalar_directly
     module procedure python_add_vector_directly
     module procedure python_add_tensor_directly
+    module procedure python_add_csr_matrix_directly
   end interface
 
 
@@ -237,6 +250,29 @@ module python_state
     call python_add_scalar(size(S%val,1),S%val,&
       trim(S%name),slen, S%field_type,S%option_path,oplen,trim(st%name),snlen,S%mesh%name,mesh_name_len)
   end subroutine python_add_scalar_directly
+  
+  subroutine python_add_csr_matrix_directly(csrMatrix,st)
+    type(csr_matrix) :: csrMatrix
+    type(state_type) :: st
+    integer :: valSize, col_indSize, row_ptrSize, nameLen, statenameLen,numCols
+    type(csr_sparsity) :: csrSparsity
+    real, dimension(:), pointer :: values
+    integer, dimension(:), pointer :: col_ind
+    integer, dimension(:), pointer :: row_ptr
+    
+    csrSparsity = csrMatrix%sparsity 
+    values => csrMatrix%val
+    valSize = size(csrMatrix%val,1)
+    col_ind => csrSparsity%colm
+    col_indSize = valSize
+    row_ptr => csrSparsity%findrm
+    row_ptrSize = size(csrSparsity%findrm,1)
+    nameLen = len(trim(csrMatrix%name))
+    statenameLen = len(trim(st%name))
+    numCols = csrSparsity%columns
+    call python_add_csr_matrix(valSize, values, col_indSize, col_ind, row_ptrSize, row_ptr, &
+      trim(csrMatrix%name), nameLen, trim(st%name),statenameLen,numCols)
+  end subroutine python_add_csr_matrix_directly
 
   subroutine python_add_vector_directly(V,st)
     type(vector_field) :: V
@@ -398,6 +434,13 @@ module python_state
         call python_add_field(S%tensor_fields(i)%ptr,S)
       end do
     end if
+    if ( associated(S%csr_matrices) )  then
+      do i=1,(size(S%csr_matrices))
+        call python_add_field(S%csr_matrices(i)%ptr,S)
+      end do
+    end if
+    
+    
   end subroutine python_add_state
 
   subroutine python_add_states(S)

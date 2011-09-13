@@ -1291,6 +1291,10 @@ contains
       integer, dimension(ele_loc(tfield,1)) :: diffusivity_lglno
       integer, dimension(face_loc(tfield,1)) :: diffusivity_lglno_bdy
 
+      ! Boundary condition types
+      integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NEUMANN = 2, BC_TYPE_INTERNAL = 3, &
+                            BC_TYPE_ZEROFLUX = 4, BC_TYPE_FLUX = 5
+
       ewrite(1, *) "In assemble_advectiondiffusion_m_cv"
 
       ! Clear memory of arrays being designed
@@ -1632,7 +1636,8 @@ contains
         "weakdirichlet", &
         "neumann      ", &
         "internal     ", &
-        "zero_flux    "/), tfield_bc, tfield_bc_type)
+        "zero_flux    ", &
+        "flux         "/), tfield_bc, tfield_bc_type)
       if(include_density) then
         allocate(tdensity_bc_type(surface_element_count(tdensity)))
         call get_entire_boundary_condition(tdensity, (/"weakdirichlet"/), tdensity_bc, tdensity_bc_type)
@@ -1641,7 +1646,7 @@ contains
       ! loop over the surface elements
       surface_element_loop: do sele = 1, surface_element_count(tfield)
         
-        if((tfield_bc_type(sele)==3)) cycle
+        if((tfield_bc_type(sele)==BC_TYPE_INTERNAL)) cycle
 
         ele = face_ele(x, sele)
         x_ele = ele_val(x, ele)
@@ -1675,13 +1680,13 @@ contains
         end if
 
         ! deal with bcs for tfield
-        if(tfield_bc_type(sele)==1) then
+        if(tfield_bc_type(sele)==BC_TYPE_WEAKDIRICHLET .or. tfield_bc_type(sele)==BC_TYPE_FLUX) then
           ghost_tfield_ele_bdy=ele_val(tfield_bc, sele)
         else
           ghost_tfield_ele_bdy=face_val(tfield, sele)
         end if
 
-        if(tfield_bc_type(sele)==1) then
+        if(tfield_bc_type(sele)==BC_TYPE_WEAKDIRICHLET) then
           ghost_oldtfield_ele_bdy=ele_val(tfield_bc, sele) ! not considering time varying bcs yet
         else
           ghost_oldtfield_ele_bdy=face_val(oldtfield, sele)
@@ -1696,13 +1701,13 @@ contains
 
           if(include_density) then
             ! deal with bcs for tdensity
-            if(tdensity_bc_type(sele)==1) then
+            if(tdensity_bc_type(sele)==BC_TYPE_WEAKDIRICHLET) then
               ghost_tdensity_ele_bdy=ele_val(tdensity_bc, sele)
             else
               ghost_tdensity_ele_bdy=face_val(tdensity, sele)
             end if
 
-            if(tdensity_bc_type(sele)==1) then
+            if(tdensity_bc_type(sele)==BC_TYPE_WEAKDIRICHLET) then
               ghost_oldtdensity_ele_bdy=ele_val(tdensity_bc, sele) ! not considering time varying bcs yet
             else
               ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)
@@ -1745,14 +1750,15 @@ contains
                   ! u.n
                   if(move_mesh) then
                     divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-                    if((tfield_bc_type(sele)==4)) then
+                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX)) then
+                      ! If we have zero flux, or a flux BC, set u.n = 0
                       udotn = 0.0
                     else
                       udotn = dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
                     end if
                   else
                     divudotn = dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-                    if((tfield_bc_type(sele)==4)) then
+                    if((tfield_bc_type(sele)==BC_TYPE_ZEROFLUX .or. tfield_bc_type(sele)==BC_TYPE_FLUX)) then
                       udotn = 0.0
                     else
                       udotn = divudotn
@@ -1809,12 +1815,20 @@ contains
                   end if
                 end if
 
+                ! If we have a flux boundary condition, then we need to set up the equation so that
+                ! d(field)/dt = flux_val_at_boundary
+                ! We add the flux_val_at_boundary contribution to rhs_local_bdy, after setting the advection
+                ! and diffusion terms to zero at the boundary.
+                if(tfield_bc_type(sele)==BC_TYPE_FLUX) then
+                   rhs_local_bdy(iloc) = rhs_local_bdy(iloc) + detwei_bdy(ggi)*ghost_tfield_ele_bdy(iloc)
+                end if
+
                 if(assemble_diffusion) then
 
                   select case(tfield_options%diffusionscheme)
                   case(CV_DIFFUSION_BASSIREBAY)
 
-                    if(tfield_bc_type(sele)==1) then
+                    if(tfield_bc_type(sele)==BC_TYPE_WEAKDIRICHLET) then
                       ! assemble grad_rhs
 
                       grad_rhs_local_bdy(:, iloc) = grad_rhs_local_bdy(:,iloc) &
@@ -1830,7 +1844,7 @@ contains
 
                     else
 
-                      if(tfield_bc_type(sele)==2) then
+                      if(tfield_bc_type(sele)==BC_TYPE_NEUMANN) then
 
                         ! assemble div_rhs
                         div_rhs_local_bdy(iloc) = div_rhs_local_bdy(iloc) &
@@ -1850,7 +1864,7 @@ contains
 
                   case(CV_DIFFUSION_ELEMENTGRADIENT)
 
-                    if(tfield_bc_type(sele)==2) then
+                    if(tfield_bc_type(sele)==BC_TYPE_NEUMANN) then
 
                       div_rhs_local_bdy(iloc) = div_rhs_local_bdy(iloc) &
                                   -detwei_bdy(ggi)*ghost_gradtfield_ele_bdy(iloc)
@@ -1904,12 +1918,12 @@ contains
 
           case(CV_DIFFUSION_ELEMENTGRADIENT)
 
-            if(tfield_bc_type(sele)==1) then
+            if(tfield_bc_type(sele)==BC_TYPE_WEAKDIRICHLET) then
 
             ! assume zero neumann for the moment
             ! call addto(diff_rhs, nodes_bdy, -matmul(diff_mat_local_bdy, ghost_gradtfield_ele_bdy))
 
-            elseif(tfield_bc_type(sele)==2) then
+            elseif(tfield_bc_type(sele)==BC_TYPE_NEUMANN) then
 
               call addto(diff_rhs, nodes_bdy, div_rhs_local_bdy)
 
@@ -1923,8 +1937,10 @@ contains
           end select
         end if
 
-        ! assemble rhs
-        if(include_advection) then
+        ! assemble RHS - this contains the advection boundary terms, or
+        ! a RHS term from the flux boundary condition, so that
+        ! we have the equation in the form d(field)/dt = flux_val
+        if(include_advection .or. tfield_bc_type(sele)==BC_TYPE_FLUX) then
           call addto(rhs, nodes_bdy, rhs_local_bdy)
         end if
 
@@ -2690,6 +2706,9 @@ contains
 
       integer :: f, f2, nfields, upwind_pos
 
+      ! Boundary condition types
+      integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_INTERNAL = 2, BC_TYPE_ZEROFLUX = 3
+
       ewrite(2,*) 'in assemble_coupled_advection_m_cv'
 
       nfields = size(tfield)
@@ -2991,7 +3010,7 @@ contains
       ! loop over the surface elements
       surface_element_loop: do sele = 1, surface_element_count(tfield(1)%ptr)
 
-        if(any(tfield_bc_type(:,sele)==2)) cycle
+        if(any(tfield_bc_type(:,sele)==BC_TYPE_INTERNAL)) cycle
         
         ele = face_ele(x, sele)
         x_ele = ele_val(x, ele)
@@ -3006,13 +3025,13 @@ contains
 
         do f = 1, nfields
           ! deal with bcs for tfield
-          if(tfield_bc_type(f,sele)==1) then
+          if(tfield_bc_type(f,sele)==BC_TYPE_WEAKDIRICHLET) then
             ghost_tfield_ele_bdy(f,:)=ele_val(tfield_bc(f), sele)
           else
             ghost_tfield_ele_bdy(f,:)=face_val(tfield(f)%ptr, sele)
           end if
 
-          if(tfield_bc_type(f,sele)==1) then
+          if(tfield_bc_type(f,sele)==BC_TYPE_WEAKDIRICHLET) then
             ghost_oldtfield_ele_bdy(f,:)=ele_val(tfield_bc(f), sele) ! not considering time varying bcs yet
           else
             ghost_oldtfield_ele_bdy(f,:)=face_val(oldtfield(f)%ptr, sele)
@@ -3022,13 +3041,13 @@ contains
           oldtfield_ele_bdy(f,:)=face_val(oldtfield(f)%ptr, sele)
 
           ! deal with bcs for tdensity
-          if(tdensity_bc_type(f,sele)==1) then
+          if(tdensity_bc_type(f,sele)==BC_TYPE_WEAKDIRICHLET) then
             ghost_tdensity_ele_bdy(f,:)=ele_val(tdensity_bc(f), sele)
           else
             ghost_tdensity_ele_bdy(f,:)=face_val(tdensity(f)%ptr, sele)
           end if
 
-          if(tdensity_bc_type(f,sele)==1) then
+          if(tdensity_bc_type(f,sele)==BC_TYPE_WEAKDIRICHLET) then
             ghost_oldtdensity_ele_bdy(f,:)=ele_val(tdensity_bc(f), sele) ! not considering time varying bcs yet
           else
             ghost_oldtdensity_ele_bdy(f,:)=face_val(oldtdensity(f)%ptr, sele)
@@ -3070,7 +3089,7 @@ contains
 
                 surface_field_loop: do f = 1, nfields
                   
-                  if((tfield_bc_type(f,sele)==3)) then
+                  if((tfield_bc_type(f,sele)==BC_TYPE_ZEROFLUX)) then
                     ! zero_flux
                     udotn = 0.0
                   else

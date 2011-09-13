@@ -1186,7 +1186,7 @@ prescribed_adaptivity =
                (
                   ## Input mesh file format.
                   element format {
-                     "triangle",
+                     attribute name {"triangle"},
                      comment
                   }
                ),
