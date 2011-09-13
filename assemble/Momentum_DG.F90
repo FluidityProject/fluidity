@@ -651,7 +651,7 @@ contains
       call remap_field(wettingdrying_alpha, alpha_u_field)
     end if
 
-      call profiler_tic("element_loop")
+      call profiler_tic(u, "element_loop")
       
 
 #ifdef _OPENMP
@@ -740,7 +740,7 @@ contains
     call deallocate(p0_mesh)
     endif
     
-    call profiler_toc("element_loop")
+    call profiler_toc(u, "element_loop")
 
     if (have_wd_abs) then
       ! the remapped field is not needed anymore.

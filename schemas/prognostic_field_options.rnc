@@ -67,6 +67,15 @@ scalar_boundary_conditions =
                element string_value {
                "low_Re"|"high_Re"
                }
+            }|
+            ## Flux boundary condition. Currently only works with a control_volume 
+            ## discretisation.
+            ##
+            ## This weakly enforces the total (advective plus diffusive) flux across 
+            ## a boundary when solving the advection-diffusion equation.
+            element type {
+               attribute name { "flux" },
+               input_choice_real
             }
          )
       }

@@ -27,10 +27,10 @@
 SHELL = /bin/sh
 
 FC      = @FC@
-FCFLAGS = @CPPFLAGS@ @FCFLAGS@ -Iinclude
+FCFLAGS = -Iinclude @CPPFLAGS@ @FCFLAGS@
 
 CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -Iinclude
+CXXFLAGS= -Iinclude @CPPFLAGS@ @CXXFLAGS@
 
 MAKE    = @MAKE@
 AR      = @AR@
