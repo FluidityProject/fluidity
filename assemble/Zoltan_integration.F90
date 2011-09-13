@@ -154,7 +154,9 @@ module zoltan_integration
 
     if (.NOT. final_adapt_iteration) then
 
-       assert(zoltan_global_calculated_local_min_quality)
+       if (.NOT. zoltan_global_calculated_local_min_quality) then
+          FLAbort("Minimum element quality was not calculated during the load balance call.")
+       end if
 
        call mpi_allreduce(zoltan_global_local_min_quality, global_min_quality, 1, getPREAL(), &
           & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
