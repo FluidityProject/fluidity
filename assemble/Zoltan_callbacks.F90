@@ -88,7 +88,7 @@ contains
     call get_owned_nodes(zoltan_global_zz_halo, local_ids(1:count))
     global_ids(1:count) = halo_universal_number(zoltan_global_zz_halo, local_ids(1:count))
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug")) then
        ewrite(1,*) "zoltan_cb_get_owned nodes found local_ids: ", local_ids(1:count)
        ewrite(1,*) "zoltan_cb_get_owned nodes found global_ids: ", global_ids(1:count)
     end if
@@ -138,7 +138,7 @@ contains
       num_edges(node) = row_length(zoltan_global_zz_sparsity_one, local_ids(node))
     end do
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_counts")) then      
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_counts")) then      
        write(filename, '(A,I0,A)') 'edge_counts_', getrank(),'.dat'
        open(666, file = filename)
        do node=1,count
@@ -323,7 +323,7 @@ contains
        end do
     end if
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_weights")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_weights")) then
        write(filename, '(A,I0,A)') 'edge_weights_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,head-1
@@ -367,7 +367,7 @@ contains
       end if
     end do
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_node_sizes")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_node_sizes")) then
        write(filename, '(A,I0,A)') 'node_sizes_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,num_ids
@@ -782,7 +782,7 @@ contains
       end if
     end do
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_halo_node_sizes")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_halo_node_sizes")) then
        write(filename, '(A,I0,A)') 'halo_node_sizes_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,num_ids
@@ -989,7 +989,7 @@ contains
             + ele_loc(zoltan_global_zz_mesh, 1) * integer_size
     end do
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_field_sizes")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_field_sizes")) then
        write(filename, '(A,I0,A)') 'field_sizes_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,num_ids

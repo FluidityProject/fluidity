@@ -1,4 +1,5 @@
 #include "confdefs.h"
+#include "spud.h"
 
 #ifdef HAVE_PYTHON
 #include "Python.h"

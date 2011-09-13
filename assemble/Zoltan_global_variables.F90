@@ -1,3 +1,4 @@
+
 #include "confdefs.h"
 
 module zoltan_global_variables
@@ -20,6 +21,8 @@ module zoltan_global_variables
   ! Needed for zoltan_cb_pack_field_size
   use state_module, only: state_type
   use detector_data_types, only: detector_linked_list
+
+  use global_parameters, only: OPTION_PATH_LEN
 
   implicit none
 
@@ -105,6 +108,9 @@ module zoltan_global_variables
 
   real :: zoltan_global_local_min_quality
   logical :: zoltan_global_calculated_local_min_quality
+
+  ! Option path set based on whether being called from adaptivity or flredecomp
+  character(len = OPTION_PATH_LEN), save :: zoltan_global_base_option_path
 
 #endif
 

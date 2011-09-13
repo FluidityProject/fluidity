@@ -344,6 +344,10 @@ if __name__ == "__main__":
       os.environ["PYTHONPATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")) + ":" + os.environ["PYTHONPATH"]
     except KeyError:
       os.putenv("PYTHONPATH", os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")))
+    try:
+      os.environ["LD_LIBRARY_PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "lib")) + ":" + os.environ["LD_LIBRARY_PATH"]
+    except KeyError:
+      os.putenv("LD_LIBRARY_PATH", os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "lib")))
 
     try:
         os.mkdir(os.environ["HOME"] + os.sep + "lock")

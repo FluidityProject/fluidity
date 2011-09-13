@@ -253,7 +253,9 @@
          ! An array of submaterials of the current phase in state(istate).
          type(state_type), dimension(:), pointer :: submaterials
          ! The index of the current phase (i.e. state(istate)) in the submaterials array
-         integer :: submaterials_istate 
+         integer :: submaterials_istate
+         ! Do we have fluid-particle drag between phases?
+         logical :: have_fp_drag
 
          ewrite(1,*) 'Entering solve_momentum'
 
@@ -273,6 +275,8 @@
          else
             multiphase = .false.
          end if
+         ! Do we have fluid-particle drag (for multi-phase simulations)?
+         have_fp_drag = option_count("/material_phase/multiphase_properties/particle_diameter") > 0
 
          ! Get the pressure p^{n}, and get the assembly options for the divergence and CMC matrices
          ! find the first non-aliased pressure
@@ -566,6 +570,15 @@
                      assemble_ct_matrix_here=reassemble_ct_m .and. .not. cv_pressure, &
                      include_pressure_and_continuity_bcs=.not. cv_pressure)
             end if
+            
+            ! Add in multiphase interactions (e.g. fluid-particle drag) if necessary
+            ! Note: this is done outside of construct_momentum_cg/dg to keep things
+            ! neater in Momentum_CG/DG.F90, since we would need to pass around multiple phases 
+            ! and their fields otherwise.
+            if(multiphase .and. have_fp_drag) then
+               call add_fluid_particle_drag(state, istate, u, x, big_m(istate), mom_rhs(istate))
+            end if
+            
             call profiler_toc(u, "assembly")
 
             if(has_scalar_field(state(istate), hp_name)) then
@@ -805,8 +818,8 @@
 
 
          ! Do we have a prognostic pressure field we can actually solve for?
-         call profiler_tic(p, "assembly")
          if(prognostic_p .and. .not.reduced_model) then
+            call profiler_tic(p, "assembly")
 
             u => extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
             x => extract_vector_field(state(prognostic_p_istate), "Coordinate")
@@ -838,8 +851,8 @@
             call allocate(projec_rhs, p%mesh, "ProjectionRHS")
             call zero(projec_rhs)
 
+            call profiler_toc(p, "assembly")
          end if ! end of prognostic pressure
-         call profiler_toc(p, "assembly")
 
 
          if (.not.reduced_model) then
@@ -913,8 +926,8 @@
 
 
             !! Solve for delta_p -- the pressure correction term
-            call profiler_tic(p, "assembly")
             if(prognostic_p) then
+               call profiler_tic(p, "assembly")
 
                ! Get the intermediate velocity u^{*} and the coordinate vector field
                u=>extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
@@ -930,9 +943,8 @@
                                     schur_auxiliary_matrix, stiff_nodes_list)
 
                call deallocate(projec_rhs)
-
+               call profiler_toc(p, "assembly")
             end if
-            call profiler_toc(p, "assembly")
 
 
             !! Correct and update velocity fields to u^{n+1} using pressure correction term delta_p
