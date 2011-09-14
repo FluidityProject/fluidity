@@ -1208,20 +1208,13 @@ if test -d libspud ; then
     AC_MSG_NOTICE([Configuring libspud])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
-    if echo $(hostname) | grep -q "^nid[[0-9]][[0-9]][[0-9]][[0-9]][[0-9]]$"; then
-       # Assume we are on hector xt4
-       AC_MSG_NOTICE([Building on hector xt4; disabling shared libraries])
-       SHFLAG=--disable-shared
-       SPUD_ONLY="yes"
+    # Check if we're on hector xe6
+    if echo $(hostname) | grep -q "^hector-xe6"; then
+        AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
+        SHFLAG=--disable-shared
+        SPUD_ONLY="yes"
     else
-       # Check if we're on hector xe6
-       if echo $(hostname) | grep -q "^hector-xe6"; then
-         AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
-         SHFLAG=--disable-shared
-         SPUD_ONLY="yes"
-       else
-         SHFLAG=--enable-shared
-       fi
+        SHFLAG=--enable-shared
     fi
     AC_SUBST(SPUD_ONLY)
 

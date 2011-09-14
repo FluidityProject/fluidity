@@ -13657,22 +13657,14 @@ $as_echo "$as_me: Configuring libspud" >&6;}
     { $as_echo "$as_me:${as_lineno-$LINENO}: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&5
 $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 
-    if echo $(hostname) | grep -q "^nid[0-9][0-9][0-9][0-9][0-9]$"; then
-       # Assume we are on hector xt4
-       { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xt4; disabling shared libraries" >&5
-$as_echo "$as_me: Building on hector xt4; disabling shared libraries" >&6;}
-       SHFLAG=--disable-shared
-       SPUD_ONLY="yes"
-    else
-       # Check if we're on hector xe6
-       if echo $(hostname) | grep -q "^hector-xe6"; then
-         { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xe6; disabling shared libraries" >&5
+    # Check if we're on hector xe6
+    if echo $(hostname) | grep -q "^hector-xe6"; then
+        { $as_echo "$as_me:${as_lineno-$LINENO}: Building on hector xe6; disabling shared libraries" >&5
 $as_echo "$as_me: Building on hector xe6; disabling shared libraries" >&6;}
-         SHFLAG=--disable-shared
-         SPUD_ONLY="yes"
-       else
-         SHFLAG=--enable-shared
-       fi
+        SHFLAG=--disable-shared
+        SPUD_ONLY="yes"
+    else
+        SHFLAG=--enable-shared
     fi
 
 
