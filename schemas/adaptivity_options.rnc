@@ -922,7 +922,7 @@ hr_adaptivity =
             ## Select which partitioner to use after the final adapt iteration.
             ## Graph partitioners available are ParMETIS and Zoltan PHG. The 
             ## Zoltan PHG hypergraph partitoner is also available.
-            ## Default is the Zoltan PHG graph partitioner.
+            ## Default is the ParMETIS graph partitioner.
             element final_partitioner {
                 ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
                 ## closely as possible the setup used previously by Sam.

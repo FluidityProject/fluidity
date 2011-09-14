@@ -608,14 +608,9 @@ module zoltan_integration
           end if
           
        else
+          ! Use ParMETIS by default on the final adapt iteration
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-          if (flredecomp) then
-             ! Use ParMETIS by default when flredecomping
-             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
-          else
-             ! Use the Zoltan graph partitioner by default for adaptivity
-             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
-          end if
+          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
        end if
 
     end if
@@ -626,7 +621,7 @@ module zoltan_integration
     if (final_adapt_iteration) then
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
        if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis") .OR. &
-          & (flredecomp .AND. .NOT.(have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")))) then
+          & (.NOT.(have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")))) then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
        end if

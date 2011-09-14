@@ -1077,7 +1077,7 @@ and can produce non-contiguous partitions for certain problems.</a:documentation
               <a:documentation>Select which partitioner to use after the final adapt iteration.
 Graph partitioners available are ParMETIS and Zoltan PHG. The 
 Zoltan PHG hypergraph partitoner is also available.
-Default is the Zoltan PHG graph partitioner.</a:documentation>
+Default is the ParMETIS graph partitioner.</a:documentation>
               <choice>
                 <element name="metis">
                   <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
