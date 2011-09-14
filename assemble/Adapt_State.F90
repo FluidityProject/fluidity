@@ -1247,7 +1247,7 @@ contains
         ! Re-load-balance using libsam
         call sam_drive(states, sam_options(i, max_adapt_iteration), metric = metric)
 #endif
-        if(final_adapt_iteration .eqv. .true.) then
+        if(final_adapt_iteration) then
           ! On the last adapt iteration the metric was interpolated
           ! only for re-load-balancing, hence it must be deallocated
           call deallocate(metric)
@@ -1270,7 +1270,7 @@ contains
       call incrementeventcounter(EVENT_MESH_MOVEMENT)
 
       ! if this was the final adapt iteration we've now finished adapting
-      if (final_adapt_iteration .eqv. .true.) then
+      if (final_adapt_iteration) then
          ewrite(2,*) "Finished adapting."
          finished_adapting = .true.
       else
