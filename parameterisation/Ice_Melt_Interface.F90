@@ -90,10 +90,10 @@ contains
     integer, dimension(:), allocatable  :: surface_element_list
     integer                             :: i,the_node
     ! For input of the hydrostatic pressure     
-    character(len=PYTHON_FUNC_LEN)      :: func  
+    character(len=PYTHON_FUNC_LEN)      :: subshelf_hydrostatic_pressure_function 
     real                                :: current_time
     type(vector_field), pointer         :: positions
-    type(scalar_field), pointer         :: HydroSP
+    type(scalar_field), pointer         :: subshelf_hydrostatic_pressure
     real :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
     real                                :: T_steady, S_steady
     logical :: calculate_boundaries_T, calculate_boundaries_S
@@ -146,14 +146,14 @@ contains
 
     ! Read the hydrostatic pressure
     if(have_option(trim(option_path)//'/subshelf_hydrostatic_pressure')) then
-       call get_option(trim(option_path)//'/subshelf_hydrostatic_pressure/python', func)
+       call get_option(trim(option_path)//'/subshelf_hydrostatic_pressure/python', subshelf_hydrostatic_pressure_function)
        ! Get current time
          call get_option("/timestepping/current_time", current_time)
        ! Set initial condition from python function
        ! TODO: This field should be generated automatically and is not needed in the schema
-       HydroSP => extract_scalar_field(state,"subshelf_hydrostatic_pressure")
+       subshelf_hydrostatic_pressure => extract_scalar_field(state,"subshelf_hydrostatic_pressure")
        positions => extract_vector_field(state,"Coordinate")
-       call set_from_python_function(HydroSP, trim(func), positions, current_time)
+       call set_from_python_function(subshelf_hydrostatic_pressure, trim(subshelf_hydrostatic_pressure_function), positions, current_time)
        ewrite(1,*) "Melt interface initialisation, found hydrostatic pressure field"
     endif
 
