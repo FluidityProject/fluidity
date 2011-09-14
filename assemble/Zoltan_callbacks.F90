@@ -194,8 +194,15 @@ contains
     
     if (.NOT. zoltan_global_calculate_edge_weights) then
        
-       ! last iteration - hopefully the mesh is of sufficient quality by now
-       ! we only want to optimize the edge cut to minimize halo communication
+       ! Three reasons why we might not want to use edge-weighting:
+       ! - last iteration 
+       !   hopefully the mesh is of sufficient quality by now we only
+       !   want to optimize the edge cut to minimize halo communication
+       ! - flredecomping
+       !   we don't need to use edge-weights as there's no adapting
+       ! - empty partitions
+       !   when load balancing with edge-weights on we couldn't avoid
+       !   creating empty paritions so try load balancing without them
        ewgts(1:my_num_edges) = 1.0       
        head = 1
        do node=1,count
