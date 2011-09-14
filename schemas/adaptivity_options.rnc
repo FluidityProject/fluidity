@@ -947,6 +947,8 @@ hr_adaptivity =
             ## Elements with a quality greater than this will be liable to be
             ## on the parition boundary. Below this, they will be free to be adapted
             ## and improved. Range is 0 to 1, with default 0.6
+            ## This should be set to the same value as used for the quality option
+            ## in libmba2d or libmba3d
             element element_quality_cutoff {
                 real
             }?,
