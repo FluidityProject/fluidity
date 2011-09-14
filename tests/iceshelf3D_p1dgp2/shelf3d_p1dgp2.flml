@@ -231,7 +231,7 @@ Setup similar to that described in Holland et al. 2008.</comment>
         </initial_condition>
         <boundary_conditions name="Ocean">
           <surface_ids>
-            <integer_value shape="8" rank="1">101 102 103 104 105 106 110 120</integer_value>
+            <integer_value shape="8" rank="1">101 102 103 104 105 106 107 108</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>

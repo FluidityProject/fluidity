@@ -75,10 +75,11 @@ Physical Surface(104) = {52,70,136,118};
 Physical Surface(105) = {78,144};
 // Ice slope
 Physical Surface(106) = {26,92};
-// East
-Physical Surface(110) = {145,123,101};
+
 // West
-Physical Surface(120) = {35,57,79};
+Physical Surface(107) = {35,57,79};
+// East
+Physical Surface(108) = {145,123,101};
 
 Physical Volume(49) = {1,2,3,4,5,6};
 
