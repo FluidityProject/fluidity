@@ -905,7 +905,7 @@ hr_adaptivity =
                 element metis {
                     empty
                 }|
-                ## Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE*
+                ## Use the PT-Scotch graph partitioner.
                 element scotch {
                     empty
                 }|
@@ -929,7 +929,7 @@ hr_adaptivity =
                 element metis {
                     empty
                 }|
-                ## Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE* 
+                ## Use the PT-Scotch graph partitioner.
                 element scotch {
                     empty
                 }|
@@ -967,7 +967,7 @@ hr_adaptivity =
             ## iterations to a value greater than zero we allow Zoltan to do adapt_iterations plus
             ## additional_adapt_iterations calls to adaptivity. Additional calls over adapt iterations
             ## are only allowed if Zoltan returns a minimum element quality below the element quality
-            ## cut off. Default is 2. 
+            ## cut off. Default is 0. 
             element additional_adapt_iterations {
                 integer
             }?,

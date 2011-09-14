@@ -1054,7 +1054,7 @@ closely as possible the setup used previously by Sam.</a:documentation>
                   <empty/>
                 </element>
                 <element name="scotch">
-                  <a:documentation>Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE*</a:documentation>
+                  <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
                   <empty/>
                 </element>
                 <element name="zoltan">
@@ -1085,7 +1085,7 @@ closely as possible the setup used previously by Sam.</a:documentation>
                   <empty/>
                 </element>
                 <element name="scotch">
-                  <a:documentation>Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE* </a:documentation>
+                  <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
                   <empty/>
                 </element>
                 <element name="zoltan">
@@ -1133,7 +1133,7 @@ Zoltan returns the minimum element quality to adaptivity. By setting additional 
 iterations to a value greater than zero we allow Zoltan to do adapt_iterations plus
 additional_adapt_iterations calls to adaptivity. Additional calls over adapt iterations
 are only allowed if Zoltan returns a minimum element quality below the element quality
-cut off. Default is 2. </a:documentation>
+cut off. Default is 0. </a:documentation>
               <ref name="integer"/>
             </element>
           </optional>
