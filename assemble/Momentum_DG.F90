@@ -259,6 +259,7 @@ contains
 
     !! 
     type(mesh_type) :: p0_mesh
+    type(mesh_type), pointer :: parent_mesh
     type(csr_sparsity), pointer :: dependency_sparsity
     type(scalar_field) :: node_colour
     type(integer_set), dimension(:), allocatable :: clr_sets
@@ -657,9 +658,9 @@ contains
             &/compact_discontinuous_galerkin")
 
        compact_stencil=.false.
-       call find_linear_parent_mesh(state, u%mesh, cg_mesh, stat)
+       call find_linear_parent_mesh(state, u%mesh, parent_mesh, stat)
        !! generate the dual graph of the mesh
-       p0_mesh = piecewise_constant_mesh(cg_mesh, "P0Mesh")
+       p0_mesh = piecewise_constant_mesh(parent_mesh, "P0Mesh")
 
        !! the sparse pattern of the dual graph.
        if (have_viscosity .and. (.not. compact_stencil)) then
