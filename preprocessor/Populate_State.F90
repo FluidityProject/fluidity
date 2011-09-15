@@ -468,12 +468,15 @@ contains
     type(mesh_type) :: mesh, model_mesh
     type(vector_field), pointer :: position, modelposition
     type(vector_field) :: periodic_position, nonperiodic_position, extrudedposition, coordinateposition
+    type(element_type) :: full_shape
+    type(quadrature_type) :: quad
 
     character(len=FIELD_NAME_LEN) :: model_mesh_name
     character(len=OPTION_PATH_LEN) :: shape_type, cont
     logical :: new_cont, extrusion, periodic, remove_periodicity
     logical :: new_shape_type, new_degree, from_shape, make_new_mesh
     integer :: from_degree, from_shape_type, from_cont, j, stat
+    integer :: quadrature_degree, h_dim
     logical :: exclude_from_mesh_adaptivity
 
     if (has_mesh(states(1), mesh_name)) then
@@ -610,11 +613,20 @@ contains
             modelposition => extract_vector_field(states(1), trim(model_mesh_name)//"Coordinate")
              
             if (present_and_true(skip_extrusion)) then
-              call allocate(mesh, nodes=0, elements=0, shape=modelposition%mesh%shape, name=mesh_name)
+
+              ! the dummy mesh does need a shape of the right dimension
+              h_dim = mesh_dim(modelposition)
+              call get_option("/geometry/quadrature/degree", quadrature_degree)
+              quad = make_quadrature(vertices=h_dim + 2, dim=h_dim + 1, degree=quadrature_degree)
+              full_shape = make_element_shape(vertices=h_dim + 2, dim=h_dim + 1, degree=1, quad=quad)
+              call deallocate(quad)
+
+              call allocate(mesh, nodes=0, elements=0, shape=full_shape, name=mesh_name)
+              call deallocate(full_shape)
               allocate(mesh%columns(1:0))
               call add_faces(mesh)
               mesh%periodic=modelposition%mesh%periodic
-              call allocate(extrudedposition, modelposition%dim, mesh, "EmptyCoordinate") ! name is fixed below
+              call allocate(extrudedposition, h_dim+1, mesh, "EmptyCoordinate") ! name is fixed below
               call deallocate(mesh)
               if (IsParallel()) call create_empty_halo(extrudedposition)
             else if (have_option('/geometry/spherical_earth/')) then

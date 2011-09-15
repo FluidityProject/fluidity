@@ -198,7 +198,6 @@ void usage(char *cmd){
       <<"\nOptions:\n"
       <<" -h, --help\n\tHelp! Prints this message.\n"
       <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing)."
-      <<" Sets default value for -v to 2.\n"
       <<" -N, --no-local-assembly\n\tDo not perform local assembly of linear systems"
 #ifndef _OPENMP
       <<" (default)"
@@ -210,6 +209,10 @@ void usage(char *cmd){
 #endif
       <<"\n"
       <<" -v <level>, --verbose\n\tVerbose output to stdout, default level 0\n"
+      <<" -p, --profile\n"
+      <<"\tPrint profiling data at end of run\n"
+      <<"\tThis provides aggregated elapsed time for coarse-level computation\n"
+      <<"\t(Turned on automatically if verbosity is at level 2 or above)\n"
       <<" -V, --version\n\tVersion\n";
   return;
 }
@@ -222,6 +225,7 @@ void ParseArguments(int argc, char** argv){
     {"no-local-assembly", no_argument, 0, 'N'},
     {"local-assembly", no_argument, 0, 'L'},
     {"log", 0, 0, 'l'},
+    {"profile", 0, 0, 'p'},
     {"verbose", optional_argument, 0, 'v'},
     {"version", 0, 0, 'V'},
     {0, 0, 0, 0}
@@ -230,7 +234,7 @@ void ParseArguments(int argc, char** argv){
   int optionIndex = 0;
   int verbosity = 0;
   int c;
-  const char *shortopts = "hlLNv::V";
+  const char *shortopts = "hlLNpv::V";
   int local_assembly;
 
   // set opterr to nonzero to make getopt print error messages 
@@ -257,6 +261,8 @@ void ParseArguments(int argc, char** argv){
       break;
     case 'L':
       fl_command_line_options["local-assembly"] = "Yes";
+    case 'p':
+      fl_command_line_options["profile"] = "yes";
       break;
     case 'v':
       fl_command_line_options["verbose"] = (optarg == NULL) ? "1" : optarg;
@@ -332,6 +338,9 @@ void ParseArguments(int argc, char** argv){
       verbosity = atoi(fl_command_line_options["verbose"].c_str());
     }
     set_global_debug_level_fc(&verbosity);
+    if(verbosity >= 2){
+      fl_command_line_options["profile"] = "yes";
+    }
   }
   
   // What to do with stdout/stderr?
