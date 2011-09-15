@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>iceshelf_3d_slopedfront_p1dgp2_largeaspectratio</name>
+  <owner userid="asc"/>
+  <tags>flml iceshelf</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v3 -l shelf3d.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser 
+s = stat_parser("shelf3d.stat")
+ElapsedTime=s["ElapsedTime"]["value"][-1]
+  </variable>
+  </variables>
+  <pass_tests>
+    <test name="endtime" language="python">assert abs(ElapsedTime - 144) &lt; 1E-10</test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

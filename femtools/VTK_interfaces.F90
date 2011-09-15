@@ -459,6 +459,7 @@ contains
     ! Regularise the domain so all spatial extents are of the same length
     ! (the smallest of the spatial extents)
     ! i.e. scale so the domain has an aspect ratio of 1:1, or 1:1:1
+    ewrite(-1,*) "Regularised spatial aspect", have_option("/io/regularise_spatial_aspect")
     if (have_option("/io/regularise_spatial_aspect")) then
       spatialextent = 1.0
       do i=1, position%dim
