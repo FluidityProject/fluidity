@@ -539,15 +539,15 @@ Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 \
    ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/les_viscosity_module.mod ../include/multiphase_module.mod \
-   ../include/petsc_tools.mod ../include/profiler.mod \
-   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
-   ../include/smoothing_module.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/turbine.mod \
-   ../include/vector_tools.mod ../include/vtk_interfaces.mod
+   ../include/multiphase_module.mod ../include/petsc_tools.mod \
+   ../include/profiler.mod ../include/shape_functions.mod \
+   ../include/slope_limiters_dg.mod ../include/smoothing_module.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/turbine.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/momentum_diagnostic_fields.mod: Momentum_Diagnostic_Fields.o
 	@true
