@@ -1177,8 +1177,7 @@
             &/stress_terms/partial_stress_form")
 
          have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
-            &/continuous_galerkin/les_model").or.(have_option(trim(u%option_path)//&
-            &"/prognostic/spatial_discretisation/discontinuous_galerkin/les_model"))
+            &/continuous_galerkin/les_model")
 
          have_coriolis = have_option("/physical_parameters/coriolis")
 
