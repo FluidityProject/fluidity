@@ -14,6 +14,7 @@ include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "radiation.rnc"
+include "flredecomp.rnc"
 
 start =
    (
@@ -2010,7 +2011,8 @@ start =
                  }
               )
          }?,
-         embedded_models?
+         embedded_models?,
+         flredecomp?
       }
    )      
 

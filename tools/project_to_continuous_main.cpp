@@ -31,6 +31,8 @@
 #include <mpi.h>
 #endif
 
+#include <stdlib.h>
+
 extern "C" {
   void project_to_continuous(const char *, size_t, const char *, size_t);
 }
@@ -42,7 +44,6 @@ extern "C" {
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 
 #include <map>
