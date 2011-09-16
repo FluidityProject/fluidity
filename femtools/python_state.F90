@@ -744,7 +744,7 @@ module python_state
     type(detector_type), pointer :: detector
     type(rk_gs_parameters), pointer :: parameters
     integer, dimension(detector_list%length) :: elements
-    real, dimension(xfield%dim+1,detector_list%length), target :: local_coords
+    real, dimension(xfield%dim+1,detector_list%length), target :: lcoords
         
     if(present(stat)) stat = 0
     parameters => detector_list%move_parameters
@@ -752,13 +752,13 @@ module python_state
     detector => detector_list%first
     do i=1, detector_list%length
        elements(i)=detector%element
-       local_coords(:,i)=detector%local_coords(:)
+       lcoords(:,i)=local_coords(xfield,detector%element,detector%update_vector)
 
        detector => detector%next
     end do
 
     call python_evaluate_detector_func(parameters%rw_pycode, len_trim(parameters%rw_pycode), &
-           detector_list%length, xfield%dim, elements, c_loc(local_coords), dt, c_loc(result), lstat) 
+           detector_list%length, xfield%dim, elements, c_loc(lcoords), dt, c_loc(result), lstat) 
 
     if(lstat /= 0) then
       if(present(stat)) then

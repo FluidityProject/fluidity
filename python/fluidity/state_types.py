@@ -126,10 +126,13 @@ class ScalarField(Field):
   def eval_field(self,ele,local_coord):
     if self.mesh.shape.degree==0:
       n = 1.0
-    else:
-      n = numpy.zeros(self.mesh.shape.loc)
-      for i in range(self.mesh.shape.loc):
-        n[i] = self.mesh.shape.eval_shape(i, local_coord)
+    else:      
+      if self.mesh.shape.family=='simplex' and self.mesh.shape.type=='lagrangian':
+        n = local_coord
+      else:
+        n = numpy.zeros(self.mesh.shape.loc)
+        for i in range(self.mesh.shape.loc):
+          n[i] = self.mesh.shape.eval_shape(i, local_coord)
 
     return numpy.dot(self.ele_val(ele),n)
 
@@ -164,15 +167,14 @@ class VectorField(Field):
     if self.mesh.shape.degree==0:
       n = 1.0
     else:
-      n = numpy.zeros(self.mesh.shape.loc)
-      for i in range(self.mesh.shape.loc):
-        n[i] = self.mesh.shape.eval_shape(i, local_coord)
+      if self.mesh.shape.family=='simplex' and self.mesh.shape.type=='lagrangian':
+        n = local_coord
+      else:
+        n = numpy.zeros(self.mesh.shape.loc)
+        for i in range(self.mesh.shape.loc):
+          n[i] = self.mesh.shape.eval_shape(i, local_coord)
 
-    val = numpy.zeros(self.dimension)
-    ele_vals = self.ele_val(ele).transpose()
-    for i in range(len(val)):
-      val[i] = numpy.dot(ele_vals[i],n)
-    return val
+    return [numpy.dot(v,n) for v in self.ele_val(ele).transpose()]
     
 class TensorField(Field):
   "A tensor field"

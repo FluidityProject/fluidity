@@ -101,4 +101,12 @@ extern "C" {
   void cprofiler_zero_fc(){
     flprofiler.zero();
   }
+
+  void profiler_tic_c(const char *key){
+    flprofiler.tic(string(key));
+  }
+
+  void profiler_toc_c(const char *key){
+    flprofiler.toc(string(key));
+  }
 }
