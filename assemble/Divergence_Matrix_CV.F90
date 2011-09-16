@@ -123,6 +123,10 @@ contains
       ! assigned x_cvshape and x_cvbdyshape)
       type(element_type) :: nvfrac_cvshape, nvfrac_cvbdyshape
 
+      ! Boundary condition types
+      integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW = 2, BC_TYPE_INTERNAL = 3, &
+                            BC_TYPE_FREE_SURFACE = 4
+
       ! =============================================================
       ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
       ! =============================================================
@@ -317,11 +321,12 @@ contains
         surface_element_loop: do sele = 1, surface_element_count(test_mesh)
   
           ! cycle if this is a no_normal_flow or a periodic or a free_surface boundary then cycle
-          if(any(field_bc_type(:,sele)==2).or.any(field_bc_type(:,sele)==3).or.any(field_bc_type(:,sele)==4)) cycle
+          if(any(field_bc_type(:,sele)==BC_TYPE_NO_NORMAL_FLOW).or.any(field_bc_type(:,sele)==BC_TYPE_INTERNAL)&
+             .or.any(field_bc_type(:,sele)==BC_TYPE_FREE_SURFACE)) cycle
           
           ! cycle if there's no rhs present or there's no weakdirichlet conditions or we're not
           ! assembling the matrix
-          if(.not.(present(ct_rhs).and.any(field_bc_type(:,sele)==1)).and..not.l_get_ct) cycle
+          if(.not.(present(ct_rhs).and.any(field_bc_type(:,sele)==BC_TYPE_WEAKDIRICHLET)).and..not.l_get_ct) cycle
   
           ele = face_ele(x, sele)
           x_ele = ele_val(x, ele)
@@ -329,7 +334,7 @@ contains
           test_nodes_bdy=face_global_nodes(test_mesh, sele)
           field_nodes_bdy=face_global_nodes(field, sele)
   
-          if(any(field_bc_type(:, sele)==1)) then
+          if(any(field_bc_type(:, sele)==BC_TYPE_WEAKDIRICHLET)) then
             field_bc_val = ele_val(field_bc, sele)
           else
             field_bc_val = 0.0
@@ -358,7 +363,7 @@ contains
   
                     surface_inner_dimension_loop: do dim = 1, size(normal_bdy,1)
   
-                      if((present(ct_rhs)).and.(field_bc_type(dim, sele)==1)) then
+                      if((present(ct_rhs)).and.(field_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET)) then
   
                         if(multiphase) then
                            ct_rhs_local(iloc) = ct_rhs_local(iloc) + &
@@ -396,7 +401,7 @@ contains
   
           surface_outer_dimension_loop: do dim = 1, size(normal_bdy,1)
   
-            if((present(ct_rhs)).and.(field_bc_type(dim, sele)==1)) then
+            if((present(ct_rhs)).and.(field_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET)) then
   
               call addto(ct_rhs, test_nodes_bdy, ct_rhs_local)
   
