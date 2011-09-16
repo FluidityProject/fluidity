@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>iceshelf3D_p1dgp2</name>
+  <name>iceshelf3D_p1dgp2_p1CV</name>
   <owner userid="asc"/>
   <tags>flml iceshelf</tags>
   <problem_definition length="short" nprocs="1">
