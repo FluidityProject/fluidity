@@ -72,6 +72,7 @@ contains
     integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, column, &
                ierror, det_type, random_seed, biovar_index, biovar_total, biovar_state, &
                biovar_chemical, biovar_uptake, biovar_release, index
+    integer, dimension(1) :: rnd_seed
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
@@ -123,15 +124,29 @@ contains
           ! Get options for Random Walk
           if (have_option(trim(stage_buffer)//"/random_walk")) then
              agent_arrays(i)%move_parameters%do_random_walk=.true.
-             call get_option(trim(stage_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
-             call get_option(trim(stage_buffer)//"/random_walk/random_seed", random_seed)
-          
-             ! Initialise random number generator
-             call python_run_string("numpy.random.seed("//trim(int2str(random_seed))//")")
+             call get_option("/embedded_models/lagrangian_ensemble_biology/random_seed", rnd_seed(1))
+
+             ! Initialise random number generator in Python
+             call python_run_string("numpy.random.seed("//trim(int2str(rnd_seed(1)))//")")
+             if (have_option(trim(schema_buffer)//"/random_walk/python")) then 
+                call get_option(trim(schema_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
+             end if
+
+             if (have_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk")) then 
+                agent_arrays(i)%move_parameters%use_internal_rw=.true.
+                call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/diffusivity_field", &
+                       agent_arrays(i)%move_parameters%diffusivity_field)
+                call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/diffusivity_gradient", &
+                       agent_arrays(i)%move_parameters%diffusivity_grad)
+                ! Initialise random number generator
+                rnd_dim=1
+                call random_seed(size=rnd_dim)
+                call randoM_seed(put=rnd_seed(1:rnd_dim))
+             end if
+
           else
              agent_arrays(i)%move_parameters%do_random_walk=.false.
           end if
-          agent_arrays(i)%total_num_det=n_agents
 
           ! Collect other meta-information
           if (have_option(trim(stage_buffer)//"/binary_output")) then

@@ -112,13 +112,114 @@ void python_run_stringc_(char *s,int *slen, int *stat){
 #endif
 }
 
-void python_run_string_keep_locals_c(char *str, int strlen, 
+void python_evaluate_detector_func_c(char *str, int strlen, int num_det, int dim, 
+                                   int elements[], double *local_coords, double dt,
+                                   double *result, int *stat) {
+#ifdef HAVE_PYTHON
+  /* 
+   */
+  profiler_tic_c("/python_evaluate_detector");
+  profiler_tic_c("/python_evaluate_detector_outer_code");
+
+  char *c = fix_string(str,strlen);
+  int tlen=8+strlen;
+  char t[tlen];
+  snprintf(t, tlen, "%s\n",c);
+
+  // Get a reference to the main module and global dictionary
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pGlobals = PyModule_GetDict(pMain);
+  PyObject *pLocals = PyDict_New();
+
+  // Execute the user's code.
+  PyObject *pCode = PyRun_String(t, Py_file_input, pGlobals, pLocals);
+
+  // Check for Python errors
+  if(!pCode){
+    PyErr_Print();
+    *stat=-1;
+    return;
+  }
+
+  // Extract val function from the local dict and its code object
+  PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
+  PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
+
+  profiler_toc_c("/python_evaluate_detector_outer_code");
+
+  // Create dt argument (constant)
+  PyObject *pDt = PyFloat_FromDouble(dt);
+
+  int i, j;
+  PyObject **pArgs= malloc(sizeof(PyObject*)*3);
+  for(i=0;i<num_det;i++){
+    profiler_tic_c("/python_evaluate_detector_setup");
+    // Create ele argument
+    PyObject *pEle = PyInt_FromLong( (long)elements[i] );
+
+    // Create local_coords argument
+    PyObject *pLCoords = PyTuple_New(dim+1);
+    for(j=0;j<dim+1;j++){
+      PyTuple_SET_ITEM(pLCoords, j, PyFloat_FromDouble(local_coords[i*(dim+1)+j]));
+    }
+
+    // Create argument array
+    pArgs[0] = pEle;
+    pArgs[1] = pLCoords;
+    pArgs[2] = pDt;
+
+    profiler_toc_c("/python_evaluate_detector_setup");
+    profiler_tic_c("/python_evaluate_detector_execute");
+
+    // Run val(ele, local_coords, dt)
+    PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 3, NULL, 0, NULL, 0, NULL);
+
+    // Check for Python errors
+    *stat=0;
+    if(!pResult){
+      PyErr_Print();
+      *stat=-1;
+      return;
+    }
+
+    profiler_toc_c("/python_evaluate_detector_execute");
+    profiler_tic_c("/python_evaluate_detector_teardown");
+
+    // Convert the python result
+    PyObject *result_ref;
+    for(j=0; j<dim; j++){
+      // GetItem returns a new reference that needs a DECREF
+      result_ref = PySequence_ITEM(pResult, j);
+      result[i*(dim)+j] = PyFloat_AsDouble(result_ref);
+      Py_DECREF(result_ref);
+    }
+
+    Py_DECREF(pEle);
+    Py_DECREF(pResult);
+    Py_DECREF(pLCoords);
+    profiler_toc_c("/python_evaluate_detector_teardown");
+  }
+
+  Py_DECREF(pDt);
+  Py_DECREF(pFuncCode);
+  Py_DECREF(pCode);
+  Py_DECREF(pLocals);
+  free(c); 
+  free(pArgs);
+
+  profiler_toc_c("/python_evaluate_detector");
+#endif
+}
+
+void python_run_string_store_locals_c(char *str, int strlen, 
                                      char *dict, int dictlen, 
                                      char *key, int keylen, int *stat){
 #ifdef HAVE_PYTHON
   /* Run a python command from Fortran and store local namespace
    * in a global dictionary for later evaluation
    */
+  profiler_tic_c("/python_run_string_store_locals");
+
   char *c = fix_string(str,strlen);
   int tlen=8+strlen;
   char t[tlen];
@@ -168,6 +269,8 @@ void python_run_string_keep_locals_c(char *str, int strlen,
   free(c); 
   free(local_dict);
   free(local_key);
+
+  profiler_toc_c("/python_run_string_store_locals");
 #endif
 }
 
@@ -180,6 +283,9 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
   /* Evaluate the detector val() function from a previously stored local namespace
    * found in dict under key. The interface is: val(ele, local_coords)
    */
+
+  profiler_tic_c("/python_run_detector_val");
+  profiler_tic_c("/python_run_detector_val_setup");
 
   // Get a reference to the main module and global dictionary
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -214,6 +320,9 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
   pArgs[1] = pLCoords;
   pArgs[2] = pDt;
 
+  profiler_toc_c("/python_run_detector_val_setup");
+  profiler_tic_c("/python_run_detector_val_execute");
+
   // Run val(ele, local_coords)
   PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 3, NULL, 0, NULL, 0, NULL);
  
@@ -224,6 +333,9 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
     *stat=-1;
     return;
   }
+
+  profiler_toc_c("/python_run_detector_val_execute");
+  profiler_tic_c("/python_run_detector_val_teardown");
 
   // Convert the python result
   PyObject *result_ref;
@@ -242,6 +354,9 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
   free(pArgs);
   free(local_dict);
   free(local_key);
+
+  profiler_toc_c("/python_run_detector_val_teardown");
+  profiler_toc_c("/python_run_detector_val");
 #endif
 }
 

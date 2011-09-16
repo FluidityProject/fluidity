@@ -39,6 +39,7 @@ module python_state
   public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states, python_add_states_time
   public :: python_run_string, python_run_file
+  public :: python_evaluate_random_walk
   public :: python_run_detector_string, python_run_detector_val_function
   public :: python_calc_agent_biology
   public :: python_shell
@@ -79,8 +80,8 @@ module python_state
     !! under a given key. Using the same dict name and key we can then evaluate 
     !! the specified val() function at a later stage.
     !! Wrapped by python_run_detector_string
-    subroutine python_run_string_keep_locals_c(str, strlen, dict, dictlen, &
-           key, keylen, stat) bind(c)
+    subroutine python_run_string_store_locals(str, strlen, dict, dictlen, &
+           key, keylen, stat) bind(c, name='python_run_string_store_locals_c')
       use :: iso_c_binding
       implicit none
       integer(c_int), intent(in), value :: strlen, dictlen, keylen
@@ -88,14 +89,13 @@ module python_state
       character(kind=c_char), dimension(dictlen), intent(in) :: dict
       character(kind=c_char), dimension(keylen), intent(in) :: key
       integer(c_int), intent(out) :: stat
-    end subroutine python_run_string_keep_locals_c
+    end subroutine python_run_string_store_locals
 
-    !! Evaluate the detector val() function from a local namespace in the global dictionary
+    !! Evaluate the detector val() function from a local namespace given by dict and key
     !! Interface: val(ele, local_coords, dt), where
-    !! ele: elelement number, integer, 
-    !! local_coords: vector of size dim
-    !! dt: timestep of the subcycle; val function needs to scale by this
-    !! Not wrapped, since this will be called a lot
+    !!   ele: elelement number, integer, 
+    !!   local_coords: vector of size dim
+    !!   dt: timestep of the subcycle; val function needs to scale by this
     subroutine python_run_detector_val(ele, dim, lcoords, dt, dict, dictlen, key, keylen, &
            value, stat) bind(c, name='python_run_detector_val_from_locals_c')
       use :: iso_c_binding
@@ -109,6 +109,24 @@ module python_state
       real(c_double), dimension(dim), intent(out) :: value
       integer(c_int), intent(out) :: stat
     end subroutine python_run_detector_val
+
+    !! Evaluate the detector val function for a set of detectors
+    !! Interface: val(ele, local_coords, dt), where
+    !!   ele: elelement number, integer, 
+    !!   local_coords: vector of size dim
+    !!   dt: timestep of the subcycle; val function needs to scale by this
+    subroutine python_evaluate_detector_func(str, strlen, num_det, dim, elements, &
+           local_coords, dt, result, stat) bind(c, name='python_evaluate_detector_func_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: strlen, num_det, dim
+      character(kind=c_char), dimension(strlen), intent(in) :: str
+      real(c_double), value, intent(in) :: dt
+      integer(c_int), dimension(num_det), intent(in) :: elements
+      type(c_ptr), value :: local_coords
+      type(c_ptr), value :: result
+      integer(c_int), intent(out) :: stat
+    end subroutine python_evaluate_detector_func
 
     !! Evaluate the detector val() function for agent-based biology
     subroutine python_run_agent_biology(ele, dim, lcoords, dt, dict, &
@@ -657,7 +675,7 @@ module python_state
     integer :: lstat
         
     if(present(stat)) stat = 0
-    call python_run_string_keep_locals_c(str, len_trim(str), dict, len_trim(dict), key,len_trim(key), lstat) 
+    call python_run_string_store_locals(str, len_trim(str), dict, len_trim(dict), key,len_trim(key), lstat) 
 
     if(lstat /= 0) then
       if(present(stat)) then
@@ -757,5 +775,45 @@ module python_state
 
     call python_fetch_real_c(name, len(name), output)
   end function python_fetch_real
+
+  subroutine python_evaluate_random_walk(detector_list, xfield, dt, result, stat)
+    !!< Evaluate the Random Walk python function for all detectors in the list
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(vector_field), pointer, intent(inout) :: xfield
+    real, intent(in) :: dt
+    real, dimension(xfield%dim,detector_list%length), target, intent(out) :: result
+    integer, optional, intent(out) :: stat
+
+    integer :: lstat, i
+    type(detector_type), pointer :: detector
+    type(rk_gs_parameters), pointer :: parameters
+    integer, dimension(detector_list%length) :: elements
+    real, dimension(xfield%dim+1,detector_list%length), target :: lcoords
+        
+    if(present(stat)) stat = 0
+    parameters => detector_list%move_parameters
+
+    detector => detector_list%first
+    do i=1, detector_list%length
+       elements(i)=detector%element
+       lcoords(:,i)=local_coords(xfield,detector%element,detector%update_vector)
+
+       detector => detector%next
+    end do
+
+    call python_evaluate_detector_func(parameters%rw_pycode, len_trim(parameters%rw_pycode), &
+           detector_list%length, xfield%dim, elements, c_loc(lcoords), dt, c_loc(result), lstat) 
+
+    if(lstat /= 0) then
+      if(present(stat)) then
+        stat = -1
+      else
+        ewrite(-1, *) "Python error, Python string was:"
+        ewrite(-1, *) trim(parameters%rw_pycode)
+        FLExit("Dying")
+      end if
+    end if
+
+  end subroutine python_evaluate_random_walk
 
 end module python_state

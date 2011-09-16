@@ -96,7 +96,7 @@ def val(X, t):
     </scalar_field>
     <vector_field name="Diffusivity_grad" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="Diffusivity" name="grad"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="Diffusivity"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
@@ -114,10 +114,9 @@ def val(X, t):
       </diagnostic>
     </vector_field>
   </material_phase>
-  <ocean_biology>
-    <lagrangian_ensemble>
-      <disable_biology/>
-      <agents>
+  <embedded_models>
+    <lagrangian_ensemble_biology>
+      <functional_group>
         <agent_array name="Naive_RW">
           <number_of_agents>
             <integer_value rank="0">1000</integer_value>
@@ -147,11 +146,7 @@ def val(ele, local_coord, dt):
   K = diffusivity.eval_field(ele, local_coord)
   return [0.0, 0.0, rnd * sqrt(6*K*dt)]</string_value>
             </python>
-            <random_seed>
-              <integer_value rank="0">113165</integer_value>
-            </random_seed>
           </random_walk>
-          <exclude_from_advection/>
         </agent_array>
         <agent_array name="Diffusive_RW">
           <number_of_agents>
@@ -190,11 +185,7 @@ def val(ele, local_coord, dt):
 
   return [0.0, 0.0, K_grad[2]*dt + (rnd * sqrt(6*K*dt))]</string_value>
             </python>
-            <random_seed>
-              <integer_value rank="0">113165</integer_value>
-            </random_seed>
           </random_walk>
-          <exclude_from_advection/>
         </agent_array>
         <lagrangian_timestepping>
           <subcycles>
@@ -206,7 +197,10 @@ def val(ele, local_coord, dt):
           <forward_euler_guided_search/>
           <reflect_on_boundary/>
         </lagrangian_timestepping>
-      </agents>
-    </lagrangian_ensemble>
-  </ocean_biology>
+      </functional_group>
+      <random_seed>
+        <integer_value rank="0">157834</integer_value>
+      </random_seed>
+    </lagrangian_ensemble_biology>
+  </embedded_models>
 </fluidity_options>

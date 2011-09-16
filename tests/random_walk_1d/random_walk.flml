@@ -115,10 +115,9 @@ def val(X, t):
       </diagnostic>
     </vector_field>
   </material_phase>
-  <ocean_biology>
-    <lagrangian_ensemble>
-      <disable_biology/>
-      <agents>
+  <embedded_models>
+    <lagrangian_ensemble_biology>
+      <functional_group>
         <agent_array name="Naive_RW">
           <number_of_agents>
             <integer_value rank="0">1000</integer_value>
@@ -134,23 +133,19 @@ def val(X, t):
           </initial_position>
           <random_walk>
             <python>
-              <string_value lines="20" type="python">from numpy import random
+              <string_value lines="20" type="python">from numpy import random, array
 from math import sqrt
 
-diffusivity = state.scalar_fields['Diffusivity']
+diff_eval = state.scalar_fields['Diffusivity'].eval_field
 
 def val(ele, local_coord, dt):
   # Eq. 2 from Visser, 1997:
   # z(n+1) = z(n) + R(2 r^-1 K dt)^-1/2, where r = 1/3
   rnd = random.uniform(-1.,1.,1)
-  K = diffusivity.eval_field(ele, local_coord)
+  K = diff_eval(ele, array(local_coord))
   return [rnd * sqrt(6*K*dt)]</string_value>
             </python>
-            <random_seed>
-              <integer_value rank="0">113165</integer_value>
-            </random_seed>
           </random_walk>
-          <exclude_from_advection/>
         </agent_array>
         <agent_array name="Diffusive_RW">
           <number_of_agents>
@@ -167,33 +162,47 @@ def val(ele, local_coord, dt):
           </initial_position>
           <random_walk>
             <python>
-              <string_value lines="20" type="python">from numpy import random
+              <string_value lines="20" type="python">from numpy import random, array
 from math import sqrt
-from __builtin__ import str
 
-diffusivity = state.scalar_fields['Diffusivity']
-diffusivity_grad = state.vector_fields['Diffusivity_grad']
-coordinate = state.vector_fields['Coordinate']
+diff_eval = state.scalar_fields['Diffusivity'].eval_field
+diff_grad_eval = state.vector_fields['Diffusivity_grad'].eval_field
+coord_eval = state.vector_fields['Coordinate'].eval_field
+coord_lcoord = state.vector_fields['Coordinate'].local_coords
 
 def val(ele, local_coord, dt):
+  local_coord = array(local_coord)
   rnd = random.uniform(-1.,1.,1)
-  K_grad = diffusivity_grad.eval_field(ele, local_coord)
   
-  position = coordinate.eval_field(ele, local_coord)
+  # evaluate diffusivity gradient
+  K_grad = diff_grad_eval(ele, local_coord)[-1]
+  
+  # evaluate diffusivity at an offset to the original position
+  position = coord_eval(ele, local_coord)
   position = position  + 0.5*dt*K_grad
-  lcoord = coordinate.local_coords(ele, position)
-  #print "ml805: " + str(lcoord) + " local_coord: " + str(local_coord)
-  
-  # evaluate diffusivity at an offset (lcoord) to the original position
-  K = diffusivity.eval_field(ele, lcoord)
+  lcoord = coord_lcoord(ele, position)
+  K = diff_eval(ele, lcoord)
 
   return [K_grad*dt + (rnd * sqrt(6*K*dt))]</string_value>
             </python>
-            <random_seed>
-              <integer_value rank="0">113165</integer_value>
-            </random_seed>
           </random_walk>
-          <exclude_from_advection/>
+        </agent_array>
+        <agent_array name="Diffusive_RW_intern">
+          <number_of_agents>
+            <integer_value rank="0">1000</integer_value>
+          </number_of_agents>
+          <lagrangian/>
+          <binary_output/>
+          <initial_position>
+            <string_value type="python" lines="20">def val(t):
+  from numpy import arange
+  # 4000 agents, evenly spaced in [0:40]
+  positions = arange(0.,40.,0.04).reshape(1000,1)
+  return positions</string_value>
+          </initial_position>
+          <random_walk>
+            <diffusive_random_walk diffusivity_gradient="Diffusivity_grad" diffusivity_field="Diffusivity"/>
+          </random_walk>
         </agent_array>
         <lagrangian_timestepping>
           <subcycles>
@@ -205,7 +214,10 @@ def val(ele, local_coord, dt):
           <forward_euler_guided_search/>
           <reflect_on_boundary/>
         </lagrangian_timestepping>
-      </agents>
-    </lagrangian_ensemble>
-  </ocean_biology>
+      </functional_group>
+      <random_seed>
+        <integer_value rank="0">113165</integer_value>
+      </random_seed>
+    </lagrangian_ensemble_biology>
+  </embedded_models>
 </fluidity_options>

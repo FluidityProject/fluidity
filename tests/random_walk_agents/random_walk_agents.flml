@@ -128,11 +128,11 @@
       </prescribed>
     </scalar_field>
   </material_phase>
-  <ocean_biology>
-    <lagrangian_ensemble>
-      <disable_biology/>
-      <agents>
+  <embedded_models>
+    <lagrangian_ensemble_biology>
+      <functional_group>
         <agent_array name="Bob">
+          <comment>Bob checks whether the agent advection behaves just like the I/O detector array Steve.</comment>
           <number_of_agents>
             <integer_value rank="0">100</integer_value>
           </number_of_agents>
@@ -146,9 +146,9 @@
   z = zeros(100) + 0.5
   return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
           </initial_position>
-          <comment>Bob checks whether the agent advection behaves just like the I/O detector array Steve.</comment>
         </agent_array>
         <agent_array name="Carl">
+          <comment>Carl should not move at all, in order to check that exclude_from_advection works.</comment>
           <number_of_agents>
             <integer_value rank="0">100</integer_value>
           </number_of_agents>
@@ -162,10 +162,12 @@
   z = zeros(100) + 0.5
   return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
           </initial_position>
-          <exclude_from_advection/>
-          <comment>Carl should not move at all, in order to check that exclude_from_advection works.</comment>
+          <debug>
+            <exclude_from_advection/>
+          </debug>
         </agent_array>
         <agent_array name="Dave">
+          <comment>Dave should move just like Steve, but using the python interface.</comment>
           <number_of_agents>
             <integer_value rank="0">100</integer_value>
           </number_of_agents>
@@ -181,7 +183,7 @@
           </initial_position>
           <random_walk>
             <python>
-              <string_value type="python" lines="20">velocity = state.vector_fields['Velocity']
+              <string_value lines="20" type="python">velocity = state.vector_fields['Velocity']
 
 def val(ele, local_coords, dt):
   # The val function presents detector attributes
@@ -190,12 +192,10 @@ def val(ele, local_coords, dt):
   vel = [v*dt for v in vel]
   return vel</string_value>
             </python>
-            <random_seed>
-              <integer_value rank="0">1234</integer_value>
-            </random_seed>
           </random_walk>
-          <exclude_from_advection/>
-          <comment>Dave should move just like Steve, but using the python interface.</comment>
+          <debug>
+            <exclude_from_advection/>
+          </debug>
         </agent_array>
         <lagrangian_timestepping>
           <subcycles>
@@ -207,7 +207,10 @@ def val(ele, local_coords, dt):
           <forward_euler_guided_search/>
           <turn_static_on_boundary/>
         </lagrangian_timestepping>
-      </agents>
-    </lagrangian_ensemble>
-  </ocean_biology>
+      </functional_group>
+      <random_seed>
+        <integer_value rank="0">1234</integer_value>
+      </random_seed>
+    </lagrangian_ensemble_biology>
+  </embedded_models>
 </fluidity_options>

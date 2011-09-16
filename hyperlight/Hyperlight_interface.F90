@@ -64,17 +64,17 @@ contains
     end if
 
     ! passing BF and CDOM ratio as specified
-    call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/BF_chl", bf_chl)
-    call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/CDOM", cdom)
+    call get_option("/embedded_models/hyperlight/BF_chl", bf_chl)
+    call get_option("/embedded_models/hyperlight/CDOM", cdom)
 
     ! getting windspeed and cloudcover
-    if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight/CloudCover")) then
-       call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/CloudCover", cloud)
+    if (have_option("/embedded_models/hyperlight/CloudCover")) then
+       call get_option("/embedded_models/hyperlight/CloudCover", cloud)
     else
        call fluxes_getscalar("tcc", lat_long(2), lat_long(1), cloud)
     end if
-    if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight/WindSpeed")) then
-       call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/WindSpeed", wind)
+    if (have_option("/embedded_models/hyperlight/WindSpeed")) then
+       call get_option("/embedded_models/hyperlight/WindSpeed", wind)
     else
        call fluxes_getscalar("u10", lat_long(2), lat_long(1), wind_u)
        call fluxes_getscalar("v10", lat_long(2), lat_long(1), wind_v)
@@ -83,8 +83,8 @@ contains
     call hyperlight_set_params(bf_chl, cdom, wind, cloud)
 
     ! Performance parameter: set the percentage of surface irradiance after which Hyperlight stops computing
-    if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight/EuphoticRatio")) then
-       call get_option("/ocean_biology/lagrangian_ensemble/hyperlight/EuphoticRatio", euphotic_ratio)
+    if (have_option("/embedded_models/hyperlight/EuphoticRatio")) then
+       call get_option("/embedded_models/hyperlight/EuphoticRatio", euphotic_ratio)
        call hyperlight_set_euphotic_ratio(euphotic_ratio)
     else
        call hyperlight_set_euphotic_ratio(0.0)

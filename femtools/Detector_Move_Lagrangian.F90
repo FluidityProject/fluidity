@@ -171,6 +171,9 @@ contains
 
     ! Random Walk velocity source
     real, dimension(:), allocatable :: rw_velocity_source
+    real, dimension(:,:), allocatable :: rw_displacement
+    type(scalar_field), pointer :: diffusivity_field
+    type(vector_field), pointer :: diffusivity_grad
 
     ewrite(1,*) "In move_lagrangian_detectors for detectors list: ", detector_list%name
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
@@ -179,15 +182,22 @@ contains
     parameters => detector_list%move_parameters
 
     ! For Random Walk first run the user code, so we can pull fields from state
-    if (parameters%do_random_walk) then
+    if (parameters%do_random_walk .and. .not.parameters%use_internal_rw) then
+
        ! Run the user's code and store val object in "random_walk" dict
-       call python_run_detector_string(trim(parameters%rw_pycode), trim(detector_list%name), trim("random_walk"))
+       call python_run_detector_string(trim(parameters%rw_pycode),&
+              trim(detector_list%name),trim("random_walk"))
     end if
 
     ! Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
     vfield=>extract_vector_field(state(1),"Velocity")
     allocate(rw_velocity_source(xfield%dim))
+
+    if (parameters%use_internal_rw) then
+       diffusivity_field=>extract_scalar_field(state(1), trim(parameters%diffusivity_field))
+       diffusivity_grad=>extract_vector_field(state(1), trim(parameters%diffusivity_grad))
+    end if
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -252,18 +262,37 @@ contains
 
        ! Add the Random Walk displacement 
        if (parameters%do_random_walk) then
+          allocate(rw_displacement(xfield%dim,detector_list%length))
+
           detector => detector_list%first
           do det = 1, detector_list%length
              if (detector%type==LAGRANGIAN_DETECTOR) then
                 ! Evaluate the RW python function and add to update_vector
-                call python_run_detector_val_function(detector,xfield,rk_dt,trim(detector_list%name),trim("random_walk"),rw_velocity_source)
+                if (parameters%use_internal_rw) then
+                   call calc_diffusive_rw(detector, rk_dt, xfield, diffusivity_field, &
+                          diffusivity_grad, rw_velocity_source)
+                else
+                   call python_run_detector_val_function(detector,xfield,rk_dt, &
+                          trim(detector_list%name),trim("random_walk"),rw_velocity_source)
+                end if
                 detector%update_vector=detector%update_vector + (rw_velocity_source)  
                 detector%search_complete=.false.
              end if
              detector => detector%next
           end do
 
-          call move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,parameters%search_tolerance)
+          !call python_evaluate_random_walk(detector_list, xfield, rk_dt, rw_displacement)
+
+          !detector => detector_list%first
+          !do det = 1, detector_list%length
+          !   detector%update_vector=detector%update_vector + rw_displacement(:,det)
+          !   detector%search_complete=.false.
+
+          !   detector => detector%next
+          !end do
+
+          call move_detectors_guided_search(detector_list,vfield,xfield, &
+                 send_list_array,parameters%search_tolerance)
 
           ! If needed exchange_detectors
           all_send_lists_empty=0
@@ -276,6 +305,8 @@ contains
           if (all_send_lists_empty>0) then
              call exchange_detectors(state(1),detector_list, send_list_array)
           end if
+
+          deallocate(rw_displacement)
        end if
 
        ! After everything is done, we update detector%position
@@ -567,5 +598,31 @@ contains
        end if
     end do
   end subroutine move_detectors_guided_search
+
+  subroutine calc_diffusive_rw(detector, dt, xfield, diff_field, grad_field, displacement)
+    type(detector_type), pointer, intent(in) :: detector
+    type(scalar_field), pointer, intent(in) :: diff_field
+    type(vector_field), pointer, intent(in) :: xfield, grad_field
+    real, intent(in) :: dt
+    real, dimension(xfield%dim), intent(out) :: displacement
+
+    real, dimension(1) :: rnd
+    real :: K
+    real, dimension(xfield%dim) :: position, K_grad
+    real, dimension(xfield%dim+1) :: lcoord
+
+    call random_number(rnd)
+    rnd = (rnd * 2.0) - 1.0
+    K_grad=eval_field(detector%element, grad_field, detector%local_coords)
+
+    position(:)=eval_field(detector%element, xfield, detector%local_coords)
+    position(xfield%dim)=position(xfield%dim) + 0.5*dt*K_grad(xfield%dim)
+    lcoord=local_coords(xfield, detector%element, position)
+    K=eval_field(detector%element, diff_field, lcoord)
+
+    displacement(:)=0.0
+    displacement(xfield%dim)=K_grad(xfield%dim)*dt + rnd(1)*sqrt(6*K*dt)
+
+  end subroutine calc_diffusive_rw
 
 end module detector_move_lagrangian
