@@ -240,7 +240,7 @@ Divergence_Matrix_CV.o ../include/divergence_matrix_cv.mod: \
    ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/quadrature.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/state_module.mod ../include/multiphase_module.mod
 
 ../include/drag_module.mod: Drag.o
 	@true
