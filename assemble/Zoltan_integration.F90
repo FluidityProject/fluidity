@@ -19,7 +19,7 @@ module zoltan_integration
   use vtk_interfaces
   use zoltan
   use linked_lists
-  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name, no_active_processes
+  use global_parameters, only: real_size, OPTION_PATH_LEN, topology_mesh_name
   use data_structures
   use populate_state_module
   use reserve_state_module
@@ -56,7 +56,7 @@ module zoltan_integration
   contains
 
   subroutine zoltan_drive(states, iteration, max_adapt_iteration, metric, full_metric, initialise_fields, &
-    ignore_extrusion, flredecomping)
+    ignore_extrusion, flredecomping, input_procs, target_procs)
     type(state_type), dimension(:), intent(inout), target :: states
     integer, intent(in) :: iteration
     integer, intent(in) :: max_adapt_iteration
@@ -70,6 +70,8 @@ module zoltan_integration
     logical, intent(in), optional :: ignore_extrusion
     ! Are we flredecomping? If so, this should be true
     logical, intent(in), optional :: flredecomping
+    ! If flredecomping then these values should be provided
+    integer, intent(in), optional :: input_procs, target_procs
 
     type(zoltan_struct), pointer :: zz
 
@@ -92,6 +94,9 @@ module zoltan_integration
     type(vector_field) :: zoltan_global_new_positions_m1d
     real :: load_imbalance_tolerance
     logical :: flredecomp
+    integer :: flredecomp_input_procs = -1, flredecomp_target_procs = -1
+
+    ewrite(1,*) "In zoltan_drive"
 
     if (.not. present(flredecomping)) then
         flredecomp = .false.
@@ -99,7 +104,31 @@ module zoltan_integration
         flredecomp = flredecomping
     end if
 
-    ewrite(1,*) "In zoltan_drive"
+    if (flredecomp) then
+       ! check for required optional arguments
+       if (present(input_procs)) then
+          flredecomp_input_procs = input_procs
+       else
+          FLAbort("input_procs must be supplied when flredecomping.")
+       end if
+       if (present(target_procs)) then
+          flredecomp_target_procs = target_procs
+       else
+          FLAbort("target_procs must be supplied when flredecomping.")
+       end if
+
+       zoltan_global_base_option_path = '/flredecomp'
+    else
+       ! check invalid optional arguments haven't been supplied
+       if (present(input_procs)) then
+          FLAbort("input_procs should only be provided when flredecomping.")
+       end if
+       if (present(target_procs)) then
+          FLAbort("target_procs should only be provided when flredecomping.")
+       end if
+       
+       zoltan_global_base_option_path = '/mesh_adaptivity/hr_adaptivity/zoltan_options'
+    end if
 
     zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
       .and. .not. present_and_true(ignore_extrusion)
@@ -110,13 +139,13 @@ module zoltan_integration
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
     load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-    call set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
+    call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
 
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       & load_imbalance_tolerance, flredecomp)
+       & load_imbalance_tolerance, flredecomp, flredecomp_input_procs, flredecomp_target_procs)
 
 
     if (changes .eqv. .false.) then
@@ -173,7 +202,7 @@ module zoltan_integration
       call setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name = topology_mesh_name)
 
       load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-      call set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
+      call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
       
       call reset_zoltan_lists_full(zz, &
        & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
@@ -252,7 +281,7 @@ module zoltan_integration
     integer, dimension(:), allocatable :: sndgln
     integer :: old_element_number, universal_element_number, face_number, universal_surface_element_number
     integer, dimension(:), allocatable :: interleaved_surface_ids
-    
+
     !call find_mesh_to_adapt(states(1), zoltan_global_zz_mesh)
     
     zoltan_global_zoltan_iteration = iteration
@@ -264,8 +293,8 @@ module zoltan_integration
     end if
     
     ! set quality_tolerance
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff")) then
-       call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", zoltan_global_quality_tolerance)
+    if (have_option(trim(zoltan_global_base_option_path) // "/element_quality_cutoff")) then
+       call get_option(trim(zoltan_global_base_option_path) // "/element_quality_cutoff", zoltan_global_quality_tolerance)
        ! check that the value is reasonable
        if (zoltan_global_quality_tolerance < 0. .or. zoltan_global_quality_tolerance > 1.) then
           FLExit("element_quality_cutoff should be between 0 and 1. Default is 0.6")
@@ -417,7 +446,7 @@ module zoltan_integration
     if (iteration /= max_adapt_iteration) then
        ! if user has passed us the option then use the load imbalance tolerance they supplied,
        ! else use the default load imbalance tolerance
-       call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/load_imbalance_tolerance", load_imbalance_tolerance, &
+       call get_option(trim(zoltan_global_base_option_path) // "/load_imbalance_tolerance", load_imbalance_tolerance, &
           & default = default_load_imbalance_tolerance)
        
        ! check the value is reasonable
@@ -430,8 +459,11 @@ module zoltan_integration
 
   end function get_load_imbalance_tolerance
 
-  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, load_imbalance_tolerance, zz)
+  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, target_procs, &
+     & load_imbalance_tolerance, zz)
     integer, intent(in) :: iteration, max_adapt_iteration
+    logical, intent(in) :: flredecomp
+    integer, intent(in) :: target_procs
     real, intent(in) :: load_imbalance_tolerance
     type(zoltan_struct), pointer, intent(in) :: zz    
 
@@ -444,40 +476,40 @@ module zoltan_integration
     else         
        ierr = Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0"); assert(ierr == ZOLTAN_OK)
     end if
-    
+
     ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
     write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
     ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
-    ewrite(2,*) 'Initial load_imabalance_tolerance set to ', load_imbalance_tolerance
+    ewrite(2,*) 'Initial load_imbalance_tolerance set to ', load_imbalance_tolerance
 
-    ! If we are not an active process, then let's set the number of local parts to be zero
-    if (no_active_processes > 0) then
-       if (getprocno() > no_active_processes) then
+    ! For flredecomp if we are not an active process, then let's set the number of local parts to be zero
+    if (flredecomp) then
+       if (getprocno() > target_procs) then
           ierr = Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS", "0"); assert(ierr == ZOLTAN_OK)
        else
           ierr = Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS", "1"); assert(ierr == ZOLTAN_OK)
        end if
-       ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(no_active_processes)); assert(ierr == ZOLTAN_OK)
+       ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(target_procs)); assert(ierr == ZOLTAN_OK)
     end if
     
     if (iteration /= max_adapt_iteration) then
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner")) then
+       if (have_option(trim(zoltan_global_base_option_path) // "/partitioner")) then
           
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+          if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
              ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
-             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+             if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
+                call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
              else
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
           
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/zoltan")) then
              
-             call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/zoltan/method", method)
+             call get_option(trim(zoltan_global_base_option_path) // "/partitioner/zoltan/method", method)
              
              if (trim(method) == "graph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
@@ -489,18 +521,18 @@ module zoltan_integration
              
           end if
        
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/scotch")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/scotch")) then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
              ! Probably not going to want graph checking unless debugging
-             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+             if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
+                call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
              else
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
-          
+         
        else
           ! Use the Zoltan graph partitioner by default
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
@@ -509,23 +541,23 @@ module zoltan_integration
 
     else
 
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner")) then
+       if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")) then
           
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/metis"))  then
+          if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
              ! turn off graph checking unless debugging, this was filling the error file with Zoltan warnings
-             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+             if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
+                call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
              else
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
              end if
           end if
           
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/zoltan")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/zoltan")) then
              
-             call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/zoltan/method", method)
+             call get_option(trim(zoltan_global_base_option_path) // "/final_partitioner/zoltan/method", method)
              
              if (trim(method) == "graph") then
                 ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
@@ -537,12 +569,12 @@ module zoltan_integration
              
           end if
        
-          if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/final_partitioner/scotch")) then
+          if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/scotch")) then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "SCOTCH"); assert(ierr == ZOLTAN_OK)
              ! Probably not going to want graph checking unless debugging
-             if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking")) then
-                call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/graph_checking", graph_checking_level)
+             if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking")) then
+                call get_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/graph_checking", graph_checking_level)
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", trim(graph_checking_level)); assert(ierr == ZOLTAN_OK)
              else
                 ierr = Zoltan_Set_Param(zz, "CHECK_GRAPH", "0"); assert(ierr == ZOLTAN_OK)
@@ -550,9 +582,14 @@ module zoltan_integration
           end if
           
        else
-          ! Use the Zoltan graph partitioner by default
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+          if (flredecomp) then
+             ! Use ParMETIS by default when flredecomping
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
+          else
+             ! Use the Zoltan graph partitioner by default for adaptivity
+             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
+          end if
        end if
 
     end if
@@ -562,13 +599,14 @@ module zoltan_integration
     ! iteration to produce a load balanced partitioning
     if (iteration == max_adapt_iteration) then
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+       if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis") .OR. &
+          & (flredecomp .AND. .NOT.(have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")))) then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
        end if
     else
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "REPARTITION"); assert(ierr == ZOLTAN_OK)
-       if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/partitioner/metis"))  then
+       if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "AdaptiveRepart"); assert(ierr == ZOLTAN_OK)
           ierr = Zoltan_Set_Param(zz, "PARMETIS_ITR", "100000.0"); assert(ierr == ZOLTAN_OK)
@@ -660,7 +698,7 @@ module zoltan_integration
   subroutine zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       load_imbalance_tolerance,flredecomp)
+       load_imbalance_tolerance, flredecomp, input_procs, target_procs)
 
     type(zoltan_struct), pointer, intent(in) :: zz    
     logical, intent(out) :: changes    
@@ -674,12 +712,22 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids 
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
+
+    integer, intent(in) :: input_procs, target_procs
+
+    ! These variables are needed when flredecomping as we then use Zoltan_LB_Partition
+    integer(zoltan_int), dimension(:), pointer :: import_to_part
+    integer(zoltan_int), dimension(:), pointer :: export_to_part
+    integer(zoltan_int), dimension(:), pointer :: null_pointer => null()
+
     real, intent(inout) :: load_imbalance_tolerance
     logical, intent(in) :: flredecomp
 
     integer(zoltan_int) :: ierr
     integer :: i, node
-    integer :: num_nodes, num_nodes_after_balance, min_num_nodes_after_balance
+    integer :: num_nodes, num_nodes_before_balance, num_nodes_after_balance
+    integer :: min_num_nodes_after_balance, total_num_nodes_before_balance, total_num_nodes_after_balance
+    integer :: num_empty_partitions, empty_partition
     character (len = 10) :: string_load_imbalance_tolerance
 
     ewrite(1,*) 'in zoltan_load_balance'
@@ -688,15 +736,62 @@ module zoltan_integration
 
     ! Special case when flredecomping - don't check for empty partitions
     if (flredecomp) then
-       ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
-            &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+
+       ! calculate total number of owned nodes before the load balance
+       call mpi_allreduce(num_nodes, total_num_nodes_before_balance, 1, getPINTEGER(), &
+          & MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
+
+       ! Need to use Zoltan_LB_Partition when flredecomping as NUM_LOCAL_PART and NUM_GLOBAL_PART are
+       ! meant to be invalid for Zoltan_LB_Balance (actually appear to be valid even then but better
+       ! to follow the doc)
+       ierr = Zoltan_LB_Partition(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
+          & p1_import_local_ids, p1_import_procs, import_to_part, p1_num_export, p1_export_global_ids,  &
+          & p1_export_local_ids, p1_export_procs, export_to_part)
        assert(ierr == ZOLTAN_OK)
+
+       ! calculate how many owned nodes we'd have after doing the planned load balancing
+       num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+
+       ! calculate total number of owned nodes after the load balance
+       call mpi_allreduce(num_nodes_after_balance, total_num_nodes_after_balance, 1, getPINTEGER(), &
+          & MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
+
+       if (total_num_nodes_before_balance .NE. total_num_nodes_after_balance) then
+          FLAbort("The total number of nodes before load balancing does not equal the total number of nodes after the load balancing.")
+       end if
+
+       if (target_procs < input_procs) then
+          ! We're expecting some processes to have empty partitions when using flredecomp to
+          ! reduce the number of active processes. The plan is to calculate the number of 
+          ! processes with an empty partition after the load balance and check this is how
+          ! many we'd expect to be empty
+          if (num_nodes_after_balance > 0) then
+             empty_partition = 0
+          else
+             empty_partition = 1
+          end if
+          call mpi_allreduce(empty_partition, num_empty_partitions, 1, getPINTEGER(), &
+             & MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
+          
+          if (num_empty_partitions /= (input_procs - target_procs)) then
+             FLAbort("The correct number of processes did not have empty partitons after the load balancing.")
+          end if
+       else
+          ! If using flredecomp to increase the number of active processes then no process
+          ! should have an empty partition after the load balance
+          if (num_nodes_after_balance == 0) then
+             FLAbort("After load balancing process would have an empty partition.")
+          end if
+       end if
+
+       ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, import_to_part); assert(ierr == ZOLTAN_OK)
+       ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, export_to_part); assert(ierr == ZOLTAN_OK)
+
     else
       
         min_num_nodes_after_balance = 0
         do while (min_num_nodes_after_balance == 0)
 
-           ! import_* aren't used because we set RETURN_LISTS to be only EXPORT
            ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
                 &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
            assert(ierr == ZOLTAN_OK)

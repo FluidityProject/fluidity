@@ -97,39 +97,6 @@ Shallow_Water.o : Shallow_Water.F90 \
    ../include/state_module.mod ../include/timeloop_utilities.mod \
    ../include/vtk_interfaces.mod ../include/write_state_module.mod
 
-Shallow_Water_Legacy.o : Shallow_Water_Legacy.F90 \
-   ../include/adapt_state_prescribed_module.mod \
-   ../include/advection_diffusion_cg.mod ../include/advection_diffusion_dg.mod \
-   ../include/assemble_cmc.mod ../include/boundary_conditions_from_options.mod \
-   ../include/diagnostic_fields_new.mod \
-   ../include/diagnostic_fields_wrapper.mod \
-   ../include/diagnostic_variables.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/linear_shallow_water_legacy.mod \
-   ../include/mangle_options_tree.mod ../include/memory_diagnostics.mod \
-   ../include/populate_state_module.mod ../include/reserve_state_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/timeloop_utilities.mod \
-   ../include/write_state_module.mod
-
-Simple_Shallow_Water.o : Simple_Shallow_Water.F90 \
-   ../include/adapt_state_prescribed_module.mod ../include/checkpoint.mod \
-   ../include/coriolis_module.mod ../include/diagnostic_fields_new.mod \
-   ../include/diagnostic_fields_wrapper.mod \
-   ../include/diagnostic_variables.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod \
-   ../include/global_parameters.mod ../include/memory_diagnostics.mod \
-   ../include/parallel_tools.mod ../include/populate_state_module.mod \
-   ../include/reference_counting.mod ../include/reserve_state_module.mod \
-   ../include/signals.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_module.mod \
-   ../include/tictoc.mod ../include/timeloop_utilities.mod \
-   ../include/timers.mod ../include/transform_elements.mod \
-   ../include/vtk_interfaces.mod ../include/write_state_module.mod
-
 mainfl.o : mainfl.F90 ../include/fdebug.h ../include/fldebug.mod \
    ../include/fluids_module.mod ../include/signals.mod ../include/spud.mod \
    ../include/tictoc.mod

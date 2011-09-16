@@ -67,6 +67,15 @@ scalar_boundary_conditions =
                element string_value {
                "low_Re"|"high_Re"
                }
+            }|
+            ## Flux boundary condition. Currently only works with a control_volume 
+            ## discretisation.
+            ##
+            ## This weakly enforces the total (advective plus diffusive) flux across 
+            ## a boundary when solving the advection-diffusion equation.
+            element type {
+               attribute name { "flux" },
+               input_choice_real
             }
          )
       }
@@ -816,16 +825,7 @@ prognostic_velocity_field =
                   element integrate_conservation_term_by_parts {
                     empty
                   }?
-               },
-               ## DG large-eddy simulation
-               element les_model {
-                  ## literature sybol: Cs
-                  ##
-                  ## suggested value 0.1
-                  element smagorinsky_coefficient {
-                     real
-                  }
-               }?
+               }
             }
          ),
          ## Conservative discretisation of momentum equations
