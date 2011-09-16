@@ -70,8 +70,8 @@ contains
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, column, &
-               ierror, det_type, random_seed, biovar_index, biovar_total, biovar_state, &
-               biovar_chemical, biovar_uptake, biovar_release, index
+               ierror, det_type, biovar_index, biovar_total, biovar_state, &
+               biovar_chemical, biovar_uptake, biovar_release, index, rnd_dim
     integer, dimension(1) :: rnd_seed
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
@@ -128,15 +128,15 @@ contains
 
              ! Initialise random number generator in Python
              call python_run_string("numpy.random.seed("//trim(int2str(rnd_seed(1)))//")")
-             if (have_option(trim(schema_buffer)//"/random_walk/python")) then 
-                call get_option(trim(schema_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
+             if (have_option(trim(stage_buffer)//"/random_walk/python")) then 
+                call get_option(trim(stage_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
              end if
 
-             if (have_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk")) then 
+             if (have_option(trim(stage_buffer)//"/random_walk/diffusive_random_walk")) then 
                 agent_arrays(i)%move_parameters%use_internal_rw=.true.
-                call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/diffusivity_field", &
+                call get_option(trim(stage_buffer)//"/random_walk/diffusive_random_walk/diffusivity_field", &
                        agent_arrays(i)%move_parameters%diffusivity_field)
-                call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/diffusivity_gradient", &
+                call get_option(trim(stage_buffer)//"/random_walk/diffusive_random_walk/diffusivity_gradient", &
                        agent_arrays(i)%move_parameters%diffusivity_grad)
                 ! Initialise random number generator
                 rnd_dim=1

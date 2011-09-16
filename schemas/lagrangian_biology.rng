@@ -284,6 +284,9 @@ This option is generally only useful for testing. </a:documentation>
           <ref name="lagrangian_timestepping"/>
         </element>
       </zeroOrMore>
+      <element name="random_seed">
+        <ref name="integer"/>
+      </element>
     </element>
   </define>
   <define name="hyperlight">

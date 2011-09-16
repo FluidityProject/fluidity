@@ -14,13 +14,21 @@
     <variable name="biomass_living" language="python">
 import fluidity_tools
 from math import sqrt
-biomass_living = fluidity_tools.stat_parser("vew-tm.stat")['water']['DiatomBiomassLiving']['integral'][:]
-    </variable>    
+biomass_living = fluidity_tools.stat_parser("vew-tm.stat")['water']['DiatomBiomassLiving']['integral'][::48]
+    </variable>
     <variable name="biomass_dead" language="python">
 import fluidity_tools
 from math import sqrt
-biomass_dead = fluidity_tools.stat_parser("vew-tm.stat")['water']['DiatomBiomassDead']['integral'][:]
-    </variable>    
+biomass_dead = fluidity_tools.stat_parser("vew-tm.stat")['water']['DiatomBiomassDead']['integral'][::48]
+    </variable>
+    <variable name="agents_living" language="python">
+import fluidity_tools
+agents_living = fluidity_tools.stat_parser("vew-tm.stat")['water']['DiatomAgentsLiving']['integral'][::48]
+    </variable>
+    <variable name="agents_dead" language="python">
+import fluidity_tools
+agents_dead = fluidity_tools.stat_parser("vew-tm.stat")['water']['DiatomAgentsDead']['integral'][::48]
+    </variable> 
   </variables>
   <pass_tests>
   </pass_tests>

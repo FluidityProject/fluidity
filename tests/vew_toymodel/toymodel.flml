@@ -952,7 +952,7 @@ coordinate = state.vector_fields['Coordinate']
 
 def val(ele, local_coord, dt):
   rnd = random.uniform(-1.,1.,1)
-  K_grad = diffusivity_grad.eval_field(ele, local_coord)
+  K_grad = diffusivity_grad.eval_field(ele, local_coord)[-1]
   
   position = coordinate.eval_field(ele, local_coord)
   position = position  + 0.5*dt*K_grad
@@ -1018,7 +1018,7 @@ coordinate = state.vector_fields['Coordinate']
 
 def val(ele, local_coord, dt):
   rnd = random.uniform(-1.,1.,1)
-  K_grad = diffusivity_grad.eval_field(ele, local_coord)
+  K_grad = diffusivity_grad.eval_field(ele, local_coord)[-1]
   
   position = coordinate.eval_field(ele, local_coord)
   position = position  + 0.5*dt*K_grad
@@ -1071,6 +1071,9 @@ def val(ele, local_coord, dt, vars):
           <reflect_on_boundary/>
         </lagrangian_timestepping>
       </functional_group>
+      <random_seed>
+        <integer_value rank="0">123456</integer_value>
+      </random_seed>
     </lagrangian_ensemble_biology>
   </embedded_models>
 </fluidity_options>

@@ -208,7 +208,10 @@ lagrangian_biology =
                }
             }?,
             lagrangian_timestepping
-         }*
+         }*,
+         element random_seed{
+            integer
+         }
       }
    )
 
