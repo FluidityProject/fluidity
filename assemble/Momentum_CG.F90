@@ -1165,7 +1165,7 @@
       ! Pointer to the nvfrac field's shape function
       type(element_type), pointer :: nvfrac_shape
       ! Derivative of shape function for nvfrac field
-      real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), u%dim) :: dnvfrac_t
+      real, dimension(:, :, :), allocatable :: dnvfrac_t
 
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
@@ -1242,6 +1242,12 @@
           call transform_to_physical(x, ele, &
                                     ele_shape(ug, ele), dshape=dug_t)
         end if
+      end if
+
+      if(multiphase) then
+         ! If the PhaseVolumeFraction is on a different mesh to the Velocity,
+         ! then allocate memory to hold the derivative of the nvfrac shape function
+         allocate(dnvfrac_t(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), u%dim))
       end if
       
       ! Step 2: Set up test function
@@ -1369,6 +1375,10 @@
       end if
       
       call deallocate(test_function)
+
+      if(multiphase) then
+         deallocate(dnvfrac_t)
+      end if
       
     contains
     
@@ -1508,7 +1518,7 @@
       type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: dug_t
-      real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), u%dim), intent(in) :: dnvfrac_t
+      real, dimension(:, :, :), intent(in) :: dnvfrac_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
