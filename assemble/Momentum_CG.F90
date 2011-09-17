@@ -1160,8 +1160,12 @@
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
 
-      ! Volume fraction field
+      ! Non-linear approximation of the volume fraction
       type(scalar_field), intent(in) :: nvfrac
+      ! Pointer to the nvfrac field's shape function
+      type(element_type), pointer :: nvfrac_shape
+      ! Derivative of shape function for nvfrac field
+      real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), u%dim) :: dnvfrac_t
 
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
@@ -1274,8 +1278,18 @@
          else
             if(multiphase) then
                ! Split up the divergence term div(vfrac*u) = vfrac*div(u) + u*grad(vfrac)
+
+               ! If the field and nvfrac meshes are different, then we need to
+               ! compute the derivatives of the nvfrac shape functions.
+               if(.not.(nvfrac%mesh == u%mesh)) then
+                  nvfrac_shape => ele_shape(nvfrac%mesh, ele)
+                  call transform_to_physical(x, ele, nvfrac_shape, dshape=dnvfrac_t)
+               else
+                  dnvfrac_t = du_t
+               end if
+
                grad_p_u_mat =  shape_dshape(p_shape, du_t, detwei*ele_val_at_quad(nvfrac, ele)) + &
-                              shape_shape_vector(p_shape, u_shape, detwei, ele_grad_at_quad(nvfrac, ele, du_t))
+                              shape_shape_vector(p_shape, u_shape, detwei, ele_grad_at_quad(nvfrac, ele, dnvfrac_t))
             else
                grad_p_u_mat = shape_dshape(p_shape, du_t, detwei)
             end if
@@ -1292,7 +1306,7 @@
 
       ! Advection terms
       if(.not. exclude_advection) then
-        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, nvfrac, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, nvfrac, du_t, dug_t, dnvfrac_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       end if
 
       ! Source terms
@@ -1482,7 +1496,7 @@
       
     end subroutine add_mass_element_cg
     
-    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, nvfrac, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, nvfrac, du_t, dug_t, dnvfrac_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
@@ -1494,6 +1508,7 @@
       type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: dug_t
+      real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), u%dim), intent(in) :: dnvfrac_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
@@ -1513,7 +1528,6 @@
 
       u_shape=>ele_shape(u, ele)
       
-            
       density_gi=ele_val_at_quad(density, ele)
       relu_gi = ele_val_at_quad(nu, ele)
       if(move_mesh) then
@@ -1523,7 +1537,7 @@
 
       if(multiphase) then
          nvfrac_gi = ele_val_at_quad(nvfrac, ele)
-         grad_nvfrac_gi = ele_grad_at_quad(nvfrac, ele, du_t)
+         grad_nvfrac_gi = ele_grad_at_quad(nvfrac, ele, dnvfrac_t)
       end if
 
       if(integrate_advection_by_parts) then
