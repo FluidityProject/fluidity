@@ -170,7 +170,7 @@ contains
     character (len = OPTION_PATH_LEN) :: filename    
     
     ! variables for recording various element quality functional values 
-    real(zoltan_float) :: quality, min_quality, my_min_quality
+    real :: quality, min_quality, my_min_quality
     
     ! variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
     real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight
@@ -192,10 +192,17 @@ contains
     
     my_num_edges = sum(num_edges(1:num_obj))
     
-    if (zoltan_global_zoltan_iteration==zoltan_global_zoltan_max_adapt_iteration) then
+    if (.NOT. zoltan_global_calculate_edge_weights) then
        
-       ! last iteration - hopefully the mesh is of sufficient quality by now
-       ! we only want to optimize the edge cut to minimize halo communication
+       ! Three reasons why we might not want to use edge-weighting:
+       ! - last iteration 
+       !   hopefully the mesh is of sufficient quality by now we only
+       !   want to optimize the edge cut to minimize halo communication
+       ! - flredecomping
+       !   we don't need to use edge-weights as there's no adapting
+       ! - empty partitions
+       !   when load balancing with edge-weights on we couldn't avoid
+       !   creating empty paritions so try load balancing without them
        ewgts(1:my_num_edges) = 1.0       
        head = 1
        do node=1,count
@@ -216,6 +223,7 @@ contains
             MPI_COMM_FEMTOOLS,err)
     end if
     
+    zoltan_global_local_min_quality = 1.0
     
     head = 1
     
@@ -270,7 +278,13 @@ contains
                 min_quality = quality
              end if
           end do
-          
+
+          ! Keep track of the lowest quality element of all those we've looked at
+          ! Will be used in zoltan_drive to calculate a global minimum element quality
+          if(min_quality .LT. zoltan_global_local_min_quality) then
+             zoltan_global_local_min_quality = min_quality
+          end if
+
           ! check if the quality is within the tolerance         
           if (min_quality .GT. zoltan_global_quality_tolerance) then
              ! if it is
@@ -285,6 +299,8 @@ contains
        head = head + size(neighbours)
     end do
     
+    zoltan_global_calculated_local_min_quality = .true.
+
     assert(head == sum(num_edges(1:num_obj))+1)
     
     ! calculate the local maximum edge weight
@@ -324,8 +340,7 @@ contains
        end do
        close(666)
     end if
-    
-    
+
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_edge_list
 
