@@ -170,7 +170,7 @@ contains
 
     type(element_type), pointer :: shape     
 
-    type(integer_set) :: face_list
+    type(integer_hash_table) :: face_element_list
     type(vector_field), pointer :: external_mesh_position
     type(vector_field) :: position
 
@@ -283,7 +283,8 @@ contains
     surf_ele_count = surface_element_count(external_mesh)
 
     ! Begin by determining which faces are on subdomain_mesh boundaries:
-    call allocate(face_list)
+    ! face_element_list stores the (old face number, new element number) pairs
+    call allocate(face_element_list)
     do i = 1, size(subele_list)
       ele = subele_list(i)
       neigh => ele_neigh(external_mesh, ele) ! Determine element neighbours on parent mesh
@@ -294,33 +295,35 @@ contains
         ! If this face is part of the full surface mesh (which includes internal faces) then
         ! it must be on the submesh boundary, and not on a processor boundary (if parallel).
         if (face  <= surf_ele_count) then
-           call insert(face_list, face)
+           call insert(face_element_list, face, i)
         end if
       end do
     end do
 
     ! Allocate and initialise sndglno and boundary ids:
-    edge_count = key_count(face_list)
+    edge_count = key_count(face_element_list)
     allocate(sndglno(edge_count*sloc))
-    sndglno = 0
     allocate(boundary_ids(1:edge_count))
-    boundary_ids = 0
-    
+    allocate(element_owner(1:edge_count))
+
     ! Set up sndglno and boundary_ids:
     do i = 1, edge_count
-      face = fetch(face_list, i)
+      ! retreive full face number and *new* sub-ele number
+      call fetch_pair(face_element_list, i, face, ele)
       sndglno((i-1)*sloc+1:i*sloc) = inverse_n_list(face_global_nodes(external_mesh, face))
       boundary_ids(i) = surface_element_id(external_mesh, face)
+      element_owner(i) = ele
     end do
 
-    call deallocate(face_list)
+    call deallocate(face_element_list)
 
     ! Add faces to subdomain_mesh:
-    call add_faces(subdomain_mesh,sndgln=sndglno(1:edge_count*sloc), &
-    &               boundary_ids=boundary_ids(1:edge_count))
+    call add_faces(subdomain_mesh,sndgln=sndglno, &
+    &               boundary_ids=boundary_ids, element_owner=element_owner)
 
     deallocate(sndglno)
     deallocate(boundary_ids)
+    deallocate(element_owner)
 
     ! If parallel then set up node and element halos, by checking whether external_mesh halos
     ! exist on subdomain_mesh:
