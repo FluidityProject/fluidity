@@ -2852,19 +2852,20 @@ criterion. Otherwise inoput a value in Nm-1</a:documentation>
         </optional>
       </element>
       <element name="scalar_field">
-        <a:documentation>This field is the template for the sediment flux
-diagnostic which records the flux of sediment through the
-domain boundary.</a:documentation>
+        <a:documentation>This field is the template for the sediment deposition
+diagnostic which records the sediment deposited through the prescribed boundary.
+
+The units are in unit distances as a depth of sediment.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>SedimentFluxTemplate</value>
+          <value>SedimentDepositionTemplate</value>
         </attribute>
         <element name="diagnostic">
           <a:documentation>Field type</a:documentation>
           <element name="surface_ids">
-            <a:documentation>Surface ids over which to calculate the flux:</a:documentation>
+            <a:documentation>Surface ids over which to calculate the deposition:</a:documentation>
             <ref name="integer_vector"/>
           </element>
           <ref name="velocity_mesh_choice"/>
@@ -2910,9 +2911,42 @@ domain boundary.</a:documentation>
               <a:documentation>Velocity at which this sediment sinks through the water column.
 
 This velocity is in the direction of gravity so if the substance
-floats upwards, this field should be negative.</a:documentation>
+floats upwards, this field should be negative.
+
+This filed can be diagnostic, in which case a hindered sinking velocity is calculated. 
+If this is the case an unhindered sinking velocity field is required for this sediment class.</a:documentation>
               <attribute name="name">
                 <value>SinkingVelocity</value>
+              </attribute>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <choice>
+                <element name="prescribed">
+                  <ref name="prescribed_scalar_field_no_adapt"/>
+                </element>
+                <element name="diagnostic">
+                  <ref name="internal_algorithm"/>
+                  <ref name="diagnostic_scalar_field_no_adapt"/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>This is the unhindered sinking velocity of the sediment particles. 
+
+With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
+concentration, to calculate the hindered sinking velocity of sediment particles. 
+
+This uses the equation developed by Richardson and Zaki [1954]. 
+
+If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
+
+As with the sinking velocity, this velocity is in the direction of gravity so if the substance
+floats upwards, this field should be negative.</a:documentation>
+              <attribute name="name">
+                <value>UnhinderedSinkingVelocity</value>
               </attribute>
               <attribute name="rank">
                 <value>0</value>

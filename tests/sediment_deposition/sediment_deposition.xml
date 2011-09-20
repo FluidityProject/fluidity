@@ -6,7 +6,7 @@
   <owner userid="jhill1"/>
   <tags>flml sediment</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity sediment_deposition.flml</command_line>
+    <command_line>fluidity -v2 -l sediment_deposition.flml</command_line>
     <!-- Check that the sediment deposition rate is correct -->
 </problem_definition>
   <variables>   
