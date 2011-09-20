@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+  <!-- Flredecomp options -->
+  <define name="flredecomp">
+    <element name="flredecomp">
+      <a:documentation>Options for the flredecomp program</a:documentation>
+      <ref name="comment"/>
+      <optional>
+        <element name="final_partitioner">
+          <a:documentation>Select which partitioner to use when flredecomping.
+Graph partitioners available are ParMETIS, PT-Scotch
+and Zoltan PHG. The Zoltan PHG hypergraph partitoner
+is also available.
+Default is ParMETIS graph partitioner.</a:documentation>
+          <choice>
+            <element name="metis">
+              <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
+closely as possible the setup used previously by Sam.</a:documentation>
+              <empty/>
+            </element>
+            <element name="scotch">
+              <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
+              <empty/>
+            </element>
+            <element name="zoltan">
+              <a:documentation>Use the Zoltan PHG partitioner.</a:documentation>
+              <element name="method">
+                <a:documentation>Select the partitioning method you would like used by Zoltan PHG.
+Currently hypergraph partitioning is the simplest implementation
+and can produce non-contiguous partitions for certain problems.</a:documentation>
+                <choice>
+                  <value>graph</value>
+                  <value>hypergraph</value>
+                </choice>
+              </element>
+            </element>
+          </choice>
+        </element>
+      </optional>
+      <optional>
+        <element name="zoltan_debug">
+          <a:documentation>Zoltan Debugging
+
+Turn on more verbose output for use when debugging Zoltan.</a:documentation>
+          <optional>
+            <element name="graph_checking">
+              <a:documentation>Turn on graph checking.
+When using ParMETIS or PT-Scotch options for turning on
+graph checking are provided by Zoltan.
+1 - on process checking,
+2 - full checking (very slow)</a:documentation>
+              <choice>
+                <value>1</value>
+                <value>2</value>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="dump_edge_counts">
+              <a:documentation>Print out a dump file of the edge counts.
+Edge counts for each owned node are calculated in zoltan_cb_get_num_edges.
+This option dumps the edge count for each owned node.
+Dump is to the current directory, in a file called edge_counts_*.dat
+One dump file is created for each rank.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="dump_node_sizes">
+              <a:documentation>Print out a dump file of node sizes.
+Zoltan needs to be told how much data is associated with each node when
+doing phase one migration.
+Here we dump the size calculated by zoltan_cb_pack_node_sizes for each
+owned node.
+Dump is to the current directory, in a file called node_sizes_*.dat
+One dump file is created for each rank.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="dump_halo_node_sizes">
+              <a:documentation>Print out a dump file of halo node sizes.
+Zoltan needs to be told how much data is associated with each halo node when
+doing phase two migration.
+Here we dump the size calculated by zoltan_cb_pack_halo_node_sizes for each
+owned node.
+Dump is to the current directory, in a file called halo_node_sizes_*.dat
+One dump file is created for each rank.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="dump_field_sizes">
+              <a:documentation>Print out a dump file of field sizes.
+Zoltan needs to be told how much data is associated with the fields for each 
+element when we're transfering fields.
+Here we dump the size calculated by zoltan_cb_pack_field_sizes for each
+owned node.
+Dump is to the current directory, in a file called field_sizes_*.dat
+One dump file is created for each rank.</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
+      </optional>
+    </element>
+  </define>
+</grammar>

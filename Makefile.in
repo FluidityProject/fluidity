@@ -144,7 +144,13 @@ ifeq (@FEMDEM@,yes)
 endif
 
 include/libspud.h: lib/libspud.a
-main.o: include/version.h include/libspud.h
+
+main.o: update_version_number include/libspud.h
+
+update_version_number:
+	@echo "Updating version number"
+	@rm -f include/version.h
+	@$(MAKE) include/version.h
 
 include/version.h:
 	@echo "DEFINE __FLUIDITY_VERSION__"
