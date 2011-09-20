@@ -15,6 +15,7 @@
   <include href="temporal_discretisation.rng"/>
   <include href="embedded_models.rng"/>
   <include href="radiation.rng"/>
+  <include href="flredecomp.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -2082,21 +2083,10 @@ probably equal to the location of the borehole</a:documentation>
           </optional>
           <optional>
             <element name="multiphase_properties">
-              <a:documentation>Parameters required to model multiphase flow in porous media</a:documentation>
-              <element name="relperm_max">
-                <a:documentation>Relative permeability end point relperm_max
-in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-Value between 0 and 1</a:documentation>
-                <ref name="real"/>
-              </element>
-              <element name="relperm_exponent">
-                <a:documentation>Relative permeability exponent relperm_exponent
-in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)</a:documentation>
-                <ref name="real"/>
-              </element>
+              <a:documentation>Phase interaction options for Fluidity's multiphase flow model</a:documentation>
+              <ref name="comment"/>
               <optional>
-                <element name="immobile_fraction">
-                  <a:documentation>Immobile volume of fluid phase</a:documentation>
+                <element name="particle_diameter">
                   <ref name="real"/>
                 </element>
               </optional>
@@ -2783,6 +2773,9 @@ Y3D FEMDEM mesh format only supported.</a:documentation>
       </optional>
       <optional>
         <ref name="embedded_models"/>
+      </optional>
+      <optional>
+        <ref name="flredecomp"/>
       </optional>
     </element>
   </start>
@@ -8259,25 +8252,34 @@ Journal of Atmospheric and Oceanic Technology, 2005, 22, 1080-1094</a:documentat
           </element>
           <optional>
             <element name="input_file_type">
-              <element name="type">
-                <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
-                <group>
+              <choice>
+                <element name="type">
+                  <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
                   <attribute name="name">
                     <value>ERA40</value>
                   </attribute>
+                  <optional>
+                    <element name="no_accumulation">
+                      <a:documentation>The data from ERA40 website included accumulated values (ppt, ro, ssrd, strd).
+If these values have been already ammended to instantaneous values, then switch this
+flag on and the accumulation correction will not be applied.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>NSEP</value>
+                  </attribute>
                   <empty/>
-                </group>
-                <!--
-                  }|
-                  element type {
-                     attribute name { "NSEP" },
-                     empty
-                  }|
-                  element type {
-                     attribute name { "ICOM" },
-                     empty
-                -->
-              </element>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>ICOM</value>
+                  </attribute>
+                  <empty/>
+                </element>
+              </choice>
             </element>
           </optional>
           <optional>
