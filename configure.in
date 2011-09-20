@@ -832,7 +832,6 @@ if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
   exit 1
 fi
 
-echo "with_adjoint: " $with_adjoint
 if test "$with_adjoint" != "no"; then
   if test "$CAN_USE_ADJOINT" != "no"; then
     ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
