@@ -415,6 +415,12 @@ contains
     if (.not.associated(mesh%faces)) return
 
     call deallocate(mesh%faces%face_list)
+
+#ifdef HAVE_MEMORY_STATS
+    call register_deallocation("mesh_type", "integer", &
+         size(mesh%faces%face_lno), name=mesh%name)
+#endif
+    deallocate(mesh%faces%face_lno)
     
 #ifdef HAVE_MEMORY_STATS
     call register_deallocation("mesh_type", "integer", &
@@ -1233,6 +1239,9 @@ contains
       
     end if ! if (.not. present(model)) then ... else ...
 
+    ! at this point mesh%faces%face_list and mesh%faces%face_element_list are 
+    ! ready (either newly computed or copied from model)
+    ! now we only have to work out mesh%faces%face_lno
 
     element => ele_shape(mesh, 1)
     if (present(sngi)) then
@@ -1250,6 +1259,68 @@ contains
     allocate(mesh%faces%shape)
     mesh%faces%shape = make_element_shape(vertices=face_vertices(element), &
          & dim=mesh_dim(mesh)-1, degree=element%degree, quad=quad_face)
+
+!FIXME THIS IS COPIED FROM THE TRUNK AND IS ALMOST CERTAINLY NOW WRONG
+    face_count=entries(mesh%faces%face_list)
+    snloc=mesh%faces%shape%ndof
+    allocate(mesh%faces%face_lno( face_count*snloc ))
+#ifdef HAVE_MEMORY_STATS
+    call register_allocation("mesh_type", "integer", &
+         size(mesh%faces%face_lno), name=mesh%name)
+#endif
+
+    vertices=local_vertices(lmodel%shape%numbering)    
+
+    ! now fill in face_lno
+    eleloop: do ele=1, size(mesh%faces%face_list,1)
+
+       faces => row_ival_ptr(mesh%faces%face_list, ele)
+       neigh => row_m_ptr(mesh%faces%face_list, ele)
+       model_ele_glno => ele_nodes(lmodel, ele)
+
+       faceloop: do j=1, size(faces)
+          if (ele<neigh(j)) then
+             ! interior face between ele and neigh(j)
+             ! ele<neigh(j) to ensure each pair {ele, neigh(j)} is handled once
+
+             model_ele_glno2 => ele_nodes(lmodel, neigh(j))
+             p=0
+             ! Look for common boundaries by matching common vertices
+             ! Note that we have to use the model mesh here
+             do m=1,size(vertices)
+                do n=1,size(vertices)
+                   if (model_ele_glno(vertices(m))==model_ele_glno2(vertices(n))) then
+                      p=p+1
+                      ele_boundary(p)=m
+                      ele_boundary2(p)=n
+                   end if
+                end do
+             end do
+
+             ! Check that we really have found two boundaries.
+             ASSERT(p==lmodel%faces%shape%numbering%vertices)
+             ! (this might break for the case where elements share more than one
+             ! face, but in that case the next few lines are wrong as well)
+
+             mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
+                  boundary_local_num(ele_boundary(1:p), mesh%shape%numbering)
+
+             face2=ival(mesh%faces%face_list, neigh(j), ele)
+
+             mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
+                  boundary_local_num(ele_boundary2(1:p), mesh%shape%numbering)
+
+          else if (neigh(j)<0) then
+
+             ! boundary face:
+             mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
+                  & boundary_numbering(ele_shape(mesh, ele), j)
+                  
+             
+          end if
+
+       end do faceloop
+    end do eleloop
     
     if (present(periodic_face_map)) then  
        !call fix_periodic_face_orientation(model, mesh, periodic_face_map)
@@ -1971,7 +2042,6 @@ contains
                 end if
              end do
              if(.not.found_node) then
-                print '(2i8)', model%ndglno
                 do nod1 = 1, size(mapX,2)
                    ewrite(0,*) mapX(:,nod1)
                 end do

@@ -62,7 +62,7 @@ contains
     !  topology.
     type(mesh_type), intent(inout), target :: mesh
 
-        type(csr_sparsity) :: facet_list, edge_list
+    type(csr_sparsity) :: facet_list, edge_list
     type(csr_matrix) :: facet_numbers, edge_numbers
     integer, dimension(0:mesh_dim(mesh)) :: entity_counts, dofs_per
     type(cell_type), pointer :: cell
@@ -436,9 +436,8 @@ contains
          
       end do
       
-      mesh%nodes=sum(entity_counts*dofs_per)
-      
-      assert(mesh%nodes==maxval(mesh%ndglno))
+      mesh%nodes=maxval(mesh%ndglno)
+
     end subroutine populate_ndglno
 
     subroutine create_halos(mesh, thalos)
