@@ -224,7 +224,17 @@ contains
     type(scalar_field), pointer :: sfield
     logical :: diagnostic
 
-    diagnostic_count = option_count("/material_phase/scalar_field::MaterialVolumeFraction/diagnostic")
+    ! How many diagnostic MaterialVolumeFraction fields do we have in state?
+    ! Note that state contains all the submaterials of the current phase, including the phase itself.
+    ! Therefore, if the only material is the phase itself, diagnostic_count should be 0. Otherwise,
+    ! it should be 1.
+    diagnostic_count = 0
+    do i = 1, size(state)
+       if(have_option(trim(state(i)%option_path)//"/scalar_field::MaterialVolumeFraction/diagnostic")) then
+          diagnostic_count = diagnostic_count + 1
+       end if
+    end do
+
     if(diagnostic_count>1) then
       ewrite(0,*) diagnostic_count, ' diagnostic MaterialVolumeFractions'
       FLExit("Only one diagnostic MaterialVolumeFraction permitted.")
