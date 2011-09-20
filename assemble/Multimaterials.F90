@@ -219,7 +219,7 @@ contains
     
     !locals
     type(scalar_field), pointer :: materialvolumefraction
-    integer :: i, stat, diagnostic_count
+    integer :: i, stat, diagnostic_count, diagnostic_state_index
     type(scalar_field) :: sumvolumefractions
     type(scalar_field), pointer :: sfield
     logical :: diagnostic
@@ -232,6 +232,8 @@ contains
     do i = 1, size(state)
        if(have_option(trim(state(i)%option_path)//"/scalar_field::MaterialVolumeFraction/diagnostic")) then
           diagnostic_count = diagnostic_count + 1
+          ! Record the index of the state containing the diagnostic MaterialVolumeFraction field
+          diagnostic_state_index = i 
        end if
     end do
 
@@ -241,16 +243,8 @@ contains
     end if
 
     if(diagnostic_count==1) then
-      ! find the diagnostic volume fraction
-      state_loop: do i = 1, size(state)
-        materialvolumefraction=>extract_scalar_field(state(i), 'MaterialVolumeFraction', stat)
-        if (stat==0) then
-          diagnostic = (have_option(trim(materialvolumefraction%option_path)//'/diagnostic'))
-          if((.not. aliased(materialvolumefraction)).and. diagnostic) then
-            exit state_loop
-          end if
-        end if
-      end do state_loop
+      ! Extract the diagnostic volume fraction
+      materialvolumefraction => extract_scalar_field(state(diagnostic_state_index), 'MaterialVolumeFraction')
       
       call allocate(sumvolumefractions, materialvolumefraction%mesh, 'Sum of volume fractions')
       call zero(sumvolumefractions)
