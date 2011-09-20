@@ -227,10 +227,8 @@ contains
     element%dim=ele_num%dimension
 
 
-    !$OMP CRITICAL
     nullify(element%refcount) ! Hack for gfortran component initialisation
     !                         bug.
-    !$OMP END CRITICAL
     call addref(element)
     
     nullify(element%n_s)

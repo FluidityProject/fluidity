@@ -1,24 +1,17 @@
   subroutine addref_REFCOUNT_TYPE(object)
-#ifdef _OPENMP
-    use omp_lib
-#endif
     !!< Increment the reference count of object creating a new reference
     !!< counter if needed.
     type(REFCOUNT_TYPE), intent(inout), target :: object
     integer, save :: id = 0
 
     if (associated(object%refcount)) then
-    !$OMP CRITICAL
        ! Reference count already exists, just increment it.
        object%refcount%count=object%refcount%count+1
-    !$OMP END CRITICAL
        
     else
-    !$OMP CRITICAL
        id = id + 1
        object%refcount=>new_refcount("REFCOUNT_TYPE", object%name)
        object%refcount%id = id
-    !$OMP END CRITICAL
     end if
     
   end subroutine addref_REFCOUNT_TYPE
@@ -35,10 +28,8 @@
     end if
        
     ! Reference count already exists, just increment it.
-    !$OMP CRITICAL
     ptr=>object%refcount%count
     ptr=ptr+1
-    !$OMP END CRITICAL
 
   end subroutine incref_REFCOUNT_TYPE  
   
@@ -53,11 +44,8 @@
        return
     end if
 
-    !$OMP CRITICAL
     object%refcount%count=object%refcount%count-1
-    !$OMP END CRITICAL
 
-    !$OMP CRITICAL
     if (object%refcount%count<=0) then
 
        if (object%refcount%count<0) then
@@ -76,7 +64,6 @@
        deallocate(object%refcount)
        
     end if
-    !$OMP END CRITICAL
 
   end subroutine decref_REFCOUNT_TYPE
 
