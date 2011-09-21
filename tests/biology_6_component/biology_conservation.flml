@@ -181,8 +181,24 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="zero_flux"/>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -281,8 +297,24 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="zero_flux"/>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -360,8 +392,24 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="zero_flux"/>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -449,8 +497,24 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="zero_flux"/>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -562,8 +626,24 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="zero_flux"/>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -636,8 +716,24 @@
           <surface_ids>
             <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
-          <type name="zero_flux"/>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0</real_value>
+            </constant>
+          </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
