@@ -296,20 +296,14 @@ contains
        class_name=get_sediment_name(i)
  
        ! check for diagnostic sinking velocity
-       if (have_option(sediment_concs(i)%ptr%option_path// &
+       if (have_option(trim(sediment_concs(i)%ptr%option_path)// &
             &'/prognostic/scalar_field::SinkingVelocity/diagnostic')) then
-
-          ewrite(2,*) have_option(sediment_concs(i)%ptr%option_path// &
-            &'/prognostic/scalar_field::SinkingVelocity/diagnostic')
 
           ewrite(2,*) 'Calculating diagnostic sink velocity for sediment field: '//&
                & trim(class_name)
-
-          ewrite(2,*) have_option(sediment_concs(i)%ptr%option_path// &
-            &'/prognostic/scalar_field::UnhinderedSinkingVelocity')
           
           ! check for presence of unhindered sinking velocity value
-          if (.not. have_option(sediment_concs(i)%ptr%option_path// &
+          if (.not. have_option(trim(sediment_concs(i)%ptr%option_path)// &
             &'/prognostic/scalar_field::UnhinderedSinkingVelocity')) then
              FLExit("You must specify an unhindered sinking velocity field to be able &&
                 && to calculate diagnostic sinking velocity field values for sediments")
