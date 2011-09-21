@@ -7,7 +7,7 @@
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>make run</command_line>
     <!-- 1D multi-phase test case to check that the volume fraction fields are behaving properly. -->
    
@@ -53,7 +53,12 @@ from fluidity_tools import stat_parser
 s = stat_parser("mphase_gravity_1d.stat")
 f2_vfrac_integral = s["Fluid2"]["PhaseVolumeFraction"]["integral"][-1]
     </variable>
-   
+    
+    <variable name="divergence" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_gravity_1d.stat")
+divergence = s["Fluid1"]["SumVelocityDivergence"]["max"][-1]
+    </variable>
     
   </variables>
     
@@ -69,6 +74,15 @@ assert abs(f2_vfrac_max - 1.0) &lt; 1e-1
     </test>
     <test name="Fluid 2 has min(vfrac) in [0.0, 0.1]" language="python">
 assert abs(f2_vfrac_min) &lt; 1e-1
+    </test>
+    <test name="SumVelocityDivergence is less than 1e-8" language="python">
+assert abs(divergence) &lt; 1e-8
+    </test>
+    <test name="PhaseVolumeFraction for Fluid 1 is conserved" language="python">
+assert abs(f1_vfrac_integral - 0.5) &lt; 1e-6
+    </test>
+    <test name="PhaseVolumeFraction for Fluid 2 is conserved" language="python">
+assert abs(f2_vfrac_integral - 0.5) &lt; 1e-6
     </test>
   </pass_tests>
   
