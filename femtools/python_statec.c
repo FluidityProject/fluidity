@@ -360,11 +360,10 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
 #endif
 }
 
-void python_run_agent_biology_c(int ele, int dim, 
-                                double lcoords[], double *dt,
-                                char *dict, int dictlen, 
-                                char *key, int keylen,
-                                double biovars[], int n_biovars, int *stat){
+void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
+                                char *dict, int dictlen, char *key, int keylen,
+                                double biovars[], int n_biovars, double env_vars[],
+                                int n_env_vars, int *stat){
 #ifdef HAVE_PYTHON
   /* Evaluate the detector val() function from a previously stored local namespace
    * found in dict under key. The interface is: val(ele, local_coords, dt, biovars)
@@ -403,16 +402,23 @@ void python_run_agent_biology_c(int ele, int dim,
     PyList_SET_ITEM(pBiology, i, PyFloat_FromDouble(biovars[i]));
   }
 
+  // Create environment array argument
+  PyObject *pEnvironment = PyList_New(n_env_vars);
+  for(i=0; i<n_env_vars; i++){
+    PyList_SET_ITEM(pEnvironment, i, PyFloat_FromDouble(env_vars[i]));
+  }
+
   // Create argument array
-  PyObject **pArgs= malloc(sizeof(PyObject*)*4);
+  PyObject **pArgs= malloc(sizeof(PyObject*)*5);
   pArgs[0] = pEle;
   pArgs[1] = pLCoords;
   pArgs[2] = pDt;
   pArgs[3] = pBiology;
+  pArgs[4] = pEnvironment;
 
 
   // Run val(ele, local_coords)
-  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 4, NULL, 0, NULL, 0, NULL);
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 5, NULL, 0, NULL, 0, NULL);
  
   // Check for Python errors
   *stat=0;
@@ -432,6 +438,7 @@ void python_run_agent_biology_c(int ele, int dim,
   Py_DECREF(pDt);
   Py_DECREF(pLCoords);
   Py_DECREF(pBiology);
+  Py_DECREF(pEnvironment);
   Py_DECREF(pFuncCode);
   Py_DECREF(pResult);
   free(pArgs);

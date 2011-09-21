@@ -126,6 +126,7 @@ module detector_data_types
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_dg_name
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_cg_name
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: chemfield_name
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: env_field_name
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
 
      !! Optional array for detector names; names are held in read order

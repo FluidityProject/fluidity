@@ -65,13 +65,14 @@ contains
     type(vector_field), pointer :: xfield
     type(element_type), pointer :: shape
     character(len=PYTHON_FUNC_LEN) :: func
-    character(len=OPTION_PATH_LEN) :: buffer, fg_buffer, stage_buffer, biovar_buffer
+    character(len=OPTION_PATH_LEN) :: buffer, fg_buffer, stage_buffer, biovar_buffer, &
+                                      env_field_buffer
     character(len=FIELD_NAME_LEN) :: field_name, fg_name, stage_name, biovar_name
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, column, &
                ierror, det_type, biovar_index, biovar_total, biovar_state, &
-               biovar_chemical, biovar_uptake, biovar_release, index, rnd_dim
+               biovar_chemical, biovar_uptake, biovar_release, index, rnd_dim, n_env_fields
     integer, dimension(1) :: rnd_seed
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
@@ -97,6 +98,7 @@ contains
 
     ! Create a persistent dictionary of FG variable name mappings
     call python_run_string("persistent['fg_var_names'] = dict()")
+    call python_run_string("persistent['fg_env_names'] = dict()")
 
     ! We create an agent array for each stage of each Functional Group
     do fg=1, n_fgroups
@@ -159,7 +161,7 @@ contains
           else
              det_type=STATIC_DETECTOR
           end if
-          if (have_option(trim(stage_buffer)//"/exclude_from_advection")) then
+          if (have_option(trim(stage_buffer)//"/debug/exclude_from_advection")) then
              agent_arrays(i)%move_parameters%do_velocity_advect=.false.
           else
              agent_arrays(i)%move_parameters%do_velocity_advect=.true.
@@ -299,6 +301,16 @@ contains
                 call get_option(trim(stage_buffer)//"/initial_state/values", agent%biology)
                 agent => agent%next
              end do
+
+             ! Record which environment fields to evaluate and pass to the update function
+             n_env_fields = option_count(trim(fg_buffer)//"/environment_field")
+             call python_run_string("persistent['fg_env_names']['"//trim(fg_name)//"'] = dict()")
+             allocate(agent_arrays(i)%env_field_name(n_env_fields))
+             do j=1, n_env_fields
+                write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment_field[",j-1,"]"
+                call get_option(trim(env_field_buffer)//"/name", agent_arrays(i)%env_field_name(j))
+                call python_run_string("persistent['fg_env_names']['"//trim(fg_name)//"']['"//trim(agent_arrays(i)%env_field_name(j))//"']="//trim(int2str(j-1)))
+             end do
           end if
 
           ! Create simple position-only agent I/O header 
@@ -393,7 +405,7 @@ contains
           ! Update agent biology
           agent=>agent_arrays(i)%first
           do while (associated(agent))
-             call python_calc_agent_biology(agent, xfield, dt, trim(agent_arrays(i)%name), trim("biology_update"))
+             call python_calc_agent_biology(agent, agent_arrays(i), xfield, state(1), dt, trim(agent_arrays(i)%name), trim("biology_update"))
 
              ! Check for stage change
              if (agent%biology(1) /= agent_arrays(i)%stage_id) then

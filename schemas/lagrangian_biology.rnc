@@ -123,8 +123,14 @@ lagrangian_biology =
                   }?
                }
             )*,
+            ## Environment fields needed to run update code. A dictionary will be passed to the Python update code containing
+            ## the local values of the fields listed here.
+            element environment_field {
+               attribute name { xsd:string }
+            }*,
             ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
             element stage_array {
+               comment,
                attribute name { xsd:string },
                ## Stage identifier
                element id { real },
@@ -160,26 +166,28 @@ lagrangian_biology =
                   }
                },
                element random_walk {
-                  ## Python function prescribing additional agent displacement due to turbulence. 
-                  ## The return value will be added to the lagrangian advection at each sub-timestep. 
-                  ## Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
-                  ## Functions should be of the form:
-                  ## 
-                  ##  field = state.scalar_fields['Field_name']
-                  ##
-                  ##  def val(ele, local_coord):
-                  ##     # x = field.eval_field(ele, local_coord)
-                  ##     return # Return some f(x)
-                  element python{
-                     python_code
-                  },
-                  element random_seed{
-                     integer
-                  }
-               }?,
-               ## 
-               element exclude_from_advection {
-                  empty
+                  (
+                     ## Python function prescribing additional agent displacement due to turbulence. 
+                     ## The return value will be added to the lagrangian advection at each sub-timestep. 
+                     ## Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
+                     ## Functions should be of the form:
+                     ## 
+                     ##  field = state.scalar_fields['Field_name']
+                     ##
+                     ##  def val(ele, local_coord):
+                     ##     # x = field.eval_field(ele, local_coord)
+                     ##     return # Return some f(x)
+                     element python{
+                        python_code
+                     }|
+                     ## Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
+                     ## Described in Visser, 1997 and Ross and Sharples, 2004.
+                     ## Requires name of diffusivity field and according gradient field.
+                     element diffusive_random_walk {
+                        attribute diffusivity_field { xsd:string },
+                        attribute diffusivity_gradient { xsd:string }
+                     }
+                  )
                }?,
                (
                   ## Python code specifying the biology model for this type of agent.
@@ -192,7 +200,13 @@ lagrangian_biology =
                      empty
                   }
                ),
-               comment
+               ## Debug options
+               element debug {
+                  ## Skip velocity advection algorithm (RK-GS)
+                  element exclude_from_advection {
+                     empty
+                  }?
+               }?
             }*,
             ## Number of agents
             element scalar_field {

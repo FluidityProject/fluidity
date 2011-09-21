@@ -184,8 +184,18 @@ Needed if uptake or release are specified.</a:documentation>
             </choice>
           </zeroOrMore>
           <zeroOrMore>
+            <element name="environment_field">
+              <a:documentation>Environment fields needed to run update code. A dictionary will be passed to the Python update code containing
+the local values of the fields listed here.</a:documentation>
+              <attribute name="name">
+                <data type="string"/>
+              </attribute>
+            </element>
+          </zeroOrMore>
+          <zeroOrMore>
             <element name="stage_array">
               <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
+              <ref name="comment"/>
               <attribute name="name">
                 <data type="string"/>
               </attribute>
@@ -226,8 +236,9 @@ The t argument is for future use only - currently detector locations are only se
               </element>
               <optional>
                 <element name="random_walk">
-                  <element name="python">
-                    <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
+                  <choice>
+                    <element name="python">
+                      <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
 The return value will be added to the lagrangian advection at each sub-timestep. 
 Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
 Functions should be of the form:
@@ -237,17 +248,20 @@ Functions should be of the form:
  def val(ele, local_coord):
     # x = field.eval_field(ele, local_coord)
     return # Return some f(x)</a:documentation>
-                    <ref name="python_code"/>
-                  </element>
-                  <element name="random_seed">
-                    <ref name="integer"/>
-                  </element>
-                </element>
-              </optional>
-              <optional>
-                <element name="exclude_from_advection">
-                  <a:documentation/>
-                  <empty/>
+                      <ref name="python_code"/>
+                    </element>
+                    <element name="diffusive_random_walk">
+                      <a:documentation>Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
+Described in Visser, 1997 and Ross and Sharples, 2004.
+Requires name of diffusivity field and according gradient field.</a:documentation>
+                      <attribute name="diffusivity_field">
+                        <data type="string"/>
+                      </attribute>
+                      <attribute name="diffusivity_gradient">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
+                  </choice>
                 </element>
               </optional>
               <choice>
@@ -261,7 +275,17 @@ This option is generally only useful for testing. </a:documentation>
                   <empty/>
                 </element>
               </choice>
-              <ref name="comment"/>
+              <optional>
+                <element name="debug">
+                  <a:documentation>Debug options</a:documentation>
+                  <optional>
+                    <element name="exclude_from_advection">
+                      <a:documentation>Skip velocity advection algorithm (RK-GS)</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
             </element>
           </zeroOrMore>
           <optional>

@@ -32,7 +32,7 @@ param_V_S_ref =        0.03
 param_z_sink =         0.04
 param_Zeta =           2.3
 
-def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate, amm_depletion, nit_depletion, sil_depletion):
+def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, ambientVisIrrad, ambientAmmonium, ambientNitrate, ambientSilicate, ammoniumDepleted, nitrateDepleted, silicateDepleted):
   
   ### Phase 1 ###
   
@@ -42,16 +42,6 @@ def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradian
   vars[name['SilicateIng']] = vars[name['SilicateIng']] / vars[name['Biomass']]
   stepInHours = dt/3600.
   biomass_old = vars[name['Biomass']]
-  
-  # External environment
-  ambientTemperature = temperature.eval_field(ele, local_coord)
-  ambientVisIrrad = irradiance.eval_field(ele, local_coord)
-  ambientAmmonium = ammonium.eval_field(ele, local_coord)
-  ambientNitrate = nitrate.eval_field(ele, local_coord)
-  ambientSilicate = silicate.eval_field(ele, local_coord)
-  ammoniumDepleted = amm_depletion.eval_field(ele, local_coord)
-  nitrateDepleted = nit_depletion.eval_field(ele, local_coord)
-  silicateDepleted = sil_depletion.eval_field(ele, local_coord)
   
   # Nutrient uptake 
   vars[name['AmmoniumIng']] = vars[name['AmmoniumIng']] * ammoniumDepleted
@@ -199,7 +189,7 @@ def update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradian
 
 
 
-def update_dead_diatom(ele, local_coord, dt, vars, name, temperature, amm_depletion, nit_depletion, sil_depletion):
+def update_dead_diatom(ele, local_coord, dt, vars, name, ambientTemperature, ammoniumDepleted, nitrateDepleted, silicateDepleted):
 
   ### Phase 1 ###
   
@@ -209,12 +199,6 @@ def update_dead_diatom(ele, local_coord, dt, vars, name, temperature, amm_deplet
   vars[name['SilicateIng']] = vars[name['SilicateIng']] / vars[name['Biomass']]
   stepInHours = dt/3600.
   biomass_old = vars[name['Biomass']]
-  
-  # External environment
-  ambientTemperature = temperature.eval_field(ele, local_coord)
-  ammoniumDepleted = amm_depletion.eval_field(ele, local_coord)
-  nitrateDepleted = nit_depletion.eval_field(ele, local_coord)
-  silicateDepleted = sil_depletion.eval_field(ele, local_coord)
   
   # Nutrient uptake 
   vars[name['AmmoniumIng']] = vars[name['AmmoniumIng']] * ammoniumDepleted

@@ -920,6 +920,14 @@ def val(X,t):
             </diagnostic>
           </scalar_field>
         </chemical_variable>
+        <environment_field name="Temperature"/>
+        <environment_field name="Irradiance"/>
+        <environment_field name="Ammonium"/>
+        <environment_field name="Nitrate"/>
+        <environment_field name="Silicate"/>
+        <environment_field name="AmmoniumDepletion"/>
+        <environment_field name="NitrateDepletion"/>
+        <environment_field name="SilicateDepletion"/>
         <stage_array name="Living">
           <id>
             <real_value rank="0">0.0</real_value>
@@ -942,47 +950,17 @@ def val(X,t):
             </values>
           </initial_state>
           <random_walk>
-            <python>
-              <string_value lines="20" type="python">from numpy import random
-from math import sqrt
-
-diffusivity = state.scalar_fields['VerticalDiffusivity']
-diffusivity_grad = state.vector_fields['VerticalDiffusivityGrad']
-coordinate = state.vector_fields['Coordinate']
-
-def val(ele, local_coord, dt):
-  rnd = random.uniform(-1.,1.,1)
-  K_grad = diffusivity_grad.eval_field(ele, local_coord)[-1]
-  
-  position = coordinate.eval_field(ele, local_coord)
-  position = position  + 0.5*dt*K_grad
-  lcoord = coordinate.local_coords(ele, position)
-  # evaluate diffusivity at an offset (lcoord) to the original position
-  K = diffusivity.eval_field(ele, lcoord)
-
-  return [K_grad*dt + (rnd * sqrt(6*K*dt))]</string_value>
-            </python>
-            <random_seed>
-              <integer_value rank="0">10001</integer_value>
-            </random_seed>
+            <diffusive_random_walk diffusivity_gradient="VerticalDiffusivityGrad" diffusivity_field="VerticalDiffusivity"/>
           </random_walk>
           <biology_update>
             <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
 from __builtin__ import str
 
 name = persistent['fg_var_names']['Diatom']
+env_name = persistent['fg_env_names']['Diatom']
 
-temperature = state.scalar_fields['Temperature']
-irradiance = state.scalar_fields['Irradiance']
-ammonium = state.scalar_fields['Ammonium']
-nitrate = state.scalar_fields['Nitrate']
-silicate = state.scalar_fields['Silicate']
-amm_depletion = state.scalar_fields['AmmoniumDepletion']
-nit_depletion = state.scalar_fields['NitrateDepletion']
-sil_depletion = state.scalar_fields['SilicateDepletion']
-
-def val(ele, local_coord, dt, vars):
-  bio.update_living_diatom(ele, local_coord, dt, vars, name, temperature, irradiance, ammonium, nitrate, silicate, amm_depletion, nit_depletion, sil_depletion)  
+def val(ele, local_coord, dt, vars, env):
+  bio.update_living_diatom(ele, local_coord, dt, vars, name, env[env_name['Temperature']], env[env_name['Irradiance']], env[env_name['Ammonium']], env[env_name['Nitrate']], env[env_name['Silicate']], env[env_name['AmmoniumDepletion']], env[env_name['NitrateDepletion']], env[env_name['SilicateDepletion']])  
   return vars</string_value>
           </biology_update>
         </stage_array>
@@ -1008,43 +986,17 @@ def val(ele, local_coord, dt, vars):
             </values>
           </initial_state>
           <random_walk>
-            <python>
-              <string_value lines="20" type="python">from numpy import random
-from math import sqrt
-
-diffusivity = state.scalar_fields['VerticalDiffusivity']
-diffusivity_grad = state.vector_fields['VerticalDiffusivityGrad']
-coordinate = state.vector_fields['Coordinate']
-
-def val(ele, local_coord, dt):
-  rnd = random.uniform(-1.,1.,1)
-  K_grad = diffusivity_grad.eval_field(ele, local_coord)[-1]
-  
-  position = coordinate.eval_field(ele, local_coord)
-  position = position  + 0.5*dt*K_grad
-  lcoord = coordinate.local_coords(ele, position)
-  # evaluate diffusivity at an offset (lcoord) to the original position
-  K = diffusivity.eval_field(ele, lcoord)
-
-  return [K_grad*dt + (rnd * sqrt(6*K*dt))]</string_value>
-            </python>
-            <random_seed>
-              <integer_value rank="0">10001</integer_value>
-            </random_seed>
+            <diffusive_random_walk diffusivity_gradient="VerticalDiffusivityGrad" diffusivity_field="VerticalDiffusivity"/>
           </random_walk>
           <biology_update>
             <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
 from __builtin__ import str
 
 name = persistent['fg_var_names']['Diatom']
+env_name = persistent['fg_env_names']['Diatom']
 
-temperature = state.scalar_fields['Temperature']
-amm_depletion = state.scalar_fields['AmmoniumDepletion']
-nit_depletion = state.scalar_fields['NitrateDepletion']
-sil_depletion = state.scalar_fields['SilicateDepletion']
-
-def val(ele, local_coord, dt, vars):
-  bio.update_dead_diatom(ele, local_coord, dt, vars, name, temperature, amm_depletion, nit_depletion, sil_depletion)  
+def val(ele, local_coord, dt, vars, env):
+  bio.update_dead_diatom(ele, local_coord, dt, vars, name, env[env_name['Temperature']], env[env_name['AmmoniumDepletion']], env[env_name['NitrateDepletion']], env[env_name['SilicateDepletion']])  
   return vars</string_value>
           </biology_update>
         </stage_array>

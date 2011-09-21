@@ -130,16 +130,18 @@ module python_state
 
     !! Evaluate the detector val() function for agent-based biology
     subroutine python_run_agent_biology(ele, dim, lcoords, dt, dict, &
-           dictlen, key, keylen, biovars, n_biovars, stat) bind(c, name='python_run_agent_biology_c')
+           dictlen, key, keylen, biovars, n_biovars, env_values, &
+           n_env_values, stat) bind(c, name='python_run_agent_biology_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: ele, dim, n_biovars
+      integer(c_int), intent(in), value :: ele, dim, n_biovars, n_env_values
       real(c_double), dimension(dim+1), intent(in) :: lcoords
       real(c_double), intent(in) :: dt
       integer(c_int), intent(in), value :: dictlen, keylen
       character(kind=c_char), dimension(dictlen), intent(in) :: dict
       character(kind=c_char), dimension(keylen), intent(in) :: key
       real(c_double), dimension(n_biovars), intent(inout) :: biovars
+      real(c_double), dimension(n_env_values), intent(inout) :: env_values
       integer(c_int), intent(out) :: stat
     end subroutine python_run_agent_biology
 
@@ -718,22 +720,32 @@ module python_state
     
   end subroutine python_run_detector_val_function
 
-  subroutine python_calc_agent_biology(agent, xfield, dt, dict, key, stat)
+  subroutine python_calc_agent_biology(agent, agent_list, xfield, state, dt, dict, key, stat)
     !!< Wrapper function for python_run_agent_biology_c
     type(detector_type), pointer, intent(in) :: agent
+    type(detector_linked_list), intent(in) :: agent_list
     type(vector_field), pointer, intent(in) :: xfield
+    type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), intent(in) :: dict, key
     integer, optional, intent(out) :: stat
     
-    integer :: lstat
+    integer :: lstat, i
     real, dimension(size(agent%local_coords)) :: stage_local_coords
+    real, dimension(size(agent_list%env_field_name)) :: env_field_values
+    type(scalar_field), pointer :: env_field
 
     if(present(stat)) stat = 0
+    
+    do i=1, size(agent_list%env_field_name)
+       env_field=>extract_scalar_field(state,trim(agent_list%env_field_name(i)))
+       env_field_values(i)=eval_field(agent%element,env_field,agent%local_coords)
+    end do
 
     stage_local_coords=local_coords(xfield,agent%element,agent%position)
     call python_run_agent_biology(agent%element, size(agent%position), stage_local_coords, &
-           dt, dict, len_trim(dict), key,len_trim(key), agent%biology, size(agent%biology), lstat) 
+           dt, dict, len_trim(dict), key,len_trim(key), agent%biology, size(agent%biology), &
+           env_field_values, size(env_field_values), lstat) 
 
     if(lstat /= 0) then
       if(present(stat)) then
