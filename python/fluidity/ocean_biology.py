@@ -5,7 +5,6 @@ def short_wave_radiation(t,dlon,dlat,cloud):
     import math
     from datetime import datetime, timedelta
 
-
     deg2rad=math.pi/180.
     rad2deg=180./math.pi
     solar=1350.
@@ -381,12 +380,11 @@ def six_component(state, parameters):
         D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
         I_n=max(I.node_val(n), 0.0)
         depth=abs(coords.node_val(n)[2])
-        #print depth, photic_zone(depth,100,10)
  
-# In the continuous model we start calculating Chl-a related 
-# properties at light levels close to zero with a potential /0. 
-# It seems that assuming theta = zeta at very low P and Chl takes
-# care of this most effectively       
+        # In the continuous model we start calculating Chl-a related 
+        # properties at light levels close to zero with a potential /0. 
+        # It seems that assuming theta = zeta at very low P and Chl takes
+        # care of this most effectively       
         if (P_n < 1e-7 or  C_n < 1e-7):
             theta = zeta
         else:
@@ -394,7 +392,6 @@ def six_component(state, parameters):
         alpha = alpha_c * theta
 
         # Light limited phytoplankton growth rate.
-	
         J=(v*alpha*I_n)/(v**2+alpha**2*I_n**2)**0.5	    
 
         # Nitrate limiting factor.
@@ -411,9 +408,9 @@ def six_component(state, parameters):
         X_P=J*(Q_N+Q_A)*P_n
 
         # Zooplankton grazing of phytoplankton.
-	# It looks a bit different from the original version, however
-	# it is the same function with differently normalised parameters to 
-	# simplify tuning 
+	    # It looks a bit different from the original version, however
+	    # it is the same function with differently normalised parameters to 
+	    # simplify tuning 
         # G_P=(g * epsilon * p_P * P_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
         G_P=(g * p_P * P_n**2 * Z_n)/(epsilon + (p_P*P_n**2 + p_D*D_n**2))
 
@@ -422,33 +419,22 @@ def six_component(state, parameters):
         G_D=(g  * (1-p_P) * D_n**2 * Z_n)/(epsilon + (p_P*P_n**2 + p_D*D_n**2))
 
         # Death rate of phytoplankton.
-	# There is an additional linear term because now we have a unified model
-	# (no below/above photoc zone distinction)
+	    # There is an additional linear term because we have a unified model
+	    # (no below/above photoc zone distinction)
         De_P=mu_P*P_n*P_n/(P_n+k_p)+lambda_bio*P_n
 
         # Death rate of zooplankton.
-	# There is an additional linear term because now we have a unified model
-	# (no below/above photoc zone distinction)
+	    # There is an additional linear term because we have a unified model
+	    # (no below/above photoc zone distinction)
         De_Z=mu_Z*Z_n**3/(Z_n+k_z)+lambda_bio*Z_n
 
         # Detritus remineralisation.
         De_D=mu_D*D_n+lambda_bio*P_n+lambda_bio*Z_n
 
         # Ammonium nitrification (only below the photic zone)
-	# This is the only above/below term
+	    # This is the only above/below term
         De_A=lambda_A*A_n*(1-photic_zone(depth,100,20))
 
-        # We have 2 sources depending on whether we're below or above the photic zone
-        # below
-        # if (I_n < photicZoneLimit):
-        #    P_source.set(n, -lambda_bio * P_n)
-        #     C_source.set(n, -lambda_bio*C_n)
-        #     Z_source.set(n, -lambda_bio*Z_n)
-        #     D_source.addto(n, lambda_bio*(P_n + Z_n) - mu_D*D_n)
-        #     A_source.set(n, -lambda_A*A_n)
-        #     N_source.set(n, lambda_A*A_n + mu_D*D_n)
-        # above
-        # else:
         P_source.set(n, J*(Q_N+Q_A)*P_n - G_P - De_P)
         C_source.set(n, (R_P*J*(Q_N+Q_A)*P_n + (-G_P-De_P))*theta/zeta)
         Z_source.set(n, delta*(beta_P*G_P+beta_D*G_D) - De_Z)
