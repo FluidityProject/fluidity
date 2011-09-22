@@ -281,16 +281,6 @@ contains
              detector => detector%next
           end do
 
-          !call python_evaluate_random_walk(detector_list, xfield, rk_dt, rw_displacement)
-
-          !detector => detector_list%first
-          !do det = 1, detector_list%length
-          !   detector%update_vector=detector%update_vector + rw_displacement(:,det)
-          !   detector%search_complete=.false.
-
-          !   detector => detector%next
-          !end do
-
           call move_detectors_guided_search(detector_list,vfield,xfield, &
                  send_list_array,parameters%search_tolerance)
 
@@ -619,6 +609,13 @@ contains
     position(xfield%dim)=position(xfield%dim) + 0.5*dt*K_grad(xfield%dim)
     lcoord=local_coords(xfield, detector%element, position)
     K=eval_field(detector%element, diff_field, lcoord)
+
+    ! Bug fix:
+    ! Since we evaluate K with the current detectors element
+    ! we can get negative values here, resulting in NaN for the sqrt term
+    if (K < 0.0) then
+       K=K*(-1.0)
+    end if
 
     displacement(:)=0.0
     displacement(xfield%dim)=K_grad(xfield%dim)*dt + rnd(1)*sqrt(6*K*dt)
