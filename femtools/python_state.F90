@@ -39,7 +39,6 @@ module python_state
   public :: python_add_array, python_add_field
   public :: python_add_state, python_add_states, python_add_states_time
   public :: python_run_string, python_run_file
-  public :: python_evaluate_random_walk
   public :: python_run_detector_string, python_run_detector_val_function
   public :: python_shell
   public :: python_fetch_real
@@ -108,24 +107,6 @@ module python_state
       real(c_double), dimension(dim), intent(out) :: value
       integer(c_int), intent(out) :: stat
     end subroutine python_run_detector_val
-
-    !! Evaluate the detector val function for a set of detectors
-    !! Interface: val(ele, local_coords, dt), where
-    !!   ele: elelement number, integer, 
-    !!   local_coords: vector of size dim
-    !!   dt: timestep of the subcycle; val function needs to scale by this
-    subroutine python_evaluate_detector_func(str, strlen, num_det, dim, elements, &
-           local_coords, dt, result, stat) bind(c, name='python_evaluate_detector_func_c')
-      use :: iso_c_binding
-      implicit none
-      integer(c_int), intent(in), value :: strlen, num_det, dim
-      character(kind=c_char), dimension(strlen), intent(in) :: str
-      real(c_double), value, intent(in) :: dt
-      integer(c_int), dimension(num_det), intent(in) :: elements
-      type(c_ptr), value :: local_coords
-      type(c_ptr), value :: result
-      integer(c_int), intent(out) :: stat
-    end subroutine python_evaluate_detector_func
 
   end interface
 
@@ -651,6 +632,36 @@ module python_state
     
   end subroutine python_run_string
 
+  subroutine python_run_file(s, stat)
+    !!< Wrapper for function for python_run_filec
+    
+    character(len = *), intent(in) :: s
+    integer, optional, intent(out) :: stat
+    
+    integer :: lstat
+
+    if(present(stat)) stat = 0
+
+    call python_run_filec(s, len_trim(s), lstat)
+    if(lstat /= 0) then
+      if(present(stat)) then
+        stat = lstat
+      else
+        ewrite(-1, *) "Python error, Python file was:"
+        ewrite(-1, *) trim(s)
+        FLExit("Dying")
+      end if
+    end if
+    
+  end subroutine python_run_file
+
+  function python_fetch_real(name) result(output)
+    character(len=*), intent(in) :: name
+    real :: output
+
+    call python_fetch_real_c(name, len(name), output)
+  end function python_fetch_real
+
   subroutine python_run_detector_string(str, dict, key, stat)
     !!< Wrapper function for python_run_string_keep_locals_c
     character(len = *), intent(in) :: str, dict, key
@@ -701,75 +712,5 @@ module python_state
     end if
     
   end subroutine python_run_detector_val_function
-  
-  subroutine python_run_file(s, stat)
-    !!< Wrapper for function for python_run_filec
-    
-    character(len = *), intent(in) :: s
-    integer, optional, intent(out) :: stat
-    
-    integer :: lstat
-
-    if(present(stat)) stat = 0
-
-    call python_run_filec(s, len_trim(s), lstat)
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = lstat
-      else
-        ewrite(-1, *) "Python error, Python file was:"
-        ewrite(-1, *) trim(s)
-        FLExit("Dying")
-      end if
-    end if
-    
-  end subroutine python_run_file
-
-  function python_fetch_real(name) result(output)
-    character(len=*), intent(in) :: name
-    real :: output
-
-    call python_fetch_real_c(name, len(name), output)
-  end function python_fetch_real
-
-  subroutine python_evaluate_random_walk(detector_list, xfield, dt, result, stat)
-    !!< Evaluate the Random Walk python function for all detectors in the list
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), pointer, intent(inout) :: xfield
-    real, intent(in) :: dt
-    real, dimension(xfield%dim,detector_list%length), target, intent(out) :: result
-    integer, optional, intent(out) :: stat
-
-    integer :: lstat, i
-    type(detector_type), pointer :: detector
-    type(rk_gs_parameters), pointer :: parameters
-    integer, dimension(detector_list%length) :: elements
-    real, dimension(xfield%dim+1,detector_list%length), target :: lcoords
-        
-    if(present(stat)) stat = 0
-    parameters => detector_list%move_parameters
-
-    detector => detector_list%first
-    do i=1, detector_list%length
-       elements(i)=detector%element
-       lcoords(:,i)=local_coords(xfield,detector%element,detector%update_vector)
-
-       detector => detector%next
-    end do
-
-    call python_evaluate_detector_func(parameters%rw_pycode, len_trim(parameters%rw_pycode), &
-           detector_list%length, xfield%dim, elements, c_loc(lcoords), dt, c_loc(result), lstat) 
-
-    if(lstat /= 0) then
-      if(present(stat)) then
-        stat = -1
-      else
-        ewrite(-1, *) "Python error, Python string was:"
-        ewrite(-1, *) trim(parameters%rw_pycode)
-        FLExit("Dying")
-      end if
-    end if
-
-  end subroutine python_evaluate_random_walk
 
 end module python_state
