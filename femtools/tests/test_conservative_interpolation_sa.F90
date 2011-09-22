@@ -60,7 +60,7 @@ subroutine test_conservative_interpolation_sa
   positionsA = read_triangle_files("data/pslgA", quad_degree=4, no_faces=.true.)
   positionsB = read_triangle_files("data/pslgB", quad_degree=4, no_faces=.true.)
   
-  field_element = make_element_shape(positionsA%mesh%shape%loc, positionsA%mesh%shape%dim, 2, positionsA%mesh%shape%quadrature)
+  field_element = make_element_shape(positionsA%mesh%shape%ndof, positionsA%mesh%shape%dim, 2, positionsA%mesh%shape%quadrature)
   donor_mesh = make_mesh(positionsA%mesh, field_element, continuity=0, name="DonorMesh")
   target_mesh = make_mesh(positionsA%mesh, field_element, continuity=0, name="TargetMesh")
 

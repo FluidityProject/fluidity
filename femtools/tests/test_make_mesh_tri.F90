@@ -59,7 +59,7 @@ subroutine test_make_mesh_tri
     
     derived_shape = make_element_shape(base_shape, degree = degree)
     call report_test("[Derived loc]", &
-      & derived_shape%loc /= tr(degree + 1), .false., &
+      & derived_shape%ndof /= tr(degree + 1), .false., &
       & "Incorrect local node count")
       
     derived_mesh = make_mesh(base_mesh, derived_shape)    
@@ -69,12 +69,12 @@ subroutine test_make_mesh_tri
       
     call allocate(positions_remap, positions%dim, derived_mesh, name = positions%name)
     call remap_field(positions, positions_remap)
-    allocate(otn_l_coords(base_shape%loc, derived_shape%loc))
+    allocate(otn_l_coords(base_shape%ndof, derived_shape%ndof))
     otn_l_coords = tri_otn_local_coords(degree)
-    allocate(l_coords(base_shape%loc, derived_shape%loc))
+    allocate(l_coords(base_shape%ndof, derived_shape%ndof))
     fail = .false.
     ele_loop: do ele = 1, ele_count(derived_mesh)      
-      fail = ele_loc(derived_mesh, ele) /= derived_shape%loc
+      fail = ele_loc(derived_mesh, ele) /= derived_shape%ndof
       if(fail) exit ele_loop
       
       l_coords = local_coords(positions, ele, ele_val(positions_remap, ele))
