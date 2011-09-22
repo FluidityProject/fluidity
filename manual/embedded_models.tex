@@ -224,6 +224,17 @@ as any other tracer field, except it is subject to a settling velocity:
 The advection in the vertical direction is then modified with a downwards sinking 
 velocity $u_{\mathrm{sink}}$. 
 
+\subsection{Hindered Sinking Velocity}
+
+The effect of suspended sediment concentration on the fall velocity can be taken into account 
+by making the Sinking Velocity field diagnostic. The equation of Richardson and Zaki [1954] 
+is then used to calculate the hindered sinking velocity, $v_{si}$ based upon the unhindered 
+sinking velocity $v_{s0}$ and the total concentration of sediment, $c$.
+
+\begin{equation}\label{eq:hindered_sinking_velocity}
+v_{si} = v_{s0}(1-c)^{2.39}
+\end{equation}
+
 \subsection{Deposition and erosion}
 
 A surface can be defined, the sea-bed, which is a sink for sediment. Once sediment
