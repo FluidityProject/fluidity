@@ -266,3 +266,20 @@ where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}
 diameter (mm). The SedimentDepositon field effectively mixes the deposited sediment, so order of deposition
 is not preserved.
 
+\subsection{Sediment concentration dependent viscosity}
+
+The viscosity is also affected by the concentration of suspended sediment. This can be taken account for by
+using the sediment\_concentration\_dependent\_viscosity algorithm on a diagnostic viscosity field. If using 
+a subgrid-scale parameterisation this must be applied to the relevant background viscosity field.
+
+The equation used is that suggested by Krieger and Dougherty, 1959, and more recently by Sequeiros, 2009. 
+Viscosity, $\nu$, is a function of the zero sediment concentration viscosity, $\nu_0$, and the total sediment
+concentration, $c$, as follows.
+
+\begin{equation}\label{eq:sediment_concentration_dependent_viscosity}
+\nu = \nu_{0}(1-c/0.65)^{-1.625}
+\end{equation}
+
+Note: a ZeroSedimentConcentrationViscosity tensor field is required.
+
+
