@@ -476,13 +476,13 @@ module hadapt_extrude
     elements=depths%length-1
 
     call allocate(mesh, elements+1, elements, oned_shape, "ZMesh")
-    call deallocate(oned_shape)
     do ele=1,elements
       mesh%ndglno((ele-1) * loc + 1: ele*loc) = (/ele, ele+1/)
     end do
 
     call allocate(z_mesh, 1, mesh, "ZMeshCoordinates")
     call deallocate(mesh)
+    call deallocate(oned_shape)
 
     call set(z_mesh, 1, (/0.0/))
     do node=1, elements+1
