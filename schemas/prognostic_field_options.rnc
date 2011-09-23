@@ -952,7 +952,8 @@ prognostic_velocity_field =
                (
                   internal_algorithm |
                   bulk_viscosity_algorithm |
-                  tensor_python_diagnostic_algorithm
+                  tensor_python_diagnostic_algorithm |
+                  sediment_concentration_dependent_viscosity_algorithm
                ),
                diagnostic_tensor_field
             }

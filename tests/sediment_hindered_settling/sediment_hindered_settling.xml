@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>sediment_hindered_settling.flml</name>
+  <owner userid="sp911"/>
+  <tags>flml sediment</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity sediment_hindered_settling.flml</command_line>
+    <!-- Check that the sediment hindered sinking rate is correct -->
+</problem_definition>
+  <variables>   
+    <variable name="sediment_intergral_hindered" language="python">
+import vtktools
+data = vtktools.vtu('sediment_hindered_settling_11.vtu')
+sediment_intergral_hindered = data.GetFieldIntegral('Hindered')
+    </variable>  
+    <variable name="sediment_intergral_unhindered" language="python">
+import vtktools
+data = vtktools.vtu('sediment_hindered_settling_11.vtu')
+sediment_intergral_unhindered = data.GetFieldIntegral('Unhindered')
+    </variable> 
+    <variable name="sediment_hindered_sinkingVelMax_t0" language="python">
+import vtktools
+data = vtktools.vtu('sediment_hindered_settling_0.vtu')
+sediment_hindered_sinkingVelMax_t0 = max(data.GetField('HinderedSinkingVelocity'))
+    </variable> 
+  </variables>
+  <pass_tests>
+    <!-- initial concentration = 0.2, unhindered sinking velocity = 0.01, 
+	 0.01m high domain, therefore after 1 second the majority of the unhindered sediment 
+	 should have passed out of the domain
+    -->
+    <test name="Unhindered sediment has passed through the domain" language="python">
+assert(sediment_intergral_unhindered &lt; 1e-6)
+    </test>
+    <!-- There should be more hindered sediment left than unhindered sediment 
+    -->
+    <test name="More hindered sediment is left than unhindered" language="python">
+assert(sediment_intergral_unhindered &lt; sediment_intergral_hindered)
+    </test>
+    <!-- the hindered sinking velocity at the start of the test (uniform concentration of 0.2)
+    should be 0.005867-->
+    <test name="Hindered sediment sinking velocity is correct" language="python">
+assert(0.00586 &lt; sediment_hindered_sinkingVelMax_t0 &lt; 0.00587)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

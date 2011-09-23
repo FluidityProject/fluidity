@@ -892,6 +892,13 @@ start =
                         element prescribed {
                            mesh_choice,
                            prescribed_tensor_field
+                        }|
+                        element diagnostic {
+                           mesh_choice,
+                           (
+                              sediment_concentration_dependent_viscosity
+                           ),
+                           diagnostic_tensor_field
                         }
                      )
                   },                  
@@ -1281,6 +1288,13 @@ start =
                         element prognostic {
                            velocity_mesh_choice,
                            prognostic_scalar_field
+                        }|
+                        element diagnostic {
+                           velocity_mesh_choice,
+                           (
+                              sediment_concentration_dependent_viscosity_algorithm
+                           ),
+                           diagnostic_tensor_field
                         }
                      )
                   },
@@ -1294,6 +1308,13 @@ start =
                         element prescribed {
                            velocity_mesh_choice,
                            prescribed_tensor_field
+                        }|
+                        element diagnostic {
+                           velocity_mesh_choice,
+                           (
+                              sediment_concentration_dependent_viscosity_algorithm
+                           ),
+                           diagnostic_tensor_field
                         }
                      )
                   },
@@ -2071,15 +2092,16 @@ sediment =
                real
             }?
          },
-         ## This field is the template for the sediment flux
-         ## diagnostic which records the flux of sediment through the
-         ## domain boundary.
+         ## This field is the template for the sediment deposition
+	 ## diagnostic which records the sediment deposited through the prescribed boundary.
+	 ##
+	 ## The units are in unit distances as a depth of sediment.
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "SedimentFluxTemplate" },
+            attribute name { "SedimentDepositionTemplate" },
             ## Field type
             element diagnostic {
-               ## Surface ids over which to calculate the flux:
+               ## Surface ids over which to calculate the deposition:
                element surface_ids {
                   integer_vector
                },
@@ -2107,11 +2129,38 @@ sediment =
                )
             }?,
             ## Velocity at which this sediment sinks through the water column.
-            ## 
-            ## This velocity is in the direction of gravity so if the substance
-            ## floats upwards, this field should be negative.
+	    ##
+	    ## This velocity is in the direction of gravity so if the substance
+	    ## floats upwards, this field should be negative.
+	    ##
+	    ## This filed can be diagnostic, in which case a hindered sinking velocity is calculated. 
+	    ## If this is the case an unhindered sinking velocity field is required for this sediment class.
             element scalar_field {
                attribute name { "SinkingVelocity" },
+               attribute rank { "0" },
+	       (
+                  element prescribed {
+                     prescribed_scalar_field_no_adapt
+                  }|
+	          element diagnostic {
+                     internal_algorithm,
+		     diagnostic_scalar_field_no_adapt
+                  }
+               )
+            }?,
+            ## This is the unhindered sinking velocity of the sediment particles. 
+	    ## 
+	    ## With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
+	    ## concentration, to calculate the hindered sinking velocity of sediment particles. 
+	    ##
+	    ## This uses the equation developed by Richardson and Zaki [1954]. 
+	    ##
+	    ## If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
+	    ##
+	    ## As with the sinking velocity, this velocity is in the direction of gravity so if the substance
+	    ## floats upwards, this field should be negative.
+            element scalar_field {
+               attribute name { "UnhinderedSinkingVelocity" },
                attribute rank { "0" },
                element prescribed {
                   prescribed_scalar_field_no_adapt
@@ -5735,6 +5784,31 @@ tensor_field_choice =
          element tensor_field {
             attribute rank { "2" },
             attribute name { "MaterialViscosity" },
+            (
+               element prescribed {
+                  mesh_choice,
+                  prescribed_tensor_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
+         ## Prescribed scalar fields below this
+         element ___Prescribed_fields_below___ {
+            empty
+         }|
+
+         ## ZeroSedimentConcentrationViscosity field:
+         ##
+         ## Field for the viscosity of this a fluid with zero 
+         ## concentration of sediment.
+         ## Required if using a diagnostic viscosity
+         ## in a sediment problem where sediment concentration
+         ## dependent viscosity is required.
+         element tensor_field {
+            attribute rank { "2" },
+            attribute name { "ZeroSedimentConcentrationViscosity" },
             (
                element prescribed {
                   mesh_choice,

@@ -1072,6 +1072,22 @@ for material i and \nu^i is the viscosity of material i</a:documentation>
       </attribute>
     </element>
   </define>
+  <define name="sediment_concentration_dependent_viscosity_algorithm">
+    <element name="algorithm">
+      <a:documentation>Effective viscosity is affected by sediment concentration. This 
+algorithm computes the viscosity based upon the combined concentrations
+of the sediment fields and the zero concentration viscosity
+
+  \nu = \nu_0(1-c/0.65)^{-1.625}
+</a:documentation>
+      <attribute name="name">
+        <value>sediment_concentration_dependent_viscosity</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+    </element>
+  </define>
   <define name="imposed_material_velocity_source_algorithm">
     <element name="algorithm">
       <attribute name="name">

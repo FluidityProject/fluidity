@@ -193,6 +193,16 @@ subroutine sediment_init()
                 call move_option(trim(option_path)//'/scalar_field::SinkingVelocity',&
                 & trim(temp_path)//'/prognostic/scalar_field::SinkingVelocity')
             end if
+            
+            if (have_option(trim(option_path)//'/scalar_field::UnhinderedSinkingVelocity')) then
+                if (have_option(trim(temp_path)//&
+                     &'/prognostic/scalar_field::UnhinderedSinkingVelocity')) then
+                    call delete_option(trim(temp_path)//& 
+                         &'/prognostic/scalar_field::UnhinderedSinkingVelocity')
+                end if
+                call move_option(trim(option_path)//'/scalar_field::UnhinderedSinkingVelocity',&
+                & trim(temp_path)//'/prognostic/scalar_field::UnhinderedSinkingVelocity')
+            end if
 
             ! All done, move over the temporary one to the main material phase
             ! Note that this is no longer under /sediment, so it acts like a
@@ -308,7 +318,7 @@ subroutine set_sediment_reentrainment(state)
         class_name = get_sediment_name(i)
         SedConc => extract_scalar_field(state, trim(class_name))
         option_path = SedConc%option_path
-        bedload => extract_scalar_field(state,"SedimentFlux"//trim(class_name))
+        bedload => extract_scalar_field(state,"SedimentDeposition"//trim(class_name))
 
         call get_option(trim(option_path)//"/porosity", porosity, default=0.3)
         call get_option(trim(option_path)//"/name", class_name)

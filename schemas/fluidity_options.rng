@@ -1071,10 +1071,17 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                     <attribute name="name">
                       <value>GLSBackgroundViscosity</value>
                     </attribute>
-                    <element name="prescribed">
-                      <ref name="mesh_choice"/>
-                      <ref name="prescribed_tensor_field"/>
-                    </element>
+                    <choice>
+                      <element name="prescribed">
+                        <ref name="mesh_choice"/>
+                        <ref name="prescribed_tensor_field"/>
+                      </element>
+                      <element name="diagnostic">
+                        <ref name="mesh_choice"/>
+                        <ref name="sediment_concentration_dependent_viscosity"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </choice>
                   </element>
                   <element name="tensor_field">
                     <a:documentation>Background diffusivity</a:documentation>
@@ -1600,10 +1607,17 @@ carries the influence of turbulence onto the velocity field. See the manual for 
                     <attribute name="name">
                       <value>TurbulentDissipation</value>
                     </attribute>
-                    <element name="prognostic">
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="prognostic_scalar_field"/>
-                    </element>
+                    <choice>
+                      <element name="prognostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prognostic_scalar_field"/>
+                      </element>
+                      <element name="diagnostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </choice>
                   </element>
                   <element name="tensor_field">
                     <a:documentation>Set the value of the background (laminar) viscosity field here.
@@ -1615,10 +1629,17 @@ IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                     <attribute name="name">
                       <value>BackgroundViscosity</value>
                     </attribute>
-                    <element name="prescribed">
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="prescribed_tensor_field"/>
-                    </element>
+                    <choice>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_tensor_field"/>
+                      </element>
+                      <element name="diagnostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </choice>
                   </element>
                   <element name="tensor_field">
                     <a:documentation>Eddy viscosity (turbulent diffusion of velocity).
@@ -2852,19 +2873,20 @@ criterion. Otherwise inoput a value in Nm-1</a:documentation>
         </optional>
       </element>
       <element name="scalar_field">
-        <a:documentation>This field is the template for the sediment flux
-diagnostic which records the flux of sediment through the
-domain boundary.</a:documentation>
+        <a:documentation>This field is the template for the sediment deposition
+diagnostic which records the sediment deposited through the prescribed boundary.
+
+The units are in unit distances as a depth of sediment.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>SedimentFluxTemplate</value>
+          <value>SedimentDepositionTemplate</value>
         </attribute>
         <element name="diagnostic">
           <a:documentation>Field type</a:documentation>
           <element name="surface_ids">
-            <a:documentation>Surface ids over which to calculate the flux:</a:documentation>
+            <a:documentation>Surface ids over which to calculate the deposition:</a:documentation>
             <ref name="integer_vector"/>
           </element>
           <ref name="velocity_mesh_choice"/>
@@ -2910,9 +2932,42 @@ domain boundary.</a:documentation>
               <a:documentation>Velocity at which this sediment sinks through the water column.
 
 This velocity is in the direction of gravity so if the substance
-floats upwards, this field should be negative.</a:documentation>
+floats upwards, this field should be negative.
+
+This filed can be diagnostic, in which case a hindered sinking velocity is calculated. 
+If this is the case an unhindered sinking velocity field is required for this sediment class.</a:documentation>
               <attribute name="name">
                 <value>SinkingVelocity</value>
+              </attribute>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <choice>
+                <element name="prescribed">
+                  <ref name="prescribed_scalar_field_no_adapt"/>
+                </element>
+                <element name="diagnostic">
+                  <ref name="internal_algorithm"/>
+                  <ref name="diagnostic_scalar_field_no_adapt"/>
+                </element>
+              </choice>
+            </element>
+          </optional>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>This is the unhindered sinking velocity of the sediment particles. 
+
+With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
+concentration, to calculate the hindered sinking velocity of sediment particles. 
+
+This uses the equation developed by Richardson and Zaki [1954]. 
+
+If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
+
+As with the sinking velocity, this velocity is in the direction of gravity so if the substance
+floats upwards, this field should be negative.</a:documentation>
+              <attribute name="name">
+                <value>UnhinderedSinkingVelocity</value>
               </attribute>
               <attribute name="rank">
                 <value>0</value>
@@ -7286,6 +7341,34 @@ in a multimaterial simulation.</a:documentation>
         </attribute>
         <attribute name="name">
           <value>MaterialViscosity</value>
+        </attribute>
+        <choice>
+          <element name="prescribed">
+            <ref name="mesh_choice"/>
+            <ref name="prescribed_tensor_field"/>
+          </element>
+          <element name="aliased">
+            <ref name="generic_aliased_field"/>
+          </element>
+        </choice>
+      </element>
+      <element name="___Prescribed_fields_below___">
+        <a:documentation>Prescribed scalar fields below this</a:documentation>
+        <empty/>
+      </element>
+      <element name="tensor_field">
+        <a:documentation>ZeroSedimentConcentrationViscosity field:
+
+Field for the viscosity of this a fluid with zero 
+concentration of sediment.
+Required if using a diagnostic viscosity
+in a sediment problem where sediment concentration
+dependent viscosity is required.</a:documentation>
+        <attribute name="rank">
+          <value>2</value>
+        </attribute>
+        <attribute name="name">
+          <value>ZeroSedimentConcentrationViscosity</value>
         </attribute>
         <choice>
           <element name="prescribed">
