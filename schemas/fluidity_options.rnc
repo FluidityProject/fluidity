@@ -5811,7 +5811,7 @@ tensor_field_choice =
             attribute name { "ZeroSedimentConcentrationViscosity" },
             (
                element prescribed {
-                  mesh_choice,
+                  velocity_mesh_choice,
                   prescribed_tensor_field
                }|
                element aliased {

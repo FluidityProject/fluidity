@@ -7372,7 +7372,7 @@ dependent viscosity is required.</a:documentation>
         </attribute>
         <choice>
           <element name="prescribed">
-            <ref name="mesh_choice"/>
+            <ref name="velocity_mesh_choice"/>
             <ref name="prescribed_tensor_field"/>
           </element>
           <element name="aliased">

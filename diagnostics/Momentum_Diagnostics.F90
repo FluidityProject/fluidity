@@ -50,8 +50,8 @@ module momentum_diagnostics
   
   private
   
-  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_sediment_concentration_dependent_viscosity,
-            calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, 
+  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_sediment_concentration_dependent_viscosity, &
+            calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, &
             calculate_imposed_material_velocity_source, calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
             calculate_geostrophic_velocity, calculate_hessian
@@ -101,6 +101,7 @@ contains
     type(tensor_field), pointer :: zero_conc_viscosity
     type(scalar_field) :: rhs
     integer :: sediment_classes, i
+    character(len = OPTION_PATH_LEN) :: class_name
     
     ewrite(1,*) 'In calculate sediment concentration dependent viscosity'
 
@@ -123,16 +124,16 @@ contains
     
     ! raise rhs to power of -1.625
     do i = 1, node_count(rhs)
-      call set(rhs, i, node_val(rhs, i)**-1.625)
+      call set(rhs, i, node_val(rhs, i)**(-1.625))
     end do 
 
-    zero_conc_viscosity => extract_scalar_field(state, 'ZeroSedimentConcentrationViscosity')
+    zero_conc_viscosity => extract_tensor_field(state, 'ZeroSedimentConcentrationViscosity')
 
     call set(t_field, zero_conc_viscosity)
     call scale(t_field, rhs)
     ewrite_minmax(t_field)   
 
-  end subroutine calculate_concentration_dependent_viscosity
+  end subroutine calculate_sediment_concentration_dependent_viscosity
   
   subroutine calculate_tensor_second_invariant(state, s_field)
     type(state_type), intent(inout) :: state
