@@ -21746,7 +21746,7 @@ VERSION=`svnversion .`
 
 
 
-ac_config_files="$ac_config_files Makefile src/tests/Makefile examples/Makefile bin/spud-preprocess python/libspud.py diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py"
+ac_config_files="$ac_config_files Makefile src/tests/Makefile examples/Makefile bin/spud-preprocess diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -22986,7 +22986,6 @@ do
     "src/tests/Makefile") CONFIG_FILES="$CONFIG_FILES src/tests/Makefile" ;;
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
     "bin/spud-preprocess") CONFIG_FILES="$CONFIG_FILES bin/spud-preprocess" ;;
-    "python/libspud.py") CONFIG_FILES="$CONFIG_FILES python/libspud.py" ;;
     "diamond/setup.py") CONFIG_FILES="$CONFIG_FILES diamond/setup.py" ;;
     "diamond/diamond/plugins.py") CONFIG_FILES="$CONFIG_FILES diamond/diamond/plugins.py" ;;
     "diamond/diamond/preprocess.py") CONFIG_FILES="$CONFIG_FILES diamond/diamond/preprocess.py" ;;

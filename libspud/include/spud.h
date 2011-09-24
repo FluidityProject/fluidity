@@ -36,6 +36,8 @@ extern "C" {
 #endif
 
   void spud_clear_options();
+  void* spud_get_manager();
+  void spud_set_manager(void* m);
   
   int spud_load_options(const char* filename, const int filename_len);
   int spud_write_options(const char* filename, const int filename_len);

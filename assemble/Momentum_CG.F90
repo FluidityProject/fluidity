@@ -1896,7 +1896,7 @@
           end if
 
           do i=1,ele_ngi(U,ele)
-            drho_dz(i)=dot_product(grad_rho(i,:),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
+            drho_dz(i)=dot_product(grad_rho(:,i),grav_at_quads(:,i)) ! Divide this by rho_0 for non-Boussinesq?
             if (drho_dz(i) < ib_min_grad) drho_dz(i)=ib_min_grad ! Default ib_min_grad=0.0
           end do
 

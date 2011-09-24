@@ -543,15 +543,15 @@ Momentum_DG.o ../include/momentum_dg.mod: Momentum_DG.F90 \
    ../include/fetools.mod ../include/field_options.mod ../include/fields.mod \
    ../include/fields_manipulation.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
-   ../include/les_viscosity_module.mod ../include/multiphase_module.mod \
-   ../include/petsc_tools.mod ../include/profiler.mod \
-   ../include/shape_functions.mod ../include/slope_limiters_dg.mod \
-   ../include/smoothing_module.mod ../include/solvers.mod \
-   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns.mod ../include/sparsity_patterns_meshes.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod ../include/turbine.mod \
-   ../include/vector_tools.mod ../include/vtk_interfaces.mod
+   ../include/multiphase_module.mod ../include/petsc_tools.mod \
+   ../include/profiler.mod ../include/shape_functions.mod \
+   ../include/slope_limiters_dg.mod ../include/smoothing_module.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/transform_elements.mod \
+   ../include/turbine.mod ../include/vector_tools.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/momentum_diagnostic_fields.mod: Momentum_Diagnostic_Fields.o
 	@true
@@ -608,10 +608,11 @@ Multimaterials.o ../include/multimaterial_module.mod: Multimaterials.F90 \
 	@true
 
 Multiphase.o ../include/multiphase_module.mod: Multiphase.F90 \
-   ../include/fdebug.h ../include/field_options.mod \
+   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
    ../include/field_priority_lists.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fldebug.mod ../include/global_parameters.mod \
+   ../include/profiler.mod ../include/sparse_tools_petsc.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/node_locking.mod: Node_Locking.o
 	@true
@@ -792,7 +793,8 @@ Turbine.o ../include/turbine.mod: Turbine.F90 ../include/fdebug.h \
 
 Upwind_Stabilisation.o ../include/upwind_stabilisation.mod: \
    Upwind_Stabilisation.F90 ../include/fdebug.h ../include/fields.mod \
-   ../include/metric_tools.mod ../include/spud.mod
+   ../include/metric_tools.mod ../include/shape_functions.mod \
+   ../include/spud.mod
 
 ../include/vertical_balance_pressure.mod: Vertical_Balance_Pressure.o
 	@true
@@ -855,8 +857,8 @@ Zoltan_detectors.o ../include/zoltan_detectors.mod: Zoltan_detectors.F90 \
 Zoltan_global_variables.o ../include/zoltan_global_variables.mod: \
    Zoltan_global_variables.F90 ../include/data_structures.mod \
    ../include/detector_data_types.mod ../include/fields.mod \
-   ../include/halos.mod ../include/sparse_tools.mod \
-   ../include/state_module.mod
+   ../include/global_parameters.mod ../include/halos.mod \
+   ../include/sparse_tools.mod ../include/state_module.mod
 
 ../include/zoltan_integration.mod: Zoltan_integration.o
 	@true

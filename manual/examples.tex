@@ -44,6 +44,7 @@ examples plots are created and put in the directory.
   \ref{sect:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
   \ref{sect:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 18 hr. \\
   \ref{sect:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr. \\
+  \ref{sect:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
@@ -175,7 +176,7 @@ vtktools python module, is provided with this example. The vtktools module is lo
 variable.
 
 As can be seen in the numerical result using the CG method leads, to over and 
-undershoots in the solution. The DG result seems to encur no noticable bounds
+undershoots in the solution. The DG result seems to incur no noticeable bounds
 violation. The Control Volumes solution is perfectly bounded, but rather diffusive. Note that in each of 
 these cases the initial mesh resolution has changed and is still focussed near the jumps in the solution.
 
@@ -377,7 +378,7 @@ available for a wide range of Reynolds numbers \citep{botella1998,erturk2005,bru
 Here the two-dimensional problem at a Reynolds number of 1000 is given as an example.
 
 \subsection{Configuration}
-The problem domain is $(x,y) \in [0,1]^2$ and this is represented by an unstructured triangluar mesh
+The problem domain is $(x,y) \in [0,1]^2$ and this is represented by an unstructured triangular mesh
 of approximately uniform resolution. To enable convergence analysis a sequence of meshes are considered
 with spacing of $h=1/2^n$, $n=4,5,6,7$. The two-dimensional incompressible Navier-Stokes equations are
 considered with unit density.
@@ -392,7 +393,7 @@ that in the infinity norm the velocity varies by less that $10^{-6}$ between tim
 The time step is constant between all runs, $\Delta t = 0.05$, and data is dumped to disk every
 1.0 time units (20 time steps). The Crank-Nicolson $(\theta=0.5)$ discretisation is used in time. 
 A \Poo Galerkin method is used for the discretisation of velocity and pressure, with no stabilisation
-of velocity. Based on a domain size of $L=1.0$ and a velocity scale taken from the lid $(U=1.0)$, to achive
+of velocity. Based on a domain size of $L=1.0$ and a velocity scale taken from the lid $(U=1.0)$, to achieve
 a Reynolds number of 1000 viscosity is taken to be isotropic with a value of $\nu=0.001$.
 
  
@@ -412,8 +413,8 @@ Left: the streamfunction. Right: the vorticity. The contour levels are taken fro
 
 \subsection{Results}
 Plots of the streamfunction and vorticity from the $h=1/128$ simulation are shown in figure \ref{fig:driven_cavity1}.
-Observe the good qualititative agreement with \citep{botella1998,erturk2005,bruneau2006}. 
-For a quantitative comaprison we take advantage of the tabulated benchmark data available in these papers.
+Observe the good qualitative agreement with \citep{botella1998,erturk2005,bruneau2006}. 
+For a quantitative comparison we take advantage of the tabulated benchmark data available in these papers.
 Only a subset of these are computed: the $u$ velocity at a series of points along the line $x=0.5$ and the
 $v$ velocity at a series of points along the line $y=0.5$ from \citep{erturk2005}, the same quantities at
 different points along the same lines as well as the pressure along both the $x=0.5$ and $y=0.5$ lines from 
@@ -761,7 +762,7 @@ show results from Reynolds numbers $Re=1,10,100,1000$.}
 \subsection{Results}
 Figure \ref{fig:flow_past_sphere_1} shows streamlines close to the sphere and the surface mesh.
 The mesh can be seen to be much finer on the sphere compares to the far wall seen in the background.
-This is empahsised in figure \ref{fig:flow_past_sphere_2} where a more detailed plot of the mesh (with
+This is emphasised in figure \ref{fig:flow_past_sphere_2} where a more detailed plot of the mesh (with
 half of the domain removed) over the whole domain and close to the sphere, and the velocity vectors
 close to the sphere are shown.
 
@@ -1169,7 +1170,7 @@ The mesh used is a layered mesh, which is created within fluidity from the two d
 
 The velocity is solved for using a discontinuous galerkin discretisation to make the results more accurate. A continuous galerkin discretisation is used for both pressure and temperature, with a polynomial order of 2 for pressure and 1 for temperature.  This discretisation is sometimes referred to as p1dgp2. For this discretisation, the quadrature degree has to be set to 4.   To make it more stable, subcycling is switched on under velocity with a maximum courant number per subcycle of 0.1. There is a diagnostic free surface field which requires a free surface boundary condition under Velocity.
 
-The timestep is 7200 s and there are two non-linear iterations.  The timestep is constrained by the courant condition, but is allowed to be bigger that would otherwise be expected because  an Absorption field is added under Velocity.  If this field was not added the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \\* \option{\ldots/Absorption/include\_pressure\_correction} option is turned on. 
+The timestep is 7200 s and there are two non-linear iterations.  The timestep is constrained by the courant condition, but is allowed to be bigger than would otherwise be expected because an Absorption field is added under Velocity.  If this field was not added the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \\* \option{\ldots/Absorption/include\_pressure\_correction} option is turned on. 
 
 \subsection{Results}
 
@@ -1206,7 +1207,7 @@ You might wish to try spinning up before you run this problem.  First run to a s
 Tidal modelling is a widely used method for validating free surface implementations \citep{Shum1997}. The Mediterranean Sea
 is a good example as it requires both astronomical and co-oscillating boundary tide forcing to obtain
 an accurate solution \citep{Tsimplis1995, Wells2008}. An abundance of available tide gauge data recording the 
-harmonic constants for both the amplitude and phase of a wide variety of different tidal constituets
+harmonic constants for both the amplitude and phase of a wide variety of different tidal constituents
 facilitates comparisons between ICOM and real-world data. 
  
 
@@ -1238,11 +1239,11 @@ The timestep itself is 5 minutes. The total runtime is 200 hours (simulated time
 
 The harmonic amplitudes are presented as plotted scalar fields and compared with a high-resolution 2D model of \citet{Tsimplis1995} in
 Figure \ref{amp}. The model results are similar to those of \citet{Tsimplis1995} and generally predict the correct patterns. 
-The semidiurnal consitieunts give very similar results due to their similar frequencies (Figure \ref{amp}A - D). The amphidromic
-systems are correctly located in the Sicilian Channel bewtween Sicily and Libya     
-and in the northern Adriatic. The degenerate amphidromes are also accurately positioned near the Balearic Islands and in bewteen
+The semidiurnal constituents give very similar results due to their similar frequencies (Figure \ref{amp}A - D). The amphidromic
+systems are correctly located in the Sicilian Channel between Sicily and Libya     
+and in the northern Adriatic. The degenerate amphidromes are also accurately positioned near the Balearic Islands and in between
 Crete and Libya. The model also captures the amplification of the tidal amplitudes in both the Gulf of gables and the northern Adriatic, 
-a phenomena primarilly due to resonance of the wave in these regions.
+a phenomena primarily due to resonance of the wave in these regions.
 
 The amplitudes for the diurnal constituents show a similarly good match with the results of \citet{Tsimplis1995} (Figure \ref{amp}E - H).
 The lowest amplitudes occur in the eastern part of the basin and there is pronounced amplification in the Adriatic Sea caused by this region
@@ -1269,13 +1270,13 @@ The phases as predicted by ICOM and by \citet{Tsimplis1995} are presented in Fig
 a general agreement with the amphidromic systems shown to be rotating in an anti-clockwise direction; a feature
 brought about by Coriolis force deflecting the tidal wave to the right in the Northern Hemisphere.
 ICOM appears to slightly overpredict the wave speed in all cases; a result that could be attributed to any number of eatures including the
-bathymetric/mesh reolution and/or an insufficntly low drag coefficient. Another possible source of error is that the
+bathymetric/mesh resolution and/or an insufficiently low drag coefficient. Another possible source of error is that the
 phase of the boundary tide and the natural mode of oscillation of the basin might not be synchronised; something that
 \citet{Tsimplis1995} adjusted repeatedly until they achieved their best results.
  
 The harmonic amplitudes are compared with data from 62 tide gauges (Figure \ref{gauge}; \citealp{Tsimplis1995,Wells2008}).
 The RMS differences for ICOM are typically 2-3 times those of \citet{Tsimplis1995}    
-with the largest errors being for the diurnal constituents (Table \ref{rms}). Despite these discrepencies, the
+with the largest errors being for the diurnal constituents (Table \ref{rms}). Despite these discrepancies, the
 magnitudes of the RMS differences indicate a good match with the tide gauges, even in a strongly microtidal environment 
 such as the Mediterranean Sea. 
 
@@ -1316,5 +1317,56 @@ positive correlation closely delineating $y=x$.
 \includegraphics[width=\textwidth]{./examples_images/tides_in_the_Mediterranean_Sea/plots}
 \caption{Scatter diagrams plotting harmonic amplitudes from ICOM at each gauge location against tide gauge data.} 
 \label{plots}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% Tephra settling %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Tephra settling}
+\label{sect:tephra_settling}
+
+\subsection{Overview}
+At the bottom of the world's oceans lies layer after layer of ash deposited from past volcanic eruptions. This process of deposition is important because it forms a timeline from which scientists can learn more about the timing and frequency of such significant geophysical events. Ash (or tephra) descending through the ocean is predicted to travel at a terminal velocity given by Stokes' law because of the viscous drag acting on each individual particle, and typical deposition times are therefore expected to be anywhere from one day to one year (depending on particle size) for ocean depths between 1000 and 5000 metres \citep{carey1997}. However, this does not agree with field observations, where tephra layers seen at the bottom of the ocean represent almost instantaneous geophysical events.
+
+\cite{carey1997} presented a new model which uses the idea of convective sedimentation to explain the rapid acceleration that particles undergo when settling through the ocean. Essentially, small tephra particles settling in a body of water can either do so individually, or collectively as a plume. These plumes are generated when the bulk density of the tephra-water mixture becomes large enough relative to the underlying particle-free water, yielding settling velocities much greater than those expected of single particles which settle at the predicted Stokes velocity. \cite{carey1997} performed several experiments to illustrate this, and a numerical model based upon these is given in \cite{goldin2008} which extends the popular \texttt{K-FIX} two-phase flow code to run simulations of a continuous liquid phase with immersed solid particles.
+
+In this example, \fluidity\ is used to replicate the conditions under which plumes of tephra particles form as well as the settling velocities of the individual particles and plumes. The example demonstrates the following functionality:
+\begin{itemize}
+\item 2D flow
+\item Multi-phase flow
+\item Incompressible flow
+\item Adaptive timestepping
+\end{itemize}
+
+The simulation illustrated here took $\sim$1 hour to run in serial on an Intel Xeon E5430 2.66 GHz processor.
+
+\subsection{Problem specification}
+The simulation uses a 0.3 x 0.7 metre domain, replicating the cross-section of the water tank used in the experiments, with an initial characteristic element size of 0.01 metres. No normal flow boundary conditions are weakly imposed along with a zero velocity initial condition. The parameters for density, viscosity, particle diameter and gravity are $\rho_p = 2340\ \mathrm{kgm^{-3}}$, $\rho_l = 1000\ \mathrm{kgm^{-3}}$, $\mu_l = 0.001\ \mathrm{Pa\cdot s}$, $d = 48\times 10^{-6}\ \mathrm{m}$, and $\mathbf{g} = 9.8\ \mathrm{ms^{-2}}$ respectively (with the subscripts $p$ and $l$ denoting the properties of the particle/tephra and liquid phase).
+
+The experiments by Carey introduced tephra particles into the tank from above using a delivery system and a particle disperser; eventually, a layer of tephra formed on top of the water. This is represented here using a \option{flux} boundary condition at the top of the domain to allow tephra to flux in at a rate of $0.000472\ \mathrm{kgm^{-2}s^{-1}}$. The results of the experiments showed that tephra particles initially settled individually at a Stokes velocity of $0.17\ \mathrm{cms^{-1}}$. When the concentration was high enough, plumes formed and descended to the bottom of the tank with velocities more than ten times greater than those of individual particles.
+
+\subsection{Results}
+Several timesteps of the example simulation (when run on a finer mesh with characteristic element size $\Delta x = 0.0025\ \mathrm{m}$) can be seen in Figure \ref{fig:tephra_settling}. Similar images can be generated by visualising the vtu files using Paraview.
+
+\begin{figure}[H]
+	\centering
+	      \includegraphics[width=0.19\columnwidth]{./examples_images/tephra_settling/tephra_influx_1.png}
+	      \includegraphics[width=0.19\columnwidth]{./examples_images/tephra_settling/tephra_influx_2.png}
+	      \includegraphics[width=0.19\columnwidth]{./examples_images/tephra_settling/tephra_influx_3.png}
+	      \includegraphics[width=0.19\columnwidth]{./examples_images/tephra_settling/tephra_influx_4.png}
+	      \includegraphics[width=0.19\columnwidth]{./examples_images/tephra_settling/tephra_influx_5.png}
+   \caption{Results from the \texttt{tephra\_settling} example at time $t = 10, 30, 50, 80, 110$ seconds.}
+   \label{fig:tephra_settling}
+\end{figure}
+
+Figure \ref{fig:tephra_settling_velocity} (reproducible by typing \textit{make postprocess} at the command line) illustrates how the tephra particles initially settle at approximately $0.17\ \mathrm{cms^{-1}}$, as predicted by Stokes' law. As more tephra fluxes in, the layer becomes unstable and plumes begin to form, resulting in settling velocities over 10 times greater than that of an individual particle.
+
+\begin{figure}[H]
+	\centering
+	      \includegraphics[width=0.8\columnwidth]{./examples_images/tephra_settling/tephra_velocity.pdf}
+   \caption{Maximum velocity of the tephra phase against time.}
+   \label{fig:tephra_settling_velocity}
 \end{figure}
 

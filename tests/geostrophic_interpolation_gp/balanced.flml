@@ -480,7 +480,7 @@
           </python>
         </name>
         <from_file>
-          <format>triangle</format>
+          <format name="triangle"/>
         </from_file>
       </mesh>
     </prescribed_adaptivity>
