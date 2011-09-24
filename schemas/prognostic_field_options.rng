@@ -90,6 +90,17 @@ e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
             </choice>
           </element>
         </element>
+        <element name="type">
+          <a:documentation>Flux boundary condition. Currently only works with a control_volume 
+discretisation.
+
+This weakly enforces the total (advective plus diffusive) flux across 
+a boundary when solving the advection-diffusion equation.</a:documentation>
+          <attribute name="name">
+            <value>flux</value>
+          </attribute>
+          <ref name="input_choice_real"/>
+        </element>
       </choice>
     </element>
   </define>
@@ -958,17 +969,6 @@ twice.</a:documentation>
               </element>
             </optional>
           </element>
-          <optional>
-            <element name="les_model">
-              <a:documentation>DG large-eddy simulation</a:documentation>
-              <element name="smagorinsky_coefficient">
-                <a:documentation>literature sybol: Cs
-
-suggested value 0.1</a:documentation>
-                <ref name="real"/>
-              </element>
-            </element>
-          </optional>
         </element>
       </choice>
       <element name="conservative_advection">
@@ -1388,6 +1388,12 @@ Fix for low reynolds numbers by adding the viscous terms to the inversed lumped 
               <empty/>
             </element>
           </optional>
+        </element>
+        <element name="discontinuous_galerkin">
+          <a:documentation>Select this discretisation if Pressure is defined on a discontinous mesh.
+Only works if your Velocity (or Momentum) is continuous. With this option
+the continuity equation is never integrated by parts.</a:documentation>
+          <empty/>
         </element>
         <element name="control_volumes">
           <empty/>

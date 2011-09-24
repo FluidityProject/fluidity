@@ -27,10 +27,10 @@
 SHELL = /bin/sh
 
 FC      = @FC@
-FCFLAGS = @CPPFLAGS@ @FCFLAGS@ -Iinclude
+FCFLAGS = -Iinclude @CPPFLAGS@ @FCFLAGS@
 
 CXX     = @CXX@
-CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -Iinclude
+CXXFLAGS= -Iinclude @CPPFLAGS@ @CXXFLAGS@
 
 MAKE    = @MAKE@
 AR      = @AR@
@@ -39,7 +39,7 @@ ARFLAGS = @ARFLAGS@
 LIB = libspud.la
 LIBS = $(shell echo @LIBS@ | sed 's/-L /-L/g')
 
-HEADERS = include/cspud.h include/spud.h include/spud_config.h include/spud_enums.h include/tinystr.h include/tinyxml.h
+HEADERS = include/spud.h include/spud include/spud_enums.h include/tinystr.h include/tinyxml.h
 MODS = spud.mod
 OBJS = spud.lo spud_interfaces.lo tinystr.lo tinyxml.lo tinyxmlerror.lo tinyxmlparser.lo fspud.lo
 
@@ -57,7 +57,7 @@ default: libspud.la build-diamond
 libspud.la: $(OBJS)
 	./libtool --mode=link --tag=FC $(FC) $(FCFLAGS) -o $(LIB) $(OBJS) $(LIBS) -rpath @prefix@/lib 
 	if test -f .libs/libspud.a; then cp .libs/libspud.a .; fi
-	(if test -f .libs/libspud.so; then cp .libs/libspud.so .; fi) || true
+	(if test -f .libs/libspud.so; then cp .libs/libspud.so ./libspud.so.0; ln -s libspud.so.0 libspud.so; fi) || true
 
 build-diamond:
 	cd diamond; python setup.py build; cd ..
@@ -72,13 +72,14 @@ unittest: libspud.la
 doc: 
 	@cd doc; $(MAKE) spud_manual.pdf
 
-install: install-libspud install-spudtools install-diamond
+install: install-libspud install-spudtools install-diamond install-pyspud
 
 install-libspud: libspud.la
 	@INSTALL@ -d $(DESTDIR)@prefix@/lib
 	@INSTALL@ -d $(DESTDIR)@prefix@/include
 	@INSTALL@ libspud.a $(DESTDIR)@prefix@/lib
-	(if test -f libspud.so; then @INSTALL@ libspud.so $(DESTDIR)@prefix@/lib; fi) || true
+	(if test -f libspud.so.0; then @INSTALL@ libspud.so.0 $(DESTDIR)@prefix@/lib; fi) || true
+	(if test -f libspud.so; then cd $(DESTDIR)@prefix@/lib/; ln -s libspud.so.0 libspud.so; cd -; fi) || true
 	@INSTALL@ $(MODS) $(DESTDIR)@prefix@/include
 	@INSTALL@ $(HEADERS) $(DESTDIR)@prefix@/include
 
@@ -93,6 +94,13 @@ install-spudtools:
 install-diamond:
 	cd diamond;	python setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
 
+install-pyspud:
+ifeq ($(origin DESTDIR),undefined)
+	cd python; python setup.py install --prefix=$(DESTDIR)@prefix@; cd ..
+else
+	cd python; for python in $(shell pyversions -r); do $$python setup.py install --prefix=$(DESTDIR)@prefix@ --install-layout=deb; done; cd ..
+endif
+
 clean:
 	@cd doc; $(MAKE) clean
 	rm -f *.o libspud.a libspud.so *.o *.la *.mod *.lo
@@ -102,7 +110,6 @@ clean:
 distclean: clean
 	@cd src/tests; $(MAKE) distclean
 	rm -fr config.log config.status autom4te.cache Makefile
-	rm -f include/spud_config.h
 	rm -f Makefile src/tests/Makefile examples/Makefile
 	rm -f bin/spud-preprocess
 	rm -f diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py

@@ -2,7 +2,7 @@
 <testproblem>
   <name>FLML validation (Diamond version)</name>
   <owner userid="pef"/>
-  <tags>flml</tags>
+  <tags>flml diamond_validation</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>true</command_line>
   </problem_definition>

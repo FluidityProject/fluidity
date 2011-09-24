@@ -22,7 +22,7 @@ module hadapt_combine_meshes
   contains
 
   subroutine combine_z_meshes(h_mesh, z_meshes, out_mesh, &
-    full_shape, mesh_name, option_path)
+    full_shape, mesh_name, option_path, sl)
   !! Given the h_mesh and a z_mesh under each node of it combines these
   !! into a full horiz+vertic. mesh
   type(vector_field), intent(inout):: h_mesh
@@ -31,11 +31,19 @@ module hadapt_combine_meshes
   type(element_type), intent(in):: full_shape
   !! the name of the topol. mesh to be created, not the coordinate field
   character(len=*), intent(in):: mesh_name, option_path
+  logical, intent(in), optional :: sl
+  logical :: sigma_layers
   
     type(csr_sparsity):: out_columns
     type(mesh_type):: mesh
     integer, dimension(:), allocatable:: no_hanging_nodes
     integer:: column, total_out_nodes, total_out_elements, z_elements, last_seen
+
+    if (present(sl)) then
+      sigma_layers=sl
+    else
+      sigma_layers=.false.
+    end if
     
     allocate(no_hanging_nodes(1:node_count(h_mesh)))
     no_hanging_nodes=0
@@ -90,7 +98,14 @@ module hadapt_combine_meshes
     last_seen = 0
     do column=1,node_count(h_mesh)
       if (node_owned(h_mesh, column)) then
-        call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
+        if (sigma_layers) then
+          ! If we have sigma layers we will first use one chain to chain to create a dummy
+          ! 'mesh' that has the correct topological properties. We will later over write the
+          !  vector field with the correct one. We always have chain '1', so we'll use that now.
+          call append_to_structures(column, z_meshes(1), h_mesh, out_mesh, last_seen)
+        else
+          call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
+        end if
       else
         ! for non-owned columns we reserve node numbers, 
         ! but don't fill in out_mesh positions yet
@@ -112,13 +127,25 @@ module hadapt_combine_meshes
     end if
       
     call generate_layered_mesh(out_mesh, h_mesh)
+
+    ! If we have sigma layers we now populate the vector field with the actual
+    ! node positions.
+    if (sigma_layers) then
+      last_seen = 0
+      do column=1,node_count(h_mesh)
+        if (node_owned(h_mesh, column)) then
+          call append_to_structures(column, z_meshes(column), h_mesh, out_mesh, last_seen)
+        end if
+      end do
+    end if
+
     call deallocate(out_columns)
     
   end subroutine combine_z_meshes
   
 
   subroutine combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
-    full_shape, mesh_name, option_path)
+    full_shape, mesh_name, option_path, sl)
   !! Given the shell_mesh and a r_mesh under each node of it combines these
   !! into a full layered mesh
   type(vector_field), intent(inout):: shell_mesh
@@ -127,11 +154,19 @@ module hadapt_combine_meshes
   type(element_type), intent(in):: full_shape
   !! the name of the topol. mesh to be created, not the coordinate field
   character(len=*), intent(in):: mesh_name, option_path
+  logical, intent(in), optional :: sl
+  logical :: sigma_layers
   
     type(csr_sparsity):: out_columns
     type(mesh_type):: mesh
     integer, dimension(:), allocatable:: no_hanging_nodes
     integer:: column, total_out_nodes, total_out_elements, r_elements, last_seen
+
+    if (present(sl)) then
+      sigma_layers=sl
+    else
+      sigma_layers=.false.
+    end if
     
     allocate(no_hanging_nodes(1:node_count(shell_mesh)))
     no_hanging_nodes=0
@@ -186,7 +221,14 @@ module hadapt_combine_meshes
     last_seen = 0
     do column=1,node_count(shell_mesh)
       if (node_owned(shell_mesh, column)) then
-        call append_to_structures_radial(column, r_meshes(column), out_mesh, last_seen)
+        if (sigma_layers) then
+          ! If we have sigma layers we will first use one chain to chain to create a dummy
+          ! 'mesh' that has the correct topological properties. We will later over write the
+          !  vector field with the correct one. We always have chain '1', so we'll use that now.
+          call append_to_structures_radial(column, r_meshes(1), out_mesh, last_seen)
+        else
+          call append_to_structures_radial(column, r_meshes(column), out_mesh, last_seen)
+        end if
       else
         ! for non-owned columns we reserve node numbers, 
         ! but don't fill in out_mesh positions yet
@@ -208,6 +250,19 @@ module hadapt_combine_meshes
     end if
 
     call generate_layered_mesh(out_mesh, shell_mesh)
+
+    if (sigma_layers) then
+      last_seen = 0
+      do column=1,node_count(shell_mesh)
+        if (node_owned(shell_mesh, column)) then
+          ! If we have sigma layers we will first use one chain to chain to create a dummy
+          ! 'mesh' that has the correct topological properties. We will later over write the
+          !  vector field with the correct one. We always have chain '1', so we'll use that now.
+          call append_to_structures_radial(column, r_meshes(column), out_mesh, last_seen)
+        end if
+      end do
+    end if
+
     call deallocate(out_columns)
     
   end subroutine combine_r_meshes

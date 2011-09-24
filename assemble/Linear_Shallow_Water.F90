@@ -106,7 +106,7 @@ contains
             div_mat,big_mat,dt,theta)
     end do
 
-    if(have_option("/debug/check_inverse_coriolis_matrix")) then
+    if(have_option("/physical_parameters/coriolis") .and. have_option("/debug/check_inverse_coriolis_matrix")) then
        call check_big_mat(U,big_mat,u_mass_mat,coriolis_mat,theta,dt)
     end if
 
@@ -488,25 +488,26 @@ contains
 
       ! Compute inverse_coriolis_mat for use in 
       ! set_velocity_from_geostrophic_balance
-      l_coriolis_mat = 0.
+      if (have_option("/physical_parameters/coriolis")) then
+        l_coriolis_mat = 0.
+        do dim1 = 1, dim
+           do dim2 = 1, dim
+              l_coriolis_mat(nloc*(dim1-1)+1:nloc*dim1, &
+                   nloc*(dim2-1)+1:nloc*dim2) = &
+                   l_uf_mat(dim1,dim2,:,:)
+           end do
+        end do
 
-      do dim1 = 1, dim
-         do dim2 = 1, dim
-            l_coriolis_mat(nloc*(dim1-1)+1:nloc*dim1, &
-                 nloc*(dim2-1)+1:nloc*dim2) = &
-                 l_uf_mat(dim1,dim2,:,:)
-         end do
-      end do
+        call invert(l_coriolis_mat)
 
-      call invert(l_coriolis_mat)
-
-      do dim1 = 1, dim
-         do dim2 = 1, dim
-            call addto(inverse_coriolis_mat,dim1,dim2,u_ele,u_ele, &
-                 l_coriolis_mat(nloc*(dim1-1)+1:nloc*dim1, &
-                 nloc*(dim2-1)+1:nloc*dim2))
-         end do
-      end do
+        do dim1 = 1, dim
+           do dim2 = 1, dim
+              call addto(inverse_coriolis_mat,dim1,dim2,u_ele,u_ele, &
+                   l_coriolis_mat(nloc*(dim1-1)+1:nloc*dim1, &
+                   nloc*(dim2-1)+1:nloc*dim2))
+           end do
+        end do
+      end if
 
       contains
         !function for getting normal to surface

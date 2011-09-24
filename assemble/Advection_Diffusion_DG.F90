@@ -37,7 +37,6 @@ module advection_diffusion_DG
   use fefields
   use state_module
   use shape_functions
-  use global_numbering
   use transform_elements
   use vector_tools
   use fldebug
@@ -2968,24 +2967,7 @@ contains
       aijxy_initialised=.true.
       
     end subroutine initialise_aijxy
-      
-    ! copy of outer_product in vector tools, but now as function
-    function outer_product(x, y) result (M)
-      !!< Give two column vectors x, y
-      !!< compute the matrix xy*
-
-      real, dimension(:), intent(in) :: x, y
-      real, dimension(size(x), size(y)) :: M
-      integer :: i, j
-
-      forall (i=1:size(x))
-        forall (j=1:size(y))
-          M(i, j) = x(i) * y(j)
-        end forall
-      end forall
-      
-    end function outer_product
-    
+     
   end function masslumped_rt0_aij
 
 end module advection_diffusion_DG

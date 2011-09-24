@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Python shape_dshape convergence analysis</name>
+  <owner userid="sf1409"/>
+  <tags>swml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line> shallow_water test_A.swml; shallow_water test_B.swml; shallow_water test_C.swml; shallow_water test_D.swml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="div_passed" language="python">
+import python_shape_dshape_test_2d as convergence_rate
+convergence_rate.print_convergence_rates("test_[A-D].stat", ["DivError"])
+div_passed = convergence_rate.test_convergence_rates(1.8, "test_[A-D].stat", ["DivError"])
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="div_passed" language="python">
+assert div_passed
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

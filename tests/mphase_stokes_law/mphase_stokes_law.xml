@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+   
+  <name>mphase_stokes_law</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- This is a 2D simulation which checks that the terminal velocity of the particle phase -->
+    <!-- is the same as that predicted by Stokes' law. -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="water_u" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_stokes_law.stat")
+water_u = s["Water"]["Velocity%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="tephra_u" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_stokes_law.stat")
+tephra_u = s["Tephra"]["Velocity%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="relative_terminal_velocity" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_stokes_law.stat")
+relative_terminal_velocity = s["Tephra"]["TerminalVelocity%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="drag_force" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_stokes_law.stat")
+drag_force = s["Tephra"]["DragForce%magnitude"]["max"][-1]
+    </variable>
+    
+    <variable name="buoyancy_force" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_stokes_law.stat")
+buoyancy_force = s["Tephra"]["BuoyancyForce%magnitude"]["max"][-1]
+    </variable>
+    
+  </variables>
+    
+  <pass_tests>
+    <test name="Drag = Weight - Buoyancy" language="python">
+assert abs(drag_force - buoyancy_force) &lt; 1e-4
+    </test>
+    
+    <test name="Terminal velocity is the same as that predicted by Stokes' law" language="python">
+assert abs(relative_terminal_velocity - (tephra_u + water_u)) &lt; 1e-4
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>

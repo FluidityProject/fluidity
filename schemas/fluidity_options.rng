@@ -15,6 +15,7 @@
   <include href="temporal_discretisation.rng"/>
   <include href="embedded_models.rng"/>
   <include href="radiation.rng"/>
+  <include href="flredecomp.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -2082,21 +2083,10 @@ probably equal to the location of the borehole</a:documentation>
           </optional>
           <optional>
             <element name="multiphase_properties">
-              <a:documentation>Parameters required to model multiphase flow in porous media</a:documentation>
-              <element name="relperm_max">
-                <a:documentation>Relative permeability end point relperm_max
-in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-Value between 0 and 1</a:documentation>
-                <ref name="real"/>
-              </element>
-              <element name="relperm_exponent">
-                <a:documentation>Relative permeability exponent relperm_exponent
-in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)</a:documentation>
-                <ref name="real"/>
-              </element>
+              <a:documentation>Phase interaction options for Fluidity's multiphase flow model</a:documentation>
+              <ref name="comment"/>
               <optional>
-                <element name="immobile_fraction">
-                  <a:documentation>Immobile volume of fluid phase</a:documentation>
+                <element name="particle_diameter">
                   <ref name="real"/>
                 </element>
               </optional>
@@ -2784,6 +2774,9 @@ Y3D FEMDEM mesh format only supported.</a:documentation>
       <optional>
         <ref name="embedded_models"/>
       </optional>
+      <optional>
+        <ref name="flredecomp"/>
+      </optional>
     </element>
   </start>
   <define name="sediment">
@@ -2987,6 +2980,9 @@ parts.</a:documentation>
           </element>
           <ref name="comment"/>
         </element>
+        <ref name="discontinuous_galerkin_options">
+          <a:documentation>Discontinuous galerkin formulation</a:documentation>
+        </ref>
         <element name="control_volumes">
           <a:documentation>Use a control volume discretisation.</a:documentation>
           <ref name="spatial_control_volume_options"/>
@@ -6371,6 +6367,9 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
         <attribute name="name">
           <value>FreeSurfaceHistory</value>
         </attribute>
@@ -8197,6 +8196,18 @@ NOT arranged to work with add_pressure_from_ice - TODO</a:documentation>
         </element>
       </optional>
       <optional>
+        <element name="external_data_boundary_conditions">
+          <a:documentation>Check this option to use an external data set for the t(0)
+and in/out boundary conditions. This sets up NEMO-type forcing.</a:documentation>
+          <element name="input_file">
+            <a:documentation>Path of the file containing the external data set</a:documentation>
+            <attribute name="file_name">
+              <data type="string"/>
+            </attribute>
+          </element>
+        </element>
+      </optional>
+      <optional>
         <element name="bulk_formulae">
           <a:documentation>Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
 and photosynthetic radiation to be set using data obtained from
@@ -8244,25 +8255,34 @@ Journal of Atmospheric and Oceanic Technology, 2005, 22, 1080-1094</a:documentat
           </element>
           <optional>
             <element name="input_file_type">
-              <element name="type">
-                <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
-                <group>
+              <choice>
+                <element name="type">
+                  <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
                   <attribute name="name">
                     <value>ERA40</value>
                   </attribute>
+                  <optional>
+                    <element name="no_accumulation">
+                      <a:documentation>The data from ERA40 website included accumulated values (ppt, ro, ssrd, strd).
+If these values have been already ammended to instantaneous values, then switch this
+flag on and the accumulation correction will not be applied.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>NSEP</value>
+                  </attribute>
                   <empty/>
-                </group>
-                <!--
-                  }|
-                  element type {
-                     attribute name { "NSEP" },
-                     empty
-                  }|
-                  element type {
-                     attribute name { "ICOM" },
-                     empty
-                -->
-              </element>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>ICOM</value>
+                  </attribute>
+                  <empty/>
+                </element>
+              </choice>
             </element>
           </optional>
           <optional>
@@ -8281,18 +8301,6 @@ useful for psuedo-1D simulations.</a:documentation>
                   <empty/>
                 </element>
               </optional>
-            </element>
-          </optional>
-          <optional>
-            <element name="external_data_boundary_conditions">
-              <a:documentation>Check this option to use an external data set for the t(0)
-and in/out boundary conditions</a:documentation>
-              <element name="input_file">
-                <a:documentation>Path of the file containing the external data set</a:documentation>
-                <attribute name="file_name">
-                  <data type="string"/>
-                </attribute>
-              </element>
             </element>
           </optional>
           <element name="output_fluxes_diagnostics">

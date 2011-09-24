@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Burgers Equation MMS</name>
+  <owner userid="pef"/>
+  <tags>burgers adjoint</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>../../scripts/optimality.py op_A.oml; ../../scripts/optimality.py op_B.oml; ../../scripts/optimality.py op_C.oml; burgers_equation mms_A.bml; burgers_equation mms_B.bml; burgers_equation mms_C.bml; burgers_equation mms_D.bml; burgers_equation mms_E.bml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="gradient_conv" language="python">
+from fluidity_tools import stat_parser
+import glob
+gradient_conv = [stat_parser(x)["time_integral_ad_gradient_error"]["convergence"][-1] for x in sorted(glob.glob("op_?.stat"))]
+    </variable>
+    <variable name="functional_value_conv" language="python">
+from fluidity_tools import stat_parser
+import glob
+import math
+
+functional_errors = [abs(stat_parser(x)["time_integral_ad"]["value"][-1] - 10.0) for x in sorted(glob.glob("mms_adjoint_?.stat"))]
+functional_value_conv = [math.log(functional_errors[i]/functional_errors[i+1], 2) for i in range(0, len(functional_errors)-1)]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="functional_convergence" language="python">
+assert min(functional_value_conv) &gt; 1.9
+    </test>
+    <test name="gradient_convergence" language="python">
+assert min(gradient_conv) &gt; 1.8 # more tolerant because it's stochastic
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

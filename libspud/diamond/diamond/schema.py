@@ -141,12 +141,38 @@ class Schema(object):
       
     return results
 
+  def valid_node(self, eid):
+    if isinstance(eid, tree.Tree) or isinstance(eid, choice.Choice):
+      eidtree = eid
+      eid = eid.schemaname
+    
+    if eid == ":start":
+      try:
+        node = self.tree.xpath('/t:grammar/t:start', namespaces={'t': 'http://relaxng.org/ns/structure/1.0'})[0]
+      except:
+        debug.deprint("No valid start node found. Are you using a library Relax-NG file like spud_base.rng?", 0)
+        sys.exit(0)
+    else:
+      xpath = self.tree.xpath(eid)
+      if len(xpath) == 0:
+        debug.deprint("Warning: no element with XPath %s" % eid)
+        return None
+      node = xpath[0]
+
+    node = self.to_tree(node)
+  
+    if eidtree is not None:
+      node.cardinality = eidtree.cardinality
+      node.parent = eidtree.parent
+
+    return node
+
   def to_tree(self, element):
     tag = self.tag(element)
     f = self.callbacks[tag]
     facts = {}
     x = f(element, facts)
-    return x
+    return x    
 
   #############################################
   # Beginning of schema processing functions. #
@@ -359,20 +385,19 @@ class Schema(object):
       if "schemaname" in facts:
         return
 
+      facts['schemaname'] = self.tree.getpath(element)
+
       r = []
       children = self.choice_children(self.element_children(element))
       
       # bloody simplified RNG
       if len(children) == 2:
         empty = [x for x in children if self.tag(x) == "empty"]
-        nonempty = [x for x in children if self.tag(x) != "empty"]
-        if len(empty) > 0:
+        if empty:
+          nonempty = [x for x in children if self.tag(x) != "empty"]
           tag = self.tag(nonempty[0])
-          if tag == "oneOrMore":
-            return self.cb_oneormore(element, facts)
-          else:
-            f = self.callbacks[tag]
-            return f(element, facts)
+          f = self.callbacks[tag]
+          return f(element, facts)
 
       for child in children:
         newfacts = {}
@@ -469,13 +494,11 @@ class Schema(object):
   def append(self, r, x):
     if x is None:
       return
-
+    
     if isinstance(x, list):
-      for y in x:
-        r.append(y)
-      return
-
-    r.append(x)
+      r.extend(x)
+    else:
+      r.append(x)
 
   ##########################################
   # Beginning of XML processing functions. #
@@ -483,18 +506,27 @@ class Schema(object):
 
   # read takes a file handle, constructs a generic in-memory representation using the
   # the etree API, and then converts it to a tree of Tree and Choice elements.
-  def read(self, xmlfile):
-    doc = etree.parse(xmlfile)
+  def read(self, xmlfile, root = None):
+    try:
+      doc = etree.parse(xmlfile)
+    except etree.XMLSyntaxError as e:
+      debug.dprint("Invalid XML.")
+      debug.dprint(e)
+      return None
 
     self.lost_eles = []
     self.added_eles = []
     self.lost_attrs  = []
     self.added_attrs = []
 
-    datatree = self.valid_children(":start")[0]
+    if root is None:
+      datatree = self.valid_children(":start")[0]
+    else:
+      datatree = self.valid_node(root)
+
     xmlnode  = doc.getroot()
     self.xml_read_merge(datatree, xmlnode)
-    self.xml_read_core(datatree, xmlnode, doc)
+    self.xml_read_core(datatree.get_current_tree(), xmlnode, doc)
 
     if len(self.lost_eles) != 0:
       debug.deprint("WARNING: Lost XML elements:\n" + str(self.lost_eles))
@@ -525,7 +557,7 @@ class Schema(object):
         xmlname = xmlnode.get("name")
         have_found = False
 
-        possibles = [tree_choice for tree_choice in datatree.choices() if tree_choice.name == xmlnode.tag]
+        possibles = [tree_choice for tree_choice in datatree.get_choices() if tree_choice.name == xmlnode.tag]
         # first loop over the fixed-value names
         for tree_choice in possibles:
           if "name" not in tree_choice.attrs:
@@ -659,7 +691,7 @@ class Schema(object):
 
     for schemachild in priority_queue:
       if schemachild.cardinality in ['', '?']:
-        for curtree in schemachild.choices():
+        for curtree in schemachild.get_choices():
           name = curtree.name
 
           have_fixed_name = False
@@ -686,7 +718,7 @@ class Schema(object):
               xmls[schemachild.schemaname] = copy.deepcopy([])
       elif schemachild.cardinality in ['*', '+']:
         xmls[schemachild.schemaname] = copy.deepcopy([])
-        for curtree in schemachild.choices():
+        for curtree in schemachild.get_choices():
           name = curtree.name
 
           have_fixed_name = False
@@ -764,7 +796,7 @@ class Schema(object):
         bins[schemachild.schemaname].append(child)
 
       # search for neglected choices
-      if schemachild.__class__ is choice.Choice and schemachild.cardinality in ['', '?']:
+      if isinstance(schemachild, choice.Choice) and schemachild.cardinality in ['', '?']:
         for child in bins[schemachild.schemaname]:
 
           # Does the child have a valid XML node attached?
@@ -772,7 +804,7 @@ class Schema(object):
           if child.xmlnode is None: continue
 
           current_choice = child.get_current_tree()
-          for tree_choice in child.l:
+          for tree_choice in child.get_choices():
             if tree_choice is current_choice: continue
 
     return bins

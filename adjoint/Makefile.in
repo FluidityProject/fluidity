@@ -27,7 +27,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -43,16 +43,20 @@ ARFLAGS = @ARFLAGS@
 
 LIB = ../lib/lib@FLUIDITY@.a
 
-OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.c,%.o,$(wildcard *.c))
+OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.f90,%.o,$(wildcard *.f90)) $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.f,%.o,$(wildcard *.f)) 
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a
+.SUFFIXES: .f .f90 .F90 .c .cpp .o .a
 
 .f90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
+.f.o:
+	@echo "        FC $<"
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
+
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
@@ -62,9 +66,10 @@ OBJS    = $(patsubst %.F90,%.o,$(wildcard *.F90)) $(patsubst %.c,%.o,$(wildcard 
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
+
+
 default: $(LIB)
+
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
@@ -72,9 +77,12 @@ default: $(LIB)
 clean:
 	rm -f *.o *.d *.mod
 
-Adjoint_Functional_Evaluation.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o Adjoint_Python_Fortran.o
-Shallow_Water_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o
-Burgers_Adjoint_Callbacks.o: Libadjoint_Data_Callbacks.o Adjoint_Global_Variables.o Mangle_Options_Tree.o
-Adjoint_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o
-Forward_Main_Loop.o: Adjoint_Global_Variables.o Libadjoint_Data_Callbacks.o Adjoint_Functional_Evaluation.o Mangle_Options_Tree.o Mangle_Dirichlet_Rows_Module.o
+# Instructions for doing AD with tapenade
+reverse:
+	tapenade -b -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90 -ext PUSHPOPGeneralLib -extAD PUSHPOPADLib-fixinterface
+	echo "Don't forget to remove the zeroing of acb."
 
+forward:
+	tapenade -d -head "advection_action" -outvars "ac" -vars "u" simple_advection.f90
+
+include Makefile.dependencies

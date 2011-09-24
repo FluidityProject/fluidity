@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Shallow Water Equation MMS Gradient Check</name>
+  <owner userid="sf1409"/>
+  <tags>swml adjoint optimisation</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>time ../../scripts/optimality.py -v optimiser_A.oml;</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="functional_gradient_error" language="python">from fluidity_tools import stat_parser as stat
+functional_gradient_error = stat("shallow_water_optimisation_A.stat")['integral_eta_t1_gradient_error']['convergence'][-1]
+</variable>
+  </variables>
+  <pass_tests>
+    <test name="functional_gradient_error" language="python">assert abs(functional_gradient_error) &gt; 1.8</test>
+  </pass_tests>
+  <warn_tests/>
+</testproblem>

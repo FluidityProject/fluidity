@@ -9,41 +9,61 @@
   
   <problem_definition length="medium" nprocs="1">
     <command_line>make run</command_line>
-    <!-- 2D test case to check that the two velocity fields are identical. -->
+    <!-- 2D test case to check that the two velocity fields are identical, and are the same as the single-phase case. -->
     <!-- This is basically a stripped-down copy of the driven_cavity example (see examples/driven_cavity), -->
     <!-- but two prognostic velocity fields are solved for here instead of one. -->
   </problem_definition>
   
   <variables>
-    <variable name="f1_u1" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("mphase_identical_velocities.stat")
-f1_u1=s["Fluid1"]["Velocity%1"]["integral"]
+    <variable name="f1_u" language="python">
+import vtktools
+
+ug = vtktools.vtu('mphase_identical_velocities_12.vtu')
+ug.GetFieldNames()
+f1_u = ug.GetVectorField('Fluid1::Velocity')
     </variable>
     
-    <variable name="f1_u2" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("mphase_identical_velocities.stat")
-f1_u2=s["Fluid1"]["Velocity%2"]["integral"]
+    <variable name="f2_u" language="python">
+import vtktools
+
+ug = vtktools.vtu('mphase_identical_velocities_12.vtu')
+ug.GetFieldNames()
+f2_u = ug.GetVectorField('Fluid2::Velocity')
     </variable>
     
-    <variable name="f2_u1" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("mphase_identical_velocities.stat")
-f2_u1=s["Fluid2"]["Velocity%1"]["integral"]
-    </variable>
-    
-    <variable name="f2_u2" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("mphase_identical_velocities.stat")
-f2_u2=s["Fluid2"]["Velocity%2"]["integral"]
+    <variable name="single_phase_u" language="python">
+import vtktools
+
+ug = vtktools.vtu('single_phase_results.vtu')
+ug.GetFieldNames()
+single_phase_u = ug.GetVectorField('Velocity')
     </variable>
   </variables>
     
   <pass_tests>
-    <test name="Velocities are identical" language="python">
-assert max(abs(f1_u1 - f2_u1)) &lt; 1e-6
-assert max(abs(f1_u2 - f2_u2)) &lt; 1e-6
+    <test name="Final velocities are identical" language="python">
+(nnodes, ncomponents) = f1_u.shape
+
+difference = []
+for i in range(nnodes):
+   for j in range(ncomponents):
+      difference.append(abs(f1_u[i][j] - f2_u[i][j]))
+
+assert max(difference) &lt; 1e-8
+    </test>
+    
+    <test name="Final velocities are the same as in the single-phase scenario" language="python"> 
+(nnodes, ncomponents) = single_phase_u.shape
+
+difference_f1 = []
+difference_f2 = []
+for i in range(nnodes):
+   for j in range(ncomponents):
+      difference_f1.append(abs(single_phase_u[i][j] - f1_u[i][j]))
+      difference_f2.append(abs(single_phase_u[i][j] - f2_u[i][j]))
+      
+assert max(difference_f1) &lt; 1e-8       
+assert max(difference_f2) &lt; 1e-8
     </test>
   </pass_tests>
   

@@ -35,6 +35,5 @@ module adjoint_global_variables
 
   type(adj_dictionary) :: adj_path_lookup, adj_solver_path_lookup
   type(adj_adjointer)  :: adjointer
-  logical :: functional_computed = .false.
 #endif
 end module adjoint_global_variables

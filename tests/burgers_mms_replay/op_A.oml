@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<optimality_options>
+  <name>
+    <string_value lines="1">op_A</string_value>
+  </name>
+  <model command_line="../../bin/burgers_equation" option_file="mms_A.bml"/>
+  <functional name="time_integral_ad"/>
+  <optimisation_options>
+    <optimisation_algorithm name="BFGS">
+      <tolerance>
+        <real_value rank="0">1.0e-16</real_value>
+      </tolerance>
+      <iterations>
+        <integer_value rank="0">1</integer_value>
+      </iterations>
+    </optimisation_algorithm>
+  </optimisation_options>
+  <control_io>
+    <control name="initial_condition">
+      <type name="default"/>
+    </control>
+  </control_io>
+  <debug>
+    <check_gradient/>
+  </debug>
+</optimality_options>

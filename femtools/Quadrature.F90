@@ -98,12 +98,12 @@ module quadrature
   type(permutation_type), dimension(4), target, save :: quad_permutations
   type(permutation_type), dimension(1), target, save :: point_permutation
 
-  type(quadrature_template), dimension(8), target, save :: tet_quads
-  type(quadrature_template), dimension(8), target, save :: tri_quads
-  type(quadrature_template), dimension(8), target, save :: interval_quads
-  type(quadrature_template), dimension(6), target, save :: hex_quads
-  type(quadrature_template), dimension(6), target, save :: quad_quads
-  type(quadrature_template), dimension(1), target, save :: point_quad
+  type(quadrature_template), dimension(8), target, save, public :: tet_quads
+  type(quadrature_template), dimension(8), target, save, public :: tri_quads
+  type(quadrature_template), dimension(8), target, save, public :: interval_quads
+  type(quadrature_template), dimension(6), target, save, public :: hex_quads
+  type(quadrature_template), dimension(6), target, save, public :: quad_quads
+  type(quadrature_template), dimension(1), target, save, public :: point_quad
 
   character(len=100), save, public :: quadrature_error_message=""
 
@@ -119,9 +119,6 @@ module quadrature
   integer, parameter, public :: QUADRATURE_ARGUMENT_ERROR=5
 
   logical, save, private :: initialised=.false.
-
-  ! Power is used by the test functions.
-  integer, save :: power=0
 
   integer, parameter :: FAMILY_COOLS=0, FAMILY_WANDZURA=1, FAMILY_GM=2
 
@@ -140,9 +137,9 @@ module quadrature
 #include "Reference_count_interface_quadrature_type.F90"
 
   public make_quadrature, allocate, deallocate, quadrature_type,&
-       & test_quadrature, construct_quadrature_templates, operator(==), &
-       & incref, addref, decref, has_references, FAMILY_COOLS, FAMILY_WANDZURA, &
-       & test_wandzura_quadrature, FAMILY_GM, test_gm_quadrature
+       & quadrature_template, construct_quadrature_templates, &
+       & operator(==), incref, addref, decref, &
+       & has_references, FAMILY_COOLS, FAMILY_WANDZURA, FAMILY_GM
 
 contains
 
@@ -606,32 +603,6 @@ contains
     end do
 
   end subroutine expand_quadrature_template
-
-  !------------------------------------------------------------------------
-  ! Test procedures
-  !------------------------------------------------------------------------
-
-  function quad_integrate(integrand, quad) result (integral)
-    ! Integrate the function integrand over an element using the 
-    ! specified quadrature.
-    real :: integral
-    interface
-       function integrand(coords)
-         real :: integrand
-         real, dimension(:), intent(in) :: coords
-       end function integrand
-    end interface
-    type(quadrature_type) :: quad
-
-    integer :: i
-
-    integral=0
-
-    do i=1, size(quad%weight)
-       integral=integral+quad%weight(i)*integrand(quad%l(i,:))
-    end do
-
-  end function quad_integrate
 
   !------------------------------------------------------------------------
   ! Procedures for generating permutations and quadratures.
@@ -2123,222 +2094,6 @@ contains
 
   end subroutine construct_quad_permutations
 
-  subroutine test_quadrature
-    use unittest_tools
-    type(quadrature_type) :: quad
-    type(quadrature_template), dimension(:), pointer :: template
-  
-    integer :: dim, vertices, degree, stat, i
-    
-    character(len=254) :: test_message, error_message
-    logical :: fail
-
-    ! Test for simplices.
-    do dim=1,3
-
-       vertices=dim+1
-       degree=0
-
-       degreeloop:do
-          degree=degree+1
-
-          quad=make_quadrature(vertices, dim, degree=degree, stat=stat)
-
-          select case (stat)
-          case (QUADRATURE_DEGREE_ERROR)
-             ! Reached highest available degree.
-             exit degreeloop
-          case (0)
-             ! Success
-             continue
-          case default
-             ! Some other error
-             FLAbort(quadrature_error_message)
-          end select
-
-          ! Skip any degrees which don't exist.
-          degree=quad%degree
-
-          do power=0,degree
-
-             if(quad_integrate(monic, quad) .fne. simplex_answer()) then 
-                write(error_message,'(e15.7)') &
-                     quad_integrate(monic, quad)-simplex_answer()
-                fail=.true.
-             else
-                error_message=""
-                fail=.false.
-             end if
-
-             write(test_message, '(3(a,i0),a)') "[",dim,"-simplex, qua&
-                  &d degree ",degree," power ",power," ]"
-
-             call report_test(trim(test_message), fail, .false.,&
-                  & trim(error_message))
-
-          end do
-
-          call deallocate(quad)
-
-       end do degreeloop
-
-    end do
-
-    ! Test for hypercubes
-    do dim=2,3
-
-       vertices=2**dim
-
-       select case(dim)
-       case(2) 
-          template=>quad_quads
-       case(3)
-          template=>hex_quads
-       end select
-
-       quadloop: do i=1,size(template)
-          degree=template(i)%degree
-
-          quad=make_quadrature(vertices, dim, degree=degree, stat=stat)
-
-          select case (stat)
-          case (0)
-             ! Success
-             continue
-          case default
-             ! Some other error
-             FLAbort(quadrature_error_message)
-          end select
-
-          do power=0,degree
-
-             if(quad_integrate(cube_monic, quad) .fne. cube_answer()) then 
-                write(error_message,'(e15.7)') &
-                     quad_integrate(cube_monic, quad)-cube_answer()
-                fail=.true.
-             else
-                error_message=""
-                fail=.false.
-             end if
-
-             write(test_message, '(4(a,i0),a)') "[",dim,"-cube, qua&
-                  &d number ",i," degree ",degree," power ",power," ]"
-
-             call report_test(trim(test_message), fail, .false.,&
-                  & trim(error_message))
-                
-          end do
-
-          call deallocate(quad) 
-
-       end do quadloop
-
-    end do
-
-  contains
-
-    function simplex_answer()
-      ! Analytic solution to integrating monic over a simplex.
-      ! This formula is eq. 7.38 and 7.48 in Zienkiewicz and Taylor
-      real :: simplex_answer
-
-      simplex_answer=real(factorial(power))&
-           /factorial(power+dim)
-
-    end function simplex_answer
-
-    function cube_answer()
-      ! Analytic solution to integrating ((1-x)/2)**power over a hypercube.
-      real :: cube_answer
-
-      cube_answer=(2.0**dim)/(power+1)
-
-    end function cube_answer
-
-  end subroutine test_quadrature
-
-  function monic(coords)
-    ! Calculate x^n
-    real :: monic
-    real, dimension(:), intent(in) :: coords
-
-    monic=coords(1)**power
-
-  end function monic
-
-  function cube_monic(coords)
-    ! Calculate.
-    real :: cube_monic
-    real, dimension(:), intent(in) :: coords
-
-    cube_monic=((1-coords(1))/2.0)**power
-
-  end function cube_monic
-
-  subroutine test_wandzura_quadrature
-    use unittest_tools
-    implicit none
-
-    integer :: dim, vertices
-    logical :: fail
-    integer :: degree, stat
-    type(quadrature_type) :: quadrature
-    character(len=254) :: error_message, test_message
-
-    dim = 2
-    vertices = 3
-
-    degree = 0
-    degreeloop: do
-      degree = degree + 1
-      quadrature = make_quadrature(vertices, dim, degree=degree, family=FAMILY_WANDZURA, stat=stat)
-
-      select case (stat)
-      case (QUADRATURE_DEGREE_ERROR)
-        exit degreeloop
-      case (0)
-        continue
-      case default
-        fail = .true.
-        call report_test("[test_wandzura_quadrature]", fail, .false., "Making quadrature failed")
-      end select
-
-      degree = quadrature%degree
-
-      do power=0,degree
-        if(quad_integrate(monic, quadrature) .fne. simplex_answer()) then 
-          fail = .true.
-          write(error_message, '(e15.7)') quad_integrate(monic, quadrature)-simplex_answer()
-        else
-          fail = .false.
-          error_message = ""
-        end if
-
-        write(test_message, '(3(a,i0),a)') "[",dim,"-simplex, quad degree ",degree," power ",power," ]"
-        call report_test(trim(test_message), fail, .false., trim(error_message))
-      end do
-
-      call deallocate(quadrature)
-    end do degreeloop
-
-    contains
-      function simplex_answer()
-        ! Analytic solution to integrating monic over a simplex.
-        ! This formula is eq. 7.38 and 7.48 in Zienkiewicz and Taylor
-        real :: simplex_answer
-        integer :: i, j
-
-        simplex_answer = 1.0
-        do i=0,dim-1
-          j = power + dim - i
-          if (j <= 1) exit
-          simplex_answer = simplex_answer * j
-        end do
-        simplex_answer = 1.0/simplex_answer
-
-      end function simplex_answer
-  end subroutine test_wandzura_quadrature
-
   subroutine local_coords_matrix_positions(positions, mat)
     ! dim x loc
     real, dimension(:, :), intent(in) :: positions
@@ -2349,74 +2104,6 @@ contains
 
     call invert(mat)
   end subroutine local_coords_matrix_positions
-
-  subroutine test_gm_quadrature
-    use unittest_tools
-    implicit none
-
-    integer :: dim, vertices
-    logical :: fail
-    integer :: degree, stat
-    type(quadrature_type) :: quadrature
-    character(len=254) :: error_message, test_message
-
-    dim = 2
-    vertices = 3
-
-    do dim=1,3
-      vertices = dim+1
-      degree = 0
-      degreeloop: do
-        degree = degree + 1
-
-        quadrature = make_quadrature(vertices, dim, degree=degree, family=FAMILY_GM, stat=stat)
-
-        select case (stat)
-        case (QUADRATURE_DEGREE_ERROR)
-          exit degreeloop
-        case (0)
-          continue
-        case default
-          fail = .true.
-          call report_test("[test_gm_quadrature]", fail, .false., "Making quadrature failed")
-        end select
-
-        degree = quadrature%degree
-
-        do power=0,degree
-          if(fnequals(quad_integrate(monic, quadrature), simplex_answer(), tol = 1.0e5 * epsilon(0.0))) then 
-            fail = .true.
-            write(error_message, '(e15.7)') quad_integrate(monic, quadrature)-simplex_answer()
-          else
-            fail = .false.
-            error_message = ""
-          end if
-
-          write(test_message, '(3(a,i0),a)') "[",dim,"-simplex, quad degree ",degree," power ",power," ]"
-          call report_test(trim(test_message), fail, .false., trim(error_message))
-        end do
-
-        call deallocate(quadrature)
-      end do degreeloop
-    end do
-
-    contains
-      function simplex_answer()
-        ! Analytic solution to integrating monic over a simplex.
-        ! This formula is eq. 7.38 and 7.48 in Zienkiewicz and Taylor
-        real :: simplex_answer
-        integer :: i, j
-
-        simplex_answer = 1.0
-        do i=0,dim-1
-          j = power + dim - i
-          if (j <= 1) exit
-          simplex_answer = simplex_answer * j
-        end do
-        simplex_answer = 1.0/simplex_answer
-
-      end function simplex_answer
-  end subroutine test_gm_quadrature
 
   recursive function factorial(n) result(f)
     ! Calculate n!
@@ -2430,6 +2117,5 @@ contains
     end if
 
   end function factorial
-
   
 end module quadrature

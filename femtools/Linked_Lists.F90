@@ -574,9 +574,9 @@ contains
     
   end function intersect_ascending_ilist
 
-  function copy_ilist(list)
+  subroutine copy_ilist(copy_list, list)
     !!< Make a deep copy of list
-    type(ilist) :: copy_ilist
+    type(ilist), intent(out) :: copy_list
     type(ilist), intent(in) :: list
     
     type(inode), pointer :: node, copy_node
@@ -585,10 +585,10 @@ contains
 
     ! Special case the first entry
     node=>list%firstnode
-    allocate(copy_ilist%firstnode)
-    copy_ilist%firstnode%value=node%value
-    copy_node=>copy_ilist%firstnode
-    copy_ilist%length=1
+    allocate(copy_list%firstnode)
+    copy_list%firstnode%value=node%value
+    copy_node=>copy_list%firstnode
+    copy_list%length=1
     node=>node%next
 
     do while(associated(node))
@@ -596,25 +596,25 @@ contains
        copy_node=>copy_node%next
        copy_node%value=node%value
        
-       copy_ilist%length=copy_ilist%length+1
+       copy_list%length=copy_list%length+1
        
        node=>node%next
     end do
     
-  end function copy_ilist
+  end subroutine copy_ilist
 
-  function copy_ilist_array(lists)
+  subroutine copy_ilist_array(copy_lists, lists)
     !!< Make a deep copy of list
     type(ilist), dimension(:), intent(in) :: lists
-    type(ilist), dimension(size(lists)) :: copy_ilist_array
+    type(ilist), dimension(size(lists)), intent(out) :: copy_lists
 
     integer :: i
 
     do i=1,size(lists)
-       copy_ilist_array(i)=copy_ilist(lists(i))
+       call copy_ilist(copy_lists(i), lists(i))
     end do
 
-  end function copy_ilist_array
+  end subroutine copy_ilist_array
   
     subroutine rinsert(list, value)
     type(rlist), intent(inout) :: list

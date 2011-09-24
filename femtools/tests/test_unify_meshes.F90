@@ -61,7 +61,7 @@ subroutine test_unify_meshes
     do while(associated(llnode))
       ele_A = llnode%value
       intersection = intersect_elements(positionsA, ele_A, ele_val(positionsB, ele_B), supermesh_shape)
-      call unify_meshes(accum_positions, intersection, accum_positions_tmp)
+      call unify_meshes_quadratic(accum_positions, intersection, accum_positions_tmp)
       call deallocate(accum_positions)
       accum_positions = accum_positions_tmp
 

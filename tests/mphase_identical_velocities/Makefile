@@ -1,18 +1,17 @@
 preprocess:
-	@echo **********Creating mesh for refinement N=1/16
-	gmsh -2 -o mphase_identical_velocities.msh src/mphase_identical_velocities.geo
-	../../scripts/gmsh2triangle --2d mphase_identical_velocities.msh
+	@echo **********Converting mesh from gmsh to triangle format
+	../../scripts/gmsh2triangle --2d src/mphase_identical_velocities.msh
 
 run:
-	@echo **********Running simulation for refinement N=1/16
+	@echo **********Running simulation
 	../../bin/fluidity -v2 -l mphase_identical_velocities.flml
 
 input: clean preprocess
 
 clean:
 	rm -f *.stat *.steady_state*
-	rm -f *.d.* *.vtu
+	rm -f *.d.* mphase_*.vtu
 	rm -f *.msh
 	rm -f *.ele *.edge *.node *.poly
-	rm -f matrixdump* *log* *err*
+	rm -f matrixdump* *.log* *.err*
 

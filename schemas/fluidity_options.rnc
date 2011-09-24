@@ -14,6 +14,7 @@ include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "radiation.rnc"
+include "flredecomp.rnc"
 
 start =
    (
@@ -1603,17 +1604,12 @@ start =
                   }
                }?
             }?,
-            ## Parameters required to model multiphase flow in porous media
+            ## Phase interaction options for Fluidity's multiphase flow model
             element multiphase_properties {
-               ## Relative permeability end point relperm_max
-               ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-               ## Value between 0 and 1
-               element relperm_max {real},
-               ## Relative permeability exponent relperm_exponent
-               ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-               element relperm_exponent {real},
-               ## Immobile volume of fluid phase
-               element immobile_fraction {real}?
+               comment,
+               element particle_diameter { 
+                     real 
+               }?
             }?,
             sediment?
          }+,
@@ -2015,7 +2011,8 @@ start =
                  }
               )
          }?,
-         embedded_models?
+         embedded_models?,
+         flredecomp?
       }
    )      
 
@@ -2169,6 +2166,8 @@ prognostic_density_field =
                },
                comment
             }|
+            ## Discontinuous galerkin formulation
+            discontinuous_galerkin_options|
             ## Use a control volume discretisation.
             element control_volumes {
               spatial_control_volume_options
@@ -4978,6 +4977,7 @@ scalar_field_choice =
             )
          }|
          element scalar_field {
+            attribute rank { "0" },
             attribute name { "FreeSurfaceHistory" },
             (
                element diagnostic {
@@ -6468,6 +6468,14 @@ forcing =
              empty
            }?
         }?,
+        ## Check this option to use an external data set for the t(0)
+        ## and in/out boundary conditions. This sets up NEMO-type forcing.
+        element external_data_boundary_conditions {
+            ## Path of the file containing the external data set
+            element input_file {
+                attribute file_name {xsd:string} 
+            }
+        }?,
         ## Bulk formulae allow the boundary conditions of Temperature, Velocity, Salinty
         ## and photosynthetic radiation to be set using data obtained from
         ## the ERA-40 reanalysis (http://data-portal.ecmwf.int/data/d/era40_daily/)
@@ -6505,15 +6513,20 @@ forcing =
                 ## What kind of file is this? Currently only ERA40 files are supported
                 element type {
                     attribute name { "ERA40" },
+                    ## The data from ERA40 website included accumulated values (ppt, ro, ssrd, strd).
+                    ## If these values have been already ammended to instantaneous values, then switch this
+                    ## flag on and the accumulation correction will not be applied.
+                    element no_accumulation {
+                        empty
+                    }?
+                }|
+                element type {
+                    attribute name { "NSEP" },
                     empty
-                #}|
-                #element type {
-                #    attribute name { "NSEP" },
-                #    empty
-                #}|
-                #element type {
-                #    attribute name { "ICOM" },
-                #    empty
+                }|
+                element type {
+                    attribute name { "ICOM" },
+                    empty
                 }
             }?,
             ## Adding a latitude and longitude here (specified as two real numbers)
@@ -6529,14 +6542,6 @@ forcing =
                 element single_location {
                     empty
                 }?
-            }?,
-            ## Check this option to use an external data set for the t(0)
-            ## and in/out boundary conditions
-            element external_data_boundary_conditions {
-                ## Path of the file containing the external data set
-                element input_file {
-                    attribute file_name {xsd:string} 
-                }
             }?,
             ## Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
             element output_fluxes_diagnostics {

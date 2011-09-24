@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<optimality_options>
+  <name>
+    <string_value lines="1">op_B</string_value>
+  </name>
+  <model command_line="../../bin/burgers_equation" option_file="mms_B.bml"/>
+  <functional name="time_integral_ad"/>
+  <optimisation_options>
+    <optimisation_algorithm name="NULL"/>
+  </optimisation_options>
+  <control_io>
+    <control name="InitialCondition">
+      <type name="default"/>
+    </control>
+  </control_io>
+  <debug>
+    <check_gradient/>
+  </debug>
+</optimality_options>

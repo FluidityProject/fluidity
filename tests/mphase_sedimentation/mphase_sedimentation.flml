@@ -60,7 +60,7 @@
       <real_value rank="0">0.005</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">2.0</real_value>
+      <real_value rank="0">3.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>

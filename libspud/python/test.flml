@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
     <string_value lines="1">explicit-hyperc-superman-conservative</string_value>
@@ -7,14 +7,12 @@
     <string_value lines="1">multimaterial</string_value>
   </problem_type>
   <geometry>
-    <dimension replaces="NDIM">
+    <dimension>
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="2d_square">
-        <format name="triangle">
-          <string_value>triangle</string_value>
-        </format>
+        <format name="triangle"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -45,7 +43,7 @@
       </from_mesh>
     </mesh>
     <quadrature>
-      <degree replaces="NGI">
+      <degree>
         <integer_value rank="0">1</integer_value>
       </degree>
       <controlvolume_surface_degree>
@@ -58,7 +56,9 @@
       <string_value>vtk</string_value>
     </dump_format>
     <dump_period_in_timesteps>
-      <integer_value rank="0">100</integer_value>
+      <constant>
+        <integer_value rank="0">100</integer_value>
+      </constant>
     </dump_period_in_timesteps>
     <output_mesh name="PressureMesh"/>
     <checkpointing>
@@ -68,19 +68,20 @@
       </checkpoint_period_in_dumps>
       <checkpoint_at_end/>
     </checkpointing>
+    <stat/>
   </io>
   <timestepping>
-    <current_time replaces="ACCTIM">
+    <current_time>
       <real_value rank="0">0.0</real_value>
     </current_time>
-    <timestep replaces="DT">
+    <timestep>
       <real_value rank="0">0.025</real_value>
       <comment>this is overwritten by the adaptive timestepping</comment>
     </timestep>
-    <finish_time replaces="LTIME">
+    <finish_time>
       <real_value rank="0">3.0</real_value>
     </finish_time>
-    <adaptive_timestep replaces="TIMAUT">
+    <adaptive_timestep>
       <requested_cfl>
         <real_value rank="0">0.25</real_value>
       </requested_cfl>
@@ -92,11 +93,12 @@
   </timestepping>
   <physical_parameters>
     <gravity>
-      <magnitude replaces="GRAVTY">
+      <magnitude>
         <real_value rank="0">1.0</real_value>
       </magnitude>
-      <vector_field replaces="BSOUX BSOUY BSOUZ" name="GravityDirection" rank="1">
+      <vector_field name="GravityDirection" rank="1">
         <prescribed>
+          <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <constant>
               <real_value shape="2" dim1="dim" rank="1">1.0 2.0</real_value>
@@ -114,9 +116,18 @@
     </gravity>
   </physical_parameters>
   <material_phase name="Material1">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Density" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="single"/>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>
@@ -183,7 +194,7 @@
     </vector_field>
     <scalar_field name="ControlVolumeCFLNumber" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="single"/>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>
@@ -204,21 +215,21 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value replaces="MOD(INT(ABS(NDISOT)/1),10) = 8,9" name="HyperC">
-              <project_upwind_value_from_point replaces="NDISOT &gt; 0 on simplex meshes">
+            <face_value name="HyperC">
+              <project_upwind_value_from_point>
                 <bound_projected_value_locally/>
-                <store_upwind_elements replaces="ABS(NDISOT) &gt;= 1000"/>
+                <store_upwind_elements/>
               </project_upwind_value_from_point>
               <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
             <diffusion_scheme name="BassiRebay"/>
           </control_volumes>
-          <conservative_advection replaces="TBETA, DEFALT (TBETA = 0.0)">
+          <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta replaces="TTHETA, DEFALT (TTHETA = 0.5)">
+          <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
@@ -241,7 +252,7 @@
 		return 0.0</string_value>
           </python>
         </initial_condition>
-        <boundary_conditions replaces="boundary, TTPER1 TTPER2 TTPERI" name="LetNoOneLeave">
+        <boundary_conditions name="LetNoOneLeave">
           <surface_ids>
             <integer_value shape="4" rank="1">7 8 9 10</integer_value>
           </surface_ids>
@@ -260,21 +271,6 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
     </scalar_field>
     <scalar_field name="AnalyticalMaterialVolumeFraction" rank="0">
       <prescribed>
@@ -301,7 +297,7 @@
     </scalar_field>
     <scalar_field name="ScalarAbsoluteDifference" rank="0">
       <diagnostic field_name_b="MaterialVolumeFraction" field_name_a="AnalyticalMaterialVolumeFraction">
-        <algorithm name="Internal" material_phase_support="single"/>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat>
@@ -320,7 +316,7 @@
     </scalar_field>
     <scalar_field name="ControlVolumeDivergence" rank="0">
       <diagnostic field_name="Velocity">
-        <algorithm name="Internal" material_phase_support="single"/>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>
@@ -335,8 +331,30 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <tensor_field name="DummyTensor" rank="2">
+      <prescribed>
+        <mesh name="CoordinateMesh"/>
+        <value name="WholeMesh">
+          <anisotropic_asymmetric>
+            <constant>
+              <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">1.0 2.0 3.0 4.0</real_value>
+            </constant>
+          </anisotropic_asymmetric>
+        </value>
+        <output/>
+      </prescribed>
+    </tensor_field>
   </material_phase>
   <material_phase name="Material2">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
+            <real_value rank="0">1.0</real_value>
+          </reference_density>
+        </linear>
+      </fluids>
+    </equation_of_state>
     <scalar_field name="Density" rank="0">
       <aliased material_phase_name="Material1" field_name="Density"/>
     </scalar_field>
@@ -345,7 +363,7 @@
     </vector_field>
     <scalar_field name="MaterialVolumeFraction" rank="0">
       <diagnostic>
-        <algorithm name="Internal" material_phase_support="single"/>
+        <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>
@@ -359,21 +377,6 @@
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
-    </scalar_field>
-    <scalar_field name="MaterialDensity" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
     </scalar_field>
   </material_phase>
 </fluidity_options>

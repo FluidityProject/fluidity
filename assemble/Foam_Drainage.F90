@@ -37,7 +37,7 @@ module foam_drainage
   use cv_upwind_values 
   use diagnostic_fields_matrices
   use state_fields_module
-  use sparse_matrices_fields
+
 
   implicit none
 

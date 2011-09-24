@@ -1,0 +1,343 @@
+<?xml version='1.0' encoding='utf-8'?>
+<shallow_water_options>
+  <simulation_name>
+    <string_value lines="1">test_A</string_value>
+  </simulation_name>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="src/mesh_A">
+        <format name="triangle"/>
+        <dimension>
+          <integer_value rank="0">1</integer_value>
+        </dimension>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="PeriodicMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="PeriodicMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PeriodicMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <periodic_boundary_conditions name="periodicity">
+          <physical_boundary_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </physical_boundary_ids>
+          <aliased_boundary_ids>
+            <integer_value shape="1" rank="1">2</integer_value>
+          </aliased_boundary_ids>
+          <coordinate_map>
+            <string_value lines="20" type="python">def val(X,t):
+  result = list(X)
+  result[0]=result[0]-1.0
+  return result</string_value>
+          </coordinate_map>
+        </periodic_boundary_conditions>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period_in_timesteps>
+      <constant>
+        <integer_value rank="0">1</integer_value>
+      </constant>
+    </dump_period_in_timesteps>
+    <output_mesh name="CoordinateMesh"/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">0.5</real_value>
+    </timestep>
+    <nonlinear_iterations>
+      <integer_value rank="0">1</integer_value>
+    </nonlinear_iterations>
+    <finish_time>
+      <real_value rank="0">0.5</real_value>
+    </finish_time>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">1.0</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
+            <constant>
+              <real_value shape="3" dim1="dim" rank="1">0.0 0.0 -1.0</real_value>
+            </constant>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+          <adjoint_storage>
+            <exists_in_forward/>
+          </adjoint_storage>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
+  <material_phase name="Fluid">
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="ShallowWater"/>
+        <spatial_discretisation>
+          <discontinuous_galerkin>
+            <advection_scheme>
+              <none/>
+            </advection_scheme>
+          </discontinuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <solver>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">500</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0 0 0</real_value>
+          </constant>
+        </initial_condition>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field name="LayerThickness" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <advection_terms>
+              <exclude_advection_terms/>
+            </advection_terms>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <relaxation>
+            <real_value rank="0">1</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="preonly"/>
+          <preconditioner name="lu"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">500</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <cache_solver_context/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <mean_layer_thickness>
+          <real_value rank="0">1</real_value>
+        </mean_layer_thickness>
+        <output/>
+        <stat/>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="AnalyticalDivSource" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X, t):
+    from math import sin, cos, pi
+    return 2*pi * cos(2*pi*X[0])</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="DivSource" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">import fluidity_tools
+import scipy.sparse
+import scipy.sparse.linalg
+coord  = state.vector_fields["Coordinate"]
+source = state.vector_fields["Source"]
+u_mesh = state.meshes["VelocityMesh"]
+h_mass = scipy.sparse.lil_matrix((field.node_count, field.node_count))
+
+field.val[:] = numpy.zeros(len(field.val))
+for ele in range(coord.ele_count):
+  little_val = [0.0 for x in coord.remap_ele(ele, field.mesh)] 
+  shape = field.ele_shape(ele)
+  t = Transform(ele, coord)
+  u_dshape = t.grad(u_mesh.shape)
+  cT = t.shape_dshape(shape, u_dshape)
+  for dim in range(source.dimension):
+    little_val += numpy.dot(cT[:,:,dim], source.ele_val(ele)[:, dim])
+  field.addto(field.ele_nodes(ele), little_val)
+  
+  eta_mass = t.shape_shape(shape, shape)
+  for local_i, i in enumerate(field.ele_nodes(ele)):
+    for local_j, j in enumerate(field.ele_nodes(ele)):
+      h_mass[i,j] += eta_mass[local_i, local_j]
+  
+h_mass = h_mass.tocsr()
+(field.val[:], info) = scipy.sparse.linalg.cg(h_mass, field.val, tol=1.0e-15)
+assert info == 0</string_value>
+        </algorithm>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="DivError" rank="0">
+      <diagnostic>
+        <algorithm source_field_2_type="scalar" name="scalar_difference" source_field_1_name="AnalyticalDivSource" source_field_2_name="DivSource" material_phase_support="single" source_field_1_type="scalar">
+          <absolute_difference/>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Source" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(X, t):
+    from math import sin, cos, pi
+    return [sin(2*pi*X[0]), 0, 0]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </vector_field>
+  </material_phase>
+</shallow_water_options>

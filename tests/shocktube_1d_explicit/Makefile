@@ -1,5 +1,5 @@
 input:
-	../../scripts/interval --dx=0.01 -- -1 2 tube
+	../../scripts/interval --region_ids=region_ids.py --dx=0.01 -- -1 2 tube
 
 clean:
 	rm -f *.node *.ele *.bound

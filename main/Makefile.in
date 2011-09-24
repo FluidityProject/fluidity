@@ -28,7 +28,7 @@
 SHELL = @SHELL@
 
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 ifeq (@ENABLE_PSMILE@,yes)
 FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./ -I@FLPSMILE_PATH@/build/lib/psmile_oa4.MPI1
@@ -50,14 +50,11 @@ LIB = ../lib/lib@FLUIDITY@.a
 
 OBJS = Fluids.o Usage.o mainfl.o 
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a
+.SUFFIXES: .F90 .c .cpp .o .a
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
@@ -67,16 +64,15 @@ OBJS = Fluids.o Usage.o mainfl.o
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
+
 default: $(LIB)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
 
-Usage.o: ../include/Usage.h ../include/confdefs.h
-mainfl.o: Fluids.o 
+Usage.o: ../include/Usage.h ../include/version.h
 
 clean:
 	rm -f *.o *.d *.mod
 
+include Makefile.dependencies

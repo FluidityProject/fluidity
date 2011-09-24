@@ -29,12 +29,12 @@ if sys.platform != "win32" and sys.platform != "win64":
 
 # Here we hard-code a default for flml
 # so that users don't have to tweak this to run it.
-schemata = {'flml': ('Fluidity markup language', 'http://amcg.ese.ic.ac.uk/svn/fluidity/tags/4.0-release/schemas/fluidity_options.rng')}
+schemata = {'flml': ('Fluidity markup language', 'http://bazaar.launchpad.net/~fluidity-core/fluidity/4.0-release/download/head:/fluidity_options.rng-20110415014759-hdavpx17hi2vz53z-811/fluidity_options.rng')}
 
 for dir in dirs:
   try:
     for file in os.listdir(dir):
-      if file[-1] == "~": 
+      if file[-1] == "~" or file[0] == ".": #skip files like .nfs0000 
         continue # bloody emacs
       # Skip item gracefully here if there's a problem.
       # This is useful if the schemata files are in a subversion

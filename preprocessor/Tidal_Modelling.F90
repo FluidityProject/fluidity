@@ -396,7 +396,10 @@ contains
       else
          call incref(equilibrium_pressure)
       end if
-      call  calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
+      if (stat==0) then
+        call  calculate_diagnostic_equilibrium_pressure(state, equilibrium_pressure)
+      end if
+    
 
       ! Find node positions on the pressure mesh
       call allocate(positions_mapped_to_pressure_space, position%dim, p_mesh, name="PressureCoordinate")

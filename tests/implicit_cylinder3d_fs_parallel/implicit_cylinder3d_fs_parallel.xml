@@ -29,7 +29,7 @@ assert(abs(hmin+0.04282) &lt; 1e-3)
 assert(abs(hmax-0.01545) &lt; 1e-3)
   </test>
   <test name="End time is correct." language="python">
-assert(ElapsedTime[-1] - 1.1 &lt; 1e-4)
+assert(abs(ElapsedTime[-1] - 1.1) &lt; 1e-4)
 </test>
   </pass_tests>
 </testproblem>

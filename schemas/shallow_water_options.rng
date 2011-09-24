@@ -322,19 +322,21 @@ This is usually disabled.</a:documentation>
               </element>
             </choice>
           </element>
-          <element name="scalar_field">
-            <a:documentation>Free surface elevation</a:documentation>
-            <attribute name="rank">
-              <value>0</value>
-            </attribute>
-            <attribute name="name">
-              <value>LayerThickness</value>
-            </attribute>
-            <element name="prognostic">
-              <ref name="pressure_mesh_choice"/>
-              <ref name="prognostic_layerthickness_field"/>
+          <optional>
+            <element name="scalar_field">
+              <a:documentation>Free surface elevation</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>LayerThickness</value>
+              </attribute>
+              <element name="prognostic">
+                <ref name="pressure_mesh_choice"/>
+                <ref name="prognostic_layerthickness_field"/>
+              </element>
             </element>
-          </element>
+          </optional>
           <zeroOrMore>
             <ref name="scalar_field_choice"/>
           </zeroOrMore>
@@ -342,7 +344,6 @@ This is usually disabled.</a:documentation>
             <ref name="vector_field_choice"/>
           </zeroOrMore>
         </group>
-        <!-- tensor_field_choice* -->
       </element>
       <optional>
         <element name="mesh_adaptivity">
@@ -617,7 +618,19 @@ where X and the return value are tuples of length geometry dimension.</a:documen
       </element>
       <element name="balanced">
         <a:documentation>Set balanced velocity from height field</a:documentation>
-        <empty/>
+        <optional>
+          <element name="solver">
+            <a:documentation>Solver</a:documentation>
+            <ref name="linear_solver_options_sym"/>
+          </element>
+        </optional>
+      </element>
+      <element name="dg_projection">
+        <a:documentation>project velocity from a DG field</a:documentation>
+        <attribute name="source_field">
+          <a:documentation>Field to project from</a:documentation>
+          <data type="string"/>
+        </attribute>
       </element>
     </choice>
   </define>
@@ -920,6 +933,31 @@ Will be replaced by a field in due course</a:documentation>
         <element name="prescribed">
           <ref name="prescribed_scalar_field_no_adapt"/>
         </element>
+      </element>
+    </optional>
+    <ref name="prognostic_scalar_output_options"/>
+    <ref name="prognostic_scalar_stat_options"/>
+    <ref name="adaptivity_options_prognostic_scalar_field"/>
+    <ref name="interpolation_algorithm_scalar"/>
+  </define>
+  <define name="prognostic_lagrangemultiplier_field">
+    <element name="spatial_discretisation">
+      <a:documentation>Spatial discretisation options</a:documentation>
+      <empty/>
+    </element>
+    <element name="solver">
+      <a:documentation>Solver</a:documentation>
+      <ref name="linear_solver_options_asym"/>
+    </element>
+    <optional>
+      <element name="initial_condition">
+        <a:documentation>Initial condition is not used for shallow water or Helmholtz 
+solves but is required for test_trace_space.</a:documentation>
+        <attribute name="name">
+          <data type="string" datatypeLibrary=""/>
+        </attribute>
+        <ref name="region_ids"/>
+        <ref name="input_choice_initial_condition_real"/>
       </element>
     </optional>
     <ref name="prognostic_scalar_output_options"/>

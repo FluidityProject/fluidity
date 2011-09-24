@@ -2,12 +2,25 @@
 
 \usepackage{palatino}
 
-\title{Spud 1.0.10 Manual}
+\title{Spud 1.1.3 Manual}
 
 \usepackage{listings}
 \usepackage{hyperref,xspace}
 \usepackage[margin=2cm]{geometry}
 \usepackage{longtable}
+\usepackage{color}
+
+\definecolor{DarkBlue}{rgb}{0.00,0.00,0.55}
+\hypersetup{
+    linkcolor   = DarkBlue,
+    anchorcolor = DarkBlue,
+    citecolor   = DarkBlue,
+    filecolor   = DarkBlue,
+    pagecolor   = DarkBlue,
+    urlcolor    = DarkBlue,
+    colorlinks  = true,
+    pdftitle    = {Spud 1.1.3 Manual},
+}
 
 \lstloadlanguages{Fortran,C++,C}
 
@@ -52,9 +65,8 @@ Spud and Diamond depend on the following packages:
 \item LaTeX (for the manual) (\url{http://www.latex-project.org/})
 \end{itemize}
 
-Users of Debian and Ubuntu should
-be able to install all the needed dependencies by adding the repository
-lines listed below and typing:
+Users of Ubuntu should
+be able to install all the needed dependencies by adding the repository listed below and typing:
 
 \begin{verbatim}
 sudo apt-get update
@@ -63,25 +75,10 @@ sudo apt-get build-depend spud
 
 \section{Obtaining the source}
 
-Spud is managed using Subversion. Version 1.0.10 can be obtained with the
-command:
+Spud source code is held in a bzr repository. The current development version is available via:
 
 \begin{verbatim}
-svn co http://amcg.ese.ic.ac.uk/svn/spud/branches/1.0.10 spud
-\end{verbatim}
-
-the current development version is available via:
-
-\begin{verbatim}
-svn co http://amcg.ese.ic.ac.uk/svn/spud/trunk spud
-\end{verbatim}
-
-Debian and Ubuntu users can obtain the source package by adding the
-repository lines listed below and typing:
-
-\begin{verbatim}
-sudo apt-get update
-sudo apt-get source spud
+bzr co lp:spud
 \end{verbatim}
 
 \section{Building from source}
@@ -103,29 +100,13 @@ options type:
 ./configure --help
 \end{verbatim}
 
-\section{Debian and Ubuntu packages}
+\section{Ubuntu packages}
 
-Debian and Ubuntu packages are available from the Applied Modelling and
-Computation Group at Imperial College London. The Debian repository may be
-accessed by adding the following lines to \verb+/etc/apt/sources.list+:
-
-\begin{verbatim}
-deb http://amcg.ese.ic.ac.uk/debian/ unstable main contrib non-free
-deb-src http://amcg.ese.ic.ac.uk/debian/ unstable main contrib non-free
-\end{verbatim}
-
-The Ubuntu repository may be accessed via the following lines:
+Ubuntu packages are available from a Launchpad repository managed by the Applied Modelling and Computation
+Group at Imperial College London. To add this repository to your system sources, run:
 
 \begin{verbatim}
-deb http://amcg.ese.ic.ac.uk/debian/ gutsy main contrib non-free
-deb-src http://amcg.ese.ic.ac.uk/debian/ gutsy main contrib non-free
-\end{verbatim}
-
-or:
-
-\begin{verbatim}
-deb http://amcg.ese.ic.ac.uk/debian/ hardy main contrib non-free
-deb-src http://amcg.ese.ic.ac.uk/debian/ hardy main contrib non-free
+sudo apt-add-repository ppa:amcg/ppa
 \end{verbatim}
 
 The Spud library and the base language are installed by the
@@ -133,7 +114,7 @@ The Spud library and the base language are installed by the
 package. Both packages are built from the \verb+spud+ source package. Binary
 packages are supplied for the i386 and amd64 architectures.
 
-After adding the relevant lines to \verb+/etc/apt/sources.list+, install the
+After adding the repository, install the
 packages by typing:
 
 \begin{verbatim}
@@ -165,8 +146,8 @@ software parsers.  Hence the completed schema, including the base language,
 is translated from compact to XML syntax using the software package Trang
 before use by Spud based tools like Diamond.
 
-
 \section{Base language named patterns}\label{sec:named_patterns}
+
 The RELAX NG language allows different schemas to be imported into one
 another, which enables Spud to define a base language for schema developers.
 The Spud base language thus provides core schema objects (known in RELAX NG
@@ -621,7 +602,7 @@ will halt with an error message.
 \subsection{C}
 
 Since C does not itself have any namespacing facility, all exposed symbols
-have the prefix \lstinline[language=C]+cspud_+. Error codes are returned via
+have the prefix \lstinline[language=C]+spud_+. Error codes are returned via
 function return values.
 
 \subsection{C++}
@@ -659,12 +640,14 @@ Error values are greater than zero, warnings are negative and
   \lstinline+SPUD_NO_ERROR+ & Successful completion.\\
   \lstinline+SPUD_KEY_ERROR+ & The specified option is not present in the
   dictionary.\\
-  \lstinline+SPUD_ERROR+ & The specified option has a different type
+  \lstinline+SPUD_TYPE_ERROR+ & The specified option has a different type
   from that of the option argument provided.\\
   \lstinline+SPUD_RANK_ERROR+ & The specified option has a different rank
   from that of the option argument provided.\\
   \lstinline+SPUD_SHAPE_ERROR+ & The specified option has a different shape
   from that of the option argument provided.\\
+  \lstinline+SPUD_FILE_ERROR+ & The specified options file cannot be read or
+  written to as the routine requires.\\
   \lstinline+SPUD_NEW_KEY_WARNING+ & The option being inserted is not
   already in the dictionary.\\
   \lstinline+SPUD_ATTR_SET_FAILED_WARNING+ & The option being set as an
@@ -694,7 +677,7 @@ end subroutine clear_options
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-void cspud_clear_options()
+void spud_clear_options()
 \end{lstlisting}
 
 \begin{lstlisting}
@@ -706,36 +689,42 @@ Clears the entire options tree.
 \subsection{load\_options}
 
 \begin{lstlisting}[language=fortran]
-subroutine load_options(filename)
+function load_options(filename, stat)
   character(len=*), intent(in) :: filename
+  integer, optional, intent(out) :: stat
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-void cload_options(const char* key, const int* key_len)
+int spud_load_options(const char* key, const int key_len)
 \end{lstlisting}
 
 \begin{lstlisting}
-void Spud::load_options(const std::string& filename)
+OptionError Spud::load_options(const std::string& filename)
 \end{lstlisting}
 
 Reads the XML file \lstinline+filename+ into the options tree.
 
+Returns error code \lstinline+SPUD_FILE_ERROR+ if the file does not exist or cannot be read.
+
 \subsection{write\_options}
 
 \begin{lstlisting}[language=fortran]
-subroutine write_options(filename)
+subroutine write_options(filename, stat)
   character(len=*), intent(in) :: filename
+  integer, optional, intent(out) :: stat
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-void cwrite_options(const char* filename, const int* filename_len)
+int spud_write_options(const char* filename, const int filename_len)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
-void write_options(const std::string& filename)
+OptionError write_options(const std::string& filename)
 \end{lstlisting}
 
 Writes the options tree out to the XML file \lstinline+filename+.
+
+Returns error code \lstinline+SPUD_FILE_ERROR+ if the file does not exist or cannot be written.
 
 \subsection{get\_child\_name}
 
@@ -747,9 +736,9 @@ subroutine get_child_name(key, index, child_name)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_get_child_name(const char* key, const int* key_len,
-  const int* index,
-  char* child_name, const int* child_name_len)
+int spud_get_child_name(const char* key, const int key_len,
+  const int index,
+  char* child_name, const int child_name_len)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -764,26 +753,28 @@ is mostly useful for debugging input files.
 Returns error code \lstinline+SPUD_KEY_ERROR+ if the supplied key does not
 exist in the options tree.
 
-\subsection{number\_of\_children}
+\subsection{get\_number\_of\_children}
 
 \begin{lstlisting}[language=Fortran]
-function number_of_children(key)
+function number_of_children(key, child_count)
   integer :: number_of_children
   character(len=*), intent(in) :: key
+  integer, intent(out) :: child_count
+  integer, optional, intent(out) :: stat
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_number_of_children(const char* key, const int* key_len)
+int spud_get_number_of_children(const char* key, const int key_len, int* child_count)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
-int Spud::number_of_children(const std::string& key)
+int Spud::get_number_of_children(const std::string& key, int& child_count)
 \end{lstlisting}
 
-Returns the number of children under \lstinline+key+. This is mainly of use
+On return, \lstinline+child_count+  the number of children under \lstinline+key+. This is mainly of use
 for debugging input files.
 
-Returns 0 if the specified key does not exist in the options tree.
+Returns the error code \lstinline+SPUD_KEY_ERROR+ if the specified key does not exist in the options tree.
 
 \subsection{option\_count}
 
@@ -794,7 +785,7 @@ function option_count(key)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_option_count(const char* key, const int* key_len)
+int spud_option_count(const char* key, const int key_len)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -841,7 +832,7 @@ function have_option(key)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_have_option(const char* key, const int* key_len)
+int spud_have_option(const char* key, const int key_len)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -862,7 +853,7 @@ function option_type(key, stat) result (type)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_get_option_type(const char* key, const int* key_len, int* type)
+int spud_get_option_type(const char* key, const int key_len, int* type)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -886,7 +877,7 @@ function option_rank(key, stat) result (rank)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_get_option_rank(const char* key, const int* key_len, int* rank)
+int spud_get_option_rank(const char* key, const int key_len, int* rank)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -910,7 +901,7 @@ function option_shape(key, stat) result (lshape)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_get_option_shape(const char* key, const int* key_len, int* shape)
+int spud_get_option_shape(const char* key, const int key_len, int* shape)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -937,7 +928,7 @@ subroutine get_option(key, val, stat, default)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C,emph=option_type,emphstyle=\textit]
-int cspud_get_option(const char* key, const int* key_len, void* val)
+int spud_get_option(const char* key, const int key_len, void* val)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++,emph=option_type,emphstyle=\textit]
@@ -998,7 +989,7 @@ subroutine add_option(key, stat)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_add_option(const char* key, const int* key_len)
+int spud_add_option(const char* key, const int key_len)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -1019,8 +1010,8 @@ subroutine set_option(key, val, stat)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C,emph=option_type,emphstyle=\textit]
-int cspud_set_option(const char* key, const int* key_len, const void* val,
-const int* type, const int* rank, const int* shape)
+int spud_set_option(const char* key, const int key_len, const void* val,
+const int type, const int rank, const int* shape)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++,emph=option_type,emphstyle=\textit]
@@ -1052,8 +1043,8 @@ subroutine set_option_attribute(key, val, stat)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int int cspud_set_option_attribute(const char* key, const int* key_len,
-const char* val, const int* val_len)
+int int spud_set_option_attribute(const char* key, const int key_len,
+const char* val, const int val_len)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -1088,7 +1079,7 @@ subroutine delete_option(key, stat)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_delete_option(const char* key, const int* key_len)
+int spud_delete_option(const char* key, const int key_len)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -1110,7 +1101,7 @@ subroutine move_option(key1, key2, stat)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_move_option(const char* key1, const int* key1_len, const char* key2, const int* key2_len)
+int spud_move_option(const char* key1, const int key1_len, const char* key2, const int key2_len)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -1129,7 +1120,7 @@ subroutine copy_option(key1, key2, stat)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-int cspud_copy_option(const char* key1, const int* key1_len, const char* key2, const int* key2_len)
+int spud_copy_option(const char* key1, const int key1_len, const char* key2, const int key2_len)
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]
@@ -1145,7 +1136,7 @@ subroutine print_options()
 \end{lstlisting}
 
 \begin{lstlisting}[language=C]
-void cspud_print_options()
+void spud_print_options()
 \end{lstlisting}
 
 \begin{lstlisting}[language=C++]

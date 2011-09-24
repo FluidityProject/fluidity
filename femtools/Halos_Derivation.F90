@@ -56,7 +56,7 @@ module halos_derivation
   public :: invert_comms_sizes, ele_owner
   
   interface derive_l1_from_l2_halo
-    module procedure derive_l1_from_l2_halo_mesh, derive_l1_from_l2_halo_halo
+    module procedure derive_l1_from_l2_halo_mesh
   end interface
   
   interface derive_element_halos_from_l2_halo
@@ -81,7 +81,7 @@ contains
     assert(.not. has_references(mesh%halos(1)))
     assert(has_references(mesh%halos(2)))
     
-    mesh%halos(1) = derive_l1_from_l2_halo(mesh, mesh%halos(2), &
+    mesh%halos(1) = derive_l1_from_l2_halo_halo(mesh, mesh%halos(2), &
       & ordering_scheme = ordering_scheme, create_caches = create_caches)
     
   end subroutine derive_l1_from_l2_halo_mesh

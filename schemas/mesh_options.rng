@@ -55,9 +55,16 @@ surface or region IDs.</a:documentation>
             <optional>
               <element name="element_type">
                 <element name="string_value">
+                  <a:documentation>Select the element type. "lagrangian" means the usual
+Pn element type. "bubble" adds bubble functions that
+vanish on the element boundaries, and
+trace defines an element that is only defined on faces
+and is undefined on the element interior (used for 
+enforcing continuity by Lagrange multipliers).</a:documentation>
                   <choice>
                     <value>lagrangian</value>
                     <value>bubble</value>
+                    <value>trace</value>
                   </choice>
                 </element>
               </element>
@@ -71,6 +78,26 @@ surface or region IDs.</a:documentation>
                 <value>continuous</value>
                 <value>discontinuous</value>
               </choice>
+            </element>
+          </element>
+        </optional>
+        <optional>
+          <element name="constraint_type">
+            <element name="string_value">
+              <a:documentation>Set the constraint type. This is used to implement
+div-conforming elements such as RT0 in a hybridised
+solver.</a:documentation>
+              <choice>
+                <value>BDM</value>
+                <value>BDFM</value>
+                <value>RT</value>
+              </choice>
+            </element>
+            <element name="solver">
+              <ref name="linear_solver_options_sym">
+                <a:documentation>Solver is used to apply projections to div-conforming
+space, and in elliptic solvers</a:documentation>
+              </ref>
             </element>
           </element>
         </optional>

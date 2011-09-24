@@ -559,7 +559,7 @@ contains
     output_option_path=trim(complete_field_path(field%option_path))//'/output'
 
     if (is_old_field) then
-      include_vector_field_in_vtu=have_option(trim(output_option_path)//'/include_previous_time_step')
+     include_vector_field_in_vtu=have_option(trim(output_option_path)//'/include_previous_time_step')
     else if (is_nonlinear_field) then
       include_vector_field_in_vtu=have_option(trim(output_option_path)//'/include_nonlinear_field')
     else if (is_iterated_field) then

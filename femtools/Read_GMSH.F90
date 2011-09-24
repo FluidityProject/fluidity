@@ -702,7 +702,7 @@ contains
     character(len=longStringLen) :: charBuf
     character :: newlineChar
     integer :: numEdges, numTriangles, numQuads, numTets, numHexes
-    integer :: numFaces, faceType
+    integer :: numFaces, faceType, numElements, elementType
     integer :: e, i, numLocNodes, tmp1, tmp2, tmp3
     integer :: groupType, groupElems, groupTags
 
@@ -834,25 +834,34 @@ contains
     !   tet/hex, tet/quad, triangle/hex and triangle/quad
 
     if (numTets .gt. 0) then
+       numElements = numTets
+       elementType = 4
        numFaces = numTriangles
        faceType = 2
 
     elseif (numTriangles .gt. 0) then
+       numElements = numTriangles
+       elementType = 2
        numFaces = numEdges
        faceType = 1
 
     elseif (numHexes .gt. 0) then
+       numElements = numHexes
+       elementType = 5
        numFaces = numQuads
        faceType = 3
 
     elseif (numQuads .gt. 0) then
+       numElements = numQuads
+       elementType = 3
        numFaces = numEdges
        faceType = 1
     else
        FLExit("Unsupported mixture of face/element types")
     end if
 
-    call copy_to_faces_and_elements( allElements, elements, &
+    call copy_to_faces_and_elements( allElements, &
+         elements, numElements, elementType, &
          faces, numFaces, faceType )
 
 
@@ -869,16 +878,15 @@ contains
   ! This copies elements from allElements(:) to elements(:) and faces(:),
   ! depending upon the element type definition of faces.
 
-  subroutine copy_to_faces_and_elements( allElements, elements, &
+  subroutine copy_to_faces_and_elements( allElements, &
+       elements, numElements, elementType, &
        faces, numFaces, faceType )
 
     type(GMSHelement), pointer :: allElements(:), elements(:), faces(:)
-    integer :: numFaces, faceType
+    integer :: numElements, elementType, numFaces, faceType
 
-    integer :: numElements, elementType
+    integer :: allelementType
     integer :: e, fIndex, eIndex, numTags, numNodeIDs
-
-    numElements = size(allElements) - numFaces
 
     allocate( elements(numElements) )
     allocate( faces(numFaces) )
@@ -889,12 +897,12 @@ contains
     ! Copy element data across. Only array pointers are copied, which
     ! is why we don't deallocate nodeIDs(:), etc.
     do e=1, size(allElements)
-       elementType = allElements(e)%type
+       allelementType = allElements(e)%type
 
        numTags = allElements(e)%numTags
        numNodeIDs = size(allElements(e)%nodeIDs)
 
-       if(elementType .eq. faceType) then
+       if(allelementType .eq. faceType) then
 
           faces(fIndex) = allElements(e)
 
@@ -904,7 +912,7 @@ contains
           faces(fIndex)%nodeIDs = allElements(e)%nodeIDs
 
           fIndex = fIndex+1
-       else
+       else if (allelementType .eq. elementType) then
 
           elements(eIndex) = allElements(e)
 

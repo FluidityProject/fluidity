@@ -18,7 +18,7 @@ freesurface_error_p1dgp2 = max(abs(stat("sloshing_tank_p1dgp2.stat")["water"]["F
   </variables>
   <pass_tests>
     <test name="area conservation error" language="python">assert(area_cons_error_p1p1 &lt; 2.E-13)
-assert(area_cons_error_p1dgp2 &lt; 1.E-12)</test>
+assert(area_cons_error_p1dgp2 &lt; 1.1E-12)</test>
     <test name="FreeSurface_Error" language="python">assert(freesurface_error_p1p1 &lt; 1.E-3)
 assert(freesurface_error_p1dgp2 &lt; 1.E-4)</test>
   </pass_tests>

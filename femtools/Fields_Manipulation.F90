@@ -50,7 +50,7 @@ implicit none
   public :: addto, zero, set_from_function, set, set_all, &
     & set_from_python_function, remap_field, remap_field_to_surface, &
     & set_to_submesh, set_from_submesh, scale, bound, invert, &
-    & absolute_value, inner_product, cross_product, clone_header
+    & absolute_value, inner_product, cross_prod, clone_header
   public :: piecewise_constant_field, piecewise_constant_mesh
   public :: renumber_positions, renumber_positions_trailing_receives, &
     & renumber_positions_elements, &
@@ -161,9 +161,11 @@ implicit none
         inner_product_field_field
   end interface inner_product
   
-  interface cross_product
+  !  This is named cross_prod rather than cross_product to avoid a name
+  !  clash with various cross_product functions (this one is a subroutine).
+  interface cross_prod
      module procedure cross_product_vector
-  end interface cross_product
+  end interface cross_prod
 
   interface clone_header
     module procedure clone_header_scalar, clone_header_vector, clone_header_tensor
@@ -197,33 +199,35 @@ implicit none
     
   contains
 
-  subroutine tensor_second_invariant(source_field,s_field)
-      !!< This routine computes the second invariant of an infield tensor field
-      type(tensor_field), intent(in):: source_field
-      type(scalar_field), intent(inout) :: s_field
+  subroutine tensor_second_invariant(t_field,second_invariant)
+      !!< This routine computes the second invariant of an infield tensor field t_field.
+      !!< Note - currently assumes that tensor field t_field is symmetric.
+      type(tensor_field), intent(in):: t_field
+      type(scalar_field), intent(inout) :: second_invariant
 
-      real, dimension(source_field%dim(1)) :: evals
-      real, dimension(source_field%dim(1), source_field%dim(2)) :: evecs
-      real, dimension(3) :: v
+      type(tensor_field) :: t_field_local
 
-      real :: s
-      integer :: node, dimen
+      integer :: node, dim1, dim2
+      real :: val
 
-      v = 0.0
+      ! Remap t_field to second invariant mesh if required:
+      call allocate(t_field_local, second_invariant%mesh, "LocalTensorField")  
+      call remap_field(t_field, t_field_local)
 
-      ! Making sure the second invariant gets evaluated over the whole mesh
-      do node=1,node_count(s_field)
-             call eigendecomposition_symmetric(node_val(source_field, node), evecs, evals)
-             do dimen=1,source_field%dim(1)
-               v(dimen)=evals(dimen)
-             end do
-             s = -(v(1)*v(2) + v(2)*v(3) + v(3)*v(1))
-             call set(s_field, node, s)
+      do node = 1, node_count(second_invariant)
+         val = 0.
+         do dim1 = 1, t_field_local%dim(1)
+            do dim2 = 1, t_field_local%dim(2) 
+               val = val + node_val(t_field_local,dim1,dim2,node)**2
+            end do
+         end do
+         call set(second_invariant,node,sqrt(val/2.))
       end do
 
+      call deallocate(t_field_local)
+               
   end subroutine tensor_second_invariant
 
-  
   subroutine zero_scalar(field)
     !!< Set all entries in the field provided to 0.0
     type(scalar_field), intent(inout) :: field
@@ -656,7 +660,7 @@ implicit none
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
        
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,:)
+             field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,:)
           end do
 
        else
@@ -672,28 +676,28 @@ implicit none
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
        
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val(1)*lfield2%val(i,1)
+             field1%val(i,:)=field1%val(i,:)+lscale%val(1)*lfield2%val(i,1)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_NORMAL) .and. &
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
 
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val(1)*lfield2%val(i,:)
+             field1%val(i,:)=field1%val(i,:)+lscale%val(1)*lfield2%val(i,:)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_CONSTANT) .and. &
             (lscale%field_type==FIELD_TYPE_NORMAL)) then
 
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,1)
+             field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,1)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_NORMAL) .and. &
             (lscale%field_type==FIELD_TYPE_NORMAL)) then
 
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,:)
+             field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,:)
           end do
 
        else

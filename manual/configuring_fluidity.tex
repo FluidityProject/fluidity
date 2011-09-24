@@ -261,7 +261,7 @@ Contains additional options for handling stat files, for example outputting
 a stat file at the start (timestep zero) and outputting stat data before and
 after an adapt.
 
-There are futher options under individual fields, for example to exclude data from the stat file.
+There are further options under individual fields, for example to exclude data from the stat file.
 
 \subsubsection{Detectors}
 \index{detectors!options}
@@ -409,7 +409,7 @@ iteration. Finally, a desired $\Delta T$ can be calculated at the first time ite
 switching on the option: \option{\ldots/at\_first\_timestep}
 
 \subsubsection{Steady state}
-It is possible to run fludity until it converges to a steady state; this is sometimes useful for initialising a problem. In order to do this, switch on \option{/timestepping/steady\_state} and set a tolerance. 
+It is possible to run \fluidity until it converges to a steady state; this is sometimes useful for initialising a problem. In order to do this, switch on \option{/timestepping/steady\_state} and set a tolerance. 
 
 \subsection{Physical parameters}
 These options control global physical quantities.
@@ -606,7 +606,7 @@ def val(X,t):
 
 Meshes that are required to be periodic can now be derived from this
 periodic mesh. Note that the periodic mesh must be directly derived from the
-mesh which has been read \option{from\_file}. It is not possibe to derive a
+mesh which has been read \option{from\_file}. It is not possible to derive a
 periodic mesh from a \option{from\_mesh}\ mesh.
 
 \subsubsection{Extruded meshes}\label{Sect:extruded}
@@ -823,7 +823,7 @@ def val(X,t):
     vector field about the origin.}
 \end{example}
 
-\subsubsection{Reading fields from a file}
+\subsubsection{Reading fields from a file (using the \option{from\_file} option)}
 \index{field!input}
 A field can be populated using saved data from a file. This is intended primarily
 for picking up prescribed fields from previously run prognostic simulations
@@ -841,6 +841,14 @@ The file mesh must match the mesh of this field (except for piecewise constant
 fields which will be remapped back from the discontinuous nodal values). In
 parallel the process number is appended to the filename, e.g. if the file name
 attribute is set to \option{input.vtu}, process 0 reads from \option{input-0.vtu}.
+
+\subsubsection{Setting an initial condition from a NetCDF file}\label{Sect:setting_from_netcdf}
+
+The initial state of certain fields can be set from external data contained within a NetCDF file.
+This functionality can be used by selecting the \option{\ldots/initial\_condition/from\_netcdf/format}
+option. This feature is currently intended for setting, for example, the initial free surface elevation
+in a Tsunami simulation. This option will not currently work with multi-layered data files. Supported
+NetCDF file conventions include the NetCDF-CF 1.x convention.
 
 \subsubsection{Setting fields from NEMO data}\label{Sect:setting_from_nemo}
 \index{field!from Nemo}
@@ -893,7 +901,7 @@ continuity which must be employed. In addition, the \onlypdf\linebreak
 \option{conservative\_advection} option is applicable to all discretisation
 types. See chapter \ref{chap:numerical_discretisation} for details.
 
-For each field, the spatial discretisations can be selcted using
+For each field, the spatial discretisations can be selected using
 \option{\ldots/prognostic/spatial\_discretisation}.  Once selected a number
 of other options will open underneath this option.
 
@@ -1115,7 +1123,7 @@ may be stress free outflow or the presence of a free surface.
 \index{conjugate gradient}
 \index{multigrid}
 \index{PETSc}
-As described in Section \ref{ND_Linear_solvers}, for the solution of large sparse linear systems, the so called iterative methods are usually employed. These methods avoid having to explicitly construct the inverse of the matrix, which is generally dense and therefore costly to compute (both in memory and computer time). FLUIDITY is linked to PETSc: a suite of data structures and routines for the scalable (parallel) solution of scientific applications modeled by partial differential equations.  It employs the MPI standard for parallelism. FLUIDITY therefore supports any iterative method provided by the PETSc library (http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html --- available methods may depend on the PETSc library installed on your system). Examples include Conjugate Gradient (CG), GMRES and FGMRES (Flexible GMRES). Some options are explicitly listed under \option{solver/iterative\_method}, for example CG: \option{solver/iterative\_method::cg}, whereas others can be selected entering the name of the chosen scheme in \option{solver/iterative\_method}.
+As described in Section \ref{ND_Linear_solvers}, for the solution of large sparse linear systems, the so called iterative methods are usually employed. These methods avoid having to explicitly construct the inverse of the matrix, which is generally dense and therefore costly to compute (both in memory and computer time). FLUIDITY is linked to PETSc: a suite of data structures and routines for the scalable (parallel) solution of scientific applications modelled by partial differential equations.  It employs the MPI standard for parallelism. FLUIDITY therefore supports any iterative method provided by the PETSc library (http://www-unix.mcs.anl.gov/petsc/petsc-2/snapshots/petsc-dev/docs/manualpages/KSP/KSPType.html --- available methods may depend on the PETSc library installed on your system). Examples include Conjugate Gradient (CG), GMRES and FGMRES (Flexible GMRES). Some options are explicitly listed under \option{solver/iterative\_method}, for example CG: \option{solver/iterative\_method::cg}, whereas others can be selected entering the name of the chosen scheme in \option{solver/iterative\_method}.
 
 \subsection{Preconditioner}
 \index{linear solvers!preconditioners}
@@ -1166,7 +1174,7 @@ A bandwidth reduction algorithm --- reverse Cuthill-McKee reordering --- is used
 
 \subsection{Solver Diagnostics}
 
-This subsection includeds a series of extra diagnostic options to help debug solver problems. 
+This subsection includes a series of extra diagnostic options to help debug solver problems. 
 
 \subsubsection{Print norms}
 Print out the norm of vectors and matrices before the solve, and that of the solution vector afterwards. Norms are printed at verbosity level 2, so run \fluidity\ with -v2 or -v3.
@@ -1368,7 +1376,7 @@ can be added, separated by a space.
 
 \subsection{Boundary condition types}\label{Sect:BCs:types}
 \index{boundary conditions!setting}
-\fluidity\ supports a wide range of boundary coditions which will be introduced in the next sections.
+\fluidity\ supports a wide range of boundary conditions which will be introduced in the next sections.
 
 \subsubsection{Dirichlet}
 \index{boundary conditions!Dirichlet}
@@ -1409,6 +1417,14 @@ velocity and temperature are required. More information can be found in section 
 \index{boundary conditions!zero flux}
 
 For control volume discretisations only this options prevents the field fluxing from the boundary.
+
+\subsubsection{Flux}
+\index{boundary conditions!flux}
+
+For control volume discretisations only, this option allows a given flux $h$ of field $c$ through the boundary. In other words, we have
+\begin{equation*}
+   \frac{\partial c}{\partial t} = h
+\end{equation*}
 
 \subsubsection{Free surface}
 \index{boundary conditions!free surface}
@@ -1478,11 +1494,11 @@ with the amplitude and phase names (as specified in the NetCDF file) set under:
 \item \option{\ldots/tidal/variable\_name\_amplitude},
 \item \option{\ldots/tidal/variable\_name\_phase}
 \end{itemize}
-respectively. Finally, the constituet should be selected from the list under:
+respectively. Finally, the constituent should be selected from the list under:
 \begin{itemize}
 \item \option{\ldots/tidal/name}.
 \end{itemize}
-A separate tidal boundary consition needs to be set for each constituent.
+A separate tidal boundary condition needs to be set for each constituent.
 
 \index{boundary conditions!NEMO data}
 \option{\ldots/NEMO\_data} will set the field according to a specified NEMO
@@ -1578,7 +1594,7 @@ under:
 \end{itemize}
 (see \citealp{Wells2008} for descriptions of
 the different constituents). These can be switched either
-individually or in combination. In addition, a body tide correction can be stipluated
+individually or in combination. In addition, a body tide correction can be stipulated
 under:
 \begin{itemize}
 \item \option{\ldots/tidal\_forcing/love\_number},
@@ -1632,7 +1648,7 @@ biology.pznd(state, p)
   \caption{A Python function that imports the biology module and sets the algorithm to use.}
 \end{example}
 
-The final thing to change is to add absorption coefficients in the photsynthetic radiation field for water and plankton concentration.
+The final thing to change is to add absorption coefficients in the photosynthetic radiation field for water and plankton concentration.
 
 \section{Sediment model}
 \label{config:sediments}
@@ -1894,7 +1910,7 @@ method is set and if that field should be considered when creating the error met
 
 For each field present in the simulation there are up to two options that should be set. The first
 is the interpolation method that should be used to transfer the values of a field from the old to the new mesh.
-Second, in order to form the error metic by which the mesh is adapted, the user must set which fields
+Second, in order to form the error metric by which the mesh is adapted, the user must set which fields
 should form the error metric and how the error for that field should be calculated.
 
 \subsubsection{Interpolation method} \label{sec:config_adapt_interp}
@@ -1902,7 +1918,7 @@ should form the error metric and how the error for that field should be calculat
 For each prognostic field in the current state, an interpolation type must be set. These can be set by selecting an
 option \option{\ldots/prognostic/<interpolation type>} where \texttt{<interpolation type>} is one of:
 \begin{itemize}
-\item Consistent interpolation - the default and quick inteprolation method, but is non-conservative and dissipative.
+\item Consistent interpolation - the default and quick interpolation method, but is non-conservative and dissipative.
 \item Pseudo-consistent interpolation - not recommended at present.
 \item Galerkin interpolation - Conservative and non-dissipative, but requires the construction of a supermesh \citep{farrell2009a,farrell2010a}
 \item Grandy interpolation - Conservative, but highly diffusive. See \citet{grandy1999}.
@@ -1910,8 +1926,8 @@ option \option{\ldots/prognostic/<interpolation type>} where \texttt{<interpolat
 
 For some fields, such as Pressure and Velocity other interpolation methods are available.
 
-For diagnostic and prescribed fields an inteprolation method is not required. However, if an output dump
-occurs immeadiately following a mesh adapt, diagnostic fields may not have correct values depending
+For diagnostic and prescribed fields an interpolation method is not required. However, if an output dump
+occurs immediately following a mesh adapt, diagnostic fields may not have correct values depending
 on the method by which they are calculated. In these instances, it is worth setting an interpolation type
 for these fields which will ensure that the values are set correctly before an output dump occurs.
 
@@ -1940,7 +1956,7 @@ again with an optional tolerance:\\
 
 The second step for configuring adaptivity is to set up the fields that are to form the error metric used
 to adapt the mesh. For each field that should be considered when forming the metric the option
-\option{\ldots/adaptivity\_options} needs to be enabled. The error bound is set as seperate fields within 
+\option{\ldots/adaptivity\_options} needs to be enabled. The error bound is set as separate fields within 
 state, so for Temperature, for example, the acceptable error is stored an a field called 
 TemperatureInterpolationErrorBound. There are two methods available for calculating the error, absolute and relative.
 Both have similar options in which the InterpolationErrorBound field can be set as with any other prescribed field.
@@ -1949,7 +1965,7 @@ is output as any other field too.
 
 For relative interpolation error bounds a tolerance value also has to be set under \newline
 \option{\ldots/adaptivity\_options/relative\_measure/tolerance}. This value prevents division by zero
-and should be set to a small enough number that the field can effecivtly be considered zero at this value.
+and should be set to a small enough number that the field can effectively be considered zero at this value.
 
 \subsection{General adaptivity options}
 \label{sect:configuring_fluidity_adaptivity_options}
@@ -1978,13 +1994,9 @@ In addition to these mandatory settings, there are a number of other configurati
 
 \section{Multiple material/phase models} \label{sec:config_multimatph}
 
-This section contains advice on setting up simulations with multiple material\_phase options.  This enables related fields to be grouped together into related materials or phases.  For example a prognostic scalar field in one material\_phase will be advected using the Velocity from that material\_phase while a prognostic scalar field in another material\_phase will be advected according to the Velocity in its material\_phase.
+This section contains advice on setting up simulations with multiple material\_phase options.  This enables related fields to be grouped together into related materials or phases.  For example a prognostic scalar field in one material\_phase will be advected using the Velocity field from that material\_phase, while a prognostic scalar field in another material\_phase will be advected according to the Velocity field in its material\_phase.
 
 We refer to two typical scenarios: a \emph{multiple material} model and a \emph{multiple phase} model. A multiple phase model is one in which the Velocity field in each material\_phase is in some way independent of the velocities in the other material\_phases.  This means that scalar fields (for example phase volume fractions) in each material\_phase are advected independently.  A multiple material model is one in which the Velocity field is shared between all material\_phases so that all scalar fields are advected similarly.
-
-\subsection{Multiple phase models}
-
-It is not currently possible to model problems with multiple prognostic velocity fields although the options system has been designed with this in mind for the future.
 
 \subsection{Multiple material models}
 
@@ -1992,8 +2004,8 @@ Models with a single prognostic velocity field that is shared between material\_
 
 In a multiple material simulation each material\_phase requires:
 \begin{itemize}
-\item an equation of state
-\item a MaterialVolumeFraction scalar field
+\item an equation of state, and
+\item a MaterialVolumeFraction scalar field.
 \end{itemize}
 
 The equation of state provides the density properties of the material described in the current material\_phase.  For incompressible simulations a linear equation of state is used, which only requires a reference density:\\
@@ -2041,6 +2053,53 @@ In addition to the density the volume fractions may be used to specify a bulk Vi
 \end{equation}
 where $\tensor{\mu}$ is the bulk viscosity and $\tensor{\mu}^i$ is the individual material's viscosity.  To use this it is necessary to activate a MaterialViscosity field in every material\_phase with a nonzero viscosity.  Additionally the Viscosity field underneath the prognostic Velocity must be activated and set to the \option{bulk\_viscosity} diagnostic algorithm.
 
+\subsection{Multiple phase models}
+Models with one prognostic velocity field per \option{material\_phase} are referred to as multiple phase models. The use of these multiple velocity fields permits the inter-penetration and interaction between different phases.
+
+\subsubsection{Simulation requirements}
+In a multi-phase simulation, each \option{material\_phase} requires:
+\begin{itemize}
+ \item an equation of state, and
+ \item a PhaseVolumeFraction scalar field.
+\end{itemize}
+
+As per multi-material simulations, the equation of state provides the density properties of the phase described in the current \option{material\_phase}. For incompressible simulations a linear equation of state is used, which only requires a reference density:\\
+\option{\ldots/equation\_of\_state/fluids/linear/reference\_density}\\
+to be set.
+
+For an $N$ phase problem, $N$ material\_phases are required and hence $N$ PhaseVolumeFractions, $\alpha_i, i = 1, \ldots, N$, and $N$ equations of state. Just as in multi-material simulations, only $N-1$ of the PhaseVolumeFraction fields, $\alpha_i, i = 1, \ldots, N-1$, need be prognostic. The final PhaseVolumeFraction field, $\alpha_N$, should always be set to \option{diagnostic}, as it can be recovered using the internal algorithm:
+\begin{equation}
+\alpha_N = 1 - \sum_{i=1}^{N-1}\alpha_i\textrm{.}
+\end{equation}
+
+\subsubsection{Inter-phase interactions}
+Inter-phase interactions can be included under \option{../multiphase\_properties} in Diamond. Currently, \fluidity\ only supports fluid-particle drag between the continuous phase and dispersed phase(s), given by:
+\begin{equation}\label{eq:multiphase_drag_term}
+\mathbf{F}_D = \frac{3\ \alpha_p\ C_D\ \alpha_f\ \rho_f\ |\mathbf{u}_f-\mathbf{u}_p|\ (\mathbf{u}_f-\mathbf{u}_p)}{4\ d},
+\end{equation}
+where $f$ and $p$ denote the fluid (i.e. continuous) and particle (i.e. dispersed) phases respectively, and $d$ is the diameter of a single particle in the dispersed phase. The drag coefficient $C_D$ is defined as:
+\begin{equation}\label{eq:drag_coefficient}
+C_D = \frac{24}{\mathrm{Re}},
+\end{equation}
+with
+\begin{equation}\label{eq:particle_reynolds_number}
+\mathrm{Re} = \frac{\alpha_f\ \rho_f\ d\ |\mathbf{u}_f-\mathbf{u}_p|}{\mu_f}.
+\end{equation}
+Note that $\mu_f$ denotes the isotropic viscosity of the fluid (i.e. continuous) phase.
+
+Within a dispersed phase, entering a value for $d$ in the \option{../multiphase\_properties/particle\_diameter} option enables fluid-particle interaction between itself and the continuous phase.
+
+\subsubsection{Current limitations}
+\begin{itemize}
+ \item Boussinesq and fully compressible multi-phase simulations are not yet supported.
+ \item The momentum equation for each \option{material\_phase} can only be discretised in non-conservative form.
+ \item \option{bassi\_rebay} and \option{compact\_discontinuous\_galerkin} are currently the only DG viscosity schemes available for multi-phase flow simulations.
+ \item Discontinuous \option{PhaseVolumeFraction} fields are not yet supported.
+ \item The Pressure field only supports a continuous Galerkin discretisation.
+ \item Prescribed velocity fields cannot yet be used in multi-phase simulations.
+ \item Fluid-particle drag can currently only support one continuous (i.e. fluid) phase.
+\end{itemize}
+
 
 \section{Compressible fluid model}
 \index{compressible fluid model}
@@ -2055,7 +2114,7 @@ This section contains advice for running a compressible simulation, by describin
 \begin{itemize}
 \item The value for the atmospheric pressure can be added by switching on \option{\ldots/atmospheric\_pressure}, otherwise a default of zero is used.
 \item A Poisson pressure equation should not be used to calculate a first guess, therefore \\* \option{\ldots/scheme/poisson\_pressure\_solution} should be set to $never$.
-\item \option{\ldots/scheme/use\_compressible\_projection\_method} shuold be selected, so the calculated pressure satisfies the continuity equation and the EOS.
+\item \option{\ldots/scheme/use\_compressible\_projection\_method} should be selected, so the calculated pressure satisfies the continuity equation and the EOS.
 \end{itemize}
 
 \subsection{Density options}

@@ -102,11 +102,10 @@ contains
           sfield => extract_scalar_field(states(p+1),f)
           field_path=sfield%option_path
 
-          if (.not. have_option(trim(field_path)//'/prognostic')) cycle
-
-          ! only prognostic fields from here:
           call populate_scalar_boundary_conditions(sfield, &
                trim(field_path)//'/prognostic/boundary_conditions', position)
+          call populate_scalar_boundary_conditions(sfield, &
+               trim(field_path)//'/diagnostic/algorithm/boundary_conditions', position)
 
        end do
 
@@ -259,7 +258,7 @@ contains
        select case(trim(bc_type))
 
        case("dirichlet", "neumann", "weakdirichlet", &
-            "buoyancy")
+            "buoyancy", "flux")
 
           call allocate(surface_field, surface_mesh, name="value")
           call insert_surface_field(field, i+1, surface_field)
@@ -641,11 +640,12 @@ contains
        do f = 1, nfields
           sfield => extract_scalar_field(states(p+1),f)
           field_path=sfield%option_path
-          if (.not. have_option(trim(field_path)//'/prognostic')) cycle
 
-          ! only prognostic fields from here:
           call set_scalar_boundary_conditions_values(states(p+1), sfield, &
                trim(field_path)//'/prognostic/boundary_conditions', &
+               position, shift_time=shift_time)
+          call set_scalar_boundary_conditions_values(states(p+1), sfield, &
+               trim(field_path)//'/diagnostic/algorithm/boundary_conditions', &
                position, shift_time=shift_time)
 
        end do
@@ -755,7 +755,7 @@ contains
        ! be constant or set from a generic or python function.
        select case(trim(bc_type))
 
-       case("dirichlet", "neumann", "weakdirichlet")
+       case("dirichlet", "neumann", "weakdirichlet", "flux")
 
           bc_type_path=trim(bc_path_i)//"/type[0]"
 

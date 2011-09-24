@@ -54,6 +54,7 @@ namespace Spud{
     SPUD_TYPE_ERROR              = 2,
     SPUD_RANK_ERROR              = 3,
     SPUD_SHAPE_ERROR             = 4,
+    SPUD_FILE_ERROR              = 5,
     SPUD_NEW_KEY_WARNING         = -1,
     SPUD_ATTR_SET_FAILED_WARNING = -2,
   };

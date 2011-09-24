@@ -46,6 +46,10 @@ implicit none
      module procedure csr_mult_T_scalar, csr_mult_T_vector_scalar, csr_mult_T_vector_vector
   end interface
 
+  interface mult_T_addto
+     module procedure csr_mult_T_addto_scalar
+  end interface
+
   interface mult_diag
      module procedure csr_diag_mult_scalar, csr_diag_mult_scalar_v
   end interface
@@ -89,8 +93,7 @@ contains
     type(scalar_field), intent(inout) :: x
     type(csr_matrix), intent(in) :: A
     type(scalar_field), intent(in) :: b
-    real, dimension(:), allocatable :: tmp,tmp1
-    real, dimension(:), pointer :: x_ptr
+    real, dimension(:), allocatable :: tmp
 
     select case(b%field_type)
     case(FIELD_TYPE_NORMAL)
@@ -495,6 +498,25 @@ contains
     
   end subroutine csr_mult_T_scalar
 
+  subroutine csr_mult_T_addto_scalar(x, A, b)
+    !!< Calculate x=A^T*b
+    type(scalar_field), intent(inout) :: x
+    type(csr_matrix), intent(in) :: A
+    type(scalar_field), intent(in) :: b
+    real, dimension(:), allocatable :: tmp
+
+    select case(b%field_type)
+    case(FIELD_TYPE_NORMAL)
+      call mult_T_addto(x%val, A, b%val)
+    case(FIELD_TYPE_CONSTANT)
+      allocate(tmp(size(x%val)))
+      tmp=b%val(1)
+      call mult_T_addto(x%val, A, tmp)
+      deallocate(tmp)
+    end select
+
+  end subroutine csr_mult_T_addto_scalar
+
   subroutine csr_mult_T_vector_scalar(x, A, b)
     !!< Calculate x=A^T*b Where b is a scalar field, A is a 1*dim block
     !!< block_csr_matrix and x is a vector field.
@@ -572,7 +594,6 @@ contains
     integer :: i,j,k1,k2,jcol,dim,ndim
     real :: entry0
     integer :: nentry0
-    logical :: addflag
 
     ewrite(1,*) 'Entering mult_div_invvector_div_T'
 
@@ -580,6 +601,8 @@ contains
 
     nentry0 = 0
     assert(size(matrix1,2)==size(matrix2,2))
+    assert(size(matrix1,1)==size(product,1))
+    assert(size(matrix2,1)==size(product,2))
     assert(blocks(matrix1,1)==blocks(matrix2,1))
     assert(blocks(matrix1,2)==blocks(matrix2,2))
     assert(blocks(matrix1,2)==vfield%dim)
@@ -591,56 +614,50 @@ contains
       FLAbort("mult_div_invvector_div_T assumes sorted rows")
     end if
 
+    ! multiplication M_ij=A_ik * D_k * B_jk
+
     do i=1, size(matrix1%sparsity,1)
        row=>row_m_ptr(matrix1, i)
 
-       if(size(row)>0) then
-          do dim = 1, ndim
-            row_val(dim)%ptr=>row_val_ptr(matrix1, 1, dim, i)
-          end do
+       do dim = 1, ndim
+         row_val(dim)%ptr=>row_val_ptr(matrix1, 1, dim, i)
+       end do
 
-          row_product=>row_m_ptr(product, i)
-          do jcol = 1, size(row_product)
-             j = row_product(jcol)
+       row_product=>row_m_ptr(product, i)
+       do jcol = 1, size(row_product)
+         j = row_product(jcol)
 
-             col=>row_m_ptr(matrix2, j)
+         col=>row_m_ptr(matrix2, j)
+         do dim = 1, ndim
+           col_val(dim)%ptr=>row_val_ptr(matrix2, 1, dim, j)
+         end do
+
+         ! to compute entry M_ij find common column indices k in rows
+         ! A_ik and B_jk - this is done by walking through them together
+         ! from left to right, where we're using that both are stored
+         ! in sorted order
+         
+         entry0=0.0
+
+         k1 = 1
+         k2 = 1
+         do while (k1<=size(row) .and. k2<=size(col))
+           if(row(k1)<col(k2)) then
+             k1 = k1 + 1
+           else if(row(k1)==col(k2)) then
              do dim = 1, ndim
-               col_val(dim)%ptr=>row_val_ptr(matrix2, 1, dim, j)
+               entry0=entry0+row_val(dim)%ptr(k1)* &
+                 col_val(dim)%ptr(k2)*node_val(vfield, dim, row(k1))
              end do
-
-             if(size(col)>0) then
-                entry0=0.0
-
-                addflag = .false.
-
-                k1 = 1
-                k2 = 1
-                do
-                   if((k1.gt.size(row)).or.(k2.gt.size(col))) exit
-                   if(row(k1)<col(k2)) then
-                      k1 = k1 + 1
-                   else
-                      if(row(k1)==col(k2)) then
-                         ! Note the transpose in the second val call.
-                         do dim = 1, ndim
-                           entry0=entry0+row_val(dim)%ptr(k1)* &
-                                col_val(dim)%ptr(k2)*node_val(vfield, dim, row(k1))
-                         end do
-                         addflag = .true.
-                         k1 = k1 + 1
-                         k2 = k2 + 1
-                      else
-                         k2 = k2 + 1
-                      end if
-                   end if
-                end do
-                if(addflag) then
-                   nentry0 = nentry0 + 1
-                   product%val(nentry0) = entry0
-                end if
-             end if
-          end do
-       end if
+             k1 = k1 + 1
+             k2 = k2 + 1
+           else
+             k2 = k2 + 1
+           end if
+         end do
+         nentry0 = nentry0 + 1
+         product%val(nentry0) = entry0
+       end do
     end do
 
   end subroutine mult_div_vector_div_T

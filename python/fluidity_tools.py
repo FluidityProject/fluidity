@@ -8,6 +8,7 @@ import fileinput
 import re
 import numpy
 from xml.dom.minidom import parseString
+from xml.dom.minidom import Document
 
 try:
   import vtktools
@@ -220,8 +221,94 @@ def getElementMeshDensity(file):
     a[i] = sum / len(eles)
   return a
 
+class stat_creator(dict):
+  """Class to create .stat files. The stat entries are defined using  
+   creator[material_phase][name][statistic] 
+   or
+   creator[name][statistic].
+
+   Constants can be added with the add_constant function.
+
+   Example:
+     from fluidity_tools import stat_creator
+     c=stat_creator("my_stat.stat")
+     c.add_constant({"time": 1.0})
+     c[('Material1', 'Speed', 'max')] = 1.0
+     c.write()
+  """
+
+  def __init__(self, filename):
+    self.filename = filename
+    self.initialised = False
+    self.constants = {}
+
+  def add_constant(self, constant):
+    if self.initialised:
+      print "Constant can only be added before the the first write() call"
+      return
+    self.constants.update(constant)
+
+  def write(self):
+    if not self.initialised:
+      f = open(self.filename, "w")
+      # Create the minidom document
+      doc = Document()
+      # Create the <header> element
+      header = doc.createElement("header")
+      doc.appendChild(header)
+      self.header = [] # We save the header for verification before every write_stat
+      # Write the constants
+      for const_k, const_v in self.constants.items():
+        const_element = doc.createElement("constant")
+        const_element.setAttribute("name", str(const_k))
+        const_element.setAttribute("type", "string")
+        const_element.setAttribute("value", str(const_v))
+        header.appendChild(const_element)
+      # Create the stat elements
+      column = 1
+      for stat in self.keys():
+        stat_element = doc.createElement("field")
+        stat_element.setAttribute("column", str(column))
+        if len(stat) == 2:
+          stat_element.setAttribute("name", stat[0])
+          stat_element.setAttribute("statistic", stat[1])
+        elif len(stat) == 3:
+          stat_element.setAttribute("material_phase", stat[0])
+          stat_element.setAttribute("name", stat[1])
+          stat_element.setAttribute("statistic", stat[2])
+        else:
+          print "Element ", stat, " must have length 2 or 3"
+          exit()
+        header.appendChild(stat_element)
+        self.header.append(stat)
+        column = column+1
+      self.initialised = True
+      try:
+            f.write(doc.toprettyxml(indent="  "))
+      finally:
+            f.close()
+      # Now call the write function again to actually write the first values
+      self.write() 
+      return
+    # Here the header is written and we only want to append data. So lets load the file in append mode 
+    f = open (self.filename, "a")
+    # Check that the dictionary and the header are consistent 
+    if set(self) != set(self.header):
+      print "Error: Columns may not change after initialisation of the stat file."
+      print "Columns you are trying to write: ", self
+      print "Columns in the header: ", self.header
+      exit()
+    output = ""
+    for stat in self.header:
+      output = output + "  " + str(self[stat])
+    output = output + "\n"  
+    try:
+          f.write(output)
+    finally:
+          f.close()
+
 class stat_parser(dict):
-    """Parse a .stat file. The resulting mapping object is a heirarchy
+    """Parse a .stat file. The resulting mapping object is a hierarchy
 of dictionaries. Most entries are of the form:
 
    parser[material_phase][field][statistic].

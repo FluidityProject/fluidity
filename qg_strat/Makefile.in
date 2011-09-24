@@ -54,6 +54,8 @@ QG_OBJS    =  qg_strat.o Qg_forward.o qg_usage.o PV_Inversion.o
 QG_STRAT=../bin/qg_strat
 BINARIES = $(QG_STRAT)
 
+qg_usage.o: ../include/qg_usage.h ../include/version.h
+
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
 
 %.o:	%.f90

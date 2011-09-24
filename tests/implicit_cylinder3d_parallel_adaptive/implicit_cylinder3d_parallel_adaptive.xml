@@ -19,7 +19,7 @@ ElapsedTime = stat_parser("Implicit_cylinder3d_parallel_adaptive.detectors")["El
 assert(abs(force-0.00799) &lt; 1e-3)
   </test>
   <test name="End time is correct." language="python">
-assert(ElapsedTime[-1] - 0.5 &lt; 1e-4)
+assert(abs(ElapsedTime[-1] - 0.5) &lt; 1e-4)
 </test>
   </pass_tests>
 </testproblem>

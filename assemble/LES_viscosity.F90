@@ -165,12 +165,12 @@ contains
     do i=1, node_count(mnu)
       ! Mesh filter ^r
       u_loc = node_val(mnu,i)
-      call outer_product(u_loc, u_loc, t_loc)
+      t_loc = outer_product(u_loc, u_loc)
       call set( ui_uj, i, t_loc )
       ! Test filter ^t
       u_loc = node_val(tnu,i)
       ! Calculate (test-filtered velocity) products: (ui^rt*uj^rt)
-      call outer_product(u_loc, u_loc, t_loc)
+      t_loc = outer_product(u_loc, u_loc)
       call set( tui_tuj, i, t_loc )
     end do
 

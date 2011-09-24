@@ -63,7 +63,7 @@ contains
       particle_radmat%particle_radmat_size%number_of_scatter_moments  = (/2/)
       particle_radmat%particle_radmat_size%number_of_physical_radmats = (/1/)
       particle_radmat%particle_radmat_size%number_of_radmats          = (/10/)
-      particle_radmat%particle_radmat_size%number_of_radmats_base     = (/1,11/)   
+      particle_radmat%particle_radmat_size%number_of_radmats_base     = (/1/)   
       particle_radmat%particle_radmat_size%size_set                   = .true.
 
       call allocate(particle_radmat)

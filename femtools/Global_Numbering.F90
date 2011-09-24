@@ -50,7 +50,8 @@ module global_numbering
   private
   
   public :: make_global_numbering_DG, make_boundary_numbering,&
-       & make_global_numbering, element_halo_communicate_visibility
+       & make_global_numbering, element_halo_communicate_visibility, &
+       & make_global_numbering_trace
 
 contains
   
@@ -141,6 +142,65 @@ contains
 
 
   end subroutine make_global_numbering_DG
+
+  subroutine make_global_numbering_trace(mesh)
+    ! Construct a global node numbering for a trace mesh
+    !
+    ! Note that this code is broken for mixed element meshes.
+    type(mesh_type), intent(inout) :: mesh
+    !
+    integer :: ele, totele, ni, ele_2, current_global_index
+    integer, pointer, dimension(:) :: neigh
+    integer :: face_1,face_2,nfaces,i,face_loc, nloc
+
+    totele = mesh%elements
+    face_loc = mesh%faces%shape%loc
+    nloc = mesh%shape%loc
+
+    !count up how many faces there are
+    nfaces = 0
+    do ele = 1, totele
+       neigh => ele_neigh(mesh,ele)
+       do ni = 1, size(neigh)
+          ele_2 = neigh(ni)
+          if(ele_2<ele) then
+             nfaces=nfaces+1
+          end if
+       end do
+    end do
+    mesh%nodes = nfaces*face_loc
+
+    !construct mesh%ndglno
+    mesh%ndglno = 0
+    current_global_index = 0
+    do ele = 1, totele
+       neigh => ele_neigh(mesh,ele)
+       do ni = 1, size(neigh)
+          ele_2 = neigh(ni)
+          if(ele_2<ele) then
+             face_1=ele_face(mesh, ele, ele_2)
+             mesh%ndglno((ele-1)*nloc+face_local_nodes(mesh,face_1))&
+                  &=current_global_index+(/(i, i=1,face_loc)/)
+             if(ele_2>0) then
+                !it's not a domain boundary
+                !not quite sure how this works in parallel
+                face_2=ele_face(mesh, ele_2, ele)
+                mesh%ndglno((ele_2-1)*nloc+face_local_nodes(mesh,face_2))&
+                     &=current_global_index+(/(i, i=1,face_loc)/)
+             end if
+             current_global_index = current_global_index + &
+                  & mesh%faces%shape%loc
+          end if
+       end do
+    end do
+    if(current_global_index /= mesh%nodes) then
+       FLAbort('bad global index count in make_global_numbering_trace')
+    end if
+    if(any(mesh%ndglno==0)) then
+       FLAbort('Failed to fully populate trace mesh ndglno')
+    end if
+
+  end subroutine make_global_numbering_trace
   
 !!$  subroutine make_global_numbering_nc &
 !!$       (new_nonods, new_ndglno, Nonods, Totele, NDGLNO) 
@@ -415,7 +475,7 @@ contains
              node_map(ele_node(j))=ndglno_val(j)
              
              if(receive_halo_level(ele_node(j)) == 0 .and. have_halos) then
-               new_send_targets(n(0),:) = copy(old_send_targets(ele_node(j),:))
+               call copy(new_send_targets(n(0),:), old_send_targets(ele_node(j),:))
              end if
           end if
        end do
@@ -461,10 +521,10 @@ contains
                    this_node_owner=max(node_owner(node), node_owner(node2))
                    if (this_node_owner==node_owner(node)) then
                       this_receive_halo_level=receive_halo_level(node)
-                      this_send_targets=copy(old_send_targets(node,:))
+                      call copy(this_send_targets, old_send_targets(node,:))
                    else
                       this_receive_halo_level=receive_halo_level(node2)
-                      this_send_targets=copy(old_send_targets(node2,:))
+                      call copy(this_send_targets,old_send_targets(node2,:))
                    end if
                    
                    ! Uncontested nodes. Nodes belong to the smallest available
@@ -545,8 +605,8 @@ contains
                       
                       if (any(this_send_targets%length/=0)) then
                          do i=1,size(ndglno_pos)
-                            new_send_targets(new_ndglno(ndglno_pos(i)),:) &
-                                 = copy(this_send_targets)
+                            call copy(new_send_targets(new_ndglno(ndglno_pos(i)),:) &
+                                 ,this_send_targets)
                          end do
                       end if
                    end if

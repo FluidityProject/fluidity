@@ -183,7 +183,7 @@ module project_metric_to_surface_module
     integer:: i
     
     ! vertical projection
-    call outer_product( down, down, pv)
+    pv = outer_product( down, down )
     
     ! ph = identity -pv
     ph=-pv

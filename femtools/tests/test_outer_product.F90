@@ -10,8 +10,7 @@ subroutine test_outer_product
 
   correct = 1.0
 
-  output = 0.0
-  call outer_product(ones, ones, output)
+  output = outer_product(ones, ones)
 
   fail = .false.
   if (any(output /= correct)) fail = .true.

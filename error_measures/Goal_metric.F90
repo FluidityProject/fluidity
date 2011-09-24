@@ -63,7 +63,8 @@ module goal_metric
       end if
 
       ! We need to find out which goal we actually want ...
-      nchild = number_of_children("/mesh_adaptivity/hr_adaptivity/goal_based_adaptivity")
+      call get_number_of_children("/mesh_adaptivity/hr_adaptivity/goal_based&
+           &_adaptivity",nchild)
       do i=0,nchild-1
         call get_child_name("/mesh_adaptivity/hr_adaptivity/goal_based_adaptivity", i, name)
         idx = index(trim(name), "tolerance")

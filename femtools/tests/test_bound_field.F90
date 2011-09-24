@@ -9,14 +9,14 @@ subroutine test_bound_field
   use reference_counting
   implicit none
 
+#ifdef HAVE_ALGENCAN
+
   type(state_type) :: state
   type(scalar_field), pointer :: galerkin_proj, ub, lb, lumped_mass, bounded_soln
   type(vector_field), pointer :: positions
   real :: old_integral, new_integral, ctol
   integer :: node
   logical :: fail
-
-#ifdef HAVE_ALGENCAN
 
   call vtk_read_state("data/bound_field.vtu", state)
 

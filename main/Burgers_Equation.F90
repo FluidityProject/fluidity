@@ -55,6 +55,9 @@
     use adjoint_functionals
     use mangle_options_tree
     use mangle_dirichlet_rows_module
+    use burgers_assembly, only: assemble_advection_matrix
+    use burgers_adjoint_controls
+    use adjoint_controls
 #ifdef HAVE_ADJOINT
     use burgers_adjoint_callbacks
     use libadjoint
@@ -63,6 +66,7 @@
     use adjoint_python
     use adjoint_global_variables
     use adjoint_main_loop, only: compute_adjoint
+    use forward_main_loop, only: register_functional_callbacks, calculate_functional_values, compute_forward
 #include "libadjoint/adj_fortran.h"
 #endif
 
@@ -73,7 +77,7 @@
 #endif
 
     type(state_type), dimension(:), pointer :: state
-    type(state_type), target :: matrices ! We collect all the cached                                                                                                                                           
+    type(state_type), target :: matrices ! We collect all the cached
                                          ! matrices in this state so that
                                          ! the adjoint callbacks can use
                                          ! them
@@ -145,6 +149,7 @@
       FLExit("Cannot run the adjoint model without having compiled fluidity --with-adjoint.")
     endif
 #else
+    call register_functional_callbacks()
     if (.not. adjoint) then
       ! disable the adjointer
       ierr = adj_set_option(adjointer, ADJ_ACTIVITY, ADJ_ACTIVITY_NOTHING)                                                                                                                                     
@@ -152,8 +157,12 @@
     end if
 #endif
     
+    timestep=0
     call populate_state(state)
+    call adjoint_load_controls(timestep, dt, state)
+#ifdef HAVE_ADJOINT
     call adjoint_register_initial_condition(state)
+#endif
 
     call insert_time_in_state(state)
 
@@ -194,9 +203,8 @@
     ! Compute the diagnostics for the initial timestep
     call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
     call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+    call adjoint_write_controls(timestep, dt, state)
 
-
-    timestep=0
     timestep_loop: do 
       timestep=timestep+1
       ewrite(1,*) "Starting timestep, current_time: ", current_time
@@ -207,12 +215,14 @@
       ! evaluate prescribed fields at time = current_time+theta*dt
       call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
       call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+theta*dt)
+      call adjoint_load_controls(timestep, dt, state)
 
       call execute_timestep(state, matrices, timestep, dt, change=change)
 
       call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
       call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
       call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+      call adjoint_write_controls(timestep, dt, state)
 
       call advance_current_time(current_time, dt)
       call insert_time_in_state(state)
@@ -228,12 +238,18 @@
         call output_state(state)
       end if
 
+#ifdef HAVE_ADJOINT
+      call calculate_functional_values(timestep-1)
+#endif
       call write_diagnostics(state, current_time, dt, timestep)
 
     end do timestep_loop
 
     ! One last dump
     call output_state(state)
+#ifdef HAVE_ADJOINT
+    call calculate_functional_values(timestep-1)
+#endif
     call write_diagnostics(state, current_time, dt, timestep)
 
     call deallocate(state)
@@ -250,6 +266,21 @@
     ! Now compute the adjoint
 #ifdef HAVE_ADJOINT
     if (adjoint) then
+
+      if (have_option("/adjoint/debug/replay_forward_run")) then
+        ! Let's run the forward model through libadjoint, too, for the craic
+        ewrite(1,*) "Entering forward computation through libadjoint"
+        call clear_options
+        call read_command_line
+        call mangle_options_tree_forward
+        call populate_state(state)
+        call check_diagnostic_dependencies(state)
+        call compute_forward(state)
+        call deallocate_transform_cache
+        call deallocate_reserve_state
+        call deallocate(state)
+      end if
+
       ewrite(1,*) "Entering adjoint computation"
       call clear_options
       call read_command_line
@@ -261,7 +292,7 @@
 
       dump_no = dump_no - 1
 
-      call compute_adjoint(state, dump_no)
+      call compute_adjoint(state, dump_no, burgers_adjoint_timestep_callback, c_loc(matrices))
 
       call deallocate_transform_cache
       call deallocate_reserve_state
@@ -310,13 +341,13 @@
       real, intent(out), optional :: change
 
       type(scalar_field) :: iterated_velocity
-      type(scalar_field) :: old_iterated_velocity, iterated_velocity_difference, stored_iterated_velocity
-      type(scalar_field) :: rhs, stored_iterated_srhs
+      type(scalar_field) :: old_iterated_velocity, iterated_velocity_difference
+      type(scalar_field) :: rhs
 
       type(csr_matrix) :: advection_matrix
       type(csr_matrix) :: lhs_matrix
 
-      type(scalar_field), pointer :: u, srhs
+      type(scalar_field), pointer :: u
       type(vector_field), pointer :: x
       type(csr_matrix), pointer :: mass_matrix, diffusion_matrix
 
@@ -325,6 +356,12 @@
       real :: nonlin_change
       logical :: adjoint
       integer :: stat
+
+      integer :: dummy_timestep
+      type(mesh_type), pointer :: mesh_ptr
+
+      mesh_ptr => extract_mesh(states(1), "VelocityMesh")
+      dummy_timestep = timestep
 
       mass_matrix => extract_csr_matrix(matrices, "MassMatrix")
       diffusion_matrix => extract_csr_matrix(matrices, "DiffusionMatrix")
@@ -359,11 +396,13 @@
         call assemble_right_hand_side(rhs, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u, state(1))
         
         call mangle_dirichlet_rows(lhs_matrix, u, keep_diag=.true., rhs=rhs)
-        call apply_dirichlet_conditions(lhs_matrix, rhs, u)
+        call set_inactive_rows(lhs_matrix, u)
 
         call set(old_iterated_velocity, iterated_velocity)
+
         call petsc_solve(iterated_velocity, lhs_matrix, rhs, &
                option_path="/material_phase::Fluid/scalar_field::Velocity/")
+        call compute_inactive_rows(iterated_velocity, lhs_matrix, rhs)
 
         call set(iterated_velocity_difference, iterated_velocity)
         call addto(iterated_velocity_difference, old_iterated_velocity, scale=-1.0)
@@ -371,9 +410,11 @@
         ewrite(1,*) "L2 norm of change in velocity: ", nonlin_change
 
         ! Tell libadjoint about the equations we are solving
+#ifdef HAVE_ADJOINT
         if (adjoint) then
           call adjoint_record_velocity(timestep, nit, states, field=iterated_velocity)
         end if
+#endif
 
         if (sig_hup .or. sig_int) then
           ewrite(1,*) "Caught signal, exiting"
@@ -398,52 +439,11 @@
       call deallocate(rhs)
       call deallocate(advection_matrix)
 
+#ifdef HAVE_ADJOINT
       call adjoint_register_timestep(timestep, dt, nit-1, states)
+#endif
 
     end subroutine execute_timestep
-
-    subroutine assemble_advection_matrix(advection_matrix, x, u_left, u_right)
-      type(csr_matrix), intent(inout) :: advection_matrix
-      type(vector_field), intent(in) :: x
-      type(scalar_field), intent(in), target :: u_left, u_right
-
-      type(scalar_field) :: nu
-      type(mesh_type), pointer :: mesh
-      integer :: ele
-      real :: itheta
-
-      call get_option(trim(u_left%option_path) // "/prognostic/temporal_discretisation/relaxation", itheta, default=0.5)
-      mesh => u_left%mesh
-      call allocate(nu, mesh, "NonlinearVelocity")
-      call set(nu, u_left)
-      call scale(nu, (1.0 - itheta))
-      call addto(nu, u_right, scale=itheta)
-      nu%option_path = u_left%option_path
-
-      call zero(advection_matrix)
-      if (.not. have_option(trim(nu%option_path) // "/prognostic/remove_advection_term")) then
-        do ele=1,ele_count(nu)
-          call assemble_advection_matrix_ele(advection_matrix, x, nu, ele)
-        end do
-      end if
-
-      call deallocate(nu)
-    end subroutine assemble_advection_matrix
-
-    subroutine assemble_advection_matrix_ele(advection_matrix, x, nu, ele)
-      type(csr_matrix), intent(inout) :: advection_matrix
-      type(vector_field), intent(in) :: x
-      type(scalar_field), intent(in) :: nu
-      integer, intent(in) :: ele
-
-      real, dimension(ele_loc(nu, ele), ele_loc(nu, ele)) :: little_advection_matrix
-      real, dimension(ele_ngi(nu, ele)) :: detwei
-      real, dimension(ele_loc(nu, ele), ele_ngi(nu, ele), x%dim) :: du_t
-
-      call transform_to_physical(x, ele, ele_shape(nu, ele), detwei=detwei, dshape=du_t)
-      little_advection_matrix = shape_vector_dot_dshape(ele_shape(nu, ele), ele_val_at_quad(nu, ele), du_t, detwei)
-      call addto(advection_matrix, ele_nodes(nu, ele), ele_nodes(nu, ele), little_advection_matrix)
-    end subroutine assemble_advection_matrix_ele
 
     subroutine assemble_left_hand_side(lhs_matrix, mass_matrix, advection_matrix, diffusion_matrix, dt, theta, u)
       type(csr_matrix), intent(inout) :: lhs_matrix
@@ -474,6 +474,7 @@
 
       type(vector_field), pointer :: x
       type(mesh_type), pointer :: mesh
+      type(csr_matrix) :: mangled_mass_matrix
 
       call zero(rhs)
 
@@ -498,14 +499,18 @@
 
       src => extract_scalar_field(state, "VelocitySource", stat=stat)
       if (stat == 0) then
-        call mult(tmp, mass_matrix, src)
+        call allocate(mangled_mass_matrix, mass_matrix%sparsity, name="MangledMassMatrix")
+        call set(mangled_mass_matrix, mass_matrix)
+        call mangle_dirichlet_rows(mangled_mass_matrix, u, keep_diag=.false.)
+        call mult(tmp, mangled_mass_matrix, src)
+        call deallocate(mangled_mass_matrix)
         call addto(rhs, tmp)
       end if
 
       call deallocate(tmp)
 
     end subroutine assemble_right_hand_side
-    
+
     subroutine advance_current_time(current_time, dt)
       implicit none
       real, intent(inout) :: current_time, dt
@@ -613,6 +618,7 @@
       call insert(matrices, mass_matrix, "MassMatrix")
       call insert(matrices, diffusion_matrix, "DiffusionMatrix")
       call insert(matrices, u%mesh, "VelocityMesh")
+      call insert(matrices, x, "Coordinate")
       call deallocate(mass_matrix)
       call deallocate(diffusion_matrix)
     end subroutine setup_matrices
@@ -655,9 +661,9 @@
       call deallocate(diffusion_matrix_T)
     end subroutine compute_matrix_transposes
 
+#ifdef HAVE_ADJOINT
     subroutine adjoint_register_initial_condition(states)
       type(state_type), dimension(:), intent(in) :: states
-#ifdef HAVE_ADJOINT
       ! Register the initial condition.
       type(adj_block) :: I
       integer :: ierr
@@ -666,21 +672,25 @@
       real :: start_time
       real :: dt
       integer :: nfunctionals, j
-      character(OPTION_PATH_LEN) :: buf, functional_name, mesh_name
-      type(adj_variable), dimension(:), allocatable :: vars
-      integer :: nmeshes
-      type(mesh_type), pointer :: mesh
+      character(OPTION_PATH_LEN) :: functional_name
       type(scalar_field), pointer :: u
-      type(adj_vector) :: mesh_vec
-      type(adj_storage_data) :: storage
+      logical :: check_transposes
+
+      if (.not. adjoint) return
+
+      check_transposes = have_option("/adjoint/debug/check_action_transposes")
 
       ierr = adj_create_block("VelocityIdentity", block=I, context=c_loc(matrices))
       call adj_chkierr(ierr)
+      ierr = adj_block_set_test_hermitian(I, check_transposes, 100, 1.0d-10)
+      call adj_chkierr(ierr)
 
-      ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=ADJ_FALSE, variable=u0)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=0, iteration=0, auxiliary=.false., variable=u0)
       call adj_chkierr(ierr)
 
       ierr = adj_create_equation(variable=u0, blocks=(/I/), targets=(/u0/), equation=equation)
+      call adj_chkierr(ierr)
+      ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
       call adj_chkierr(ierr)
 
       ierr = adj_register_equation(adjointer, equation)
@@ -706,14 +716,14 @@
         call adj_record_anything_necessary(adjointer, python_timestep=1, timestep_to_record=0, functional=trim(functional_name), states=states)
       end do
       call adjoint_record_velocity(0, 1, states)
-#endif
     end subroutine adjoint_register_initial_condition
+#endif
 
+#ifdef HAVE_ADJOINT
     subroutine adjoint_register_timestep(timestep, dt, niterations, states)
       integer, intent(in) :: timestep, niterations
       real, intent(in) :: dt
       type(state_type), dimension(:), intent(in) :: states
-#ifdef HAVE_ADJOINT
       type(adj_block) :: timestepping_block, burgers_block
       type(adj_nonlinear_block) :: burgers_advection_block, timestepping_advection_block
       integer :: ierr
@@ -721,48 +731,81 @@
       type(adj_variable) :: u, previous_u, iter_u
       real :: start_time
 
-      integer :: j, nfunctionals, nonlinear_iterations
+      integer :: j, nfunctionals
       type(adj_variable), dimension(:), allocatable :: vars
       character(len=OPTION_PATH_LEN) :: buf, functional_name
       integer :: iteration, niterations_prev
+      real :: theta
+      logical :: check_transposes, check_derivatives
+
+      check_transposes = have_option("/adjoint/debug/check_action_transposes")
+      check_derivatives = have_option("/adjoint/debug/check_action_derivative")
+
+      if (.not. adjoint) return
+
+      call get_option("/material_phase::Fluid/scalar_field::Velocity/prognostic/temporal_discretisation/theta", theta, default=0.5)
 
       do iteration=1,niterations
         ! Set up adj_variables
-        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=.false., variable=u)
         call adj_chkierr(ierr)
 
         ! We need to find out how many nonlinear iterations we did at the previous timestep, so that we can reference it
-        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=ADJ_FALSE, variable=previous_u)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=0, auxiliary=.false., variable=previous_u)
         call adj_chkierr(ierr)
         ierr = adj_iteration_count(adjointer, previous_u, niterations_prev)
         call adj_chkierr(ierr)
-        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=niterations_prev-1, auxiliary=ADJ_FALSE, variable=previous_u)
+        ierr = adj_create_variable("Fluid::Velocity", timestep=timestep-1, iteration=niterations_prev-1, auxiliary=.false., variable=previous_u)
         call adj_chkierr(ierr)
 
         if (iteration==1) then
           ! Set up adj_blocks
-          ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=burgers_advection_block)
+          ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u /), context=c_loc(matrices), coefficient=theta, nblock=burgers_advection_block)
           call adj_chkierr(ierr)
-          ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
+          ierr = adj_nonlinear_block_set_test_hermitian(burgers_advection_block, check_transposes, 100, 1.0d-10)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_derivative(burgers_advection_block, check_derivatives, 5)
+          call adj_chkierr(ierr)
+
+          ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u /), context=c_loc(matrices), coefficient=1.0-theta, nblock=timestepping_advection_block)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_hermitian(timestepping_advection_block, check_transposes, 100, 1.0d-10)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_derivative(timestepping_advection_block, check_derivatives, 5)
           call adj_chkierr(ierr)
         else 
-          ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=ADJ_FALSE, variable=iter_u) 
+          ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-2, auxiliary=.false., variable=iter_u) 
           call adj_chkierr(ierr)
-          ! Set up adj_blocks
-          ierr = adj_create_nonlinear_block("BurgersAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=burgers_advection_block)
+
+          ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), coefficient=theta, nblock=burgers_advection_block)
           call adj_chkierr(ierr)
-          ierr = adj_create_nonlinear_block("TimesteppingAdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), nblock=timestepping_advection_block)
+          ierr = adj_nonlinear_block_set_test_hermitian(burgers_advection_block, check_transposes, 100, 1.0d-10)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_derivative(burgers_advection_block, check_derivatives, 5)
+          call adj_chkierr(ierr)
+
+          ierr = adj_create_nonlinear_block("AdvectionOperator", (/ previous_u, iter_u /), context=c_loc(matrices), coefficient=1.0-theta, nblock=timestepping_advection_block)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_hermitian(timestepping_advection_block, check_transposes, 100, 1.0d-10)
+          call adj_chkierr(ierr)
+          ierr = adj_nonlinear_block_set_test_derivative(timestepping_advection_block, check_derivatives, 5)
           call adj_chkierr(ierr)
         end if
 
         ierr = adj_create_block("TimesteppingOperator", timestepping_advection_block, context=c_loc(matrices), block=timestepping_block)
         call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(timestepping_block, check_transposes, 100, 1.0d-10)
+        call adj_chkierr(ierr)
         ierr = adj_create_block("BurgersOperator", burgers_advection_block, context=c_loc(matrices), block=burgers_block)
+        call adj_chkierr(ierr)
+        ierr = adj_block_set_test_hermitian(burgers_block, check_transposes, 100, 1.0d-10)
         call adj_chkierr(ierr)
 
         ! Now we can register our lovely equation.
         ierr = adj_create_equation(u, blocks=(/timestepping_block, burgers_block/), &
                                             & targets=(/previous_u, u/), equation=equation)
+        call adj_chkierr(ierr)
+        ierr = adj_equation_set_rhs_dependencies(equation, context=c_loc(matrices))
         call adj_chkierr(ierr)
 
         ierr = adj_register_equation(adjointer, equation)
@@ -775,6 +818,10 @@
         call adj_chkierr(ierr)
         ierr = adj_destroy_block(burgers_block)
         call adj_chkierr(ierr)
+        ierr = adj_destroy_nonlinear_block(timestepping_advection_block)
+        call adj_chkierr(ierr)
+        ierr = adj_destroy_nonlinear_block(burgers_advection_block)
+        call adj_chkierr(ierr)
       end do
 
       ! Set the times and functional dependencies for this timestep
@@ -784,7 +831,7 @@
       do j=0,nfunctionals-1
         call get_option("/adjoint/functional[" // int2str(j) // "]/functional_dependencies/algorithm", buf)
         call get_option("/adjoint/functional[" // int2str(j) // "]/name", functional_name)
-        call adj_variables_from_python(buf, start_time, start_time+dt, timestep, vars)
+        call adj_variables_from_python(adjointer, buf, start_time, start_time+dt, timestep, vars)
         ierr = adj_timestep_set_functional_dependencies(adjointer, timestep=timestep-1, functional=trim(functional_name), &
                                                       & dependencies=vars)
         call adj_chkierr(ierr)
@@ -793,14 +840,14 @@
         call adj_record_anything_necessary(adjointer, python_timestep=timestep, timestep_to_record=timestep, functional=trim(functional_name), states=states)
       end do
 
-#endif
     end subroutine adjoint_register_timestep
+#endif
 
+#ifdef HAVE_ADJOINT
     subroutine adjoint_record_velocity(timestep, iteration, states, field)
       integer, intent(in) :: timestep, iteration
       type(state_type), dimension(:), intent(in) :: states
       type(scalar_field), intent(in), optional, target :: field
-#ifdef HAVE_ADJOINT
       type(adj_storage_data) :: storage
       integer :: ierr
       type(adj_vector) :: u_vec
@@ -810,7 +857,7 @@
       character(len=FIELD_NAME_LEN) :: bc_name, bc_type
       integer, dimension(:), pointer :: surface_element_list
 
-      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=ADJ_FALSE, variable=u_var)
+      ierr = adj_create_variable("Fluid::Velocity", timestep=timestep, iteration=iteration-1, auxiliary=.false., variable=u_var)
       call adj_chkierr(ierr)
 
       if (present(field)) then
@@ -828,13 +875,16 @@
       end if
       u_vec = field_to_adj_vector(u)
 
-      ierr = adj_storage_memory_copy(u_vec, storage);
+      ierr = adj_storage_memory_copy(u_vec, storage)
       call adj_chkierr(ierr)
+      ierr = adj_storage_set_overwrite(storage, .true.) ! In the earlier cases, they may not have the BCs
+      call adj_chkierr(ierr)
+
       ierr = adj_record_variable(adjointer, u_var, storage);
       call femtools_vec_destroy_proc(u_vec)
       if (ierr /= ADJ_WARN_ALREADY_RECORDED) then
         call adj_chkierr(ierr)
       end if
-#endif
     end subroutine adjoint_record_velocity
+#endif
   end program burgers_equation

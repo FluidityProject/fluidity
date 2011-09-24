@@ -33,12 +33,14 @@ module upwind_stabilisation
   use fields
   use metric_tools
   use spud
-  
+  use shape_functions
+
   implicit none
 
   private
 
-  public :: get_upwind_options, element_upwind_stabilisation, make_supg_shape
+  public :: get_upwind_options, element_upwind_stabilisation,&
+       & make_supg_shape, make_supg_element, supg_test_function
   
   integer, parameter, public :: NU_BAR_OPTIMAL = 1, &
     & NU_BAR_DOUBLY_ASYMPTOTIC = 2, NU_BAR_CRITICAL_RULE = 3, NU_BAR_UNITY = 4
@@ -333,27 +335,29 @@ contains
     
     type(element_type) :: test_function
     
-    integer :: coords, degree, dim, i, j, loc, ngi
+    integer :: coords, degree, dim, i, j, vertices, ngi
     !! This is the factor nu/||u_nl^^2||
     real, dimension(size(u_nl_q, 2)) :: nu_bar_scaled
     !! u_nl \dot dshape
     real, dimension(base_shape%loc, size(u_nl_q, 2)) :: u_nl_dn
     type(quadrature_type), pointer :: quad
+    type(ele_numbering_type), pointer :: ele_num
         
     quad => base_shape%quadrature
     
     dim = base_shape%dim
-    loc = base_shape%loc
+    vertices = base_shape%numbering%vertices
     ngi = quad%ngi
     coords = local_coord_count(base_shape)
     degree = base_shape%degree
         
     ! Step 1: Generate a new shape
-    
-    call allocate(test_function, dim = dim, loc = loc, ngi = ngi, coords = coords)
+    ele_num => &
+         &find_element_numbering(&
+         &vertices = vertices, dimension = dim, degree = degree)
+    call allocate(test_function, ele_num=ele_num,ngi=ngi)
     
     test_function%degree = degree
-    test_function%numbering => find_element_numbering(loc = loc, dimension = dim, degree = degree)
     test_function%quadrature = quad
     call incref(quad)
     
@@ -369,16 +373,74 @@ contains
     
     nu_bar_scaled = nu_bar_scaled_q(dshape, u_nl_q, j_mat, diff_q = diff_q, nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
     
-    forall(i = 1:ngi, j = 1:loc)
+    forall(i = 1:ngi, j = 1:base_shape%loc)
       u_nl_dn(j, i) = dot_product(u_nl_q(:, i), dshape(j, i, :))
     end forall
     
     ! Step 3: Generate the test function
     
-    do i = 1, loc
+    do i = 1, base_shape%loc
       test_function%n(i, :) = base_shape%n(i, :) + nu_bar_scaled * u_nl_dn(i, :)
     end do
     
   end function make_supg_shape
+
+  function make_supg_element(base_shape) result(test_function)
+    !!< Construct the SUPG volume element object. This is to be constructed
+    !!< outside the element loop so the actual values are set later.
+    
+    type(element_type), target, intent(in) :: base_shape
+    type(element_type) :: test_function
+    
+    test_function=make_element_shape(base_shape)
+
+    test_function%n = huge(0.0)    
+    test_function%dn = huge(0.0)    
+    assert(.not. associated(test_function%dn_s))
+    assert(.not. associated(test_function%n_s))
+    deallocate(test_function%spoly)
+    nullify(test_function%spoly)
+    deallocate(test_function%dspoly)
+    nullify(test_function%dspoly)
+    
+  end function make_supg_element
+
+  subroutine supg_test_function(test_function, base_shape, dshape, u_nl_q, j_mat, &
+    & diff_q, nu_bar_scheme, nu_bar_scale) 
+    !!< Construct the SUPG volume element test function. This implements
+    !!< equation 2.51 in Donea & Huerta (2003).
+    type(element_type), intent(inout) :: test_function    
+    type(element_type), target, intent(in) :: base_shape
+    !! dshape is nloc x ngi x dim
+    real, dimension(base_shape%loc, base_shape%quadrature%ngi, base_shape%dim) :: dshape
+    !! u_nl_q is dim x ngi
+    real, dimension(base_shape%dim, base_shape%quadrature%ngi), intent(in) :: u_nl_q
+    !! j_mat is dim x dim x ngi
+    real, dimension(size(u_nl_q, 1), size(u_nl_q, 1), size(u_nl_q, 2)), intent(in) :: j_mat
+    real, dimension(size(u_nl_q, 1), size(u_nl_q, 1), size(u_nl_q, 2)), optional, intent(in) :: diff_q
+    integer, optional, intent(in) :: nu_bar_scheme
+    real, optional, intent(in) ::  nu_bar_scale
+    
+    integer :: i, j
+    !! This is the factor nu/||u_nl^^2||
+    real, dimension(size(u_nl_q, 2)) :: nu_bar_scaled
+    !! u_nl \dot dshape
+    real, dimension(base_shape%loc, size(u_nl_q, 2)) :: u_nl_dn
+
+    ! Step 1: Calculate the scaled nu and u dot nabla
+    
+    nu_bar_scaled = nu_bar_scaled_q(dshape, u_nl_q, j_mat, diff_q = diff_q, nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+    
+    forall(i = 1:base_shape%quadrature%ngi, j = 1:base_shape%loc)
+      u_nl_dn(j, i) = dot_product(u_nl_q(:, i), dshape(j, i, :))
+    end forall
+    
+    ! Step 2: Generate the test function
+    
+    do i = 1, base_shape%loc
+      test_function%n(i, :) = base_shape%n(i, :) + nu_bar_scaled * u_nl_dn(i, :)
+    end do
+    
+  end subroutine supg_test_function
   
 end module upwind_stabilisation

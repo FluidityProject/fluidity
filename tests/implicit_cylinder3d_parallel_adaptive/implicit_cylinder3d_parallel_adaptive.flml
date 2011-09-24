@@ -425,6 +425,14 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <zoltan_options>
+        <load_imbalance_tolerance>
+          <real_value rank="0">1.075</real_value>
+        </load_imbalance_tolerance>
+      </zoltan_options>
+      <adapt_iterations>
+        <integer_value rank="0">4</integer_value>
+      </adapt_iterations>
     </hr_adaptivity>
   </mesh_adaptivity>
   <implicit_solids>

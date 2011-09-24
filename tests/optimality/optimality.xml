@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>Shallow Water Equation MMS</name>
+  <owner userid="pef"/>
+  <tags>swml adjoint optimisation</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line> time ../../scripts/optimality.py optimiser.oml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="control_h_error" language="python">
+from fluidity_tools import stat_parser
+from math import pi      
+import pickle
+
+pkl_file = open('control_h.pkl', 'rb')
+h = pickle.load(pkl_file)
+control_h_error = abs(h - pi)
+    </variable>
+    <variable name="control_g_error" language="python">
+from fluidity_tools import stat_parser
+from math import pi 
+import pickle
+
+pkl_file = open('control_g.pkl', 'rb')
+g = pickle.load(pkl_file)
+control_g_error = abs(g + 0.5)
+    </variable>
+    <variable name="functional_error" language="python">
+from fluidity_tools import stat_parser
+p = stat_parser("optimiser.stat")
+J = p["functional1"]["value"][-1]
+functional_error = abs(J + 0.25)
+    </variable>
+    <variable name="iterations" language="python">
+from fluidity_tools import stat_parser
+
+p = stat_parser("optimiser.stat")
+iterations = p["functional1"]["iteration"][-1]
+    </variable>
+    <variable name="functional_gradient_error" language="python">
+from fluidity_tools import stat_parser
+
+p = stat_parser("optimiser.stat")
+functional_gradient_error = max(p["functional1_gradient_error"]["convergence"])
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="functional_error_test" language="python">
+assert functional_error == 0.0
+    </test>
+    <test name="iterations_test" language="python">
+assert iterations == 2
+    </test>
+    <test name="control_h_error" language="python">
+assert control_h_error &lt; 1e-7
+    </test>
+    <test name="control_g_error" language="python">
+assert control_g_error &lt; 1e-7
+    </test>
+    <test name="functional_gradient_error_test" language="python">
+assert functional_gradient_error &gt; 1.8
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
