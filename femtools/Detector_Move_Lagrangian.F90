@@ -41,6 +41,7 @@ module detector_move_lagrangian
   use python_state
   use iso_c_binding
   use transform_elements
+  use Profiler
 
   implicit none
   
@@ -178,6 +179,7 @@ contains
     ewrite(1,*) "In move_lagrangian_detectors for detectors list: ", detector_list%name
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
+    call profiler_tic("/move_lagrangian_detectors")
 
     parameters => detector_list%move_parameters
 
@@ -324,6 +326,7 @@ contains
     ewrite(2,*) "After moving and distributing we have", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
     ewrite(1,*) "Exiting move_lagrangian_detectors"
+    call profiler_toc("/move_lagrangian_detectors")
 
   end subroutine move_lagrangian_detectors
 
@@ -601,6 +604,8 @@ contains
     real, dimension(xfield%dim) :: position, K_grad
     real, dimension(xfield%dim+1) :: lcoord
 
+    call profiler_tic("/calc_diffusive_rw")
+
     call random_number(rnd)
     rnd = (rnd * 2.0) - 1.0
     K_grad=eval_field(detector%element, grad_field, detector%local_coords)
@@ -619,6 +624,8 @@ contains
 
     displacement(:)=0.0
     displacement(xfield%dim)=K_grad(xfield%dim)*dt + rnd(1)*sqrt(6*K*dt)
+
+    call profiler_toc("/calc_diffusive_rw")
 
   end subroutine calc_diffusive_rw
 

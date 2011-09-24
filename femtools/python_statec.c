@@ -303,6 +303,9 @@ void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
    * found in dict under key. The interface is: val(ele, local_coords, dt, biovars)
    */
 
+  profiler_tic_c("/python_run_agent_biology");
+  profiler_tic_c("/python_run_agent_biology_setup");
+
   // Get a reference to the main module and global dictionary
   PyObject *pMain = PyImport_AddModule("__main__");
   PyObject *pGlobals = PyModule_GetDict(pMain);
@@ -350,6 +353,8 @@ void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
   pArgs[3] = pBiology;
   pArgs[4] = pEnvironment;
 
+  profiler_toc_c("/python_run_agent_biology_setup");
+  profiler_tic_c("/python_run_agent_biology_execute");
 
   // Run val(ele, local_coords)
   PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 5, NULL, 0, NULL, 0, NULL);
@@ -361,6 +366,9 @@ void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
     *stat=-1;
     return;
   }
+
+  profiler_toc_c("/python_run_agent_biology_execute");
+  profiler_tic_c("/python_run_agent_biology_teardown");
 
   // Convert the python result
   for(i=0; i<n_biovars; i++){
@@ -378,6 +386,9 @@ void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
   free(pArgs);
   free(local_dict);
   free(local_key);
+
+  profiler_toc_c("/python_run_agent_biology_teardown");
+  profiler_toc_c("/python_run_agent_biology");
 #endif
 }
 

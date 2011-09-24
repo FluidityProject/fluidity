@@ -148,7 +148,6 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
   # ...before updating carbon pool and chlorophyll
   if (death_flag):
     ###  state change! ###
-    print "ml805 death"
     vars[name['Stage']] = 1.0
 
     CarbonPoolNew = 0.0
@@ -170,10 +169,17 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
 
   # Ensemble update (reproduction) */
   if ((C_d) == (2.0)):
-    print "ml805 reproduction event"
     vars[name['Biomass']] = biomass_old*2
 
   # External
+  if IngAmmonium < 0.0:
+    IngAmmonium = 0.0
+  if IngNitrate < 0.0:
+    IngNitrate = 0.0
+  if IngSilicate < 0.0:
+    IngSilicate = 0.0
+  if RelAmmonium < 0.0:
+    RelAmmonium = 0.0
   vars[name['AmmoniumIng']] = IngAmmonium
   vars[name['NitrateIng']] = IngNitrate
   vars[name['SilicateIng']] = IngSilicate
@@ -226,6 +232,10 @@ def update_dead_diatom(ele, local_coord, dt, vars, name, ambientTemperature, amm
   ### Phase 3 (output and housekeeping) ###
 
   # External
+  if relAmountAmm < 0.0:
+    relAmountAmm = 0.0
+  if relAmountSi < 0.0:
+    relAmountSi = 0.0
   vars[name['AmmoniumIng']] = 0.0
   vars[name['NitrateIng']] = 0.0
   vars[name['SilicateIng']] = 0.0

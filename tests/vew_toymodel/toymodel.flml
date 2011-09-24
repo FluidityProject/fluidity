@@ -63,7 +63,10 @@
       <real_value rank="0">1800</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">63072000</real_value>
+      <real_value rank="0">5256000</real_value>
+      <comment>5256000 - 2 months
+31536000 - 1 year
+63072000 - 2 years</comment>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
@@ -78,7 +81,10 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <python>
-                  <string_value lines="20" type="python">global layerheight, read_physics_file
+                  <string_value lines="20" type="python">global calc_mu, get_spline, read_physics_file
+
+time = 0.0
+spline = None
 
 def read_physics_file(filename, t):  
   f = open(filename , 'r')
@@ -94,26 +100,38 @@ def read_physics_file(filename, t):
   f.close()
   return mld, mld_times
 
-def layerheight(t):
-    from numpy import interp
+def get_spline(t):
+  from numpy import interp, arange
+  from scipy import interpolate
+  mld, mld_times = read_physics_file("vew_tm_mld.csv", t)
+  # interpolate to correct t
+  layer = interp(t, mld_times, mld)
+
+  height = arange(0.0, 300.0, 15.0)
+  mu = [calc_mu(z, layer) for z in height]
+  tck = interpolate.splrep(height,mu)
+  return tck
     
-    mld, mld_times = read_physics_file("vew_tm_mld.csv", t)
-    # interpolate to correct t
-    layer = interp(t, mld_times, mld)
-    return layer
+def calc_mu(z, layer):
+  interfacewidth=50.0
+  if abs(z)&lt;=layer-interfacewidth:
+    mu_Z=0.05
+  elif abs(z)&lt;=layer:
+    beta=(abs(z)-(layer-interfacewidth))/interfacewidth
+    mu_Z=(1-beta)*0.05
+  else:
+    mu_Z=1e-5
+  return mu_Z
   
 def val(X,t):
-  interfacewidth=30
-  layer=layerheight(t)
-  if abs(X[0])&lt;=layer-interfacewidth:
-    mu_Z=0.03
-  elif abs(X[0])&lt;=layer:
-    beta=(abs(X[0])-(layer-interfacewidth))/interfacewidth
-    mu_Z=(1-beta)*0.03
-  else:
-    mu_Z=1e-6
-  mu=[[mu_Z]]
-  return mu</string_value>
+  from scipy import interpolate
+  global time, spline
+  if t &gt; time or spline==None:
+    time = t
+    spline = get_spline(t)
+    
+  mu = interpolate.splev(abs(X[0]), spline)
+  return [[mu]]</string_value>
                 </python>
               </anisotropic_symmetric>
             </value>

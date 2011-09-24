@@ -44,6 +44,7 @@ module lagrangian_biology
                                   write_detectors, create_single_detector
   use python_state
   use diagnostic_fields
+  use Profiler
 
 implicit none
 
@@ -383,6 +384,7 @@ contains
     integer :: i, j
 
     ewrite(1,*) "In calculate_lagrangian_biology"
+    call profiler_tic("/update_lagrangian_biology")
 
     xfield=>extract_vector_field(state(1), "Coordinate")
 
@@ -435,6 +437,8 @@ contains
        call write_detectors(state, agent_arrays(i), time, dt)
     end do
 
+    call profiler_toc("/update_lagrangian_biology")
+
   end subroutine update_lagrangian_biology
 
   subroutine calculate_agent_diagnostics(state)
@@ -446,6 +450,7 @@ contains
     integer :: i, j, n, current_fg
 
     ewrite(1,*) "In calculate_agent_diagnostics"
+    call profiler_tic("/calculate_agent_diagnostics")
 
     xfield=>extract_vector_field(state, "Coordinate")
 
@@ -502,7 +507,9 @@ contains
                 depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Depletion")
 
                 ewrite(2,*) "Galerkin projecting request field: ", trim(agent_arrays(i)%biofield_dg_name(j))
+                call profiler_tic("/lagrangian_biology_galerkin_projection")
                 call calculate_galerkin_projection(state, request_field_cg)
+                call profiler_toc("/lagrangian_biology_galerkin_projection")
 
                 do n=1, node_count(request_field_cg)
                    if (node_val(request_field_cg,n) > node_val(chemical_field,n)) then
@@ -523,7 +530,9 @@ contains
                 source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Source")
 
                 ewrite(2,*) "Galerkin projecting release field: ", trim(agent_arrays(i)%biofield_dg_name(j))
+                call profiler_tic("/lagrangian_biology_galerkin_projection")
                 call calculate_galerkin_projection(state, release_field_cg)
+                call profiler_toc("/lagrangian_biology_galerkin_projection")
 
                 do n=1, node_count(release_field_cg)
                    call set(source_field, n, node_val(release_field_cg,n))
@@ -536,6 +545,7 @@ contains
     end do
 
     ewrite(2,*) "Exiting calculate_agent_diagnostics"
+    call profiler_toc("/calculate_agent_diagnostics")
 
   end subroutine calculate_agent_diagnostics
 
@@ -558,9 +568,9 @@ contains
        value = agent%biology(biovar_id)
        ele_volume = element_volume(xfield, agent%element)
        element_nodes = ele_nodes(sfield, agent%element)
+       scaled_value = value / ele_volume
 
        do i=1, ele_loc(sfield, agent%element)
-          scaled_value = value / ele_volume
           call addto(sfield, element_nodes(i), scaled_value)
        end do
 
