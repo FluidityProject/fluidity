@@ -86,27 +86,19 @@
 time = 0.0
 spline = None
 
-def read_physics_file(filename, t):  
-  f = open(filename , 'r')
-  mld = []
-  mld_times = []
-  for line in f:
-    data = line.split(",")
-    mld_times.append(float(data[0]))
-    mld.append(float(data[1]))
-    if (mld_times[-1] &gt; t and len(mld) &gt; 2):
-      f.close()
-      return mld, mld_times
-  f.close()
-  return mld, mld_times
+if not persistent.has_key('diffusivity_mld_fh'):
+  persistent['diffusivity_mld_fh'] = open("vew_tm_mld.csv" , 'r')
 
 def get_spline(t):
-  from numpy import interp, arange
+  from numpy import arange
   from scipy import interpolate
-  mld, mld_times = read_physics_file("vew_tm_mld.csv", t)
-  # interpolate to correct t
-  layer = interp(t, mld_times, mld)
+  # read physics
+  data = persistent['diffusivity_mld_fh'].readline().split(",")
+  if not t==float(data[0]):
+    raise RuntimeError('PrescribedDiffusivity: Wrong t in read_physics: ' + data[0])
+  layer = float(data[1])
 
+  # create spline
   height = arange(0.0, 300.0, 15.0)
   mu = [calc_mu(z, layer) for z in height]
   tck = interpolate.splrep(height,mu)
@@ -147,31 +139,26 @@ def val(X,t):
           <python>
             <string_value lines="20" type="python">global layerheight, read_physics_file
 
-def read_physics_file(filename, t):  
-  f = open(filename , 'r')
-  mld = []
-  mld_times = []
-  for line in f:
-    data = line.split(",")
-    mld_times.append(float(data[0]))
-    mld.append(float(data[1]))
-    if (mld_times[-1] &gt; t and len(mld) &gt; 2):
-      f.close()
-      return mld, mld_times
-  f.close()
-  return mld, mld_times
+layer=None
+time=0.0
+
+if not persistent.has_key('velocity_mld_fh'):
+  persistent['velocity_mld_fh'] = open("vew_tm_mld.csv" , 'r')
 
 def layerheight(t):
-    from numpy import interp
-    
-    mld, mld_times = read_physics_file("vew_tm_mld.csv", t)
-    # interpolate to correct t
-    layer = interp(t, mld_times, mld)
-    return layer
+  # read physics
+  data = persistent['velocity_mld_fh'].readline().split(",")
+  if not t==float(data[0]):
+    raise RuntimeError('Velocity: Wrong t in read_physics: ' + data[0])
+  return float(data[1])
   
 def val(X,t):
-  interfacewidth=30
-  layer=layerheight(t)
+  global layer, time
+  if t &gt; time or layer==None:
+    time = t
+    layer=layerheight(t)
+    
+  interfacewidth=50.0
   if abs(X[0])&lt;=layer:
     vel_Z=0.0
   else:
@@ -193,30 +180,27 @@ def val(X,t):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">global temp, depth, read_physics_file
+            <string_value lines="20" type="python">global read_physics_file, depth_temp, time
 
-def read_physics_file(f):  
-  temp = []
-  depth = []
+def read_physics_file(f):
+  depth_temp = {}
   data = f.readline().split(",")
   time = float(data[0])
   nLayers = int(data[1])
-  depth.append(float(data[2]))
-  temp.append(float(data[3])) # temperature in column 3
+  depth_temp[float(data[2])] = float(data[3]) # temperature in column 3
   for i in range(nLayers-1):
     data = f.readline().split(",")
-    depth.append(float(data[2]))
-    temp.append(float(data[3]))
-  return temp, depth
+    depth_temp[float(data[2])] = float(data[3]) # temperature in column 3
+  return depth_temp, time
 
 if not persistent.has_key('temperature_fh'):
   persistent['temperature_fh'] = open("vew_tm_temp_irrad.csv" , 'r')
-temp, depth = read_physics_file(persistent['temperature_fh'])
+depth_temp, time = read_physics_file(persistent['temperature_fh'])
 
-def val(X,t):  
-  from numpy import interp  
-  # interpolate to correct z
-  return interp(abs(X[0]), depth, temp)</string_value>
+def val(X,t):
+  if not t==time:
+    raise RuntimeError('Temperature: Wrong t in read_physics: ' + str(time) + ' expected: ' + str(t))
+  return depth_temp[abs(X[0])]</string_value>
           </python>
         </value>
         <output/>
@@ -231,30 +215,27 @@ def val(X,t):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">global irrad, depth, read_physics_file
+            <string_value lines="20" type="python">global read_physics_file, depth_irrad, time
 
 def read_physics_file(f):  
-  irrad = []
-  depth = []
+  depth_irrad = {}
   data = f.readline().split(",")
   time = float(data[0])
   nLayers = int(data[1])
-  depth.append(float(data[2]))
-  irrad.append(float(data[4])) # irradiance in column 4
+  depth_irrad[float(data[2])] = float(data[4]) # irradiance in column 4
   for i in range(nLayers-1):
     data = f.readline().split(",")
-    depth.append(float(data[2]))
-    irrad.append(float(data[4]))
-  return irrad, depth
+    depth_irrad[float(data[2])] = float(data[4]) # irradiance in column 4
+  return depth_irrad, time
 
 if not persistent.has_key('irradiance_fh'):
   persistent['irradiance_fh'] = open("vew_tm_temp_irrad.csv" , 'r')
-irrad, depth = read_physics_file(persistent['irradiance_fh'])
+depth_irrad, time = read_physics_file(persistent['irradiance_fh'])
 
-def val(X,t):  
-  from numpy import interp  
-  # interpolate to correct z
-  return interp(abs(X[0]), depth, irrad)</string_value>
+def val(X,t):
+  if not t==time:
+    raise RuntimeError('Irradiance: Wrong t in read_physics: ' + str(time) + ' expected: ' + str(t))  
+  return depth_irrad[abs(X[0])]</string_value>
           </python>
         </value>
         <output/>
