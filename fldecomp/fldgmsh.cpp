@@ -29,7 +29,9 @@
 
 
 #include "fldecomp.h"
-
+extern "C"{
+#include "metis/metis.h"
+}
 
 // Matches element type with number of nodes.
 int elemNumNodes[] = 
@@ -40,6 +42,39 @@ int elemNumNodes[] =
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
+int reorder(const std::vector<int> &ENList, int NNodes, int NElements, int nloc, std::vector<int> &norder){
+  std::vector< std::set<int> > graph(NNodes);
+  for(int i=0;i<NElements;i++){
+    for(int j=0;j<nloc;j++){
+      for(int k=j+1;k<nloc;k++){
+        graph[ENList[i*nloc+j]-1].insert(ENList[i*nloc+k]-1);
+        graph[ENList[i*nloc+k]-1].insert(ENList[i*nloc+j]-1);
+      }
+    }
+  }
+    
+  // Compress graph
+  std::vector<int> xadj(NNodes+1), adjncy;
+  int pos=0;
+  xadj[0]=0;
+  for(int i=0;i<NNodes;i++){
+    for(typename std::set<int>::const_iterator jt=graph[i].begin();jt!=graph[i].end();jt++){
+      assert((*jt)>=0);
+      assert((*jt)<NNodes);
+      adjncy.push_back(*jt);
+      pos++;
+    }
+    xadj[i+1] = pos;
+  }
+  
+  norder.resize(NNodes);
+  std::vector<int> inorder(NNodes);
+  int numflag=0, options[] = {0};
+  
+  METIS_NodeND(&NNodes, &(xadj[0]), &(adjncy[0]), &numflag, options, &(norder[0]), &(inorder[0]));
+  
+  return 0;
+}
 
 
 // Element class to make things easier.
@@ -959,10 +994,6 @@ int decomp_gmsh( map<char, string> flArgs, bool verbose,
   // Close the GMSH file.
   gmshfile.close();
   
-
-
-
-
   vector<int> ENList, regionIds;
   ENList.resize(numElements*nloc);
   regionIds.resize(numElements);
@@ -1033,7 +1064,53 @@ int decomp_gmsh( map<char, string> flArgs, bool verbose,
   
   int edgecut=0;
 
+  if(nparts==1){
+    std::vector<int> norder;
+    reorder(ENList, numNodes, numElements, nloc, norder);
+    // random_shuffle(norder.begin(), norder.end());
 
+    // Reorder nodes.
+    int ndim = x.size()/numNodes;
+    
+    vector<double> reordered_x(x.size());
+    for(int i=0;i<numNodes;i++)
+      for(int j=0;j<ndim;j++)
+        reordered_x[norder[i]*ndim+j] = x[i*ndim+j];
+    x.swap(reordered_x); reordered_x.clear();
+    
+    // Reorder elements;
+    std::map< std::set<int>, int > reorder_elements;
+    for(int i=0;i<numElements;i++){
+      std::set<int> ele;
+      for(int j=0;j<nloc;j++){
+        ele.insert(norder[ENList[i*nloc+j]-1]);
+      }
+      reorder_elements[ele] = i;
+    }
+    
+    vector<int> reordered_ENList(ENList.size()), reordered_regionIds(numElements);
+    int eid=0;
+    for(std::map< std::set<int>, int >::iterator it=reorder_elements.begin();it!=reorder_elements.end();++it){
+      int old_eid = it->second;
+      for(int j=0;j<nloc;j++){
+        reordered_ENList[eid*nloc+j] = norder[ENList[old_eid*nloc+j]-1]+1;
+      }
+      reordered_regionIds[eid] = regionIds[old_eid];
+      eid++;
+    }
+    ENList.swap(reordered_ENList); reordered_ENList.clear();
+    // regionIds.swap(reordered_regionIds); reordered_regionIds.clear();
+
+    // Renumber facets;
+    deque< vector<int> > reordered_SENList(SENList.size()); //, reordered_regionIds(numElements);
+    for(int i=0;i<numFaces;i++){
+      for(int j=0;j<snloc;j++){
+        reordered_SENList[i].push_back(norder[SENList[i][j]-1]+1);
+      }
+    }
+    
+    SENList.swap(reordered_SENList); reordered_SENList.clear();
+  }
     
   // Partition the mesh. Generates a map "decomp" from node number
   // (numbered from zero) to partition number (numbered from
