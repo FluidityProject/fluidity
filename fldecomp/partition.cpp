@@ -192,19 +192,24 @@ namespace Fluidity{
     
     // Partition graph
     decomp.resize(nnodes);
+
     int wgtflag=0, numflag=1, options[] = {0}, edgecut=0;
     
-    if(partition_method){
-      METIS_PartGraphKway(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
-                          &numflag, &npartitions, options, &edgecut, &(decomp[0]));
+    if(npartitions>1){
+      if(partition_method){
+        METIS_PartGraphKway(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
+                            &numflag, &npartitions, options, &edgecut, &(decomp[0]));
+      }else{
+        METIS_PartGraphRecursive(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
+                                 &numflag, &npartitions, options, &edgecut, &(decomp[0]));
+      }
+      
+      // number from zero
+      for(int i=0;i<nnodes;i++)
+        decomp[i]--;
     }else{
-      METIS_PartGraphRecursive(&nnodes, &(xadj[0]), &(adjncy[0]), NULL, NULL, &wgtflag, 
-                               &numflag, &npartitions, options, &edgecut, &(decomp[0]));
+      fill(decomp.begin(), decomp.end(), 0);
     }
-    
-    // number from zero
-    for(int i=0;i<nnodes;i++)
-      decomp[i]--;
 
     return edgecut;
   }
