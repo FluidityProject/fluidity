@@ -635,8 +635,7 @@ contains
       call remap_field(wettingdrying_alpha, alpha_u_field)
     end if
 
-      call profiler_tic(u, "element_loop")
-      
+    call profiler_tic(u, "element_loop-omp_overhead")
 
 #ifdef _OPENMP
       num_threads = omp_get_max_threads()
@@ -696,13 +695,15 @@ contains
     cache_valid = prepopulate_transform_cache(X)
     assert(cache_valid)
 #endif
+    call profiler_toc(u, "element_loop-omp_overhead")
+
+    call profiler_tic(u, "element_loop")
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, nnid, ele, len)
     colour_loop: do clr = 1, no_colours
       len = key_count(clr_sets(clr))
-      !$OMP PARALLEL DO DEFAULT(SHARED) &
-      !$OMP SCHEDULE(STATIC) &
-      !$OMP PRIVATE(nnid, ele)
-      element_loop: do nnid = 1, len 
-       ele = fetch(clr_sets(clr), nnid)       
+      !$OMP DO SCHEDULE(STATIC)
+      element_loop: do nnid = 1, len
+       ele = fetch(clr_sets(clr), nnid)
        call construct_momentum_element_dg(ele, big_m, rhs, &
             & X, U, advecting_velocity, U_mesh, X_old, X_new, &
             & Source, Buoyancy, gravity, Abs, Viscosity, &
@@ -714,11 +715,11 @@ contains
             & inverse_mass=inverse_mass, &
             & inverse_masslump=inverse_masslump, &
             & mass=mass, subcycle_m=subcycle_m)
-      
       end do element_loop
-      !$OMP END PARALLEL DO
-
+      !$OMP END DO
+      !$OMP BARRIER
     end do colour_loop
+    !$OMP END PARALLEL
 
     call deallocate(clr_sets)
     deallocate(clr_sets)
