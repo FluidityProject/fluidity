@@ -138,8 +138,8 @@ int main(int argc, char **argv){
   string filename = flArgs['f'];
 
   int nparts = atoi(flArgs['n'].c_str());
-  if(nparts<2){
-    cerr<<"ERROR: number of partitions requested is less than 2. Please check your usage and try again.\n";
+  if(nparts<1){
+    cerr<<"ERROR: number of partitions requested is less than 1. Please check your usage and try again.\n";
     usage(argv[0]);
     exit(-1);
   }
