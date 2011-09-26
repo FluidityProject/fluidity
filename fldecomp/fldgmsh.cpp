@@ -58,7 +58,7 @@ int reorder(const std::vector<int> &ENList, int NNodes, int NElements, int nloc,
   int pos=0;
   xadj[0]=0;
   for(int i=0;i<NNodes;i++){
-    for(typename std::set<int>::const_iterator jt=graph[i].begin();jt!=graph[i].end();jt++){
+    for(std::set<int>::const_iterator jt=graph[i].begin();jt!=graph[i].end();jt++){
       assert((*jt)>=0);
       assert((*jt)<NNodes);
       adjncy.push_back(*jt);
