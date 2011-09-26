@@ -415,6 +415,7 @@ contains
       ewrite(2,*) "Not moving the mesh"
     end if
     
+    allocate(supg_element(num_threads))
     if(have_option(trim(t%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind")) then
       ewrite(2, *) "Streamline upwind stabilisation"
       stabilisation_scheme = STABILISATION_STREAMLINE_UPWIND
@@ -430,7 +431,6 @@ contains
           & nu_bar_scheme, nu_bar_scale)
       ! Note this is not mixed mesh safe (but then nothing really is)
       ! You need 1 supg_element per thread.
-      allocate(supg_element(num_threads))
       do i = 1, num_threads
          supg_element(i)=make_supg_element(ele_shape(t,1))
       end do
@@ -592,8 +592,8 @@ contains
        do i = 1, num_threads
           call deallocate(supg_element(i))
        end do
-       deallocate(supg_element)
     end if
+    deallocate(supg_element)
 
     ewrite(1, *) "Exiting assemble_advection_diffusion_cg"
     
