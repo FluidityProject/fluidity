@@ -32,30 +32,30 @@ param_V_S_ref =        0.03
 param_z_sink =         0.04
 param_Zeta =           2.3
 
-def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, ambientVisIrrad, ambientAmmonium, ambientNitrate, ambientSilicate, ammoniumDepleted, nitrateDepleted, silicateDepleted):
+def update_living_diatom(ele, local_coord, dt, vars, env):
   
   ### Phase 1 ###
   
   # Housekeeping
-  vars[name['AmmoniumIng']] = vars[name['AmmoniumIng']] / vars[name['Biomass']]
-  vars[name['NitrateIng']] = vars[name['NitrateIng']] / vars[name['Biomass']]
-  vars[name['SilicateIng']] = vars[name['SilicateIng']] / vars[name['Biomass']]
+  vars['AmmoniumIng'] = vars['AmmoniumIng'] / vars['Biomass']
+  vars['NitrateIng'] = vars['NitrateIng'] / vars['Biomass']
+  vars['SilicateIng'] = vars['SilicateIng'] / vars['Biomass']
   stepInHours = dt/3600.
-  biomass_old = vars[name['Biomass']]
+  biomass_old = vars['Biomass']
   
   # Nutrient uptake 
-  vars[name['AmmoniumIng']] = vars[name['AmmoniumIng']] * ammoniumDepleted
-  vars[name['NitrateIng']] = vars[name['NitrateIng']] * nitrateDepleted
-  vars[name['SilicateIng']] = vars[name['SilicateIng']] * silicateDepleted
+  vars['AmmoniumIng'] = vars['AmmoniumIng'] * env['AmmoniumDepletion']
+  vars['NitrateIng'] = vars['NitrateIng'] * env['NitrateDepletion']
+  vars['SilicateIng'] = vars['SilicateIng'] * env['SilicateDepletion']
   
   ### Phase 2 ###
 
-  T_K = ambientTemperature + 273.0
+  T_K = env['Temperature'] + 273.0
   T_function = math.exp(34.12969283 - 10000/T_K)
 
   # Photosynthesis
-  Q_N = ((((vars[name['AmmoniumPool']])+(vars[name['AmmoniumIng']])+(vars[name['NitratePool']])+(vars[name['NitrateIng']]))) / (vars[name['CarbonPool']]))
-  Q_s = ((((vars[name['SilicatePool']])+(vars[name['SilicateIng']]))) / (vars[name['CarbonPool']]))
+  Q_N = ((((vars['AmmoniumPool'])+(vars['AmmoniumIng'])+(vars['NitratePool'])+(vars['NitrateIng']))) / (vars['CarbonPool']))
+  Q_s = ((((vars['SilicatePool'])+(vars['SilicateIng']))) / (vars['CarbonPool']))
 
   #P_max_c = (((Q_N) > (param_Q_Nmax))?(((param_P_ref_c)*(T_function))):(((Q_N) < (param_Q_Nmin))?(0.0):(((param_P_ref_c)*(T_function)*(((Q_N) - (param_Q_Nmin)) / ((param_Q_Nmax) - (param_Q_Nmin)))))))
   if ((Q_N) > (param_Q_Nmax)):
@@ -66,8 +66,8 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
     else:
       P_max_c = (((param_P_ref_c)*(T_function)*(((Q_N) - (param_Q_Nmin)) / ((param_Q_Nmax) - (param_Q_Nmin)))))
 
-  Theta_c = ((vars[name['ChlorophyllPool']]) / (vars[name['CarbonPool']]))
-  E_0 = (((4.6)*(ambientVisIrrad)))
+  Theta_c = ((vars['ChlorophyllPool']) / (vars['CarbonPool']))
+  E_0 = (((4.6)*(env['Irradiance'])))
 
   #P_phot_c = ((P_max_c == 0.0)||(Q_s <= param_Q_S_min))?0.0:P_max_c*(1.0 - exp(-0.284400e-2*Theta_c*E_0 / P_max_c))
   if ((P_max_c == 0.0)or(Q_s <= param_Q_S_min)):
@@ -76,7 +76,7 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
     P_phot_c = P_max_c*(1.0 - math.exp(-0.284400e-2*Theta_c*E_0 / P_max_c))
 
   # Reproduction
-  Theta_N = ((vars[name['ChlorophyllPool']]) / (((vars[name['AmmoniumPool']])+(vars[name['AmmoniumIng']])+(vars[name['NitratePool']])+(vars[name['NitrateIng']]))))
+  Theta_N = ((vars['ChlorophyllPool']) / (((vars['AmmoniumPool'])+(vars['AmmoniumIng'])+(vars['NitratePool'])+(vars['NitrateIng']))))
 
   #Rho_Chl = (((((E_0) > (0.0))&&((Theta_c) > (0.0))))?(((param_Theta_max_N)*((P_phot_c) / (((3600.0)*(param_Alpha_Chl)*(Theta_c)*(E_0)))))):(0.0))
   if ((((E_0) > (0.0))and((Theta_c) > (0.0)))):
@@ -84,22 +84,22 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
   else:
     Rho_Chl = 0.0
 
-  R_C_growth = ((((((vars[name['AmmoniumIng']])+(vars[name['NitrateIng']])))*(param_Zeta))) / (((stepInHours)*(vars[name['CarbonPool']]))))
+  R_C_growth = ((((((vars['AmmoniumIng'])+(vars['NitrateIng'])))*(param_Zeta))) / (((stepInHours)*(vars['CarbonPool']))))
   R_C = (((param_R_maintenance)+(R_C_growth)));
 
-  #C_d = (((((((vars[name['CarbonPool']])+(((vars[name['CarbonPool']])*((P_phot_c) - (R_C))*(stepInHours))))) >= (param_C_rep))&&((((vars[name['SilicatePool']])+(vars[name['SilicateIng']]))) >= (param_S_rep))))?(2.0):(1.0))
-  if ((((((vars[name['CarbonPool']])+(((vars[name['CarbonPool']])*((P_phot_c) - (R_C))*(stepInHours))))) >= (param_C_rep))and((((vars[name['SilicatePool']])+(vars[name['SilicateIng']]))) >= (param_S_rep)))):
+  #C_d = (((((((vars['CarbonPool']])+(((vars['CarbonPool']])*((P_phot_c) - (R_C))*(stepInHours))))) >= (param_C_rep))&&((((vars['SilicatePool']])+(vars['SilicateIng']]))) >= (param_S_rep))))?(2.0):(1.0))
+  if ((((((vars['CarbonPool'])+(((vars['CarbonPool'])*((P_phot_c) - (R_C))*(stepInHours))))) >= (param_C_rep))and((((vars['SilicatePool'])+(vars['SilicateIng']))) >= (param_S_rep)))):
     C_d = 2.0
   else:
     C_d = 1.0
 
   # Update chemical pools 
-  Q_nitrate = ((((vars[name['NitratePool']])+(vars[name['NitrateIng']]))) / (vars[name['CarbonPool']]))
-  Q_ammonium = ((((vars[name['AmmoniumPool']])+(vars[name['AmmoniumIng']]))) / (vars[name['CarbonPool']]))
-  omega = ((((param_k_AR) / (((param_k_AR)+(ambientAmmonium))))*((((param_k_AR)+(ambientNitrate))) / (((param_k_AR)+(ambientAmmonium)+(ambientNitrate))))))
+  Q_nitrate = ((((vars['NitratePool'])+(vars['NitrateIng']))) / (vars['CarbonPool']))
+  Q_ammonium = ((((vars['AmmoniumPool'])+(vars['AmmoniumIng']))) / (vars['CarbonPool']))
+  omega = ((((param_k_AR) / (((param_k_AR)+(env['Ammonium']))))*((((param_k_AR)+(env['Nitrate']))) / (((param_k_AR)+(env['Ammonium'])+(env['Nitrate']))))))
 
   #V_max_C = (((((vars[AMMONIUM_POOL])+(vars[NITRATE_POOL]))) < (1000.0))?(((((Q_ammonium)+(Q_nitrate))) < (param_Q_Nmin))?(((param_V_ref_c)*(T_function))):(((((Q_ammonium)+(Q_nitrate))) > (param_Q_Nmax))?(0.0):(((param_V_ref_c)*(pow(((param_Q_Nmax) - (((Q_ammonium)+(Q_nitrate)))) / ((param_Q_Nmax) - (param_Q_Nmin)), 0.05))*(T_function))))):(0.0))
-  if ((((vars[name['AmmoniumPool']])+(vars[name['NitratePool']]))) < (1000.0)):
+  if ((((vars['AmmoniumPool'])+(vars['NitratePool']))) < (1000.0)):
     if ((((Q_ammonium)+(Q_nitrate))) < (param_Q_Nmin)):
       V_max_C = (((param_V_ref_c)*(T_function)))
     else:
@@ -110,11 +110,11 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
   else:
     V_max_C = 0.0
 
-  V_C_ammonium = (((V_max_C)*((ambientAmmonium) / (((param_k_AR)+(ambientAmmonium))))))
-  V_C_nitrate = (((V_max_C)*((ambientNitrate) / (((param_k_AR)+(ambientNitrate))))*(omega)))
+  V_C_ammonium = (((V_max_C)*((env['Ammonium']) / (((param_k_AR)+(env['Ammonium']))))))
+  V_C_nitrate = (((V_max_C)*((env['Nitrate']) / (((param_k_AR)+(env['Nitrate']))))*(omega)))
 
   #V_S_max = (((vars[CARBON_POOL]) >= (param_C_minS))?(((Q_s) <= (param_Q_S_min))?(((param_V_S_ref)*(T_function))):(((Q_s) >= (param_Q_S_max))?(0.0):(((param_V_S_ref)*(pow(((param_Q_S_max) - (Q_s)) / ((param_Q_S_max) - (param_Q_S_min)), 0.05))*(T_function))))):(0.0))
-  if ((vars[name['CarbonPool']]) >= (param_C_minS)):
+  if ((vars['CarbonPool']) >= (param_C_minS)):
     if ((Q_s) <= (param_Q_S_min)):
       V_S_max = (((param_V_S_ref)*(T_function)))
     else:
@@ -125,22 +125,22 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
   else:
     V_S_max = 0.0
 
-  V_S_S = (((V_S_max)*((ambientSilicate) / (((ambientSilicate)+(param_k_S))))))
+  V_S_S = (((V_S_max)*((env['Silicate']) / (((env['Silicate'])+(param_k_S))))))
 
   # Ingestion rates
-  IngAmmonium = biomass_old*((vars[name['CarbonPool']])*(V_C_ammonium)*(stepInHours))
-  IngNitrate = biomass_old*((vars[name['CarbonPool']])*(V_C_nitrate)*(stepInHours))
-  IngSilicate = biomass_old*((vars[name['SilicatePool']])*(V_S_S)*(stepInHours))
+  IngAmmonium = biomass_old*((vars['CarbonPool'])*(V_C_ammonium)*(stepInHours))
+  IngNitrate = biomass_old*((vars['CarbonPool'])*(V_C_nitrate)*(stepInHours))
+  IngSilicate = biomass_old*((vars['SilicatePool'])*(V_S_S)*(stepInHours))
 
   # Ammonium excretion 
-  RelAmmonium = biomass_old*((((vars[name['AmmoniumPool']])+(vars[name['NitratePool']])))*(param_R_N)*(stepInHours)*(T_function))
+  RelAmmonium = biomass_old*((((vars['AmmoniumPool'])+(vars['NitratePool'])))*(param_R_N)*(stepInHours)*(T_function))
 
-  AmmoniumPoolNew = (((((vars[name['AmmoniumPool']])+(vars[name['AmmoniumIng']])+(vars[name['NitrateIng']]))) - (((vars[name['AmmoniumPool']])*(param_R_N)*(stepInHours)*(T_function)))) / (C_d))
+  AmmoniumPoolNew = (((((vars['AmmoniumPool'])+(vars['AmmoniumIng'])+(vars['NitrateIng']))) - (((vars['AmmoniumPool'])*(param_R_N)*(stepInHours)*(T_function)))) / (C_d))
   NitratePoolNew = (0.0)
-  SilicatePoolNew = ((((vars[name['SilicatePool']])+(vars[name['SilicateIng']]))) / (C_d))
+  SilicatePoolNew = ((((vars['SilicatePool'])+(vars['SilicateIng']))) / (C_d))
 
   # Mortality, determine death...
-  if ((vars[name['CarbonPool']]) <= (param_C_starve)):
+  if ((vars['CarbonPool']) <= (param_C_starve)):
     death_flag = True
   else:
     death_flag =  False
@@ -148,18 +148,18 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
   # ...before updating carbon pool and chlorophyll
   if (death_flag):
     ###  state change! ###
-    vars[name['Stage']] = 1.0
+    vars['Stage'] = 1.0
 
     CarbonPoolNew = 0.0
     ChlorophyllPoolNew = 0.0;
   else:
-    CarbonPoolNew = (((((((vars[name['CarbonPool']])*((P_phot_c)-(((R_C)*(T_function))))*(stepInHours)))+(vars[name['CarbonPool']]))) - (0.0)) / (C_d))
+    CarbonPoolNew = (((((((vars['CarbonPool'])*((P_phot_c)-(((R_C)*(T_function))))*(stepInHours)))+(vars['CarbonPool']))) - (0.0)) / (C_d))
 
     if (Theta_N <= param_Theta_max_N):
-      ChlorophyllPoolNew = vars[name['ChlorophyllPool']] + Rho_Chl * (vars[name['AmmoniumIng']] + vars[name['NitrateIng']])
+      ChlorophyllPoolNew = vars['ChlorophyllPool'] + Rho_Chl * (vars['AmmoniumIng'] + vars['NitrateIng'])
     else:
-      ChlorophyllPoolNew = param_Theta_max_N * (vars[name['AmmoniumPool']] + vars[name['NitratePool']])
-    ChlorophyllPoolNew = ChlorophyllPoolNew - (vars[name['ChlorophyllPool']] * param_R_Chl * stepInHours * T_function)
+      ChlorophyllPoolNew = param_Theta_max_N * (vars['AmmoniumPool'] + vars['NitratePool'])
+    ChlorophyllPoolNew = ChlorophyllPoolNew - (vars['ChlorophyllPool'] * param_R_Chl * stepInHours * T_function)
     if (ChlorophyllPoolNew > 0.0):
       ChlorophyllPoolNew = ChlorophyllPoolNew / C_d
     else:
@@ -169,7 +169,7 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
 
   # Ensemble update (reproduction) */
   if ((C_d) == (2.0)):
-    vars[name['Biomass']] = biomass_old*2
+    vars['Biomass'] = biomass_old*2
 
   # External
   if IngAmmonium < 0.0:
@@ -180,52 +180,52 @@ def update_living_diatom(ele, local_coord, dt, vars, name, ambientTemperature, a
     IngSilicate = 0.0
   if RelAmmonium < 0.0:
     RelAmmonium = 0.0
-  vars[name['AmmoniumIng']] = IngAmmonium
-  vars[name['NitrateIng']] = IngNitrate
-  vars[name['SilicateIng']] = IngSilicate
-  vars[name['AmmoniumRel']] = RelAmmonium
-  vars[name['SilicateRel']] = 0.0
+  vars['AmmoniumIng'] = IngAmmonium
+  vars['NitrateIng'] = IngNitrate
+  vars['SilicateIng'] = IngSilicate
+  vars['AmmoniumRel'] = RelAmmonium
+  vars['SilicateRel'] = 0.0
 
   # Internal
-  vars[name['AmmoniumPool']] = AmmoniumPoolNew
-  vars[name['NitratePool']] = NitratePoolNew
-  vars[name['SilicatePool']] = SilicatePoolNew
-  vars[name['CarbonPool']] = CarbonPoolNew
-  vars[name['ChlorophyllPool']] = ChlorophyllPoolNew
+  vars['AmmoniumPool'] = AmmoniumPoolNew
+  vars['NitratePool'] = NitratePoolNew
+  vars['SilicatePool'] = SilicatePoolNew
+  vars['CarbonPool'] = CarbonPoolNew
+  vars['ChlorophyllPool'] = ChlorophyllPoolNew
 
 
 
-def update_dead_diatom(ele, local_coord, dt, vars, name, ambientTemperature, ammoniumDepleted, nitrateDepleted, silicateDepleted):
+def update_dead_diatom(ele, local_coord, dt, vars, env):
 
   ### Phase 1 ###
   
   # Housekeeping
-  vars[name['AmmoniumIng']] = vars[name['AmmoniumIng']] / vars[name['Biomass']]
-  vars[name['NitrateIng']] = vars[name['NitrateIng']] / vars[name['Biomass']]
-  vars[name['SilicateIng']] = vars[name['SilicateIng']] / vars[name['Biomass']]
+  vars['AmmoniumIng'] = vars['AmmoniumIng'] / vars['Biomass']
+  vars['NitrateIng'] = vars['NitrateIng'] / vars['Biomass']
+  vars['SilicateIng'] = vars['SilicateIng'] / vars['Biomass']
   stepInHours = dt/3600.
-  biomass_old = vars[name['Biomass']]
+  biomass_old = vars['Biomass']
   
   # Nutrient uptake 
-  vars[name['AmmoniumIng']] = vars[name['AmmoniumIng']] * ammoniumDepleted
-  vars[name['NitrateIng']] = vars[name['NitrateIng']] * nitrateDepleted
-  vars[name['SilicateIng']] = vars[name['SilicateIng']] * silicateDepleted
+  vars['AmmoniumIng'] = vars['AmmoniumIng'] * env['AmmoniumDepletion']
+  vars['NitrateIng'] = vars['NitrateIng'] * env['NitrateDepletion']
+  vars['SilicateIng'] = vars['SilicateIng'] * env['SilicateDepletion']
 
   ### Phase 2 ###
 
-  Si_reminT = (((param_S_dis)*(math.pow(param_Q_remS, ((((ambientTemperature)+(273.0))) - (param_T_refS)) / (10.0)))))
-  N_reminT = (((param_Ndis)*(math.pow(param_Q_remN, ((((ambientTemperature)+(273.0))) - (param_T_refN)) / (10.0)))))
-  relAmountSi = biomass_old*((vars[name['SilicatePool']])*(Si_reminT)*(stepInHours));
+  Si_reminT = (((param_S_dis)*(math.pow(param_Q_remS, ((((env['Temperature'])+(273.0))) - (param_T_refS)) / (10.0)))))
+  N_reminT = (((param_Ndis)*(math.pow(param_Q_remN, ((((env['Temperature'])+(273.0))) - (param_T_refN)) / (10.0)))))
+  relAmountSi = biomass_old*((vars['SilicatePool'])*(Si_reminT)*(stepInHours));
 
-  SilicatePoolNew = ((((vars[name['SilicatePool']])+(vars[name['SilicateIng']]))) - (((vars[name['SilicatePool']])*(Si_reminT)*(stepInHours))))
+  SilicatePoolNew = ((((vars['SilicatePool'])+(vars['SilicateIng']))) - (((vars['SilicatePool'])*(Si_reminT)*(stepInHours))))
   if (SilicatePoolNew < 0.0):
     SilicatePoolNew = 0.0
-  relAmountAmm = biomass_old*((((vars[name['AmmoniumPool']])+(vars[name['NitratePool']])))*(N_reminT)*(stepInHours))
+  relAmountAmm = biomass_old*((((vars['AmmoniumPool'])+(vars['NitratePool'])))*(N_reminT)*(stepInHours))
 
-  AmmoniumPoolNew = ((((vars[name['AmmoniumPool']])+(vars[name['AmmoniumIng']]))) - (((vars[name['AmmoniumPool']])*(N_reminT)*(stepInHours))))
+  AmmoniumPoolNew = ((((vars['AmmoniumPool'])+(vars['AmmoniumIng']))) - (((vars['AmmoniumPool'])*(N_reminT)*(stepInHours))))
   if (AmmoniumPoolNew < 0.0):
     AmmoniumPoolNew = 0.0
-  NitratePoolNew = ((((vars[name['NitratePool']])+(vars[name['NitrateIng']]))) - (((vars[name['NitratePool']])*(N_reminT)*(stepInHours))))
+  NitratePoolNew = ((((vars['NitratePool'])+(vars['NitrateIng']))) - (((vars['NitratePool'])*(N_reminT)*(stepInHours))))
   if (NitratePoolNew < 0.0):
     NitratePoolNew = 0.0
 
@@ -236,18 +236,18 @@ def update_dead_diatom(ele, local_coord, dt, vars, name, ambientTemperature, amm
     relAmountAmm = 0.0
   if relAmountSi < 0.0:
     relAmountSi = 0.0
-  vars[name['AmmoniumIng']] = 0.0
-  vars[name['NitrateIng']] = 0.0
-  vars[name['SilicateIng']] = 0.0
-  vars[name['AmmoniumRel']] = relAmountAmm
-  vars[name['SilicateRel']] = relAmountSi
+  vars['AmmoniumIng'] = 0.0
+  vars['NitrateIng'] = 0.0
+  vars['SilicateIng'] = 0.0
+  vars['AmmoniumRel'] = relAmountAmm
+  vars['SilicateRel'] = relAmountSi
 
   # Internal
-  vars[name['AmmoniumPool']] = AmmoniumPoolNew
-  vars[name['NitratePool']] = NitratePoolNew
-  vars[name['SilicatePool']] = SilicatePoolNew
-  vars[name['CarbonPool']] = 0.0
-  vars[name['ChlorophyllPool']] = 0.0
+  vars['AmmoniumPool'] = AmmoniumPoolNew
+  vars['NitratePool'] = NitratePoolNew
+  vars['SilicatePool'] = SilicatePoolNew
+  vars['CarbonPool'] = 0.0
+  vars['ChlorophyllPool'] = 0.0
 
 #####################################
 ## Utiliy functions for Hyperlight ##

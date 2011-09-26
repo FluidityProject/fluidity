@@ -334,15 +334,24 @@ void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
   PyObject *pDt = PyFloat_FromDouble(*dt);
 
   // Create biology array argument
-  PyObject *pBiology = PyList_New(n_biovars);
+  PyObject *pPersistent= PyDict_GetItemString(pGlobals, "persistent");
+  PyObject *pFGVarNames= PyDict_GetItemString(pPersistent, "fg_var_names");
+  PyObject *pVarNames= PyDict_GetItemString(pFGVarNames, local_dict);
+  PyObject *pBiology = PyDict_New();
   for(i=0; i<n_biovars; i++){
-    PyList_SET_ITEM(pBiology, i, PyFloat_FromDouble(biovars[i]));
+    PyObject *pVarVal = PyFloat_FromDouble(biovars[i]);
+    PyDict_SetItem(pBiology, PyList_GET_ITEM(pVarNames, i), pVarVal);
+    Py_DECREF(pVarVal);
   }
 
   // Create environment array argument
-  PyObject *pEnvironment = PyList_New(n_env_vars);
+  PyObject *pFGEnvNames= PyDict_GetItemString(pPersistent, "fg_env_names");
+  PyObject *pEnvNames= PyDict_GetItemString(pFGEnvNames, local_dict);
+  PyObject *pEnvironment = PyDict_New();
   for(i=0; i<n_env_vars; i++){
-    PyList_SET_ITEM(pEnvironment, i, PyFloat_FromDouble(env_vars[i]));
+    PyObject *pEnvVal = PyFloat_FromDouble(env_vars[i]);
+    PyDict_SetItem(pEnvironment, PyList_GET_ITEM(pEnvNames, i), pEnvVal);
+    Py_DECREF(pEnvVal);
   }
 
   // Create argument array
@@ -372,7 +381,7 @@ void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
 
   // Convert the python result
   for(i=0; i<n_biovars; i++){
-    biovars[i] = PyFloat_AsDouble( PyList_GetItem(pResult, i) );
+    biovars[i] = PyFloat_AsDouble( PyDict_GetItem(pResult, PyList_GET_ITEM(pVarNames, i)) );
   }
 
 

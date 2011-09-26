@@ -955,11 +955,8 @@ def val(X,t):
             <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
 from __builtin__ import str
 
-name = persistent['fg_var_names']['Diatom']
-env_name = persistent['fg_env_names']['Diatom']
-
 def val(ele, local_coord, dt, vars, env):
-  bio.update_living_diatom(ele, local_coord, dt, vars, name, env[env_name['Temperature']], env[env_name['Irradiance']], env[env_name['Ammonium']], env[env_name['Nitrate']], env[env_name['Silicate']], env[env_name['AmmoniumDepletion']], env[env_name['NitrateDepletion']], env[env_name['SilicateDepletion']])  
+  bio.update_living_diatom(ele, local_coord, dt, vars, env)  
   return vars</string_value>
           </biology_update>
         </stage_array>
@@ -991,11 +988,8 @@ def val(ele, local_coord, dt, vars, env):
             <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
 from __builtin__ import str
 
-name = persistent['fg_var_names']['Diatom']
-env_name = persistent['fg_env_names']['Diatom']
-
 def val(ele, local_coord, dt, vars, env):
-  bio.update_dead_diatom(ele, local_coord, dt, vars, name, env[env_name['Temperature']], env[env_name['AmmoniumDepletion']], env[env_name['NitrateDepletion']], env[env_name['SilicateDepletion']])  
+  bio.update_dead_diatom(ele, local_coord, dt, vars, env)  
   return vars</string_value>
           </biology_update>
         </stage_array>

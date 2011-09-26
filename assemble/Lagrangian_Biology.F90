@@ -290,9 +290,9 @@ contains
              end if
 
              ! Now we know the variable names for the FG, so we populate the mapping dict
-             call python_run_string("persistent['fg_var_names']['"//trim(fg_name)//"'] = dict()")
+             call python_run_string("persistent['fg_var_names']['"//trim(agent_arrays(i)%name)//"'] = []")
              do j=1, biovar_total
-                call python_run_string("persistent['fg_var_names']['"//trim(fg_name)//"']['"//trim(agent_arrays(i)%biovar_name(j))//"']="//trim(int2str(j-1)))
+                call python_run_string("persistent['fg_var_names']['"//trim(agent_arrays(i)%name)//"'].append('"//trim(agent_arrays(i)%biovar_name(j))//"')")
              end do
 
              ! Initialise agent variables
@@ -305,12 +305,12 @@ contains
 
              ! Record which environment fields to evaluate and pass to the update function
              n_env_fields = option_count(trim(fg_buffer)//"/environment_field")
-             call python_run_string("persistent['fg_env_names']['"//trim(fg_name)//"'] = dict()")
+             call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(i)%name)//"'] = []")
              allocate(agent_arrays(i)%env_field_name(n_env_fields))
              do j=1, n_env_fields
                 write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment_field[",j-1,"]"
                 call get_option(trim(env_field_buffer)//"/name", agent_arrays(i)%env_field_name(j))
-                call python_run_string("persistent['fg_env_names']['"//trim(fg_name)//"']['"//trim(agent_arrays(i)%env_field_name(j))//"']="//trim(int2str(j-1)))
+                call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(i)%name)//"'].append('"//trim(agent_arrays(i)%env_field_name(j))//"')")
              end do
           end if
 
