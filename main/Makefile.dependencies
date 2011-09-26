@@ -52,7 +52,7 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/multiphase_module.mod ../include/parallel_tools.mod \
    ../include/populate_state_module.mod \
    ../include/populate_sub_state_module.mod ../include/porous_media.mod \
-   ../include/qmesh_module.mod ../include/radiation.mod \
+   ../include/qmesh_module.mod \
    ../include/reduced_model_runtime.mod ../include/reserve_state_module.mod \
    ../include/saturation_distribution_search_hookejeeves.mod \
    ../include/sediment.mod ../include/signal_vars.mod \

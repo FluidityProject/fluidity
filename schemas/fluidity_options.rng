@@ -14,7 +14,6 @@
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
   <include href="embedded_models.rng"/>
-  <include href="radiation.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>

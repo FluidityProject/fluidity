@@ -5,9 +5,6 @@
     <element name="embedded_models">
       <a:documentation>Fluidity embedded models</a:documentation>
       <ref name="comment"/>
-      <optional>
-        <ref name="radiation"/>
-      </optional>
     </element>
   </define>
 </grammar>
