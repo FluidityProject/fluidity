@@ -29,9 +29,6 @@
 
 
 #include "fldecomp.h"
-extern "C"{
-#include "metis/metis.h"
-}
 
 // Matches element type with number of nodes.
 int elemNumNodes[] = 
@@ -41,6 +38,11 @@ int elemNumNodes[] =
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
+extern "C"{
+typedef int idxtype;
+
+void METIS_NodeND(int *, idxtype *, idxtype *, int *, int *, idxtype *, idxtype *);
+}
 
 int reorder(const std::vector<int> &ENList, int NNodes, int NElements, int nloc, std::vector<int> &norder){
   std::vector< std::set<int> > graph(NNodes);
