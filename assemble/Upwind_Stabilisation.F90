@@ -33,7 +33,8 @@ module upwind_stabilisation
   use fields
   use metric_tools
   use spud
-  
+  use shape_functions
+
   implicit none
 
   private

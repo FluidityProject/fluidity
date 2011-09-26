@@ -1,6 +1,11 @@
 import fluidity_tools
 
-def short_wave_radiation(t,dlon,dlat,cloud):
+def short_wave_radiation(t,deg_lon,deg_lat,cloud):
+    """ Calculatate approximate value of short wave radiation
+    based on latitude"""
+
+    # This code is based on that in GOTM, which in turn is from MOM.
+    # GOTM is released under GNU GPL v2. 
 
     import math
     from datetime import datetime, timedelta
@@ -13,7 +18,7 @@ def short_wave_radiation(t,dlon,dlat,cloud):
     aozone=0.09
     yrdays = 365.
 
-    yday = [ 0,31,59,90,120,151,181,212,243,273,304,334]
+    # Constants to work out the albedo, Payne, 1972
     alb1 = [.719,.656,.603,.480,.385,.300,.250,.193,.164,
             .131,.103,.084,.071,.061,.054,.039,.036,.032,.031,.030]
     za = [90.,88.,86.,84.,82.,80.,78.,76.,74.,70.,
@@ -21,8 +26,8 @@ def short_wave_radiation(t,dlon,dlat,cloud):
     dza = [2.,2.,2.,2.,2.,2.,2.,2.,4.,4.,4.,4.,4.,4.,10.,10.,
             10.,10.,10.]
 
-    rlon = deg2rad*dlon
-    rlat = deg2rad*dlat
+    radians_lon = deg2rad*deg_lon
+    radians_lat = deg2rad*deg_lat
 
     # get some time units sorted
     # day of year
@@ -30,40 +35,45 @@ def short_wave_radiation(t,dlon,dlat,cloud):
     hour = t.hour
 
 
+    # Fractional year in radians
     th0 = 2.*math.pi*days/yrdays
     th02 = 2.*th0
     th03 = 3.*th0
-    #  sun declination
-    sundec = 0.006918 - 0.399912*math.cos(th0) + 0.070257*math.sin(th0) \
-           - 0.006758*math.cos(th02) + 0.000907*math.sin(th02)          \
-           - 0.002697*math.cos(th03) + 0.001480*math.sin(th03)
+    #  solar declination
+    sun_dec = 0.006918 - 0.399912*math.cos(th0) + 0.070257*math.sin(th0) \
+            - 0.006758*math.cos(th02) + 0.000907*math.sin(th02)          \
+            - 0.002697*math.cos(th03) + 0.001480*math.sin(th03)
 
-    # sun hour angle
-    thsun = (hour-12.)*15.*deg2rad + rlon
+    # solar hour angle
+    theta_sun = (hour-12.)*15.*deg2rad + radians_lon
 
     # cosine of the solar zenith angle
-    coszen =math.sin(rlat)*math.sin(sundec)+math.cos(rlat)*math.cos(sundec)*math.cos(thsun)
+    coszen =math.sin(radians_lat)*math.sin(sun_dec)+math.cos(radians_lat)*math.cos(sun_dec)*math.cos(theta_sun)
     if (coszen < 0.0) :
       coszen = 0.0
-      qatten = 0.0
+      q_attenuation = 0.0
     else:
-      qatten = tau**(1./coszen)
+      q_attenuation = tau**(1./coszen)
     
+    # work out the energy received due our position and datetime
     qzer  = coszen * solar
-    qdir  = qzer * qatten
+    # This is the direct energy, after taking into account attenuation effect of atmosphere
+    qdir  = qzer * q_attenuation
+    # Re-radiation contribution
     qdiff = ((1.-aozone)*qzer - qdir) * 0.5
+    # Finally, add the direct (solar+attenuation) and the re-radiated contribution
     qtot  =  qdir + qdiff
 
-    tjul = (days-81.)/yrdays*2.*math.pi
-
+    # declination angle
+    dec = eclips*math.sin((days-81.)/yrdays*2.*math.pi)
     # sin of the solar noon altitude in radians :
-    sunbet=math.sin(rlat)*math.sin(eclips*math.sin(tjul))+math.cos(rlat)*math.cos(eclips*math.sin(tjul))
+    sunbet=math.sin(radians_lat)*math.sin(dec)+math.cos(radians_lat)*math.cos(dec)
     # solar noon altitude in degrees :
-    sunbet = math.asin(sunbet)*rad2deg
+    sol_noon_alt = math.asin(sunbet)*rad2deg
 
     #  calculates the albedo as a function of the solar zenith angle :
-    #  (after Payne jas 1972)
-    #  solar zenith angle in degrees :
+    #  (after Payne, 1972). I have no idea what the mysterious intermediate
+    # variables are.
     zen=(180./math.pi)*math.acos(coszen)
     if(zen >= 74.):
       jab=int(.5*(90.-zen))
@@ -71,15 +81,15 @@ def short_wave_radiation(t,dlon,dlat,cloud):
       jab=int(.23*(74.-zen)+8.)
     else:
       jab=int(.10*(50.-zen)+14.)
-
     dzen=(za[jab]-zen)/dza[jab]
     albedo=alb1[jab]+dzen*(alb1[jab+1]-alb1[jab])
 
+    # Finally, lets get the shortwave radiation, taking into account cloud cover, 
+    # albedo and our location and time.
     #  radiation as from Reed(1977), Simpson and Paulson(1979)
     #  calculates SHORT WAVE FLUX ( watt/m*m )
     #  Rosati,Miyakoda 1988 ; eq. 3.8
-    #  clouds from COADS perpetual data set
-    qshort  = qtot*(1-0.62*cloud + .0019*sunbet)*(1.-albedo)
+    qshort  = qtot*(1-0.62*cloud + .0019*sol_noon_alt)*(1.-albedo)
     if(qshort > qtot ):
       qshort  = qtot
     
