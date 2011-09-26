@@ -790,7 +790,8 @@ Turbine.o ../include/turbine.mod: Turbine.F90 ../include/fdebug.h \
 
 Upwind_Stabilisation.o ../include/upwind_stabilisation.mod: \
    Upwind_Stabilisation.F90 ../include/fdebug.h ../include/fields.mod \
-   ../include/metric_tools.mod ../include/spud.mod
+   ../include/metric_tools.mod ../include/shape_functions.mod \
+   ../include/spud.mod
 
 ../include/vertical_balance_pressure.mod: Vertical_Balance_Pressure.o
 	@true
