@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>sediment_concentration_dependent_viscosity</name>
+  <owner userid="sp911"/>
+  <tags>flml sediment</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity sediment_concentration_dependent_viscosity.flml</command_line>
+    <!-- Check that the sediment hindered sinking rate is correct -->
+</problem_definition>
+  <variables>   
+    <variable name="viscosity" language="python">
+import vtktools
+import numpy
+data = vtktools.vtu('sediment_hindered_settling_0.vtu')
+viscosity = []
+
+coordinates = numpy.zeros([11,3])
+for i in range(0,11):
+   coordinates[i,1] = y = i*0.0001
+
+viscosity = data.ProbeData(coordinates, 'Viscosity')
+    </variable>  
+    <variable name="concentration" language="python">
+import vtktools
+import numpy
+data = vtktools.vtu('sediment_hindered_settling_0.vtu')
+concentration = []
+
+coordinates = numpy.zeros([11,3])
+for i in range(0,11):
+   coordinates[i,1] = y = i*0.0001
+
+concentration = data.ProbeData(coordinates, '1mm')
+    </variable> 
+  </variables>
+  <pass_tests>
+    <!-- viscosity should equal background viscosity * (1-concentration/0.65)^-1.625
+    -->
+    <test name="Is viscosity value correct" language="python">
+import numpy
+
+correct_viscosity = numpy.power((numpy.ones(concentration.shape) - concentration/0.65),-1.625)
+
+error = 5.0e-4
+
+for i in range(0,10):
+   assert(correct_viscosity[i] - error &lt; viscosity[i,0,0]  &lt; correct_viscosity[i] + error)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

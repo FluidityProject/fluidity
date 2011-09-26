@@ -797,6 +797,19 @@ bulk_viscosity_algorithm =
           attribute material_phase_support { "multiple "}
        }
    )
+sediment_concentration_dependent_viscosity_algorithm =
+   (
+       ## Effective viscosity is affected by sediment concentration. This 
+       ## algorithm computes the viscosity based upon the combined concentrations
+       ## of the sediment fields and the zero concentration viscosity
+       ##
+       ##   \nu = \nu_0(1-c/0.65)^{-1.625}
+       ##
+       element algorithm {
+          attribute name { "sediment_concentration_dependent_viscosity" },
+          attribute material_phase_support { "single"}
+       }
+   )
 imposed_material_velocity_source_algorithm =
    (
        element algorithm {

@@ -44,14 +44,15 @@ module momentum_diagnostics
   use spud
   use state_fields_module
   use state_module
+  use sediment
   
   implicit none
   
   private
   
-  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_buoyancy, calculate_coriolis, &
-            calculate_tensor_second_invariant, calculate_imposed_material_velocity_source, &
-            calculate_imposed_material_velocity_absorption, &
+  public :: calculate_strain_rate, calculate_bulk_viscosity, calculate_sediment_concentration_dependent_viscosity, &
+            calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, &
+            calculate_imposed_material_velocity_source, calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
             calculate_geostrophic_velocity, calculate_hessian
            
@@ -90,6 +91,49 @@ contains
     call compute_hessian(source_field, positions, t_field)
 
   end subroutine calculate_hessian
+
+  subroutine calculate_sediment_concentration_dependent_viscosity(state, t_field)
+    ! calculates viscosity based upon total sediment concentration
+    type(state_type), intent(inout) :: state
+    type(tensor_field), intent(inout) :: t_field
+    
+    type(scalar_field_pointer), dimension(:), allocatable :: sediment_concs
+    type(tensor_field), pointer :: zero_conc_viscosity
+    type(scalar_field) :: rhs
+    integer :: sediment_classes, i
+    character(len = OPTION_PATH_LEN) :: class_name
+    
+    ewrite(1,*) 'In calculate sediment concentration dependent viscosity'
+
+    sediment_classes = get_nSediments()
+
+    allocate(sediment_concs(sediment_classes))
+
+    class_name=get_sediment_name(1)
+    sediment_concs(1)%ptr => extract_scalar_field(state,trim(class_name))
+
+    call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
+    call set(rhs, 1.0)
+       
+    ! get sediment concentrations and remove c/0.65 from rhs
+    do i=1, sediment_classes
+       class_name=get_sediment_name(i)
+       sediment_concs(i)%ptr => extract_scalar_field(state,trim(class_name))
+       call addto(rhs, sediment_concs(i)%ptr, scale=-(1.0/0.65))
+    end do
+    
+    ! raise rhs to power of -1.625
+    do i = 1, node_count(rhs)
+      call set(rhs, i, node_val(rhs, i)**(-1.625))
+    end do 
+
+    zero_conc_viscosity => extract_tensor_field(state, 'ZeroSedimentConcentrationViscosity')
+
+    call set(t_field, zero_conc_viscosity)
+    call scale(t_field, rhs)
+    ewrite_minmax(t_field)   
+
+  end subroutine calculate_sediment_concentration_dependent_viscosity
   
   subroutine calculate_tensor_second_invariant(state, s_field)
     type(state_type), intent(inout) :: state

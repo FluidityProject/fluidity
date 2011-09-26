@@ -41,7 +41,7 @@ module sediment_diagnostics
   
   private
 
-  public calculate_sediment_flux
+  public calculate_sediment_flux, calculate_sinking_velocity
 
 contains
   
@@ -88,11 +88,11 @@ contains
     gravity=>extract_vector_field(state, "GravityDirection")
 
     surface_id_count=option_shape("/material_phase::"//trim(state%name)//& 
-         "/sediment/scalar_field::SedimentFluxTemplate/diagnostic/surface_id&
+         "/sediment/scalar_field::SedimentDepositionTemplate/diagnostic/surface_id&
          &s") 
     allocate(surface_ids(surface_id_count(1)))
     call get_option("/material_phase::"//trim(state%name)//& 
-         "/sediment/scalar_field::SedimentFluxTemplate/diagnostic/surface_id&
+         "/sediment/scalar_field::SedimentDepositionTemplate/diagnostic/surface_id&
          &s", surface_ids) 
 
     do i=1, sediment_classes
@@ -102,7 +102,7 @@ contains
             extract_scalar_field(state,trim(class_name))
 
        flux_field(i)%ptr=>&
-            extract_scalar_field(state,"SedimentFlux"//trim(class_name))
+            extract_scalar_field(state,"SedimentDeposition"//trim(class_name))
 
        sink_U(i)%ptr=>&
             extract_scalar_field(state,trim(class_name)//"SinkingVelocity",&
@@ -113,12 +113,12 @@ contains
 
        surface_mesh=>flux_field(i)%ptr%mesh%faces%surface_mesh
        
-       call allocate(surface_field(i), surface_mesh, "SurfaceFlux")
+       call allocate(surface_field(i), surface_mesh, "SurfaceDeposition")
 
        call zero(surface_field(i))
 
        ! extract the sediment_reentrainment BC which will contain the
-       ! erosion flux out of the SurfaceFlux and store in erosion
+       ! erosion flux out of the SurfaceDeposition and store in erosion
        call allocate(erosion(i), surface_mesh, "ErosionAmount")
        id = get_sediment_bc_id(i)
        call zero(erosion(i))
@@ -256,5 +256,78 @@ contains
     end do
 
   end subroutine assemble_sediment_flux_ele
+
+  subroutine calculate_sinking_velocity(state)
+    
+    type(state_type), intent(inout) :: state
+
+    type(scalar_field_pointer), dimension(:), allocatable :: sediment_concs
+    type(scalar_field), pointer :: unhindered_sinkU, sinkU  
+    type(scalar_field) :: rhs
+    integer :: sediment_classes, i
+
+    character(len = OPTION_PATH_LEN) :: class_name
+
+    ewrite(1,*) 'In calculate sediment sinking velocities'
+
+    sediment_classes = get_nSediments()
+    
+    allocate(sediment_concs(sediment_classes))
+
+    class_name=get_sediment_name(1)
+    sediment_concs(1)%ptr => extract_scalar_field(state,trim(class_name))
+
+    call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
+    call set(rhs, 1.0)
+       
+    ! get sediment concentrations and remove from rhs
+    do i=1, sediment_classes
+       class_name=get_sediment_name(i)
+       sediment_concs(i)%ptr => extract_scalar_field(state,trim(class_name))
+       call addto(rhs, sediment_concs(i)%ptr, scale=-1.0)
+    end do
+    
+    ! raise rhs to power of 2.39
+    do i = 1, node_count(rhs)
+      call set(rhs, i, node_val(rhs, i)**2.39)
+    end do 
+
+    do i=1, sediment_classes
+       class_name=get_sediment_name(i)
+ 
+       ! check for diagnostic sinking velocity
+       if (have_option(trim(sediment_concs(i)%ptr%option_path)// &
+            &'/prognostic/scalar_field::SinkingVelocity/diagnostic')) then
+
+          ewrite(2,*) 'Calculating diagnostic sink velocity for sediment field: '//&
+               & trim(class_name)
+          
+          ! check for presence of unhindered sinking velocity value
+          if (.not. have_option(trim(sediment_concs(i)%ptr%option_path)// &
+            &'/prognostic/scalar_field::UnhinderedSinkingVelocity')) then
+             FLExit("You must specify an unhindered sinking velocity field to be able &&
+                && to calculate diagnostic sinking velocity field values for sediments")
+          endif
+
+          unhindered_sinkU => extract_scalar_field(state, trim(class_name)// &
+               &'UnhinderedSinkingVelocity')
+          ewrite_minmax(unhindered_sinkU)   
+
+          sinkU => extract_scalar_field(state, trim(class_name)// &
+               &'SinkingVelocity')
+          
+          ! calculate hindered sinking velocity
+          call set(sinkU, unhindered_sinkU)
+          call scale(sinkU, rhs)
+          ewrite_minmax(sinkU)   
+
+       endif
+
+    end do
+
+    call deallocate(rhs)
+    deallocate(sediment_concs)
+
+  end subroutine calculate_sinking_velocity
 
 end module sediment_diagnostics

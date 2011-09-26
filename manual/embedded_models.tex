@@ -222,13 +222,24 @@ as any other tracer field, except it is subject to a settling velocity:
 \end{equation}
 
 The advection in the vertical direction is then modified with a downwards sinking 
-velocity $u_{\mathrm{sink}}$. 
+velocity $u_{s}$. 
+
+\subsection{Hindered Sinking Velocity}
+
+The effect of suspended sediment concentration on the fall velocity can be taken into account 
+by making the Sinking Velocity field diagnostic. The equation of Richardson and Zaki [1954] 
+is then used to calculate the hindered sinking velocity, $u_{si}$, based upon the unhindered 
+sinking velocity, $u_{s0}$, and the total concentration of sediment, $c$.
+
+\begin{equation}\label{eq:hindered_sinking_velocity}
+u_{si} = u_{s0}(1-c)^{2.39}
+\end{equation}
 
 \subsection{Deposition and erosion}
 
 A surface can be defined, the sea-bed, which is a sink for sediment. Once sediment
 fluxes through this surface it is removed from the system and stored in a separate 
-field: the SedimentFlux field. Each sediment class has an equivalent Flux field.
+field: the SedimentDeposition field. Each sediment class has an equivalent Flux field.
 
 Erosion occurs when the bed-shear stress is greater than the critical shear stress. Each
 sediment class has a separate shear stress, which can be input or calculated depending
@@ -252,6 +263,23 @@ automatically calculated using:
 
 \noindent
 where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}$ and $D$ is the sediment
-diameter (mm). The SedimentFlux field effectively mixes the deposited sediment, so order of deposition
+diameter (mm). The SedimentDepositon field effectively mixes the deposited sediment, so order of deposition
 is not preserved.
+
+\subsection{Sediment concentration dependent viscosity}
+
+The viscosity is also affected by the concentration of suspended sediment. This can be taken account for by
+using the sediment\_concentration\_dependent\_viscosity algorithm on a diagnostic viscosity field. If using 
+a subgrid-scale parameterisation this must be applied to the relevant background viscosity field.
+
+The equation used is that suggested by Krieger and Dougherty, 1959, and more recently by Sequeiros, 2009. 
+Viscosity, $\nu$, is a function of the zero sediment concentration viscosity, $\nu_0$, and the total sediment
+concentration, $c$, as follows.
+
+\begin{equation}\label{eq:sediment_concentration_dependent_viscosity}
+\nu = \nu_{0}(1-c/0.65)^{-1.625}
+\end{equation}
+
+Note: a ZeroSedimentConcentrationViscosity tensor field is required.
+
 

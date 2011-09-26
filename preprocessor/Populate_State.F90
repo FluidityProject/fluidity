@@ -1358,7 +1358,7 @@ contains
       character(len=OPTION_PATH_LEN) :: field_name
       character(len=FIELD_NAME_LEN)  :: class_name
 
-      type(scalar_field), pointer :: sedimentflux
+      type(scalar_field), pointer :: sedimentdeposition
 
       nfields=get_nSediments()
 
@@ -1368,19 +1368,19 @@ contains
 
          class_name=get_sediment_name(j)
 
-         ! Now set up the diagnostic flux field.
-         field_name="SedimentFlux"//trim(class_name)
+         ! Now set up the diagnostic deposition field.
+         field_name="SedimentDeposition"//trim(class_name)
 
          call allocate_and_insert_scalar_field(&
                trim(state_path)&
-               //"/sediment/scalar_field::SedimentFluxTemplate", &
+               //"/sediment/scalar_field::SedimentDepositionTemplate", &
                state, field_name=field_name, &
                dont_allocate_prognostic_value_spaces&
                =dont_allocate_prognostic_value_spaces)
              
-         sedimentflux=>extract_scalar_field(state, field_name)
+         sedimentdeposition=>extract_scalar_field(state, field_name)
 
-         call zero(sedimentflux)
+         call zero(sedimentdeposition)
 
         end do sediment_class_loop
 

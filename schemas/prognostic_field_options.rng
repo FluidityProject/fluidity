@@ -1123,6 +1123,7 @@ viscosity tensor is dealt with in the momentum equation.</a:documentation>
               <ref name="internal_algorithm"/>
               <ref name="bulk_viscosity_algorithm"/>
               <ref name="tensor_python_diagnostic_algorithm"/>
+              <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
             </choice>
             <ref name="diagnostic_tensor_field"/>
           </element>

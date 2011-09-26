@@ -216,7 +216,7 @@
           <real_value rank="0">0.5</real_value>
         </porosity>
       </scalar_field>
-      <scalar_field name="SedimentFluxTemplate" rank="0">
+      <scalar_field name="SedimentDepositionTemplate" rank="0">
         <diagnostic>
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
