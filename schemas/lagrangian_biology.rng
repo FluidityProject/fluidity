@@ -3,220 +3,241 @@
   <define name="lagrangian_biology">
     <element name="lagrangian_ensemble_biology">
       <a:documentation>Lagrangian particle biology from the VEW project.</a:documentation>
+      <element name="random_seed">
+        <a:documentation>Seed used for the random number generator. </a:documentation>
+        <ref name="integer"/>
+      </element>
       <zeroOrMore>
         <element name="functional_group">
+          <a:documentation>A Functional Group (FG) is an abstraction to define the characteristic behaviour of one or more species of plankton agents. 
+The Functional Group defines the internal variables an agent will store and the environment fields an agent needs to sample. 
+The concrete behaviour of an agent, however, is defined by the stage the agent is in. Stage changes are only permitted within Functional Groups. </a:documentation>
           <attribute name="name">
             <data type="string"/>
           </attribute>
-          <element name="state_variable">
-            <a:documentation>An agent's stage determines the update function</a:documentation>
-            <attribute name="name">
-              <value>Stage</value>
-            </attribute>
-          </element>
-          <element name="state_variable">
-            <a:documentation>Dynamic size of the ensemble the agent represents</a:documentation>
-            <attribute name="name">
-              <value>Biomass</value>
-            </attribute>
-            <element name="scalar_field">
-              <a:documentation>Biology agent field</a:documentation>
+          <element name="variables">
+            <a:documentation>The variables of an agent define its individual internal state. 
+Several types of variables are available: 
+state_variable defines an arbitrary internal property; 
+chemical_variable defines an internal pool of chemicals that can be exchanged with the environment. </a:documentation>
+            <element name="state_variable">
+              <a:documentation>An agent's stage determines the update function to apply at each timestep.</a:documentation>
+              <attribute name="name">
+                <value>Stage</value>
+              </attribute>
+            </element>
+            <element name="state_variable">
+              <a:documentation>Dynamic size of the ensemble the agent represents. 
+All internal quantities that are exchanged with the environment get scaled by this factor.</a:documentation>
               <attribute name="name">
                 <value>Biomass</value>
               </attribute>
-              <element name="diagnostic">
-                <ref name="internal_algorithm"/>
-                <ref name="mesh_choice"/>
-                <ref name="diagnostic_scalar_field_no_adapt"/>
-              </element>
-              <element name="per_stage">
-                <a:documentation>A diagnostic 'Biomass&lt;stage&gt;' field is created for each agent stage</a:documentation>
-                <empty/>
+              <element name="scalar_field">
+                <a:documentation>Biology agent field</a:documentation>
+                <attribute name="name">
+                  <value>Biomass</value>
+                </attribute>
+                <element name="diagnostic">
+                  <ref name="internal_algorithm"/>
+                  <ref name="mesh_choice"/>
+                  <ref name="diagnostic_scalar_field_no_adapt"/>
+                </element>
+                <element name="per_stage">
+                  <a:documentation>A diagnostic field 'Biomass&lt;stage&gt;' is created for each agent stage</a:documentation>
+                  <empty/>
+                </element>
               </element>
             </element>
+            <zeroOrMore>
+              <choice>
+                <element name="state_variable">
+                  <a:documentation>Internal state variable of a biology agent that defines an arbitrary internal property.</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                </element>
+                <element name="chemical_variable">
+                  <a:documentation>State variable representing the internal chemical pool of an agent. 
+Chemicals can be exchanged with the environment via the 'release' and 'uptake' options. 
+This requires a dissolved chemical field from the main material_phase to be bound to this agent variable. 
+The associated source and absorption fields will then get set from the accumulated particulate quantities.</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Eulerian diagnostic field representing the particulate amount of this chemical. 
+This field must be on a discontinuous mesh</a:documentation>
+                      <attribute name="name">
+                        <value>Particulate</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="mesh_choice"/>
+                        <ref name="diagnostic_scalar_field_no_adapt"/>
+                      </element>
+                      <optional>
+                        <element name="per_stage">
+                          <a:documentation>Option to create a diagnostic field for each stage of the Functional Group.</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="chemical_field">
+                      <a:documentation>Name of the field representing the dissolved chemical in the environment.
+This option is required if 'uptake' or 'release' are specified.</a:documentation>
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="uptake">
+                      <a:documentation>Option to define chemical uptake from the environment. 
+This will create internal fields to represent the accumulated requested quantity 
+and the depletion factor, which scales the amount actually ingested by the agent 
+according to availability in the environment. 
+The scaled request quantity will then get added to the according absorption field of the dissolved chemical.</a:documentation>
+                      <element name="scalar_field">
+                        <a:documentation>Request field on a discontinuous mesh mesh</a:documentation>
+                        <attribute name="name">
+                          <value>DGRequest</value>
+                        </attribute>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="mesh_choice"/>
+                          <ref name="diagnostic_scalar_field_no_adapt"/>
+                        </element>
+                      </element>
+                      <element name="scalar_field">
+                        <a:documentation>Request field projected onto a continuous mesh</a:documentation>
+                        <attribute name="name">
+                          <value>CGRequest</value>
+                        </attribute>
+                        <element name="diagnostic">
+                          <element name="algorithm">
+                            <a:documentation>Galerkin projects the source field.</a:documentation>
+                            <attribute name="name">
+                              <value>scalar_galerkin_projection</value>
+                            </attribute>
+                            <attribute name="material_phase_support">
+                              <value>single</value>
+                            </attribute>
+                            <attribute name="source_field_name">
+                              <value>DGRequest</value>
+                            </attribute>
+                            <attribute name="source_field_type">
+                              <value>scalar</value>
+                            </attribute>
+                            <optional>
+                              <element name="solver">
+                                <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
+                                <ref name="linear_solver_options_sym"/>
+                              </element>
+                            </optional>
+                          </element>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                      </element>
+                      <element name="scalar_field">
+                        <a:documentation>Depletion factor</a:documentation>
+                        <attribute name="name">
+                          <value>Depletion</value>
+                        </attribute>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field_no_adapt"/>
+                        </element>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="release">
+                      <a:documentation>Option to define chemical release into the environment. 
+This will create internal fields to represent the accumulated release quantity.
+The scaled release quantity will then get added to the according source field of the dissolved chemical.</a:documentation>
+                      <element name="scalar_field">
+                        <a:documentation>Release field on a discontinuous mesh mesh</a:documentation>
+                        <attribute name="name">
+                          <value>DGRelease</value>
+                        </attribute>
+                        <element name="diagnostic">
+                          <ref name="internal_algorithm"/>
+                          <ref name="mesh_choice"/>
+                          <ref name="diagnostic_scalar_field_no_adapt"/>
+                        </element>
+                      </element>
+                      <element name="scalar_field">
+                        <a:documentation>Release field projected onto a continuous mesh</a:documentation>
+                        <attribute name="name">
+                          <value>CGRelease</value>
+                        </attribute>
+                        <element name="diagnostic">
+                          <element name="algorithm">
+                            <a:documentation>Galerkin projects the source field.</a:documentation>
+                            <attribute name="name">
+                              <value>scalar_galerkin_projection</value>
+                            </attribute>
+                            <attribute name="material_phase_support">
+                              <value>single</value>
+                            </attribute>
+                            <attribute name="source_field_name">
+                              <value>DGRequest</value>
+                            </attribute>
+                            <attribute name="source_field_type">
+                              <value>scalar</value>
+                            </attribute>
+                            <optional>
+                              <element name="solver">
+                                <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
+                                <ref name="linear_solver_options_sym"/>
+                              </element>
+                            </optional>
+                          </element>
+                          <ref name="velocity_mesh_choice"/>
+                          <ref name="diagnostic_scalar_field"/>
+                        </element>
+                      </element>
+                    </element>
+                  </optional>
+                </element>
+              </choice>
+            </zeroOrMore>
           </element>
-          <zeroOrMore>
-            <choice>
-              <element name="state_variable">
-                <a:documentation>Internal state variable of a biology agent</a:documentation>
+          <element name="environment">
+            <a:documentation>This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
+The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.</a:documentation>
+            <zeroOrMore>
+              <element name="environment_field">
+                <a:documentation>Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.</a:documentation>
                 <attribute name="name">
                   <data type="string"/>
                 </attribute>
               </element>
-              <element name="chemical_variable">
-                <a:documentation>State variable representing the internal chemical pool of an agent</a:documentation>
+            </zeroOrMore>
+          </element>
+          <element name="stages">
+            <zeroOrMore>
+              <element name="stage">
+                <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
+                <ref name="comment"/>
                 <attribute name="name">
                   <data type="string"/>
                 </attribute>
-                <optional>
-                  <element name="scalar_field">
-                    <a:documentation>Eulerian diagnostic field representing the particulate amount of this chemical
-Must be on a discontinuous mesh</a:documentation>
-                    <attribute name="name">
-                      <value>Particulate</value>
-                    </attribute>
-                    <element name="diagnostic">
-                      <ref name="internal_algorithm"/>
-                      <ref name="mesh_choice"/>
-                      <ref name="diagnostic_scalar_field_no_adapt"/>
-                    </element>
-                    <optional>
-                      <element name="per_stage">
-                        <a:documentation>Option to create a diagnostic field for each stage</a:documentation>
-                        <empty/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="chemical_field">
-                    <a:documentation>Name of the field representing the dissolved chemical in the environment.
-Needed if uptake or release are specified.</a:documentation>
-                    <attribute name="name">
-                      <data type="string"/>
-                    </attribute>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="uptake">
-                    <element name="scalar_field">
-                      <a:documentation>Request field on a discontinuous mesh mesh</a:documentation>
-                      <attribute name="name">
-                        <value>DGRequest</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="mesh_choice"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
-                      </element>
-                    </element>
-                    <element name="scalar_field">
-                      <a:documentation>Request field projected onto a continuous mesh</a:documentation>
-                      <attribute name="name">
-                        <value>CGRequest</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <element name="algorithm">
-                          <a:documentation>Galerkin projects the source field.</a:documentation>
-                          <attribute name="name">
-                            <value>scalar_galerkin_projection</value>
-                          </attribute>
-                          <attribute name="material_phase_support">
-                            <value>single</value>
-                          </attribute>
-                          <attribute name="source_field_name">
-                            <value>DGRequest</value>
-                          </attribute>
-                          <attribute name="source_field_type">
-                            <value>scalar</value>
-                          </attribute>
-                          <optional>
-                            <element name="solver">
-                              <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
-                              <ref name="linear_solver_options_sym"/>
-                            </element>
-                          </optional>
-                        </element>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                    <element name="scalar_field">
-                      <a:documentation>Depletion factor</a:documentation>
-                      <attribute name="name">
-                        <value>Depletion</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
-                      </element>
-                    </element>
-                  </element>
-                </optional>
-                <optional>
-                  <element name="release">
-                    <element name="scalar_field">
-                      <a:documentation>Release field on a discontinuous mesh mesh</a:documentation>
-                      <attribute name="name">
-                        <value>DGRelease</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="mesh_choice"/>
-                        <ref name="diagnostic_scalar_field_no_adapt"/>
-                      </element>
-                    </element>
-                    <element name="scalar_field">
-                      <a:documentation>Release field projected onto a continuous mesh</a:documentation>
-                      <attribute name="name">
-                        <value>CGRelease</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <element name="algorithm">
-                          <a:documentation>Galerkin projects the source field.</a:documentation>
-                          <attribute name="name">
-                            <value>scalar_galerkin_projection</value>
-                          </attribute>
-                          <attribute name="material_phase_support">
-                            <value>single</value>
-                          </attribute>
-                          <attribute name="source_field_name">
-                            <value>DGRequest</value>
-                          </attribute>
-                          <attribute name="source_field_type">
-                            <value>scalar</value>
-                          </attribute>
-                          <optional>
-                            <element name="solver">
-                              <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
-                              <ref name="linear_solver_options_sym"/>
-                            </element>
-                          </optional>
-                        </element>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </element>
-                </optional>
-              </element>
-            </choice>
-          </zeroOrMore>
-          <zeroOrMore>
-            <element name="environment_field">
-              <a:documentation>Environment fields needed to run update code. A dictionary will be passed to the Python update code containing
-the local values of the fields listed here.</a:documentation>
-              <attribute name="name">
-                <data type="string"/>
-              </attribute>
-            </element>
-          </zeroOrMore>
-          <zeroOrMore>
-            <element name="stage_array">
-              <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
-              <ref name="comment"/>
-              <attribute name="name">
-                <data type="string"/>
-              </attribute>
-              <element name="id">
-                <a:documentation>Stage identifier</a:documentation>
-                <ref name="real"/>
-              </element>
-              <element name="number_of_agents">
-                <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
-                <ref name="integer"/>
-              </element>
-              <element name="lagrangian">
-                <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
-                <empty/>
-              </element>
-              <element name="binary_output">
-                <a:documentation>Enable to write detector output in binary format</a:documentation>
-                <empty/>
-              </element>
-              <element name="initial_position">
-                <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+                <element name="id">
+                  <a:documentation>Stage identifier</a:documentation>
+                  <ref name="real"/>
+                </element>
+                <element name="number_of_agents">
+                  <a:documentation>The number of detectors prescribed by the python function.</a:documentation>
+                  <ref name="integer"/>
+                </element>
+                <element name="initial_position">
+                  <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
  def val(t):
     # Function code
@@ -227,18 +248,18 @@ The return value must have length number_of_detectors.
 *** IMPORTANT NOTE ***
 
 The t argument is for future use only - currently detector locations are only set at simulation start.</a:documentation>
-                <ref name="python_code"/>
-              </element>
-              <element name="initial_state">
-                <element name="values">
-                  <ref name="real_vector"/>
+                  <ref name="python_code"/>
                 </element>
-              </element>
-              <optional>
-                <element name="random_walk">
-                  <choice>
-                    <element name="python">
-                      <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
+                <element name="initial_state">
+                  <element name="values">
+                    <ref name="real_vector"/>
+                  </element>
+                </element>
+                <optional>
+                  <element name="random_walk">
+                    <choice>
+                      <element name="python">
+                        <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
 The return value will be added to the lagrangian advection at each sub-timestep. 
 Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
 Functions should be of the form:
@@ -248,46 +269,47 @@ Functions should be of the form:
  def val(ele, local_coord):
     # x = field.eval_field(ele, local_coord)
     return # Return some f(x)</a:documentation>
-                      <ref name="python_code"/>
-                    </element>
-                    <element name="diffusive_random_walk">
-                      <a:documentation>Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
+                        <ref name="python_code"/>
+                      </element>
+                      <element name="diffusive_random_walk">
+                        <a:documentation>Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
 Described in Visser, 1997 and Ross and Sharples, 2004.
 Requires name of diffusivity field and according gradient field.</a:documentation>
-                      <attribute name="diffusivity_field">
-                        <data type="string"/>
-                      </attribute>
-                      <attribute name="diffusivity_gradient">
-                        <data type="string"/>
-                      </attribute>
-                    </element>
-                  </choice>
-                </element>
-              </optional>
-              <choice>
-                <element name="biology_update">
-                  <a:documentation>Python code specifying the biology model for this type of agent.</a:documentation>
-                  <ref name="python_code"/>
-                </element>
-                <element name="disable_biology">
-                  <a:documentation>Do not calculate biology
+                        <attribute name="diffusivity_field">
+                          <data type="string"/>
+                        </attribute>
+                        <attribute name="diffusivity_gradient">
+                          <data type="string"/>
+                        </attribute>
+                      </element>
+                    </choice>
+                  </element>
+                </optional>
+                <choice>
+                  <element name="biology_update">
+                    <a:documentation>Python code specifying the biology model for this type of agent.</a:documentation>
+                    <ref name="python_code"/>
+                  </element>
+                  <element name="disable_biology">
+                    <a:documentation>Do not calculate biology
 This option is generally only useful for testing. </a:documentation>
-                  <empty/>
-                </element>
-              </choice>
-              <optional>
-                <element name="debug">
-                  <a:documentation>Debug options</a:documentation>
-                  <optional>
-                    <element name="exclude_from_advection">
-                      <a:documentation>Skip velocity advection algorithm (RK-GS)</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-              </optional>
-            </element>
-          </zeroOrMore>
+                    <empty/>
+                  </element>
+                </choice>
+                <optional>
+                  <element name="debug">
+                    <a:documentation>Debug options</a:documentation>
+                    <optional>
+                      <element name="exclude_from_advection">
+                        <a:documentation>Skip velocity advection algorithm (RK-GS)</a:documentation>
+                        <empty/>
+                      </element>
+                    </optional>
+                  </element>
+                </optional>
+              </element>
+            </zeroOrMore>
+          </element>
           <optional>
             <element name="scalar_field">
               <a:documentation>Number of agents</a:documentation>
@@ -300,7 +322,7 @@ This option is generally only useful for testing. </a:documentation>
                 <ref name="diagnostic_scalar_field_no_adapt"/>
               </element>
               <element name="per_stage">
-                <a:documentation>A diagnostic 'Agents&lt;stage&gt;' field is created for each agent stage</a:documentation>
+                <a:documentation>A diagnostic '&lt;FG&gt;Agents&lt;stage&gt;' field is created for each agent stage</a:documentation>
                 <empty/>
               </element>
             </element>
@@ -308,9 +330,6 @@ This option is generally only useful for testing. </a:documentation>
           <ref name="lagrangian_timestepping"/>
         </element>
       </zeroOrMore>
-      <element name="random_seed">
-        <ref name="integer"/>
-      </element>
     </element>
   </define>
   <define name="hyperlight">

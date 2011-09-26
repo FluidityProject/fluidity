@@ -2,212 +2,237 @@ lagrangian_biology =
    (
       ## Lagrangian particle biology from the VEW project.
       element lagrangian_ensemble_biology {
+         ## Seed used for the random number generator. 
+         element random_seed{
+            integer
+         },
+         ## A Functional Group (FG) is an abstraction to define the characteristic behaviour of one or more species of plankton agents. 
+         ## The Functional Group defines the internal variables an agent will store and the environment fields an agent needs to sample. 
+         ## The concrete behaviour of an agent, however, is defined by the stage the agent is in. Stage changes are only permitted within Functional Groups. 
          element functional_group {
             attribute name { xsd:string },
-            ## An agent's stage determines the update function
-            element state_variable {
-               attribute name { 'Stage' }
-            },
-            ## Dynamic size of the ensemble the agent represents
-            element state_variable {
-               attribute name { 'Biomass' },
-               ## Biology agent field
-               element scalar_field {
-                  attribute name { 'Biomass' },
-                  element diagnostic {
-                     internal_algorithm,
-                     mesh_choice,
-                     diagnostic_scalar_field_no_adapt
-                  },
-                  ## A diagnostic 'Biomass<stage>' field is created for each agent stage
-                  element per_stage {
-                     empty
-                  }
-               }
-            },
-            (
-               ## Internal state variable of a biology agent
+            ## The variables of an agent define its individual internal state. 
+            ## Several types of variables are available: 
+            ## state_variable defines an arbitrary internal property; 
+            ## chemical_variable defines an internal pool of chemicals that can be exchanged with the environment. 
+            element variables {
+               ## An agent's stage determines the update function to apply at each timestep.
                element state_variable {
-                  attribute name { xsd:string }
-               }|
-               ## State variable representing the internal chemical pool of an agent
-               element chemical_variable {
-                  attribute name { xsd:string },
-                  ## Eulerian diagnostic field representing the particulate amount of this chemical
-                  ## Must be on a discontinuous mesh
+                  attribute name { 'Stage' }
+               },
+               ## Dynamic size of the ensemble the agent represents. 
+               ## All internal quantities that are exchanged with the environment get scaled by this factor.
+               element state_variable {
+                  attribute name { 'Biomass' },
+                  ## Biology agent field
                   element scalar_field {
-                     attribute name { 'Particulate' },
+                     attribute name { 'Biomass' },
                      element diagnostic {
                         internal_algorithm,
                         mesh_choice,
                         diagnostic_scalar_field_no_adapt
                      },
-                     ## Option to create a diagnostic field for each stage
+                     ## A diagnostic field 'Biomass<stage>' is created for each agent stage
                      element per_stage {
                         empty
-                     }?
-                  }?,
-                  ## Name of the field representing the dissolved chemical in the environment.
-                  ## Needed if uptake or release are specified.
-                  element chemical_field {
-                     attribute name { xsd:string }
-                  }?,
-                  element uptake {
-                     ## Request field on a discontinuous mesh mesh
-                     element scalar_field {
-                        attribute name { "DGRequest" },
-                        element diagnostic {
-                           internal_algorithm,
-                           mesh_choice,
-                           diagnostic_scalar_field_no_adapt
-                        }
-                     },
-                     ## Request field projected onto a continuous mesh
-                     element scalar_field {
-                        attribute name { "CGRequest" },
-                        element diagnostic {
-                           ## Galerkin projects the source field.
-                           element algorithm {
-                              attribute name { "scalar_galerkin_projection" },
-                              attribute material_phase_support { "single" },
-                              attribute source_field_name { "DGRequest" },
-                              attribute source_field_type { "scalar" },
-                              ## Solver options. Required if projecting onto a continuous mesh.
-                              element solver {
-                                 linear_solver_options_sym
-                              }?
-                           },
-                           velocity_mesh_choice,
-                           diagnostic_scalar_field
-                        }
-                     },
-                     ## Depletion factor
-                     element scalar_field {
-                        attribute name { "Depletion" },
-                        element diagnostic {
-                           internal_algorithm,
-                           velocity_mesh_choice,
-                           diagnostic_scalar_field_no_adapt
-                        }
                      }
-                  }?,
-                  element release {
-                     ## Release field on a discontinuous mesh mesh
-                     element scalar_field {
-                        attribute name { "DGRelease" },
-                        element diagnostic {
-                           internal_algorithm,
-                           mesh_choice,
-                           diagnostic_scalar_field_no_adapt
-                        }
-                     },
-                     ## Release field projected onto a continuous mesh
-                     element scalar_field {
-                        attribute name { "CGRelease" },
-                        element diagnostic {
-                           ## Galerkin projects the source field.
-                           element algorithm {
-                              attribute name { "scalar_galerkin_projection" },
-                              attribute material_phase_support { "single" },
-                              attribute source_field_name { "DGRequest" },
-                              attribute source_field_type { "scalar" },
-                              ## Solver options. Required if projecting onto a continuous mesh.
-                              element solver {
-                                 linear_solver_options_sym
-                              }?
-                           },
-                           velocity_mesh_choice,
-                           diagnostic_scalar_field
-                        }
-                     }
-                  }?
-               }
-            )*,
-            ## Environment fields needed to run update code. A dictionary will be passed to the Python update code containing
-            ## the local values of the fields listed here.
-            element environment_field {
-               attribute name { xsd:string }
-            }*,
-            ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
-            element stage_array {
-               comment,
-               attribute name { xsd:string },
-               ## Stage identifier
-               element id { real },
-               ## The number of detectors prescribed by the python function.
-               element number_of_agents {
-                  integer
-               },                     
-               ## Create detectors which move with the fluid velocity.
-               element lagrangian {
-                  empty
-               },
-               ## Enable to write detector output in binary format
-               element binary_output {
-                  empty
-               },
-               ## Python function prescribing dimensional vector input. Functions should be of the form:
-               ##
-               ##  def val(t):
-               ##     # Function code
-               ##     return # Return value
-               ##
-               ## The return value must have length number_of_detectors.
-               ##
-               ## *** IMPORTANT NOTE ***
-               ##
-               ## The t argument is for future use only - currently detector locations are only set at simulation start.
-               element initial_position {
-                  python_code
-               },
-               element initial_state {
-                  element values {
-                     real_vector
                   }
                },
-               element random_walk {
+               (
+                  ## Internal state variable of a biology agent that defines an arbitrary internal property.
+                  element state_variable {
+                     attribute name { xsd:string }
+                  }|
+                  ## State variable representing the internal chemical pool of an agent. 
+                  ## Chemicals can be exchanged with the environment via the 'release' and 'uptake' options. 
+                  ## This requires a dissolved chemical field from the main material_phase to be bound to this agent variable. 
+                  ## The associated source and absorption fields will then get set from the accumulated particulate quantities.
+                  element chemical_variable {
+                     attribute name { xsd:string },
+                     ## Eulerian diagnostic field representing the particulate amount of this chemical. 
+                     ## This field must be on a discontinuous mesh
+                     element scalar_field {
+                        attribute name { 'Particulate' },
+                        element diagnostic {
+                           internal_algorithm,
+                           mesh_choice,
+                           diagnostic_scalar_field_no_adapt
+                        },
+                        ## Option to create a diagnostic field for each stage of the Functional Group.
+                        element per_stage {
+                           empty
+                        }?
+                     }?,
+                     ## Name of the field representing the dissolved chemical in the environment.
+                     ## This option is required if 'uptake' or 'release' are specified.
+                     element chemical_field {
+                        attribute name { xsd:string }
+                     }?,
+                     ## Option to define chemical uptake from the environment. 
+                     ## This will create internal fields to represent the accumulated requested quantity 
+                     ## and the depletion factor, which scales the amount actually ingested by the agent 
+                     ## according to availability in the environment. 
+                     ## The scaled request quantity will then get added to the according absorption field of the dissolved chemical.
+                     element uptake {
+                        ## Request field on a discontinuous mesh mesh
+                        element scalar_field {
+                           attribute name { "DGRequest" },
+                           element diagnostic {
+                              internal_algorithm,
+                              mesh_choice,
+                              diagnostic_scalar_field_no_adapt
+                           }
+                        },
+                        ## Request field projected onto a continuous mesh
+                        element scalar_field {
+                           attribute name { "CGRequest" },
+                           element diagnostic {
+                              ## Galerkin projects the source field.
+                              element algorithm {
+                                 attribute name { "scalar_galerkin_projection" },
+                                 attribute material_phase_support { "single" },
+                                 attribute source_field_name { "DGRequest" },
+                                 attribute source_field_type { "scalar" },
+                                 ## Solver options. Required if projecting onto a continuous mesh.
+                                 element solver {
+                                    linear_solver_options_sym
+                                 }?
+                              },
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field
+                           }
+                        },
+                        ## Depletion factor
+                        element scalar_field {
+                           attribute name { "Depletion" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field_no_adapt
+                           }
+                        }
+                     }?,
+                     ## Option to define chemical release into the environment. 
+                     ## This will create internal fields to represent the accumulated release quantity.
+                     ## The scaled release quantity will then get added to the according source field of the dissolved chemical.
+                     element release {
+                        ## Release field on a discontinuous mesh mesh
+                        element scalar_field {
+                           attribute name { "DGRelease" },
+                           element diagnostic {
+                              internal_algorithm,
+                              mesh_choice,
+                              diagnostic_scalar_field_no_adapt
+                           }
+                        },
+                        ## Release field projected onto a continuous mesh
+                        element scalar_field {
+                           attribute name { "CGRelease" },
+                           element diagnostic {
+                              ## Galerkin projects the source field.
+                              element algorithm {
+                                 attribute name { "scalar_galerkin_projection" },
+                                 attribute material_phase_support { "single" },
+                                 attribute source_field_name { "DGRequest" },
+                                 attribute source_field_type { "scalar" },
+                                 ## Solver options. Required if projecting onto a continuous mesh.
+                                 element solver {
+                                    linear_solver_options_sym
+                                 }?
+                              },
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field
+                           }
+                        }
+                     }?
+                  }
+               )*
+            },
+            ## This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
+            ## The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.
+            element environment {
+               ## Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.
+               element environment_field {
+                  attribute name { xsd:string }
+               }*
+            },
+            ##
+            element stages {
+               ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
+               element stage {
+                  comment,
+                  attribute name { xsd:string },
+                  ## Stage identifier
+                  element id { real },
+                  ## The number of detectors prescribed by the python function.
+                  element number_of_agents {
+                     integer
+                  },                     
+                  ## Python function prescribing dimensional vector input. Functions should be of the form:
+                  ##
+                  ##  def val(t):
+                  ##     # Function code
+                  ##     return # Return value
+                  ##
+                  ## The return value must have length number_of_detectors.
+                  ##
+                  ## *** IMPORTANT NOTE ***
+                  ##
+                  ## The t argument is for future use only - currently detector locations are only set at simulation start.
+                  element initial_position {
+                     python_code
+                  },
+                  ##
+                  element initial_state {
+                     element values {
+                        real_vector
+                     }
+                  },
+                  ##
+                  element random_walk {
+                     (
+                        ## Python function prescribing additional agent displacement due to turbulence. 
+                        ## The return value will be added to the lagrangian advection at each sub-timestep. 
+                        ## Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
+                        ## Functions should be of the form:
+                        ## 
+                        ##  field = state.scalar_fields['Field_name']
+                        ##
+                        ##  def val(ele, local_coord):
+                        ##     # x = field.eval_field(ele, local_coord)
+                        ##     return # Return some f(x)
+                        element python{
+                           python_code
+                        }|
+                        ## Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
+                        ## Described in Visser, 1997 and Ross and Sharples, 2004.
+                        ## Requires name of diffusivity field and according gradient field.
+                        element diffusive_random_walk {
+                           attribute diffusivity_field { xsd:string },
+                           attribute diffusivity_gradient { xsd:string }
+                        }
+                     )
+                  }?,
                   (
-                     ## Python function prescribing additional agent displacement due to turbulence. 
-                     ## The return value will be added to the lagrangian advection at each sub-timestep. 
-                     ## Fields should be pulled from 'state' before the val(ele, local_coord) function is evaluated.
-                     ## Functions should be of the form:
-                     ## 
-                     ##  field = state.scalar_fields['Field_name']
-                     ##
-                     ##  def val(ele, local_coord):
-                     ##     # x = field.eval_field(ele, local_coord)
-                     ##     return # Return some f(x)
-                     element python{
+                     ## Python code specifying the biology model for this type of agent.
+                     element biology_update {
                         python_code
                      }|
-                     ## Hardcoded Random Walk scheme for non-homogeneous diffusivity fields.
-                     ## Described in Visser, 1997 and Ross and Sharples, 2004.
-                     ## Requires name of diffusivity field and according gradient field.
-                     element diffusive_random_walk {
-                        attribute diffusivity_field { xsd:string },
-                        attribute diffusivity_gradient { xsd:string }
+                     ## Do not calculate biology
+                     ## This option is generally only useful for testing. 
+                     element disable_biology {
+                        empty
                      }
-                  )
-               }?,
-               (
-                  ## Python code specifying the biology model for this type of agent.
-                  element biology_update {
-                     python_code
-                  }|
-                  ## Do not calculate biology
-                  ## This option is generally only useful for testing. 
-                  element disable_biology {
-                     empty
-                  }
-               ),
-               ## Debug options
-               element debug {
-                  ## Skip velocity advection algorithm (RK-GS)
-                  element exclude_from_advection {
-                     empty
+                  ),
+                  ## Debug options
+                  element debug {
+                     ## Skip velocity advection algorithm (RK-GS)
+                     element exclude_from_advection {
+                        empty
+                     }?
                   }?
-               }?
-            }*,
+               }*
+            },
             ## Number of agents
             element scalar_field {
                attribute name { 'Agents' },
@@ -216,16 +241,13 @@ lagrangian_biology =
                   mesh_choice,
                   diagnostic_scalar_field_no_adapt
                },
-               ## A diagnostic 'Agents<stage>' field is created for each agent stage
+               ## A diagnostic '<FG>Agents<stage>' field is created for each agent stage
                element per_stage {
                   empty
                }
             }?,
             lagrangian_timestepping
-         }*,
-         element random_seed{
-            integer
-         }
+         }*
       }
    )
 

@@ -91,7 +91,7 @@ contains
     do fg=1, n_fgroups
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
 
-       n_agent_arrays = n_agent_arrays + option_count(trim(fg_buffer)//"/stage_array")
+       n_agent_arrays = n_agent_arrays + option_count(trim(fg_buffer)//"/stages/stage")
     end do
 
     allocate(agent_arrays(n_agent_arrays))
@@ -105,10 +105,10 @@ contains
     do fg=1, n_fgroups
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
        call get_option(trim(fg_buffer)//"/name", fg_name)
-       n_fg_arrays = option_count(trim(fg_buffer)//"/stage_array")
+       n_fg_arrays = option_count(trim(fg_buffer)//"/stages/stage")
 
        do i = 1, n_fg_arrays
-          write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stage_array[",i-1,"]"
+          write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",i-1,"]"
           call get_option(trim(stage_buffer)//"/number_of_agents", n_agents)
           call get_option(trim(stage_buffer)//"/name", stage_name)
           agent_arrays(i)%name = trim(fg_name)//trim(stage_name)
@@ -151,17 +151,9 @@ contains
              agent_arrays(i)%move_parameters%do_random_walk=.false.
           end if
 
-          ! Collect other meta-information
-          if (have_option(trim(stage_buffer)//"/binary_output")) then
-             agent_arrays(i)%binary_output=.true.
-          else
-             agent_arrays(i)%binary_output=.false.
-          end if
-          if (have_option(trim(stage_buffer)//"/lagrangian")) then
-             det_type=LAGRANGIAN_DETECTOR
-          else
-             det_type=STATIC_DETECTOR
-          end if
+          ! Set other meta-information
+          agent_arrays(i)%binary_output=.true.
+          det_type=LAGRANGIAN_DETECTOR
           if (have_option(trim(stage_buffer)//"/debug/exclude_from_advection")) then
              agent_arrays(i)%move_parameters%do_velocity_advect=.false.
           else
@@ -190,12 +182,12 @@ contains
           !!! Biology setup !!!
 
           ! First determine number of biovars
-          biovar_state = option_count(trim(fg_buffer)//"/state_variable") 
-          biovar_chemical = option_count(trim(fg_buffer)//"/chemical_variable")
+          biovar_state = option_count(trim(fg_buffer)//"/variables/state_variable") 
+          biovar_chemical = option_count(trim(fg_buffer)//"/variables/chemical_variable")
           biovar_uptake = 0
           biovar_release = 0
           do j=1, biovar_chemical
-             write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/chemical_variable[",j-1,"]"
+             write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/chemical_variable[",j-1,"]"
              if (have_option(trim(biovar_buffer)//"/uptake")) then
                 biovar_uptake = biovar_uptake + 1
              end if
@@ -217,7 +209,7 @@ contains
              ! Add internal state variables
              index = 1
              do j=1, biovar_state
-                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/state_variable[",j-1,"]"
+                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/state_variable[",j-1,"]"
                 call get_option(trim(biovar_buffer)//"/name", agent_arrays(i)%biovar_name(index))
 
                 ! Record according diagnostic field
@@ -237,7 +229,7 @@ contains
 
              ! Add chemical variables
              do j=1, biovar_chemical
-                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/chemical_variable[",j-1,"]"
+                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/chemical_variable[",j-1,"]"
                 call get_option(trim(biovar_buffer)//"/name", biovar_name)
 
                 ! Chemical pool variable and according diagnostic fields
@@ -304,11 +296,11 @@ contains
              end do
 
              ! Record which environment fields to evaluate and pass to the update function
-             n_env_fields = option_count(trim(fg_buffer)//"/environment_field")
+             n_env_fields = option_count(trim(fg_buffer)//"/environment/environment_field")
              call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(i)%name)//"'] = []")
              allocate(agent_arrays(i)%env_field_name(n_env_fields))
              do j=1, n_env_fields
-                write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment_field[",j-1,"]"
+                write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment/environment_field[",j-1,"]"
                 call get_option(trim(env_field_buffer)//"/name", agent_arrays(i)%env_field_name(j))
                 call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(i)%name)//"'].append('"//trim(agent_arrays(i)%env_field_name(j))//"')")
              end do

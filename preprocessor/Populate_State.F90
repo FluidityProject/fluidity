@@ -1455,11 +1455,11 @@ contains
             write(field_buffer, "(a,i0,a)") trim(fg_buffer)//"/scalar_field::Agents"
             call get_option(trim(field_buffer)//"/name", field_name)
 
-            ! One for each stage, ie. AgentsLiving and AgentsDead
+            ! One for each stage, ie. DiatomAgentsLiving and DiatomAgentsDead
             if (have_option(trim(field_buffer)//"/per_stage")) then
-               stage_count = option_count(trim(fg_buffer)//"/stage_array")
+               stage_count = option_count(trim(fg_buffer)//"/stages/stage")
                do k=1, stage_count
-                  write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stage_array[",k-1,"]"
+                  write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
                   call get_option(trim(stage_buffer)//"/name", stage_name)
 
                   call allocate_and_insert_scalar_field(trim(field_buffer), &
@@ -1476,9 +1476,9 @@ contains
             end if
          end if
 
-         var_count = option_count(trim(fg_buffer)//"/state_variable")
+         var_count = option_count(trim(fg_buffer)//"/variables/state_variable")
          do j=1, var_count
-            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/state_variable[",j-1,"]"
+            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/state_variable[",j-1,"]"
             call get_option(trim(var_buffer)//"/name", var_name)
 
             ! Add diagnostic field
@@ -1487,9 +1487,9 @@ contains
 
                ! One for each stage, ie. BiomassLiving and BiomassDead
                if (have_option(trim(var_buffer)//"/scalar_field/per_stage")) then
-                  stage_count = option_count(trim(fg_buffer)//"/stage_array")
+                  stage_count = option_count(trim(fg_buffer)//"/stages/stage")
                   do k=1, stage_count
-                     write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stage_array[",k-1,"]"
+                     write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
                      call get_option(trim(stage_buffer)//"/name", stage_name)
 
                      call allocate_and_insert_scalar_field(&
@@ -1510,9 +1510,9 @@ contains
          end do
 
          ! Add request and depletion fields for uptake variables
-         var_count = option_count(trim(fg_buffer)//"/chemical_variable")
+         var_count = option_count(trim(fg_buffer)//"/variables/chemical_variable")
          do j=1, var_count
-            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/chemical_variable[",j-1,"]"
+            write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/chemical_variable[",j-1,"]"
             call get_option(trim(var_buffer)//"/name", var_name)
 
             if (have_option(trim(var_buffer)//"/uptake")) then
