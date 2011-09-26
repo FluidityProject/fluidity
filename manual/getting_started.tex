@@ -605,9 +605,9 @@ list can be obtained by running:
 This will produce the following output:
 
 \begin{lstlisting}[language=Bash]
-ERROR: Unrecognized arguments!
-Revision: 13536M
-Compile date: May 31 2010 13:03:59
+Revision: 3575 lawrence.mitchell@ed.ac.uk-20110907125710-d44hcr4no0ev8icc
+Compile date: Sep  7 2011 13:59:34
+OpenMP Support			no
 Adaptivity support		yes
 2D adaptivity support		yes
 3D MBA support			no
@@ -624,11 +624,13 @@ ARPACK support			yes
 Python support			yes
 Numpy support			yes
 VTK support			yes
-Zoltan support			no
+Zoltan support			yes
 Memory diagnostics		no
+FEMDEM support			no
+Hyperlight support		no
 
 
-Usage: ../bin/fluidity [options ...] [simulation-file]
+Usage: fluidity [options ...] [simulation-file]
 
 Options:
  -h, --help
@@ -638,6 +640,10 @@ Options:
     Sets default value for -v to 2.
  -v <level>, --verbose
     Verbose output to stdout, default level 0
+ -p, --profile
+    Print profiling data at end of run
+    This provides aggregated elapsed time for coarse-level computation
+    (Turned on automatically if verbosity is at level 2 or above)
  -V, --version
     Version
 \end{lstlisting}

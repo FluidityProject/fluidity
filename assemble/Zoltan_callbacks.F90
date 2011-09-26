@@ -88,7 +88,7 @@ contains
     call get_owned_nodes(zoltan_global_zz_halo, local_ids(1:count))
     global_ids(1:count) = halo_universal_number(zoltan_global_zz_halo, local_ids(1:count))
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug")) then
        ewrite(1,*) "zoltan_cb_get_owned nodes found local_ids: ", local_ids(1:count)
        ewrite(1,*) "zoltan_cb_get_owned nodes found global_ids: ", global_ids(1:count)
     end if
@@ -138,7 +138,7 @@ contains
       num_edges(node) = row_length(zoltan_global_zz_sparsity_one, local_ids(node))
     end do
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_counts")) then      
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_counts")) then      
        write(filename, '(A,I0,A)') 'edge_counts_', getrank(),'.dat'
        open(666, file = filename)
        do node=1,count
@@ -170,7 +170,7 @@ contains
     character (len = OPTION_PATH_LEN) :: filename    
     
     ! variables for recording various element quality functional values 
-    real(zoltan_float) :: quality, min_quality, my_min_quality
+    real :: quality, min_quality, my_min_quality
     
     ! variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
     real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight
@@ -192,10 +192,17 @@ contains
     
     my_num_edges = sum(num_edges(1:num_obj))
     
-    if (zoltan_global_zoltan_iteration==zoltan_global_zoltan_max_adapt_iteration) then
+    if (.NOT. zoltan_global_calculate_edge_weights) then
        
-       ! last iteration - hopefully the mesh is of sufficient quality by now
-       ! we only want to optimize the edge cut to minimize halo communication
+       ! Three reasons why we might not want to use edge-weighting:
+       ! - last iteration 
+       !   hopefully the mesh is of sufficient quality by now we only
+       !   want to optimize the edge cut to minimize halo communication
+       ! - flredecomping
+       !   we don't need to use edge-weights as there's no adapting
+       ! - empty partitions
+       !   when load balancing with edge-weights on we couldn't avoid
+       !   creating empty paritions so try load balancing without them
        ewgts(1:my_num_edges) = 1.0       
        head = 1
        do node=1,count
@@ -216,6 +223,7 @@ contains
             MPI_COMM_FEMTOOLS,err)
     end if
     
+    zoltan_global_local_min_quality = 1.0
     
     head = 1
     
@@ -270,7 +278,13 @@ contains
                 min_quality = quality
              end if
           end do
-          
+
+          ! Keep track of the lowest quality element of all those we've looked at
+          ! Will be used in zoltan_drive to calculate a global minimum element quality
+          if(min_quality .LT. zoltan_global_local_min_quality) then
+             zoltan_global_local_min_quality = min_quality
+          end if
+
           ! check if the quality is within the tolerance         
           if (min_quality .GT. zoltan_global_quality_tolerance) then
              ! if it is
@@ -285,6 +299,8 @@ contains
        head = head + size(neighbours)
     end do
     
+    zoltan_global_calculated_local_min_quality = .true.
+
     assert(head == sum(num_edges(1:num_obj))+1)
     
     ! calculate the local maximum edge weight
@@ -316,7 +332,7 @@ contains
        end do
     end if
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_weights")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_weights")) then
        write(filename, '(A,I0,A)') 'edge_weights_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,head-1
@@ -324,8 +340,7 @@ contains
        end do
        close(666)
     end if
-    
-    
+
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_edge_list
 
@@ -361,7 +376,7 @@ contains
       end if
     end do
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_node_sizes")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_node_sizes")) then
        write(filename, '(A,I0,A)') 'node_sizes_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,num_ids
@@ -776,7 +791,7 @@ contains
       end if
     end do
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_halo_node_sizes")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_halo_node_sizes")) then
        write(filename, '(A,I0,A)') 'halo_node_sizes_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,num_ids
@@ -985,7 +1000,7 @@ contains
             + ele_loc(zoltan_global_zz_mesh, 1) * integer_size
     end do
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_field_sizes")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_field_sizes")) then
        write(filename, '(A,I0,A)') 'field_sizes_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,num_ids

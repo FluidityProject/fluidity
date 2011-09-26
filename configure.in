@@ -832,7 +832,6 @@ if test "$CAN_USE_ADJOINT" = "no" && test "$WANTS_ADJOINT" = "yes"; then
   exit 1
 fi
 
-echo "with_adjoint: " $with_adjoint
 if test "$with_adjoint" != "no"; then
   if test "$CAN_USE_ADJOINT" != "no"; then
     ACX_adjoint([AC_MSG_NOTICE(["libadjoint found"])], [AC_MSG_WARN(["libadjoint not found"])])
@@ -1209,19 +1208,15 @@ if test -d libspud ; then
     AC_MSG_NOTICE([Configuring libspud])
     AC_MSG_NOTICE([%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%])
 
-    if echo $(hostname) | grep -q "^nid[[0-9]][[0-9]][[0-9]][[0-9]][[0-9]]$"; then
-       # Assume we are on hector xt4
-       AC_MSG_NOTICE([Building on hector xt4; disabling shared libraries])
-       SHFLAG=--disable-shared
+    # Check if we're on hector xe6
+    if echo $(hostname) | grep -q "^hector-xe6"; then
+        AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
+        SHFLAG=--disable-shared
+        SPUD_ONLY="yes"
     else
-       # Check if we're on hector xe6
-       if echo $(hostname) | grep -q "^hector-xe6"; then
-         AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
-         SHFLAG=--disable-shared
-       else
-         SHFLAG=--enable-shared
-       fi
+        SHFLAG=--enable-shared
     fi
+    AC_SUBST(SPUD_ONLY)
 
     cd libspud
     # We don't really want to use the same FFLAGS and LIBS as fluidity has

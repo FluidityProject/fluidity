@@ -905,7 +905,7 @@ hr_adaptivity =
                 element metis {
                     empty
                 }|
-                ## Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE*
+                ## Use the PT-Scotch graph partitioner.
                 element scotch {
                     empty
                 }|
@@ -922,14 +922,14 @@ hr_adaptivity =
             ## Select which partitioner to use after the final adapt iteration.
             ## Graph partitioners available are ParMETIS and Zoltan PHG. The 
             ## Zoltan PHG hypergraph partitoner is also available.
-            ## Default is the Zoltan PHG graph partitioner.
+            ## Default is the ParMETIS graph partitioner.
             element final_partitioner {
                 ## Use the ParMETIS graph partitioner. ParMETIS setup to match as
                 ## closely as possible the setup used previously by Sam.
                 element metis {
                     empty
                 }|
-                ## Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE* 
+                ## Use the PT-Scotch graph partitioner.
                 element scotch {
                     empty
                 }|
@@ -947,6 +947,8 @@ hr_adaptivity =
             ## Elements with a quality greater than this will be liable to be
             ## on the parition boundary. Below this, they will be free to be adapted
             ## and improved. Range is 0 to 1, with default 0.6
+            ## This should be set to the same value as used for the quality option
+            ## in libmba2d or libmba3d
             element element_quality_cutoff {
                 real
             }?,
@@ -961,6 +963,15 @@ hr_adaptivity =
             ## require more adapt iterations to produce a fully adapted final mesh.
             element load_imbalance_tolerance {
                 real
+            }?,
+            ## Additional adapt iterations.
+            ## Zoltan returns the minimum element quality to adaptivity. By setting additional adapt
+            ## iterations to a value greater than zero we allow Zoltan to do adapt_iterations plus
+            ## additional_adapt_iterations calls to adaptivity. Additional calls over adapt iterations
+            ## are only allowed if Zoltan returns a minimum element quality below the element quality
+            ## cut off. Default is 0. 
+            element additional_adapt_iterations {
+                integer
             }?,
             ## Zoltan Debugging
             ## 
