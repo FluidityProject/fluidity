@@ -110,13 +110,12 @@ module python_state
     end subroutine python_run_detector_val
 
     !! Evaluate the detector val() function for agent-based biology
-    subroutine python_run_agent_biology(ele, dim, lcoords, dt, dict, &
-           dictlen, key, keylen, biovars, n_biovars, env_values, &
-           n_env_values, stat) bind(c, name='python_run_agent_biology_c')
+    subroutine python_run_agent_biology(dt, dict, dictlen, key, keylen, &
+           biovars, n_biovars, env_values, n_env_values, stat) &
+           bind(c, name='python_run_agent_biology_c')
       use :: iso_c_binding
       implicit none
-      integer(c_int), intent(in), value :: ele, dim, n_biovars, n_env_values
-      real(c_double), dimension(dim+1), intent(in) :: lcoords
+      integer(c_int), intent(in), value :: n_biovars, n_env_values
       real(c_double), intent(in) :: dt
       integer(c_int), intent(in), value :: dictlen, keylen
       character(kind=c_char), dimension(dictlen), intent(in) :: dict
@@ -754,9 +753,8 @@ module python_state
     end do
 
     stage_local_coords=local_coords(xfield,agent%element,agent%position)
-    call python_run_agent_biology(agent%element, size(agent%position), stage_local_coords, &
-           dt, dict, len_trim(dict), key,len_trim(key), agent%biology, size(agent%biology), &
-           env_field_values, size(env_field_values), lstat) 
+    call python_run_agent_biology(dt, dict, len_trim(dict), key,len_trim(key), &
+           agent%biology, size(agent%biology), env_field_values, size(env_field_values), lstat) 
 
     if(lstat /= 0) then
       if(present(stat)) then

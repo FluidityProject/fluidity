@@ -294,8 +294,7 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
 #endif
 }
 
-void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
-                                char *dict, int dictlen, char *key, int keylen,
+void python_run_agent_biology_c(double *dt, char *dict, int dictlen, char *key, int keylen,
                                 double biovars[], int n_biovars, double env_vars[],
                                 int n_env_vars, int *stat){
 #ifdef HAVE_PYTHON
@@ -320,20 +319,8 @@ void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
   PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
   PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
 
-  // Create ele argument
-  PyObject *pEle = PyInt_FromLong( (long)ele );
-
-  // Create local_coords argument
-  int i;
-  PyObject *pLCoords = PyTuple_New(dim+1);
-  for(i=0; i<dim+1; i++){
-    PyTuple_SET_ITEM(pLCoords, i, PyFloat_FromDouble(lcoords[i]));
-  }
-
-  // Create dt argument
-  PyObject *pDt = PyFloat_FromDouble(*dt);
-
   // Create biology array argument
+  int i;
   PyObject *pPersistent= PyDict_GetItemString(pGlobals, "persistent");
   PyObject *pFGVarNames= PyDict_GetItemString(pPersistent, "fg_var_names");
   PyObject *pVarNames= PyDict_GetItemString(pFGVarNames, local_dict);
@@ -354,19 +341,20 @@ void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
     Py_DECREF(pEnvVal);
   }
 
+  // Create dt argument
+  PyObject *pDt = PyFloat_FromDouble(*dt);
+
   // Create argument array
-  PyObject **pArgs= malloc(sizeof(PyObject*)*5);
-  pArgs[0] = pEle;
-  pArgs[1] = pLCoords;
+  PyObject **pArgs= malloc(sizeof(PyObject*)*3);
+  pArgs[0] = pBiology;
+  pArgs[1] = pEnvironment;
   pArgs[2] = pDt;
-  pArgs[3] = pBiology;
-  pArgs[4] = pEnvironment;
 
   profiler_toc_c("/python_run_agent_biology_setup");
   profiler_tic_c("/python_run_agent_biology_execute");
 
   // Run val(ele, local_coords)
-  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 5, NULL, 0, NULL, 0, NULL);
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 3, NULL, 0, NULL, 0, NULL);
  
   // Check for Python errors
   *stat=0;
@@ -384,10 +372,7 @@ void python_run_agent_biology_c(int ele, int dim, double lcoords[], double *dt,
     biovars[i] = PyFloat_AsDouble( PyDict_GetItem(pResult, PyList_GET_ITEM(pVarNames, i)) );
   }
 
-
-  Py_DECREF(pEle);
   Py_DECREF(pDt);
-  Py_DECREF(pLCoords);
   Py_DECREF(pBiology);
   Py_DECREF(pEnvironment);
   Py_DECREF(pFuncCode);

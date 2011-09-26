@@ -32,7 +32,7 @@ param_V_S_ref =        0.03
 param_z_sink =         0.04
 param_Zeta =           2.3
 
-def update_living_diatom(ele, local_coord, dt, vars, env):
+def update_living_diatom(vars, env, dt):
   
   ### Phase 1 ###
   
@@ -57,7 +57,6 @@ def update_living_diatom(ele, local_coord, dt, vars, env):
   Q_N = ((((vars['AmmoniumPool'])+(vars['AmmoniumIng'])+(vars['NitratePool'])+(vars['NitrateIng']))) / (vars['CarbonPool']))
   Q_s = ((((vars['SilicatePool'])+(vars['SilicateIng']))) / (vars['CarbonPool']))
 
-  #P_max_c = (((Q_N) > (param_Q_Nmax))?(((param_P_ref_c)*(T_function))):(((Q_N) < (param_Q_Nmin))?(0.0):(((param_P_ref_c)*(T_function)*(((Q_N) - (param_Q_Nmin)) / ((param_Q_Nmax) - (param_Q_Nmin)))))))
   if ((Q_N) > (param_Q_Nmax)):
     P_max_c = (((param_P_ref_c)*(T_function)))
   else:
@@ -69,7 +68,6 @@ def update_living_diatom(ele, local_coord, dt, vars, env):
   Theta_c = ((vars['ChlorophyllPool']) / (vars['CarbonPool']))
   E_0 = (((4.6)*(env['Irradiance'])))
 
-  #P_phot_c = ((P_max_c == 0.0)||(Q_s <= param_Q_S_min))?0.0:P_max_c*(1.0 - exp(-0.284400e-2*Theta_c*E_0 / P_max_c))
   if ((P_max_c == 0.0)or(Q_s <= param_Q_S_min)):
     P_phot_c = 0.0
   else:
@@ -78,7 +76,6 @@ def update_living_diatom(ele, local_coord, dt, vars, env):
   # Reproduction
   Theta_N = ((vars['ChlorophyllPool']) / (((vars['AmmoniumPool'])+(vars['AmmoniumIng'])+(vars['NitratePool'])+(vars['NitrateIng']))))
 
-  #Rho_Chl = (((((E_0) > (0.0))&&((Theta_c) > (0.0))))?(((param_Theta_max_N)*((P_phot_c) / (((3600.0)*(param_Alpha_Chl)*(Theta_c)*(E_0)))))):(0.0))
   if ((((E_0) > (0.0))and((Theta_c) > (0.0)))):
     Rho_Chl = (((param_Theta_max_N)*((P_phot_c) / (((3600.0)*(param_Alpha_Chl)*(Theta_c)*(E_0))))))
   else:
@@ -87,7 +84,6 @@ def update_living_diatom(ele, local_coord, dt, vars, env):
   R_C_growth = ((((((vars['AmmoniumIng'])+(vars['NitrateIng'])))*(param_Zeta))) / (((stepInHours)*(vars['CarbonPool']))))
   R_C = (((param_R_maintenance)+(R_C_growth)));
 
-  #C_d = (((((((vars['CarbonPool']])+(((vars['CarbonPool']])*((P_phot_c) - (R_C))*(stepInHours))))) >= (param_C_rep))&&((((vars['SilicatePool']])+(vars['SilicateIng']]))) >= (param_S_rep))))?(2.0):(1.0))
   if ((((((vars['CarbonPool'])+(((vars['CarbonPool'])*((P_phot_c) - (R_C))*(stepInHours))))) >= (param_C_rep))and((((vars['SilicatePool'])+(vars['SilicateIng']))) >= (param_S_rep)))):
     C_d = 2.0
   else:
@@ -98,7 +94,6 @@ def update_living_diatom(ele, local_coord, dt, vars, env):
   Q_ammonium = ((((vars['AmmoniumPool'])+(vars['AmmoniumIng']))) / (vars['CarbonPool']))
   omega = ((((param_k_AR) / (((param_k_AR)+(env['Ammonium']))))*((((param_k_AR)+(env['Nitrate']))) / (((param_k_AR)+(env['Ammonium'])+(env['Nitrate']))))))
 
-  #V_max_C = (((((vars[AMMONIUM_POOL])+(vars[NITRATE_POOL]))) < (1000.0))?(((((Q_ammonium)+(Q_nitrate))) < (param_Q_Nmin))?(((param_V_ref_c)*(T_function))):(((((Q_ammonium)+(Q_nitrate))) > (param_Q_Nmax))?(0.0):(((param_V_ref_c)*(pow(((param_Q_Nmax) - (((Q_ammonium)+(Q_nitrate)))) / ((param_Q_Nmax) - (param_Q_Nmin)), 0.05))*(T_function))))):(0.0))
   if ((((vars['AmmoniumPool'])+(vars['NitratePool']))) < (1000.0)):
     if ((((Q_ammonium)+(Q_nitrate))) < (param_Q_Nmin)):
       V_max_C = (((param_V_ref_c)*(T_function)))
@@ -113,7 +108,6 @@ def update_living_diatom(ele, local_coord, dt, vars, env):
   V_C_ammonium = (((V_max_C)*((env['Ammonium']) / (((param_k_AR)+(env['Ammonium']))))))
   V_C_nitrate = (((V_max_C)*((env['Nitrate']) / (((param_k_AR)+(env['Nitrate']))))*(omega)))
 
-  #V_S_max = (((vars[CARBON_POOL]) >= (param_C_minS))?(((Q_s) <= (param_Q_S_min))?(((param_V_S_ref)*(T_function))):(((Q_s) >= (param_Q_S_max))?(0.0):(((param_V_S_ref)*(pow(((param_Q_S_max) - (Q_s)) / ((param_Q_S_max) - (param_Q_S_min)), 0.05))*(T_function))))):(0.0))
   if ((vars['CarbonPool']) >= (param_C_minS)):
     if ((Q_s) <= (param_Q_S_min)):
       V_S_max = (((param_V_S_ref)*(T_function)))
@@ -195,7 +189,7 @@ def update_living_diatom(ele, local_coord, dt, vars, env):
 
 
 
-def update_dead_diatom(ele, local_coord, dt, vars, env):
+def update_dead_diatom(vars, env, dt):
 
   ### Phase 1 ###
   
