@@ -1,6 +1,7 @@
 IMAGES=linear_1d quadratic_1d linear_1d_mesh linear_1d_basis mesh \
 cq_stencil quadratic_1d_basis numerical_integration linear_1d_derivative \
-linear_1d_galerkin local_coords_tri
+linear_1d_galerkin local_coords_tri triangle_numbering quad_numbering \
+hex_numbering tet_numbering interval_numbering
 
 
 

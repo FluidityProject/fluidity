@@ -1152,6 +1152,52 @@ following weights and positions:
   \end{tabular}
 \end{center}
 
+\chapter{Cells}
+
+Finite element basis functions are defined over individual topological cells. Femtools currently
+supports interval cells in 1D, triangle and quadrialateral (quad) cells in
+2D, and tetrahedral (tet) and hexahedral (hex) cells in 3D. For the purposes
+of numbering conventions and the like, these are split into the simplex
+family (intervals, triangles and tets) and the hypercube family (quads and
+hexes). The inclusion of the interval in the simplex family is arbitrary as
+the interval is both the 1-simplex and the 1-hypercube.
+
+\begin{figure}[ht]
+  \centering
+  \input{interval_numbering.pdftex_t}
+  \caption{The reference interval.}
+  \label{fig:ref_interval}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \input{triangle_numbering.pdftex_t}
+  \caption{The reference triangle.}
+  \label{fig:ref_triangle}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \input{quad_numbering.pdftex_t}
+  \caption{The reference quadrilateral.}
+  \label{fig:ref_quad}
+\end{figure}
+
+
+\begin{figure}
+  \centering
+  \input{tet_numbering.pdftex_t}
+  \caption{The reference tetrahedron.}
+  \label{fig:ref_tet}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \input{hex_numbering.pdftex_t}
+  \caption{The reference hexahedron.}
+  \label{fig:ref_hex}
+\end{figure}
+
 \chapter{Elements}
 
 The \elementtype\ data structure holds shape function information for a
