@@ -1472,7 +1472,7 @@ module copy_outof_into_state
                                proto_pressure, &
                                proto_velocity_u, &
                                proto_velocity_v, &
-                               proto_velocity_w, &                               
+                               proto_velocity_w, velocity_dg, &                               
                                proto_densities, &
                                proto_components, &
                                ncomp, &
@@ -1493,6 +1493,7 @@ module copy_outof_into_state
       real, dimension(:), intent(in) :: proto_velocity_w      
       real, dimension(:), intent(in) :: proto_densities
       real, dimension(:), intent(in) :: proto_components
+      real, dimension(:,:,:), intent(in) :: velocity_dg
       integer, intent(in) :: ncomp      
       integer, intent(in) :: nphase
       integer, dimension(:), intent(in) :: cv_ndgln

@@ -33,6 +33,7 @@ module mapping_for_ocvfem
 
  use fldebug
  use shape_functions
+ use vector_tools
 
 
 
@@ -48,34 +49,15 @@ module mapping_for_ocvfem
  !   in particular the discontinuous quadratic pressure function space from the overlapping
  !   velocity function space
 
- subroutine overlapping_to_quadratic_dg(cv_rhs, &
-       ncolacv, acv, finacv, colacv, midacv, &
-       ncolct, ct, diag_scale_pres, ct_rhs, findct, colct, &
-       cv_nonods, u_nonods, x_nonods, totele, &
+ subroutine overlapping_to_quadratic_dg( &
+       cv_nonods, x_nonods,u_nonods,  totele, &
        cv_ele_type,  &
        nphase,  &
        cv_nloc, u_nloc, x_nloc, &
-       cv_ndgln, x_ndgln, u_ndgln, &
+       cv_ndgln,  u_ndgln, x_ndgln,&
        cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
        x, y, z, &
-       u, v, w, uold, vold, wold,u_dg, v_dg, w_dg, uold_dg, vold_dg, wold_dg, &
-       t, told, den, denold, &
-       mat_nloc, mat_ndgln, mat_nonods, tdiffusion, &
-       cv_disopt, cv_dg_vel_int_opt, dt, cv_theta, cv_beta, &
-       suf_t_bc, suf_d_bc, suf_u_bc, suf_v_bc, suf_w_bc, &
-       suf_t_bc_rob1, suf_t_bc_rob2,  &
-       wic_t_bc, wic_d_bc, wic_u_bc, &
-       deriv, cv_p, &
-       sourct, absorbt, volfra_pore, & 
-       ndim, getcv_disc, getct, &
-       ncolm, findm, colm, midm, &
-       xu_nloc, xu_ndgln, finele, colele, ncolele, &
-       opt_vel_upwind_coefs, nopt_vel_upwind_coefs, t_femt, den_femt, &
-       igot_t2, t2, t2old, igot_theta_flux, scvngi_theta, get_theta_flux, use_theta_flux, &
-       theta_flux, one_m_theta_flux, theta_gdiff, &
-       suf_t2_bc, suf_t2_bc_rob1, suf_t2_bc_rob2, wic_t2_bc, in_ele_upwind, dg_ele_upwind, &
-       noit_dim, &
-       mean_pore_cv )
+       u, v, w, uold, vold, wold,velocity_dg, ndim )
 
     use shape_functions
     use matrix_operations
@@ -86,65 +68,20 @@ module mapping_for_ocvfem
     ! inputs/outputs
     
     
-    integer, intent( in ) :: ncolacv, ncolct, cv_nonods, u_nonods, x_nonods, mat_nonods, &
-         totele, &
-         cv_ele_type, &
-         nphase, cv_nloc, u_nloc, x_nloc, mat_nloc, &
-         cv_snloc, u_snloc, stotel, cv_disopt, cv_dg_vel_int_opt, ndim, &
-         ncolm, xu_nloc, ncolele, nopt_vel_upwind_coefs, &
-         igot_t2, igot_theta_flux, scvngi_theta, in_ele_upwind, dg_ele_upwind
-
-    real, dimension( cv_nonods * nphase ), intent( inout ) :: t_femt, den_femt
+    integer, intent( in ) :: cv_nonods, u_nonods, &
+         totele, x_nonods,&
+         cv_ele_type, x_nloc,&
+         nphase, cv_nloc, u_nloc, &
+         cv_snloc, u_snloc, stotel,  ndim
 
     integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
-    integer, dimension( totele * x_nloc ), intent( in ) ::  x_ndgln
     integer, dimension( totele * u_nloc ), intent( in ) :: u_ndgln 
-    integer, dimension( totele * xu_nloc ), intent( in ) :: xu_ndgln
-    integer, dimension( totele * mat_nloc ), intent( in ) :: mat_ndgln
     integer, dimension( stotel * cv_snloc ), intent( in ) :: cv_sndgln
     integer, dimension( stotel * u_snloc ), intent( in ) :: u_sndgln 
-    integer, dimension( stotel * nphase ), intent( in ) ::  wic_t_bc, wic_d_bc, wic_u_bc
-    integer, dimension( stotel * nphase * igot_t2 ), intent( in ) ::  wic_t2_bc
-    real, dimension( cv_nonods * nphase ), intent( inout ) :: cv_rhs
-    real, dimension( ncolacv ), intent( inout ) :: acv
-    integer, dimension( cv_nonods * nphase + 1 ), intent( in ) :: finacv
-    integer, dimension( ncolacv ), intent( in ) :: colacv
-    integer, dimension( cv_nonods * nphase ), intent( in ) :: midacv 
-    real, dimension( ncolct * ndim * nphase ), intent( inout ) :: ct
-    ! diagonal scaling of (distributed) pressure matrix (used to treat pressure implicitly)
-    real, dimension( cv_nonods ), intent( inout ) :: diag_scale_pres 
-    real, dimension( cv_nonods  ), intent( inout ) :: ct_rhs
-    integer, dimension( cv_nonods + 1 ), intent( in ) :: findct
-    integer, dimension( ncolct ), intent( in ) :: colct
+    integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln 
     real, dimension( x_nonods ), intent( in ) :: x, y, z
     real, dimension( u_nonods * nphase ), intent( in ) :: u, v, w, uold, vold, wold
-    real, dimension( cv_nonods * nphase ), intent( inout ) :: u_dg, v_dg, w_dg, uold_dg, vold_dg, wold_dg
-    real, dimension( cv_nonods * nphase ), intent( in ) :: t, told, den, denold
-    real, dimension( cv_nonods * nphase * igot_t2 ), intent( in ) :: t2, t2old
-    real, dimension( cv_nonods * nphase * igot_t2 ), intent( inout ) :: theta_gdiff
-    real, dimension( totele*igot_theta_flux, cv_nloc, scvngi_theta, nphase ), &
-         intent( inout ) :: theta_flux, one_m_theta_flux
-    real, dimension( mat_nonods, ndim, ndim, nphase ), intent( in ) :: tdiffusion
-    real, intent( in ) :: dt, cv_theta, cv_beta
-    real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: suf_t_bc, suf_d_bc
-    real, dimension( stotel * cv_snloc * nphase * igot_t2  ), intent( in ) :: suf_t2_bc
-    real, dimension( stotel * u_snloc * nphase ), intent( in ) :: suf_u_bc, suf_v_bc, suf_w_bc
-    real, dimension( stotel * cv_snloc * nphase ), intent( in ) :: suf_t_bc_rob1, suf_t_bc_rob2
-    real, dimension( stotel * cv_snloc * nphase * igot_t2 ), intent( in ) :: suf_t2_bc_rob1, suf_t2_bc_rob2
-    real, dimension( cv_nonods*nphase ), intent( in ) :: deriv
-    real, dimension( cv_nonods ), intent( in ) :: cv_p
-    real, dimension( cv_nonods*nphase ), intent( in ) :: sourct
-    real, dimension( cv_nonods, nphase, nphase ), intent( in ) :: absorbt
-    real, dimension( totele ), intent( in ) :: volfra_pore 
-    logical, intent( in ) :: getcv_disc, getct, get_theta_flux, use_theta_flux
-    integer, dimension( cv_nonods + 1 ), intent( in ) :: findm
-    integer, dimension( ncolm ), intent( in ) :: colm
-    integer, dimension( cv_nonods ), intent( in ) :: midm
-    integer, dimension( totele + 1 ), intent( in ) :: finele
-    integer, dimension( ncolele ), intent( in ) :: colele
-    real, dimension( nopt_vel_upwind_coefs ), intent( in ) :: opt_vel_upwind_coefs
-    integer, intent( in ) :: noit_dim
-    real, dimension( cv_nonods ), intent( inout ) :: mean_pore_cv
+    real, dimension(cv_nonods,nphase,ndim), intent(inout) :: velocity_dg
 
     ! local variables - allocatable arrays
     integer, dimension( : ), allocatable :: findgpts, &
@@ -212,6 +149,11 @@ module mapping_for_ocvfem
 
     call retrieve_ngi( cv_ngi, cv_ngi_short, scvngi, sbcvngi,nface, &
          ndim, cv_ele_type, cv_nloc, u_nloc) 
+         
+         
+    cv_ngi_short = cv_ngi
+    ewrite(2,*) ' got FE info', cv_ngi, cv_ngi_short, cv_nloc, u_nloc
+    
 
     ! allocate memory for the control volume surface shape functions, etc.
     allocate( jcount_kloc(  u_nloc ))
@@ -228,7 +170,6 @@ module mapping_for_ocvfem
     allocate( u_on_face( u_nloc, scvngi ))
     allocate( cv_other_loc( cv_nloc ))
     allocate( u_other_loc( u_nloc ))
-    allocate( mat_other_loc( mat_nloc ))
     allocate( x_share( x_nonods ))
     allocate( cvweight( cv_ngi ))
     allocate( cvn( cv_nloc, cv_ngi ))
@@ -413,19 +354,19 @@ module mapping_for_ocvfem
                  rhsloc_wold(cv_iloc)=rhsloc_wold(cv_iloc)+  n( cv_iloc, cv_gi )* wdold( gi, iphase ) * detwei( cv_gi )
               end do
              end do
-             u_dg( (iphase-1)*cv_nonods+(ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc) = matmul(matloc,rhsloc_u)
+             velocity_dg(cv_nonods+(ele-1)*cv_nloc:cv_nonods+(ele-1)*cv_nloc+cv_nloc,iphase,1) = matmul(matloc,rhsloc_u)
             if(ndim>=2) then
-             v_dg((iphase-1)*cv_nonods+(ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc ) = matmul(matloc,rhsloc_v)
+             velocity_dg(cv_nonods+(ele-1)*cv_nloc:cv_nonods+(ele-1)*cv_nloc+cv_nloc,iphase,2) = matmul(matloc,rhsloc_v)
             endif
             if(ndim>=3) then
-             w_dg( (iphase-1)*cv_nonods+(ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc ) = matmul(matloc,rhsloc_w)
+             velocity_dg(cv_nonods+(ele-1)*cv_nloc:cv_nonods+(ele-1)*cv_nloc+cv_nloc,iphase,3)  = matmul(matloc,rhsloc_w)
             endif
-             uold_dg( (iphase-1)*cv_nonods+ (ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc) = matmul(matloc,rhsloc_uold)
+            ! uold_dg( (iphase-1)*cv_nonods+ (ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc) = matmul(matloc,rhsloc_uold)
             if(ndim>=2) then
-             vold_dg( (iphase-1)*cv_nonods+(ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc ) = matmul(matloc,rhsloc_vold)
+            ! vold_dg( (iphase-1)*cv_nonods+(ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc ) = matmul(matloc,rhsloc_vold)
             endif
             if(ndim>=3) then
-             wold_dg( (iphase-1)*cv_nonods+(ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc ) = matmul(matloc,rhsloc_wold)
+           !  wold_dg( (iphase-1)*cv_nonods+(ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc ) = matmul(matloc,rhsloc_wold)
             endif
         end do
 

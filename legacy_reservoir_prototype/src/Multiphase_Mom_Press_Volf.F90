@@ -92,7 +92,7 @@ contains
        suf_w_bc_rob1, suf_w_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
        suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, &
                                 ! Positions and grid velocities
-       x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
+       x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, velocity_dg, &
                                 ! Absorption and source terms and coefficients
        u_abs_stab, Mobility, &
        u_absorb, v_absorb, comp_absorb, &
@@ -177,6 +177,7 @@ contains
     real, dimension( x_nonods ), intent( inout ) :: x, y, z
     real, dimension( xu_nonods ), intent( inout ) :: xu, yu, zu
     real, dimension( u_nonods * nphase ), intent( inout ) :: nu, nv, nw, ug, vg, wg
+    real, dimension( cv_nonods,nphase,ndim), intent(inout) :: velocity_dg
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab
     real, intent( in ) :: Mobility
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_absorb
@@ -457,7 +458,7 @@ contains
                STOTEL, CV_SNDGLN, U_SNDGLN, P_SNDGLN, &
                U_SNLOC, P_SNLOC, CV_SNLOC, &
                X, Y, Z, U_ABS_STAB, U_ABSORB, U_SOURCE, &
-               U, V, W, UOLD, VOLD, WOLD, &
+               U, V, W, UOLD, VOLD, WOLD, velocity_dg, &
                P, CV_P, DEN, DENOLD, SATURA, SATURAOLD, DERIV, &
                DT, &
                NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
@@ -826,7 +827,7 @@ contains
                                p, &
                                u, &
                                v, &
-                               w, &
+                               w, velocity_dg, &
                                den, &
                                comp, &
                                ncomp, &

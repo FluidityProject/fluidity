@@ -102,6 +102,7 @@ module mp_prototype
            opt_vel_upwind_coefs
 
       real, dimension( : ), allocatable :: x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg
+      real, dimension(:,:,:),allocatable :: velocity_dg
 
       integer, dimension( : ), allocatable :: uabs_option
       real, dimension( :, : ), allocatable :: uabs_coefs
@@ -253,6 +254,7 @@ module mp_prototype
       allocate( nwold( u_pha_nonods ))
       allocate( denold( cv_pha_nonods ))
       allocate( uden( cv_pha_nonods ))
+      allocate( velocity_dg(cv_nonods,nphase,ndim))
       allocate( udenold( cv_pha_nonods ))
       allocate( deriv( cv_pha_nonods ))
       allocate( saturaold( cv_pha_nonods ))
@@ -270,6 +272,7 @@ module mp_prototype
       nuold = 0.
       nvold = 0.
       nwold = 0.
+      velocity_dg = 0.0
       denold = 1.
       uden = 0.
       udenold = 0.
@@ -387,7 +390,7 @@ module mp_prototype
               suf_w_bc_rob1, suf_w_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
               suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, &
                                 ! Positions and grid velocities
-              x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
+              x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg,velocity_dg, &
                                 ! Absorption and source terms and coefficients
               u_abs_stab, Mobility, &
               u_absorb, v_absorb, comp_absorb, &
