@@ -660,12 +660,20 @@ where X and the return value are tuples of length geometry dimension.</a:documen
           </choice>
         </optional>
       </element>
-      <element name="dg_projection">
-        <a:documentation>project velocity from a DG field</a:documentation>
-        <attribute name="source_field">
-          <a:documentation>Field to project from</a:documentation>
-          <data type="string"/>
-        </attribute>
+      <element name="commuting_projection">
+        <a:documentation>Project velocity at constrained DOFs using Brezzi's commuting
+projection (see e.g. the book by Brezzi and Fortin).
+(For hybridized finite element spaces)</a:documentation>
+        <element name="python">
+          <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X and the return value are tuples of length geometry dimension.</a:documentation>
+          <ref name="python_code"/>
+        </element>
       </element>
     </choice>
   </define>
@@ -937,6 +945,23 @@ requires a distinct name for the options dictionary.</a:documentation>
         </attribute>
         <ref name="region_ids"/>
         <ref name="input_choice_initial_condition_real"/>
+      </element>
+      <element name="initial_condition">
+        <a:documentation>Initialise layer thickness by projecting from a field</a:documentation>
+        <attribute name="name">
+          <value>ProjectionFromPython</value>
+        </attribute>
+        <element name="python">
+          <a:documentation>Field to project from (evaluated at Gauss points)
+Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X and the return value are tuples of length geometry dimension.</a:documentation>
+          <ref name="python_code"/>
+        </element>
       </element>
     </choice>
     <element name="mean_layer_thickness">

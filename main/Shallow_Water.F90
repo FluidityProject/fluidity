@@ -432,6 +432,15 @@
       else
          call adjoint_register_initial_u_condition(balanced=.false.)
       end if
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/&
+           &prognostic/initial_condition::WholeMesh/&
+           &commuting_projection")) then
+         if(hybridized) then
+            call set_velocity_commuting_projection(state(1))
+         else
+            FLAbort('Commuting projection only exists for hybridizable spaces.')
+         end if
+      end if
 
       if(.not.hybridized) then
          ! Set up the state of cached matrices

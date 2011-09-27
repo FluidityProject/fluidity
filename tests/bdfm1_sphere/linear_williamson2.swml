@@ -188,8 +188,9 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <python>
-            <string_value type="python" lines="20">def val(X,t):
+          <constrained_dof_initialisation>
+            <python>
+              <string_value type="python" lines="20">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
@@ -201,7 +202,8 @@
   sinphi = z/R
   cosphi = (1-sinphi**2)**0.5
   return [el1*u0*cosphi,el2*u0*cosphi,0.0]</string_value>
-          </python>
+            </python>
+          </constrained_dof_initialisation>
         </initial_condition>
         <output/>
         <convergence>
@@ -246,7 +248,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   from math import pi
   z = X[2]
   omega = 7.292e-5
@@ -267,6 +269,11 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
+    <scalar_field name="InitialLayerThickness" rank="0">
+      <diagnostic>
+        <mesh name="PressureMesh"/>
+      </diagnostic>
+    </scalar_field>
     <scalar_field name="Streamfunction" rank="0">
       <prescribed>
         <mesh name="VelocityMesh"/>
@@ -279,33 +286,6 @@
   u0 = 2*pi*R/(12.*24.*60.*60.)
   return -z*u0</string_value>
             <comment>u0 = 38.61068276698372</comment>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="InitialLayerThickness" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-  from math import pi
-  z = X[2]
-  omega = 7.292e-5
-  gh0 = 2.94e4
-  g = 9.80616
-  R = 6.37122e6
-  u0 = 2*pi*R/(12.*24.*60.*60.)
-  sinphi = z/R
-  return (gh0-R*omega*u0*sinphi**2)/g</string_value>
           </python>
         </value>
         <output/>

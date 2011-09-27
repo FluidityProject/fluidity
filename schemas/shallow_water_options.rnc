@@ -524,11 +524,21 @@ input_choice_initial_condition_vector =
             }
          )?
       }|
-      ## project velocity from a DG field
-      element dg_projection {
-         ## Field to project from
-         attribute source_field { xsd:string }
-      }         
+      ## Project velocity at constrained DOFs using Brezzi's commuting
+      ## projection (see e.g. the book by Brezzi and Fortin).
+      ## (For hybridized finite element spaces)
+      element commuting_projection {
+         ## Python function prescribing dimensional vector input. Functions should be of the form:
+         ##
+         ##  def val(X, t):
+         ##     # Function code
+         ##     return # Return value
+         ##
+         ## where X and the return value are tuples of length geometry dimension.
+         element python {
+            python_code
+         }
+      }
    )
 
 # Choice of input method for initial/boundary conditions
@@ -757,6 +767,21 @@ prognostic_layerthickness_field =
             attribute name { string },
             region_ids,
             input_choice_initial_condition_real
+         }|
+         ## Initialise layer thickness by projecting from a field
+         element initial_condition {
+            attribute name { "ProjectionFromPython" },
+            ## Field to project from (evaluated at Gauss points)
+            ## Python function prescribing dimensional vector input. Functions should be of the form:
+            ##
+            ##  def val(X, t):
+            ##     # Function code
+            ##     return # Return value
+            ##
+            ## where X and the return value are tuples of length geometry dimension.
+            element python {
+               python_code
+            }
          }
       ),      
       ## Mean value of thickness to use in wave equation solver

@@ -44,7 +44,7 @@ module hybridized_helmholtz
     use diagnostic_fields_wrapper
     use assemble_cmc
     use FUtils, only : real_vector, real_matrix
-    use global_parameters, only: option_path_len
+    use global_parameters, only: option_path_len, PYTHON_FUNC_LEN
     use vector_tools, only: solve
     use manifold_tools
     implicit none
@@ -1898,4 +1898,92 @@ contains
     D_val = ele_val(D,1)
     assert(abs(D_val(1))<1.0e-10)
   end subroutine check_zero_level
+  
+  !Set velocity using commuting projection
+  !(needs to solve a linear system in each element)
+  subroutine set_velocity_commuting_projection(state)
+    type(state_type), intent(in) :: state
+    !
+    type(vector_field), pointer :: U, X
+    character(len=PYTHON_FUNC_LEN) :: Python_Function
+    integer :: ele
+
+    U=>extract_vector_field(state, "LocalVelocity")
+    X=>extract_vector_field(state, "Coordinate")
+ 
+    call get_option("/material_phase::Fluid/vector_field::Velocity&
+         &/prognostic/initial_condition::WholeMesh/&
+         &commuting_projection/python",Python_Function)
+
+    do ele = 1, element_count(U)
+       call set_velocity_commuting_projection_ele(U,X,Python_Function,ele)
+    end do
+  end subroutine set_velocity_commuting_projection
+  
+  subroutine set_velocity_commuting_projection_ele(U,X,Python_Function,ele)
+    type(vector_field), intent(in) :: X
+    type(vector_field), intent(inout) :: U
+    character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+    integer, intent(in) :: ele
+    !
+    real, dimension(mesh_dim(U)*ele_loc(U),mesh_dim(U)*ele_loc(U)) :: &
+         & projection_mat
+    real, dimension(mesh_dim(U)*ele_loc(U)) :: projection_rhs
+    type(element_type) :: u_shape
+    real, dimension(:,:) :: mat_pointer
+    real, dimension(:) :: vec_pointer
+    real, dimension(:,:,:), allocatable :: face_mat
+    integer :: ni, ele2, face, row, floc
+    integer, dimension(:), pointer :: neigh
+
+    u_shape = ele_shape(U,ele)
+
+    projection_rhs = 0.
+    
+    row = 1
+    !first do the face DOFs
+    neigh => ele_neigh(U,ele)
+    do ni = 1, size(neigh)
+       ele2 = neigh(ni)
+       face = ele_face(U,ele,ele2)
+       floc = face_loc(U,face)
+       
+       call set_velocity_commuting_projection_face(U,X,Python_Function,face,&
+            &ele,projection_mat(row:row+floc-1,:),&
+            &projection_rhs(row:row+floc-1))
+       
+       row = row + floc
+    end do
+
+  end subroutine set_velocity_commuting_projection_ele
+  
+  subroutine set_velocity_commuting_projection_face(U,X,Python_Function,face,&
+       &ele,projection_mat_rows,projection_rhs_rows)
+    type(vector_field), intent(in) :: X
+    type(vector_field), intent(inout) :: U
+    character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+    integer, intent(in) :: face,ele
+    real, dimension(face_loc(U,face),U%dim*ele_loc(U)), &
+         &intent(inout) :: projection_mat_rows
+    real, dimension(face_loc(U,face)), intent(inout) :: projection_rhs_rows
+    !
+    real, dimension(mesh_dim(U),face_loc(U,face),face_loc(U,face)),&
+         &intent(inout) :: face_mat
+    real, dimension(mesh_dim(U), face_ngi(U, face)) :: n1
+    real :: weight
+    type(element_type), pointer :: U_face_shape
+    real, dimension(face_ngi(U,face)) :: detwei
+
+    U_face_shape=>face_shape(U, face)
+
+    !Get normal in local coordinates
+    call get_local_normal(n1,weight,U,local_face_number(U%mesh,face))
+    detwei = weight*U_face_shape%quadrature%weight
+
+    continuity_face_mat = shape_shape_vector(&
+         U_face_shape,U_face_shape,detwei,n1)
+    
+  end subroutine set_velocity_commuting_projection_face
+
+    
 end module hybridized_helmholtz
