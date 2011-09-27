@@ -486,7 +486,7 @@ contains
     call zero(matrix)
     call zero(rhs)
     
-    call profiler_tic(t, "advection_diffusion_loop")
+    call profiler_tic(t, "advection_diffusion_loop_overhead")
 
     if(num_threads>1) then
        call find_linear_parent_mesh(state, t%mesh, vertex_mesh, stat)
@@ -516,6 +516,11 @@ contains
     cache_valid = prepopulate_transform_cache(positions)
     assert(cache_valid)
 #endif
+
+    call profiler_toc(t, "advection_diffusion_loop_overhead")
+
+    call profiler_tic(t, "advection_diffusion_loop")
+
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num)
     thread_num = omp_get_thread_num()
     colour_loop: do clr = 1, no_colours
@@ -533,6 +538,9 @@ contains
       !$OMP END DO
     end do colour_loop
     !$OMP END PARALLEL
+
+    call profiler_toc(t, "advection_diffusion_loop")
+
     call deallocate(clr_sets)
     deallocate(clr_sets)
 
@@ -540,7 +548,6 @@ contains
        call deallocate(node_colour)
        call deallocate(p0_mesh)
     endif
-    call profiler_toc(t, "advection_diffusion_loop")
 
     ! as part of assembly include the already discretised optional source
     ! needed before applying direchlet boundary conditions
