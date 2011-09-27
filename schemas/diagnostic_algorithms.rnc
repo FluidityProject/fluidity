@@ -1255,7 +1255,20 @@ scalar_time_averaged_algorithm =
          ## When to start sampling? Defaults to simulation start time.
          element spin_up_time {
             real
-         }?
+         }?      
+      }
+   )
+
+
+scalar_daily_averaged_algorithm = 
+   (
+      ## Algorithm for calulating a daily average of a scalar field.
+      ## Note that we assume the simulation starts at midnight.
+      ## This field needs to be interpolated between adapts.
+      element algorithm {
+         attribute name { "daily_averaged_scalar" },
+         attribute material_phase_support { "single" },
+         scalar_source_field   
       }
    )
 
@@ -1328,6 +1341,7 @@ scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm
 scalar_diagnostic_algorithms |= temporalmax_algorithm
 scalar_diagnostic_algorithms |= scalar_time_averaged_algorithm
+scalar_diagnostic_algorithms |= scalar_daily_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_sum_algorithm
 scalar_diagnostic_algorithms |= scalar_squared_time_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_potential_algorithm
