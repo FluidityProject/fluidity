@@ -104,7 +104,11 @@
     </scalar_field>
     <scalar_field name="DailyAveraged" rank="0">
       <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="daily_averaged_scalar" source_field_name="TimeVarying"/>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="period_averaged_scalar" source_field_name="TimeVarying">
+          <averaging_period>
+            <real_value rank="0">86400</real_value>
+          </averaging_period>
+        </algorithm>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>

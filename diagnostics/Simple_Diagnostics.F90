@@ -53,9 +53,9 @@ module simple_diagnostics
   public :: calculate_temporalmax, calculate_temporalmin, calculate_l2norm, &
             calculate_time_averaged_scalar, calculate_time_averaged_vector, &
             calculate_time_averaged_scalar_squared, calculate_time_averaged_vector_squared, &
-            calculate_time_averaged_vector_times_scalar, calculate_daily_averaged_scalar
+            calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar
 
-  ! for the daily_averaged_scalar routine
+  ! for the period_averaged_scalar routine
   real, save :: last_output_time
   integer, save :: n_times_added
   
@@ -183,7 +183,7 @@ contains
     end if
   end subroutine calculate_time_averaged_scalar
 
-  subroutine calculate_daily_averaged_scalar(state, s_field)
+  subroutine calculate_period_averaged_scalar(state, s_field)
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: s_field
 
@@ -195,7 +195,7 @@ contains
     if (timestep==0) then 
       last_output_time = 0.0
       n_times_added = 0
-      call allocate(cumulative_value, s_field%mesh, "DailyAveCumulativeValue")
+      call allocate(cumulative_value, s_field%mesh, "_AveCumulativeValue")
       call zero(cumulative_value)
       call insert(state, cumulative_value, cumulative_value%name)
       call deallocate(cumulative_value)
@@ -204,11 +204,10 @@ contains
     end if
 
     call get_option("/timestepping/current_time", current_time)
-
-    averaging_period = 86400.
+    call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/averaging_period",averaging_period)
 
     source_field => scalar_source_field(state, s_field)
-    running_tot => extract_scalar_field(state,"DailyAveCumulativeValue")
+    running_tot => extract_scalar_field(state,"_AveCumulativeValue")
     if (current_time < averaging_period*(floor(last_output_time / averaging_period)+1.)) then
         call addto(running_tot,source_field)
         n_times_added = n_times_added+1
@@ -222,7 +221,7 @@ contains
         call addto(running_tot,source_field)
         n_times_added = n_times_added+1
     end if
-  end subroutine calculate_daily_averaged_scalar
+  end subroutine calculate_period_averaged_scalar
 
   subroutine calculate_time_averaged_vector(state, v_field)
     type(state_type), intent(in) :: state
