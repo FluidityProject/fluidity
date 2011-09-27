@@ -1939,6 +1939,7 @@ contains
     u_shape = ele_shape(U,ele)
 
     projection_rhs = 0.
+    projection_mat = 0.
     
     row = 1
     !first do the face DOFs
@@ -1955,6 +1956,10 @@ contains
        row = row + floc
     end do
 
+    FLAbort('need to do the grads and curls')
+
+    call solve(projection_mat,projection_rhs)
+
   end subroutine set_velocity_commuting_projection_ele
   
   subroutine set_velocity_commuting_projection_face(U,X,Python_Function,face,&
@@ -1963,26 +1968,91 @@ contains
     type(vector_field), intent(inout) :: U
     character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
     integer, intent(in) :: face,ele
+    THESE DIMENSIONS ARE WRONG
     real, dimension(face_loc(U,face),U%dim*ele_loc(U)), &
          &intent(inout) :: projection_mat_rows
     real, dimension(face_loc(U,face)), intent(inout) :: projection_rhs_rows
     !
     real, dimension(mesh_dim(U),face_loc(U,face),face_loc(U,face)),&
          &intent(inout) :: face_mat
-    real, dimension(mesh_dim(U), face_ngi(U, face)) :: n1
+    real, dimension(face_loc(U,face)), intent(inout) :: face_rhs
+    real, dimension(mesh_dim(U), face_ngi(U, face)) :: n_local
+    real, dimension(X%dim, face_ngi(X, face)) :: n_cart
+    real, dimension(X%dim, face_ngi(U, face)) :: U_rhs_face_quad, &
+         & X_face_quad
+    real, dimension(X%dim) :: ele_normal, face_tangent, ele_out
     real :: weight
     type(element_type), pointer :: U_face_shape
     real, dimension(face_ngi(U,face)) :: detwei
+    real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val
+    real, dimension(X%dim,face_loc(X,face)) :: X_face_val
+    integer :: row, dim1, u_dim1, nod
+    integer, dimension(:), pointer :: U_face_nodes
 
     U_face_shape=>face_shape(U, face)
+    u_face_nodes=>face_nodes(U, face)
 
     !Get normal in local coordinates
-    call get_local_normal(n1,weight,U,local_face_number(U%mesh,face))
+    call get_local_normal(n_local,weight,U,local_face_number(U%mesh,face))
     detwei = weight*U_face_shape%quadrature%weight
 
-    continuity_face_mat = shape_shape_vector(&
-         U_face_shape,U_face_shape,detwei,n1)
+    face_mat = shape_shape_vector(U_face_shape,U_face_shape,detwei,n_local)
     
+    do row = 1, size(projection_mat_rows,1)
+       projection_mat_rows(row,:) = 0.
+       do dim1 = 1,mesh_dim(U)
+          u_dim1 = (dim1-1)*ele_loc(U,ele)
+          do nod = 1, U%mesh%shape%constraints%n_face_basis
+          projection_mat_rows(row,u_dim1+U_face_nodes(nod))&
+               &=matmul(U%mesh%shape%constraints%face_basis(nod),&
+               &face_mat(dim1,:,:))
+       end do
+    end do
+
+    !Stuff for RHS vector
+    if(X%mesh%shape%degree .ne.1) then
+       FLAbort('Only degree 1 coordinate mesh supported currently.')
+    end if
+    if(mesh_dim(X) .ne. 2) then
+       FLAbort('Only 2d surfaces supported currently.')
+    end if
+
+    !this is hackery but only for initialisation.  in my copious spare time
+    !when it isn't the start of term I'll fix the normal computation in
+    !transform_facet_to_physical - cjc   
+
+    !Get the element normal
+    X_ele_val = ele_val(X,ele)
+    ele_normal = cross_product(X_ele_val(:,1)-X_ele_val(:,2),&
+         X_ele_val(:,1)-X_ele_val(:,3))
+    ele_normal = ele_normal/sqrt(sum(ele_normal**2))
+    X_face_val = face_val(X,face)
+    face_tangent = X_face_val(:,1)-X_face_val(:,2)
+    face_tangent = face_tangent/sqrt(sum(face_tangent**2))
+    do gi = 1, ele_ngi(X,ele)
+       n_cart(:,gi) = cross_product(ele_normal,face_tangent)
+    end do
+    ele_out = sum(X_face_val,2)/size(X_face_val,2)-&
+         &sum(X_ele_val,2)/size(X_ele_val,2)
+    if(dot_product(ele_out,n_cart(:,1))<0.0) then
+       n_cart = -n_cart
+    end if
+
+    !get detwei
+    !integral is |dx/dxi(xi)|dxi
+    detwei = 0.
+    do gi = 1, ele_ngi(X,ele)
+       detwei(gi) = sqrt(sum((X_face_val(:,1)-X_face_val(:,2))**2))
+    end do
+    detwei = detwei*U_face_shape%quadrature%weight
+
+    X_face_quad = face_val_at_quad(X,face)
+    U_rhs_face_quad = NEED TO GET PYTHON
+
+    face_rhs = shape_rhs(U_face_shape,sum(U_rhs_face_quad*n_cart,1)*detwei)
+    
+    NEED TO DO THE DOT PRODUCT
+
   end subroutine set_velocity_commuting_projection_face
 
     
