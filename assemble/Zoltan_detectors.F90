@@ -48,7 +48,7 @@ module zoltan_detectors
 
        ! search through all the local detectors in this list
        detector => detector_list_array(det_list)%ptr%first
-       detector_loop: do i=1, detector_list_array(det_list)%ptr%length
+       detector_loop: do while (associated(detector))
           ! store the list ID with the detector, so we can map the detector back when receiving it
           detector%list_id=det_list
 
