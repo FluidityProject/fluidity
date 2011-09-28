@@ -34,8 +34,8 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/auxilaryoptions.mod ../include/biology.mod \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/checkpoint.mod \
-   ../include/conformity_measurement.mod ../include/diagnostic_children.mod \
-   ../include/diagnostic_fields_new.mod \
+   ../include/conformity_measurement.mod ../include/detector_parallel.mod \
+   ../include/diagnostic_children.mod ../include/diagnostic_fields_new.mod \
    ../include/diagnostic_fields_wrapper.mod \
    ../include/diagnostic_variables.mod \
    ../include/discrete_properties_module.mod ../include/elements.mod \

@@ -19,7 +19,7 @@ Adapt_State.o ../include/adapt_state_module.mod: Adapt_State.F90 \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/checkpoint.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \
-   ../include/diagnostic_fields_wrapper.mod \
+   ../include/detector_parallel.mod ../include/diagnostic_fields_wrapper.mod \
    ../include/diagnostic_fields_wrapper_new.mod \
    ../include/diagnostic_variables.mod \
    ../include/discrete_properties_module.mod ../include/edge_length_module.mod \
@@ -402,12 +402,13 @@ Hydrostatic_Pressure.o ../include/hydrostatic_pressure.mod: \
 Implicit_Solids.o ../include/implicit_solids.mod: Implicit_Solids.F90 \
    ../include/adjacency_lists.mod ../include/bound_field_module.mod \
    ../include/boundary_conditions.mod ../include/data_structures.mod \
-   ../include/diagnostic_fields.mod ../include/diagnostic_variables.mod \
-   ../include/edge_length_module.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
-   ../include/field_derivatives.mod ../include/fields.mod \
-   ../include/fields_manipulation.mod ../include/fldebug.mod \
-   ../include/futils.mod ../include/global_parameters.mod ../include/halos.mod \
+   ../include/detector_tools.mod ../include/diagnostic_fields.mod \
+   ../include/diagnostic_variables.mod ../include/edge_length_module.mod \
+   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
+   ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/fields.mod ../include/fields_manipulation.mod \
+   ../include/fldebug.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/halos.mod \
    ../include/interpolation_module.mod \
    ../include/intersection_finder_module.mod ../include/linked_lists.mod \
    ../include/mesh_files.mod ../include/meshdiagnostics.mod \
@@ -832,7 +833,7 @@ Vorticity_Diagnostics.o ../include/vorticity_diagnostics.mod: \
 
 Zoltan_callbacks.o ../include/zoltan_callbacks.mod: Zoltan_callbacks.F90 \
    ../include/data_structures.mod ../include/detector_data_types.mod \
-   ../include/detector_tools.mod ../include/diagnostic_variables.mod \
+   ../include/detector_parallel.mod ../include/detector_tools.mod \
    ../include/fdebug.h ../include/global_parameters.mod ../include/halos.mod \
    ../include/halos_derivation.mod ../include/metric_tools.mod \
    ../include/mpi_interfaces.mod ../include/parallel_tools.mod \
@@ -844,8 +845,8 @@ Zoltan_callbacks.o ../include/zoltan_callbacks.mod: Zoltan_callbacks.F90 \
 
 Zoltan_detectors.o ../include/zoltan_detectors.mod: Zoltan_detectors.F90 \
    ../include/data_structures.mod ../include/detector_data_types.mod \
-   ../include/detector_tools.mod ../include/diagnostic_variables.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/halos_derivation.mod \
+   ../include/detector_parallel.mod ../include/detector_tools.mod \
+   ../include/fdebug.h ../include/fields.mod \
    ../include/zoltan_global_variables.mod
 
 ../include/zoltan_global_variables.mod: Zoltan_global_variables.o
@@ -864,7 +865,7 @@ Zoltan_integration.o ../include/zoltan_integration.mod: Zoltan_integration.F90 \
    ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/c_interfaces.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \
-   ../include/detector_tools.mod ../include/diagnostic_variables.mod \
+   ../include/detector_parallel.mod ../include/detector_tools.mod \
    ../include/elements.mod ../include/fdebug.h ../include/field_options.mod \
    ../include/fields.mod ../include/fields_halos.mod \
    ../include/global_parameters.mod ../include/hadapt_advancing_front.mod \
