@@ -1715,6 +1715,26 @@ This field needs to be interpolated between adapts.</a:documentation>
       </optional>
     </element>
   </define>
+  <define name="scalar_period_averaged_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for calulating an average of a scalar field over 
+a set period, e.g. daily
+Note that we assume the simulation starts at zero for the
+averaging period,
+This field needs to be interpolated between adapts.</a:documentation>
+      <attribute name="name">
+        <value>period_averaged_scalar</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="averaging_period">
+        <a:documentation>Over what time period to average over?</a:documentation>
+        <ref name="real"/>
+      </element>
+    </element>
+  </define>
   <define name="scalar_squared_time_averaged_algorithm">
     <element name="algorithm">
       <a:documentation>Algorithm for time averaging squared scalar fields.
@@ -1813,6 +1833,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_time_averaged_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_period_averaged_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_sum_algorithm"/>

@@ -67,6 +67,7 @@ module adapt_state_module
   use fields_halos
   use data_structures
   use detector_data_types
+  use detector_parallel
   use diagnostic_variables
   use intersection_finder_module
   use diagnostic_variables
@@ -948,7 +949,9 @@ contains
     logical, optional, intent(in) :: initialise_fields
 
     character(len = FIELD_NAME_LEN) :: metric_name
-    integer :: i, j, max_adapt_iteration
+    integer :: i, j, k, max_adapt_iteration
+    integer :: zoltan_min_adapt_iterations, zoltan_max_adapt_iterations, zoltan_additional_adapt_iterations
+    logical :: finished_adapting, final_adapt_iteration
     integer, dimension(:), pointer :: node_ownership
     type(state_type), dimension(size(states)) :: interpolate_states
     type(mesh_type), pointer :: old_linear_mesh
@@ -963,6 +966,10 @@ contains
     ! Zoltan with detectors stuff
     integer :: my_num_detectors, total_num_detectors_before_zoltan, total_num_detectors_after_zoltan
     integer :: ierr
+    type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
+    type(detector_type), pointer :: detector => null()
+
+    real :: global_min_quality, quality_tolerance
 
     ewrite(1, *) "In adapt_state_internal"
 
@@ -984,7 +991,38 @@ contains
     end if
 #endif
 
-    do i = 1, max_adapt_iteration
+
+#ifdef HAVE_ZOLTAN
+
+    call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/additional_adapt_iterations", &
+       & zoltan_additional_adapt_iterations, default = 0)
+    if (zoltan_additional_adapt_iterations < 0) then
+       FLExit("Zoltan additional adapt iterations must not be negative.")
+    end if
+
+    call get_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/element_quality_cutoff", &
+       & quality_tolerance, default = 0.6)
+
+    if (max_adapt_iteration .ne. 1) then
+       zoltan_min_adapt_iterations = adapt_iterations()
+       zoltan_max_adapt_iterations = zoltan_min_adapt_iterations + zoltan_additional_adapt_iterations
+    else
+       zoltan_min_adapt_iterations = adapt_iterations()
+       zoltan_max_adapt_iterations = zoltan_min_adapt_iterations
+    end if
+#endif
+
+    finished_adapting = .false.
+
+    if (max_adapt_iteration == 1) then
+       final_adapt_iteration = .true.
+    else
+       final_adapt_iteration = .false.
+    end if
+    
+    i = 1
+
+    do while (.not. finished_adapting)
       if(max_adapt_iteration > 1) then
         ewrite(2, "(a,i0)") "Performing adapt ", i
       end if
@@ -1072,9 +1110,24 @@ contains
         end if
       end if
 
-      if(isparallel()) then
-        ! Update the detector element ownership data
-        call search_for_detectors(default_stat%detector_list, new_positions)
+      if (get_num_detector_lists()>0) then
+        ! Update detector element and local_coords for every detector in all lists
+        call get_registered_detector_lists(detector_list_array)
+        do j = 1, size(detector_list_array)
+           call search_for_detectors(detector_list_array(j)%ptr, new_positions)
+        end do
+
+#ifdef DDEBUG
+        ! Sanity check that all local detectors are owned
+        call get_registered_detector_lists(detector_list_array)
+        do j = 1, size(detector_list_array)
+           detector=>detector_list_array(j)%ptr%first
+           do k = 1, detector_list_array(j)%ptr%length
+              assert(detector%element>0)
+              detector=>detector%next
+           end do
+        end do
+#endif
       end if
 
       ! Then reallocate all fields
@@ -1086,7 +1139,7 @@ contains
       ! Set their values
       call set_boundary_conditions_values(states)
 
-      if(i < max_adapt_iteration .or. isparallel()) then
+      if((.not. final_adapt_iteration) .or. isparallel()) then
         ! If there are remaining adapt iterations, or we will be calling
         ! sam_drive or zoltan_drive, insert the old metric into interpolate_states(1) and a
         ! new metric into states(1), for interpolation
@@ -1119,7 +1172,7 @@ contains
         nullify(node_ownership)
       end if
 
-      if(i < max_adapt_iteration .or. isparallel()) then
+      if((.not. final_adapt_iteration) .or. isparallel()) then
         ! If there are remaining adapt iterations, extract the new metric for
         ! the next adapt iteration. If we will be calling sam_drive, always
         ! extract the new metric.
@@ -1185,7 +1238,7 @@ contains
           ! call zoltan now but we need to pass in both the 2d metric (metric) and the 3d full metric (full_metric)
           ! the first is needed to define the element qualities while the second must be interpolated to the newly
           ! decomposed mesh
-          call zoltan_drive(states, i, max_adapt_iteration, metric = metric, full_metric = full_metric)
+          call zoltan_drive(states, final_adapt_iteration, global_min_quality, metric = metric, full_metric = full_metric)
           default_stat%zoltan_drive_call=.true.
 
           ! now we can deallocate the horizontal metric and point metric back at the full metric again
@@ -1193,7 +1246,7 @@ contains
           metric = full_metric
         else
 
-          call zoltan_drive(states, i, max_adapt_iteration, metric = metric)
+          call zoltan_drive(states, final_adapt_iteration, global_min_quality, metric = metric)
           default_stat%zoltan_drive_call=.true.
 
         end if
@@ -1212,7 +1265,7 @@ contains
         ! Re-load-balance using libsam
         call sam_drive(states, sam_options(i, max_adapt_iteration), metric = metric)
 #endif
-        if(i == max_adapt_iteration) then
+        if(final_adapt_iteration) then
           ! On the last adapt iteration the metric was interpolated
           ! only for re-load-balancing, hence it must be deallocated
           call deallocate(metric)
@@ -1228,11 +1281,51 @@ contains
         ewrite(2, *) "There are reserved meshes, so skipping printing of references."
       end if
 
-      call write_adapt_state_debug_output(states, i, max_adapt_iteration, &
+      call write_adapt_state_debug_output(states, final_adapt_iteration, &
         & initialise_fields = initialise_fields)
 
       call incrementeventcounter(EVENT_ADAPTIVITY)
       call incrementeventcounter(EVENT_MESH_MOVEMENT)
+
+      ! if this was the final adapt iteration we've now finished adapting
+      if (final_adapt_iteration) then
+         ewrite(2,*) "Finished adapting."
+         finished_adapting = .true.
+      else
+         ! check whether the next iteration should be the last iteration
+         i = i + 1
+
+#ifdef HAVE_ZOLTAN
+         if (i .eq. zoltan_max_adapt_iterations) then
+
+            ! Only print out message if additional adapt iterations have been switched on
+            if (zoltan_additional_adapt_iterations .gt. 0) then
+               ewrite(2,*) "The next iteration will be final adapt iteration else we'll go over the maximum adapt iterations."
+            end if
+
+            if (global_min_quality .le. quality_tolerance) then
+               ewrite(-1,*) "Mesh contains elements with quality below element quality tolerance. May need to increase number of adapt iterations to ensure good quality mesh."
+               ewrite(-1,*) "min_quality = ", global_min_quality
+               ewrite(-1,*) "quality_tolerance = ", quality_tolerance
+            end if
+            
+            final_adapt_iteration = .true.
+         else
+            ! Only check to allow an early exit if additional adapt iterations have been switched on
+            if (zoltan_additional_adapt_iterations .gt. 0) then
+               if((global_min_quality .gt. quality_tolerance) .and. (i .ge. zoltan_min_adapt_iterations)) then
+                  ewrite(2,*) "The next iteration will be final adapt iteration as the mesh is of high enough quality and we have done the minimum number of adapt iterations."
+                  final_adapt_iteration = .true.
+               end if
+            end if
+         end if
+#else
+         if (i .eq. max_adapt_iteration) then
+            final_adapt_iteration = .true.
+         end if
+#endif
+      end if
+
     end do
 
     if(isparallel()) then
@@ -1486,15 +1579,12 @@ contains
     end if
   end subroutine perform_vertically_inhomogenous_step
 
-  subroutine write_adapt_state_debug_output(states, adapt_iteration, max_adapt_iteration, initialise_fields)
+  subroutine write_adapt_state_debug_output(states, final_adapt_iteration, initialise_fields)
     !!< Diagnostic output for mesh adaptivity
 
     type(state_type), dimension(:), intent(in) :: states
-    !! The current iteration the adapt-re-load-balance loop
-    integer, intent(in) :: adapt_iteration
-    !! The total number of iterations to be performed in the
-    !! adapt-re-load-balance loop
-    integer, intent(in) :: max_adapt_iteration
+    !! Whether this is the final iteration of the adapt-re-load-balance loop
+    logical, intent(in) :: final_adapt_iteration
     !! If present and .true., initialise fields rather than interpolate them
     logical, optional, intent(in) :: initialise_fields
 
@@ -1535,7 +1625,7 @@ contains
       state_dump_no = state_dump_no + 1
     end if
 
-    if(adapt_iteration == max_adapt_iteration .and. have_option(base_path // "/checkpoint")) then
+    if(final_adapt_iteration .and. have_option(base_path // "/checkpoint")) then
       ! Debug checkpointing. These are only output on the final adapt iteration.
 
       if(present_and_true(initialise_fields)) then

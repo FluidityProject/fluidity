@@ -32,8 +32,8 @@ module zoltan_integration
   use memory_diagnostics
   use detector_data_types
   use detector_tools
+  use detector_parallel
   use pickers
-  use diagnostic_variables
   use hadapt_advancing_front
   use parallel_tools
   use fields_halos
@@ -55,11 +55,12 @@ module zoltan_integration
 
   contains
 
-  subroutine zoltan_drive(states, iteration, max_adapt_iteration, metric, full_metric, initialise_fields, &
+  subroutine zoltan_drive(states, final_adapt_iteration, global_min_quality, metric, full_metric, initialise_fields, &
     ignore_extrusion, flredecomping, input_procs, target_procs)
+
     type(state_type), dimension(:), intent(inout), target :: states
-    integer, intent(in) :: iteration
-    integer, intent(in) :: max_adapt_iteration
+    logical, intent(in) :: final_adapt_iteration
+    real, intent(out) :: global_min_quality
     ! the metric is the metric we base the quality functions on
     type(tensor_field), intent(inout), optional :: metric
     ! the full_metric is the metric we need to interpolate
@@ -75,6 +76,7 @@ module zoltan_integration
 
     type(zoltan_struct), pointer :: zz
 
+    integer :: ierr
     logical :: changes
     integer(zoltan_int) :: num_gid_entries, num_lid_entries
     integer(zoltan_int), dimension(:), pointer :: p1_export_global_ids => null()
@@ -94,6 +96,7 @@ module zoltan_integration
     type(vector_field) :: zoltan_global_new_positions_m1d
     real :: load_imbalance_tolerance
     logical :: flredecomp
+
     integer :: flredecomp_input_procs = -1, flredecomp_target_procs = -1
 
     ewrite(1,*) "In zoltan_drive"
@@ -133,20 +136,40 @@ module zoltan_integration
     zoltan_global_migrate_extruded_mesh = option_count('/geometry/mesh/from_mesh/extrude') > 0 &
       .and. .not. present_and_true(ignore_extrusion)
 
-    call setup_module_variables(states, iteration, max_adapt_iteration, zz)
+    call setup_module_variables(states, final_adapt_iteration, zz)
     
     call setup_quality_module_variables(states, metric) ! this needs to be called after setup_module_variables
                                         ! (but only on the 2d mesh with 2+1d adaptivity)
 
-    load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-    call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
 
+    load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
+    call set_zoltan_parameters(final_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
+
+    zoltan_global_calculated_local_min_quality = .false.
 
     call zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, & 
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
        & load_imbalance_tolerance, flredecomp, flredecomp_input_procs, flredecomp_target_procs)
 
+    if (.NOT. final_adapt_iteration) then
+
+       if (.NOT. zoltan_global_calculated_local_min_quality) then
+          FLAbort("Minimum element quality was not calculated during the load balance call.")
+       end if
+
+       ! calculate the global minimum element quality
+       call mpi_allreduce(zoltan_global_local_min_quality, global_min_quality, 1, getPREAL(), &
+          & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+       assert(ierr == MPI_SUCCESS)
+       
+       ewrite(1,*) "local minimum element quality = ", zoltan_global_local_min_quality
+       ewrite(1,*) "global minimum element quality = ", global_min_quality
+       
+    else
+       ! On final iteration we do not calculate the minimum element quality
+       global_min_quality = 1.0
+    end if
 
     if (changes .eqv. .false.) then
       ewrite(1,*) "Zoltan decided no change was necessary, exiting"
@@ -199,11 +222,12 @@ module zoltan_integration
       ! so we don't need to reallocate them either)
       call cleanup_other_module_variables
       
-      call setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name = topology_mesh_name)
+      call setup_module_variables(states, final_adapt_iteration, zz, mesh_name = topology_mesh_name)
 
-      load_imbalance_tolerance = get_load_imbalance_tolerance(iteration, max_adapt_iteration)
-      call set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
-      
+
+      load_imbalance_tolerance = get_load_imbalance_tolerance(final_adapt_iteration)
+      call set_zoltan_parameters(final_adapt_iteration, flredecomp, flredecomp_target_procs, load_imbalance_tolerance, zz)
+
       call reset_zoltan_lists_full(zz, &
        & p1_num_export_full, p1_export_local_ids_full, p1_export_procs_full, &
        & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
@@ -269,9 +293,9 @@ module zoltan_integration
 
   end subroutine zoltan_drive
 
-  subroutine setup_module_variables(states, iteration, max_adapt_iteration, zz, mesh_name)
+  subroutine setup_module_variables(states, final_adapt_iteration, zz, mesh_name)
     type(state_type), dimension(:), intent(inout), target :: states
-    integer, intent(in) :: iteration, max_adapt_iteration
+    logical, intent(in) :: final_adapt_iteration
     type(zoltan_struct), pointer, intent(out) :: zz
     
     character(len=*), optional :: mesh_name
@@ -284,8 +308,11 @@ module zoltan_integration
 
     !call find_mesh_to_adapt(states(1), zoltan_global_zz_mesh)
     
-    zoltan_global_zoltan_iteration = iteration
-    zoltan_global_zoltan_max_adapt_iteration = max_adapt_iteration
+    if (final_adapt_iteration) then
+       zoltan_global_calculate_edge_weights = .false.
+    else
+       zoltan_global_calculate_edge_weights = .true.
+    end if
     
     zoltan_global_max_edge_weight_on_node => extract_scalar_field(states(1), "MaxEdgeWeightOnNodes", stat) 
     if (stat == 0) then
@@ -436,14 +463,14 @@ module zoltan_integration
     
   end subroutine setup_quality_module_variables
 
-  function get_load_imbalance_tolerance(iteration, max_adapt_iteration) result(load_imbalance_tolerance)
-    integer, intent(in) :: iteration, max_adapt_iteration    
+  function get_load_imbalance_tolerance(final_adapt_iteration) result(load_imbalance_tolerance)
+    logical, intent(in) :: final_adapt_iteration    
  
     real, parameter :: default_load_imbalance_tolerance = 1.5  
     real, parameter :: final_iteration_load_imbalance_tolerance = 1.075
     real :: load_imbalance_tolerance
 
-    if (iteration /= max_adapt_iteration) then
+    if (.NOT. final_adapt_iteration) then
        ! if user has passed us the option then use the load imbalance tolerance they supplied,
        ! else use the default load imbalance tolerance
        call get_option(trim(zoltan_global_base_option_path) // "/load_imbalance_tolerance", load_imbalance_tolerance, &
@@ -459,9 +486,9 @@ module zoltan_integration
 
   end function get_load_imbalance_tolerance
 
-  subroutine set_zoltan_parameters(iteration, max_adapt_iteration, flredecomp, target_procs, &
+  subroutine set_zoltan_parameters(final_adapt_iteration, flredecomp, target_procs, &
      & load_imbalance_tolerance, zz)
-    integer, intent(in) :: iteration, max_adapt_iteration
+    logical, intent(in) :: final_adapt_iteration
     logical, intent(in) :: flredecomp
     integer, intent(in) :: target_procs
     real, intent(in) :: load_imbalance_tolerance
@@ -492,9 +519,8 @@ module zoltan_integration
        ierr = Zoltan_set_Param(zz, "NUM_GLOBAL_PARTS", int2str(target_procs)); assert(ierr == ZOLTAN_OK)
     end if
     
-    if (iteration /= max_adapt_iteration) then
+    if (.NOT. final_adapt_iteration) then
        if (have_option(trim(zoltan_global_base_option_path) // "/partitioner")) then
-          
           if (have_option(trim(zoltan_global_base_option_path) // "/partitioner/metis"))  then
              ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
              ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
@@ -582,14 +608,9 @@ module zoltan_integration
           end if
           
        else
+          ! Use ParMETIS by default on the final adapt iteration
           ierr = Zoltan_Set_Param(zz, "LB_METHOD", "GRAPH"); assert(ierr == ZOLTAN_OK)
-          if (flredecomp) then
-             ! Use ParMETIS by default when flredecomping
-             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
-          else
-             ! Use the Zoltan graph partitioner by default for adaptivity
-             ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PHG"); assert(ierr == ZOLTAN_OK)
-          end if
+          ierr = Zoltan_Set_Param(zz, "GRAPH_PACKAGE", "PARMETIS"); assert(ierr == ZOLTAN_OK)
        end if
 
     end if
@@ -597,10 +618,10 @@ module zoltan_integration
     ! Choose the appropriate partitioning method based on the current adapt iteration
     ! Idea is to do repartitioning on intermediate adapts but a clean partition on the last
     ! iteration to produce a load balanced partitioning
-    if (iteration == max_adapt_iteration) then
+    if (final_adapt_iteration) then
        ierr = Zoltan_Set_Param(zz, "LB_APPROACH", "PARTITION"); assert(ierr == ZOLTAN_OK)
        if (have_option(trim(zoltan_global_base_option_path) // "/final_partitioner/metis") .OR. &
-          & (flredecomp .AND. .NOT.(have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")))) then
+          & (.NOT.(have_option(trim(zoltan_global_base_option_path) // "/final_partitioner")))) then
           ! chosen to match what Sam uses
           ierr = Zoltan_Set_Param(zz, "PARMETIS_METHOD", "PartKway"); assert(ierr == ZOLTAN_OK)
        end if
@@ -696,10 +717,10 @@ module zoltan_integration
   end subroutine cleanup_other_module_variables
 
   subroutine zoltan_load_balance(zz, changes, num_gid_entries, num_lid_entries, &
-       & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
-       & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
-       load_imbalance_tolerance, flredecomp, input_procs, target_procs)
-
+     & p1_num_import, p1_import_global_ids, p1_import_local_ids, p1_import_procs, &
+     & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
+     load_imbalance_tolerance, flredecomp, input_procs, target_procs)
+    
     type(zoltan_struct), pointer, intent(in) :: zz    
     logical, intent(out) :: changes    
     
@@ -712,16 +733,14 @@ module zoltan_integration
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_global_ids 
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_local_ids
     integer(zoltan_int), dimension(:), pointer, intent(out) :: p1_export_procs
-
+    real, intent(inout) :: load_imbalance_tolerance
+    logical, intent(in) :: flredecomp
     integer, intent(in) :: input_procs, target_procs
 
     ! These variables are needed when flredecomping as we then use Zoltan_LB_Partition
     integer(zoltan_int), dimension(:), pointer :: import_to_part
     integer(zoltan_int), dimension(:), pointer :: export_to_part
     integer(zoltan_int), dimension(:), pointer :: null_pointer => null()
-
-    real, intent(inout) :: load_imbalance_tolerance
-    logical, intent(in) :: flredecomp
 
     integer(zoltan_int) :: ierr
     integer :: i, node
@@ -788,38 +807,63 @@ module zoltan_integration
        ierr = Zoltan_LB_Free_Part(null_pointer, null_pointer, null_pointer, export_to_part); assert(ierr == ZOLTAN_OK)
 
     else
-      
-        min_num_nodes_after_balance = 0
-        do while (min_num_nodes_after_balance == 0)
 
-           ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
-                &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
-           assert(ierr == ZOLTAN_OK)
-           
-           ! calculate how many owned nodes we'd have after doing the planned load balancing
-           num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
-           
-           ! find the minimum number of owned nodes any process would have after doing the planned load balancing
-           call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
-                & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
-           assert(ierr == MPI_SUCCESS)
-           
-           if (min_num_nodes_after_balance == 0) then
-              ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', load_imbalance_tolerance
-              load_imbalance_tolerance = 0.95 * load_imbalance_tolerance
-              if (load_imbalance_tolerance < 1.075) then
-                 FLAbort("Tightening load_imbalance_tolerance to prevent empty partitions being created by Zoltan failed")
-              end if
+       min_num_nodes_after_balance = 0
+       do while (min_num_nodes_after_balance == 0)
+          
+          ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
+             &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+          assert(ierr == ZOLTAN_OK)
+          
+          ! calculate how many owned nodes we'd have after doing the planned load balancing
+          num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+          
+          ! find the minimum number of owned nodes any process would have after doing the planned load balancing
+          call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
+             & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+          assert(ierr == MPI_SUCCESS)
+          
+          if (min_num_nodes_after_balance == 0) then
+             ewrite(2,*) 'Empty partion would be created with load_imbalance_tolerance of', load_imbalance_tolerance
+             load_imbalance_tolerance = 0.95 * load_imbalance_tolerance
+             if (load_imbalance_tolerance < 1.075) then
 
-              ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
-              write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
-              ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
-
-              ewrite(2,*) 'Tightened load_imbalance_tolerance to ', load_imbalance_tolerance
-           end if
-        end do
+                ewrite(1,*) 'Could not prevent empty partions by tightening load_imbalance_tolerance.'
+                ewrite(1,*) 'Attempting to load balance with no edge-weights.'
+                
+                ! Reset the load_imbalance_tolerance
+                ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.075"); assert(ierr == ZOLTAN_OK)
+                ! Turn off the edge-weight calculation
+                zoltan_global_calculate_edge_weights = .false.
+                
+                ierr = Zoltan_LB_Balance(zz, changes, num_gid_entries, num_lid_entries, p1_num_import, p1_import_global_ids, &
+                   &    p1_import_local_ids, p1_import_procs, p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs)
+                assert(ierr == ZOLTAN_OK)
+                
+                ! calculate how many owned nodes we'd have after doing the planned load balancing
+                num_nodes_after_balance = num_nodes + p1_num_import - p1_num_export
+                
+                ! find the minimum number of owned nodes any process would have after doing the planned load balancing
+                call mpi_allreduce(num_nodes_after_balance, min_num_nodes_after_balance, 1, getPINTEGER(), &
+                   & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+                assert(ierr == MPI_SUCCESS)
+                
+                if (min_num_nodes_after_balance == 0) then
+                   FLAbort("Could not stop Zoltan creating empty partitions.")
+                else
+                   ewrite(-1,*) 'Load balancing was carried out without edge-weighting being applied. Mesh may not be of expected quality.'
+                end if
+             else
+                ! convert load_imbalance_tolerance to a string for setting the option in Zoltan
+                write(string_load_imbalance_tolerance, '(f6.3)' ) load_imbalance_tolerance
+                ierr = Zoltan_Set_Param(zz, "IMBALANCE_TOL", string_load_imbalance_tolerance); assert(ierr == ZOLTAN_OK)
+                
+                ewrite(2,*) 'Tightened load_imbalance_tolerance to ', load_imbalance_tolerance
+             end if
+          end if
+       end do
     end if
-       
+   
     do i=1,p1_num_export
        node = p1_export_local_ids(i)
        assert(node_owned(zoltan_global_zz_halo, node))
@@ -1726,116 +1770,95 @@ module zoltan_integration
   end subroutine initialise_transfer
 
 
-  subroutine update_detector_list_element(detector_list)
-    ! Fix the detector%element field for every detector left in our lis
-    type(detector_linked_list), intent(inout) :: detector_list
+  subroutine update_detector_list_element(detector_list_array)
+    ! Update the detector%element field for every detector left in our list
+    ! and check that we did not miss any in the first send
+    ! broadcast them if we did
+    type(detector_list_ptr), dimension(:), intent(inout) :: detector_list_array
 
-    integer :: i, j
-    integer :: original_detector_list_length
-    integer :: send_count
+    type(detector_linked_list), pointer :: detector_list => null()
+    type(detector_linked_list) ::  detector_send_list
+    type(detector_type), pointer :: detector => null(), send_detector => null()
+    integer :: i, j, send_count, ierr
     integer :: old_local_element_number, new_local_element_number, old_universal_element_number
-    type(detector_type), pointer :: detector => null(), send_detector => null(), delete_detector => null()
-    type(detector_linked_list) :: detector_send_list
     integer, allocatable :: ndets_being_sent(:)
-    integer :: ierr
     real, allocatable :: send_buff(:,:), recv_buff(:,:)
-    type(element_type), pointer :: shape    
+    logical do_broadcast
+    type(element_type), pointer :: shape  
 
     ewrite(1,*) "In update_detector_list_element"
 
-    ewrite(3,*) "Length of detector list to be updated: ", detector_list%length
+    send_count=0
 
-    original_detector_list_length = detector_list%length
+    do j = 1, size(detector_list_array)
+       detector_list => detector_list_array(j)%ptr
+       ewrite(2,*) "Length of detector list to be updated: ", detector_list%length
 
-    detector => detector_list%firstnode
+       detector => detector_list%first
+       do while (associated(detector))
 
-    send_count = 0
+          old_local_element_number = detector%element
 
-    ewrite(3,*) "Beginning update of detectors in detector_list"
+          if (.not. has_key(zoltan_global_old_local_numbering_to_uen, old_local_element_number)) then
+             ewrite(-1,*) "Zoltan can't find old element number for detector ", detector%id_number
+             FLAbort('Trying to update unknown detector in Zoltan')
+          end if
+          old_universal_element_number = fetch(zoltan_global_old_local_numbering_to_uen, old_local_element_number)
 
-    do i=1, original_detector_list_length
-
-       ewrite(3,*) "Updating detector%id_number:", detector%id_number
-       ewrite(3,*) "Old element owner of ", detector%id_number, "(ID): ", ele_owner(detector%element, zoltan_global_zz_mesh, zoltan_global_zz_halo)
-       ewrite(3,*) "Old element number of ", detector%id_number, "(ID): ", detector%element
-
-       old_local_element_number = detector%element
-
-       assert(has_key(zoltan_global_old_local_numbering_to_uen, old_local_element_number) .EQV. .TRUE.)
-       old_universal_element_number = fetch(zoltan_global_old_local_numbering_to_uen, old_local_element_number)
-
-       ewrite(3,*) "Universal element number of ", detector%id_number, "(ID): ", old_universal_element_number
-
-       if(has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
-          ! Update the element number for the detector
-          detector%element = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-          ewrite(3,*) "New element number of ", detector%id_number, "(ID): ", detector%element
-
-          ewrite(3,*) "Finished updating detector%id_number:", detector%id_number
-          detector => detector%next
-       else
-          ewrite(3,*) "No new element number of ", detector%id_number, "(ID) could be found"
-          ! We no longer own the element containing this detector
-          ! We're going to put it into a send list and count how many detectors we're sending
-          send_count = send_count + 1
-
-          send_detector => detector
-          detector => detector%next
+          if(has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
+             ! Update the element number for the detector
+             detector%element = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
+             detector => detector%next
+          else
+             ! We no longer own the element containing this detector, and cannot establish its new
+             ! owner from the halo, because the boundary has moved too far.
+             ! Since we have no way of determining the new owner we are going to broadcast the detector
+             ! to all procs, so move it to the send list and count how many detectors we're sending.
+             ewrite(2,*) "Found non-local detector, initialising broadcast..."
+             send_count = send_count + 1
           
-          ! Store the old universal element number for unpacking to new local at the receive
-          send_detector%element = old_universal_element_number
+             ! Store the old universal element number for unpacking to new local at the receive
+             detector%element = old_universal_element_number
+             detector%list_id=detector_list%id
 
-          ! Remove detector from detector list
-          ewrite(3,*) "Removing detector ", send_detector%id_number, "(ID) from the detector_list"
-          call remove_det_from_current_det_list(detector_list, send_detector)
-
-          ! Add allocated detector to send list
-          ewrite(3,*) "Adding detector ", send_detector%id_number, "(ID) to the detector_send_list"
-          call insert(detector_send_list, send_detector)
-
-       end if
+             ! Remove detector from detector list
+             send_detector => detector
+             detector => detector%next
+             call move(send_detector, detector_list, detector_send_list)
+          end if
+       end do
     end do
 
-    ewrite(3,*) "Length of detector list AFTER being updated: ", detector_list%length
-    ewrite(3,*) "Length of detector_send_list AFTER update: ", detector_send_list%length
-    ewrite(3,*) "Finished updating of detectors in detector_list"
-
-    ewrite(3,*) "Preparing to broadcast detectors in detector_send_list"
-
+    ! Find out how many detectors each process wants to broadcast
     allocate(ndets_being_sent(getnprocs()))
-
-    ! Find out how many detectors each process wants to send
-    call mpi_allgather(send_count, 1, getPINTEGER(), ndets_being_sent, 1 , getPINTEGER(), &
-         MPI_COMM_FEMTOOLS, ierr)
+    call mpi_allgather(send_count, 1, getPINTEGER(), ndets_being_sent, 1 , getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
     assert(ierr == MPI_SUCCESS)
-    
-    ewrite(3,*) "Gathered the number of detectors each process wants to broadcast"
-    ewrite(3,*) "             ndets_being_sent: ", ndets_being_sent
+
+    ! Check whether we have to perform broadcast, if not return
+    do_broadcast=.false.
+    if (any(ndets_being_sent > 0)) then
+       do_broadcast=.true.
+    end if
+    if (.not. do_broadcast) return
+    ewrite(2,*) "Broadcast required, initialising..."
 
     ! Allocate memory for all the detectors you're going to send
     allocate(send_buff(send_count,zoltan_global_ndata_per_det))
-
-    detector => detector_send_list%firstnode
+      
+    detector => detector_send_list%first
     do i=1,send_count
-       ! Pack the detector information
-       call pack_detector(detector, send_buff(i, 1:zoltan_global_ndata_per_det), &
-            zoltan_global_ndims, zoltan_global_ndata_per_det)
-
-       delete_detector => detector
-       detector => detector%next
-       call remove_det_from_current_det_list(detector_send_list, delete_detector)
-       call deallocate(delete_detector)
+       ! Pack the detector information and delete from send_list (delete advances detector to detector%next)
+       call pack_detector(detector, send_buff(i, 1:zoltan_global_ndata_per_det), zoltan_global_ndims)
+       call delete(detector, detector_send_list)
     end do
 
-    ewrite(3,*) "Packed the ", send_count, " detectors to be sent"
-    
+    ! Broadcast detectors whose new owner we can't identify
     do i=1,getnprocs()
-
        if (ndets_being_sent(i) > 0) then
 
           if (i == getprocno()) then
              ! Broadcast the detectors you want to send
-             ewrite(3,*) "Broadcasting the ", send_count, " detectors in detector_send_list"
+             ewrite(2,*) "Broadcasting ", send_count, " detectors"
              call mpi_bcast(send_buff,send_count*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
              assert(ierr == MPI_SUCCESS)
           else
@@ -1843,53 +1866,38 @@ module zoltan_integration
              allocate(recv_buff(ndets_being_sent(i),zoltan_global_ndata_per_det))
              
              ! Receive broadcast
-             ewrite(3,*) "Receiving ", ndets_being_sent(i), " detectors from process ", i
+             ewrite(2,*) "Receiving ", ndets_being_sent(i), " detectors from process ", i
              call mpi_bcast(recv_buff,ndets_being_sent(i)*zoltan_global_ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
              assert(ierr == MPI_SUCCESS)
 
              ! Unpack detector if you own it
              do j=1,ndets_being_sent(i)
-                old_universal_element_number = recv_buff(j,1)
 
-                if (has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then                   
+                ! Allocate and unpack the detector
+                shape=>ele_shape(zoltan_global_new_positions,1)                     
+                call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
+                call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det), zoltan_global_ndims)
 
-                   new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-
-                   if(ele_owner(new_local_element_number, zoltan_global_new_positions%mesh, zoltan_global_new_positions%mesh%halos(zoltan_global_new_positions_mesh_nhalos)) == getprocno()) then
-
-                      ewrite(3,*) "Unpacking ", recv_buff(j,zoltan_global_ndims+2), "(ID) detector from process ", i
-
-                      shape=>ele_shape(zoltan_global_new_positions,1)                     
-                      call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
-
-                      call unpack_detector(detector, recv_buff(j, 1:zoltan_global_ndata_per_det), &
-                           zoltan_global_ndims, zoltan_global_ndata_per_det)
+                if (has_key(zoltan_global_uen_to_new_local_numbering, detector%element)) then 
+                   new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, detector%element)
+                   if (element_owned(zoltan_global_new_positions%mesh, new_local_element_number)) then
                       detector%element = new_local_element_number
-
-                      call update_detector(detector, zoltan_global_new_positions)
-
-                      ewrite(3,*) "Unpacked detector%id_number: ", detector%id_number
-                      ewrite(3,*) "Unpacked detector%position: ", detector%position
-                      ewrite(3,*) "Unpacked detector given new_local_element_number: ", detector%element
-
-                      call insert(detector_list, detector)
+                      call insert(detector, detector_list_array(detector%list_id)%ptr)
                       detector => null()
-
+                   else
+                      call delete(detector)
                    end if
+                else
+                   call delete(detector)
                 end if
              end do
 
              deallocate(recv_buff)
-
           end if
        end if
     end do
 
-    deallocate(send_buff)             
-
-    ewrite(3,*) "Length of detector_send_list AFTER moving of detectors: ", detector_send_list%length
-    ewrite(3,*) "Length of detector list AFTER being updated and moving detectors: ", detector_list%length
-
+    deallocate(send_buff)   
     ewrite(1,*) "Exiting update_detector_list_element"
 
   end subroutine update_detector_list_element
@@ -1923,6 +1931,7 @@ module zoltan_integration
     type(vector_field), pointer :: source_vfield, target_vfield
     type(tensor_field), pointer :: source_tfield, target_tfield
 
+    type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
     type(detector_type), pointer :: detector => null(), add_detector => null()
 
     ewrite(1,*) 'in transfer_fields'
@@ -1958,8 +1967,8 @@ module zoltan_integration
 
     ! calculate the amount of data to be transferred per detector
     zoltan_global_ndims = zoltan_global_zz_positions%dim
-    zoltan_global_ndata_per_det = zoltan_global_ndims + 3
-    ewrite(3,*) "Amount of data to be transferred per detector: ", zoltan_global_ndata_per_det
+    zoltan_global_ndata_per_det = detector_buffer_size(zoltan_global_ndims, .false.)
+    ewrite(2,*) "Amount of data to be transferred per detector: ", zoltan_global_ndata_per_det
     
     head = 1
     do i=1,size(sends)
@@ -1982,8 +1991,17 @@ module zoltan_integration
          & num_import, import_global_ids, import_local_ids, import_procs)
     assert(ierr == ZOLTAN_OK)
 
-    ewrite(3,*) "Before migrate, default_stat%detector_list%length: ", default_stat%detector_list%length
-    
+    ! Get all detector lists
+    call get_registered_detector_lists(detector_list_array)
+
+    ! Log list lengths
+    if (get_num_detector_lists()>0) then
+       ewrite(2,*) "Before migrate, we have", get_num_detector_lists(), "detector lists:"
+       do j = 1, size(detector_list_array)
+          ewrite(2,*) "Detector list", j, "has", detector_list_array(j)%ptr%length, "local and ", detector_list_array(j)%ptr%total_num_det, "global detectors"
+       end do
+    end if
+
     ierr = Zoltan_Migrate(zz, num_import, import_global_ids, import_local_ids, import_procs, &
          & import_to_part, num_export, export_global_ids, export_local_ids, export_procs, export_to_part) 
     
@@ -1995,28 +2013,41 @@ module zoltan_integration
 
     deallocate(zoltan_global_ndets_in_ele)
     
-    ! update the detector%element for each detector in the default_stat%detector_list
-    call update_detector_list_element(default_stat%detector_list)
-
-    ewrite(3,*) "Merging zoltan_global_unpacked_detectors_list with default_stat%detector_list"
+    ! update the local detectors and make sure we didn't miss any in the first send
+    if (get_num_detector_lists()>0) then
+       call update_detector_list_element(detector_list_array)
+    end if
 
     ! Merge in any detectors we received as part of the transfer to our detector list
-    detector => zoltan_global_unpacked_detectors_list%firstnode
+    detector => zoltan_global_unpacked_detectors_list%first
     original_zoltan_global_unpacked_detectors_list_length = zoltan_global_unpacked_detectors_list%length
 
     do j=1, original_zoltan_global_unpacked_detectors_list_length
-
        add_detector => detector
        detector => detector%next
 
-       call remove_det_from_current_det_list(zoltan_global_unpacked_detectors_list, add_detector)
-       call insert(default_stat%detector_list, add_detector)
+       ! update detector name if names are present on the list, otherwise det%name=id_number
+       if (allocated(detector_list_array(add_detector%list_id)%ptr%detector_names)) then
+          add_detector%name=detector_list_array(add_detector%list_id)%ptr%detector_names(add_detector%id_number)
+       else
+          add_detector%name=int2str(add_detector%id_number)
+       end if
 
+       ! move detector to the correct list
+       call move(add_detector, zoltan_global_unpacked_detectors_list, detector_list_array(add_detector%list_id)%ptr)
     end do
 
-    ewrite(3,*) "Finished merging zoltan_global_unpacked_detectors_list with default_stat%detector_list"
+    assert(zoltan_global_unpacked_detectors_list%length==0)
+    ewrite(2,*) "Merged", original_zoltan_global_unpacked_detectors_list_length, "detectors with local detector lists"
 
-    ewrite(3,*) "After migrate and merge, default_stat%detector_list%length: ", default_stat%detector_list%length
+    ! Log list lengths
+    if (get_num_detector_lists()>0) then
+       call get_registered_detector_lists(detector_list_array)
+       ewrite(2,*) "After migrate and merge, we have", get_num_detector_lists(), "detector lists:"
+       do j = 1, size(detector_list_array)
+          ewrite(2,*) "Detector list", j, "has", detector_list_array(j)%ptr%length, "local and ", detector_list_array(j)%ptr%total_num_det, "global detectors"
+       end do
+    end if
 
     ierr = Zoltan_LB_Free_Part(import_global_ids, import_local_ids, import_procs, import_to_part)
     assert(ierr == ZOLTAN_OK)
