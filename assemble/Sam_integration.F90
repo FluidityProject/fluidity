@@ -56,8 +56,7 @@ module sam_integration
   use diagnostic_variables
   use pickers
   use ieee_arithmetic
-
-  
+  use detector_tools  
 
   implicit none
   
@@ -309,7 +308,7 @@ module sam_integration
        call insert(states, new_positions, new_positions%name)
        call deallocate(old_positions)
        
-       nlocal_dets = local_detectors()
+       nlocal_dets = default_stat%detector_list%length
        call allsum(nlocal_dets)
        if(nlocal_dets > 0) call halo_transfer_detectors(old_linear_mesh, new_positions)
        call deallocate(new_positions)
@@ -808,7 +807,7 @@ module sam_integration
        ! Step 2. Supply sam with all the fields it needs to migrate.
        old_linear_mesh = get_external_mesh(states, external_mesh_name=external_mesh_name)
 
-       nlocal_dets = local_detectors()
+       nlocal_dets = default_stat%detector_list%length
        call allsum(nlocal_dets)
        if(nlocal_dets > 0) then
          ! Detector communication required. Take a reference to the old mesh.
@@ -1380,21 +1379,6 @@ module sam_integration
        
      end subroutine sam_add_field_tensor
      
-  function local_detectors()
-    integer :: local_detectors
-    
-    type(detector_type), pointer :: node
-    
-    local_detectors = 0
-    
-    node => default_stat%detector_list%firstnode
-    do while(associated(node))
-      if(node%local) local_detectors = local_detectors + 1
-      node => node%next
-    end do
-  
-  end function local_detectors
-     
   subroutine sam_transfer_detectors(old_mesh, new_positions)
     type(mesh_type), intent(in) :: old_mesh
     type(vector_field), intent(inout) :: new_positions
@@ -1470,9 +1454,9 @@ module sam_integration
     
     allocate(nsends(nprocs))
     nsends = 0
-    node => default_stat%detector_list%firstnode
+    node => default_stat%detector_list%first
     do while(associated(node))
-      if(node%local .and. node%element > 0) then
+      if(node%element > 0) then
         owner = minval(node_ownership(ele_nodes(old_mesh, node%element)))
         if(owner /= procno) then
           nsends(owner) = nsends(owner) + 1
@@ -1491,11 +1475,11 @@ module sam_integration
     
     allocate(data_index(nprocs))
     data_index = 0
-    node => default_stat%detector_list%firstnode
+    node => default_stat%detector_list%first
     do while(associated(node))
       next_node => node%next
     
-      if(node%local .and. node%element > 0) then
+      if(node%element > 0) then
         owner = minval(node_ownership(ele_nodes(old_mesh, node%element)))
         if(owner /= procno) then
           ! Pack this node for sending
@@ -1508,9 +1492,8 @@ module sam_integration
                     
           data_index(owner) = data_index(owner) + 1
                     
-          ! Remove this node from the detector list
-          call remove_det_from_current_det_list(default_stat%detector_list, node)
-          deallocate(node)
+          ! Delete this node from the detector list
+          call delete(node, default_stat%detector_list)
         end if
       end if      
     
@@ -1584,12 +1567,10 @@ module sam_integration
         node%position = rreceive_data(i)%ptr((j - 1) * rdata_size + 1:(j - 1) * rdata_size + new_positions%dim)
         
         ! Recoverable data, not communicated
-        node%name = default_stat%name_of_detector_in_read_order(node%id_number)
-        node%local = .true.
+        node%name = default_stat%detector_list%detector_names(node%id_number)
         allocate(node%local_coords(new_positions%dim + 1))
-        node%initial_owner = procno
         
-        call insert(default_stat%detector_list, node)
+        call insert(node, default_stat%detector_list)
       end do
       
       deallocate(ireceive_data(i)%ptr)
