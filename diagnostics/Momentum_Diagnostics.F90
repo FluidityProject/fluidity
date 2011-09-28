@@ -107,31 +107,35 @@ contains
 
     sediment_classes = get_nSediments()
 
-    allocate(sediment_concs(sediment_classes))
-
-    class_name=get_sediment_name(1)
-    sediment_concs(1)%ptr => extract_scalar_field(state,trim(class_name))
-
-    call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
-    call set(rhs, 1.0)
-       
-    ! get sediment concentrations and remove c/0.65 from rhs
-    do i=1, sediment_classes
-       class_name=get_sediment_name(i)
-       sediment_concs(i)%ptr => extract_scalar_field(state,trim(class_name))
-       call addto(rhs, sediment_concs(i)%ptr, scale=-(1.0/0.65))
-    end do
-    
-    ! raise rhs to power of -1.625
-    do i = 1, node_count(rhs)
-      call set(rhs, i, node_val(rhs, i)**(-1.625))
-    end do 
-
-    zero_conc_viscosity => extract_tensor_field(state, 'ZeroSedimentConcentrationViscosity')
-
-    call set(t_field, zero_conc_viscosity)
-    call scale(t_field, rhs)
-    ewrite_minmax(t_field)   
+    if (sediment_classes > 0) then
+        allocate(sediment_concs(sediment_classes))
+        
+        class_name=get_sediment_name(1)
+        sediment_concs(1)%ptr => extract_scalar_field(state,trim(class_name))
+        
+        call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
+        call set(rhs, 1.0)
+        
+        ! get sediment concentrations and remove c/0.65 from rhs
+        do i=1, sediment_classes
+           class_name=get_sediment_name(i)
+           sediment_concs(i)%ptr => extract_scalar_field(state,trim(class_name))
+           call addto(rhs, sediment_concs(i)%ptr, scale=-(1.0/0.65))
+        end do
+        
+        ! raise rhs to power of -1.625
+        do i = 1, node_count(rhs)
+           call set(rhs, i, node_val(rhs, i)**(-1.625))
+        end do
+        
+        zero_conc_viscosity => extract_tensor_field(state, 'ZeroSedimentConcentrationViscosity')
+        
+        call set(t_field, zero_conc_viscosity)
+        call scale(t_field, rhs)
+        ewrite_minmax(t_field) 
+    else
+        ewrite(1,*) 'No sediment in problem definition'
+    end if  
 
   end subroutine calculate_sediment_concentration_dependent_viscosity
   
