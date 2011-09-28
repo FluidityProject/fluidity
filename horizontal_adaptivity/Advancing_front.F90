@@ -33,12 +33,12 @@ module hadapt_advancing_front
     ! the maximum amount of faces you could possibly want to add is
     ! number of elements in the extruded mesh (ele_count(mesh))
     ! x number of faces per element (in the absence of face_count, use ele_loc)
-    integer, dimension(ele_count(mesh) * ele_loc(mesh, 1)) :: element_owners, boundary_ids
-    integer, dimension(ele_count(mesh) * ele_loc(mesh, 1) * mesh_dim(mesh)), target :: sndgln
-    integer, dimension(ele_count(h_mesh)) :: bottom_surface_ids, top_surface_ids
-    integer, dimension(node_count(mesh)) :: sorted
-    real, dimension(node_count(mesh)) :: heights
-    integer, dimension(node_count(h_mesh)) :: hanging_node, column_size, column_count
+    integer, dimension(:), allocatable :: element_owners, boundary_ids
+    integer, dimension(:), target, allocatable :: sndgln
+    integer, dimension(:), allocatable :: bottom_surface_ids, top_surface_ids
+    integer, dimension(:), allocatable :: sorted
+    real, dimension(:), allocatable :: heights
+    integer, dimension(:), allocatable :: hanging_node, column_size, column_count
     integer, dimension(mesh_dim(mesh) - 1) :: other_column_heads
     
     integer, dimension(:), allocatable :: region_ids
@@ -62,6 +62,18 @@ module hadapt_advancing_front
     
     real :: vol
     
+    ! allocate our arrays
+    allocate(element_owners(ele_count(mesh) * ele_loc(mesh, 1)))
+    allocate(boundary_ids(ele_count(mesh) * ele_loc(mesh, 1)))
+    allocate(sndgln(ele_count(mesh) * ele_loc(mesh, 1) * mesh_dim(mesh)))
+    allocate(bottom_surface_ids(ele_count(h_mesh)))
+    allocate(top_surface_ids(ele_count(h_mesh)))
+    allocate(sorted(node_count(mesh)))
+    allocate(heights(node_count(mesh)))
+    allocate(hanging_node(node_count(h_mesh)))
+    allocate(column_size(node_count(h_mesh)))
+    allocate(column_count(node_count(h_mesh)))
+
     dim = mesh_dim(mesh)
     
     nelist => extract_nelist(h_mesh)
@@ -391,6 +403,18 @@ module hadapt_advancing_front
       ! make sure we obey zoltan's ordering convention
       call reorder_element_numbering(mesh)
     end if
+
+    deallocate(element_owners)
+    deallocate(boundary_ids)
+    deallocate(sndgln)
+    deallocate(bottom_surface_ids)
+    deallocate(top_surface_ids)
+    deallocate(sorted)
+    deallocate(heights)
+    deallocate(hanging_node)
+    deallocate(column_size)
+    deallocate(column_count)
+
 
   end subroutine generate_layered_mesh
 
