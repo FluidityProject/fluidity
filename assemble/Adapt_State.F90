@@ -67,6 +67,7 @@ module adapt_state_module
   use fields_halos
   use data_structures
   use detector_data_types
+  use detector_parallel
   use diagnostic_variables
   use intersection_finder_module
   use diagnostic_variables
@@ -965,6 +966,8 @@ contains
     ! Zoltan with detectors stuff
     integer :: my_num_detectors, total_num_detectors_before_zoltan, total_num_detectors_after_zoltan
     integer :: ierr
+    type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
+    type(detector_type), pointer :: detector => null()
 
     real :: global_min_quality, quality_tolerance
 
@@ -1107,9 +1110,24 @@ contains
         end if
       end if
 
-      if(isparallel()) then
-        ! Update the detector element ownership data
-        call search_for_detectors(default_stat%detector_list, new_positions)
+      if (get_num_detector_lists()>0) then
+        ! Update detector element and local_coords for every detector in all lists
+        call get_registered_detector_lists(detector_list_array)
+        do j = 1, size(detector_list_array)
+           call search_for_detectors(detector_list_array(j)%ptr, new_positions)
+        end do
+
+#ifdef DDEBUG
+        ! Sanity check that all local detectors are owned
+        call get_registered_detector_lists(detector_list_array)
+        do j = 1, size(detector_list_array)
+           detector=>detector_list_array(j)%ptr%first
+           do k = 1, detector_list_array(j)%ptr%length
+              assert(detector%element>0)
+              detector=>detector%next
+           end do
+        end do
+#endif
       end if
 
       ! Then reallocate all fields
