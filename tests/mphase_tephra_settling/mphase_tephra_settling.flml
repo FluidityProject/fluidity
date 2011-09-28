@@ -587,9 +587,9 @@
         </solver>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="BulkDensity" rank="0">
+    <scalar_field name="ApparentDensity" rank="0">
       <diagnostic>
-        <algorithm name="bulk_density" material_phase_support="multiple"/>
+        <algorithm name="apparent_density" material_phase_support="multiple"/>
         <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>

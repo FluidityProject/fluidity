@@ -1638,16 +1638,13 @@ and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous
       </element>
     </element>
   </define>
-  <define name="bulk_density_algorithm">
+  <define name="apparent_density_algorithm">
     <element name="algorithm">
-      <a:documentation>Diagnostic algorithm used in multimaterial and multiphase simulations.
-Calculates the bulk density of the material_phase,
-i.e. Density multiplied by the Material/PhaseVolumeFraction field.
-
-If the material_phase has both a MaterialVolumeFraction and a PhaseVolumeFraction field
-then the PhaseVolumeFraction field is used.</a:documentation>
+      <a:documentation>Diagnostic algorithm used in multiphase simulations.
+Calculates the apparent density of the material_phase,
+i.e. Density multiplied by the PhaseVolumeFraction field.</a:documentation>
       <attribute name="name">
-        <value>bulk_density</value>
+        <value>apparent_density</value>
       </attribute>
       <attribute name="material_phase_support">
         <value>multiple</value>
@@ -1868,7 +1865,7 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="particle_reynolds_number_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
-    <ref name="bulk_density_algorithm"/>
+    <ref name="apparent_density_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="node_halo_diagnostic_algorithm"/>

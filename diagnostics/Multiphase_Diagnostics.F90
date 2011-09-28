@@ -42,7 +42,7 @@ module multiphase_diagnostics
    
    private
 
-   public :: calculate_particle_reynolds_number, calculate_bulk_density
+   public :: calculate_particle_reynolds_number, calculate_apparent_density
   
    contains
 
@@ -156,13 +156,13 @@ module multiphase_diagnostics
 
       end subroutine calculate_particle_reynolds_number
 
-      subroutine calculate_bulk_density(states, state_index, s_field)
-         !!< Calculates the bulk density (density * vfrac)
+      subroutine calculate_apparent_density(states, state_index, s_field)
+         !!< Calculates the apparent density (density * vfrac)
          !!< for the material_phase in states[state_index].
 
          type(state_type), dimension(:), intent(inout) :: states
          integer, intent(in) :: state_index
-         type(scalar_field), intent(inout) :: s_field ! Bulk density field
+         type(scalar_field), intent(inout) :: s_field ! Apparent density field
 
          !! Local variables
          integer :: i, stat
@@ -179,58 +179,53 @@ module multiphase_diagnostics
          real, dimension(mesh_dim(s_field), mesh_dim(s_field), ele_ngi(s_field, 1)) :: J
 
          ! Field values at each quadrature point.
-         real, dimension(ele_ngi(s_field, 1)) :: bulk_density_gi
+         real, dimension(ele_ngi(s_field, 1)) :: apparent_density_gi
 
          ! Current element global node numbers.
-         integer, dimension(:), pointer :: bulk_density_nodes
-         ! Current bulk_density element shape.
-         type(element_type), pointer :: bulk_density_shape
+         integer, dimension(:), pointer :: apparent_density_nodes
+         ! Current apparent_density element shape.
+         type(element_type), pointer :: apparent_density_shape
 
-         ! Local bulk_density matrix for the current element.
-         real, dimension(ele_loc(s_field, 1),ele_loc(s_field, 1)) :: bulk_density_mat
+         ! Local apparent_density matrix for the current element.
+         real, dimension(ele_loc(s_field, 1),ele_loc(s_field, 1)) :: apparent_density_mat
 
 
-         ewrite(1,*) 'Entering calculate_bulk_density'
+         ewrite(1,*) 'Entering calculate_apparent_density'
 
-         ! Zero bulk density field
+         ! Zero apparent density field
          call zero(s_field)
 
          x => extract_vector_field(states(state_index), "Coordinate")
          density => extract_scalar_field(states(state_index), "Density")
          vfrac => extract_scalar_field(states(state_index), "PhaseVolumeFraction", stat)
          if(stat /= 0) then
-            ! PhaseVolumeFraction field not found, so try searching for a 
-            ! MaterialVolumeFraction instead.
-            vfrac => extract_scalar_field(states(state_index), "MaterialVolumeFraction", stat)
-            if(stat /= 0) then
-               ! Volume fraction field not present, so exit with an error.
-               FLExit("A PhaseVolumeFraction or MaterialVolumeFraction field is required to compute the bulk density.")
-            end if
+            ! PhaseVolumeFraction field not present, so exit with an error.
+            FLExit("A PhaseVolumeFraction field is required to compute the apparent density.")
          end if
 
          ! Loop through and integrate over each element
          do ele = 1, element_count(s_field)
 
-            bulk_density_nodes => ele_nodes(s_field, ele)
-            bulk_density_shape => ele_shape(s_field, ele)
+            apparent_density_nodes => ele_nodes(s_field, ele)
+            apparent_density_shape => ele_shape(s_field, ele)
 
             ! Get detwei
             call transform_to_physical(x, ele, detwei = detwei)
 
-            ! Calculate the bulk density at each quadrature point
-            bulk_density_gi = ele_val_at_quad(density, ele)*ele_val_at_quad(vfrac, ele)
+            ! Calculate the apparent density at each quadrature point
+            apparent_density_gi = ele_val_at_quad(density, ele)*ele_val_at_quad(vfrac, ele)
 
-            ! Invert the mass matrix to get the bulk density value at each node
-            bulk_density_mat = matmul(inverse(shape_shape(bulk_density_shape, bulk_density_shape, detwei)), &
-                  shape_shape(bulk_density_shape, bulk_density_shape, detwei*bulk_density_gi))
+            ! Invert the mass matrix to get the apparent density value at each node
+            apparent_density_mat = matmul(inverse(shape_shape(apparent_density_shape, apparent_density_shape, detwei)), &
+                  shape_shape(apparent_density_shape, apparent_density_shape, detwei*apparent_density_gi))
 
             ! Assign the field values to the nodes
-            s_field%val(bulk_density_nodes) = max(s_field%val(bulk_density_nodes), sum(bulk_density_mat,2))
+            s_field%val(apparent_density_nodes) = max(s_field%val(apparent_density_nodes), sum(apparent_density_mat,2))
 
          end do
 
-         ewrite(1,*) 'Exiting calculate_bulk_density'
+         ewrite(1,*) 'Exiting calculate_apparent_density'
 
-      end subroutine calculate_bulk_density
+      end subroutine calculate_apparent_density
 
 end module multiphase_diagnostics

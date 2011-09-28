@@ -27,10 +27,10 @@ s = stat_parser("mphase_tephra_settling.stat")
 tephra_velocity_max=s["Tephra"]["Velocity%magnitude"]["max"]
     </variable>
     
-    <variable name="bulk_density_max" language="python">
+    <variable name="apparent_density_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_tephra_settling.stat")
-bulk_density_max=s["Tephra"]["BulkDensity"]["max"]
+apparent_density_max=s["Tephra"]["ApparentDensity"]["max"]
     </variable>
     
     <variable name="particle_reynolds_number_max" language="python">
@@ -66,8 +66,8 @@ for t in range(0,len(time)):
       break
     </test>
     
-    <test name="Maximum BulkDensity is between 0.25 and 0.30 at the final timestep" language="python">
-assert abs(bulk_density_max[-1] - 0.275) &lt; 0.025
+    <test name="Maximum ApparentDensity is between 0.25 and 0.30 at the final timestep" language="python">
+assert abs(apparent_density_max[-1] - 0.275) &lt; 0.025
     </test>
     
     <test name="Maximum ParticleReynoldsNumber is around 0.08 at the final timestep" language="python">

@@ -1203,16 +1203,13 @@ particle_reynolds_number_algorithm =
       }
    )
 
-bulk_density_algorithm = 
+apparent_density_algorithm = 
    (
-      ## Diagnostic algorithm used in multimaterial and multiphase simulations.
-      ## Calculates the bulk density of the material_phase,
-      ## i.e. Density multiplied by the Material/PhaseVolumeFraction field.
-      ##
-      ## If the material_phase has both a MaterialVolumeFraction and a PhaseVolumeFraction field
-      ## then the PhaseVolumeFraction field is used.
+      ## Diagnostic algorithm used in multiphase simulations.
+      ## Calculates the apparent density of the material_phase,
+      ## i.e. Density multiplied by the PhaseVolumeFraction field.
       element algorithm {
-         attribute name { "bulk_density" },
+         attribute name { "apparent_density" },
          attribute material_phase_support { "multiple" }
       }
    )
@@ -1371,7 +1368,7 @@ scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
 scalar_diagnostic_algorithms |= projection_scalar_potential_algorithm
 scalar_diagnostic_algorithms |= particle_reynolds_number_algorithm
-scalar_diagnostic_algorithms |= bulk_density_algorithm
+scalar_diagnostic_algorithms |= apparent_density_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
