@@ -966,17 +966,29 @@ contains
     integer :: facet
     integer, dimension(:) intent(in) :: vertices
 
-    integer, dimension(size(shape%entity2dofs(shape%dimension-1,facet)&
-         &%dofs)) :: sorted_facet
-    
-    real, dimension(size(vertices),shape%dim) :: vertex_coords
+    integer, dimension(size(shape%facet2dofs(facet)%dofs)) :: sorted_facet
 
-    assert(sorted(vertices)==entity_vertices(shape%cell,[shape%dimension-1,facet])
+    ! Coordinates of facet vertices in element local coordinates.
+    real, dimension(size(vertices),shape%dim) :: vertex_coords
+    ! Matrix mapping from element local coordinates to facet local coordinates.
+    real, dimension(shape%dim-1, shape%dim) :: A
+    ! Local coordinates of facet dofs in facet space.
+    real, dimension(size(shape%facet2dofs(facet)%dofs),shape%dim-1) :: dof_coords     
+
+    integer :: i
+
+    assert(sorted(vertices)==entity_vertices(shape%cell,[shape%dim-1,facet]))
     
     vertex_coords=shape%cell%vertex_coords(vertices,:)
     
-    
-    
+    do i=1, shape%dim-1
+       A(i,:)=vertex_coords(i,:)-vertex_coords(1,:)
+    end do
+
+    do i=1, size(sorted_facet)
+       dof_coords(i,:)=matmul(A, local_coords(sha
+    end do
+
   end function sorted_facet
 
 #include "Reference_count_element_type.F90"
