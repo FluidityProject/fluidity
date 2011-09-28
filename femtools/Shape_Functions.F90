@@ -206,10 +206,8 @@ contains
                      =lagrange_polynomial(counts(j), counts(j), 1.0/degree)
              case(FAMILY_CUBE)
 
-                ! note that local coordinates run from -1.0 to 1.0
                 element%spoly(j,i)&
-                     =lagrange_polynomial(counts(j), degree, 2.0/degree, &
-                     origin=-1.0)
+                     =lagrange_polynomial(counts(j), degree, 1.0/degree)
 
              end select
 
@@ -333,8 +331,9 @@ contains
       ! Trace elements have all their dofs associated with the facets.
       if (element%type/=ELEMENT_DISCONTINUOUS_LAGRANGIAN &
            .and. element%type/=ELEMENT_TRACE) then
+         
          ! Vertices
-         if (cell%entity_counts(0)>0) then
+         if (cell%entity_counts(0)>0.and.numbering%nodes_per(0)>0) then
             allocate(dofs(cell%entity_counts(0)))
             dofs=local_vertices(numbering)
             do i=1,size(dofs)
@@ -345,21 +344,21 @@ contains
             deallocate(dofs)
          end if
 
-         if (cell%dimension>1) then
+         if (cell%dimension>1.and.numbering%nodes_per(1)>0) then
             ! Edges
-            dof_len=edge_num_length(numbering, interior=.true.)
+            dof_len=numbering%nodes_per(1)
             do i=1,cell%entity_counts(1)
                vertices=>entity_vertices(cell,[1,i])
                allocate(element%entity2dofs(1,i)%dofs(dof_len))
                element%entity2dofs(1,i)%dofs=&
-                    edge_local_num(vertices, numbering, interior=.true.)
+                    edge_local_num(vertices, numbering)
                ! Sanity check dofs uniquely belong to one entity.
                assert(all(cell_mask(element%entity2dofs(1,i)%dofs)))
                cell_mask(element%entity2dofs(1,i)%dofs)=.false.
             end do
          end if
 
-         if (cell%dimension>2) then
+         if (cell%dimension>2.and.numbering%nodes_per(1)>0) then
             ! Faces
             dof_len=face_num_length(numbering, interior=.true.)
             do i=1,cell%entity_counts(2)
@@ -376,13 +375,12 @@ contains
 
       ! Facets for trace elements.
       if (element%type==ELEMENT_TRACE) then
-         dof_len=boundary_num_length(numbering, interior=.false.)
+         dof_len=facet_num_length(numbering, interior=.false.)
          facet_dim=cell%dimension-1
          do i=1,facet_count(cell)
-            vertices=>entity_vertices(cell,[facet_dim,i])
             allocate(element%entity2dofs(facet_dim,i)%dofs(dof_len))
             element%entity2dofs(facet_dim,i)%dofs=&
-                 boundary_local_num(vertices, numbering, interior=.false.)
+                 facet_numbering(numbering, i)
             ! Sanity check dofs uniquely belong to one entity.
             assert(all(cell_mask(element%entity2dofs(facet_dim,i)%dofs)))
             cell_mask(element%entity2dofs(facet_dim,i)%dofs)=.false.            
@@ -427,10 +425,9 @@ contains
       allocate(element%facet2dofs(facet_count(cell)))
       do i=1,facet_count(cell)
          allocate(element%facet2dofs(i)%dofs(&
-              boundary_num_length(numbering, interior=.false.)))
+              facet_num_length(numbering, interior=.false.)))
          element%facet2dofs(i)%dofs=&
-              boundary_local_num(entity_vertices(cell,[facet_dim,i]),&
-              & numbering)
+              facet_numbering(numbering, i)
       end do
 
     end subroutine create_facet_dofs

@@ -204,7 +204,7 @@ contains
     real :: cube_monic
     real, dimension(:), intent(in) :: coords
 
-    cube_monic=((1-coords(1))/2.0)**power
+    cube_monic=(1-coords(1))**power
 
   end function cube_monic
 

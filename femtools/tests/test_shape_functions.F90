@@ -38,7 +38,7 @@ subroutine test_shape_functions
   logical :: fail
   
   ! Rounding error tolerance.
-  real, parameter :: eps=1E-12
+  real, parameter :: eps=1E-11
 
   ! Test for simplices.
   do dim=1,3
@@ -123,6 +123,9 @@ subroutine test_shape_functions
               write(error_message,'(e15.7)') &
                    shape_integrate(cube_monic, element)&
                    &-cube_answer(power, dim)
+              write(error_message,'(2e15.7)') &
+                   shape_integrate(cube_monic, element),&
+                   &cube_answer(power, dim)
               fail=.true.
            else
               error_message=""
@@ -182,7 +185,7 @@ contains
     real :: cube_answer
     integer, intent(in) :: power, dim
 
-    cube_answer=(2.0**dim)/(power+1)
+    cube_answer=1./(power+1)
 
   end function cube_answer
 
@@ -195,7 +198,7 @@ contains
     if (power==0) then
        cube_danswer=0
     else
-       cube_danswer=-1*2**(dim-1)
+       cube_danswer=-1
     end if
 
   end function cube_danswer

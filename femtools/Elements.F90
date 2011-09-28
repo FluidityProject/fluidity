@@ -123,8 +123,8 @@ module elements
      module procedure element_local_vertices
   end interface
 
-  interface boundary_numbering
-     module procedure element_boundary_numbering
+  interface facet_numbering
+     module procedure element_facet_numbering
   end interface
 
   interface operator(==)
@@ -436,18 +436,18 @@ contains
     
   end function element_local_vertices
 
-  function element_boundary_numbering(element, boundary)
-    !!< A wrapper function which allows boundary_numbering to be called on
+  function element_facet_numbering(element, facet)
+    !!< A wrapper function which allows facet_numbering to be called on
     !!< an element instead of on an element_numbering.
-    integer, intent(in) :: boundary
+    integer, intent(in) :: facet
     type(element_type), intent(in) :: element
-    integer, dimension(boundary_num_length(element%numbering, .false.)) ::&
-         & element_boundary_numbering 
+    integer, dimension(facet_num_length(element%numbering, .false.)) ::&
+         & element_facet_numbering 
     
-    element_boundary_numbering=boundary_numbering(element%numbering,&
-         & boundary)
+    element_facet_numbering=facet_numbering(element%numbering,&
+         & facet)
 
-  end function element_boundary_numbering
+  end function element_facet_numbering
 
   pure function element_equal(element1,element2)
     !!< Return true if the two elements are equivalent.
@@ -957,6 +957,27 @@ contains
     assert(count==4)
     !! dimension n_constraints x loc x dim
   end subroutine make_constraints_rt0_square
+
+  function sorted_facet(shape, facet, vertices)
+    ! Return the degrees of freedom on facet of shape reoriented according
+    ! to the order of vertices, which is the ordered set of vertices on
+    ! the facet.
+    type(element_type), intent(in) :: shape
+    integer :: facet
+    integer, dimension(:) intent(in) :: vertices
+
+    integer, dimension(size(shape%entity2dofs(shape%dimension-1,facet)&
+         &%dofs)) :: sorted_facet
+    
+    real, dimension(size(vertices),shape%dim) :: vertex_coords
+
+    assert(sorted(vertices)==entity_vertices(shape%cell,[shape%dimension-1,facet])
+    
+    vertex_coords=shape%cell%vertex_coords(vertices,:)
+    
+    
+    
+  end function sorted_facet
 
 #include "Reference_count_element_type.F90"
 

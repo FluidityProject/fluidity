@@ -2303,16 +2303,11 @@ implicit none
     type(mesh_type) :: new_mesh
     type(element_type) :: shape, old_shape
     character(len=*), intent(in) :: name
-    type(mesh_type) :: tmp_mesh
 
     old_shape = in_mesh%shape
 
-    ! We don't want the piecewise constant field to have faces.
-    tmp_mesh = in_mesh
-!    tmp_mesh%faces=>null()
-    
     shape = make_element_shape(vertices=old_shape%ndof, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
-    new_mesh = make_mesh(model=tmp_mesh, shape=shape, continuity=-1, name=name)
+    new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1, name=name)
     call deallocate(shape)
     
   end function piecewise_constant_mesh

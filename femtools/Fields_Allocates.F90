@@ -1110,7 +1110,7 @@ contains
     type(quadrature_type) :: quad_face
     integer, dimension(:), pointer :: faces, neigh, model_ele_glno, model_ele_glno2
     integer, dimension(1:mesh%shape%cell%entity_counts(0)) :: vertices, &
-         ele_boundary, ele_boundary2 ! these last two are actually smaller    
+         ele_facet, ele_facet2 ! these last two are actually smaller    
     integer :: face_count, ele, j, snloc, m, n, p, face2
 
     if (present(stat)) then
@@ -1140,8 +1140,8 @@ contains
        ! create mesh%faces%face_list an integer csr matrix storing the
        !     face number between each (directed) pair of adjacent elements
        !     note that this is an asymmetric matrix A
-       !     where A_ij gives the boundary of element i facing element j
-       !       and A_ji the boundary of element j facing element i
+       !     where A_ij gives the facet of element i facing element j
+       !       and A_ji the facet of element j facing element i
        !       (i.e. there are 2 opposite faces between two elements)
        ! and mesh%faces%face_element_list  storing the element adjacent to
        !     each face
@@ -1291,8 +1291,8 @@ contains
                 do n=1,size(vertices)
                    if (model_ele_glno(vertices(m))==model_ele_glno2(vertices(n))) then
                       p=p+1
-                      ele_boundary(p)=m
-                      ele_boundary2(p)=n
+                      ele_facet(p)=m
+                      ele_facet2(p)=n
                    end if
                 end do
              end do
@@ -1302,19 +1302,21 @@ contains
              ! (this might break for the case where elements share more than one
              ! face, but in that case the next few lines are wrong as well)
 
+FLAbort("replace with facet sorting")
              mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  boundary_local_num(ele_boundary(1:p), mesh%shape%numbering)
+                  sorted_facet(ele_facet(1:p), mesh%shape, j)
+!                  facet_local_num(ele_facet(1:p), mesh%shape%numbering)
 
              face2=ival(mesh%faces%face_list, neigh(j), ele)
 
-             mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
-                  boundary_local_num(ele_boundary2(1:p), mesh%shape%numbering)
+!             mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
+!                  facet_local_num(ele_facet2(1:p), mesh%shape%numbering)
 
           else if (neigh(j)<0) then
 
              ! boundary face:
              mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  & boundary_numbering(ele_shape(mesh, ele), j)
+                  & facet_numbering(ele_shape(mesh, ele), j)
                   
              
           end if
@@ -1438,15 +1440,15 @@ contains
         faces=>row_ival_ptr(mesh%faces%face_list, ele)
 
         ! find the matching boundary of this element
-        do j=1, mesh%shape%numbering%boundaries
+        do j=1, mesh%shape%numbering%facets
            if (neigh(j)<=0 .or. internal_face) then
               if (SetContains(snodes, mesh%ndglno( (ele-1)*nloc+ &
                    facet_dofs(mesh%shape, j)))) exit
            end if
         end do
           
-        if (j>mesh%shape%numbering%boundaries) then
-          ! not found a matching boundary, something's wrong
+        if (j>mesh%shape%numbering%facets) then
+          ! not found a matching facet, something's wrong
           FLAbort("Something wrong with the mesh, sndgln, or mesh%nelist")
           
         else if (neigh(j)/=0 .and. .not. internal_face) then
@@ -1460,7 +1462,7 @@ contains
         ! register the surface element in face_list
         faces(j)=sele
         if (.not. internal_face) then
-          neigh(j)=-j ! negative number indicates exterior boundary
+          neigh(j)=-j ! negative number indicates exterior facet
         else
           ! if all went well neigh(j) should have the right value:
           assert( neigh(j)==minval(common_elements, mask=common_elements/=ele) )
@@ -1493,7 +1495,7 @@ contains
               
               bdry_count=bdry_count+1
               faces(j)=bdry_count
-              neigh(j)=-j ! negative number indicates exterior boundary
+              neigh(j)=-j ! negative number indicates exterior facet
               
               surface_elements_added=.true.
               
@@ -1668,17 +1670,17 @@ contains
           ele1_nodes => ele_nodes(mesh, ele1)
           ele2_nodes => ele_nodes(mesh, ele2)
           if (SetContains( &
-             ele1_nodes(boundary_numbering(ele_shape(mesh, ele1), lface1)), &
-             ele2_nodes(boundary_numbering(ele_shape(mesh, ele2), lface2)))) then
+             ele1_nodes(facet_numbering(ele_shape(mesh, ele1), lface1)), &
+             ele2_nodes(facet_numbering(ele_shape(mesh, ele2), lface2)))) then
              ! apparently these faces are still connected
              ! (not currently supported)
              if (present(stat)) then
                stat = 1
              else
                ewrite(-1,*) "Face: ", face, "; element: ", ele1
-               ewrite(-1,*) "face_global_nodes(mesh, face): ", ele1_nodes(boundary_numbering(ele_shape(mesh, ele1), lface1))
+               ewrite(-1,*) "face_global_nodes(mesh, face): ", ele1_nodes(facet_numbering(ele_shape(mesh, ele1), lface1))
                ewrite(-1,*) "Opposing face: ", face2, "; element: ", ele2
-               ewrite(-1,*) "face_global_nodes(mesh, face2): ", ele2_nodes(boundary_numbering(ele_shape(mesh, ele2), lface2))
+               ewrite(-1,*) "face_global_nodes(mesh, face2): ", ele2_nodes(facet_numbering(ele_shape(mesh, ele2), lface2))
                FLAbort("Left-over internal faces in removing periodic bcs.")
              end if
          end if

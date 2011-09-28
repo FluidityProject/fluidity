@@ -728,8 +728,8 @@ contains
       ! Interval elements always have degree+1 nodes.
       integer, dimension(new_shape%degree+1) :: edge_numbering
 
-      do edge=1,new_shape%numbering%boundaries
-         edge_numbering=boundary_numbering(new_shape, edge)
+      do edge=1,new_shape%numbering%facets
+         edge_numbering=facet_numbering(new_shape, edge)
          
          edge_owner=min(new_node_owner(edge_numbering(1)), &
               new_node_owner(edge_numbering(size(edge_numbering))))

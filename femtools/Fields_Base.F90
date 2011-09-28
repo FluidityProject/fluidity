@@ -1194,7 +1194,7 @@ contains
     
     type(element_type), pointer :: shape
 
-    face_count=mesh%shape%numbering%boundaries
+    face_count=mesh%shape%numbering%facets
 
   end function ele_face_count_mesh
 
@@ -1551,7 +1551,7 @@ contains
     integer, intent(in) :: ele_number
     
     if (mesh%continuity<0) then
-       loc=mesh%shape%ndof + mesh%shape%numbering%boundaries &
+       loc=mesh%shape%ndof + mesh%shape%numbering%facets &
             * mesh%faces%shape%ndof
     else
        ! For a continuous mesh the face nodes are among the element nodes.

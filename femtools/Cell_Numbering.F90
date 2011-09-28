@@ -71,6 +71,8 @@ module cell_numbering
      type(integer_hash_table) :: vertices2entity
      ! Map topological entities to tuples of vertices.
      type(vertex_list), dimension(:,:), allocatable :: entities
+     ! Local coordinates of vertices
+     real, dimension(:,:), allocatable :: vertex_coords
   end type cell_type
 
   type(cell_type), dimension(0:5), target, save :: cells
@@ -171,6 +173,7 @@ contains
     cell%entity_counts=[1,0,0,0]
     
     allocate(cell%entities(0:cell%dimension,maxval(cell%entity_counts)))
+    allocate(cell%vertex_coords(cell%entity_counts(0),cell%dimension))
     call allocate(cell%vertices2entity)
 
     ! Vertex
@@ -189,6 +192,7 @@ contains
     cell%entity_counts=[2,1,0,0]
     
     allocate(cell%entities(0:cell%dimension,maxval(cell%entity_counts)))
+    allocate(cell%vertex_coords(cell%entity_counts(0),cell%dimension))
     call allocate(cell%vertices2entity)
 
     ! Vertices
@@ -198,6 +202,9 @@ contains
     call map_vertices_entity(cell, [2], [0,1])
     ! Edge
     call map_vertices_entity(cell, [1,2], [1,1])
+
+    cell%vertex_coords(1,:)=[1]
+    cell%vertex_coords(2,:)=[0]
 
   end subroutine number_cell_interval
 
@@ -212,6 +219,7 @@ contains
     cell%entity_counts=[3,3,1,0]
     
     allocate(cell%entities(0:cell%dimension,maxval(cell%entity_counts)))
+    allocate(cell%vertex_coords(cell%entity_counts(0),cell%dimension))
     call allocate(cell%vertices2entity)
 
     ! Vertices
@@ -224,6 +232,10 @@ contains
     call map_vertices_entity(cell, [2,3], [1,1])
     ! Face
     call map_vertices_entity(cell, [1,2,3], [2,1])
+
+    cell%vertex_coords(1,:)=[1,0]
+    cell%vertex_coords(2,:)=[0,1]
+    cell%vertex_coords(3,:)=[0,0]
 
   end subroutine number_cell_triangle
 
@@ -238,6 +250,7 @@ contains
     cell%entity_counts=[4,4,1,0]
     
     allocate(cell%entities(0:cell%dimension,maxval(cell%entity_counts)))
+    allocate(cell%vertex_coords(cell%entity_counts(0),cell%dimension))
     call allocate(cell%vertices2entity)
 
     ! Vertices
@@ -247,11 +260,16 @@ contains
     call map_vertices_entity(cell, [4], [0,4])
     ! Edges
     call map_vertices_entity(cell, [3,4], [1,1])
-    call map_vertices_entity(cell, [2,3], [1,2])
-    call map_vertices_entity(cell, [1,4], [1,3])
+    call map_vertices_entity(cell, [2,4], [1,2])
+    call map_vertices_entity(cell, [1,3], [1,3])
     call map_vertices_entity(cell, [1,2], [1,4])
     ! Face
     call map_vertices_entity(cell, [1,2,3,4], [2,1])
+
+    cell%vertex_coords(1,:)=[0,0]
+    cell%vertex_coords(2,:)=[1,0]
+    cell%vertex_coords(3,:)=[0,1]
+    cell%vertex_coords(4,:)=[1,1]
 
   end subroutine number_cell_quad
 
@@ -266,6 +284,7 @@ contains
     cell%entity_counts=[4,6,4,1]
     
     allocate(cell%entities(0:cell%dimension,maxval(cell%entity_counts)))
+    allocate(cell%vertex_coords(cell%entity_counts(0),cell%dimension))
     call allocate(cell%vertices2entity)
 
     ! Vertices
@@ -281,12 +300,17 @@ contains
     call map_vertices_entity(cell, [1,3], [1,5])
     call map_vertices_entity(cell, [1,2], [1,6])
     ! Faces
-    call map_vertices_entity(cell, [1,2,3], [2,4])
-    call map_vertices_entity(cell, [1,2,4], [2,3])
-    call map_vertices_entity(cell, [1,3,4], [2,2])
     call map_vertices_entity(cell, [2,3,4], [2,1])
+    call map_vertices_entity(cell, [1,3,4], [2,2])
+    call map_vertices_entity(cell, [1,2,4], [2,3])
+    call map_vertices_entity(cell, [1,2,3], [2,4])
     ! Cell
     call map_vertices_entity(cell, [1,2,3,4], [3,1])
+
+    cell%vertex_coords(1,:)=[1,0,0]
+    cell%vertex_coords(2,:)=[0,1,0]
+    cell%vertex_coords(3,:)=[0,0,1]
+    cell%vertex_coords(4,:)=[0,0,0]
 
   end subroutine number_cell_tet
 
@@ -301,6 +325,7 @@ contains
     cell%entity_counts=[8,12,6,1]
     
     allocate(cell%entities(0:cell%dimension,maxval(cell%entity_counts)))
+    allocate(cell%vertex_coords(cell%entity_counts(0),cell%dimension))
     call allocate(cell%vertices2entity)
 
     ! Vertices
@@ -314,26 +339,35 @@ contains
     call map_vertices_entity(cell, [8], [0,8])
     ! Edges
     call map_vertices_entity(cell, [7,8], [1,1])
-    call map_vertices_entity(cell, [6,7], [1,2])
-    call map_vertices_entity(cell, [5,8], [1,3])
+    call map_vertices_entity(cell, [6,8], [1,2])
+    call map_vertices_entity(cell, [5,7], [1,3])
     call map_vertices_entity(cell, [5,6], [1,4])
     call map_vertices_entity(cell, [4,8], [1,5])
     call map_vertices_entity(cell, [3,7], [1,6])
     call map_vertices_entity(cell, [3,4], [1,7])
     call map_vertices_entity(cell, [2,6], [1,8])
-    call map_vertices_entity(cell, [2,3], [1,9])
+    call map_vertices_entity(cell, [2,4], [1,9])
     call map_vertices_entity(cell, [1,5], [1,10])
-    call map_vertices_entity(cell, [1,4], [1,11])
+    call map_vertices_entity(cell, [1,3], [1,11])
     call map_vertices_entity(cell, [1,2], [1,12])
     ! Faces
     call map_vertices_entity(cell, [5,6,7,8], [2,1])
     call map_vertices_entity(cell, [3,4,7,8], [2,2])
-    call map_vertices_entity(cell, [2,3,6,7], [2,3])
-    call map_vertices_entity(cell, [1,4,5,8], [2,4])
+    call map_vertices_entity(cell, [2,4,6,8], [2,3])
+    call map_vertices_entity(cell, [1,3,5,7], [2,4])
     call map_vertices_entity(cell, [1,2,5,6], [2,5])
     call map_vertices_entity(cell, [1,2,3,4], [2,6])
     ! Cell
     call map_vertices_entity(cell, [1,2,3,4,5,6,7,8], [3,1])
+
+    cell%vertex_coords(1,:)=[0,0,0]
+    cell%vertex_coords(2,:)=[1,0,0]
+    cell%vertex_coords(3,:)=[0,1,0]
+    cell%vertex_coords(4,:)=[1,1,0]
+    cell%vertex_coords(5,:)=[0,0,1]
+    cell%vertex_coords(6,:)=[1,0,1]
+    cell%vertex_coords(7,:)=[0,1,1]
+    cell%vertex_coords(8,:)=[1,1,1]
 
   end subroutine number_cell_hex
 
