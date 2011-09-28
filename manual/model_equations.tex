@@ -729,13 +729,13 @@ Multi-phase flows are defined by \cite{prosperettiEtAl2007} to be flows in which
 
 Further to the above definition, each phase is classed as either \textit{continuous} or \textit{dispersed}, where a continuous phase is a connected liquid or gas substance in which dispersed phases (comprising a finite number of solid particles, liquid droplets and/or gas bubbles) may be immersed \citep{croweEtAl1998}.
 
-To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, a common pressure field $p$ so that only one continuity equation is used. Thus, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}) are:
+To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, and a common pressure field $p$ so that only one continuity equation is used. Thus, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}, written in non-conservative form) are:
 \begin{equation}
-\sum_{i=1}^N\nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\right) = 0,
+\sum_{i=1}^N\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) = 0,
 \end{equation}
 \begin{equation}
-\frac{\partial}{\partial t}\left(\alpha_i\rho_i\mathbf{u}_i\right) +
-\nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\mathbf{u}_i\right) =
+\alpha_i\rho_i\frac{\partial \mathbf{u}_i}{\partial t} +
+\alpha_i\rho_i\mathbf{u}_i\cdot\left(\nabla\cdot\mathbf{u}_i\right) =
 -\alpha_i\nabla p + \alpha_i\rho_i\mathbf{g} +
 \nabla\cdot\left(\alpha_i\tautens_i\right) +
 \mathbf{F}_i,
