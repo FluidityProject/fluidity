@@ -76,7 +76,7 @@ contains
        call insert(state, original_bottomdist, name="OriginalDistanceToBottom")
        call deallocate(original_bottomdist)
 
-       ! We need the OriginalDistanceToBottom on the pressure mesh
+       ! We also cache  the OriginalDistanceToBottom on the pressure mesh
        ewrite(2, *), "Inserting OriginalDistanceToBottomPressureMesh field into state."   
        p_mesh => extract_pressure_mesh(state)
        call allocate(original_bottomdist_remap, p_mesh, "OriginalDistanceToBottomPressureMesh")
@@ -921,7 +921,7 @@ contains
     
      integer, dimension(:), pointer:: surface_element_list
      type(vector_field), pointer:: x, u, vertical_normal
-     type(scalar_field), pointer:: p, topdis, original_bottomdist_remap
+     type(scalar_field), pointer:: p, p_capped, topdis, original_bottomdist_remap
      type(scalar_field) :: min_level
      character(len=FIELD_NAME_LEN):: bctype
      real:: g, rho0, d0
@@ -951,19 +951,20 @@ contains
        vertical_normal => extract_vector_field(state, "GravityDirection")
     
  
-       ! Do the wetting and drying corrections: In dry regions, the free surface is not coupled to 
-       ! the pressure but is fixed to -OriginalCoordinate+d0
+       ! Do the wetting and drying corrections: 
+       ! In dry regions, the free surface is not coupled to the pressure but is fixed to -OriginalCoordinate+d0.
+       ! Hence, we create temporary pressure that is capped to d0-bottom_depth on the surface before extruding it downwards.
        if (have_wd) then
           call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+          ! We are heading for p_capped = min(p, g*rho0*(d0-bottom_depth)) on the surface
           original_bottomdist_remap=>extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh")
-          ! We need the OriginalDistanceToBottom on the pressure mesh
-          call allocate(min_level, original_bottomdist_remap%mesh, "OriginalDistanceToBottomOnPressureMesh")
-          call addto(min_level, -d0)
-          call scale(min_level, -g*rho0)
-          call set(free_surface, p)
-          call bound(free_surface, lower_bound=min_level)
-          call deallocate(min_level)
-          p=>free_surface
+          call allocate(p_capped, original_bottomdist_remap%mesh, "OriginalDistanceToBottomOnPressureMesh")
+          call addto(p_capped, -d0)
+          call scale(p_capped, -g*rho0)
+          call set(p_capped, p)
+          call bound(p_capped, lower_bound=p_capped)
+          call deallocate(p_capped)
+          p=>p_capped
        end if      
 
        ! vertically extrapolate pressure values at the free surface downwards
