@@ -921,8 +921,9 @@ contains
     
      integer, dimension(:), pointer:: surface_element_list
      type(vector_field), pointer:: x, u, vertical_normal
-     type(scalar_field), pointer:: p, p_capped, topdis, original_bottomdist_remap
-     type(scalar_field) :: min_level
+     type(scalar_field), pointer:: p, topdis, original_bottomdist_remap
+     type(scalar_field) :: p_min
+     type(scalar_field), target :: p_capped
      character(len=FIELD_NAME_LEN):: bctype
      real:: g, rho0, d0
      integer:: i, j, sele, stat
@@ -956,14 +957,15 @@ contains
        ! Hence, we create temporary pressure that is capped to d0-bottom_depth on the surface before extruding it downwards.
        if (have_wd) then
           call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-          ! We are heading for p_capped = min(p, g*rho0*(d0-bottom_depth)) on the surface
+          ! We are looking for p_capped = min(p, g*rho0*(d0-bottom_depth)) on the surface
           original_bottomdist_remap=>extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh")
-          call allocate(p_capped, original_bottomdist_remap%mesh, "OriginalDistanceToBottomOnPressureMesh")
-          call addto(p_capped, -d0)
-          call scale(p_capped, -g*rho0)
+          call allocate(p_min, original_bottomdist_remap%mesh, "MinimumSurfacePressure")
+          call allocate(p_capped, free_surface%mesh, "CappedPressure")
+          call addto(p_min, -d0)
+          call scale(p_min, -g*rho0)
           call set(p_capped, p)
-          call bound(p_capped, lower_bound=p_capped)
-          call deallocate(p_capped)
+          call bound(p_capped, lower_bound=p_min)
+          call deallocate(p_min)
           p=>p_capped
        end if      
 
@@ -975,6 +977,10 @@ contains
        ! divide by rho0 g
        call scale(free_surface, 1/g/rho0)
        
+       if (have_wd) then
+         call deallocate(p_capped)
+       end if
+
      else
      
        ! if no vertical extrapolation is available, only copy
