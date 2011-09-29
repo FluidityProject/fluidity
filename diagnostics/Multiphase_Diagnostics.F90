@@ -189,6 +189,11 @@ module multiphase_diagnostics
          ! Local apparent_density matrix for the current element.
          real, dimension(ele_loc(s_field, 1),ele_loc(s_field, 1)) :: apparent_density_mat
 
+         type(mesh_type) :: new_mesh
+         type(element_type) :: shape, vfrac_shape, density_shape
+
+         type(scalar_field) :: temp_vfrac, temp_density
+
 
          ewrite(1,*) 'Entering calculate_apparent_density'
 
@@ -203,26 +208,48 @@ module multiphase_diagnostics
             FLExit("A PhaseVolumeFraction field is required to compute the apparent density.")
          end if
 
-         ! Loop through and integrate over each element
-         do ele = 1, element_count(s_field)
+         ! Multiply the Density and PhaseVolumeFraction fields together node-wise.
+         assert(vfrac%mesh == density%mesh) ! The two meshes need to be the same, otherwise we 
+         ! may get errors when remapping fields.
+         vfrac_shape = vfrac%mesh%shape
+         density_shape = density%mesh%shape
 
-            apparent_density_nodes => ele_nodes(s_field, ele)
-            apparent_density_shape => ele_shape(s_field, ele)
+         ! If the shape functions of the ApparentDensity field have the same degree as the product of the vfrac
+         ! and density shape functions, then produce a mesh that will represent the solution exactly.
+         ! In case we're multiplying together two P1 shape functions, a P2 mesh for s_field is required, for example.
+         if(s_field%mesh%shape%degree == vfrac_shape%degree+density_shape%degree) then
+            shape = make_element_shape(vertices=vfrac_shape%loc, dim=vfrac_shape%dim, degree=vfrac_shape%degree+&
+                                       &density_shape%degree, quad=vfrac_shape%quadrature)
+            new_mesh = make_mesh(model=vfrac%mesh, shape=shape, continuity=0)
+            new_mesh%name = "ApparentDensityMesh"
+            call deallocate(shape)
 
-            ! Get detwei
-            call transform_to_physical(x, ele, detwei = detwei)
+            call allocate(temp_vfrac, new_mesh, "TempPhaseVolumeFraction")
+            call allocate(temp_density, new_mesh, "TempDensity")
+            call zero(temp_vfrac)
+            call zero(temp_density)
 
-            ! Calculate the apparent density at each quadrature point
-            apparent_density_gi = ele_val_at_quad(density, ele)*ele_val_at_quad(vfrac, ele)
+            ! Remap the original fields to the new mesh of degree vfrac_shape%degree+density_shape%degree
+            call remap_field(vfrac, temp_vfrac)
+            call remap_field(density, temp_density)
+            
+            ! Multiply vfrac by density, and store the result in s_field
+            call scale(temp_vfrac, temp_density)
+            call addto(s_field, temp_vfrac)
 
-            ! Invert the mass matrix to get the apparent density value at each node
-            apparent_density_mat = matmul(inverse(shape_shape(apparent_density_shape, apparent_density_shape, detwei)), &
-                  shape_shape(apparent_density_shape, apparent_density_shape, detwei*apparent_density_gi))
+            call deallocate(temp_vfrac)
+            call deallocate(temp_density)
 
-            ! Assign the field values to the nodes
-            s_field%val(apparent_density_nodes) = max(s_field%val(apparent_density_nodes), sum(apparent_density_mat,2))
+         else
+            call allocate(temp_vfrac, vfrac%mesh, "TempPhaseVolumeFraction")
+            call set(temp_vfrac, vfrac)
+            
+            ! Multiply vfrac by density, and store the result in s_field
+            call scale(temp_vfrac, density)
+            call addto(s_field, temp_vfrac)
 
-         end do
+            call deallocate(temp_vfrac)
+         end if
 
          ewrite(1,*) 'Exiting calculate_apparent_density'
 
