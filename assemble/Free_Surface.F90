@@ -956,17 +956,20 @@ contains
        ! In dry regions, the free surface is not coupled to the pressure but is fixed to -OriginalCoordinate+d0.
        ! Hence, we create temporary pressure that is capped to d0-bottom_depth on the surface before extruding it downwards.
        if (have_wd) then
+          call allocate(p_min, p%mesh, "MinimumSurfacePressure")
+          call allocate(p_capped, p%mesh, "CappedPressure")
           call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-          ! We are looking for p_capped = min(p, g*rho0*(d0-bottom_depth)) on the surface
           original_bottomdist_remap=>extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh")
-          call allocate(p_min, original_bottomdist_remap%mesh, "MinimumSurfacePressure")
-          call allocate(p_capped, free_surface%mesh, "CappedPressure")
+
+          ! We are looking for p_capped = min(p, g*rho0*(d0-bottom_depth)) on the surface
+          call set(p_min, original_bottomdist_remap)
           call addto(p_min, -d0)
           call scale(p_min, -g*rho0)
           call set(p_capped, p)
           call bound(p_capped, lower_bound=p_min)
-          call deallocate(p_min)
           p=>p_capped
+
+          call deallocate(p_min)
        end if      
 
        ! vertically extrapolate pressure values at the free surface downwards
