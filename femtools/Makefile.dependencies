@@ -305,8 +305,8 @@ Element_set.o ../include/element_set.mod: Element_set.F90
 Elements.o ../include/elements.mod: Elements.F90 \
    ../include/element_numbering.mod ../include/fdebug.h ../include/fldebug.mod \
    ../include/polynomials.mod ../include/quadrature.mod \
-   ../include/reference_counting.mod Reference_count_element_type.F90 \
-   Reference_count_interface_element_type.F90
+   ../include/reference_counting.mod ../include/quicksort.mod \
+   Reference_count_element_type.F90 Reference_count_interface_element_type.F90
 
 ../include/embed_python.mod: Embed_Python_Fortran.o
 	@true

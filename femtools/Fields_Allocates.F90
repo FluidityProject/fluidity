@@ -1112,6 +1112,7 @@ contains
     integer, dimension(1:mesh%shape%cell%entity_counts(0)) :: vertices, &
          ele_facet, ele_facet2 ! these last two are actually smaller    
     integer :: face_count, ele, j, snloc, m, n, p, face2
+    integer, dimension(2) :: local_facet
 
     if (present(stat)) then
       stat = 0
@@ -1302,13 +1303,18 @@ contains
              ! (this might break for the case where elements share more than one
              ! face, but in that case the next few lines are wrong as well)
 
-FLAbort("replace with facet sorting")
+!FLAbort("replace with facet sorting")
              mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  sorted_facet(ele_facet(1:p), mesh%shape, j)
+                  sorted_facet(mesh%shape, j, ele_facet(1:p))
 !                  facet_local_num(ele_facet(1:p), mesh%shape%numbering)
 
              face2=ival(mesh%faces%face_list, neigh(j), ele)
+! FECK. Which local facet2?
+             local_facet=vertices_entity(mesh%shape%cell,&
+                  & sorted(ele_facet2(1:p)))
 
+             mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
+                  sorted_facet(mesh%shape, local_facet(2), ele_facet2(1:p))
 !             mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
 !                  facet_local_num(ele_facet2(1:p), mesh%shape%numbering)
 

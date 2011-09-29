@@ -34,6 +34,7 @@ module elements
   use polynomials
   use reference_counting
   use cell_numbering
+  use quicksort
   implicit none
 
   type dof_list
@@ -416,7 +417,7 @@ contains
 
   end function element_local_coords
   
-  function element_local_coord_count(element) result (n)
+  pure function element_local_coord_count(element) result (n)
     !!< Return the number of local coordinates associated with element.
     integer :: n
     type(element_type), intent(in) :: element    
@@ -963,8 +964,8 @@ contains
     ! to the order of vertices, which is the ordered set of vertices on
     ! the facet.
     type(element_type), intent(in) :: shape
-    integer :: facet
-    integer, dimension(:) intent(in) :: vertices
+    integer, intent(in) :: facet
+    integer, dimension(:), intent(in) :: vertices
 
     integer, dimension(size(shape%facet2dofs(facet)%dofs)) :: sorted_facet
 
@@ -975,19 +976,33 @@ contains
     ! Local coordinates of facet dofs in facet space.
     real, dimension(size(shape%facet2dofs(facet)%dofs),shape%dim-1) :: dof_coords     
 
+    ! Local coordinate temporary to deal with simplex dependent coordinates.
+    real, dimension(local_coord_count(shape)) :: tmp_local
+
+    integer, dimension(size(shape%facet2dofs(facet)%dofs)) :: permutation, raw_facet
+
     integer :: i
 
-    assert(sorted(vertices)==entity_vertices(shape%cell,[shape%dim-1,facet]))
+    print *, sorted(vertices)
+    print *, entity_vertices(shape%cell,[shape%dim-1,facet])
+    assert(all(sorted(vertices)==entity_vertices(shape%cell,[shape%dim-1,facet])))
     
     vertex_coords=shape%cell%vertex_coords(vertices,:)
     
     do i=1, shape%dim-1
        A(i,:)=vertex_coords(i,:)-vertex_coords(1,:)
     end do
+    
+    raw_facet=shape%facet2dofs(facet)%dofs
 
     do i=1, size(sorted_facet)
-       dof_coords(i,:)=matmul(A, local_coords(sha
+       tmp_local = local_coords(raw_facet(i), shape) 
+       dof_coords(i,:) = matmul(A, tmp_local(:shape%dim)-vertex_coords(1,:))
     end do
+
+    call sort(dof_coords, permutation)
+
+    sorted_facet = raw_facet(permutation)
 
   end function sorted_facet
 
