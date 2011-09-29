@@ -2098,6 +2098,7 @@ Within a dispersed phase, entering a value for $d$ in the \option{../multiphase\
 \begin{itemize}
  \item Boussinesq and fully compressible multi-phase simulations are not yet supported.
  \item The momentum equation for each \option{material\_phase} can only be discretised in non-conservative form.
+ \item The stress term must be in tensor form, and only works with an isotropic viscosity.
  \item \option{bassi\_rebay} and \option{compact\_discontinuous\_galerkin} are currently the only DG viscosity schemes available for multi-phase flow simulations.
  \item Discontinuous \option{PhaseVolumeFraction} fields are not yet supported.
  \item The Pressure field only supports \option{continuous\_galerkin} and \option{control\_volume} discretisations.

@@ -737,7 +737,7 @@ To enable the mixing and inter-penetration of phases, a separate velocity field 
 \alpha_i\rho_i\frac{\partial \mathbf{u}_i}{\partial t} +
 \alpha_i\rho_i\mathbf{u}_i\cdot\left(\nabla\cdot\mathbf{u}_i\right) =
 -\alpha_i\nabla p + \alpha_i\rho_i\mathbf{g} +
-\nabla\cdot\left(\alpha_i\tautens_i\right) +
+\nabla\cdot\left(\alpha_i\mu_i\nabla\cdot\mathbf{u}_i\right) +
 \mathbf{F}_i,
 \end{equation}
-where $\mathbf{u}_i$, $\rho_i$, $\tautens_i$ and $\alpha_i$ are the velocity, density, stress tensor and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
+where $\mathbf{u}_i$, $\rho_i$, $\mu_i$ and $\alpha_i$ are the velocity, density, isotropic viscosity and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
