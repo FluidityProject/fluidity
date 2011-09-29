@@ -450,7 +450,7 @@ simulations as it is basically a simplication
 of full stress form when divergent elements can
 be cancelled out.
 
-Only diaonal components of viscosity
+Only diagonal components of viscosity
 (i.e. either isotropic or
 diagonal) are physical for isotropic materials.
 
