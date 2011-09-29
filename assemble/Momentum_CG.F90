@@ -642,11 +642,11 @@
       end if
 
       if (have_wd_abs .and. on_sphere) then
-          FLExit("Wetting and drying does not currently work on the sphere.")
+          FLExit("The wetting and drying absorption term does currently not work on the sphere.")
       end if
 
       if (have_wd_abs .and. .not. has_scalar_field(state, "WettingDryingAlpha")) then
-          FLExit("Wetting and drying needs the diagnostic field WettingDryingAlpha activated.")
+          FLExit("The wetting and drying absorption needs the diagnostic field WettingDryingAlpha activated.")
       end if
       if (have_wd_abs) then
         ! The alpha fields lives on the pressure mesh, but we need it on the velocity, so let's remap it.
