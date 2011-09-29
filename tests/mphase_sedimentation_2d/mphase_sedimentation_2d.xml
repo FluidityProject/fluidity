@@ -3,7 +3,7 @@
 
 <testproblem>
    
-  <name>mphase_sedimentation</name>
+  <name>mphase_sedimentation_2d</name>
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
@@ -20,50 +20,50 @@
   <variables>
     <variable name="f1_vfrac_max" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_sedimentation.stat")
+s = stat_parser("mphase_sedimentation_2d.stat")
 f1_vfrac_max = s["Fluid1"]["PhaseVolumeFraction"]["max"][-1]
     </variable>
     
     <variable name="f1_vfrac_min" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_sedimentation.stat")
+s = stat_parser("mphase_sedimentation_2d.stat")
 f1_vfrac_min = s["Fluid1"]["PhaseVolumeFraction"]["min"][-1]
     </variable>
     
     <variable name="f2_vfrac_max" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_sedimentation.stat")
+s = stat_parser("mphase_sedimentation_2d.stat")
 f2_vfrac_max = s["Fluid2"]["PhaseVolumeFraction"]["max"][-1]
     </variable>
     
     <variable name="f2_vfrac_min" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_sedimentation.stat")
+s = stat_parser("mphase_sedimentation_2d.stat")
 f2_vfrac_min = s["Fluid2"]["PhaseVolumeFraction"]["min"][-1]
     </variable>
     
     <variable name="f1_vfrac_integral" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_sedimentation.stat")
+s = stat_parser("mphase_sedimentation_2d.stat")
 f1_vfrac_integral = s["Fluid1"]["PhaseVolumeFraction"]["integral"][-1]
     </variable>
     
     <variable name="f2_vfrac_integral" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_sedimentation.stat")
+s = stat_parser("mphase_sedimentation_2d.stat")
 f2_vfrac_integral = s["Fluid2"]["PhaseVolumeFraction"]["integral"][-1]
     </variable>
     
     <variable name="divergence" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_sedimentation.stat")
+s = stat_parser("mphase_sedimentation_2d.stat")
 divergence = s["Fluid1"]["SumVelocityDivergence"]["max"][-1]
     </variable>
     
     <variable name="f1_vfrac" language="python">
 import vtktools
 
-file = vtktools.vtu('mphase_sedimentation_601.vtu')
+file = vtktools.vtu('mphase_sedimentation_2d_601.vtu')
 file.GetFieldNames()
 f1_vfrac = file.GetScalarField('Fluid1::PhaseVolumeFraction')
     </variable>
@@ -71,7 +71,7 @@ f1_vfrac = file.GetScalarField('Fluid1::PhaseVolumeFraction')
     <variable name="f2_vfrac" language="python">
 import vtktools
 
-file = vtktools.vtu('mphase_sedimentation_601.vtu')
+file = vtktools.vtu('mphase_sedimentation_2d_601.vtu')
 file.GetFieldNames()
 f2_vfrac = file.GetScalarField('Fluid2::PhaseVolumeFraction')
     </variable>
@@ -80,7 +80,7 @@ f2_vfrac = file.GetScalarField('Fluid2::PhaseVolumeFraction')
     <variable name="positions" language="python">
 import vtktools
 
-file = vtktools.vtu('mphase_sedimentation_601.vtu')
+file = vtktools.vtu('mphase_sedimentation_2d_601.vtu')
 file.GetFieldNames()
 p = file.GetLocations()
 positions = p[:,1]
