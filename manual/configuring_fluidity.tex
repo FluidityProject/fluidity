@@ -321,6 +321,11 @@ def val(t):
   \label{examp:python_function_detectors_1}
 \end{example}
 
+If one or more Lagrangian detectors are selected the option \option{/lagrangian\_timestepping} must be set to define detector movement. 
+The user can define the order of the Runge-Kutta method to be used by defining the Butcher tableau and timestepping weights under \option{/explicit\_runge\_kutta\_guided\_search}. 
+For convenience the first- and fourth-order Runge-Kutta method (\option{/forward\_euler\_guided\_search} and \option{/rk4\_guided\_search}) are available as pre-defined options. 
+See section \ref{Sect:lagrangian_trajectories} for more information on Lagrangian detector advection.
+
 The output of the detectors is an ascii file called
 \option{name\_of\_simulation.detectors} where the name of the simulation has
 been indicated in \option{/simulation\_name}. If binary output
