@@ -963,6 +963,10 @@ contains
     ! Return the degrees of freedom on facet of shape reoriented according
     ! to the order of vertices, which is the ordered set of vertices on
     ! the facet.
+    ! 
+    ! The change of coordinates is only valid for hypercube elements.
+    ! Happily, simplex facets will be in the correct order by construction
+    ! due to the element numbering convention.
     type(element_type), intent(in) :: shape
     integer, intent(in) :: facet
     integer, dimension(:), intent(in) :: vertices
@@ -983,26 +987,36 @@ contains
 
     integer :: i
 
-    print *, sorted(vertices)
-    print *, entity_vertices(shape%cell,[shape%dim-1,facet])
-    assert(all(sorted(vertices)==entity_vertices(shape%cell,[shape%dim-1,facet])))
-    
-    vertex_coords=shape%cell%vertex_coords(vertices,:)
-    
-    do i=1, shape%dim-1
-       A(i,:)=vertex_coords(i,:)-vertex_coords(1,:)
-    end do
-    
-    raw_facet=shape%facet2dofs(facet)%dofs
+    if (shape%numbering%family==FAMILY_SIMPLEX) then
+       
+       sorted_facet=shape%facet2dofs(facet)%dofs
 
-    do i=1, size(sorted_facet)
-       tmp_local = local_coords(raw_facet(i), shape) 
-       dof_coords(i,:) = matmul(A, tmp_local(:shape%dim)-vertex_coords(1,:))
-    end do
+    else if (shape%numbering%family==FAMILY_CUBE) then
 
-    call sort(dof_coords, permutation)
+       assert(all(sorted(vertices)==entity_vertices(shape%cell,[shape%dim-1,facet])))
+       
+       vertex_coords=shape%cell%vertex_coords(vertices,:)
+       
+       do i=1, shape%dim-1
+          A(i,:)=vertex_coords(i,:)-vertex_coords(1,:)
+       end do
+       
+       raw_facet=shape%facet2dofs(facet)%dofs
+       
+       do i=1, size(sorted_facet)
+          tmp_local = local_coords(raw_facet(i), shape) 
+          dof_coords(i,:) = matmul(A, tmp_local(:shape%dim)-vertex_coords(1,:))
+       end do
+       
+       call sort(dof_coords, permutation)
+       
+       sorted_facet = raw_facet(permutation)
 
-    sorted_facet = raw_facet(permutation)
+    else
+       
+       FLAbort("Unknown element family")
+
+    end if
 
   end function sorted_facet
 

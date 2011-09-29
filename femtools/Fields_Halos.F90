@@ -321,7 +321,7 @@ contains
     ! Now re-order the elements.
     mesh=>numbering%mesh
     
-    p0_mesh=piecewise_constant_mesh(mesh,"ReorderMesh")
+    p0_mesh=piecewise_constant_mesh(mesh,"ReorderMesh", with_faces=.false.)
     allocate(ndglno(size(mesh%ndglno)))
     ndglno=mesh%ndglno
     do ele=1,element_count(mesh)

@@ -1198,6 +1198,33 @@ the interval is both the 1-simplex and the 1-hypercube.
   \label{fig:ref_hex}
 \end{figure}
 
+% \section{Changing local coordinates}
+
+% Suppose we have a facet, given by an ordered tuple of cell vertices
+% $(v^f_1\ldots\v^f_n)$ and we wish to express the local coordinates of the cells
+% on that facet with respect to the local coordinates of the cell. In other
+% words, we wish to be able to write:
+% \begin{equation}
+%   \vecxi^f=g(\vecxi^c)
+% \end{equation}
+% Note that $(v^f_1\ldots\v^f_n)$ are in consistent ordering for the facet
+% considered as a cell on its own, which is not the same ordering or orientation as the facet
+% considered has in the cell. The point of the change of coordinates is to
+% cater for this change of orientation in numbering.
+
+% The change of coordinates formula is given by:
+% \begin{equation}
+%   \vecxi^f=\mat{A}\left(\vecxi^c-\vecxi^c(v^f_1)\right)
+% \end{equation}
+% where:
+% \begin{equation}
+%   \mat(A)^\mathrm{T}=
+%   \begin{bmatrix}
+%     \vecxi^c(v^f_2)-\vecxi^c(v^f_1)&|&\vecxi^c(v^f_3)-\vecxi^c(v^f_1)
+%   \end{bmatrix}
+
+% \end{equation}
+
 \chapter{Elements}
 
 The \elementtype\ data structure holds shape function information for a

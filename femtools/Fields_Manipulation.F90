@@ -2294,20 +2294,23 @@ implicit none
 
   end subroutine remap_vector_field_to_surface
 
-  function piecewise_constant_mesh(in_mesh, name) result(new_mesh)
+  function piecewise_constant_mesh(in_mesh, name, with_faces) result(new_mesh)
     !!< From a given mesh, return a scalar field
     !!< allocated on the mesh that's topologically the same
     !!< but has piecewise constant basis functions.
     !!< This is for the definition of elementwise quantities.
     type(mesh_type), intent(in) :: in_mesh
+    character(len=*), intent(in) :: name
+    logical, intent(in), optional :: with_faces
+
     type(mesh_type) :: new_mesh
     type(element_type) :: shape, old_shape
-    character(len=*), intent(in) :: name
 
     old_shape = in_mesh%shape
 
     shape = make_element_shape(vertices=old_shape%ndof, dim=old_shape%dim, degree=0, quad=old_shape%quadrature)
-    new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1, name=name)
+    new_mesh = make_mesh(model=in_mesh, shape=shape, continuity=-1, &
+         name=name, with_faces=with_faces)
     call deallocate(shape)
     
   end function piecewise_constant_mesh

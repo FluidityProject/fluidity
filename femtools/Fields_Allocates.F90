@@ -865,7 +865,7 @@ contains
 
   end function wrap_tensor_field
 
-  function make_mesh (model, shape, continuity, name) &
+  function make_mesh (model, shape, continuity, name, with_faces) &
        result (mesh)
     !!< Produce a mesh based on an old mesh but with a different shape and/or continuity.
     type(mesh_type) :: mesh
@@ -874,7 +874,8 @@ contains
     type(element_type), target, intent(in), optional :: shape
     integer, intent(in), optional :: continuity
     character(len=*), intent(in), optional :: name
-    
+    logical, intent(in), optional :: with_faces
+
     integer, dimension(:), allocatable :: ndglno
     real, dimension(:), pointer :: val
     integer :: i, input_nodes, n_faces
@@ -1034,7 +1035,7 @@ contains
       call incref(mesh%adj_lists%eelist)
     end if
     
-    if(has_faces(model)) then
+    if(has_faces(model).and..not.present_and_false(with_faces)) then
       call add_faces(mesh, model)
     end if
 
