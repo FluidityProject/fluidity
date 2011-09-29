@@ -165,42 +165,15 @@ module multiphase_diagnostics
          type(scalar_field), intent(inout) :: s_field ! Apparent density field
 
          !! Local variables
-         integer :: i, stat
+         integer :: stat
 
          ! Velocities of the continuous and particle phases
-         type(vector_field), pointer :: x
          type(scalar_field), pointer :: density, vfrac
-
-         ! Counters over the elements and Gauss points
-         integer :: ele, gi
-         ! Transformed quadrature weights.
-         real, dimension(ele_ngi(s_field, 1)) :: detwei
-         ! Inverse of the local coordinate change matrix.
-         real, dimension(mesh_dim(s_field), mesh_dim(s_field), ele_ngi(s_field, 1)) :: J
-
-         ! Field values at each quadrature point.
-         real, dimension(ele_ngi(s_field, 1)) :: apparent_density_gi
-
-         ! Current element global node numbers.
-         integer, dimension(:), pointer :: apparent_density_nodes
-         ! Current apparent_density element shape.
-         type(element_type), pointer :: apparent_density_shape
-
-         ! Local apparent_density matrix for the current element.
-         real, dimension(ele_loc(s_field, 1),ele_loc(s_field, 1)) :: apparent_density_mat
-
-         type(mesh_type) :: new_mesh
-         type(element_type) :: shape, vfrac_shape, density_shape
 
          type(scalar_field) :: temp_vfrac, temp_density
 
-
          ewrite(1,*) 'Entering calculate_apparent_density'
 
-         ! Zero apparent density field
-         call zero(s_field)
-
-         x => extract_vector_field(states(state_index), "Coordinate")
          density => extract_scalar_field(states(state_index), "Density")
          vfrac => extract_scalar_field(states(state_index), "PhaseVolumeFraction", stat)
          if(stat /= 0) then
@@ -208,48 +181,19 @@ module multiphase_diagnostics
             FLExit("A PhaseVolumeFraction field is required to compute the apparent density.")
          end if
 
-         ! Multiply the Density and PhaseVolumeFraction fields together node-wise.
-         assert(vfrac%mesh == density%mesh) ! The two meshes need to be the same, otherwise we 
-         ! may get errors when remapping fields.
-         vfrac_shape = vfrac%mesh%shape
-         density_shape = density%mesh%shape
+         call allocate(temp_vfrac, s_field%mesh, "TempPhaseVolumeFraction")
+         call allocate(temp_density, s_field%mesh, "TempDensity")
 
-         ! If the shape functions of the ApparentDensity field have the same degree as the product of the vfrac
-         ! and density shape functions, then produce a mesh that will represent the solution exactly.
-         ! In case we're multiplying together two P1 shape functions, a P2 mesh for s_field is required, for example.
-         if(s_field%mesh%shape%degree == vfrac_shape%degree+density_shape%degree) then
-            shape = make_element_shape(vertices=vfrac_shape%loc, dim=vfrac_shape%dim, degree=vfrac_shape%degree+&
-                                       &density_shape%degree, quad=vfrac_shape%quadrature)
-            new_mesh = make_mesh(model=vfrac%mesh, shape=shape, continuity=0)
-            new_mesh%name = "ApparentDensityMesh"
-            call deallocate(shape)
+         ! Remap the original fields to the mesh provided by the apparent density field
+         call remap_field(vfrac, temp_vfrac)
+         call remap_field(density, temp_density)
 
-            call allocate(temp_vfrac, new_mesh, "TempPhaseVolumeFraction")
-            call allocate(temp_density, new_mesh, "TempDensity")
-            call zero(temp_vfrac)
-            call zero(temp_density)
+         ! Multiply the remapped PhaseVolumeFraction and Density fields together node-wise
+         call set(s_field, temp_density)
+         call scale(s_field, temp_vfrac)
 
-            ! Remap the original fields to the new mesh of degree vfrac_shape%degree+density_shape%degree
-            call remap_field(vfrac, temp_vfrac)
-            call remap_field(density, temp_density)
-            
-            ! Multiply vfrac by density, and store the result in s_field
-            call scale(temp_vfrac, temp_density)
-            call addto(s_field, temp_vfrac)
-
-            call deallocate(temp_vfrac)
-            call deallocate(temp_density)
-
-         else
-            call allocate(temp_vfrac, vfrac%mesh, "TempPhaseVolumeFraction")
-            call set(temp_vfrac, vfrac)
-            
-            ! Multiply vfrac by density, and store the result in s_field
-            call scale(temp_vfrac, density)
-            call addto(s_field, temp_vfrac)
-
-            call deallocate(temp_vfrac)
-         end if
+         call deallocate(temp_vfrac)
+         call deallocate(temp_density)
 
          ewrite(1,*) 'Exiting calculate_apparent_density'
 
