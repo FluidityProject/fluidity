@@ -642,7 +642,7 @@
       end if
 
       if (have_wd_abs .and. on_sphere) then
-          FLExit("The wetting and drying abosrption term does currently not work on the sphere.")
+          FLExit("The wetting and drying absorption term does currently not work on the sphere.")
       end if
 
       if (have_wd_abs .and. .not. has_scalar_field(state, "WettingDryingAlpha")) then
