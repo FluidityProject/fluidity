@@ -42,6 +42,19 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="ApparentDensityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">4</integer_value>
@@ -128,7 +141,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -342,7 +355,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -590,7 +603,7 @@
     <scalar_field name="ApparentDensity" rank="0">
       <diagnostic>
         <algorithm name="apparent_density" material_phase_support="multiple"/>
-        <mesh name="CoordinateMesh"/>
+        <mesh name="ApparentDensityMesh"/>
         <output/>
         <stat/>
         <convergence>
