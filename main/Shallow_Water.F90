@@ -229,12 +229,6 @@
     ! get theta
     call get_option("/timestepping/theta",theta)
 
-    D_initial=>extract_scalar_field(state(1), "InitialLayerThickness",stat)    
-    if(stat==0) then
-       D=>extract_scalar_field(state(1), "LayerThickness")
-       D_initial%val = D%val
-    end if
-
     timestep_loop: do
        timestep=timestep+1
        if (simulation_completed(current_time, timestep)) exit timestep_loop
@@ -456,6 +450,13 @@
             FLAbort('Commuting projection only exists for hybridizable space&
                  &s.')
          end if
+      end if
+
+      D_initial=>extract_scalar_field(state(1), "InitialLayerThickness"&
+           &,stat)    
+      if(stat==0) then
+         D=>extract_scalar_field(state(1), "LayerThickness")
+         D_initial%val = D%val
       end if
 
       if(.not.hybridized) then
