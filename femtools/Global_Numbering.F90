@@ -94,7 +94,7 @@ contains
     have_facets=associated(topology%faces)
     have_halos=associated(topology%halos)
 
-    call makelists(topology, NNlist=edge_list)
+    edge_list=make_edge_list(topology)
     if (have_facets) then
        facet_list=topology%faces%face_list%sparsity
     end if

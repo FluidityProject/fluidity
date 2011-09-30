@@ -35,6 +35,7 @@ module adjacency_lists
   use fields_data_types
   use element_numbering
   use futils
+  use integer_set_module
   implicit none
 
   interface MakeLists
@@ -967,6 +968,56 @@ END SUBROUTINE NODELE
     end do ele_loop
 
   end subroutine FindCommonElements
+
+  function make_edge_list(topology) result (edge_list)
+    ! Given a topology mesh (ie linear, continuous), return the set of
+    !  edges in that mesh.
+    
+    type(mesh_type), intent(in) :: topology
+    type(csr_sparsity) :: edge_list
+
+    type(integer_set), dimension(:), allocatable :: edge_sets
+    type(cell_type), pointer :: cell
+    integer, dimension(2) :: edge_vertices
+    integer, dimension(:), pointer :: ele_vertices, edge_row
+    integer :: ele, edge, vertex
+
+    assert(topology%shape%degree==1)
+
+    allocate(edge_sets(node_count(topology)))
+    call allocate(edge_sets)
+    
+    cell=>topology%shape%cell
+    do ele=1,element_count(topology)
+       ele_vertices => ele_nodes(topology, ele)
+
+       do edge=1, cell%entity_counts(1)
+          edge_vertices=ele_vertices(entity_vertices(cell,[1,edge]))
+          
+          call insert(edge_sets(edge_vertices(1)), edge_vertices(2))
+          call insert(edge_sets(edge_vertices(2)), edge_vertices(1))
+
+       end do
+    end do
+
+    call allocate(edge_list, rows=node_count(topology), &
+         columns=node_count(topology), entries=sum(key_count(edge_sets)), &
+         name="EdgeList")
+
+    edge_list%findrm=1
+    do vertex=1,node_count(topology)
+       edge_list%findrm(vertex+1)=&
+            edge_list%findrm(vertex)+key_count(edge_sets(vertex))
+
+       edge_row=>row_m_ptr(edge_list,vertex)
+       
+       edge_row=set2vector(edge_sets(vertex))
+    end do
+
+    call deallocate(edge_sets)
+    deallocate(edge_sets)
+
+  end function make_edge_list
 
 end module adjacency_lists
 
