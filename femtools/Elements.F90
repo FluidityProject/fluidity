@@ -119,7 +119,7 @@ module elements
      integer :: n_grad_basis
      !! basis of functions (relative to local Lagrange basis)
      !! used for projection onto their gradient
-     !! dimension n_grad_basis x loc
+     !! dimension n_grad_basis x loc x dim
      real, pointer :: grad_basis(:,:,:) => null()
      !! Number of basis functions for curl for projection
      integer :: n_curl_basis

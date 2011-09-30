@@ -441,6 +441,15 @@
             FLAbort('Commuting projection only exists for hybridizable spaces.')
          end if
       end if
+      if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
+           &ognostic/initial_condition::ProjectionFromPython")) then
+         if(hybridized) then
+            call set_layerthickness_projection(state(1))
+         else
+            FLAbort('Commuting projection only exists for hybridizable space&
+                 &s.')
+         end if
+      end if
 
       if(.not.hybridized) then
          ! Set up the state of cached matrices

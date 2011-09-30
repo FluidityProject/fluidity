@@ -1926,17 +1926,27 @@ contains
     character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
     integer, intent(in) :: ele
     !
-    real, dimension(mesh_dim(U)*ele_loc(U),mesh_dim(U)*ele_loc(U)) :: &
+    real, dimension(mesh_dim(U)*ele_loc(U,ele),mesh_dim(U)*ele_loc(U,ele)) :: &
          & projection_mat
-    real, dimension(mesh_dim(U)*ele_loc(U)) :: projection_rhs
+    real, dimension(mesh_dim(U)*ele_loc(U,ele)) :: projection_rhs
     type(element_type) :: u_shape
-    real, dimension(:,:) :: mat_pointer
-    real, dimension(:) :: vec_pointer
     real, dimension(:,:,:), allocatable :: face_mat
-    integer :: ni, ele2, face, row, floc
+    integer :: ni, ele2, face, row, floc, i1, uloc,dim1,dim2,gi,stat
     integer, dimension(:), pointer :: neigh
+    type(constraints_type), pointer :: U_constraint
+
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
+    real, dimension(ele_ngi(U,ele)) :: detJ
+    real, dimension(mesh_dim(U),mesh_dim(U),ele_ngi(U,ele))::&
+         &Metric
+    real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) &
+         &:: l_u_mat
+    real, dimension(mesh_dim(U),ele_loc(U,ele)) :: l_u_rhs
+    real, dimension(X%dim, ele_ngi(U, ele)) :: U_rhs_quad, X_quad
 
     u_shape = ele_shape(U,ele)
+    uloc = ele_loc(U,ele)
+    U_constraint => U%mesh%shape%constraints
 
     projection_rhs = 0.
     projection_mat = 0.
@@ -1947,7 +1957,7 @@ contains
     do ni = 1, size(neigh)
        ele2 = neigh(ni)
        face = ele_face(U,ele,ele2)
-       floc = face_loc(U,face)
+       floc = U_constraint%n_face_basis
        
        call set_velocity_commuting_projection_face(U,X,Python_Function,face,&
             &ele,projection_mat(row:row+floc-1,:),&
@@ -1956,9 +1966,98 @@ contains
        row = row + floc
     end do
 
-    FLAbort('need to do the grads and curls')
+    !jacobians required for grad and curl projection
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detJ=detJ)
+    do gi=1,ele_ngi(U,ele)
+       Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+    end do
+
+    l_u_mat = 0.
+    l_u_rhs = 0.
+    X_quad = ele_val_at_quad(X,ele)
+
+    call set_vector_field_from_python(python_function, len(python_function),&
+         & dim=3,nodes=ele_ngi(X,ele),x=X_quad(1,:),y=X_quad(2,:)&
+         &,z=x_quad(3,:),t=0.0,result_dim=3,&
+         & result_x=U_rhs_quad(1,:),&
+         & result_y=U_rhs_quad(2,:),&
+         & result_z=U_rhs_quad(3,:),&
+         & stat=stat)
+    if(stat /= 0) then
+       FLAbort('Failed to set ele values from Python.')
+    end if
+    !Test functions have Piola transform in, so multiply the RHS by the 
+    !transpose of the Jacobian (confusingly, compute Jacobian returns 
+    !the transpose in J).
+    do gi = 1, ele_ngi(U,ele)
+       u_rhs_quad(:,gi) = matmul(J(:,:,gi),u_rhs_quad(:,gi))
+    end do
+    do dim1 = 1, mesh_dim(U)
+       do dim2 = 1, mesh_dim(U)
+          l_u_mat(dim1,dim2,:,:) = &
+               & shape_shape(u_shape,u_shape,&
+               & u_shape%quadrature%weight*Metric(dim1,dim2,:))
+       end do
+       l_u_rhs(dim1,:) = &
+            & shape_rhs(u_shape,u_rhs_quad(dim1,:)*u_shape%quadrature%weight)
+    end do
+
+    !Adding in the gradient terms
+    do i1 = 1, u_constraint%n_grad_basis
+       projection_mat(row,:) = 0.
+       projection_rhs(row) = 0.
+       do dim1 = 1, mesh_dim(U)
+          do dim2 = 1, mesh_dim(U)
+             projection_mat(&
+                  row,(dim2-1)*ele_loc(U,ele)+1:dim2*ele_loc(U,ele)) =&
+                  projection_mat(&
+                  row,(dim2-1)*ele_loc(U,ele)+1:dim2*ele_loc(U,ele)) +&
+                  matmul(U_constraint%grad_basis(i1,:,dim1),&
+                  l_u_mat(dim1,dim2,:,:))
+          end do
+          projection_rhs(row)=projection_rhs(row)+&
+               dot_product(U_constraint%grad_basis(i1,:,dim1),&
+               l_u_rhs(dim1,:))
+       end do
+       row = row + 1
+    end do
+
+    !Adding in the curl terms
+    do i1 = 1, u_constraint%n_curl_basis
+       projection_mat(row,:) = 0.
+       projection_rhs(row) = 0.
+       do dim1 = 1, mesh_dim(U)
+          do dim2 = 1, mesh_dim(U)
+             projection_mat(&
+                  row,(dim2-1)*ele_loc(U,ele)+1:dim2*ele_loc(U,ele)) =&
+                  projection_mat(&
+                  row,(dim2-1)*ele_loc(U,ele)+1:dim2*ele_loc(U,ele)) +&
+                  matmul(U_constraint%curl_basis(i1,:,dim1),&
+                  l_u_mat(dim1,dim2,:,:))
+          end do
+          projection_rhs(row)=projection_rhs(row)+&
+               dot_product(U_constraint%curl_basis(i1,:,dim1),&
+               l_u_rhs(dim1,:))
+       end do
+       row = row + 1
+    end do
+
+    do i1 = 1, U_constraint%n_constraints
+       do dim1 = 1, mesh_dim(U)
+          projection_mat(&
+               row,(dim1-1)*ele_loc(U,ele)+1:dim1*ele_loc(U,ele)) =&
+               U_constraint%orthogonal(i1,:,dim1)
+       end do
+       row = row + 1
+    end do
 
     call solve(projection_mat,projection_rhs)
+
+    do dim1 = 1, mesh_dim(U)
+       call set(U,dim1,ele_nodes(U,ele),projection_rhs((dim1-1)*ele_loc(U&
+            &,ele)+1:dim1*ele_loc(U,ele)))
+    end do
 
   end subroutine set_velocity_commuting_projection_ele
   
@@ -1968,14 +2067,13 @@ contains
     type(vector_field), intent(inout) :: U
     character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
     integer, intent(in) :: face,ele
-    THESE DIMENSIONS ARE WRONG
-    real, dimension(face_loc(U,face),U%dim*ele_loc(U)), &
+    real, dimension(U%mesh%shape%constraints%n_face_basis,U%dim*ele_loc(U,ele)), &
          &intent(inout) :: projection_mat_rows
-    real, dimension(face_loc(U,face)), intent(inout) :: projection_rhs_rows
+    real, dimension(U%mesh%shape%constraints%n_face_basis), intent(inout)&
+         &:: projection_rhs_rows
     !
-    real, dimension(mesh_dim(U),face_loc(U,face),face_loc(U,face)),&
-         &intent(inout) :: face_mat
-    real, dimension(face_loc(U,face)), intent(inout) :: face_rhs
+    real, dimension(mesh_dim(U),face_loc(U,face),face_loc(U,face)) :: face_mat
+    real, dimension(face_loc(U,face)) :: face_rhs
     real, dimension(mesh_dim(U), face_ngi(U, face)) :: n_local
     real, dimension(X%dim, face_ngi(X, face)) :: n_cart
     real, dimension(X%dim, face_ngi(U, face)) :: U_rhs_face_quad, &
@@ -1986,11 +2084,11 @@ contains
     real, dimension(face_ngi(U,face)) :: detwei
     real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val
     real, dimension(X%dim,face_loc(X,face)) :: X_face_val
-    integer :: row, dim1, u_dim1, nod
-    integer, dimension(:), pointer :: U_face_nodes
+    integer :: row, dim1, u_dim1, stat, gi
+    integer, dimension(face_loc(U,face)) :: U_face_nodes
 
     U_face_shape=>face_shape(U, face)
-    u_face_nodes=>face_nodes(U, face)
+    u_face_nodes=face_global_nodes(U, face)
 
     !Get normal in local coordinates
     call get_local_normal(n_local,weight,U,local_face_number(U%mesh,face))
@@ -2002,9 +2100,8 @@ contains
        projection_mat_rows(row,:) = 0.
        do dim1 = 1,mesh_dim(U)
           u_dim1 = (dim1-1)*ele_loc(U,ele)
-          do nod = 1, U%mesh%shape%constraints%n_face_basis
-          projection_mat_rows(row,u_dim1+U_face_nodes(nod))&
-               &=matmul(U%mesh%shape%constraints%face_basis(nod),&
+          projection_mat_rows(row,u_dim1+U_face_nodes)&
+               &=matmul(U%mesh%shape%constraints%face_basis(row,:),&
                &face_mat(dim1,:,:))
        end do
     end do
@@ -2047,13 +2144,79 @@ contains
     detwei = detwei*U_face_shape%quadrature%weight
 
     X_face_quad = face_val_at_quad(X,face)
-    U_rhs_face_quad = NEED TO GET PYTHON
+
+    call set_vector_field_from_python(python_function, len(python_function),&
+         & dim=3,nodes=face_ngi(X,face),x=X_face_quad(1,:),y=X_face_quad(2,:)&
+         &,z=x_face_quad(3,:),t=0.0,result_dim=3,&
+         & result_x=U_rhs_face_quad(1,:),&
+         & result_y=U_rhs_face_quad(2,:),&
+         & result_z=U_rhs_face_quad(3,:),&
+         & stat=stat)
+    if(stat /= 0) then
+       FLAbort('Failed to set face values from Python.')
+    end if
 
     face_rhs = shape_rhs(U_face_shape,sum(U_rhs_face_quad*n_cart,1)*detwei)
-    
-    NEED TO DO THE DOT PRODUCT
+
+    projection_rhs_rows(:) = matmul(&
+            & U%mesh%shape%constraints%face_basis,face_rhs)
 
   end subroutine set_velocity_commuting_projection_face
 
+  subroutine set_layerthickness_projection(state)
+    type(state_type), intent(in) :: state
+    !
+    type(vector_field), pointer :: X
+    type(scalar_field), pointer :: D
+    character(len=PYTHON_FUNC_LEN) :: Python_Function
+    integer :: ele
+
+    D=>extract_scalar_field(state, "LayerThickness")
+    X=>extract_vector_field(state, "Coordinate")
+ 
+    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
+         &gnostic/initial_condition::ProjectionFromPython/python",&
+         Python_Function)
+
+    do ele = 1, element_count(D)
+       call set_layerthickness_projection_ele(D,X,Python_Function,ele)
+    end do
+  end subroutine set_layerthickness_projection
+
+  subroutine set_layerthickness_projection_ele(D,X,Python_Function,ele)
+    type(scalar_field), intent(inout) :: D
+    type(vector_field), intent(inout) :: X
+    character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+    integer, intent(in) :: ele
+    !
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
+    real, dimension(ele_ngi(D,ele)) :: detwei, D_rhs_gi
+    real, dimension(X%dim,ele_ngi(D,ele)) :: X_gi
+    real, dimension(ele_loc(D,ele)) :: D_rhs
+    real, dimension(ele_loc(D,ele),ele_loc(D,ele)) :: mass_mat
+    type(element_type), pointer :: D_shape
+    integer :: stat
+
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detwei=detwei)
+    D_shape => ele_shape(D,ele)
+    mass_mat = shape_shape(D_shape,D_Shape,detwei)
     
+    X_gi = ele_val_at_quad(X,ele)
+    call set_scalar_field_from_python(python_function, len(python_function),&
+         & dim=3,nodes=ele_ngi(X,ele),x=X_gi(1,:),y=X_gi(2,:)&
+         &,z=x_gi(3,:),t=0.0,&
+         & result=D_rhs_gi,&
+         & stat=stat)
+    if(stat /= 0) then
+       FLAbort('Failed to set face values from Python.')
+    end if
+
+    D_rhs = shape_rhs(D_shape,detwei*D_rhs_gi)
+    call solve(mass_mat,D_rhs)
+    
+    call set(D,ele_nodes(D,ele),D_rhs)
+
+  end subroutine set_layerthickness_projection_ele
+
 end module hybridized_helmholtz
