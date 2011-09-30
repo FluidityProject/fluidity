@@ -8442,25 +8442,6 @@ This option is generally only useful for testing. </a:documentation>
             </choice>
           </element>
         </element>
-        <element name="lagrangian_ensemble">
-          <a:documentation>Lagrangian particle biology from the VEW project.</a:documentation>
-          <choice>
-            <element name="biology_algorithm">
-              <a:documentation>Python code specifying the biology model. This takes
-in velocity and light and outputs Phytoplankton, if
-those fields exist.</a:documentation>
-              <ref name="python_code"/>
-            </element>
-            <element name="disable_biology">
-              <a:documentation>Do not calculate biology
-This option is generally only useful for testing. </a:documentation>
-              <empty/>
-            </element>
-          </choice>
-          <optional>
-            <ref name="hyperlight"/>
-          </optional>
-        </element>
         <element name="six_component">
           <a:documentation>6 component biology model, which models Nitrates, Ammonium, 
 Phytoplankton, Zooplankton, Detritus and Chlorophyll.
@@ -8604,75 +8585,6 @@ This determines the order in which scalar_fields are solved for:
         <ref name="integer"/>
       </element>
     </optional>
-  </define>
-  <define name="hyperlight">
-    <element name="hyperlight">
-      <a:documentation>Hyperlight solar irradiance model, which 
-computes a fast approximation to the Radiative Transfer Equation.
-NOTE: This module requires fluidity to be compiled with the 
---enable-hyperlight flag.</a:documentation>
-      <element name="scalar_field">
-        <a:documentation>Hydrolight always computes the scalar irradiance 
-for 36 regular wavebands of width 10nm in PAR. 
-Particular wavebands or total PAR irradiance need 
-to be derived from these fixed bands.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>IrradianceTemplate</value>
-        </attribute>
-        <element name="prescribed">
-          <ref name="velocity_mesh_choice"/>
-          <ref name="prescribed_scalar_field"/>
-        </element>
-      </element>
-      <optional>
-        <element name="scalar_field">
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>IrradiancePAR</value>
-          </attribute>
-          <element name="diagnostic">
-            <ref name="velocity_mesh_choice"/>
-            <ref name="scalar_python_diagnostic_algorithm"/>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
-          </element>
-        </element>
-      </optional>
-      <element name="CDOM">
-        <a:documentation>F, the ratio for correlated CDOM</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="BF_chl">
-        <a:documentation>BF_chl, the backscatter fraction for chlorophyll-bearing particles</a:documentation>
-        <ref name="real"/>
-      </element>
-      <optional>
-        <element name="CloudCover">
-          <a:documentation>Parameter for GC sky irradiance model - 
-if provided this overwrites the values from the forcing routines.</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="WindSpeed">
-          <a:documentation>Parameter for GC sky irradiance model - 
-if provided this overwrites the values from the forcing routines.</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="EuphoticRatio">
-          <a:documentation>Optional performance parameter that determines the percentage of 
-surface irradiance at which the model stops computing.
-Default is 0.01 = 1% (standard definition of euphotic depth)</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-    </element>
   </define>
   <define name="recalculation_options">
     <element name="do_not_recalculate">
