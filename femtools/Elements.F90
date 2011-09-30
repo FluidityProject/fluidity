@@ -33,9 +33,6 @@ module elements
   use FLDebug
   use polynomials
   use reference_counting
-#ifdef _OPENMP
-    use omp_lib
-#endif
   implicit none
 
   type element_type
