@@ -39,6 +39,9 @@ module biology
   use solvers
   use python_state
   use sparsity_patterns_meshes
+  use fefields
+  use field_options
+
   implicit none
 
   private
@@ -66,6 +69,14 @@ contains
     type(state_type), intent(inout) :: state
 
     character(len=OPTION_PATH_LEN) :: prefix, algorithm
+    ! This is the photosynthetic radiation projected onto the 
+    ! same mesh as the biology fields
+    ! It also takes into account the "active" part of the solar radiation
+    type(scalar_field) :: par_bio
+    ! we use the phytoplankton as the "bio" mesh
+    type(scalar_field), pointer :: phytoplankton, PhotosyntheticRadiation
+    type(vector_field) :: coords
+    integer :: stat
 
     call backup_source_terms(state)
 
@@ -90,6 +101,24 @@ contains
 
     ! Calculate the light field at every point.
     call solve_light_equation(state, prefix)
+
+    par_bio = extract_scalar_field(state, "_PAR", stat)
+    phytoplankton => extract_scalar_field(state, "Phytoplankton")
+    if (stat /= 0) then
+        ! field does not yet exist: create it
+        call allocate(par_bio,phytoplankton%mesh, name="_PAR")
+        call zero(par_bio)
+        call insert(state, par_bio, par_bio%name)
+        call deallocate(par_bio)
+        par_bio = extract_scalar_field(state, "_PAR", stat)
+    end if
+    PhotosyntheticRadiation => extract_scalar_field(state, "PhotosyntheticRadiation")
+    coords = get_coordinate_field(state, par_bio%mesh)
+    ! project the Photosynthetic radaition field onto the _PAR field
+    call project_field(PhotosyntheticRadiation, par_bio, coords)
+    ! scale it to get the active part
+    call scale(par_bio, 0.43)
+    call deallocate(coords)
 
     ! Calculate the sources and sinks at every point.
     call calculate_biology_from_python(state, prefix, algorithm)
