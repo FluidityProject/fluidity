@@ -113,7 +113,7 @@
     integer :: ierr
 
     type(vector_field), pointer :: v_field
-
+    type(scalar_field), pointer :: D,D_initial
     !! Mass matrices
     type(csr_matrix), pointer :: h_mass_mat
     type(block_csr_matrix), pointer :: u_mass_mat
@@ -131,6 +131,7 @@
     logical :: adjoint
     integer, save :: dump_no=0
     real :: theta, energy
+    integer :: stat
 #ifdef HAVE_ADJOINT
     ierr = adj_create_adjointer(adjointer)
     ! Register the data callbacks
@@ -227,6 +228,12 @@
 
     ! get theta
     call get_option("/timestepping/theta",theta)
+
+    D_initial=>extract_scalar_field(state(1), "InitialLayerThickness",stat)    
+    if(stat==0) then
+       D=>extract_scalar_field(state(1), "LayerThickness")
+       D_initial%val = D%val
+    end if
 
     timestep_loop: do
        timestep=timestep+1
@@ -377,7 +384,7 @@
     subroutine get_parameters()
       implicit none
       type(vector_field), pointer :: u, v_field, coord
-      type(scalar_field), pointer :: eta
+      type(scalar_field), pointer :: eta, D_initial
       type(vector_field) :: dummy_field
       real :: theta
 

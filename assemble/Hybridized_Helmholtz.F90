@@ -1361,7 +1361,7 @@ contains
     implicit none
     type(state_type), intent(inout) :: state
     !
-    type(scalar_field), pointer :: D,psi,f, D_initial
+    type(scalar_field), pointer :: D,psi,f
     type(scalar_field) :: D_rhs,tmp_field
     type(vector_field), pointer :: U_local,down,X, U_cart
     type(vector_field) :: Coriolis_term, Balance_eqn, tmpV_field
@@ -1458,11 +1458,6 @@ contains
     end do
     h_mean = h_mean/area
     D%val = D%val - h_mean
-
-    D_initial=>extract_scalar_field(state, "InitialLayerThickness",stat)    
-    if(stat==0) then
-       D_initial%val = D%val
-    end if
 
     !debugging tests
     call zero(Coriolis_term)
@@ -1908,6 +1903,8 @@ contains
     character(len=PYTHON_FUNC_LEN) :: Python_Function
     integer :: ele
 
+    ewrite(1,*) 'Setting velocity from commuting projection'
+
     U=>extract_vector_field(state, "LocalVelocity")
     X=>extract_vector_field(state, "Coordinate")
  
@@ -1918,6 +1915,8 @@ contains
     do ele = 1, element_count(U)
        call set_velocity_commuting_projection_ele(U,X,Python_Function,ele)
     end do
+
+    ewrite(1,*) 'Setting velocity from commuting projection: DONE'
   end subroutine set_velocity_commuting_projection
   
   subroutine set_velocity_commuting_projection_ele(U,X,Python_Function,ele)
@@ -1959,10 +1958,10 @@ contains
        face = ele_face(U,ele,ele2)
        floc = U_constraint%n_face_basis
        
-       call set_velocity_commuting_projection_face(U,X,Python_Function,face,&
-            &ele,projection_mat(row:row+floc-1,:),&
-            &projection_rhs(row:row+floc-1))
-       
+       call set_velocity_commuting_projection_face(&
+            U,X,Python_Function,face,&
+            ele,projection_mat(row:row+floc-1,:),&
+            projection_rhs(row:row+floc-1))
        row = row + floc
     end do
 
@@ -2067,7 +2066,8 @@ contains
     type(vector_field), intent(inout) :: U
     character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
     integer, intent(in) :: face,ele
-    real, dimension(U%mesh%shape%constraints%n_face_basis,U%dim*ele_loc(U,ele)), &
+    real, dimension(U%mesh%shape%constraints%n_face_basis,&
+         &mesh_dim(U)*ele_loc(U,ele)), &
          &intent(inout) :: projection_mat_rows
     real, dimension(U%mesh%shape%constraints%n_face_basis), intent(inout)&
          &:: projection_rhs_rows
@@ -2081,20 +2081,21 @@ contains
     real, dimension(X%dim) :: ele_normal, face_tangent, ele_out
     real :: weight
     type(element_type), pointer :: U_face_shape
-    real, dimension(face_ngi(U,face)) :: detwei
+    real, dimension(face_ngi(U,face)) :: detwei_f
     real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val
     real, dimension(X%dim,face_loc(X,face)) :: X_face_val
     integer :: row, dim1, u_dim1, stat, gi
+    !integer, dimension(:), allocatable :: U_face_nodes
     integer, dimension(face_loc(U,face)) :: U_face_nodes
 
     U_face_shape=>face_shape(U, face)
-    u_face_nodes=face_global_nodes(U, face)
+    u_face_nodes=face_local_nodes(U, face)
 
     !Get normal in local coordinates
     call get_local_normal(n_local,weight,U,local_face_number(U%mesh,face))
-    detwei = weight*U_face_shape%quadrature%weight
+    detwei_f = weight*U_face_shape%quadrature%weight
 
-    face_mat = shape_shape_vector(U_face_shape,U_face_shape,detwei,n_local)
+    face_mat = shape_shape_vector(U_face_shape,U_face_shape,detwei_f,n_local)
     
     do row = 1, size(projection_mat_rows,1)
        projection_mat_rows(row,:) = 0.
@@ -2117,7 +2118,7 @@ contains
     !this is hackery but only for initialisation.  in my copious spare time
     !when it isn't the start of term I'll fix the normal computation in
     !transform_facet_to_physical - cjc   
-
+    
     !Get the element normal
     X_ele_val = ele_val(X,ele)
     ele_normal = cross_product(X_ele_val(:,1)-X_ele_val(:,2),&
@@ -2126,7 +2127,7 @@ contains
     X_face_val = face_val(X,face)
     face_tangent = X_face_val(:,1)-X_face_val(:,2)
     face_tangent = face_tangent/sqrt(sum(face_tangent**2))
-    do gi = 1, ele_ngi(X,ele)
+    do gi = 1, face_ngi(X,face)
        n_cart(:,gi) = cross_product(ele_normal,face_tangent)
     end do
     ele_out = sum(X_face_val,2)/size(X_face_val,2)-&
@@ -2137,11 +2138,11 @@ contains
 
     !get detwei
     !integral is |dx/dxi(xi)|dxi
-    detwei = 0.
-    do gi = 1, ele_ngi(X,ele)
-       detwei(gi) = sqrt(sum((X_face_val(:,1)-X_face_val(:,2))**2))
+    detwei_f = 0.
+    do gi = 1, face_ngi(X,face)
+       detwei_f(gi) = sqrt(sum((X_face_val(:,1)-X_face_val(:,2))**2))
     end do
-    detwei = detwei*U_face_shape%quadrature%weight
+    detwei_f = detwei_f*U_face_shape%quadrature%weight
 
     X_face_quad = face_val_at_quad(X,face)
 
@@ -2156,11 +2157,11 @@ contains
        FLAbort('Failed to set face values from Python.')
     end if
 
-    face_rhs = shape_rhs(U_face_shape,sum(U_rhs_face_quad*n_cart,1)*detwei)
+    face_rhs = shape_rhs(U_face_shape,sum(U_rhs_face_quad*n_cart,1)*detwei_f)
 
     projection_rhs_rows(:) = matmul(&
             & U%mesh%shape%constraints%face_basis,face_rhs)
-
+    
   end subroutine set_velocity_commuting_projection_face
 
   subroutine set_layerthickness_projection(state)
