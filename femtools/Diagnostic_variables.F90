@@ -1353,7 +1353,7 @@ contains
     ! Allocate a single detector, populate and insert it into the given list
     ! In parallel, first check if the detector would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), pointer, intent(in) :: xfield
+    type(vector_field), pointer :: xfield
     real, dimension(xfield%dim), intent(in) :: position
     integer, intent(in) :: id, type
     character(len=*), intent(in) :: name
