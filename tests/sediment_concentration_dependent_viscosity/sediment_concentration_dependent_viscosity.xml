@@ -5,9 +5,9 @@
   <name>sediment_concentration_dependent_viscosity</name>
   <owner userid="sp911"/>
   <tags>flml sediment</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="short" nprocs="1">
     <command_line>fluidity sediment_concentration_dependent_viscosity.flml</command_line>
-    <!-- Check that the sediment hindered sinking rate is correct -->
+    <!-- Check that the sediment concentration dependent viscosity is correct -->
 </problem_definition>
   <variables>   
     <variable name="viscosity" language="python">

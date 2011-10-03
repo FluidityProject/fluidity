@@ -133,6 +133,8 @@ contains
         call set(t_field, zero_conc_viscosity)
         call scale(t_field, rhs)
         ewrite_minmax(t_field) 
+
+        call deallocate(rhs)
     else
         ewrite(1,*) 'No sediment in problem definition'
     end if  
