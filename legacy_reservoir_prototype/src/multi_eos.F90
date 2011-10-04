@@ -365,11 +365,13 @@
                            FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
                         endif
                      else
-                        FLAbort('Unknown relperm_type')
+                        U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
+
+                        !FLAbort('Unknown relperm_type')
+                        
                         !                      CASE( 0 ) 
                         ! no absorption option
                         !                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
-
                         !                      CASE( 1 )
                         !                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = INV_PERM( ELE, IDIM, JDIM )
 
@@ -385,7 +387,6 @@
                         !                         ABS_SUM = 0.0
                         !                         DO II = 1, NUABS_COEFS
                         !                            ABS_SUM = ABS_SUM + UABS_COEFS( IPHASE, II) * SATURATION** (II - 1 )
-                        !                         END DO
                         !                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = ABS_SUM
                      endif
 
