@@ -1008,7 +1008,7 @@ contains
           dof_coords(i,:) = matmul(A, tmp_local(:shape%dim)-vertex_coords(1,:))
        end do
        
-       call sort(dof_coords, permutation)
+       call sort(dof_coords(:,shape%dim-1:1:-1), permutation)
        
        sorted_facet = raw_facet(permutation)
 
