@@ -4,7 +4,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation using 1D mesh
-	../../bin/fluidity -v2 -l mphase_gravity_1d.flml
+	../../bin/fluidity -v2 -l mphase_sedimentation_1d.flml
 
 input: clean preprocess
 

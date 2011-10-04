@@ -238,7 +238,7 @@ $(RUNZOLTAN): zoltan_load_balance.F90 lib/
 	$(FC) $(FCFLAGS) -I../include -I/usr/include -o $(RUNZOLTAN) zoltan_load_balance.F90 -L../lib/ -l$(FLUIDITY) $(LIBS)
 
 $(PERIODISE): periodise.o lib/
-	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(LINKER) $(CXXFLAGS) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(FLDIAGNOSTICS): fldiagnostics.o fldiagnostics_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
@@ -310,4 +310,4 @@ clean:
 	rm -rf build dist fluidity.egg-info 
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.o lib/
-	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(LINKER) $(CXXFLAGS) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

@@ -291,63 +291,7 @@ start =
                element binary_output {
                   comment
                }?,
-               element lagrangian_timestepping {
-                  (
-                     ## Use explicit runge kutta method with
-                     ## binary search
-                     element explicit_runge_kutta_guided_search {
-                        ## Number of subdivisions of the timestep
-                        ## increase this if you are not happy with your 
-                        ## detector trajectory accuracy, or if particles
-                        ## are jumping out of the domain a lot
-                        element subcycles {
-                           integer
-                        },
-                        ## Tolerance for deciding if detector is in a given
-                        ## element. Recommended value 1.0e-10.
-                        element search_tolerance {
-                           real
-                        },
-                        ## Number of RK stages
-                        ## For the RK4 method, it should be 4.
-                        element n_stages {
-                           integer
-                        },
-                        ## ERK stage array. This is an array
-                        ## containing the lower-triangular
-                        ## part of the Butcher weight matrix
-                        ## A that explains how to compute the
-                        ## RK stages.  See
-                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                        ## for notation.  The array is stored
-                        ## in the following order:
-                        ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
-                        ## and so the array has size s(s-1)/2
-                        ## where s is the number of stages.
-                        ## For the RK4 method, it should be
-                        ## [0.5,0,0.5,0,0,1]
-                        element stage_weights {
-                           real_vector
-                        },
-                        ## ERK timestep weights. This is the
-                        ## b vector that explains how to
-                        ## compute the timestep from the RK
-                        ## stages.  See
-                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                        ## for notation.  It should have size
-                        ## s where s is the number of stages.
-                        ## For the RK4 method, it should be
-                        ## [1/6,1/3,1/3,1/6]
-                        element timestep_weights {
-                           real_vector
-                        }
-                     }|
-                     ## Use binary search algorithm
-                     element binary_search {
-                        empty
-                     }
-                  )
-               }?
+               lagrangian_timestepping?
             }?, 
             ## Options to create even more output in the logs:
             ##
@@ -2431,6 +2375,72 @@ geometry =
       }
    )
 
+lagrangian_timestepping = 
+   (
+      element lagrangian_timestepping {
+         ## Number of subdivisions of the timestep
+         ## increase this if you are not happy with your 
+         ## detector trajectory accuracy, or if particles
+         ## are jumping out of the domain a lot
+         element subcycles {
+            integer
+         },
+         ## Tolerance for deciding if detector is in a given
+         ## element. Recommended value 1.0e-10.
+         element search_tolerance {
+            real
+         },
+         (
+            ## Use explicit runge kutta method with
+            ## guided search particle tracking
+            element explicit_runge_kutta_guided_search {
+               ## Number of RK stages
+               ## For the RK4 method, it should be 4.
+               element n_stages {
+                  integer
+               },
+               ## ERK stage array. This is an array
+               ## containing the lower-triangular
+               ## part of the Butcher weight matrix
+               ## A that explains how to compute the
+               ## RK stages.  See
+               ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+               ## for notation.  The array is stored
+               ## in the following order:
+               ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
+               ## and so the array has size s(s-1)/2
+               ## where s is the number of stages.
+               ## For the RK4 method, it should be
+               ## [0.5,0,0.5,0,0,1]
+               element stage_weights {
+                  real_vector
+               },
+               ## ERK timestep weights. This is the
+               ## b vector that explains how to
+               ## compute the timestep from the RK
+               ## stages.  See
+               ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+               ## for notation.  It should have size
+               ## s where s is the number of stages.
+               ## For the RK4 method, it should be
+               ## [1/6,1/3,1/3,1/6]
+               element timestep_weights {
+                  real_vector
+               }
+            }|
+            ## Use explicit Forward Euler method with
+            ## guided search particle tracking
+            element forward_euler_guided_search {
+               empty
+            }|
+            ## Use classical Runge-Kutta method with
+            ## guided search particle tracking
+            element rk4_guided_search {
+               empty
+            }
+         )
+      }
+   )
 
 # Default child of diagnostic scalar field
 diagnostic_scalar_field =
