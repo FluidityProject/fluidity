@@ -304,7 +304,7 @@ contains
        unn=ele_val(numbering, ele)
        
        ! Establish the node permutation.
-       call qsort(unn, perm)
+       perm=vertex_permutation(unn, cell)
 
        nodes=nodes(perm)
        
@@ -396,7 +396,63 @@ contains
        end do
     end if
 
-    
+  contains 
+
+    function vertex_permutation(unn, cell) result (perm)
+      ! Canonical numbers of the element vertices.
+      real, dimension(:), intent(in) :: unn
+      type(cell_type), intent(in) :: cell
+      integer, dimension(size(unn)) :: perm
+
+      integer, dimension(cell%dimension) :: adjacent_vertices, tmp
+      real, dimension(cell%entity_counts(0), cell%dimension) :: vertex_coords
+      real, dimension(cell%dimension, cell%dimension) :: A
+      integer :: i, k, v0
+      integer, dimension(2) :: edge
+
+      if (cell%type==CELL_QUAD.or.cell%type==CELL_HEX) then
+         ! The first vertex is the vertex of minimal canonical number.
+         v0=minloc(unn,1)
+         
+         ! Vertices adjacent to the initial vertex.
+         k=0
+         do i=1,cell%entity_counts(1)
+            edge=entity_vertices(cell,[1,i])
+            if (any(edge==v0)) then
+               k=k+1
+               if (edge(1)==v0) then
+                  adjacent_vertices(k)=edge(2)
+               else
+                  adjacent_vertices(k)=edge(1)
+               end if
+            end if
+         end do
+
+         ! Sort the adjacent vertices by canonical number.
+         call qsort(unn(adjacent_vertices), tmp)
+         adjacent_vertices=adjacent_vertices(tmp)
+
+         ! Calculate change of coordinates matrix.
+         do i=1,cell%dimension
+            A(i,:)=cell%vertex_coords(adjacent_vertices(i),:)&
+                 -cell%vertex_coords(v0,:)
+         end do
+         
+         ! Calculate vertex coordinates in new coordinate system.
+         do i=1,size(unn)
+            vertex_coords(i,:)=matmul(A, cell%vertex_coords(i,:)&
+                 -cell%vertex_coords(v0,:))
+         end do
+
+         ! Calculate permutation of vertices into new coordinate order.
+         call sort(vertex_coords(:,cell%dimension:1:-1), perm)
+
+      else
+         call qsort(unn, perm)
+      end if
+
+    end function vertex_permutation
+  
   end subroutine order_elements
 
 
