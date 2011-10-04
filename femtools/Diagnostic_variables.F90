@@ -2778,7 +2778,7 @@ contains
             assert(ierror == MPI_SUCCESS)
             node => node%next
           end do vector_node_loop
-          assert(.not. associated(node))        
+          assert(.not. associated(node))
         end do vector_loop
         end if
       end if
