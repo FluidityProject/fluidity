@@ -1272,6 +1272,16 @@ contains
 
     end do
 
+    if ((cvfaces%vertices==4.and.cvfaces%dim==2)&
+         .or.(cvfaces%vertices==8.and.cvfaces%dim==3)) then
+       ! The rules for cvfaces and hex elements in the templates
+       ! are written for local coordinates in the interval [-1,1], however
+       ! we wish to use local coordinates in the interval [0,1]. This
+       ! requires us to change coordinates.
+       cvfaces%corners=0.5*(cvfaces%corners+1)
+       cvfaces%scorners=0.5*(cvfaces%scorners+1)
+    end if    
+
   end subroutine expand_cv_faces_template
 
 end module cv_faces
