@@ -151,7 +151,7 @@ module mapping_for_ocvfem
          ndim, cv_ele_type, cv_nloc, u_nloc) 
          
          
-    cv_ngi_short = cv_ngi
+    !cv_ngi_short = cv_ngi
     ewrite(2,*) ' got FE info', cv_ngi, cv_ngi_short, cv_nloc, u_nloc
     
 
