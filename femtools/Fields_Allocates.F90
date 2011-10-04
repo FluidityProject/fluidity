@@ -1304,27 +1304,22 @@ contains
              ! (this might break for the case where elements share more than one
              ! face, but in that case the next few lines are wrong as well)
 
-!FLAbort("replace with facet sorting")
              mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
                   sorted_facet(mesh%shape, j, ele_facet(1:p))
-!                  facet_local_num(ele_facet(1:p), mesh%shape%numbering)
 
              face2=ival(mesh%faces%face_list, neigh(j), ele)
-! FECK. Which local facet2?
+
              local_facet=vertices_entity(mesh%shape%cell,&
                   & sorted(ele_facet2(1:p)))
 
              mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
                   sorted_facet(mesh%shape, local_facet(2), ele_facet2(1:p))
-!             mesh%faces%face_lno((face2-1)*snloc+1:face2*snloc)= &
-!                  facet_local_num(ele_facet2(1:p), mesh%shape%numbering)
 
           else if (neigh(j)<0) then
 
              ! boundary face:
              mesh%faces%face_lno((faces(j)-1)*snloc+1:faces(j)*snloc)= &
-                  & facet_numbering(ele_shape(mesh, ele), j)
-                  
+                  & mesh%shape%facet2dofs(j)%dofs
              
           end if
 
