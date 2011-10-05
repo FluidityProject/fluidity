@@ -522,7 +522,11 @@ contains
     call profiler_tic(t, "advection_diffusion_loop")
 
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num)
+#ifdef _OPENMP    
     thread_num = omp_get_thread_num()
+#else
+    thread_num=0
+#endif
     colour_loop: do clr = 1, no_colours
       len = key_count(clr_sets(clr))
       !$OMP DO SCHEDULE(STATIC)
