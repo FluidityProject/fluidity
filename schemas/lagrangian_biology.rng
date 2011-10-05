@@ -112,44 +112,13 @@ The scaled request quantity will then get added to the according absorption fiel
                         </element>
                       </element>
                       <element name="scalar_field">
-                        <a:documentation>Request field projected onto a continuous mesh</a:documentation>
-                        <attribute name="name">
-                          <value>CGRequest</value>
-                        </attribute>
-                        <element name="diagnostic">
-                          <element name="algorithm">
-                            <a:documentation>Galerkin projects the source field.</a:documentation>
-                            <attribute name="name">
-                              <value>scalar_galerkin_projection</value>
-                            </attribute>
-                            <attribute name="material_phase_support">
-                              <value>single</value>
-                            </attribute>
-                            <attribute name="source_field_name">
-                              <value>DGRequest</value>
-                            </attribute>
-                            <attribute name="source_field_type">
-                              <value>scalar</value>
-                            </attribute>
-                            <optional>
-                              <element name="solver">
-                                <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
-                                <ref name="linear_solver_options_sym"/>
-                              </element>
-                            </optional>
-                          </element>
-                          <ref name="velocity_mesh_choice"/>
-                          <ref name="diagnostic_scalar_field"/>
-                        </element>
-                      </element>
-                      <element name="scalar_field">
                         <a:documentation>Depletion factor</a:documentation>
                         <attribute name="name">
                           <value>Depletion</value>
                         </attribute>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
-                          <ref name="velocity_mesh_choice"/>
+                          <ref name="mesh_choice"/>
                           <ref name="diagnostic_scalar_field_no_adapt"/>
                         </element>
                       </element>
@@ -171,37 +140,6 @@ The scaled release quantity will then get added to the according source field of
                           <ref name="diagnostic_scalar_field_no_adapt"/>
                         </element>
                       </element>
-                      <element name="scalar_field">
-                        <a:documentation>Release field projected onto a continuous mesh</a:documentation>
-                        <attribute name="name">
-                          <value>CGRelease</value>
-                        </attribute>
-                        <element name="diagnostic">
-                          <element name="algorithm">
-                            <a:documentation>Galerkin projects the source field.</a:documentation>
-                            <attribute name="name">
-                              <value>scalar_galerkin_projection</value>
-                            </attribute>
-                            <attribute name="material_phase_support">
-                              <value>single</value>
-                            </attribute>
-                            <attribute name="source_field_name">
-                              <value>DGRequest</value>
-                            </attribute>
-                            <attribute name="source_field_type">
-                              <value>scalar</value>
-                            </attribute>
-                            <optional>
-                              <element name="solver">
-                                <a:documentation>Solver options. Required if projecting onto a continuous mesh.</a:documentation>
-                                <ref name="linear_solver_options_sym"/>
-                              </element>
-                            </optional>
-                          </element>
-                          <ref name="velocity_mesh_choice"/>
-                          <ref name="diagnostic_scalar_field"/>
-                        </element>
-                      </element>
                     </element>
                   </optional>
                 </element>
@@ -221,6 +159,7 @@ The local values of fields listed here will be presented in a dictionary 'enviro
             </zeroOrMore>
           </element>
           <element name="stages">
+            <a:documentation/>
             <zeroOrMore>
               <element name="stage">
                 <a:documentation>Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.</a:documentation>
@@ -251,12 +190,14 @@ The t argument is for future use only - currently detector locations are only se
                   <ref name="python_code"/>
                 </element>
                 <element name="initial_state">
+                  <a:documentation/>
                   <element name="values">
                     <ref name="real_vector"/>
                   </element>
                 </element>
                 <optional>
                   <element name="random_walk">
+                    <a:documentation/>
                     <choice>
                       <element name="python">
                         <a:documentation>Python function prescribing additional agent displacement due to turbulence. 
@@ -296,6 +237,18 @@ This option is generally only useful for testing. </a:documentation>
                     <empty/>
                   </element>
                 </choice>
+                <element name="particle_management">
+                  <a:documentation>Particle Management rules</a:documentation>
+                  <element name="period_in_timesteps">
+                    <ref name="integer"/>
+                  </element>
+                  <element name="minimum">
+                    <ref name="real"/>
+                  </element>
+                  <element name="maximum">
+                    <ref name="real"/>
+                  </element>
+                </element>
                 <optional>
                   <element name="debug">
                     <a:documentation>Debug options</a:documentation>

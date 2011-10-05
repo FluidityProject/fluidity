@@ -203,7 +203,6 @@ contains
              allocate(agent_arrays(i)%biovar_name(biovar_total))
              allocate(agent_arrays(i)%biofield_type(biovar_total))
              allocate(agent_arrays(i)%biofield_dg_name(biovar_total))
-             allocate(agent_arrays(i)%biofield_cg_name(biovar_total))
              allocate(agent_arrays(i)%chemfield_name(biovar_total))
 
              ! Add internal state variables
@@ -234,7 +233,7 @@ contains
 
                 ! Chemical pool variable and according diagnostic fields
                 agent_arrays(i)%biovar_name(index) = trim(biovar_name)//"Pool"
-                if (have_option(trim(biovar_buffer)//"scalar_field")) then
+                if (have_option(trim(biovar_buffer)//"/scalar_field")) then
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_DIAG
                    call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)
                    if (have_option(trim(biovar_buffer)//"/scalar_field/per_stage")) then
@@ -255,7 +254,6 @@ contains
                    agent_arrays(i)%biovar_name(index) = trim(biovar_name)//"Ing"
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
                    agent_arrays(i)%biofield_dg_name(index) = trim(fg_name)//"DGRequest"//trim(biovar_name)
-                   agent_arrays(i)%biofield_cg_name(index) = trim(fg_name)//"CGRequest"//trim(biovar_name)
                    call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_name(index))
                    index = index+1
                 end if
@@ -268,7 +266,6 @@ contains
                    agent_arrays(i)%biovar_name(index) = trim(biovar_name)//"Rel"
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
                    agent_arrays(i)%biofield_dg_name(index) = trim(fg_name)//"DGRelease"//trim(biovar_name)
-                   agent_arrays(i)%biofield_cg_name(index) = trim(fg_name)//"CGRelease"//trim(biovar_name)
                    call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_name(index))
                    index = index+1
                 end if
@@ -304,6 +301,10 @@ contains
                 call get_option(trim(env_field_buffer)//"/name", agent_arrays(i)%env_field_name(j))
                 call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(i)%name)//"'].append('"//trim(agent_arrays(i)%env_field_name(j))//"')")
              end do
+
+             ! Add Particle Management options
+             call get_option(trim(stage_buffer)//"/particle_management/minimum", agent_arrays(i)%pm_min)
+             call get_option(trim(stage_buffer)//"/particle_management/maximum", agent_arrays(i)%pm_max)
           end if
 
           ! Create simple position-only agent I/O header 
@@ -411,6 +412,8 @@ contains
        end if
     end do
 
+    ewrite(2,*) "Handling stage changes..."
+
     ! Handle stage changes within FG
     agent=>stage_change_list%first
     do while (associated(agent))
@@ -422,6 +425,13 @@ contains
           end if
        end do
        agent=>agent%next
+    end do
+
+    ewrite(2,*) "Particle Management..."
+
+    ! Particle Management
+    do i = 1, size(agent_arrays)
+       call particle_management(agent_arrays(i), xfield)
     end do
 
     ! Output agent positions
@@ -493,41 +503,29 @@ contains
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
 
                 request_field_dg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
-                request_field_cg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_cg_name(j)))
                 chemical_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j)))
                 absorption_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Absorption")
                 depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Depletion")
 
-                ewrite(2,*) "Galerkin projecting request field: ", trim(agent_arrays(i)%biofield_dg_name(j))
-                call profiler_tic("/lagrangian_biology_galerkin_projection")
-                call calculate_galerkin_projection(state, request_field_cg)
-                call profiler_toc("/lagrangian_biology_galerkin_projection")
-
-                do n=1, node_count(request_field_cg)
-                   if (node_val(request_field_cg,n) > node_val(chemical_field,n)) then
+                do n=1, node_count(request_field_dg)
+                   if (node_val(request_field_dg,n) > node_val(chemical_field,n)) then
                       ! Scale back the request
-                      call set(depletion_field, n, node_val(chemical_field,n) / node_val(request_field_cg,n))
+                      call set(depletion_field, n, node_val(chemical_field,n) / node_val(request_field_dg,n))
                    else
                       call set(depletion_field, n, 1.0)
                    end if
 
-                   call set(absorption_field, n, node_val(request_field_cg,n) * node_val(depletion_field,n))
+                   call set(absorption_field, n, node_val(request_field_dg,n) * node_val(depletion_field,n))
                 end do
              end if
 
              ! Handle chemical release
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
                 release_field_dg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
-                release_field_cg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_cg_name(j)))
                 source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Source")
 
-                ewrite(2,*) "Galerkin projecting release field: ", trim(agent_arrays(i)%biofield_dg_name(j))
-                call profiler_tic("/lagrangian_biology_galerkin_projection")
-                call calculate_galerkin_projection(state, release_field_cg)
-                call profiler_toc("/lagrangian_biology_galerkin_projection")
-
-                do n=1, node_count(release_field_cg)
-                   call set(source_field, n, node_val(release_field_cg,n))
+                do n=1, node_count(release_field_dg)
+                   call set(source_field, n, node_val(release_field_dg,n))
                 end do
              end if
           end do
@@ -590,5 +588,56 @@ contains
     end do
 
   end subroutine addto_agent_count
+
+  subroutine particle_management(agent_list, xfield)
+    type(detector_linked_list), intent(inout) :: agent_list
+    type(vector_field), pointer, intent(inout) :: xfield
+
+    type(detector_type), pointer :: agent
+    type(detector_type), pointer :: new_agent
+    type(element_type), pointer :: shape
+    integer :: i
+
+    shape=>ele_shape(xfield,1)
+
+    agent => agent_list%first
+    do while (associated(agent))
+       if (agent%biology(2)>agent_list%pm_max) then
+          ewrite(2,*) "ml805 agent over PM limit detected. Splitting..."
+
+          agent_list%total_num_det=agent_list%total_num_det + 1
+
+          ! Allocate and insert detector
+          new_agent=>null()
+          call allocate(new_agent, agent)
+          call insert(new_agent,agent_list)
+
+          ! Populate new agent
+          new_agent%id_number=agent_list%total_num_det
+          new_agent%name=trim(int2str(agent_list%total_num_det))
+          new_agent%position=agent%position
+          new_agent%element=agent%element
+          new_agent%local_coords=agent%local_coords
+          new_agent%type=agent%type
+          new_agent%list_id=agent%list_id
+
+          ! Populate new agent's biology
+          allocate(new_agent%biology(size(agent%biology)))
+          do i=1, size(agent%biology)
+             new_agent%biology(i)=agent%biology(i)
+          end do
+
+          agent%biology(2)=agent%biology(2) / 2.0
+          new_agent%biology(2)=new_agent%biology(2) / 2.0
+       end if
+
+       if (agent%biology(2)<agent_list%pm_min) then
+          ewrite(2,*) "ml805 agent under PM limit detected"
+       end if
+
+       agent => agent%next
+    end do
+
+  end subroutine particle_management
 
 end module lagrangian_biology

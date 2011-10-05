@@ -83,31 +83,12 @@ lagrangian_biology =
                               diagnostic_scalar_field_no_adapt
                            }
                         },
-                        ## Request field projected onto a continuous mesh
-                        element scalar_field {
-                           attribute name { "CGRequest" },
-                           element diagnostic {
-                              ## Galerkin projects the source field.
-                              element algorithm {
-                                 attribute name { "scalar_galerkin_projection" },
-                                 attribute material_phase_support { "single" },
-                                 attribute source_field_name { "DGRequest" },
-                                 attribute source_field_type { "scalar" },
-                                 ## Solver options. Required if projecting onto a continuous mesh.
-                                 element solver {
-                                    linear_solver_options_sym
-                                 }?
-                              },
-                              velocity_mesh_choice,
-                              diagnostic_scalar_field
-                           }
-                        },
                         ## Depletion factor
                         element scalar_field {
                            attribute name { "Depletion" },
                            element diagnostic {
                               internal_algorithm,
-                              velocity_mesh_choice,
+                              mesh_choice,
                               diagnostic_scalar_field_no_adapt
                            }
                         }
@@ -123,25 +104,6 @@ lagrangian_biology =
                               internal_algorithm,
                               mesh_choice,
                               diagnostic_scalar_field_no_adapt
-                           }
-                        },
-                        ## Release field projected onto a continuous mesh
-                        element scalar_field {
-                           attribute name { "CGRelease" },
-                           element diagnostic {
-                              ## Galerkin projects the source field.
-                              element algorithm {
-                                 attribute name { "scalar_galerkin_projection" },
-                                 attribute material_phase_support { "single" },
-                                 attribute source_field_name { "DGRequest" },
-                                 attribute source_field_type { "scalar" },
-                                 ## Solver options. Required if projecting onto a continuous mesh.
-                                 element solver {
-                                    linear_solver_options_sym
-                                 }?
-                              },
-                              velocity_mesh_choice,
-                              diagnostic_scalar_field
                            }
                         }
                      }?
@@ -224,6 +186,18 @@ lagrangian_biology =
                         empty
                      }
                   ),
+                  ## Particle Management rules
+                  element particle_management {
+                     element period_in_timesteps {
+                        integer
+                     },
+                     element minimum {
+                        real
+                     },
+                     element maximum {
+                        real
+                     }
+                  },
                   ## Debug options
                   element debug {
                      ## Skip velocity advection algorithm (RK-GS)

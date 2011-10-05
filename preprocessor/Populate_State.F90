@@ -1515,6 +1515,33 @@ contains
             write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/chemical_variable[",j-1,"]"
             call get_option(trim(var_buffer)//"/name", var_name)
 
+            ! Add diagnostic field
+            if (have_option(trim(var_buffer)//"/scalar_field")) then
+               call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
+
+               ! One for each stage, ie. BiomassLiving and BiomassDead
+               if (have_option(trim(var_buffer)//"/scalar_field/per_stage")) then
+                  stage_count = option_count(trim(fg_buffer)//"/stages/stage")
+                  do k=1, stage_count
+                     write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
+                     call get_option(trim(stage_buffer)//"/name", stage_name)
+
+                     call allocate_and_insert_scalar_field(&
+                           trim(var_buffer)//"/scalar_field", &
+                           state, field_name=trim(fg_name)//trim(field_name)//trim(var_name)//trim(stage_name), &
+                           dont_allocate_prognostic_value_spaces&
+                           =dont_allocate_prognostic_value_spaces)
+                  end do
+               else
+                  ! Or a global one, ie. ParticulateChemical
+                  call allocate_and_insert_scalar_field(&
+                           trim(var_buffer)//"/scalar_field", &
+                           state, field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                           dont_allocate_prognostic_value_spaces&
+                           =dont_allocate_prognostic_value_spaces)
+               end if
+            end if
+
             if (have_option(trim(var_buffer)//"/uptake")) then
 
                ! DGRequest
@@ -1526,19 +1553,6 @@ contains
                      dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
                   FLExit("Chemical uptake requires a DGRequest field")
-               end if
-
-               ! CGRequest
-               if (have_option(trim(var_buffer)//"/uptake/scalar_field::CGRequest")) then
-                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::CGRequest"
-                  call get_option(trim(field_buffer)//"/name", field_name)
-                  ! Setting the DG source field 
-                  call set_option_attribute(trim(field_buffer)//"/diagnostic/algorithm/source_field_name", trim(fg_name)//"DGRequest"//trim(var_name))
-                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
-                     field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
-                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-               else
-                  FLExit("Chemical uptake requires a CGRequest field")
                end if
 
                ! Depletion field
@@ -1564,19 +1578,6 @@ contains
                      dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
                   FLExit("Chemical release requires a DGRelease field")
-               end if
-
-               ! CGRelease
-               if (have_option(trim(var_buffer)//"/release/scalar_field::CGRelease")) then
-                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/release/scalar_field::CGRelease"
-                  call get_option(trim(field_buffer)//"/name", field_name)
-                  ! Setting the DG source field 
-                  call set_option_attribute(trim(field_buffer)//"/diagnostic/algorithm/source_field_name", trim(fg_name)//"DGRelease"//trim(var_name))
-                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
-                     field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
-                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-               else
-                  FLExit("Chemical release requires a CGRelease field")
                end if
             end if
 
