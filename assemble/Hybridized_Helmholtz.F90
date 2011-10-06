@@ -2157,7 +2157,7 @@ contains
     end do
     ele_out = sum(X_face_val,2)/size(X_face_val,2)-&
          &sum(X_ele_val,2)/size(X_ele_val,2)
-    if(dot_product(ele_out,n_cart(:,1))<0.0) then
+    if(dot_product(ele_out,n_cart2(:,1))<0.0) then
        n_cart2 = -n_cart2
     end if
     !Get average
@@ -2165,6 +2165,7 @@ contains
 
     !get detwei
     !integral is |dx/dxi(xi)|dxi
+    X_face_val = face_val(X,face)
     detwei_f = 0.
     do gi = 1, face_ngi(X,face)
        detwei_f(gi) = sqrt(sum((X_face_val(:,1)-X_face_val(:,2))**2))
