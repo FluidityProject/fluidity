@@ -1,0 +1,182 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">random_walk_1d</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">fluids</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">1</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="line">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant>
+        <real_value rank="0">1000.0</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="CoordinateMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0.0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">6.0</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">3600</real_value>
+      <comment>21600 - 6h</comment>
+    </finish_time>
+  </timestepping>
+  <material_phase name="Water">
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="Diffusivity" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">from math import pow
+
+global visser_curve, get_spline, read_physics_file
+
+time = 0.0
+spline = None
+
+def get_spline(t):
+  from numpy import arange
+  from scipy import interpolate
+  
+  # create spline
+  height = arange(0.0, 60.0, 0.25)
+  mu = [visser_curve(z) for z in height]
+  tck = interpolate.splrep(height,mu)#, s=0.0001)
+  return tck
+  
+def visser_curve(z):
+  ## Recreate Fig. 1 in Visser, 1997, by using Fig. 3 in Ross and Sharples, 2004
+  z = abs(z)
+  if z &lt;= 40.:
+    z = 40. - z
+    K_z = 0.001 + 0.0136245 * z - 0.00263245 * pow(z,2) + 0.000211875 * pow(z,3) - 0.00000865898 * pow(z,4) + 0.00000017623 * pow(z,5) - 0.00000000140918 * pow(z,6)
+  else:
+    K_z=1e-6
+  return K_z
+  
+def val(X, t):
+  from scipy import interpolate
+  global time, spline
+  if t &gt; time or spline==None:
+    time = t
+    spline = get_spline(t)
+  mu = interpolate.splev(abs(X[0]), spline)
+  return mu</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <vector_field name="Diffusivity_grad" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="Diffusivity"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+  </material_phase>
+  <embedded_models>
+    <lagrangian_ensemble_biology>
+      <functional_group>
+        <agent_array name="Diffusive_RW">
+          <number_of_agents>
+            <integer_value rank="0">1000</integer_value>
+          </number_of_agents>
+          <lagrangian/>
+          <binary_output/>
+          <initial_position>
+            <string_value lines="20" type="python">def val(t):
+  from numpy import arange
+  # 4000 agents, evenly spaced in [0:50]
+  positions = arange(-50.,0.,0.05).reshape(1000,1)
+  return positions</string_value>
+          </initial_position>
+          <random_walk>
+            <diffusive_random_walk diffusivity_gradient="Diffusivity_grad" diffusivity_field="Diffusivity"/>
+          </random_walk>
+        </agent_array>
+        <lagrangian_timestepping>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <forward_euler_guided_search/>
+          <reflect_on_boundary/>
+        </lagrangian_timestepping>
+      </functional_group>
+      <random_seed>
+        <integer_value rank="0">113165</integer_value>
+      </random_seed>
+    </lagrangian_ensemble_biology>
+  </embedded_models>
+</fluidity_options>
