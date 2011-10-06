@@ -754,7 +754,6 @@ contains
         if(have_diffusivity) then
           call supg_test_function(supg_shape, t_shape, dt_t, ele_val_at_quad(velocity, ele), j_mat, diff_q = ele_val_at_quad(diffusivity, ele), &
             & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
-          test_function = supg_shape
         else
           call supg_test_function(supg_shape, t_shape, dt_t, ele_val_at_quad(velocity, ele), j_mat, &
             & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
