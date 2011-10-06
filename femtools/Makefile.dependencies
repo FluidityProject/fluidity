@@ -150,9 +150,11 @@ Checkpoint.o ../include/checkpoint.mod: Checkpoint.F90 \
 	@true
 
 Colouring.o ../include/colouring.mod: Colouring.F90 \
-   ../include/data_structures.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/data_structures.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod \
    ../include/fields_base.mod ../include/fields_manipulation.mod \
-   ../include/sparse_tools.mod
+   ../include/global_parameters.mod ../include/sparse_tools.mod \
+   ../include/sparsity_patterns_meshes.mod ../include/state_module.mod
 
 ../include/conservative_interpolation_module.mod: Conservative_interpolation.o
 	@true
@@ -428,10 +430,11 @@ Fields_Calculations.o ../include/fields_calculations.mod: \
 	@true
 
 Fields_Data_Types.o ../include/fields_data_types.mod: Fields_Data_Types.F90 \
-   ../include/fdebug.h ../include/global_parameters.mod \
-   ../include/halo_data_types.mod ../include/picker_data_types.mod \
-   ../include/reference_counting.mod ../include/shape_functions.mod \
-   ../include/sparse_tools.mod ../include/spud.mod
+   ../include/data_structures.mod ../include/fdebug.h \
+   ../include/global_parameters.mod ../include/halo_data_types.mod \
+   ../include/picker_data_types.mod ../include/reference_counting.mod \
+   ../include/shape_functions.mod ../include/sparse_tools.mod \
+   ../include/spud.mod
 
 ../include/fields_halos.mod: Fields_Halos.o
 	@true

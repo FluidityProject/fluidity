@@ -512,23 +512,24 @@ MeshMovement.o ../include/meshmovement.mod: MeshMovement.F90 \
 	@true
 
 Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
-   ../include/profiler.mod \
-   ../include/boundary_conditions.mod ../include/colouring.mod \
-   ../include/boundary_conditions_from_options.mod ../include/coordinates.mod \
-   ../include/coriolis_module.mod ../include/edge_length_module.mod \
-   ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
-   ../include/fetools.mod ../include/field_derivatives.mod \
-   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/boundary_conditions.mod \
+   ../include/boundary_conditions_from_options.mod ../include/colouring.mod \
+   ../include/coordinates.mod ../include/coriolis_module.mod \
+   ../include/edge_length_module.mod ../include/elements.mod \
+   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_derivatives.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/fldebug.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/les_viscosity_module.mod ../include/metric_tools.mod \
    ../include/multiphase_module.mod ../include/petsc_solve_state_module.mod \
-   ../include/rotated_boundary_conditions.mod ../include/smoothing_module.mod \
-   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
-   ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_fields_module.mod ../include/state_matrices_module.mod \
-   ../include/state_module.mod ../include/transform_elements.mod \
-   ../include/upwind_stabilisation.mod ../include/vector_tools.mod
+   ../include/profiler.mod ../include/rotated_boundary_conditions.mod \
+   ../include/smoothing_module.mod ../include/solvers.mod \
+   ../include/sparse_matrices_fields.mod ../include/sparse_tools.mod \
+   ../include/sparse_tools_petsc.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_fields_module.mod \
+   ../include/state_matrices_module.mod ../include/state_module.mod \
+   ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
+   ../include/vector_tools.mod
 
 ../include/momentum_dg.mod: Momentum_DG.o
 	@true
