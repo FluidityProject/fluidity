@@ -61,6 +61,11 @@
     use Coordinates
     use multiphase_module
     use edge_length_module
+    use colouring
+    use Profiler
+#ifdef _OPENMP
+    use omp_lib
+#endif
 
     implicit none
 
@@ -261,6 +266,20 @@
       ! Volume fraction fields for multi-phase flow simulation
       type(scalar_field), pointer :: vfrac
       type(scalar_field) :: nvfrac ! Non-linear version
+
+      !! Coloring  data structures for OpenMP parallization
+      type(mesh_type) :: p0_mesh
+      type(mesh_type), pointer :: vertex_mesh
+      type(csr_sparsity), pointer :: momcg_sparsity
+      type(scalar_field) :: node_colour
+      type(integer_set), dimension(:), allocatable :: clr_sets
+      integer :: clr, nnid, no_colours, len, i
+      integer :: num_threads, thread_num
+      !! Did we successfully prepopulate the transform_to_physical_cache?
+      logical :: cache_valid
+
+
+      type(element_type), dimension(:), allocatable :: supg_element
 
       ewrite(1,*) 'Entering construct_momentum_cg'
     
@@ -503,6 +522,14 @@
 
       on_sphere = have_option('/geometry/spherical_earth/')
 
+#ifdef _OPENMP
+    num_threads = omp_get_max_threads()
+#else
+    num_threads = 1
+#endif
+
+      allocate(supg_element(num_threads))
+
       call get_option("/timestepping/timestep", dt)
       call get_option(trim(u%option_path)//"/prognostic/temporal_discretisation/theta", &
                       theta)
@@ -590,6 +617,10 @@
         stabilisation_scheme = STABILISATION_SUPG
         call get_upwind_options(trim(u%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind_petrov_galerkin", &
           & nu_bar_scheme, nu_bar_scale)
+       !!    we need 1 supg_element per thread
+        do i = 1, num_threads
+           supg_element(i)=make_supg_element(ele_shape(u,1))
+        enddo
       else
         stabilisation_scheme = STABILISATION_NONE
       end if
@@ -672,9 +703,47 @@
 
       call set_local_assembly(big_m, local_assembly)
       
+    if(num_threads>1) then
+       call find_linear_parent_mesh(state, x%mesh, vertex_mesh, stat)
+       if (stat .ne. 0) then
+          FLAbort(" t CG parent mesh could not be found")
+       endif
+
+       p0_mesh = piecewise_constant_mesh(vertex_mesh, "P0Mesh")
+       momcg_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, u%mesh)
+       call colour_sparsity(momcg_sparsity, p0_mesh, node_colour, no_colours)
+
+       assert(verify_colour_sparsity(momcg_sparsity, node_colour))
+
+       allocate(clr_sets(no_colours))
+       clr_sets=colour_sets(momcg_sparsity, node_colour, no_colours)
+       ewrite(3,*)'Colouring passed in AD-CG'
+    else
+       no_colours = 1
+       allocate(clr_sets(no_colours))
+       call allocate(clr_sets)
+       do ELE=1,ele_count(u)
+          call insert(clr_sets(1), ele)
+       end do
+    end if
       ! ----- Volume integrals over elements -------------
       
-      element_loop: do ele=1, element_count(u)
+#ifdef _OPENMP
+    cache_valid = prepopulate_transform_cache(x)
+    assert(cache_valid)
+#endif
+
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num)
+#ifdef _OPENMP
+    thread_num = omp_get_thread_num()
+#else
+    thread_num = 0
+#endif
+    colour_loop: do clr = 1, no_colours
+      len = key_count(clr_sets(clr))
+      !$OMP DO SCHEDULE(STATIC)
+      element_loop: do nnid = 1, len
+         ele = fetch(clr_sets(clr), nnid)
          call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, p, &
@@ -683,8 +752,21 @@
               mnu, tnu, leonard, alpha, &
               gp, surfacetension, &
               assemble_ct_matrix_here, on_sphere, depth, &
-              alpha_u_field, abs_wd, temperature, nvfrac)
+              alpha_u_field, abs_wd, temperature, nvfrac, &
+              supg_element(thread_num+1))
       end do element_loop
+      !$OMP END DO
+      !$OMP BARRIER
+    end do colour_loop
+    !$OMP END PARALLEL
+
+    call deallocate(clr_sets)
+    deallocate(clr_sets)
+
+    if(num_threads > 1) then
+       call deallocate(node_colour)
+       call deallocate(p0_mesh)
+    endif
 
       if (have_wd_abs) then
         ! the remapped field is not needed anymore.
@@ -865,6 +947,13 @@
       if(multiphase) then
          call deallocate(nvfrac)
       end if
+
+      if (stabilisation_scheme == STABILISATION_SUPG) then
+         do i = 1, num_threads
+            call deallocate(supg_element(i))
+         end do
+      end if
+      deallocate(supg_element)
 
       contains 
 
@@ -1126,7 +1215,7 @@
                                             mnu, tnu, leonard, alpha, &
                                             gp, surfacetension, &
                                             assemble_ct_matrix_here, on_sphere, depth, &
-                                            alpha_u_field, abs_wd, temperature, nvfrac)
+                                            alpha_u_field, abs_wd, temperature, nvfrac, supg_shape)
 
       !!< Assembles the local element matrix contributions and places them in big_m
       !!< and rhs for the continuous galerkin momentum equations
@@ -1172,6 +1261,8 @@
 
       ! Volume fraction field
       type(scalar_field), intent(in) :: nvfrac
+
+      type(element_type), intent(inout) :: supg_shape
 
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
@@ -1259,15 +1350,15 @@
             relu_gi = relu_gi - ele_val_at_quad(ug, ele)
           end if
           if(have_viscosity) then
-            test_function = make_supg_shape(u_shape, du_t, relu_gi, j_mat, diff_q = ele_val_at_quad(viscosity, ele), &
-              & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+          call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, diff_q = ele_val_at_quad(viscosity, ele), &
+            & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           else
-            test_function = make_supg_shape(u_shape, du_t, relu_gi, j_mat, &
-              & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
+          call supg_test_function(supg_shape, u_shape, du_t, relu_gi, j_mat, &
+            & nu_bar_scheme = nu_bar_scheme, nu_bar_scale = nu_bar_scale)
           end if
+          test_function = supg_shape
         case default
           test_function = u_shape
-          call incref(test_function)
       end select
       ! Important note: the test function derivatives have not been modified -
       ! i.e. du_t is currently used everywhere. This is fine for P1, but is not
@@ -1363,8 +1454,6 @@
       if(assemble_ct_matrix_here) then
         call addto(ct_m, p_ele, u_ele, spread(grad_p_u_mat, 1, 1))
       end if
-      
-      call deallocate(test_function)
       
     contains
     

@@ -512,7 +512,8 @@ MeshMovement.o ../include/meshmovement.mod: MeshMovement.F90 \
 	@true
 
 Momentum_CG.o ../include/momentum_cg.mod: Momentum_CG.F90 \
-   ../include/boundary_conditions.mod \
+   ../include/profiler.mod \
+   ../include/boundary_conditions.mod ../include/colouring.mod \
    ../include/boundary_conditions_from_options.mod ../include/coordinates.mod \
    ../include/coriolis_module.mod ../include/edge_length_module.mod \
    ../include/elements.mod ../include/fdebug.h ../include/fefields.mod \
