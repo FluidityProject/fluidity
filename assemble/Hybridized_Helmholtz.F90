@@ -1937,7 +1937,7 @@ contains
     real, dimension(mesh_dim(U)*ele_loc(U,ele)) :: projection_rhs
     type(element_type) :: u_shape
     real, dimension(:,:,:), allocatable :: face_mat
-    integer :: ni, ele2, face, row, floc, i1, uloc,dim1,dim2,gi,stat
+    integer :: ni, ele2, face, face2, row, floc, i1, uloc,dim1,dim2,gi,stat
     integer, dimension(:), pointer :: neigh
     type(constraints_type), pointer :: U_constraint
 
@@ -1963,11 +1963,12 @@ contains
     do ni = 1, size(neigh)
        ele2 = neigh(ni)
        face = ele_face(U,ele,ele2)
+       face2 = ele_face(U,ele2,ele)
        floc = U_constraint%n_face_basis
        
        call set_velocity_commuting_projection_face(&
             U,X,Python_Function,face,&
-            ele,projection_mat(row:row+floc-1,:),&
+            face2,ele,ele2,projection_mat(row:row+floc-1,:),&
             projection_rhs(row:row+floc-1))
        row = row + floc
     end do
@@ -2068,11 +2069,11 @@ contains
   end subroutine set_velocity_commuting_projection_ele
   
   subroutine set_velocity_commuting_projection_face(U,X,Python_Function,face,&
-       &ele,projection_mat_rows,projection_rhs_rows)
+       &face2,ele,ele2,projection_mat_rows,projection_rhs_rows)
     type(vector_field), intent(in) :: X
     type(vector_field), intent(inout) :: U
     character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
-    integer, intent(in) :: face,ele
+    integer, intent(in) :: face,face2,ele,ele2
     real, dimension(U%mesh%shape%constraints%n_face_basis,&
          &mesh_dim(U)*ele_loc(U,ele)), &
          &intent(inout) :: projection_mat_rows
@@ -2082,7 +2083,7 @@ contains
     real, dimension(mesh_dim(U),face_loc(U,face),face_loc(U,face)) :: face_mat
     real, dimension(face_loc(U,face)) :: face_rhs
     real, dimension(mesh_dim(U), face_ngi(U, face)) :: n_local
-    real, dimension(X%dim, face_ngi(X, face)) :: n_cart
+    real, dimension(X%dim, face_ngi(X, face)) :: n_cart, n_cart2
     real, dimension(X%dim, face_ngi(U, face)) :: U_rhs_face_quad, &
          & X_face_quad
     real, dimension(X%dim) :: ele_normal, face_tangent, ele_out
@@ -2142,6 +2143,25 @@ contains
     if(dot_product(ele_out,n_cart(:,1))<0.0) then
        n_cart = -n_cart
     end if
+
+    !Get the element normal in other element
+    X_ele_val = ele_val(X,ele2)
+    ele_normal = cross_product(X_ele_val(:,1)-X_ele_val(:,2),&
+         X_ele_val(:,1)-X_ele_val(:,3))
+    ele_normal = ele_normal/sqrt(sum(ele_normal**2))
+    X_face_val = face_val(X,face2)
+    face_tangent = X_face_val(:,1)-X_face_val(:,2)
+    face_tangent = face_tangent/sqrt(sum(face_tangent**2))
+    do gi = 1, face_ngi(X,face)
+       n_cart2(:,gi) = cross_product(ele_normal,face_tangent)
+    end do
+    ele_out = sum(X_face_val,2)/size(X_face_val,2)-&
+         &sum(X_ele_val,2)/size(X_ele_val,2)
+    if(dot_product(ele_out,n_cart(:,1))<0.0) then
+       n_cart2 = -n_cart2
+    end if
+    !Get average
+    n_cart=0.5*(n_cart-n_cart2)
 
     !get detwei
     !integral is |dx/dxi(xi)|dxi
