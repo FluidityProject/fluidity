@@ -477,7 +477,7 @@ prognostic_velocity_field =
                     }
                   )
                },
-               ## large-eddy simulation models
+               ## large-eddy simulation models (currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless)
                element les_model {
                   ## similar to the original Smag model
                   element second_order {

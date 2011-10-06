@@ -355,7 +355,7 @@ Large-eddy simulation filters the velocity field into resolved and sub-filter-sc
  + \frac{\partial}{\partial x_j} \left [ (\nu + \nu_\tau) \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right ) \right ],
 \end{equation}
 
-Two LES models are available in \fluidity.
+Four LES models are available in \fluidity. They are restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
 
 \subsection{Second-Order Dissipation}
 
@@ -369,7 +369,7 @@ with the anisotropic tensorial eddy viscosity:
 \begin{equation}
 \nu_{jk} = 4C_S^2 \left | \mathcal{\tilde S} \right | \mathcal{M}^{-1},
 \end{equation}
-where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}), used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter width separating resolved and unresolved scales is twice the local element size, which is squared in the viscosity model. $C_S \approx 0.1$ is the Smagorinsky coefficient, and $\left | \mathcal{\tilde S} \right |$ is the local strain rate:
+where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}), used here to relate eddy viscosity to the local grid size. The factor 4 comes from the choice of filter width $\bigtriangleup = 2(h_{\zeta}, h_{\eta}, h_{\xi})$ which provides a better resolution of the resolved scales \citep{pope}. $C_S \approx 0.1$ is the Smagorinsky coefficient, and $\left | \mathcal{\tilde S} \right |$ is the local strain rate:
 
 \begin{equation}
 \left | \mathcal{\tilde S} \right | = (2 \tilde S_{ij} \tilde S_{ij})^{1/2},

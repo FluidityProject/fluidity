@@ -1354,7 +1354,7 @@ If using Dirichlet conditions, it is recommended that $k$ and $\epsilon$ be set 
 
 \subsection{Large Eddy Simulation Models}
 
-LES models are available as options under \option{\ldots/Velocity/prognostic/spatial\_discretisation/continuous\_galerkin/les\_model}. See \ref{Sect:LES} for details of the various LES models available. These models require a prescribed viscosity (\ldots/Velocity/prognostic/tensor\_field::Viscosity/prescribed), to which an eddy viscosity is added to account for subgrid-scale turbulence.
+LES models are available as options under \option{\ldots/Velocity/prognostic/spatial\_discretisation/continuous\_galerkin/les\_model}. See \ref{Sect:LES} for details of the various LES models available. These models require a prescribed viscosity (\ldots/Velocity/prognostic/tensor\_field::Viscosity/prescribed), to which an eddy viscosity is added to account for subgrid-scale turbulence. The LES models are currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
 
 \subsubsection{Second-Order Smagorinsky}
 
