@@ -39,7 +39,7 @@ module advection_diffusion_cg
   use boundary_conditions_from_options
   use field_options
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
+  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, COLOURING_CG
   use profiler
   use spud
   use petsc_solve_state_module
@@ -238,12 +238,8 @@ contains
     type(scalar_field), pointer :: pressure
         
     !! Coloring  data structures for OpenMP parallization
-    type(mesh_type) :: p0_mesh
-    type(mesh_type), pointer :: vertex_mesh
-    type(csr_sparsity), pointer :: ad_sparsity
-    type(scalar_field) :: node_colour
-    type(integer_set), dimension(:), allocatable :: clr_sets
-    integer :: clr, nnid, no_colours, len, ele
+    type(integer_set), dimension(:), pointer :: clr_sets
+    integer :: clr, nnid, len, ele
     integer :: num_threads, thread_num
     !! Did we successfully prepopulate the transform_to_physical_cache?
     logical :: cache_valid
@@ -488,35 +484,12 @@ contains
     
     call profiler_tic(t, "advection_diffusion_loop_overhead")
 
-    if(num_threads>1) then
-       call find_linear_parent_mesh(state, t%mesh, vertex_mesh, stat)
-       if (stat .ne. 0) then
-          FLAbort(" t CG parent mesh could not be found")
-       endif
-
-       p0_mesh = piecewise_constant_mesh(vertex_mesh, "P0Mesh")
-       ad_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, t%mesh)
-       call colour_sparsity(ad_sparsity, p0_mesh, node_colour, no_colours)
-
-       assert(verify_colour_sparsity(ad_sparsity, node_colour))
-
-       allocate(clr_sets(no_colours))
-       clr_sets=colour_sets(ad_sparsity, node_colour, no_colours)
-       ewrite(3,*)'Colouring passed in AD-CG'
-    else
-       no_colours = 1
-       allocate(clr_sets(no_colours))
-       call allocate(clr_sets)
-       do ELE=1,ele_count(t)
-          call insert(clr_sets(1), ele)
-       end do
-    end if
-
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(positions)
     assert(cache_valid)
 #endif
 
+    call get_mesh_colouring(state, t%mesh, COLOURING_CG, clr_sets)
     call profiler_toc(t, "advection_diffusion_loop_overhead")
 
     call profiler_tic(t, "advection_diffusion_loop")
@@ -527,7 +500,7 @@ contains
 #else
     thread_num=0
 #endif
-    colour_loop: do clr = 1, no_colours
+    colour_loop: do clr = 1, size(clr_sets)
       len = key_count(clr_sets(clr))
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
@@ -544,14 +517,6 @@ contains
     !$OMP END PARALLEL
 
     call profiler_toc(t, "advection_diffusion_loop")
-
-    call deallocate(clr_sets)
-    deallocate(clr_sets)
-
-    if(num_threads > 1) then
-       call deallocate(node_colour)
-       call deallocate(p0_mesh)
-    endif
 
     ! as part of assembly include the already discretised optional source
     ! needed before applying direchlet boundary conditions

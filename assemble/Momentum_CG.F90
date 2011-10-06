@@ -42,7 +42,8 @@
     use sparse_matrices_fields
     use field_options
     use halos
-    use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep
+    use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, &
+         COLOURING_CG
     use elements
     use transform_elements, only: transform_to_physical
     use coriolis_module
@@ -268,12 +269,8 @@
       type(scalar_field) :: nvfrac ! Non-linear version
 
       !! Coloring  data structures for OpenMP parallization
-      type(mesh_type) :: p0_mesh
-      type(mesh_type), pointer :: vertex_mesh
-      type(csr_sparsity), pointer :: momcg_sparsity
-      type(scalar_field) :: node_colour
-      type(integer_set), dimension(:), allocatable :: clr_sets
-      integer :: clr, nnid, no_colours, len, i
+      type(integer_set), dimension(:), pointer :: clr_sets
+      integer :: clr, nnid, len, i
       integer :: num_threads, thread_num
       !! Did we successfully prepopulate the transform_to_physical_cache?
       logical :: cache_valid
@@ -702,30 +699,8 @@
       end if
 
       call set_local_assembly(big_m, local_assembly)
-      
-    if(num_threads>1) then
-       call find_linear_parent_mesh(state, x%mesh, vertex_mesh, stat)
-       if (stat .ne. 0) then
-          FLAbort(" t CG parent mesh could not be found")
-       endif
 
-       p0_mesh = piecewise_constant_mesh(vertex_mesh, "P0Mesh")
-       momcg_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, u%mesh)
-       call colour_sparsity(momcg_sparsity, p0_mesh, node_colour, no_colours)
-
-       assert(verify_colour_sparsity(momcg_sparsity, node_colour))
-
-       allocate(clr_sets(no_colours))
-       clr_sets=colour_sets(momcg_sparsity, node_colour, no_colours)
-       ewrite(3,*)'Colouring passed in AD-CG'
-    else
-       no_colours = 1
-       allocate(clr_sets(no_colours))
-       call allocate(clr_sets)
-       do ELE=1,ele_count(u)
-          call insert(clr_sets(1), ele)
-       end do
-    end if
+      call get_mesh_colouring(state, u%mesh, COLOURING_CG, clr_sets)
       ! ----- Volume integrals over elements -------------
       
 #ifdef _OPENMP
@@ -739,7 +714,7 @@
 #else
     thread_num = 0
 #endif
-    colour_loop: do clr = 1, no_colours
+    colour_loop: do clr = 1, size(clr_sets)
       len = key_count(clr_sets(clr))
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
@@ -759,14 +734,6 @@
       !$OMP BARRIER
     end do colour_loop
     !$OMP END PARALLEL
-
-    call deallocate(clr_sets)
-    deallocate(clr_sets)
-
-    if(num_threads > 1) then
-       call deallocate(node_colour)
-       call deallocate(p0_mesh)
-    endif
 
       if (have_wd_abs) then
         ! the remapped field is not needed anymore.

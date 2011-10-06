@@ -47,7 +47,8 @@ module momentum_DG
   use boundary_conditions_from_options
   use solvers
   use dgtools
-  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG_VISCOSITY, &
+       COLOURING_DG_NO_VISCOSITY
   use coriolis_module
   use halos
   use sparsity_patterns
@@ -258,14 +259,8 @@ contains
     real, dimension(u%dim) :: abs_wd_const
 
     !! 
-    type(mesh_type) :: p0_mesh
-    type(mesh_type), pointer :: parent_mesh
-    type(csr_sparsity), pointer :: dependency_sparsity
-    type(scalar_field) :: node_colour
-    type(integer_set), dimension(:), allocatable :: clr_sets
-    integer :: clr, nnid, no_colours, len
-    logical :: compact_stencil
-
+    type(integer_set), dimension(:), pointer :: clr_sets
+    integer :: len, clr, nnid
     !! Is the transform_to_physical cache we prepopulated valid
     logical :: cache_valid
     integer :: num_threads
@@ -638,59 +633,19 @@ contains
     call profiler_tic(u, "element_loop-omp_overhead")
 
 #ifdef _OPENMP
-      num_threads = omp_get_max_threads()
+    num_threads = omp_get_max_threads()
 #else 
-      num_threads=1
+    num_threads=1
 #endif
 
-    if(num_threads>1) then
-
-       !! working out the options for different schemes of different terms
-       call set_coriolis_parameters
-       compact_stencil = have_option(trim(u%option_path)//&
-            "/prognostic/spatial_discretisation&
-            &/discontinuous_galerkin/viscosity_scheme&
-            &/interior_penalty") .or. &
-            &have_option(trim(u%option_path)//&
-            "/prognostic/spatial_discretisation&
-            &/discontinuous_galerkin/viscosity_scheme&
-            &/compact_discontinuous_galerkin")
-
-       compact_stencil=.false.
-       call find_linear_parent_mesh(state, u%mesh, parent_mesh, stat)
-       !! generate the dual graph of the mesh
-       p0_mesh = piecewise_constant_mesh(parent_mesh, "P0Mesh")
-
-       !! the sparse pattern of the dual graph.
-       if (have_viscosity .and. (.not. compact_stencil)) then
-          dependency_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, p0_mesh)
-       else
-          dependency_sparsity =>get_csr_sparsity_compactdgdouble(state, p0_mesh)
-       end if
-       
-       !! we have issues for sparsity of compactdgdouble, setting to secondorder
-       !! for now
-       dependency_sparsity => get_csr_sparsity_secondorder(state, p0_mesh, p0_mesh)
-
-       !! colouring dual graph according the sparsity pattern with greedy
-       !! colouring algorithm
-       !! "colours" is an array of type(integer_set)
-       call colour_sparsity(dependency_sparsity, p0_mesh, node_colour, no_colours)
-
-       assert(verify_colour_sparsity(dependency_sparsity, node_colour))
-
-       allocate(clr_sets(no_colours))
-       clr_sets=colour_sets(dependency_sparsity, node_colour, no_colours)
-       ewrite(3,*)'Colouring passed in Momentum-DG'
+    if ( have_option(trim(u%option_path)//&
+         '/prognostic/spatial_discretisation/&
+         &discontinuous_galerkin/viscosity_scheme') ) then
+       call get_mesh_colouring(state, u%mesh, COLOURING_DG_VISCOSITY, clr_sets)
     else
-       no_colours = 1
-       allocate(clr_sets(no_colours))
-       call allocate(clr_sets)
-       do ELE=1,element_count(U)
-          call insert(clr_sets(1), ele)
-       end do
+       ewrite(-1, *)'Using single colour in MOM-DG (no viscosity)'
+       call get_mesh_colouring(state, u%mesh, COLOURING_DG_NO_VISCOSITY, clr_sets)
     end if
-
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(X)
     assert(cache_valid)
@@ -699,7 +654,7 @@ contains
 
     call profiler_tic(u, "element_loop")
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, nnid, ele, len)
-    colour_loop: do clr = 1, no_colours
+    colour_loop: do clr = 1, size(clr_sets)
       len = key_count(clr_sets(clr))
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
@@ -721,14 +676,6 @@ contains
     end do colour_loop
     !$OMP END PARALLEL
 
-    call deallocate(clr_sets)
-    deallocate(clr_sets)
-
-    if(num_threads > 1) then
-       call deallocate(node_colour)
-       call deallocate(p0_mesh)
-    endif
-    
     call profiler_toc(u, "element_loop")
 
     if (have_wd_abs) then
