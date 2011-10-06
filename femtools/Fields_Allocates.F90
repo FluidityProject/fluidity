@@ -30,7 +30,8 @@ use elements
 use fields_data_types
 use fields_base
 use shape_functions, only: make_element_shape
-use global_parameters, only: PYTHON_FUNC_LEN, empty_path, empty_name
+use global_parameters, only: PYTHON_FUNC_LEN, empty_path, empty_name, &
+     topology_mesh_name, NUM_COLOURINGS
 use halo_data_types
 use halos_allocates
 use halos_repair
@@ -148,7 +149,7 @@ contains
     integer, intent(in) :: nodes, elements
     type(element_type), target, intent(in) :: shape
     character(len=*), intent(in), optional :: name
-        
+    integer :: i
     mesh%nodes=nodes
 
     mesh%elements=elements
@@ -168,7 +169,11 @@ contains
     nullify(mesh%faces)
     nullify(mesh%columns)
     nullify(mesh%element_columns)
-    
+
+    allocate(mesh%colourings(NUM_COLOURINGS))
+    do i = 1, NUM_COLOURINGS
+       nullify(mesh%colourings(i)%sets)
+    end do
     allocate(mesh%ndglno(elements*shape%loc))
 
 #ifdef HAVE_MEMORY_STATS
@@ -466,7 +471,7 @@ contains
     !!< Deallocate the components of mesh. Shape functions are not
     !!< deallocated here.
     type(mesh_type), intent(inout) :: mesh
-    
+    integer :: i
     call decref(mesh)
     if (has_references(mesh)) then
        ! There are still references to this mesh so we don't deallocate.
@@ -514,7 +519,16 @@ contains
     if(associated(mesh%element_columns)) then
       deallocate(mesh%element_columns)
     end if
-    
+
+    if(associated(mesh%colourings)) then
+       do i = 1, NUM_COLOURINGS
+          if(associated(mesh%colourings(i)%sets)) then
+             call deallocate(mesh%colourings(i)%sets)
+             deallocate(mesh%colourings(i)%sets)
+          end if
+       end do
+       deallocate(mesh%colourings)
+    end if
   end subroutine deallocate_mesh
 
   recursive subroutine deallocate_scalar_field(field)
@@ -1850,18 +1864,9 @@ contains
           z => positions%val(3,:)
        end if
     end if
-
+    call allocate(mesh, 0, model%elements, model%shape, name=name)
     !copy over all the mesh parameters
-    allocate(mesh%adj_lists)
     mesh%continuity=model%continuity
-    mesh%elements=model%elements
-    mesh%shape=model%shape
-    call incref(mesh%shape)
-    if (present(name)) then
-       mesh%name=name
-    else
-       mesh%name=empty_name
-    end if
     mesh%wrapped=.false.
     mesh%periodic=.true.
     
@@ -1872,19 +1877,10 @@ contains
 
     !allocate memory for temporary place to hold old connectivity,
     !and memory for periodic connectivity
-    allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
-         mesh%ndglno(mesh%shape%loc*model%elements))
-#ifdef HAVE_MEMORY_STATS
-    call register_allocation("mesh_type", "integer", size(mesh%ndglno), &
-      name=mesh%name)
-#endif
+    allocate(ndglno(mesh%shape%numbering%vertices*model%elements))
 
     !get old connectivity
     ndglno=model%ndglno
-    
-    nullify(mesh%refcount) ! Hack for gfortran component initialisation
-    !                         bug.
-    call addref(mesh)
     
     !mapping_list is mapping from coordinates to periodic node number
     !mapped takes value 1 if node is aliased
