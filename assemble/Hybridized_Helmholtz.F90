@@ -1899,7 +1899,7 @@ contains
   subroutine set_velocity_commuting_projection(state)
     type(state_type), intent(in) :: state
     !
-    type(vector_field), pointer :: U, X
+    type(vector_field), pointer :: U, X, U_cart
     character(len=PYTHON_FUNC_LEN) :: Python_Function
     integer :: ele
 
@@ -1914,6 +1914,13 @@ contains
 
     do ele = 1, element_count(U)
        call set_velocity_commuting_projection_ele(U,X,Python_Function,ele)
+    end do
+
+    U_cart => extract_vector_field(state, "Velocity")
+    call project_local_to_cartesian(X,U,U_cart)
+
+    do ele = 1, ele_count(U)
+       call check_continuity_ele(U_cart,X,ele)
     end do
 
     ewrite(1,*) 'Setting velocity from commuting projection: DONE'
@@ -2175,8 +2182,7 @@ contains
     D=>extract_scalar_field(state, "LayerThickness")
     X=>extract_vector_field(state, "Coordinate")
  
-    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
-         &gnostic/initial_condition::ProjectionFromPython/python",&
+    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/initial_condition::ProjectionFromPython/python",&
          Python_Function)
 
     do ele = 1, element_count(D)

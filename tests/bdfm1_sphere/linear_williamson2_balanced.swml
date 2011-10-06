@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
-    <string_value lines="1">LW2</string_value>
+    <string_value lines="1">LW2bal</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -328,6 +328,53 @@
         </adjoint_storage>
       </prescribed>
     </scalar_field>
+    <scalar_field name="PrescribedLayerDepth" rank="0">
+      <prescribed>
+        <mesh name="PressureMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X,t):
+  from math import pi
+  z = X[2]
+  omega = 7.292e-5
+  gh0 = 2.94e4
+  g = 9.80616
+  R = 6.37122e6
+  u0 = 2*pi*R/(12.*24.*60.*60.)
+  sinphi = z/R
+  return (gh0-R*omega*u0*sinphi**2)/g</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="LayerThicknessDiff" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_difference" source_field_1_name="LayerThickness" source_field_2_name="PrescribedLayerDepth" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </scalar_field>
     <vector_field name="InitialVelocityError" rank="1">
       <diagnostic>
         <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="InitialVelocity" material_phase_support="single" source_field_1_type="vector"/>
@@ -377,6 +424,64 @@
           <exists_in_forward/>
         </adjoint_storage>
       </prescribed>
+    </vector_field>
+    <vector_field name="PrescribedVelocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X,t):
+  from math import pi
+  x = X[0]
+  y = X[1]
+  z = X[2]
+  R = ((x**2+y**2)**0.5)
+  if(R&gt;0.0):
+    el1 = -y/R 
+    el2 =  x/R
+  else:
+    el1 = 0.
+    el2 = 0.
+  R = 6.37122e6
+  u0 = 2*pi*R/(12.*24.*60.*60.)
+  sinphi = z/R
+  cosphi = (1-sinphi**2)**0.5
+  return [el1*u0*cosphi,el2*u0*cosphi,0.0]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </vector_field>
+    <vector_field name="VelocityDiff" rank="1">
+      <diagnostic>
+        <algorithm name="vector_difference" source_field_1_name="Velocity" source_field_2_name="PrescribedVelocity" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
     </vector_field>
   </material_phase>
   <debug>
