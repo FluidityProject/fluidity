@@ -614,6 +614,13 @@ contains
       ! Adaptivity is not guaranteed to return halo elements in the same
       ! order in which they went in. We therefore need to fix this order.
       call reorder_element_numbering(output_positions)
+          canonical_numbering=universal_number_field(mesh)
+          ! Temporarily point the uid until this is done properly below.
+          canonical_numbering%mesh%uid=>canonical_numbering
+          call order_elements(canonical_numbering)
+          mesh=canonical_numbering%mesh
+          position%mesh=mesh
+
               
 #ifdef DDEBUG
       do i = 1, nhalos
