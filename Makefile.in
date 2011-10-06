@@ -96,7 +96,7 @@ default: bin/@FLUIDITY@
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
-	lib/libspud.a lib/libjudy.a
+	lib/libspud.a lib/libjudy.a include/version.h
  
 lib/libjudy.a:
 	@echo '    MKDIR lib'; mkdir -p lib
@@ -128,7 +128,11 @@ lib/libspatialindex.a:
 
 lib/libspud.a:
 	@echo '    MKDIR lib'; mkdir -p lib
-	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install; cp python/libspud.py ../python
+ifeq (@SPUD_ONLY@,yes)
+	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install-libspud
+else
+	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install; cd ..; cp lib*/python*/site-packages/libspud.so python/
+endif
 
 libfemtools: sub_system
 	@echo '    MKDIR lib'; mkdir -p lib
@@ -143,7 +147,14 @@ ifeq (@FEMDEM@,yes)
 	@cd @FLFEMDEM_PATH@;$(MAKE)
 endif
 
-main.o: include/version.h
+include/libspud.h: lib/libspud.a
+
+main.o: update_version_number include/libspud.h
+
+update_version_number:
+	@echo "Updating version number"
+	@rm -f include/version.h
+	@$(MAKE) include/version.h
 
 include/version.h:
 	@echo "DEFINE __FLUIDITY_VERSION__"

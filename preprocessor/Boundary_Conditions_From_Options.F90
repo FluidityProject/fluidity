@@ -254,7 +254,7 @@ contains
        select case(trim(bc_type))
 
        case("dirichlet", "neumann", "weakdirichlet", &
-            "buoyancy")
+            "buoyancy", "flux")
 
           call allocate(surface_field, surface_mesh, name="value")
           call insert_surface_field(field, i+1, surface_field)
@@ -487,11 +487,9 @@ contains
                   allocate(surface_mesh)
                   call create_surface_mesh(surface_mesh, surface_node_list, mesh, surface_element_list, "PressureSurfaceMesh")
                   call allocate(scalar_surface_field, surface_mesh, name="WettingDryingAlpha")
-                  call allocate(scalar_surface_field2, surface_mesh, name="WettingDryingOldAlpha")
                   call insert_surface_field(field, i+1, scalar_surface_field)
-                  call insert_surface_field(field, i+1, scalar_surface_field2)
                   call deallocate(scalar_surface_field)
-                  call deallocate(scalar_surface_field2)
+                  call deallocate(surface_mesh)
                   deallocate(surface_mesh)
              end if
           end if
@@ -745,7 +743,7 @@ contains
        ! be constant or set from a generic or python function.
        select case(trim(bc_type))
 
-       case("dirichlet", "neumann", "weakdirichlet")
+       case("dirichlet", "neumann", "weakdirichlet", "flux")
 
           bc_type_path=trim(bc_path_i)//"/type[0]"
 
@@ -1083,8 +1081,6 @@ contains
         case("free_surface")
            if(have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
               scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="WettingDryingAlpha")
-              call zero(scalar_surface_field)
-              scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="WettingDryingOldAlpha")
               call zero(scalar_surface_field)
            end if
 

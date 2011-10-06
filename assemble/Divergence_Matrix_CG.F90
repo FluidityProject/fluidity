@@ -123,6 +123,9 @@ contains
       ! Volume fraction fields
       type(scalar_field), pointer :: vfrac
       type(scalar_field) :: nvfrac
+      type(element_type), pointer :: nvfrac_shape
+      ! Transformed gradient function for the non-linear PhaseVolumeFraction. 
+      real, dimension(:, :, :), allocatable :: dnvfrac_t
 
       ! =============================================================
       ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
@@ -187,6 +190,10 @@ contains
               detwei(ele_ngi(field, 1)), &
               grad_mass_mat(ele_loc(field, 1), ele_loc(field, 1)), &
               div_mass_mat(ele_loc(test_mesh, 1), ele_loc(test_mesh, 1)))
+
+         if(multiphase) then
+            allocate(dnvfrac_t(ele_loc(nvfrac,1), ele_ngi(nvfrac,1), field%dim))
+         end if
          
          do ele=1, element_count(test_mesh)
 
@@ -215,8 +222,18 @@ contains
 
                if(multiphase) then
                   ! Split up the divergence term div(vfrac*u) = vfrac*div(u) + u*grad(vfrac)
+
+                  ! If the field and nvfrac meshes are different, then we need to
+                  ! compute the derivatives of the nvfrac shape functions.
+                  if(.not.(nvfrac%mesh == field%mesh)) then
+                     nvfrac_shape => ele_shape(nvfrac%mesh, ele)
+                     call transform_to_physical(coordinate, ele, nvfrac_shape, dshape=dnvfrac_t)
+                  else
+                     dnvfrac_t = dfield_t
+                  end if
+
                   ele_mat = shape_dshape(test_shape, dfield_t, detwei*ele_val_at_quad(nvfrac, ele)) + &
-                            shape_shape_vector(test_shape, field_shape, detwei, ele_grad_at_quad(nvfrac, ele, dfield_t))
+                            shape_shape_vector(test_shape, field_shape, detwei, ele_grad_at_quad(nvfrac, ele, dnvfrac_t))
                else
                   ele_mat = shape_dshape(test_shape, dfield_t, detwei)
                end if
@@ -263,6 +280,10 @@ contains
             end if
         
          end do
+
+         if(multiphase) then
+            deallocate(dnvfrac_t)
+         end if
 
       end if
 

@@ -40,6 +40,15 @@ extern "C" {
     return;
   }
 
+  void* spud_get_manager(){
+    return get_manager();
+  }
+
+  void spud_set_manager(void* m){
+    set_manager(m);
+    return;
+  }
+
   int spud_load_options(const char* filename, const int filename_len)
   {
     return load_options(string(filename, filename_len));

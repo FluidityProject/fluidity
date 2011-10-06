@@ -213,12 +213,34 @@ Detector_Data_Types.o ../include/detector_data_types.mod: \
    Detector_Data_Types.F90 ../include/fdebug.h ../include/fldebug.mod \
    ../include/global_parameters.mod
 
+../include/detector_move_lagrangian.mod: Detector_Move_Lagrangian.o
+	@true
+
+Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
+   Detector_Move_Lagrangian.F90 ../include/detector_data_types.mod \
+   ../include/detector_parallel.mod ../include/detector_tools.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
+   ../include/halo_data_types.mod ../include/halos_base.mod \
+   ../include/integer_hash_table_module.mod ../include/spud.mod \
+   ../include/state_module.mod
+
+../include/detector_parallel.mod: Detector_Parallel.o
+	@true
+
+Detector_Parallel.o ../include/detector_parallel.mod: Detector_Parallel.F90 \
+   ../include/detector_data_types.mod ../include/detector_tools.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/halo_data_types.mod \
+   ../include/halos_numbering.mod ../include/integer_hash_table_module.mod \
+   ../include/mpi_interfaces.mod ../include/spud.mod \
+   ../include/state_module.mod
+
 ../include/detector_tools.mod: Detector_Tools.o
 	@true
 
 Detector_Tools.o ../include/detector_tools.mod: Detector_Tools.F90 \
    ../include/detector_data_types.mod ../include/fdebug.h \
-   ../include/fldebug.mod
+   ../include/fields.mod ../include/fldebug.mod \
+   ../include/integer_hash_table_module.mod ../include/spud.mod
 
 ../include/dgtools.mod: Dgtools.o
 	@true
@@ -255,6 +277,7 @@ Diagnostic_Fields.o ../include/diagnostic_fields.mod: Diagnostic_Fields.F90 \
 Diagnostic_variables.o ../include/diagnostic_variables.mod: \
    Diagnostic_variables.F90 ../include/c_interfaces.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \
+   ../include/detector_move_lagrangian.mod ../include/detector_parallel.mod \
    ../include/detector_tools.mod ../include/elements.mod \
    ../include/embed_python.mod ../include/eventcounter.mod ../include/fdebug.h \
    ../include/fefields.mod ../include/fetools.mod \

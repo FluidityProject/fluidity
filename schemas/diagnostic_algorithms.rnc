@@ -1190,14 +1190,14 @@ tidal_harmonic_algorithm =
 particle_reynolds_number_algorithm = 
    (
       ## Diagnostic algorithm used in multiphase simulations.
-      ## Calculates the particle Reynolds number, (density_c*|u_c-u_p|*d)/viscosity_c
+      ## Calculates the particle Reynolds number, (vfrac_c*density_c*|u_c-u_p|*d)/viscosity_c
       ## where _c and _p denote the continuous and particle phases respectively,
       ## and d is the particle diameter.
       element algorithm {
          attribute name { "particle_reynolds_number" },
          attribute material_phase_support { "multiple" },
          ## The particle Reynolds number depends on the Velocity field of both the continuous and dispersed phases,
-         ## and also the Density and Viscosity fields of the continuous phase.
+         ## and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous phase.
          element depends {
             anystring
          },
@@ -1212,6 +1212,16 @@ particle_reynolds_number_algorithm =
       }
    )
 
+apparent_density_algorithm = 
+   (
+      ## Diagnostic algorithm used in multiphase simulations.
+      ## Calculates the apparent density of the material_phase,
+      ## i.e. Density multiplied by the PhaseVolumeFraction field.
+      element algorithm {
+         attribute name { "apparent_density" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
 
 # Misc
 
@@ -1269,6 +1279,25 @@ scalar_time_averaged_algorithm =
          element absolute_values {
             comment
          }?
+      }
+   )
+
+
+scalar_period_averaged_algorithm = 
+   (
+      ## Algorithm for calulating an average of a scalar field over 
+      ## a set period, e.g. daily
+      ## Note that we assume the simulation starts at zero for the
+      ## averaging period,
+      ## This field needs to be interpolated between adapts.
+      element algorithm {
+         attribute name { "period_averaged_scalar" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         ## Over what time period to average over?
+         element averaging_period {
+            real
+         }
       }
    )
 
@@ -1345,6 +1374,7 @@ scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm
 scalar_diagnostic_algorithms |= temporalmax_algorithm
 scalar_diagnostic_algorithms |= scalar_time_averaged_algorithm
+scalar_diagnostic_algorithms |= scalar_period_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_sum_algorithm
 scalar_diagnostic_algorithms |= scalar_squared_time_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_potential_algorithm
@@ -1355,6 +1385,7 @@ scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
 scalar_diagnostic_algorithms |= projection_scalar_potential_algorithm
 scalar_diagnostic_algorithms |= particle_reynolds_number_algorithm
+scalar_diagnostic_algorithms |= apparent_density_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm

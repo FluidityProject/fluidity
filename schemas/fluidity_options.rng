@@ -15,6 +15,7 @@
   <include href="temporal_discretisation.rng"/>
   <include href="embedded_models.rng"/>
   <include href="radiation.rng"/>
+  <include href="flredecomp.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -359,63 +360,7 @@ The t argument is for future use only - currently detector locations are only se
               </element>
             </optional>
             <optional>
-              <element name="lagrangian_timestepping">
-                <choice>
-                  <element name="explicit_runge_kutta_guided_search">
-                    <a:documentation>Use explicit runge kutta method with
-binary search</a:documentation>
-                    <element name="subcycles">
-                      <a:documentation>Number of subdivisions of the timestep
-increase this if you are not happy with your 
-detector trajectory accuracy, or if particles
-are jumping out of the domain a lot</a:documentation>
-                      <ref name="integer"/>
-                    </element>
-                    <element name="search_tolerance">
-                      <a:documentation>Tolerance for deciding if detector is in a given
-element. Recommended value 1.0e-10.</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                    <element name="n_stages">
-                      <a:documentation>Number of RK stages
-For the RK4 method, it should be 4.</a:documentation>
-                      <ref name="integer"/>
-                    </element>
-                    <element name="stage_weights">
-                      <a:documentation>ERK stage array. This is an array
-containing the lower-triangular
-part of the Butcher weight matrix
-A that explains how to compute the
-RK stages.  See
-http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-for notation.  The array is stored
-in the following order:
-[a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
-and so the array has size s(s-1)/2
-where s is the number of stages.
-For the RK4 method, it should be
-[0.5,0,0.5,0,0,1]</a:documentation>
-                      <ref name="real_vector"/>
-                    </element>
-                    <element name="timestep_weights">
-                      <a:documentation>ERK timestep weights. This is the
-b vector that explains how to
-compute the timestep from the RK
-stages.  See
-http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-for notation.  It should have size
-s where s is the number of stages.
-For the RK4 method, it should be
-[1/6,1/3,1/3,1/6]</a:documentation>
-                      <ref name="real_vector"/>
-                    </element>
-                  </element>
-                  <element name="binary_search">
-                    <a:documentation>Use binary search algorithm</a:documentation>
-                    <empty/>
-                  </element>
-                </choice>
-              </element>
+              <ref name="lagrangian_timestepping"/>
             </optional>
           </element>
         </optional>
@@ -2071,21 +2016,10 @@ probably equal to the location of the borehole</a:documentation>
           </optional>
           <optional>
             <element name="multiphase_properties">
-              <a:documentation>Parameters required to model multiphase flow in porous media</a:documentation>
-              <element name="relperm_max">
-                <a:documentation>Relative permeability end point relperm_max
-in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-Value between 0 and 1</a:documentation>
-                <ref name="real"/>
-              </element>
-              <element name="relperm_exponent">
-                <a:documentation>Relative permeability exponent relperm_exponent
-in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)</a:documentation>
-                <ref name="real"/>
-              </element>
+              <a:documentation>Phase interaction options for Fluidity's multiphase flow model</a:documentation>
+              <ref name="comment"/>
               <optional>
-                <element name="immobile_fraction">
-                  <a:documentation>Immobile volume of fluid phase</a:documentation>
+                <element name="particle_diameter">
                   <ref name="real"/>
                 </element>
               </optional>
@@ -2773,6 +2707,9 @@ Y3D FEMDEM mesh format only supported.</a:documentation>
       <optional>
         <ref name="embedded_models"/>
       </optional>
+      <optional>
+        <ref name="flredecomp"/>
+      </optional>
     </element>
   </start>
   <define name="sediment">
@@ -3329,6 +3266,71 @@ i.e. the free surface or rigid lid.</a:documentation>
           </element>
         </element>
       </optional>
+    </element>
+  </define>
+  <define name="lagrangian_timestepping">
+    <element name="lagrangian_timestepping">
+      <element name="subcycles">
+        <a:documentation>Number of subdivisions of the timestep
+increase this if you are not happy with your 
+detector trajectory accuracy, or if particles
+are jumping out of the domain a lot</a:documentation>
+        <ref name="integer"/>
+      </element>
+      <element name="search_tolerance">
+        <a:documentation>Tolerance for deciding if detector is in a given
+element. Recommended value 1.0e-10.</a:documentation>
+        <ref name="real"/>
+      </element>
+      <choice>
+        <element name="explicit_runge_kutta_guided_search">
+          <a:documentation>Use explicit runge kutta method with
+guided search particle tracking</a:documentation>
+          <element name="n_stages">
+            <a:documentation>Number of RK stages
+For the RK4 method, it should be 4.</a:documentation>
+            <ref name="integer"/>
+          </element>
+          <element name="stage_weights">
+            <a:documentation>ERK stage array. This is an array
+containing the lower-triangular
+part of the Butcher weight matrix
+A that explains how to compute the
+RK stages.  See
+http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+for notation.  The array is stored
+in the following order:
+[a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
+and so the array has size s(s-1)/2
+where s is the number of stages.
+For the RK4 method, it should be
+[0.5,0,0.5,0,0,1]</a:documentation>
+            <ref name="real_vector"/>
+          </element>
+          <element name="timestep_weights">
+            <a:documentation>ERK timestep weights. This is the
+b vector that explains how to
+compute the timestep from the RK
+stages.  See
+http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+for notation.  It should have size
+s where s is the number of stages.
+For the RK4 method, it should be
+[1/6,1/3,1/3,1/6]</a:documentation>
+            <ref name="real_vector"/>
+          </element>
+        </element>
+        <element name="forward_euler_guided_search">
+          <a:documentation>Use explicit Forward Euler method with
+guided search particle tracking</a:documentation>
+          <empty/>
+        </element>
+        <element name="rk4_guided_search">
+          <a:documentation>Use classical Runge-Kutta method with
+guided search particle tracking</a:documentation>
+          <empty/>
+        </element>
+      </choice>
     </element>
   </define>
   <!-- Default child of diagnostic scalar field -->
@@ -8248,25 +8250,34 @@ Journal of Atmospheric and Oceanic Technology, 2005, 22, 1080-1094</a:documentat
           </element>
           <optional>
             <element name="input_file_type">
-              <element name="type">
-                <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
-                <group>
+              <choice>
+                <element name="type">
+                  <a:documentation>What kind of file is this? Currently only ERA40 files are supported</a:documentation>
                   <attribute name="name">
                     <value>ERA40</value>
                   </attribute>
+                  <optional>
+                    <element name="no_accumulation">
+                      <a:documentation>The data from ERA40 website included accumulated values (ppt, ro, ssrd, strd).
+If these values have been already ammended to instantaneous values, then switch this
+flag on and the accumulation correction will not be applied.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>NSEP</value>
+                  </attribute>
                   <empty/>
-                </group>
-                <!--
-                  }|
-                  element type {
-                     attribute name { "NSEP" },
-                     empty
-                  }|
-                  element type {
-                     attribute name { "ICOM" },
-                     empty
-                -->
-              </element>
+                </element>
+                <element name="type">
+                  <attribute name="name">
+                    <value>ICOM</value>
+                  </attribute>
+                  <empty/>
+                </element>
+              </choice>
             </element>
           </optional>
           <optional>

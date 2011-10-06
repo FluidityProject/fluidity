@@ -1054,7 +1054,7 @@ closely as possible the setup used previously by Sam.</a:documentation>
                   <empty/>
                 </element>
                 <element name="scotch">
-                  <a:documentation>Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE*</a:documentation>
+                  <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
                   <empty/>
                 </element>
                 <element name="zoltan">
@@ -1077,7 +1077,7 @@ and can produce non-contiguous partitions for certain problems.</a:documentation
               <a:documentation>Select which partitioner to use after the final adapt iteration.
 Graph partitioners available are ParMETIS and Zoltan PHG. The 
 Zoltan PHG hypergraph partitoner is also available.
-Default is the Zoltan PHG graph partitioner.</a:documentation>
+Default is the ParMETIS graph partitioner.</a:documentation>
               <choice>
                 <element name="metis">
                   <a:documentation>Use the ParMETIS graph partitioner. ParMETIS setup to match as
@@ -1085,7 +1085,7 @@ closely as possible the setup used previously by Sam.</a:documentation>
                   <empty/>
                 </element>
                 <element name="scotch">
-                  <a:documentation>Use the PT-Scotch graph partitioner. *CURRENTLY UNAVAILABLE* </a:documentation>
+                  <a:documentation>Use the PT-Scotch graph partitioner.</a:documentation>
                   <empty/>
                 </element>
                 <element name="zoltan">
@@ -1108,7 +1108,9 @@ and can produce non-contiguous partitions for certain problems.</a:documentation
               <a:documentation>Element quality cut off. 
 Elements with a quality greater than this will be liable to be
 on the parition boundary. Below this, they will be free to be adapted
-and improved. Range is 0 to 1, with default 0.6</a:documentation>
+and improved. Range is 0 to 1, with default 0.6
+This should be set to the same value as used for the quality option
+in libmba2d or libmba3d</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
@@ -1124,6 +1126,17 @@ problems where the partitioner creates empty partitions lowering this (~1.075) w
 force Zoltan to create more evenly balanced partitions (no empty ones) but may
 require more adapt iterations to produce a fully adapted final mesh.</a:documentation>
               <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="additional_adapt_iterations">
+              <a:documentation>Additional adapt iterations.
+Zoltan returns the minimum element quality to adaptivity. By setting additional adapt
+iterations to a value greater than zero we allow Zoltan to do adapt_iterations plus
+additional_adapt_iterations calls to adaptivity. Additional calls over adapt iterations
+are only allowed if Zoltan returns a minimum element quality below the element quality
+cut off. Default is 0. </a:documentation>
+              <ref name="integer"/>
             </element>
           </optional>
           <optional>

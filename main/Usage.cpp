@@ -197,9 +197,12 @@ void usage(char *cmd){
   cerr<<"\n\nUsage: "<<cmd<<" [options ...] [simulation-file]\n"
       <<"\nOptions:\n"
       <<" -h, --help\n\tHelp! Prints this message.\n"
-      <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing)."
-      <<" Sets default value for -v to 2.\n"
+      <<" -l, --log\n\tCreate log file for each process (useful for non-interactive testing).\n"
       <<" -v <level>, --verbose\n\tVerbose output to stdout, default level 0\n"
+      <<" -p, --profile\n"
+      <<"\tPrint profiling data at end of run\n"
+      <<"\tThis provides aggregated elapsed time for coarse-level computation\n"
+      <<"\t(Turned on automatically if verbosity is at level 2 or above)\n"
       <<" -V, --version\n\tVersion\n";
   return;
 }
@@ -210,6 +213,7 @@ void ParseArguments(int argc, char** argv){
   struct option longOptions[] = {
     {"help", 0, 0, 'h'},
     {"log", 0, 0, 'l'},
+    {"profile", 0, 0, 'p'},
     {"verbose", optional_argument, 0, 'v'},
     {"version", 0, 0, 'V'},
     {0, 0, 0, 0}
@@ -224,9 +228,9 @@ void ParseArguments(int argc, char** argv){
 
   while (true){
 #ifndef _AIX
-    c = getopt_long(argc, argv, "hlv::V", longOptions, &optionIndex);
+    c = getopt_long(argc, argv, "hlpv::V", longOptions, &optionIndex);
 #else
-    c = getopt(argc, argv, "hlv::V");
+    c = getopt(argc, argv, "hlpv::V");
 #endif
     if (c == -1) break;
 
@@ -238,7 +242,9 @@ void ParseArguments(int argc, char** argv){
     case 'l':
       fl_command_line_options["log"] = "";
       break;        
-      
+    case 'p':
+      fl_command_line_options["profile"] = "yes";
+      break;
     case 'v':
       fl_command_line_options["verbose"] = (optarg == NULL) ? "1" : optarg;
       break;  
@@ -291,6 +297,9 @@ void ParseArguments(int argc, char** argv){
       verbosity = atoi(fl_command_line_options["verbose"].c_str());
     }
     set_global_debug_level_fc(&verbosity);
+    if(verbosity >= 2){
+      fl_command_line_options["profile"] = "yes";
+    }
   }
   
   // Pseudo2d?
@@ -384,17 +393,23 @@ void ParseArguments(int argc, char** argv){
     if(have_option("/ocean_forcing/bulk_formulae/file_type")) {
         get_option("/ocean_forcing/bulk_formulae/file_type/filetype/name", dataset);
     }
-    FluxesReader_global.RegisterDataFile(option);
-    // field from NetCDF file          Index |   Physical meaning
-    FluxesReader_global.AddFieldOfInterest("u10");  //  0   | 10 metre U wind component
-    FluxesReader_global.AddFieldOfInterest("v10");  //  1   | 10 metre V wind component
-    FluxesReader_global.AddFieldOfInterest("ssrd"); //  2   | Surface solar radiation
-    FluxesReader_global.AddFieldOfInterest("strd"); //  3   | Surface thermal radiation 
-    FluxesReader_global.AddFieldOfInterest("ro");   //  4   | Runoff
-    FluxesReader_global.AddFieldOfInterest("tp");   //  5   | Total precipitation
-    FluxesReader_global.AddFieldOfInterest("d2m");  //  6   | Dew point temp at 2m
-    FluxesReader_global.AddFieldOfInterest("t2m");  //  7   | Air temp at 2m 
-    FluxesReader_global.AddFieldOfInterest("msl");  //  8   | Mean sea level pressure 
+    if (dataset == "ERA40") {
+        FluxesReader_global.RegisterDataFile(option);
+        // field from NetCDF file                         Index |   Physical meaning
+        FluxesReader_global.AddFieldOfInterest("u10");  //  0   | 10 metre U wind component
+        FluxesReader_global.AddFieldOfInterest("v10");  //  1   | 10 metre V wind component
+        FluxesReader_global.AddFieldOfInterest("ssrd"); //  2   | Surface solar radiation
+        FluxesReader_global.AddFieldOfInterest("strd"); //  3   | Surface thermal radiation 
+        FluxesReader_global.AddFieldOfInterest("ro");   //  4   | Runoff
+        FluxesReader_global.AddFieldOfInterest("tp");   //  5   | Total precipitation
+        FluxesReader_global.AddFieldOfInterest("d2m");  //  6   | Dew point temp at 2m
+        FluxesReader_global.AddFieldOfInterest("t2m");  //  7   | Air temp at 2m 
+        FluxesReader_global.AddFieldOfInterest("msl");  //  8   | Mean sea level pressure
+    } else {
+        cerr<<"ERROR: unsupported bulk formula input file type. Choose ERA40\n";
+        exit(-1);
+    }
+
   }
 
   if(have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) {

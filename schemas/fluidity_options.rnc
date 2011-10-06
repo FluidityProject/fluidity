@@ -14,6 +14,7 @@ include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "radiation.rnc"
+include "flredecomp.rnc"
 
 start =
    (
@@ -290,63 +291,7 @@ start =
                element binary_output {
                   comment
                }?,
-               element lagrangian_timestepping {
-                  (
-                     ## Use explicit runge kutta method with
-                     ## binary search
-                     element explicit_runge_kutta_guided_search {
-                        ## Number of subdivisions of the timestep
-                        ## increase this if you are not happy with your 
-                        ## detector trajectory accuracy, or if particles
-                        ## are jumping out of the domain a lot
-                        element subcycles {
-                           integer
-                        },
-                        ## Tolerance for deciding if detector is in a given
-                        ## element. Recommended value 1.0e-10.
-                        element search_tolerance {
-                           real
-                        },
-                        ## Number of RK stages
-                        ## For the RK4 method, it should be 4.
-                        element n_stages {
-                           integer
-                        },
-                        ## ERK stage array. This is an array
-                        ## containing the lower-triangular
-                        ## part of the Butcher weight matrix
-                        ## A that explains how to compute the
-                        ## RK stages.  See
-                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                        ## for notation.  The array is stored
-                        ## in the following order:
-                        ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
-                        ## and so the array has size s(s-1)/2
-                        ## where s is the number of stages.
-                        ## For the RK4 method, it should be
-                        ## [0.5,0,0.5,0,0,1]
-                        element stage_weights {
-                           real_vector
-                        },
-                        ## ERK timestep weights. This is the
-                        ## b vector that explains how to
-                        ## compute the timestep from the RK
-                        ## stages.  See
-                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                        ## for notation.  It should have size
-                        ## s where s is the number of stages.
-                        ## For the RK4 method, it should be
-                        ## [1/6,1/3,1/3,1/6]
-                        element timestep_weights {
-                           real_vector
-                        }
-                     }|
-                     ## Use binary search algorithm
-                     element binary_search {
-                        empty
-                     }
-                  )
-               }?
+               lagrangian_timestepping?
             }?, 
             ## Options to create even more output in the logs:
             ##
@@ -1594,17 +1539,12 @@ start =
                   }
                }?
             }?,
-            ## Parameters required to model multiphase flow in porous media
+            ## Phase interaction options for Fluidity's multiphase flow model
             element multiphase_properties {
-               ## Relative permeability end point relperm_max
-               ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-               ## Value between 0 and 1
-               element relperm_max {real},
-               ## Relative permeability exponent relperm_exponent
-               ## in eq: relperm_max*(saturation/porosity)**(-relperm_exponent)
-               element relperm_exponent {real},
-               ## Immobile volume of fluid phase
-               element immobile_fraction {real}?
+               comment,
+               element particle_diameter { 
+                     real 
+               }?
             }?,
             sediment?
          }+,
@@ -2006,7 +1946,8 @@ start =
                  }
               )
          }?,
-         embedded_models?
+         embedded_models?,
+         flredecomp?
       }
    )      
 
@@ -2425,6 +2366,72 @@ geometry =
       }
    )
 
+lagrangian_timestepping = 
+   (
+      element lagrangian_timestepping {
+         ## Number of subdivisions of the timestep
+         ## increase this if you are not happy with your 
+         ## detector trajectory accuracy, or if particles
+         ## are jumping out of the domain a lot
+         element subcycles {
+            integer
+         },
+         ## Tolerance for deciding if detector is in a given
+         ## element. Recommended value 1.0e-10.
+         element search_tolerance {
+            real
+         },
+         (
+            ## Use explicit runge kutta method with
+            ## guided search particle tracking
+            element explicit_runge_kutta_guided_search {
+               ## Number of RK stages
+               ## For the RK4 method, it should be 4.
+               element n_stages {
+                  integer
+               },
+               ## ERK stage array. This is an array
+               ## containing the lower-triangular
+               ## part of the Butcher weight matrix
+               ## A that explains how to compute the
+               ## RK stages.  See
+               ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+               ## for notation.  The array is stored
+               ## in the following order:
+               ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
+               ## and so the array has size s(s-1)/2
+               ## where s is the number of stages.
+               ## For the RK4 method, it should be
+               ## [0.5,0,0.5,0,0,1]
+               element stage_weights {
+                  real_vector
+               },
+               ## ERK timestep weights. This is the
+               ## b vector that explains how to
+               ## compute the timestep from the RK
+               ## stages.  See
+               ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+               ## for notation.  It should have size
+               ## s where s is the number of stages.
+               ## For the RK4 method, it should be
+               ## [1/6,1/3,1/3,1/6]
+               element timestep_weights {
+                  real_vector
+               }
+            }|
+            ## Use explicit Forward Euler method with
+            ## guided search particle tracking
+            element forward_euler_guided_search {
+               empty
+            }|
+            ## Use classical Runge-Kutta method with
+            ## guided search particle tracking
+            element rk4_guided_search {
+               empty
+            }
+         )
+      }
+   )
 
 # Default child of diagnostic scalar field
 diagnostic_scalar_field =
@@ -6504,15 +6511,20 @@ forcing =
                 ## What kind of file is this? Currently only ERA40 files are supported
                 element type {
                     attribute name { "ERA40" },
+                    ## The data from ERA40 website included accumulated values (ppt, ro, ssrd, strd).
+                    ## If these values have been already ammended to instantaneous values, then switch this
+                    ## flag on and the accumulation correction will not be applied.
+                    element no_accumulation {
+                        empty
+                    }?
+                }|
+                element type {
+                    attribute name { "NSEP" },
                     empty
-                #}|
-                #element type {
-                #    attribute name { "NSEP" },
-                #    empty
-                #}|
-                #element type {
-                #    attribute name { "ICOM" },
-                #    empty
+                }|
+                element type {
+                    attribute name { "ICOM" },
+                    empty
                 }
             }?,
             ## Adding a latitude and longitude here (specified as two real numbers)

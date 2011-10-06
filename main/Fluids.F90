@@ -104,6 +104,7 @@ module fluids_module
   use hyperlight
 #endif
   use multiphase_module
+  use detector_parallel, only: deallocate_detector_list_array
 
   implicit none
 
@@ -327,6 +328,11 @@ contains
        ! Initialise the OriginalDistanceToBottom field used for wetting and drying
        if (have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
           call insert_original_distance_to_bottom(state(1))
+          ! Wetting and drying only works with no poisson guess ... lets check that
+          call get_option("/material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution", option_buffer)
+          if (.not. trim(option_buffer) == "never") then 
+            FLExit("Please choose 'never' under /material_phase::water/scalar_field::Pressure/prognostic/scheme/poisson_pressure_solution when using wetting and drying")
+          end if
        end if
     end if
 
@@ -989,6 +995,9 @@ contains
 
     ! closing .stat, .convergence and .detector files
     call close_diagnostic_files()
+
+    ! deallocate the array of all detector lists
+    call deallocate_detector_list_array()
 
     ewrite(1, *) "Printing references before final deallocation"
     call print_references(1)
