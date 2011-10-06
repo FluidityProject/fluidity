@@ -153,4 +153,11 @@ module global_parameters
   real :: domain_volume
   logical :: running_adjoint = .false.
 
+  ! Colouring "enum".  These can't be in the colouring module due to circular dependencies
+  integer, parameter :: COLOURING_CG = 1
+  integer, parameter :: COLOURING_DG_NO_VISCOSITY = 2
+  integer, parameter :: COLOURING_DG_VISCOSITY = 3
+  integer, parameter :: COLOURING_TRACE_ELEMENTS = 4
+  integer, parameter :: NUM_COLOURINGS = 4
+
 end module global_parameters

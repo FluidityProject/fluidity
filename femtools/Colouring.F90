@@ -30,12 +30,19 @@ module colouring
   use fields
   use fields_manipulation
   use fields_base
+  use field_options, only : find_linear_parent_mesh
   use data_structures
   use sparse_tools
+  use global_parameters, only : topology_mesh_name, NUM_COLOURINGS, &
+       COLOURING_CG, COLOURING_DG_NO_VISCOSITY, COLOURING_DG_VISCOSITY, &
+       COLOURING_TRACE_ELEMENTS
+  use state_module, only : state_type, extract_mesh
+  use sparsity_patterns_meshes, only : get_csr_sparsity_secondorder, &
+       get_csr_sparsity_firstorder
   implicit none
 
   public :: colour_sparsity, verify_colour_sparsity, verify_colour_ispsparsity
-  public :: colour_sets
+  public :: colour_sets, get_mesh_colouring
   
 contains
   
@@ -56,7 +63,97 @@ contains
 
   end function mat_sparsity_to_isp_sparsity 
 
+  ! Return a colouring of a mesh that is thread safe for a particular
+  ! assembly type.  All elements with the same colour in the returned
+  ! colouring are safe to assemble concurrently.
+  !
+  ! For a given mesh topology there are four possible colourings
+  !
+  ! o Level 1 node: For CG assembly
+  !                 [COLOURING_CG]
+  ! o Level 0 element: For DG assembly without viscosity
+  !                    [COLOURING_DG_NO_VISCOSITY]
+  ! o Level 1 element: For assembly with cjc's trace elements
+  !                    [COLOURING_TRACE_ELEMENTS]
+  ! o Level 2 element: For DG assembly with viscosity
+  !                    [COLOURING_DG_VISCOSITY]
+  !
+  ! These colourings don't change between adapts, so we cache them on
+  ! the topology mesh on first construction and subsequently pull
+  ! them out of the cache.
+  subroutine get_mesh_colouring(state, mesh, colouring_type, colouring)
+    type(state_type), intent(inout) :: state
+    type(mesh_type), intent(inout) :: mesh
+    integer, intent(in) :: colouring_type
+    type(integer_set), dimension(:), pointer, intent(out) :: colouring
+    type(mesh_type), pointer :: topology
+    type(csr_sparsity), pointer :: sparsity
+    type(mesh_type), pointer :: vertex_mesh
+    type(mesh_type) :: p0_mesh
+    integer :: ncolours
+    integer :: stat
+    integer :: i
+    type(scalar_field) :: element_colours
 
+    topology => extract_mesh(state, topology_mesh_name)
+
+    colouring => topology%colourings(colouring_type)%sets
+
+    ! Ideally don't want to colour things in this manner.
+    ! The mesh has all the relevant connectivity information, so we
+    ! should just walk the connectivity graph directly and colour it,
+    ! rather than creating a load of intermediate data structures.
+    if ( .not.associated(topology%colourings(colouring_type)%sets) ) then
+#ifdef _OPENMP
+       ! Use the sparsity patterns to find the dependency stencil.
+       ! Greedily colour the sparsity graph
+       ! Map this colouring back onto elements
+       call find_linear_parent_mesh(state, mesh, vertex_mesh, stat)
+
+       p0_mesh = piecewise_constant_mesh(vertex_mesh, "P0Mesh")
+
+       select case(colouring_type)
+       case(COLOURING_CG)
+          ! Level 1 node
+          sparsity => get_csr_sparsity_secondorder(state, p0_mesh, mesh)
+       case(COLOURING_DG_NO_VISCOSITY)
+          ! Easy, just one colour
+          ! So nothing to do here.
+       case(COLOURING_DG_VISCOSITY)
+          ! Level 2 element
+          sparsity => get_csr_sparsity_secondorder(state, p0_mesh, p0_mesh)
+       case(COLOURING_TRACE_ELEMENTS)
+          ! Level 1 element
+          sparsity => get_csr_sparsity_firstorder(state, p0_mesh, p0_mesh)
+       case default
+          FLAbort('Invalid colouring type specified')
+       end select
+       ! Colour the resulting sparsity
+       ! Need to special case for DG_NO_VISCOSITY
+       if ( colouring_type .eq. COLOURING_DG_NO_VISCOSITY ) then
+          allocate(colouring(1))
+          call allocate(colouring)
+          do i=1, element_count(mesh)
+             call insert(colouring(1), i)
+          end do
+       else
+          call colour_sparsity(sparsity, p0_mesh, element_colours, ncolours)
+          allocate(colouring(ncolours))
+          colouring = colour_sets(sparsity, element_colours, ncolours)
+       end if
+       call deallocate(element_colours)
+       call deallocate(p0_mesh)
+       topology%colourings(colouring_type)%sets => colouring
+#else
+       allocate(colouring(1))
+       call allocate(colouring)
+       do i=1, element_count(mesh)
+          call insert(colouring(1), i)
+       end do
+       topology%colourings(colouring_type)%sets => colouring
+#endif
+    end if
+  end subroutine get_mesh_colouring
 
   ! This routine colours a graph using the greedy approach. 
   ! It takes as argument the sparsity of the adjacency matrix of the graph 
