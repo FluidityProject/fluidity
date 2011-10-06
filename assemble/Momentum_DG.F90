@@ -643,7 +643,6 @@ contains
          &discontinuous_galerkin/viscosity_scheme') ) then
        call get_mesh_colouring(state, u%mesh, COLOURING_DG_VISCOSITY, clr_sets)
     else
-       ewrite(-1, *)'Using single colour in MOM-DG (no viscosity)'
        call get_mesh_colouring(state, u%mesh, COLOURING_DG_NO_VISCOSITY, clr_sets)
     end if
 #ifdef _OPENMP
