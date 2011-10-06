@@ -1723,81 +1723,6 @@ start =
                )
            }*
          }?, 
-  
-         ## traffic model
-         element traffic_model {
-            ## number of vehicles to be modelled
-            element number_of_vehicles{integer},
-            ## specify the traffic model input file
-            element vehicle_activity_file{attribute file_name { xsd:string }},
-            ## traffic_model_time_lag
-            ##
-            ## traffic_time=traffic_time+lag
-            element traffic_model_time_lag{real},
-            ## scaling factors between fluidity, traffic and wind tunnel models
-            element scale{
-               ## between fluidity and field
-               ## usually between 1:150 and 1:200
-               element model_scale{real},
-               ## usually  2.5 - 3.0 m/s
-               element reference_velocity_field{real},
-               ## normalized should be 1. m/s 
-               ## otherwise use the maximum inflow velocity
-               element reference_velocity_model{real},
-               ## usually in field scale
-               ## check specific road network
-               element road_network_scale{real},
-               ## between fluidity and field
-               ## usually between 1:150 and 1:200
-               element vehicle_scale{real},
-               ## in metres
-               element exhaust_diameter{real}
-            },
-            ## bounding box for traffic network
-            ##
-            ## ignore vehicles outside this box 
-            element bounding_box{
-               element x_min{real},
-               element x_max{real},
-               element y_min{real},
-               element y_max{real}
-            }?,
-            ## if the bottom of the domain is not flat
-            ## this makes sure the vehicles will follow the 
-            ## road gradient
-            ## you need to specify the boundary id of the road
-            element sloping_floor{integer}?,
-            ## tailpipe emissions
-            element emissions_factors{
-               ## use a constant emissions factor
-               element type{
-                  attribute name{"constant_emissions_factors"},
-                  element emissions_factor{real}
-               }|
-               ## use the TRL instantaneous emissions model (IEDB)
-               ## this is not open source and therefore the database
-               ## needs to be read in
-               element type{
-                  attribute name{"modelled_emissions_factors"},
-                  element passenger_vehicle_petrol{xsd:string}?,
-                  element passenger_vehicle_diesel{xsd:string}?,
-                  element large_vehicle{xsd:string}?
-               }
-            }?,
-            ## options for the solution of the tailpipe tracer releases
-            ## if the emissions factors are not specified
-            ## it will use a constant emissions factor
-            element scalar_field {
-               attribute rank { "0" },
-               attribute name { "TrafficTracerTemplate" },
-               ## Field type
-               element prognostic {
-                  velocity_mesh_choice,
-                  prognostic_scalar_field
-               }
-            }?
-
-         }?,
          biology?,
          forcing?,
          reduced_model?,
@@ -2202,7 +2127,6 @@ prognostic_density_field =
                prescribed_scalar_field_no_adapt,
                recalculation_options?
             }|
-            ## This only works for traffic modelling
             element diagnostic {
               internal_algorithm,
               diagnostic_scalar_field_no_adapt
@@ -4727,9 +4651,7 @@ scalar_field_choice =
             )
          }|
 
-         ## Volume of the vehicles
-         ##
-         ## used in Traffic Modelling
+         ## Used in implicit_solids to determine the interface (i.e. boundary) between the fluid and solid.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "SolidPhase" },

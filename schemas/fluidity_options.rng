@@ -2340,143 +2340,6 @@ while a factor of 1 represents a connected domain.</a:documentation>
         </element>
       </optional>
       <optional>
-        <element name="traffic_model">
-          <a:documentation>traffic model</a:documentation>
-          <element name="number_of_vehicles">
-            <a:documentation>number of vehicles to be modelled</a:documentation>
-            <ref name="integer"/>
-          </element>
-          <element name="vehicle_activity_file">
-            <a:documentation>specify the traffic model input file</a:documentation>
-            <attribute name="file_name">
-              <data type="string"/>
-            </attribute>
-          </element>
-          <element name="traffic_model_time_lag">
-            <a:documentation>traffic_model_time_lag
-
-traffic_time=traffic_time+lag</a:documentation>
-            <ref name="real"/>
-          </element>
-          <element name="scale">
-            <a:documentation>scaling factors between fluidity, traffic and wind tunnel models</a:documentation>
-            <element name="model_scale">
-              <a:documentation>between fluidity and field
-usually between 1:150 and 1:200</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="reference_velocity_field">
-              <a:documentation>usually  2.5 - 3.0 m/s</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="reference_velocity_model">
-              <a:documentation>normalized should be 1. m/s 
-otherwise use the maximum inflow velocity</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="road_network_scale">
-              <a:documentation>usually in field scale
-check specific road network</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="vehicle_scale">
-              <a:documentation>between fluidity and field
-usually between 1:150 and 1:200</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="exhaust_diameter">
-              <a:documentation>in metres</a:documentation>
-              <ref name="real"/>
-            </element>
-          </element>
-          <optional>
-            <element name="bounding_box">
-              <a:documentation>bounding box for traffic network
-
-ignore vehicles outside this box </a:documentation>
-              <element name="x_min">
-                <ref name="real"/>
-              </element>
-              <element name="x_max">
-                <ref name="real"/>
-              </element>
-              <element name="y_min">
-                <ref name="real"/>
-              </element>
-              <element name="y_max">
-                <ref name="real"/>
-              </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="sloping_floor">
-              <a:documentation>if the bottom of the domain is not flat
-this makes sure the vehicles will follow the 
-road gradient
-you need to specify the boundary id of the road</a:documentation>
-              <ref name="integer"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="emissions_factors">
-              <a:documentation>tailpipe emissions</a:documentation>
-              <choice>
-                <element name="type">
-                  <a:documentation>use a constant emissions factor</a:documentation>
-                  <attribute name="name">
-                    <value>constant_emissions_factors</value>
-                  </attribute>
-                  <element name="emissions_factor">
-                    <ref name="real"/>
-                  </element>
-                </element>
-                <element name="type">
-                  <a:documentation>use the TRL instantaneous emissions model (IEDB)
-this is not open source and therefore the database
-needs to be read in</a:documentation>
-                  <attribute name="name">
-                    <value>modelled_emissions_factors</value>
-                  </attribute>
-                  <optional>
-                    <element name="passenger_vehicle_petrol">
-                      <data type="string"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="passenger_vehicle_diesel">
-                      <data type="string"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="large_vehicle">
-                      <data type="string"/>
-                    </element>
-                  </optional>
-                </element>
-              </choice>
-            </element>
-          </optional>
-          <optional>
-            <element name="scalar_field">
-              <a:documentation>options for the solution of the tailpipe tracer releases
-if the emissions factors are not specified
-it will use a constant emissions factor</a:documentation>
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <attribute name="name">
-                <value>TrafficTracerTemplate</value>
-              </attribute>
-              <element name="prognostic">
-                <a:documentation>Field type</a:documentation>
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prognostic_scalar_field"/>
-              </element>
-            </element>
-          </optional>
-        </element>
-      </optional>
-      <optional>
         <ref name="biology"/>
       </optional>
       <optional>
@@ -3043,7 +2906,6 @@ want this.</a:documentation>
             </optional>
           </element>
           <element name="diagnostic">
-            <a:documentation>This only works for traffic modelling</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
@@ -6056,9 +5918,7 @@ Limitations:
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Volume of the vehicles
-
-used in Traffic Modelling</a:documentation>
+        <a:documentation>Used in implicit_solids to determine the interface (i.e. boundary) between the fluid and solid.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>

@@ -60,7 +60,6 @@ module fluids_module
   use qmesh_module
   use checkpoint
   use write_state_module
-  use traffic
   use synthetic_bc
   use goals
   use adaptive_timestepping
@@ -656,10 +655,6 @@ contains
 
              IF(use_advdif)THEN
 
-                if(starts_with(trim(field_name_list(it)), "TrafficTracer")) then
-                   call traffic_tracer(trim(field_name_list(it)),state(field_state_list(it)),timestep)
-                endif
-
                 sfield => extract_scalar_field(state(field_state_list(it)), field_name_list(it))
                 call calculate_diagnostic_children(state, field_state_list(it), sfield)
 
@@ -740,10 +735,6 @@ contains
              call porous_media_momentum(state)
           end if
 
-          if (have_option("/traffic_model")) then
-             call traffic_source(state(1),timestep)
-          end if
-
           if (have_solids) then
              ewrite(2,*) 'into solid_drag_calculation'
              call solid_drag_calculation(state(ss:ss), its, nonlinear_iterations)
@@ -788,10 +779,6 @@ contains
                   exit nonlinear_iteration_loop
                endif
              end if
-          end if
-
-          if (have_option("/traffic_model")) then
-             call traffic_density_update(state(1))
           end if
 
           if(have_solids) then

@@ -114,7 +114,7 @@ legacy_internal_algorithm =
    )
 internal_velocity_source_algorithm =
    (
-      ## Some code paths (e.g. porous media and the traffic model)
+      ## Some code paths (e.g. porous media)
       ## use their own internal diagnostic source field. Select
       ## this option to these these internal algorithms.
       element algorithm {
@@ -124,7 +124,7 @@ internal_velocity_source_algorithm =
    )
 internal_velocity_absorption_algorithm =
    (
-      ## Some code paths (e.g. porous media and the traffic model)
+      ## Some code paths (e.g. porous media)
       ## use their own internal diagnostic absorption field. Select
       ## this option to these these internal algorithms.
       element algorithm {

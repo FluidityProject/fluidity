@@ -900,15 +900,3 @@ qmesh.o ../include/qmesh_module.mod: qmesh.F90 \
    ../include/metric_assemble.mod ../include/spud.mod \
    ../include/state_module.mod ../include/tictoc.mod \
    ../include/vtk_interfaces.mod
-
-../include/traffic.mod: traffic.o
-	@true
-
-traffic.o ../include/traffic.mod: traffic.F90 \
-   ../include/boundary_conditions.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/parallel_tools.mod ../include/pickers.mod \
-   ../include/qmesh_module.mod ../include/spud.mod ../include/state_module.mod \
-   ../include/vector_tools.mod
-

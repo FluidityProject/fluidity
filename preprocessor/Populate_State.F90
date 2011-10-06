@@ -1172,17 +1172,6 @@ contains
             states(1), dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
     end if
 
-    ! insert traffic tracer fields
-    if (have_option('/traffic_model/scalar_field::TrafficTracerTemplate')) then
-       call get_option('/traffic_model/number_of_vehicles', ncars)
-       do i=1, ncars
-          field_name='TrafficTracer'//int2str(i)
-          call allocate_and_insert_scalar_field('/traffic_model/scalar_field::TrafficTracerTemplate', &
-            states(1), field_name=field_name, &
-            dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-       end do
-    end if
-
     ! solar irradiance submodel (hyperlight)
     if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then 
        call allocate_and_insert_irradiance(states(1))
