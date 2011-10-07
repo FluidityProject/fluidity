@@ -28,6 +28,5 @@ input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs
-	rm -rf kepsilon nomodel *.pdf
+	rm -rf kepsilon reference *.pdf
 
-	)

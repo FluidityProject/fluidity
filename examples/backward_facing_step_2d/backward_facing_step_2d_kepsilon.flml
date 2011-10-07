@@ -324,8 +324,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">3.4e-4</real_value>
-                  <comment>Re=4700, same as FLUENT 2D run. Armaly range = [70, 8000]</comment>
+                  <real_value rank="0">1.24e-4</real_value>
                 </constant>
               </isotropic>
             </value>

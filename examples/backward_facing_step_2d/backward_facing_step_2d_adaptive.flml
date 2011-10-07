@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">backward_facing_step_2d_reference</string_value>
+    <string_value lines="1">backward_facing_step_2d_adaptive</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -238,7 +238,7 @@
         </tensor_field>
         <output/>
         <stat>
-          <exclude_from_stat/>
+          <include_in_stat/>
           <previous_time_step>
             <exclude_from_stat/>
           </previous_time_step>
@@ -256,7 +256,7 @@
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
-          <absolute_measure>
+          <relative_measure>
             <vector_field name="InterpolationErrorBound" rank="1">
               <prescribed>
                 <value name="WholeMesh">
@@ -266,14 +266,17 @@
                 </value>
                 <output/>
                 <stat>
-                  <exclude_from_stat/>
+                  <include_in_stat/>
                 </stat>
                 <detectors>
                   <exclude_from_detectors/>
                 </detectors>
               </prescribed>
             </vector_field>
-          </absolute_measure>
+            <tolerance>
+              <real_value shape="2" dim1="dim" rank="1">1.e-10 1.e-10</real_value>
+            </tolerance>
+          </relative_measure>
         </adaptivity_options>
         <consistent_interpolation/>
       </prognostic>
@@ -296,4 +299,29 @@
       </diagnostic>
     </scalar_field>
   </material_phase>
+  <mesh_adaptivity>
+    <hr_adaptivity>
+      <period_in_timesteps>
+        <integer_value rank="0">20</integer_value>
+      </period_in_timesteps>
+      <maximum_number_of_nodes>
+        <integer_value rank="0">10000</integer_value>
+      </maximum_number_of_nodes>
+      <enable_gradation/>
+      <tensor_field name="MinimumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.02 0 0 0.02</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+      <tensor_field name="MaximumEdgeLengths">
+        <anisotropic_symmetric>
+          <constant>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">0.5 0 0 0.5</real_value>
+          </constant>
+        </anisotropic_symmetric>
+      </tensor_field>
+    </hr_adaptivity>
+  </mesh_adaptivity>
 </fluidity_options>
