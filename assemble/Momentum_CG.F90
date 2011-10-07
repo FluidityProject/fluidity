@@ -700,7 +700,7 @@
 
       call set_local_assembly(big_m, local_assembly)
 
-      call get_mesh_colouring(state, u%mesh, COLOURING_CG, clr_sets)
+      call get_mesh_colouring(state, x%mesh, COLOURING_CG, clr_sets)
       ! ----- Volume integrals over elements -------------
       
 #ifdef _OPENMP
