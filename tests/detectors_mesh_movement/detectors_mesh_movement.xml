@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>detectors</name>
+  <owner userid="mlange"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -l -v2 detectors.flml </command_line>
+    <!-- Test that detectors work the new way. -->
+  </problem_definition>
+  <variables>
+    <variable name="detector_position" language="python">
+from fluidity_tools import stat_parser
+detector_position = stat_parser("detectors.detectors")['D1']['position']
+    </variable>
+    <variable name="detector_tracer" language="python">
+from fluidity_tools import stat_parser
+detector_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D1']
+    </variable>
+  </variables>
+  <pass_tests>
+
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
