@@ -4466,7 +4466,7 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
        have_vfrac = have_option("/material_phase["//int2str(i)//&
             "]/scalar_field::PhaseVolumeFraction")
        prognostic_velocity = have_option("/material_phase["//int2str(i)//&
-            "]/vector_field::Velocity")
+            "]/vector_field::Velocity/prognostic")
        if(prognostic_velocity .and. .not.have_vfrac) then
           FLExit("All phases need a PhaseVolumeFraction.")
        end if
