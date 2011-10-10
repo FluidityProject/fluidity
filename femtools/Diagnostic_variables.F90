@@ -2590,6 +2590,9 @@ contains
 
                 detector => detector_list%first
                 do j=1, detector_list%length
+                   if (.not. detector%element>0) then
+                      FLExit("Trying to write detector that is outside of domain.")
+                   end if
                    value =  detector_value(sfield, detector)
                    if(detector_list%binary_output) then
                       write(detector_list%output_unit) value
@@ -2611,6 +2614,9 @@ contains
 
                 detector => detector_list%first
                 do j=1, detector_list%length
+                   if (.not. detector%element>0) then
+                      FLExit("Trying to write detector that is outside of domain.")
+                   end if
                    vvalue =  detector_value(vfield, detector)
 
                    if(detector_list%binary_output) then
@@ -2742,6 +2748,9 @@ contains
 
           node => detector_list%first
           scalar_node_loop: do j = 1, detector_list%length
+            if (.not. node%element>0) then
+               FLExit("Trying to write detector that is outside of domain.")
+            end if
             value =  detector_value(sfield, node)
 
             offset = location_to_write + (detector_list%total_num_det * (i - 1) + (node%id_number - 1)) * realsize
@@ -2768,6 +2777,9 @@ contains
 
           node => detector_list%first
           vector_node_loop: do j = 1, detector_list%length
+            if (.not. node%element>0) then
+               FLExit("Trying to write detector that is outside of domain.")
+            end if
             vvalue =  detector_value(vfield, node)
 
             ! Currently have to assume single dimension vector fields in

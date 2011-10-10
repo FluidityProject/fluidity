@@ -103,6 +103,7 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <do_not_recalculate/>
       </prescribed>
     </scalar_field>
   </material_phase>
