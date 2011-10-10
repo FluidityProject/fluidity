@@ -156,7 +156,7 @@
                 <integer_value shape="2" rank="1">10 12</integer_value>
               </surface_ids>
               <type name="k_epsilon">
-                <string_value>low_Re</string_value>
+                <string_value>high_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">
@@ -272,7 +272,7 @@
                 <integer_value shape="2" rank="1">10 12</integer_value>
               </surface_ids>
               <type name="k_epsilon">
-                <string_value>low_Re</string_value>
+                <string_value>high_Re</string_value>
               </type>
             </boundary_conditions>
             <tensor_field name="Diffusivity" rank="2">

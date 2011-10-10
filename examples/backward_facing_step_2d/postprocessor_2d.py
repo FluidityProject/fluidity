@@ -30,12 +30,8 @@ def get_filelist(sample, start):
         sys.exit(1)
 
       ##### Start at the (start+1)th file.
-      ##### Add every nth file by taking integer multiples of n; limit at 10 vtus max.
+      ##### Add every nth file by taking integer multiples of n.
       vtu_no = float(file.split('_')[-1].split('.')[0])
-      #if ((max(vtu_nos)-start)/sample > 10):
-      #  sample=int((max(vtu_nos)-start)/10)
-      #  print "sample rate: ", sample
-
       if vtu_no > start:
         if (vtu_no%sample==0):
           shortlist.append(file)
@@ -322,7 +318,7 @@ def main():
     profiles, time = meanvelo(filelist, xarray, yarray)
     numpy.save("velocity_profiles_"+str(type), profiles)
     plot_meanvelo(type,profiles,xarray,yarray,time)
-    #pylab.show()
+    pylab.show()
 
     print "\nAll done.\n"
 
