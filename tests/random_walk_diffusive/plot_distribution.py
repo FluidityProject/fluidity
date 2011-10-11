@@ -1,60 +1,79 @@
-from fluidity_tools import stat_parser
 import vtktools
 from matplotlib import ticker
-from numpy import zeros, arange, meshgrid
+from numpy import arange, meshgrid, argsort
 from pylab import figure, show, colorbar, xlabel, ylabel, savefig
-import math
+from detector_distribution import get_distribution
 
-def plot_detector_distribution(filename, timesteps, agents, layers):
-  s = stat_parser(filename)
-  
-  det_count = zeros((layers+1,timesteps))
-  for i in range(1,agents):
-    for t in range(0,timesteps):
-      x = math.floor(abs(s[str(i)]['position'][0][t]))
-      det_count[x,t] = det_count[x,t]+1
-
-  fig = figure(figsize=(10,4),dpi=90)
-  ax = fig.add_axes([.09,.16,.98,.7])
+def plot_detector_distribution(det_count, filename, timesteps, layers, delta_t):
+  fig = figure(figsize=(10,6),dpi=90)
+  ax = fig.add_axes([.06,.1,.98,.86])
   x = arange(0., timesteps)
+  x = x*delta_t
   y = arange(0., layers)
   X, Y = meshgrid(x, y)
-  ax.invert_yaxis()
-  cs=ax.contourf(det_count, arange(-1.e-12,40,1))
+  cs=ax.contourf(X, Y, det_count, arange(-1.e-12,500,5))
+  ax.set_xlim(0., timesteps*delta_t)
+  ax.set_ylim(layers-1., 0.)
   xlabel('Time (s)')
   ylabel('Depth (m)')
   pp=colorbar(cs)
 
-  return
+  savefig('./' + filename + '.png', dpi=90,format='png')
 
 def plot_diffusivity(file):
+  # open vtu and derive the field indices of the edge at (x=0,y=0) ordered by depth
   u=vtktools.vtu(file)
-  z = u.GetLocations()[:,0]
-  K = u.GetScalarField("Diffusivity")
-  K_grad = u.GetVectorField("Diffusivity_grad")[:,0]
+  pos = u.GetLocations()
+  ind = get_1d_indices(pos)
 
-  fig = figure(figsize=(3,4),dpi=90)
-  ax = fig.add_axes([.28,.16,.6,.7])
-  ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=2))
-  ax.set_ylim(-100., 0.)
-  xlabel('Diffusivity (m$^2$s$^{-1}$)')
-  ylabel('Depth (m)')
+  # from this we can derive the 1D profile of any field like this:
+  z = [-pos[i,2] for i in ind]
+
+  diffusivity = u.GetScalarField("Diffusivity")
+  K = [diffusivity[i] for i in ind]
+
+  fig = figure(figsize=(3,6),dpi=90)
+  ax = fig.add_axes([.24,.1,.6,.86])
   ax.plot(K, z)
-
-  fig = figure(figsize=(3,4),dpi=90)
-  ax = fig.add_axes([.28,.16,.6,.7])
   ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=2))
-  ax.set_ylim(-100., 0.)
-  xlabel('Diffusivity gradient')
+  ax.set_ylim(60., 0.)
+  xlabel('Diffusivity ($m^2s^{-1}$)')
   ylabel('Depth (m)')
+  savefig('./Diffusivity.png', dpi=90,format='png')
+
+  diffusivity_grad = u.GetVectorField("DiffusivityGradient")[:,2]
+  # not perfectly sure why we need to do * -1 here, 
+  # but the gradient looks wrong otherwise
+  K_grad = [-1. * diffusivity_grad[i] for i in ind]
+    
+
+  fig = figure(figsize=(3,6),dpi=90)
+  ax = fig.add_axes([.24,.1,.6,.86])
   ax.plot(K_grad, z)
+  ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=2))
+  ax.set_ylim(60., 0.)
+  xlabel('Diffusivity gradient ($ms^{-1}$)')
+  ylabel('Depth (m)')
+  savefig('./Diffusivity_grad.png', dpi=90,format='png')
+
   return
+
+def get_1d_indices(pos, x0=0, y0=0, tolerance=1.0e-5):
+  """ Return the field indices corresponding to the ordered depth values at position (x0, y0)
+  """
+  ind = argsort(-pos[:,2])
+  indices = []
+  for i in ind:
+    if (x0-tolerance < pos[i][0] < x0+tolerance and y0-tolerance < pos[i][1] < y0+tolerance):
+      indices.append(i)
+  return indices
 
 
 ### Main ###
 
-plot_diffusivity("random_walk_1d_0.vtu")
+plot_diffusivity("random_walk_diffusive_0.vtu")
 
-plot_detector_distribution("Diffusive_RW.detectors", 600, 1000, 60)
+det_count_diffusive = get_distribution("Diffusive_RW.detectors", 667, 60, 1000)
+plot_detector_distribution(det_count_diffusive, "Diffusive_RW", 667, 60, 1800.)
 
 show()

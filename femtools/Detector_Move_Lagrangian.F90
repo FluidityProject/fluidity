@@ -481,8 +481,6 @@ contains
     real, dimension(xfield%dim) :: face_node_val, face_normal
     real :: offset, p, D
 
-    ewrite(2,*) "In move_detectors_guided_search"
-
     !Loop over all the detectors
     det0 => detector_list%first
     do while (associated(det0))
@@ -609,12 +607,8 @@ contains
     lcoord=local_coords(xfield, detector%element, position)
     K=eval_field(detector%element, diff_field, lcoord)
 
-    ! Bug fix:
-    ! Since we evaluate K with the current detectors element
-    ! we can get negative values here, resulting in NaN for the sqrt term
-    if (K < 0.0) then
-       K=K*(-1.0)
-    end if
+    ! Make sure we don't use negative K values to prevent NaN in the sqrt()
+    K = abs(K)
 
     displacement(:)=0.0
     displacement(xfield%dim)=K_grad(xfield%dim)*dt + rnd(1)*sqrt(6*K*dt)

@@ -83,7 +83,7 @@
 
 def val(X, t):
   ## Recreate Fig. 1 in Visser, 1997, by using Fig. 3 in Ross and Sharples, 2004
-  z = X[0]
+  z = abs(X[0])
   K_z = 0.001 + 0.0136245 * z - 0.00263245 * pow(z,2) + 0.000211875 * pow(z,3) - 0.00000865898 * pow(z,4) + 0.00000017623 * pow(z,5) - 0.00000000140918 * pow(z,6)
   return K_z</string_value>
           </python>
@@ -128,7 +128,7 @@ def val(X, t):
             <string_value lines="20" type="python">def val(t):
   from numpy import arange
   # 4000 agents, evenly spaced in [0:40]
-  positions = arange(0.,40.,0.04).reshape(1000,1)
+  positions = arange(-40.,0.,0.04).reshape(1000,1)
   return positions</string_value>
           </initial_position>
           <random_walk>
@@ -157,7 +157,7 @@ def val(ele, local_coord, dt):
             <string_value lines="20" type="python">def val(t):
   from numpy import arange
   # 4000 agents, evenly spaced in [0:40]
-  positions = arange(0.,40.,0.04).reshape(1000,1)
+  positions = arange(-40.,0.,0.04).reshape(1000,1)
   return positions</string_value>
           </initial_position>
           <random_walk>
@@ -194,10 +194,10 @@ def val(ele, local_coord, dt):
           <lagrangian/>
           <binary_output/>
           <initial_position>
-            <string_value type="python" lines="20">def val(t):
+            <string_value lines="20" type="python">def val(t):
   from numpy import arange
   # 4000 agents, evenly spaced in [0:40]
-  positions = arange(0.,40.,0.04).reshape(1000,1)
+  positions = arange(-40.,0.,0.04).reshape(1000,1)
   return positions</string_value>
           </initial_position>
           <random_walk>
