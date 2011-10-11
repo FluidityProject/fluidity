@@ -170,13 +170,13 @@ contains
     do ele=1, element_count(field_in)
        call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
-
+    !ewrite_minmax(field_in)
     ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
     
     do dim=1, field_in%dim
       call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
     end do
-
+    !ewrite_minmax(field_in)
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
     call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
@@ -384,6 +384,8 @@ contains
     ! factor 1/24 derives from 2nd moment of filter (see Pope 2000, Geurts&Holm 2002)
     mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
+    ewrite(2,*) 'dsd: ', dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei)
+    ewrite(2,*) 'srhs: ', shape_shape(shape_field_in,shape_field_in, detwei)
     ! Local assembly
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei) &
          & + shape_shape(shape_field_in,shape_field_in, detwei)
@@ -428,6 +430,8 @@ contains
     ! mesh size tensor=(edge lengths)**2
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
     mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
+
+    ewrite(2,*) 'mesh_tq: ', mesh_tensor_quad
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -499,31 +503,35 @@ contains
 
     real, dimension(size(t,1), size(t,2)):: M
     real r
-    integer gi, loc, i
-    integer dim, ngi, nloc, compute_ngi
+    integer gi, loc, i, dim, nloc, compute_ngi
 
     t=0.0
-
     nloc=size(du_t,1)
-    ngi=size(du_t,2)
     dim=size(du_t,3)
 
-    if (shape%degree<=1 .and. shape%numbering%family==FAMILY_SIMPLEX) then
-       compute_ngi=1
+    if (.not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX)) then
+      ! for non-linear compute on all gauss points
+      compute_ngi=shape%ngi
     else
-       compute_ngi=ngi
+      ! for linear: compute only the first and copy the rest
+      compute_ngi=1
     end if
+
+    !ewrite(2,*) 'ngi: ', compute_ngi
 
     do gi=1, compute_ngi
        do loc=1, nloc
           M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
           r=sum( (/ ( M(i,i), i=1, dim) /) )
-          t(:,:,gi)=t(:,:,gi)+M/(r**2)
+          if (.not. r==0.0) then
+             t(:,:,gi)=t(:,:,gi)+M/(r**2)
+          end if
        end do
+       !ewrite(2,*) 't: ', t(:,:,gi)
     end do
 
     ! copy the rest
-    do gi=compute_ngi+1, ngi
+    do gi=compute_ngi+1, shape%ngi
        t(:,:,gi)=t(:,:,1)
     end do
 

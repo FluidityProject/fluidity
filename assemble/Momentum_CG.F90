@@ -413,9 +413,7 @@
            call allocate(leonard, u%mesh, "LeonardTensor")
            call zero(leonard)
 
-           ! Get (test filter)/(mesh filter) size ratio alpha.
-           ! Default value is 2, in which case filtering using Helmholtz smoother
-           ! is equivalent to lumped-mass smoothing - see manual
+           ! Get (test filter)/(mesh filter) size ratio alpha. Default value is 2.
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
 
            ! Calculate test-filtered velocity field and Leonard tensor field.

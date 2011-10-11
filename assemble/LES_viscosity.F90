@@ -140,8 +140,7 @@ contains
 
     ! Path is to level above solver options
     lpath = (trim(path)//"/dynamic_les")
-    ewrite(2,*) "path: ", trim(lpath)
-    ewrite(2,*) "alpha: ", alpha
+    ewrite(2,*) "filter factor alpha: ", alpha
 
     ewrite_minmax(nu)
     ewrite_minmax(tnu)
