@@ -1,4 +1,4 @@
-XFIG_IMAGES=./numerical_discretisation_images/bisection_method \
+XFIG_IMAGES=./numerical_discretisation_images/guided_search_method \
 ./configuring_fluidity_images/periodic_domain \
 ./numerical_discretisation_images/P1cgshapefunction1d \
 ./numerical_discretisation_images/P2cgshapefunction1d \

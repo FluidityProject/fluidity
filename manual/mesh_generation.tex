@@ -66,8 +66,8 @@ different parts of the domain.
 The main input file format for \fluidity\ meshes is the \emph{triangle} format.
 The triangle format is a ASCII file format originally designed for 2D
 triangle meshes, but it can be easily extended to different dimensions and
-more complex geometries.  \fluidity\ supports an version of the triangle format
-which supports 1D, 2D and 3D meshes.  Following table shows the supported
+more complex geometries.  \fluidity\ supports a version of the triangle format
+which supports 1D, 2D and 3D meshes.  The following table shows the supported
 combinations of element dimension and geometry.
 
 \begin{tabular}{ l l l }
@@ -84,7 +84,7 @@ nodes of the mesh, one file describing the elements (for example triangles
 in 2D) and one file defining the boundary parts of the mesh.
 
 The triangle file format is very simple. Since the data is stored in ASCII,
-every text editor can be used to edit the files.  Lines starting with \# will
+any text editor can be used to edit the files.  Lines starting with \# will
 be interpreted as a comment by \fluidity.  The filename should end with
 either .node, .ele, .bound, .edge or .face.  The structure of these files
 will now be explained:

@@ -10,11 +10,18 @@
     <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
 s= stat_parser("detectors.stat")
 ElapsedTime=s["ElapsedTime"]["value"]
-</variable>
+    </variable>
+    <variable name="last_locations_error" language="python">
+from readtool import readstat
+last_locations_error = readstat("detectors.detectors")
+    </variable>
   </variables>
   <pass_tests>
     <test name="Finished" language="python">
-assert ElapsedTime[-1] &gt; 2.9999
+assert ElapsedTime[-1] &gt; 7.9999
+    </test>
+    <test name="CorrectLagrangianTrajectory" language="python">
+assert abs(last_locations_error).max() &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>
