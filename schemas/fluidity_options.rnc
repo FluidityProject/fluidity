@@ -291,6 +291,10 @@ start =
                element binary_output {
                   comment
                }?,
+               ## Enable to let detectors move with the domain if mesh_movement is enabled.
+               element move_with_mesh {
+                  empty
+               }?,
                lagrangian_timestepping?
             }?, 
             ## Options to create even more output in the logs:

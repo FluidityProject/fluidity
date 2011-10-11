@@ -360,6 +360,12 @@ The t argument is for future use only - currently detector locations are only se
               </element>
             </optional>
             <optional>
+              <element name="move_with_mesh">
+                <a:documentation>Enable to let detectors move with the domain if mesh_movement is enabled.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+            <optional>
               <ref name="lagrangian_timestepping"/>
             </optional>
           </element>

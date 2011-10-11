@@ -94,6 +94,7 @@ module detector_data_types
 
      !! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
      type(rk_gs_parameters), pointer :: move_parameters => null()
+     logical :: move_with_mesh = .false.
 
      !! Optional array for detector names; names are held in read order
      character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_names

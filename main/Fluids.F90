@@ -104,9 +104,7 @@ module fluids_module
   use hyperlight
 #endif
   use multiphase_module
-  use detector_data_types
-  use detector_parallel
-  use pickers, only: search_for_detectors
+  use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
 
   implicit none
 
@@ -178,10 +176,6 @@ contains
 
     ! the particle type for the radiation model 
     type(particle_type), dimension(:), allocatable :: particles
-
-    ! Detectors
-    type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
-    type(vector_field), pointer :: coordinate_field
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -871,15 +865,7 @@ contains
           call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
           call IncrementEventCounter(EVENT_MESH_MOVEMENT)
 
-          ! Re-evaluate detector coordinates
-          if (get_num_detector_lists()>0) then
-             ! Update detector element and local_coords for every detector in all lists
-             coordinate_field=>extract_vector_field(state(1),"Coordinate")
-             call get_registered_detector_lists(detector_list_array)
-             do i = 1, size(detector_list_array)
-                call search_for_detectors(detector_list_array(i)%ptr, coordinate_field)
-             end do
-          end if
+          call sync_detector_coordinates(state(1))
        end if
 
        current_time=current_time+DT

@@ -1813,6 +1813,10 @@ contains
        call read_detector_move_options(default_stat%detector_list, "/io/detectors")
     end if
 
+    if (have_option("/io/detectors/move_with_mesh")) then
+       default_stat%detector_list%move_with_mesh=.true.
+    end if
+
     ! And finally some sanity checks
     totaldet_global=default_stat%detector_list%length
     call allsum(totaldet_global)

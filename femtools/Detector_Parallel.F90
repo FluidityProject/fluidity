@@ -37,6 +37,7 @@ module detector_parallel
   use halo_data_types
   use halos_numbering
   use mpi_interfaces
+  use pickers, only: search_for_detectors
 
   implicit none
   
@@ -44,7 +45,7 @@ module detector_parallel
 
   public :: distribute_detectors, exchange_detectors, register_detector_list, &
             get_num_detector_lists, get_registered_detector_lists, &
-            deallocate_detector_list_array
+            deallocate_detector_list_array, sync_detector_coordinates
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
@@ -313,5 +314,38 @@ contains
     ewrite(2,*) "Exiting exchange_detectors"  
 
   end subroutine exchange_detectors
+
+  subroutine sync_detector_coordinates(state)
+    ! Re-synchronise the physical and parametric coordinates 
+    ! of all detectors detectors in all lists after mesh movement.
+    type(state_type), intent(in) :: state
+
+    type(detector_list_ptr), dimension(:), pointer :: detector_list_array => null()
+    type(vector_field), pointer :: coordinate_field => null()
+    type(detector_type), pointer :: detector
+    integer :: i
+
+    ! Re-evaluate detector coordinates for every detector in all lists
+    if (get_num_detector_lists()>0) then
+       coordinate_field=>extract_vector_field(state,"Coordinate")
+       call get_registered_detector_lists(detector_list_array)
+       do i = 1, size(detector_list_array)
+
+          ! In order to let detectors drift with the mesh
+          ! we update det%position from the parametric coordinates
+          if (detector_list_array(i)%ptr%move_with_mesh) then
+             detector=>detector_list_array(i)%ptr%first
+             do while (associated(detector)) 
+                detector%position=detector_value(coordinate_field, detector)
+                detector=>detector%next
+             end do
+          ! By default update detector element and local_coords from position
+          else
+             call search_for_detectors(detector_list_array(i)%ptr, coordinate_field)
+          end if
+       end do
+    end if
+
+  end subroutine sync_detector_coordinates
 
 end module detector_parallel
