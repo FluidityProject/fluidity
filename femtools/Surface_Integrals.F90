@@ -516,16 +516,18 @@ contains
     real, dimension(:,:), allocatable :: velocity_ele, normal, strain, force_at_quad
     real, dimension(:,:,:), allocatable :: dn_t,viscosity_ele, tau, invJ, vol_dshape_face, invJ_face
     real :: sarea
-    integer :: l_face_number
+    integer :: l_face_number, stat
     type(element_type) :: augmented_shape
-    
+    logical :: have_viscosity
+
     ewrite(1,*) 'In diagnostic_body_drag'
     
     position => extract_vector_field(state, "Coordinate")
     pressure => extract_scalar_field(state, "Pressure")  
     velocity => extract_vector_field(state, "Velocity")
-    viscosity=> extract_tensor_field(state, "Viscosity")
-    
+    viscosity=> extract_tensor_field(state, "Viscosity", stat)
+    have_viscosity = stat == 0
+
     assert(size(force) == position%dim)
     
     meshdim = mesh_dim(velocity)
@@ -571,7 +573,10 @@ contains
           call transform_to_physical(position, ele, &
              shape=u_shape, dshape=dn_t, invJ=invJ)
           velocity_ele = ele_val(velocity,ele)
-          viscosity_ele = face_val_at_quad(viscosity,sele)
+
+          ! Compute tau only if viscosity is present
+          if(have_viscosity) then
+            viscosity_ele = face_val_at_quad(viscosity,sele)
 
           !
           ! Form the stress tensor
@@ -584,41 +589,50 @@ contains
           ! derivatives of the volume basis functions at the
           ! quadrature points of the surface element.
 
-          if (u_shape%degree == 1 .and. u_shape%numbering%family == FAMILY_SIMPLEX) then
-            strain = matmul(velocity_ele, dn_t(:, 1, :))
-            strain = (strain + transpose(strain)) / 2.0
-            do gi=1,sngi
-              tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
-            end do
-          else
-            ! Get the local face number.
-            l_face_number = local_face_number(velocity, sele)
-
-            ! Here comes the magic.
-            if (x_shape%degree == 1 .and. x_shape%numbering%family == FAMILY_SIMPLEX) then
-              invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
-            else
-              ewrite(-1,*) "If positions are nonlinear, then you have to compute"
-              ewrite(-1,*) "the inverse Jacobian of the volume element at the surface"
-              ewrite(-1,*) "quadrature points. Sorry ..."
-              FLExit("Calculating the body drag not supported for nonlinear coordinates.")
-            end if
-            vol_dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, l_face_number, invJ_face)
-
-            do gi=1,sngi
-              strain = matmul(velocity_ele, vol_dshape_face(:, gi, :))
+            if (u_shape%degree == 1 .and. u_shape%numbering%family == FAMILY_SIMPLEX) then
+              strain = matmul(velocity_ele, dn_t(:, 1, :))
               strain = (strain + transpose(strain)) / 2.0
-              tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
-            end do
+              do gi=1,sngi
+                tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
+              end do
+            else
+              ! Get the local face number.
+              l_face_number = local_face_number(velocity, sele)
+
+              ! Here comes the magic.
+              if (x_shape%degree == 1 .and. x_shape%numbering%family == FAMILY_SIMPLEX) then
+                invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
+              else
+                ewrite(-1,*) "If positions are nonlinear, then you have to compute"
+                ewrite(-1,*) "the inverse Jacobian of the volume element at the surface"
+                ewrite(-1,*) "quadrature points. Sorry ..."
+                FLExit("Calculating the body drag not supported for nonlinear coordinates.")
+              end if
+              vol_dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, l_face_number, invJ_face)
+
+              do gi=1,sngi
+                strain = matmul(velocity_ele, vol_dshape_face(:, gi, :))
+                strain = (strain + transpose(strain)) / 2.0
+                tau(:, :, gi) = 2 * matmul(viscosity_ele(:, :, gi), strain)
+              end do
+            end if
+
           end if
 
           face_pressure = face_val_at_quad(pressure, sele)
           nfaces = nfaces + 1
           sarea = sarea + sum(face_detwei)
 
-          do gi=1,sngi
-            force_at_quad(:, gi) = normal(:, gi) * face_pressure(gi) - matmul(normal(:, gi), tau(:, :, gi))
-          end do
+
+          if(have_viscosity) then
+            do gi=1,sngi
+              force_at_quad(:, gi) = normal(:, gi) * face_pressure(gi) - matmul(normal(:, gi), tau(:, :, gi))
+            end do
+          else
+            do gi=1,sngi
+              force_at_quad(:, gi) = normal(:, gi) * face_pressure(gi)
+            end do
+          end if
           force = force + matmul(force_at_quad, face_detwei)
 
           if(present(pressure_force)) then
