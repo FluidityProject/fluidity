@@ -39,7 +39,7 @@ module advection_diffusion_cg
   use boundary_conditions_from_options
   use field_options
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, COLOURING_CG
+  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, COLOURING_CG1
   use profiler
   use spud
   use petsc_solve_state_module
@@ -238,7 +238,7 @@ contains
     type(scalar_field), pointer :: pressure
         
     !! Coloring  data structures for OpenMP parallization
-    type(integer_set), dimension(:), pointer :: clr_sets
+    type(integer_set), dimension(:), pointer :: colours
     integer :: clr, nnid, len, ele
     integer :: num_threads, thread_num
     !! Did we successfully prepopulate the transform_to_physical_cache?
@@ -489,7 +489,7 @@ contains
     assert(cache_valid)
 #endif
 
-    call get_mesh_colouring(state, t%mesh, COLOURING_CG, clr_sets)
+    call get_mesh_colouring(state, t%mesh, COLOURING_CG1, colours)
     call profiler_toc(t, "advection_diffusion_loop_overhead")
 
     call profiler_tic(t, "advection_diffusion_loop")
@@ -500,11 +500,11 @@ contains
 #else
     thread_num=0
 #endif
-    colour_loop: do clr = 1, size(clr_sets)
-      len = key_count(clr_sets(clr))
+    colour_loop: do clr = 1, size(colours)
+      len = key_count(colours(clr))
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
-         ele = fetch(clr_sets(clr), nnid)
+         ele = fetch(colours(clr), nnid)
          call assemble_advection_diffusion_element_cg(ele, t, matrix, rhs, &
               positions, old_positions, new_positions, &
               velocity, grid_velocity, &

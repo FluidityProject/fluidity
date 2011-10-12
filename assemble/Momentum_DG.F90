@@ -47,8 +47,8 @@ module momentum_DG
   use boundary_conditions_from_options
   use solvers
   use dgtools
-  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG_VISCOSITY, &
-       COLOURING_DG_NO_VISCOSITY
+  use global_parameters, only: OPTION_PATH_LEN, FIELD_NAME_LEN, COLOURING_DG2, &
+       COLOURING_DG0
   use coriolis_module
   use halos
   use sparsity_patterns
@@ -259,7 +259,7 @@ contains
     real, dimension(u%dim) :: abs_wd_const
 
     !! 
-    type(integer_set), dimension(:), pointer :: clr_sets
+    type(integer_set), dimension(:), pointer :: colours
     integer :: len, clr, nnid
     !! Is the transform_to_physical cache we prepopulated valid
     logical :: cache_valid
@@ -638,12 +638,10 @@ contains
     num_threads=1
 #endif
 
-    if ( have_option(trim(u%option_path)//&
-         '/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/viscosity_scheme') ) then
-       call get_mesh_colouring(state, u%mesh, COLOURING_DG_VISCOSITY, clr_sets)
+    if (have_viscosity) then
+       call get_mesh_colouring(state, u%mesh, COLOURING_DG2, colours)
     else
-       call get_mesh_colouring(state, u%mesh, COLOURING_DG_NO_VISCOSITY, clr_sets)
+       call get_mesh_colouring(state, u%mesh, COLOURING_DG0, colours)
     end if
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(X)
@@ -653,11 +651,11 @@ contains
 
     call profiler_tic(u, "element_loop")
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, nnid, ele, len)
-    colour_loop: do clr = 1, size(clr_sets)
-      len = key_count(clr_sets(clr))
+    colour_loop: do clr = 1, size(colours)
+      len = key_count(colours(clr))
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
-       ele = fetch(clr_sets(clr), nnid)
+       ele = fetch(colours(clr), nnid)
        call construct_momentum_element_dg(ele, big_m, rhs, &
             & X, U, advecting_velocity, U_mesh, X_old, X_new, &
             & Source, Buoyancy, gravity, Abs, Viscosity, &
