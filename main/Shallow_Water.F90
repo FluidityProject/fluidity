@@ -377,7 +377,7 @@
 
     subroutine get_parameters()
       implicit none
-      type(vector_field), pointer :: u, v_field, coord
+      type(vector_field), pointer :: u, v_field, coord, V_initial
       type(scalar_field), pointer :: eta, D_initial
       type(vector_field) :: dummy_field
       real :: theta
@@ -457,6 +457,12 @@
       if(stat==0) then
          D=>extract_scalar_field(state(1), "LayerThickness")
          D_initial%val = D%val
+      end if
+      V_initial=>extract_vector_field(state(1), "InitialVelocity"&
+           &,stat)    
+      if(stat==0) then
+         v_field=>extract_vector_field(state(1), "Velocity")
+         V_initial%val = v_field%val
       end if
 
       if(.not.hybridized) then
