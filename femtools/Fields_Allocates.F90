@@ -155,6 +155,7 @@ contains
     type(element_type), target, intent(in) :: shape
     character(len=*), intent(in), optional :: name
     integer :: i
+    
     mesh%nodes=nodes
 
     mesh%elements=elements
@@ -180,6 +181,15 @@ contains
        nullify(mesh%colourings(i)%sets)
     end do
     allocate(mesh%ndglno(elements*shape%loc))
+
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, size(mesh%ndglno)
+       mesh%ndglno(i)=0
+    end do
+    !$OMP END PARALLEL DO
+#endif
 
 #ifdef HAVE_MEMORY_STATS
     call register_allocation("mesh_type", "integer", elements*shape%loc,&
@@ -942,6 +952,16 @@ contains
 
        allocate(ndglno(mesh%shape%numbering%vertices*model%elements), &
             mesh%ndglno(mesh%shape%loc*model%elements))
+
+#ifdef _OPENMP
+          ! Use first touch policy.
+          !$OMP PARALLEL DO SCHEDULE(STATIC)
+          do i=1, size(mesh%ndglno)
+             mesh%ndglno(i)=0
+          end do
+          !$OMP END PARALLEL DO
+#endif
+
 #ifdef HAVE_MEMORY_STATS
        call register_allocation("mesh_type", "integer", &
             size(mesh%ndglno), name=name)
@@ -987,6 +1007,16 @@ contains
        if(mesh%shape%numbering%type/=ELEMENT_TRACE) then
           ! Make a discontinuous field.
           allocate(mesh%ndglno(mesh%shape%loc*model%elements))
+
+#ifdef _OPENMP
+          ! Use first touch policy.
+          !$OMP PARALLEL DO SCHEDULE(STATIC)
+          do i=1, size(mesh%ndglno)
+             mesh%ndglno(i)=0
+          end do
+          !$OMP END PARALLEL DO
+#endif
+
 #ifdef HAVE_MEMORY_STATS
           call register_allocation("mesh_type", "integer", &
                size(mesh%ndglno), name=name)
