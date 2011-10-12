@@ -957,7 +957,7 @@ contains
           ! Use first touch policy.
           !$OMP PARALLEL DO SCHEDULE(STATIC)
           do i=2, mesh%elements
-             mesh%ndglno((i-1)*shape%loc:i*shape%loc)=0
+             mesh%ndglno((i-1)*mesh%shape%loc:i*mesh%shape%loc)=0
           end do
           !$OMP END PARALLEL DO
 #endif
@@ -1012,7 +1012,7 @@ contains
           ! Use first touch policy.
           !$OMP PARALLEL DO SCHEDULE(STATIC)
           do i=2, mesh%elements
-             mesh%ndglno((i-1)*shape%loc:i*shape%loc)=0
+             mesh%ndglno((i-1)*mesh%shape%loc:i*mesh%shape%loc)=0
           end do
           !$OMP END PARALLEL DO
 #endif
