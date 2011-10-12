@@ -185,8 +185,8 @@ contains
 #ifdef _OPENMP
     ! Use first touch policy.
     !$OMP PARALLEL DO SCHEDULE(STATIC)
-    do i=1, size(mesh%ndglno)
-       mesh%ndglno(i)=0
+    do i=1, size(mesh%elements)
+       mesh%ndglno((i-1)*shape%loc:i*shape%loc)=0
     end do
     !$OMP END PARALLEL DO
 #endif
@@ -956,8 +956,8 @@ contains
 #ifdef _OPENMP
           ! Use first touch policy.
           !$OMP PARALLEL DO SCHEDULE(STATIC)
-          do i=1, size(mesh%ndglno)
-             mesh%ndglno(i)=0
+          do i=1, size(mesh%elements)
+             mesh%ndglno((i-1)*shape%loc:i*shape%loc)=0
           end do
           !$OMP END PARALLEL DO
 #endif
@@ -1011,8 +1011,8 @@ contains
 #ifdef _OPENMP
           ! Use first touch policy.
           !$OMP PARALLEL DO SCHEDULE(STATIC)
-          do i=1, size(mesh%ndglno)
-             mesh%ndglno(i)=0
+          do i=1, size(mesh%elements)
+             mesh%ndglno((i-1)*shape%loc:i*shape%loc)=0
           end do
           !$OMP END PARALLEL DO
 #endif
