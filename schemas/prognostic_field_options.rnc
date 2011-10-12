@@ -359,7 +359,7 @@ prognostic_velocity_field =
                      ## of full stress form when divergent elements can
                      ## be cancelled out.
                      ##
-                     ## Only diaonal components of viscosity
+                     ## Only diagonal components of viscosity
                      ## (i.e. either isotropic or
                      ## diagonal) are physical for isotropic materials.
                      ##
@@ -823,16 +823,7 @@ prognostic_velocity_field =
                   element integrate_conservation_term_by_parts {
                     empty
                   }?
-               },
-               ## DG large-eddy simulation
-               element les_model {
-                  ## literature sybol: Cs
-                  ##
-                  ## suggested value 0.1
-                  element smagorinsky_coefficient {
-                     real
-                  }
-               }?
+               }
             }
          ),
          ## Conservative discretisation of momentum equations

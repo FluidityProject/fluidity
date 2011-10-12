@@ -42,7 +42,7 @@ module hadapt_extrude
     type(quadrature_type) :: quad
     type(element_type) :: full_shape
     type(vector_field) :: constant_z_mesh
-    type(vector_field), dimension(node_count(h_mesh)) :: z_meshes
+    type(vector_field), dimension(:), allocatable :: z_meshes
     character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
     real, dimension(:), allocatable :: sizing_vector
     logical:: depth_from_python, depth_from_map, have_min_depth
@@ -64,6 +64,8 @@ module hadapt_extrude
     !! Checking linearity of h_mesh.
     assert(h_mesh%mesh%shape%degree == 1)
     assert(h_mesh%mesh%continuity >= 0)
+
+    allocate(z_meshes(node_count(h_mesh)))
 
     call add_nelist(h_mesh%mesh)
     
@@ -162,6 +164,7 @@ module hadapt_extrude
       call deallocate(z_meshes(column))
     end do
     call deallocate(full_shape)
+    deallocate(z_meshes)
     
   end subroutine extrude
 
@@ -473,13 +476,13 @@ module hadapt_extrude
     elements=depths%length-1
 
     call allocate(mesh, elements+1, elements, oned_shape, "ZMesh")
-    call deallocate(oned_shape)
     do ele=1,elements
       mesh%ndglno((ele-1) * loc + 1: ele*loc) = (/ele, ele+1/)
     end do
 
     call allocate(z_mesh, 1, mesh, "ZMeshCoordinates")
     call deallocate(mesh)
+    call deallocate(oned_shape)
 
     call set(z_mesh, 1, (/0.0/))
     do node=1, elements+1

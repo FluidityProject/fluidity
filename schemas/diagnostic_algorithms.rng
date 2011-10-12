@@ -1614,7 +1614,7 @@ No. 1 pp. 243--268, 1980</a:documentation>
   <define name="particle_reynolds_number_algorithm">
     <element name="algorithm">
       <a:documentation>Diagnostic algorithm used in multiphase simulations.
-Calculates the particle Reynolds number, (density_c*|u_c-u_p|*d)/viscosity_c
+Calculates the particle Reynolds number, (vfrac_c*density_c*|u_c-u_p|*d)/viscosity_c
 where _c and _p denote the continuous and particle phases respectively,
 and d is the particle diameter.</a:documentation>
       <attribute name="name">
@@ -1625,7 +1625,7 @@ and d is the particle diameter.</a:documentation>
       </attribute>
       <element name="depends">
         <a:documentation>The particle Reynolds number depends on the Velocity field of both the continuous and dispersed phases,
-and also the Density and Viscosity fields of the continuous phase.</a:documentation>
+and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous phase.</a:documentation>
         <ref name="anystring"/>
       </element>
       <element name="particle_diameter">
@@ -1636,6 +1636,19 @@ and also the Density and Viscosity fields of the continuous phase.</a:documentat
         <a:documentation>The name of the state representing the continuous phase</a:documentation>
         <data type="string" datatypeLibrary=""/>
       </element>
+    </element>
+  </define>
+  <define name="apparent_density_algorithm">
+    <element name="algorithm">
+      <a:documentation>Diagnostic algorithm used in multiphase simulations.
+Calculates the apparent density of the material_phase,
+i.e. Density multiplied by the PhaseVolumeFraction field.</a:documentation>
+      <attribute name="name">
+        <value>apparent_density</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
     </element>
   </define>
   <!-- Misc -->
@@ -1697,6 +1710,26 @@ This field needs to be interpolated between adapts.</a:documentation>
           <ref name="real"/>
         </element>
       </optional>
+    </element>
+  </define>
+  <define name="scalar_period_averaged_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for calulating an average of a scalar field over 
+a set period, e.g. daily
+Note that we assume the simulation starts at zero for the
+averaging period,
+This field needs to be interpolated between adapts.</a:documentation>
+      <attribute name="name">
+        <value>period_averaged_scalar</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="averaging_period">
+        <a:documentation>Over what time period to average over?</a:documentation>
+        <ref name="real"/>
+      </element>
     </element>
   </define>
   <define name="scalar_squared_time_averaged_algorithm">
@@ -1799,6 +1832,9 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="scalar_time_averaged_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_period_averaged_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_sum_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -1827,6 +1863,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="particle_reynolds_number_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="apparent_density_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="node_halo_diagnostic_algorithm"/>

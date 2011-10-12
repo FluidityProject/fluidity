@@ -818,8 +818,8 @@
 
 
          ! Do we have a prognostic pressure field we can actually solve for?
-         call profiler_tic(p, "assembly")
          if(prognostic_p .and. .not.reduced_model) then
+            call profiler_tic(p, "assembly")
 
             u => extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
             x => extract_vector_field(state(prognostic_p_istate), "Coordinate")
@@ -851,8 +851,8 @@
             call allocate(projec_rhs, p%mesh, "ProjectionRHS")
             call zero(projec_rhs)
 
+            call profiler_toc(p, "assembly")
          end if ! end of prognostic pressure
-         call profiler_toc(p, "assembly")
 
 
          if (.not.reduced_model) then
@@ -926,8 +926,8 @@
 
 
             !! Solve for delta_p -- the pressure correction term
-            call profiler_tic(p, "assembly")
             if(prognostic_p) then
+               call profiler_tic(p, "assembly")
 
                ! Get the intermediate velocity u^{*} and the coordinate vector field
                u=>extract_vector_field(state(prognostic_p_istate), "Velocity", stat)
@@ -943,9 +943,8 @@
                                     schur_auxiliary_matrix, stiff_nodes_list)
 
                call deallocate(projec_rhs)
-
+               call profiler_toc(p, "assembly")
             end if
-            call profiler_toc(p, "assembly")
 
 
             !! Correct and update velocity fields to u^{n+1} using pressure correction term delta_p
@@ -1178,8 +1177,7 @@
             &/stress_terms/partial_stress_form")
 
          have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
-            &/continuous_galerkin/les_model").or.(have_option(trim(u%option_path)//&
-            &"/prognostic/spatial_discretisation/discontinuous_galerkin/les_model"))
+            &/continuous_galerkin/les_model")
 
          have_coriolis = have_option("/physical_parameters/coriolis")
 
@@ -1862,10 +1860,32 @@
                   ewrite(-1,*) "diagonal Viscosity tensor."
                   ewrite(-1,*) "Zero off diagonal entries in the Viscosity tensor do not make physical"
                   ewrite(-1,*) "sense when using stress form viscosity."
-                  ewrite(-1,*) "Use an tensor_form or anisotropic_symmetric Viscosity instead."
+                  ewrite(-1,*) "Use tensor_form or anisotropic_symmetric Viscosity instead."
                   FLExit("Use tensor_form or anisotropic_symmetric Viscosity.")
                end if
 
+            end if
+
+            ! If we are running a multiphase flow simulation, the stress term can only be in tensor form and
+            ! viscosity must be isotropic.
+            if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1 .and. &
+               & have_option("/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic&
+               &/tensor_field::Viscosity/prescribed")) then
+
+               if(.not.have_option("/material_phase["//int2str(i)//&
+                                 "]/vector_field::Velocity/prognostic&
+                                 &/tensor_field::Viscosity/prescribed/value/isotropic") .or. &
+                  ! Note: DG only uses tensor form, so only check the CG options
+                  &(have_option("/material_phase["//int2str(i)//&
+                                 "]/vector_field::Velocity/prognostic&
+                                 &/spatial_discretisation/continuous_galerkin/") .and. &
+                                 &.not.have_option("/material_phase["//int2str(i)//&
+                                 "]/vector_field::Velocity/prognostic&
+                                 &/spatial_discretisation/continuous_galerkin/stress_terms/tensor_form"))) then
+                  ewrite(-1,*) "For multiphase simulations, the stress term can only be in tensor form"
+                  ewrite(-1,*) "and viscosity must be isotropic."
+                  FLExit("For multiphase flow simulations, use tensor_form and isotropic Viscosity only.")
+               end if
             end if
 
             if(have_option("/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic/&

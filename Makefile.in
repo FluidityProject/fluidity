@@ -128,7 +128,11 @@ lib/libspatialindex.a:
 
 lib/libspud.a:
 	@echo '    MKDIR lib'; mkdir -p lib
+ifeq (@SPUD_ONLY@,yes)
+	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install-libspud
+else
 	@cd libspud;  echo '    MAKE libspud'; $(MAKE) ; $(MAKE) install; cd ..; cp lib*/python*/site-packages/libspud.so python/
+endif
 
 libfemtools: sub_system
 	@echo '    MKDIR lib'; mkdir -p lib
