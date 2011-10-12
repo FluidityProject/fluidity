@@ -3,4 +3,4 @@ input: clean
 
 clean:
 	rm -f  *.ele *.edge *.node *.poly *.vtu *.s *.d.1 *.stat \
-*.detectors matrixdump*
+*.detectors matrixdump* fluidity.err-* fluidity.log-*

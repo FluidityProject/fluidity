@@ -231,7 +231,7 @@ Detector_Parallel.o ../include/detector_parallel.mod: Detector_Parallel.F90 \
    ../include/detector_data_types.mod ../include/detector_tools.mod \
    ../include/fdebug.h ../include/fields.mod ../include/halo_data_types.mod \
    ../include/halos_numbering.mod ../include/integer_hash_table_module.mod \
-   ../include/mpi_interfaces.mod ../include/spud.mod \
+   ../include/mpi_interfaces.mod ../include/pickers.mod ../include/spud.mod \
    ../include/state_module.mod
 
 ../include/detector_tools.mod: Detector_Tools.o

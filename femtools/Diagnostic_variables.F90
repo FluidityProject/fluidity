@@ -2594,7 +2594,7 @@ contains
 
                 detector => detector_list%first
                 do j=1, detector_list%length
-                   if (.not. detector%element>0) then
+                   if (detector%element<0) then
                       FLExit("Trying to write detector that is outside of domain.")
                    end if
                    value =  detector_value(sfield, detector)
@@ -2618,7 +2618,7 @@ contains
 
                 detector => detector_list%first
                 do j=1, detector_list%length
-                   if (.not. detector%element>0) then
+                   if (detector%element<0) then
                       FLExit("Trying to write detector that is outside of domain.")
                    end if
                    vvalue =  detector_value(vfield, detector)
@@ -2752,7 +2752,7 @@ contains
 
           node => detector_list%first
           scalar_node_loop: do j = 1, detector_list%length
-            if (.not. node%element>0) then
+            if (node%element<0) then
                FLExit("Trying to write detector that is outside of domain.")
             end if
             value =  detector_value(sfield, node)
@@ -2781,7 +2781,7 @@ contains
 
           node => detector_list%first
           vector_node_loop: do j = 1, detector_list%length
-            if (.not. node%element>0) then
+            if (node%element<0) then
                FLExit("Trying to write detector that is outside of domain.")
             end if
             vvalue =  detector_value(vfield, node)

@@ -117,7 +117,7 @@ contains
   subroutine distribute_detectors(state, detector_list)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
     ! If not, they need to be sent to the processor owner before adaptivity happens
-    type(state_type), dimension(:), intent(in) :: state
+    type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
@@ -127,7 +127,7 @@ contains
 
     ewrite(2,*) "In distribute_detectors"  
 
-    xfield => extract_vector_field(state(1),"Coordinate")
+    xfield => extract_vector_field(state,"Coordinate")
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -157,7 +157,7 @@ contains
     end do
     call allmax(all_send_lists_empty)
     if (all_send_lists_empty/=0) then
-       call exchange_detectors(state(1),detector_list,send_list_array)
+       call exchange_detectors(state,detector_list,send_list_array)
     end if
 
     ! Make sure send lists are empty and deallocate them
@@ -342,6 +342,8 @@ contains
           ! By default update detector element and local_coords from position
           else
              call search_for_detectors(detector_list_array(i)%ptr, coordinate_field)
+
+             call distribute_detectors(state, detector_list_array(i)%ptr)
           end if
        end do
     end if
