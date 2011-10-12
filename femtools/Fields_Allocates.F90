@@ -49,7 +49,7 @@ implicit none
   private
   
   public :: allocate, deallocate, incref, decref, has_references, add_faces, &
-    & deallocate_faces
+    & deallocate_faces, zero
   public :: make_element_shape, make_mesh, make_mesh_periodic, make_submesh, &
     & create_surface_mesh, make_fake_mesh_linearnonconforming
   public :: extract_scalar_field, wrap_mesh, wrap_scalar_field, &
@@ -70,6 +70,11 @@ implicit none
           & deallocate_vector_field, deallocate_tensor_field, &
           & deallocate_scalar_boundary_condition, &
           & deallocate_vector_boundary_condition
+  end interface
+
+  interface zero
+     module procedure zero_scalar, zero_vector, zero_tensor, &
+          zero_vector_dim, zero_tensor_dim_dim
   end interface
 
   interface deallocate_faces
@@ -285,6 +290,8 @@ contains
     nullify(field%refcount) ! Hacks for gfortran component initialisation
     !                         bug.
     call addref(field)
+
+    call zero(field)
     
   end subroutine allocate_scalar_field
 
@@ -343,6 +350,8 @@ contains
     
     call addref(field)
 
+    call zero(field)
+
   end subroutine allocate_vector_field
 
   subroutine allocate_tensor_field(field, mesh, name, field_type, dim)
@@ -400,6 +409,8 @@ contains
     nullify(field%refcount) ! Hack for gfortran component initialisation
     !                         bug.
     call addref(field)
+
+    call zero(field)
 
   end subroutine allocate_tensor_field
   
@@ -2844,6 +2855,163 @@ contains
     end if
     
   end subroutine remove_eelist_mesh
+
+  
+  subroutine zero_scalar(field)
+    !!< Set all entries in the field provided to 0.0
+    type(scalar_field), intent(inout) :: field
+#ifdef _OPENMP
+    integer :: i
+#endif
+    
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, size(field%val)
+       field%val(i)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+    field%val=0.0
+#endif
+
+  end subroutine zero_scalar
+
+  subroutine zero_vector(field)
+    !!< Set all entries in the field provided to 0.0
+    type(vector_field), intent(inout) :: field
+
+#ifdef _OPENMP
+    integer :: i
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do i=1, size(field%val, 2)
+       field%val(:,i)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+       field%val=0.0
+#endif
+
+  end subroutine zero_vector
+
+  subroutine zero_vector_dim(field, dim)
+    !!< Set all entries in dimension dim of the field provided to 0.0
+    type(vector_field), intent(inout) :: field
+    integer, intent(in) :: dim
+
+#ifdef _OPENMP
+    integer :: j
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+
+#ifdef _OPENMP
+       ! Use first touch policy.
+       !$OMP PARALLEL DO SCHEDULE(STATIC)
+       do j=1, size(field%val, 2)
+          field%val(dim,j)=0.0
+       end do
+       !$OMP END PARALLEL DO
+#else
+       field%val(dim,:)=0.0
+#endif
+
+  end subroutine zero_vector_dim
+
+  subroutine zero_tensor(field)
+    !!< Set all entries in the field provided to 0.0
+    type(tensor_field), intent(inout) :: field
+
+#ifdef _OPENMP
+    integer :: j
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+    
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do j=1, size(field%val, 3)
+       field%val(:,:,j)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+    field%val=0.0
+#endif
+
+  end subroutine zero_tensor  
+
+  subroutine zero_tensor_dim_dim(field, dim1, dim2)
+    !!< Set all entries in the component indicated of field to 0.0
+    type(tensor_field), intent(inout) :: field
+    integer, intent(in) :: dim1, dim2
+
+#ifdef _OPENMP
+    integer :: j
+#endif
+
+    assert(field%field_type/=FIELD_TYPE_PYTHON)
+
+#ifdef _OPENMP
+    ! Use first touch policy.
+    !$OMP PARALLEL DO SCHEDULE(STATIC)
+    do j=1, size(field%val, 3)
+       field%val(dim1,dim2,j)=0.0
+    end do
+    !$OMP END PARALLEL DO
+#else
+    field%val(dim1,dim2,:)=0.0
+#endif
+    
+  end subroutine zero_tensor_dim_dim
+
+  subroutine zero_scalar_field_nodes(field, node_numbers)
+    !!< Zeroes the scalar field at the specified node_numbers
+    !!< Does not work for constant fields
+    type(scalar_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+    
+    field%val(node_numbers) = 0.0
+    
+  end subroutine zero_scalar_field_nodes
+  
+  subroutine zero_vector_field_nodes(field, node_numbers)
+    !!< Zeroes the vector field at the specified nodes
+    !!< Does not work for constant fields
+    type(vector_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+    integer :: i
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+    
+    do i=1,field%dim
+      field%val(i,node_numbers) = 0.0
+    end do
+    
+  end subroutine zero_vector_field_nodes
+
+  subroutine zero_tensor_field_nodes(field, node_numbers)
+    !!< Zeroes the tensor field at the specified nodes
+    !!< Does not work for constant fields
+    type(tensor_field), intent(inout) :: field
+    integer, dimension(:), intent(in) :: node_numbers
+
+    assert(field%field_type==FIELD_TYPE_NORMAL)
+
+    field%val(:, :, node_numbers) = 0.0
+    
+  end subroutine zero_tensor_field_nodes
+
     
 #include "Reference_count_mesh_type.F90"
 #include "Reference_count_scalar_field.F90"
