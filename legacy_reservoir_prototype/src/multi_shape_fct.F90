@@ -43,7 +43,10 @@ contains
 !!!  N_SHAPE_FUN AND RELATED SUBRTS & FUNCTIONS
 !!!
 
-  SUBROUTINE N_SHAPE_FUN( N, NLX, WEIGHT, U_NLOC, NGI ) 
+!!! 
+!!! Unnecessary subrt -- delete it soon
+!!!
+   SUBROUTINE N_SHAPE_FUN( N, NLX, WEIGHT, U_NLOC, NGI ) 
 
     IMPLICIT NONE
     INTEGER, intent( in ) :: U_NLOC, NGI

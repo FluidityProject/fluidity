@@ -670,19 +670,19 @@ contains
                option_path = '/material_phase[0]/vector_field::Velocity')
 
        ENDIF
-       
-       
-	if(.false.) then 
-       call overlapping_to_quadratic_dg( &
-       cv_nonods, x_nonods,u_nonods,  totele, &
-       cv_ele_type,  &
-       nphase,  &
-       cv_nloc, u_nloc, x_nloc, &
-       cv_ndgln,  u_ndgln, x_ndgln,&
-       cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
-       x, y, z, &
-       u, v, w, uold, vold, wold,velocity_dg,ndim )
-      end if
+
+       if(.false.) then 
+          call overlapping_to_quadratic_dg( &
+               cv_nonods, x_nonods,u_nonods,  totele, &
+               cv_ele_type,  &
+               nphase,  &
+               cv_nloc, u_nloc, x_nloc, &
+               cv_ndgln,  u_ndgln, x_ndgln,&
+               cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
+               x, y, z, &
+               u, v, w, uold, vold, wold,velocity_dg,ndim )
+       end if
+
        CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
 
@@ -708,7 +708,7 @@ contains
        DP = 0.0
 
        ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
-       
+
        ewrite(3,*) 'CMC: ', CMC
        ewrite(3,*) 'FINDCMC: ', FINDCMC
        ewrite(3,*) 'COLCMC: ', COLCMC
