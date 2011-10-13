@@ -7,7 +7,7 @@ preprocess:
 	cd $(TYPE); \
 	ln -s ../backward_facing_step_2d_$(TYPE).flml .; \
 	echo **********Generating mesh for $(TYPE) simulation.; \
-	gmsh -2 -optimize -o step2d-med.msh ../src/step2d-med.geo; \
+	gmsh -2 -o step2d-med.msh ../src/step2d-med.geo; \
 	$(SCRIPTS)/gmsh2triangle -2 step2d-med.msh; \
 	cd ..
 

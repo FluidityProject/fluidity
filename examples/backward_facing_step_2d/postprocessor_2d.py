@@ -188,7 +188,7 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   print "reading in data from file: armaly-velo-3.06.dat"
   y3=[];U3=[]
   for line in datafile:
-    U3.append(float(line.split()[0])/36)
+    U3.append(float(line.split()[0])/48)
     y3.append(float(line.split()[1]))
   # normalise
   #U3=[U3[i]/36 for i in range(len(U3))]
@@ -197,7 +197,7 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   print "reading in data from file: armaly-velo-6.12.dat"
   y6=[];U6=[]
   for line in datafile:
-    U6.append(float(line.split()[0])/36)
+    U6.append(float(line.split()[0])/48)
     y6.append(float(line.split()[1]))
   #U6=[U6[i]/max(U6) for i in range(len(U6))]
 
@@ -205,7 +205,7 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   print "reading in data from file: armaly-velo-10.20.dat"
   y10=[];U10=[]
   for line in datafile:
-    U10.append(float(line.split()[0])/36)
+    U10.append(float(line.split()[0])/48)
     y10.append(float(line.split()[1]))
   #U10=[U10[i]/max(U10) for i in range(len(U10))]
 
@@ -213,7 +213,7 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   print "reading in data from file: armaly-velo-15.31.dat"
   y15=[];U15=[]
   for line in datafile:
-    U15.append(float(line.split()[0])/36)
+    U15.append(float(line.split()[0])/48)
     y15.append(float(line.split()[1]))
   #U15=[U15[i]/max(U15) for i in range(len(U15))]
 
@@ -284,7 +284,7 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
     tick.label1.set_fontsize(size)
   pylab.setp(dx.get_yticklabels(), visible=False)
 
-  #pylab.axis([-0.2, 0.8, 0., 1.94])
+  pylab.axis([-0.2, 0.8, 0., 1.94])
   bx.set_xlabel('Normalised U-velocity (U/Umax)', fontsize=24)
   ax.set_ylabel('z/h', fontsize=24)
 
@@ -312,7 +312,7 @@ def main():
     yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,1.91,1.92,1.93,1.94])
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=50, start=0)
+    filelist = get_filelist(sample=75, start=0)
 
     ##### Call meanvelo function
     profiles, time = meanvelo(filelist, xarray, yarray)
