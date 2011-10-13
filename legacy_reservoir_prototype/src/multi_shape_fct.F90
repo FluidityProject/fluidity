@@ -43,56 +43,6 @@ contains
 !!!  N_SHAPE_FUN AND RELATED SUBRTS & FUNCTIONS
 !!!
 
-!!! 
-!!! Unnecessary subrt -- delete it soon
-!!!
-   SUBROUTINE N_SHAPE_FUN( N, NLX, WEIGHT, U_NLOC, NGI ) 
-
-    IMPLICIT NONE
-    INTEGER, intent( in ) :: U_NLOC, NGI
-    REAL, DIMENSION( U_NLOC, NGI ), intent( inout ) :: N, NLX
-    REAL, DIMENSION( NGI ), intent( inout ) :: WEIGHT
-    ! Local variables
-    REAL, DIMENSION( : ), ALLOCATABLE :: WEIT, LX, LXP
-    LOGICAL :: GETNDP
-    INTEGER :: GI, CORN, GPOI
-
-    ewrite(3,*) 'In N_SHAPE_FUN'
-
-    ALLOCATE( WEIT( NGI ))
-    ALLOCATE( LX( NGI )) 
-    ALLOCATE( LX( U_NLOC )) 
-
-
-    LXP( 1 ) = -1.
-    LXP( 2 ) =  0.
-    LXP( 3 ) =  1.
-    GETNDP = .FALSE.
-
-    CALL LAGROT( WEIT, LX, NGI, GETNDP )
-
-    Loop_Gauss: DO GI = 1, NGI
-
-       DO CORN = 1, U_NLOC
-          GPOI = GI
-          N( CORN, GPOI ) = 0.5 * ( 1. + LXP( CORN ) * LX( GI ))
-          NLX( CORN, GPOI ) = 0.5 * LXP( CORN )
-          WEIGHT( GPOI ) = WEIT( GI )
-       END DO
-
-    END DO Loop_Gauss
-
-    DEALLOCATE( WEIT )
-    DEALLOCATE( LX )
-    DEALLOCATE( LXP )
-
-    ewrite(3,*) 'Leaving N_SHAPE_FUN'
-
-    RETURN
-
-  END SUBROUTINE N_SHAPE_FUN
-
-
 
   SUBROUTINE LAGROT( WEIT, QUAPOS, NDGI, GETNDP )
 

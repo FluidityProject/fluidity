@@ -190,8 +190,9 @@
          nc = nct
       endif
       
-      ewrite(3,*) 'findct: ', findct
+      ewrite(3,*) 'findct: ', findct( 1 : cv_nonods + 1 )
       ewrite(3,*) 'colct: ', colct(1:totele*cv_nloc*u_nloc)
+stop 34
 
       ! Convert CT sparsity to C sparsity.
       CALL CONV_CT2C( CV_NONODS, NCT, FINDCT, COLCT, U_NONODS, MX_NC, FINDC, COLC )
@@ -281,7 +282,7 @@
          ewrite(3,*)'colacv_loc:', size( colacv_loc ), colacv_loc( 1 : mxnacv_loc )
          ewrite(3,*)'midacv_loc:', size( midacv_loc ), midacv_loc( 1 : cv_nonods )
 
-         !stop 98874
+         stop 98874
     !!     allocate( tempvec1( cv_nonods + 1 ))
      !!    allocate( tempvec2( mxnacv_loc ))
      !!    allocate( tempvec3( cv_nonods ))
@@ -533,7 +534,10 @@
       finished_colct=.false.
       COUNT = 0
       count2 = 1
-      
+      ewrite(3,*)'cv1:', size(cv_ndgln), cv_ndgln
+      ewrite(3,*)'cv2:', size(cv_ndgln_small), cv_ndgln_small 
+      ewrite(3,*)'cvnonods:', cv_nonods
+!stop 23
 
       IF(CV_NONODS /= CV_NLOC*TOTELE ) THEN
          ! Have a cty CV_NOD
@@ -546,6 +550,7 @@
               FINDCT( cv_nodi ) = COUNT + 1
               ELE1 = 1 + ( CV_NOD - 2 ) / ( CV_NLOC - 1 )
               ELE2 = 1 + ( CV_NOD - 1 ) / ( CV_NLOC - 1 )
+              ewrite(3,*)'findct:', cv_nod, cv_nodi, findct( cv_nodi )
 
               loop_elements: DO ELE = MAX( 1 , ELE1 ), MIN( TOTELE , ELE2 ), 1
 
@@ -554,6 +559,7 @@
                   COUNT = COUNT + 1
 !                  ewrite(3,*) u_nod
                   COLCT( COUNT ) = U_NOD
+              !    ewrite(3,*)'colct:', ele, count, colct(count)
                 END DO
 
               END DO loop_elements
@@ -1386,113 +1392,134 @@
   module spact2
     use fldebug
     use shape_functions
-implicit none
+    implicit none
 
-!! The data type below were copied from fluidity-legacy 
-  type refcount_type
-     !!< Type to hold reference count for an arbitrary object.
-     type(refcount_type), pointer :: prev=>null(), next=>null()
-     integer :: count=0
-     integer :: id
-     !!>character(len=FIELD_NAME_LEN) :: name
-     !!>character(len=FIELD_NAME_LEN) :: type
-     logical :: tagged=.false.
-  end type refcount_type
+    !! The data type below were copied from fluidity-legacy 
+    type refcount_type
+       !!< Type to hold reference count for an arbitrary object.
+       type(refcount_type), pointer :: prev=>null(), next=>null()
+       integer :: count=0
+       integer :: id
+       !!>character(len=FIELD_NAME_LEN) :: name
+       !!>character(len=FIELD_NAME_LEN) :: type
+       logical :: tagged=.false.
+    end type refcount_type
 
-  type polynomial
-     real, dimension(:), pointer :: coefs=>null()
-     integer :: degree=-1
-  end type polynomial
+    type polynomial
+       real, dimension(:), pointer :: coefs=>null()
+       integer :: degree=-1
+    end type polynomial
 
-  type ele_numbering_type
-     ! Type to record element numbering details.
-     ! Differentiate tets from other elements.
-     integer :: faces, vertices, edges, boundaries
-     integer :: degree ! Degree of polynomials.
-     integer :: dimension ! 2D or 3D
-     integer :: nodes
-     !!>integer :: type=ELEMENT_LAGRANGIAN
-     integer :: family
-     ! Map local count coordinates to local number.
-     integer, dimension(:,:,:), pointer :: count2number
-     ! Map local number to local count coordinates.
-     integer, dimension(:,:), pointer :: number2count
-     ! Count coordinate which is held constant for each element boundary.
-     integer, dimension(:), pointer :: boundary_coord
-     ! Value of that count coordinate on the element boundary.
-     integer, dimension(:), pointer :: boundary_val
-  end type ele_numbering_type
-  
-  type quadrature_type
-     !!< A data type which describes quadrature information. For most
-     !!< developers, quadrature can be treated as an opaque data type which
-     !!< will only be encountered when creating element_type variables to
-     !!< represent shape functions.  
-     integer :: dimension !! Dimension of the elements for which quadrature
-     !!< is required.  
-     integer :: degree !! Degree of accuracy of quadrature. 
-     integer :: loc !! Number of vertices of the element.
-     integer :: ngi !! Number of quadrature points.
-     real, pointer :: weight(:)=>null() !! Quadrature weights.
-     real, pointer :: l(:,:)=>null() !! Locations of quadrature points.
-     character(len=0) :: name !! Fake name for reference counting.
-     !! Reference count to prevent memory leaks.
-     type(refcount_type), pointer :: refcount=>null()
-  end type quadrature_type
+    type ele_numbering_type
+       ! Type to record element numbering details.
+       ! Differentiate tets from other elements.
+       integer :: faces, vertices, edges, boundaries
+       integer :: degree ! Degree of polynomials.
+       integer :: dimension ! 2D or 3D
+       integer :: nodes
+       !!>integer :: type=ELEMENT_LAGRANGIAN
+       integer :: family
+       ! Map local count coordinates to local number.
+       integer, dimension(:,:,:), pointer :: count2number
+       ! Map local number to local count coordinates.
+       integer, dimension(:,:), pointer :: number2count
+       ! Count coordinate which is held constant for each element boundary.
+       integer, dimension(:), pointer :: boundary_coord
+       ! Value of that count coordinate on the element boundary.
+       integer, dimension(:), pointer :: boundary_val
+    end type ele_numbering_type
+
+    type quadrature_type
+       !!< A data type which describes quadrature information. For most
+       !!< developers, quadrature can be treated as an opaque data type which
+       !!< will only be encountered when creating element_type variables to
+       !!< represent shape functions.  
+       integer :: dimension !! Dimension of the elements for which quadrature
+       !!< is required.  
+       integer :: degree !! Degree of accuracy of quadrature. 
+       integer :: loc !! Number of vertices of the element.
+       integer :: ngi !! Number of quadrature points.
+       real, pointer :: weight(:)=>null() !! Quadrature weights.
+       real, pointer :: l(:,:)=>null() !! Locations of quadrature points.
+       character(len=0) :: name !! Fake name for reference counting.
+       !! Reference count to prevent memory leaks.
+       type(refcount_type), pointer :: refcount=>null()
+    end type quadrature_type
 
 
-  type element_type
-     !!< Type to encode shape and quadrature information for an element.
-     integer :: dim !! 2d or 3d?
-     integer :: loc !! Number of nodes.
-     integer :: ngi !! Number of gauss points.
-     integer :: degree !! Polynomial degree of element.
-     !! Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces. 
-     !! n is loc x ngi, dn is loc x ngi x dim
-     !! dn_s is loc x ngi x face x dim 
-     real, pointer :: n(:,:)=>null(), dn(:,:,:)=>null()
-     real, pointer :: n_s(:,:,:)=>null(), dn_s(:,:,:,:)=>null()
-     !! Polynomials defining shape functions and their derivatives.
-     type(polynomial), dimension(:,:), pointer :: spoly=>null(), dspoly=>null()
-     !! Link back to the node numbering used for this element.
-     type(ele_numbering_type), pointer :: numbering=>null()
-     !! Link back to the quadrature used for this element.
-     type(quadrature_type) :: quadrature
-     type(quadrature_type), pointer :: surface_quadrature=>null()
-     !! Pointer to the superconvergence data for this element.
-     !!>type(superconvergence_type), pointer :: superconvergence=>null()
-     !! Reference count to prevent memory leaks.
-     type(refcount_type), pointer :: refcount=>null()
-     !! Dummy name to satisfy reference counting
-     character(len=0) :: name
-  end type element_type
+    type element_type
+       !!< Type to encode shape and quadrature information for an element.
+       integer :: dim !! 2d or 3d?
+       integer :: loc !! Number of nodes.
+       integer :: ngi !! Number of gauss points.
+       integer :: degree !! Polynomial degree of element.
+       !! Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces. 
+       !! n is loc x ngi, dn is loc x ngi x dim
+       !! dn_s is loc x ngi x face x dim 
+       real, pointer :: n(:,:)=>null(), dn(:,:,:)=>null()
+       real, pointer :: n_s(:,:,:)=>null(), dn_s(:,:,:,:)=>null()
+       !! Polynomials defining shape functions and their derivatives.
+       type(polynomial), dimension(:,:), pointer :: spoly=>null(), dspoly=>null()
+       !! Link back to the node numbering used for this element.
+       type(ele_numbering_type), pointer :: numbering=>null()
+       !! Link back to the quadrature used for this element.
+       type(quadrature_type) :: quadrature
+       type(quadrature_type), pointer :: surface_quadrature=>null()
+       !! Pointer to the superconvergence data for this element.
+       !!>type(superconvergence_type), pointer :: superconvergence=>null()
+       !! Reference count to prevent memory leaks.
+       type(refcount_type), pointer :: refcount=>null()
+       !! Dummy name to satisfy reference counting
+       character(len=0) :: name
+    end type element_type
 
-  type cv_faces_type
-    ! loc = number of vertices, faces = number of faces
-    ! degree = degree of polynomial, dim = dimensions of parent element
-    integer :: loc, faces, coords, degree, dim
-    integer :: sloc, sfaces, scoords
-    ! corners = volume coordinates of corners of faces
-    ! faces x loc x face vertices
-    real, dimension(:,:,:), pointer :: corners, scorners
-    ! neiloc = relates faces to faces and vice versa
-    ! loc x faces
-    integer, dimension(:,:), pointer :: neiloc, sneiloc
-    ! shape = shape function used in quadrature of faces
-    ! 1 dimension lower than parent element
-    logical, dimension( : , : ), pointer :: onface
-    type(element_type) :: shape
-  end type cv_faces_type
+    type cv_faces_type
+       ! loc = number of vertices, faces = number of faces
+       ! degree = degree of polynomial, dim = dimensions of parent element
+       integer :: loc, faces, coords, degree, dim
+       integer :: sloc, sfaces, scoords
+       ! corners = volume coordinates of corners of faces
+       ! faces x loc x face vertices
+       real, dimension(:,:,:), pointer :: corners, scorners
+       ! neiloc = relates faces to faces and vice versa
+       ! loc x faces
+       integer, dimension(:,:), pointer :: neiloc, sneiloc
+       ! shape = shape function used in quadrature of faces
+       ! 1 dimension lower than parent element
+       logical, dimension( : , : ), pointer :: onface
+       type(element_type) :: shape
+    end type cv_faces_type
+
+    ! Defining derived data types for the linked list
+    type node
+       integer :: id                 ! id number of node
+       type( node ), pointer :: next ! next node, recursive data type
+    end type node
+
+    type row
+       type( node ), pointer :: row
+    end type row
+
+    type( row ), dimension( : ), allocatable :: matrix, matrix2
+    type( node ), pointer :: list, current, current2, next
+
 
   contains
 
-    subroutine sparse_cvdomain( ndim, totele, cv_nloc, u_nloc,  &
-         cv_ele_type, cv_ndgln, u_ndgln, &
+    subroutine sparse_cvdomain( ndim, totele, cv_nonods, cv_nloc, u_nonods, u_nloc,  &
+         cv_snloc, x_nonods, x_nloc, &
+         cv_ele_type, cv_ndgln, u_ndgln, x_ndgln, &
+         ncolele, finele, colele, &
          ncolgpts, findgpts, colgpts )
       implicit none
-      integer, intent( in ) :: ndim, totele, cv_nloc, u_nloc, cv_ele_type
+      integer, intent( in ) :: ndim, totele, cv_nonods, cv_nloc, u_nonods, u_nloc, &
+           cv_snloc, x_nonods, x_nloc, cv_ele_type
       integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
       integer, dimension( totele * u_nloc ), intent( in ) :: u_ndgln
+      integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln
+      integer, intent( in ) :: ncolele
+      integer, dimension( totele + 1 ), intent( in ) :: finele
+      integer, dimension( ncolele ), intent( in ) :: colele
       integer, intent( inout ) :: ncolgpts
       integer, dimension( cv_nloc + 1 ), intent( inout ) :: findgpts
       integer, dimension( cv_nloc * totele ), intent( inout ) :: colgpts
@@ -1500,36 +1527,39 @@ implicit none
       ! Local variables: 
       type( cv_faces_type ) :: cvfaces
       type( element_type ) :: cvshape
-     !! integer, dimension( : , : ), allocatable :: cv_neiloc
-     !! integer, dimension( : ), allocatable :: 
+      !! integer, dimension( : , : ), allocatable :: cv_neiloc
+      !! integer, dimension( : ), allocatable :: 
       integer :: cv_ele_type2, u_nloc2, cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, &
-           ele, cv_iloc, cv_jloc, cv_nodi, gcount, gi, iloc
+           ele, ele2, cv_iloc, cv_jloc, cv_kloc, cv_nodi, gcount, gi, iloc
+      logical :: integrat_at_gi
+      logical, dimension( : ), allocatable :: x_share
+      integer, dimension( : ), allocatable :: cv_other_loc
+
+      allocate( x_share( x_nonods ))
 
       Conditional_CVELETYPE: if( cv_ele_type == 2 ) then
          cv_ele_type2 = 1
          u_nloc2 = u_nloc / cv_nloc
+         allocate( cv_other_loc( cv_nloc ) )
 
 
          call retrieve_ngi2( ndim, cv_ele_type2, cv_nloc, u_nloc2, &
               cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface ) ! obtain cv_ngi and scvngi
 
-      !!   allocate( cv_neiloc( cv_nloc, scvngi ))
-      !!   call volnei( cv_neiloc, cv_nloc, scvngi, cv_ele_type2 ) ! obtain cv_neiloc
+         !!   allocate( cv_neiloc( cv_nloc, scvngi ))
+         !!   call volnei( cv_neiloc, cv_nloc, scvngi, cv_ele_type2 ) ! obtain cv_neiloc
          cvfaces % loc = cv_nloc
-         cvshape % ngi = scvngi
-         call volnei( cvfaces % neiloc, cvfaces % loc, cvshape % ngi, cv_ele_type2 ) ! obtain cv_neiloc
+         cvfaces % shape % ngi = scvngi
+         call volnei( cvfaces % neiloc, cvfaces % loc, cvfaces % shape % ngi, cv_ele_type2 ) ! obtain cv_neiloc
+
+
+         !! call gaussiloc( findgpts, colgpts( 1 : cv_nloc * scvngi ), ncolgpts, &
+         !!      cv_neiloc, cv_nloc, scvngi ) 
+         call gaussiloc( findgpts, colgpts( 1 : cv_nloc * cvfaces % shape % ngi ), ncolgpts, &
+              cvfaces % neiloc, cv_nloc, cvfaces % shape % ngi ) 
+         !  findgpts and colgpts has the address of Gauss point around iloc
 
          cvfaces % onface = .false.
-         do iloc = 1, cvfaces % loc
-            cvfaces % onface( iloc, iloc ) = .true.
-            cvfaces % onface( iloc, iloc + 1 ) = .true.
-         end do
-
-        !! call gaussiloc( findgpts, colgpts( 1 : cv_nloc * scvngi ), ncolgpts, &
-        !!      cv_neiloc, cv_nloc, scvngi ) 
-         call gaussiloc( findgpts, colgpts( 1 : cv_nloc * cvshape % ngi ), ncolgpts, &
-              cvfaces % neiloc, cv_nloc, cvshape % ngi ) 
-         !  findgpts and colgpts has the address of Gauss point around iloc
 
          Loop_Elements1: do ele = 1, totele
 
@@ -1539,8 +1569,26 @@ implicit none
                ! Loop over quadrature (gauss) points in ele neighbouring iloc
                Loop_GaussCount: do gcount = findgpts( cv_iloc ), findgpts( cv_iloc + 1 ), 1 
                   gi = colgpts( gcount ) ! colgpts stores the local Gauss-point number in ele
-                !!  cv_jloc = cv_neiloc( cv_iloc, gi ) ! get the neighbouring node for node iloc and Gauss point gi
+                  !!  cv_jloc = cv_neiloc( cv_iloc, gi ) ! get the neighbouring node for node iloc and Gauss point gi
                   cv_jloc = cvfaces % neiloc( cv_iloc, gi ) ! get the neighbouring node for node iloc and Gauss point gi
+
+                  integrat_at_gi = .true.
+                  Case_OnFace: Select Case( ndim )
+                  case( 1 )
+                     do cv_kloc = 1, cvfaces % loc
+                        cvfaces % onface( cv_kloc, cv_kloc ) = .true.
+                        cvfaces % onface( cv_kloc, cv_kloc + 1 ) = .true.
+                     end do
+                  case default; call find_other_side2( totele, cv_nonods, cvfaces % loc, cv_snloc, x_nonods, x_nloc, &
+                       ele, cvfaces % shape % ngi, gi, cv_nodi, &
+                       cv_ndgln, x_ndgln, &
+                       ncolele, finele, colele, &
+                       cvfaces % onface, integrat_at_gi, cv_other_loc, &
+                       x_share, ele2 )
+                  end Select Case_OnFace
+
+                  !      call cv_sparse( &
+                  !           )
 
                end do Loop_GaussCount
 
@@ -1564,9 +1612,7 @@ implicit none
 
       Conditional_NDIM: Select Case( ndim )
       case( 1 )
-
-         Conditional_CV_NLOC: Select Case( cv_nloc )
-
+         Conditional_CV_NLOC1D: Select Case( cv_nloc )
          case( 1 )
             cv_ngi = 1
             scvngi = 2
@@ -1577,21 +1623,195 @@ implicit none
             cv_ngi = 12
             scvngi = 4
             if( ( u_nloc == 4 ) .or. ( u_nloc == 5 )) cv_ngi = 18
-
-         case default; FLExit("Invalid integer for u_nloc ")
-
-         end Select Conditional_CV_NLOC
+         case default; FLExit(" Invalid integer for cv_nloc ")
+         end Select Conditional_CV_NLOC1D
          sbcvngi = 1
          nface = 2
          cv_ngi_short = cv_ngi
          if( cv_ele_type == 2 ) cv_ngi = cv_ngi * cv_nloc
 
+      case( 2 ) ! Triangle
+         Conditional_CV_NLOC2D: Select Case( cv_nloc )
+         case( 3 ) ! Linear
+            cv_ngi = 13
+            !  cv_ngi = 12
+            !  scvngi = 3
+            scvngi = 4
+            !  sbcvngi = 2 !! Is this correct ??
+            sbcvngi = 3 !! Is this correct ??
+         case( 6 ) ! Quadratic
+            cv_ngi = 28
+            !   cv_ngi = 36
+            !   scvngi = 18
+            scvngi = 13
+            !   sbcvngi = 6 !! Is thia correct ??
+            sbcvngi = 4 !! Is thia correct ??
+         case default; FLExit(" Invalid integer for cv_nloc ")
+         end Select Conditional_CV_NLOC2D
+         nface = 3
+         cv_ngi_short = cv_ngi
+         if( cv_ele_type == 2 ) cv_ngi = cv_ngi * cv_nloc
+
+      case( 3 ) ! Tetrahedra (not ready !)
+         Conditional_CV_NLOC3D: Select Case( cv_nloc )
+         case( 12 ) ! Linear
+            cv_ngi = 32
+            scvngi = 6
+            sbcvngi = 12 !! Is this correct ??
+         case( 24 ) ! Quadratic
+            cv_ngi = 128
+            scvngi = 96
+            sbcvngi = 36 !! Is this correct ??
+         case default; FLExit(" Invalid integer for cv_nloc ")
+         end Select Conditional_CV_NLOC3D
+         nface = 4
+         cv_ngi_short = cv_ngi
+         if( cv_ele_type == 2 ) cv_ngi = cv_ngi * cv_nloc
+
       case default ; FLExit("Invalid integer for problem dimension")
+
       end Select Conditional_NDIM
 
       return
     end subroutine retrieve_ngi2
 
+    subroutine find_other_side2( totele, cv_nonods, cv_nloc, cv_snloc, x_nonods, x_nloc, &
+         ele, scvngi, gi, cv_nodi, &
+         cv_ndgln, x_ndgln, &
+         ncolele, finele, colele, &
+         cv_on_face, integrat_at_gi, cv_other_loc, &
+         x_share, ele2 )
+      implicit none
+      integer, intent( in ) :: totele, cv_nonods, cv_nloc, cv_snloc, x_nonods, x_nloc, &
+           ele, scvngi, gi, cv_nodi
+      integer, dimension ( totele * cv_nloc ), intent( in ) :: cv_ndgln
+      integer, dimension ( totele * x_nloc ), intent( in ) :: x_ndgln
+      integer, intent( in ) :: ncolele
+      integer, dimension( totele + 1 ), intent( in ) :: finele
+      integer, dimension( ncolele ), intent( in ) :: colele
+      logical, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_on_face
+      logical, intent( inout ) :: integrat_at_gi
+      integer, dimension( cv_nloc ), intent( inout ) :: cv_other_loc
+      logical, dimension( x_nonods ), intent( inout ) :: x_share
+      integer, intent( inout ) :: ele2
+
+      ! Local variables
+      integer :: x_iloc, x_inod, x_jnod, ele_temp, count, suf_count, cv_iloc, cv_jloc, &
+           cv_inod, cv_jnod, cv_face 
+
+
+      do x_iloc = 1, x_nloc
+         x_inod = x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )
+         x_share( x_inod ) = cv_on_face( x_iloc, gi )
+      end do
+
+      ele_temp = 0 ! Check if there nodes been shared
+      do count = finele( ele ), finele( ele + 1 ) - 1, 1
+         ele2 = colele( count )
+         suf_count = 0
+         if ( ele2 /= ele ) then
+            do x_iloc = 1, x_nloc
+               x_inod = x_ndgln( ( ele2 - 1 ) * x_nloc + x_iloc )
+               if( x_share( x_inod )) suf_count = suf_count + 1
+            end do
+         end if
+         if ( suf_count ==  cv_snloc ) ele_temp = ele2
+      end do
+
+      ele2 = ele_temp
+      do x_iloc = 1, x_nloc
+         x_inod = x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )
+         x_share( x_inod ) = .false.
+      end do
+
+      do cv_iloc = 1, cv_nloc ! Searching for the face in the neightboor element
+         cv_inod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+         do ele_temp = 1, totele
+            do cv_jloc = 1, cv_nloc
+               cv_jnod = cv_ndgln( ( ele_temp - 1 ) * cv_nloc + cv_jloc )
+               if( cv_inod == cv_jnod ) cv_on_face( cv_iloc, gi ) = .true.
+            end do
+         end do
+      end do
+
+      if ( ele2 /= 0 ) then ! Checking if cv_nodi is at ele2
+         do cv_iloc = 1, cv_nloc
+            cv_inod = cv_ndgln( ( ele2 - 1 ) * cv_nloc + cv_jloc )
+            if ( cv_inod == cv_nodi ) integrat_at_gi = .false.
+         end do
+      end if
+
+      if ( ( ele2 /= 0 ) .and. integrat_at_gi ) then ! Compute cv_other_loc( cv_nloc )
+         cv_other_loc = 0
+         do cv_iloc = 1, cv_nloc
+            if ( cv_on_face( cv_iloc, gi )) then ! Find the opposite site
+               x_inod = x_ndgln( ( ele - 1 ) * x_nloc + cv_iloc ) !! IS THIS CORRECT
+               do cv_jloc = 1, cv_nloc
+                  x_jnod = x_ndgln( ( ele2 - 1 ) * x_nloc + cv_jloc )
+                  if( x_jnod == x_inod ) cv_other_loc( cv_iloc ) = cv_jloc 
+               end do
+            end if
+         end do
+
+      else
+         cv_other_loc = 0
+
+      end if
+
+      return
+    end subroutine find_other_side2
+
+    subroutine cv_sparse( ndim, totele, cv_nonods, cv_nloc, scvngi, &
+         ele, ele2, gi, &
+         cv_ndgln, &
+         cv_neiloc, cv_on_face, cv_other_loc, &
+         ncolele, finele, colele, midele, &
+         ncolacv, finacv, colacv, midacv )
+      implicit none
+      integer, intent( in ) :: ndim, totele, cv_nonods, cv_nloc, scvngi, ele, ele2, gi
+      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+      integer, dimension( cv_nloc, scvngi ), intent( in ) :: cv_neiloc
+      logical, dimension( cv_nloc, scvngi ), intent( in ) :: cv_on_face
+      integer, dimension( cv_nloc ), intent( in ) :: cv_other_loc
+      integer, intent( in ) :: ncolele
+      integer, dimension( totele + 1 ), intent( in ) :: finele
+      integer, dimension( ncolele ), intent( in ) :: colele
+      integer, dimension( totele ), intent( in ) :: midele
+      integer, intent( inout ) :: ncolacv
+      integer, dimension( cv_nonods + 1 ), intent( inout ) :: finacv
+      integer, dimension( ncolacv ), intent( inout ) :: colacv
+      integer, dimension( cv_nonods ), intent( inout ) :: midacv
+      ! Local variables
+      integer :: elem, elem2, cv_iloc, cv_jloc, cv_inod, cv_jnod, counti, globi, globj
+      integer, dimension( : ), allocatable :: count_cv
+
+      allocate( count_cv( cv_nloc * totele ))
+      count_cv = 0
+      Loop_CVLoc1: do cv_iloc = 1, cv_nloc
+         cv_inod = cv_ndgln( ( ele - 1 )  * cv_nloc + cv_iloc )
+         Loop_Elements1: do elem = 1, totele
+            Loop_CVLoc2: do cv_jloc = 1, cv_nloc
+               cv_jnod = cv_ndgln( ( elem - 1 )  * cv_nloc + cv_jloc )
+               if( cv_on_face( cv_jloc, gi ) ) then
+                  ! cv of element elem that share faces/cv with element ele
+                  count_cv( ( elem - 1 ) * cv_nloc + cv_jloc ) = cv_jloc 
+               end if
+            end do Loop_CVLoc2
+
+         end do Loop_Elements1
+      end do Loop_CVLoc1
+
+      ! Loop_CVLoc3: do cv_iloc = 1, cv_nloc
+      !    if( cv_on_face( cv_iloc, gi ) ) then
+
+      !            cv_inod = cv_ndgln( ( ele - 1 )  * cv_nloc + cv_iloc )
+
+      !        end do Loop_CVLoc1
+
+
+      deallocate( count_cv )
+      return
+    end subroutine cv_sparse
 
 
   end module spact2
