@@ -54,10 +54,10 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.1</real_value>
+      <real_value rank="0">6.0</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">4.0</real_value>
+      <real_value rank="0">6.0</real_value>
     </finish_time>
   </timestepping>
   <material_phase name="Water">

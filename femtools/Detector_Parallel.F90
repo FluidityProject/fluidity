@@ -37,7 +37,7 @@ module detector_parallel
   use halo_data_types
   use halos_numbering
   use mpi_interfaces
-  use pickers, only: search_for_detectors
+  use pickers
 
   implicit none
   
@@ -121,34 +121,53 @@ contains
     type(detector_linked_list), intent(inout) :: detector_list
 
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
-    type(detector_type), pointer :: detector, node_to_send
+    type(detector_linked_list) :: detector_bcast_list, lost_detectors_list
+    type(detector_type), pointer :: detector, node_to_send, bcast_detector
     type(vector_field), pointer :: xfield
-    integer :: k, nprocs, all_send_lists_empty, processor_owner
+    integer :: i,j,k, nprocs, all_send_lists_empty, processor_owner, bcast_count, &
+               ierr, ndata_per_det, bcast_rounds, round, accept_detector
+    integer, dimension(:), allocatable :: ndets_being_bcast
+    real, allocatable :: send_buff(:), recv_buff(:)
+    type(element_type), pointer :: shape  
 
     ewrite(2,*) "In distribute_detectors"  
 
     xfield => extract_vector_field(state,"Coordinate")
 
-    ! We allocate a sendlist for every processor
+    ! We allocate a point-to-point sendlist for every processor
     nprocs=getnprocs()
     allocate(send_list_array(nprocs))
+    bcast_count=0
 
     detector => detector_list%first
     do while (associated(detector))
-       assert(detector%element>0)
-       processor_owner=element_owner(xfield%mesh,detector%element)
 
-       if (processor_owner/= getprocno()) then
-          node_to_send => detector
-          detector => detector%next
+       if (detector%element>0) then
+          ! If we know the element get the owner and send point-to-point
+          processor_owner=element_owner(xfield%mesh,detector%element)
 
-          call move(node_to_send, detector_list, send_list_array(processor_owner))
+          if (processor_owner/= getprocno()) then
+             node_to_send => detector
+             detector => detector%next
+
+             call move(node_to_send, detector_list, send_list_array(processor_owner))
+          else
+             detector => detector%next
+          end if
        else
+          ! If we dont know the element we will need to broadcast
+          ewrite(2,*) "Found non-local detector, triggering broadcast..."
+          bcast_count = bcast_count + 1
+
+          ! Move detector to broadcast detector list
+          bcast_detector => detector
           detector => detector%next
+          call move(bcast_detector, detector_list, detector_bcast_list)
        end if
     end do
 
-    ! Exchange detectors if there are any detectors to exchange globally
+    ! Exchange detectors if there are any detectors to exchange 
+    ! via the point-to-point sendlists
     all_send_lists_empty=0
     do k=1, nprocs
        if (send_list_array(k)%length/=0) then
@@ -166,11 +185,116 @@ contains
     end do
     deallocate(send_list_array)
 
+    ! Sanity check
     detector => detector_list%first
     do while (associated(detector))
        assert(element_owner(xfield%mesh,detector%element)==getprocno())
        detector=>detector%next
     end do
+
+    ! Find out how many unknown detectors each process wants to broadcast
+    allocate(ndets_being_bcast(getnprocs()))
+    call mpi_allgather(bcast_count, 1, getPINTEGER(), ndets_being_bcast, 1 , getPINTEGER(), MPI_COMM_FEMTOOLS, ierr)
+    assert(ierr == MPI_SUCCESS)
+
+    ! If there are no unknow detectors exit
+    if (all(ndets_being_bcast == 0)) then
+       return
+    else
+       ewrite(2,*) "Broadcast required, initialising..."
+
+       ! If there are unknow detectors we need to broadcast.
+       ! Since we can not be sure whether any processor will accept a detector
+       ! we broadcast one at a time so we can make sure somebody accepted it. 
+       ! If there are no takers we keep the detector with element -1, 
+       ! becasue it has gone out of the domain, and this will be caught at a later stage.
+       bcast_rounds = maxval(ndets_being_bcast)
+       call allmax(bcast_rounds)
+       do round=1, bcast_rounds
+          ndata_per_det = detector_buffer_size(xfield%dim,.false.)
+
+          ! Broadcast detectors whose new owner we can't identify
+          do i=1,getnprocs()
+             if (ndets_being_bcast(i) >= round) then
+
+                if (i == getprocno() .and. bcast_count>=round) then
+                   ! Allocate memory for the detector we're going to send
+                   allocate(send_buff(ndata_per_det))
+
+                   ! Pack the first detector from the bcast_list
+                   detector=>detector_bcast_list%first
+                   call pack_detector(detector, send_buff(1:ndata_per_det), xfield%dim)
+                   call delete(detector, detector_bcast_list)
+
+                   ! Broadcast the detectors you want to send
+                   ewrite(2,*) "Broadcasting detector"
+                   call mpi_bcast(send_buff,ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
+                   assert(ierr == MPI_SUCCESS)
+
+                   ! This allmax matches the one below
+                   accept_detector = 0
+                   call allmax(accept_detector)
+
+                   ! If we're the sender and nobody accepted the detector
+                   ! we keep it, to deal with it later in the I/O routines
+                   if (accept_detector == 0 .and. i == getprocno()) then                   
+                      ewrite(2,*) "WARNING: Could not find processor for detector. Detector is probably outside the domain!"
+
+                      ! Unpack detector again and put in a temporary lost_detectors_list
+                      shape=>ele_shape(xfield,1)
+                      detector=>null()
+                      call allocate(detector, xfield%dim, local_coord_count(shape))
+                      call unpack_detector(detector, send_buff(1:ndata_per_det), xfield%dim)
+                      call insert(detector, lost_detectors_list)
+                   end if
+
+                   deallocate(send_buff)
+                else
+                   ! Allocate memory to receive into
+                   allocate(recv_buff(ndata_per_det))
+             
+                   ! Receive broadcast
+                   ewrite(2,*) "Receiving detector from process ", i
+                   call mpi_bcast(recv_buff,ndata_per_det, getPREAL(), i-1, MPI_COMM_FEMTOOLS, ierr)
+                   assert(ierr == MPI_SUCCESS)
+
+                   ! Allocate and unpack the detector
+                   shape=>ele_shape(xfield,1)
+                   detector=>null()
+                   call allocate(detector, xfield%dim, local_coord_count(shape))
+                   call unpack_detector(detector, recv_buff(1:ndata_per_det), xfield%dim)
+
+                   ! Try to find the detector position locally
+                   call picker_inquire(xfield, detector%position, detector%element, detector%local_coords, global=.false.)
+                   if (detector%element>0) then 
+                      ! We found a new home...
+                      call insert(detector, detector_list)
+                      accept_detector = 1
+                      ewrite(2,*) "Accepted detector"
+                   else
+                      call delete(detector)
+                      accept_detector = 0
+                      ewrite(2,*) "Rejected detector"
+                   end if
+
+                   ! This allmax matches the one above
+                   call allmax(accept_detector)
+                   deallocate(recv_buff)
+                end if
+             end if
+          end do
+       end do
+
+       ! Now move the lost detectors into our list again
+       detector=>lost_detectors_list%first
+       do while (associated(detector))
+          call move(detector, lost_detectors_list, detector_list)
+          detector=>detector%next
+       end do
+       assert(lost_detectors_list%length==0)
+    end if
+
+    ewrite(2,*) "Finished broadcast"
 
   end subroutine distribute_detectors
 

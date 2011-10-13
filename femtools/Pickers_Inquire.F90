@@ -339,8 +339,6 @@ contains
     real, dimension(:, :), allocatable :: global_coords, global_l_coords
     integer, dimension(:), allocatable :: local_ele, global_ele
        
-    if(detectors%length == 0) return
-       
     call initialise_picker(positions)
     assert(ele_numbering_family(positions, 1) == FAMILY_SIMPLEX)
 
@@ -372,6 +370,7 @@ contains
     deallocate(local_l_coords)
     deallocate(local_ele)
 
+    call allmax(nglobal_dets)
     if (nglobal_dets==0) then
        return
     end if
