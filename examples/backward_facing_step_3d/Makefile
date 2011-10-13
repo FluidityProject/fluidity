@@ -4,8 +4,9 @@ RE=5100
 JOB=kepsilon-periodic-adapt
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,0.125 , \
+	@$(foreach NN,coarse , \
 		echo **********Installing directory $(RE)-$(JOB)-$(NN):; \
+		install -d $(RE)-$(JOB)-$(NN); \
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
 		echo **********copying flml: _facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
@@ -38,7 +39,17 @@ preprocess-periodic:
 
 run:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,med , \
+	@$(foreach NN,coarse , \
+		echo Running $(NN) case; \
+		cd $(RE)-$(JOB)-$(NN); \
+		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
+		mpiexec -np $(NPROCS) $(BIN)/fluidity -v2 -l backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml; \
+		cd ..; \
+	)
+
+run-periodic:
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
+	@$(foreach NN,coarse , \
 		echo Running $(NN) case; \
 		cd $(RE)-$(JOB)-$(NN); \
 		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
