@@ -177,7 +177,7 @@ contains
     real, dimension( x_nonods ), intent( inout ) :: x, y, z
     real, dimension( xu_nonods ), intent( inout ) :: xu, yu, zu
     real, dimension( u_nonods * nphase ), intent( inout ) :: nu, nv, nw, ug, vg, wg
-    real, dimension( cv_nonods,nphase,ndim), intent(inout) :: velocity_dg
+    real, dimension( totele*cv_nloc,nphase,ndim), intent(inout) :: velocity_dg
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_abs_stab
     real, intent( in ) :: Mobility
     real, dimension( mat_nonods, ndim * nphase, ndim * nphase ), intent( inout ) :: u_absorb

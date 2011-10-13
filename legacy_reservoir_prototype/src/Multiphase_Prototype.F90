@@ -254,7 +254,7 @@ module mp_prototype
       allocate( nwold( u_pha_nonods ))
       allocate( denold( cv_pha_nonods ))
       allocate( uden( cv_pha_nonods ))
-      allocate( velocity_dg(cv_nonods,nphase,ndim))
+      allocate( velocity_dg(totele*cv_nloc,nphase,ndim))
       allocate( udenold( cv_pha_nonods ))
       allocate( deriv( cv_pha_nonods ))
       allocate( saturaold( cv_pha_nonods ))

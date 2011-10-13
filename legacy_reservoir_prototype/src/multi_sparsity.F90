@@ -192,7 +192,7 @@
       
       ewrite(3,*) 'findct: ', findct( 1 : cv_nonods + 1 )
       ewrite(3,*) 'colct: ', colct(1:totele*cv_nloc*u_nloc)
-stop 34
+!stop 34
 
       ! Convert CT sparsity to C sparsity.
       CALL CONV_CT2C( CV_NONODS, NCT, FINDCT, COLCT, U_NONODS, MX_NC, FINDC, COLC )
@@ -282,7 +282,7 @@ stop 34
          ewrite(3,*)'colacv_loc:', size( colacv_loc ), colacv_loc( 1 : mxnacv_loc )
          ewrite(3,*)'midacv_loc:', size( midacv_loc ), midacv_loc( 1 : cv_nonods )
 
-         stop 98874
+ !        stop 98874
     !!     allocate( tempvec1( cv_nonods + 1 ))
      !!    allocate( tempvec2( mxnacv_loc ))
      !!    allocate( tempvec3( cv_nonods ))

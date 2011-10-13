@@ -530,7 +530,7 @@ contains
     INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
     INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
     REAL, DIMENSION( U_NONODS * NPHASE ), intent( inout ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
-    REAL, DIMENSION(cv_nonods, nphase, ndim), intent(inout) :: velocity_dg
+    REAL, DIMENSION(totele*cv_nloc, nphase, ndim), intent(inout) :: velocity_dg
     REAL, intent( in ) :: V_THETA
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: V_SOURCE
     REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE ), intent( in ) :: V_ABSORB
@@ -670,20 +670,21 @@ contains
                option_path = '/material_phase[0]/vector_field::Velocity')
 
        ENDIF
+       
+       
+	if(.true.) then 
+       call overlapping_to_quadratic_dg( &
+       cv_nonods, x_nonods,u_nonods,  totele, &
+       cv_ele_type,  &
+       nphase,  &
+       cv_nloc, u_nloc, x_nloc, &
+       cv_ndgln,  u_ndgln, x_ndgln,&
+       cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
+       x, y, z, &
+       u, v, w, uold, vold, wold,velocity_dg,ndim, p_ele_type)
+      end if
 
-       if(.false.) then 
-          call overlapping_to_quadratic_dg( &
-               cv_nonods, x_nonods,u_nonods,  totele, &
-               cv_ele_type,  &
-               nphase,  &
-               cv_nloc, u_nloc, x_nloc, &
-               cv_ndgln,  u_ndgln, x_ndgln,&
-               cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
-               x, y, z, &
-               u, v, w, uold, vold, wold,velocity_dg,ndim )
-       end if
-
-       CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
+      CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
 
        ! put on rhs the cty eqn;  put most recent pressure in RHS of momentum eqn
