@@ -286,11 +286,7 @@ contains
        end do
 
        ! Now move the lost detectors into our list again
-       detector=>lost_detectors_list%first
-       do while (associated(detector))
-          call move(detector, lost_detectors_list, detector_list)
-          detector=>detector%next
-       end do
+       call move_all(lost_detectors_list, detector_list)
        assert(lost_detectors_list%length==0)
     end if
 

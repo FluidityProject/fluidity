@@ -1376,7 +1376,8 @@ contains
        if (.not.element_owned(xfield,element)) return
     else
        ! In serial make sure the detector is in the domain
-       if (element<0) then
+       ! unless we have the write_nan_outside override
+       if (element<0 .and. .not.detector_list%write_nan_outside) then
           FLExit("Trying to initialise detector outside of computational domain")
        end if
     end if
@@ -1458,6 +1459,16 @@ contains
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
     allocate(detector_location(dim))
+
+    ! Enable detectors to drift with the mesh
+    if (have_option("/io/detectors/move_with_mesh")) then
+       default_stat%detector_list%move_with_mesh=.true.
+    end if
+
+    ! Set flag for NaN detector output
+    if (have_option("/io/detectors/write_nan_outside_domain")) then
+       default_stat%detector_list%write_nan_outside=.true.
+    end if
     
     ! Retrieve the position of each detector. If the option
     ! "from_checkpoint_file" exists, it means we are continuing the simulation
@@ -1812,16 +1823,6 @@ contains
     !Get options for lagrangian detector movement
     if (check_any_lagrangian(default_stat%detector_list)) then
        call read_detector_move_options(default_stat%detector_list, "/io/detectors")
-    end if
-
-    ! Enable detectors to drift with the mesh
-    if (have_option("/io/detectors/move_with_mesh")) then
-       default_stat%detector_list%move_with_mesh=.true.
-    end if
-
-    ! Set flag for NaN detector output
-    if (have_option("/io/detectors/write_nan_outside_domain")) then
-       default_stat%detector_list%write_nan_outside=.true.
     end if
 
     ! And finally some sanity checks
@@ -2639,7 +2640,7 @@ contains
                          FLExit("Trying to write detector that is outside of domain.")
                       end if
                    else
-                      vvalue = detector_value(sfield, detector)
+                      vvalue = detector_value(vfield, detector)
                    end if
 
                    if(detector_list%binary_output) then
