@@ -57,8 +57,6 @@ VISUALISE_ELEMENTS= ../bin/visualise_elements
 TEST_LAPLACIAN_ADJOINT= ../bin/test_laplacian_adjoint
 TRIANGLE2VTU= ../bin/triangle2vtu
 VTU2TRIANGLE= ../bin/vtu2triangle
-TRIANGLE_TEST_MESH= ../bin/triangle_test_mesh
-ANALYSE_TRIANGLE= ../bin/analyse_triangle
 PETSC_READNSOLVE = ../bin/petsc_readnsolve
 TEST_PRESSURE_SOLVE = ../bin/test_pressure_solve
 PROJECT_TO_CONTINUOUS = ../bin/project_to_continuous
@@ -69,7 +67,6 @@ FLUIDITY = @FLUIDITY@
 LIBFLUIDITY=-l@FLUIDITY@
 LIBFEMTOOLS=-lfemtools
 LIBADAPT=-ladaptivity
-FTLE=../bin/FTLE
 CHECKMESH=../bin/checkmesh
 DERIVE_MESH=../bin/derive_mesh
 PROJECT_VTU=../bin/project_vtu
@@ -80,19 +77,10 @@ VTU_BINS=../bin/vtu_bins
 DIFFERENTIATE=../bin/differentiate
 FLADAPT=../bin/fladapt
 IGW=../bin/IGW
-LOCALMATS=../bin/localmats
-MESH_READNADAPT=../bin/mesh_readnadapt
-PSEUDO_MESH=../bin/pseudo_mesh
-PSEUDO_SUPERMESH=../bin/pseudo_supermesh
-PSEUDO_SUPERMESH_PARALLEL=../bin/pseudo_supermesh_parallel
 LINEARLY_INTERPOLATE=../bin/linearly_interpolate
 LINEARLY_INTERPOLATE_ALL=../bin/linearly_interpolate_all
 LINEAR_INTERPOLATION_PARALLEL=../bin/linear_interpolation_parallel
 TIME_AVERAGE_PARALLEL=../bin/time_average_parallel
-TEST_HALGET=../bin/test_halget
-DG_DIFFUSION_MATRIX=../bin/dg_diffusion_matrix
-CV_DIFFUSION_MATRIX=../bin/cv_diffusion_matrix
-FV_DIFFUSION_MATRIX=../bin/fv_diffusion_matrix
 VTKPROJECTION=../bin/vtk_projection
 RUNZOLTAN=../bin/zoltan_load_balance
 PERIODISE=../bin/periodise
@@ -139,9 +127,6 @@ $(PROJECT_TO_CONTINUOUS_PARALLEL): project_to_continuous_parallel.o project_to_c
 $(TRIANGLE_TEST_MESH): triangle_test_mesh.o
 	$(LINKER) -o $(TRIANGLE_TEST_MESH) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
-$(ANALYSE_TRIANGLE): analyse_triangle.o
-	$(LINKER) -o $(ANALYSE_TRIANGLE) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
-
 $(TEST_LAPLACIAN): test_laplacian.o
 	$(LINKER) -o $(TEST_LAPLACIAN) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
@@ -157,23 +142,6 @@ $(VISUALISE_ELEMENTS): visualise_elements.o
 $(TEST_LAPLACIAN_ADJOINT): test_laplacian_adjoint.o
 	$(LINKER) -o $(TEST_LAPLACIAN_ADJOINT) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
-localmats: $(LOCALMATS)
-
-$(LOCALMATS): LocalMats.o
-	$(LINKER) -o $(LOCALMATS) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
-
-$(MESH_READNADAPT): mesh_readnadapt.o
-	$(LINKER) -o $(MESH_READNADAPT) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
-
-$(PSEUDO_MESH): Pseudo_Mesh.o Pseudo_Mesh_main.o lib/
-	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(PSEUDO_SUPERMESH): pseudo_supermesh.o
-	$(LINKER) -o $(PSEUDO_SUPERMESH) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
-
-$(PSEUDO_SUPERMESH_PARALLEL): pseudo_supermesh_parallel.o
-	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
 $(LINEARLY_INTERPOLATE): linearly_interpolate.o
 	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
@@ -185,9 +153,6 @@ $(LINEAR_INTERPOLATION_PARALLEL): linear_interpolation_parallel.o
 
 $(TIME_AVERAGE_PARALLEL): time_average_parallel.o
 	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(FTLE): FTLE.o
-	$(LINKER) -o $(FTLE) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBADAPT) $(LIBS)
 
 $(FLINTEGRATE): flintegrate.o Flint_generalroutines.o Flint_volumeroutines.o \
   Flint_integralroutines.o Flint_extractdata.o flintegrate_main.o lib/
@@ -212,21 +177,9 @@ $(TEST_PRESSURE_SOLVE): test_pressure_solve_main.o test_pressure_solve.o \
 lib/:
 	ln -sf ../lib
 
-sortnu.o: ../potinv/sortnu.F90
-	$(FC) $(FCFLAGS) -c $^
-
 flintegrate.o:Flint_generalroutines.o Flint_integralroutines.o Flint_volumeroutines.o
 Flint_volumeroutines.o:Flint_generalroutines.o
 Flint_integralroutines.o:Flint_generalroutines.o
-
-$(DRAWTIMNEW): drawtimnew.F90 $(DEBUG_OBJECTS)
-	$(FC) $(FCFLAGS) $(LDFLAGS) @FORTRAN_REAL_8@ -o $@ $^ $(FLIBS)
-
-$(MAKTIMUNIFORM): maktimeuniform.o $(DEBUG_OBJECTS)
-	$(FC) $(FCFLAGS) $(LDFLAGS) -o $@ $^ $(FLIBS)
-
-maktimeuniform.o: maktimeuniform.F90
-	$(FC) $(FCFLAGS) @FORTRAN_REAL_8@  -c $^
 
 $(VTKDIAGNOSTIC): vtkdiagnostic.cpp lib/
 	$(LINKER) $(CXXFLAGS) -I../include -o $(VTKDIAGNOSTIC) vtkdiagnostic.cpp $(LIBS)
@@ -248,12 +201,6 @@ $(STREAMFUNCTION_2D): Streamfunction_2D.o Streamfunction_2D_main.o lib/
 
 $(FLREDECOMP): Flredecomp.o Flredecomp_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(EVMERGE): evmerge.o $(DEBUG_OBJECTS)
-	$(FC) $(FCFLAGS) $(LDFLAGS) -o $@ $^ $(FLIBS)
-
-evmerge.o: evmerge.F90
-	$(FC) $(FCFLAGS) @FORTRAN_REAL_8@  -c $^
 
 $(CHECKMESH): Checkmesh.o Checkmesh_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
@@ -288,21 +235,6 @@ $(POPSTATE): popstate.F90 lib/
 	$(LINKER) -o $(POPSTATE) popstate.o -l$(FLUIDITY) $(LIBS)
 
 $(UNIFIEDMESH): unifiedmesh.o unifiedmesh_main.o lib/
-	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(DG_DIFFUSION_MATRIX): dg_diffusion_matrix.F90 lib/
-	$(FC) -c $(FCFLAGS) dg_diffusion_matrix.F90
-	$(LINKER) -o $(DG_DIFFUSION_MATRIX) dg_diffusion_matrix.o -l$(FLUIDITY) $(LIBS)
-
-$(CV_DIFFUSION_MATRIX): cv_diffusion_matrix.F90 lib/
-	$(FC) -c $(FCFLAGS) cv_diffusion_matrix.F90
-	$(LINKER) -o $(CV_DIFFUSION_MATRIX) cv_diffusion_matrix.o -l$(FLUIDITY) $(LIBS)
-
-$(FV_DIFFUSION_MATRIX): fv_diffusion_matrix.F90 lib/
-	$(FC) -c $(FCFLAGS) fv_diffusion_matrix.F90
-	$(LINKER) -o $(FV_DIFFUSION_MATRIX) fv_diffusion_matrix.o -l$(FLUIDITY) $(LIBS)
-
-$(TEST_HALGET): Test_Halget.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 clean:
