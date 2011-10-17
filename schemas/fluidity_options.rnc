@@ -13,7 +13,7 @@ include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
-include "radiation.rnc"
+include "flredecomp.rnc"
 
 start =
    (
@@ -290,63 +290,7 @@ start =
                element binary_output {
                   comment
                }?,
-               element lagrangian_timestepping {
-                  (
-                     ## Use explicit runge kutta method with
-                     ## binary search
-                     element explicit_runge_kutta_guided_search {
-                        ## Number of subdivisions of the timestep
-                        ## increase this if you are not happy with your 
-                        ## detector trajectory accuracy, or if particles
-                        ## are jumping out of the domain a lot
-                        element subcycles {
-                           integer
-                        },
-                        ## Tolerance for deciding if detector is in a given
-                        ## element. Recommended value 1.0e-10.
-                        element search_tolerance {
-                           real
-                        },
-                        ## Number of RK stages
-                        ## For the RK4 method, it should be 4.
-                        element n_stages {
-                           integer
-                        },
-                        ## ERK stage array. This is an array
-                        ## containing the lower-triangular
-                        ## part of the Butcher weight matrix
-                        ## A that explains how to compute the
-                        ## RK stages.  See
-                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                        ## for notation.  The array is stored
-                        ## in the following order:
-                        ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
-                        ## and so the array has size s(s-1)/2
-                        ## where s is the number of stages.
-                        ## For the RK4 method, it should be
-                        ## [0.5,0,0.5,0,0,1]
-                        element stage_weights {
-                           real_vector
-                        },
-                        ## ERK timestep weights. This is the
-                        ## b vector that explains how to
-                        ## compute the timestep from the RK
-                        ## stages.  See
-                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                        ## for notation.  It should have size
-                        ## s where s is the number of stages.
-                        ## For the RK4 method, it should be
-                        ## [1/6,1/3,1/3,1/6]
-                        element timestep_weights {
-                           real_vector
-                        }
-                     }|
-                     ## Use binary search algorithm
-                     element binary_search {
-                        empty
-                     }
-                  )
-               }?
+               lagrangian_timestepping?
             }?, 
             ## Options to create even more output in the logs:
             ##
@@ -1948,7 +1892,8 @@ start =
                  }
               )
          }?,
-         embedded_models?
+         embedded_models?,
+         flredecomp?
       }
    )      
 
@@ -2367,6 +2312,72 @@ geometry =
       }
    )
 
+lagrangian_timestepping = 
+   (
+      element lagrangian_timestepping {
+         ## Number of subdivisions of the timestep
+         ## increase this if you are not happy with your 
+         ## detector trajectory accuracy, or if particles
+         ## are jumping out of the domain a lot
+         element subcycles {
+            integer
+         },
+         ## Tolerance for deciding if detector is in a given
+         ## element. Recommended value 1.0e-10.
+         element search_tolerance {
+            real
+         },
+         (
+            ## Use explicit runge kutta method with
+            ## guided search particle tracking
+            element explicit_runge_kutta_guided_search {
+               ## Number of RK stages
+               ## For the RK4 method, it should be 4.
+               element n_stages {
+                  integer
+               },
+               ## ERK stage array. This is an array
+               ## containing the lower-triangular
+               ## part of the Butcher weight matrix
+               ## A that explains how to compute the
+               ## RK stages.  See
+               ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+               ## for notation.  The array is stored
+               ## in the following order:
+               ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
+               ## and so the array has size s(s-1)/2
+               ## where s is the number of stages.
+               ## For the RK4 method, it should be
+               ## [0.5,0,0.5,0,0,1]
+               element stage_weights {
+                  real_vector
+               },
+               ## ERK timestep weights. This is the
+               ## b vector that explains how to
+               ## compute the timestep from the RK
+               ## stages.  See
+               ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+               ## for notation.  It should have size
+               ## s where s is the number of stages.
+               ## For the RK4 method, it should be
+               ## [1/6,1/3,1/3,1/6]
+               element timestep_weights {
+                  real_vector
+               }
+            }|
+            ## Use explicit Forward Euler method with
+            ## guided search particle tracking
+            element forward_euler_guided_search {
+               empty
+            }|
+            ## Use classical Runge-Kutta method with
+            ## guided search particle tracking
+            element rk4_guided_search {
+               empty
+            }
+         )
+      }
+   )
 
 # Default child of diagnostic scalar field
 diagnostic_scalar_field =
@@ -6631,23 +6642,6 @@ biology =
                )
             }
          }|
-         ## Lagrangian particle biology from the VEW project.
-         element lagrangian_ensemble {
-            (
-               ## Python code specifying the biology model. This takes
-               ## in velocity and light and outputs Phytoplankton, if
-               ## those fields exist.
-               element biology_algorithm {
-                  python_code
-               }|
-               ## Do not calculate biology
-               ## This option is generally only useful for testing. 
-               element disable_biology {
-                  empty
-               }
-            ),
-            hyperlight?
-         }|
          ## 6 component biology model, which models Nitrates, Ammonium, 
          ## Phytoplankton, Zooplankton, Detritus and Chlorophyll.
          ##
@@ -6777,61 +6771,6 @@ prognostic_photosynthetic_radiation =
       element priority {
          integer
       }?
-   )
-
-hyperlight = 
-   (
-      ## Hyperlight solar irradiance model, which 
-      ## computes a fast approximation to the Radiative Transfer Equation.
-      ## NOTE: This module requires fluidity to be compiled with the 
-      ## --enable-hyperlight flag.
-      element hyperlight {
-         ## Hydrolight always computes the scalar irradiance 
-         ## for 36 regular wavebands of width 10nm in PAR. 
-         ## Particular wavebands or total PAR irradiance need 
-         ## to be derived from these fixed bands.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "IrradianceTemplate" },
-            element prescribed {
-               velocity_mesh_choice,
-               prescribed_scalar_field
-            }
-         },
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "IrradiancePAR" },
-            element diagnostic {
-               velocity_mesh_choice,
-               scalar_python_diagnostic_algorithm,
-               diagnostic_scalar_field_no_adapt
-            }
-         }?,
-         ## F, the ratio for correlated CDOM
-         element CDOM {
-            real
-         },
-         ## BF_chl, the backscatter fraction for chlorophyll-bearing particles
-         element BF_chl {
-            real
-         },
-         ## Parameter for GC sky irradiance model - 
-         ## if provided this overwrites the values from the forcing routines.
-         element CloudCover {
-            real
-         }?,
-         ## Parameter for GC sky irradiance model - 
-         ## if provided this overwrites the values from the forcing routines.
-         element WindSpeed {
-            real
-         }?,
-         ## Optional performance parameter that determines the percentage of 
-         ## surface irradiance at which the model stops computing.
-         ## Default is 0.01 = 1% (standard definition of euphotic depth)
-         element EuphoticRatio {
-            real
-         }?
-      }
    )
 
 recalculation_options =

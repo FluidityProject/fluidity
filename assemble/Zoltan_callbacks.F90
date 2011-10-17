@@ -32,7 +32,6 @@ module zoltan_callbacks
   ! - use the whole of data structures now
 
   ! Needed for zoltan_cb_pack_field_sizes
-  use diagnostic_variables, only: default_stat, remove_det_from_current_det_list
   use state_module
   use zoltan_detectors
 
@@ -40,6 +39,7 @@ module zoltan_callbacks
   ! - added remove_det_from_current_det_list to use diagnostic variables
   use detector_data_types, only: detector_type
   use detector_tools
+  use detector_parallel
 
   ! Needed for zoltan_cb_unpack_fields
   use halos_derivation, only: ele_owner
@@ -88,7 +88,7 @@ contains
     call get_owned_nodes(zoltan_global_zz_halo, local_ids(1:count))
     global_ids(1:count) = halo_universal_number(zoltan_global_zz_halo, local_ids(1:count))
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug")) then
        ewrite(1,*) "zoltan_cb_get_owned nodes found local_ids: ", local_ids(1:count)
        ewrite(1,*) "zoltan_cb_get_owned nodes found global_ids: ", global_ids(1:count)
     end if
@@ -138,7 +138,7 @@ contains
       num_edges(node) = row_length(zoltan_global_zz_sparsity_one, local_ids(node))
     end do
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_counts")) then      
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_counts")) then      
        write(filename, '(A,I0,A)') 'edge_counts_', getrank(),'.dat'
        open(666, file = filename)
        do node=1,count
@@ -170,7 +170,7 @@ contains
     character (len = OPTION_PATH_LEN) :: filename    
     
     ! variables for recording various element quality functional values 
-    real(zoltan_float) :: quality, min_quality, my_min_quality
+    real :: quality, min_quality, my_min_quality
     
     ! variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
     real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight
@@ -192,10 +192,17 @@ contains
     
     my_num_edges = sum(num_edges(1:num_obj))
     
-    if (zoltan_global_zoltan_iteration==zoltan_global_zoltan_max_adapt_iteration) then
+    if (.NOT. zoltan_global_calculate_edge_weights) then
        
-       ! last iteration - hopefully the mesh is of sufficient quality by now
-       ! we only want to optimize the edge cut to minimize halo communication
+       ! Three reasons why we might not want to use edge-weighting:
+       ! - last iteration 
+       !   hopefully the mesh is of sufficient quality by now we only
+       !   want to optimize the edge cut to minimize halo communication
+       ! - flredecomping
+       !   we don't need to use edge-weights as there's no adapting
+       ! - empty partitions
+       !   when load balancing with edge-weights on we couldn't avoid
+       !   creating empty paritions so try load balancing without them
        ewgts(1:my_num_edges) = 1.0       
        head = 1
        do node=1,count
@@ -216,6 +223,7 @@ contains
             MPI_COMM_FEMTOOLS,err)
     end if
     
+    zoltan_global_local_min_quality = 1.0
     
     head = 1
     
@@ -270,7 +278,13 @@ contains
                 min_quality = quality
              end if
           end do
-          
+
+          ! Keep track of the lowest quality element of all those we've looked at
+          ! Will be used in zoltan_drive to calculate a global minimum element quality
+          if(min_quality .LT. zoltan_global_local_min_quality) then
+             zoltan_global_local_min_quality = min_quality
+          end if
+
           ! check if the quality is within the tolerance         
           if (min_quality .GT. zoltan_global_quality_tolerance) then
              ! if it is
@@ -285,6 +299,8 @@ contains
        head = head + size(neighbours)
     end do
     
+    zoltan_global_calculated_local_min_quality = .true.
+
     assert(head == sum(num_edges(1:num_obj))+1)
     
     ! calculate the local maximum edge weight
@@ -316,7 +332,7 @@ contains
        end do
     end if
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_edge_weights")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_edge_weights")) then
        write(filename, '(A,I0,A)') 'edge_weights_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,head-1
@@ -324,8 +340,7 @@ contains
        end do
        close(666)
     end if
-    
-    
+
     ierr = ZOLTAN_OK
   end subroutine zoltan_cb_get_edge_list
 
@@ -361,7 +376,7 @@ contains
       end if
     end do
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_node_sizes")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_node_sizes")) then
        write(filename, '(A,I0,A)') 'node_sizes_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,num_ids
@@ -776,7 +791,7 @@ contains
       end if
     end do
 
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_halo_node_sizes")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_halo_node_sizes")) then
        write(filename, '(A,I0,A)') 'halo_node_sizes_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,num_ids
@@ -943,12 +958,14 @@ contains
     character (len = OPTION_PATH_LEN) :: filename
     
     ewrite(1,*) "In zoltan_cb_pack_field_sizes"
+
+    allocate(zoltan_global_to_pack_detectors_list(num_ids))
     
     ! if there are some detectors on this process
-    if (default_stat%detector_list%length .GT. 0) then
+    if (get_num_detector_lists() .GT. 0) then
        ! create two arrays, one with the number of detectors in each element to be transferred
-       ! and one with the data for the detectors being transferred
-       call prepare_detectors_for_packing(zoltan_global_ndets_in_ele, default_stat%detector_list, zoltan_global_to_pack_detectors_list, num_ids, global_ids)
+       ! and one that holds a list of detectors to be transferred for each element
+       call prepare_detectors_for_packing(zoltan_global_ndets_in_ele, zoltan_global_to_pack_detectors_list, num_ids, global_ids)
     end if
     
     ! The person doing this for mixed meshes in a few years time: this is one of the things
@@ -983,7 +1000,7 @@ contains
             + ele_loc(zoltan_global_zz_mesh, 1) * integer_size
     end do
     
-    if (have_option("/mesh_adaptivity/hr_adaptivity/zoltan_options/zoltan_debug/dump_field_sizes")) then
+    if (have_option(trim(zoltan_global_base_option_path) // "/zoltan_debug/dump_field_sizes")) then
        write(filename, '(A,I0,A)') 'field_sizes_', getrank(),'.dat'
        open(666, file = filename)
        do i=1,num_ids
@@ -1009,7 +1026,7 @@ contains
     integer(zoltan_int), intent(out) :: ierr
     
     real, dimension(:), allocatable :: rbuf ! easier to write reals to real memory
-    integer :: rhead, i, j, state_no, field_no, loc, sz
+    integer :: rhead, i, j, state_no, field_no, loc, sz, total_det_packed
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(tensor_field), pointer :: tfield
@@ -1018,13 +1035,8 @@ contains
     type(detector_type), pointer :: detector => null(), detector_to_delete => null()    
 
     ewrite(1,*) "In zoltan_cb_pack_fields"
-    
-    ewrite(3,*) "Length of detector list BEFORE packing fields: ", default_stat%detector_list%length
-    
-    if(zoltan_global_to_pack_detectors_list%length /= 0) then
-       detector => zoltan_global_to_pack_detectors_list%firstnode
-    end if
 
+    total_det_packed=0
     do i=1,num_ids
        
        ! work back number of scalar values 'sz' from the formula above in zoltan_cb_pack_field_sizes
@@ -1066,27 +1078,27 @@ contains
        rbuf(rhead) = zoltan_global_ndets_in_ele(i)
        rhead = rhead + 1
 
+       if(zoltan_global_to_pack_detectors_list(i)%length /= 0) then
+          detector => zoltan_global_to_pack_detectors_list(i)%first
+       end if
+
        ! packing the detectors in that element
        do j=1,zoltan_global_ndets_in_ele(i)
-          
-          ewrite(3,*) "Packing detector ", detector%id_number, "(ID) into rbuf for old_universal_element_number: ", old_universal_element_number
 
           ! pack the detector
           call pack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
-               zoltan_global_ndims, zoltan_global_ndata_per_det)
+               zoltan_global_ndims)
 
           ! keep a pointer to the detector to delete
           detector_to_delete => detector
           ! move on our iterating pointer so it's not left on a deleted node
           detector => detector%next
           
-          ! remove the detector we just packed from the to_pack list
-          call remove_det_from_current_det_list(zoltan_global_to_pack_detectors_list, detector_to_delete)          
-
-          ! deallocate the memory of the packed detector
-          call deallocate(detector_to_delete)
+          ! delete the detector we just packed from the to_pack list
+          call delete(detector_to_delete, zoltan_global_to_pack_detectors_list(i))
 
           rhead = rhead + zoltan_global_ndata_per_det
+          total_det_packed=total_det_packed+1
        end do
        
        assert(rhead==sz+1)
@@ -1102,13 +1114,14 @@ contains
        buf(idx(i) + loc:idx(i) + loc + dataSize - 1) = transfer(rbuf, buf(idx(i):idx(i)+1))
        
        deallocate(rbuf)
+
+       assert(zoltan_global_to_pack_detectors_list(i)%length == 0)
        
     end do
-    
-    assert(zoltan_global_to_pack_detectors_list%length == 0)
 
-    ewrite(3,*) "Length of detector list AFTER packing fields: ", default_stat%detector_list%length
-    
+    deallocate(zoltan_global_to_pack_detectors_list)
+
+    ewrite(2,*) "Packed ", total_det_packed, " detectors"    
     ewrite(1,*) "Exiting zoltan_cb_pack_fields"
     
     ierr = ZOLTAN_OK
@@ -1163,13 +1176,13 @@ contains
     integer, dimension(1:ele_loc(zoltan_global_new_positions,1)):: vertex_order
     integer :: rhead, i, state_no, field_no, loc, sz, dataSize
     integer :: old_universal_element_number, new_local_element_number
-    integer :: ndetectors_in_ele, det, new_ele_owner
+    integer :: ndetectors_in_ele, det, new_ele_owner, total_det_unpacked
     type(detector_type), pointer :: detector => null()
     type(element_type), pointer :: shape => null()
     
     ewrite(1,*) "In zoltan_cb_unpack_fields"
-    
-    ewrite(3,*) "Length of detector list BEFORE unpacking fields: ", default_stat%detector_list%length
+
+    total_det_unpacked=0
     
     do i=1,num_ids
        
@@ -1230,57 +1243,34 @@ contains
        rhead = rhead + 1
        
        ! check if there are any detectors associated with this element
-       if(ndetectors_in_ele .GT. 0) then
+       if(ndetectors_in_ele > 0) then
           
           do det=1,ndetectors_in_ele
+             ! allocate a detector
+             shape=>ele_shape(zoltan_global_new_positions,1)
+             call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
+                   
+             ! unpack detector information 
+             call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), zoltan_global_ndims, &
+                    global_to_local=zoltan_global_uen_to_new_local_numbering, coordinates=zoltan_global_new_positions)
+
+             ! Make sure the unpacked detector is in this element
+             assert(new_local_element_number==detector%element)
+                   
+             call insert(detector, zoltan_global_unpacked_detectors_list)
+             detector => null()
              
-             old_universal_element_number = rbuf(rhead)
-             
-             ewrite(3,*) "Unpacking detector from rbuf for old_universal_element_number: ", old_universal_element_number
-             
-             if (has_key(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)) then
-                new_local_element_number = fetch(zoltan_global_uen_to_new_local_numbering, old_universal_element_number)
-                new_ele_owner = ele_owner(new_local_element_number, zoltan_global_new_positions%mesh, zoltan_global_new_positions%mesh%halos(zoltan_global_new_positions_mesh_nhalos))
-                
-                if (new_ele_owner == getprocno()) then
-                   
-                   ! allocate a detector
-                   shape=>ele_shape(zoltan_global_new_positions,1)
-                   call allocate(detector, zoltan_global_ndims, local_coord_count(shape))
-                   ewrite(3,*) "Successfully allocated a new detector."
-                   
-                   ! unpack detector information 
-                   call unpack_detector(detector, rbuf(rhead:rhead+zoltan_global_ndata_per_det-1), &
-                        zoltan_global_ndims, zoltan_global_ndata_per_det)
-                   detector%element = new_local_element_number
-                   
-                   ! update other detector data
-                   call update_detector(detector, zoltan_global_new_positions)
-                   
-                   ewrite(3,*) "Unpacking ", detector%id_number, "(ID)"
-                   ewrite(3,*) detector%id_number, "(ID) being given new local element number: ", new_local_element_number
-                   
-                   call insert(zoltan_global_unpacked_detectors_list, detector)
-                   detector => null()
-                   
-                end if
-             end if
-             
-             rhead = rhead + zoltan_global_ndata_per_det
-             
-          end do
-          
+             rhead = rhead + zoltan_global_ndata_per_det  
+             total_det_unpacked=total_det_unpacked+1           
+          end do          
        end if
        
-       assert(rhead==sz+1)
-       
-       deallocate(rbuf)
-       
+       assert(rhead==sz+1)       
+       deallocate(rbuf)       
     end do
     
-    ewrite(3,*) "Length of detector list AFTER unpacking fields: ", default_stat%detector_list%length
-    ewrite(3,*) "Length of zoltan_global_unpacked_detectors_list to be merged in AFTER unpacking fields: ", zoltan_global_unpacked_detectors_list%length
-    
+    assert(total_det_unpacked==zoltan_global_unpacked_detectors_list%length)
+    ewrite(2,*) "Unpacked", zoltan_global_unpacked_detectors_list%length, "detectors"    
     ewrite(1,*) "Exiting zoltan_cb_unpack_fields"
     
     ierr = ZOLTAN_OK
