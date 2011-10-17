@@ -1919,27 +1919,27 @@
             end if
 
             if(have_option("/material_phase["//int2str(i)//&
-               "]/vector_field::Velocity/prognostic&
+               &"]/vector_field::Velocity/prognostic&
                &/tensor_field::Viscosity/prescribed/value&
                &/anisotropic_symmetric").or.&
             have_option("/material_phase["//int2str(i)//&
-               "]/vector_field::Velocity/prognostic&
+               &"]/vector_field::Velocity/prognostic&
                &/tensor_field::Viscosity/prescribed/value&
                &/anisotropic_asymmetric")) then
 
                if(have_option("/material_phase["//int2str(i)//&
-                  "]/scalar_field::Pressure/prognostic"//&
+                  &"]/scalar_field::Pressure/prognostic"//&
                   &"/scheme/use_projection_method")) then
 
                   if(have_option("/material_phase["//int2str(i)//&
-                     "]/scalar_field::Pressure/prognostic&
-                     &/scheme/use_projection_method&
-                     &/full_schur_complement")) then
+                     &"]/scalar_field::Pressure/prognostic"//&
+                     &"/scheme/use_projection_method"//&
+                     &"/full_schur_complement")) then
 
                      call get_option("/material_phase["//int2str(i)//&
-                        "]/scalar_field::Pressure/prognostic&
-                        &/scheme/use_projection_method&
-                        &/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
+                        &"]/scalar_field::Pressure/prognostic"//&
+                        &"/scheme/use_projection_method"//&
+                        &"/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
 
                      select case(schur_preconditioner)
                         case("ScaledPressureMassMatrix")
