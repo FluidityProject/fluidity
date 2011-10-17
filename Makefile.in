@@ -149,12 +149,7 @@ endif
 
 include/libspud.h: lib/libspud.a
 
-main.o: update_version_number include/libspud.h
-
-update_version_number:
-	@echo "Updating version number"
-	@rm -f include/version.h
-	@$(MAKE) include/version.h
+main.o: include/version.h include/libspud.h
 
 include/version.h:
 	@echo "DEFINE __FLUIDITY_VERSION__"
@@ -163,6 +158,8 @@ include/version.h:
 	#define _FLUIDITY_VERSION_H\n\
 	#define __FLUIDITY_VERSION__ \"$(VERSION)\"\n\
 	#endif /* _FLUIDITY_VERSION_H */\n" > include/version.h
+
+.PHONY: include/version.h
 
 bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 	@echo "BUILD fluidity"
