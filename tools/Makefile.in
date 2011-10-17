@@ -52,9 +52,7 @@ STREAMFUNCTION_2D = ../bin/streamfunction_2d
 FLREDECOMP = ../bin/flredecomp
 TEST_LAPLACIAN= ../bin/test_laplacian
 TEST_LAPLACIAN_VECTOR= ../bin/test_laplacian_vector
-TEST_ADVECTION_DIFFUSION= ../bin/test_advection_diffusion
 VISUALISE_ELEMENTS= ../bin/visualise_elements
-TEST_LAPLACIAN_ADJOINT= ../bin/test_laplacian_adjoint
 TRIANGLE2VTU= ../bin/triangle2vtu
 VTU2TRIANGLE= ../bin/vtu2triangle
 PETSC_READNSOLVE = ../bin/petsc_readnsolve
@@ -76,7 +74,6 @@ DIFFERENTIATE_VTU=../bin/differentiate_vtu
 VTU_BINS=../bin/vtu_bins
 DIFFERENTIATE=../bin/differentiate
 FLADAPT=../bin/fladapt
-IGW=../bin/IGW
 LINEARLY_INTERPOLATE=../bin/linearly_interpolate
 LINEARLY_INTERPOLATE_ALL=../bin/linearly_interpolate_all
 LINEAR_INTERPOLATION_PARALLEL=../bin/linear_interpolation_parallel
@@ -133,14 +130,8 @@ $(TEST_LAPLACIAN): test_laplacian.o
 $(TEST_LAPLACIAN_VECTOR): test_laplacian_vector.o
 	$(LINKER) -o $(TEST_LAPLACIAN_VECTOR) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
-$(TEST_ADVECTION_DIFFUSION): test_advection_diffusion.o
-	$(LINKER) -o $(TEST_ADVECTION_DIFFUSION) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
-
 $(VISUALISE_ELEMENTS): visualise_elements.o
 	$(LINKER) -o $(VISUALISE_ELEMENTS) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
-
-$(TEST_LAPLACIAN_ADJOINT): test_laplacian_adjoint.o
-	$(LINKER) -o $(TEST_LAPLACIAN_ADJOINT) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
 $(LINEARLY_INTERPOLATE): linearly_interpolate.o
 	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
@@ -159,9 +150,6 @@ $(FLINTEGRATE): flintegrate.o Flint_generalroutines.o Flint_volumeroutines.o \
 	$(CXX) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS)
 
 $(VERTICAL_INTEGRATION): Vertical_Integration.o Vertical_Integration_main.o lib/
-	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(IGW): IGW.o IGW_main.o lib/
 	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(PETSC_READNSOLVE): petsc_readnsolve_main.o petsc_readnsolve.o \
