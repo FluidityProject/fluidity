@@ -3793,15 +3793,6 @@ Should be used in combination with a no_normal_flow condition. </a:documentation
           <ref name="real"/>
         </element>
       </element>
-      <element name="type">
-        <a:documentation>Dummy BC
-
-Should be used in combination with the near_wall_treatment condition.
-When activated wall treatment is not applied on the wall-outflow edge.</a:documentation>
-        <attribute name="name">
-          <value>outflow</value>
-        </attribute>
-      </element>
     </choice>
   </define>
   <!-- Output options for prognostic fields -->

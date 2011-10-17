@@ -2816,13 +2816,6 @@ velocity_boundary_conditions =
          element type{
             attribute name { "log_law_of_wall" },
             element surface_roughness {real}
-         }|
-         ## Dummy BC
-         ##
-         ## Should be used in combination with the near_wall_treatment condition.
-         ## When activated wall treatment is not applied on the wall-outflow edge.
-         element type{
-            attribute name { "outflow" }
          }
       )
    )
