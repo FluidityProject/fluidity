@@ -442,6 +442,10 @@
             FLAbort('Commuting projection only exists for hybridizable spaces.')
          end if
       end if
+      if(have_option("/material_phase::Fluid/vector_field::&
+           &PrescribedVelocityFromCommutingProjection")) then
+         call set_velocity_commuting_projection(state(1),"PrescribedVelocityFromCommutingProjection")
+      end if
       if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
            &ognostic/initial_condition::ProjectionFromPython")) then
          if(hybridized) then
@@ -451,7 +455,11 @@
                  &s.')
          end if
       end if
-
+      if(have_option("/material_phase::Fluid/scalar_field::PrescribedLayerDe&
+           &pthFromProjection")) then
+         call set_layerthickness_projection(state(1),&
+              &"PrescribedLayerDepthFromProjection")
+      end if
       D_initial=>extract_scalar_field(state(1), "InitialLayerThickness"&
            &,stat)    
       if(stat==0) then

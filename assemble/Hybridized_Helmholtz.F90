@@ -184,7 +184,7 @@ contains
     end do
 
     ewrite(2,*) 'LAMBDARHS', maxval(abs(lambda_rhs%val))
-
+    call zero(lambda)
     !Solve the equations
     call petsc_solve(lambda,lambda_mat,lambda_rhs,&
          option_path=trim(U_cart%mesh%option_path)//&
@@ -1896,22 +1896,32 @@ contains
   
   !Set velocity using commuting projection
   !(needs to solve a linear system in each element)
-  subroutine set_velocity_commuting_projection(state)
+  subroutine set_velocity_commuting_projection(state,name)
     type(state_type), intent(in) :: state
+    character(len=*), intent(in), optional :: name
     !
     type(vector_field), pointer :: U, X, U_cart
+    type(vector_field), target :: tmp_U 
     character(len=PYTHON_FUNC_LEN) :: Python_Function
     integer :: ele
 
     ewrite(1,*) 'Setting velocity from commuting projection'
 
-    U=>extract_vector_field(state, "LocalVelocity")
+    if(present(name)) then
+       U=>extract_vector_field(state, trim(name))
+       call allocate(tmp_u,mesh_dim(U),U%mesh,"TemporaryLocalVectorField")
+       U=>tmp_u
+       call get_option("/material_phase::Fluid/vector_field::&
+            &PrescribedVelocityFromCommutingProjection/prescribed/python",&
+            Python_Function)
+    else
+       U=>extract_vector_field(state, "LocalVelocity")
+       call get_option("/material_phase::Fluid/vector_field::Velocity&
+            &/prognostic/initial_condition::WholeMesh/&
+            &commuting_projection/python",Python_Function)
+    end if
     X=>extract_vector_field(state, "Coordinate")
  
-    call get_option("/material_phase::Fluid/vector_field::Velocity&
-         &/prognostic/initial_condition::WholeMesh/&
-         &commuting_projection/python",Python_Function)
-
     do ele = 1, element_count(U)
        call set_velocity_commuting_projection_ele(U,X,Python_Function,ele)
     end do
@@ -1922,6 +1932,12 @@ contains
     do ele = 1, ele_count(U)
        call check_continuity_ele(U_cart,X,ele)
     end do
+
+    if(present(name)) then
+       U_cart => extract_vector_field(state, trim(name))
+       call project_local_to_cartesian(X,tmp_U,U_cart)
+       call deallocate(tmp_u)
+    end if
 
     ewrite(1,*) 'Setting velocity from commuting projection: DONE'
   end subroutine set_velocity_commuting_projection
@@ -2192,23 +2208,42 @@ contains
     
   end subroutine set_velocity_commuting_projection_face
 
-  subroutine set_layerthickness_projection(state)
+  subroutine set_layerthickness_projection(state,name)
     type(state_type), intent(in) :: state
+    character(len=*), intent(in), optional :: name
     !
     type(vector_field), pointer :: X
     type(scalar_field), pointer :: D
     character(len=PYTHON_FUNC_LEN) :: Python_Function
     integer :: ele
+    real :: h_mean,area
 
-    D=>extract_scalar_field(state, "LayerThickness")
+    if(present(name)) then
+       D=>extract_scalar_field(state, trim(name))
+       call get_option("/material_phase::Fluid/scalar_field::PrescribedLayer&
+            &DepthFromProjection/prescribed/python",Python_Function)
+    else
+       D=>extract_scalar_field(state, "LayerThickness")
+       call get_option("/material_phase::Fluid/scalar_field&
+            &::LayerThickness/prognostic/initial_condition&
+            &::ProjectionFromPython/python",&
+            Python_Function)
+   end if
     X=>extract_vector_field(state, "Coordinate")
  
-    call get_option("/material_phase::Fluid/scalar_field::LayerThickness/prognostic/initial_condition::ProjectionFromPython/python",&
-         Python_Function)
-
     do ele = 1, element_count(D)
        call set_layerthickness_projection_ele(D,X,Python_Function,ele)
     end do
+
+    !Subtract off the mean part
+    h_mean = 0.
+    area = 0.
+    do ele = 1, element_count(D)
+       call assemble_mean_ele(D,X,h_mean,area,ele)
+    end do
+    h_mean = h_mean/area
+    D%val = D%val - h_mean
+
   end subroutine set_layerthickness_projection
 
   subroutine set_layerthickness_projection_ele(D,X,Python_Function,ele)

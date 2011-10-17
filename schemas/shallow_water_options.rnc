@@ -2260,54 +2260,26 @@ scalar_field_choice =
          element ___Prescribed_fields_below___ {
             empty
          }|
+         ## Prescribed vector field from commuting projection
          element scalar_field {
-            attribute rank { "0" },
-            attribute name { "DistanceToSideBoundaries" },
-            (
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## MaterialFrictionAngle for multimaterial
-         ## plasticity problems
-         ##
-         ## Requires a diagnostic bulk FrictionAngle field
-         ## - not tested yet
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "MaterialFrictionAngle" },
-            (
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## MaterialCohesion for multimaterial
-         ## plasticity problems
-         ##
-         ## Requires a diagnostic bulk Cohesion field
-         ## - not tested yet
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "MaterialCohesion" },
-            (
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
+            attribute name { "PrescribedLayerDepthFromProjection" },
+            attribute rank { "1" },
+            element prescribed {
+               pressure_mesh_choice,
+               ## Field to project from (evaluated at Gauss points)
+               ## Python function prescribing dimensional vector input. Functions should be of the form:
+               ##
+               ##  def val(X, t):
+               ##     # Function code
+               ##     return # Return value
+               ##
+               ## where X and the return value are tuples of length geometry dimension.
+               element python {
+                  python_code
+               },
+               prescribed_output_options,
+               prescribed_scalar_stat_options
+            }
          }|
 #
 # Insert new prescribed scalar fields here using the template:
@@ -3592,6 +3564,27 @@ vector_field_choice =
          element ___Prescribed_fields_below___ {
             empty
          }|
+         ## Prescribed vector field from commuting projection
+         element vector_field {
+            attribute name { "PrescribedVelocityFromCommutingProjection" },
+            attribute rank { "1" },
+            element prescribed {
+               velocity_mesh_choice,
+               ## Field to project from (evaluated at Gauss points)
+               ## Python function prescribing dimensional vector input. Functions should be of the form:
+               ##
+               ##  def val(X, t):
+               ##     # Function code
+               ##     return # Return value
+               ##
+               ## where X and the return value are tuples of length geometry dimension.
+               element python {
+                  python_code
+               },
+               prescribed_output_options,
+               prescribed_vector_stat_options
+            }
+         }|
 #
 # Insert new prescribed vector fields here using the template:
 #        element vector_field {
@@ -4195,7 +4188,6 @@ tensor_field_choice =
          element ___Prescribed_fields_below___ {
             empty
          }|
-
          ## MaterialViscosity field:
          ##
          ## Field for the viscosity of this material.
