@@ -59,7 +59,7 @@ Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/solidconfiguration.mod ../include/sparse_tools.mod \
    ../include/spontaneous_potentials.mod ../include/spud.mod \
    ../include/synthetic_bc.mod ../include/timeloop_utilities.mod \
-   ../include/timers.mod ../include/traffic.mod \
+   ../include/timers.mod \
    ../include/vertical_extrapolation_module.mod ../include/vtk_interfaces.mod \
    ../include/write_state_module.mod ../include/write_triangle.mod
 
