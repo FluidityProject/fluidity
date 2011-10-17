@@ -11,7 +11,7 @@ def plot_detector_distribution(det_count, filename, timesteps, layers, delta_t):
   x = x*delta_t
   y = arange(0., layers)
   X, Y = meshgrid(x, y)
-  cs=ax.contourf(X, Y, det_count, arange(-1.e-12,500,5))
+  cs=ax.contourf(X, Y, det_count, arange(-1.e-12,40,5))
   ax.set_xlim(0., timesteps*delta_t)
   ax.set_ylim(layers-1., 0.)
   xlabel('Time (s)')
@@ -44,8 +44,7 @@ def plot_diffusivity(file):
   diffusivity_grad = u.GetVectorField("DiffusivityGradient")[:,2]
   # not perfectly sure why we need to do * -1 here, 
   # but the gradient looks wrong otherwise
-  K_grad = [-1. * diffusivity_grad[i] for i in ind]
-    
+  K_grad = [-1. * diffusivity_grad[i] for i in ind]    
 
   fig = figure(figsize=(3,6),dpi=90)
   ax = fig.add_axes([.24,.1,.6,.86])
@@ -55,6 +54,18 @@ def plot_diffusivity(file):
   xlabel('Diffusivity gradient ($ms^{-1}$)')
   ylabel('Depth (m)')
   savefig('./Diffusivity_grad.png', dpi=90,format='png')
+
+  diffusivity_second_grad = u.GetVectorField("DiffusivitySecondGradient")[:,2]
+  K_second_grad = [diffusivity_second_grad[i] for i in ind]    
+
+  fig = figure(figsize=(3,6),dpi=90)
+  ax = fig.add_axes([.24,.1,.6,.86])
+  ax.plot(K_second_grad, z)
+  ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=2))
+  ax.set_ylim(60., 0.)
+  xlabel('Diffusivity 2nd gradient ($$)')
+  ylabel('Depth (m)')
+  savefig('./Diffusivity_2nd_grad.png', dpi=90,format='png')
 
   return
 

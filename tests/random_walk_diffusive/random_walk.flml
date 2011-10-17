@@ -112,9 +112,9 @@ def get_spline(t):
   from scipy import interpolate
   
   # create spline
-  height = arange(0.0, 60.0, 0.25)
+  height = arange(0.0, 60.0, 0.1)
   mu = [visser_curve(z) for z in height]
-  tck = interpolate.splrep(height,mu)#, s=0.0001)
+  tck = interpolate.splrep(height,mu, s=0.0002)
   return tck
   
 def visser_curve(z):
@@ -165,9 +165,49 @@ def val(X, t):
         </adaptivity_options>
       </prescribed>
     </scalar_field>
+    <scalar_field name="DiffusivityVerticalGradient" rank="0">
+      <diagnostic>
+        <algorithm source_field_type="component" material_phase_support="single" name="extract_scalar_component" source_field_name="DiffusivityGradient">
+          <source_field_component>
+            <integer_value rank="0">3</integer_value>
+          </source_field_component>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <vector_field name="DiffusivityGradient" rank="1">
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="Diffusivity"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="DiffusivitySecondGradient" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="DiffusivityVerticalGradient"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
