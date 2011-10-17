@@ -32,6 +32,10 @@
 
 #include "confdefs.h"
 
+#include <numa.h>
+#include <numaif.h>
+#include <sys/resource.h>
+
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif
@@ -47,10 +51,16 @@ class Profiler{
   void toc(const std::string&);
   void zero();
   void zero(const std::string&);
+  int minorpagefaults();
+  int majorpagefaults();
+
+ public:
+  struct rusage usage;
 
 private:
   double wall_time() const;
   std::map< std::string, std::pair<double, double> > timings;
+
 };
 
 extern Profiler flprofiler;

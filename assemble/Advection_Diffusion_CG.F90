@@ -245,6 +245,12 @@ contains
     logical :: cache_valid
       
     type(element_type), dimension(:), allocatable :: supg_element
+
+    !! number of minor and major faults
+    integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
+
+    ! Arrays to hold page faults per colour
+    integer, dimension(:), allocatable :: minor_pagefaults
   
     ewrite(1, *) "In assemble_advection_diffusion_cg"
     
@@ -492,6 +498,9 @@ contains
     call get_mesh_colouring(state, t%mesh, COLOURING_CG1, colours)
     call profiler_toc(t, "advection_diffusion_loop_overhead")
 
+    ! set array length to number of colours
+    allocate(minor_pagefaults(size(colours)))
+
     call profiler_tic(t, "advection_diffusion_loop")
 
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num)
@@ -501,6 +510,9 @@ contains
     thread_num=0
 #endif
     colour_loop: do clr = 1, size(colours)
+
+    call profiler_minorpagefaults(minfaults_tic)
+
       len = key_count(colours(clr))
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
@@ -513,10 +525,20 @@ contains
               supg_element(thread_num+1))
       end do element_loop
       !$OMP END DO
+
+    call profiler_minorpagefaults(minfaults_toc)
+    minor_pagefaults(clr) = minfaults_toc - minfaults_tic
+
     end do colour_loop
     !$OMP END PARALLEL
 
     call profiler_toc(t, "advection_diffusion_loop")
+
+    write(1,*) "AD_CG :: Minor page faults = "
+    do clr = 1, size(colours) 
+      write(1,*) "Colour :: ", clr, & 
+         " :: Number of minor page faults = ", minor_pagefaults(clr)
+    end do
 
     ! as part of assembly include the already discretised optional source
     ! needed before applying direchlet boundary conditions

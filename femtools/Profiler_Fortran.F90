@@ -32,7 +32,8 @@ module Profiler
   
   private
   
-  public profiler_tic, profiler_toc, profiler_zero
+  public profiler_tic, profiler_toc, profiler_zero, &
+       profiler_minorpagefaults, profiler_majorpagefaults
   
   interface profiler_tic
     module procedure profiler_tic_scalar, profiler_tic_vector, &
@@ -72,6 +73,17 @@ module Profiler
       character(len = key_len), intent(in) :: key
       real(kind = real_8), intent(out) :: time
     end subroutine cprofiler_get
+
+    subroutine cprofiler_minorpagefaults(faults)
+      implicit none
+      integer, intent(out) :: faults
+    end subroutine cprofiler_minorpagefaults
+
+    subroutine cprofiler_majorpagefaults(faults)
+      implicit none
+      integer, intent(out) :: faults
+    end subroutine cprofiler_majorpagefaults
+
   end interface
 
 contains
@@ -192,5 +204,15 @@ contains
   subroutine profiler_zero()
     call cprofiler_zero()
   end subroutine profiler_zero
+
+  subroutine profiler_minorpagefaults(faults)
+    integer, intent(out) :: faults
+    call cprofiler_minorpagefaults(faults)
+  end subroutine profiler_minorpagefaults
+
+  subroutine profiler_majorpagefaults(faults)
+    integer, intent(out) :: faults
+    call cprofiler_majorpagefaults(faults)
+  end subroutine profiler_majorpagefaults
 
 end module Profiler

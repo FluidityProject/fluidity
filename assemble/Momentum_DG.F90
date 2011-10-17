@@ -230,6 +230,8 @@ contains
     integer, dimension(:,:), allocatable :: velocity_bc_type
     integer, dimension(:), allocatable :: pressure_bc_type
     
+    !! number of minor and major faults
+    integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
 
     !! Sparsity for inverse mass
     type(csr_sparsity):: mass_sparsity
@@ -268,6 +270,9 @@ contains
     ! Volume fraction fields for multi-phase flow simulation
     type(scalar_field), pointer :: vfrac
     type(scalar_field) :: nvfrac ! Non-linear approximation to the PhaseVolumeFraction
+
+    ! Arrays to hold page faults per colour
+    integer, dimension(:), allocatable :: minor_pagefaults
 
     ewrite(1, *) "In construct_momentum_dg"
 
@@ -648,11 +653,19 @@ contains
     assert(cache_valid)
 #endif
     call profiler_toc(u, "element_loop-omp_overhead")
-
+    
+    ! set array length to number of colours
+    allocate(minor_pagefaults(size(colours)))
+    
     call profiler_tic(u, "element_loop")
+
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, nnid, ele, len)
-    colour_loop: do clr = 1, size(colours)
+    colour_loop: do clr = 1, size(colours) 
+
+      call profiler_minorpagefaults(minfaults_tic)
+
       len = key_count(colours(clr))
+
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
        ele = fetch(colours(clr), nnid)
@@ -670,10 +683,20 @@ contains
       end do element_loop
       !$OMP END DO
       !$OMP BARRIER
+
+      call profiler_minorpagefaults(minfaults_toc)
+      minor_pagefaults(clr) = minfaults_toc - minfaults_tic
+
     end do colour_loop
     !$OMP END PARALLEL
 
     call profiler_toc(u, "element_loop")
+
+    write(1,*) "Momentum_DG :: Minor page faults = "
+    do clr = 1, size(colours) 
+      write(1,*) "Colour :: ", clr, & 
+         " :: Number of minor page faults = ", minor_pagefaults(clr)
+    end do
 
     if (have_wd_abs) then
       ! the remapped field is not needed anymore.
