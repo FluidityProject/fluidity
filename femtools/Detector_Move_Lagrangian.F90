@@ -163,15 +163,13 @@ contains
     type(rk_gs_parameters), pointer :: parameters
     type(vector_field), pointer :: vfield, xfield
     type(detector_type), pointer :: detector
-    type(detector_linked_list), dimension(:), allocatable :: send_list_array
     type(halo_type), pointer :: ele_halo
-    integer :: i, j, k, num_proc, dim, all_send_lists_empty, nprocs, stage, cycle, det
+    integer :: i, j, num_proc, dim, stage, cycle
     logical :: any_lagrangian
     real :: rk_dt
 
     ! Random Walk velocity source
     real, dimension(:), allocatable :: rw_velocity_source
-    real, dimension(:,:), allocatable :: rw_displacement
     type(scalar_field), pointer :: diffusivity_field
     type(vector_field), pointer :: diffusivity_grad
 
@@ -198,10 +196,6 @@ contains
        diffusivity_grad=>extract_vector_field(state(1), trim(parameters%diffusivity_grad))
     end if
 
-    ! We allocate a sendlist for every processor
-    nprocs=getnprocs()
-    allocate(send_list_array(nprocs))
-
     ! Allocate det%k and det%update_vector
     call allocate_rk_guided_search(detector_list, xfield%dim, parameters%n_stages)
     rk_dt = dt/parameters%n_subcycles
@@ -210,7 +204,7 @@ contains
 
        ! Reset update_vector to position
        detector => detector_list%first
-       do det = 1, detector_list%length
+       do while (associated(detector))
           if(detector%type==LAGRANGIAN_DETECTOR) then
              detector%update_vector = detector%position
           end if
@@ -222,49 +216,20 @@ contains
           ! Compute the update vector
           call set_stage(detector_list,vfield,xfield,rk_dt,stage)
 
-          ! This loop continues until all detectors have completed their
-          ! timestep this is measured by checking if the send and receive
-          ! lists are empty in all processors
-          detector_timestepping_loop: do  
+          !Detectors leaving the domain from non-owned elements
+          !are entering a domain on another processor rather 
+          !than leaving the physical domain. In this subroutine
+          !such detectors are removed from the detector list
+          !and added to the send_list_array
+          call move_detectors_guided_search(detector_list,xfield)
 
-             ! Make sure we still have lagrangian detectors
-             any_lagrangian=check_any_lagrangian(detector_list)
-             if (any_lagrangian) then
-
-                !Detectors leaving the domain from non-owned elements
-                !are entering a domain on another processor rather 
-                !than leaving the physical domain. In this subroutine
-                !such detectors are removed from the detector list
-                !and added to the send_list_array
-                call move_detectors_guided_search(detector_list,&
-                        vfield,xfield,send_list_array,parameters%search_tolerance)
-
-                ! Work out whether all send lists are empty, in which case exit.
-                all_send_lists_empty=0
-                do k=1, nprocs
-                   if (send_list_array(k)%length/=0) then
-                      all_send_lists_empty=1
-                   end if
-                end do
-                call allmax(all_send_lists_empty)
-                if (all_send_lists_empty==0) exit
-
-                !This call serialises send_list_array, sends it, 
-                !receives serialised receive_list_array, and unserialises that.
-                call exchange_detectors(state(1),detector_list, send_list_array)
-             else
-                ! If we run out of lagrangian detectors for some reason, exit the loop
-                exit
-             end if
-          end do detector_timestepping_loop
        end do RKstages_loop
 
        ! Add the Random Walk displacement 
        if (parameters%do_random_walk) then
-          allocate(rw_displacement(xfield%dim,detector_list%length))
 
           detector => detector_list%first
-          do det = 1, detector_list%length
+          do while (associated(detector))
              if (detector%type==LAGRANGIAN_DETECTOR) then
                 ! Evaluate the RW python function and add to update_vector
                 if (parameters%use_internal_rw) then
@@ -280,27 +245,12 @@ contains
              detector => detector%next
           end do
 
-          call move_detectors_guided_search(detector_list,vfield,xfield, &
-                 send_list_array,parameters%search_tolerance)
-
-          ! If needed exchange_detectors
-          all_send_lists_empty=0
-          do k=1, nprocs
-             if (send_list_array(k)%length/=0) then
-                all_send_lists_empty=1
-             end if
-          end do
-          call allmax(all_send_lists_empty)
-          if (all_send_lists_empty>0) then
-             call exchange_detectors(state(1),detector_list, send_list_array)
-          end if
-
-          deallocate(rw_displacement)
+          call move_detectors_guided_search(detector_list,xfield)
        end if
 
        ! After everything is done, we update detector%position
        detector => detector_list%first
-       do det = 1, detector_list%length
+       do while (associated(detector))
           if (detector%type==LAGRANGIAN_DETECTOR) then
              detector%position = detector%update_vector
           end if
@@ -309,7 +259,6 @@ contains
 
     end do subcycling_loop
 
-    deallocate(send_list_array)
     deallocate(rw_velocity_source)
 
     ! Make sure all local detectors are owned and distribute the ones that 
@@ -326,131 +275,60 @@ contains
 
   end subroutine move_lagrangian_detectors
 
-  function check_any_lagrangian(detector_list0)
-    ! Check if there are any lagrangian detectors in the given list
-    ! across all processors
-    logical :: check_any_lagrangian
-    type(detector_linked_list), intent(inout) :: detector_list0
-    type(detector_type), pointer :: det0
-    integer :: i
-    integer :: checkint 
-      
-    checkint = 0
-    det0 => detector_list0%first
-    do i = 1, detector_list0%length         
-       if (det0%type==LAGRANGIAN_DETECTOR) then
-          checkint = 1
-          exit
-       end if
-       det0 => det0%next
-    end do
-    call allmax(checkint)
-    check_any_lagrangian = .false.
-    if(checkint>0) check_any_lagrangian = .true.
-
-  end function check_any_lagrangian
-
-  subroutine allocate_rk_guided_search(detector_list, dim, n_stages)
-    ! Allocate the RK stages and update vector
-    type(detector_linked_list), intent(inout) :: detector_list
-    integer, intent(in) :: n_stages, dim
-    type(detector_type), pointer :: det0
-
-    det0 => detector_list%first
-    do while (associated(det0))
-       if(det0%type==LAGRANGIAN_DETECTOR) then
-          if(allocated(det0%k)) then
-             deallocate(det0%k)
-          end if
-          if(allocated(det0%update_vector)) then
-             deallocate(det0%update_vector)
-          end if
-          allocate(det0%k(n_stages,dim))
-          det0%k = 0.
-          allocate(det0%update_vector(dim))
-          det0%update_vector=0.
-       end if
-       det0 => det0%next
-    end do
-
-  end subroutine allocate_rk_guided_search
-
-  subroutine deallocate_rk_guided_search(detector_list)
-    ! Deallocate the RK stages and update vector
-    type(detector_linked_list), intent(inout) :: detector_list
-      
-    type(detector_type), pointer :: det0
-    integer :: j0
-      
-    det0 => detector_list%first
-    do j0=1, detector_list%length
-       if(det0%type==LAGRANGIAN_DETECTOR) then
-          if(allocated(det0%k)) then
-             deallocate(det0%k)
-          end if
-          if(allocated(det0%update_vector)) then
-             deallocate(det0%update_vector)
-          end if
-       end if
-       det0 => det0%next
-    end do
-  end subroutine deallocate_rk_guided_search
-
-  subroutine set_stage(detector_list,vfield,xfield,dt0,stage0)
+  subroutine set_stage(detector_list,vfield,xfield,dt,stage)
     ! Compute the vector to search for in the next RK stage
     ! If this is the last stage, update detector position
     type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer, intent(in) :: vfield, xfield
-    real, intent(in) :: dt0
-    integer, intent(in) :: stage0
+    real, intent(in) :: dt
+    integer, intent(in) :: stage
     
     type(rk_gs_parameters), pointer :: parameters
-    type(detector_type), pointer :: det0
+    type(detector_type), pointer :: detector
     integer :: j0
     real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
 
     parameters => detector_list%move_parameters
     
-    det0 => detector_list%first
-    do while (associated(det0))
+    detector => detector_list%first
+    do while (associated(detector))
 
-       if(det0%type==LAGRANGIAN_DETECTOR) then
+       if(detector%type==LAGRANGIAN_DETECTOR) then
 
           !! Set det%update_vector for lagrangian advection
-          det0%search_complete = .false.
+          detector%search_complete = .false.
 
           ! Evaluate velocity at update_vector and set k
           if (parameters%do_velocity_advect) then
              ! stage vector is computed by evaluating velocity at current position
-             stage_local_coords=local_coords(xfield,det0%element,det0%update_vector)
-             det0%k(stage0,:)=eval_field(det0%element, vfield, stage_local_coords)
+             stage_local_coords=local_coords(xfield,detector%element,detector%update_vector)
+             detector%k(stage,:)=eval_field(detector%element, vfield, stage_local_coords)
           else
              ! do not advect detector with the velocity field
-             det0%k(stage0,:)=0.0
+             detector%k(stage,:)=0.0
           end if
 
-          if(stage0<parameters%n_stages) then
+          if(stage<parameters%n_stages) then
              ! Update vector maps from current position to place required
              ! for computing next stage vector
-             det0%update_vector = det0%position
-             do j0 = 1, stage0
-                det0%update_vector = det0%update_vector + dt0*parameters%stage_matrix(stage0+1,j0)*det0%k(j0,:)
+             detector%update_vector = detector%position
+             do j0 = 1, stage
+                detector%update_vector = detector%update_vector + dt*parameters%stage_matrix(stage+1,j0)*detector%k(j0,:)
              end do
           else
              ! Update vector maps from current position to final position
-             det0%update_vector = det0%position
+             detector%update_vector = detector%position
              do j0 = 1, parameters%n_stages
-                det0%update_vector = det0%update_vector + dt0*parameters%timestep_weights(j0)*det0%k(j0,:)
+                detector%update_vector = detector%update_vector + dt*parameters%timestep_weights(j0)*detector%k(j0,:)
              end do
           end if
 
        end if
-       det0 => det0%next
+       detector => detector%next
     end do
   end subroutine set_stage
 
-
-  subroutine move_detectors_guided_search(detector_list,vfield,xfield,send_list_array,search_tolerance)
+  subroutine move_detectors_guided_search(detector_list,xfield)
     !Subroutine to find the element containing the update vector:
     ! - Detectors leaving the computational domain are set to STATIC
     ! - Detectors leaving the processor domain are added to the list 
@@ -461,130 +339,210 @@ contains
     !   finding the local coordinate closest to -infinity
     !   and moving to the element through that face.
     type(detector_linked_list), intent(inout) :: detector_list
-    type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
-    type(vector_field), pointer, intent(in) :: vfield,xfield
-    real, intent(in) :: search_tolerance
+    type(vector_field), pointer, intent(in) :: xfield
 
-    type(detector_type), pointer :: det0, det_send
-    integer :: det_count
-    logical :: owned
-    real, dimension(mesh_dim(vfield)+1) :: arrival_local_coords
+    type(detector_type), pointer :: detector, send_detector
+    type(detector_linked_list), dimension(:), allocatable :: send_list_array
+    real :: search_tolerance
+    integer :: k, nprocs, new_owner, all_send_lists_empty
+    logical :: outside_domain, any_lagrangian
+
+    ! We allocate a sendlist for every processor
+    nprocs=getnprocs()
+    allocate(send_list_array(nprocs))
+
+    search_tolerance=detector_list%move_parameters%search_tolerance
+
+    ! This loop continues until all detectors have completed their
+    ! timestep this is measured by checking if the send and receive
+    ! lists are empty in all processors
+    detector_timestepping_loop: do  
+
+       ! Make sure we still have lagrangian detectors
+       any_lagrangian=check_any_lagrangian(detector_list)
+       if (any_lagrangian) then
+
+          !Loop over all the detectors
+          detector => detector_list%first
+          do while (associated(detector))
+
+             !Only move Lagrangian detectors
+             if (detector%type==LAGRANGIAN_DETECTOR.and..not.detector%search_complete) then
+
+                call local_guided_search(detector,xfield,search_tolerance,new_owner)
+
+                if (new_owner==-1) then
+                   if (detector_list%move_parameters%reflect_on_boundary) then
+                      ! We reflect the detector path at the face we just went through
+                      call reflect_on_boundary(xfield,detector%update_vector,detector%element)
+
+                   else
+                      ! Turn detector static inside the domain
+                      ewrite(1,*) "WARNING: detector attempted to leave computational domain;"
+                      ewrite(1,*) "Turning detector static, ID:", detector%id_number, "element:", detector%element
+                      detector%type=STATIC_DETECTOR
+                      ! move on to the next detector, without updating det0%position, 
+                      ! because det0%update_vector is by now outside of the computational domain
+                      detector => detector%next
+                   end if
+                end if
+
+                if (new_owner/=getprocno().and.new_owner>0) then
+                   send_detector => detector
+                   detector => detector%next
+                   call move(send_detector, detector_list, send_list_array(new_owner))
+                end if
+ 
+             else
+                !move on to the next detector
+                detector => detector%next
+             end if
+          end do
+
+          ! Work out whether all send lists are empty, in which case exit.
+          all_send_lists_empty=0
+          do k=1, nprocs
+             if (send_list_array(k)%length/=0) then
+                all_send_lists_empty=1
+             end if
+          end do
+          call allmax(all_send_lists_empty)
+          if (all_send_lists_empty==0) exit
+
+          !This call serialises send_list_array, sends it, 
+          !receives serialised receive_list_array, and unserialises that.
+          call exchange_detectors(detector_list,xfield,send_list_array)
+       else
+          ! If we run out of lagrangian detectors for some reason, exit the loop
+          exit
+       end if
+    end do detector_timestepping_loop
+
+    deallocate(send_list_array)
+
+  end subroutine move_detectors_guided_search
+
+  subroutine local_guided_search(detector,xfield,search_tolerance,new_owner)
+    ! Do a local guided search until we either hit the new element 
+    ! or have to leave the local domain. The new_owner argument indicates
+    ! whether we have found the new element, where to continue searching
+    ! or flags that we have gone outside the domain with -1.
+    type(detector_type), pointer, intent(inout) :: detector
+    type(vector_field), pointer, intent(in) :: xfield
+    real, intent(in) :: search_tolerance
+    integer, intent(out) :: new_owner
+
+    real, dimension(mesh_dim(xfield)+1) :: arrival_local_coords
     integer, dimension(:), pointer :: neigh_list
-    integer :: neigh, proc_local_number, face, i, j
+    integer :: neigh, face
     logical :: outside_domain
 
-    ! boundary reflection
-    integer :: neigh_face
+    search_loop: do
+       ! Compute the local coordinates of the arrival point with respect to this element
+       arrival_local_coords=local_coords(xfield,detector%element,detector%update_vector)
+       if (minval(arrival_local_coords)>-search_tolerance) then
+          !The arrival point is in this element, we're done
+          detector%search_complete = .true.
+          detector%local_coords=arrival_local_coords
+          new_owner=getprocno()
+          return
+       end if
+
+       ! The arrival point is not in this element, try to get closer to it by 
+       ! searching in the coordinate direction in which it is furthest away
+       neigh = minval(minloc(arrival_local_coords))
+       neigh_list=>ele_neigh(xfield,detector%element)
+       if (neigh_list(neigh)>0) then
+          ! The neighbouring element is also on this domain
+          ! so update the element and try again
+          detector%element = neigh_list(neigh)
+       else
+          ! Next element in coordinate direction is not on this domain.
+          ! Two cases arise: 
+          !    * If we don't own the current element we're on a Halo.
+          !      We need to continue searching on another processor.
+          !    * If we own the current element the detector will move outside the domain.
+          !      But we need to check if we've gone through a corner.
+
+          ! So check if this element is owned
+          if (element_owned(xfield,detector%element)) then
+             ! This face goes outside of the computational domain.
+             ! Try all of the faces with negative local coordinate
+             ! just in case we went through a corner.
+             outside_domain=.true.
+             face_search: do face = 1, size(arrival_local_coords)
+                if (arrival_local_coords(face)<-search_tolerance.and.neigh_list(face)>0) then
+                   outside_domain = .false.
+                   detector%element = neigh_list(face)
+                   exit face_search
+                end if
+             end do face_search
+
+             if (outside_domain) then
+                new_owner=-1
+                return
+             end if
+          else
+             ! The current element is on a Halo, we need to send it to the owner.
+             new_owner=element_owner(xfield%mesh,detector%element)
+             return
+          end if
+       end if
+    end do search_loop
+
+  end subroutine local_guided_search
+
+  subroutine reflect_on_boundary(xfield, coordinate, element)
+    ! Reflect the coordinate in the according boundary face of the element.
+    ! This uses simple reflection equations and assumes the face to be flat.
+    type(vector_field), pointer, intent(in) :: xfield
+    real, dimension(mesh_dim(xfield)), intent(inout) :: coordinate
+    integer, intent(in) :: element
+
+    real, dimension(mesh_dim(xfield)+1) :: arrival_local_coords
+    integer :: i, neigh, neigh_face
     real, dimension(xfield%dim,xfield%mesh%faces%shape%ngi) :: facet_normals
     real, dimension(xfield%mesh%faces%shape%ngi) :: detwei_f
+    integer, dimension(:), pointer :: neigh_list
     integer, dimension(:), allocatable :: face_nodes 
     real, dimension(xfield%dim) :: face_node_val, face_normal
     real :: offset, p, D
 
-    !Loop over all the detectors
-    det0 => detector_list%first
-    do while (associated(det0))
+    arrival_local_coords=local_coords(xfield,element,coordinate)
+    neigh = minval(minloc(arrival_local_coords))
+    neigh_list=>ele_neigh(xfield,element)
 
-       !Only move Lagrangian detectors
-       if (det0%type==LAGRANGIAN_DETECTOR.and..not.det0%search_complete) then
-          search_loop: do
+    ! First get the face we went through and the coordinates of one node on it
+    neigh_face = ele_face(xfield, element, neigh_list(neigh))
+    allocate(face_nodes(face_loc(xfield, neigh_face)))
+    face_nodes = face_global_nodes(xfield, neigh_face)    
+    face_node_val=node_val(xfield,face_nodes(1))
 
-             !Compute the local coordinates of the arrival point with respect to this element
-             arrival_local_coords=local_coords(xfield,det0%element,det0%update_vector)
-             if (minval(arrival_local_coords)>-search_tolerance) then
-                !the arrival point is in this element
-                det0%search_complete = .true.
-                !move on to the next detector
-                det0 => det0%next
-                exit search_loop
-             end if
+    ! Now we get the face normal from the transform (detwei_f is a dummy)
+    call transform_facet_to_physical(xfield, neigh_face, detwei_f, facet_normals)
+    face_normal = facet_normals(:,1)
 
-             !The arrival point is not in this element, try to get closer to it by 
-             !searching in the coordinate direction in which it is furthest away
-             neigh = minval(minloc(arrival_local_coords))
-             neigh_list=>ele_neigh(xfield,det0%element)
-             if (neigh_list(neigh)>0) then
-                !the neighbouring element is also on this domain
-                !so update the element and try again
-                det0%element = neigh_list(neigh)
-             else
-                !check if this element is owned (to decide where
-                !to send particles leaving the processor domain)
-                if (element_owned(vfield,det0%element)) then
-                   !this face goes outside of the computational domain
-                   !try all of the faces with negative local coordinate
-                   !just in case we went through a corner
-                   outside_domain=.true.
-                   face_search: do face = 1, size(arrival_local_coords)
-                      if (arrival_local_coords(face)<-search_tolerance.and.neigh_list(face)>0) then
-                         outside_domain = .false.
-                         det0%element = neigh_list(face)
-                         exit face_search
-                      end if
-                   end do face_search
-
-                   if (outside_domain) then
-                      if (detector_list%move_parameters%reflect_on_boundary) then
-                         ! We reflect the detector path at the face we just went through
-
-                         ! First get the face we went through and the coordinates of one node on it
-                         neigh_face = ele_face(xfield, det0%element, neigh_list(neigh))
-                         allocate(face_nodes(face_loc(xfield, neigh_face)))
-                         face_nodes = face_global_nodes(xfield, neigh_face)    
-                         face_node_val=node_val(xfield,face_nodes(1))
-
-                         ! Now we get the face normal from the transform (detwei_f is a dummy)
-                         call transform_facet_to_physical(xfield, neigh_face, detwei_f, facet_normals)
-                         face_normal = facet_normals(:,1)
-
-                         ! p = - n . x_f / sqrt(a**2 + b**2 + c**2), where x_f is a point of the face
-                         ! http://mathworld.wolfram.com/Plane.html, eqs. 3 and 11
-                         p = 0.0
-                         do j=1, xfield%dim
-                            p = p + face_normal(j)**2
-                         end do
-                         p = - dot_product(face_node_val,face_normal) / sqrt(p)
-
-                         ! D = n . x + p, where x is the point we want to reflect
-                         ! http://mathworld.wolfram.com/Plane.html, eq. 13
-                         D = dot_product(face_normal,det0%update_vector) + p
-
-                         ! x' = x - 2Dn, where x' is the reflected point
-                         ! http://mathworld.wolfram.com/Reflection.html, eq. 7
-                         do j=1, xfield%dim
-                            det0%update_vector(j) = det0%update_vector(j) - (2 * D * face_normal(j))
-                         end do
-
-                         deallocate(face_nodes)
-                      else
-                         ! Turn detector static inside the domain
-                         ewrite(1,*) "WARNING: detector attempted to leave computational &
-                           domain; making it static, detector ID:", det0%id_number, "detector element:", det0%element
-                         det0%type=STATIC_DETECTOR
-                         ! move on to the next detector, without updating det0%position, 
-                         ! because det0%update_vector is by now outside of the computational domain
-                         det0 => det0%next
-                         exit search_loop
-                      end if
-                   end if
-                else
-                   det_send => det0
-                   det0 => det0%next
-                   !this face goes into another computational domain
-                   proc_local_number=element_owner(vfield%mesh,det_send%element)
-
-                   call move(det_send, detector_list, send_list_array(proc_local_number))
-                   !move on to the next detector
-                   exit search_loop
-                end if
-             end if
-          end do search_loop
-       else
-          !move on to the next detector
-          det0 => det0%next
-       end if
+    ! p = - n . x_f / sqrt(a**2 + b**2 + c**2), where x_f is a point of the face
+    ! http://mathworld.wolfram.com/Plane.html, eqs. 3 and 11
+    p = 0.0
+    do i=1, xfield%dim
+        p = p + face_normal(i)**2
     end do
-  end subroutine move_detectors_guided_search
+    p = - dot_product(face_node_val,face_normal) / sqrt(p)
+
+    ! D = n . x + p, where x is the point we want to reflect
+    ! http://mathworld.wolfram.com/Plane.html, eq. 13
+    D = dot_product(face_normal,coordinate) + p
+
+    ! x' = x - 2Dn, where x' is the reflected point
+    ! http://mathworld.wolfram.com/Reflection.html, eq. 7
+    do i=1, xfield%dim
+       coordinate(i) = coordinate(i) - (2 * D * face_normal(i))
+    end do
+
+    deallocate(face_nodes)
+
+  end subroutine reflect_on_boundary
 
   subroutine calc_diffusive_rw(detector, dt, xfield, diff_field, grad_field, displacement)
     type(detector_type), pointer, intent(in) :: detector
@@ -614,5 +572,75 @@ contains
     displacement(xfield%dim)=K_grad(xfield%dim)*dt + rnd(1)*sqrt(6*K*dt)
 
   end subroutine calc_diffusive_rw
+
+  function check_any_lagrangian(detector_list)
+    ! Check if there are any lagrangian detectors in the given list
+    ! across all processors
+    logical :: check_any_lagrangian
+    type(detector_linked_list), intent(inout) :: detector_list
+
+    type(detector_type), pointer :: detector
+    integer :: checkint 
+      
+    checkint = 0
+    detector => detector_list%first
+    do while (associated(detector))       
+       if (detector%type==LAGRANGIAN_DETECTOR) then
+          checkint = 1
+          exit
+       end if
+       detector => detector%next
+    end do
+    call allmax(checkint)
+    check_any_lagrangian = .false.
+    if(checkint>0) check_any_lagrangian = .true.
+
+  end function check_any_lagrangian
+
+  subroutine allocate_rk_guided_search(detector_list, dim, n_stages)
+    ! Allocate the RK stages and update vector
+    type(detector_linked_list), intent(inout) :: detector_list
+    integer, intent(in) :: n_stages, dim
+
+    type(detector_type), pointer :: detector
+
+    detector => detector_list%first
+    do while (associated(detector))
+       if(detector%type==LAGRANGIAN_DETECTOR) then
+          if(allocated(detector%k)) then
+             deallocate(detector%k)
+          end if
+          if(allocated(detector%update_vector)) then
+             deallocate(detector%update_vector)
+          end if
+          allocate(detector%k(n_stages,dim))
+          detector%k = 0.
+          allocate(detector%update_vector(dim))
+          detector%update_vector=0.
+       end if
+       detector => detector%next
+    end do
+
+  end subroutine allocate_rk_guided_search
+
+  subroutine deallocate_rk_guided_search(detector_list)
+    ! Deallocate the RK stages and update vector
+    type(detector_linked_list), intent(inout) :: detector_list
+      
+    type(detector_type), pointer :: detector
+      
+    detector => detector_list%first
+    do while (associated(detector))
+       if(detector%type==LAGRANGIAN_DETECTOR) then
+          if(allocated(detector%k)) then
+             deallocate(detector%k)
+          end if
+          if(allocated(detector%update_vector)) then
+             deallocate(detector%update_vector)
+          end if
+       end if
+       detector => detector%next
+    end do
+  end subroutine deallocate_rk_guided_search
 
 end module detector_move_lagrangian
