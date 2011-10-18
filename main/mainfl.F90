@@ -48,7 +48,6 @@ subroutine mainfl() bind(C)
 #ifdef HAVE_ZOLTAN
   real(zoltan_float) :: ver
   integer(zoltan_int) :: ierr
-  integer :: faults
 
   ierr = Zoltan_Initialize(ver)  
   assert(ierr == ZOLTAN_OK)

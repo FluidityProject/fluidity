@@ -249,7 +249,7 @@ contains
     !! number of minor and major faults
     integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
 
-    ! Arrays to hold page faults per colour
+    !! Arrays to hold page faults per colour
     integer, dimension(:), allocatable :: minor_pagefaults
   
     ewrite(1, *) "In assemble_advection_diffusion_cg"

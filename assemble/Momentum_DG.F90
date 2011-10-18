@@ -230,9 +230,6 @@ contains
     integer, dimension(:,:), allocatable :: velocity_bc_type
     integer, dimension(:), allocatable :: pressure_bc_type
     
-    !! number of minor and major faults
-    integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
-
     !! Sparsity for inverse mass
     type(csr_sparsity):: mass_sparsity
     
@@ -271,8 +268,11 @@ contains
     type(scalar_field), pointer :: vfrac
     type(scalar_field) :: nvfrac ! Non-linear approximation to the PhaseVolumeFraction
 
-    ! Arrays to hold page faults per colour
+    !! Arrays to hold page faults per colour
     integer, dimension(:), allocatable :: minor_pagefaults
+
+    !! number of minor and major faults
+    integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
 
     ewrite(1, *) "In construct_momentum_dg"
 
