@@ -42,6 +42,19 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="ApparentDensityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">4</integer_value>
@@ -70,7 +83,7 @@
       <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">240.0</real_value>
+      <real_value rank="0">60.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
@@ -81,7 +94,7 @@
     </nonlinear_iterations>
     <adaptive_timestep>
       <requested_cfl>
-        <real_value rank="0">0.05</real_value>
+        <real_value rank="0">0.15</real_value>
       </requested_cfl>
       <courant_number name="CFLNumber">
         <mesh name="VelocityMesh"/>
@@ -128,7 +141,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -342,7 +355,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -515,10 +528,10 @@
             <string_value lines="20" type="python">def val(X,t):
   import random
   random.seed()
-  if(X[1] &gt;= 0.7):
-    return 1.0e-8 + random.uniform(0.0, 1.0e-7)
+  if(X[1]==0.7):
+    return 1.0e-7 + random.uniform(0.0, 1.0e-8)
   else:
-    return 1.0e-8</string_value>
+    return 1.0e-7</string_value>
           </python>
         </initial_condition>
         <boundary_conditions name="Top">
@@ -526,15 +539,9 @@
             <integer_value shape="1" rank="1">333</integer_value>
           </surface_ids>
           <type name="flux">
-            <python>
-              <string_value lines="20" type="python">def val(X,t):
-  import random
-  random.seed()
-  if(X[1] &gt;= 0.7):
-    return 2.01804273504e-7 + random.uniform(0.0, 1.0e-7)
-  else:
-    return 2.01804273504e-7</string_value>
-            </python>
+            <constant>
+              <real_value rank="0">2.01804368471e-07</real_value>
+            </constant>
           </type>
         </boundary_conditions>
         <boundary_conditions name="Bottom">
@@ -565,8 +572,9 @@
     </scalar_field>
     <scalar_field name="SumVelocityDivergence" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
+        <integrate_divergence_by_parts/>
         <output/>
         <stat/>
         <detectors>
@@ -590,6 +598,48 @@
             <monitors/>
           </diagnostics>
         </solver>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ApparentDensity" rank="0">
+      <diagnostic>
+        <algorithm name="apparent_density" material_phase_support="multiple"/>
+        <mesh name="ApparentDensityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ParticleReynoldsNumber" rank="0">
+      <diagnostic>
+        <algorithm name="particle_reynolds_number" material_phase_support="multiple">
+          <depends>
+            <string_value lines="1">Water::Density,Water::Velocity,Water::PhaseVolumeFraction,Tephra::Velocity</string_value>
+          </depends>
+          <particle_diameter>
+            <real_value rank="0">48e-6</real_value>
+          </particle_diameter>
+          <continuous_phase_name>Water</continuous_phase_name>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
       </diagnostic>
     </scalar_field>
     <multiphase_properties>

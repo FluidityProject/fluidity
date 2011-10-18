@@ -388,6 +388,17 @@ $\bmu_H$ is the horizontal component of $\bmu$. Using the fact that the normal v
 where $\vec k=(0,0,1)$ is the vertical standard basis vector. Note that in spherical geometries $\vec k$ is replaced with
 $\vec r=(\sin\theta\cos\phi,\sin\theta\sin\phi,\cos\theta)$ where $\phi$ and $\theta$ are the azimuthal and co-latitudinal angles respectively. 
 
+\subsubsection{Wetting and drying}\label{Sect:WD}
+\index{free surface!Wetting and drying}
+If wetting and drying occurs, the free surface boundary condition \ref{freesurf3} need to be changed to ensure that the water level $\eta$ does not sink below the bathymetry level $b$:
+
+\begin{equation}\label{eq:wd1}
+\frac{\partial \max(\eta, b+d_0)}{\partial t}=\frac{\bmu \cdot \vec n}{\vec n \cdot \vec k},
+\end{equation}
+where $d_0$ is a threshold defining the minimum water depth.
+
+The details of the wetting and drying are described in \cite{Funke2011}.
+
 \section{Extensions, assumptions and derived equation sets}\label{sect:eqn_extensions}
 
 In certain scenarios it is desirable to simplify the equations of sections \ref{Sect:MP-AdvdifEqn} and \ref {Sect:MP-MomEqn} according to various approximations. Such approximations can drastically reduce the complexity of the system under consideration while maintaining much of the important physics. In this section we consider approximate forms and assumptions of the conservation equations that are appropriate to different problems. 
@@ -729,15 +740,15 @@ Multi-phase flows are defined by \cite{prosperettiEtAl2007} to be flows in which
 
 Further to the above definition, each phase is classed as either \textit{continuous} or \textit{dispersed}, where a continuous phase is a connected liquid or gas substance in which dispersed phases (comprising a finite number of solid particles, liquid droplets and/or gas bubbles) may be immersed \citep{croweEtAl1998}.
 
-To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate set of continuity and momentum equations) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Thus, for each phase $i$, the governing equations (based on those derived in \cite{ishii1975}) are:
+To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, and a common pressure field $p$ so that only one continuity equation is used. Thus, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}, written in non-conservative form) are:
 \begin{equation}
-\frac{\partial}{\partial t}\left(\alpha_i\rho_i\right) + \nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\right) = 0,
+\sum_{i=1}^N\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) = 0,
 \end{equation}
 \begin{equation}
-\frac{\partial}{\partial t}\left(\alpha_i\rho_i\mathbf{u}_i\right) +
-\nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\mathbf{u}_i\right) =
+\alpha_i\rho_i\frac{\partial \mathbf{u}_i}{\partial t} +
+\alpha_i\rho_i\mathbf{u}_i\cdot\nabla\mathbf{u}_i =
 -\alpha_i\nabla p + \alpha_i\rho_i\mathbf{g} +
-\nabla\cdot\left(\alpha_i\tautens_i\right) +
+\nabla\cdot\left(\alpha_i\mu_i\nabla\mathbf{u}_i\right) +
 \mathbf{F}_i,
 \end{equation}
-where $\mathbf{u}_i$, $\rho_i$, $\tautens_i$ and $\alpha_i$ are the velocity, density, stress tensor and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. The model currently assumes a common pressure field $p$ and no mass transfer between phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
+where $\mathbf{u}_i$, $\rho_i$, $\mu_i$ and $\alpha_i$ are the velocity, density, isotropic viscosity and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.

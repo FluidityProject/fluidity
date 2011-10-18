@@ -264,7 +264,7 @@ after an adapt.
 There are further options under individual fields, for example to exclude data from the stat file.
 
 \subsubsection{Detectors}
-\index{detectors!options}
+\index{detectors!options}\label{detectors_options}
 Note that the algorithm used to determine the element containing a detector (of
 any kind) assumes that the detector is known to be within the simulation domain.
 For points outside the simulation domain the field values will be extrapolated
@@ -320,6 +320,11 @@ def val(t):
     x=7000 to x=25000 and y=7000 to y=25000.}
   \label{examp:python_function_detectors_1}
 \end{example}
+
+If one or more Lagrangian detectors are selected the option \option{/lagrangian\_timestepping} must be set to define detector movement. 
+The user can define the order of the Runge-Kutta method to be used by defining the Butcher tableau and timestepping weights under \option{/explicit\_runge\_kutta\_guided\_search}. 
+For convenience the first- and fourth-order Runge-Kutta method (\option{/forward\_euler\_guided\_search} and \option{/rk4\_guided\_search}) are available as pre-defined options. 
+See section \ref{Sect:lagrangian_trajectories} for more information on Lagrangian detector advection.
 
 The output of the detectors is an ascii file called
 \option{name\_of\_simulation.detectors} where the name of the simulation has
@@ -619,12 +624,12 @@ dimension. An extruded mesh is specified using the
 
 Under this option it is necessary to set the \option{regions/bottom\_depth}. This is
 a scalar value which gives the depth, a positive value. The extent of the
-domain in $n$-th dimension will be $(0,-bottom_depth)$. This value may be
+domain in $n$-th dimension will be $(0,-bottom\_depth)$. This value may be
 set either as a constant or as a Python function. In the latter case,
 function will be a function of space and time. Note in this case that the
 space argument \lstinline[language=Python]+X+ will be $n-1$-dimensional. See
 section \ref{Sect:setting_with_python}\ for a full explanation of the use of Python functions to
-prescrible field values. In this case, the depth is essentially a scalar
+prescribe field values. In this case, the depth is essentially a scalar
 field over the $n-1$ dimensional parent mesh. The time argument which
 will be passed to the function is the simulation start time and the function
 will \emph{not}\ be re-evaluated during the simulation.
@@ -917,7 +922,7 @@ several options to control the face value and how diffusion is implemented.
 
 The face value (\option{face\_value}) can be set to one of:
 \begin{description}
-\item[FirstOrderUpwind] - see section \ref{sec:cv_fou}.  Note that first order upwinding does not require nonlinear advection iterations as the low order pivot solution uses first order upwinding itself.  However in this case it is necessary that the implictness factor, $\theta$, is the same as the pivot implicitness factor, $\theta_p$ (see sections \ref{sec:cvtemp} and \ref{sect:configuring_fluidity_temporal_discretisation}).
+\item[FirstOrderUpwind] - see section \ref{sec:cv_fou}.  Note that first order upwinding does not require nonlinear advection iterations as the low order pivot solution uses first order upwinding itself.  However in this case it is necessary that the implicitness factor, $\theta$, is the same as the pivot implicitness factor, $\theta_p$ (see sections \ref{sec:cvtemp} and \ref{sect:configuring_fluidity_temporal_discretisation}).
 \item[Trapezoidal] - see section \ref{sec:trap}, should be used with the suboptions describing a face value limiter (see section \ref{sec:cvlimiting}) active
 \item[FiniteElement] - see section \ref{sec:cvfe}, should be used with the suboptions describing a face value limiter (see section \ref{sec:cvlimiting}) active
 \item[FirstOrderDownwinding] - see section \ref{sec:fod}, intended for demonstration purposes only, not recommended for general use (unconditionally unstable)
@@ -941,7 +946,7 @@ The coupled CV options (\option{coupled\_cv}) implement another control volume d
 
 Options must be selected to describe the face value scheme, which include most of the algorithms described in section \ref{Sect:CVs}.  Additionally it is necessary to prescribe the maximum and minimum bounds on the sum of this and the previous fields.  Because the coupled scheme depends on a priority ordering a priority (outside of the spatial discretisation options at \option{\ldots/scalar\_field/prognostic/priority}) must also be set with higher values having the highest priority and lower values the lowest.
 
-Related fields to be used together during coupled limiting are grouped together based on their names from succesive material\_phases.  For example, if a field called MaterialVolumeFraction has coupled\_cv options then all other fields in all other material\_phases called MaterialVolumeFraction using coupled\_cv options will be advected together in order of their priority.  Spatial discretisation options within coupled\_cv may vary between the fields but temporal discretisation options must be identical.
+Related fields to be used together during coupled limiting are grouped together based on their names from successive material\_phases.  For example, if a field called MaterialVolumeFraction has coupled\_cv options then all other fields in all other material\_phases called MaterialVolumeFraction using coupled\_cv options will be advected together in order of their priority.  Spatial discretisation options within coupled\_cv may vary between the fields but temporal discretisation options must be identical.
 
 \subsubsection{Discontinuous Galerkin method for the
   advection-diffusion equation}
@@ -1254,9 +1259,9 @@ temperature, \PSU{} for salt, \kgmm{} for density. The reference density is
 \item\option{\ldots/miegrunneisen/bulk\_sound\_speed\_squared} Specifies the bulk sound speed squared for the material $c_B^2$. Not activating this option simplifies the compressible EOS to that of a perfect gas.
 \end{description}
 
-\section{Subgridscale Parameterisations}
+\section{Sub-grid Scale Parameterisations}
 
-\fluidity\ contains a number of subgridscale parameterisations which model physical process below the resolution of the mesh.
+\fluidity\ contains a number of sub-grid scale parameterisations which model physical process below the resolution of the mesh.
 
 \subsection{GLS}
 
@@ -1426,13 +1431,36 @@ For control volume discretisations only, this option allows a given flux $h$ of 
    \frac{\partial c}{\partial t} = h
 \end{equation*}
 
-\subsubsection{Free surface}
+\subsubsection{Free surface}\label{subsec:free_surface_bc}
 \index{boundary conditions!free surface}
 \index{free surface!boundary condition}
 
 The \option{\ldots/free\_surface} option allows the height of upper surface to vary according
 to the pressure and velocity fields. This boundary condition is available on the velocity field only. It is
 recommended you activate a diagnostic Free Surface field also.
+
+By default, the mesh geometry is not influenced by the free-surface calculation, however \fluidity\ can deform the mesh according to the free-surface elevation. 
+This option is available at \option{/mesh\_adaptivity/mesh\_movement/free\_surface}.
+
+
+\subsubsection{Wetting and drying}\label{subsec:wetting_drying_bc}
+\index{boundary conditions!wetting and drying}
+
+In order to use wetting and drying, first switch on the mesh deformation as described in \ref{subsec:free_surface_bc}.
+
+Secondly, if the mesh is extruded within fluidity, the extrusion parameters have to be changed such that areas above sea level are included.
+For example if a bathymetry map file is used for the extrusion, the option \option{/geometry/mesh/from\_mesh/extrude/regions/bottom\_depth/from\_map/surface\_height}
+can be used to shift down the domain such that the whole bathymetry is below zero.
+A non-zero initial pressure together with the relationship between pressure and free-surface elevation $p = \rho \eta$ can be used to shift the initial free-surface down accordingly as well.
+
+Finally, wetting and drying is activated under \option{/mesh\_adaptivity/mesh\_movement/free\_surface/wetting\_and\_drying}.
+The only required parameter is the wetting and drying threshold value $d_0$, which specifies the minimum layer-thickness that is retained in dry areas. 
+Following equation can be used to determine the threshold value:
+\begin{equation*}
+\d_0 = \frac{l\Delta x}{r},
+\end{equation*}
+where $\Delta x$ and $l$ are the maximum horizontal element size and number of mesh layers in the dry areas, respectively and $r$ is the maximum aspect ratio. A typical value for latter is between $500-1000$.
+
 
 \subsubsection{Drag}
 \index{boundary conditions!drag}
@@ -1469,7 +1497,7 @@ imposes a weak no normal flow boundary condition on the surfaces specified.
 \subsubsection{Near-wall treatment}
 
 This option implements a penalty function for the near wall region, negating the need to use fine meshes
-near walls \citet{bazilevs2007}. This option should be used in conjunction with a 
+near walls \citep{bazilevs2007}. This option should be used in conjunction with a 
 \option{\ldots/no\_normal\_flow} boundary on the same surface.
 
 \subsubsection{Log-law of wall}
@@ -1559,9 +1587,9 @@ option forces \emph{all} surface nodes to receive the same forcing.
 Finally, it is possible to output the fluxes that are imposed on the ocean surface, by enabling the
 \option{output\_fluxes\_diagnostic} option. Here, the user can enable diagnostic fields for momentum, heat, salinity and
 photosynthetic radiation downwards. The fluxes will then be included in the output as normal scalars or vectors, but with values
-confied to the upper surface.
+confined to the upper surface.
 
-\subsubsection{GLS subgridscale parameterisation}\label{Sect:BCs:special:gls}
+\subsubsection{GLS sub-grid scale parameterisation}\label{Sect:BCs:special:gls}
 \index{generic length scale model!boundary conditions}
 \index{boundary conditions!generic length scale model}
 
@@ -1572,7 +1600,7 @@ order for the boundary conditions to be set correctly, enable the \linebreak
 \option{\ldots/subgridscale\_parameterisations/GLS/calculate\_boundaries}
 option.
 
-\subsubsection{k-epsilon subgridscale parameterisation}\label{Sect:BCs:special:kepsilon}
+\subsubsection{k-epsilon sub-grid scale parameterisation}\label{Sect:BCs:special:kepsilon}
 \index{k-$\epsilon$ model!boundary conditions}
 \index{boundary conditions!k-$\epsilon$ model}
 
@@ -1657,7 +1685,7 @@ The final thing to change is to add absorption coefficients in the photosyntheti
 \fluidity\ contains a basic sediment model in which sediment is treated as a
 tracer with a settling velocity and the amount of sediment falling through
 the bottom boundary is recorded. Enabling sediments creates two template
-fields: one for sediment concetration in the fluid and one for the flux of
+fields: one for sediment concentration in the fluid and one for the flux of
 sediment over the bottom boundary. These can be found at
 \option{\ldots/sediment/scalar\_field::SedimentTemplate} and
 \option{\ldots/sediment/scalar\_field::SedimentFluxTemplate} respectively.
@@ -1680,7 +1708,7 @@ These options are almost always recommended for large scale ocean problems.
 
 \subsubsection{Meshes}
 
-The mesh that you use must be a two plus one mesh which is unstructured in the horizontal and structured in the vertical.  It can either be constructed in gmsh and read into fludity, or a two-dimensional mesh can be made in gmsh and extruded within fluidity (see \ref{sect:extruded_meshes}). In addition, these mesh settings are recommended:
+The mesh that you use must be a two plus one mesh which is unstructured in the horizontal and structured in the vertical.  It can either be constructed in gmsh and read into fluidity, or a two-dimensional mesh can be made in gmsh and extruded within fluidity (see \ref{sect:extruded_meshes}). In addition, these mesh settings are recommended:
 \begin{itemize}
 \item The Velocity mesh must be discontinuous gelerkin polynomial order one, so set \\* \option{\ldots/geometry/mesh(VelocityMesh)/from\_mesh/mesh\_shape/mesh\_continuity} to discontinuous.  
 \item The Pressure mesh must be of polynomial order two, so set 
@@ -1700,7 +1728,7 @@ The velocity is discontinuous galerkin.  The required options are listed below.
 
 \begin{itemize}
 \item \option{\ldots/equation} must be set to Boussinesq
-\item \option{\ldots/spatial\_discretisation} must be discotinuous galerkin
+\item \option{\ldots/spatial\_discretisation} must be discontinuous galerkin
 \item \option{\ldots/spatial\_discretisation/advection} is upwind
 \item \option{\ldots/spatial\_discretisation/advestion/integrate\_advection\_by\_parts} is twice
 \end{itemize}
@@ -1868,7 +1896,7 @@ For the temporal discretisation a Crank-Nicolson scheme is recommended, with the
 
 The mesh used should be the \option{VelocityMesh} and the equation type \option{AdvectionDiffusion}, cf. \ref{Sect:ND_advection_diffusion_discretisation}. 
 
-For the spatial discretisation a discontiuous-Galerkin discretisation
+For the spatial discretisation a discontinuous-Galerkin discretisation
 is recommended with a Lax-Friedrichs advection scheme, velocity
 projected to continuous space, advection integrated by parts once and
 a compact-discontinuous-Galerkin diffusion scheme with a vertex-based
@@ -2093,9 +2121,10 @@ Within a dispersed phase, entering a value for $d$ in the \option{../multiphase\
 \begin{itemize}
  \item Boussinesq and fully compressible multi-phase simulations are not yet supported.
  \item The momentum equation for each \option{material\_phase} can only be discretised in non-conservative form.
+ \item The stress term must be in tensor form, and only works with an isotropic viscosity.
  \item \option{bassi\_rebay} and \option{compact\_discontinuous\_galerkin} are currently the only DG viscosity schemes available for multi-phase flow simulations.
  \item Discontinuous \option{PhaseVolumeFraction} fields are not yet supported.
- \item The Pressure field only supports a continuous Galerkin discretisation.
+ \item The Pressure field only supports \option{continuous\_galerkin} and \option{control\_volume} discretisations.
  \item Prescribed velocity fields cannot yet be used in multi-phase simulations.
  \item Fluid-particle drag can currently only support one continuous (i.e. fluid) phase.
 \end{itemize}
