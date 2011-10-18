@@ -1146,22 +1146,22 @@
 
 
          dg(istate) = have_option(trim(u%option_path)//&
-                           "/prognostic/spatial_discretisation&
-                           &/discontinuous_galerkin")
+                           &"/prognostic/spatial_discretisation"//&
+                           &"/discontinuous_galerkin")
 
          subcycle(istate) = have_option(trim(u%option_path)//&
-            "/prognostic/temporal_discretisation/&
-            &discontinuous_galerkin/maximum_courant_number_per_subcycle")
+            &"/prognostic/temporal_discretisation"//&
+            &"/discontinuous_galerkin/maximum_courant_number_per_subcycle")
 
          ! Are we lumping the mass matrix?
          lump_mass(istate) = have_option(trim(u%option_path)//&
-                           "/prognostic/spatial_discretisation&
-                           &/continuous_galerkin/mass_terms&
-                           &/lump_mass_matrix").or.&
+                           &"/prognostic/spatial_discretisation"//&
+                           &"/continuous_galerkin/mass_terms"//&
+                           &"/lump_mass_matrix").or.&
                      have_option(trim(u%option_path)//&
-                           "/prognostic/spatial_discretisation&
-                           &/discontinuous_galerkin/mass_terms&
-                           &/lump_mass_matrix")
+                           &"/prognostic/spatial_discretisation"//&
+                           &"/discontinuous_galerkin/mass_terms"//&
+                           &"/lump_mass_matrix")
 
          ! Here is where we try to decide how big big_m should be
          have_viscosity = have_option(trim(u%option_path)//&
@@ -1169,15 +1169,15 @@
 
          ! The following should include a dg option when a stress form version gets implemented
          stress_form = have_option(trim(u%option_path)//&
-            &"/prognostic/spatial_discretisation/continuous_galerkin&
-            &/stress_terms/stress_form")
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/stress_form")
 
          partial_stress_form = have_option(trim(u%option_path)//&
-            &"/prognostic/spatial_discretisation/continuous_galerkin&
-            &/stress_terms/partial_stress_form")
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/partial_stress_form")
 
-         have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
-            &/continuous_galerkin/les_model")
+         have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/"//&
+            &"/continuous_galerkin/les_model")
 
          have_coriolis = have_option("/physical_parameters/coriolis")
 
