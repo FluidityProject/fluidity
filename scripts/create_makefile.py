@@ -154,7 +154,7 @@ def generate_dependencies(fortran):
         for f in fortran:            
             print "  "+f
             obj=os.path.splitext(f)[0]+".o"
-            os.system("rm "+obj+" 2>\\dev\\null || true")
+            os.system("rm "+obj+" 2>/dev/null || true")
 
             pipe=os.popen('make GENFLAGS="-cpp -M -MF '+obj+'_dependencies" '+obj)
             stdout=pipe.readlines()

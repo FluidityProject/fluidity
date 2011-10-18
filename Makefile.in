@@ -170,7 +170,6 @@ bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 
 sw: bin/shallow_water
 be: bin/burgers_equation
-mp: bin/multiphase_prototype
 hh: bin/hybridized_helmholtz_solver
 
 bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow_Water.F90
@@ -213,15 +212,6 @@ bin/test_coupler:
 	@echo "     Please reconfigure --with-psmile=/path/to/oasis4"
 	exit 1
 endif
-
-bin/multiphase_prototype: fluidity_library
-	@echo "    MAKE multiphase_prototype"
-	@cd legacy_reservoir_prototype; $(MAKE)
-	@echo "BUILD multiphase_prototype"
-	@echo "    MKDIR legacy_reservoir_prototype"
-	@mkdir -p bin
-	@echo "    LD multiphase_prototype"
-	@$(EVAL) $(LINKER) -o bin/multiphase_prototype legacy_reservoir_prototype/main.o $(FCFLAGS) $(LIBS)
 
 bin/form_pod_basis: fluidity_library reduced_modelling/Form_Pod_Basis_Main.F90
 	@cd reduced_modelling; $(MAKE) Form_Pod_Basis_Main.o
@@ -412,8 +402,6 @@ endif
 	@echo "    CLEAN adjoint"
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
-	@cd legacy_reservoir_prototype; $(MAKE) clean
-	@echo "    CLEAN legacy_reservoir_prototype"
 	@cd main; $(MAKE) clean
 	@rm -fr bin/* lib
 

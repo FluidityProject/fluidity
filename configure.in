@@ -1534,5 +1534,4 @@ AC_OUTPUT(Makefile
           libwm/Makefile
           libvtkfortran/Makefile 
           tests/lauwerier/Makefile
-	  reduced_modelling/Makefile
-          legacy_reservoir_prototype/Makefile)
+	       reduced_modelling/Makefile)
