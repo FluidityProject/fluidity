@@ -554,15 +554,22 @@ contains
     real :: K
     real, dimension(xfield%dim) :: position, K_grad
     real, dimension(xfield%dim+1) :: lcoord
+    integer :: new_owner, offset_element
 
     call random_number(rnd)
     rnd = (rnd * 2.0) - 1.0
-    K_grad=eval_field(detector%element, grad_field, detector%local_coords)
+    K_grad=detector_value(grad_field, detector)
 
-    position(:)=eval_field(detector%element, xfield, detector%local_coords)
+    position = detector_value(xfield, detector)
     position(xfield%dim)=position(xfield%dim) + 0.5*dt*K_grad(xfield%dim)
-    lcoord=local_coords(xfield, detector%element, position)
-    K=eval_field(detector%element, diff_field, lcoord)
+    offset_element=detector%element
+    call local_guided_search(xfield,position,offset_element,1e-10,new_owner,lcoord)
+    if (new_owner/=getprocno()) then
+       ewrite(-1,*) "Detected non-local element in internal Diffusive Random Walk;"
+       ewrite(-1,*) "offset_element", offset_element, "detector%element", detector%element
+       FLAbort("Guided search in internal Random Walk function detected non-local element")
+    end if
+    K=eval_field(offset_element, diff_field, lcoord)
 
     ! Make sure we don't use negative K values to prevent NaN in the sqrt()
     K = abs(K)
