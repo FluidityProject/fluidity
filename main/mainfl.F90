@@ -53,8 +53,10 @@ subroutine mainfl() bind(C)
   assert(ierr == ZOLTAN_OK)
 #endif
 
+#ifdef _OPENMP
   ! create file to output profiler information to
   open(unit=20, file="profile.txt", status="replace", action="write")
+#endif
   
   ! Establish signal handlers
   call initialise_signals()

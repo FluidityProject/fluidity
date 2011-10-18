@@ -268,11 +268,12 @@ contains
     type(scalar_field), pointer :: vfrac
     type(scalar_field) :: nvfrac ! Non-linear approximation to the PhaseVolumeFraction
 
+#ifdef _OPENMP
     !! Arrays to hold page faults per colour
     integer, dimension(:), allocatable :: minor_pagefaults
-
     !! number of minor and major faults
     integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
+#endif
 
     ewrite(1, *) "In construct_momentum_dg"
 
@@ -653,16 +654,20 @@ contains
     assert(cache_valid)
 #endif
     call profiler_toc(u, "element_loop-omp_overhead")
-    
+
+#ifdef _OPENMP    
     ! set array length to number of colours
     allocate(minor_pagefaults(size(colours)))
+#endif
     
     call profiler_tic(u, "element_loop")
 
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, nnid, ele, len)
     colour_loop: do clr = 1, size(colours) 
 
+#ifdef _OPENMP
       call profiler_minorpagefaults(minfaults_tic)
+#endif
 
       len = key_count(colours(clr))
 
@@ -684,19 +689,23 @@ contains
       !$OMP END DO
       !$OMP BARRIER
 
+#ifdef _OPENMP
       call profiler_minorpagefaults(minfaults_toc)
       minor_pagefaults(clr) = minfaults_toc - minfaults_tic
+#endif
 
     end do colour_loop
     !$OMP END PARALLEL
 
     call profiler_toc(u, "element_loop")
 
+#ifdef _OPENMP
     write(20,*) "Momentum_DG :: Minor page faults = "
     do clr = 1, size(colours) 
       write(20,*) "Colour :: ", clr, & 
          " :: Number of minor page faults = ", minor_pagefaults(clr)
     end do
+#endif
 
     if (have_wd_abs) then
       ! the remapped field is not needed anymore.
