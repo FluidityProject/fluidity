@@ -534,9 +534,9 @@ contains
 
     call profiler_toc(t, "advection_diffusion_loop")
 
-    print*, "AD_CG :: Minor page faults = "
+    write(20,*) "AD_CG :: Minor page faults = "
     do clr = 1, size(colours) 
-      print*, "Colour :: ", clr, & 
+      write(20,*) "Colour :: ", clr, & 
          " :: Number of minor page faults = ", minor_pagefaults(clr)
     end do
 

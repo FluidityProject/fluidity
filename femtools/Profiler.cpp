@@ -87,7 +87,6 @@ void Profiler::zero(const std::string &key){
 int Profiler::minorpagefaults(){
   int faults = -99;
   //#ifdef CHECK_PAGE_FAULTS
-  //struct rusage usage;
   getrusage(RUSAGE_SELF, &flprofiler.usage);
   faults = flprofiler.usage.ru_minflt;
   //#endif
@@ -97,7 +96,6 @@ int Profiler::minorpagefaults(){
 int Profiler::majorpagefaults(){
   int faults = -99;
   //#ifdef CHECK_PAGE_FAULTS
-  //struct rusage usage;
   getrusage(RUSAGE_SELF, &flprofiler.usage);
   faults = flprofiler.usage.ru_majflt;
   //#endif

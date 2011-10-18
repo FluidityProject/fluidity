@@ -692,9 +692,9 @@ contains
 
     call profiler_toc(u, "element_loop")
 
-    print*, "Momentum_DG :: Minor page faults = "
+    write(20,*) "Momentum_DG :: Minor page faults = "
     do clr = 1, size(colours) 
-      print*, "Colour :: ", clr, & 
+      write(20,*) "Colour :: ", clr, & 
          " :: Number of minor page faults = ", minor_pagefaults(clr)
     end do
 

@@ -52,6 +52,9 @@ subroutine mainfl() bind(C)
   ierr = Zoltan_Initialize(ver)  
   assert(ierr == ZOLTAN_OK)
 #endif
+
+  ! create file to output profiler information to
+  open(unit=20, file="profile.txt", status="replace", action="write")
   
   ! Establish signal handlers
   call initialise_signals()
@@ -76,7 +79,10 @@ subroutine mainfl() bind(C)
      ewrite(1, *) "Exited fluids"
      call toc(TICTOC_ID_SIMULATION)
      call tictoc_report(2, TICTOC_ID_SIMULATION)
-     
+
+     ! Close profile.txt
+     close(20)
+
   end if
 
   if(SIG_INT) then
