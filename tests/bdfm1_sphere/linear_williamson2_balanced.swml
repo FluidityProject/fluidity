@@ -449,9 +449,10 @@
   y = X[1]
   z = X[2]
   R = 6.37122e6
-  cosphi = (x**2+y**2)**0.5/R
+  Rh = (x**2+y**2)**0.5
+  cosphi = Rh/R
   u0 = 2*pi*R/(12.*24.*60.*60.)
-  return [-u0*cosphi*y/R,u0*cosphi*x/R,0]</string_value>
+  return [-u0*cosphi*y/Rh,u0*cosphi*x/Rh,0]</string_value>
         </python>
         <output/>
         <stat>

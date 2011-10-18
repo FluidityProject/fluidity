@@ -2203,8 +2203,8 @@ contains
 
     face_rhs = shape_rhs(U_face_shape,sum(U_rhs_face_quad*n_cart,1)*detwei_f)
 
-    projection_rhs_rows(:) = matmul(&
-            & U%mesh%shape%constraints%face_basis,face_rhs)
+    projection_rhs_rows = matmul(&
+         & U%mesh%shape%constraints%face_basis,face_rhs)
     
   end subroutine set_velocity_commuting_projection_face
 

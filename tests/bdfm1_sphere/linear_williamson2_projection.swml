@@ -8,7 +8,7 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="ico3">
+      <from_file file_name="sphere_ico4">
         <format name="triangle"/>
         <dimension>
           <integer_value rank="0">2</integer_value>
@@ -195,10 +195,10 @@
   x = X[0]
   y = X[1]
   z = X[2]
-  R = ((x**2+y**2)**0.5)
-  if(R&gt;0.0):
-    el1 = -y/R 
-    el2 =  x/R
+  Rh = ((x**2+y**2)**0.5)
+  if(Rh&gt;0.0):
+    el1 = -y/Rh 
+    el2 =  x/Rh
   else:
     el1 = 0.
     el2 = 0.
