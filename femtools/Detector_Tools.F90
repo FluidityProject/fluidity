@@ -399,14 +399,10 @@ contains
           allocate(detector%k(nstages,ndims))
        end if  
        detector%k = reshape(buff(2*ndims+4:(nstages+2)*ndims+3),(/nstages,ndims/))
-
-       ! If update_vector still exists, we're not done moving
-       detector%search_complete=.false.
     else
        assert(size(buff)==ndims+4)
 
        detector%list_id = buff(ndims+4)
-       detector%search_complete=.true.
     end if
    
   end subroutine unpack_detector

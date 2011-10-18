@@ -67,8 +67,6 @@ module detector_data_types
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
      real, dimension(:), allocatable :: update_vector
-     !! Have we completed the search?
-     logical :: search_complete
      !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null() 

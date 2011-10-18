@@ -239,8 +239,7 @@ contains
                    call python_run_detector_val_function(detector,xfield,rk_dt, &
                           trim(detector_list%name),trim("random_walk"),rw_velocity_source)
                 end if
-                detector%update_vector=detector%update_vector + (rw_velocity_source)  
-                detector%search_complete=.false.
+                detector%update_vector=detector%update_vector + (rw_velocity_source)
              end if
              detector => detector%next
           end do
@@ -294,9 +293,6 @@ contains
     do while (associated(detector))
 
        if(detector%type==LAGRANGIAN_DETECTOR) then
-
-          !! Set det%update_vector for lagrangian advection
-          detector%search_complete = .false.
 
           ! Evaluate velocity at update_vector and set k
           if (parameters%do_velocity_advect) then
@@ -367,33 +363,37 @@ contains
           do while (associated(detector))
 
              !Only move Lagrangian detectors
-             if (detector%type==LAGRANGIAN_DETECTOR.and..not.detector%search_complete) then
+             if (.not. detector%type==LAGRANGIAN_DETECTOR) then
+                detector => detector%next
+                cycle
+             end if
 
-                call local_guided_search(detector,xfield,search_tolerance,new_owner)
+             call local_guided_search(xfield,detector%update_vector,detector%element, &
+                        search_tolerance,new_owner,detector%local_coords)
 
-                if (new_owner==-1) then
-                   if (detector_list%move_parameters%reflect_on_boundary) then
-                      ! We reflect the detector path at the face we just went through
-                      call reflect_on_boundary(xfield,detector%update_vector,detector%element)
+             if (new_owner==-1) then
+                if (detector_list%move_parameters%reflect_on_boundary) then
+                   ! We reflect the detector path at the face we just went through
+                   call reflect_on_boundary(xfield,detector%update_vector,detector%element)
 
-                   else
-                      ! Turn detector static inside the domain
-                      ewrite(1,*) "WARNING: detector attempted to leave computational domain;"
-                      ewrite(1,*) "Turning detector static, ID:", detector%id_number, "element:", detector%element
-                      detector%type=STATIC_DETECTOR
-                      ! move on to the next detector, without updating det0%position, 
-                      ! because det0%update_vector is by now outside of the computational domain
-                      detector => detector%next
-                   end if
-                end if
-
-                if (new_owner/=getprocno().and.new_owner>0) then
-                   send_detector => detector
+                else
+                   ! Turn detector static inside the domain
+                   ewrite(1,*) "WARNING: detector attempted to leave computational domain;"
+                   ewrite(1,*) "Turning detector static, ID:", detector%id_number, "element:", detector%element
+                   detector%type=STATIC_DETECTOR
+                   ! move on to the next detector, without updating det0%position, 
+                   ! because det0%update_vector is by now outside of the computational domain
                    detector => detector%next
-                   call move(send_detector, detector_list, send_list_array(new_owner))
                 end if
- 
-             else
+             end if
+
+             if (new_owner/=getprocno().and.new_owner>0) then
+                send_detector => detector
+                detector => detector%next
+                call move(send_detector, detector_list, send_list_array(new_owner))
+             end if
+
+             if (new_owner==getprocno()) then
                 !move on to the next detector
                 detector => detector%next
              end if
@@ -422,40 +422,39 @@ contains
 
   end subroutine move_detectors_guided_search
 
-  subroutine local_guided_search(detector,xfield,search_tolerance,new_owner)
+  subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner,l_coords)
     ! Do a local guided search until we either hit the new element 
     ! or have to leave the local domain. The new_owner argument indicates
     ! whether we have found the new element, where to continue searching
     ! or flags that we have gone outside the domain with -1.
-    type(detector_type), pointer, intent(inout) :: detector
     type(vector_field), pointer, intent(in) :: xfield
+    real, dimension(mesh_dim(xfield)), intent(inout) :: coordinate
+    integer, intent(inout) :: element
     real, intent(in) :: search_tolerance
+    real, dimension(mesh_dim(xfield)+1), intent(out) :: l_coords
     integer, intent(out) :: new_owner
 
-    real, dimension(mesh_dim(xfield)+1) :: arrival_local_coords
     integer, dimension(:), pointer :: neigh_list
     integer :: neigh, face
     logical :: outside_domain
 
     search_loop: do
        ! Compute the local coordinates of the arrival point with respect to this element
-       arrival_local_coords=local_coords(xfield,detector%element,detector%update_vector)
-       if (minval(arrival_local_coords)>-search_tolerance) then
+       l_coords=local_coords(xfield,element,coordinate)
+       if (minval(l_coords)>-search_tolerance) then
           !The arrival point is in this element, we're done
-          detector%search_complete = .true.
-          detector%local_coords=arrival_local_coords
           new_owner=getprocno()
           return
        end if
 
        ! The arrival point is not in this element, try to get closer to it by 
        ! searching in the coordinate direction in which it is furthest away
-       neigh = minval(minloc(arrival_local_coords))
-       neigh_list=>ele_neigh(xfield,detector%element)
+       neigh = minval(minloc(l_coords))
+       neigh_list=>ele_neigh(xfield,element)
        if (neigh_list(neigh)>0) then
           ! The neighbouring element is also on this domain
           ! so update the element and try again
-          detector%element = neigh_list(neigh)
+          element = neigh_list(neigh)
        else
           ! Next element in coordinate direction is not on this domain.
           ! Two cases arise: 
@@ -465,15 +464,15 @@ contains
           !      But we need to check if we've gone through a corner.
 
           ! So check if this element is owned
-          if (element_owned(xfield,detector%element)) then
+          if (element_owned(xfield,element)) then
              ! This face goes outside of the computational domain.
              ! Try all of the faces with negative local coordinate
              ! just in case we went through a corner.
              outside_domain=.true.
-             face_search: do face = 1, size(arrival_local_coords)
-                if (arrival_local_coords(face)<-search_tolerance.and.neigh_list(face)>0) then
+             face_search: do face = 1, size(l_coords)
+                if (l_coords(face)<-search_tolerance.and.neigh_list(face)>0) then
                    outside_domain = .false.
-                   detector%element = neigh_list(face)
+                   element = neigh_list(face)
                    exit face_search
                 end if
              end do face_search
@@ -484,7 +483,7 @@ contains
              end if
           else
              ! The current element is on a Halo, we need to send it to the owner.
-             new_owner=element_owner(xfield%mesh,detector%element)
+             new_owner=element_owner(xfield%mesh,element)
              return
           end if
        end if
