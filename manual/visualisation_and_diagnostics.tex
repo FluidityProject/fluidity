@@ -82,7 +82,6 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 	\end{itemize}
 \item[GridPecletNumber:]The GridPecletNumber: $Pe = U\Delta x/\kappa$, where $\kappa$ is the diffusivity. It is calculated as $\tensor{\kappa}^{-1}\vec{u}\mat{J}$ where $\tensor{\kappa}$ is the diffusivity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
 \item[GridReynoldsNumber:]Grid Reynolds number: $Re = U\Delta x/\nu$, where $\nu$ is the viscosity. It is calculated as $\tensor{\nu}^{-1}\vec{u}\mat{J}$ where $\tensor{\nu}$ is the viscosity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
-\item[***HarmonicPhaseSSa:]
 \item[HorizontalStreamFunction:]Calculate the horizontal stream function psi where:  $\ppx[]{\psi} = -v$ and  $\ppx[y]{\psi}  = u$ where $u$ and $v$ are the velocity components perpendicular to the gravity direction. A strong Dirichlet boundary condition of $0$ is applied on all boundaries.  
 \item[HorizontalVelocityDivergence:]Horizontal velocity divergence: ${div}_H \vec{u}$. The horizontal plane is determined from the gravity field direction. 
 \item[IsopycnalCoordinate:]Isopycnal coordinate

@@ -6001,27 +6001,6 @@ ocean biology is being simulated.</a:documentation>
           </element>
         </choice>
       </element>
-      <element name="scalar_field">
-        <a:documentation>Primary production of Phytoplankton. This is calculated by
-the ocean biology module and will not be calculated unless
-ocean biology is being simulated.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>HarmonicPhaseSSa</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
     </choice>
     <!--
       Insert new diagnostic scalar fields here using the template:

@@ -6209,24 +6209,6 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>HarmonicPhaseSSa</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>An estimate of the edge wieghts whilst adapting using Zoltan
 Note: you *must* turn on inteprolation otherwise this field
 will be emptied by an adapt.</a:documentation>
