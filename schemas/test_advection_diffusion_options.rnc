@@ -4421,23 +4421,6 @@ scalar_field_choice =
                   generic_aliased_field
                }
             )
-         }|         
-         ## Local average mesh edge lengths
-         element scalar_field {
-          attribute rank { "0" },
-            attribute name { "MeshEdgeLengths" },
-            (
-              element diagnostic {
-                  internal_algorithm,
-                  element mesh {
-                     attribute name { "CoordinateMesh" }
-                  },
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
          }|
          ## Calculate the horizontal stream function psi where:
          ##   \partial_x \psi = -v

@@ -5845,29 +5845,6 @@ Limitations:
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Local average mesh edge lengths</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>MeshEdgeLengths</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="scalar_edge_lengths_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>CoordinateMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Calculate the horizontal stream function psi where:
   \partial_x \psi = -v
   \partial_y \psi = u
