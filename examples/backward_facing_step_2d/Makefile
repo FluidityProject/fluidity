@@ -5,16 +5,16 @@ preprocess:
 	echo **********Installing directory for $(TYPE) run:
 	install -d $(TYPE); \
 	cd $(TYPE); \
-	ln -s ../backward_facing_step_2d_$(TYPE).flml .; \
+	ln -s ../backward_facing_step_2d__kim_$(TYPE).flml .; \
 	echo **********Generating mesh for $(TYPE) simulation.; \
-	gmsh -2 -o step2d-med.msh ../src/step2d-med.geo; \
-	$(SCRIPTS)/gmsh2triangle -2 step2d-med.msh; \
+	gmsh -2 -o step2d-kim-med.msh ../src/step2d-kim-med.geo; \
+	$(SCRIPTS)/gmsh2triangle -2 step2d-kim-med.msh; \
 	cd ..
 
 run:
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make run TYPE=type, where type is reference or kepsilon"; false; fi;
 	@echo **********Running the $(TYPE) simulation:
-	cd $(TYPE) &&  $(BIN)/fluidity -v2 -l backward_facing_step_2d_$(TYPE).flml &&  cd ..
+	cd $(TYPE) &&  $(BIN)/fluidity -v2 -l backward_facing_step_2d_kim_$(TYPE).flml &&  cd ..
 
 postprocess:
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make postprocess TYPE=type, where type is reference or kepsilon"; false; fi;
