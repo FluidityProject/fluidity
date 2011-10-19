@@ -353,9 +353,10 @@ Large-eddy simulation filters the velocity field into resolved and sub-filter-sc
  + \frac{\partial}{\partial x_j} \left [ (\nu + \nu_\tau) \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right ) \right ],
 \end{equation}
 
-Two LES models are available in \fluidity.
+Three LES models are available in \fluidity.
 
 \subsection{Second-Order Dissipation}
+\label{ssect:second_order_diss_LES}
 
 The following model developed by \citet{bentham2003} is similar to the original Smagorinsky model \citep{smagorinsky1963general}, but allows for an anisotropic eddy viscosity that gives better results for flow simulations on unstructured grids:
 
@@ -379,5 +380,12 @@ where:
 \end{equation}
 
 \subsection{Fourth-Order Dissipation}
+\label{ssect:fourth_order_diss_LES}
 
 The fourth-order method is designed as an improvement to the second-order eddy viscosity method, which can be too dissipative \citep{adam}. The fourth-order term is taken as the difference of two second-order eddy viscosity discretisations, where one is larger than the other. Usually a smaller time-step and finer grid are necessary to make fourth-order worthwhile.
+
+\subsection{Dynamic Smagorinsky model}
+
+The most important disadvantage of Smagorinsky-type models such as discussed in sections \ref{ssect:second_order_diss_LES} and \ref{ssect:fourth_order_diss_LES} is the behaviour of the eddy viscosity near walls and non-turbulent regions. As shown in \citet{pope2000}, in a fully developed channel flow the sub-grid eddy viscosity $\nu_\tau$ should diminish as $\nu_\tau \propto z^3$, $z$ the wall-normal coordinate. Conversely, it is shown in \citet{nicoud1999} that the Smagorinsky model gives $\sqrt{2 \tilde{S}_{ij} \tilde{S}_{ij}} \sim O(1)$ near walls leading to an incorrect subgrid-scale viscosity. In addition, the Smagorinsky model is absolutelly dissipative: energy transfer is olny allowed from resolved scales to subgrid scales. The opposite (commonly termed as backscatter), commonly occurs in transitional flows, and absolutelly dissipative models have been shown in \citet{piomelli1990} to under-predict the growth rate of perturbations in the flow, leading to delayed transition to turbulence.%check
+\par
+Dynamical models were designed to overcome the disadvantages of Smagorinsky type models by using arguments with better physical grounding as a starting point towards the evaluation of the subgrid viscosity. In particular, at the core of dymamical Smagorinsky type models lies the idea of scale similarity \citep{bardina1980}, which states that in the inertial subrange, the statistical properties of the fluctuations at a given wave-number are similar to the statistical properties of fluctuations of near-by wavenumbers.
