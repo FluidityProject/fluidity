@@ -6151,7 +6151,7 @@ will be emptied by an adapt.</a:documentation>
         <a:documentation>SumVelocityDivergence
 
 Diagnostic field used in multiphase simulations.
-Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }</a:documentation>
+Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u) }</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>

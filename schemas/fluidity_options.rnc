@@ -4831,7 +4831,7 @@ scalar_field_choice =
          ## SumVelocityDivergence
          ##
          ## Diagnostic field used in multiphase simulations.
-         ## Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }
+         ## Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u) }
          element scalar_field {
             attribute rank { "0" },
             attribute name { "SumVelocityDivergence" },

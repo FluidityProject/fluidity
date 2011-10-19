@@ -108,6 +108,7 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[NodeOwner:]Output the processors which own the nodes of the mesh on which this field is based.   
 \item[***PhytoplanktonGrazing:]Grazing rate of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. See section \ref{sect:biology_model} for more details.
 \item[PerturbationDensity:]Calculates the perturbation of the density from the reference density.
+\item[PhaseVolumeFraction:]Volume fraction $\alpha^N$ of phase $N$ in multimaterial simulations. Required in multiphase simulations. If \option{diagnostic}, this computes $\alpha^N = 1 - \sum_{i=1}^{N-1}\alpha^i$.
 \item[PotentialVorticity:]Ertel potential vorticity: $(\vec{f} + \nabla \times \vec{u}) \cdot \nabla \rho'$ where $\vec{f}$ is the magnitude of the Coriolis force, $\vec{u}$ the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}.
 	Limitations: Requires a geometry dimension of 3. 
 \item[***PrimaryProduction:]Primary production rate of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.  See section \ref{sect:biology_model} for more details.
@@ -118,6 +119,7 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 	Limitations: The Speed and Velocity fields must be on the same mesh. 
 \item[StreamFunction:]Calculate the stream function of 2D incompressible flow. Note that this only makes sense for proper 2D (not pseudo-2D) simulations. Requires a continuous mesh.
 \item[SumMaterialVolumeFractions:]Sums up the prognostic MaterialVolumeFraction fields (i.e. computes $\sum_{i=1}^{N-1}c^i$, where $N$ is the current material and $c^i$ is the MaterialVolumeFraction of material $i$)
+\item[SumVelocityDivergence:]Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u) }. Used in multiphase simulations. 
 \item[UniversalNumber:]Output the universal numbering of the mesh on which this field is based.
 \item[VelocityDivergence:]Velocity divergence: $div \mbox{ \vec{u}}$ 
 \item[ViscousDissipation:] $\nabla \vec{u} : \nabla \vec{u} = \sum _{ij}\frac{\partial u_i}{\partial x_j}\frac{\partial u_i}{\partial x_j}$. The actual viscous dissipation for a Boussinesq fluid with isotropic viscosity, $\nu$, is $\nu \rho_0 (\nabla \vec{u}):(\nabla \vec{u})$ where $\rho_0$ is the reference density in the equation of state. This should be taken into account when post-processing, cf. \cite{winters1995}. \\
@@ -128,6 +130,7 @@ Limitations: Only coded for 2D.
 \item[***SolidPhase - TRAFFIC:]Volume of the vehicles used in Traffic Modelling 
 \item[***VisualizeSolid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualise the solid\_Concentration 
 \item[***VisualizeSolidFluid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualise the solids and MaterialVolumeFraction together.
+\item[WettingDryingAlpha:]Wetting and drying alpha coefficient. Alpha is 1 in dry and 0 in wet regions. Note: the diagnostic WettingDryingAlpha only works in combination with the free_surface boundary condition applied to the Velocity field. It gives you a 3D field (constant over the vertical) of the wetting and drying alpha coefficient.
 \end{description}
 
 The available internal \option{vector\_field}  diagnostics are:
