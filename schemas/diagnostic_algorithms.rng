@@ -162,7 +162,7 @@ equivalent diagnostic algorithm.</a:documentation>
   </define>
   <define name="internal_velocity_source_algorithm">
     <element name="algorithm">
-      <a:documentation>Some code paths (e.g. porous media and the traffic model)
+      <a:documentation>Some code paths (e.g. porous media)
 use their own internal diagnostic source field. Select
 this option to these these internal algorithms.</a:documentation>
       <attribute name="name">
@@ -175,7 +175,7 @@ this option to these these internal algorithms.</a:documentation>
   </define>
   <define name="internal_velocity_absorption_algorithm">
     <element name="algorithm">
-      <a:documentation>Some code paths (e.g. porous media and the traffic model)
+      <a:documentation>Some code paths (e.g. porous media)
 use their own internal diagnostic absorption field. Select
 this option to these these internal algorithms.</a:documentation>
       <attribute name="name">

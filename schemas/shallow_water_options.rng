@@ -3268,29 +3268,6 @@ div velocity
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Vorticity for a 2D field:
-
- du   dv
- -- - --
- dy   dx</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>Vorticity2D</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Kinetic energy density:
 
  1/2 rho_0*|u|^2
@@ -3454,29 +3431,6 @@ Limitations:
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Local average mesh edge lengths</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>MeshEdgeLengths</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>CoordinateMesh</value>
-              </attribute>
-            </element>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -3735,42 +3689,6 @@ ocean biology is being simulated.</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field_tidal_range"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>MaxFreeSurface</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>MinFreeSurface</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>
@@ -4205,27 +4123,6 @@ ocean biology is being simulated.</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Primary production of Phytoplankton. This is calculated by
-the ocean biology module and will not be calculated unless
-ocean biology is being simulated.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>HarmonicPhaseSSa</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">

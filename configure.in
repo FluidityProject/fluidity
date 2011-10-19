@@ -1514,7 +1514,6 @@ AC_OUTPUT(Makefile
           parameterisation/Makefile parameterisation/tests/Makefile
 	  fldecomp/Makefile
           assemble/Makefile assemble/tests/Makefile
-          radiation/Makefile radiation/tests/Makefile
           diagnostics/Makefile
           main/Makefile
           scripts/Makefile tools/Makefile
@@ -1534,6 +1533,5 @@ AC_OUTPUT(Makefile
       	  libalgencan/Makefile
           libwm/Makefile
           libvtkfortran/Makefile 
-          qg_strat/Makefile qg_strat/unittests/Makefile
           tests/lauwerier/Makefile
 	       reduced_modelling/Makefile)

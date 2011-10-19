@@ -214,7 +214,6 @@ prognostic_scalar_field =
                 mesh_choice?,
                 prescribed_tensor_field_no_adapt
             }|
-            ## For electrical modelling only - holds electrical conductivity
             element diagnostic {
                (
                   tensor_python_diagnostic_algorithm |
@@ -232,7 +231,6 @@ prognostic_scalar_field =
             element prescribed {
                prescribed_scalar_field_no_adapt
             }|
-            ## This only works for traffic modelling
             element diagnostic {
                (
                   scalar_python_diagnostic_algorithm |

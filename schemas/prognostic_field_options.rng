@@ -272,7 +272,6 @@ elements when buoyancy is a discontinuous field.</a:documentation>
             <ref name="prescribed_tensor_field_no_adapt"/>
           </element>
           <element name="diagnostic">
-            <a:documentation>For electrical modelling only - holds electrical conductivity</a:documentation>
             <choice>
               <ref name="tensor_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
@@ -296,7 +295,6 @@ elements when buoyancy is a discontinuous field.</a:documentation>
             <ref name="prescribed_scalar_field_no_adapt"/>
           </element>
           <element name="diagnostic">
-            <a:documentation>This only works for traffic modelling</a:documentation>
             <choice>
               <ref name="scalar_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>

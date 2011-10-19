@@ -66,14 +66,14 @@ Internal \option{scalar\_field} diagnostics:
 Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate} and (therefore) is not parallelised.
 \item[CFLNumber:]CFLNumber as defined on the co-ordinate mesh. It is calculated as $\triangle t \vec{u} \mat{J}^{-1}$ where $\triangle t$ is the timestep, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian. 
 \item[ControlVolumeCFLNumber:]CFL Number as defined on a control volume mesh. It is calculated as $\triangle t \frac{1}{V} \int _{cv_{face}} \vec{u}$ where $\triangle t$ is the timestep and $\vec{u}$ the velocity. The integral is taken over the faces of the control volume and $V$ is the volume of the control volume.
-\item[***ControlVolumeDivergence:]
+\item[ControlVolumeDivergence:]Divergence of the velocity field where the divergence operator is defined using the control volume $\mathrm{C}^\mathrm{T}$ matrix. This assumes that the test space is discontinuous control volumes.
 \item[DG\_CourantNumber:]CFLNumber as defined on a DG mesh. It is calculated as $\triangle t \frac{1}{V} \int _{element} \vec{u}$ where $\triangle t$ is the timestep and $\vec{u}$ the velocity. The integral is taken over the faces of the element $V$ is the volume of the element.
-\item[DiffusiveDissipation:] The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[t]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
+\item[DiffusiveDissipation:]The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[t]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
 \item[DiscontinuityDetector:]This field detects the discontinuities in a discontinuous Galerkin field, the larger the discontinuity, the larger the value it takes. The discontinuity field is used by the HWENO slope limiter, \ref{sect:ND_hermite_weno_limiter}.
-\item[***FiniteElementDivergence:]  
-\item[FreeSurfaceHistory:] The free surface history diagnostics saves snapshots of the free surface field. The regularity and amount of snapshots can be specified in diamond. The main usage of this diagnostic is for harmonic analysis, see \ref{sec:diagnostic_algorithms}
-\item[FunctionalBegin:]Add a field to be used by Explicit\_ALE to visualize functional values before iterations start.  
-\item[FunctionalIter:]Add a field to be used by Explicit\_ALE to visualize functional values at each iteration.
+\item[FiniteElementDivergence:]Divergence of the velocity field where the divergence operator is defined using the finite element $\mathrm{C}^\mathrm{T}$ matrix.
+\item[FreeSurfaceHistory:]The free surface history diagnostics saves snapshots of the free surface field. The regularity and amount of snapshots can be specified in diamond. The main usage of this diagnostic is for harmonic analysis, see \ref{sec:diagnostic_algorithms}
+\item[FunctionalBegin:]Add a field to be used by Explicit\_ALE to visualise functional values before iterations start.  
+\item[FunctionalIter:]Add a field to be used by Explicit\_ALE to visualise functional values at each iteration.
 \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as this diagnostic \option{scalar\_field}.
 \item[GravitationalPotentialEnergyDensity:]Gravitational potential energy density: $\rho(g \cdot (r - r_0))$ where $\rho$ is the density (taken from \option{scalar\_field::Density}), and $r_0$ is the potential energy zero point. \\
 	Limitations: \begin{itemize}
@@ -82,7 +82,6 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 	\end{itemize}
 \item[GridPecletNumber:]The GridPecletNumber: $Pe = U\Delta x/\kappa$, where $\kappa$ is the diffusivity. It is calculated as $\tensor{\kappa}^{-1}\vec{u}\mat{J}$ where $\tensor{\kappa}$ is the diffusivity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
 \item[GridReynoldsNumber:]Grid Reynolds number: $Re = U\Delta x/\nu$, where $\nu$ is the viscosity. It is calculated as $\tensor{\nu}^{-1}\vec{u}\mat{J}$ where $\tensor{\nu}$ is the viscosity tensor, $\vec{u}$ the velocity and $\mat{J}$ the Jacobian.
-\item[***HarmonicPhaseSSa:]
 \item[HorizontalStreamFunction:]Calculate the horizontal stream function psi where:  $\ppx[]{\psi} = -v$ and  $\ppx[y]{\psi}  = u$ where $u$ and $v$ are the velocity components perpendicular to the gravity direction. A strong Dirichlet boundary condition of $0$ is applied on all boundaries.  
 \item[HorizontalVelocityDivergence:]Horizontal velocity divergence: ${div}_H \vec{u}$. The horizontal plane is determined from the gravity field direction. 
 \item[IsopycnalCoordinate:]Isopycnal coordinate
@@ -96,14 +95,11 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 	\end{itemize} 
 \item[KineticEnergyDensity:]Kinetic energy density: $\frac{1}{2} \rho |\vec{u}|^2$ where $\rho$ is the density taken from the \option{scalar\_field::Density}. \\
 	Limitations: The Density, KineticEnergyDensity and Velocity fields must be on the same mesh.  
-\item[MaterialDensity:]CWILSON TO WRITE
+\item[MaterialDensity:]The density of the material in multimaterial simulations. Required in compressible multimaterial simulations. Can be \option{diagnostic} if using a linear equation of state, or \option{prognostic} if a compressible simulation. (Note that if you set a multimaterial equation of state and this field is prognostic then its initial condition will be overwritten by the density that satisfies the initial pressure and the equation of state).
 \item[MaterialMass:]Add a MaterialMass scalar\_field to calculate the spatially varying mass of a material.  
 \item[MaterialVolume:]Add a MaterialVolume scalar\_field to calculate the spatially varying volume of a material.
-\item[***MaterialVolumeFraction:]CWILSON TO WRITE
+\item[MaterialVolumeFraction:]Volume fraction $c^N$ of material $N$ in multimaterial simulations. Required in compressible multimaterial simulations. If \option{diagnostic}, this computes $c^N = 1 - \sum_{i=1}^{N-1}c^i$.
 \item[MaxEdgeWeightOnNodes:]An estimate of the edge weights whilst adapting using Zoltan.
-\item[MaxFreeSurface:]  Writes the (nodewise) maximum free surface value over all previous timesteps.
-\item[MeshEdgeLengths:]Local average of mesh edge lengths.
- \item[MinFreeSurface:] Writes the (nodewise) minimum free surface value over all previous timesteps.
 \item[NodeOwner:]Output the processors which own the nodes of the mesh on which this field is based.   
 \item[PhytoplanktonGrazing:]Grazing rate of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. See section \ref{sect:biology_model} for more details.
 \item[PerturbationDensity:]Calculates the perturbation of the density from the reference density.
@@ -111,22 +107,21 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 	Limitations: Requires a geometry dimension of 3. 
 \item[PrimaryProduction:]Primary production rate of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.  See section \ref{sect:biology_model} for more details.
 \item[RelativePotentialVorticity:]Relative potential vorticity:  $\nabla \times \vec{u} \cdot \nabla \rho'$, where $\vec{u}$ is the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}   
-\item[***RichardsonNumber:]Returns the Richardson number: $\frac{N^2}{(\ppt[z]{u})^2+(\ppx[z]{v})^2}$ where $N^2 = \frac{g}{\rho_0}\ppt[z]{\rho}$ is the buoyancy frequency, $z$ is the vertical direction, $g$ is the magnitude of gravity $(u,v)$ is the horizontal velocity, $\rho_0$ is the reference density and $\rho '$ the perturbation density. (In 2D $z\rightarrow y$ and $\ppx[z]{v}$ is not included). 
+\item[RichardsonNumber:]Returns the Richardson number: $\frac{N^2}{(\ppt[z]{u})^2+(\ppx[z]{v})^2}$ where $N^2 = \frac{g}{\rho_0}\ppt[z]{\rho}$ is the buoyancy frequency, $z$ is the vertical direction, $g$ is the magnitude of gravity $(u,v)$ is the horizontal velocity, $\rho_0$ is the reference density and $\rho '$ the perturbation density. (In 2D $z\rightarrow y$ and $\ppx[z]{v}$ is not included). 
 \item[ScalarAbsoluteDifference:]Absolute Difference between two scalar fields. Both fields and this diagnostic \option{scalar\_field} must be in the same \option{material\_phase}. Assumes both fields are on the same mesh as the AbsoluteDifference field.  
 \item[Speed:]Speed: $|\vec{u}|$ 
 	Limitations: The Speed and Velocity fields must be on the same mesh. 
-\item[***SumMaterialVolumeFractions:]CWILSON TO WRITE
+\item[SumMaterialVolumeFractions:]Sums up the prognostic MaterialVolumeFraction fields (i.e. computes $\sum_{i=1}^{N-1}c^i$, where $N$ is the current material and $c^i$ is the MaterialVolumeFraction of material $i$)
 \item[UniversalNumber:]Output the universal numbering of the mesh on which this field is based.
 \item[VelocityDivergence:]Velocity divergence: $div \mbox{ \vec{u}}$ 
 \item[ViscousDissipation:] $\nabla \vec{u} : \nabla \vec{u} = \sum _{ij}\frac{\partial u_i}{\partial x_j}\frac{\partial u_i}{\partial x_j}$. The actual viscous dissipation for a Boussinesq fluid with isotropic viscosity, $\nu$, is $\nu \rho_0 (\nabla \vec{u}):(\nabla \vec{u})$ where $\rho_0$ is the reference density in the equation of state. This should be taken into account when post-processing, cf. \cite{winters1995}. \\
-Limitations: Only coded for 2D
-\item[Vorticity2D:]Vorticity for a 2D field: $\ppx{u} - \ppt[y]{v}$ where $u$ and $v$ are the $x$ and $y$ componenets of velocity.
+Limitations: Only coded for 2D.
 \item[***CopyofDensity - TRAFFIC:]This scalar field is meant to replace DENTRAF. Basically, if you use new options, DENTRAF is no longer needed. No repointing is done from this field to DENTRAF. 
 \item[ParticleScalar-TRAFFIC:]Add a field to be used by Solid\_configuration to map the solid\_Concentration from particle mesh to the fluid mesh. 
 \item[***SolidConcentration - TRAFFIC:]  
 \item[***SolidPhase - TRAFFIC:]Volume of the vehicles used in Traffic Modelling 
-\item[***VisualizeSolid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualize the solid\_Concentration 
-\item[***VisualizeSolidFluid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualize the solids and MaterialVolumeFraction together.
+\item[***VisualizeSolid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualise the solid\_Concentration 
+\item[***VisualizeSolidFluid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualise the solids and MaterialVolumeFraction together.
 \end{description}
 
 The available internal \option{vector\_field}  diagnostics are:
