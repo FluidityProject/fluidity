@@ -445,7 +445,7 @@ lid-driven cavity problem. Try finding some papers that discuss this, and update
 regularised problem. Compare to benchmark data if you can find it].
 \item The references given above include data from other Reynolds numbers. Try updating the problem set-up and the post-processing script which computes
 the errors for a higher Reynolds number.
-\item Try switching on mesh adaptivity (you will need to ensure that you have configured your \fluidity\ executable with \texttt{--enable-2d-adaptivity}). 
+\item Try switching on mesh adaptivity, see section \ref{sec:using_mesh_adaptivity} (you will need to ensure that you have configured your \fluidity\ executable with \texttt{--enable-2d-adaptivity}). 
 Test adapting based on different metrics, e.g. try weighting $u$, $v$ and $p$
 differently and see what meshes you get. Try varying these weights as well as the maximum and minimum allowed element
 sizes to see how they affect each other and the mesh that results. Can you get a metric that results in a lower
