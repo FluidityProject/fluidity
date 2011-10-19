@@ -4411,26 +4411,6 @@ scalar_field_choice =
                }
             )
          }|
-
-         ## Vorticity for a 2D field:
-         ##
-         ##  du   dv
-         ##  -- - --
-         ##  dy   dx
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "Vorticity2D" },
-            (
-               element diagnostic {
-                  vorticity_2d_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          
          ## Kinetic energy density:
          ##

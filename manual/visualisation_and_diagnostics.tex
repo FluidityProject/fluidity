@@ -115,8 +115,7 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[UniversalNumber:]Output the universal numbering of the mesh on which this field is based.
 \item[VelocityDivergence:]Velocity divergence: $div \mbox{ \vec{u}}$ 
 \item[ViscousDissipation:] $\nabla \vec{u} : \nabla \vec{u} = \sum _{ij}\frac{\partial u_i}{\partial x_j}\frac{\partial u_i}{\partial x_j}$. The actual viscous dissipation for a Boussinesq fluid with isotropic viscosity, $\nu$, is $\nu \rho_0 (\nabla \vec{u}):(\nabla \vec{u})$ where $\rho_0$ is the reference density in the equation of state. This should be taken into account when post-processing, cf. \cite{winters1995}. \\
-Limitations: Only coded for 2D
-\item[Vorticity2D:]Vorticity for a 2D field: $\ppx{u} - \ppt[y]{v}$ where $u$ and $v$ are the $x$ and $y$ componenets of velocity.
+Limitations: Only coded for 2D.
 \item[***CopyofDensity - TRAFFIC:]This scalar field is meant to replace DENTRAF. Basically, if you use new options, DENTRAF is no longer needed. No repointing is done from this field to DENTRAF. 
 \item[ParticleScalar-TRAFFIC:]Add a field to be used by Solid\_configuration to map the solid\_Concentration from particle mesh to the fluid mesh. 
 \item[***SolidConcentration - TRAFFIC:]  
