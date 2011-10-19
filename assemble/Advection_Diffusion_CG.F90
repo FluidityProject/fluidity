@@ -246,7 +246,7 @@ contains
       
     type(element_type), dimension(:), allocatable :: supg_element
 
-#ifdef _OPENMP
+#ifdef HAVE_LIBNUMA
     !! number of minor and major faults
     integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
     !! Arrays to hold page faults per colour
@@ -499,7 +499,7 @@ contains
     call get_mesh_colouring(state, t%mesh, COLOURING_CG1, colours)
     call profiler_toc(t, "advection_diffusion_loop_overhead")
 
-#ifdef _OPENMP
+#ifdef HAVE_LIBNUMA
     ! set array length to number of colours
     allocate(minor_pagefaults(size(colours)))
 #endif
@@ -514,7 +514,7 @@ contains
 #endif
     colour_loop: do clr = 1, size(colours)
 
-#ifdef _OPENMP
+#ifdef HAVE_LIBNUMA
     call profiler_minorpagefaults(minfaults_tic)
 #endif
 
@@ -531,7 +531,7 @@ contains
       end do element_loop
       !$OMP END DO
 
-#ifdef _OPENMP
+#ifdef HAVE_LIBNUMA
     call profiler_minorpagefaults(minfaults_toc)
     minor_pagefaults(clr) = minfaults_toc - minfaults_tic
 #endif
@@ -541,7 +541,7 @@ contains
 
     call profiler_toc(t, "advection_diffusion_loop")
 
-#ifdef _OPENMP
+#ifdef HAVE_LIBNUMA
     write(20,*) "AD_CG :: Minor page faults = "
     do clr = 1, size(colours) 
       write(20,*) "Colour :: ", clr, & 

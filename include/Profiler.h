@@ -32,9 +32,11 @@
 
 #include "confdefs.h"
 
+#ifdef HAVE_LIBNUMA
 #include <numa.h>
 #include <numaif.h>
 #include <sys/resource.h>
+#endif
 
 #ifdef HAVE_MPI
 #include <mpi.h>
@@ -54,8 +56,10 @@ class Profiler{
   int minorpagefaults();
   int majorpagefaults();
 
+#ifdef HAVE_LIBNUMA
  public:
   struct rusage usage;
+#endif
 
 private:
   double wall_time() const;

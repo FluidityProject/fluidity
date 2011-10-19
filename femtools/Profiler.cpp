@@ -28,11 +28,11 @@
 
 #include "Profiler.h"
 
-//#ifdef CHECK_PAGE_LOCALITY
+#ifdef HAVE_LIBNUMA
 #include <numa.h>
 #include <numaif.h>
 #include <sys/resource.h>
-//#endif
+#endif 
 
 using namespace std;
 
@@ -86,19 +86,19 @@ void Profiler::zero(const std::string &key){
 
 int Profiler::minorpagefaults(){
   int faults = -99;
-  //#ifdef CHECK_PAGE_FAULTS
+#ifdef HAVE_LIBNUMA
   getrusage(RUSAGE_SELF, &flprofiler.usage);
   faults = flprofiler.usage.ru_minflt;
-  //#endif
+#endif
   return faults;
 }
 
 int Profiler::majorpagefaults(){
   int faults = -99;
-  //#ifdef CHECK_PAGE_FAULTS
+#ifdef HAVE_LIBNUMA
   getrusage(RUSAGE_SELF, &flprofiler.usage);
   faults = flprofiler.usage.ru_majflt;
-  //#endif
+#endif
   return faults;
 }
 

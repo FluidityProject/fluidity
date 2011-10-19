@@ -268,7 +268,7 @@ contains
     type(scalar_field), pointer :: vfrac
     type(scalar_field) :: nvfrac ! Non-linear approximation to the PhaseVolumeFraction
 
-#ifdef _OPENMP
+#ifdef HAVE_LIBNUMA
     !! Arrays to hold page faults per colour
     integer, dimension(:), allocatable :: minor_pagefaults
     !! number of minor and major faults
@@ -655,7 +655,7 @@ contains
 #endif
     call profiler_toc(u, "element_loop-omp_overhead")
 
-#ifdef _OPENMP    
+#ifdef HAVE_LIBNUMA    
     ! set array length to number of colours
     allocate(minor_pagefaults(size(colours)))
 #endif
@@ -665,7 +665,7 @@ contains
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, nnid, ele, len)
     colour_loop: do clr = 1, size(colours) 
 
-#ifdef _OPENMP
+#ifdef HAVE_LIBNUMA
       call profiler_minorpagefaults(minfaults_tic)
 #endif
 
@@ -689,7 +689,7 @@ contains
       !$OMP END DO
       !$OMP BARRIER
 
-#ifdef _OPENMP
+#ifdef HAVE_LIBNUMA
       call profiler_minorpagefaults(minfaults_toc)
       minor_pagefaults(clr) = minfaults_toc - minfaults_tic
 #endif
@@ -699,7 +699,7 @@ contains
 
     call profiler_toc(u, "element_loop")
 
-#ifdef _OPENMP
+#ifdef HAVE_LIBNUMA
     write(20,*) "Momentum_DG :: Minor page faults = "
     do clr = 1, size(colours) 
       write(20,*) "Colour :: ", clr, & 
