@@ -28,5 +28,5 @@ input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs
-	rm -rf kepsilon reference adaptive *.pdf
+	rm -r kepsilon reference adaptive *.pdf
 
