@@ -96,10 +96,10 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 	\end{itemize} 
 \item[KineticEnergyDensity:]Kinetic energy density: $\frac{1}{2} \rho |\vec{u}|^2$ where $\rho$ is the density taken from the \option{scalar\_field::Density}. \\
 	Limitations: The Density, KineticEnergyDensity and Velocity fields must be on the same mesh.  
-\item[MaterialDensity:]CWILSON TO WRITE
+\item[MaterialDensity:]The density of the material in multimaterial simulations. Required in compressible multimaterial simulations. Can be \option{diagnostic} if using a linear equation of state, or \option{prognostic} if a compressible simulation. (Note that if you set a multimaterial equation of state and this field is prognostic then its initial condition will be overwritten by the density that satisfies the initial pressure and the equation of state).
 \item[MaterialMass:]Add a MaterialMass scalar\_field to calculate the spatially varying mass of a material.  
 \item[MaterialVolume:]Add a MaterialVolume scalar\_field to calculate the spatially varying volume of a material.
-\item[***MaterialVolumeFraction:]CWILSON TO WRITE
+\item[MaterialVolumeFraction:]Volume fraction $c^N$ of material $N$ in multimaterial simulations. Required in compressible multimaterial simulations. If \option{diagnostic}, this computes $c^N = 1 - \sum_{i=1}^{N-1}c^i$.
 \item[MaxEdgeWeightOnNodes:]An estimate of the edge weights whilst adapting using Zoltan.
 \item[MaxFreeSurface:]  Writes the (nodewise) maximum free surface value over all previous timesteps.
 \item[MeshEdgeLengths:]Local average of mesh edge lengths.
