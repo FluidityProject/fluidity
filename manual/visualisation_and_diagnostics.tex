@@ -138,8 +138,7 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[FiniteElementDivergenceTransposed:]Gradient of a scalar field evaluated using the transpose of the $\mathrm{C}^\mathrm{T}$ divergence matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementDivergenceTransposed}.   
  \item[FiniteElementGradient:]Gradient of a scalar field evaluated using the C gradient matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementGradient}. 
   \item[FunctionalGradient:]Same as \option{vector\_field::SolidVelocity} but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.    
- \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as \option{vector\_field::GalerkinProjection}    
- \item[***GeostrophicSource :] Experimental geostrophic source field to be used in combination with a free surface. Does not solve a vertical balance yet.  
+ \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as \option{vector\_field::GalerkinProjection}     
  \item[Gradient:]Gradient of a scalar field. The field must be in the same \option{material\_phase} as \option{vector\_field::Gradient}    
  \item[LinearMomentum:]LinearMomentum field: $p = \rho \vec{u}$ (where $p$ is the linear momentum, $\rho$ the density and $\vec{u}$ the velocity)
  \item[MaxBedShearStress:]Max Bed Shear Stress. Note that you need \option{vector\_field::BedShearStress} turned on for this to work.    
@@ -153,13 +152,6 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[VectorAbsoluteDifference:]Absolute Difference between two vector fields. Assumes both fields are on the same mesh as \option{vector\_field::AbsoluteDifference}. Both fields and \option{vector\_field::AbsoluteDifference} must be in the same \option{material\_phase}.    
  \item[***VelocityPlotForSolids:]   
  \item[Vorticity:](Relative vorticity field) - (curl of the velocity field)    
-\end{description}
-
-
-And the internal \option{tensor\_field}  diagnostics are:
-
-\begin{description}
-\item[***FieldTolerance :] From a field on a mesh, diagnose the anisotropic interpolation weight that would give the mesh back. It is computed as: $\epsilon = \mat{M}^{-1} |\mat{H}|$ 
 \end{description}
 
 

@@ -5225,19 +5225,6 @@ vector_field_choice =
                 }
              )
          }|
-         ## Experimental geostrophic source field to be used in combination with
-         ## a free surface. Does not solve a vertical balance yet.
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "GeostrophicSource" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
 
          ## Absolute Difference between two vector fields.
          ##

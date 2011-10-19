@@ -6615,21 +6615,6 @@ FEMDEM or DEM to the fluid mesh. </a:documentation>
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Experimental geostrophic source field to be used in combination with
-a free surface. Does not solve a vertical balance yet.</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>GeostrophicSource</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
         <a:documentation>Absolute Difference between two vector fields.
 
 Both fields must be in this material_phase.
