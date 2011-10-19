@@ -72,8 +72,8 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[DiscontinuityDetector:]This field detects the discontinuities in a discontinuous Galerkin field, the larger the discontinuity, the larger the value it takes. The discontinuity field is used by the HWENO slope limiter, \ref{sect:ND_hermite_weno_limiter}.
 \item[FiniteElementDivergence:]Divergence of the velocity field where the divergence operator is defined using the finite element $\mathrm{C}^\mathrm{T}$ matrix.
 \item[FreeSurfaceHistory:]The free surface history diagnostics saves snapshots of the free surface field. The regularity and amount of snapshots can be specified in diamond. The main usage of this diagnostic is for harmonic analysis, see \ref{sec:diagnostic_algorithms}
-\item[FunctionalBegin:]Add a field to be used by Explicit\_ALE to visualize functional values before iterations start.  
-\item[FunctionalIter:]Add a field to be used by Explicit\_ALE to visualize functional values at each iteration.
+\item[FunctionalBegin:]Add a field to be used by Explicit\_ALE to visualise functional values before iterations start.  
+\item[FunctionalIter:]Add a field to be used by Explicit\_ALE to visualise functional values at each iteration.
 \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as this diagnostic \option{scalar\_field}.
 \item[GravitationalPotentialEnergyDensity:]Gravitational potential energy density: $\rho(g \cdot (r - r_0))$ where $\rho$ is the density (taken from \option{scalar\_field::Density}), and $r_0$ is the potential energy zero point. \\
 	Limitations: \begin{itemize}
@@ -125,8 +125,8 @@ Limitations: Only coded for 2D
 \item[ParticleScalar-TRAFFIC:]Add a field to be used by Solid\_configuration to map the solid\_Concentration from particle mesh to the fluid mesh. 
 \item[***SolidConcentration - TRAFFIC:]  
 \item[***SolidPhase - TRAFFIC:]Volume of the vehicles used in Traffic Modelling 
-\item[***VisualizeSolid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualize the solid\_Concentration 
-\item[***VisualizeSolidFluid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualize the solids and MaterialVolumeFraction together.
+\item[***VisualizeSolid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualise the solid\_Concentration 
+\item[***VisualizeSolidFluid - TRAFFIC:]Add a field to be used by Solid\_configuration to visualise the solids and MaterialVolumeFraction together.
 \end{description}
 
 The available internal \option{vector\_field}  diagnostics are:
