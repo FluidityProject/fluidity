@@ -6410,52 +6410,6 @@ FEMDEM or DEM to the fluid mesh. </a:documentation>
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Calculate the control volume auxiliary gradient for a particular field.
-The related field must be a scalar field in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ControlVolumeAuxiliaryGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <attribute name="gradient_of_field">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field.
-The related field must be a scalar field in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>DGAuxiliaryGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <attribute name="gradient_of_field">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
         <a:documentation>Experimental geostrophic source field to be used in combination with
 a free surface. Does not solve a vertical balance yet.</a:documentation>
         <attribute name="rank">

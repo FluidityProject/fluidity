@@ -101,11 +101,11 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[MaterialVolumeFraction:]Volume fraction $c^N$ of material $N$ in multimaterial simulations. Required in compressible multimaterial simulations. If \option{diagnostic}, this computes $c^N = 1 - \sum_{i=1}^{N-1}c^i$.
 \item[MaxEdgeWeightOnNodes:]An estimate of the edge weights whilst adapting using Zoltan.
 \item[NodeOwner:]Output the processors which own the nodes of the mesh on which this field is based.   
-\item[PhytoplanktonGrazing:]Grazing rate of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. See section \ref{sect:biology_model} for more details.
+\item[***PhytoplanktonGrazing:]Grazing rate of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. See section \ref{sect:biology_model} for more details.
 \item[PerturbationDensity:]Calculates the perturbation of the density from the reference density.
 \item[PotentialVorticity:]Ertel potential vorticity: $(\vec{f} + \nabla \times \vec{u}) \cdot \nabla \rho'$ where $\vec{f}$ is the magnitude of the Coriolis force, $\vec{u}$ the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}.
 	Limitations: Requires a geometry dimension of 3. 
-\item[PrimaryProduction:]Primary production rate of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.  See section \ref{sect:biology_model} for more details.
+\item[***PrimaryProduction:]Primary production rate of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.  See section \ref{sect:biology_model} for more details.
 \item[RelativePotentialVorticity:]Relative potential vorticity:  $\nabla \times \vec{u} \cdot \nabla \rho'$, where $\vec{u}$ is the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}   
 \item[RichardsonNumber:]Returns the Richardson number: $\frac{N^2}{(\ppt[z]{u})^2+(\ppx[z]{v})^2}$ where $N^2 = \frac{g}{\rho_0}\ppt[z]{\rho}$ is the buoyancy frequency, $z$ is the vertical direction, $g$ is the magnitude of gravity $(u,v)$ is the horizontal velocity, $\rho_0$ is the reference density and $\rho '$ the perturbation density. (In 2D $z\rightarrow y$ and $\ppx[z]{v}$ is not included). 
 \item[ScalarAbsoluteDifference:]Absolute Difference between two scalar fields. Both fields and this diagnostic \option{scalar\_field} must be in the same \option{material\_phase}. Assumes both fields are on the same mesh as the AbsoluteDifference field.  
@@ -131,11 +131,9 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[AbsoluteVorticity:]Absolute vorticity:  $f\vec{k} + \nabla \times \vec{u}$, where $f$ is the magnitude of the Coriolis force and $\vec{u}$ the velocity.
 	Limitations: Requires a geometry dimension of 3.
  \item[Buoyancy:]Computes the buoyancy term $\vec{b}=-\rho\bmg$.
- \item[BedShearStress:]Returns the (vector) bed shear stress, $bss = \rho C_D|\vec{u}|\vec{u}$, with $\rho$ the density, $C_D$ the drag coefficient and $\vec{u}$ the velocity. The density and drag coefficients have to be given and are assumed to be constant. The field is only calculated over surface elements/nodes and interior nodes will have zero value.
- \item[***ControlVolumeAuxiliaryGradient:] Calculate the control volume auxiliary gradient for a particular field. The related field must be a scalar field in the same \option{material\_phase} as \option{vector\_field::ControlVolumeAuxiliaryGradient}.    
+ \item[BedShearStress:]Returns the (vector) bed shear stress, $bss = \rho C_D|\vec{u}|\vec{u}$, with $\rho$ the density, $C_D$ the drag coefficient and $\vec{u}$ the velocity. The density and drag coefficients have to be given and are assumed to be constant. The field is only calculated over surface elements/nodes and interior nodes will have zero value.  
  \item[ControlVolumeDivergenceTransposed:]Gradient of a scalar field evaluated using the transpose of the $\mathrm{C}^\mathrm{T}$ matrix constructed using control volumes. The related field must be in the same \option{material\_phase} as \option{vector\_field::ControlVolumeDivergenceTransposed}
-  \item[Coriolis:]Projects the Coriolis term onto the mesh of this diagnostic field. lump mass matrix?
-  \item[***DGAuxiliaryGradient:] Calculate the discontinuous-Galerkin (Bassi Rebay) auxiliary gradient for a particular field. The related field must be a scalar field in the same \option{material\_phase} as \option{vector\_field::DGAuxiliaryGradient}.  
+ \item[Coriolis:]Projects the Coriolis term onto the mesh of this diagnostic field. lump mass matrix? 
  \item[DiagnosticCoordinate:]Coordinate field remapped to the specified mesh.    
  \item[***Displacement :] Displacement    	 
  \item[FiniteElementDivergenceTransposed:]Gradient of a scalar field evaluated using the transpose of the $\mathrm{C}^\mathrm{T}$ divergence matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementDivergenceTransposed}.   

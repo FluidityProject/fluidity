@@ -5338,40 +5338,6 @@ vector_field_choice =
                 }
              )
          }|
-         ## Calculate the control volume auxiliary gradient for a particular field.
-         ## The related field must be a scalar field in this material_phase.
-         element vector_field {
-            attribute rank { "0" },
-            attribute name { "ControlVolumeAuxiliaryGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  attribute gradient_of_field { string },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field.
-         ## The related field must be a scalar field in this material_phase.
-         element vector_field {
-            attribute rank { "0" },
-            attribute name { "DGAuxiliaryGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  attribute gradient_of_field { string },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## Experimental geostrophic source field to be used in combination with
          ## a free surface. Does not solve a vertical balance yet.
          element vector_field {
