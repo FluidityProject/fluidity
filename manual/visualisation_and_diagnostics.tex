@@ -134,8 +134,7 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[BedShearStress:]Returns the (vector) bed shear stress, $bss = \rho C_D|\vec{u}|\vec{u}$, with $\rho$ the density, $C_D$ the drag coefficient and $\vec{u}$ the velocity. The density and drag coefficients have to be given and are assumed to be constant. The field is only calculated over surface elements/nodes and interior nodes will have zero value.  
  \item[ControlVolumeDivergenceTransposed:]Gradient of a scalar field evaluated using the transpose of the $\mathrm{C}^\mathrm{T}$ matrix constructed using control volumes. The related field must be in the same \option{material\_phase} as \option{vector\_field::ControlVolumeDivergenceTransposed}
  \item[Coriolis:]Projects the Coriolis term onto the mesh of this diagnostic field. lump mass matrix? 
- \item[DiagnosticCoordinate:]Coordinate field remapped to the specified mesh.    
- \item[***Displacement :] Displacement    	 
+ \item[DiagnosticCoordinate:]Coordinate field remapped to the specified mesh.      	 
  \item[FiniteElementDivergenceTransposed:]Gradient of a scalar field evaluated using the transpose of the $\mathrm{C}^\mathrm{T}$ divergence matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementDivergenceTransposed}.   
  \item[FiniteElementGradient:]Gradient of a scalar field evaluated using the C gradient matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementGradient}. 
   \item[FunctionalGradient:]Same as \option{vector\_field::SolidVelocity} but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.    

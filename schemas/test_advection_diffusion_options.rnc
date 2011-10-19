@@ -5435,22 +5435,6 @@ vector_field_choice =
                real
             }
          }|
-
-         ## Displacement
-         element vector_field {
-             attribute rank { "1" },
-             attribute name { "Displacement" },
-             (
-                element diagnostic {
-                   internal_algorithm,
-                   velocity_mesh_choice,
-                   diagnostic_vector_field
-                }|
-                element aliased {
-                   generic_aliased_field
-                }
-             )
-         }|
          ## Galerkin projection of one field onto another mesh.
          ##
          ## The field must be in this material_phase.

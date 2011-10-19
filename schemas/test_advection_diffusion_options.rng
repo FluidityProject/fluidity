@@ -6532,25 +6532,6 @@ applied to the bed shear stress.</a:documentation>
         </element>
       </element>
       <element name="vector_field">
-        <a:documentation>Displacement</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>Displacement</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
         <a:documentation>Galerkin projection of one field onto another mesh.
 
 The field must be in this material_phase.
