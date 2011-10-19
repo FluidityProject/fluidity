@@ -26,14 +26,14 @@ and between elements in the interior.
 The advection-diffusion equation for a scalar tracer $c$,
 is given in conservative form by
 \begin{equation}\label{eq:advdif}
-  \ppt{c} + \div\left(\vec{u} c\right) - \div\tensor{\mu}\cdot\grad c = 0.
+  \ppt{c} + \div\left(\vec{u} c\right) - \div\tensor{\kappa}\cdot\grad c = 0.
 \end{equation}
 
 We now define a partition of the boundary such that
 $\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$, and impose boundary conditions on $c$:
 \begin{gather}
   \label{eq:cboundary}
-  \vec{n}\cdot\tensor{\mu}\cdot\grad c=g_{N_c} \quad\textrm{on}\quad \dOmega^{N_c},\\
+  \vec{n}\cdot\tensor{\kappa}\cdot\grad c=g_{N_c} \quad\textrm{on}\quad \dOmega^{N_c},\\
   c=g_{D_c} \quad\textrm{on}\quad \dOmega^{D_c}.
 \end{gather}
 
@@ -55,21 +55,22 @@ field is continuous over element boundaries.
 \index{advection-diffusion equation!weak form}
 
 Development of the finite element method begins by writing the equations in
-\emph{weak form}.  The weak form of the advection-diffusion equation is
+\emph{weak form}.  The weak form of the advection-diffusion equation 
+(here presented in non-conservative or advective form) is
 obtained by pre-multiplying it with a test function $\phi$
 and integrating over the domain $\Omega$, such that
 \begin{equation}
-  \int_\Omega \phi \left( \ppt{c} + \vec{u}\cdot\grad c -
-    \div\tensor{\mu}\cdot \grad c\right) = 0.
+  \int_\Omega \phi \left( \ppt{c} + \grad\cdot(\vec{u} c) -
+    \div\tensor{\kappa}\cdot \grad c\right) = 0.
 \end{equation}
 Integrating the advection and diffusion terms by parts yields
 \begin{equation}\label{eq:weak_adv_diff}
   \int_\Omega
   \phi \ppt{c}
   -\grad\phi\cdot\vec{u} c +
-  \grad\phi\cdot \tensor{\mu}\cdot\grad c
-  +\int_\dOmega \vec{n}\cdot \vec{u} c
-  - \vec{n}\cdot\tensor{\mu}\cdot\grad c
+  \grad\phi\cdot \tensor{\kappa}\cdot\grad c
+  +\int_\dOmega \phi(\vec{n}\cdot \vec{u} c
+  - \vec{n}\cdot\tensor{\kappa}\cdot\grad c)
   = 0.
 \end{equation}
 For simplicity sake let us first assume the boundaries are closed
@@ -78,7 +79,7 @@ condition everywhere, such that $\partial c/\partial n=0$, which gives
 \begin{equation}\label{eq:weak_adv_diff_simp}
   \int_\Omega \phi \frac{\partial c}{\partial t}
     -\grad\phi\cdot\vec{u} c +
-    \grad\phi\cdot \tensor{\mu}\cdot\grad c = 0.
+    \grad\phi\cdot \tensor{\kappa}\cdot\grad c = 0.
 \end{equation}
 Note that due to the Neumann boundary condition the boundary term has
 dropped out. The tracer field $c$ is now called a \emph{weak solution} of
@@ -188,7 +189,7 @@ version of \eqref{eq:weak_adv_diff_simp} therefore becomes
 \begin{equation}
   \sum_j \left\{ \int_\Omega \phi_i \phi_j  \ddt{c_j} -
     \grad\phi_i\cdot\vec{u}\phi_j  c_j +
-    \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j c_j \right\} = 0,
+    \grad\phi_i\cdot \tensor{\kappa}\cdot\grad \phi_j c_j \right\} = 0,
     \quad\text{for all }\phi_i.
 \end{equation}
 where we have substituted $c=\sum_j \phi_j c_j$. From this it is readily seen that
@@ -201,7 +202,7 @@ where $\mat{M}, \mat{A}$ and $\mat{K}$ are the following matrices
 \begin{equation}
   \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
   \mat{A}_{ij}=-\int_\Omega \grad\phi_i\cdot\vec{u} \phi_j, \quad
-  \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
+  \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\kappa}\cdot\grad \phi_j.
 \end{equation}
 
 \subsubsection{Advective stabilisation for CG}
@@ -212,17 +213,17 @@ where $\mat{M}, \mat{A}$ and $\mat{K}$ are the following matrices
 
 It is well known that a continuous Galerkin discretisation of an
 advection-diffusion equation for an advection dominated flow can suffer from
-over- and under-shoot errors. Furthermore, these overshoot errors are not
+over- and under-shoots which are qualitatively incorrect errors. Furthermore, these overshoot errors are not
 localised: they can propagate throughout the simulation domain and pollute the
 global solution \citep{hughes1987}. Consider a simple 1D linear steady-state
-advection-diffusion problem for a single scalar $c$:
+advection-diffusion problem for a single scalar $c$ with a source term $f$:
 
 \begin{equation}\label{eqn:trivial_advdif}
   u \ppx{c} - \kappa \ppxx{c} = f(x),
 \end{equation}
 or equivalently in weak form:
 \begin{equation}\label{eqn:trivial_advdif_weak}
-  \int_\Omega \phi (u \ppx{c} + \kappa \ppx{\phi} \ppx{c} - f(x)) = 0,
+  \int_\Omega \left\{\phi \left( u \ppx{c} -f \right) + \kappa \ppx{\phi} \ppx{c}\right\}  = 0,
 \end{equation}
 where we have integrated by parts and applied the natural Neumann boundary
 condition $\partial c / \partial x = 0$ on $\partial \Omega$.
@@ -245,7 +246,7 @@ is a grid P\'eclet number, with grid spacing $h$.
 
 This implicit negative diffusivity becomes
 equal to the explicit diffusivity at a P\'eclet greater than one, and hence
-instability occurs for $\Pe \geq 1$. In order to achieve a stable discretisation
+instability can occur for $\Pe \geq 1$. In order to achieve a stable discretisation
 using a continuous Galerkin method one is therefore required either to increase
 the model resolution so as to reduce the grid P\'eclet number, or to apply
 advective stabilisation methods.
@@ -259,15 +260,16 @@ but of opposite sign. This method is referred to as \textit{balancing diffusion}
 Note, however, that for two or more dimensions, we require this balancing
 diffusion to apply in the along-stream direction only \citep{brooks1982, DoneaBook}.
 For this reason this method is also referred to as \textit{streamline-upwind}
-stabilisation. The multidimensional weak-form equation:
+stabilisation. The multi-dimensional weak-form (assuming we consider non-conservative or advective form) 
+of equation \eqref{eqn:trivial_advdif} is:
 \begin{equation}\label{eqn:trivial_advdif_weak_md}
-  \int_\Omega \phi (\vec{u} \cdot \grad c + \kappa \grad \phi \grad c -f(x)) = 0,
+  \int_\Omega \left\{ \phi \left(\vec{u} \cdot \grad c -f \right)+ \grad \phi \cdot \tensor{\kappa}  \cdot \grad c -f)\right\} = 0,
 \end{equation}
 is therefore modified to include an additional artificial balancing diffusion
 term \citep{DoneaBook}:
 \begin{equation}\label{eqn:balancing_diffusion}
-  \int_\Omega \phi (\vec{u} \cdot \grad c + \kappa \grad \phi \grad c - f(x)) +
-  \int_\Omega \frac{\bar{\kappa}}{\left|\left| \vec{u} \right|\right|^2}
+  \int_\Omega \phi (\vec{u} \cdot \grad c + \tensor{\kappa} \grad \phi \cdot \grad c - f(x)) +
+  \int_\Omega \frac{\tensor{\kappa}}{\left|\left| \vec{u} \right|\right|^2}
   (\vec{u} \cdot \grad \phi) (\vec{u} \cdot \grad \vec{c})
   = 0.
 \end{equation}
@@ -278,14 +280,14 @@ is a research issue. See \ref{sec:stabilisation_parameter} for implementations i
 
 The addition of the balancing diffusion term combats the negative implicit
 diffusivity of the continuous Galerkin method. However, we are no longer solving
-the original equation - for a pure advection flow we are now solving a modified
-version of the original advection-diffusion equation with the grid
+the original equation -- for pure advection we are now solving a modified
+version of the original equation with the grid
 P\'eclet number artificially reduced from
 infinity to unity everywhere. Hence streamline-upwind is not a \textit{consistent}
-stabilisation method, and there is a reduction in the degree of numerical
+stabilisation method, and there can be a reduction in the degree of numerical
 convergence.
 
-\paragraph{Streamline-upwind Petrov-Galerkin}\label{sec:supg}
+\paragraph{Streamline-upwind Petrov-Galerkin (SUPG)}\label{sec:supg}
 \index{Galerkin!Petrov-}
 \index{Petrov-Galerkin}
 \index{stabilisation!advection!Petrov-Galerkin}
@@ -294,13 +296,13 @@ The streamline-upwind stabilisation method can be extended to a consistent (and
 hence high order accurate) method by introducing stabilisation in the form of a weighted
 residual \citep{DoneaBook}:
 \begin{equation*}
-  \int_\Omega \phi (\vec{u} \cdot \grad c + \kappa \grad \phi \grad c - f(x)) +
+  \int_\Omega \phi (\vec{u} \cdot \grad c + \tensor\kappa \grad \phi \cdot \grad c - f(x)) +
   \int_\Omega \tau P(\phi) R(\phi)
   = 0,
 \end{equation*}
 where:
 \begin{equation*}
-  R(\phi) = \vec{u} \cdot \grad c - \kappa \grad^2 c - f(x),
+  R(\phi) = \vec{u} \cdot \grad c - \grad\cdot\tensor{\kappa}\grad  c - f(x),
 \end{equation*}
 is the equation residual, $\tau$ is a stabilisation parameter and $P(\phi)$ is
 some operator.
@@ -308,16 +310,16 @@ Note that this is equivalent to replacing the test function in the original
 equation with $\tilde{\phi} = \phi + \tau P(\phi)$.
 Looking at equation \eqref{eqn:balancing_diffusion}, it can seen that the
 balancing diffusion term is equivalent to replacing the test function for the
-advection term with:
+advection term only with:
 \begin{equation}\label{eqn:supg_test_function}
-  \tilde{\phi} = \phi + \frac{\bar{\kappa}}{\left|\left| \vec{u} \right|\right|^2} u \cdot \grad.
+  \tilde{\phi} = \phi + \frac{{\kappa}}{\left|\left| \vec{u} \right|\right|^2} \vec{u} \cdot \grad.
 \end{equation}
 
 This suggests a stabilisation method whereby the test function in the advection-diffusion
 equation is replaced with the test function in \eqref{eqn:supg_test_function}.
 This approach defines the \textit{streamline-upwind Petrov-Galerkin} (SUPG) method. The
 weighted residual formulation of this method guarantees consistency, and hence
-preserves the accuracy of the method. Furthermore, while this method does
+preserves the accuracy of the method. Furthermore, while this method can
 still possess under- and over-shoot errors in the presence of sharp solution
 gradients, these errors remain localised \citep{hughes1987}.
 
@@ -330,7 +332,7 @@ stabilisation parameter $\bar{\kappa}$ is somewhat arbitrary. \fluidity\ impleme
   \bar{\kappa} = \frac{1}{2} \sum{\xi_i u_i h_i},
 \end{equation}
 
-where the summation is over the quadrature points of an individual element. The
+where $\xi$ is defined in \eqref{eqn:xi_parameter} and the summation is over the quadrature points of an individual element. The
 grid spacings $h_i$ are approximated from the elemental Jacobian.
 
 As an alternative, \citet{raymond1976} show that for
@@ -386,7 +388,7 @@ Petrov-Galerkin is applied, using a stabilisation parameter as in \eqref{eqn:md_
 \begin{figure}[ht]
   \centering
   \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/cg}
-  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
+  \caption{Pure advection of a 1D top hat function in a periodic domain at CFL number $1 / 8$ after 80 timesteps
            using a continuous Galerkin discretisation.}
   \label{fig:top_hat_cg}
 \end{figure}
@@ -394,7 +396,7 @@ Petrov-Galerkin is applied, using a stabilisation parameter as in \eqref{eqn:md_
 \begin{figure}[ht]
   \centering
   \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/su}
-  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
+  \caption{Pure advection of a 1D top hat function in a periodic domain at CFL number $1 / 8$ after 80 timesteps
            using a continuous Galerkin discretisation with streamline-upwind
            stabilisation.}
   \label{fig:top_hat_su}
@@ -403,7 +405,7 @@ Petrov-Galerkin is applied, using a stabilisation parameter as in \eqref{eqn:md_
 \begin{figure}[ht]
   \centering
   \fig[width=0.5\textwidth]{numerical_discretisation_images/advective_stabilisation/supg}
-  \caption{Pure advection of a 1D top hat at CFL number $1 / 8$ after 80 timesteps
+  \caption{Pure advection of a 1D top hat function in a periodic domain at CFL number $1 / 8$ after 80 timesteps
            using a continuous Galerkin discretisation with streamline-upwind
            Petrov-Galerkin stabilisation.}
   \label{fig:top_hat_supg}
@@ -415,16 +417,16 @@ In the derivation of \eqref{eq:weak_adv_diff} we have assumed a homogeneous Neum
 boundary condition on all boundaries. If we are considering all possible
 solutions $c$, the boundary term we have left out is
 \begin{equation}\label{eq:missing_boundary_term}
-  \int_{\partial\Omega} \phi~\vec{n}\cdot\tensor{\mu}\cdot\grad c.
+  \int_{\partial\Omega} \phi~\vec{n}\cdot\tensor{\kappa}\cdot\grad c.
 \end{equation}
-A natural way of imposing an inhomogeneous boundary Neumann boundary condition
+A natural way of imposing an inhomogeneous Neumann boundary condition
 \begin{equation*}
-  \vec{n}\cdot\tensor{\mu}\cdot\grad c=g_N,
+  \vec{n}\cdot\tensor{\kappa}\cdot\grad c=g_N,
 \end{equation*}
-where $g_N$ can be any function on the boundary $\partial\Omega$, is to impose it
-weakly. This is done in the same way as before:
+where $g_N$ can be any prescribed function on the boundary $\partial\Omega$, is to impose it
+weakly. This is done in the same way as the weak form of the advection-diffusion equation was formed:
 \begin{equation}\label{eq:weak_neumann}
-  \int_{\partial\Omega} \phi~\vec{n}\cdot\tensor{\mu}\cdot\grad c=
+  \int_{\partial\Omega} \phi~\vec{n}\cdot\tensor{\kappa}\cdot\grad c=
     \int_{\partial\Omega} \phi~g_N, \quad \text{for all }\phi.
 \end{equation}
 Thus \eqref{eq:weak_neumann} can be used to replace the missing
@@ -434,22 +436,22 @@ over the boundary.
 \index{boundary conditions!Dirichlet!weakly imposed}
 In a similar way, a weakly imposed Dirichlet boundary condition can be related to an
 integration by parts of the advection term. Let us consider a pure advection problem
-($\mu=0$). The weak form of this equation integrated by parts reads:
+($\tensor{\kappa}\equiv 0$). The weak form of this equation integrated by parts reads:
 \begin{equation*}
   \int_\Omega \phi \frac{\partial c}{\partial t} -
     \left(\grad\cdot \phi~\vec{u}\right)~c +
-    \int_{\partial\Omega} \vec{n}\cdot\vec{u}~c
+    \int_{\partial\Omega} \phi \vec{n}\cdot\vec{u}~c
     = 0.
 \end{equation*}
-The last (boundary) term can again be substituted by a weakly imposed
-boundary condition $c=g_D$.  In this case however we only want to impose
+The final (boundary) term can again be substituted with a weakly imposed
+boundary condition $c=g_D$.  In this case however, for physical and consequently numerical reasons, we only want to impose
 this on the inflow boundary, and the original term remains for the outflow
 boundary:
 \begin{equation}\label{eq:adv_integrated_by_parts}
   \int_\Omega \phi \frac{\partial c}{\partial t} -
     \left(\grad\cdot \phi~\vec{u}\right)~c +
-    \int_{\partial\Omega_-} \vec{n}\cdot\vec{u}~g_D +
-    \int_{\partial\Omega_+} \vec{n}\cdot\vec{u}~c
+    \int_{\partial\Omega_-} \phi\vec{n}\cdot\vec{u}~g_D +
+    \int_{\partial\Omega_+} \phi\vec{n}\cdot\vec{u}~c
     = 0,
 \end{equation}
 where $\partial\Omega_-$ and $\partial\Omega_+$ refer to respectively
@@ -459,7 +461,7 @@ It is to be noted that when we are applying boundary conditions weakly we
 still consider the full set of test functions, even those that don't satisfy
 the boundary condition. This means the discrete solution will not satisfy
 the boundary condition exactly. Instead the solution will converge to the
-right boundary condition along with the solution in the interior as the mesh
+correct boundary condition along with the solution in the interior as the mesh
 is refined.
 
 \index{boundary conditions!Dirichlet!strongly imposed} An alternative way of
@@ -485,16 +487,16 @@ condition needs to be imposed strictly for physical reasons.
 Integration by parts can be used to avoid taking
 derivatives of discontinuous functions.
 When using discontinuous test \emph{and} trial functions (see Figure \ref{fig:dgshapefunctions}) however,
-neither the original advection equation, \eqref{eq:weak_adv_diff} with $\mu=0$,
+neither the original advection equation, \eqref{eq:weak_adv_diff} with $\tensor{\kappa}\equiv 0$,
 nor the version \eqref{eq:adv_integrated_by_parts} integrated by parts are well-defined.
 Within an element $e$ however the functions are continuous, and everything is well defined. So within
 a single element we may write
 \begin{equation}\label{eq:adv_diff_dg}
   \int_e \phi \frac{\partial c}{\partial t} -
     \left(\grad\cdot \phi~\vec{u}\right)~c +
-    \grad\phi\cdot\tensor{\mu}\cdot\grad c +
+    \grad\phi\cdot\tensor{\kappa}\cdot\grad c +
     \int_{\partial e} \phi\widehat{\vec{n}\cdot\vec{u}~c} -
-    \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c}
+    \phi\widehat{\vec{n}\cdot\tensor{\kappa}\cdot\grad c}
     = 0,
 \end{equation}
 The hatted terms represent fluxes across the element facets: and therefore
@@ -523,21 +525,21 @@ conditions, this results in:
 \begin{multline}
   \sum_e \left\{ \int_e \phi \frac{\partial c}{\partial t}
   - \left(\grad\cdot \phi~\vec{u}\right)~c
-  + \grad\phi\cdot\tensor{\mu}\cdot\grad c \right. \\
+  + \grad\phi\cdot\tensor{\kappa}\cdot\grad c \right. \\
   \left. + \int_{\partial e\,\cap\dOmega^{D_c}_{-}} \phi\vec{n}\cdot\vec{u}~g_D
   + \int_{\partial e\,\cap\dOmega^{D_c}_{+}} \phi\vec{n}\cdot\vec{u}~c
   - \int_{\partial e\,\cap\dOmega^{D_c}}
-  \phi\vec{n}\cdot\tensor{\mu}\cdot\grad c \right. \\
+  \phi\vec{n}\cdot\tensor{\kappa}\cdot\grad c \right. \\
   \left. + \int_{\partial e\,\cap\dOmega^{N_c}} \phi\vec{n}\cdot\vec{u}~c
-  - \phi\vec{n}\cdot\tensor{\mu}\cdot\grad g_N + \int_{\partial e\,\setminus\dOmega} \phi\widehat{\vec{n}\cdot\vec{u}~c}
-  - \phi\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c} \right\}
+  - \phi\vec{n}\cdot\tensor{\kappa}\cdot\grad g_N + \int_{\partial e\,\setminus\dOmega} \phi\widehat{\vec{n}\cdot\vec{u}~c}
+  - \phi\widehat{\vec{n}\cdot\tensor{\kappa}\cdot\grad c} \right\}
     = 0.
 \end{multline}
 
 \subsubsection{Discontinuous Galerkin advection}
 \label{Sect:ND_discontinuous_galerkin_advection}
 
-Consider first the case in which $\tensor{\mu}=0$. In this case, equation
+Consider first the case in which $\tensor{\kappa}\equiv 0$. In this case, equation
 \eqref{eq:adv_diff_dg}\ reduces to:
 \begin{equation}\label{eq:adv_dg}
   \int_e \phi \frac{\partial c}{\partial t} -
@@ -1070,10 +1072,10 @@ Once the dual control volume mesh has been defined, it is possible to discretise
 \begin{equation}\label{eq:adv_diff_cv}
   \int_v \frac{\partial c}{\partial t} +
     \int_{\partial v} \widehat{\vec{n}\cdot\vec{u}~c} -
-    \widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c}
+    \widehat{\vec{n}\cdot\tensor{\kappa}\cdot\grad c}
     = 0,
 \end{equation}
-Note that the test function present in the previous discretisation sections, $\phi$, can be dropped from the equation as it is $1$ everywhere within the volume $v$.  Furthermore, terms involving the gradient of either $\phi$ or $c$ can be dropped as both as constant functions.  The boundary integral for the viscosity $\tensor{\mu}$ is a special case that will be dealt with in a later section.
+Note that the test function present in the previous discretisation sections, $\phi$, can be dropped from the equation as it is $1$ everywhere within the volume $v$.  Furthermore, terms involving the gradient of either $\phi$ or $c$ can be dropped as both as constant functions.  The boundary integral for the diffusivity $\tensor{\kappa}$ is a special case that will be dealt with in a later section.
 
 \begin{figure}[btp]
 \begin{center}
@@ -1093,18 +1095,18 @@ The application of boundary conditions occurs in the same manner as for the disc
   \sum_v \left\{ \int_v \frac{\partial c}{\partial t}
   + \int_{\partial v\,\cap\dOmega^{D_c}_{-}} \vec{n}\cdot\vec{u}~g_D
   + \int_{\partial v\,\cap\dOmega^{D_c}_{+}} \vec{n}\cdot\vec{u}~c
-  - \int_{\partial v\,\cap\dOmega^{D_c}} \vec{n}\cdot\tensor{\mu}\cdot\grad c \right. \\
+  - \int_{\partial v\,\cap\dOmega^{D_c}} \vec{n}\cdot\tensor{\kappa}\cdot\grad c \right. \\
   \left. + \int_{\partial v\,\cap\dOmega^{N_c}} \vec{n}\cdot\vec{u}~c
-  - \vec{n}\cdot\tensor{\mu}\cdot\grad g_N 
+  - \vec{n}\cdot\tensor{\kappa}\cdot\grad g_N 
   + \int_{\partial v\,\setminus\dOmega} \widehat{\vec{n}\cdot\vec{u}~c}
-  - \widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c} \right\}
+  - \widehat{\vec{n}\cdot\tensor{\kappa}\cdot\grad c} \right\}
     = 0.
 \end{multline}
 
 \subsubsection{Control Volume advection}
 \label{Sect:ND_control_volume_advection}
 
-Consider first the case in which $\tensor{\mu}=0$. In this case, equation \eqref{eq:adv_diff_cv}\ reduces to:
+Consider first the case in which $\tensor{\kappa}\equiv 0$. In this case, equation \eqref{eq:adv_diff_cv}\ reduces to:
 \begin{equation}\label{eq:adv_cv}
   \int_v \frac{\partial c}{\partial t} +
     \int_{\partial v} \widehat{\vec{n}\cdot\vec{u}~c}
@@ -1262,9 +1264,9 @@ Further details of the coupled control volume algorithm can be found in \citet{w
 
 \subsubsection{Control Volume diffusion}
 
-In the case where diffusion, $\tensor{\mu}$, is not zero we need to discretise the term:
+In the case where diffusion, $\tensor{\kappa}$, is not zero we need to discretise the term:
 \begin{equation}
--\int_{\partial v}\widehat{\vec{n}\cdot\tensor{\mu}\cdot\grad c}
+-\int_{\partial v}\widehat{\vec{n}\cdot\tensor{\kappa}\cdot\grad c}
 \end{equation}
 in equation \ref{eq:adv_diff_cv}.  As with discontinuous Galerkin methods this is complicated by the fact that $\grad c$ is now defined on the boundary of the volume.  \fluidity\ offers three strategies for dealing with this with control volumes - element based gradients, equal order Bassi-Rebay and staggered mesh Bassi-Rebay discretisations.
 
@@ -1377,7 +1379,7 @@ Galerkin, the matrices take the following form:
 \begin{equation}
   \mat{M}_{ij}=\int_\Omega \phi_i\phi_j, \quad
   \mat{A}_{ij}=-\int_\Omega \grad\phi_i\cdot\vec{u} \phi_j, \quad
-  \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\mu}\cdot\grad \phi_j.
+  \mat{K}_{ij}=\int_\Omega \grad\phi_i\cdot \tensor{\kappa}\cdot\grad \phi_j.
 \end{equation}
 
 This is discretised using a classical $\theta$ scheme while $\vec u$ is as
@@ -1472,7 +1474,7 @@ are given by:
   \mat{M}_{ij}=\int_\Omega \rho\bmphi_i\cdot\bmphi_j, \quad
   \mat{A}_{ij}=\int_\Omega \bmphi_i\cdot\left(\rho\vec{u}\cdot\grad \bmphi_j\right), \quad
   \mat{K}_{ij}=\sum_{\alpha,\beta,\gamma} \int_\Omega
-    \left(\partial_\beta\bmphi_{i,\alpha}\right) \tensor{\mu}_{\beta\gamma}
+    \left(\partial_\beta\bmphi_{i,\alpha}\right) \tensor{\kappa}_{\beta\gamma}
       \left(\partial_\gamma \bmphi_{j,\alpha}\right),
 \end{equation}
 where $\alpha,\beta$ and $\gamma$ are summed over the spatial dimensions.
@@ -1521,7 +1523,7 @@ where (again assuming CG and ignoring boundary conditions):
   \mat{Cor}_{ij}=
     \int_\Omega \bmphi_i\cdot\left(2\vec\Omega\times\bmphi_j\right), \\
   \mat{K}_{ij}=\sum_{\alpha,\beta,\gamma} \int_\Omega
-    \left(\partial_\beta\bmphi_{i,\alpha}\right) \tensor{\nu}_{\beta\gamma}
+    \left(\partial_\beta\bmphi_{i,\alpha}\right) \tensor{u}_{\beta\gamma}
       \left(\partial_\gamma \bmphi_{j,\alpha}\right),
   \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j, \quad
     \dvec{b}_i(\rho')=\int_\Omega \bmphi_i\cdot\vec g\rho',\quad
