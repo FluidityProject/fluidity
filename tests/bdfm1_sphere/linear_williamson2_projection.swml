@@ -322,56 +322,6 @@
         </adjoint_storage>
       </prescribed>
     </scalar_field>
-    <vector_field name="InitialVelocityError" rank="1">
-      <diagnostic>
-        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="InitialVelocity" material_phase_support="single" source_field_1_type="vector"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </diagnostic>
-    </vector_field>
-    <vector_field name="InitialVelocity" rank="1">
-      <prescribed>
-        <mesh name="VelocityMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-  from math import pi
-  x = X[0]
-  y = X[1]
-  z = X[2]
-  R = 6.37122e6
-  cosphi = (x**2+y**2)**0.5/R
-  u0 = 2*pi*R/(12.*24.*60.*60.)
-  return [-u0*cosphi*y/R,u0*cosphi*x/R,0]</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </prescribed>
-    </vector_field>
   </material_phase>
   <debug>
     <check_inverse_coriolis_matrix/>

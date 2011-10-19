@@ -1900,7 +1900,7 @@ contains
     type(state_type), intent(in) :: state
     character(len=*), intent(in), optional :: name
     !
-    type(vector_field), pointer :: U, X, U_cart
+    type(vector_field), pointer :: U, X, U_cart, down
     type(vector_field), target :: tmp_U 
     character(len=PYTHON_FUNC_LEN) :: Python_Function
     integer :: ele
@@ -1920,10 +1920,11 @@ contains
             &/prognostic/initial_condition::WholeMesh/&
             &commuting_projection/python",Python_Function)
     end if
+    down=>extract_vector_field(state, "GravityDirection")
     X=>extract_vector_field(state, "Coordinate")
  
     do ele = 1, element_count(U)
-       call set_velocity_commuting_projection_ele(U,X,Python_Function,ele)
+       call set_velocity_commuting_projection_ele(U,X,down,Python_Function,ele)
     end do
 
     U_cart => extract_vector_field(state, "Velocity")
@@ -1942,8 +1943,8 @@ contains
     ewrite(1,*) 'Setting velocity from commuting projection: DONE'
   end subroutine set_velocity_commuting_projection
   
-  subroutine set_velocity_commuting_projection_ele(U,X,Python_Function,ele)
-    type(vector_field), intent(in) :: X
+  subroutine set_velocity_commuting_projection_ele(U,X,down,Python_Function,ele)
+    type(vector_field), intent(in) :: X,down
     type(vector_field), intent(inout) :: U
     character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
     integer, intent(in) :: ele
@@ -1958,13 +1959,14 @@ contains
     type(constraints_type), pointer :: U_constraint
 
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
-    real, dimension(ele_ngi(U,ele)) :: detJ
+    real, dimension(ele_ngi(U,ele)) :: detJ, norm_U_rhs, norm_U_rhs_new,&
+         &u_rhs_normal_cpt
     real, dimension(mesh_dim(U),mesh_dim(U),ele_ngi(U,ele))::&
          &Metric
     real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) &
          &:: l_u_mat
     real, dimension(mesh_dim(U),ele_loc(U,ele)) :: l_u_rhs
-    real, dimension(X%dim, ele_ngi(U, ele)) :: U_rhs_quad, X_quad
+    real, dimension(X%dim, ele_ngi(U, ele)) :: U_rhs_quad, X_quad, up_gi
 
     u_shape = ele_shape(U,ele)
     uloc = ele_loc(U,ele)
@@ -2010,6 +2012,22 @@ contains
     if(stat /= 0) then
        FLAbort('Failed to set ele values from Python.')
     end if
+    if(.false.) then
+       up_gi = -ele_val_at_quad(down,ele)
+       !remove normal component of input velocity and rescale
+       call get_up_gi(X,ele,up_gi)
+       norm_U_rhs = (sum(U_rhs_quad**2,1))**0.5
+       U_rhs_normal_cpt = sum(U_rhs_quad*up_gi,1)
+       do dim1 =1, U%dim
+          U_rhs_quad(dim1,:) = U_rhs_quad(dim1,:) - &
+               & up_gi(dim1,:)*U_rhs_normal_cpt
+       end do
+       norm_U_rhs_new = (sum(U_rhs_quad**2,1))**0.5
+       do dim1 = 1, U%dim
+          U_rhs_quad(dim1,:) = U_rhs_quad(dim1,:)*(norm_U_rhs/norm_U_rhs_new)
+       end do
+    end if
+
     !Test functions have Piola transform in, so multiply the RHS by the 
     !transpose of the Jacobian (confusingly, compute Jacobian returns 
     !the transpose in J).
@@ -2200,7 +2218,7 @@ contains
     if(stat /= 0) then
        FLAbort('Failed to set face values from Python.')
     end if
-
+    
     face_rhs = shape_rhs(U_face_shape,sum(U_rhs_face_quad*n_cart,1)*detwei_f)
 
     projection_rhs_rows = matmul(&
@@ -2274,7 +2292,7 @@ contains
     if(stat /= 0) then
        FLAbort('Failed to set face values from Python.')
     end if
-
+    
     D_rhs = shape_rhs(D_shape,detwei*D_rhs_gi)
     call solve(mass_mat,D_rhs)
     
