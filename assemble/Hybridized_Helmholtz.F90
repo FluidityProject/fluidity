@@ -1957,6 +1957,7 @@ contains
     integer :: ni, ele2, face, face2, row, floc, i1, uloc,dim1,dim2,gi,stat
     integer, dimension(:), pointer :: neigh
     type(constraints_type), pointer :: U_constraint
+    logical :: project_velocity_before_fe_projection=.true.
 
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
     real, dimension(ele_ngi(U,ele)) :: detJ, norm_U_rhs, norm_U_rhs_new,&
@@ -2012,7 +2013,7 @@ contains
     if(stat /= 0) then
        FLAbort('Failed to set ele values from Python.')
     end if
-    if(.false.) then
+    if(project_velocity_before_fe_projection) then
        up_gi = -ele_val_at_quad(down,ele)
        !remove normal component of input velocity and rescale
        call get_up_gi(X,ele,up_gi)
@@ -2027,7 +2028,6 @@ contains
           U_rhs_quad(dim1,:) = U_rhs_quad(dim1,:)*(norm_U_rhs/norm_U_rhs_new)
        end do
     end if
-
     !Test functions have Piola transform in, so multiply the RHS by the 
     !transpose of the Jacobian (confusingly, compute Jacobian returns 
     !the transpose in J).
