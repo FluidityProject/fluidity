@@ -149,12 +149,7 @@ endif
 
 include/libspud.h: lib/libspud.a
 
-main.o: update_version_number include/libspud.h
-
-update_version_number:
-	@echo "Updating version number"
-	@rm -f include/version.h
-	@$(MAKE) include/version.h
+main.o: include/version.h include/libspud.h
 
 include/version.h:
 	@echo "DEFINE __FLUIDITY_VERSION__"
@@ -163,6 +158,8 @@ include/version.h:
 	#define _FLUIDITY_VERSION_H\n\
 	#define __FLUIDITY_VERSION__ \"$(VERSION)\"\n\
 	#endif /* _FLUIDITY_VERSION_H */\n" > include/version.h
+
+.PHONY: include/version.h
 
 bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
 	@echo "BUILD fluidity"
@@ -299,8 +296,6 @@ endif
 	@cd assemble;   	$(MAKE)
 	@echo "    MAKE diagnostics"
 	@cd diagnostics;   	$(MAKE)
-	@echo "    MAKE radiation"
-	@cd radiation; $(MAKE)
 	@echo "    MAKE reduced_modelling"
 	@cd reduced_modelling;   	$(MAKE)
 	@echo "    MAKE adjoint"
@@ -328,7 +323,6 @@ preprocessor/*.o \
 error_measures/*.o \
 assemble/*.o \
 diagnostics/*.o \
-radiation/*.o \
 reduced_modelling/*.o \
 adjoint/*.o \
 main/*.o
@@ -372,10 +366,6 @@ clean-light:
 	@cd sediments; $(MAKE) clean
 	@echo "    CLEAN parameterisation/tests"
 	@cd parameterisation/tests; $(MAKE) clean
-	@echo "    CLEAN radiation"
-	@cd radiation; $(MAKE) clean
-	@echo "    CLEAN radiation/tests"
-	@cd radiation/tests; $(MAKE) clean
 	@echo "    CLEAN assemble"
 	@cd assemble;   $(MAKE) clean
 	@echo "    CLEAN assemble/tests"
@@ -413,10 +403,6 @@ endif
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
-	@echo "    CLEAN qg_strat"
-	@cd qg_strat; $(MAKE) clean
-	@echo "    CLEAN qg_strat/unittests"
-	@cd qg_strat/unittests; $(MAKE) clean
 	@rm -fr bin/* lib
 
 clean: clean-light clean-test python_clean
@@ -498,8 +484,6 @@ build_unittest: fluidity_library libfemtools setuputs
 	@cd adjoint/tests; $(MAKE) unittest
 	@echo "    UNITTEST ocean_forcing"
 	@cd ocean_forcing/tests; $(MAKE) unittest
-	@echo "    UNITTEST radiation"
-	@cd radiation/tests; $(MAKE) unittest
 
 
 unittest: build_unittest
@@ -560,8 +544,6 @@ endif
 	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90" $(TESTOPTS)
 	@cd diagnostics;   	$(MAKE) Diagnostic_Fields_Interfaces.o \
 	Diagnostic_Fields_New.o 
-	@echo "    Generating radiation dependencies"
-	@cd radiation; ../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating reduced_modelling dependencies"
 	@cd reduced_modelling;   	../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating adjoint dependencies"
