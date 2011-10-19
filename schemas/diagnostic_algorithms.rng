@@ -1859,6 +1859,9 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="scalar_advection_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_edge_lengths_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="projection_scalar_potential_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
