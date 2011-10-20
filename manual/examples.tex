@@ -44,7 +44,7 @@ examples plots are created and put in the directory.
   \ref{sect:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
   \ref{sect:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 18 hr. \\
   \ref{sect:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr. \\
-  \ref{sect:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 3 & 0 hr. \\
+  \ref{sect:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 4 & 1.5 hr. \\
   \ref{sect:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
   \hline
 \end{tabular}
@@ -1360,7 +1360,7 @@ Detectors  extract the surface elevation information at every timestep.
 \caption{The bathymetry and the three gauge stations used for the Hokkaido-Nansei-Oki tsunami example.}\label{fig:monai_inputwave}
 \end{figure}
 
-The mesh used for the simulation is a single layer horizontally unstructured mesh consisting of $111,513$ tetrahedral elements with increased resolution near the inundation areas.
+The mesh used for the simulation is a single layer horizontally unstructured mesh consisting of $19,506$ tetrahedral elements with increased resolution near the inundation areas.
 The equations are solved with the $P_1-P_1$ finite element pair, a backward Euler time discretisation with a time-step of $0.1$s.
 The wetting and drying algorithm in \fluidity\ requires the user to set a minimal water level thickness, which is here set to $d_0=0.5$mm. If the water surface reaches that level at a point, this point is defined to be dry.
 The isotropic kinematic viscosity and gravity magnitude are set to $0.01\mbox{m}^{2}\mbox{s}^{-1}$ and $9.81\mbox{ms}^{-2}$, respectively.
