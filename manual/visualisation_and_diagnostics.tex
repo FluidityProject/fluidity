@@ -307,10 +307,11 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	create\_climatology\_atlas		& \ref{sect:create_climatology_atlas}	\\
 	differentiate\_vtu          		& \ref{sect:differentiate_vtu}		\\
 	edge\_length\_distribution		& \ref{sect:edgelengthdist} 		\\
-	genpvtu					& \ref{sect:genpvtu}			\\
-        gen\_square\_meshes			& \ref{sect:gen_square_meshes} 		\\
 	fladapt					& \ref{sect:fladapt}			\\
 	fldiagnostics				& \ref{sect:fldiagnostics}		\\
+	genpvtu					& \ref{sect:genpvtu}			\\
+        gen\_square\_meshes			& \ref{sect:gen_square_meshes} 		\\
+        gmsh\_mesh\_transform			& \ref{sect:gmsh_mesh_transform}	\\
     	interval				& \ref{sect:interval} 			\\
 	linear\_interpolation			& \ref{sect:scripts_linear_interpolation} \\	
 	mean\_flow				& \ref{sect:mean_flow}			\\
@@ -398,26 +399,6 @@ edge_length_distribution <vtu filename>
 \end{lstlisting}
 The options are available inside the python file or at the command line.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%% GENPVTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{genpvtu}
-\label{sect:genpvtu}
-genpvtu creates a set of pvtus from a base set of vtus. It is run from the command line:
-\begin{lstlisting}[language = Bash]
-genpvtu basename 
-\end{lstlisting}
-with basename that of the vtu set e.g. $\{$example\_0\_0.vtu, example\_0\_1.vtu, example\_0\_2.vtu; example\_1\_0.vtu, example\_1\_1.vtu, example\_1\_2.vtu$\}$ has basename 'example'. It will produce pvtus with names example\_0.pvtu, example\_1.pvtu.
-
-%%%%%%%%%%%%%%%%%%%%% GEN SQUARE MESHES %%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{gen\_square\_meshes}
-\label{sect:gen_square_meshes}
-gen\_square\_meshes will generate triangle files for 2D square meshes. It is run with python from the command line:
-\begin{lstlisting}[language = Bash]
-gen_square_meshes [OPTIONS] NODES MESHES 
-\end{lstlisting} 
-NODES is the number of nodes in the mesh and MESHES is the number of meshes to be created. [OPTIONS] are -h for help and -v for Verbose mode.
-
 %%%%%%%%%%%%%%%%%%%%%%%%% FLADAPT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{fladapt}
@@ -458,6 +439,65 @@ and the \lstinline[language = Bash]+-h+ flag displays the help message. To add t
 \begin{lstlisting}[language = Bash]
 fldiagnostics add -o GridReynoldsNumber -r 0 ...
 			           ... lock_exchange.vtu lock_exchange_out 5 8
+\end{lstlisting}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% GENPVTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{genpvtu}
+\label{sect:genpvtu}
+genpvtu creates a set of pvtus from a base set of vtus. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+genpvtu basename 
+\end{lstlisting}
+with basename that of the vtu set e.g. $\{$example\_0\_0.vtu, example\_0\_1.vtu, example\_0\_2.vtu; example\_1\_0.vtu, example\_1\_1.vtu, example\_1\_2.vtu$\}$ has basename 'example'. It will produce pvtus with names example\_0.pvtu, example\_1.pvtu.
+
+%%%%%%%%%%%%%%%%%%%%% GEN SQUARE MESHES %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{gen\_square\_meshes}
+\label{sect:gen_square_meshes}
+gen\_square\_meshes will generate triangle files for 2D square meshes. It is run with python from the command line:
+\begin{lstlisting}[language = Bash]
+gen_square_meshes [OPTIONS] NODES MESHES 
+\end{lstlisting} 
+NODES is the number of nodes in the mesh and MESHES is the number of meshes to be created. [OPTIONS] are -h for help and -v for Verbose mode.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% GMSH_MESH_TRANSFORM %%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{gmsh\_mesh\_transform}
+\label{sect:gmsh_mesh_transform}
+
+gmsh\_mesh\_transform applies a coordinate transformation to a region of a given mesh. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+gmsh_mesh_transform [constants] region transformation mesh
+\end{lstlisting}
+where \lstinline[language = Bash]+constants+ is an optional list of constant associations separated by commas, for use in region and transformation, \lstinline[language = Bash]+region+ is a python expression which evaluates to true over the region to be transformed (use 'True' for whole domain), \lstinline[language = Bash]+transformation+ is a python expression giving the coordinate transformation and \lstinline[language = Bash]+mesh+ is the name of the gmsh mesh file.
+Note: This script creates a backup of the original mesh file with a '.bak' extension.
+Examples:
+
+To rescale the z-dimension by a factor of 1000.
+\begin{lstlisting}[language = Bash]
+gmsh_mesh_transform '(x,y,1000*z)' mesh.msh
+\end{lstlisting} 
+
+To project all points that lie within a circle of centre (\lstinline[language = Bash]+xcentre,ycentre+) in \lstinline[language = Bash]+z+ by a distance \lstinline[language = Bash]+zprojection+:
+\begin{lstlisting}[language = Bash]
+gmsh_mesh_transform 'xcentre=50, ycentre=50, radius=20, zprojection=50'
+'(x-xcentre)**2 + (y-ycentre)**2 < radius**2' '(x, y, z+zprojection)' mesh.msh
+\end{lstlisting} 
+
+To project all points that lie within a circle of centre (\lstinline[language = Bash]+xcentre,ycentre+) in \lstinline[language = Bash]+z+ in the shape of a cone, by a distance \lstinline[language = Bash]+zprojection+ at the centre:
+\begin{lstlisting}[language = Bash]
+gmsh_mesh_transform 'xcentre=50, ycentre=50, radius=20, zprojection=50'
+'(x-xcentre)**2 + (y-ycentre)**2 < radius**2' '(x, y, z + zprojection *
+(1 - sqrt((x-xcentre)**2 + (y-ycentre)**2) / radius ) )' mesh.msh
+\end{lstlisting} 
+
+To add an ice shelf to a meshed box for \lstinline[language = Bash]+x+ in \lstinline[language = Bash]+[0,shelflength]+ and \lstinline[language = Bash]+z+ in \lstinline[language = Bash]+[0,shelfslopeheight++\lstinline[language = Bash]+minoceandepth]+. Note this applies to both 2d and 3d domains and the ocean domain can extend further:
+\begin{lstlisting}[language = Bash]
+gmsh_mesh_transform 'shelflength = 550, shelfslopeheight = 800, 
+minoceandepth = 100' 'x < shelflength' '(x, y, (z/(shelfslopeheight 
++ minoceandepth)) * ((x/shelflength) * shelfslopeheight + minoceandepth))' 
+mesh.msh
 \end{lstlisting}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% INTERVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
