@@ -282,8 +282,66 @@ There are three main types of offline diagnostics:
 \subsection{vtktools}
 \label{sect:diagnostics_vtk_tools}
 
-Vtktools allows you to analyse data from the vtu file using python. This includes the values of all the fields at each point at each dump.  Vtktools is documented on the wiki Cook Book.
+\lstinline[language = bash]+vtktools.py+ is a set of python tools that allows you to analyse data from a vtu or pvtu. The tools are based on python vtk and the module can be found in \lstinline[language = bash]+python/+ directory of the \fluidity\ trunk. To extract the pressure and velocity fields from a vtu, for example, use
+\begin{lstlisting}[language = Python]
+import sys
+sys.path.append(<<fluidity_source_path>>/python/')
+
+import vtktools
+data = vtktools.vtu('example.vtu')
+p = data.GetScalarField('Pressure')
+uvw = data.GetVectorField('Velocity')
+u = uvw[:,0]
+\end{lstlisting}  
+This performs the following steps
+\begin{itemize}
+\item imports the python sys module and then appends the directory which vtktools.py is in to the system path;
+\item imports the vtktools module;
+\item makes an object called \lstinline[language=Python]+data+ which contains the information about the vtu \lstinline[language=Python]+example.vtu+ (if running in parallel this would be \lstinline[language=Python]+example.pvtu+);
+\item the pressure field is then extracted using \lstinline[language=Python]+GetScalarField+ which returns an array;
+\item similarly the full velocity field is extracted using \lstinline[language=Python]+GetVectorField+ which returns an array;
+\item finally the horizontal velocity field is obtained by picking the relevant values from the full velocity field.
+\end{itemize}
+A full list of the available tools is given in table \ref{table:vtktools_list}. A summary can also be obtained by typing \lstinline[language=Python]+help(vtktools)+ in an ipython session.  Further examples of use can be found in the online at \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, in the python scripts used for postprocessing of the examples and in the test cases.
  
+\begin{landscape}
+\begin{longtable}{|c | p{0.2\textwidth}| |p{0.6\textwidth}|} \hline
+\centering
+  method & arguments & use \\ \hline
+\lstinline[language=Python]+AddField+ & \lstinline[language=Python]+name, array+ & Adds the values in \lstinline[language=Python]+array+ (the entries of which may have an arbitrary number of components) as a field called \lstinline[language=Python]+name+ \\ \hline
+%
+\lstinline[language=Python]+AddFieldtoField+ & \lstinline[language=Python]+fieldname,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName=None+ & Adds the values in \lstinline[language=Python]+array+ to the field \lstinline[language=Python]+fieldname+. If \lstinline[language=Python]+newFieldName+ is specified then a new field with that name is created with the new values, otherwise the original field is replaced. \\ \hline
+%
+\lstinline[language=Python]+AddScalarField+ & \lstinline[language=Python]+name, array+ & Adds a scalar field called \lstinline[language=Python]+name+ using the values in \lstinline[language=Python]+array+ \\ \hline
+%
+\lstinline[language=Python]+AddVectorField+ & \lstinline[language=Python]+name, array+ & Adds a vector field called \lstinline[language=Python]+name+ using the values in \lstinline[language=Python]+array+ \\ \hline
+%
+\lstinline[language=Python]+ApplyCoordinateTransformation+ & \lstinline[language=Python]+f+ & Applys the coordinate transformation specified in the function \lstinline[language=Python]+f+ to the grid coordinates. It will overwrite the exisiting coordinate values. An example for \lstinline[language=Python]+f+  \lstinline[language=Python]+def f(X,t=0): return [X[0]*t,X[1],X[2]]+ \\ \hline
+%
+\lstinline[language=Python]+ApplyEarthProjection+ & & assumes the input geometry is Cartesian and projects to longitude, latitude and depth. It will overwrite the exisiting coordinate values. \\ \hline
+%
+***\lstinline[language=Python]+ApplyProjection+ & \lstinline[language=Python]+projection_x,+ \lstinline[language=Python]+projection_y,+ \lstinline[language=Python]+projection_z+ & Applys a projection to the grid coordinates. It will overwrite the existing values.*** \\ \hline
+%
+\lstinline[language=Python]+CellDataToPointData+ & & transforms all cell--wise fields to point--wise fields. All existing fields will remain, \\ \hline
+\lstinline[language=Python]+Crop+ & \lstinline[language=Python]+min_x, max_x,+ \lstinline[language=Python]+min_y, max_y+, \lstinline[language=Python]+min_z, max_z+ & Crops the edges defined by the bounding box given by the arguments \\ \hline
+%
+\lstinline[language=Python]+CrossFieldWithField+ \lstinline[language=Python]+fieldName,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName=None,+ \lstinline[language=Python]+postMultiply=True+ & Calculates the cross product, ${\bf a} \times {\bf b}$, where ${\bf a}$ is the field \lstinline[language=Python]+fieldName+ and ${\bf b}$ is \lstinline[language=Python]+array+. If \lstinline[language=Python]+postMultiply$\neq$True+ then ${\bf b} \times {\bf a}$ will be calculated. If \lstinline[language=Python]+newFieldName+ is specified  then a new field with that name is created that takes the values of the cross product, otherwise the original field is replaced. \\ \hline  
+%
+\lstinline[language=Python]+DotFieldWithField+ & \lstinline[language=Python]+fieldName,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName+ & Calculates the dot product of the field called \lstinline[language=Python]+fieldName+ and \lstinline[language=Python]+array+. If \lstinline[language=Python]+newFieldName+ is specified then a new field with that name is created that takes the values of the dot product, otherwise the original field is replaced. \\ \hline
+%
+\lstinline[language=Python]+GetCellPoints+ & \lstinline[language=Python]+id+ & Returns an array with the node numbers of the cell (mesh element) number \lstinline[language=Python]+id+. \\ \hline
+%
+\lstinline[language=Python]+GetCellVolume+ & \lstinline[language=Python]+id+ & Returns the volume of the cell (mesh element) with number \lstinline[language=Python]+id+ \\ \hline
+%
+***\lstinline[language=Python]+GetDerivative+ & \lstinline[language=Python]+name+ & Returns the derivative of the field called \lstinline[language=Python]+name+. Each component of the returned array has form*** \\ \hline
+%
+% 
+%
+%
+\caption[Table of vtktools]{Table of tools available in vtktools for extraction and analysis of data in vtu and pvtu files. Each of these tools is a \lstinline[language=Python]+method+ which can be applied to an object created from a vtu or pvtu with \lstinline[language=Python]+data = vtktools.vtu('example.vtu')+. The methods can then be used with \lstinline[language=Python]+data.method(arguments)+. Note only the \lstinline[language=Python]+Write+ method can change the original vtu pr pvtu. See section \ref{sect:diagnostics_vtk_tools}, online at \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, in the postprocessing python scripts in the examples and the test cases for further examples of use. The list can also be obtained in a ipython session with the command \lstinline[language=Python]+help(vtktools)+.}
+
+\end{longtable}
+\end{landscape}
 
 \subsection{Diagnostic output}
 \label{sect:diagnostic_output}
