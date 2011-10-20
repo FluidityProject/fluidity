@@ -1147,6 +1147,7 @@ To explore the functionality of \fluidity, the following variations on this exam
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+
 \section{The restratification following open ocean deep convection}
 \label{sect:restratification_after_oodc}
 
@@ -1171,16 +1172,16 @@ The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$.
 \end{figure}
 
 
-The mesh used is a layered mesh, which is created within \fluidity\ from the two dimensional input mesh circle.*. The unstructured triangular mesh is extruded in the vertical, forming triangular prisms which are then divided into unstructured tetrahedra. The columnar arrangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create errors in the pressure, which then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different amounts of resolution in different areas of the domain. The resolution is 5 km in the horizontal and 83 m in the vertical. 
+The mesh used is a layered mesh, which is created within \fluidity\ from the two dimensional input mesh, \option{circle.geo}. The unstructured triangular mesh is extruded in the vertical, forming triangular prisms which are then divided into unstructured tetrahedra. The columnar arrangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create errors in the pressure, which would then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different mesh resolutions in different areas of the domain. The resolution is 5 km in the horizontal and 83 m in the vertical. 
 
 
-The velocity is solved for using a discontinuous galerkin discretisation to make the results more accurate. A continuous galerkin discretisation is used for both pressure and temperature, with a polynomial order of 2 for pressure and 1 for temperature.  This discretisation is sometimes referred to as p1dgp2. For this discretisation, the quadrature degree has to be set to 4.   To make it more stable, subcycling is switched on under velocity with a maximum courant number per subcycle of 0.1. There is a diagnostic free surface field which requires a free surface boundary condition under Velocity.
+A $\PoDGPt$ element pair is used. This means that the discretisation is $P_{1\mathrm{DG}}$ for velocity and  $P2$ continuous for pressure. In this case, the temperature is $P1$ continuous. The benefits of $\PoDGPt$ are discussed in \ref{Sect:velocity_pressure_element_pairs}.  To make it more stable, subcycling is switched on under velocity with a maximum Courant number per subcycle of $0.1$. There is a diagnostic free surface field, which requires a free surface boundary condition under the \option{Velocity} options.
 
-The timestep is 7200 s and there are two non-linear iterations.  The timestep is constrained by the courant condition, but is allowed to be bigger than would otherwise be expected because an Absorption field is added under Velocity.  If this field was not added the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\frac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \\* \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \\* \option{\ldots/Absorption/include\_pressure\_correction} option is turned on. 
+The timestep is 7200 s and there are two non-linear iterations.  The timestep is constrained by the Courant condition, but is allowed to be bigger than would otherwise be expected because an absorption field is added under the \option{Velocity} options.  If this field were not added, the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\nicefrac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \option{\ldots/Absorption/include\_pressure\_correction} option is turned on. 
 
 \subsection{Results}
 
-Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at 40 m depth at 5 day intervals. As the column mixes with the surroundings, eddies are seen to form. If this is run with a different resolution a different number of eddies may form. If the resolution is too coarse then no eddies will form at all.
+Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at 40 m depth at 5 day intervals. As the column mixes with the surroundings, eddies are seen to form. If this is run with a different resolution, then a different number of eddies may form. If the resolution is too coarse, then no eddies will form at all.
 
 You might wish to try spinning up before you run this problem.  First run to a steady state with fixed temperature and then run the prognostic simulation from your checkpoints.
 
@@ -1199,6 +1200,8 @@ You might wish to try spinning up before you run this problem.  First run to a s
 \label{fig:rousset-40m}
 \end{center}
 \end{figure}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %---Tides in the Mediterranean Sea--------------------%
