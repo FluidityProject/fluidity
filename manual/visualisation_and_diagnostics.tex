@@ -20,8 +20,8 @@ immediately proceeding the dump time. For example, if the timestep is set to thr
 dump period to 10 seconds, the first dump will occur at 12 seconds.
 
 When running a simulation in parallel, the data are stored both in both .vtu and .pvtu files. 
-The .vtu files contain each the output data for each partition of the parallelized mesh, with 
-the filename \texttt{simulationName\_P\_N.vtu} wheren P is the processor number and N is the 
+The .vtu files contain each the output data for each partition of the parallelised mesh, with 
+the filename \texttt{simulationName\_P\_N.vtu} where P is the processor number and N is the 
 dump number. The .pvtu files contain the general output data for the whole mesh, with 
 numbering is still ordered by dump number.
 
@@ -197,7 +197,7 @@ may be defined by a :: delimited ``state\_name\::field\_name'' string.
 \begin{figure}[ht]
   \centering
   \fig[width=0.7\textwidth]{visualisation_and_diagnostics_images/DiagnosticAlgorithms}
-  \caption{Configuration of a diagnostic field using a diagnostic algortithm in
+  \caption{Configuration of a diagnostic field using a diagnostic algorithm in
            Diamond. Here a pressure gradient diagnostic is defined.}
   \label{fig:diagnostic_algorithm}
 \end{figure}
@@ -264,7 +264,7 @@ for i in range(field.node_count):
 
 There are three main types of offline diagnostics:
 \begin{itemize}
-\item fltools, section \ref{sect:fltools}: programs written in fortran that are compiled by running \lstinline[language = XML]+make fltools+ on the command line in the top directory of the \fluidity source tree. The F90 source files can be found in \lstinline[language = XML]+tools+
+\item fltools, section \ref{sect:fltools}: programs written in Fortran that are compiled by running \lstinline[language = XML]+make fltools+ on the command line in the top directory of the \fluidity source tree. The F90 source files can be found in \lstinline[language = XML]+tools+
 \item python scripts, section \ref{sect:diagnostics_useful_scripts}: scripts that can be run from the command line. They are found in \lstinline[language = XML]+scripts+
 \item python modules: modules that can be imported e.g. for use in a test case. They are found in \lstinline[language = XML]+python/fluidity/diagnostics+ and are imported with  \\ \lstinline[language = python]+import python.fluidity.diagnostics.modulename+
 \end{itemize}
@@ -325,7 +325,7 @@ This creates a climatology atlas, for use with ICOM, using "High resolution ($1/
 
 The $1/4 ^\circ$ grid climatological mean fields of in situ temperature (degrees Celsius) and salinity (practical salinity scale) for the annual, seasonal, and monthly time periods were calculated by \cite{boyer2005} using objective analysis techniques. The data and associated metadata was obtained from the NODC, \url{http://www.nodc.noaa.gov/OC5/WOA01/qd_ts01.html}. All the data files are gzipped ASCII 1/4 gridded data files ('Girdded Fields') and contain the DOS end-of-line character (M). There are 12 monthly averages of temperature and 12 monthly averages of salinity. In addition, there 4 seasonal averages of temperature and 4 seasonal averages of salinity corresponding to winter (defined as January, February and March), spring summer and autumn. Further information can be found online at the above address.
 
-For use with ICOM (relaxing to climatology at the boundaries), a NetCDF data was created containing the monthly means, and the additional 9 standard levels from the seasonal means in order to provide information below the 1500m level. In addition, Killworth correction (Killworth 1995) is applied to the data in order to facilitate accutate time interpolation.
+For use with ICOM (relaxing to climatology at the boundaries), a NetCDF data was created containing the monthly means, and the additional 9 standard levels from the seasonal means in order to provide information below the 1500m level. In addition, Killworth correction (Killworth 1995) is applied to the data in order to facilitate accurate time interpolation.
 
 To use this just execute it in the directory which contains all the files listed above gunzipped.
 
@@ -376,7 +376,7 @@ fldiagnostics add -o GridReynoldsNumber -r 0 ...
 
 \subsubsection{petsc\_readnsolve}
 \label{sect:petsc_readnsolve} 
-Whenever in \fluidity\ a linear solve has not completed succesfully the equation is dumped out in a file called matrixdump. This file can be used to analyse the behaviour of this solve without having to rerun the model with petsc\_readnsolve. It reads in the matrixdump and tries to solve it with PETSc options set in the flml file. It is advisable to first reproduce the failing solve with the same options as it happened in \fluidity\. After that the solver options in the flml file can be changed to see if that fixes the problem. The options under \option{\ldots/solver/diagnostics} are particularly useful to diagnose the problem.  petsc\_readnsolve is run from the command line:
+Whenever in \fluidity\ a linear solve has not completed successfully the equation is dumped out in a file called matrixdump. This file can be used to analyse the behaviour of this solve without having to rerun the model with petsc\_readnsolve. It reads in the matrixdump and tries to solve it with PETSc options set in the flml file. It is advisable to first reproduce the failing solve with the same options as it happened in \fluidity\. After that the solver options in the flml file can be changed to see if that fixes the problem. The options under \option{\ldots/solver/diagnostics} are particularly useful to diagnose the problem.  petsc\_readnsolve is run from the command line:
 
 \begin{lstlisting}[language = Bash]
 petsc_readnsolve FILENAME FIELDNAME [OPTIONS]
