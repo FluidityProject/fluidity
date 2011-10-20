@@ -1404,9 +1404,14 @@ to the boundary condition.
 \subsubsection{Neumann}
 \index{boundary conditions!Neumann}
 
-A Neumann boundary condition sets the derivative to the normal ($\vec n$) of the surface $\partial\Omega$:
+A Neumann boundary condition sets a flux term $q$ to the normal ($\vec n$) of the surface $\partial\Omega$:
 \begin{equation*}
-\frac{\partial c}{\partial n} \left(\equiv \vec{n}\cdot\nabla c\right) = f(\bmx) \quad \textrm{on}\;  \partial\Omega.
+\int_{\partial\Omega} \phi (\kaptens\nabla c)\cdot\bmn \;d\Gamma,
+\end{equation*}
+where $\phi$ is a test function (see section \ref{chap:numerical_discretisation}).
+The Neumann condition is specified by assigning a value to the $q$, where
+\begin{equation*}
+q = (\kaptens\nabla c)\cdot\bmn,\quad \textrm{on}\quad \partial\Omega.
 \end{equation*}
 
 \subsubsection{Bulk formulae}\label{Sect:bulk_formulae}
