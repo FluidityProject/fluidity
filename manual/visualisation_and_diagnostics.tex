@@ -303,28 +303,56 @@ the \fluidity\ trunk. The programs generated can then be found in the
     \hline
 	Program					& Section 				\\
     \hline
+    	create\_aligned\_mesh 			& \ref{sect:create_aligned_mesh}	\\
 	create\_climatology\_atlas		& \ref{sect:create_climatology_atlas}	\\
+	differentiate\_vtu          		& \ref{sect:differentiate_vtu}		\\
+	edge\_length\_distribution		& \ref{sect:edgelengthdist} 		\\
+	genpvtu					& \ref{sect:genpvtu}			\\
+        gen\_square\_meshes			& \ref{sect:gen_square_meshes} 		\\
 	fladapt					& \ref{sect:fladapt}			\\
-	fldiagnostics				& \ref{sect:fldiagnostics}		\\		
-	flintegrate				& \\
+	fldiagnostics				& \ref{sect:fldiagnostics}		\\
+    	interval				& \ref{sect:interval} 			\\
+	linear\_interpolation			& \ref{sect:scripts_linear_interpolation} \\	
+	mean\_flow				& \ref{sect:mean_flow}			\\
+	mms\_tracer\_error			& \ref{sect:mms_tracer_error}		\\
+	nodecount				& \ref{sect:nodecount}			\\
 	petsc\_readnsolve			& \ref{sect:petsc_readnsolve} 		\\
+	probe\_vtu  				& \ref{sect:probe_vtu} 			\\
 	project\_to\_continuous			& \ref{sect:project_to_continuous} 	\\
-	streamfunction\_2d			& \ref{sect:streamfunction_2d} 		\\	
+	pvtu2vtu				& \ref{sect:pvtu2vtu}			\\
+	rename\_checkpoint			& \ref{sect:rename_checkpoint}		\\
+	stat2csv				& \ref{sect:stat2csv}			\\
+    	statplot				& \ref{sect:statplot} 			\\
+	streamfunction\_2d			& \ref{sect:streamfunction_2d} 		\\
+    	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\	
 	test\_pressure\_solve			& \ref{sect:test_pressure_solve}	\\
+	transform\_mesh				& \ref{sect:transform_mesh}		\\
 	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
     	vertical\_integration			& \ref{sect:vertical_integration} 	\\
-    	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
-	differentiate\_vtu          & \ref{sect:differentiate_vtu}		\\
-	probe\_vtu  & \ref{sect:probe_vtu} \\
-	vtu\_bins           & \ref{sect:vtu_bins}		\\
+	vtu\_bins           			& \ref{sect:vtu_bins}			\\
 	vtk\_projection				& \ref{sect:vtkprojection}		\\
+	vtudecomp				& \ref{sect:vtudecomp}			\\
+	vtudiff					& \ref{sect:vtudiff}			\\
     \hline
   \end{tabular}
 \end{center}
 \caption[Table of fltools]{Table of fltools. On running \lstinline[language = bash]+make fltools+ they can be found in the \lstinline[language = bash]+bin/+ directory of the \fluidity\ trunk.}
 \label{tab:fltools}
 \end{table}
+
+%%%%%%%%%%%%%%%%%% CREATE ALIGNED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{create\_aligned\_mesh}
+\label{sect:create_aligned_mesh}
+
+Creates the triangle files for a mesh that lines up in all directions, so that it can be made it into a singly, doubly or triply periodic mesh. It is run from the command line:
+
+\begin{lstlisting}[language = Bash]
+scripts/create_aligned_mesh newmesh Lx Ly Lz Nx Ny Nz [Ox Oy Oz]
+\end{lstlisting}
+
+This creates a box that is $\mathrm{Lx} \times \mathrm{Ly} \times \mathrm{Lz}$ with Nx, Ny, Nz layers in the $x,y,z$ directions respectively. The optional arguments Ox, Oy, Oz  specify the position of the origin. Information can be found by running \lstinline[language = bash]+create_aligned_mesh --help+ on the command line. Note the mesh will always be 3d.
 
 %%%%%%%%%%%%%%%%%% CREATE CLIMATOLOGY ATLAS %%%%%%%%%%%%%%%%%%%%%%
 
@@ -339,11 +367,62 @@ For use with ICOM (relaxing to climatology at the boundaries), a NetCDF data was
 
 To use this just execute it in the directory which contains all the files listed above gunzipped.
 
+%%%%%%%%%%%%%%%%%%%%% DIFFERENTIATE_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{differentiate\_vtu}
+\label{sect:differentiate_vtu}
+
+differentiate\_vtu takes the gradient of every scalar field and vector field
+component within an vtu. It is primarily intended for cases where the derivatives
+of large numbers of fields are required. differentiate\_vtu is built as part of the fltools
+build target (see section \ref{sect:fltools}), and is used via:
+
+\begin{lstlisting}[language = Bash]
+differentiate_vtu [-v] input_filename output_filename [input_fieldname]
+\end{lstlisting}
+
+where \lstinline[language = Bash]+input_filename+ is the input vtu and
+\lstinline[language = Bash]+output_filename+ is the output vtu. If
+\lstinline[language = Bash]+input_fieldname+ is supplied then only that field
+is differentiated. The \lstinline[language = Bash]+-v+ flag enables verbose output.
+
+%%%%%%%%%%%%%%%%%% EDGE LENGTH DISTRIBUTION %%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{edge\_length\_distribution}
+\label{sect:edgelengthdist}
+
+edge\_length\_distribution is a python script that creates histograms of the edge lengths of the elements in the mesh at each time step. It also produces line graphs of the maximum and minimum edge lengths as a function of time. This is useful for analysing adaptive runs to see how the edge lengths compare to a fixed run of the same process.  It is run from the command line:
+\begin{lstlisting}[language = Bash]
+edge_length_distribution <vtu filename> 
+[options]
+\end{lstlisting}
+The options are available inside the python file or at the command line.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% GENPVTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{genpvtu}
+\label{sect:genpvtu}
+genpvtu creates a set of pvtus from a base set of vtus. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+genpvtu basename 
+\end{lstlisting}
+with basename that of the vtu set e.g. $\{$example\_0\_0.vtu, example\_0\_1.vtu, example\_0\_2.vtu; example\_1\_0.vtu, example\_1\_1.vtu, example\_1\_2.vtu$\}$ has basename 'example'. It will produce pvtus with names example\_0.pvtu, example\_1.pvtu.
+
+%%%%%%%%%%%%%%%%%%%%% GEN SQUARE MESHES %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{gen\_square\_meshes}
+\label{sect:gen_square_meshes}
+gen\_square\_meshes will generate triangle files for 2D square meshes. It is run with python from the command line:
+\begin{lstlisting}[language = Bash]
+gen_square_meshes [OPTIONS] NODES MESHES 
+\end{lstlisting} 
+NODES is the number of nodes in the mesh and MESHES is the number of meshes to be created. [OPTIONS] are -h for help and -v for Verbose mode.
+
 %%%%%%%%%%%%%%%%%%%%%%%%% FLADAPT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{fladapt}
 \label{sect:fladapt}
-fladapt performs a single mesh adapt based on the input options file (which may be a checkpoint) and outputs the resulting mesh. It run from the command line:
+fladapt performs a single mesh adapt based on the input options file (which may be a checkpoint) and outputs the resulting mesh. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
 fladapt [-v] INPUT OUTPUT
@@ -381,12 +460,66 @@ fldiagnostics add -o GridReynoldsNumber -r 0 ...
 			           ... lock_exchange.vtu lock_exchange_out 5 8
 \end{lstlisting}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%% INTERVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{interval}
+\label{sect:interval}
+
+This is a one-dimensional mesh generator. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+interval [options] left right name 
+\end{lstlisting}
+Left and right are the start and end points for the mesh, and name is the name of the file.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% LINEAR INTERPOLATION %%%%%%%%%%%%%%%%%%%
+
+\subsubsection{linear\_interpolation}
+\label{sect:scripts_linear_interpolation}
+linear\_interpolation linearly interpolates all the fields of a set of vtus on to the mesh of a target vtu. It is run with python from the command line:
+\begin{lstlisting}[language = Bash]
+linear_interpolation TARGET VTU1 VTU2 VTU3 
+\end{lstlisting}
+TARGET is the name of the mesh that the fields will be interpolated on to. VTU1, VTU2, VTU3 are the vtus from which the fields will be interpolated (the number of vtus can be 1 or more, 3 are used here for illustration). An output vtu called \lstinline[language = Bash]+interpolation_output.vtu+ will be generated that will contain all the interpolated fields from all the vtus. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% MEAN FLOW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+\subsubsection{mean\_flow}
+\label{sect:mean_flow}
+
+mean\_flow calculates the mean of the fields in a set of vtus. It is run with python from the command line:
+\begin{lstlisting}[language = Bash]
+mean_flow <options> [vtu basename] [first dump id] [last dump id]
+\end{lstlisting}
+The options include specification of an area of the domain to sample and the number of sampling planes in each direction. The option \lstinline[language = Bash]+-h+ provides further information on how to use these.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% MMS TRACER ERROR %%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{mms\_tracer\_error}
+\label{sect:mms_tracer_error}
+
+mms\_tracer\_error evaluates the error between two fields using either an $L_2$ or $L_\infty$ control-volume norm. It is called from a python script e.g.:
+\begin{lstlisting}[language = python]
+import mms\_tracer\_error as error
+l2_error = error.l2("MMS.vtu", "field1", "field2")
+inf_error = error.inf("MMS.vtu", "field1", "field2")
+\end{lstlisting}
+where \lstinline[language = python]+MMS.vtu+ is the name of the vtu and \lstinline[language = python]+field1, field2+ are two scalar fields in the vtu to be compared.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% NODECOUNT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{nodecount}
+\label{sect:nodecount}
+nodecount will return the number of nodes in a list of vtus. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+nodecount [vtulist]
+\end{lstlisting}
+If \lstinline[language = Bash]+vtulist+ is not supplied it will run on any vtu in the working directory.
 
 %%%%%%%%%%%%%%%%%% PETSC READNSOLVE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{petsc\_readnsolve}
 \label{sect:petsc_readnsolve} 
-Whenever in \fluidity\ a linear solve has not completed successfully the equation is dumped out in a file called matrixdump. This file can be used to analyse the behaviour of this solve without having to rerun the model with petsc\_readnsolve. It reads in the matrixdump and tries to solve it with PETSc options set in the flml file. It is advisable to first reproduce the failing solve with the same options as it happened in \fluidity\. After that the solver options in the flml file can be changed to see if that fixes the problem. The options under \option{\ldots/solver/diagnostics} are particularly useful to diagnose the problem.  petsc\_readnsolve is run from the command line:
+Whenever in \fluidity\ a linear solve has not completed successfully the equation is dumped out in a file called matrixdump. This file can be used to analyse the behaviour of this solve without having to rerun the model with petsc\_readnsolve. It reads in the matrixdump and tries to solve it with PETSc options set in the flml file. It is advisable to first reproduce the failing solve with the same options as it happened in \fluidity. After that the solver options in the flml file can be changed to see if that fixes the problem. The options under \option{\ldots/solver/diagnostics} are particularly useful to diagnose the problem.  petsc\_readnsolve is run from the command line:
 
 \begin{lstlisting}[language = Bash]
 petsc_readnsolve FILENAME FIELDNAME [OPTIONS]
@@ -440,6 +573,25 @@ When a solve fails in a parallel run, a single matrixdump file is written. petsc
 
 petsc\_readnsolve in parallel requires the mesh files of the same mesh as the one used by \fluidity\ during the failing solve. Therefore, for adaptive runs, a checkpoint at the point of the failing solve is required and then the checkpoint flml is used for petsc\_readnsolve. In most cases the mesh files are not needed for serial runs of petsc\_readnsolve, even if the \fluidity\ run was parallel.
 
+%%%%%%%%%%%%%%%%%%%%% PROBE_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{probe\_vtu}
+\label{sect:probe_vtu}
+
+Returns the value of a field at a specified coordinate in a vtu file.
+probe\_vtu is built as part of the fltools
+build target (see section \ref{sect:fltools}), and is used via:
+
+\begin{lstlisting}[language = Bash]
+probe_vtu [-v] input_filename field_name x [y z]
+\end{lstlisting}
+
+where \lstinline[language = Bash]+input_filename+ is the input vtu and
+\lstinline[language = Bash]+field_name+ is the field to be probed. 
+\lstinline[language = Bash]+x+, \lstinline[language = Bash]+y+ and
+\lstinline[language = Bash]+z+ are the coordinates at which the field is to
+be evaluated. The \lstinline[language = Bash]+-v+ flag enables verbose output.
+
 %%%%%%%%%%%%%%%%%% PROJECT TO CONTINUOUS %%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{project\_to\_continuous}
@@ -451,6 +603,85 @@ project_to_continuous [OPTIONS] vtufile trianglename
 \end{lstlisting}
 
 where \lstinline[language = Bash]+vtufile+ is the name of the discontinuous vtu and \lstinline[language = Bash]+trianglename+ is the base name of the triangle files. The flag \lstinline[language = Bash]+-h+ prints out the help message and the flag \lstinline[language = Bash]+-v+ enables verbose output.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% PVTU2VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{pvtu2vtu}
+\label{sect:pvtu2vtu}
+pvtu2vtu combines pvtus into vtus. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+pvtu2vtu [OPTIONS] PROJECT FIRSTID [LASTID]
+\end{lstlisting} 
+with \lstinline[language = Bash]+PROJECT+ the basename of the pvtus and \lstinline[language = Bash]+FIRSTID+ and \lstinline[language = Bash]+LASTID+ the first and last id numbers respectively of the pvtus to be included. \lstinline[language = Bash]+LASTID+ is optional and defaults to \lstinline[language = Bash]+FIRSTID+. Running with the option \lstinline[language = Bash]+-h+ will give further information on the other options available. Note, this may not always work with vtus from adaptive runs.
+
+%%%%%%%%%%%%%%%%%%%%%% RENAME CHECKPOINT %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{rename\_checkpoint}
+\label{sect:rename_checkpoint}
+rename\_checkpoint takes a list of vtu files in the working directory produced from a serial checkpointed flml file with names base\_filename\_checkpoint\_i.vtu for all i and renames them as base\_filename\_index+i.vtu. Additionally it may take a list of
+vtu and pvtu files in the current directory produced from a checkpointed parallel flml file with names base\_filename\_checkpoint\_i\_j.vtu and base\_filename\_checkpoint\_i.pvtu for all i (index) and j (processor number) and renames them as base\_filename\_index+i\_j.vtu and base\_filename\_index+i.pvtu. It is run from the command line with:
+\begin{lstlisting}[language = Bash]
+rename_checkpoint [options] <base_filename> <index>
+\end{lstlisting}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% STAT2CSV %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{stat2csv}
+\label{sect:stat2csv}
+stat2csv converts a \fluidity\ stat file into a csv file. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+stat2csv [OPTIONS] PROJECT
+\end{lstlisting} 
+with \lstinline[language = Bash]+PROJECT+ the base name of the stat file. The default output is to PROJECT.csv. Running with the option \lstinline[language = Bash]+-h+ will provide further information on the output file name, type and format.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% STATPLOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{statplot}
+\label{sect:statplot}
+
+statplot is a graphical program for previewing files in the .stat file format.
+statplot can be launched via:
+
+\begin{lstlisting}[language = Bash]
+statplot filename [filename2 filename3 ...]
+\end{lstlisting}
+
+This generates a graphical user interface displaying a plot of one statistic in
+the .stat file against another. The ordinate and abscissa statistics can be
+selected via combo boxes immediately beneath the plot. The plot itself can
+be navigated using the pylab navigation toolbar - see
+\url{http://matplotlib.sourceforge.net/users/navigation_toolbar.html} for
+more complete documentation.
+
+If multiple .stat files are supplied, the data are combined. This is useful for
+visualising output for simulations that are checkpointed and resumed. 
+
+Additional keyboard commands:
+
+\begin{center}
+  \begin{tabular}{| l | l |}
+    \hline
+    Key & Function \\
+    \hline
+    s   & Switch to scatter plot mode \\
+    l   & Switch to line plot mode \\
+    r   & Re-load the input file \\
+    R   & Re-load the input file without changing the plot bounds \\
+    q   & Quit \\
+    x   & Toggle x-axis linear / log \\
+    y   & Toggle y-axis linear / log \\
+    \hline
+  \end{tabular}
+\end{center}
+
+\begin{figure}[ht]
+  \centering
+  \fig[width=0.7\textwidth]{visualisation_and_diagnostics_images/Statplot}
+  \caption{Visualisation of a heat flux diagnostic in a 2D cavity convection
+           simulation using statplot.}
+  \label{fig:statplot}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%% STREAMFUNCTION 2D %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -486,12 +717,49 @@ field ``Velocity'', and \lstinline[language = Bash]+output+ is an output vtu fil
 
 streamfunction\_2d can only be used in serial.
 
+%%%%%%%%%%%%%%%%%% SUPERMESH DIFFERENCE %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{supermesh\_difference}
+\label{sect:supermesh_difference}
+
+The supermesh\_difference tool computes the difference between two vtu
+files using supermesh construction. supermesh\_difference is built as part of
+the fltools build target (see section \ref{sect:fltools}), and is used via:
+
+\begin{lstlisting}[language = Bash]
+supermesh_difference vtu_1 vtu_2 output_vtu
+\end{lstlisting}
+
+The output vtu (with filename \lstinline[language = Bash]+output_vtu+)
+is equal to the first vtu (with filename \lstinline[language = Bash]+vtu_1+)
+minus the second vtu (with filename \lstinline[language = Bash]+vtu_2+).  The
+\lstinline[language = Bash]+-v+ flag enables verbose output.
+
+Be aware that supermesh\_difference can generate extremely large output files,
+particularly in three dimensions. supermesh\_difference can only be used in
+serial.
+
 %%%%%%%%%%%%%%%%%% TEST PRESSURE SOLVE %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{test\_pressure\_solve}
 \label{sect:test_pressure_solve}
 test\_pressure\_solve designed to test the pressure solvers on large aspect ratio domains. SOLVE MINUS LAPLACE EQUATION -- i.e. geometric Laplacian
   !! This is to make a positive definite matrix (instead of negative)
+
+%%%%%%%%%%%%%%%%%%%%%%% TRANSFORM MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{transform\_mesh}
+\label{sect:transform_mesh}
+
+transform\_mesh applies a given coordinate transformation to the given mesh. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+transform_mesh <transformation> <mesh>
+\end{lstlisting}
+with \lstinline[language = Bash]+<mesh>+ the base name of the triangle mesh files. A mesh.node, mesh.face and mesh.ele file are required. \lstinline[language = Bash]+<transformation>+ is a python expression giving the coordinate transformation. For example to rescale the z-dimension by a factor of 1000 run:
+\begin{lstlisting}[language = Bash]
+transform_mesh '(x,y,1000*z)' mesh
+\end{lstlisting}
+It can be used for 2D or 3D meshes.
 
 %%%%%%%%%%%%%%%%%% UNIFIED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -541,28 +809,6 @@ The \lstinline[language = Bash]+-v+ flag enables verbose output.
 
 vertical\_integration can only be used in serial.
 
-%%%%%%%%%%%%%%%%%% SUPERMESH DIFFERENCE %%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{supermesh\_difference}
-\label{sect:supermesh_difference}
-
-The supermesh\_difference tool computes the difference between two vtu
-files using supermesh construction. supermesh\_difference is built as part of
-the fltools build target (see section \ref{sect:fltools}), and is used via:
-
-\begin{lstlisting}[language = Bash]
-supermesh_difference vtu_1 vtu_2 output_vtu
-\end{lstlisting}
-
-The output vtu (with filename \lstinline[language = Bash]+output_vtu+)
-is equal to the first vtu (with filename \lstinline[language = Bash]+vtu_1+)
-minus the second vtu (with filename \lstinline[language = Bash]+vtu_2+).  The
-\lstinline[language = Bash]+-v+ flag enables verbose output.
-
-Be aware that supermesh\_difference can generate extremely large output files,
-particularly in three dimensions. supermesh\_difference can only be used in
-serial.
-
 %%%%%%%%%%%%%%%%%%%%%% VTKDIAGNOSTIC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtkdiagnostic}
@@ -608,44 +854,6 @@ Vorticity integral diagnostic options:
 	Imposes artificial (sinusoidal) velocity field
 	and dumps debugging mesh to vorticityDebugMesh.vtu
 \end{lstlisting}
-
-%%%%%%%%%%%%%%%%%%%%% DIFFERENTIATE_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{differentiate\_vtu}
-\label{sect:differentiate_vtu}
-
-differentiate\_vtu takes the gradient of every scalar field and vector field
-component within an vtu. It is primarily intended for cases where the derivatives
-of large numbers of fields are required. differentiate\_vtu is built as part of the fltools
-build target (see section \ref{sect:fltools}), and is used via:
-
-\begin{lstlisting}[language = Bash]
-differentiate_vtu [-v] input_filename output_filename [input_fieldname]
-\end{lstlisting}
-
-where \lstinline[language = Bash]+input_filename+ is the input vtu and
-\lstinline[language = Bash]+output_filename+ is the output vtu. If
-\lstinline[language = Bash]+input_fieldname+ is supplied then only that field
-is differentiated. The \lstinline[language = Bash]+-v+ flag enables verbose output.
-
-%%%%%%%%%%%%%%%%%%%%% PROBE_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{probe\_vtu}
-\label{sect:probe_vtu}
-
-Returns the value of a field at a specified coordinate in a vtu file.
-probe\_vtu is built as part of the fltools
-build target (see section \ref{sect:fltools}), and is used via:
-
-\begin{lstlisting}[language = Bash]
-probe_vtu [-v] input_filename field_name x [y z]
-\end{lstlisting}
-
-where \lstinline[language = Bash]+input_filename+ is the input vtu and
-\lstinline[language = Bash]+field_name+ is the field to be probed. 
-\lstinline[language = Bash]+x+, \lstinline[language = Bash]+y+ and
-\lstinline[language = Bash]+z+ are the coordinates at which the field is to
-be evaluated. The \lstinline[language = Bash]+-v+ flag enables verbose output.
 
 %%%%%%%%%%%%%%%%%%%%%%%%% VTU_BINS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -726,249 +934,6 @@ The \lstinline[language = Bash]+OPTIONS+ are:
 
 \end{lstlisting}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%% USEFUL SCRIPTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsection{Useful scripts}
-\label{sect:diagnostics_useful_scripts}
-
-There are many useful scripts in the \fluidity\ trunk that can be found in the \lstinline[language = bash]+scripts/+ directory. Table \ref{tab:useful_diagnostic_scripts} lists them and descriptions can be found by referring to the relevant section.
-
-\begin{table}
-\begin{center}
-  \begin{tabular}{| l | l |}
-    \hline
-	Script 					& Section 			\\
-    \hline		
-    	create\_aligned\_mesh 			& \ref{sect:create_aligned_mesh}\\
-	edge\_length\_distribution.py		& \ref{sect:edgelengthdist} 	\\
-	genpvtu					& \ref{sect:genpvtu}		\\
-        gen\_square\_meshes			& \ref{sect:gen_square_meshes} 	\\		
-    	interval				& \ref{sect:interval} 		\\
-	linear\_interpolation.py		& \ref{sect:scripts_linear_interpolation} \\	
-	mean\_flow				& \ref{sect:mean_flow}		\\
-	mms\_tracer\_error.py			& \ref{sect:mms_tracer_error}	\\
-	nodecount.py				& \ref{sect:nodecount}	\\
-	pod.py					& \ref{sect:scripts_pod}	\\
-	pvtu2vtu				& \ref{sect:pvtu2vtu}		\\
-	rename\_checkpoint.py			& \ref{sect:rename_checkpoint}	\\
-	stat2csv				& \ref{sect:stat2csv}		\\
-    	statplot				& \ref{sect:statplot} 		\\
-	transform\_mesh				& \ref{sect:transform_mesh}	\\
-	vtudecomp				& \ref{sect:vtudecomp}		\\
-	vtudiff					& \ref{sect:vtudiff}		\\
-    \hline
-  \end{tabular}
-\end{center}
-\caption[Table of useful diagnostic scripts]{Table of useful diagnostic scripts. They can be found in the \lstinline[language = bash]+scripts/+ directory of the \fluidity\ trunk.}
-\label{tab:useful_diagnostic_scripts}
-\end{table}
-
-%%%%%%%%%%%%%%%%%% CREATE ALIGNED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{create\_aligned\_mesh}
-\label{sect:create_aligned_mesh}
-
-Creates the triangle files for a mesh that lines up in all directions, so that it can be made it into a singly, doubly or triply periodic mesh. It is run from the command line:
-
-\begin{lstlisting}[language = Bash]
-scripts/create_aligned_mesh newmesh Lx Ly Lz Nx Ny Nz [Ox Oy Oz]
-\end{lstlisting}
-
-This creates a box that is $\mathrm{Lx} \times \mathrm{Ly} \times \mathrm{Lz}$ with Nx, Ny, Nz layers in the $x,y,z$ directions respectively. The optional arguments Ox, Oy, Oz  specify the position of the origin. Information can be found by running \lstinline[language = bash]+create_aligned_mesh --help+ on the command line. Note the mesh will always be 3d.
-
-%%%%%%%%%%%%%%%%%% EDGE LENGTH DISTRIBUTION %%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{edge\_length\_distribution.py}
-\label{sect:edgelengthdist}
-
-edge\_length\_distribution.py is a python script that creates histograms of the edge lengths of the elements in the mesh at each time step. It also produces line graphs of the maximum and minimum edge lengths as a function of time. This is useful for analysing adaptive runs to see how the edge lengths compare to a fixed run of the same process.  It is run from the command line:
-\begin{lstlisting}[language = Bash]
-scripts/edge_length_distribution.py <vtu filename> 
-[options]
-\end{lstlisting}
-The options are available inside the python file or at the command line.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% GENPVTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{genpvtu}
-\label{sect:genpvtu}
-genpvtu creates a set of pvtus from a base set of vtus. It is run from the command line:
-\begin{lstlisting}[language = Bash]
-scripts/genpvtu basename 
-\end{lstlisting}
-with basename that of the vtu set e.g. $\{$example\_0\_0.vtu, example\_0\_1.vtu, example\_0\_2.vtu; example\_1\_0.vtu, example\_1\_1.vtu, example\_1\_2.vtu$\}$ has basename 'example'. It will produce pvtus with names example\_0.pvtu, example\_1.pvtu.
-
-%%%%%%%%%%%%%%%%%%%%% GEN SQUARE MESHES %%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{gen\_square\_meshes}
-\label{sect:gen_square_meshes}
-gen\_square\_meshes will generate triangle files for 2D square meshes. It is run with python from the command line:
-\begin{lstlisting}[language = Bash]
-python scripts/gen_square_meshes [OPTIONS] NODES MESHES 
-\end{lstlisting} 
-NODES is the number of nodes in the mesh and MESHES is the number of meshes to be created. [OPTIONS] are -h for help and -v for Verbose mode.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% INTERVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{interval}
-\label{sect:interval}
-
-This is a one-dimensional mesh generator. It is run from the command line:
-\begin{lstlisting}[language = Bash]
-scripts/interval [options] left right name 
-\end{lstlisting}
-Left and right are the start and end points for the mesh, and name is the name of the file.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% LINEAR INTERPOLATION %%%%%%%%%%%%%%%%%%%
-
-\subsubsection{linear\_interpolation.py}
-\label{sect:scripts_linear_interpolation}
-linear\_interpolation.py linearly interpolates all the fields of a set of vtus on to the mesh of a target vtu. It is run with python from the command line:
-\begin{lstlisting}[language = Bash]
-python scripts/linear_interpolation.py TARGET VTU1 VTU2 VTU3 
-\end{lstlisting}
-TARGET is the name of the mesh that the fields will be interpolated on to. VTU1, VTU2, VTU3 are the vtus from which the fields will be interpolated (the number of vtus can be 1 or more, 3 are used here for illustration). An output vtu called \lstinline[language = Bash]+interpolation_output.vtu+ will be generated that will contain all the interpolated fields from all the vtus. 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% MEAN FLOW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- 
-\subsubsection{mean\_flow}
-\label{sect:mean_flow}
-
-mean\_flow calculates the mean of the fields in a set of vtus. It is run with python from the command line:
-\begin{lstlisting}[language = Bash]
-python scripts/mean_flow <options> [vtu basename] [first dump id] [last dump id]
-\end{lstlisting}
-The options include specification of an area of the domain to sample and the number of sampling planes in each direction. The option \lstinline[language = Bash]+-h+ provides further information on how to use these.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% MMS TRACER ERROR %%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{mms\_tracer\_error.py}
-\label{sect:mms_tracer_error}
-
-mms\_tracer\_error.py evaluates the error between two fields using either an $L_2$ or $L_\infty$ control-volume norm. It is called from a python script e.g.:
-\begin{lstlisting}[language = python]
-import mms\_tracer\_error as error
-l2_error = error.l2("MMS.vtu", "field1", "field2")
-inf_error = error.inf("MMS.vtu", "field1", "field2")
-\end{lstlisting}
-where \lstinline[language = python]+MMS.vtu+ is the name of the vtu and \lstinline[language = python]+field1, field2+ are two scalar fields in the vtu to be compared.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% NO NODES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsection{nodecount.py}
-\label{sect:nodecount}
-nodecount.py will return the number of nodes in a list of vtus. It is run from the command line:
-\begin{lstlisting}[language = Bash]
-scripts/nodecount.py [vtulist]
-\end{lstlisting}
-If \lstinline[language = Bash]+vtulist+ is not supplied it will run on any vtu in the working directory.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%% POD %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{pod.py}
-\label{sect:scripts_pod}
-pod.py computes the Principal Orthogonal Decomposition of a series of snapshots. It is run with python from the command line:
-\begin{lstlisting}[language = Bash]
-python scripts/pod.py VTU FIELD
-\end{lstlisting}
-where \lstinline[language = Bash]+VTU+ is the name of a vtu file with fields like Temperature1, Temperature2, Temperature3, etc to be decomposed and \lstinline[language = Bash]+FIELD+ is the name of the field to decompose (here Temperature). 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% PVTU2VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{pvtu2vtu}
-\label{sect:pvtu2vtu}
-pvtu2vtu combines pvtus into vtus. It is run from the command line:
-\begin{lstlisting}[language = Bash]
-python scripts/pvtu2vtu [OPTIONS] PROJECT FIRSTID [LASTID]
-\end{lstlisting} 
-with \lstinline[language = Bash]+PROJECT+ the basename of the pvtus and \lstinline[language = Bash]+FIRSTID+ and \lstinline[language = Bash]+LASTID+ the first and last id numbers respectively of the pvtus to be included. \lstinline[language = Bash]+LASTID+ is optional and defaults to \lstinline[language = Bash]+FIRSTID+. Running with the option \lstinline[language = Bash]+-h+ will give further information on the other options available. Note, this may not always work with vtus from adaptive runs.
-
-%%%%%%%%%%%%%%%%%%%%%% RENAME CHECKPOINT %%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{rename\_checkpoint.py}
-\label{sect:rename_checkpoint}
-rename\_checkpoint.py takes a list of vtu files in the working directory produced from a serial checkpointed flml file with names base\_filename\_checkpoint\_i.vtu for all i and renames them as base\_filename\_index+i.vtu. Additionally it may take a list of
-vtu and pvtu files in the current directory produced from a checkpointed parallel flml file with names base\_filename\_checkpoint\_i\_j.vtu and base\_filename\_checkpoint\_i.pvtu for all i (index) and j (processor number) and renames them as base\_filename\_index+i\_j.vtu and base\_filename\_index+i.pvtu. It is run from the command line with:
-\begin{lstlisting}[language = Bash]
-scripts/rename_checkpoint.py [options] <base_filename> <index>
-\end{lstlisting}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% STAT2CSV %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{stat2csv}
-\label{sect:stat2csv}
-stat2csv converts a \fluidity\ stat file into a csv file. It is run from the command line:
-\begin{lstlisting}[language = Bash]
-scripts/stat2csv [OPTIONS] PROJECT
-\end{lstlisting} 
-with \lstinline[language = Bash]+PROJECT+ the base name of the stat file. The default output is to PROJECT.csv. Running with the option \lstinline[language = Bash]+-h+ will provide further information on the output file name, type and format.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% STATPLOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{statplot}
-\label{sect:statplot}
-
-statplot is a graphical program for previewing files in the .stat file format.
-statplot can be launched via:
-
-\begin{lstlisting}[language = Bash]
-scripts/statplot filename [filename2 filename3 ...]
-\end{lstlisting}
-
-This generates a graphical user interface displaying a plot of one statistic in
-the .stat file against another. The ordinate and abscissa statistics can be
-selected via combo boxes immediately beneath the plot. The plot itself can
-be navigated using the pylab navigation toolbar - see
-\url{http://matplotlib.sourceforge.net/users/navigation_toolbar.html} for
-more complete documentation.
-
-If multiple .stat files are supplied, the data are combined. This is useful for
-visualising output for simulations that are checkpointed and resumed. 
-
-Additional keyboard commands:
-
-\begin{center}
-  \begin{tabular}{| l | l |}
-    \hline
-    Key & Function \\
-    \hline
-    s   & Switch to scatter plot mode \\
-    l   & Switch to line plot mode \\
-    r   & Re-load the input file \\
-    R   & Re-load the input file without changing the plot bounds \\
-    q   & Quit \\
-    x   & Toggle x-axis linear / log \\
-    y   & Toggle y-axis linear / log \\
-    \hline
-  \end{tabular}
-\end{center}
-
-\begin{figure}[ht]
-  \centering
-  \fig[width=0.7\textwidth]{visualisation_and_diagnostics_images/Statplot}
-  \caption{Visualisation of a heat flux diagnostic in a 2D cavity convection
-           simulation using statplot.}
-  \label{fig:statplot}
-\end{figure}
-
-%%%%%%%%%%%%%%%%%%%%%%% TRANSFORM MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{transform\_mesh}
-\label{sect:transform_mesh}
-
-transform\_mesh applies a given coordinate transformation to the given mesh. It is run from the command line:
-\begin{lstlisting}[language = Bash]
-scripts/transform_mesh <transformation> <mesh>
-\end{lstlisting}
-with \lstinline[language = Bash]+<mesh>+ the base name of the triangle mesh files. A mesh.node, mesh.face and mesh.ele file are required. \lstinline[language = Bash]+<transformation>+ is a python expression giving the coordinate transformation. For example to rescale the z-dimension by a factor of 1000 run:
-\begin{lstlisting}[language = Bash]
-scripts/transform_mesh '(x,y,1000*z)' mesh
-\end{lstlisting}
-It can be used for 2D or 3D meshes.
-
 %%%%%%%%%%%%%%%%%%%%%%%%%  VTUDECOMP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtudecomp}
@@ -976,7 +941,7 @@ It can be used for 2D or 3D meshes.
 
 vtudecomp decomposes a vtu given a decomposed triangle mesh. It is run from the command line:
 \begin{lstlisting}[language = Bash]
-scripts/transform_mesh [OPTIONS] MESH VTU
+vtudecomp [OPTIONS] MESH VTU
 \end{lstlisting}
 with \lstinline[language = Bash]+MESH+ the base name of the decomposed triangle mesh and \lstinline[language = Bash]+VTU+ the name of the vtu file to be decomposed. Running with the option \lstinline[language = Bash]+-h+ provides further information on the other options. Note, genpvtu, section \ref{sect:genpvtu} can be used to create a pvtu from the decomposed vtus.
 
@@ -987,7 +952,7 @@ with \lstinline[language = Bash]+MESH+ the base name of the decomposed triangle 
 
 vtudiff generates vtus with fields equal to the difference between the corresponding fields in two input vtus (\lstinline[language = Bash]+INPUT1+ - \lstinline[language = Bash]+INPUT2+). The fields of \lstinline[language = Bash]+INPUT2+ are projected onto the cell points of \lstinline[language = Bash]+INPUT1+. It is run from the command line:
 \begin{lstlisting}[language = Bash]
-scripts/transform_mesh [OPTIONS] INPUT1 INPUT2 OUTPUT [FIRST] [LAST]
+vtudiff [OPTIONS] INPUT1 INPUT2 OUTPUT [FIRST] [LAST]
 \end{lstlisting}
 with \lstinline[language = Bash]+OUTPUT+ the name of the output vtu. If \lstinline[language = Bash]+FIRST+ is supplied, treats INPUT1 and INPUT2 as project names, and generates a different vtu for the specified range of output files \lstinline[language = Bash]+FIRST+ - \lstinline[language = Bash]+LAST+. If not supplied \lstinline[language = Bash]+LAST+ defaults to \lstinline[language = Bash]+FIRST+. The option \lstinline[language = Bash]+-s+ if supplied together with \lstinline[language = Bash]+FIRST+ and \lstinline[language = Bash]+LAST+, only \lstinline[language = Bash]+INPUT1+ is treated as a project name. This allows a range of vtus to be diffed against a single vtu.
 
