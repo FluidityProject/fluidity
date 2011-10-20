@@ -250,7 +250,12 @@ contains the position of all detectors, static and Lagrangian
 Checkpoint filenames all end with [dump
 no.]\_checkpoint[-[process]].[extension], where the process number is added
 to the mesh, halo and field files in parallel.  The checkpoint detectors
-filenames contain \_det after [dump no.]\_checkpoint.
+filenames contain \_det after [dump no.]\_checkpoint. 
+
+A script is available at \lstinline[language = bash]+scripts/rename_checkpoint.py+ 
+that can be used to easily rename these filenames and there contents to continue 
+the naming convention of the original run. For more information see section 
+\ref{sect:rename_checkpoint}.
 
 \index{checkpointing!restarting}
 To restart from a checkpoint, specify the checkpointed FLML file as input.
