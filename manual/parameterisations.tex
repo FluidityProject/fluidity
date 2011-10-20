@@ -389,3 +389,32 @@ The fourth-order method is designed as an improvement to the second-order eddy v
 The most important disadvantage of Smagorinsky-type models such as discussed in sections \ref{ssect:second_order_diss_LES} and \ref{ssect:fourth_order_diss_LES} is the behaviour of the eddy viscosity near walls and non-turbulent regions. As shown in \citet{pope2000}, in a fully developed channel flow the sub-grid eddy viscosity $\nu_\tau$ should diminish as $\nu_\tau \propto z^3$, $z$ the wall-normal coordinate. Conversely, it is shown in \citet{nicoud1999} that the Smagorinsky model gives $\sqrt{2 \tilde{S}_{ij} \tilde{S}_{ij}} \sim O(1)$ near walls leading to an incorrect subgrid-scale viscosity. In addition, the Smagorinsky model is absolutelly dissipative: energy transfer is olny allowed from resolved scales to subgrid scales. The opposite (commonly termed as backscatter), commonly occurs in transitional flows, and absolutelly dissipative models have been shown in \citet{piomelli1990} to under-predict the growth rate of perturbations in the flow, leading to delayed transition to turbulence.%check
 \par
 Dynamical models were designed to overcome the disadvantages of Smagorinsky type models by using arguments with better physical grounding as a starting point towards the evaluation of the subgrid viscosity. In particular, at the core of dymamical Smagorinsky type models lies the idea of scale similarity \citep{bardina1980}, which states that in the inertial subrange, the statistical properties of the fluctuations at a given wave-number are similar to the statistical properties of fluctuations of near-by wavenumbers.
+
+\section{Ice shelf parameterization}
+Exchange of heat and salt between the ice and ocean drives the circulation.
+The temperature $T_b$ and salinity $S_b$ at the ice-ocean interface are determined by the balance of heat and salt fluxes between the ice and ocean \cite[e.g.][]{mcpheebook,jenkins95}:
+\begin{equation}
+mL + mc_I(T_b-T_I)=c_0 \gamma_T |u| (T-T_b); \quad mS_b=\gamma_S |u| (S-S_b),
+\label{three}
+\end{equation}
+where $c_o=3974~J~kg^{-1}~^\circ C^{-1}$ and $c_I=2009~J~kg^{-1}~^\circ C^{-1}$ are the specific heat capacity of seawater and ice, respectively. The variable $m$ and $L=3.35 \times 10^{5}~J~kg^{-1}$ represent the melt rate and the latent heat of ice fusion.
+We assume the temperature of ice to be $T_I=-25~^\circ C $. The velocity, temperature, and salinity of the ocean are $u$, $T$, and $S$, respectively.These two flux balances are linked with constraining the interface to be at the local freezing temperature:
+\begin{equation}
+T_b = aS_b+b + cP,
+\label{last}
+\end{equation}
+where $a=-0.0573 ^\circ C$, $b=0.0832 ^\circ C$ and $c=-7.53e^{-8}~^\circ C~Pa^{-1} $.
+The three unknows $T_b$, $S_b$, and $m$ are solved by the three equations (\ref{three})-(\ref{last}). 
+
+\subsection{Boundary condition at ice surface}
+At the ice surface, heat and salt fluxes to the ocean based on the melt rate are
+\begin{equation}
+F_H = c_0(\gamma_T |u|+ m)(T-T_b); \quad F_S = (\gamma_S|u|+ m)(S-S_b).
+\end{equation}
+
+These boundary conditions are applied to the surface field specified in the flml file.
+
+
+
+
+
