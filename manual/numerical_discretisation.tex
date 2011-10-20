@@ -1860,7 +1860,7 @@ rather than a Galerkin projection of the Helmholtz decomposition of the buoyancy
 and Coriolis accelerations, LBB stability constraints do not apply in the selection
 of a space for $\dvec p_b$.
 
-\section{Free surface}
+\section{Free surface}\label{sec:free_surface}
 \index{free surface!weak form}
 
 Using the fact that the pressure is zero on the free surface and therefore $p=g\eta$, the weak form of the free surface kinematic boundary \eqref{freesurf3} condition is written:
@@ -1890,6 +1890,24 @@ Repeating the steps from section \ref{Sect:pressure_correction}, the pressure co
 \begin{equation}
 \left(\theta C^T(\frac{M_u}{\Delta t})^{-1} \theta C + \frac{M_s}{g(\Delta t)^2}\right)\Delta \hat p = -\frac{\theta C^T u_*^{n+1} + (1-\theta)C^Tu^n}{\Delta t}-\frac{M_s}{g(\Delta t)^2}(\hat p_*^{n+1}-\hat p^n)
 \end{equation}
+
+\section{Wetting and drying}
+The discretisation of free surface boundary condition with wetting and drying is very similar to the derivation in section \ref{sec:free_surface}, 
+but uses $p=g\max(\eta, b+d_0)$ as relationship between pressure and free surface eleveation. Hence the free surface boundary condition with wetting and drying becomes (compare with equation \ref{weakfreesurf3}):
+
+\begin{equation}\label{weakfreesurf3}
+\frac{1}{g} \int_{\Omega_{fs}} {\psi_i }\frac{\partial \max(p, g(b+d_0))}{\partial t}\vec z \cdot \vec n=\int_{\Omega_{fs}} \psi_i {n \cdot \bmu} \quad
+  \forall \psi_i,
+\end{equation}
+where $\Omega_{fs}$ is the boundary where the free surface is to be applied. 
+
+Following the steps in section \ref{weakfreesurf3} yields the pressure correction equation with free surface and wetting and drying:
+\begin{equation}
+\left(\theta C^T(\frac{M_u}{\Delta t})^{-1} \theta C\right) \Delta \hat p + \frac{M^{n+1, wet}_s}{g(\Delta t)^2} \hat p^{n+1}+ \frac{M^{n+1, dry}_s}{(\Delta t)^2}(b+d_0) = \\
+-\frac{\theta C^T u_*^{n+1} + (1-\theta)C^Tu^n}{\Delta t}+\frac{M^{n, wet}_s}{g(\Delta t)^2} \hat p^{n}+ \frac{M^{n, dry}_s}{(\Delta t)^2}(b+d_0),
+\end{equation}
+where a wet (dry) superscript denotes that the matrix is assembled on only wet (dry) mesh elements.
+
 
 \section{Linear solvers} \label{ND_Linear_solvers}
 \index{linear solvers}
