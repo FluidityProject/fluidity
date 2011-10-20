@@ -2,11 +2,13 @@
 \index{mesh!generation}
 \index{grid|see{mesh}}
 
-This chapter describes how to create a mesh for your \fluidity\ simulation. There
-are many tools available, both free and proprietary, that are capable of generating
-unstructured meshes that are suitable for use with \fluidity. Here, we restrict ourselves
-to the mesh generation capabilities built into \fluidity\ and the associated script and
-tools, mentioning only briefly some of the more common tools also available.
+This chapter describes the information contained in a mesh file and the 
+mesh formats that can be read by \fluidity. These include the triangle 
+(see section~\ref{sect:triangle_format}) and Gmsh (see section~\ref{sect:gmsh_format}) 
+formats. We describe the various mesh types that are supported by \fluidity\ and 
+give an overview of the various tools that are provided. For 
+examples of how to generate structured and/or unstructured meshes for use with
+\fluidity\, users may check the Gmsh tutorial~\cite{amcggmshtutorial}.
 
 \section{Mesh data}
 
@@ -63,8 +65,7 @@ different parts of the domain.
 \section{The triangle format}\label{sect:triangle_format}
 \index{mesh!file formats}
 
-The main input file format for \fluidity\ meshes is the \emph{triangle} format.
-The triangle format is a ASCII file format originally designed for 2D
+The \emph{triangle} format is a ASCII file format originally designed for 2D
 triangle meshes, but it can be easily extended to different dimensions and
 more complex geometries.  \fluidity\ supports a version of the triangle format
 which supports 1D, 2D and 3D meshes.  The following table shows the supported
@@ -219,27 +220,23 @@ be either binary or ASCII.
 
 \subsection{Using Gmsh files with \fluidity}\label{sect:using_gmsh}
 
-There are two ways in which Gmsh files can be used with \fluidity. The first
-is to run \lstinline[language=Bash]{gmsh2triangle} and import the resulting
-triangle files; this works on ASCII Gmsh files only. The second way is to 
-use Fluidity's native Gmsh support, which loads in Gmsh files directly into
+\fluidity has native Gmsh support, which loads in Gmsh files directly into
 \fluidity, and works with binary and ASCII Gmsh formats. To enable native 
 support, \fluidity\ needs to be told to expect a Gmsh file, which is achieved 
 by setting the \onlypdf\option{/geometry/mesh/from\_file/format}\ option 
 to \onlypdf\option{gmsh}.  \fluidity\ will now look for a file with the extension 
 \lstinline[language=bash]+.msh+ when it runs.
+Alternatively, the \lstinline[language=Bash]{gmsh2triangle} tool may be used 
+to convert the \lstinline[language=bash]+.msh+ file to the triangle format 
+introduced in section~\ref{sect:triangle_format}.
+
 
 For parallel simulations, you must use \lstinline[language=bash]+fldecomp+ to decompose a Gmsh
 mesh into sub-meshes for each process. Here, only binary Gmsh files can be
 used - see section \ref{mesh!meshing tools!fldecomp}\ for details.
 
 Using native Gmsh support within Fluidity can result in faster start-up times,
-especially when using large meshes and binary Gmsh files. Whilst it works
-reliably in many circumstances, it is still classed as experimental.  You are 
-encouraged to try using it, but if you run into any problems you should
- default to using the
-\lstinline[language=bash]+gmsh2triangle+ utility and triangle format
-instead.
+especially when using large meshes and binary Gmsh files. 
 
 \subsection{Gmsh file format}\label{sect:gmsh_file_format}
 
@@ -334,7 +331,7 @@ essential node column ID information.
 \label{sect:extruded_meshes}
 \index{mesh!extruded}
 
-Given a 1D or 2D mesh file in triangle format, \fluidity\ can extrude this
+Given a 1D or 2D mesh file, \fluidity\ can extrude this
 mesh to create a layered 2D or 3D mesh, on which simulations can be
 performed. The extrusion is specified in the .flml file and is documented in
 section \ref{Sect:extruded}.
@@ -583,7 +580,7 @@ psuedo\_mesh is parallelised, and accepts the following options:
 \index{mesh!verification}
 
 The tool checkmesh can be used to form a number of verification tests on a mesh
-in triangle mesh format. This tool is build as part of the fltools build target
+in triangle mesh format. This tool is built as part of the fltools build target
 (see section \ref{sect:fltools}), and is invoked as:
 
 \begin{lstlisting}[language = Bash]
@@ -665,7 +662,7 @@ See the \href{http://amcg.ese.ic.ac.uk/terreno}{Terreno website}\ for more infor
 \index{gmsh}
 \label{sect:meshing_tools_non_fluidity_gmsh}
 
-Gmsh is a 3D finite element mesh generator with a build-in CAD engine and post-processor.
+Gmsh is a 3D finite element mesh generator with a built-in CAD engine and post-processor.
 Its design goal is to provide a fast, light and user-friendly meshing tool with parametric
 input and advanced visualisation capabilities. Gmsh is built around four modules: geometry, 
 mesh, solver and post-processing. The specification of any input to these modules is done
@@ -674,6 +671,7 @@ own scripting language.
 
 For more information see the \href{http://geuz.org/gmsh/}{Gmsh website}\ or the \href{http://amcg.ese.ic.ac.uk}{AMCG
 website}. An online manual is available at \href{http://geuz.org/gmsh/doc/texinfo/gmsh.html}{geuz.org/gmsh/doc/texinfo/gmsh.html}.
+A Gmsh tutorial~\cite{amcggmshtutorial} is also available.
 
 \subsection{Importing contours from bathymetric data into Gmsh}
 \index{mesh!generation!gmsh!entering! bathymetry! data! into! fluidity! using! Gmsh}
@@ -681,5 +679,5 @@ website}. An online manual is available at \href{http://geuz.org/gmsh/doc/texinf
 
 Gmsh can be used to create a mesh of a `real' ocean domain for use with \fluidity. An online guide to using Gmsh's built in
 GSHHS plug-in is available at \href{http://perso.uclouvain.be/jonathan.lambrechts/gmsh_ocean/}{gmsh\_ocean}.
-It is also possible to import contours from arbitrary bathymetry data sources into Gmsh. A guide and sample code detailing this process will
-in the future be available on the \href{http://amcg.ese.ic.ac.uk}{AMCG website}.
+It is also possible to import contours from arbitrary bathymetry data sources into Gmsh. A tutorial and sample code detailing this process 
+is available in the Gmsh tutorial~\cite{amcggmshtutorial}.
