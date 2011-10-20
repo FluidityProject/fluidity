@@ -303,16 +303,17 @@ the \fluidity\ trunk. The programs generated can then be found in the
     \hline
 	Program					& Section 				\\
     \hline
-    	create\_aligned\_mesh 			& \ref{sect:create_aligned_mesh}	\\
+	checkmesh				& \ref{sect:checkmesh}			\\
+	create\_aligned\_mesh 			& \ref{sect:create_aligned_mesh}	\\
 	create\_climatology\_atlas		& \ref{sect:create_climatology_atlas}	\\
 	differentiate\_vtu          		& \ref{sect:differentiate_vtu}		\\
 	edge\_length\_distribution		& \ref{sect:edgelengthdist} 		\\
 	fladapt					& \ref{sect:fladapt}			\\
 	fldiagnostics				& \ref{sect:fldiagnostics}		\\
 	genpvtu					& \ref{sect:genpvtu}			\\
-        gen\_square\_meshes			& \ref{sect:gen_square_meshes} 		\\
-        gmsh\_mesh\_transform			& \ref{sect:gmsh_mesh_transform}	\\
-    	interval				& \ref{sect:interval} 			\\
+	gen\_square\_meshes			& \ref{sect:gen_square_meshes} 		\\
+	gmsh\_mesh\_transform			& \ref{sect:gmsh_mesh_transform}	\\
+	interval				& \ref{sect:interval} 			\\
 	linear\_interpolation			& \ref{sect:scripts_linear_interpolation} \\	
 	mean\_flow				& \ref{sect:mean_flow}			\\
 	mms\_tracer\_error			& \ref{sect:mms_tracer_error}		\\
@@ -323,13 +324,13 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	pvtu2vtu				& \ref{sect:pvtu2vtu}			\\
 	rename\_checkpoint			& \ref{sect:rename_checkpoint}		\\
 	stat2csv				& \ref{sect:stat2csv}			\\
-    	statplot				& \ref{sect:statplot} 			\\
+	statplot				& \ref{sect:statplot} 			\\
 	streamfunction\_2d			& \ref{sect:streamfunction_2d} 		\\
-    	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\	
+	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\	
 	test\_pressure\_solve			& \ref{sect:test_pressure_solve}	\\
 	transform\_mesh				& \ref{sect:transform_mesh}		\\
 	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
-    	vertical\_integration			& \ref{sect:vertical_integration} 	\\
+	vertical\_integration			& \ref{sect:vertical_integration} 	\\
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
 	vtu\_bins           			& \ref{sect:vtu_bins}			\\
 	vtk\_projection				& \ref{sect:vtkprojection}		\\
@@ -342,6 +343,26 @@ the \fluidity\ trunk. The programs generated can then be found in the
 \label{tab:fltools}
 \end{table}
 
+%%%%%%%%%%%%%%%%%% CHECKMESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{checkmesh}
+\label{sect:checkmesh}
+checkmesh can be used to form a number of verification tests on a mesh in triangle mesh
+format. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+checkmesh input_basename
+\end{lstlisting}
+where \lstinline[language = Bash]+input_basename+ is the base name of an input triangle file. checkmesh tests for:
+\begin{itemize}
+\item Degenerate volume elements
+\item Inverted tetrahedra
+\item Degenerate surface elements
+\item Mesh tangling
+\end{itemize}
+
+checkmesh is parallelised. If running in parallel, it should be launched on a number of processes equal to that in the mesh decomposition. In parallel checkmesh output is written to
+\lstinline[language = Bash]+checkmesh.log-[process]+ and \lstinline[language = Bash]+checkmesh.err-[process]+ log files.
+
 %%%%%%%%%%%%%%%%%% CREATE ALIGNED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{create\_aligned\_mesh}
@@ -350,7 +371,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 Creates the triangle files for a mesh that lines up in all directions, so that it can be made it into a singly, doubly or triply periodic mesh. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
-scripts/create_aligned_mesh newmesh Lx Ly Lz Nx Ny Nz [Ox Oy Oz]
+create_aligned_mesh newmesh Lx Ly Lz Nx Ny Nz [Ox Oy Oz]
 \end{lstlisting}
 
 This creates a box that is $\mathrm{Lx} \times \mathrm{Ly} \times \mathrm{Lz}$ with Nx, Ny, Nz layers in the $x,y,z$ directions respectively. The optional arguments Ox, Oy, Oz  specify the position of the origin. Information can be found by running \lstinline[language = bash]+create_aligned_mesh --help+ on the command line. Note the mesh will always be 3d.
