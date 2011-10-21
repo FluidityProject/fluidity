@@ -36,7 +36,7 @@ examples plots are created and put in the directory.
   \hline
   \ref{sect:oned_advection} One dimensional advection & \texttt{top\_hat/} & 1 & 2 min. \\
   \ref{sect:lock_exchange} The lock-exchange & \texttt{lock\_exchange/} & 1 & 10 min. \\
-  \ref{sect:lid_driven_cavity} Lid-driven cavity & \texttt{driven\_cavity/} & 1 & 3 hr. \\
+  \ref{sect:lid_driven_cavity} Lid-driven cavity & \texttt{driven\_cavity/} & 1 & 7 hr. \\
   \ref{sect:backward_facing_step} Backward facing step & \texttt{backward\_facing\_step\_2d/} & 1 & 15 min. \\
                        & \texttt{backward\_facing\_step\_3d/} & 8 & 30 min. \\
   \ref{sect:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 6 hr. \\
@@ -439,6 +439,7 @@ Test adapting based on different metrics, e.g. try weighting $u$, $v$ and $p$
 differently and see what meshes you get. Try varying these weights as well as the maximum and minimum allowed element
 sizes to see how they affect each other and the mesh that results. Can you get a metric that results in a lower
 error for the same number of nodes compared to the fixed mesh (hint: it may be easier to achieve this at higher Reynolds numbers)?.
+\item This example runs the lid-driven cavity problem with four different resolutions. On a 2.4GHz Intel machine, the runtime for the coarse resolution setup is below 15min, the next higher resolution takes about 30min, then 90min and finally about 350min for the highest resolution. To decrease the runtime for the high resolution case, try to run the it on 4 processors and check how much the runtime decreases.
 \end{enumerate}
 
 
