@@ -555,42 +555,42 @@ ifneq (@HAVE_ADJOINT@,yes)
 	@false
 endif
 	@echo "    Generating debug dependencies"
-	@cd debug; 	../bin/create_makefile $(TESTOPTS)
+	@cd debug; 	../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating libwm dependencies"
-	@cd libwm; ../bin/create_makefile $(TESTOPTS)
+	@cd libwm; ../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating femtools dependencies"
-	@cd femtools;	../bin/create_makefile --exclude \
+	@cd femtools;	../tools/create_makefile --exclude \
 	"Refcount_interface_templates.F90 Refcount_templates.F90" $(TESTOPTS)
 	@echo "    Generating bathymetry dependencies"
-	@cd bathymetry; ../bin/create_makefile $(TESTOPTS)
+	@cd bathymetry; ../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating ocean_forcing dependencies"
-	@cd ocean_forcing; ../bin/create_makefile $(TESTOPTS)
+	@cd ocean_forcing; ../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating sediments dependencies"
-	@cd sediments; ../bin/create_makefile $(TESTOPTS)
+	@cd sediments; ../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating parameterisation dependencies"
-	@cd parameterisation; ../bin/create_makefile $(TESTOPTS)
+	@cd parameterisation; ../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating forward_interfaces dependencies"
-	@cd forward_interfaces;	../bin/create_makefile $(TESTOPTS)
+	@cd forward_interfaces;	../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating horizontal_adaptivity dependencies"
-	@cd horizontal_adaptivity;   	../bin/create_makefile $(TESTOPTS)
+	@cd horizontal_adaptivity;   	../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating preprocessor dependencies"
-	@cd preprocessor; ../bin/create_makefile --exclude \
+	@cd preprocessor; ../tools/create_makefile --exclude \
 	"register_diagnostics.F90 check_options.F90" $(TESTOPTS)
 	@echo "    Generating error_measures dependencies"
-	@cd error_measures;   	../bin/create_makefile $(TESTOPTS)
+	@cd error_measures;   	../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating assemble dependencies"
-	@cd assemble;   	../bin/create_makefile $(TESTOPTS)
+	@cd assemble;   	../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating diagnostics dependencies"
-	@cd diagnostics;   	../bin/create_makefile --exclude \
+	@cd diagnostics;   	../tools/create_makefile --exclude \
 	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90" $(TESTOPTS)
 	@cd diagnostics;   	$(MAKE) Diagnostic_Fields_Interfaces.o \
 	Diagnostic_Fields_New.o 
 	@echo "    Generating reduced_modelling dependencies"
-	@cd reduced_modelling;   	../bin/create_makefile $(TESTOPTS)
+	@cd reduced_modelling;   	../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating adjoint dependencies"
-	@cd adjoint; ../bin/create_makefile $(TESTOPTS)
+	@cd adjoint; ../tools/create_makefile $(TESTOPTS)
 	@echo "    Generating main dependencies"
-	@cd main; ../bin/create_makefile --exclude test_coupler.F90 $(TESTOPTS)
+	@cd main; ../tools/create_makefile --exclude test_coupler.F90 $(TESTOPTS)
 	@echo "    Cleaning up the mess"
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
