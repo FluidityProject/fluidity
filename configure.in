@@ -1504,7 +1504,7 @@ fi
 
 AC_ARG_WITH(libnuma,
 [AC_HELP_STRING([--with-libnuma@<:@=libnuma_library@:>@],
-		[specify where to find libnuma])])
+		[specify the path to libnuma, e.g. -L/usr/lib])])
 
 if test -n "$with_libnuma"; then
    AC_MSG_NOTICE([Linking against $with-libnuma])
