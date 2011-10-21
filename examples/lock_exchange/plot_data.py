@@ -118,7 +118,6 @@ def Froudenumber(flmlname):
     pylab.axvline(3.0, color = 'k')
 
   pylab.savefig('diagnostics/plots/front_speed.png')
-  
   return
 
 ################################################
@@ -206,7 +205,7 @@ def mixing(flmlname):
   # reference state contours
   pylab.subplot(222)
   for i in index_plot: pylab.plot(time, reference_state[:,i],  color = 'k')
-  pylab.text(time[-1]/100, 1.5E-3, 'From bottom to top contours correspond to values \n $T = -0.5, \, -0.25, \, 0.0, \, 0.25, \, 0.5$', bbox=dict(facecolor='white', edgecolor='black'))
+  pylab.text(time[-1]/100, 1.5E-3, 'From bottom to top contours correspond to values \n $T = -0.5, \, -0.25, \, 0.0, \, 0.25, \, 0.5$ \nwhere the values for $T=-0.5$ and $0.5$ take the values\n$z_* = 0.0$ and $0.1$ respectively', bbox=dict(facecolor='white', edgecolor='black'))
   pylab.axis([0,time[-1],0,domainheight])
   pylab.grid("True")
   pylab.xlabel('$t$ (s)', fontsize = fs)
@@ -226,11 +225,11 @@ def mixing(flmlname):
   pylab.grid("True")
   pylab.gca().get_xaxis().get_axes().set_xlim(0.0,time[-1])
   pylab.xlabel('$t$ (s)', fontsize = fs)
-  pylab.ylabel('$\\Delta E_b$', fontsize = fs)
+  pylab.ylabel('$\\Delta E_b$', fontsize = fs-2)
+  pylab.gca().get_yaxis().set_major_formatter(pylab.FormatStrFormatter('%1.1e'))
   pylab.title('Background potential energy', fontsize = fs) 
   
   pylab.savefig('diagnostics/plots/mixing.png')
-
   return
 
 ################################################
