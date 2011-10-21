@@ -345,7 +345,8 @@ mesh you must first create a triangle file where the edges that are periodic
 can be mapped exactly by a simple transformation. For example, if the mesh
 is periodic in the $x$-direction, the two edges must have nodes at exactly the
 same height on each side. This can be easily accomplished using the
-\lstinline[language=Bash]+create_aligned_mesh+ script in the scripts folder.
+\lstinline[language=Bash]+create_aligned_mesh+ script which is part of \fluidity\ tools. 
+More information can be found in section \ref{sect:create_aligned_mesh}.
 
 Alternatively, if you require a more complex periodic mesh with some structure between the periodic 
 boundaries you can create one using \lstinline[language=Bash]{gmsh}. This can be achieved by 
@@ -357,72 +358,35 @@ section \ref{Sect:periodic}.
 \section{Meshing tools}
 \index{mesh!meshing tools}
 
-There are a number of meshing tools in both the scripts and tools directories.
+There are a number of meshing tools in tools directory. These can be built by running 
+\lstinline[language = bash]+make fltools+ in the top directory of the \fluidity\ trunk.
+The following binaries will then be created in the \lstinline+bin/+ directory (see section \ref{sect:fltools}).
 
-\subsection{interval}
-\index{mesh!meshing tools!interval}
-This is a 1D mesh generator and is in the scripts directory. To use simply type:
+\subsection{checkmesh}
+\index{mesh!meshing tools!checkmesh}
 
-
-\begin{lstlisting}[language = Bash]
-`\fluiditysourcepath'/bin/interval [options] left right name 
-\end{lstlisting}
-
-where left and right define the range of the line. It has a number of user defined input options:
-
-
-\begin{center}
-  \begin{tabular}{lp{.6\textwidth}}
-    \hline
-    \lstinline+--dx+ & constant interval spacing\\
-    \lstinline+--variable_dx+ & interval spacing defined with a python function\\
-    \lstinline+--region_ids+ & python function defining the region ID at each point\\
-    \lstinline+--reverse+ & reverse order of mesh\\
-    \hline
-  \end{tabular}
-\end{center}
-
-
+This tool can be used to form a number of verification tests on a mesh
+in triangle mesh format. More information can be found in section~\ref{sect:checkmesh}.
 
 \subsection{gmsh2triangle}
 \index{mesh!meshing tools!gmsh2triangle}
 
-This script converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
-can read in Gmsh files directly as noted in section \ref{sect:using_gmsh}, in
+This tool converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
+can read in Gmsh files directly as noted in section~\ref{sect:using_gmsh}, in
 cases where native Gmsh support does not work you should use 
-\lstinline[language = Bash]+gmsh2triangle+ instead.
+\lstinline[language = Bash]+gmsh2triangle+ instead. More information can be 
+found in section~\ref{sect:gmsh2triangle}.
 
-% Its use is now
-% deprecated in favour of directly reading Gmsh files into \fluidity. See
-% section \ref{sect:gmsh_format}.
-
-\lstinline[language=Bash]{gmsh2triangle} stores the entire gmsh mesh in memory before writing it out to
-triangle file. For very large meshes this is likely to be impractical,
-and instead the \lstinline[language=Bash]{gmsh2triangle_large} script
-should be used. This stores a minimal amount of data in memory at 
-any one time, but is slower for small files as it requires the 
-input .msh file to be read multiple times.
-
-\lstinline[language=Bash]{gmsh2triangle[_large]} is used via:
-
-\begin{lstlisting}[language = Bash]
-gmsh2triangle[_large] input
-\end{lstlisting}
-
-where \lstinline[language = Bash]*input* is the input .msh file.
-
-The \lstinline[language = Bash]+--2d+ flag can be used to instruct \lstinline+gmsh2triangle[_large]+
-to process a 2D input .msh file. Otherwise, 3D input is assumed.
+\subsection{interval}
+\index{mesh!meshing tools!interval}
+This tool generates a 1D mesh. 
+More information can be found in section~\ref{sect:interval}.
 
 \subsection{triangle2vtu}
 \index{mesh!meshing tools!triangle2vtu}
-This converts triangle format files in to vtu format. It is in the fluidity tools directory and is used with:
+This tool converts triangle format files into vtu format. 
+More information can be found in section~\ref{sect:triangle2vtu}.
 
-\begin{lstlisting}[language = Bash]
-`\fluiditysourcepath'/tools/triangle2vtu foo
-\end{lstlisting}
-
-Where \lstinline+foo+ is the triangle file base name (\lstinline+foo.node+ etc.)
 
 \section{Decomposing meshes for parallel}
 \label{decomp_meshes_parallel}
@@ -575,12 +539,6 @@ psuedo\_mesh is parallelised, and accepts the following options:
     \hline
   \end{tabular}
 \end{center}
-
-\section{Mesh verification}
-\index{mesh!verification}
-
-A tool checkmesh can be used to form a number of verification tests on a mesh
-in triangle mesh format. More information can be found in section~\ref{sect:checkmesh}.
 
 \section{Non-\fluidity\ tools}
 

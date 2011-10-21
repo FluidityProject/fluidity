@@ -371,6 +371,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	genpvtu					& \ref{sect:genpvtu}			\\
 	gen\_square\_meshes			& \ref{sect:gen_square_meshes} 		\\
 	gmsh\_mesh\_transform			& \ref{sect:gmsh_mesh_transform}	\\
+	gmsh2triangle				& \ref{sect:gmsh2triangle}		\\
 	interval				& \ref{sect:interval} 			\\
 	linear\_interpolation			& \ref{sect:scripts_linear_interpolation} \\	
 	mean\_flow				& \ref{sect:mean_flow}			\\
@@ -387,6 +388,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\	
 	test\_pressure\_solve			& \ref{sect:test_pressure_solve}	\\
 	transform\_mesh				& \ref{sect:transform_mesh}		\\
+	triangle2vtu				& \ref{sect:triangle2vtu}		\\
 	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
 	vertical\_integration			& \ref{sect:vertical_integration} 	\\
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
@@ -579,6 +581,21 @@ minoceandepth = 100' 'x < shelflength' '(x, y, (z/(shelfslopeheight
 mesh.msh
 \end{lstlisting}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%% GMSH2TRIANGLE %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{gmsh2triangle}
+\label{sect:gmsh2triangle}
+gmsh2triangle converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
+can read in Gmsh files directly as noted in section \ref{sect:using_gmsh}, 
+this tool should be used in cases where native Gmsh support does not work.
+It is run from the command line:
+\begin{lstlisting}[language = Bash]
+gmsh2triangle [--2d] input
+\end{lstlisting}
+where \lstinline[language = Bash]+input+ is the input .msh file.
+The \lstinline[language = Bash]+--2d+ flag can be used to instruct \lstinline+gmsh2triangle+
+to process a 2D input .msh file. Otherwise, 3D input is assumed.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%% INTERVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{interval}
@@ -588,7 +605,14 @@ This is a one-dimensional mesh generator. It is run from the command line:
 \begin{lstlisting}[language = Bash]
 interval [options] left right name 
 \end{lstlisting}
-Left and right are the start and end points for the mesh, and name is the name of the file.
+where left and right define the range of the line. It has a number of user defined input options:
+
+\begin{lstlisting}[language = Python]
+--dx		constant interval spacing
+--variable_dx	interval spacing defined with a python function
+--region_ids	python function defining the region ID at each point
+--reverse	reverse order of mesh
+\end{lstlisting}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% LINEAR INTERPOLATION %%%%%%%%%%%%%%%%%%%
 
@@ -879,6 +903,18 @@ with \lstinline[language = Bash]+<mesh>+ the base name of the triangle mesh file
 transform_mesh '(x,y,1000*z)' mesh
 \end{lstlisting}
 It can be used for 2D or 3D meshes.
+
+%%%%%%%%%%%%%%%%%% TRIANGLE2VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{triangle2vtu}
+\label{sect:triangle2vtu}
+This converts triangle format files into vtu format. It is run from the command line:
+
+\begin{lstlisting}[language = Bash]
+triangle2vtu input
+\end{lstlisting}
+
+where \lstinline+input+ is the triangle file base name.
 
 %%%%%%%%%%%%%%%%%% UNIFIED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
