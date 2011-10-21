@@ -555,42 +555,42 @@ ifneq (@HAVE_ADJOINT@,yes)
 	@false
 endif
 	@echo "    Generating debug dependencies"
-	@cd debug; 	../tools/create_makefile $(TESTOPTS)
+	@cd debug; 	../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating libwm dependencies"
-	@cd libwm; ../tools/create_makefile $(TESTOPTS)
+	@cd libwm; ../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating femtools dependencies"
-	@cd femtools;	../tools/create_makefile --exclude \
+	@cd femtools;	../tools/create_makefile.py --exclude \
 	"Refcount_interface_templates.F90 Refcount_templates.F90" $(TESTOPTS)
 	@echo "    Generating bathymetry dependencies"
-	@cd bathymetry; ../tools/create_makefile $(TESTOPTS)
+	@cd bathymetry; ../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating ocean_forcing dependencies"
-	@cd ocean_forcing; ../tools/create_makefile $(TESTOPTS)
+	@cd ocean_forcing; ../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating sediments dependencies"
-	@cd sediments; ../tools/create_makefile $(TESTOPTS)
+	@cd sediments; ../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating parameterisation dependencies"
-	@cd parameterisation; ../tools/create_makefile $(TESTOPTS)
+	@cd parameterisation; ../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating forward_interfaces dependencies"
-	@cd forward_interfaces;	../tools/create_makefile $(TESTOPTS)
+	@cd forward_interfaces;	../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating horizontal_adaptivity dependencies"
-	@cd horizontal_adaptivity;   	../tools/create_makefile $(TESTOPTS)
+	@cd horizontal_adaptivity;   	../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating preprocessor dependencies"
-	@cd preprocessor; ../tools/create_makefile --exclude \
+	@cd preprocessor; ../tools/create_makefile.py --exclude \
 	"register_diagnostics.F90 check_options.F90" $(TESTOPTS)
 	@echo "    Generating error_measures dependencies"
-	@cd error_measures;   	../tools/create_makefile $(TESTOPTS)
+	@cd error_measures;   	../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating assemble dependencies"
-	@cd assemble;   	../tools/create_makefile $(TESTOPTS)
+	@cd assemble;   	../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating diagnostics dependencies"
-	@cd diagnostics;   	../tools/create_makefile --exclude \
+	@cd diagnostics;   	../tools/create_makefile.py --exclude \
 	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90" $(TESTOPTS)
 	@cd diagnostics;   	$(MAKE) Diagnostic_Fields_Interfaces.o \
 	Diagnostic_Fields_New.o 
 	@echo "    Generating reduced_modelling dependencies"
-	@cd reduced_modelling;   	../tools/create_makefile $(TESTOPTS)
+	@cd reduced_modelling;   	../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating adjoint dependencies"
-	@cd adjoint; ../tools/create_makefile $(TESTOPTS)
+	@cd adjoint; ../tools/create_makefile.py $(TESTOPTS)
 	@echo "    Generating main dependencies"
-	@cd main; ../tools/create_makefile --exclude test_coupler.F90 $(TESTOPTS)
+	@cd main; ../tools/create_makefile.py --exclude test_coupler.F90 $(TESTOPTS)
 	@echo "    Cleaning up the mess"
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
