@@ -323,14 +323,14 @@ where $g$ is gravity and $\rho$ the density. Most crucially, for a closed system
   \label{fig:lock_exchange}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[!h]
   \centering
   \pdffig[width=1.0\textwidth]{./examples_images/lock_exchange/front_speed}
   \caption{Distance along the domain ($X$) and Froude number ($Fr$) for the no-slip and free-slip fronts in the lock-exchange. The values of \citet{hartel_00} and \citet{simpson_79} are included for reference.}
   \label{fig:lock_exchange_Fr}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[!h]
   \centering
   \pdffig[width=0.6\textwidth, clip=True, trim = 32.5mm 20mm 32.5mm 20mm]{./examples_images/lock_exchange/mixing}
   \caption[Mixing diagnostics for the lock--exchange.]{Mixing diagnostics for the lock--exchange. As time progresses mixing takes place leading to an increase in the volume fraction of mixed fluid, a spreading of the $z_*$ contours and an increase in the background potential energy. From top left to bottom right: volume fraction of the domain with fluid in the given temperature classes. The classes with ranges $-0.25<T<0.0$ and $0.0<T<0.25$ are considered representative of the mixed fluid; evolution of contours of $z_*$ for different values of temperature, the values for $T= -0.5$ and $0.5$ lie along the minimum and maximum values for $x$; snapshot of the reference state at $t = 200\,$s; the change in the background potential energy, $\Delta E_b$ over time.}
@@ -341,8 +341,7 @@ where $g$ is gravity and $\rho$ the density. Most crucially, for a closed system
 \label{sect:le_exercises}
 The example settings are designed to provide a quick start for running the simulation. To explore the diagnostics and functionality of \fluidity, the following variations on this example would be constructive exercises:
 \begin{itemize}
-\item Run from the checkpoint to look at the Froude number later in the simulation and calculate an average value, section \ref{sect:configuring_fluidity_checkpointing} (don't forget to rename the vtus with rename\_checkpoint.py, table \ref{tab:fltools});
-\item Run from the checkpoint to look at mixing later in the simulation, section \ref{sect:configuring_fluidity_checkpointing};
+\item Run from the checkpoint to look at the Froude number and mixing later in the simulation and calculate an average value, section \ref{sect:configuring_fluidity_checkpointing} (don't forget to rename the vtus with rename\_checkpoint.py, table \ref{tab:fltools});
 \item In the adaptivity settings for the horizontal velocity field try using a spatially varying interpolation error and compare Froude numbers (python can be found in the comment section for the velocity adaptivity settings), section \ref{sect:configuring_fluidity_error_metric};
 \item In the adaptivity settings for both the velocity field and temperature field use a $p$--norm with $p=2$, section \ref{sect:configuring_fluidity_error_metric}. Suggested values for the interpolation error are $0.00005, \, 0.00005 \,\, {\rm and} \,\, 0.0005$ for the horizontal velocity, vertical velocity and temperature fields respectively. 
 \item Change the frequency of the adapt, section \ref{sect:configuring_fluidity_adaptivity_options};
