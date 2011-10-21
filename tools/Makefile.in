@@ -129,10 +129,10 @@ $(TRIANGLE_TEST_MESH): triangle_test_mesh.o
 	$(LINKER) -o $(TRIANGLE_TEST_MESH) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
 $(TEST_LAPLACIAN): test_laplacian.o
-	$(LINKER) -o $(TEST_LAPLACIAN) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
+	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(TEST_LAPLACIAN_VECTOR): test_laplacian_vector.o
-	$(LINKER) -o $(TEST_LAPLACIAN_VECTOR) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
+	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(VISUALISE_ELEMENTS): visualise_elements.o
 	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
