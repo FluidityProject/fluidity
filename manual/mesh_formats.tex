@@ -1,4 +1,4 @@
-\chapter{Mesh generation}\label{chap:meshes}
+\chapter{Mesh formats}\label{chap:meshes}
 \index{mesh!generation}
 \index{grid|see{mesh}}
 
@@ -579,52 +579,8 @@ psuedo\_mesh is parallelised, and accepts the following options:
 \section{Mesh verification}
 \index{mesh!verification}
 
-The tool checkmesh can be used to form a number of verification tests on a mesh
-in triangle mesh format. This tool is built as part of the fltools build target
-(see section \ref{sect:fltools}), and is invoked as:
-
-\begin{lstlisting}[language = Bash]
-checkmesh input_basename
-\end{lstlisting}
-
-where \lstinline[language = Bash]*input_basename* is the base name of an input
-triangle file. checkmesh tests for:
-
-\begin{enumerate}
-  \item Degenerate volume elements;
-  \item Inverted tetrahedra;
-  \item Degenerate surface elements;
-  \item\label{item:mesh_tangling} Mesh tangling.
-\end{enumerate}
-
-% Test \ref{item:mesh_tangling} is performed by testing for any mesh self-intersections
-% via mesh intersection (see section \ref{sec:supermeshing}).
-
-checkmesh is parallelised. If running in parallel, it should be launched on
-a number of processes equal to that in the mesh decomposition. In parallel
-checkmesh output is written to \onlypdf\linebreak \lstinline+checkmesh.log-[process]+
-and \lstinline+checkmesh.err-[process]+ log files.
-
-\begin{example}
-\begin{lstlisting}[language = Bash,keywordstyle=]
-Checking volume elements for tangling ...
- In intersection_finder
- In advancing_front_intersection_finder
- Exiting advancing_front_intersection_finder
- Exiting intersection_finder
-Tangled volume element found: 
-Element: 1
-Coordinates:
-  0.10000000000000000E+001  0.00000000000000000E+000
-  0.11666666666700001E+001  0.00000000000000000E+000
-  0.83867056794499995E+000  0.54463903501499999E+000
-Numbering:
-           1
-          14
-           2
-\end{lstlisting}
-\caption{checkmesh reporting a mesh tangling error.}
-\end{example}
+A tool checkmesh can be used to form a number of verification tests on a mesh
+in triangle mesh format. More information can be found in section~\ref{sect:checkmesh}.
 
 \section{Non-\fluidity\ tools}
 
