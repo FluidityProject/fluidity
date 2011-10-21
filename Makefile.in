@@ -273,10 +273,12 @@ python_clean:
 	@cd python; rm -rf build
 	@cd python/fluidity; find . -type l -name '*.so' -exec rm -f {} \;
 
-fluidity_library: lib/lib$(FLUIDITY).a
-lib/lib$(FLUIDITY).a: $(OBJS) python_build sub_system
+scripts:
 	@echo "INSTALL local scripts"
 	@cd tools ; $(MAKE) scripts
+
+fluidity_library: lib/lib$(FLUIDITY).a
+lib/lib$(FLUIDITY).a: $(OBJS) python_build sub_system scripts
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
