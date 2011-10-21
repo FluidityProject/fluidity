@@ -75,9 +75,9 @@ combinations of element dimension and geometry.
 \textbf{Dimension} & \textbf{Geometry} & \textbf{Number of vertices per element} \\ \hline
 1D & Line & 2\\ 
 2D & Triangles &  3 \\ 
-2D & Quadrilateral\footnote{Limitation: at the moment, the domain must be rectangular} & 4 \\
+2D & Quadrilateral & 4 \\
 3D & Tetrahedra & 4 \\ 
-3D & Hexahedra\footnote{Limitation: at the moment, the domain must be a cuboid} & 8 \\
+3D & Hexahedra & 8 \\
 \end{tabular}
 
 A complete triangle mesh consists of three files: one file defining the
@@ -495,50 +495,6 @@ mpiexec -n [number of processors] \
    `\fluiditysourcepath'/bin/fluidity [options] \
    foo_periodised_flredecomp.flml
 \end{lstlisting}
-
-\section{Pseudo-meshing}
-
-The tool pseudo\_mesh enables the generation of a mesh of equal local resolution
-to some prescribed input mesh. This is sometimes useful for the purposes of
-interpolation comparison. pseudo\_mesh achieves this by computing an adaptivity
-metric (see section \ref{sec:meshes_and_metrics}) derived from the input mesh
-via a polar decomposition of the
-elemental Jacobian \citep{micheletti2006}, and supplying this to the mesh adaptivity libraries
-(see section \ref{sec:adaptive_remeshing_technology}).
-
-pseudo\_mesh is not built by default as part of the \fluidity\ tools package. To
-build the tool type:
-
-\begin{lstlisting}[language = Bash]
-cd tools
-make ../bin/pseudo_mesh
-\end{lstlisting}
-
-pseudo\_mesh is invoked as:
-
-\begin{lstlisting}[language = Bash]
-pseudo_mesh [-thv] input_basename
-\end{lstlisting}
-
-where \lstinline[language = Bash]*input_basename* is the base name of an input
-triangle file. If the \lstinline[language = Bash]*-t* flag is supplied then
-then the metric used to form the output mesh is limited to target the element
-count of the input mesh.
-
-psuedo\_mesh is parallelised, and accepts the following options:
-
-\begin{center}
-  \begin{tabular}{lp{.6\textwidth}}
-    \hline
- %   Flag & Function \\
- %   \hline
-    \lstinline+-h+   & Display help \\
-    \lstinline+-t+   & Limit the metric used to form the output mesh to
-    target the element count of the input mesh \\
-    \lstinline+-v+   & Verbose mode \\
-    \hline
-  \end{tabular}
-\end{center}
 
 \section{Non-\fluidity\ tools}
 
