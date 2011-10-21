@@ -135,7 +135,7 @@ $(TEST_LAPLACIAN_VECTOR): test_laplacian_vector.o
 	$(LINKER) -o $(TEST_LAPLACIAN_VECTOR) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
 $(VISUALISE_ELEMENTS): visualise_elements.o
-	$(LINKER) -o $(VISUALISE_ELEMENTS) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
+	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(LINEARLY_INTERPOLATE): linearly_interpolate.o
 	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
