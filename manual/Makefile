@@ -100,7 +100,7 @@ endif
 #linear_1d_mesh.png: linear_1d_mesh.fig
 
 %.tex: %.pstex_t %.pstex
-	../femtools/doc/scripts/wrap_pstex $<
+	../femtools/doc/bin/wrap_pstex $<
 
 %.dvi: %.tex 
 	pdflatex -output-directory $(dir $@) -shell-escape -output-format dvi $<

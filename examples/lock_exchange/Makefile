@@ -2,7 +2,7 @@ preprocess:
 	@echo **********Generating the mesh using gmsh in 2d:
 	gmsh -2 -v 0 channel_2d.geo
 	@echo **********Converting the gmsh mesh to triangle format:
-	../../scripts/gmsh2triangle -2 channel_2d.msh 
+	../../bin/gmsh2triangle -2 channel_2d.msh 
 
 run:
 	@echo **********Calling fluidity with least verbose log output enabled:

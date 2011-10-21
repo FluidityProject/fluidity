@@ -26,7 +26,10 @@
 #    USA
 SHELL = @SHELL@
 
-LIB = ../lib/lib@FLUIDITY@.a
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
+LIB = ../lib/lib$(FLUIDITY).a
 
 AR = @AR@
 ARFLAGS = @ARFLAGS@
@@ -47,7 +50,7 @@ FCFLAGS   = -I../include @MOD_FLAG@../include @FCFLAGS@ @CPPFLAGS@ -I/usr/includ
 CXXFLAGS = -I../include @CXXFLAGS@ @CPPFLAGS@
 
 LDFLAGS   = @LDFLAGS@
-LIBS    = -L../lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@ \
+LIBS    = -L../lib -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@ \
 		  ../lib/libvtkfortran.a ../lib/libspatialindex.a ../lib/libspud.a ../lib/libjudy.a
 
 OBJS =  Calendar.o SampleNetCDF.o NetCDFReader.o NetCDFWriter.o \

@@ -10,7 +10,7 @@ RIGHT_X   = 10.0
 
 input: clean
 	@echo "Running INTERVAL script for $(SIM)"
-	../../scripts/interval --dx=$(MESH_SIZE_A) $(LEFT_X) $(RIGHT_X) $(SIM)_A
+	../../bin/interval --dx=$(MESH_SIZE_A) $(LEFT_X) $(RIGHT_X) $(SIM)_A
 
 clean:
 	rm -f $(SIM)*.ele

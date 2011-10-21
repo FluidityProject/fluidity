@@ -3,4 +3,4 @@ input: clean
 
 
 clean:
-	rm -rf *.d.* *.stat *.vtu mmat-shocktube.node mmat-shocktube.ele mmat-shocktube.face *checkpoint* *.convergence
+	rm -rf *.d.* *.stat *.vtu mmat-shocktube.node mmat-shocktube.ele mmat-shocktube.face *checkpoint* *.convergence fluidity.[le]* mmat-shocktube.msh

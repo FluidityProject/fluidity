@@ -26,6 +26,9 @@
 #    USA
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
 FCFLAGS = -I../include -I/usr/include @CPPFLAGS@ @FCFLAGS@
 
@@ -44,7 +47,6 @@ FLIBS = -L../lib @FLIBS@
 # diagnostic output and FLabort:
 DEBUG_OBJECTS=../debug/Debug.o ../debug/Debug_Parameters.o
 
-FLINTEGRATE = ../bin/flintegrate
 VERTICAL_INTEGRATION = ../bin/vertical_integration
 VTKDIAGNOSTIC = ../bin/vtkdiagnostic
 FLDIAGNOSTICS = ../bin/fldiagnostics
@@ -59,36 +61,34 @@ PETSC_READNSOLVE = ../bin/petsc_readnsolve
 TEST_PRESSURE_SOLVE = ../bin/test_pressure_solve
 PROJECT_TO_CONTINUOUS = ../bin/project_to_continuous
 PROJECT_TO_CONTINUOUS_PARALLEL = ../bin/project_to_continuous_parallel
-POPSTATE = ../bin/popstate
 UNIFIEDMESH = ../bin/unifiedmesh
-FLUIDITY = @FLUIDITY@
-LIBFLUIDITY=-l@FLUIDITY@
+LIBFLUIDITY=-l$(FLUIDITY)
 LIBFEMTOOLS=-lfemtools
 LIBADAPT=-ladaptivity
 CHECKMESH=../bin/checkmesh
-DERIVE_MESH=../bin/derive_mesh
 PROJECT_VTU=../bin/project_vtu
 PROBE_VTU=../bin/probe_vtu
 SUPERMESH_DIFFERENCE=../bin/supermesh_difference
 DIFFERENTIATE_VTU=../bin/differentiate_vtu
 VTU_BINS=../bin/vtu_bins
-DIFFERENTIATE=../bin/differentiate
 FLADAPT=../bin/fladapt
 LINEARLY_INTERPOLATE=../bin/linearly_interpolate
 LINEARLY_INTERPOLATE_ALL=../bin/linearly_interpolate_all
 LINEAR_INTERPOLATION_PARALLEL=../bin/linear_interpolation_parallel
 TIME_AVERAGE_PARALLEL=../bin/time_average_parallel
 VTKPROJECTION=../bin/vtk_projection
-RUNZOLTAN=../bin/zoltan_load_balance
 PERIODISE=../bin/periodise
 TEST_TRACE_SPACE=../bin/test_trace_space
-BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC) \
-  $(FLDIAGNOSTICS) $(FLREDECOMP) $(PETSC_READNSOLVE) $(FLINTEGRATE) \
-  $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH) $(DERIVE_MESH) \
-  $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE) $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU) \
-  $(PROJECT_TO_CONTINUOUS) $(PROJECT_TO_CONTINUOUS_PARALLEL) \
-  $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE) \
-  $(TEST_TRACE_SPACE) $(VISUALISE_ELEMENTS)
+
+BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC)		\
+  $(FLDIAGNOSTICS) $(FLREDECOMP) $(PETSC_READNSOLVE)			\
+  $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH)		\
+  $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE)			\
+  $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU)			\
+  $(PROJECT_TO_CONTINUOUS) $(PROJECT_TO_CONTINUOUS_PARALLEL)		\
+  $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)	\
+  $(TEST_TRACE_SPACE) $(STREAMFUNCTION_2D) $(TEST_TRACE_SPACE)		\
+  $(TEST_LAPLACIAN) $(VISUALISE_ELEMENTS)
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
 
@@ -101,7 +101,11 @@ BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC) \
 %.o:	%.cpp
 	$(CXX) $(CXXFLAGS) -c $<
 
-default: $(BINARIES)
+default: $(BINARIES) scripts
+
+scripts:
+	for i in *.py ; do cp $$i ../bin/`basename $$i .py` ; done
+	for i in *.sh ; do cp $$i ../bin/`basename $$i .sh` ; done
 
 .PHONY: install_python
 
@@ -145,10 +149,6 @@ $(LINEAR_INTERPOLATION_PARALLEL): linear_interpolation_parallel.o
 $(TIME_AVERAGE_PARALLEL): time_average_parallel.o
 	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
-$(FLINTEGRATE): flintegrate.o Flint_generalroutines.o Flint_volumeroutines.o \
-  Flint_integralroutines.o Flint_extractdata.o flintegrate_main.o lib/
-	$(CXX) $(CXXFLAGS) -o $@ $(filter %.o,$^) $(LIBFLUIDITY) $(LIBS)
-
 $(VERTICAL_INTEGRATION): Vertical_Integration.o Vertical_Integration_main.o lib/
 	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
@@ -165,7 +165,6 @@ $(TEST_PRESSURE_SOLVE): test_pressure_solve_main.o test_pressure_solve.o \
 lib/:
 	ln -sf ../lib
 
-flintegrate.o:Flint_generalroutines.o Flint_integralroutines.o Flint_volumeroutines.o
 Flint_volumeroutines.o:Flint_generalroutines.o
 Flint_integralroutines.o:Flint_generalroutines.o
 
@@ -174,9 +173,6 @@ $(VTKDIAGNOSTIC): vtkdiagnostic.cpp lib/
 
 $(VTKPROJECTION): vtkprojection.cpp lib/
 	$(LINKER) $(CXXFLAGS) -I../include -o $(VTKPROJECTION) vtkprojection.cpp -L../lib/ -l$(FLUIDITY) $(LIBS)
-
-$(RUNZOLTAN): zoltan_load_balance.F90 lib/
-	$(FC) $(FCFLAGS) -I../include -I/usr/include -o $(RUNZOLTAN) zoltan_load_balance.F90 -L../lib/ -l$(FLUIDITY) $(LIBS)
 
 $(PERIODISE): periodise.o lib/
 	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
@@ -191,9 +187,6 @@ $(FLREDECOMP): Flredecomp.o Flredecomp_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(CHECKMESH): Checkmesh.o Checkmesh_main.o lib/
-	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(DERIVE_MESH): Derive_Mesh.o Derive_Mesh_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(PROJECT_VTU): Project_Vtu.o Project_Vtu_main.o lib/
@@ -211,16 +204,8 @@ $(DIFFERENTIATE_VTU): Differentiate_Vtu.o Differentiate_Vtu_main.o lib/
 $(VTU_BINS): Vtu_Bins.o Vtu_Bins_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
-$(DIFFERENTIATE): differentiate.F90 lib/
-	$(FC) -c $(FCFLAGS) differentiate.F90
-	$(LINKER) -o $(DIFFERENTIATE) differentiate.o -l$(FLUIDITY) $(LIBS)
-
 $(FLADAPT): Fladapt.o Fladapt_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(POPSTATE): popstate.F90 lib/
-	$(FC) -c $(FCFLAGS) popstate.F90
-	$(LINKER) -o $(POPSTATE) popstate.o -l$(FLUIDITY) $(LIBS)
 
 $(UNIFIEDMESH): unifiedmesh.o unifiedmesh_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>2d square unstructured mesh p1dgp2 foam drainage test with weak bcs for velocity and strong for pressure</name>
   <owner userid="pbritopa"/>

@@ -8,7 +8,7 @@ msh: src/$(MESH).geo
 	gmsh -2 src/$(MESH).geo
 
 input: msh
-	../../scripts/gmsh2triangle -2 src/$(MESH).msh
+	../../bin/gmsh2triangle -2 src/$(MESH).msh
 
 clean: clean-mesh clean-run-debug
 clean-msh:

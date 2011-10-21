@@ -6,10 +6,11 @@ default: input
 
 input: src/$(MESH).geo
 	gmsh -2 src/$(MESH).geo
-	../../scripts/gmsh2triangle --2d src/$(MESH).msh
+	../../bin/gmsh2triangle --2d src/$(MESH).msh
 	../../bin/fldecomp -n $(NP) $(MESH)
 
 clean: clean-mesh clean-run
+	rm -rf parallel_region_ids_*
 clean-mesh:
 	rm -f $(MESH).edge $(MESH).ele $(MESH).node
 	rm -f $(MESH)_?*.edge $(MESH)_?*.ele $(MESH)_?*.node $(MESH)_?*.halo

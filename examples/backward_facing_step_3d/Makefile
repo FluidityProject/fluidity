@@ -1,6 +1,6 @@
 # directory locations:
 BIN=../../bin/
-SCRIPTS=../../scripts/
+SCRIPTS=../../bin/
 preprocess: 
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 	@echo **********Generating the mesh using gmsh in 3d:

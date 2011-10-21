@@ -1,5 +1,4 @@
 <?xml version='1.0' encoding='utf-8'?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
   <name>shelf_meshtransform_freesurfaceinitialcondition</name>

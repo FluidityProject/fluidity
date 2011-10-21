@@ -1,7 +1,7 @@
 preprocess:
 	@echo **********Creating 2D mesh
 	gmsh -2 -o mphase_sedimentation_2d.msh src/mphase_sedimentation_2d.geo
-	../../scripts/gmsh2triangle --2d mphase_sedimentation_2d.msh
+	../../bin/gmsh2triangle --2d mphase_sedimentation_2d.msh
 
 run:
 	@echo **********Running simulation
