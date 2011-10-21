@@ -274,9 +274,6 @@ Diagnostic_Fields.o ../include/diagnostic_fields.mod: Diagnostic_Fields.F90 \
 ../include/diagnostic_variables.mod: Diagnostic_variables.o
 	@true
 
-../include/version.h:
-	@$(MAKE) -C ../ include/version.h
-
 Diagnostic_variables.o ../include/diagnostic_variables.mod: \
    Diagnostic_variables.F90 ../include/c_interfaces.mod \
    ../include/data_structures.mod ../include/detector_data_types.mod \

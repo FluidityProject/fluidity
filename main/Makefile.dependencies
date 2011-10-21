@@ -25,9 +25,6 @@ Burgers_Equation.o : Burgers_Equation.F90 ../include/adjoint_controls.mod \
 ../include/fluids_module.mod: Fluids.o
 	@true
 
-../include/version.h:
-	@$(MAKE) -C ../ include/version.h
-
 Fluids.o ../include/fluids_module.mod: Fluids.F90 \
    ../include/adapt_state_module.mod \
    ../include/adapt_state_prescribed_module.mod \
