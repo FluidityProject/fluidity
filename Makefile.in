@@ -273,6 +273,8 @@ python_clean:
 	@cd python; rm -rf build
 	@cd python/fluidity; find . -type l -name '*.so' -exec rm -f {} \;
 
+.PHONY: scripts
+
 scripts:
 	@echo "INSTALL local scripts"
 	@cd tools ; $(MAKE) scripts
