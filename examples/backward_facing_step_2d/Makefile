@@ -1,5 +1,4 @@
 BIN=../../../bin
-SCRIPTS=../../../scripts
 RE=4700
 JOB=high
 ROOT=$(PWD)
@@ -14,7 +13,7 @@ preprocess:
 			ln -sf ../backward_facing_step_2d-$(RE)-$(JOB)-$(NN).flml .; \
 			echo **********Generating mesh for $(NN) simulation.; \
 			gmsh -2 -optimize -o step2d-$(NN).msh ../src/step2d-$(NN).geo; \
-			$(SCRIPTS)/gmsh2triangle -2 step2d-$(NN).msh ; \
+			$(BIN)/gmsh2triangle -2 step2d-$(NN).msh ; \
 			cd $(ROOT); \
 		fi; \
 	)
