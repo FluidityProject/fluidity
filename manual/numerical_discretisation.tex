@@ -1904,8 +1904,10 @@ where $\Omega_{fs}$ is the boundary where the free surface is to be applied.
 
 Following the steps in section \ref{weakfreesurf3} yields the pressure correction equation with free surface and wetting and drying:
 \begin{equation}
+\begin{split}
 \left(\theta C^T(\frac{M_u}{\Delta t})^{-1} \theta C\right) \Delta \hat p + \frac{M^{n+1, wet}_s}{g(\Delta t)^2} \hat p^{n+1}+ \frac{M^{n+1, dry}_s}{(\Delta t)^2}(b+d_0) = \\
 -\frac{\theta C^T u_*^{n+1} + (1-\theta)C^Tu^n}{\Delta t}+\frac{M^{n, wet}_s}{g(\Delta t)^2} \hat p^{n}+ \frac{M^{n, dry}_s}{(\Delta t)^2}(b+d_0),
+\end{split}
 \end{equation}
 where a wet (dry) superscript denotes that the matrix is assembled on only wet (dry) mesh elements.
 
