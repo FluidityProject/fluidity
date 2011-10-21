@@ -344,6 +344,51 @@ where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the fri
 \section{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}
 \index{turbulence model}
+In Large Eddy Simulations the large scales in the ﬂow are captured while the effect of the small scales
+is modelled. Formally, a filtering operator is defined and a decomposition, similar to the Reynolds
+decomposition, is introduced:
+\begin{equation}
+\mathcal{F}u_i = \int_{-\infty}^\infty G\left( \overrightarrow{r} \right) u_i\left( \overrightarrow{x} - \overrightarrow{r} \right) \text{d} \overrightarrow{r}
+\label{eqn:les_filtering}
+\end{equation}
+and
+\begin{equation}
+u_i = \tilde{u_i} + u_i^\prime
+\label{eqn:les_decomposition}
+\end{equation}
+where $\tilde{u_i} = \mathcal{F}u_i$ and $u_i^\prime$ denotes the subgrid-scale fluctuation. Applying
+the filtering operator to the continuity and momentum equations for constant-property, incompressible
+flow and introducing the decomposition \eqref{eqn:les_decomposition} to the non-linear terms gives,
+\begin{equation}
+\frac{\partial \tilde{u}_i}{\partial x_i} = 0
+\end{equation}
+\begin{equation}
+\frac{\partial \tilde{u}_i}{\partial t} + \frac{\tilde{u}_i \ \tilde{u}_j}{\partial x_j} =
+ -\frac 1 \rho \frac{\partial \tilde p}{\partial x_i}
+ + 2 \nu \frac{\partial \tilde S_{ij}}{\partial x_j} - \frac{\partial \tau_{ij}}{\partial x_j}
+\end{equation}
+where $\tilde S_{ij}$ denotes the strain-rate tensor and $\tau_{ij}$ is a stress term:
+tensor:
+\begin{equation}
+\tilde S_{ij} = \frac 1 2 \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right )
+\label{eqn:defin_strain_rate_tensor}
+\end{equation}
+\begin{align}
+\tau_{ij} &= \widetilde{u_i u_j} - \tilde u_i \ \tilde u_j \nonumber \\
+          &= \underbrace{\widetilde{ \tilde u_i \tilde u_j} - \tilde u_i \ \tilde u_j}_{L_{ij}} + \underbrace{\widetilde{\tilde{u}_i u_j^\prime} + \widetilde{u_i^\prime \tilde{u}_j}}_{C_{ij}} + \underbrace{\widetilde{u_i^\prime u_j^\prime}}_{R_{ij}}
+\label{eqn:defin_sgs_stress_tensor}
+\end{align}
+Equation \eqref{eqn:defin_sgs_stress_tensor} above also introduces the Leonard decomposition
+\citep{leonard1974} also known as the triple decomposition. The Leonard term $L_{ij}$ represents
+the effect of resolved-resolved scale interations on $\tau_{ij}$, the cross term
+$C_{ij}$ represent the resolved-subgrid scale interactions and 
+the Reynolds term, $R_{ij}$, represents the subgrid-subgrid scale interactions.
+The Leonard and cross terms are usualy assumed to be much smaller than the Reynolds term, leading to:
+\begin{equation}
+\tau_{ij} = \widetilde{u_i^\prime u_j^\prime}
+\end{equation}
+Thus, $\tau_{ij}$ can be formulated in terms of the subgrid stress, which needs
+to be modelled.
 
 Large-eddy simulation filters the velocity field into resolved and sub-filter-scale components. The eddy viscosity assumption is that the unresolved scales drain energy from the resolved scales in the manner of an extra turbulent viscosity $\nu_\tau$. Then \eqref{mtm} is written:
 
@@ -368,16 +413,17 @@ with the anisotropic tensorial eddy viscosity:
 \begin{equation}
 \nu_{jk} = 4C_S^2 \left | \mathcal{\tilde S} \right | \mathcal{M}^{-1},
 \end{equation}
-where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}), used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter width separating resolved and unresolved scales is twice the local element size, which is squared in the viscosity model. $C_S \approx 0.1$ is the Smagorinsky coefficient, and $\left | \mathcal{\tilde S} \right |$ is the local strain rate:
+where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}),
+used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter
+width separating resolved and unresolved scales is twice the local element size, which is squared in
+the viscosity model. $C_S \approx 0.1$ is the Smagorinsky coefficient, and
+$\left | \mathcal{\tilde S} \right |$ is the local strain rate (the second invariant of the strain-rate
+tesor defined in equation \eqref{eqn:defin_strain_rate_tensor}):
 
 \begin{equation}
 \left | \mathcal{\tilde S} \right | = (2 \tilde S_{ij} \tilde S_{ij})^{1/2},
 \end{equation}
-where:
 
-\begin{equation}
-\tilde S_{ij} = \frac 1 2 \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right ).
-\end{equation}
 
 \subsection{Fourth-Order Dissipation}
 \label{ssect:fourth_order_diss_LES}
