@@ -75,8 +75,8 @@ default: $(LIB)
 $(addsuffix .o, $(filter-out Diagnostic_Source_Fields, $(basename $(wildcard *.F90)))): Diagnostic_Source_Fields.o
 
 $(AUTO_WRAPPER).F90: $(DIAGOBJS) $(AUTO_WRAPPER).F90.in \
-  ../bin/make_diagnostic_fields 
-	../bin/make_diagnostic_fields
+  ../tools/make_diagnostic_fields.py
+	../tools/make_diagnostic_fields.py
 
 Diagnostic_Fields_New.o: $(DIAGOBJS) $(AUTO_WRAPPER).F90
 Diagnostic_Fields_Interfaces.o: Diagnostic_Fields_New.o
