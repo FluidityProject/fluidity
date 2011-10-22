@@ -1037,7 +1037,7 @@ As no variations were introduced in the third dimension, the experiment is repro
 \end{center}
 \hspace{1cm}(b)
 \begin{center}
-\includegraphics[width=10.2cm, trim=2.7cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_0_mesh.pdf}
+\includegraphics[width=10.2cm, clip=true]{examples_images/water_collapse/water_collapse_0_mesh.pdf}
 \end{center}
 \caption{(a) Initial set-up of the water volume fraction, $\alpha_1$, and the velocity and pressure boundary conditions for the two-dimensional water column collapse validation problem \citep{zhou_nonlinear_1999}. The presence of water is indicated as a grey region and the interface to air is delineated by contours of the volume fraction at $0.025$, $0.5$ and $0.975$.  The locations of the pressure (P2) and water depth gauges (H1, H2) are also indicated. (b) The adapted mesh used to represent the initial conditions.}
 \label{fig:zhouinitial}
@@ -1047,10 +1047,10 @@ The water volume fraction, $\alpha_1$, is solved for using an advection equation
 using HyperC on a control volume mesh (section~\ref{sec:hyperc}), while the velocity and pressure are discretised using the
 $\PzoCV$ element pair (section~\ref{Sect:velocity_pressure_element_pairs}) with $\theta=1/2$ and $\theta_i=1/2$ (section~\ref{sect:ND_time_theta_scheme}).  
 
-This example employs an adaptive mesh (chapter~\ref{chap:Adaptivity}). The minimum edge length in the mesh is constrained to $2mm$. The upper bound on the edge lengths was specified as half the domain length and height in each dimension.  The pressure and water volume fraction were directly adapted to using interpolation error bounds, $\hat{\epsilon}$, of $1,000$ and $0.05$ respectively.  As the velocity is element centred it was first projected to the vertices before being adapted to with an interpolation error bound of $1$ for each component.  Given the ranges of these fields seen in the fixed mesh runs these correspond to desired errors of less than 5\% for each field. The volume fraction is transferred between successive meshes using a minimally diffusive bounded projection algorithm.  The velocity is transferred using a straightforward projection while the pressure is consistently interpolated using the linear basis functions from its parent mesh. For details of the remaining adaptivity settings we refer to the documented flml file.  The initial mesh using these settings is shown in Figure \ref{fig:zhouinitial}(b). 
+This example employs an adaptive mesh (chapter~\ref{chap:Adaptivity}). The minimum edge length in the mesh is constrained to $3.33mm$. The upper bound on the edge lengths was specified as half the domain length and height in each dimension.  The water volume fraction was directly adapted to using an interpolation error bound, $\hat{\epsilon}$, of $0.075$. Given the range of this field seen in the fixed mesh runs this corresponds to a desired error of less than 5\%. The volume fraction is transferred between successive meshes using a minimally diffusive bounded projection algorithm.  The velocity is transferred using a straightforward projection while the pressure is consistently interpolated using the linear basis functions from its parent mesh. For details of the remaining adaptivity settings we refer to the documented flml file.  The initial mesh using these settings is shown in Figure \ref{fig:zhouinitial}(b). 
 
 The timestep is selected to achieve a Courant number of $2.5$ while the advection equation uses approximately $10$ subcycles
-(section~\ref{sec:cvtemp}) so the volume fraction is advected at a Courant number of $0.25$.  
+(section~\ref{sect:cvtemp}) so the volume fraction is advected at a Courant number of $0.25$.  
 
 \subsection{Results}
 Several timesteps of the example simulation can be seen in Figure \ref{fig:zhouwholea} where the interface is represented by
@@ -1062,15 +1062,15 @@ the vtu files using Paraview or Mayavi2, see the \href{http://amcg-www.ese.ic.ac
 % \newcolumntype{V}{>{\centering\arraybackslash} m{7cm} }
 \begin{tabular}{ll}
 (a) $t = 0.5$ & (b) $t = 1.0$   \\
-\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_100.png} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_200.png} \\
-(c) $t = 1.5$ & (d) $t = 1.625$ \\
-\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_300.png} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_325.png} \\
-(e) $t = 1.75$ & (f) $t = 1.875$ \\
-\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_350.png} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_375.png} \\
-(g) $t = 2.0$ & (h) $t = 2.5$ \\
-\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_400.png} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_500.png} \\
+\includegraphics[width=7cm, trim=8.0cm 6.5cm 8.0cm 6.5cm, clip=true]{examples_images/water_collapse/water_collapse_100.png} & \includegraphics[width=7cm, trim=8.0cm 6.5cm 8.0cm 6.5cm, clip=true]{examples_images/water_collapse/water_collapse_200.png} \\
+(c) $t = 1.25$ & (d) $t = 1.5$ \\
+\includegraphics[width=7cm, trim=8.0cm 6.5cm 8.0cm 6.5cm, clip=true]{examples_images/water_collapse/water_collapse_250.png} & \includegraphics[width=7cm, trim=8.0cm 6.5cm 8.0cm 6.5cm, clip=true]{examples_images/water_collapse/water_collapse_300.png} \\
+(e) $t = 1.75$ & (f) $t = 2.0$ \\
+\includegraphics[width=7cm, trim=8.0cm 6.5cm 8.0cm 6.5cm, clip=true]{examples_images/water_collapse/water_collapse_350.png} & \includegraphics[width=7cm, trim=8.0cm 6.5cm 8.0cm 6.5cm, clip=true]{examples_images/water_collapse/water_collapse_400.png} \\
+(g) $t = 2.25$ & (h) $t = 2.5$ \\
+\includegraphics[width=7cm, trim=8.0cm 6.5cm 8.0cm 6.5cm, clip=true]{examples_images/water_collapse/water_collapse_450.png} & \includegraphics[width=7cm, trim=8.0cm 6.5cm 8.0cm 6.5cm, clip=true]{examples_images/water_collapse/water_collapse_500.png} \\
 \end{tabular}
-\caption{The evolution of the water volume fraction, $\alpha_1$, over several timesteps.  The presence of water, $\alpha_1=1$, is indicated as a grey region and the interface to air, $\alpha_1=0$, is delineated by contours at $\alpha_1 = 0.025$, $0.5$ and $0.975$.}
+\caption{The evolution of the water volume fraction, $\alpha_1$, over several timesteps.  The presence of water, $\alpha_1=1$, is indicated as a blue region and the interface to air, $\alpha_1=0$, is delineated by contours at $\alpha_1 = 0.025$, $0.5$ and $0.975$.}
 \label{fig:zhouwholea}
 \end{center}
 \end{figure}
@@ -1080,20 +1080,20 @@ the vtu files using Paraview or Mayavi2, see the \href{http://amcg-www.ese.ic.ac
 % \newcolumntype{V}{>{\centering\arraybackslash} m{7cm} }
 \begin{tabular}{ll}
 (a) $t = 0.5$ & (b) $t = 1.0$\\
-\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_100_mesh.pdf} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_200_mesh.pdf} \\
-(c) $t = 1.5$ & (d) $t = 1.625$ \\
-\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_300_mesh.pdf} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_325_mesh.pdf} \\
-(e) $t = 1.75$ & (f) $t = 1.875$ \\
-\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_350_mesh.pdf} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_375_mesh.pdf} \\
-(g) $t = 2.0$ & (h) $t = 2.5$ \\
-\includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_400_mesh.pdf} & \includegraphics[width=7cm, trim=2.5cm 4.5cm 2.5cm 4.5cm, clip=true]{examples_images/water_collapse/water_collapse_500_mesh.pdf} \\
+\includegraphics[width=7cm, clip=true]{examples_images/water_collapse/water_collapse_100_mesh.pdf} & \includegraphics[width=7cm, clip=true]{examples_images/water_collapse/water_collapse_200_mesh.pdf} \\
+(c) $t = 1.25$ & (d) $t = 1.5$ \\
+\includegraphics[width=7cm, clip=true]{examples_images/water_collapse/water_collapse_250_mesh.pdf} & \includegraphics[width=7cm, clip=true]{examples_images/water_collapse/water_collapse_300_mesh.pdf} \\
+(e) $t = 1.75$ & (f) $t = 2.0$ \\
+\includegraphics[width=7cm, clip=true]{examples_images/water_collapse/water_collapse_350_mesh.pdf} & \includegraphics[width=7cm, clip=true]{examples_images/water_collapse/water_collapse_400_mesh.pdf} \\
+(g) $t = 2.25$ & (h) $t = 2.5$ \\
+\includegraphics[width=7cm, clip=true]{examples_images/water_collapse/water_collapse_450_mesh.pdf} & \includegraphics[width=7cm, clip=true]{examples_images/water_collapse/water_collapse_500_mesh.pdf} \\
 \end{tabular}
 \caption{The evolution of the adaptive mesh over the same timesteps displayed in Figure \ref{fig:zhouwholea}.  The mesh can be seen to closely follow the interface between the water and air.}
 \label{fig:zhouwholemesh}
 \end{center}
 \end{figure}
 
-The images show the column collapse (Figure \ref{fig:zhouwholea}(a)), run-up against the opposing wall (Figure \ref{fig:zhouwholea}(b)) and the subsequent overturning wave (Figure \ref{fig:zhouwholea}(c, d)) and entrainment of air bubbles (Figure \ref{fig:zhouwholea}(e--h)).  
+The images show the column collapse (Figure \ref{fig:zhouwholea}(a)), run-up against the opposing wall (Figure \ref{fig:zhouwholea}(b, c)) and the subsequent overturning wave (Figure \ref{fig:zhouwholea}(d)) and entrainment of air bubbles (Figure \ref{fig:zhouwholea}(e--h)). The evolution of the adaptive mesh over the same timesteps is shown in Figure \ref{fig:zhouwholemesh}. 
 
 \begin{figure}[tbp]
 \begin{center}
@@ -1102,7 +1102,7 @@ The images show the column collapse (Figure \ref{fig:zhouwholea}(a)), run-up aga
 \hspace{1cm}(i) H1 & (ii) H2  \\
 \includegraphics[width=7cm]{examples_images/water_collapse/water_gauge_H1.pdf} & \includegraphics[width=7cm]{examples_images/water_collapse/water_gauge_H2.pdf}\\
 \end{tabular}
-\caption{Comparison between the experimental (circles) and numerical water gauge data at H1 (i) and H2 (ii), $x_1 = 2.725m$ and $2.228m$ respectively.  The letters along the top of the graphs indicate the times corresponding to Figure \ref{fig:zhouwholea}(a--h).  Experimental data taken from \citet{zhou_nonlinear_1999} through \citet{park_volume-of-fluid_2009}.}
+\caption{Comparison between the experimental (circles) and numerical water gauge data at H1 (i) and H2 (ii), $x_1 = 2.725m$ and $2.228m$ respectively. Experimental data taken from \citet{zhou_nonlinear_1999} through \citet{park_volume-of-fluid_2009}.}
 \label{fig:zhoudepth}
 \end{center}
 \end{figure}
@@ -1114,14 +1114,14 @@ After $t=1.5s$ the overturning wave starts to pass the water gauges and the matc
 \begin{figure}[tb]
 \begin{center}
 \includegraphics[width=10cm]{examples_images/water_collapse/pressure_gauge_P2.pdf}
-\caption{Comparison between the experimental (circles) and numerical pressure gauge data at P2, $x_1 = 3.22m$, $x_2 = 0.16m$.  The letters along the top of the graphs indicate the times corresponding to Figure \ref{fig:zhouwholea}(a--h).  Experimental data taken from \citet{zhou_nonlinear_1999} through \citet{park_volume-of-fluid_2009}.}
+\caption{Comparison between the experimental (circles) and numerical pressure gauge data at P2, $x_1 = 3.22m$, $x_2 = 0.16m$. Experimental data taken from \citet{zhou_nonlinear_1999} through \citet{park_volume-of-fluid_2009}.}
 \label{fig:zhoupressure}
 \end{center}
 \end{figure}
 
 Experimental pressure gauge data are also available at the point P2, $(3.22,0.16)m$, on the right wall of the tank.  This is compared to the numerical pressure results in Figure \ref{fig:zhoupressure}.  After the initial noise in the experimental data, a sudden step in pressure is seen as the water run-up reaches the pressure gauge at about $t=0.6s$.  This is also seen in the numerical simulations however it is slightly delayed, occurring at $t=0.7s$.  As upwinding is being used in the discretisation of the velocity field, the delay may be due to numerical viscosity slowing the advancing water front.  However, as the delay was not as extreme at the depth gauges H1 and H2 other factors may also play a role.  For instance, if the lip seen in the experimental water gauge data is a head on the water front, that has not been reproduced numerically, it may reach the height of the pressure gauge faster than a front with no head.
 
-Once the pressure jump occurs the experimental and numerical data are in broad agreement until the overturning wave impacts with the water layer at approximately $t=1.5s$ (Figure \ref{fig:zhouwholea}(c)).  At the point of contact a pressure pulse is transmitted to the pressure gauge resulting in a modest pressure spike in the experimental data.  This is matched by slightly delayed pressure pulses in all the numerical simulation.  However, the pulses seen in the numerical data are of a much larger magnitude than the experimental data. This discrepancy may be due to the fact that in the experiment the pressure gauge measures the pressure over a broader area than in the simulation. 
+Once the pressure jump occurs the experimental and numerical data are in broad agreement until the overturning wave impacts with the water layer at approximately $t=1.5s$ (Figure \ref{fig:zhouwholea}(d)).  At the point of contact a pressure pulse is transmitted to the pressure gauge resulting in a modest pressure spike in the experimental data.  This is matched by slightly delayed pressure pulses in all the numerical simulation.  However, the pulses seen in the numerical data are of a much larger magnitude than the experimental data. This discrepancy may be due to the fact that in the experiment the pressure gauge measures the pressure over a broader area than in the simulation. 
 
 \subsection{Exercises}
 To explore the functionality of \fluidity, the following variations on this example would be constructive learning exercises:
