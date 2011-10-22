@@ -5,7 +5,7 @@ preprocess:
 	echo **********Installing directory for $(TYPE) run:
 	install -d $(TYPE); \
 	cd $(TYPE); \
-	ln -s ../backward_facing_step_2d__kim_$(TYPE).flml .; \
+	ln -s ../backward_facing_step_2d_kim_$(TYPE).flml .; \
 	echo **********Generating mesh for $(TYPE) simulation.; \
 	gmsh -2 -o step2d-kim-med.msh ../src/step2d-kim-med.geo; \
 	$(SCRIPTS)/gmsh2triangle -2 step2d-kim-med.msh; \
