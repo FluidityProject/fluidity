@@ -145,19 +145,19 @@
           call solve_hybridized_helmholtz(&
                &state(1),U_rhs=U_rhs,&
                &compute_cartesian=.true.,&
-               &check_continuity=.true.,output_dense=.false.,&
+               &output_dense=.false.,&
                projection=projection_mode)
        else if(have_u_rhs) then
           call solve_hybridized_helmholtz(&
                &state(1),d_rhs=l_d_rhs,U_rhs=U_rhs,&
                &compute_cartesian=.true.,&
-               &check_continuity=.true.,output_dense=.false.,&
+               &output_dense=.false.,&
                projection=projection_mode)          
        else
           call solve_hybridized_helmholtz(&
                &state(1),d_rhs=l_d_rhs,&
                &compute_cartesian=.true.,&
-               &check_continuity=.true.,output_dense=.false.,&
+               &output_dense=.false.,&
                projection=projection_mode)
        end if
     else
@@ -166,7 +166,7 @@
        call solve_hybridized_helmholtz(&
             &state(1),&
             &compute_cartesian=.true.,&
-            &check_continuity=.true.,output_dense=.false.,&
+            &output_dense=.false.,&
             projection=projection_mode)
     end if
 

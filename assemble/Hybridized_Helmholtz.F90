@@ -54,7 +54,7 @@ contains
        &D_out,U_out,&
        &dt_in,theta_in,&
        &compute_cartesian,&
-       &check_continuity,output_dense,&
+       &output_dense,&
        &projection,poisson,&
        &u_rhs_local)
 
@@ -80,7 +80,7 @@ contains
     type(vector_field), intent(inout), optional :: U_out
     real, intent(in), optional :: theta_in,dt_in
     logical, intent(in), optional :: compute_cartesian, &
-         &check_continuity,output_dense, projection,poisson
+         &output_dense, projection,poisson
     logical, intent(in), optional :: u_rhs_local !means u_rhs is in local coords
     !
     type(vector_field), pointer :: X, U, down, U_cart
@@ -91,9 +91,9 @@ contains
     type(csr_matrix) :: lambda_mat, continuity_block_mat,continuity_block_mat1
     type(block_csr_matrix) :: continuity_mat
     type(mesh_type), pointer :: lambda_mesh
-    real :: D0, dt, g, theta
+    real :: D0, dt, g, theta, tolerance
     integer :: ele,i1, stat, dim1
-    logical :: l_compute_cartesian,l_check_continuity, l_output_dense
+    logical :: l_compute_cartesian, l_output_dense
     real, dimension(:,:), allocatable :: lambda_mat_dense
     character(len=OPTION_PATH_LEN) :: constraint_option_string
     real :: u_max
@@ -104,8 +104,6 @@ contains
 
     l_compute_cartesian = .false.
     if(present(compute_cartesian)) l_compute_cartesian = compute_cartesian
-    if(present(check_continuity)) l_check_continuity = check_continuity
-    if(l_check_continuity) l_compute_cartesian = .true.
     l_output_dense = .false.
     if(present(output_dense)) l_output_dense = output_dense
 
@@ -224,7 +222,8 @@ contains
        end if
     end if
 
-    if(l_check_continuity) then
+    if(have_option('/geometry/mesh::VelocityMesh/from_mesh/constraint_type/&
+         &check_continuity_matrix')) then
        ewrite(2,*) 'Checking continuity'
 
        call zero(lambda_rhs)
@@ -243,11 +242,27 @@ contains
        end do
        ewrite(2,*)'JUMPS MIN:MAX',minval(lambda_rhs%val),&
             &maxval(lambda_rhs%val), u_max
-       !assert(maxval(abs(lambda_rhs%val))/max(1.0,u_max/3.0)<1.0e-8)
-       
-       ewrite(2,*) 'D MAXABS', maxval(abs(D%val))
+
+       call get_option('/geometry/mesh::VelocityMesh/from_mesh/constraint_ty&
+            &pe/check_continuity_matrix/tolerance',tolerance)
+       if(maxval(abs(lambda_rhs%val))/max(1.0,u_max/3.0)>tolerance) then
+          ewrite(-1,*) 'value =', maxval(abs(lambda_rhs%val))/max(1.0,u_max/3.0)
+          FLExit('Continuity matrix tolerance failure')
+       end if
+    end if
+
+    if(have_option('/geometry/mesh::VelocityMesh/from_mesh/constraint_type/c&
+         &heck_continuity')) then       
+       U_cart => extract_vector_field(state, "Velocity")
+       if(present(U_out)) then
+          call project_local_to_cartesian(X,U_out,U_cart,weights=weights)
+       else
+          call project_local_to_cartesian(X,U,U_cart,weights=weights)
+       end if
+       call get_option('/geometry/mesh::VelocityMesh/from_mesh/constraint_ty&
+            &pe/check_continuity/tolerance', tolerance)
        do ele = 1, ele_count(U)
-          call check_continuity_ele(U_cart,X,ele)
+          call check_continuity_ele(U_cart,X,ele,tolerance)
        end do
     end if
     
@@ -946,20 +961,20 @@ contains
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     integer, dimension(:), pointer :: U_ele
     integer :: mdim, uloc, gi
-    real, dimension(ele_ngi(U,ele)) :: detwei, detJ
+    real, dimension(ele_ngi(U,ele)) :: detwei, detJ 
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
 
-    mdim = mesh_dim(U)
-    uloc = ele_loc(U,ele)
-    do dim1 = 1, mdim
-       u_start(dim1) = uloc*(dim1-1)+1
-       u_end(dim1) = uloc+dim1
+    mdim = mesh_dim(U) 
+    uloc = ele_loc(U,ele) 
+    do dim1 = 1, mdim 
+       u_start(dim1) = uloc*(dim1-1)+1 
+       u_end(dim1) = uloc+dim1 
     end do
 
     U_ele => ele_nodes(U, ele)
 
-    u_shape=ele_shape(u, ele)
-    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+    u_shape=ele_shape(u, ele) 
+    call compute_jacobian(ele_val(X,ele),ele_shape(X,ele), J=J, & 
          detwei=detwei,detJ=detJ)
 
     local_u_gi = ele_val_at_quad(U,ele)
@@ -1018,10 +1033,11 @@ contains
 
   end subroutine check_continuity_local_face
 
-  subroutine check_continuity_ele(U_cart,X,ele)
+  subroutine check_continuity_ele(U_cart,X,ele,tolerance)
     implicit none
     type(vector_field), intent(in) :: U_cart,X
     integer, intent(in) :: ele
+    real, intent(in) :: tolerance
     !
     integer, dimension(:), pointer :: neigh
     integer :: ni,face,ele2,face2
@@ -1035,16 +1051,18 @@ contains
        else
           face2 = -1
        end if
-       call check_continuity_face(U_cart,X,ele,ele2,face,face2)
+       call check_continuity_face(U_cart,X,ele,ele2,face,face2,tolerance)
     end do
   end subroutine check_continuity_ele
 
-  subroutine check_continuity_face(U_cart,X,ele,ele2,face,face2)
+  subroutine check_continuity_face(U_cart,X,ele,ele2,face,face2,tolerance)
     !subroutine to check the continuity of normal component
     !of velocity at quadrature points
     implicit none
     type(vector_field), intent(in) :: U_cart,X
     integer, intent(in) :: face,face2,ele,ele2
+    real, intent(in) :: tolerance
+    !
     real, dimension(X%dim, face_ngi(U_cart, face)) :: n1,n2
     real, dimension(X%dim, face_ngi(U_cart, face)) :: u1,u2,x1,x2
     real, dimension(face_ngi(U_cart, face)) :: jump_at_quad
@@ -1072,7 +1090,7 @@ contains
        n2 = -n1
     end if
     jump_at_quad = sum(n1*u1+n2*u2,1)
-    if(maxval(abs(jump_at_quad))>1.0e-8) then
+    if(maxval(abs(jump_at_quad))>tolerance) then
        ewrite(2,*) 'Jump at quadrature face, face2 =', jump_at_quad
        ewrite(2,*) 'ELE = ',ele,ele2
        do dim1 = 1, X%dim
@@ -1400,7 +1418,7 @@ contains
     !STAGE 1a: verify that velocity projects is div-conforming
     call project_local_to_cartesian(X,U_local,U_cart,weights=weights)
     do ele = 1, ele_count(U_local)
-       call check_continuity_ele(U_cart,X,ele)
+       call check_continuity_ele(U_cart,X,ele,tolerance=1.0e-8)
     end do
     !Stage 1b: verify that projection is idempotent
     ewrite(2,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
@@ -1439,7 +1457,6 @@ contains
        call solve_hybridized_helmholtz(state,d_Rhs=d_rhs,&
             &U_out=tmpV_field,d_out=tmp_field,&
             &compute_cartesian=.true.,&
-            &check_continuity=.true.,&
             &poisson=.true.,u_rhs_local=.true.)
        D%val = tmp_field%val
     else
@@ -1480,7 +1497,7 @@ contains
     call solve_hybridized_helmholtz(state,U_Rhs=balance_eqn,&
          &U_out=balance_eqn,&
          &compute_cartesian=.true.,&
-         &check_continuity=.true.,projection=.true.,&
+         &projection=.true.,&
          &poisson=.false.,&
          &u_rhs_local=.true.)
     
@@ -1780,7 +1797,7 @@ contains
     call solve_hybridized_helmholtz(state,&
          &U_rhs=v_field,U_out=v_field_out,D_out=tmp_field,&
          &compute_cartesian=.true.,&
-         &check_continuity=.true.,projection=.true.,&
+         &projection=.true.,&
          &poisson=.false.,&
          &u_rhs_local=.true.)
 
@@ -1811,7 +1828,7 @@ contains
          &U_out=U_rhs,D_out=d_rhs,&
          &compute_cartesian=.true.,&
          &projection=.false.,poisson=.false.,&
-         &check_continuity=.true.,output_dense=.false.)
+         &output_dense=.false.)
     ewrite(1,*) 'jump in D', maxval(abs(d_rhs%val-d%val))
     ewrite(1,*) 'jump in U', maxval(abs(U_rhs%val-U%val))
     call set(d,d_rhs)
@@ -1903,7 +1920,7 @@ contains
     type(vector_field), pointer :: U, X, U_cart, down
     type(vector_field), target :: tmp_U 
     character(len=PYTHON_FUNC_LEN) :: Python_Function
-    integer :: ele
+    integer :: ele,stat
 
     ewrite(1,*) 'Setting velocity from commuting projection'
 
@@ -1921,8 +1938,11 @@ contains
             &commuting_projection/python",Python_Function)
     end if
     down=>extract_vector_field(state, "GravityDirection")
-    X=>extract_vector_field(state, "Coordinate")
- 
+    X=>extract_vector_field(state, "HigherOrderCoordinate",stat)
+    if(stat /= 0) then
+       X=>extract_vector_field(state, "Coordinate")
+    end if
+
     do ele = 1, element_count(U)
        call set_velocity_commuting_projection_ele(U,X,down,Python_Function,ele)
     end do
@@ -1931,7 +1951,7 @@ contains
     call project_local_to_cartesian(X,U,U_cart)
 
     do ele = 1, ele_count(U)
-       call check_continuity_ele(U_cart,X,ele)
+       call check_continuity_ele(U_cart,X,ele,tolerance=1.0e-8)
     end do
 
     if(present(name)) then
@@ -1986,7 +2006,7 @@ contains
        floc = U_constraint%n_face_basis
        
        call set_velocity_commuting_projection_face(&
-            U,X,Python_Function,face,&
+            U,X,down,Python_Function,face,&
             face2,ele,ele2,projection_mat(row:row+floc-1,:),&
             projection_rhs(row:row+floc-1))
        row = row + floc
@@ -2012,21 +2032,6 @@ contains
          & stat=stat)
     if(stat /= 0) then
        FLAbort('Failed to set ele values from Python.')
-    end if
-    if(project_velocity_before_fe_projection) then
-       up_gi = -ele_val_at_quad(down,ele)
-       !remove normal component of input velocity and rescale
-       call get_up_gi(X,ele,up_gi)
-       norm_U_rhs = (sum(U_rhs_quad**2,1))**0.5
-       U_rhs_normal_cpt = sum(U_rhs_quad*up_gi,1)
-       do dim1 =1, U%dim
-          U_rhs_quad(dim1,:) = U_rhs_quad(dim1,:) - &
-               & up_gi(dim1,:)*U_rhs_normal_cpt
-       end do
-       norm_U_rhs_new = (sum(U_rhs_quad**2,1))**0.5
-       do dim1 = 1, U%dim
-          U_rhs_quad(dim1,:) = U_rhs_quad(dim1,:)*(norm_U_rhs/norm_U_rhs_new)
-       end do
     end if
     !Test functions have Piola transform in, so multiply the RHS by the 
     !transpose of the Jacobian (confusingly, compute Jacobian returns 
@@ -2102,9 +2107,10 @@ contains
 
   end subroutine set_velocity_commuting_projection_ele
   
-  subroutine set_velocity_commuting_projection_face(U,X,Python_Function,face,&
+  subroutine set_velocity_commuting_projection_face(U,X,down,&
+       &Python_Function,face,&
        &face2,ele,ele2,projection_mat_rows,projection_rhs_rows)
-    type(vector_field), intent(in) :: X
+    type(vector_field), intent(in) :: X,down
     type(vector_field), intent(inout) :: U
     character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
     integer, intent(in) :: face,face2,ele,ele2
@@ -2117,18 +2123,19 @@ contains
     real, dimension(mesh_dim(U),face_loc(U,face),face_loc(U,face)) :: face_mat
     real, dimension(face_loc(U,face)) :: face_rhs
     real, dimension(mesh_dim(U), face_ngi(U, face)) :: n_local
-    real, dimension(X%dim, face_ngi(X, face)) :: n_cart, n_cart2
+    real, dimension(X%dim, face_ngi(X, face)) :: n_cart
     real, dimension(X%dim, face_ngi(U, face)) :: U_rhs_face_quad, &
          & X_face_quad
-    real, dimension(X%dim) :: ele_normal, face_tangent, ele_out
+    real, dimension(X%dim,face_ngi(X,face)) :: m_normal, f_tangent
     real :: weight
     type(element_type), pointer :: U_face_shape
     real, dimension(face_ngi(U,face)) :: detwei_f
-    real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val
-    real, dimension(X%dim,face_loc(X,face)) :: X_face_val
     integer :: row, dim1, u_dim1, stat, gi
-    !integer, dimension(:), allocatable :: U_face_nodes
     integer, dimension(face_loc(U,face)) :: U_face_nodes
+    real, dimension(mesh_dim(X)-1, X%dim, face_ngi(X,face)) :: J
+
+    call compute_jacobian(face_val(X,face),face_shape(X,face), J=J,&
+         &detwei=detwei_f)
 
     U_face_shape=>face_shape(U, face)
     u_face_nodes=face_local_nodes(U, face)
@@ -2149,65 +2156,22 @@ contains
        end do
     end do
 
-    !Stuff for RHS vector
-    if(X%mesh%shape%degree .ne.1) then
-       FLAbort('Only degree 1 coordinate mesh supported currently.')
+    if(mesh_dim(X) /= 2) then
+       FLAbort('Assumed mesh dim is 2 here')
     end if
-    if(mesh_dim(X) .ne. 2) then
-       FLAbort('Only 2d surfaces supported currently.')
-    end if
-
-    !this is hackery but only for initialisation.  in my copious spare time
-    !when it isn't the start of term I'll fix the normal computation in
-    !transform_facet_to_physical - cjc   
-    
-    !Get the element normal
-    X_ele_val = ele_val(X,ele)
-    ele_normal = cross_product(X_ele_val(:,1)-X_ele_val(:,2),&
-         X_ele_val(:,1)-X_ele_val(:,3))
-    ele_normal = ele_normal/sqrt(sum(ele_normal**2))
-    X_face_val = face_val(X,face)
-    face_tangent = X_face_val(:,1)-X_face_val(:,2)
-    face_tangent = face_tangent/sqrt(sum(face_tangent**2))
+    !Get the manifold normal
+    !same on both sides of the face so don't need to average
+    m_normal = -ele_val(down,face)
+    f_tangent = J(1,:,:)
     do gi = 1, face_ngi(X,face)
-       n_cart(:,gi) = cross_product(ele_normal,face_tangent)
+       f_tangent(:,gi) = f_tangent(:,gi)/sqrt(sum(f_tangent(:,gi)**2))
     end do
-    ele_out = sum(X_face_val,2)/size(X_face_val,2)-&
-         &sum(X_ele_val,2)/size(X_ele_val,2)
-    if(dot_product(ele_out,n_cart(:,1))<0.0) then
-       n_cart = -n_cart
-    end if
-
-    !Get the element normal in other element
-    X_ele_val = ele_val(X,ele2)
-    ele_normal = cross_product(X_ele_val(:,1)-X_ele_val(:,2),&
-         X_ele_val(:,1)-X_ele_val(:,3))
-    ele_normal = ele_normal/sqrt(sum(ele_normal**2))
-    X_face_val = face_val(X,face2)
-    face_tangent = X_face_val(:,1)-X_face_val(:,2)
-    face_tangent = face_tangent/sqrt(sum(face_tangent**2))
     do gi = 1, face_ngi(X,face)
-       n_cart2(:,gi) = cross_product(ele_normal,face_tangent)
+       n_cart(:,gi) = cross_product(m_normal(:,gi),f_tangent(:,gi))
+       !n_cart(:,gi) = n_cart(:,gi)/sqrt(sum(n_cart(:,gi)**2))
     end do
-    ele_out = sum(X_face_val,2)/size(X_face_val,2)-&
-         &sum(X_ele_val,2)/size(X_ele_val,2)
-    if(dot_product(ele_out,n_cart2(:,1))<0.0) then
-       n_cart2 = -n_cart2
-    end if
-    !Get average
-    n_cart=0.5*(n_cart-n_cart2)
-
-    !get detwei
-    !integral is |dx/dxi(xi)|dxi
-    X_face_val = face_val(X,face)
-    detwei_f = 0.
-    do gi = 1, face_ngi(X,face)
-       detwei_f(gi) = sqrt(sum((X_face_val(:,1)-X_face_val(:,2))**2))
-    end do
-    detwei_f = detwei_f*U_face_shape%quadrature%weight
 
     X_face_quad = face_val_at_quad(X,face)
-
     call set_vector_field_from_python(python_function, len(python_function),&
          & dim=3,nodes=face_ngi(X,face),x=X_face_quad(1,:),y=X_face_quad(2,:)&
          &,z=x_face_quad(3,:),t=0.0,result_dim=3,&

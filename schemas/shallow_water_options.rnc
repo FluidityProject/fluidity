@@ -78,7 +78,20 @@ start =
                element quadrature_family {
                  ( "family_cools" | "family_grundmann_moeller" | "family_wandzura" ) 
                }?
-            }
+            },
+            ## Options specifying that the problem is on the surface of the sphere.
+            element spherical_earth {
+               (
+                  element linear_mapping {
+                     empty
+                  }|
+                  ## Enabling this option approximates the curvature of the Earth as an
+                  ## nth degree polynomial, where n is the polynomial degree of the coordinate mesh.
+                  element superparametric_mapping {
+                     empty
+                  }
+               )
+            }?
          },
          ## Input/output options
          element io {

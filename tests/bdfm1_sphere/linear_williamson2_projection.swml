@@ -45,6 +45,16 @@
               <monitors/>
             </diagnostics>
           </solver>
+          <check_continuity>
+            <tolerance>
+              <real_value rank="0">1.0e-8</real_value>
+            </tolerance>
+          </check_continuity>
+          <check_continuity_matrix>
+            <tolerance>
+              <real_value rank="0">1.0e-7</real_value>
+            </tolerance>
+          </check_continuity_matrix>
         </constraint_type>
         <stat>
           <exclude_from_stat/>
@@ -190,7 +200,7 @@
         <initial_condition name="WholeMesh">
           <commuting_projection>
             <python>
-              <string_value type="python" lines="20">def val(X,t):
+              <string_value lines="20" type="python">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
@@ -355,6 +365,35 @@
   cosphi = (x**2+y**2)**0.5/R
   u0 = 2*pi*R/(12.*24.*60.*60.)
   return [-u0*cosphi*y/R,u0*cosphi*x/R,0]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
+    </vector_field>
+    <vector_field name="HigherOrderCoordinate" rank="1">
+      <prescribed>
+        <mesh name="P2Mesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value type="python" lines="20">def val(X,t):
+  x = X[0]
+  y = X[1]
+  z = X[2]
+  R = (x**2+y**2+z**2)**0.5
+  R0 = 6.37122e6
+  x = R0*x/R
+  y = R0*y/R
+  z = R0*z/R
+  return [x,y,z]</string_value>
           </python>
         </value>
         <output/>
