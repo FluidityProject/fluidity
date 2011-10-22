@@ -364,6 +364,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	checkmesh				& \ref{sect:checkmesh}			\\
 	create\_aligned\_mesh 			& \ref{sect:create_aligned_mesh}	\\
 	create\_climatology\_atlas		& \ref{sect:create_climatology_atlas}	\\
+    create\_param\_sweep            & \ref{sect:create_param_sweep} \\
 	differentiate\_vtu          		& \ref{sect:differentiate_vtu}		\\
 	edge\_length\_distribution		& \ref{sect:edgelengthdist} 		\\
 	fladapt					& \ref{sect:fladapt}			\\
@@ -447,6 +448,55 @@ The $1/4 ^\circ$ grid climatological mean fields of in situ temperature (degrees
 For use with ICOM (relaxing to climatology at the boundaries), a NetCDF data was created containing the monthly means, and the additional 9 standard levels from the seasonal means in order to provide information below the 1500m level. In addition, Killworth correction (Killworth 1995) is applied to the data in order to facilitate accurate time interpolation.
 
 To use this just execute it in the directory which contains all the files listed above gunzipped.
+
+%%%%%%%%%%%%%%%%%%%%% CREATE_PARAM_SWEEP %%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{create\_param\_sweep}
+\label{sect:create_param_sweep}
+
+It is sometimes useful to vary certain parameters of your simulation to assess the effect of 
+that parameter on some part of the output. This can be a tedious thing to set up, especially 
+if you wish to cover a number of parameters and their interacting effects.
+A script (\lstinline[language = Bash]+create_param_sweep.py+) allows this to be done very easily.
+
+\textbf{Usage}
+
+Take a directory which contains everything you need for a simulation; mesh files, 
+flml, any input files, python scripts, etc. Next generate a parameter file in the following format:
+
+\begin{lstlisting}[language = Bash]
+NAME; spud_path; colon:seperated:parameter:values
+NAME2; spud_path2; colon:seperated:parameter:values
+\end{lstlisting}
+
+The values should be in "Python" format, e.g. a tensor is 
+\lstinline[language = Bash]+[[0,0,1],[3,5,23],[34,6,2]]+. 
+The spud path can be copied from diamond (i.e. click on the parameter you wish to vary
+and click "copy path"). The name is a human readable name that will be used in the output files.
+
+You can then run the script:
+
+\begin{lstlisting}[language = Bash]
+./create_param_sweep.py template/ sens_test/ param_file.txt 
+\end{lstlisting}
+
+where template is your set up directory, \lstinline[language = Bash]+sens_test+ 
+is where you want all the files to be created 
+(doesn't need to exist already) and \lstinline[language = Bash]+param_file.txt+ is your parameter space file.
+When complete you will have the following directory structure:
+
+\begin{lstlisting}
+output_dir/
+  template (copied in if not already here)
+  runs/
+     1/
+       run.flml
+       other files
+     2
+     3
+     directory_listing.csv
+\end{lstlisting}
+
+\lstinline[language = Bash]+directory_listing.csv+ will contain the directory numbers and which parameter set they contain. Each run is contained in a separate, numbered, directory.
 
 %%%%%%%%%%%%%%%%%%%%% DIFFERENTIATE_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%
 
