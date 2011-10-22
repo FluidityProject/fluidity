@@ -244,7 +244,7 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
     else:
       ax.plot(profiles[i,0,:]/max(profiles[i,0,:]),yarray, linestyle="dashed")
     leg_end.append("%.1f secs"%time[i])
-  leg_end.append("Kim expt.","Ilinca sim.")
+  leg_end.append(("Kim expt.","Ilinca sim."))
   ax.plot(U1,y1, linestyle="solid",color="black")
   ax.plot(Un1,yn1, linestyle="solid",color="red")
   pylab.legend((leg_end), loc="lower right")
@@ -319,7 +319,7 @@ def main():
     type = sys.argv[1]
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=20, start=0)
+    filelist = get_filelist(sample=10, start=0)
 
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))
