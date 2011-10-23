@@ -60,7 +60,6 @@ VTU2TRIANGLE= ../bin/vtu2triangle
 PETSC_READNSOLVE = ../bin/petsc_readnsolve
 TEST_PRESSURE_SOLVE = ../bin/test_pressure_solve
 PROJECT_TO_CONTINUOUS = ../bin/project_to_continuous
-PROJECT_TO_CONTINUOUS_PARALLEL = ../bin/project_to_continuous_parallel
 UNIFIEDMESH = ../bin/unifiedmesh
 LIBFLUIDITY=-l$(FLUIDITY)
 LIBFEMTOOLS=-lfemtools
@@ -72,9 +71,6 @@ SUPERMESH_DIFFERENCE=../bin/supermesh_difference
 DIFFERENTIATE_VTU=../bin/differentiate_vtu
 VTU_BINS=../bin/vtu_bins
 FLADAPT=../bin/fladapt
-LINEARLY_INTERPOLATE=../bin/linearly_interpolate
-LINEARLY_INTERPOLATE_ALL=../bin/linearly_interpolate_all
-LINEAR_INTERPOLATION_PARALLEL=../bin/linear_interpolation_parallel
 TIME_AVERAGE_PARALLEL=../bin/time_average_parallel
 VTKPROJECTION=../bin/vtk_projection
 PERIODISE=../bin/periodise
@@ -85,7 +81,7 @@ BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC)		\
   $(VERTICAL_INTEGRATION) $(EVMERGE) $(FLADAPT) $(CHECKMESH)		\
   $(PROJECT_VTU) $(PROBE_VTU) $(SUPERMESH_DIFFERENCE)			\
   $(DIFFERENTIATE_VTU) $(VTU_BINS) $(TRIANGLE2VTU)			\
-  $(PROJECT_TO_CONTINUOUS) $(PROJECT_TO_CONTINUOUS_PARALLEL)		\
+  $(PROJECT_TO_CONTINUOUS) 						\
   $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)	\
   $(TEST_TRACE_SPACE) $(STREAMFUNCTION_2D) $(TEST_TRACE_SPACE)		\
   $(TEST_LAPLACIAN) $(VISUALISE_ELEMENTS)
@@ -122,9 +118,6 @@ $(VTU2TRIANGLE): vtu2triangle.o vtu2triangle_main.o lib/
 $(PROJECT_TO_CONTINUOUS): project_to_continuous.o project_to_continuous_main.o
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
-$(PROJECT_TO_CONTINUOUS_PARALLEL): project_to_continuous_parallel.o project_to_continuous_parallel_main.o
-	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
 $(TRIANGLE_TEST_MESH): triangle_test_mesh.o
 	$(LINKER) -o $(TRIANGLE_TEST_MESH) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
@@ -135,15 +128,6 @@ $(TEST_LAPLACIAN_VECTOR): test_laplacian_vector.o
 	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(VISUALISE_ELEMENTS): visualise_elements.o
-	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(LINEARLY_INTERPOLATE): linearly_interpolate.o
-	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(LINEARLY_INTERPOLATE_ALL): linearly_interpolate_all.o
-	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
-
-$(LINEAR_INTERPOLATION_PARALLEL): linear_interpolation_parallel.o
 	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(TIME_AVERAGE_PARALLEL): time_average_parallel.o
