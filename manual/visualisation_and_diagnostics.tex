@@ -371,8 +371,8 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	fldiagnostics				& \ref{sect:fldiagnostics}		\\
 	genpvtu					& \ref{sect:genpvtu}			\\
 	gen\_square\_meshes			& \ref{sect:gen_square_meshes} 		\\
-	gmsh\_mesh\_transform			& \ref{sect:gmsh_mesh_transform}	\\
 	gmsh2triangle				& \ref{sect:gmsh2triangle}		\\
+	gmsh\_mesh\_transform			& \ref{sect:gmsh_mesh_transform}	\\
 	interval				& \ref{sect:interval} 			\\
 	linear\_interpolation			& \ref{sect:scripts_linear_interpolation} \\	
 	mean\_flow				& \ref{sect:mean_flow}			\\
@@ -381,6 +381,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	petsc\_readnsolve			& \ref{sect:petsc_readnsolve} 		\\
 	probe\_vtu  				& \ref{sect:probe_vtu} 			\\
 	project\_to\_continuous			& \ref{sect:project_to_continuous} 	\\
+	project\_vtu				& \ref{sect:project_vtu} 		\\
 	pvtu2vtu				& \ref{sect:pvtu2vtu}			\\
 	rename\_checkpoint			& \ref{sect:rename_checkpoint}		\\
 	stat2csv				& \ref{sect:stat2csv}			\\
@@ -392,10 +393,10 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
 	vertical\_integration			& \ref{sect:vertical_integration} 	\\
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
-	vtu\_bins           			& \ref{sect:vtu_bins}			\\
 	vtk\_projection				& \ref{sect:vtkprojection}		\\
 	vtudecomp				& \ref{sect:vtudecomp}			\\
 	vtudiff					& \ref{sect:vtudiff}			\\
+	vtu\_bins           			& \ref{sect:vtu_bins}			\\
     \hline
   \end{tabular}
 \end{center}
@@ -450,7 +451,7 @@ For use with ICOM (relaxing to climatology at the boundaries), a NetCDF data was
 To use this just execute it in the directory which contains all the files listed above gunzipped.
 
 %%%%%%%%%%%%%%%%%%%%% CREATE_PARAM_SWEEP %%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{create\_param\_sweep}
+\subsubsection{create\_param\_sweep}
 \label{sect:create_param_sweep}
 
 It is sometimes useful to vary certain parameters of your simulation to assess the effect of 
@@ -591,6 +592,21 @@ gen_square_meshes [OPTIONS] NODES MESHES
 \end{lstlisting} 
 NODES is the number of nodes in the mesh and MESHES is the number of meshes to be created. [OPTIONS] are -h for help and -v for Verbose mode.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%% GMSH2TRIANGLE %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{gmsh2triangle}
+\label{sect:gmsh2triangle}
+gmsh2triangle converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
+can read in Gmsh files directly as noted in section \ref{sect:using_gmsh}, 
+this tool should be used in cases where native Gmsh support does not work.
+It is run from the command line:
+\begin{lstlisting}[language = Bash]
+gmsh2triangle [--2d] input
+\end{lstlisting}
+where \lstinline[language = Bash]+input+ is the input .msh file.
+The \lstinline[language = Bash]+--2d+ flag can be used to instruct \lstinline+gmsh2triangle+
+to process a 2D input .msh file. Otherwise, 3D input is assumed.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%% GMSH_MESH_TRANSFORM %%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{gmsh\_mesh\_transform}
@@ -629,21 +645,6 @@ minoceandepth = 100' 'x < shelflength' '(x, y, (z/(shelfslopeheight
 + minoceandepth)) * ((x/shelflength) * shelfslopeheight + minoceandepth))' 
 mesh.msh
 \end{lstlisting}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%% GMSH2TRIANGLE %%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{gmsh2triangle}
-\label{sect:gmsh2triangle}
-gmsh2triangle converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
-can read in Gmsh files directly as noted in section \ref{sect:using_gmsh}, 
-this tool should be used in cases where native Gmsh support does not work.
-It is run from the command line:
-\begin{lstlisting}[language = Bash]
-gmsh2triangle [--2d] input
-\end{lstlisting}
-where \lstinline[language = Bash]+input+ is the input .msh file.
-The \lstinline[language = Bash]+--2d+ flag can be used to instruct \lstinline+gmsh2triangle+
-to process a 2D input .msh file. Otherwise, 3D input is assumed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% INTERVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -795,6 +796,22 @@ project_to_continuous [OPTIONS] vtufile trianglename
 \end{lstlisting}
 
 where \lstinline[language = Bash]+vtufile+ is the name of the discontinuous vtu and \lstinline[language = Bash]+trianglename+ is the base name of the triangle files. The flag \lstinline[language = Bash]+-h+ prints out the help message and the flag \lstinline[language = Bash]+-v+ enables verbose output.
+
+
+%%%%%%%%%%%%%%%%%% PROJECT_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{project\_vtu}
+\label{sect:project_vtu}
+project\_vtu performs a Galerkin projection on a given vtu file from a specified donor mesh to a target mesh. It is run from the command line:
+
+\begin{lstlisting}[language = Bash]
+project_vtu [OPTIONS] input donor_basename target_basename output
+\end{lstlisting}
+
+where \lstinline[language = Bash]+input+ is the name of the vtu file to be projected and \lstinline[language = Bash]+donor_basename+ is the base name of the triangle files defining the mesh that corresponds to the input vtu file. 
+\lstinline[language = Bash]+target_basename+ is the base name of the triangle files defining the output mesh and \lstinline[language = Bash]+output+ is the name of the output vtu file.
+The flag \lstinline[language = Bash]+-h+ prints out the help message and the flag \lstinline[language = Bash]+-v+ enables verbose output.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% PVTU2VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1052,46 +1069,6 @@ Vorticity integral diagnostic options:
 	and dumps debugging mesh to vorticityDebugMesh.vtu
 \end{lstlisting}
 
-%%%%%%%%%%%%%%%%%%%%%%%%% VTU_BINS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsubsection{vtu\_bins}
-\label{sect:vtu_bins}
-
-vtu\_bins returns the fraction of the domain contained within given values
-for a given scalar field in a vtu. vtu\_bins is built as part of the fltools
-build target (see section \ref{sect:fltools}), and is used via:
-
-\begin{lstlisting}[language = Bash]
-vtu_bins [-v] input_filename input_fieldname BOUND1 [BOUND2 BOUND3]
-\end{lstlisting}
-
-where \lstinline[language = Bash]+input_filename+ is a vtu file containing a scalar
-field \lstinline[language = Bash]+input_fieldname+, and
-\lstinline[language = Bash]+BOUND1+, \lstinline[language = Bash]+BOUND2+,
-\lstinline[language = Bash]+...+ are the boundary values. The output is sent to
-standard output. The \lstinline[language = Bash]+-v+ flag enables verbose output.
-
-If negative boundary values are required, add two ``-''s before the boundary
-values on the command line:
-
-\begin{lstlisting}[language = Bash]
-vtu_bins [-v] input_filename input_fieldname -- BOUND1 [BOUND2 BOUND3]
-\end{lstlisting}
-
-vtu\_bins requires a linear simplex mesh for the field
-\lstinline[language = Bash]+input_fieldname+.
-
-\begin{example}
-  \begin{lstlisting}[language = Bash]
-$ vtu_bins annulus_1564.vtu Temperature 0.0 1.0
-                      -inf -   0.00000000000000000E+000 :  0.23071069007104538E-004
-  0.00000000000000000E+000 -   0.10000000000000000E+001 :  0.99951353813554100E+000
-  0.10000000000000000E+001 -                        inf :  0.46339079545184387E-003
-  \end{lstlisting}
-\caption{Using vtu\_bins to compute the volume of under- and over-shoot errors in
-         a DG annulus simulation.}
-\end{example}
-
 %%%%%%%%%%%%%%%%%%%%%% VTKPROJECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtk\_projection}
@@ -1152,6 +1129,46 @@ vtudiff generates vtus with fields equal to the difference between the correspon
 vtudiff [OPTIONS] INPUT1 INPUT2 OUTPUT [FIRST] [LAST]
 \end{lstlisting}
 with \lstinline[language = Bash]+OUTPUT+ the name of the output vtu. If \lstinline[language = Bash]+FIRST+ is supplied, treats INPUT1 and INPUT2 as project names, and generates a different vtu for the specified range of output files \lstinline[language = Bash]+FIRST+ - \lstinline[language = Bash]+LAST+. If not supplied \lstinline[language = Bash]+LAST+ defaults to \lstinline[language = Bash]+FIRST+. The option \lstinline[language = Bash]+-s+ if supplied together with \lstinline[language = Bash]+FIRST+ and \lstinline[language = Bash]+LAST+, only \lstinline[language = Bash]+INPUT1+ is treated as a project name. This allows a range of vtus to be diffed against a single vtu.
+
+%%%%%%%%%%%%%%%%%%%%%%%%% VTU_BINS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{vtu\_bins}
+\label{sect:vtu_bins}
+
+vtu\_bins returns the fraction of the domain contained within given values
+for a given scalar field in a vtu. vtu\_bins is built as part of the fltools
+build target (see section \ref{sect:fltools}), and is used via:
+
+\begin{lstlisting}[language = Bash]
+vtu_bins [-v] input_filename input_fieldname BOUND1 [BOUND2 BOUND3]
+\end{lstlisting}
+
+where \lstinline[language = Bash]+input_filename+ is a vtu file containing a scalar
+field \lstinline[language = Bash]+input_fieldname+, and
+\lstinline[language = Bash]+BOUND1+, \lstinline[language = Bash]+BOUND2+,
+\lstinline[language = Bash]+...+ are the boundary values. The output is sent to
+standard output. The \lstinline[language = Bash]+-v+ flag enables verbose output.
+
+If negative boundary values are required, add two ``-''s before the boundary
+values on the command line:
+
+\begin{lstlisting}[language = Bash]
+vtu_bins [-v] input_filename input_fieldname -- BOUND1 [BOUND2 BOUND3]
+\end{lstlisting}
+
+vtu\_bins requires a linear simplex mesh for the field
+\lstinline[language = Bash]+input_fieldname+.
+
+\begin{example}
+  \begin{lstlisting}[language = Bash]
+$ vtu_bins annulus_1564.vtu Temperature 0.0 1.0
+                      -inf -   0.00000000000000000E+000 :  0.23071069007104538E-004
+  0.00000000000000000E+000 -   0.10000000000000000E+001 :  0.99951353813554100E+000
+  0.10000000000000000E+001 -                        inf :  0.46339079545184387E-003
+  \end{lstlisting}
+\caption{Using vtu\_bins to compute the volume of under- and over-shoot errors in
+         a DG annulus simulation.}
+\end{example}
 
 
 \section{The stat file}
