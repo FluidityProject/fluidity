@@ -214,6 +214,8 @@ may be defined by a :: delimited ``state\_name\::field\_name'' string.
 
 The available internal \option{scalar\_field}  diagnostics are:
 \begin{description}
+\item[period\_averaged\_scalar :] Calculates the time average of a scalar field over a defined period, e.g. daily.
+\item[time\_avererged\_scalar :] Calculates the time average of a scalar field over the duration of a simulation.
 \item[tidal\_harmonics :] Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" (see \ref{sec:ocean_boundaries}) have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on (see \ref{sect:Internal_diagnostic_fields}).  
 \item[temporalmin :] Writes the (nodewise) minimum scalar value over all previous timesteps.
 \item[temporalmax :] Writes the (nodewise) maximum scalar value over all previous timesteps.
