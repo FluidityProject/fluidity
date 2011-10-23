@@ -56,7 +56,7 @@ field is continuous over element boundaries.
 
 Development of the finite element method begins by writing the equations in
 \emph{weak form}.  The weak form of the advection-diffusion equation 
-(here presented in non-conservative or advective form) is
+(here presented in conservative form) is
 obtained by pre-multiplying it with a test function $\phi$
 and integrating over the domain $\Omega$, such that
 \begin{equation}
@@ -899,7 +899,7 @@ The form of equation \eqref{eq:poisson-penalty} is called the
 property, equation \eqref{eq:poisson-penalty} is satisfied by the
 exact solution (which is always continuous) to the Poisson equation,
 which is the required \emph{consistency condition}.  In defining the
-particular of  penalty functional $\alpha$ it is necessary to
+particular form of the penalty functional $\alpha$ it is necessary to
 maintain a balance: if the functional penalises discontinuities too
 much then the resulting matrix is ill-conditioned, if it penalises
 discontinuities too little then there is not enough communication
