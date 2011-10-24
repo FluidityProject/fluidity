@@ -7967,6 +7967,22 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
                 <ref name="real"/>
               </element>
               <optional>
+                <element name="melt_LayerRelax">
+                  <a:documentation>Options to relax the distance for the far field</a:documentation>
+                  <optional>
+                    <element name="string_value">
+                      <value>on</value>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="N">
+                      <a:documentation>Number of iterations to change the distance for the far field</a:documentation>
+                      <ref name="integer"/>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
+              <optional>
                 <element name="scalar_field">
                   <a:documentation>Meltrate, calculated from the three equations.</a:documentation>
                   <attribute name="rank">

@@ -6302,6 +6302,16 @@ forcing =
            element melt_surfaceID {integer_vector}?,
            ## Distance for the far field
            element melt_LayerLength {real},
+           ## Options to relax the distance for the far field
+           element melt_LayerRelax {
+            	   element string_value {
+                     "on"
+                 }?,
+                 ## Number of iterations to change the distance for the far field
+                 element N {
+                     integer
+                 }?                                          
+           }?,
            ## Meltrate, calculated from the three equations.
            element scalar_field {
                      attribute rank { "0" },
