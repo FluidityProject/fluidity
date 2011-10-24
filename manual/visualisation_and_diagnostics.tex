@@ -339,7 +339,7 @@ This performs the following steps
 A full list of the available tools is given in table \ref{table:vtktools_list}. A summary can also be obtained by typing \lstinline[language=Python]+help(vtktools)+ in an ipython session.  Further examples of use can be found in the online at \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, in the python scripts used for postprocessing of the examples and in the test cases.
  
 \begin{landscape}
-\begin{longtable}{|c | p{0.2\textwidth}| |p{0.6\textwidth}|} \hline
+\begin{longtable}{|c | p{0.3\textwidth}| |p{0.75\textwidth}|} \hline
 \centering
   method & arguments & use \\ \hline
 \lstinline[language=Python]+AddField+ & \lstinline[language=Python]+name, array+ & Adds the values in \lstinline[language=Python]+array+ (the entries of which may have an arbitrary number of components) as a field called \lstinline[language=Python]+name+ \\ \hline
@@ -359,7 +359,7 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 \lstinline[language=Python]+CellDataToPointData+ & & transforms all cell--wise fields to point--wise fields. All existing fields will remain, \\ \hline
 \lstinline[language=Python]+Crop+ & \lstinline[language=Python]+min_x, max_x,+ \lstinline[language=Python]+min_y, max_y+, \lstinline[language=Python]+min_z, max_z+ & Crops the edges defined by the bounding box given by the arguments \\ \hline
 %
-\lstinline[language=Python]+CrossFieldWithField+ \lstinline[language=Python]+fieldName,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName=None,+ \lstinline[language=Python]+postMultiply=True+ & Calculates the cross product, ${\bf a} \times {\bf b}$, where ${\bf a}$ is the field \lstinline[language=Python]+fieldName+ and ${\bf b}$ is \lstinline[language=Python]+array+. If \lstinline[language=Python]+postMultiply$\neq$True+ then ${\bf b} \times {\bf a}$ will be calculated. If \lstinline[language=Python]+newFieldName+ is specified  then a new field with that name is created that takes the values of the cross product, otherwise the original field is replaced. \\ \hline  
+\lstinline[language=Python]+CrossFieldWithField+ &  \lstinline[language=Python]+fieldName,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName=None,+ \lstinline[language=Python]+postMultiply=True+ & Calculates the cross product, ${\bf a} \times {\bf b}$, where ${\bf a}$ is the field \lstinline[language=Python]+fieldName+ and ${\bf b}$ is \lstinline[language=Python]+array+. If \lstinline[language=Python]+postMultiply$\neq$True+ then ${\bf b} \times {\bf a}$ will be calculated. If \lstinline[language=Python]+newFieldName+ is specified  then a new field with that name is created that takes the values of the cross product, otherwise the original field is replaced. \\ \hline  
 %
 \lstinline[language=Python]+DotFieldWithField+ & \lstinline[language=Python]+fieldName,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName+ & Calculates the dot product of the field called \lstinline[language=Python]+fieldName+ and \lstinline[language=Python]+array+. If \lstinline[language=Python]+newFieldName+ is specified then a new field with that name is created that takes the values of the dot product, otherwise the original field is replaced. \\ \hline
 %
@@ -367,7 +367,50 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 %
 \lstinline[language=Python]+GetCellVolume+ & \lstinline[language=Python]+id+ & Returns the volume of the cell (mesh element) with number \lstinline[language=Python]+id+ \\ \hline
 %
-***\lstinline[language=Python]+GetDerivative+ & \lstinline[language=Python]+name+ & Returns the derivative of the field called \lstinline[language=Python]+name+. Each component of the returned array has form*** \\ \hline
+***\lstinline[language=Python]+GetDerivative+ & \lstinline[language=Python]+name+ & Returns the derivative of the field called \lstinline[language=Python]+name+. Each component of the returned array has form*** The field \lstinline[language=Python]+name+ has to be point--wise data. The returned array gives a cell--wise derivative. (To obtain the point--wise derivative use \lstinline[language=Python]+CellDataToPointData+.)  \\ \hline
+%
+\lstinline[language=Python]+GetDistance+ & \lstinline[language=Python]+x,y+ & Returns the distance in physical space between \lstinline[language=Python]+x+ and \lstinline[language=Python]+y+ \\ \hline
+%
+\lstinline[language=Python]+GetField+ & \lstinline[language=Python]+name+ & Returns an array with the values of the field called \lstinline[language=Python]+name+. \\ \hline
+%
+\lstinline[language=Python]+GetFieldIntegral+ & \lstinline[language=Python]+name+ & Returns the integral over the domain of the field called \lstinline[language=Python]+name+. \\ \hline
+%
+\lstinline[language=Python]+GetFieldNames+ & & Returns the name of the available fields. \\ \hline
+%
+\lstinline[language=Python]+GetFieldRank+ & \lstinline[language=Python]+name+ & Returns the rank of the field called \lstinline[language=Python]+name+. \\ \hline
+%
+\lstinline[language=Python]+GetFieldRms+ & \lstinline[language=Python]+name+ & Returns the root mean square (RMS) of the supplies scalar or vector field called \lstinline[language=Python]+name+. \\ \hline
+%
+\lstinline[language=Python]+GetLocations+ & & Returns an array with the locations of the nodes. \\ \hline
+%
+\lstinline[language=Python]+GetPointCells+ & \lstinline[language=Python]+id+ & Returns an array with the elements which contain the node \lstinline[language=Python]+id+. \\ \hline
+%
+\lstinline[language=Python]+GetPointPoints+ & \lstinline[language=Python]+id+ & Returns the nodes that connect to the node \lstinline[language=Python]+id+. \\ \hline
+%
+\lstinline[language=Python]+GetScalarField+ & \lstinline[language=Python]+name+ & Returns an array with the values of the scalar field called \lstinline[language=Python]+name+. \\ \hline
+%
+\lstinline[language=Python]+GetScalarRange+ & \lstinline[language=Python]+name+ & Returns the range (min, max) of the scalar field called \lstinline[language=Python]+name+. \\ \hline
+\lstinline[language=Python]+GetVectorField+ & \lstinline[language=Python]+name+ & Returns an array with the values of the vector field called \lstinline[language=Python]+name+. \\ \hline
+%
+\lstinline[language=Python]+GetVectorNorm+ & \lstinline[language=Python]+name+ & Returns an array with the norm of the vector field called \lstinline[language=Python]+name+. \\ \hline
+%
+\lstinline[language=Python]+GetVorticity+ & \lstinline[language=Python]+name+ & Returns the vorticity of the vector field called \lstinline[language=Python]+name+. The vector field \lstinline[language=Python]+name+ has to be point--wise data. The returned array gives a cell--wise derivative. (To obtain the point--wise derivative use \lstinline[language=Python]+CellDataToPointData+.) \\ \hline
+%
+\lstinline[language=Python]+IntegrateField+ & \lstinline[language=Python]+field+ & Returns the integral of the field called \lstinline[language=Python]+field+ assuming a linear representation on a tetrahedral mesh. \\ \hline
+%
+\lstinline[language=Python]+ManipulateField+ & \lstinline[language=Python]+fieldName,+ \lstinline[language=Python]+manipFunc,+ \lstinline[language=Python]+newFieldName=None+ & Generic field manipulation method. Applies the supplied manipulation function, \lstinline[language=Python]+manipFunc+, to the field called \lstinline[language=Python]+fieldName+. \lstinline[language=Python]+manipFunc+ must have form \lstinline[language=Python]+def manipFunc(field, index):+ $\ldots$ \lstinline[language=Python]+return fieldValAtIndex+. If \lstinline[language=Python]+newFieldName+ is specified then a new field with that name is created that takes the calculated values, otherwise the original field is replaced. \\ \hline
+%
+\lstinline[language=Python]+MatMulFieldWithField+ & \lstinline[language=Python]+fieldName,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName=None,+ \lstinline[language=Python]+postMultiply=True+. & Multiplies two matrices $\bar{\bar{A}}\bar{\bar{B}}$ where $\bar{\bar{A}}$ is the field \lstinline[language=Python]+fieldName+, and $\bar{\bar{B}}$ is \lstinline[language=Python]+array+. If \lstinline[language=Python]+postMultiply+$\neq$\lstinline[language=Python]+True+ then $\bar{\bar{A}}\bar{\bar{B}}$ will be calculated. If \lstinline[language=Python]+newFieldName+ is specified  then a new field with that name is created that takes the values of the product, otherwise the original field is replaced. \\ \hline
+%
+ \lstinline[language=Python]+ProbeData+ & \lstinline[language=Python]+coordinates,+ \lstinline[language=Python]+name+ & Returns an array of values of the field called \lstinline[language=Python]+name+ at the positions given in \lstinline[language=Python]+coordinates+. The values are calculated by interpolation of the field to the positions given. \lstinline[language=Python]+coordinates+ can be created using \lstinline[language=Python]+vtktools.arr()+ e.g. \lstinline[language=Python]+coordinates=vtktools.arr([[1,1,1],[1,1,2]])+. \\ \hline
+%
+\lstinline[language=Python]+RemoveField+ & \lstinline[language=Python]+name+ & Removes the field called \lstinline[language=Python]+name+. \\ \hline 
+%
+\lstinline[language=Python]+StructuredPointProbe+ & \lstinline[language=Python]+nx,+ \lstinline[language=Python]+ny,+ \lstinline[language=Python]+nz,+ \lstinline[language=Python]+bounding_box=None+ & Returns a vtk structured object. \lstinline[language=Python]+nx, ny, nz+ are the number of points in the $x,\, y, \, z$ directions respectively. If \lstinline[language=Python]+bounding_box+ is not specified the bounding box of the domain is calculated automatically. If specified \lstinline[language=Python]+bounding_box = [xmin, xmax, ymin, ymax, zmin, zmax]+. \\ \hline
+%
+\lstinline[language=Python]+SubFieldFromField+ & \lstinline[language=Python]+fieldName,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName=None+ & Subtracts \lstinline[language=Python]+array+ from the field called \lstinline[language=Python]+fieldName+. If \lstinline[language=Python]+newFieldName+ is specified  then a new field with that name is created that takes the values of the product, otherwise the original field is replaced. \\ \hline
+%
+\lstinline[language=Python]+Write+ & \lstinline[language=Python]+filename = []+ & Writes the data to a vtu file. If \lstinline[language=Python]+filename+ is not specified the name of the file originally read in will be used and therefore the input file will be overwritten. \\ \hline
 %
 % 
 %
