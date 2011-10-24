@@ -237,7 +237,18 @@ The available internal \option{scalar\_field} diagnostics are:
 \item[element\_halo:]Paints the element halo. Requires a degree 0 mesh.
 \item[element\_ownership:]Writes the element halo ownership. Requires a degree 0 mesh.
 \item[element\_universal\_numbering:]Writes the element halo universal numbering. Requires a degree 0 mesh.
-
+\item[scalar\_sum:]Computes the sum of two scalar fields.
+\item[scalar\_difference:]Computes the difference between two scalar fields (i.e. field1 - field2)
+\item[scalar\_edge\_lengths:]Computes the edge lengths of the Coordinate mesh.
+\item[grad\_normal:]Computes $\int{(\nabla s) \mathrm{d}\vec{n}}$. The output is P0 on the surface. Errors will occur at domain edges - this is a limitation of current output formats.
+\item[column\_ids:] Convert the column\_ids to a field. The mesh must be directly extruded.
+\item[universal\_column\_ids:]Convert the universal column\_ids to a field. The mesh must be directly extruded.
+\item[scalar\_copy:]Copies the scalar field. This is intended for testing purposes only.
+\item[extract\_scalar\_component:]Extract a component from a vector field as a scalar.
+\item[scalar\_galerkin\_projection:]Galerkin projects the scalar field.
+\item[helmholtz\_smoothed\_scalar:]Smooth a scalar field by inverting a Helmholtz operator.
+\item[helmholtz\_anisotropic\_smoothed\_scalar:]Smooth a scalar field by inverting a Helmholtz operator.
+\item[lumped\_mass\_smoothed\_scalar:]Smooth a scalar field by inverting the lumped mass: ML {S\_smooth}=M {S}.
 \item[particle\_reynolds\_number:]Diagnostic algorithm used in multiphase flow simulations. Calculates the particle Reynolds number, $(\alpha_f\rho_f|\vec{u}_f - \vec{u}_p|d)/\mu_f$, where the subscripts f and p denote the fluid (i.e. continuous) and particle (i.e. dispersed) phases respectively, and d is the particle diameter.
 \item[apparent\_density:]Diagnostic algorithm used in multiphase flow simulations. Calculates the apparent density of the material\_phase, i.e. Density multiplied by the PhaseVolumeFraction field.
 \end{description}        
