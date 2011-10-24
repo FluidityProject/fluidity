@@ -227,6 +227,9 @@ The available internal \option{scalar\_field}  diagnostics are:
 \item[div:]Computes the divergence of a field.
 \item[finite\_element\_divergence:]Computes the divergence of a field, where the divergence operator is defined using the finite element $\mathrm{C}^\mathrm{T}$ matrix.
 \item[curl\_2d:][curl (source field)]\_z. Valid in 2D only.
+
+\item[particle\_reynolds\_number:]Diagnostic algorithm used in multiphase flow simulations. Calculates the particle Reynolds number, $(\alpha_f\rho_f|\vec{u}_f - \vec{u}_p|d)/\mu_f$, where the subscripts f and p denote the fluid (i.e. continuous) and particle (i.e. dispersed) phases respectively, and d is the particle diameter.
+\item[apparent\_density\_algorithm:]Diagnostic algorithm used in multiphase flow simulations. Calculates the apparent density of the material\_phase, i.e. Density multiplied by the PhaseVolumeFraction field.
 \end{description}        
 
 
