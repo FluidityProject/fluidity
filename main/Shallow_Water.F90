@@ -194,7 +194,12 @@
        if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
             & .true.
     end if
-    
+
+    if(have_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_fiel&
+         &d')) then
+       call recompute_coordinate_field(state(1))
+    end if
+
     call get_parameters
 
     ! No support for multiphase or multimaterial at this stage.
@@ -414,7 +419,11 @@
       exclude_pressure_advection = &
            have_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
            &gnostic/spatial_discretisation/continuous_galerkin/advection_terms&
-           &/exclude_advection_terms")
+           &/exclude_advection_terms") .or. &
+           have_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+           &rognostic/spatial_discretisation/discontinuous_galerkin/advectio&
+           &n_terms/exclude_advection_terms")
+
       prescribed_velocity=have_option("/material_phase::Fluid/vector_field::Velocity/prescribed")
       exclude_velocity_advection = &
            have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
@@ -1557,5 +1566,46 @@
       ! And that's it!
 #endif
     end subroutine adjoint_register_timestep
+
+    subroutine recompute_coordinate_field(state)
+      type(state_type), intent(inout) :: state
+      !
+      type(vector_field), pointer :: X
+      integer :: ele
+      character(len=PYTHON_FUNC_LEN) :: Python_Function
+      
+      X => extract_vector_field(state,"Coordinate")
+      call get_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_f&
+           &ield/python',Python_Function)
+
+      do ele = 1, ele_count(X)
+         call recompute_coordinate_field_ele(X,Python_Function,ele)
+      end do
+    end subroutine recompute_coordinate_field
+
+    subroutine recompute_coordinate_field_ele(X,Python_Function,ele)
+      type(vector_field), intent(inout) :: X
+      character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+      integer, intent(in) :: ele
+      !
+      real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val,X_ele_val_2
+      
+      X_ele_val = ele_val(X,ele)
+      ewrite(1,*) X_ele_val
+      ewrite(1,*) 'Rs', sqrt(sum(X_ele_val**2,1))
+      call set_vector_field_from_python(python_function, len(python_function),&
+           & dim=3,nodes=face_loc(X,ele),x=X_ele_val(1,:),y=X_ele_val(2,:)&
+           &,z=x_ele_val(3,:),t=0.0,result_dim=3,&
+           & result_x=X_ele_val_2(1,:),&
+           & result_y=X_ele_val_2(2,:),&
+           & result_z=X_ele_val_2(3,:),&
+           & stat=stat)
+    if(stat /= 0) then
+       FLAbort('Failed to set new coordinate values from Python.')
+    end if
+
+    call set(X,ele_nodes(X,ele),X_ele_val_2)
+
+    end subroutine recompute_coordinate_field_ele
 
   end program shallow_water

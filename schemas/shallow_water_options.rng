@@ -40,6 +40,24 @@ characters in the simulation name should be avoided.</a:documentation>
             <value>CoordinateMesh</value>
           </attribute>
           <ref name="mesh_info"/>
+          <optional>
+            <element name="recompute_coordinate_field">
+              <a:documentation>Mapping to recompute coordinate field after creation.
+Used for e.g. getting a higher-order representation
+of the sphere from a linear sphere mesh.</a:documentation>
+              <element name="python">
+                <a:documentation>Python function to apply recomputation of coordinate
+field Functions should be of the form:
+
+ def val(t):
+    # Function code
+    return # Return value
+
+</a:documentation>
+                <ref name="python_code"/>
+              </element>
+            </element>
+          </optional>
         </element>
         <element name="mesh">
           <a:documentation>The velocity mesh</a:documentation>
@@ -903,22 +921,49 @@ requires a distinct name for the options dictionary.</a:documentation>
   <define name="prognostic_layerthickness_field">
     <element name="spatial_discretisation">
       <a:documentation>Spatial discretisation options</a:documentation>
-      <element name="continuous_galerkin">
-        <a:documentation>Development continuous Galerkin formulation. This causes
-Advection_Diffusion_CG to be used instead of hart3d.</a:documentation>
-        <element name="advection_terms">
-          <a:documentation>Discretisation options for the advection terms.</a:documentation>
-          <optional>
-            <element name="exclude_advection_terms">
-              <a:documentation>Remove the advection terms from the equation.
+      <choice>
+        <element name="continuous_galerkin">
+          <a:documentation>Development continuous Galerkin formulation.</a:documentation>
+          <element name="advection_terms">
+            <a:documentation>Discretisation options for the advection terms.</a:documentation>
+            <optional>
+              <element name="exclude_advection_terms">
+                <a:documentation>Remove the advection terms from the equation.
 This overrides any other advection term options (including
 conservative_advection below).</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
+          <ref name="comment"/>
         </element>
-        <ref name="comment"/>
-      </element>
+        <element name="discontinuous_galerkin">
+          <a:documentation>Discontinuous Galerkin formulation.</a:documentation>
+          <element name="wave_equation">
+            <a:documentation>Discretisation options for wave equation solver</a:documentation>
+            <optional>
+              <element name="pullback">
+                <a:documentation>Apply the pullback formula for area forms
+(Makes a difference when higher-order
+representation of curved surfaces is used).</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="advection_terms">
+            <a:documentation>Discretisation options for the advection terms.</a:documentation>
+            <optional>
+              <element name="exclude_advection_terms">
+                <a:documentation>Remove the advection terms from the equation.
+This overrides any other advection term options (including
+conservative_advection below).</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
+          </element>
+          <ref name="comment"/>
+        </element>
+      </choice>
       <element name="conservative_advection">
         <a:documentation>Conservative discretisation of field advection equation
  TBETA=1. -- conservative (divergence form)

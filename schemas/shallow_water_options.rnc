@@ -36,7 +36,23 @@ start =
             ## The position mesh
             element mesh {
                attribute name { "CoordinateMesh" },
-               mesh_info
+               mesh_info,
+               ## Mapping to recompute coordinate field after creation.
+               ## Used for e.g. getting a higher-order representation
+               ## of the sphere from a linear sphere mesh.
+               element recompute_coordinate_field {
+                  ## Python function to apply recomputation of coordinate
+                  ## field Functions should be of the form:
+                  ##
+                  ##  def val(t):
+                  ##     # Function code
+                  ##     return # Return value
+                  ##
+                  ## 
+                  element python {
+                     python_code
+                  }
+               }?
             },
             ## The velocity mesh
             element mesh {
@@ -730,20 +746,43 @@ prognostic_layerthickness_field =
       ## Spatial discretisation options
       element spatial_discretisation {
          (
-            ## Development continuous Galerkin formulation. This causes
-            ## Advection_Diffusion_CG to be used instead of hart3d.
-            element continuous_galerkin {
-               ## Discretisation options for the advection terms.
-               element advection_terms {
-                  ## Remove the advection terms from the equation.
-                  ## This overrides any other advection term options (including
-                  ## conservative_advection below).
-                  element exclude_advection_terms {
-                     comment
-                  }?
-               },
-               comment
-            },
+            (
+               ## Development continuous Galerkin formulation.
+               element continuous_galerkin {
+                  ## Discretisation options for the advection terms.
+                  element advection_terms {
+                     ## Remove the advection terms from the equation.
+                     ## This overrides any other advection term options (including
+                     ## conservative_advection below).
+                     element exclude_advection_terms {
+                        comment
+                     }?
+                  },
+                  comment
+               }|
+               ## Discontinuous Galerkin formulation.
+               element discontinuous_galerkin {
+                  ## Discretisation options for wave equation solver
+                  element wave_equation {
+                     ## Apply the pullback formula for area forms
+                     ## (Makes a difference when higher-order
+                     ## representation of curved surfaces is used).
+                     element pullback {
+                        empty
+                     }?
+                  },
+                  ## Discretisation options for the advection terms.
+                  element advection_terms {
+                     ## Remove the advection terms from the equation.
+                     ## This overrides any other advection term options (including
+                     ## conservative_advection below).
+                     element exclude_advection_terms {
+                        comment
+                     }?
+                  },
+                  comment
+               }
+            ),
             ## Conservative discretisation of field advection equation
             ##  TBETA=1. -- conservative (divergence form)
             ##  TBETA=0. -- non-conservative
@@ -751,7 +790,7 @@ prognostic_layerthickness_field =
             element conservative_advection {
                real
             }
-       )
+         )
       },
       ## Temporal discretisation options
       element temporal_discretisation {

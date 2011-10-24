@@ -1,41 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
-
 <testproblem>
-  <name>bdfm1_sphere</name>
-  <owner userid="colin"/>
+  <name>BDFM1 sphere</name>
+  <owner userid="cjc"/>
   <tags>swml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>shallow_water -v 3 sw_fsphere.swml &amp;&gt; sw.log</command_line>
-    <!-- shallow water test case on a f-sphere-->
+    <command_line>shallow_water projection3.swml; shallow_water projection4.swml; shallow_water projection4.swml; shallow_water projection5.swml; shallow_water projection6.swml 
+</command_line>
   </problem_definition>
   <variables>
-    <variable name="maxdh" language="python">
-from vtktools import VtuDiff, vtu
-vtu1=vtu('fsphere_0.vtu')
-vtu2=vtu('fsphere_9.vtu')
-diff=VtuDiff(vtu1,vtu2)
-h=vtu1.GetField('LayerThickness')
-dh=diff.GetField('LayerThickness')
-maxdh = (abs(dh)).max()
-    </variable>
-    <variable name="maxdu" language="python">
-from vtktools import VtuDiff, vtu
-vtu1=vtu('fsphere_0.vtu')
-vtu2=vtu('fsphere_1.vtu')
-diff=VtuDiff(vtu1,vtu2)
-du=diff.GetField('Velocity')
-maxdu=max(abs(du.min()),abs(du.max()))
+    <variable name="errors" language="python">
+import fluidity_tools
+errors = []
+for filenumber in [3,4,5,6]:
+   filename = projection+str(filenumber)
+   s = fluidity_tools.stat_parser(filename+".stat")
+   maxchange = s["MaxChange"]["value"][-1]
+   errors.append(s['Fluid']['LayerThicknessError']['l2norm'][-1])
+   print errors
     </variable>
   </variables>
   <pass_tests>
-    <test name="Nothing happens to h" language="python">
-assert maxdh &lt; 1e-8
-    </test>
-    <test name="Nothing happens to u" language="python">
-assert maxdu &lt; 1e-8
-    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>
 </testproblem>
+

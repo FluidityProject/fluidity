@@ -98,7 +98,7 @@ contains
     character(len=OPTION_PATH_LEN) :: constraint_option_string
     real :: u_max
     real, dimension(:), allocatable :: weights
-    logical :: l_projection,l_poisson
+    logical :: l_projection,l_poisson, pullback
 
     ewrite(1,*) '  subroutine solve_hybridized_helmholtz('
 
@@ -171,10 +171,14 @@ contains
     weights = 1.0
     !call get_weights(X,weights)
 
+    pullback = have_option('/material_phase::Fluid/scalar_field::LayerThickn&
+         &ess/prognostic/spatial_discretisation/discontinuous_galerkin/wave_&
+         &equation/pullback')
+
     !Assemble matrices
     do ele = 1, ele_count(D)
        call assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
-            &g,dt,theta,D0,weights(ele),lambda_mat=lambda_mat,&
+            &g,dt,theta,D0,pullback,weights(ele),lambda_mat=lambda_mat,&
             &lambda_rhs=lambda_rhs,D_rhs=D_rhs,U_rhs=U_rhs,&
             &continuity_mat=continuity_mat,&
             &projection=l_projection,poisson=l_poisson,&
@@ -191,7 +195,7 @@ contains
     !Reconstruct U and D from lambda
     do ele = 1, ele_count(D)
        call reconstruct_u_d_ele(D,f,U,X,down,ele, &
-            &g,dt,theta,D0,weights(ele),&
+            &g,dt,theta,D0,pullback,weights(ele),&
             &D_rhs=D_rhs,U_rhs=U_rhs,lambda=lambda,&
             &D_out=D_out,U_out=U_out,&
             &projection=l_projection,poisson=l_poisson,&
@@ -276,7 +280,7 @@ contains
   end subroutine solve_hybridized_helmholtz
  
   subroutine assemble_hybridized_helmholtz_ele(D,f,U,X,down,ele, &
-       g,dt,theta,D0,weight,lambda_mat,lambda_rhs,U_rhs,D_rhs,&
+       g,dt,theta,D0,pullback,weight,lambda_mat,lambda_rhs,U_rhs,D_rhs,&
        continuity_mat,projection,poisson,u_rhs_local)
     !subroutine to assemble hybridized helmholtz equation.
     !For assembly, must provide:
@@ -293,6 +297,7 @@ contains
     type(vector_field), intent(in), optional :: U_rhs
     type(scalar_field), intent(in), optional :: D_rhs
     integer, intent(in) :: ele
+    logical, intent(in) :: pullback
     real, intent(in) :: g,dt,theta,D0,weight
     type(csr_matrix), intent(inout) :: lambda_mat
     type(block_csr_matrix), intent(inout), optional :: continuity_mat
@@ -371,7 +376,7 @@ contains
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
     call get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
-         & g,dt,theta,D0,weight,have_constraint,&
+         & g,dt,theta,D0,pullback,weight,have_constraint,&
          & projection=projection,poisson=poisson,&
          & local_solver_rhs=local_solver_rhs)
     if(poisson.and.(ele==1)) then
@@ -425,7 +430,8 @@ contains
     !construct lambda_rhs
     rhs_loc=0.
     lambda_rhs_loc = 0.
-    call assemble_rhs_ele(Rhs_loc,D,U,X,ele,weight,D_rhs,U_rhs,u_rhs_local)
+    call assemble_rhs_ele(Rhs_loc,D,U,X,ele,pullback,&
+         weight,D_rhs,U_rhs,u_rhs_local)
     if(poisson.and.(ele==1)) then
        !Fix the zero level of D
        rhs_loc(d_start)=0.0
@@ -445,9 +451,9 @@ contains
          ele_nodes(lambda_rhs,ele),helmholtz_loc_mat)
 
   end subroutine assemble_hybridized_helmholtz_ele
-
+  
   subroutine reconstruct_U_d_ele(D,f,U,X,down,ele, &
-       g,dt,theta,D0,weight,U_rhs,D_rhs,lambda,&
+       g,dt,theta,D0,pullback,weight,U_rhs,D_rhs,lambda,&
        &D_out,U_out,projection,poisson,u_rhs_local)
     !subroutine to reconstruct U and D having solved for lambda
     implicit none
@@ -460,6 +466,7 @@ contains
     type(scalar_field), intent(inout), optional :: D_out
     type(vector_field), intent(inout), optional :: U_out
     integer, intent(in) :: ele
+    logical, intent(in) :: pullback
     real, intent(in) :: g,dt,theta,D0,weight
     logical, intent(in), optional :: projection, poisson,u_rhs_local
     !
@@ -521,7 +528,7 @@ contains
     !Get the local_solver matrix that obtains U and D from Lambda on the
     !boundaries
     call get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
-         & g,dt,theta,D0,weight,have_constraint,&
+         & g,dt,theta,D0,pullback,weight,have_constraint,&
          & projection=projection,poisson=poisson,&
          & local_solver_rhs=local_solver_rhs)
     if(poisson.and.(ele==1)) then
@@ -532,7 +539,8 @@ contains
     end if
 
     !Construct the rhs sources for U from lambda
-    call assemble_rhs_ele(Rhs_loc,D,U,X,ele,weight,D_rhs,U_rhs,U_rhs_local)
+    call assemble_rhs_ele(Rhs_loc,D,U,X,ele,pullback,&
+         weight,D_rhs,U_rhs,U_rhs_local)
     if(poisson.and.(ele==1)) then
        !Fix the zero level of D
        rhs_loc(d_start)=0.0
@@ -581,7 +589,7 @@ contains
           end if
        end if
     end do
-    
+
     D_solved = rhs_loc(d_start:d_end)
     if(.not.(present_and_true(projection))) then
        if(present(D_out)) then
@@ -607,13 +615,13 @@ contains
              ewrite(2,*) 'Constraint check', constraint_check
              FLAbort('Constraint not enforced')
           end if
-       end do       
+       end do
     end if
 
   end subroutine reconstruct_U_d_ele
 
   subroutine get_local_solver(local_solver_matrix,U,X,down,D,f,ele,&
-       & g,dt,theta,D0,weight,have_constraint, &
+       & g,dt,theta,D0,pullback,weight,have_constraint, &
        & projection,poisson,local_solver_rhs)
     !Subroutine to get the matrix and rhs for obtaining U and D within
     !element ele from the lagrange multipliers on the boundaries.
@@ -629,6 +637,7 @@ contains
     type(vector_field), intent(in) :: U,X,down
     type(scalar_field), intent(in) :: D,f
     integer, intent(in) :: ele
+    logical, intent(in) :: pullback
     real, dimension(:,:)&
          &, intent(inout) :: local_solver_matrix
     real, dimension(:,:)&
@@ -654,7 +663,7 @@ contains
     integer, dimension(mesh_dim(U)) :: U_start, U_end
     type(constraints_type), pointer :: constraints
     integer :: i1, c_start, c_end
-    real :: l_dt,l_theta,l_d0
+    real :: l_dt,l_theta,l_d0,detJ_bar
 
     if(projection) then
        l_dt = 0.
@@ -685,12 +694,12 @@ contains
     if(present(local_solver_rhs)) then
        local_solver_rhs = 0.
     end if
-    
+
     u_shape=ele_shape(u, ele)
     D_shape=ele_shape(d, ele)
     D_ele => ele_nodes(D, ele)
     U_ele => ele_nodes(U, ele)
-    
+
     if(projection.or.poisson) then
        f_gi = 0.
     else
@@ -704,6 +713,7 @@ contains
     !detwei is needed for pressure mass matrix
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
          detwei=detwei, detJ=detJ)
+    detJ_bar = sum(detJ)/size(detJ)
 
     !----construct local solver
     !metrics for velocity mass and coriolis matrices
@@ -724,16 +734,32 @@ contains
     !pressure mass matrix (done in global coordinates)
     !not included in pressure solver
     if(.not.poisson) then
-       local_solver_matrix(d_start:d_end,d_start:d_end)=&
-            &shape_shape(d_shape,d_shape,detwei)
+       if(pullback) then
+          local_solver_matrix(d_start:d_end,d_start:d_end)=&
+               &shape_shape(d_shape,d_shape,detJ_bar**2/detJ*&
+               D_shape%quadrature%weight)
+       else
+          local_solver_matrix(d_start:d_end,d_start:d_end)=&
+               &shape_shape(d_shape,d_shape,detwei)
+       end if
        if(present(local_solver_rhs)) then
-          local_solver_rhs(d_start:d_end,d_start:d_end) = &
-               shape_shape(d_shape,d_shape,detwei)
+          if(pullback) then
+             local_solver_rhs(d_start:d_end,d_start:d_end) = &
+                  shape_shape(d_shape,d_shape,detJ_bar**2/detJ*&
+                  D_shape%quadrature%weight)
+          else
+             local_solver_rhs(d_start:d_end,d_start:d_end) = &
+                  shape_shape(d_shape,d_shape,detwei)
+          end if
        end if
     end if
     !divergence matrix (done in local coordinates)
-    l_div_mat = dshape_shape(u_shape%dn,d_shape,&
-         &D_shape%quadrature%weight)
+    if(pullback) then
+       l_div_mat = dshape_shape(u_shape%dn,d_shape,&
+            &detJ_bar/detJ*D_shape%quadrature%weight)
+    else
+       l_div_mat = dshape_shape(u_shape%dn,d_shape,D_shape%quadrature%weight)
+    end if
     do dim1 = 1, mdim
        !pressure gradient term [integrated by parts so minus sign]
        local_solver_matrix(u_start(dim1):u_end(dim1),d_start:d_end)=&
@@ -1163,10 +1189,12 @@ contains
          &shape_shape(lambda_nc_face_shape,lambda_nc_face_shape,detwei)
   end subroutine get_nc_rhs_face
 
-  subroutine assemble_rhs_ele(Rhs_loc,D,U,X,ele,weight,D_rhs,U_rhs,u_rhs_local)
+  subroutine assemble_rhs_ele(Rhs_loc,D,U,X,ele,pullback,&
+       weight,D_rhs,U_rhs,u_rhs_local)
     implicit none
     integer, intent(in) :: ele
     real, intent(in) :: weight
+    logical, intent(in) :: pullback
     type(scalar_field), intent(in), optional, target :: D_rhs
     type(vector_field), intent(in), optional, target :: U_rhs
     type(vector_field), intent(in) :: X,U
@@ -1187,6 +1215,7 @@ contains
     type(scalar_field), pointer :: l_d_rhs
     type(vector_field), pointer :: l_u_rhs
     real, dimension(mesh_dim(U), mesh_dim(U)) :: Metric
+    real :: detJ_bar
 
     !Get some sizes
     mdim = mesh_dim(U)
@@ -1221,11 +1250,18 @@ contains
        
        call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
             detJ=detJ,detwei=detwei)
+       detJ_bar = sum(detJ)/size(detJ)
        
        Rhs_loc = 0.
        if(have_d_rhs) then
-          Rhs_loc(d_start:d_end) = shape_rhs(ele_shape(D,ele),&
-               &ele_val_at_quad(l_D_rhs,ele)*detwei)
+          if(pullback) then
+             Rhs_loc(d_start:d_end) = shape_rhs(ele_shape(D,ele),&
+                  &ele_val_at_quad(l_D_rhs,ele)*&
+                  &detJ_bar**2/detJ*u_shape%quadrature%weight)
+          else
+             Rhs_loc(d_start:d_end) = shape_rhs(ele_shape(D,ele),&
+                  &ele_val_at_quad(l_D_rhs,ele)*detwei)
+          end if
        end if
        if(have_u_rhs) then
           if(present_and_true(u_rhs_local)) then
@@ -1385,7 +1421,7 @@ contains
     type(vector_field) :: Coriolis_term, Balance_eqn, tmpV_field
     integer :: ele,dim1,i1, stat
     real :: g
-    logical :: elliptic_method
+    logical :: elliptic_method, pullback
     real :: u_max, b_val, h_mean, area
     real, dimension(:), allocatable :: weights
 
@@ -1416,10 +1452,10 @@ contains
     end do
 
     !STAGE 1a: verify that velocity projects is div-conforming
-    call project_local_to_cartesian(X,U_local,U_cart,weights=weights)
-    do ele = 1, ele_count(U_local)
-       call check_continuity_ele(U_cart,X,ele,tolerance=1.0e-8)
-    end do
+    !call project_local_to_cartesian(X,U_local,U_cart,weights=weights)
+    !do ele = 1, ele_count(U_local)
+    !   call check_continuity_ele(U_cart,X,ele,tolerance=1.0e-8)
+    !end do
     !Stage 1b: verify that projection is idempotent
     ewrite(2,*) 'CHECKING CONTINUOUS', maxval(abs(u_local%val))
     tmpV_field%val = U_local%val
@@ -1448,11 +1484,16 @@ contains
        !Calculate divergence of Coriolis term 
        call zero(d_rhs)
 
+       pullback = have_option('/material_phase::Fluid/scalar_field::LayerThickn&
+            &ess/prognostic/spatial_discretisation/discontinuous_galerkin/wave_&
+            &equation/pullback')
+       
        do ele = 1, element_count(D)
-          call compute_divergence_ele(Coriolis_term,d_rhs,X,ele)
+          call compute_divergence_ele(Coriolis_term,d_rhs,X,ele,pullback)
        end do
 
        !Solve for balanced layer depth
+
        ewrite(2,*) 'Solving elliptic problem for balanced layer depth.'
        call solve_hybridized_helmholtz(state,d_Rhs=d_rhs,&
             &U_out=tmpV_field,d_out=tmp_field,&
@@ -1468,6 +1509,7 @@ contains
     end if
 
     !Subtract off the mean part
+    !Didn't bother with pullback
     h_mean = 0.
     area = 0.
     do ele = 1, element_count(D)
@@ -1486,7 +1528,8 @@ contains
  
     call zero(balance_eqn)
     do ele = 1, element_count(D)
-       call set_pressure_force_ele(balance_eqn,D,X,g,ele,weights(ele))
+       call set_pressure_force_ele(balance_eqn,D,X,g,ele,weights(ele),&
+            pullback)
     end do
     call addto(balance_eqn,coriolis_term,scale=1.0)
     ewrite(2,*) 'Project balance equation into div-conforming space'
@@ -1546,13 +1589,14 @@ contains
 
   end subroutine project_streamfunction_for_balance_ele
   
-  subroutine set_pressure_force_ele(force,D,X,g,ele,weight)
+  subroutine set_pressure_force_ele(force,D,X,g,ele,weight,pullback)
     implicit none
     type(vector_field), intent(inout) :: force
     type(scalar_field), intent(in) :: D
     type(vector_field), intent(in) :: X
     real, intent(in) :: g, weight
     integer, intent(in) :: ele
+    logical, intent(in) :: pullback
     !
     real, dimension(ele_ngi(D,ele)) :: D_gi
     real, dimension(mesh_dim(D),ele_loc(force,ele)) :: &
@@ -1566,6 +1610,7 @@ contains
          mesh_dim(force)*ele_loc(force,ele)) :: l_u_mat
     real, dimension(mesh_dim(force)*ele_loc(force,ele)) :: force_rhs
     type(element_type) :: force_shape
+    real :: detJ_bar
 
     uloc = ele_loc(force,ele)
     force_shape = ele_shape(force,ele)
@@ -1575,7 +1620,12 @@ contains
        Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
     end do
 
+    detJ_bar = sum(detJ)/size(detJ)
+
     D_gi = ele_val_at_quad(D,ele)
+    if(pullback) then
+       D_gi = D_gi*detJ_bar/detJ
+    end if
     rhs_loc = -g*dshape_rhs(force%mesh%shape%dn,&
          D_gi*D%mesh%shape%quadrature%weight)
     do dim1 = 1, mesh_dim(force)
@@ -1853,7 +1903,7 @@ contains
     
   end subroutine assemble_mean_ele
 
-  subroutine compute_divergence_ele(V,Div_V,X,ele)
+  subroutine compute_divergence_ele(V,Div_V,X,ele,pullback)
     !subroutine to compute the divergence of V in element ele
     !and insert the values into Div_V
     !V is represented by a div-conforming space
@@ -1862,8 +1912,9 @@ contains
     type(vector_field), intent(in) :: V, X
     type(scalar_field), intent(inout) :: Div_V
     integer, intent(in) :: ele
+    logical, intent(in) :: pullback
     !
-    real, dimension(ele_ngi(Div_V,ele)) :: detwei
+    real, dimension(ele_ngi(Div_V,ele)) :: detwei, detJ
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: J
     integer :: dim1
     real, dimension(V%dim, ele_loc(V,ele)) :: U_loc
@@ -1871,23 +1922,36 @@ contains
     real, dimension(ele_loc(Div_V,ele)) :: Div_loc
     real, dimension(mesh_dim(V),ele_loc(V,ele),ele_loc(Div_V,ele)) :: l_div_mat
     real, dimension(ele_loc(Div_V,ele),ele_loc(Div_V,ele)) :: d_mass_mat
+    real :: detJ_bar
     !
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
-         detwei=detwei)
+         detJ = detJ, detwei=detwei)
     
+    detJ_bar = sum(detJ)/size(detJ)
+
     u_shape = ele_shape(V,ele)
     d_shape = ele_shape(Div_V,ele)
     U_loc = ele_val(V,ele)
     
-    l_div_mat = dshape_shape(u_shape%dn,d_shape,&
-         &D_shape%quadrature%weight)
+    if(pullback) then
+       l_div_mat = dshape_shape(u_shape%dn,d_shape,&
+            &detJ_bar/detJ*D_shape%quadrature%weight)
+    else
+       l_div_mat = dshape_shape(u_shape%dn,d_shape,&
+            &D_shape%quadrature%weight)
+    end if
 
     div_loc = 0.
     do dim1 = 1, V%dim
        div_loc = div_loc + matmul(transpose(l_div_mat(dim1,:,:))&
             &,U_loc(dim1,:))
     end do
-    d_mass_mat = shape_shape(d_shape,d_shape,detwei)
+    if(pullback) then
+       d_mass_mat = shape_shape(d_shape,d_shape,detJ_bar*D_shape%quadrature&
+            &%weight)
+    else
+       d_mass_mat = shape_shape(d_shape,d_shape,detwei)
+    end if
     call solve(d_mass_mat,div_loc)
 
     !dn is loc x ngi x dim
@@ -1948,11 +2012,12 @@ contains
     end do
 
     U_cart => extract_vector_field(state, "Velocity")
+    X=>extract_vector_field(state, "Coordinate")
     call project_local_to_cartesian(X,U,U_cart)
 
-    do ele = 1, ele_count(U)
-       call check_continuity_ele(U_cart,X,ele,tolerance=1.0e-8)
-    end do
+    !do ele = 1, ele_count(U)
+    !   call check_continuity_ele(U_cart,X,ele,tolerance=1.0e-6)
+    !end do
 
     if(present(name)) then
        U_cart => extract_vector_field(state, trim(name))
@@ -2133,9 +2198,7 @@ contains
     integer :: row, dim1, u_dim1, stat, gi
     integer, dimension(face_loc(U,face)) :: U_face_nodes
     real, dimension(mesh_dim(X)-1, X%dim, face_ngi(X,face)) :: J
-
-    call compute_jacobian(face_val(X,face),face_shape(X,face), J=J,&
-         &detwei=detwei_f)
+    real, dimension(X%dim) :: outvec
 
     U_face_shape=>face_shape(U, face)
     u_face_nodes=face_local_nodes(U, face)
@@ -2156,19 +2219,26 @@ contains
        end do
     end do
 
+    call compute_jacobian(face_val(X,face),face_shape(X,face), J=J,&
+         &detwei=detwei_f)
     if(mesh_dim(X) /= 2) then
        FLAbort('Assumed mesh dim is 2 here')
     end if
     !Get the manifold normal
     !same on both sides of the face so don't need to average
-    m_normal = -ele_val(down,face)
+    m_normal = -face_val_at_quad(down,face)
     f_tangent = J(1,:,:)
     do gi = 1, face_ngi(X,face)
        f_tangent(:,gi) = f_tangent(:,gi)/sqrt(sum(f_tangent(:,gi)**2))
     end do
+    outvec = sum(face_val(X,face),2)/face_loc(X,face) - &
+         sum(ele_val(X,ele),2)/ele_loc(X,face)
     do gi = 1, face_ngi(X,face)
        n_cart(:,gi) = cross_product(m_normal(:,gi),f_tangent(:,gi))
-       !n_cart(:,gi) = n_cart(:,gi)/sqrt(sum(n_cart(:,gi)**2))
+       n_cart(:,gi) = n_cart(:,gi)/sqrt(sum(n_cart(:,gi)**2))
+       if(dot_product(n_cart(:,gi),outvec)<0.0) then
+          n_cart(:,gi)=-n_cart(:,gi)
+       end if
     end do
 
     X_face_quad = face_val_at_quad(X,face)
