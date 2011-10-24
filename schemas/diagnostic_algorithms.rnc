@@ -1181,9 +1181,9 @@ tidal_harmonic_algorithm =
 particle_reynolds_number_algorithm = 
    (
       ## Diagnostic algorithm used in multiphase simulations.
-      ## Calculates the particle Reynolds number, (vfrac_c*density_c*|u_c-u_p|*d)/viscosity_c
-      ## where _c and _p denote the continuous and particle phases respectively,
-      ## and d is the particle diameter.
+      ## Calculates the particle Reynolds number, (vfrac_f*density_f * |u_f - u_p| * d)/viscosity_f
+      ## where the subscripts _f and _p denote the fluid (i.e. continuous) and particle (i.e. dispersed)
+      ## phases respectively, and d is the particle diameter.
       element algorithm {
          attribute name { "particle_reynolds_number" },
          attribute material_phase_support { "multiple" },
@@ -1205,7 +1205,7 @@ particle_reynolds_number_algorithm =
 
 apparent_density_algorithm = 
    (
-      ## Diagnostic algorithm used in multiphase simulations.
+      ## Diagnostic algorithm used in multiphase flow simulations.
       ## Calculates the apparent density of the material_phase,
       ## i.e. Density multiplied by the PhaseVolumeFraction field.
       element algorithm {
