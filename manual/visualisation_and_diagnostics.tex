@@ -398,10 +398,11 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	checkmesh				& \ref{sect:checkmesh}			\\
 	create\_aligned\_mesh 			& \ref{sect:create_aligned_mesh}	\\
 	create\_climatology\_atlas		& \ref{sect:create_climatology_atlas}	\\
-    create\_param\_sweep            & \ref{sect:create_param_sweep} \\
+	create\_param\_sweep			& \ref{sect:create_param_sweep}		\\
 	differentiate\_vtu          		& \ref{sect:differentiate_vtu}		\\
 	edge\_length\_distribution		& \ref{sect:edgelengthdist} 		\\
 	fladapt					& \ref{sect:fladapt}			\\
+	fldecomp				& \ref{sect:fldecomp}			\\
 	fldiagnostics				& \ref{sect:fldiagnostics}		\\
 	genpvtu					& \ref{sect:genpvtu}			\\
 	gen\_square\_meshes			& \ref{sect:gen_square_meshes} 		\\
@@ -412,6 +413,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	mean\_flow				& \ref{sect:mean_flow}			\\
 	mms\_tracer\_error			& \ref{sect:mms_tracer_error}		\\
 	nodecount				& \ref{sect:nodecount}			\\
+	periodise				& \ref{sect:periodise}			\\
 	petsc\_readnsolve			& \ref{sect:petsc_readnsolve} 		\\
 	probe\_vtu  				& \ref{sect:probe_vtu} 			\\
 	project\_to\_continuous			& \ref{sect:project_to_continuous} 	\\
@@ -458,6 +460,27 @@ where \lstinline[language = Bash]+input_basename+ is the base name of an input t
 checkmesh is parallelised. If running in parallel, it should be launched on a number of processes equal to that in the mesh decomposition. In parallel checkmesh output is written to
 \lstinline[language = Bash]+checkmesh.log-[process]+ and \lstinline[language = Bash]+checkmesh.err-[process]+ log files.
 
+\begin{example}
+\begin{lstlisting}[language = Bash,keywordstyle=]
+Checking volume elements for tangling ...
+ In intersection_finder
+ In advancing_front_intersection_finder
+ Exiting advancing_front_intersection_finder
+ Exiting intersection_finder
+Tangled volume element found: 
+Element: 1
+Coordinates:
+  0.10000000000000000E+001  0.00000000000000000E+000
+  0.11666666666700001E+001  0.00000000000000000E+000
+  0.83867056794499995E+000  0.54463903501499999E+000
+Numbering:
+           1
+          14
+           2
+\end{lstlisting}
+\caption{checkmesh reporting a mesh tangling error.}
+\end{example}
+
 %%%%%%%%%%%%%%%%%% CREATE ALIGNED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{create\_aligned\_mesh}
@@ -491,7 +514,7 @@ To use this just execute it in the directory which contains all the files listed
 It is sometimes useful to vary certain parameters of your simulation to assess the effect of 
 that parameter on some part of the output. This can be a tedious thing to set up, especially 
 if you wish to cover a number of parameters and their interacting effects.
-A script (\lstinline[language = Bash]+create_param_sweep.py+) allows this to be done very easily.
+A script (\lstinline[language = Bash]+create_param_sweep+) allows this to be done very easily.
 
 \textbf{Usage}
 
@@ -511,7 +534,7 @@ and click "copy path"). The name is a human readable name that will be used in t
 You can then run the script:
 
 \begin{lstlisting}[language = Bash]
-./create_param_sweep.py template/ sens_test/ param_file.txt 
+create_param_sweep template/ sens_test/ param_file.txt 
 \end{lstlisting}
 
 where template is your set up directory, \lstinline[language = Bash]+sens_test+ 
@@ -559,10 +582,26 @@ is differentiated. The \lstinline[language = Bash]+-v+ flag enables verbose outp
 
 edge\_length\_distribution is a python script that creates histograms of the edge lengths of the elements in the mesh at each time step. It also produces line graphs of the maximum and minimum edge lengths as a function of time. This is useful for analysing adaptive runs to see how the edge lengths compare to a fixed run of the same process.  It is run from the command line:
 \begin{lstlisting}[language = Bash]
-edge_length_distribution <vtu filename> 
-[options]
+edge_length_distribution [options] vtu_filename
 \end{lstlisting}
-The options are available inside the python file or at the command line.
+where \lstinline[language = Python]+vtu_filename+ is the input vtu file. The \lstinline[language = Bash]+options+ available are:
+\begin{lstlisting}[language = Python]
+-s START_VTU	The first dump id of files to be included, default = 0
+-e END_VTU	The last dump id of files to be included, if not used
+		all vtus with id >= start_vtu will be included
+-b NO_BINS	Number of bins for the histogram plots, default = 10
+-m		Plots the maximum and minimum edge lengths over time
+-c		Plots a histogram of the cumulative total of edge
+		lengths for all vtus
+-p        	Will allow plots to be made from the data in the log
+		files 'time.log' and 'edge_lengths.log' rather than
+		extracting the information from the vtus as this can
+		take a while. Note: you must have run the script once
+		WITHOUT this option otherwise the log files will not
+		exist
+--pvtu		Uses pvtus instead of vtus
+
+\end{lstlisting}
 
 %%%%%%%%%%%%%%%%%%%%%%%%% FLADAPT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -571,9 +610,43 @@ The options are available inside the python file or at the command line.
 fladapt performs a single mesh adapt based on the input options file (which may be a checkpoint) and outputs the resulting mesh. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
-fladapt [-v] INPUT OUTPUT
+fladapt [options] INPUT OUTPUT
 \end{lstlisting}
 where \lstinline[language = Bash]+INPUT+ is the name of the input options file and \lstinline[language = Bash]+OUPUT+ is the name of the generated mesh. The flag \lstinline[language = Bash]+-v+ flag enables verbose output and the flag \lstinline[language = Bash]+-h+ flag displays the help message.
+
+%%%%%%%%%%%%%%%%%%%%%%%%% FLDECOMP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{fldecomp}
+\label{sect:fldecomp}
+fldecomp is used to decompose a mesh into multiple regions, one per
+process. In order to run fldecomp, if your mesh files have the base name
+\lstinline{foo}\ and you want to decompose into four parts, type:
+\begin{lstlisting}[language = Bash]
+fldecomp -n 4 -m mesh_format mesh_file
+\end{lstlisting}
+
+Where:
+\begin{center}
+  \begin{tabular}{lp{.8\textwidth}}
+    \lstinline+mesh_file+ & is the base name of your mesh file(s). For
+    example, \lstinline+foo+ for \lstinline+foo.msh+ with Gmsh format, or
+    \lstinline+foo.face/node/ele+ with triangle format.\\
+    \lstinline+mesh_format+ & is the format of the mesh file you wish to
+    decompose. It can take two values: \lstinline+gmsh+ or
+    \lstinline+triangle+. If you omit the \lstinline+-m+ option,
+    \lstinline+fldecomp+ will default to \lstinline+triangle+.
+  \end{tabular}
+\end{center}
+
+For performance reasons, \lstinline[language=Bash]{fldecomp} supports only
+binary Gmsh files. These are generated by passing the \lstinline{-bin}\
+argument to Gmsh, for example:
+
+\begin{lstlisting}[language=bash]
+gmsh -3 -bin project.geo -o project.msh
+\end{lstlisting}
+
+This creates a 3D binary Gmsh mesh called \lstinline{project.msh} from the geometry file.
 
 %%%%%%%%%%%%%%%%%%%%%%%%% FLDIAGNOSTICS %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -606,6 +679,32 @@ fldiagnostics add -o GridReynoldsNumber -r 0 ...
 			           ... lock_exchange.vtu lock_exchange_out 5 8
 \end{lstlisting}
 
+%%%%%%%%%%%%%%%%%%%%% FLREDECOMP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{flredecomp}
+\label{sect:flredecomp}
+flredecomp is similar to fldecomp but runs in parallel. 
+It performs a re-decomposition of a Fluidity checkpoint and must be run on
+max(input no. procs, target no. procs) processors.
+It is invoked as follows:
+\begin{lstlisting}[language=bash]
+mpiexec -n [target number of processors] \
+   `\fluiditysourcepath'/bin/flredecomp \
+        -i [input number of processors] \
+        -o [target number of processors] [input flml] [output flml]
+\end{lstlisting}
+
+For example, to decompose the serial file \lstinline+foo.flml+
+into four parts, type:
+
+\begin{lstlisting}[language=bash]
+mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
+    -i 1 -o 4 foo foo_flredecomp
+\end{lstlisting}
+
+The output of running flredecomp is a series of mesh and vtu files as well
+as the new flml; in this case \lstinline+foo_flredecomp.flml+.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%% GENPVTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{genpvtu}
@@ -631,7 +730,7 @@ NODES is the number of nodes in the mesh and MESHES is the number of meshes to b
 \subsubsection{gmsh2triangle}
 \label{sect:gmsh2triangle}
 gmsh2triangle converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
-can read in Gmsh files directly as noted in section \ref{sect:using_gmsh}, 
+can read in Gmsh files directly as noted in section \ref{sect:supported_mesh_formats}, 
 this tool should be used in cases where native Gmsh support does not work.
 It is run from the command line:
 \begin{lstlisting}[language = Bash]
@@ -741,6 +840,31 @@ nodecount will return the number of nodes in a list of vtus. It is run from the 
 nodecount [vtulist]
 \end{lstlisting}
 If \lstinline[language = Bash]+vtulist+ is not supplied it will run on any vtu in the working directory.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% PERIODISE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{periodise}
+\label{sect:periodise}
+periodise is used to create a periodic mesh. The input to periodise is your flml (in this case
+\lstinline{foo.flml}). This flml file should already contain the mapping for
+the periodic boundary as described in section
+\ref{Sect:periodic}. Periodise is run with the command:
+
+\begin{lstlisting}[language=bash]
+`\fluiditysourcepath'/bin/periodise foo.flml
+\end{lstlisting}
+
+The output is a new flml called \lstinline+foo_periodised.flml+ and the
+periodic meshes. Next run flredecomp (section \ref{mesh!meshing
+  tools!flredecomp}) to decompose the mesh for the number of processors
+required. The flml output by flredecomp is then used to execute the actual simulation:
+
+\begin{lstlisting}[language=bash]
+mpiexec -n [number of processors] \
+   `\fluiditysourcepath'/bin/fluidity [options] \
+   foo_periodised_flredecomp.flml
+\end{lstlisting}
+
 
 %%%%%%%%%%%%%%%%%% PETSC READNSOLVE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
