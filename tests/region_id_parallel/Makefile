@@ -1,6 +1,6 @@
 input: clean
 	gmsh -3 src/region_id.geo
-	../../scripts/gmsh2triangle src/region_id.msh
+	../../bin/gmsh2triangle src/region_id.msh
 	../../bin/fldecomp -n 2  region_id
 
 clean:

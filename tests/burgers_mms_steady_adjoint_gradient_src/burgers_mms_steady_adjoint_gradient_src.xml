@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Burgers Equation MMS</name>
   <owner userid="pef"/>
   <tags>burgers adjoint</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>../../scripts/optimality.py op_A.oml; ../../scripts/optimality.py op_B.oml; ../../scripts/optimality.py op_C.oml; burgers_equation mms_A.bml; burgers_equation mms_B.bml; burgers_equation mms_C.bml; burgers_equation mms_D.bml; burgers_equation mms_E.bml</command_line>
+    <command_line>../../bin/optimality op_A.oml; ../../bin/optimality op_B.oml; ../../bin/optimality op_C.oml; burgers_equation mms_A.bml; burgers_equation mms_B.bml; burgers_equation mms_C.bml; burgers_equation mms_D.bml; burgers_equation mms_E.bml</command_line>
   </problem_definition>
   <variables>
     <variable name="gradient_conv" language="python">

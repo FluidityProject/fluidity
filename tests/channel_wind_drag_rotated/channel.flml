@@ -164,6 +164,9 @@
         <spatial_discretisation>
           <continuous_galerkin/>
         </spatial_discretisation>
+        <reference_node>
+          <integer_value rank="0">1</integer_value>
+        </reference_node>
         <scheme>
           <poisson_pressure_solution>
             <string_value lines="1">only first timestep</string_value>

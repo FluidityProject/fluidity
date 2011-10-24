@@ -344,6 +344,51 @@ where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the fri
 \section{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}
 \index{turbulence model}
+In Large Eddy Simulations the large scales in the ﬂow are captured while the effect of the small scales
+is modelled. Formally, a filtering operator is defined and a decomposition, similar to the Reynolds
+decomposition, is introduced:
+\begin{equation}
+\mathcal{F}u_i = \int_{-\infty}^\infty G\left( \overrightarrow{r} \right) u_i\left( \overrightarrow{x} - \overrightarrow{r} \right) \text{d} \overrightarrow{r}
+\label{eqn:les_filtering}
+\end{equation}
+and
+\begin{equation}
+u_i = \tilde{u_i} + u_i^\prime
+\label{eqn:les_decomposition}
+\end{equation}
+where $\tilde{u_i} = \mathcal{F}u_i$ and $u_i^\prime$ denotes the subgrid-scale fluctuation. Applying
+the filtering operator to the continuity and momentum equations for constant-property, incompressible
+flow and introducing the decomposition \eqref{eqn:les_decomposition} to the non-linear terms gives,
+\begin{equation}
+\frac{\partial \tilde{u}_i}{\partial x_i} = 0
+\end{equation}
+\begin{equation}
+\frac{\partial \tilde{u}_i}{\partial t} + \frac{\tilde{u}_i \ \tilde{u}_j}{\partial x_j} =
+ -\frac 1 \rho \frac{\partial \tilde p}{\partial x_i}
+ + 2 \nu \frac{\partial \tilde S_{ij}}{\partial x_j} - \frac{\partial \tau_{ij}}{\partial x_j}
+\end{equation}
+where $\tilde S_{ij}$ denotes the strain-rate tensor and $\tau_{ij}$ is a stress term:
+tensor:
+\begin{equation}
+\tilde S_{ij} = \frac 1 2 \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right )
+\label{eqn:defin_strain_rate_tensor}
+\end{equation}
+\begin{align}
+\tau_{ij} &= \widetilde{u_i u_j} - \tilde u_i \ \tilde u_j \nonumber \\
+          &= \underbrace{\widetilde{ \tilde u_i \tilde u_j} - \tilde u_i \ \tilde u_j}_{L_{ij}} + \underbrace{\widetilde{\tilde{u}_i u_j^\prime} + \widetilde{u_i^\prime \tilde{u}_j}}_{C_{ij}} + \underbrace{\widetilde{u_i^\prime u_j^\prime}}_{R_{ij}}
+\label{eqn:defin_sgs_stress_tensor}
+\end{align}
+Equation \eqref{eqn:defin_sgs_stress_tensor} above also introduces the Leonard decomposition
+\citep{leonard1974} also known as the triple decomposition. The Leonard term $L_{ij}$ represents
+the effect of resolved-resolved scale interations on $\tau_{ij}$, the cross term
+$C_{ij}$ represent the resolved-subgrid scale interactions and 
+the Reynolds term, $R_{ij}$, represents the subgrid-subgrid scale interactions.
+The Leonard and cross terms are usualy assumed to be much smaller than the Reynolds term, leading to:
+\begin{equation}
+\tau_{ij} = \widetilde{u_i^\prime u_j^\prime}
+\end{equation}
+Thus, $\tau_{ij}$ can be formulated in terms of the subgrid stress, which needs
+to be modelled.
 
 Large-eddy simulation filters the velocity field into resolved and sub-filter-scale components. The eddy viscosity assumption is that the unresolved scales drain energy from the resolved scales in the manner of an extra turbulent viscosity $\nu_\tau$. Then \eqref{mtm} is written:
 
@@ -353,9 +398,10 @@ Large-eddy simulation filters the velocity field into resolved and sub-filter-sc
  + \frac{\partial}{\partial x_j} \left [ (\nu + \nu_\tau) \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right ) \right ],
 \end{equation}
 
-Two LES models are available in \fluidity.
+Three LES models are available in \fluidity.
 
 \subsection{Second-Order Dissipation}
+\label{ssect:second_order_diss_LES}
 
 The following model developed by \citet{bentham2003} is similar to the original Smagorinsky model \citep{smagorinsky1963general}, but allows for an anisotropic eddy viscosity that gives better results for flow simulations on unstructured grids:
 
@@ -367,17 +413,54 @@ with the anisotropic tensorial eddy viscosity:
 \begin{equation}
 \nu_{jk} = 4C_S^2 \left | \mathcal{\tilde S} \right | \mathcal{M}^{-1},
 \end{equation}
-where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}), used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter width separating resolved and unresolved scales is twice the local element size, which is squared in the viscosity model. $C_S \approx 0.1$ is the Smagorinsky coefficient, and $\left | \mathcal{\tilde S} \right |$ is the local strain rate:
+where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}),
+used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter
+width separating resolved and unresolved scales is twice the local element size, which is squared in
+the viscosity model. $C_S \approx 0.1$ is the Smagorinsky coefficient, and
+$\left | \mathcal{\tilde S} \right |$ is the local strain rate (the second invariant of the strain-rate
+tesor defined in equation \eqref{eqn:defin_strain_rate_tensor}):
 
 \begin{equation}
 \left | \mathcal{\tilde S} \right | = (2 \tilde S_{ij} \tilde S_{ij})^{1/2},
 \end{equation}
-where:
 
-\begin{equation}
-\tilde S_{ij} = \frac 1 2 \left ( \frac{\partial \tilde u_i}{\partial x_j} + \frac{\partial \tilde u_j}{\partial x_i} \right ).
-\end{equation}
 
 \subsection{Fourth-Order Dissipation}
+\label{ssect:fourth_order_diss_LES}
 
 The fourth-order method is designed as an improvement to the second-order eddy viscosity method, which can be too dissipative \citep{adam}. The fourth-order term is taken as the difference of two second-order eddy viscosity discretisations, where one is larger than the other. Usually a smaller time-step and finer grid are necessary to make fourth-order worthwhile.
+
+\subsection{Dynamic Smagorinsky model}
+
+The most important disadvantage of Smagorinsky-type models such as discussed in sections \ref{ssect:second_order_diss_LES} and \ref{ssect:fourth_order_diss_LES} is the behaviour of the eddy viscosity near walls and non-turbulent regions. As shown in \citet{pope2000}, in a fully developed channel flow the sub-grid eddy viscosity $\nu_\tau$ should diminish as $\nu_\tau \propto z^3$, $z$ the wall-normal coordinate. Conversely, it is shown in \citet{nicoud1999} that the Smagorinsky model gives $\sqrt{2 \tilde{S}_{ij} \tilde{S}_{ij}} \sim O(1)$ near walls leading to an incorrect subgrid-scale viscosity. In addition, the Smagorinsky model is absolutelly dissipative: energy transfer is olny allowed from resolved scales to subgrid scales. The opposite (commonly termed as backscatter), commonly occurs in transitional flows, and absolutelly dissipative models have been shown in \citet{piomelli1990} to under-predict the growth rate of perturbations in the flow, leading to delayed transition to turbulence.%check
+\par
+Dynamical models were designed to overcome the disadvantages of Smagorinsky type models by using arguments with better physical grounding as a starting point towards the evaluation of the subgrid viscosity. In particular, at the core of dymamical Smagorinsky type models lies the idea of scale similarity \citep{bardina1980}, which states that in the inertial subrange, the statistical properties of the fluctuations at a given wave-number are similar to the statistical properties of fluctuations of near-by wavenumbers.
+
+\section{Ice shelf parameterisation}
+Exchange of heat and salt between the ice and ocean drives the circulation.
+The temperature $T_b$ and salinity $S_b$ at the ice-ocean interface are determined by the balance of heat and salt fluxes between the ice and ocean \cite[e.g.][]{mcpheebook,jenkins95}:
+\begin{equation}
+mL + mc_I(T_b-T_I)=c_0 \gamma_T |u| (T-T_b); \quad mS_b=\gamma_S |u| (S-S_b),
+\label{three}
+\end{equation}
+where $c_o=3974~J~kg^{-1}~^\circ C^{-1}$ and $c_I=2009~J~kg^{-1}~^\circ C^{-1}$ are the specific heat capacity of seawater and ice, respectively. The variable $m$ and $L=3.35 \times 10^{5}~J~kg^{-1}$ represent the melt rate and the latent heat of ice fusion.
+We assume the temperature of ice to be $T_I=-25~^\circ C $. The velocity, temperature, and salinity of the ocean are $u$, $T$, and $S$, respectively.These two flux balances are linked with constraining the interface to be at the local freezing temperature:
+\begin{equation}
+T_b = aS_b+b + cP,
+\label{last}
+\end{equation}
+where $a=-0.0573 ^\circ C$, $b=0.0832 ^\circ C$ and $c=-7.53e^{-8}~^\circ C~Pa^{-1} $.
+The three unknows $T_b$, $S_b$, and $m$ are solved by the three equations (\ref{three})-(\ref{last}). 
+
+\subsection{Boundary condition at ice surface}
+At the ice surface, heat and salt fluxes to the ocean based on the melt rate are
+\begin{equation}
+F_H = c_0(\gamma_T |u|+ m)(T-T_b); \quad F_S = (\gamma_S|u|+ m)(S-S_b).
+\end{equation}
+
+These boundary conditions are applied to the surface field specified in the flml file.
+
+
+
+
+

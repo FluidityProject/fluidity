@@ -1,7 +1,7 @@
 default: input
 
 input: clean
-	../../scripts/gmsh2triangle --2d src/MMS_C.msh
+	../../bin/gmsh2triangle --2d src/MMS_C.msh
 	../../bin/periodise periodic_adaptivity.flml
 	mpiexec -n 3 ../../bin/flredecomp -i 1 -o 3  periodic_adaptivity_periodised periodic_adaptivity_periodised_parallel
 

@@ -1,6 +1,6 @@
 input: clean
 	gmsh -2 ./src/box_2d.geo
-	../../scripts/gmsh2triangle --2d ./src/box_2d.msh
+	../../bin/gmsh2triangle --2d ./src/box_2d.msh
 	../../bin/fldecomp -n 2 box_2d
 
 clean: 

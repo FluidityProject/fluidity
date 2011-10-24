@@ -5,10 +5,11 @@ default: input
 
 input: src/$(MESH).geo
 	gmsh -3 src/$(MESH).geo
-	../../scripts/gmsh2triangle src/$(MESH).msh
+	../../bin/gmsh2triangle src/$(MESH).msh
 	../../bin/fldecomp -n 3 $(MESH)
 
 clean: clean-mesh clean-run
+	rm -rf parallel_p1_consistent_interpolation_*
 clean-mesh:
 	rm -f $(MESH).face $(MESH).ele $(MESH).node
 	rm -f $(MESH)_?.face $(MESH)_?.ele $(MESH)_?.node $(MESH)_?.halo

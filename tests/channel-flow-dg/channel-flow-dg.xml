@@ -3,7 +3,7 @@
   <name>channel-flow-dg</name>
   <owner userid="dham"/>
   <problem_definition length="medium" nprocs="1">
-    <command_line>for layers in 4 8 16; do ./generate_mesh $layers; fluidity -v3 -l channel_viscous.flml; cp fluidity.log-0 channel-flow-dg-$layers.log-0; cp fluidity.err-0 channel-flow-dg-$layers.err-0; cp channel-flow-dg.stat channel-flow-dg-$layers.stat; done</command_line>
+    <command_line>for layers in 4 8 16; do cp ./src/chan$layers.msh ./channel.msh; fluidity -v3 -l channel_viscous.flml; cp fluidity.log-0 channel-flow-dg-$layers.log-0; cp fluidity.err-0 channel-flow-dg-$layers.err-0; cp channel-flow-dg.stat channel-flow-dg-$layers.stat; done</command_line>
 <!--     <command_line>for layers in 16 32 64; do ./generate_mesh $layers; fluidity channel_viscous.flml; cp channel-flow-dg.stat channel-flow-dg-$layers.stat; done</command_line> -->
   </problem_definition>
   <variables>

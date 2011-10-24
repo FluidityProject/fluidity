@@ -8,6 +8,7 @@ input: src/$(MESH).tar.bz2
 	fldecomp -n 2 $(MESH)
 
 clean: clean-mesh clean-run
+	rm -rf parallel_p2_consistent_interpolation_*
 clean-mesh:
 	rm -f $(MESH).edge $(MESH).ele $(MESH).node
 	rm -f $(MESH)_?*.edge $(MESH)_?*.ele $(MESH)_?*.node $(MESH)_?*.halo

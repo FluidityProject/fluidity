@@ -7,13 +7,6 @@ Equation_of_State.o ../include/equation_of_state.mod: Equation_of_State.F90 \
    ../include/global_parameters.mod ../include/sediment.mod \
    ../include/spud.mod ../include/state_module.mod
 
-../include/gent_mcwilliams.mod: Gent_McWilliams.o
-	@true
-
-Gent_McWilliams.o ../include/gent_mcwilliams.mod: Gent_McWilliams.F90 \
-   ../include/elements.mod ../include/fdebug.h ../include/fetools.mod \
-   ../include/fldebug.mod
-
 ../include/gls.mod: Gls_vertical_turbulence_model.o
 	@true
 

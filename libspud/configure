@@ -21711,8 +21711,8 @@ else
     { $as_echo "$as_me:${as_lineno-$LINENO}: Setting optimisation flags" >&5
 $as_echo "$as_me: Setting optimisation flags" >&6;}
     CPPFLAGS="$CPPFLAGS -DNDEBUG=1"
-    FCFLAGS="-O3 `echo $FCFLAGS | sed 's/-g -O2//g'`"
-    CXXFLAGS="-O3 `echo $CXXFLAGS | sed 's/-g -O2//g'`"
+    FCFLAGS="-O0 `echo $FCFLAGS | sed 's/-g -O2//g'`"
+    CXXFLAGS="-O0 `echo $CXXFLAGS | sed 's/-g -O2//g'`"
 fi
 
 if test "$FC" = "ifc" ; then
@@ -21746,7 +21746,7 @@ VERSION=`svnversion .`
 
 
 
-ac_config_files="$ac_config_files Makefile src/tests/Makefile examples/Makefile bin/spud-preprocess python/libspud.py diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py"
+ac_config_files="$ac_config_files Makefile src/tests/Makefile examples/Makefile bin/spud-preprocess diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -22986,7 +22986,6 @@ do
     "src/tests/Makefile") CONFIG_FILES="$CONFIG_FILES src/tests/Makefile" ;;
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
     "bin/spud-preprocess") CONFIG_FILES="$CONFIG_FILES bin/spud-preprocess" ;;
-    "python/libspud.py") CONFIG_FILES="$CONFIG_FILES python/libspud.py" ;;
     "diamond/setup.py") CONFIG_FILES="$CONFIG_FILES diamond/setup.py" ;;
     "diamond/diamond/plugins.py") CONFIG_FILES="$CONFIG_FILES diamond/diamond/plugins.py" ;;
     "diamond/diamond/preprocess.py") CONFIG_FILES="$CONFIG_FILES diamond/diamond/preprocess.py" ;;

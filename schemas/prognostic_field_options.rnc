@@ -67,6 +67,15 @@ scalar_boundary_conditions =
                element string_value {
                "low_Re"|"high_Re"
                }
+            }|
+            ## Flux boundary condition. Currently only works with a control_volume 
+            ## discretisation.
+            ##
+            ## This weakly enforces the total (advective plus diffusive) flux across 
+            ## a boundary when solving the advection-diffusion equation.
+            element type {
+               attribute name { "flux" },
+               input_choice_real
             }
          )
       }
@@ -205,7 +214,6 @@ prognostic_scalar_field =
                 mesh_choice?,
                 prescribed_tensor_field_no_adapt
             }|
-            ## For electrical modelling only - holds electrical conductivity
             element diagnostic {
                (
                   tensor_python_diagnostic_algorithm |
@@ -223,7 +231,6 @@ prognostic_scalar_field =
             element prescribed {
                prescribed_scalar_field_no_adapt
             }|
-            ## This only works for traffic modelling
             element diagnostic {
                (
                   scalar_python_diagnostic_algorithm |
@@ -352,7 +359,7 @@ prognostic_velocity_field =
                      ## of full stress form when divergent elements can
                      ## be cancelled out.
                      ##
-                     ## Only diaonal components of viscosity
+                     ## Only diagonal components of viscosity
                      ## (i.e. either isotropic or
                      ## diagonal) are physical for isotropic materials.
                      ##
@@ -816,16 +823,7 @@ prognostic_velocity_field =
                   element integrate_conservation_term_by_parts {
                     empty
                   }?
-               },
-               ## DG large-eddy simulation
-               element les_model {
-                  ## literature sybol: Cs
-                  ##
-                  ## suggested value 0.1
-                  element smagorinsky_coefficient {
-                     real
-                  }
-               }?
+               }
             }
          ),
          ## Conservative discretisation of momentum equations
