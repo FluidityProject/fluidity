@@ -438,6 +438,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	Program					& Section 				\\
     \hline
 	checkmesh				& \ref{sect:checkmesh}			\\
+    clean\_mayavi\_mesh       & \ref{sect:clean_mayavi_mesh} \\
 	create\_aligned\_mesh 			& \ref{sect:create_aligned_mesh}	\\
 	create\_climatology\_atlas		& \ref{sect:create_climatology_atlas}	\\
 	create\_param\_sweep			& \ref{sect:create_param_sweep}		\\
@@ -525,6 +526,25 @@ Numbering:
 \end{lstlisting}
 \caption{checkmesh reporting a mesh tangling error.}
 \end{example}
+
+%%%%%%%%%%%%%%%%%% CLEAN_MAYAVI_MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{clean\_mayavi\_mesh}
+\label{sect:clean_mayavi_mesh}
+
+This program cleans up vector eps mesh images output by Mayavi2. The program
+removes pointy line joins which are unsightly on very anisotropic meshes and
+calculates an accurate bounding box, replacing the incorrect one produced by Mayavi2.
+
+The input file should be an eps file output by the ``save scene as'' 
+``Vector PS/EPS/PDF/TeX'' option in Mayavi2.
+
+\begin{lstlisting}[language = Bash]
+clean_mayavi_mesh [--margin=n] <input_filename> <output_filename>
+\end{lstlisting}
+
+If present, \lstinline[language = Bash]+--margin+\ sets the margin between
+the figure and the bounding box. 
 
 %%%%%%%%%%%%%%%%%% CREATE ALIGNED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
