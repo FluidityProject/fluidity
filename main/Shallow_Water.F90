@@ -442,6 +442,7 @@
       else
          call adjoint_register_initial_u_condition(balanced=.false.)
       end if
+      !Set velocity from commuting projection?
       if(have_option("/material_phase::Fluid/vector_field::Velocity/&
            &prognostic/initial_condition::WholeMesh/&
            &commuting_projection")) then
@@ -455,6 +456,13 @@
            &PrescribedVelocityFromCommutingProjection")) then
          call set_velocity_commuting_projection(state(1),"PrescribedVelocityFromCommutingProjection")
       end if
+
+      !Set velocity from spherical components
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+           &ic/initial_condition::WholeMesh/from_lat_long")) then
+         call set_velocity_from_lat_long(state(1))
+      end if
+
       if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
            &ognostic/initial_condition::ProjectionFromPython")) then
          if(hybridized) then

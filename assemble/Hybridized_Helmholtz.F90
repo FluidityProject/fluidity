@@ -2334,4 +2334,114 @@ contains
 
   end subroutine set_layerthickness_projection_ele
 
+  subroutine set_velocity_from_lat_long(state)
+    type(state_type), intent(inout) :: state
+    !
+    type(vector_field), pointer :: X,U, down
+    character(len=PYTHON_FUNC_LEN) :: Python_Function
+    integer :: ele
+
+    X=>extract_vector_field(state, "Coordinate")
+    U=>extract_vector_field(state, "LocalVelocity")
+    down=>extract_vector_field(state, "GravityDirection")
+    call get_option("/material_phase::Fluid/vector_field::Velocity&
+         &/prognostic/initial_condition::WholeMesh/&
+         &from_lat_long/python",Python_Function)
+
+    do ele = 1, element_count(U)
+       call set_velocity_from_lat_long_ele(U,X,down,Python_Function,ele)
+    end do
+  end subroutine set_velocity_from_lat_long
+
+  subroutine set_velocity_from_lat_long_ele(U,X,down,Python_Function,ele)
+    type(vector_field), intent(inout) :: U
+    type(vector_field), intent(in) :: X
+    type(vector_field), intent(in) :: down
+    character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+    integer, intent(in) :: ele
+    !
+    real, dimension(mesh_dim(X), ele_ngi(U,ele)) :: u_long_lat_quad
+    real, dimension(X%dim,ele_ngi(U,ele)) :: X_quad
+    real, dimension(ele_ngi(U,ele)) :: dummy
+    !local basis for velocity
+    ! (basis number, dimension, gi)
+    real, dimension(mesh_dim(X), X%dim) :: e_basis
+    real, dimension(X%dim,ele_ngi(U,ele)) :: pole_axis, up_gi, u_cart_quad
+    integer :: gi,uloc,dim1,dim2,stat
+    real, dimension(mesh_dim(U),mesh_dim(U),ele_ngi(U,ele))::&
+         &Metric
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
+    real, dimension(ele_ngi(U,ele)) :: detJ, detwei
+    real, dimension(mesh_dim(U)*ele_loc(U,ele),&
+         mesh_dim(U)*ele_loc(U,ele)) :: l_u_mat
+    real, dimension(mesh_dim(U)*ele_loc(U,ele)) :: l_u_rhs    
+    type(element_type) :: u_shape
+
+    !Get X at quad points
+    X_quad = ele_val_at_quad(X,ele)
+
+    !Get u_long, u_lat at quad points
+    call set_vector_field_from_python(python_function, len(python_function),&
+         & dim=3,nodes=ele_ngi(X,ele),x=X_quad(1,:),y=X_quad(2,:)&
+         &,z=x_quad(3,:),t=0.0,result_dim=2,&
+         & result_x=U_long_lat_quad(1,:),&
+         & result_y=U_long_lat_quad(2,:),&
+         & result_z=dummy,&
+         & stat=stat)
+    if(stat /= 0) then
+       FLAbort('Failed to set values from Python.')
+    end if
+
+    !Compute the normal to the element at quad points
+    up_gi = -ele_val_at_quad(down,ele)
+    call get_up_gi(X,ele,up_gi)
+    pole_axis = 0.
+    pole_axis(3,:) = 1.
+
+    !Get e_long, e_lat
+    !Assumes that the centre of the sphere is at (0,0,0)
+    !and that the pole axis is (0,0,1)
+    do gi = 1, ele_ngi(X,ele)
+       if(.not.((x_quad(1,gi)==0.).and.(x_quad(2,gi)==0.))) then
+          e_basis(1,:) = cross_product(pole_axis(:,gi),up_gi(:,gi))
+          e_basis(2,:) = cross_product(up_gi(:,gi),e_basis(1,:))
+       else
+          e_basis(1,:) = (/1,0,0/)
+          e_basis(2,:) = (/2,0,0/)
+       end if
+       u_cart_quad(:,gi) = e_basis(1,:)*u_long_lat_quad(1,gi) &
+            + e_basis(2,:)*u_long_lat_quad(2,gi)
+    end do
+
+    !project into local coordinate system
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detJ=detJ, detwei=detwei)
+    do gi=1,ele_ngi(U,ele)
+       Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+    end do
+
+    !real, dimension(mesh_dim(U_local), X%dim, ele_ngi(U_local,ele)) :: J
+    do gi = 1, ele_ngi(U,ele)
+       u_cart_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))/detJ(gi)
+    end do
+
+    uloc = ele_loc(U,ele)
+    u_shape = ele_shape(U,ele)
+    do dim1 = 1, mesh_dim(U)
+       do dim2 = 1, mesh_dim(U)
+          l_u_mat((dim1-1)*uloc+1:dim1*uloc,&
+               &  (dim2-1)*uloc+1:dim2*uloc ) = &
+               & shape_shape(u_shape,u_shape,&
+               & u_shape%quadrature%weight*Metric(dim1,dim2,:))
+       end do
+       l_u_rhs((dim1-1)*uloc+1:dim1*uloc) = &
+            & shape_rhs(u_shape,u_cart_quad(dim1,:)*detwei)
+    end do
+
+    call solve(l_u_mat,l_u_rhs)
+    do dim1 = 1, mesh_dim(U)
+       call set(U,dim1,ele_nodes(U,ele),l_u_rhs((dim1-1)*uloc+1:dim1*uloc))
+    end do
+
+  end subroutine set_velocity_from_lat_long_ele
 end module hybridized_helmholtz
