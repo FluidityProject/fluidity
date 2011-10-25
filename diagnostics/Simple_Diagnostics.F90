@@ -432,7 +432,7 @@ contains
     
     path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
     call get_option(trim(path), filename, stat)
-    if (stat =/ 0) return
+    if (stat /= 0) return
 
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
