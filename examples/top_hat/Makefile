@@ -1,6 +1,6 @@
 preprocess: 
 	@echo **********Generating a 1D mesh for the [0,3] interval:
-	../../scripts/interval --dx=0.025 --reverse 0 3 line
+	../../bin/interval --dx=0.025 --reverse 0 3 line
 
 run:
 	@echo **********Running the Continuous Galerkin version of this example:

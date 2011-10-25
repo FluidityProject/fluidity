@@ -182,7 +182,7 @@ contains
     ! Copies all the information from the old detector to
     ! the new detector
     type(detector_type), pointer, intent(in) :: old_detector
-    type(detector_type),  pointer, intent(out) :: new_detector
+    type(detector_type),  pointer :: new_detector
       
     new_detector%position = old_detector%position
     new_detector%element = old_detector%element
@@ -218,7 +218,7 @@ contains
     !! Removes the detector from the list, 
     !! but does not deallocated it
     type(detector_linked_list), intent(inout) :: detector_list
-    type(detector_type), pointer, intent(inout) :: detector
+    type(detector_type), pointer :: detector
 
     if (detector_list%length==1) then
        detector_list%first => null()
@@ -244,7 +244,7 @@ contains
   subroutine delete_detector(detector, detector_list)
     ! Removes and deallocates the given detector 
     ! and outputs the next detector in the list as detector
-    type(detector_type), pointer, intent(inout) :: detector
+    type(detector_type), pointer :: detector
     type(detector_linked_list), intent(inout), optional :: detector_list
     
     type(detector_type), pointer :: temp_detector
@@ -263,7 +263,7 @@ contains
   subroutine move_detector(detector, from_list, to_list)
     ! Move detector from one list to the other
     type(detector_linked_list), intent(inout) :: from_list
-    type(detector_type), pointer, intent(inout) :: detector
+    type(detector_type), pointer :: detector
     type(detector_linked_list), intent(inout) :: to_list
 
     call remove(detector, from_list)
@@ -349,7 +349,7 @@ contains
 
   subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages)
     ! Unpacks the detector from buff and fills in the blanks
-    type(detector_type), pointer, intent(inout) :: detector
+    type(detector_type), pointer :: detector
     real, dimension(:), intent(in) :: buff
     integer, intent(in) :: ndims
     type(integer_hash_table), intent(in), optional :: global_to_local

@@ -509,24 +509,23 @@ contains
     if (have_option("/ocean_biology/pznd/scalar_field&
          &::PhotosyntheticRadiation/prognostic/solver/&
          &preconditioner::sor")) then
-       ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation equati&
-            &on"
+       ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation "//&
+            &"equation"
        ewrite(0, *) "Consider using ilu as a preconditioner instead."
     end if
     if (have_option("/ocean_biology/six_component/scalar_field&
          &::PhotosyntheticRadiation/prognostic/solver/&
          &preconditioner::sor")) then
-       ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation equati&
-            &on"
+       ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation "//&
+            &"equation"
        ewrite(0, *) "Consider using ilu as a preconditioner instead."
     end if
 
     call get_option("/timestepping/nonlinear_iterations", itmp, stat)
     
     if (stat/=0.or.itmp<2) then
-       ewrite(0,*) "Warning: For stability reasons it is recommended that yo&
-            &u have at least 2 nonlinear_iterations when using ocean biology&
-            &"
+       ewrite(0,*) "Warning: For stability reasons it is recommended that "//&
+          "you have at least 2 nonlinear_iterations when using ocean biology"
     end if
 
   end subroutine biology_check_options

@@ -1353,7 +1353,7 @@ contains
     ! Allocate a single detector, populate and insert it into the given list
     ! In parallel, first check if the detector would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), pointer, intent(in) :: xfield
+    type(vector_field), pointer :: xfield
     real, dimension(xfield%dim), intent(in) :: position
     integer, intent(in) :: id, type
     character(len=*), intent(in) :: name
@@ -2149,32 +2149,43 @@ contains
     subroutine write_body_forces(state, vfield)
       type(state_type), intent(in) :: state
       type(vector_field), intent(in) :: vfield
-      
+      type(tensor_field), pointer :: viscosity
+
+      logical :: have_viscosity      
       integer :: i
       real :: force(vfield%dim), pressure_force(vfield%dim), viscous_force(vfield%dim)
     
+      viscosity=>extract_tensor_field(state, "Viscosity", stat)
+      have_viscosity = stat == 0
+
       if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
-        ! calculate the forces on the surface
-        call diagnostic_body_drag(state, force, pressure_force = pressure_force, viscous_force = viscous_force)   
+        if(have_viscosity) then
+          ! calculate the forces on the surface
+          call diagnostic_body_drag(state, force, pressure_force = pressure_force, viscous_force = viscous_force)
+        else   
+          call diagnostic_body_drag(state, force, pressure_force = pressure_force)   
+        end if
         if(getprocno() == 1) then
-           do i=1, mesh_dim(vfield%mesh)
-              write(default_stat%diag_unit, trim(format), advance="no") force(i)
-           end do
-           do i=1, mesh_dim(vfield%mesh)
-              write(default_stat%diag_unit, trim(format), advance="no") pressure_force(i)
-           end do
-           do i=1, mesh_dim(vfield%mesh)
-              write(default_stat%diag_unit, trim(format), advance="no") viscous_force(i)
-           end do
+          do i=1, mesh_dim(vfield%mesh)
+            write(default_stat%diag_unit, trim(format), advance="no") force(i)
+          end do
+          do i=1, mesh_dim(vfield%mesh)
+            write(default_stat%diag_unit, trim(format), advance="no") pressure_force(i)
+          end do
+          if(have_viscosity) then
+            do i=1, mesh_dim(vfield%mesh)
+             write(default_stat%diag_unit, trim(format), advance="no") viscous_force(i)
+            end do
+          end if
         end if
       else
-        ! calculate the forces on the surface
-        call diagnostic_body_drag(state, force) 
-        if(getprocno() == 1) then
+          ! calculate the forces on the surface
+          call diagnostic_body_drag(state, force) 
+          if(getprocno() == 1) then
            do i=1, mesh_dim(vfield%mesh)
               write(default_stat%diag_unit, trim(format), advance="no") force(i)
            end do
-        end if     
+          end if     
       end if 
       
     end subroutine write_body_forces
@@ -2778,7 +2789,7 @@ contains
             assert(ierror == MPI_SUCCESS)
             node => node%next
           end do vector_node_loop
-          assert(.not. associated(node))        
+          assert(.not. associated(node))
         end do vector_loop
         end if
       end if

@@ -4,7 +4,7 @@
   <owner userid="sf1409"/>
   <tags>swml adjoint optimisation</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>time ../../scripts/optimality.py optimiser_A.oml; time ../../scripts/optimality.py optimiser_B.oml; time ../../scripts/optimality.py optimiser_C.oml; time ../../scripts/optimality.py optimiser_D.oml;</command_line>
+    <command_line>time ../../bin/optimality optimiser_A.oml; time ../../bin/optimality optimiser_B.oml; time ../../bin/optimality optimiser_C.oml; time ../../bin/optimality optimiser_D.oml;</command_line>
   </problem_definition>
   <variables>
     <variable name="u_error_initial" language="python">from fluidity_tools import stat_parser as stat
