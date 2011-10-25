@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
    
@@ -7,7 +6,7 @@
   <owner userid="ctj10"/>
   <tags>flml</tags>
   
-  <problem_definition length="special" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>make run</command_line>
     <!-- This is a 2D simulation of the formation of density currents. We consider a -->
     <!-- body of water with a constant inflow of (denser) tephra at the top boundary. -->
@@ -15,32 +14,67 @@
   </problem_definition>
   
   <variables>
-    <variable name="tephra_u_max" language="python">
-from fluidity_tools import stat_parser
-s = stat_parser("mphase_tephra_settling.stat")
-tephra_u_max=s["Tephra"]["Velocity%magnitude"]["max"]
-    </variable>
     <variable name="time" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_tephra_settling.stat")
 time=s["ElapsedTime"]["value"]
     </variable>
+    
+    <variable name="tephra_velocity_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling.stat")
+tephra_velocity_max=s["Tephra"]["Velocity%magnitude"]["max"]
+    </variable>
+    
+    <variable name="apparent_density_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling.stat")
+apparent_density_max=s["Tephra"]["ApparentDensity"]["max"]
+    </variable>
+    
+    <variable name="particle_reynolds_number_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling.stat")
+particle_reynolds_number_max=s["Tephra"]["ParticleReynoldsNumber"]["max"]
+    </variable>
+    
+    <variable name="divergence" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("mphase_tephra_settling.stat")
+divergence = s["Tephra"]["SumVelocityDivergence"]["max"]
+    </variable>
   </variables>
     
   <pass_tests>
+    <test name="Final time is 60 seconds" language="python">
+assert abs(time[-1]-60.0) &lt; 0.5
+    </test>
+    
     <test name="Maximum Tephra velocity is less than 0.0025 for the first 30 seconds" language="python">
 for t in range(0,len(time)):
    if(time[t] &gt; 30.0):
-      assert tephra_u_max[0:t-1].all() &lt; 0.0025
+      assert tephra_velocity_max[0:t-1].all() &lt; 0.0025
       break
     </test>
 
     <test name="Maximum Tephra velocity is between 0.002 and 0.05 for the rest of the simulation" language="python">
 for t in range(0,len(time)):
    if(time[t] &gt; 30.0):
-      assert min(tephra_u_max[t:]) &gt; 0.002
-      assert max(tephra_u_max[t:]) &lt; 0.05
+      assert min(tephra_velocity_max[t:]) &gt; 0.002
+      assert max(tephra_velocity_max[t:]) &lt; 0.05
       break
+    </test>
+    
+    <test name="Maximum ApparentDensity is between 0.25 and 0.30 at the final timestep" language="python">
+assert abs(apparent_density_max[-1] - 0.275) &lt; 0.025
+    </test>
+    
+    <test name="Maximum ParticleReynoldsNumber is around 0.08 at the final timestep" language="python">
+assert abs(particle_reynolds_number_max[-1] - 0.08) &lt; 0.5
+    </test>
+    
+    <test name="SumVelocityDivergence is less than 1e-8 at the final timestep" language="python">
+assert abs(divergence[-1]) &lt; 1e-8
     </test>
   </pass_tests>
   

@@ -5,7 +5,7 @@ MESH = square-cavity
 MODEL = square-convection
 
 input: src/$(MESH).msh
-	../../scripts/gmsh2triangle --2d src/$(MESH).msh
+	../../bin/gmsh2triangle --2d src/$(MESH).msh
 	
 clean: clean-mesh clean-run-debug
 clean-mesh:

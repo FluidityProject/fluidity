@@ -628,86 +628,86 @@ subroutine keps_check_options(state)
         FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
     end if
     ! check that diffusivity is on for the two turbulent fields, and diagnostic
-    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy/&
-        &prognostic/tensor_field::Diffusivity")) then
+    if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy"//&
+        &"/prognostic/tensor_field::Diffusivity")) then
         FLExit("You need TurbulentKineticEnergy Diffusivity field for k-epsilon")
     end if    
-    if (.not.have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentKineticEnergy/prognostic/&
-                          &tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic/"//&
+                          &"/tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentKineticEnergy Diffusivity field set to diagnostic/internal")
     end if
-    if (.not.have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentDissipation/prognostic/&
-                          &tensor_field::Diffusivity")) then
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/tensor_field::Diffusivity")) then
         FLExit("You need TurbulentDissipation Diffusivity field for k-epsilon")
     end if
-    if (.not.have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentDissipation/prognostic/&
-                          &tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/tensor_field::Diffusivity/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentDissipation Diffusivity field set to diagnostic/internal")
     end if
     ! source terms
-    if (.not.have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentKineticEnergy/prognostic/&
-                          &scalar_field::Source")) then
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Source")) then
         FLExit("You need TurbulentKineticEnergy Source field for k-epsilon")
     end if    
-    if (.not. have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentKineticEnergy/prognostic/&
-                          &scalar_field::Source/diagnostic/algorithm::Internal")&
-        .or. .not. have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentKineticEnergy/prognostic/&
-                          &scalar_field::Source/prescribed")) then
+    if (.not. have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Source/diagnostic/algorithm::Internal")&
+        .or. .not. have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Source/prescribed")) then
         FLExit("You need TurbulentKineticEnergy Source field set to diagnostic/internal or prescribed")
     end if
-    if (.not.have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentDissipation/prognostic/&
-                          &scalar_field::Source")) then
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Source")) then
         FLExit("You need TurbulentDissipation Source field for k-epsilon")
     end if
-    if (.not. have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentDissipation/prognostic/&
-                          &scalar_field::Source/diagnostic/algorithm::Internal")&
-        .or. .not. have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentDissipation/prognostic/&
-                          &scalar_field::Source/prescribed")) then
+    if (.not. have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Source/diagnostic/algorithm::Internal")&
+        .or. .not. have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Source/prescribed")) then
         FLExit("You need TurbulentDissipation Source field set to diagnostic/internal or prescribed")
     end if
     ! absorption terms
-    if (.not.have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentKineticEnergy/prognostic/&
-                          &scalar_field::Absorption")) then
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Absorption")) then
         FLExit("You need TurbulentKineticEnergy Absorption field for k-epsilon")
     end if    
-    if (.not.have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentKineticEnergy/prognostic/&
-                          &scalar_field::Absorption/diagnostic/algorithm::Internal")) then
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
+                          &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentKineticEnergy Absorption field set to diagnostic/internal")
     end if
-    if (.not.have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentDissipation/prognostic/&
-                          &scalar_field::Absorption")) then
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Absorption")) then
         FLExit("You need TurbulentDissipation Absorption field for k-epsilon")
     end if
-    if (.not.have_option(trim(option_path)//"/&
-                          &scalar_field::TurbulentDissipation/prognostic/&
-                          &scalar_field::Absorption/diagnostic/algorithm::Internal")) then
+    if (.not.have_option(trim(option_path)//&
+                          &"/scalar_field::TurbulentDissipation/prognostic"//&
+                          &"/scalar_field::Absorption/diagnostic/algorithm::Internal")) then
         FLExit("You need TurbulentDissipation Absorption field set to diagnostic/internal")
     end if
     ! check there's a viscosity somewhere
-    if (.not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic/&
-                          &tensor_field::Viscosity/")) then
+    if (.not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic"//&
+                          &"/tensor_field::Viscosity/")) then
         FLExit("Need viscosity switched on under the Velocity field for k-epsilon.") 
     end if
     ! check that the user has switched Velocity/viscosity to diagnostic
-    if (.not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic/&
-                          &tensor_field::Viscosity/diagnostic/")) then
+    if (.not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic"//&
+                          &"/tensor_field::Viscosity/diagnostic/")) then
         FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
     end if
     ! check that the background viscosity is an isotropic constant
-    if (.not.have_option(trim(option_path)//"/tensor_field::BackgroundViscosity/prescribed/&
-                          &value::WholeMesh/isotropic/constant")) then
+    if (.not.have_option(trim(option_path)//"/tensor_field::BackgroundViscosity/prescribed"//&
+                          &"/value::WholeMesh/isotropic/constant")) then
         FLExit("You need to switch the BackgroundViscosity field to isotropic/constant")
     end if
 

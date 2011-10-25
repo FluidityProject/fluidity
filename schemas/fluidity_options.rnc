@@ -13,7 +13,6 @@ include "prescribed_field_options.rnc"
 include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
-include "radiation.rnc"
 include "flredecomp.rnc"
 
 start =
@@ -33,7 +32,7 @@ start =
                # Lines is a hint to the gui about the size of the text box.
                # It is not an enforced limit on string length.
                attribute lines { "1" },
-               ( "fluids" | "oceans" | "multimaterial" | "porous_media" | "stokes" | "large_scale_ocean_options" | "implicit_solids" | "foams" | "multiphase" )
+               ( "fluids" | "oceans" | "multimaterial" | "porous_media" | "stokes" | "large_scale_ocean_options" | "foams" | "multiphase" )
             },
             comment
          },
@@ -291,63 +290,7 @@ start =
                element binary_output {
                   comment
                }?,
-               element lagrangian_timestepping {
-                  (
-                     ## Use explicit runge kutta method with
-                     ## binary search
-                     element explicit_runge_kutta_guided_search {
-                        ## Number of subdivisions of the timestep
-                        ## increase this if you are not happy with your 
-                        ## detector trajectory accuracy, or if particles
-                        ## are jumping out of the domain a lot
-                        element subcycles {
-                           integer
-                        },
-                        ## Tolerance for deciding if detector is in a given
-                        ## element. Recommended value 1.0e-10.
-                        element search_tolerance {
-                           real
-                        },
-                        ## Number of RK stages
-                        ## For the RK4 method, it should be 4.
-                        element n_stages {
-                           integer
-                        },
-                        ## ERK stage array. This is an array
-                        ## containing the lower-triangular
-                        ## part of the Butcher weight matrix
-                        ## A that explains how to compute the
-                        ## RK stages.  See
-                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                        ## for notation.  The array is stored
-                        ## in the following order:
-                        ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
-                        ## and so the array has size s(s-1)/2
-                        ## where s is the number of stages.
-                        ## For the RK4 method, it should be
-                        ## [0.5,0,0.5,0,0,1]
-                        element stage_weights {
-                           real_vector
-                        },
-                        ## ERK timestep weights. This is the
-                        ## b vector that explains how to
-                        ## compute the timestep from the RK
-                        ## stages.  See
-                        ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
-                        ## for notation.  It should have size
-                        ## s where s is the number of stages.
-                        ## For the RK4 method, it should be
-                        ## [1/6,1/3,1/3,1/6]
-                        element timestep_weights {
-                           real_vector
-                        }
-                     }|
-                     ## Use binary search algorithm
-                     element binary_search {
-                        empty
-                     }
-                  )
-               }?
+               lagrangian_timestepping?
             }?, 
             ## Options to create even more output in the logs:
             ##
@@ -712,68 +655,6 @@ start =
                   #                     empty
                   #                  }
                   #               )
-               }?,
-               ## You MUST add the following additional fields for this:
-               ##  DistanceToTop
-               ##  DistanceToBottom
-               ##  DistanceToSideBoundaries
-               ##  PerturbationDensity
-               element Gent_McWilliams {
-                  ## This is the diffusivity along density
-                  ## surfaces. At the moment the dianeutral
-                  ## diffusivity is hardcoded to be 10^-7 x
-                  ## isoneutral_diffusivity.
-                  element isoneutral_diffusivity {
-                     real
-                  },
-                  ## This is the diffusivity that parameterises the
-                  ## effects of the baroclinic eddies.
-                  element GentMcWilliams_diffusivity {
-                     real
-                  },
-                  ## The vertical and off-diagonal components of the
-                  ## Gent-McWilliams diffusivity tensor need to be
-                  ## tapered to zero near the boundaries of the
-                  ## domain. A taper should also be applied where the
-                  ## density slope is large - define "large" by
-                  ## setting maximum_density_slope below.
-                  element tapering {
-                     ## Where the slope of the density surface is
-                     ## greater than or equal to the
-                     ## maximum_density_slope, an exponential taper is
-                     ## applied to the isoneutral diffusivity and a
-                     ## linear taper is applied to the GentMcWilliams
-                     ## diffusivity.
-                     element maximum_density_slope {
-                        real
-                     },
-                     ## The exponential taper has the form
-                     ## tanh((S_max-sqrt(S.S))/S_d) where S_mac is the
-                     ## maximum_density_slope, S is the local slope of
-                     ## the density surface and S_d is a parameter
-                     ## that controls the width of the tapering
-                     ## region.
-                     element width_of_exponential_taper_region {
-                        real
-                     },
-                     ## If the slope of the density surface is less
-                     ## than the maximum_density_slope but we are
-                     ## still near the surface, a sine taper is
-                     ## applies to both the diffusivities - "near" is
-                     ## defined as d < R1 |S| where d is the distance
-                     ## to the top, |S| is the slope of the density
-                     ## surface and R1 is the
-                     ## first_baroclinic_Rossby_radius.
-                     element first_baroclinic_Rossby_radius {
-                        real
-                     },
-                     ## Near the bottom and side boundaries the
-                     ## Gent-McWlliams diffusivity is tapered to zero
-                     ## by multiplying by c*DistanceToBoundary
-                     element constant_for_linear_taper {
-                        real
-                     }
-                  }
                }?,
                ## This is the generic length scale (vertical turbulence mixed layer) model, 
                ## based here on Warner et al 2005, Ocean Modelling 8:81-113,
@@ -1787,81 +1668,6 @@ start =
                )
            }*
          }?, 
-  
-         ## traffic model
-         element traffic_model {
-            ## number of vehicles to be modelled
-            element number_of_vehicles{integer},
-            ## specify the traffic model input file
-            element vehicle_activity_file{attribute file_name { xsd:string }},
-            ## traffic_model_time_lag
-            ##
-            ## traffic_time=traffic_time+lag
-            element traffic_model_time_lag{real},
-            ## scaling factors between fluidity, traffic and wind tunnel models
-            element scale{
-               ## between fluidity and field
-               ## usually between 1:150 and 1:200
-               element model_scale{real},
-               ## usually  2.5 - 3.0 m/s
-               element reference_velocity_field{real},
-               ## normalized should be 1. m/s 
-               ## otherwise use the maximum inflow velocity
-               element reference_velocity_model{real},
-               ## usually in field scale
-               ## check specific road network
-               element road_network_scale{real},
-               ## between fluidity and field
-               ## usually between 1:150 and 1:200
-               element vehicle_scale{real},
-               ## in metres
-               element exhaust_diameter{real}
-            },
-            ## bounding box for traffic network
-            ##
-            ## ignore vehicles outside this box 
-            element bounding_box{
-               element x_min{real},
-               element x_max{real},
-               element y_min{real},
-               element y_max{real}
-            }?,
-            ## if the bottom of the domain is not flat
-            ## this makes sure the vehicles will follow the 
-            ## road gradient
-            ## you need to specify the boundary id of the road
-            element sloping_floor{integer}?,
-            ## tailpipe emissions
-            element emissions_factors{
-               ## use a constant emissions factor
-               element type{
-                  attribute name{"constant_emissions_factors"},
-                  element emissions_factor{real}
-               }|
-               ## use the TRL instantaneous emissions model (IEDB)
-               ## this is not open source and therefore the database
-               ## needs to be read in
-               element type{
-                  attribute name{"modelled_emissions_factors"},
-                  element passenger_vehicle_petrol{xsd:string}?,
-                  element passenger_vehicle_diesel{xsd:string}?,
-                  element large_vehicle{xsd:string}?
-               }
-            }?,
-            ## options for the solution of the tailpipe tracer releases
-            ## if the emissions factors are not specified
-            ## it will use a constant emissions factor
-            element scalar_field {
-               attribute rank { "0" },
-               attribute name { "TrafficTracerTemplate" },
-               ## Field type
-               element prognostic {
-                  velocity_mesh_choice,
-                  prognostic_scalar_field
-               }
-            }?
-
-         }?,
          biology?,
          forcing?,
          reduced_model?,
@@ -1929,87 +1735,6 @@ start =
                ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
                element cp_expo {real}?
             }?
-         }?,
-         ## UNDER DEVELOPMENT - DO NOT USE
-         ##
-         ## Implict Solids
-         element implicit_solids {
-              ## Absorption coefficient weighting factor.
-              ##
-              ## default: beta=1.
-              element beta{ real }?,
-              ## Source options for heated solids.
-              ## A fixed source term for the solid or a
-              ## solid fixed temperature can be used. Obviously, this
-              ## requires a prognostic Temperature field. 
-              element source{
-                 (
-                    ## Use a fixed temperature source for the solids.
-                    ## The temperature diffusivity should be set to diagnostic/internal with this option.
-                    element temperature_source{
-                         ## Fluid Peclet number.
-                         element fluid_peclet_number{ real },
-                         ## Solid Peclet number.
-                         element solid_peclet_number{ real },
-                         ## Solid source intensity.
-                         ## The non-dimensional source is: [L_ref / (u_ref T_ref)] [ 1 / (\rho c_p)_s] S.
-                         element source_intensity { real },
-                         ## Apply source to an inner zone of the particle rather than the whole particle.
-                         ## Assumes a spherical inner zone.
-                         element zone_radius { real }?
-                    }|
-                    ## Use a fixed temperature for the solids.
-                    element temperature{
-                         ## Solid temperature.
-                         element temperature{ real }
-                    }
-                 )
-              }?,
-              ## Pressure gradient for periodic domains.
-              element pressure_gradient{ real_dim_vector }?,
-              (
-                 element one_way_coupling{
-                      ## The solid mesh.
-                      ##
-                      ## Triangle mesh format only supported.
-                      element mesh{ attribute file_name {xsd:string} },
-                      element multiple_solids{
-                           ## number of solids
-                           element number_of_solids {integer},
-                           ## Python function prescribing dimensional vector input. Functions should be of the form:
-                           ##
-                           ##  def val(t):
-                           ##     # Function code
-                           ##     return # Return value
-                           ##
-                           ## The return value must have length number_of_solids.
-                           ##
-                           ## *** IMPORTANT NOTE ***
-                           ##
-                           ## The t argument is for future use only - currently solid locations are only set at simulation start.
-                           element python { python_code },
-                           ## Calculate diagnostic variables for each solid.
-                           element print_diagnostics { empty }?
-                      }?,
-                      ## Calculate diagnostic variables associated with the solids.
-                      element print_diagnostics { empty }?
-                 }|
-                 element two_way_coupling{
-                      ## The solid mesh.
-                      ##
-                      ## Y3D FEMDEM mesh format only supported.
-                      element mesh{ attribute file_name {xsd:string} },
-                      ## Choose which velocity the fluids model will solve for. 
-                      element fluids_scheme{
-                           (
-                              ## Solve for the fluid velocity. 
-                              element use_fluid_velocity { empty }|
-                              ## Solve for the bulk velocity.
-                              element use_bulk_velocity { empty }
-                           )
-                      }
-                 }
-              )
          }?,
          embedded_models?,
          flredecomp?
@@ -2267,7 +1992,6 @@ prognostic_density_field =
                prescribed_scalar_field_no_adapt,
                recalculation_options?
             }|
-            ## This only works for traffic modelling
             element diagnostic {
               internal_algorithm,
               diagnostic_scalar_field_no_adapt
@@ -2431,6 +2155,72 @@ geometry =
       }
    )
 
+lagrangian_timestepping = 
+   (
+      element lagrangian_timestepping {
+         ## Number of subdivisions of the timestep
+         ## increase this if you are not happy with your 
+         ## detector trajectory accuracy, or if particles
+         ## are jumping out of the domain a lot
+         element subcycles {
+            integer
+         },
+         ## Tolerance for deciding if detector is in a given
+         ## element. Recommended value 1.0e-10.
+         element search_tolerance {
+            real
+         },
+         (
+            ## Use explicit runge kutta method with
+            ## guided search particle tracking
+            element explicit_runge_kutta_guided_search {
+               ## Number of RK stages
+               ## For the RK4 method, it should be 4.
+               element n_stages {
+                  integer
+               },
+               ## ERK stage array. This is an array
+               ## containing the lower-triangular
+               ## part of the Butcher weight matrix
+               ## A that explains how to compute the
+               ## RK stages.  See
+               ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+               ## for notation.  The array is stored
+               ## in the following order:
+               ## [a_{21},a_{31},a_{32},...,a_{s1},a_{s2},a_{s(s-1)}]
+               ## and so the array has size s(s-1)/2
+               ## where s is the number of stages.
+               ## For the RK4 method, it should be
+               ## [0.5,0,0.5,0,0,1]
+               element stage_weights {
+                  real_vector
+               },
+               ## ERK timestep weights. This is the
+               ## b vector that explains how to
+               ## compute the timestep from the RK
+               ## stages.  See
+               ## http://en.wikipedia.org/wiki/Runge–Kutta_methods#Explicit_Runge.E2.80.93Kutta_methods
+               ## for notation.  It should have size
+               ## s where s is the number of stages.
+               ## For the RK4 method, it should be
+               ## [1/6,1/3,1/3,1/6]
+               element timestep_weights {
+                  real_vector
+               }
+            }|
+            ## Use explicit Forward Euler method with
+            ## guided search particle tracking
+            element forward_euler_guided_search {
+               empty
+            }|
+            ## Use classical Runge-Kutta method with
+            ## guided search particle tracking
+            element rk4_guided_search {
+               empty
+            }
+         )
+      }
+   )
 
 # Default child of diagnostic scalar field
 diagnostic_scalar_field =
@@ -2869,13 +2659,6 @@ velocity_boundary_conditions =
          element type{
             attribute name { "log_law_of_wall" },
             element surface_roughness {real}
-         }|
-         ## Dummy BC
-         ##
-         ## Should be used in combination with the near_wall_treatment condition.
-         ## When activated wall treatment is not applied on the wall-outflow edge.
-         element type{
-            attribute name { "outflow" }
          }
       )
    )
@@ -3762,7 +3545,7 @@ scalar_field_choice =
             )
          }|
          ## ***UNDER TESTING***
-         ## Calculate the stream function of 2D incompressible flow. for multiply connected domains
+         ## Calculate the stream function of 2D incompressible flow for multiply connected domains.
          ## Note that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
          ## Requires a continuous mesh.
          element scalar_field {
@@ -4547,26 +4330,6 @@ scalar_field_choice =
                }
             )
          }|
-
-         ## Vorticity for a 2D field:
-         ##
-         ##  du   dv
-         ##  -- - --
-         ##  dy   dx
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "Vorticity2D" },
-            (
-               element diagnostic {
-                  vorticity_2d_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          
          ## Kinetic energy density:
          ##
@@ -4729,23 +4492,6 @@ scalar_field_choice =
                   generic_aliased_field
                }
             )
-         }|         
-         ## Local average mesh edge lengths
-         element scalar_field {
-          attribute rank { "0" },
-            attribute name { "MeshEdgeLengths" },
-            (
-              element diagnostic {
-                  scalar_edge_lengths_algorithm,
-                  element mesh {
-                     attribute name { "CoordinateMesh" }
-                  },
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
          }|
          ## Calculate the horizontal stream function psi where:
          ##   \partial_x \psi = -v
@@ -4792,9 +4538,7 @@ scalar_field_choice =
             )
          }|
 
-         ## Volume of the vehicles
-         ##
-         ## used in Traffic Modelling
+         ## Used in implicit_solids to determine the interface (i.e. boundary) between the fluid and solid.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "SolidPhase" },
@@ -4947,34 +4691,6 @@ scalar_field_choice =
          }|
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "MaxFreeSurface" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "MinFreeSurface" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         element scalar_field {
-            attribute rank { "0" },
             attribute name { "FreeSurfaceHistory" },
             (
                element diagnostic {
@@ -5013,20 +4729,6 @@ scalar_field_choice =
                }
             )
          }|
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "HarmonicPhaseSSa" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          ## An estimate of the edge wieghts whilst adapting using Zoltan
          ## Note: you *must* turn on inteprolation otherwise this field
          ## will be emptied by an adapt.
@@ -5048,7 +4750,7 @@ scalar_field_choice =
          ## SumVelocityDivergence
          ##
          ## Diagnostic field used in multiphase simulations.
-         ## Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }
+         ## Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u) }
          element scalar_field {
             attribute rank { "0" },
             attribute name { "SumVelocityDivergence" },
@@ -5442,53 +5144,6 @@ vector_field_choice =
                 }
              )
          }|
-         ## Calculate the control volume auxiliary gradient for a particular field.
-         ## The related field must be a scalar field in this material_phase.
-         element vector_field {
-            attribute rank { "0" },
-            attribute name { "ControlVolumeAuxiliaryGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  attribute gradient_of_field { string },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field.
-         ## The related field must be a scalar field in this material_phase.
-         element vector_field {
-            attribute rank { "0" },
-            attribute name { "DGAuxiliaryGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  attribute gradient_of_field { string },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Experimental geostrophic source field to be used in combination with
-         ## a free surface. Does not solve a vertical balance yet.
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "GeostrophicSource" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
 
          ## Absolute Difference between two vector fields.
          ##
@@ -5590,22 +5245,6 @@ vector_field_choice =
                 element diagnostic {
                    internal_algorithm,
                    mesh_choice,
-                   diagnostic_vector_field
-                }|
-                element aliased {
-                   generic_aliased_field
-                }
-             )
-         }|
-
-         ## Displacement
-         element vector_field {
-             attribute rank { "1" },
-             attribute name { "Displacement" },
-             (
-                element diagnostic {
-                   internal_algorithm,
-                   velocity_mesh_choice,
                    diagnostic_vector_field
                 }|
                 element aliased {
@@ -6695,23 +6334,6 @@ biology =
                )
             }
          }|
-         ## Lagrangian particle biology from the VEW project.
-         element lagrangian_ensemble {
-            (
-               ## Python code specifying the biology model. This takes
-               ## in velocity and light and outputs Phytoplankton, if
-               ## those fields exist.
-               element biology_algorithm {
-                  python_code
-               }|
-               ## Do not calculate biology
-               ## This option is generally only useful for testing. 
-               element disable_biology {
-                  empty
-               }
-            ),
-            hyperlight?
-         }|
          ## 6 component biology model, which models Nitrates, Ammonium, 
          ## Phytoplankton, Zooplankton, Detritus and Chlorophyll.
          ##
@@ -6841,61 +6463,6 @@ prognostic_photosynthetic_radiation =
       element priority {
          integer
       }?
-   )
-
-hyperlight = 
-   (
-      ## Hyperlight solar irradiance model, which 
-      ## computes a fast approximation to the Radiative Transfer Equation.
-      ## NOTE: This module requires fluidity to be compiled with the 
-      ## --enable-hyperlight flag.
-      element hyperlight {
-         ## Hydrolight always computes the scalar irradiance 
-         ## for 36 regular wavebands of width 10nm in PAR. 
-         ## Particular wavebands or total PAR irradiance need 
-         ## to be derived from these fixed bands.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "IrradianceTemplate" },
-            element prescribed {
-               velocity_mesh_choice,
-               prescribed_scalar_field
-            }
-         },
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "IrradiancePAR" },
-            element diagnostic {
-               velocity_mesh_choice,
-               scalar_python_diagnostic_algorithm,
-               diagnostic_scalar_field_no_adapt
-            }
-         }?,
-         ## F, the ratio for correlated CDOM
-         element CDOM {
-            real
-         },
-         ## BF_chl, the backscatter fraction for chlorophyll-bearing particles
-         element BF_chl {
-            real
-         },
-         ## Parameter for GC sky irradiance model - 
-         ## if provided this overwrites the values from the forcing routines.
-         element CloudCover {
-            real
-         }?,
-         ## Parameter for GC sky irradiance model - 
-         ## if provided this overwrites the values from the forcing routines.
-         element WindSpeed {
-            real
-         }?,
-         ## Optional performance parameter that determines the percentage of 
-         ## surface irradiance at which the model stops computing.
-         ## Default is 0.01 = 1% (standard definition of euphotic depth)
-         element EuphoticRatio {
-            real
-         }?
-      }
    )
 
 recalculation_options =
