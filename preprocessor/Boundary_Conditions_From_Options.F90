@@ -1370,7 +1370,7 @@ contains
     type(vector_field) :: stress_flux
     ! the current state to be put on the ocean_mesh - input to the fluxes call
     type(scalar_field) :: temperature, salinity
-    type(vector_field) :: velocity, position
+    type(vector_field) :: velocity, position, position_remapped
     ! these are pointers to the fields in the state
     type(scalar_field), pointer :: p_temperature, p_salinity
     type(vector_field), pointer :: p_velocity, p_position
@@ -1586,11 +1586,20 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, force_temperature,&
                                              "value")
         if (heat_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
-            call project_field(heat_flux, scalar_surface, position)
+            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
+            call remap_field_to_surface(p_position, position_remapped, &
+                                        surface_element_list)
+            call project_field_dg_to_cg(heat_flux, scalar_surface, position_remapped)
+            call deallocate(position_remapped)
         else
             call remap_field(heat_flux, scalar_surface)
         end if
-
+        do i=1,node_count(heat_flux)
+            write(*,*) node_val(heat_flux, i)
+        end do
+        do i=1,node_count(scalar_surface)
+            write(*,*) node_val(scalar_surface, i)
+        end do
         if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::HeatFlux")) then
             scalar_source_field => extract_scalar_field(state, 'HeatFlux')
             ! copy the values onto the mesh using the global node id
@@ -1612,12 +1621,17 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, force_salinity, &
                                              "value")
         if (salinity_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
-            ! make 2D coords
-            call project_field(salinity_flux, scalar_surface, position)
+            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
+            call remap_field_to_surface(p_position, position_remapped, &
+                                        surface_element_list)
+            call project_field_dg_to_cg(salinity_flux, scalar_surface, position_remapped)
+            call deallocate(position_remapped)
         else
             call remap_field(salinity_flux, scalar_surface)
         end if
-        
+        do i=1,node_count(scalar_surface)
+            write(*,*) node_val(scalar_surface, i)
+        end do        
         if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::SalinityFlux")) then
             scalar_source_field => extract_scalar_field(state, 'SalinityFlux')
             ! copy the values onto the mesh using the global node id
@@ -1639,8 +1653,12 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, force_solar ,&
                                              "value")
         if (solar_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
-            ! make 2D coords
-            call project_field(solar_flux, scalar_surface, position)
+            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
+            call remap_field_to_surface(p_position, position_remapped, &
+                                        surface_element_list)
+            call project_field_dg_to_cg(solar_flux, scalar_surface, position_remapped)
+            call deallocate(position_remapped)
+
         else
             call remap_field(solar_flux, scalar_surface)
         end if        

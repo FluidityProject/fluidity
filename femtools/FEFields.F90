@@ -8,6 +8,7 @@ module fefields
   use fetools, only: shape_shape
   use transform_elements, only: transform_to_physical
   use sparse_tools
+  use sparse_matrices_fields
   use state_module
   implicit none
 
@@ -18,10 +19,14 @@ module fefields
   interface project_field
      module procedure project_scalar_field, project_vector_field
   end interface
+
+  interface project_field_dg_to_cg
+      module procedure project_scalar_field_dg_to_cg
+  end interface
   
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
-            compute_lumped_mass_on_submesh, project_field
+            compute_lumped_mass_on_submesh, project_field, project_field_dg_to_cg
 
 contains
 
@@ -524,5 +529,37 @@ contains
     end do
       
   end subroutine add_source_to_rhs_vector
+
+  subroutine project_scalar_field_dg_to_cg(dg_field, cg_field, coords)
+
+        type(scalar_field) :: cg_field, dg_field
+        type(vector_field) :: coords
+
+        type(scalar_field) :: lumped_mass
+        type(csr_matrix)   :: P
+        type(mesh_type)    :: dg_mesh, cg_mesh
+        
+        cg_mesh=cg_field%mesh
+
+        call allocate(lumped_mass, cg_mesh, "LumpedMass")
+      
+        call compute_lumped_mass(coords, lumped_mass)
+        ! Invert lumped mass.
+        lumped_mass%val=1./lumped_mass%val
+
+        dg_mesh=dg_field%mesh
+      
+        P=compute_projection_matrix(cg_mesh, dg_mesh, coords)
+      
+        call zero(cg_field) 
+        ! Perform projection.
+        call mult(cg_field, P, dg_field)
+        ! Apply inverted lumped mass to projected quantity.
+        call scale(cg_field, lumped_mass)
+
+        call deallocate(lumped_mass)
+        call deallocate(P)
+
+    end subroutine project_scalar_field_dg_to_cg
     
 end module fefields
