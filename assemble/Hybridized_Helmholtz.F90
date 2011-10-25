@@ -2021,9 +2021,15 @@ contains
 
     if(present(name)) then
        U_cart => extract_vector_field(state, trim(name))
+       X=>extract_vector_field(state, "Coordinate")
        call project_local_to_cartesian(X,tmp_U,U_cart)
        call deallocate(tmp_u)
+    else
+       U_cart => extract_vector_field(state, "Velocity")
+       X=>extract_vector_field(state, "Coordinate")
+       call project_local_to_cartesian(X,U,U_cart)
     end if
+    ewrite(1,*) maxval(U_cart%val)
 
     ewrite(1,*) 'Setting velocity from commuting projection: DONE'
   end subroutine set_velocity_commuting_projection
@@ -2042,8 +2048,6 @@ contains
     integer :: ni, ele2, face, face2, row, floc, i1, uloc,dim1,dim2,gi,stat
     integer, dimension(:), pointer :: neigh
     type(constraints_type), pointer :: U_constraint
-    logical :: project_velocity_before_fe_projection=.true.
-
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
     real, dimension(ele_ngi(U,ele)) :: detJ, norm_U_rhs, norm_U_rhs_new,&
          &u_rhs_normal_cpt
@@ -2052,7 +2056,10 @@ contains
     real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) &
          &:: l_u_mat
     real, dimension(mesh_dim(U),ele_loc(U,ele)) :: l_u_rhs
-    real, dimension(X%dim, ele_ngi(U, ele)) :: U_rhs_quad, X_quad, up_gi
+    real, dimension(X%dim, ele_ngi(U, ele)) :: U_rhs_quad, X_quad, up_gi, &
+         & e_up_gi, ref_vec_gi, U_rhs_quad_rotated
+    real :: norm
+    real, dimension(mesh_dim(U),X%dim,ele_ngi(U,ele)) :: e_basis, m_basis
 
     u_shape = ele_shape(U,ele)
     uloc = ele_loc(U,ele)
@@ -2098,9 +2105,57 @@ contains
     if(stat /= 0) then
        FLAbort('Failed to set ele values from Python.')
     end if
+
+    if(have_option("/material_phase::Fluid/vector_field::Velocity/prognostic&
+         &/initial_condition::WholeMesh/commuting_projection&
+         &/rotate_vectors")) then
+       !Apply rotation to velocity vectors to
+       !rotate into tangent to element
+
+       !Compute the normal to the sphere corresponding to quad points
+       up_gi = -ele_val_at_quad(down,ele)
+       !triple check that it is normalised
+       do gi = 1, ele_ngi(X,ele)
+          norm = sum(up_gi(:,gi)**2)**0.5
+          up_gi(:,gi) = up_gi(:,gi)/norm
+       end do
+       !Compute the normal to the element at quad points
+       e_up_gi = up_gi
+       call get_up_gi(X,ele,e_up_gi)
+       !Choose reference vector
+       do gi = 1, ele_ngi(X,ele)
+          ref_vec_gi(:,gi) = (/0,0,1/)
+       end do
+       if(any(abs(sum(e_up_gi*ref_vec_gi,1))>0.999999)) then
+          !normal to the element and the ref vec too close
+          do gi = 1, ele_ngi(X,ele)
+             ref_vec_gi(:,gi) = (/0,1,0/)
+          end do
+       end if
+       
+       !construct a tangent basis on the manifold
+       do gi = 1, ele_ngi(X,ele)
+          m_basis(1,:,gi) = cross_product(ref_vec_gi(:,gi),up_gi(:,gi))
+          m_basis(2,:,gi) = cross_product(up_gi(:,gi),m_basis(1,:,gi))
+       end do
+       do gi = 1, ele_ngi(X,ele)
+          e_basis(1,:,gi) = cross_product(ref_vec_gi(:,gi),e_up_gi(:,gi))
+          e_basis(2,:,gi) = cross_product(e_up_gi(:,gi),e_basis(1,:,gi))
+       end do
+
+       !Apply rotations
+       do gi = 1, ele_ngi(X,ele)
+          u_rhs_quad_rotated(:,gi) = e_basis(1,:,gi)*&
+               sum(m_basis(1,:,gi)*u_rhs_quad(:,gi))+&
+               e_basis(2,:,gi)*&
+               sum(m_basis(2,:,gi)*u_rhs_quad(:,gi))
+       end do
+       u_rhs_quad = u_rhs_quad_rotated
+    end if
+
     !Test functions have Piola transform in, so multiply the RHS by the 
     !transpose of the Jacobian (confusingly, compute Jacobian returns 
-    !the transpose in J).
+    !the transpose in J). We don't divide by detJ as it cancels with detwei
     do gi = 1, ele_ngi(U,ele)
        u_rhs_quad(:,gi) = matmul(J(:,:,gi),u_rhs_quad(:,gi))
     end do
@@ -2254,7 +2309,7 @@ contains
     end if
     
     face_rhs = shape_rhs(U_face_shape,sum(U_rhs_face_quad*n_cart,1)*detwei_f)
-
+    
     projection_rhs_rows = matmul(&
          & U%mesh%shape%constraints%face_basis,face_rhs)
     

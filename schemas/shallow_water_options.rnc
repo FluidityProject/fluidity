@@ -566,7 +566,12 @@ input_choice_initial_condition_vector =
          ## where X and the return value are tuples of length geometry dimension.
          element python {
             python_code
-         }
+         },
+         ## Apply rotation to vectors that maps 
+         ## sphere normal to element normal
+         element rotate_vectors {
+            empty
+         }?
       }|
       ## Evaluate velocity from latitude-longitude
       ## By convention, at the poles the two basis vectors

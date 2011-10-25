@@ -707,6 +707,13 @@ projection (see e.g. the book by Brezzi and Fortin).
 where X and the return value are tuples of length geometry dimension.</a:documentation>
           <ref name="python_code"/>
         </element>
+        <optional>
+          <element name="rotate_vectors">
+            <a:documentation>Apply rotation to vectors that maps 
+sphere normal to element normal</a:documentation>
+            <empty/>
+          </element>
+        </optional>
       </element>
       <element name="from_lat_long">
         <a:documentation>Evaluate velocity from latitude-longitude

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
-    <string_value lines="1">rossby</string_value>
+    <string_value lines="1">rossbyx</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -114,7 +114,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">10000000</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
@@ -312,10 +312,10 @@ divided by 4</comment>
         </adjoint_storage>
       </prescribed>
     </scalar_field>
-    <scalar_field rank="0">
+    <scalar_field name="LayerThicknessDiff" rank="0">
       <diagnostic>
         <algorithm name="scalar_sum" source_field_1_name="LayerThickness" source_field_2_name="InitialLayerThickness" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <output/>
         <stat/>
         <convergence>
