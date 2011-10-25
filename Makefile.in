@@ -40,6 +40,7 @@ SLIB_FLUIDITY = lib$(FLUIDITY).so
 # Follow: www.gnu.org/prep/standards/html_node/Directory-Variables.html
 PACKAGE_NAME = @PACKAGE_NAME@
 prefix  = @prefix@
+exec_prefix  = @exec_prefix@
 bindir = @bindir@
 libdir = @libdir@
 datadir = @datadir@
