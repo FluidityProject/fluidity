@@ -14,7 +14,6 @@
   <include href="spatial_discretisation.rng"/>
   <include href="temporal_discretisation.rng"/>
   <include href="embedded_models.rng"/>
-  <include href="radiation.rng"/>
   <include href="flredecomp.rng"/>
   <start>
     <element name="fluidity_options">
@@ -43,7 +42,6 @@ characters in the simulation name should be avoided.</a:documentation>
             <value>porous_media</value>
             <value>stokes</value>
             <value>large_scale_ocean_options</value>
-            <value>implicit_solids</value>
             <value>foams</value>
             <value>multiphase</value>
           </choice>
@@ -794,70 +792,6 @@ border length per unit volume (lambda). </a:documentation>
                                      }
                                   )
                   -->
-                </element>
-              </optional>
-              <optional>
-                <element name="Gent_McWilliams">
-                  <a:documentation>You MUST add the following additional fields for this:
- DistanceToTop
- DistanceToBottom
- DistanceToSideBoundaries
- PerturbationDensity</a:documentation>
-                  <element name="isoneutral_diffusivity">
-                    <a:documentation>This is the diffusivity along density
-surfaces. At the moment the dianeutral
-diffusivity is hardcoded to be 10^-7 x
-isoneutral_diffusivity.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <element name="GentMcWilliams_diffusivity">
-                    <a:documentation>This is the diffusivity that parameterises the
-effects of the baroclinic eddies.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <element name="tapering">
-                    <a:documentation>The vertical and off-diagonal components of the
-Gent-McWilliams diffusivity tensor need to be
-tapered to zero near the boundaries of the
-domain. A taper should also be applied where the
-density slope is large - define "large" by
-setting maximum_density_slope below.</a:documentation>
-                    <element name="maximum_density_slope">
-                      <a:documentation>Where the slope of the density surface is
-greater than or equal to the
-maximum_density_slope, an exponential taper is
-applied to the isoneutral diffusivity and a
-linear taper is applied to the GentMcWilliams
-diffusivity.</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                    <element name="width_of_exponential_taper_region">
-                      <a:documentation>The exponential taper has the form
-tanh((S_max-sqrt(S.S))/S_d) where S_mac is the
-maximum_density_slope, S is the local slope of
-the density surface and S_d is a parameter
-that controls the width of the tapering
-region.</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                    <element name="first_baroclinic_Rossby_radius">
-                      <a:documentation>If the slope of the density surface is less
-than the maximum_density_slope but we are
-still near the surface, a sine taper is
-applies to both the diffusivities - "near" is
-defined as d &lt; R1 |S| where d is the distance
-to the top, |S| is the slope of the density
-surface and R1 is the
-first_baroclinic_Rossby_radius.</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                    <element name="constant_for_linear_taper">
-                      <a:documentation>Near the bottom and side boundaries the
-Gent-McWlliams diffusivity is tapered to zero
-by multiplying by c*DistanceToBoundary</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                  </element>
                 </element>
               </optional>
               <optional>
@@ -2350,143 +2284,6 @@ while a factor of 1 represents a connected domain.</a:documentation>
         </element>
       </optional>
       <optional>
-        <element name="traffic_model">
-          <a:documentation>traffic model</a:documentation>
-          <element name="number_of_vehicles">
-            <a:documentation>number of vehicles to be modelled</a:documentation>
-            <ref name="integer"/>
-          </element>
-          <element name="vehicle_activity_file">
-            <a:documentation>specify the traffic model input file</a:documentation>
-            <attribute name="file_name">
-              <data type="string"/>
-            </attribute>
-          </element>
-          <element name="traffic_model_time_lag">
-            <a:documentation>traffic_model_time_lag
-
-traffic_time=traffic_time+lag</a:documentation>
-            <ref name="real"/>
-          </element>
-          <element name="scale">
-            <a:documentation>scaling factors between fluidity, traffic and wind tunnel models</a:documentation>
-            <element name="model_scale">
-              <a:documentation>between fluidity and field
-usually between 1:150 and 1:200</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="reference_velocity_field">
-              <a:documentation>usually  2.5 - 3.0 m/s</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="reference_velocity_model">
-              <a:documentation>normalized should be 1. m/s 
-otherwise use the maximum inflow velocity</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="road_network_scale">
-              <a:documentation>usually in field scale
-check specific road network</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="vehicle_scale">
-              <a:documentation>between fluidity and field
-usually between 1:150 and 1:200</a:documentation>
-              <ref name="real"/>
-            </element>
-            <element name="exhaust_diameter">
-              <a:documentation>in metres</a:documentation>
-              <ref name="real"/>
-            </element>
-          </element>
-          <optional>
-            <element name="bounding_box">
-              <a:documentation>bounding box for traffic network
-
-ignore vehicles outside this box </a:documentation>
-              <element name="x_min">
-                <ref name="real"/>
-              </element>
-              <element name="x_max">
-                <ref name="real"/>
-              </element>
-              <element name="y_min">
-                <ref name="real"/>
-              </element>
-              <element name="y_max">
-                <ref name="real"/>
-              </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="sloping_floor">
-              <a:documentation>if the bottom of the domain is not flat
-this makes sure the vehicles will follow the 
-road gradient
-you need to specify the boundary id of the road</a:documentation>
-              <ref name="integer"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="emissions_factors">
-              <a:documentation>tailpipe emissions</a:documentation>
-              <choice>
-                <element name="type">
-                  <a:documentation>use a constant emissions factor</a:documentation>
-                  <attribute name="name">
-                    <value>constant_emissions_factors</value>
-                  </attribute>
-                  <element name="emissions_factor">
-                    <ref name="real"/>
-                  </element>
-                </element>
-                <element name="type">
-                  <a:documentation>use the TRL instantaneous emissions model (IEDB)
-this is not open source and therefore the database
-needs to be read in</a:documentation>
-                  <attribute name="name">
-                    <value>modelled_emissions_factors</value>
-                  </attribute>
-                  <optional>
-                    <element name="passenger_vehicle_petrol">
-                      <data type="string"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="passenger_vehicle_diesel">
-                      <data type="string"/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="large_vehicle">
-                      <data type="string"/>
-                    </element>
-                  </optional>
-                </element>
-              </choice>
-            </element>
-          </optional>
-          <optional>
-            <element name="scalar_field">
-              <a:documentation>options for the solution of the tailpipe tracer releases
-if the emissions factors are not specified
-it will use a constant emissions factor</a:documentation>
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <attribute name="name">
-                <value>TrafficTracerTemplate</value>
-              </attribute>
-              <element name="prognostic">
-                <a:documentation>Field type</a:documentation>
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prognostic_scalar_field"/>
-              </element>
-            </element>
-          </optional>
-        </element>
-      </optional>
-      <optional>
         <ref name="biology"/>
       </optional>
       <optional>
@@ -2582,137 +2379,6 @@ in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
               </optional>
             </element>
           </optional>
-        </element>
-      </optional>
-      <optional>
-        <element name="implicit_solids">
-          <a:documentation>UNDER DEVELOPMENT - DO NOT USE
-
-Implict Solids</a:documentation>
-          <optional>
-            <element name="beta">
-              <a:documentation>Absorption coefficient weighting factor.
-
-default: beta=1.</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="source">
-              <a:documentation>Source options for heated solids.
-A fixed source term for the solid or a
-solid fixed temperature can be used. Obviously, this
-requires a prognostic Temperature field. </a:documentation>
-              <choice>
-                <element name="temperature_source">
-                  <a:documentation>Use a fixed temperature source for the solids.
-The temperature diffusivity should be set to diagnostic/internal with this option.</a:documentation>
-                  <element name="fluid_peclet_number">
-                    <a:documentation>Fluid Peclet number.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <element name="solid_peclet_number">
-                    <a:documentation>Solid Peclet number.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <element name="source_intensity">
-                    <a:documentation>Solid source intensity.
-The non-dimensional source is: [L_ref / (u_ref T_ref)] [ 1 / (\rho c_p)_s] S.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <optional>
-                    <element name="zone_radius">
-                      <a:documentation>Apply source to an inner zone of the particle rather than the whole particle.
-Assumes a spherical inner zone.</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                </element>
-                <element name="temperature">
-                  <a:documentation>Use a fixed temperature for the solids.</a:documentation>
-                  <element name="temperature">
-                    <a:documentation>Solid temperature.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </element>
-              </choice>
-            </element>
-          </optional>
-          <optional>
-            <element name="pressure_gradient">
-              <a:documentation>Pressure gradient for periodic domains.</a:documentation>
-              <ref name="real_dim_vector"/>
-            </element>
-          </optional>
-          <choice>
-            <element name="one_way_coupling">
-              <element name="mesh">
-                <a:documentation>The solid mesh.
-
-Triangle mesh format only supported.</a:documentation>
-                <attribute name="file_name">
-                  <data type="string"/>
-                </attribute>
-              </element>
-              <optional>
-                <element name="multiple_solids">
-                  <element name="number_of_solids">
-                    <a:documentation>number of solids</a:documentation>
-                    <ref name="integer"/>
-                  </element>
-                  <element name="python">
-                    <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
-
- def val(t):
-    # Function code
-    return # Return value
-
-The return value must have length number_of_solids.
-
-*** IMPORTANT NOTE ***
-
-The t argument is for future use only - currently solid locations are only set at simulation start.</a:documentation>
-                    <ref name="python_code"/>
-                  </element>
-                  <optional>
-                    <element name="print_diagnostics">
-                      <a:documentation>Calculate diagnostic variables for each solid.</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-              </optional>
-              <optional>
-                <element name="print_diagnostics">
-                  <a:documentation>Calculate diagnostic variables associated with the solids.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-            <element name="two_way_coupling">
-              <element name="mesh">
-                <a:documentation>The solid mesh.
-
-Y3D FEMDEM mesh format only supported.</a:documentation>
-                <attribute name="file_name">
-                  <data type="string"/>
-                </attribute>
-              </element>
-              <element name="fluids_scheme">
-                <a:documentation>Choose which velocity the fluids model will solve for. </a:documentation>
-                <choice>
-                  <element name="use_fluid_velocity">
-                    <a:documentation>Solve for the fluid velocity. </a:documentation>
-                    <empty/>
-                  </element>
-                  <element name="use_bulk_velocity">
-                    <a:documentation>Solve for the bulk velocity.</a:documentation>
-                    <empty/>
-                  </element>
-                </choice>
-              </element>
-            </element>
-          </choice>
         </element>
       </optional>
       <optional>
@@ -3056,7 +2722,6 @@ want this.</a:documentation>
             </optional>
           </element>
           <element name="diagnostic">
-            <a:documentation>This only works for traffic modelling</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
@@ -3857,15 +3522,6 @@ Should be used in combination with a no_normal_flow condition. </a:documentation
         <element name="surface_roughness">
           <ref name="real"/>
         </element>
-      </element>
-      <element name="type">
-        <a:documentation>Dummy BC
-
-Should be used in combination with the near_wall_treatment condition.
-When activated wall treatment is not applied on the wall-outflow edge.</a:documentation>
-        <attribute name="name">
-          <value>outflow</value>
-        </attribute>
       </element>
     </choice>
   </define>
@@ -4883,7 +4539,7 @@ Requires a continuous mesh.</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>***UNDER TESTING***
-Calculate the stream function of 2D incompressible flow. for multiply connected domains
+Calculate the stream function of 2D incompressible flow for multiply connected domains.
 Note that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
 Requires a continuous mesh.</a:documentation>
         <attribute name="rank">
@@ -5844,29 +5500,6 @@ div velocity
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Vorticity for a 2D field:
-
- du   dv
- -- - --
- dy   dx</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>Vorticity2D</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="vorticity_2d_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Kinetic energy density:
 
  1/2 rho*|u|^2
@@ -6057,29 +5690,6 @@ Limitations:
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Local average mesh edge lengths</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>MeshEdgeLengths</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="scalar_edge_lengths_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>CoordinateMesh</value>
-              </attribute>
-            </element>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Calculate the horizontal stream function psi where:
   \partial_x \psi = -v
   \partial_y \psi = u
@@ -6134,9 +5744,7 @@ Limitations:
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Volume of the vehicles
-
-used in Traffic Modelling</a:documentation>
+        <a:documentation>Used in implicit_solids to determine the interface (i.e. boundary) between the fluid and solid.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -6341,42 +5949,6 @@ ocean biology is being simulated.</a:documentation>
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>MaxFreeSurface</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>MinFreeSurface</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
           <value>FreeSurfaceHistory</value>
         </attribute>
         <element name="diagnostic">
@@ -6423,24 +5995,6 @@ ocean biology is being simulated.</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>HarmonicPhaseSSa</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>An estimate of the edge wieghts whilst adapting using Zoltan
 Note: you *must* turn on inteprolation otherwise this field
 will be emptied by an adapt.</a:documentation>
@@ -6465,7 +6019,7 @@ will be emptied by an adapt.</a:documentation>
         <a:documentation>SumVelocityDivergence
 
 Diagnostic field used in multiphase simulations.
-Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }</a:documentation>
+Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u) }</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -6929,67 +6483,6 @@ FEMDEM or DEM to the fluid mesh. </a:documentation>
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Calculate the control volume auxiliary gradient for a particular field.
-The related field must be a scalar field in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ControlVolumeAuxiliaryGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <attribute name="gradient_of_field">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field.
-The related field must be a scalar field in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>DGAuxiliaryGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <attribute name="gradient_of_field">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Experimental geostrophic source field to be used in combination with
-a free surface. Does not solve a vertical balance yet.</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>GeostrophicSource</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
         <a:documentation>Absolute Difference between two vector fields.
 
 Both fields must be in this material_phase.
@@ -7120,25 +6613,6 @@ applied to the bed shear stress.</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="mesh_choice"/>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Displacement</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>Displacement</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_vector_field"/>
           </element>
           <element name="aliased">
@@ -8520,25 +7994,6 @@ This option is generally only useful for testing. </a:documentation>
             </choice>
           </element>
         </element>
-        <element name="lagrangian_ensemble">
-          <a:documentation>Lagrangian particle biology from the VEW project.</a:documentation>
-          <choice>
-            <element name="biology_algorithm">
-              <a:documentation>Python code specifying the biology model. This takes
-in velocity and light and outputs Phytoplankton, if
-those fields exist.</a:documentation>
-              <ref name="python_code"/>
-            </element>
-            <element name="disable_biology">
-              <a:documentation>Do not calculate biology
-This option is generally only useful for testing. </a:documentation>
-              <empty/>
-            </element>
-          </choice>
-          <optional>
-            <ref name="hyperlight"/>
-          </optional>
-        </element>
         <element name="six_component">
           <a:documentation>6 component biology model, which models Nitrates, Ammonium, 
 Phytoplankton, Zooplankton, Detritus and Chlorophyll.
@@ -8682,75 +8137,6 @@ This determines the order in which scalar_fields are solved for:
         <ref name="integer"/>
       </element>
     </optional>
-  </define>
-  <define name="hyperlight">
-    <element name="hyperlight">
-      <a:documentation>Hyperlight solar irradiance model, which 
-computes a fast approximation to the Radiative Transfer Equation.
-NOTE: This module requires fluidity to be compiled with the 
---enable-hyperlight flag.</a:documentation>
-      <element name="scalar_field">
-        <a:documentation>Hydrolight always computes the scalar irradiance 
-for 36 regular wavebands of width 10nm in PAR. 
-Particular wavebands or total PAR irradiance need 
-to be derived from these fixed bands.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>IrradianceTemplate</value>
-        </attribute>
-        <element name="prescribed">
-          <ref name="velocity_mesh_choice"/>
-          <ref name="prescribed_scalar_field"/>
-        </element>
-      </element>
-      <optional>
-        <element name="scalar_field">
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>IrradiancePAR</value>
-          </attribute>
-          <element name="diagnostic">
-            <ref name="velocity_mesh_choice"/>
-            <ref name="scalar_python_diagnostic_algorithm"/>
-            <ref name="diagnostic_scalar_field_no_adapt"/>
-          </element>
-        </element>
-      </optional>
-      <element name="CDOM">
-        <a:documentation>F, the ratio for correlated CDOM</a:documentation>
-        <ref name="real"/>
-      </element>
-      <element name="BF_chl">
-        <a:documentation>BF_chl, the backscatter fraction for chlorophyll-bearing particles</a:documentation>
-        <ref name="real"/>
-      </element>
-      <optional>
-        <element name="CloudCover">
-          <a:documentation>Parameter for GC sky irradiance model - 
-if provided this overwrites the values from the forcing routines.</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="WindSpeed">
-          <a:documentation>Parameter for GC sky irradiance model - 
-if provided this overwrites the values from the forcing routines.</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-      <optional>
-        <element name="EuphoticRatio">
-          <a:documentation>Optional performance parameter that determines the percentage of 
-surface irradiance at which the model stops computing.
-Default is 0.01 = 1% (standard definition of euphotic depth)</a:documentation>
-          <ref name="real"/>
-        </element>
-      </optional>
-    </element>
   </define>
   <define name="recalculation_options">
     <element name="do_not_recalculate">

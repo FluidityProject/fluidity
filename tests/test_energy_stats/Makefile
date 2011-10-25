@@ -8,4 +8,4 @@ clean:
 
 makemesh = echo $(1) ; \
            gmsh -2 ./src/$(1).geo ; \
-           ../../scripts/gmsh2triangle --2d ./src/$(1).msh
+           ../../bin/gmsh2triangle --2d ./src/$(1).msh

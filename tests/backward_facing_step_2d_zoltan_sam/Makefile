@@ -1,5 +1,5 @@
 input:
-	gmsh -2 -o unstructured.msh src/unstructured.geo && ../../scripts/gmsh2triangle --2d unstructured.msh
+	gmsh -2 -o unstructured.msh src/unstructured.geo && ../../bin/gmsh2triangle --2d unstructured.msh
 	../../bin/fldecomp -n 2 unstructured
 	cp sam_output/* .
 

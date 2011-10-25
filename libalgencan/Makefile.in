@@ -33,7 +33,7 @@ FCFLAGS = -I../include @FCFLAGS@
 F77      = @F77@
 FFLAGS = -I../include @FFLAGS@
 
-UTFC    = ../scripts/unittest_f90
+UTFC    = ../bin/unittest_f90
 
 CC      = @CC@
 CFLAGS  = @CFLAGS@

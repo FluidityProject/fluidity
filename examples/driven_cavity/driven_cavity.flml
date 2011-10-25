@@ -295,7 +295,7 @@
     </scalar_field>
     <scalar_field name="Vorticity2D" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" name="curl_2d" source_field_name="Velocity">
+        <algorithm source_field_type="vector" material_phase_support="single" name="curl_2d" source_field_name="Velocity">
           <lump_mass/>
         </algorithm>
         <mesh name="VelocityMesh"/>

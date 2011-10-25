@@ -233,7 +233,7 @@ contains
 
     call read_node_column_IDs( fd, lfilename, gmshFormat, nodes )
 
-    ! According to fluidity/scripts/gmsh2triangle, Fluidity doesn't need
+    ! According to fluidity/bin/gmsh2triangle, Fluidity doesn't need
     ! anything past $EndElements, so we close the file.
     close( fd )
 
