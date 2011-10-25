@@ -1554,6 +1554,11 @@ contains
         vector_source_field => extract_vector_field(state, 'Velocity')
         vector_surface => extract_surface_field(vector_source_field, force_velocity , "WindSurfaceField")
         call remap_field(stress_flux, vector_surface)
+
+        do i=1,node_count(vector_surface)
+            write(*,*) node_val(vector_surface, i)
+        end do
+
         if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/vector_field::MomentumFlux")) then
             vector_source_field => extract_vector_field(state, 'MomentumFlux')
             ! copy the values onto the mesh using the global node id
@@ -1612,6 +1617,7 @@ contains
         else
             call remap_field(salinity_flux, scalar_surface)
         end if
+        
         if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::SalinityFlux")) then
             scalar_source_field => extract_scalar_field(state, 'SalinityFlux')
             ! copy the values onto the mesh using the global node id
