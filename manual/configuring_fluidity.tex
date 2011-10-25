@@ -527,7 +527,14 @@ of the triangle files (that is, the filename without .node, .ele, etc.)
 The coordinate mesh read in from file will always have linear elements and
 the Coordinate field is always continuous between elements.
 
-For information on generating meshes in triangle format, see chapter
+\fluidity\ also has native Gmsh support, which loads in Gmsh files directly into
+\fluidity\, and works with binary and ASCII Gmsh formats. To enable native 
+support, \fluidity\ needs to be told to expect a Gmsh file, which is achieved 
+by setting the \onlypdf\option{/geometry/mesh/from\_file/format}\ option 
+to \onlypdf\option{gmsh}.  \fluidity\ will now look for a file with the extension 
+\lstinline[language=bash]+.msh+ when it runs.
+
+For information on generating meshes in gmsh and triangle format, see chapter
 \ref{chap:meshes}. 
 
 \subsection{Deriving meshes from other meshes}
@@ -2045,7 +2052,7 @@ better meshes, especially when the number of elements per process is low.
 
 
 \subsubsection{Zoltan options}
-\label{sect:configuring_fluidity_adaptivity_options}
+\label{sect:configuring_fluidity_zoltan_options}
 \index{adaptivity options}
 \index{zoltan}
 
