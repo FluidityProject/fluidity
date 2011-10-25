@@ -13,14 +13,23 @@
 import fluidity_tools
 errors = []
 for filenumber in [3,4,5,6]:
-   filename = projection+str(filenumber)
+   filename = 'projection'+str(filenumber)
    s = fluidity_tools.stat_parser(filename+".stat")
-   maxchange = s["MaxChange"]["value"][-1]
-   errors.append(s['Fluid']['LayerThicknessError']['l2norm'][-1])
-   print errors
+   error = s['Fluid']['LayerThicknessError']['l2norm'][-1]
+   error = error/s['Fluid']['LayerThickness']['l2norm'][-1]
+   errors.append(error)
     </variable>
   </variables>
   <pass_tests>
+    <test name="convergence 1" language="python">
+assert(errors[1]/errors[0] &lt; 0.25)
+    </test>
+    <test name="convergence 2" language="python">
+assert(errors[2]/errors[1]&lt; 0.26)
+    </test>
+    <test name="convergence 3" language="python">
+assert(errors[3]/errors[2]&lt; 0.26)
+    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>
