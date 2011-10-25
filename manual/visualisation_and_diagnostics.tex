@@ -469,7 +469,8 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\
 	transform\_mesh				& \ref{sect:transform_mesh}		\\
 	triangle2vtu				& \ref{sect:triangle2vtu}		\\
-	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
+	unifiedmesh				& \ref{sect:unifiedmesh} 		\\
+	update\_options				& \ref{sect:update_options}		\\	
 	vertical\_integration			& \ref{sect:vertical_integration} 	\\
     visualise\_elements     & \ref{sect:visualise_elements} \\ 
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
@@ -629,7 +630,7 @@ edge\_length\_distribution is a python script that creates histograms of the edg
 edge_length_distribution [options] vtu_filename
 \end{lstlisting}
 where \lstinline[language = Python]+vtu_filename+ is the input vtu file. The \lstinline[language = Bash]+options+ available are:
-\begin{lstlisting}[language = Python]
+\begin{lstlisting}
 -s START_VTU	The first dump id of files to be included, default = 0
 -e END_VTU	The last dump id of files to be included, if not used
 		all vtus with id >= start_vtu will be included
@@ -703,7 +704,7 @@ fldiagnostics ACTION [OPTIONS] INPUT OUTPUT [FIRST] [LAST]
 \end{lstlisting}
 
 If \lstinline[language = Bash]+FIRST+ is supplied, treats \lstinline[language = Bash]+INPUT+ and \lstinline[language = Bash]+OUTPUT+ as project names, and processes the specified range of project files. The options are:
-\begin{lstlisting}[language = Bash]
+\begin{lstlisting}
 add[-diag]  Add a diagnostics field. Options:
               -m NAME   Field from which to extract a mesh to use with the
                         diagnostic field (default "Velocity")
@@ -727,13 +728,10 @@ fldiagnostics add -o GridReynoldsNumber -r 0 ...
 
 \subsubsection{flredecomp}
 \label{sect:flredecomp}
-flredecomp is similar to fldecomp but runs in parallel. 
-It performs a re-decomposition of a Fluidity checkpoint and must be run on
-max(input no. procs, target no. procs) processors.
+flredecomp is a parallel tool that performs a re-decomposition of a Fluidity checkpoint.
 It is invoked as follows:
 \begin{lstlisting}[language=bash]
-mpiexec -n [target number of processors] \
-   `\fluiditysourcepath'/bin/flredecomp \
+mpiexec -n [target number of processors] flredecomp \
         -i [input number of processors] \
         -o [target number of processors] [input flml] [output flml]
 \end{lstlisting}
@@ -742,12 +740,13 @@ For example, to decompose the serial file \lstinline+foo.flml+
 into four parts, type:
 
 \begin{lstlisting}[language=bash]
-mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
+mpiexec -n 4 flredecomp \
     -i 1 -o 4 foo foo_flredecomp
 \end{lstlisting}
 
 The output of running flredecomp is a series of mesh and vtu files as well
 as the new flml; in this case \lstinline+foo_flredecomp.flml+.
+Note that flredecomp must be run on a number of processors equal to the larger number of processors between input and output.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% GENPVTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -797,7 +796,7 @@ where \lstinline[language = Bash]+constants+ is an optional list of constant ass
 Note: This script creates a backup of the original mesh file with a '.bak' extension.
 Examples:
 
-To rescale the z-dimension by a factor of 1000.
+To rescale the z-dimension by a factor of 1000:
 \begin{lstlisting}[language = Bash]
 gmsh_mesh_transform '(x,y,1000*z)' mesh.msh
 \end{lstlisting} 
@@ -858,9 +857,19 @@ TARGET is the name of the mesh that the fields will be interpolated on to. VTU1,
 
 mean\_flow calculates the mean of the fields in a set of vtus. It is run with python from the command line:
 \begin{lstlisting}[language = Bash]
-mean_flow <options> [vtu basename] [first dump id] [last dump id]
+mean_flow [options] vtu_basename first_id last_id
 \end{lstlisting}
-The options include specification of an area of the domain to sample and the number of sampling planes in each direction. The option \lstinline[language = Bash]+-h+ provides further information on how to use these.
+where the range of vtu files is defined by \lstinline[language = python]+vtu_basename first_id last_id+ . 
+The options include specification of an area of the domain to sample and the number of sampling planes in each direction:
+\begin{lstlisting}[language = Bash]
+-b, --bbox xmin/xmax/ymin/ymax/zmin/zmax
+	bounding box of sampling window
+-i, --intervals i/j/k
+	number of sampling planes in each direction
+-v, --verbose
+   	verbose output
+\end{lstlisting}
+The option \lstinline[language = Bash]+-h+ provides further information on how to use these.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% MMS TRACER ERROR %%%%%%%%%%%%%%%%%%%%%%%
 
@@ -869,7 +878,7 @@ The options include specification of an area of the domain to sample and the num
 
 mms\_tracer\_error evaluates the error between two fields using either an $L_2$ or $L_\infty$ control-volume norm. It is called from a python script e.g.:
 \begin{lstlisting}[language = python]
-import mms\_tracer\_error as error
+import mms_tracer_error as error
 l2_error = error.l2("MMS.vtu", "field1", "field2")
 inf_error = error.inf("MMS.vtu", "field1", "field2")
 \end{lstlisting}
@@ -1032,7 +1041,7 @@ with \lstinline[language = Bash]+PROJECT+ the basename of the pvtus and \lstinli
 rename\_checkpoint takes a list of vtu files in the working directory produced from a serial checkpointed flml file with names base\_filename\_checkpoint\_i.vtu for all i and renames them as base\_filename\_index+i.vtu. Additionally it may take a list of
 vtu and pvtu files in the current directory produced from a checkpointed parallel flml file with names base\_filename\_checkpoint\_i\_j.vtu and base\_filename\_checkpoint\_i.pvtu for all i (index) and j (processor number) and renames them as base\_filename\_index+i\_j.vtu and base\_filename\_index+i.pvtu. It is run from the command line with:
 \begin{lstlisting}[language = Bash]
-rename_checkpoint [options] <base_filename> <index>
+rename_checkpoint [options] base_filename index
 \end{lstlisting}
 
 
@@ -1155,15 +1164,15 @@ serial.
 \subsubsection{transform\_mesh}
 \label{sect:transform_mesh}
 
-transform\_mesh applies a given coordinate transformation to the given mesh. It is run from the command line:
+transform\_mesh applies a given coordinate transformation to the given mesh in triangle format. It is run from the command line:
 \begin{lstlisting}[language = Bash]
-transform_mesh <transformation> <mesh>
+transform_mesh transformation mesh
 \end{lstlisting}
-with \lstinline[language = Bash]+<mesh>+ the base name of the triangle mesh files. A mesh.node, mesh.face and mesh.ele file are required. \lstinline[language = Bash]+<transformation>+ is a python expression giving the coordinate transformation. For example to rescale the z-dimension by a factor of 1000 run:
+with \lstinline[language = Bash]+mesh+ the base name of the triangle mesh files. A mesh.node, mesh.face and mesh.ele file are required. \lstinline[language = Bash]+transformation+ is a python expression giving the coordinate transformation. For example to rescale the z-dimension by a factor of 1000 run:
 \begin{lstlisting}[language = Bash]
 transform_mesh '(x,y,1000*z)' mesh
 \end{lstlisting}
-It can be used for 2D or 3D meshes.
+It can be used for 2D or 3D meshes. Note that a similar script exists to work with gmsh files (section~\ref{sect:gmsh_mesh_transform}).
 
 %%%%%%%%%%%%%%%%%% TRIANGLE2VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1186,6 +1195,17 @@ unifiedmesh dumps the supermesh constructed from two input meshes (see \citet{fa
 unifiedmesh <triangle-file-1> <triangle-file-2> <output-file-name>
 \end{lstlisting} 
 No file names should have extenstions and both the triangle mesh files and the vtu file will have the name \lstinline[language = Bash]+output-file-name+
+
+%%%%%%%%%%%%%%%%%% UPDATE_OPTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{update\_options}
+\label{sect:update_options}
+update\_options is a developer tool that bulk updates flml, bml, swml and adml files after schema changes. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+update_options [OPTIONS] [FILES]
+\end{lstlisting} 
+where \lstinline+FILES+ is a list of files to be updated. If this argument is not provided all files in tests/*/., tests/*/*/., longtests/*/., longtests/*/*/. and examples/*/. will be updated.
+The flag \lstinline[language = Bash]+-h+ prints out the help message and the flag \lstinline[language = Bash]+-v+ enables verbose output.
 
 %%%%%%%%%%%%%%%%%% VERTICAL INTEGRATION %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1307,7 +1327,7 @@ the visualisation field.
 \label{sect:vtkdiagnostic}
 vtkdiagnostic runs diagnostics on a given vtu file. It is run from the command line:
 \begin{lstlisting}[language = Bash]
-./vtkdiagnostic -i example.vtu [OPTIONS]
+vtkdiagnostic -i example.vtu [OPTIONS]
 \end{lstlisting}
 
 The \lstinline[language = Bash]+OPTIONS+ are: \\
