@@ -338,9 +338,10 @@ This performs the following steps
 A full list of the available tools is given in table \ref{table:vtktools_list}. A summary can also be obtained by typing \lstinline[language=Python]+help(vtktools)+ in an ipython session.  Further examples of use can be found in the online at \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, in the python scripts used for postprocessing of the examples and in the test cases.
  
 \begin{landscape}
-\begin{longtable}{|c | p{0.3\textwidth}| |p{0.75\textwidth}|} \hline
+\begin{longtable}{|c | p{0.3\textwidth} |p{0.75\textwidth}|} 
+\hline
 \centering
-  method & arguments & use \\ \hline
+  method & arguments & use \\ \hline 
 \lstinline[language=Python]+AddField+ & \lstinline[language=Python]+name, array+ & Adds the values in \lstinline[language=Python]+array+ (the entries of which may have an arbitrary number of components) as a field called \lstinline[language=Python]+name+ \\ \hline
 %
 \lstinline[language=Python]+AddFieldtoField+ & \lstinline[language=Python]+fieldname,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName=None+ & Adds the values in \lstinline[language=Python]+array+ to the field \lstinline[language=Python]+fieldname+. If \lstinline[language=Python]+newFieldName+ is specified then a new field with that name is created with the new values, otherwise the original field is replaced. \\ \hline
@@ -413,8 +414,25 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 %
 % 
 %
+  functions & arguments & use \\ \hline 
 %
-\caption[Table of vtktools]{Table of tools available in vtktools for extraction and analysis of data in vtu and pvtu files. Each of these tools is a \lstinline[language=Python]+method+ which can be applied to an object created from a vtu or pvtu with \lstinline[language=Python]+data = vtktools.vtu('example.vtu')+. The methods can then be used with \lstinline[language=Python]+data.method(arguments)+. Note only the \lstinline[language=Python]+Write+ method can change the original vtu pr pvtu. See section \ref{sect:diagnostics_vtk_tools}, online at \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, in the postprocessing python scripts in the examples and the test cases for further examples of use. The list can also be obtained in a ipython session with the command \lstinline[language=Python]+help(vtktools)+.}
+\lstinline[language=Python]+VtuDiff+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+filename=None+ & Generates a vtu with fields that are the difference between the field values in the two supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+. Fields that are not common between the two vtus are neglected. If the cell points of the vtus do not match then the fields of \lstinline[language=Python]+vtu2+ are projected onto the cell points of \lstinline[language=Python]+vtu1+. \\ \hline
+%
+\lstinline[language=Python]+VtuMatchLocations+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations must be in the same order. \\ \hline
+%
+\lstinline[language=Python]+VtuMatchLocationsArbitrary+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations may be in a different order. \\ \hline
+\lstinline[language=Python]+arr+ & \lstinline[language=Python]+object,+ \lstinline[language=Python]+dtype=None,+ \lstinline[language=Python]+copy=True,+ \lstinline[language=Python]+order+None,+ \lstinline[language=Python]+subok=False,+ \lstinline[language=Python]+ndim=True+ & Creates an array from \lstinline[language=Python]+object+, where \lstinline[language=Python]+object+ must be an array, any object exposing the array interface, an object whose \lstinline[language=Python]+_array_+ method returns an array, or any (nested) sequence. \\
+& & \lstinline[language=Python]+dtype+: data--type, optional. The desired data--type for the array. If not given (the default), then the type will be determined as the minimum type required to hold the objects in the sequence. This argument can only be used to `upcast' the array. For downcasting use the \lstinline[language=Python]+.astype(t)+ method. \\
+& & \lstinline[language=Python]+copy+: bool, optional. If \lstinline[language=Python]+True+ (default), then the object is copied. Otherwise, a copy will only be made if \lstinline[language=Python]+_array_+ returns a copy, if \lstinline[language=Python]+object+ is a nested sequence, or if a copy is needed to satisfy any of the other requirements. \\
+& & \lstinline[language=Python]+order+: \{`\lstinline[language=Python]+C+', `\lstinline[language=Python]+F+', `\lstinline[language=Python]+A+'\}, optional. Specify the order of the array. If order is \lstinline[language=Python]+`C'\lstinline[language=Python]+ (default), then the array will be in `\lstinline[language=Python]+C+'--contiguous order (last--index varies the fastest). If order is `\lstinline[language=Python]+F+' then the returned array will be in Fortran--contiguous order (first--index varies the fastest). If order is `\lstinline[language=Python]+A+', then the returned array may be in any order (either C--, Fortrain--contiguous, or even discontiguous). \\
+& & \lstinline[language=Python]+subok+: bool, optional. If \lstinline[language=Python]+True+, then sub--classes will be passed--through, otherwise the returned array will be forced to be a base--class array (default). \\
+& & \lstinline[language=Python]+ndim+: int, optional. Specifies the minimum number of dimensions that the resulting array should have. Ones will be pre--prended to the shape as needed to meet this requirement. \\
+& & For examples see the module help information. \\
+
+%
+%
+%
+\caption[Table of vtktools]{Table of tools available in vtktools for extraction and analysis of data in vtu and pvtu files. The tools which are methods can be applied to an object created from a vtu or pvtu with \lstinline[language=Python]+data = vtktools.vtu('example.vtu')+. The methods can then be used with \lstinline[language=Python]+data.method(arguments)+. Note only the \lstinline[language=Python]+Write+ method can change the original vtu pr pvtu. The functions are used as usual \lstinline[language=Python]+python+ functions. See section \ref{sect:diagnostics_vtk_tools}, the \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, the postprocessing python scripts in the examples, and the test cases for further examples of use. The list can also be obtained in a ipython session with the command \lstinline[language=Python]+help(vtktools)+.}
 
 \end{longtable}
 \end{landscape}
