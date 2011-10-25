@@ -1456,9 +1456,6 @@ contains
     p_velocity => extract_vector_field(state, "Velocity")
     p_position => extract_vector_field(state, "Coordinate")
 
-    ! if the continuity of the two fields does not match, project
-
-
     ! remap modelled params onto the appropriate field in ocean_mesh
     call remap_field_to_surface(p_temperature, temperature, &
                                 surface_element_list)
@@ -1545,9 +1542,9 @@ contains
                           NNodes, on_sphere, bulk_formula)
 
     ! finally, we need to reverse-map the temporary fields on the ocean mesh
-    ! to the actual fields in state
-    ! using remap for now, but this assumes the same type of field
-    ! otherwise need to project
+    ! to the actual fields in state using remap unless
+    ! the continuity of the two fields does not match, in which case we project
+
     if (force_velocity .ge. 0) then
         do i=1,NNodes
             temp_vector_2D(1) = Tau_u(i)
