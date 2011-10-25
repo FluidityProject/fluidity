@@ -132,11 +132,7 @@
             <discontinuous_galerkin/>
           </spatial_discretisation>
           <solver>
-            <iterative_method name="gmres">
-              <restart>
-                <integer_value rank="0">30</integer_value>
-              </restart>
-            </iterative_method>
+            <iterative_method name="preonly"/>
             <preconditioner name="ilu"/>
             <relative_error>
               <real_value rank="0">1.0e-7</real_value>
