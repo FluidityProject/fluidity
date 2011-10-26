@@ -1412,7 +1412,7 @@ module copy_outof_into_state
          do i=nstates-ncomps+1,nstates
             do j=1,option_count("/material_phase[" // int2str(i-1) //"]/scalar_field")
                componentmassfraction => extract_scalar_field(state(i), j)
-               if (componentmassfraction%name(1:21) == "ComponentMassFraction") then
+               if (componentmassfraction%name(1:21) == "ComponentMassFractionPhase") then
                   call get_option("/material_phase[" // int2str(i-1) //"]/scalar_field[" // int2str(j-1) //&
                        &"]/material_phase_name", material_phase_name)
                   do k=1,nphases
@@ -1468,13 +1468,18 @@ module copy_outof_into_state
 
     subroutine copy_into_state(state, &
                                proto_saturations, &
+                               proto_saturations_feinterpolation, &
                                proto_temperatures, &
+                               proto_temperatures_feinterpolation, &                               
                                proto_pressure, &
                                proto_velocity_u, &
                                proto_velocity_v, &
-                               proto_velocity_w, velocity_dg, &                               
+                               proto_velocity_w, &
+                               proto_velocity_dg, &                               
                                proto_densities, &
+                               proto_densities_feinterpolation, &                               
                                proto_components, &
+                               proto_components_feinterpolation, &                               
                                ncomp, &
                                nphase, &
                                cv_ndgln, &
@@ -1486,14 +1491,18 @@ module copy_outof_into_state
       
       type(state_type), dimension(:), intent(inout) :: state
       real, dimension(:), intent(in) :: proto_saturations
-      real, dimension(:), intent(in) :: proto_temperatures      
+      real, dimension(:), intent(in) :: proto_saturations_feinterpolation      
+      real, dimension(:), intent(in) :: proto_temperatures 
+      real, dimension(:), intent(in) :: proto_temperatures_feinterpolation            
       real, dimension(:), intent(in) :: proto_pressure
       real, dimension(:), intent(in) :: proto_velocity_u
       real, dimension(:), intent(in) :: proto_velocity_v
       real, dimension(:), intent(in) :: proto_velocity_w      
       real, dimension(:), intent(in) :: proto_densities
+      real, dimension(:), intent(in) :: proto_densities_feinterpolation      
       real, dimension(:), intent(in) :: proto_components
-      real, dimension(:,:,:), intent(in) :: velocity_dg
+      real, dimension(:), intent(in) :: proto_components_feinterpolation      
+      real, dimension(:,:,:), intent(in) :: proto_velocity_dg
       integer, intent(in) :: ncomp      
       integer, intent(in) :: nphase
       integer, dimension(:), intent(in) :: cv_ndgln
@@ -1501,19 +1510,25 @@ module copy_outof_into_state
       integer, dimension(:), intent(in) :: u_ndgln
       integer, intent(in) :: ndim
       
-      ! local variables        
+      ! local variables
+      real :: comp_sum_conc_node_val      
       integer :: stat
       integer :: i,j,k,p,ele,jloc
       integer :: number_nodes
       integer :: nstates
       integer :: nloc
       integer, dimension(:), pointer :: element_nodes => null()
-      type(scalar_field), pointer :: phasevolumefraction => null()
-      type(scalar_field), pointer :: phasetemperature => null()      
+      type(scalar_field), pointer :: phasevolumefraction => null()      
+      type(scalar_field), pointer :: phasevolumefraction_feinterpolation => null()
+      type(scalar_field), pointer :: phasetemperature => null()            
+      type(scalar_field), pointer :: phasetemperature_feinterpolation => null() 
       type(scalar_field), pointer :: pressure => null()
       type(vector_field), pointer :: velocity => null()
+      type(vector_field), pointer :: velocity_dg => null()      
       type(scalar_field), pointer :: density => null()
+      type(scalar_field), pointer :: density_feinterpolation => null()      
       type(scalar_field), pointer :: componentmassfraction => null()
+      type(scalar_field), pointer :: componentsumconcentration => null()      
       character(len=option_path_len) :: material_phase_name
 
       ewrite(3,*) "In copy_into_state"
@@ -1522,6 +1537,7 @@ module copy_outof_into_state
       
       phase_loop: do p = 1,nphase
          
+         ! Output the CV phase volume fraction (which could be saturation)
          phasevolumefraction => extract_scalar_field(state(p), "PhaseVolumeFraction", stat=stat)
          
          if (stat /= 0) then 
@@ -1550,6 +1566,32 @@ module copy_outof_into_state
             
          end do volf_ele_loop
 
+         ! Output the FE interpolated phase volume fraction (which could be saturation)
+         phasevolumefraction_feinterpolation => extract_scalar_field(state(p), "PhaseVolumeFractionFEInterpolation", stat=stat)
+         
+         found_fei_volf: if (stat == 0) then          
+         
+            number_nodes = node_count(phasevolumefraction_feinterpolation)
+         
+            fei_volf_ele_loop: do i = 1,element_count(phasevolumefraction_feinterpolation)
+            
+               element_nodes => ele_nodes(phasevolumefraction_feinterpolation,i)
+            
+               nloc = size(element_nodes)
+            
+               fei_volf_node_loop: do j = 1,nloc
+               
+                  call set(phasevolumefraction_feinterpolation, &
+                           element_nodes(j), &
+                           proto_saturations_feinterpolation((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+            
+               end do fei_volf_node_loop
+            
+            end do fei_volf_ele_loop
+
+         end if found_fei_volf
+         
+         ! Output the CV Temperature field for this phase
          phasetemperature => extract_scalar_field(state(p), "Temperature", stat=stat)
          
          found_temp: if (stat == 0) then 
@@ -1575,6 +1617,31 @@ module copy_outof_into_state
             end do temp_ele_loop
          
          end if found_temp
+
+         ! Output the FE interpolated phase temperature
+         phasetemperature_feinterpolation => extract_scalar_field(state(p), "TemperatureFEInterpolation", stat=stat)
+         
+         found_fei_temp: if (stat == 0) then 
+                                 
+            number_nodes = node_count(phasetemperature_feinterpolation)
+         
+            fei_temp_ele_loop: do i = 1,element_count(phasetemperature_feinterpolation)
+            
+               element_nodes => ele_nodes(phasetemperature_feinterpolation,i)
+            
+               nloc = size(element_nodes)
+            
+               fei_temp_node_loop: do j = 1,nloc
+               
+                  call set(phasetemperature_feinterpolation, &
+                           element_nodes(j), &
+                           proto_temperatures_feinterpolation((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+            
+               end do fei_temp_node_loop
+            
+            end do fei_temp_ele_loop
+         
+         end if found_fei_temp
          
          density => extract_scalar_field(state(p), "Density", stat=stat)
          
@@ -1603,6 +1670,31 @@ module copy_outof_into_state
             end do den_node_loop
             
          end do den_ele_loop
+
+         ! Output the FE interpolated phase denisty
+         density_feinterpolation => extract_scalar_field(state(p), "DenistyFEInterpolation", stat=stat)
+         
+         found_fei_den: if (stat == 0) then          
+         
+            number_nodes = node_count(density_feinterpolation)
+         
+            fei_den_ele_loop: do i = 1,element_count(density_feinterpolation)
+            
+               element_nodes => ele_nodes(density_feinterpolation,i)
+            
+               nloc = size(element_nodes)
+            
+               fei_den_node_loop: do j = 1,nloc
+               
+                  call set(density_feinterpolation, &
+                           element_nodes(j), &
+                           proto_densities_feinterpolation((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+            
+               end do fei_den_node_loop
+            
+            end do fei_den_ele_loop
+
+         end if found_fei_den
          
          velocity => extract_vector_field(state(p), "Velocity", stat=stat)
          
@@ -1645,6 +1737,47 @@ module copy_outof_into_state
             end do vel_node_loop
             
          end do vel_ele_loop
+         
+         ! Output the overlapping velocity projected to DG
+         ! NOTE THIS WILL NOT CURRENTLY WORK AS THERE IS 
+         ! NO _ndgln ARRAY WITHIN THE PROTOTYPE FOR THIS FIELD
+         velocity_dg => extract_vector_field(state(p), "VelocityOverlappingProjectedToDG", stat=stat)
+         
+         found_vel_dg_field: if (stat == 0) then 
+                        
+            number_nodes = node_count(velocity_dg)
+         
+            vel_dg_ele_loop: do i = 1,element_count(velocity_dg)
+            
+               element_nodes => ele_nodes(velocity_dg,i)
+            
+               nloc = size(element_nodes)
+            
+               vel_dg_node_loop: do j = 1,nloc
+               
+                  ! set u
+!!!!!                  call set(velocity_dg, &
+!!!!!                           1, &
+!!!!!                           element_nodes(j), &
+!!!!!                           proto_velocity_dg((u_dg_ndgln((i-1)*nloc+j)), p, 1))
+               
+                  ! set v
+!!!!!                  if (ndim > 1) call set(velocity_dg, &
+!!!!!                                         2, &
+!!!!!                                         element_nodes(j), &
+!!!!!                                         proto_velocity_dg((u_dg_ndgln((i-1)*nloc+j)), p, 2))
+               
+                  ! set w
+!!!!!                  if (ndim > 2) call set(velocity_dg, &
+!!!!!                                         3, &
+!!!!!                                         element_nodes(j), &
+!!!!!                                         proto_velocity_dg((u_dg_ndgln((i-1)*nloc+j)), p, 3))
+            
+               end do vel_dg_node_loop
+            
+            end do vel_dg_ele_loop
+
+         end if found_vel_dg_field
              
       end do phase_loop
          
@@ -1679,24 +1812,53 @@ module copy_outof_into_state
                   phase_index_loop: do k = 1,nphase
                      
                      phase_name_check: if (trim(material_phase_name) == state(k)%name) then
-
-                        number_nodes = node_count(componentmassfraction)
+                        
+                        ! Output either the CV or FE interpolation component fraction
+                        ! depending on the extracted from state magic field name
+                        
+                        cv_or_fei: if (componentmassfraction%name(1:23) == "ComponentMassFractionFE") then
+                           
+                           ! Note that the field componentmassfraction was extracted above generically
+                                              
+                           number_nodes = node_count(componentmassfraction)
          
-                        comp_ele_loop: do ele = 1,element_count(componentmassfraction)
+                           fei_comp_ele_loop: do ele = 1,element_count(componentmassfraction)
             
-                           element_nodes => ele_nodes(componentmassfraction,ele)
+                              element_nodes => ele_nodes(componentmassfraction,ele)
                            
-                           nloc = size(element_nodes)
+                              nloc = size(element_nodes)
                            
-                           comp_node_loop: do jloc= 1,nloc
+                              fei_comp_node_loop: do jloc= 1,nloc
                
-                              call set(componentmassfraction, &
-                                       element_nodes(jloc), &
-                                       proto_components((cv_ndgln((ele-1)*nloc+jloc)) + ((i-(1+nphase))*nphase+(k-1))*number_nodes))
+                                 call set(componentmassfraction, &
+                                          element_nodes(jloc), &
+                                          proto_components_feinterpolation((cv_ndgln((ele-1)*nloc+jloc)) + ((i-(1+nphase))*nphase+(k-1))*number_nodes))
             
-                           end do comp_node_loop
+                              end do fei_comp_node_loop
             
-                        end do comp_ele_loop
+                           end do fei_comp_ele_loop
+                        
+                        else cv_or_fei
+                        
+                           number_nodes = node_count(componentmassfraction)
+         
+                           comp_ele_loop: do ele = 1,element_count(componentmassfraction)
+            
+                              element_nodes => ele_nodes(componentmassfraction,ele)
+                           
+                              nloc = size(element_nodes)
+                           
+                              comp_node_loop: do jloc= 1,nloc
+               
+                                 call set(componentmassfraction, &
+                                          element_nodes(jloc), &
+                                          proto_components((cv_ndgln((ele-1)*nloc+jloc)) + ((i-(1+nphase))*nphase+(k-1))*number_nodes))
+            
+                              end do comp_node_loop
+            
+                           end do comp_ele_loop
+                        
+                        end if cv_or_fei
                         
                         cycle sfield_loop
                         
@@ -1709,7 +1871,49 @@ module copy_outof_into_state
             end do sfield_loop
          
          end do comp_loop
-      
+         
+         ! Output the FE interpolated component sum concentrations if present
+         ! Assume for now that components have been inserted in state AFTER all the phases
+         comp_sum_conc_loop: do i = nstates-ncomp+1,nstates         
+            
+            componentsumconcentration => extract_scalar_field(state(i), "ComponentSumConcentrationFEInterpolation", stat=stat)
+            
+            have_comp_sum_conc: if (stat == 0) then
+               
+               call zero(componentsumconcentration)
+
+               number_nodes = node_count(componentsumconcentration)
+         
+               fei_comp_sum_conc_ele_loop: do ele = 1,element_count(componentsumconcentration)
+            
+                  element_nodes => ele_nodes(componentsumconcentration,ele)
+            
+                  nloc = size(element_nodes)
+            
+                  fei_comp_sum_conc_node_loop: do j = 1,nloc
+                     
+                     comp_sum_conc_node_val = 0.0
+                     
+                     phase_loop_comp_sum_conc: do p = 1,nphase
+                     
+                        comp_sum_conc_node_val = comp_sum_conc_node_val + &
+                        proto_components_feinterpolation((cv_ndgln((ele-1)*nloc+j)) + ((i-(1+nphase))*nphase+(p-1))*number_nodes) * &
+                        proto_saturations_feinterpolation((cv_ndgln((ele-1)*nloc+j)) + (p-1)*number_nodes)
+                     
+                     end do phase_loop_comp_sum_conc
+                     
+                     call set(componentsumconcentration, &
+                              element_nodes(j), &
+                              comp_sum_conc_node_val)
+            
+                  end do fei_comp_sum_conc_node_loop
+            
+               end do fei_comp_sum_conc_ele_loop
+               
+            end if have_comp_sum_conc
+            
+         end do comp_sum_conc_loop
+         
       end if have_comp
          
       pressure => extract_scalar_field(state(1), "Pressure")    

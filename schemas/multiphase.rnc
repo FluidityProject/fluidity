@@ -2083,6 +2083,115 @@ scalar_field_choice =
          element ___Diagnostic_Fields_Below___ {
             empty
          }|
+
+         ## Finite element interpolation of CV solution
+         ## of the PhaseVolumeFraction (which could be saturation).
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "PhaseVolumeFractionFEInterpolation" },
+            element diagnostic {
+               internal_algorithm,
+               mesh_choice, 
+               diagnostic_scalar_field
+            }
+         }|
+         ## Finite element interpolation of CV solution
+         ## of the Density of this phase.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "DensityFEInterpolation" },
+            element diagnostic {
+               internal_algorithm,
+               mesh_choice,
+               diagnostic_scalar_field
+            }
+         }|
+         ## Finite element interpolation of CV solution
+         ## of the Temperature of this phase.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "TemperatureFEInterpolation" },
+            element diagnostic {
+               internal_algorithm,
+               mesh_choice,
+               diagnostic_scalar_field
+            }
+         }|
+         ## Finite element interpolation of CV solution
+         ## of the component mass fraction.
+         ##
+         ## attribute material_phase_name associates this
+         ## mass fraction with a particular phase
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "ComponentMassFractionFEInterpolationPhase1" },
+            ## Specify the phase to which this component fraction relates
+            attribute material_phase_name { xsd:string },
+            element diagnostic {
+               internal_algorithm,
+               mesh_choice,
+               diagnostic_scalar_field
+            }
+         }|
+         ## Finite element interpolation of CV solution
+         ## of the component mass fraction.
+         ##
+         ## attribute material_phase_name associates this
+         ## mass fraction with a particular phase
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "ComponentMassFractionFEInterpolationPhase2" },
+            ## Specify the phase to which this component fraction relates
+            attribute material_phase_name { xsd:string },
+            element diagnostic {
+               internal_algorithm,
+               mesh_choice,
+               diagnostic_scalar_field
+            }
+         }|
+         ## Finite element interpolation of CV solution
+         ## of the component mass fraction.
+         ##
+         ## attribute material_phase_name associates this
+         ## mass fraction with a particular phase
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "ComponentMassFractionFEInterpolationPhase3" },
+            ## Specify the phase to which this component fraction relates
+            attribute material_phase_name { xsd:string },
+            element diagnostic {
+               internal_algorithm,
+               mesh_choice,
+               diagnostic_scalar_field
+            }
+         }|
+         ## Finite element interpolation of CV solution
+         ## of the component mass fraction.
+         ##
+         ## attribute material_phase_name associates this
+         ## mass fraction with a particular phase
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "ComponentMassFractionFEInterpolationPhase4" },
+            ## Specify the phase to which this component fraction relates
+            attribute material_phase_name { xsd:string },
+            element diagnostic {
+               internal_algorithm,
+               mesh_choice,
+               diagnostic_scalar_field
+            }
+         }|
+         ## Finite element interpolation of CV solution
+         ## of the component sum concentration.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "ComponentSumConcentrationFEInterpolation" },
+            element diagnostic {
+               internal_algorithm,
+               mesh_choice,
+               diagnostic_scalar_field
+            }
+         }|
          ## ControlVolumeDivergence:
          ##
          ## div field
@@ -2611,6 +2720,18 @@ vector_field_choice =
             empty
          }|
 
+         ## Projection of the Velocity vector field of this material_phase 
+         ## that uses an overlapping formulation to a conventional DG function space. 
+         element vector_field {
+             attribute rank { "1" },
+             attribute name { "VelocityOverlappingProjectedToDG" },
+             
+             element diagnostic {
+                internal_algorithm,
+                mesh_choice,
+                diagnostic_vector_field
+             }
+         }|
          ## Gradient of a scalar field evaluated using the C gradient
          ## matrix constructed using finite elements.
          ## Field must be in this material_phase.

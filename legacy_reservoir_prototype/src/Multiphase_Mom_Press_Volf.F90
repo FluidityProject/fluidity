@@ -66,7 +66,7 @@ contains
        u_ele_type, p_ele_type, cv_ele_type, &
        cv_sele_type, u_sele_type, &
                                 ! Total time loop and initialisation parameters
-       ntime_dump, nits, nits_internal, dump_no, &
+       nits, nits_internal, dump_no, &
        nits_flux_lim_volfra, nits_flux_lim_comp, & 
        ndpset, &
                                 ! Discretisation parameters
@@ -130,11 +130,11 @@ contains
          cv_snloc, u_snloc, p_snloc, stotel, &
          u_ele_type, p_ele_type, cv_ele_type, &
          cv_sele_type, u_sele_type, &
-         ntime_dump, nits, nits_internal, &
+         nits, nits_internal, &
          nits_flux_lim_volfra, nits_flux_lim_comp, & 
          ndpset 
     real :: dt, current_time
-    integer :: ntime, dump_no
+    integer :: dump_no
     
     ! The following need to be changed later in the other subrts as it should be controlled by the 
     ! input files
@@ -258,7 +258,7 @@ contains
     real, dimension( :, :, : ), allocatable :: sigma
 
     ! For assembling and solving
-    real, dimension( : ), allocatable :: rhs, rhs_cv, diag_pres, femt_print, femt_dummy
+    real, dimension( : ), allocatable :: rhs, rhs_cv
 
     ! For output:
     real, dimension( : ), allocatable :: Sat_FEMT, Den_FEMT, Comp_FEMT, SumConc_FEMT, MEAN_PORE_CV
@@ -286,9 +286,6 @@ contains
 
     allocate( rhs( cv_nonods ))
     allocate( rhs_cv( cv_nonods ))
-    allocate( diag_pres( cv_nonods ))
-    allocate( femt_print( cv_nonods * nphase ))
-    allocate( femt_dummy( cv_nonods * nphase ))
     allocate( Sat_FEMT( cv_nonods * nphase ))
     allocate( T_FEMT( cv_nonods * nphase ))
     allocate( Den_FEMT( cv_nonods * nphase ))
@@ -442,7 +439,8 @@ contains
 
           ewrite(3,*)'satura:',satura
           ewrite(3,*)'saturaold:',saturaold
-
+          
+          ! A hard wired option :(
           IF( NCOMP <= 1 ) THEN
              VOLFRA_USE_THETA_FLUX = .false.
           else 
@@ -544,8 +542,6 @@ contains
 
           Loop_COMPONENTS: DO ICOMP = 1, NCOMP2
 
-             !             COMP_SOURCE = 0.0
-
              ! Use values from the previous time step DENOLD,SATURAOLD so its easier to converge
              ! ALPHA_BETA is an order 1 scaling coefficient set up in the input file
 
@@ -559,18 +555,6 @@ contains
              IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
                              "]/is_multiphase_component/KComp_Sigmoid" )) THEN
                 DO CV_NODI = 1, CV_NONODS
-                   !                   IF( SATURAOLD( CV_NODI ) > 0.8 ) THEN
-                   !                      COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
-                   !                           max( 0.01, 5. * ( 1.0 - SATURAOLD( CV_NODI )))
-                   !                      COMP_ABSORB( CV_NODI, 2, 2 ) = COMP_ABSORB( CV_NODI, 2, 2 ) * &
-                   !                           max( 0.01, 5. * ( 1.0 - SATURAOLD( CV_NODI )))
-                   !                   ENDIF
-                   !                   IF( SATURAOLD( CV_NODI ) > 0.9 ) THEN
-                   !                      COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
-                   !                           max( 0.01, 10. * ( 1.0 - SATURAOLD( CV_NODI )))
-                   !                      COMP_ABSORB( CV_NODI, 2, 2 ) = COMP_ABSORB( CV_NODI, 2, 2 ) * &
-                   !                           max( 0.01, 10. * ( 1.0 - SATURAOLD( CV_NODI )))
-                   !                   ENDIF
                    IF( SATURAOLD( CV_NODI ) > 0.95 ) THEN
                       COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
                            max( 0.01, 20. * ( 1.0 - SATURAOLD( CV_NODI )))
@@ -589,7 +573,6 @@ contains
                   U_ELE_TYPE, P_ELE_TYPE )
 
 
-             ! bear in mind there are 3 internal iterations
              Loop_ITS2: DO ITS2 = 1, nits_internal
 
                 COMP_GET_THETA_FLUX = .TRUE. ! This will be set up in the input file
@@ -672,7 +655,7 @@ contains
 
        Conditional_TIMDUMP: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
 
-          ! output the saturation, density and velocity for each phase
+          ! output the velocity for each phase
           Phase_output_loop: do iphase = 1,nphase
 
              ! form string for phase number
@@ -680,37 +663,6 @@ contains
 
              ! form string for dump number
              call write_integer_to_string(itime,dummy_string_dump,len(dummy_string_dump))  
-
-             ! form the output file name for saturation --------------------------
-             dump_name = 'saturation_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-             ! open the output file for saturation   
-             output_channel = 1
-             file_format = 'formatted'
-             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-             ! output the fem interpolation of the CV solution for saturation of this phase
-             call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
-                  x_ndgln,x,Sat_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
-
-             ! close the file for saturation   
-             close(output_channel)  
-
-
-             ! form the output file name for density --------------------------
-             dump_name = 'density_FEM_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
-
-             ! open the output file for density   
-             output_channel = 1
-             file_format = 'formatted'
-             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
-
-             ! output the fem interpolation of the CV solution for density of this phase
-             call output_fem_sol_of_cv(output_channel,totele,cv_nonods,x_nonods,nphase,cv_nloc,x_nloc,cv_ndgln, &
-                  x_ndgln,x,DEN_FEMT( ((iphase-1)*cv_nonods+1):((iphase-1)*cv_nonods+cv_nonods) ))
-
-             ! close the file for density   
-             close(output_channel)  
 
              ! form the output file name for velocity --------------------------
              dump_name = 'velocity_phase_'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
@@ -728,8 +680,8 @@ contains
              close(output_channel)
 
           end do Phase_output_loop
-
-
+          
+          ! Output the component fields
           Loop_Comp_Print: do icomp = 1, ncomp
 
              Loop_Phase_Print: do iphase = 1, nphase
@@ -763,8 +715,6 @@ contains
              end do Loop_Phase_Print
 
           end do Loop_Comp_Print
-
-
 
           Loop_Comp_Print2: do icomp = 1, ncomp
 
@@ -802,34 +752,22 @@ contains
              close( output_channel )  
 
           end do Loop_Comp_Print2
-
-
-          ! output the global pressure --------------------------
-          dump_name = 'pressure'//'.d.'//trim(dummy_string_dump)
-
-          ! open the output file for pressure   
-          output_channel = 1
-          file_format = 'formatted'
-          call open_output_file(output_channel,dump_name,len(dump_name),file_format) 
-
-          ! output the pressure      
-          call printing_field_array( output_channel, totele, cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
-               x, cv_nonods, cv_p, 1 )
-
-          ! close the file for pressure   
-          close(output_channel)
-
-          !! Output vtus from state
-          ! Start by copying the interesting files back into state:
+          
+          ! Copy back to state
           call copy_into_state(state, &
                                satura, &
+                               Sat_FEMT, &
                                t, &
+                               T_FEMT, &
                                p, &
                                u, &
                                v, &
-                               w, velocity_dg, &
+                               w, &
+                               velocity_dg, &
                                den, &
+                               Den_FEMT, &
                                comp, &
+                               Comp_FEMT, &
                                ncomp, &
                                nphase, &
                                cv_ndgln, &
@@ -861,20 +799,14 @@ contains
 
     ewrite(3,*) 'Leaving solve_multiphase_mom_press_volf'
 
-
-
     deallocate( sigma )
     deallocate( rhs )
     deallocate( rhs_cv )
-    deallocate( diag_pres )
-    deallocate( femt_print )
-    deallocate( femt_dummy )
     deallocate( Sat_FEMT )
     deallocate( T_FEMT )
     deallocate( Den_FEMT )
     deallocate( Comp_FEMT )
 
   end subroutine solve_multiphase_mom_press_volf
-
 
 end module multiphase_mom_press_volf

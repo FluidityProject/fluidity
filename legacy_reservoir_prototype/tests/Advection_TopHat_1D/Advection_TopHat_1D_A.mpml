@@ -549,6 +549,23 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="TemperatureFEInterpolation" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
     <multiphase_properties>
       <relperm_type>
         <Corey/>

@@ -2541,6 +2541,154 @@ mass fraction with a particular phase</a:documentation>
         <empty/>
       </element>
       <element name="scalar_field">
+        <a:documentation>Finite element interpolation of CV solution
+of the PhaseVolumeFraction (which could be saturation).</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>PhaseVolumeFractionFEInterpolation</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Finite element interpolation of CV solution
+of the Density of this phase.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>DensityFEInterpolation</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Finite element interpolation of CV solution
+of the Temperature of this phase.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>TemperatureFEInterpolation</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Finite element interpolation of CV solution
+of the component mass fraction.
+
+attribute material_phase_name associates this
+mass fraction with a particular phase</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>ComponentMassFractionFEInterpolationPhase1</value>
+        </attribute>
+        <attribute name="material_phase_name">
+          <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
+          <data type="string"/>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Finite element interpolation of CV solution
+of the component mass fraction.
+
+attribute material_phase_name associates this
+mass fraction with a particular phase</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>ComponentMassFractionFEInterpolationPhase2</value>
+        </attribute>
+        <attribute name="material_phase_name">
+          <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
+          <data type="string"/>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Finite element interpolation of CV solution
+of the component mass fraction.
+
+attribute material_phase_name associates this
+mass fraction with a particular phase</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>ComponentMassFractionFEInterpolationPhase3</value>
+        </attribute>
+        <attribute name="material_phase_name">
+          <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
+          <data type="string"/>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Finite element interpolation of CV solution
+of the component mass fraction.
+
+attribute material_phase_name associates this
+mass fraction with a particular phase</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>ComponentMassFractionFEInterpolationPhase4</value>
+        </attribute>
+        <attribute name="material_phase_name">
+          <a:documentation>Specify the phase to which this component fraction relates</a:documentation>
+          <data type="string"/>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
+        <a:documentation>Finite element interpolation of CV solution
+of the component sum concentration.</a:documentation>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>ComponentSumConcentrationFEInterpolation</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
+        </element>
+      </element>
+      <element name="scalar_field">
         <a:documentation>ControlVolumeDivergence:
 
 div field
@@ -3186,6 +3334,21 @@ Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }<
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic vector fields below this</a:documentation>
         <empty/>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Projection of the Velocity vector field of this material_phase 
+that uses an overlapping formulation to a conventional DG function space. </a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>VelocityOverlappingProjectedToDG</value>
+        </attribute>
+        <element name="diagnostic">
+          <ref name="internal_algorithm"/>
+          <ref name="mesh_choice"/>
+          <ref name="diagnostic_vector_field"/>
+        </element>
       </element>
       <element name="vector_field">
         <a:documentation>Gradient of a scalar field evaluated using the C gradient
