@@ -159,17 +159,17 @@ subroutine set_sediment_reentrainment(state)
                surface_element_list)
        
           ! get or calculate critical shear stress
-          call get_option(trim(field%option_path)//"/erodability", erodibility, default=1.0)
-          if (have_option(trim(field%option_path)//"/critical_shear_stress")) then
-             call get_option(trim(field%option_path)//"/critical_shear_stress", critical_shear_stress)
+          call get_option(trim(field%option_path)//"/prognostic/erodability", erodibility, default=1.0)
+          if (have_option(trim(field%option_path)//"/prognostic/critical_shear_stress")) then
+             call get_option(trim(field%option_path)//"/prognostic/critical_shear_stress", critical_shear_stress)
           else
-             if (have_option(trim(field%option_path)//"/diameter")) then
-                call get_option(trim(field%option_path)//"/diameter",diameter)
+             if (have_option(trim(field%option_path)//"/prognostic/diameter")) then
+                call get_option(trim(field%option_path)//"/prognostic/diameter",diameter)
              else
                 FLExit("You need to either specify a critical shear stress or a &&
                      && sediment diameter")
              end if
-             call get_option(trim(field%option_path)//"/density",density)
+             call get_option(trim(field%option_path)//"/prognostic/density",density)
              ! calc critical shear stress
              s = density/1000.
              !S_star = sqrt((s-1)*g*diameter**3)/viscosity
@@ -181,7 +181,7 @@ subroutine set_sediment_reentrainment(state)
           end if
 
           ! calculate eroded sediment flux and set reentrainment BC
-          call get_option(trim(field%option_path)//"/porosity", porosity, default=0.3)
+          call get_option(trim(field%option_path)//"/prognostic/porosity", porosity, default=0.3)
           erosion => extract_surface_field(field, bc_name, "value")
           ! we only need to add to the source the erosion of sediment from the
           ! bedload into the neumann BC term

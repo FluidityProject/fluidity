@@ -194,7 +194,7 @@ contains
           S=>extract_scalar_field(state,trim(sediment_field_name))
           option_path = S%option_path
 
-          call get_option(trim(option_path)//'/density', gamma)
+          call get_option(trim(option_path)//'/prognostic/density', gamma)
           ! Note that 1000.0 is a hack. We actually need to properly
           ! account for the reference density of seawater.
           gamma=rho_0*(gamma/1000.0) - rho_0

@@ -163,8 +163,8 @@ contains
        surface_id_count=option_shape(trim(deposition_field(i_field)%ptr%option_path)//"/diagnos&
             &tic/surface_ids") 
        allocate(surface_ids(surface_id_count(1)))
-       call get_option(trim(deposition_field(i_field)%ptr%option_path)//"/diagnostic/surface_id&&
-            && s", surface_ids) 
+       call get_option(trim(deposition_field(i_field)%ptr%option_path)//"/diagnostic/surface_ids", &
+            & surface_ids) 
        
        ! loop through elements in surface field
        elements: do ele=1,element_count(surface_field(i_field))
@@ -180,6 +180,8 @@ contains
                & X, U, sink_U(i_field)%ptr, gravity, masslump, dt, i_field)
 
        end do elements
+
+       deallocate(surface_ids)
 
     end do sediment_fields
 

@@ -32,6 +32,7 @@ module field_priority_lists
   use fields
   use state_module
   use spud
+  use sediment, only: get_n_sediment_fields, get_sediment_field_name
 
   implicit none
   
@@ -115,6 +116,21 @@ contains
                 priority(nsol) = tmpint
              end if
           end do
+
+          ! prognostic sediment fields
+          if (have_option('/material_phase['//int2str(p)//']/sediment')) then
+             nfields = get_n_sediment_fields()
+             do f = 1, nfields
+                nsol=nsol+1
+                temp_field_name_list(nsol) = get_sediment_field_name(f)
+                temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                     ']/sediment/scalar_field['//int2str(f-1)//']'
+                temp_field_state_list(nsol) = p+1
+                call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                     tmpint, default=0)
+                priority(nsol) = tmpint
+             end do
+          end if
 
           ! prognostic Mellor Yamada fields:
           if (have_option('/material_phase[' &
@@ -319,6 +335,10 @@ contains
        end if
        if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::MeltRate/diagnostic')) then
           ntsol=ntsol + 1
+       end if
+       !Sediments
+       if (have_option('/material_phase['//int2str(p)//']/sediment')) then
+          ntsol=ntsol + get_n_sediment_fields()
        end if
 
     end do
