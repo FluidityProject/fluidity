@@ -250,7 +250,12 @@ contains the position of all detectors, static and Lagrangian
 Checkpoint filenames all end with [dump
 no.]\_checkpoint[-[process]].[extension], where the process number is added
 to the mesh, halo and field files in parallel.  The checkpoint detectors
-filenames contain \_det after [dump no.]\_checkpoint.
+filenames contain \_det after [dump no.]\_checkpoint. 
+
+A script is available at \lstinline[language = bash]+scripts/rename_checkpoint.py+ 
+that can be used to easily rename these filenames and there contents to continue 
+the naming convention of the original run. For more information see section 
+\ref{sect:rename_checkpoint}.
 
 \index{checkpointing!restarting}
 To restart from a checkpoint, specify the checkpointed FLML file as input.
@@ -409,7 +414,7 @@ better approximations to those last known values for reasons of accuracy or
 stability. Unless there are reasons for doing this, set this value to 2.
 
 \subsubsection{Adaptive timestep}
-
+\label{section:config_adaptive_timestep}
 This option allows the timestep, $\Delta T$, to vary throughout the run, depending on the 
 Courant-–Friedrichs-–Lewy (CFL) number.  There are several sub-options here. The
 \option{\ldots/requested\_cfl} is the desired upper limit of the CFL. A value of 5-10 is usual
@@ -532,7 +537,14 @@ of the triangle files (that is, the filename without .node, .ele, etc.)
 The coordinate mesh read in from file will always have linear elements and
 the Coordinate field is always continuous between elements.
 
-For information on generating meshes in triangle format, see chapter
+\fluidity\ also has native Gmsh support, which loads in Gmsh files directly into
+\fluidity\, and works with binary and ASCII Gmsh formats. To enable native 
+support, \fluidity\ needs to be told to expect a Gmsh file, which is achieved 
+by setting the \onlypdf\option{/geometry/mesh/from\_file/format}\ option 
+to \onlypdf\option{gmsh}.  \fluidity\ will now look for a file with the extension 
+\lstinline[language=bash]+.msh+ when it runs.
+
+For information on generating meshes in gmsh and triangle format, see chapter
 \ref{chap:meshes}. 
 
 \subsection{Deriving meshes from other meshes}
@@ -1409,9 +1421,14 @@ to the boundary condition.
 \subsubsection{Neumann}
 \index{boundary conditions!Neumann}
 
-A Neumann boundary condition sets the derivative to the normal ($\vec n$) of the surface $\partial\Omega$:
+A Neumann boundary condition sets a flux term $q$ to the normal ($\vec n$) of the surface $\partial\Omega$:
 \begin{equation*}
-\frac{\partial c}{\partial n} \left(\equiv \vec{n}\cdot\nabla c\right) = f(\bmx) \quad \textrm{on}\;  \partial\Omega.
+\int_{\partial\Omega} \phi (\kaptens\nabla c)\cdot\bmn \;d\Gamma,
+\end{equation*}
+where $\phi$ is a test function (see section \ref{chap:numerical_discretisation}).
+The Neumann condition is specified by assigning a value to the $q$, where
+\begin{equation*}
+q = (\kaptens\nabla c)\cdot\bmn,\quad \textrm{on}\quad \partial\Omega.
 \end{equation*}
 
 \subsubsection{Bulk formulae}\label{Sect:bulk_formulae}
@@ -2017,13 +2034,48 @@ Under \option{/mesh\_adaptivity/hr\_adaptivity} there are a number of mandatory 
 \item period - how often should the mesh be adapted. This can be set in number of simulation seconds, 
 or in number of timesteps. It is recommended that adapt happen every 10-20 timesteps.
 \item maximum number of nodes - sets the maximum possible number of nodes in the domain. In parallel this is the
-global maximum number, but can be altered to be the number per process.
+global maximum number, but can be altered to be the number per process. The mesh is coarsened everywhere until this is acheived.
 \item enable gradation - is on by default and set to a value of 1.5. 
 \item minimum edge lengths - a tensor specifying the minimum edge length of an element.
 \item maximum edge lengths - a tensor specifying the maximum edge length of an element.
 \end{itemize}
 
 In addition to these mandatory settings, there are a number of other configuration options.
+\begin{itemize}
+\item minimum number of nodes - sets the minimum possible number of nodes in the domain. In parallel this is the
+global minimum number. The mesh is refined until this is acheived.
+\item adaptive timestep at adapt - used in conjuction with adaptive timestep (see section \ref{section:config_adaptive_timestep}), this
+option resets the timestep back to the minumum value under \option{\ldots/adaptive\_timestep/minimum\_timestep} immediately follwing
+a mesh adapt.
+\item maximum node increase - The maximum ration by which the number of nodes is allowed to increase. A value of 1.1
+indicates the number of nodes can increase by at most 10\%.
+\item node locking - Allows the locking of nodes via a python function that cannot be moved by adaptivity.
+\item metric advection - advect the metric along with the flow, ensuring the resolution can be pushed ahead of any flow, rather than lagging behind.
+\item adapt at first timestep - perform mesh adaptivity before the first timestep occurs. This can occur a specified number of times.
+\item preserve mesh regions - ensures that regions in your mesh, specified by region IDs, are preserved through adaptivity.
+\item vertically structured adaptivity - Also known as 2D+1 adaptivity, this option performs adaptivity in two stages - first the horizontal mesh
+is adapted, then the mesh is extruded using the adaptivity metric in the 3rd dimension. You must use an extruded mesh with this option.
+\item adaptivity library - choose which adaptivity library to use. In 2D you are restricted to libmba2d. In 3D you can choose either libmba3D or libadaptivity (default).
+\item adapt iterations - this options controls the number of intermediate adapt iteration during parallel adaptive simulations. The default value is 3. Higher values may give you 
+better meshes, especially when the number of elements per process is low.
+\end{itemize}
+
+
+\subsubsection{Zoltan options}
+\label{sect:configuring_fluidity_zoltan_options}
+\index{adaptivity options}
+\index{zoltan}
+
+There are a number of options available for controlling Zoltan's behaviour when re-partitioning the mesh during
+and after adaptivity, which can be found under \option{mesh\_adaptivity/zoltan\_options}. The options are:
+\begin{itemize}
+\item partitioner - this is the partitioner used in the intermediate adapt iterations. It can be one of Scotch, ParMetis, Zoltan, or Zoltan Hypergraph. Default is Zoltan.
+\item final partitioner - the partitioner used for the final adapt iteration where load balancing is important. Same choices as above. Default is ParMetis. 
+\item element quality cutoff - at what value of element quality is an element deemed ``bad''. Default is 0.6.
+\item load imbalance tolerance - a value of 1 means each processor will have exactly the same numebr of elements. However, smaller numbers here mean that the intermediate adapts may
+not be able to move the mesh sufficiently to get a good quality mesh from adaptivity.
+\item zoltan debug - debugging options.
+\end{itemize}
 
 \subsubsection{Metric advection}
 \label{sect:configuring_fluidity_metric_advection}

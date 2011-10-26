@@ -414,8 +414,8 @@ contains
             ! no mesh derived from it
             ewrite(0,*) "Can't find a suitable unperiodic coordinate field for periodic mesh ", &
               trim(mesh%name)
-            ewrite(0,*) "This probably means the operation you want to do on this field &
-               &is not supported for a horizontal periodic mesh"
+            ewrite(0,*) "This probably means the operation you want to do on this field "//&
+               &"is not supported for a horizontal periodic mesh"
             FLExit("No suitable coordinate field found.")
          else
             positions=extract_vector_field(state, trim(mesh%name)//"Coordinate")
@@ -512,8 +512,8 @@ contains
       
       ewrite(0,*) "Can't find a suitable coordinate field for mesh ", &
           trim(mesh%name)
-      ewrite(0,*) "This probably means the operation you want to do is not&
-           &supported for this mesh"
+      ewrite(0,*) "This probably means the operation you want to do is not "//&
+           &"supported for this mesh"
       FLExit("No suitable coordinate field found.")      
       
     end subroutine give_up

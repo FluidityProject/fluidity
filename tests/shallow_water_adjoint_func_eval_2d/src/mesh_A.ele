@@ -49,4 +49,4 @@
 48 35 20 36 11 
 49 36 20 4 11 
 50 36 4 12 11 
-# Produced by: ../../../scripts/gmsh2triangle mesh_A.msh
+# Produced by: ../../../bin/gmsh2triangle mesh_A.msh

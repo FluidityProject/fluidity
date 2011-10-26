@@ -4939,4 +4939,4 @@
 4938 1982 1992 2264 7 
 4939 775 1387 770 7 
 4940 2493 1387 775 7 
-# Produced by: ../../scripts/gmsh2triangle --2d src/2d_square.msh
+# Produced by: ../../bin/gmsh2triangle --2d src/2d_square.msh

@@ -6,6 +6,7 @@ default: input
 input:
 
 clean: clean-run-debug
+	rm -f *.log
 clean-run:
 	rm -f $(FLMLMODEL1)_?*.pvtu $(FLMLMODEL1)_?*.vtu
 	rm -f $(FLMLMODEL1).detectors $(FLMLMODEL1).stat tmpf*

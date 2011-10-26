@@ -415,8 +415,8 @@
             if(full_schur) then
                ! Check to see whether pressure cmc_m preconditioning matrix is needed:
                call get_option(trim(p%option_path)//&
-                           "/prognostic/scheme/use_projection_method&
-                           &/full_schur_complement/preconditioner_matrix[0]/name", pressure_pmat)
+                           &"/prognostic/scheme/use_projection_method"//&
+                           &"/full_schur_complement/preconditioner_matrix[0]/name", pressure_pmat)
              
                ! this is an utter mess, Rhodri, please clean up! 
                select case(pressure_pmat)
@@ -440,8 +440,8 @@
 
                ! Decide on configuration of inner_m for full_projection solve:
                call get_option(trim(p%option_path)//&
-                           "/prognostic/scheme/use_projection_method&
-                           &/full_schur_complement/inner_matrix[0]/name", schur_scheme)
+                           &"/prognostic/scheme/use_projection_method"//&
+                           &"/full_schur_complement/inner_matrix[0]/name", schur_scheme)
                select case(schur_scheme)
                   case("FullMassMatrix")
                      inner_m(istate)%ptr => mass(istate)
@@ -872,10 +872,10 @@
                ! If the velocity isn't prognostic then cycle
                if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
 
-               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/continuous_galerkin").or.&
-                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/discontinuous_galerkin")) then
+               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                       &"/continuous_galerkin").or.&
+                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                       &"/discontinuous_galerkin")) then
 
                   x => extract_vector_field(state(istate), "Coordinate")
 
@@ -963,10 +963,10 @@
                   ! If the velocity isn't prognostic then cycle
                   if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
 
-                  if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                          &/continuous_galerkin").or.&
-                        have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                          &/discontinuous_galerkin")) then
+                  if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                          &"/continuous_galerkin").or.&
+                        have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                          &"/discontinuous_galerkin")) then
                            
                      call profiler_tic(u, "assembly")
 
@@ -1030,10 +1030,10 @@
                ! If the velocity isn't prognostic then cycle
                if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
 
-               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/continuous_galerkin").or.&
-                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/discontinuous_galerkin")) then
+               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                       &"/continuous_galerkin").or.&
+                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                       &"/discontinuous_galerkin")) then
 
                   ! Allocate the change in pressure field
                   call allocate(delta_p, p%mesh, "DeltaP")
@@ -1088,10 +1088,10 @@
             ! If the velocity isn't prognostic then cycle
             if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
 
-            if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                    &/continuous_galerkin").or.&
-               have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                    &/discontinuous_galerkin")) then
+            if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                    &"/continuous_galerkin").or.&
+               have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                    &"/discontinuous_galerkin")) then
 
                call finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
                                 visc_inverse_masslump, big_m, mom_rhs, ct_rhs, subcycle_m)

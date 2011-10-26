@@ -46093,4 +46093,4 @@
 46092 7107 23344 8053 11 
 46093 70 71 23344 11 
 46094 12311 70 23344 11 
-# Produced by: /data/fpm08/trunk/scripts/gmsh2triangle --2d mesh.msh
+# Produced by: /data/fpm08/trunk/bin/gmsh2triangle --2d mesh.msh

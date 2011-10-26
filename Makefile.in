@@ -26,14 +26,27 @@
 #    USA
 SHELL = @SHELL@
 
-PROGRAM	 = ./bin/@FLUIDITY@
+PACKAGE_NAME = @PACKAGE_NAME@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+
+FLUIDITY = $(PACKAGE_NAME)
+
+PROGRAM	 = ./bin/$(FLUIDITY)
 FLDECOMP = ./bin/fldecomp
 
-LIB_FLUIDITY = ./lib/lib@FLUIDITY@.a
-SLIB_FLUIDITY = lib@FLUIDITY@.so
+LIB_FLUIDITY = ./lib/lib$(FLUIDITY).a
+SLIB_FLUIDITY = lib$(FLUIDITY).so
 
+# Follow: www.gnu.org/prep/standards/html_node/Directory-Variables.html
+PACKAGE_NAME = @PACKAGE_NAME@
 prefix  = @prefix@
-FLUIDITY_ROOT=$(DESTDIR)@prefix@
+exec_prefix  = @exec_prefix@
+bindir = @bindir@
+libdir = @libdir@
+datadir = @datadir@
+docdir = @docdir@/
+htmldir = @htmldir@/
+pdfdir = @pdfdir@/
 
 FC      = @FC@
 FCFLAGS = @FCFLAGS@
@@ -50,7 +63,7 @@ CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include
 
 LINKER  = @LINKER@ @LDFLAGS@
 
-LIBS    = -L./lib -l@FLUIDITY@ @BLAS_LIBS@ @LIB_FEMDEM@ ./lib/libadaptivity.a \
+LIBS    = -L./lib -l$(FLUIDITY) @BLAS_LIBS@ @LIB_FEMDEM@ ./lib/libadaptivity.a \
            ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a \
            @LIBS@
 
@@ -61,7 +74,7 @@ AR = @AR@
 
 ARFLAGS	= -cr
 
-EVAL = scripts/silenteval
+EVAL = tools/silenteval.sh
 
 VERSION = $(shell bzr revision-info)
 
@@ -92,7 +105,7 @@ endif
 	@echo "        CXX $<"
 	$(CXX) $(CXXFLAGS) -c $<
 
-default: bin/@FLUIDITY@
+default: bin/$(FLUIDITY)
 
 sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
@@ -149,22 +162,19 @@ endif
 
 include/libspud.h: lib/libspud.a
 
-main.o: update_version_number include/libspud.h
-
-update_version_number:
-	@echo "Updating version number"
-	@rm -f include/version.h
-	@$(MAKE) include/version.h
+main.o: include/version.h include/libspud.h
 
 include/version.h:
 	@echo "DEFINE __FLUIDITY_VERSION__"
-	@grep "$(VERSION)" include/version.h >/dev/null 2>&1 || \
+	@grep "$(PACKAGE_VERSION)" include/version.h >/dev/null 2>&1 || \
 	printf "#ifndef _FLUIDITY_VERSION_H\n\
 	#define _FLUIDITY_VERSION_H\n\
-	#define __FLUIDITY_VERSION__ \"$(VERSION)\"\n\
+	#define __FLUIDITY_VERSION__ \"$(PACKAGE_VERSION)\"\n\
 	#endif /* _FLUIDITY_VERSION_H */\n" > include/version.h
 
-bin/@FLUIDITY@: main.o lib/lib@FLUIDITY@.a
+.PHONY: include/version.h
+
+bin/$(FLUIDITY): main.o lib/lib$(FLUIDITY).a
 	@echo "BUILD fluidity"
 	@echo "    MKDIR bin"
 	@mkdir -p bin
@@ -234,8 +244,8 @@ lib/shared/$(SLIB_FLUIDITY).1: fluidity_library
 	@rm -rf tmp
 	@mkdir -p tmp lib/shared
 	@cp $(LIB_FLUIDITY) tmp
-	@cd tmp; ar x lib@FLUIDITY@.a; rm lib@FLUIDITY@.a; cd ..
-	@echo "    LD lib@FLUIDITY@.so"
+	@cd tmp; ar x lib$(FLUIDITY).a; rm lib$(FLUIDITY).a; cd ..
+	@echo "    LD lib$(FLUIDITY).so"
 	@$(EVAL) $(LINKER) -shared -Wl,-soname,$(SLIB_FLUIDITY).1 -o lib/shared/$(SLIB_FLUIDITY).1 tmp/* -L./lib -lvtkfortran 
 	@rm -rf tmp
 	@cd lib/shared; ln -sf $(SLIB_FLUIDITY).1 $(SLIB_FLUIDITY); cd ../..
@@ -264,8 +274,14 @@ python_clean:
 	@cd python; rm -rf build
 	@cd python/fluidity; find . -type l -name '*.so' -exec rm -f {} \;
 
-fluidity_library: lib/lib@FLUIDITY@.a
-lib/lib@FLUIDITY@.a: $(OBJS) python_build sub_system 
+.PHONY: scripts
+
+scripts:
+	@echo "INSTALL local scripts"
+	@cd tools ; $(MAKE) scripts
+
+fluidity_library: lib/lib$(FLUIDITY).a
+lib/lib$(FLUIDITY).a: $(OBJS) python_build sub_system scripts
 	@echo "BUILD libfluidity"
 	@echo "    MKDIR lib"
 	@mkdir -p lib
@@ -299,8 +315,6 @@ endif
 	@cd assemble;   	$(MAKE)
 	@echo "    MAKE diagnostics"
 	@cd diagnostics;   	$(MAKE)
-	@echo "    MAKE radiation"
-	@cd radiation; $(MAKE)
 	@echo "    MAKE reduced_modelling"
 	@cd reduced_modelling;   	$(MAKE)
 	@echo "    MAKE adjoint"
@@ -308,10 +322,10 @@ endif
 	@echo "    MAKE main"
 	@cd main; $(MAKE)
 	@echo "    MAKE options_check"
-	@./scripts/make_check_options
+	@./tools/make_check_options.py
 	@cd preprocessor; $(MAKE) check_options.o
 	@echo "    MAKE register_diagnostics"
-	@./scripts/make_register_diagnostics
+	@./tools/make_register_diagnostics.py
 	@cd preprocessor; $(MAKE) register_diagnostics.o
 	@echo "    BUILDING fluidity_library"
 	@$(AR) $(ARFLAGS) lib/libfluidity.a \
@@ -328,7 +342,6 @@ preprocessor/*.o \
 error_measures/*.o \
 assemble/*.o \
 diagnostics/*.o \
-radiation/*.o \
 reduced_modelling/*.o \
 adjoint/*.o \
 main/*.o
@@ -343,13 +356,6 @@ fldecomp: fluidity_library
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@cd fldecomp; $(MAKE)
-
-.PHONY: doc
-
-doc:
-	@mkdir -p doc
-	./scripts/f90_extract_docs --dir=doc --project=fluidity */*.F90 --cppflags="$(FCLAGS) -I./include"
-	@cp include/fortran.css doc/
 
 all:
 	$(MAKE) default
@@ -372,10 +378,6 @@ clean-light:
 	@cd sediments; $(MAKE) clean
 	@echo "    CLEAN parameterisation/tests"
 	@cd parameterisation/tests; $(MAKE) clean
-	@echo "    CLEAN radiation"
-	@cd radiation; $(MAKE) clean
-	@echo "    CLEAN radiation/tests"
-	@cd radiation/tests; $(MAKE) clean
 	@echo "    CLEAN assemble"
 	@cd assemble;   $(MAKE) clean
 	@echo "    CLEAN assemble/tests"
@@ -413,10 +415,6 @@ endif
 	@cd adjoint; $(MAKE) clean
 	@echo "    CLEAN main"
 	@cd main; $(MAKE) clean
-	@echo "    CLEAN qg_strat"
-	@cd qg_strat; $(MAKE) clean
-	@echo "    CLEAN qg_strat/unittests"
-	@cd qg_strat/unittests; $(MAKE) clean
 	@rm -fr bin/* lib
 
 clean: clean-light clean-test python_clean
@@ -437,7 +435,7 @@ clean: clean-light clean-test python_clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
 	@CLEAN_LIBADAPT@
-	@rm -fr doc include/*.mod *.cache core *.o config.status
+	@rm -fr include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
 
@@ -445,29 +443,67 @@ clean-test:
 	@echo "    CLEAN tests"
 	@cd tests; ../tools/testharness.py --clean >/dev/null
 
-test: fltools bin/@FLUIDITY@ bin/shallow_water serialtest bin/burgers_equation
+distclean: clean
+	@echo "   DISTCLEAN"
+	@cd spatialindex-1.5 ; make distclean > /dev/null ; rm -rf	\
+	 make.log regressiontest/mvrtree/.deps				\
+	 regressiontest/rtree/.deps regressiontest/tprtree/.deps >	\
+	 /dev/null
+	@cd libadaptivity ; make distclean > /dev/null
+	@cd libjudy ; make distclean > /dev/null
+	@cd libvtkfortran ; make distclean > /dev/null
+	@cd libspud ; make distclean > /dev/null ; rm -rf		\
+	 libspud.so.0 libtool diamond/build python/build > /dev/null
+	@rm -fr `find ./ -name config.status` `find ./ -name		\
+	 config.log` share include/Judy.h include/Wm4Command.h		\
+	 include/Wm4FoundationLIB.h include/Wm4FoundationPCH.h		\
+	 include/Wm4Intersector.h include/Wm4Intersector1.h		\
+	 include/Wm4IntrBox3Box3.h include/Wm4IntrQuad2Quad2.h		\
+	 include/Wm4IntrTetrahedron3Tetrahedron3.h			\
+	 include/Wm4IntrTriangle2Triangle2.h				\
+	 include/Wm4IntrUtility3.h include/Wm4LinComp.h			\
+	 include/Wm4Math.h include/Wm4MathMCR.h include/Wm4Memory.h	\
+	 include/Wm4Plane3.h include/Wm4Platforms.h			\
+	 include/Wm4Quad2.h include/Wm4Segment3.h include/Wm4System.h	\
+	 include/Wm4THashSet.h include/Wm4THashTable.h			\
+	 include/Wm4TMinHeap.h include/Wm4TSmallUnorderedSet.h		\
+	 include/Wm4TStringHashTable.h include/Wm4TTuple.h		\
+	 include/Wm4Tetrahedron3.h include/Wm4Triangle2.h		\
+	 include/Wm4Triangle3.h include/Wm4Vector2.h			\
+	 include/Wm4Vector3.h include/confdefs.h include/config.h	\
+	 include/spatialindex include/spud include/spud.h		\
+	 include/spud_enums.h include/tinystr.h include/tinyxml.h	\
+	 include/version.h include/vtk.h				\
+	 preprocessor/check_options.F90					\
+	 preprocessor/register_diagnostics.F90 python/setup.py >	\
+	 /dev/null
+	@for i in `find ./*/ -name Makefile.in`; do rm -f `echo $$i | sed 's/.in$$//'`; done > /dev/null
+	@find ./ \( -name make.log \) -exec rm -f {} \; > /dev/null
+	@rm -f Makefile > /dev/null
+
+test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
 serialtest:
 ifeq (@MBA2D@,yes)
         ifeq (@ZOLTAN@,yes)
-	        @cd tests; ../tools/testharness.py -l short -p serial -e nozoltan -n $(THREADS)
+	        @cd tests; ../bin/testharness -l short -p serial -e nozoltan -n $(THREADS)
         else
-	        @cd tests; ../tools/testharness.py -l short -p serial -e zoltan -n $(THREADS)
+	        @cd tests; ../bin/testharness -l short -p serial -e zoltan -n $(THREADS)
         endif
 else
         ifeq (@ZOLTAN@,yes)
-	        @cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt nozoltan" -n $(THREADS)
+	        @cd tests; ../bin/testharness -l short -p serial -e "2dadapt nozoltan" -n $(THREADS)
         else
-	        @cd tests; ../tools/testharness.py -l short -p serial -e "2dadapt zoltan" -n $(THREADS)
+	        @cd tests; ../bin/testharness -l short -p serial -e "2dadapt zoltan" -n $(THREADS)
         endif
 endif
 
 mediumtest: bin/burgers_equation
-	@cd tests; ../tools/testharness.py -l medium $(EXCLUDE_TAGS) -n $(THREADS)
+	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:
 ifeq (@ZOLTAN@,yes)
-	@cd tests; ../tools/testharness.py -l medium -t zoltan -n $(THREADS)
+	@cd tests; ../bin/testharness -l medium -t zoltan -n $(THREADS)
 else
 	@echo "Warning: build did not have zoltan enabled, make mediumzoltantest will not run" -n $(THREADS)
 endif
@@ -498,17 +534,11 @@ build_unittest: fluidity_library libfemtools setuputs
 	@cd adjoint/tests; $(MAKE) unittest
 	@echo "    UNITTEST ocean_forcing"
 	@cd ocean_forcing/tests; $(MAKE) unittest
-	@echo "    UNITTEST radiation"
-	@cd radiation/tests; $(MAKE) unittest
 
 
 unittest: build_unittest
 	@echo "RUN bin/tests"
-	@tools/unittestharness.py bin/tests
-
-gcov:
-	@echo "RUN gcov"
-	@scripts/options_test_options_report.sh  .
+	@bin/unittestharness bin/tests
 
 schema:
 	@echo "Rebuilding schema fluidity_options.rng"
@@ -516,7 +546,7 @@ schema:
 
 .PHONY: makefiles
 
-makefiles: sub_system
+makefiles: sub_system scripts
 ifneq (@GFORTRAN_4_5_OR_NEWER@,yes)
 	@echo "makefile dependency generation requires gfortran (>=4.5)"
 	@false
@@ -530,44 +560,47 @@ ifneq (@HAVE_ADJOINT@,yes)
 	@false
 endif
 	@echo "    Generating debug dependencies"
-	@cd debug; 	../scripts/create_makefile.py $(TESTOPTS)
+	@cd debug; 	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating libwm dependencies"
-	@cd libwm; ../scripts/create_makefile.py $(TESTOPTS)
+	@cd libwm; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating femtools dependencies"
-	@cd femtools;	../scripts/create_makefile.py --exclude \
+	@cd femtools;	../bin/create_makefile --exclude \
 	"Refcount_interface_templates.F90 Refcount_templates.F90" $(TESTOPTS)
 	@echo "    Generating bathymetry dependencies"
-	@cd bathymetry; ../scripts/create_makefile.py $(TESTOPTS)
+	@cd bathymetry; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating ocean_forcing dependencies"
-	@cd ocean_forcing; ../scripts/create_makefile.py $(TESTOPTS)
+	@cd ocean_forcing; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating sediments dependencies"
-	@cd sediments; ../scripts/create_makefile.py $(TESTOPTS)
+	@cd sediments; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating parameterisation dependencies"
-	@cd parameterisation; ../scripts/create_makefile.py $(TESTOPTS)
+	@cd parameterisation; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating forward_interfaces dependencies"
-	@cd forward_interfaces;	../scripts/create_makefile.py $(TESTOPTS)
+	@cd forward_interfaces;	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating horizontal_adaptivity dependencies"
-	@cd horizontal_adaptivity;   	../scripts/create_makefile.py $(TESTOPTS)
+	@cd horizontal_adaptivity;   	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating preprocessor dependencies"
-	@cd preprocessor; ../scripts/create_makefile.py --exclude \
+	@cd preprocessor; ../bin/create_makefile --exclude \
 	"register_diagnostics.F90 check_options.F90" $(TESTOPTS)
 	@echo "    Generating error_measures dependencies"
-	@cd error_measures;   	../scripts/create_makefile.py $(TESTOPTS)
+	@cd error_measures;   	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating assemble dependencies"
-	@cd assemble;   	../scripts/create_makefile.py $(TESTOPTS)
+	@cd assemble;   	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating diagnostics dependencies"
-	@cd diagnostics;   	../scripts/create_makefile.py --exclude \
+	@cd diagnostics;   	../bin/create_makefile --exclude \
 	"Diagnostic_Fields_Interfaces.F90 Diagnostic_Fields_New.F90" $(TESTOPTS)
 	@cd diagnostics;   	$(MAKE) Diagnostic_Fields_Interfaces.o \
 	Diagnostic_Fields_New.o 
-	@echo "    Generating radiation dependencies"
-	@cd radiation; ../scripts/create_makefile.py $(TESTOPTS)
 	@echo "    Generating reduced_modelling dependencies"
-	@cd reduced_modelling;   	../scripts/create_makefile.py $(TESTOPTS)
+	@cd reduced_modelling;   	../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating adjoint dependencies"
-	@cd adjoint; ../scripts/create_makefile.py $(TESTOPTS)
+	@cd adjoint; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating main dependencies"
-	@cd main; ../scripts/create_makefile.py --exclude test_coupler.F90 $(TESTOPTS)
+	@cd main; ../bin/create_makefile --exclude test_coupler.F90 $(TESTOPTS)
 	@echo "    Cleaning up the mess"
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
+
+install:
+	@mkdir -p $(DESTDIR)$(bindir)
+	cp bin/* $(DESTDIR)$(bindir)
+	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)"

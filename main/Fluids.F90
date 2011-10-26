@@ -60,7 +60,6 @@ module fluids_module
   use qmesh_module
   use checkpoint
   use write_state_module
-  use traffic
   use synthetic_bc
   use goals
   use adaptive_timestepping
@@ -99,7 +98,6 @@ module fluids_module
   use reduced_model_runtime
   use implicit_solids
   use sediment
-  use radiation
 #ifdef HAVE_HYPERLIGHT
   use hyperlight
 #endif
@@ -173,9 +171,6 @@ contains
     logical::use_advdif=.true.  ! decide whether we enter advdif or not
 
     INTEGER :: adapt_count
-
-    ! the particle type for the radiation model 
-    type(particle_type), dimension(:), allocatable :: particles
 
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
@@ -404,12 +399,6 @@ contains
        call calculate_biology_terms(state(1))
     end if
 
-    ! Initialise radiation specific data types and register radiation diagnostics
-    if(have_option("/embedded_models/radiation")) then
-        call radiation_initialise(state, &
-                                  particles)
-    end if
-
     call initialise_diagnostics(filename, state)
 
     ! Initialise ice_meltrate, read constatns, allocate surface, and calculate melt rate
@@ -452,19 +441,6 @@ contains
     ! Initialise k_epsilon
     if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
         call keps_init(state(1))
-    end if
-
-
-
-
-    ! radiation eigenvalue run solve
-    if(have_option("/embedded_models/radiation")) then
-       call radiation_solve(particles, &
-                            invoke_eigenvalue_solve=.true.)
-      
-      ! write the radiation eigenvalue diagnostics
-      call write_diagnostics(state, current_time, dt, timestep)
-      
     end if
 
     ! ******************************
@@ -685,10 +661,6 @@ contains
 
              IF(use_advdif)THEN
 
-                if(starts_with(trim(field_name_list(it)), "TrafficTracer")) then
-                   call traffic_tracer(trim(field_name_list(it)),state(field_state_list(it)),timestep)
-                endif
-
                 sfield => extract_scalar_field(state(field_state_list(it)), field_name_list(it))
                 call calculate_diagnostic_children(state, field_state_list(it), sfield)
 
@@ -769,10 +741,6 @@ contains
              call porous_media_momentum(state)
           end if
 
-          if (have_option("/traffic_model")) then
-             call traffic_source(state(1),timestep)
-          end if
-
           if (have_solids) then
              ewrite(2,*) 'into solid_drag_calculation'
              call solid_drag_calculation(state(ss:ss), its, nonlinear_iterations)
@@ -817,10 +785,6 @@ contains
                   exit nonlinear_iteration_loop
                endif
              end if
-          end if
-
-          if (have_option("/traffic_model")) then
-             call traffic_density_update(state(1))
           end if
 
           if(have_solids) then
@@ -876,12 +840,6 @@ contains
        ! calculate and write diagnostics before the timestep gets changed
        call calculate_diagnostic_variables(State, exclude_nonrecalculated=.true.)
        call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
-
-       ! radiation time run solve - which may be coupled to fluids via diagnostic fields
-       if( have_option("/embedded_models/radiation") ) then
-          call radiation_solve(particles, &
-                               invoke_eigenvalue_solve=.false.)
-       end if
           
        ! Call the modern and significantly less satanic version of study
        call write_diagnostics(state, current_time, dt, timestep)
@@ -981,11 +939,6 @@ contains
 
     if (have_option("/material_phase[0]/sediment")) then
         call sediment_cleanup()
-    end if
-
-    ! radiation cleanup
-    if( have_option("/embedded_models/radiation") ) then
-       call radiation_cleanup(particles)
     end if
 
     ! closing .stat, .convergence and .detector files

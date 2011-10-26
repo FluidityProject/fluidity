@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Stokes-3d-busse-1a-p2p1</name>
   <owner userid="rhodrid"/>
