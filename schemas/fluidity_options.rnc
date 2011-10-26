@@ -32,7 +32,7 @@ start =
                # Lines is a hint to the gui about the size of the text box.
                # It is not an enforced limit on string length.
                attribute lines { "1" },
-               ( "fluids" | "oceans" | "multimaterial" | "porous_media" | "stokes" | "large_scale_ocean_options" | "implicit_solids" | "foams" | "multiphase" )
+               ( "fluids" | "oceans" | "multimaterial" | "porous_media" | "stokes" | "large_scale_ocean_options" | "foams" | "multiphase" )
             },
             comment
          },
@@ -1726,87 +1726,6 @@ start =
                ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
                element cp_expo {real}?
             }?
-         }?,
-         ## UNDER DEVELOPMENT - DO NOT USE
-         ##
-         ## Implict Solids
-         element implicit_solids {
-              ## Absorption coefficient weighting factor.
-              ##
-              ## default: beta=1.
-              element beta{ real }?,
-              ## Source options for heated solids.
-              ## A fixed source term for the solid or a
-              ## solid fixed temperature can be used. Obviously, this
-              ## requires a prognostic Temperature field. 
-              element source{
-                 (
-                    ## Use a fixed temperature source for the solids.
-                    ## The temperature diffusivity should be set to diagnostic/internal with this option.
-                    element temperature_source{
-                         ## Fluid Peclet number.
-                         element fluid_peclet_number{ real },
-                         ## Solid Peclet number.
-                         element solid_peclet_number{ real },
-                         ## Solid source intensity.
-                         ## The non-dimensional source is: [L_ref / (u_ref T_ref)] [ 1 / (\rho c_p)_s] S.
-                         element source_intensity { real },
-                         ## Apply source to an inner zone of the particle rather than the whole particle.
-                         ## Assumes a spherical inner zone.
-                         element zone_radius { real }?
-                    }|
-                    ## Use a fixed temperature for the solids.
-                    element temperature{
-                         ## Solid temperature.
-                         element temperature{ real }
-                    }
-                 )
-              }?,
-              ## Pressure gradient for periodic domains.
-              element pressure_gradient{ real_dim_vector }?,
-              (
-                 element one_way_coupling{
-                      ## The solid mesh.
-                      ##
-                      ## Triangle mesh format only supported.
-                      element mesh{ attribute file_name {xsd:string} },
-                      element multiple_solids{
-                           ## number of solids
-                           element number_of_solids {integer},
-                           ## Python function prescribing dimensional vector input. Functions should be of the form:
-                           ##
-                           ##  def val(t):
-                           ##     # Function code
-                           ##     return # Return value
-                           ##
-                           ## The return value must have length number_of_solids.
-                           ##
-                           ## *** IMPORTANT NOTE ***
-                           ##
-                           ## The t argument is for future use only - currently solid locations are only set at simulation start.
-                           element python { python_code },
-                           ## Calculate diagnostic variables for each solid.
-                           element print_diagnostics { empty }?
-                      }?,
-                      ## Calculate diagnostic variables associated with the solids.
-                      element print_diagnostics { empty }?
-                 }|
-                 element two_way_coupling{
-                      ## The solid mesh.
-                      ##
-                      ## Y3D FEMDEM mesh format only supported.
-                      element mesh{ attribute file_name {xsd:string} },
-                      ## Choose which velocity the fluids model will solve for. 
-                      element fluids_scheme{
-                           (
-                              ## Solve for the fluid velocity. 
-                              element use_fluid_velocity { empty }|
-                              ## Solve for the bulk velocity.
-                              element use_bulk_velocity { empty }
-                           )
-                      }
-                 }
-              )
          }?,
          embedded_models?,
          flredecomp?
@@ -3617,7 +3536,7 @@ scalar_field_choice =
             )
          }|
          ## ***UNDER TESTING***
-         ## Calculate the stream function of 2D incompressible flow. for multiply connected domains
+         ## Calculate the stream function of 2D incompressible flow for multiply connected domains.
          ## Note that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
          ## Requires a continuous mesh.
          element scalar_field {
@@ -4822,7 +4741,7 @@ scalar_field_choice =
          ## SumVelocityDivergence
          ##
          ## Diagnostic field used in multiphase simulations.
-         ## Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }
+         ## Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u) }
          element scalar_field {
             attribute rank { "0" },
             attribute name { "SumVelocityDivergence" },
@@ -5216,53 +5135,6 @@ vector_field_choice =
                 }
              )
          }|
-         ## Calculate the control volume auxiliary gradient for a particular field.
-         ## The related field must be a scalar field in this material_phase.
-         element vector_field {
-            attribute rank { "0" },
-            attribute name { "ControlVolumeAuxiliaryGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  attribute gradient_of_field { string },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field.
-         ## The related field must be a scalar field in this material_phase.
-         element vector_field {
-            attribute rank { "0" },
-            attribute name { "DGAuxiliaryGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  attribute gradient_of_field { string },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Experimental geostrophic source field to be used in combination with
-         ## a free surface. Does not solve a vertical balance yet.
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "GeostrophicSource" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
 
          ## Absolute Difference between two vector fields.
          ##
@@ -5364,22 +5236,6 @@ vector_field_choice =
                 element diagnostic {
                    internal_algorithm,
                    mesh_choice,
-                   diagnostic_vector_field
-                }|
-                element aliased {
-                   generic_aliased_field
-                }
-             )
-         }|
-
-         ## Displacement
-         element vector_field {
-             attribute rank { "1" },
-             attribute name { "Displacement" },
-             (
-                element diagnostic {
-                   internal_algorithm,
-                   velocity_mesh_choice,
                    diagnostic_vector_field
                 }|
                 element aliased {

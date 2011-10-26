@@ -1,6 +1,6 @@
 preprocess: 
 	@echo **********Generating a 1D mesh for the [0,1] interval:
-	../../scripts/interval --dx=0.025 --reverse 0 1 line
+	../../bin/interval --dx=0.025 --reverse 0 1 line
 
 run:
 	@echo **********Running simulation using 1D mesh

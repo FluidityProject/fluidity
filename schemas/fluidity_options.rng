@@ -42,7 +42,6 @@ characters in the simulation name should be avoided.</a:documentation>
             <value>porous_media</value>
             <value>stokes</value>
             <value>large_scale_ocean_options</value>
-            <value>implicit_solids</value>
             <value>foams</value>
             <value>multiphase</value>
           </choice>
@@ -2372,137 +2371,6 @@ in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
         </element>
       </optional>
       <optional>
-        <element name="implicit_solids">
-          <a:documentation>UNDER DEVELOPMENT - DO NOT USE
-
-Implict Solids</a:documentation>
-          <optional>
-            <element name="beta">
-              <a:documentation>Absorption coefficient weighting factor.
-
-default: beta=1.</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="source">
-              <a:documentation>Source options for heated solids.
-A fixed source term for the solid or a
-solid fixed temperature can be used. Obviously, this
-requires a prognostic Temperature field. </a:documentation>
-              <choice>
-                <element name="temperature_source">
-                  <a:documentation>Use a fixed temperature source for the solids.
-The temperature diffusivity should be set to diagnostic/internal with this option.</a:documentation>
-                  <element name="fluid_peclet_number">
-                    <a:documentation>Fluid Peclet number.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <element name="solid_peclet_number">
-                    <a:documentation>Solid Peclet number.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <element name="source_intensity">
-                    <a:documentation>Solid source intensity.
-The non-dimensional source is: [L_ref / (u_ref T_ref)] [ 1 / (\rho c_p)_s] S.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <optional>
-                    <element name="zone_radius">
-                      <a:documentation>Apply source to an inner zone of the particle rather than the whole particle.
-Assumes a spherical inner zone.</a:documentation>
-                      <ref name="real"/>
-                    </element>
-                  </optional>
-                </element>
-                <element name="temperature">
-                  <a:documentation>Use a fixed temperature for the solids.</a:documentation>
-                  <element name="temperature">
-                    <a:documentation>Solid temperature.</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                </element>
-              </choice>
-            </element>
-          </optional>
-          <optional>
-            <element name="pressure_gradient">
-              <a:documentation>Pressure gradient for periodic domains.</a:documentation>
-              <ref name="real_dim_vector"/>
-            </element>
-          </optional>
-          <choice>
-            <element name="one_way_coupling">
-              <element name="mesh">
-                <a:documentation>The solid mesh.
-
-Triangle mesh format only supported.</a:documentation>
-                <attribute name="file_name">
-                  <data type="string"/>
-                </attribute>
-              </element>
-              <optional>
-                <element name="multiple_solids">
-                  <element name="number_of_solids">
-                    <a:documentation>number of solids</a:documentation>
-                    <ref name="integer"/>
-                  </element>
-                  <element name="python">
-                    <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
-
- def val(t):
-    # Function code
-    return # Return value
-
-The return value must have length number_of_solids.
-
-*** IMPORTANT NOTE ***
-
-The t argument is for future use only - currently solid locations are only set at simulation start.</a:documentation>
-                    <ref name="python_code"/>
-                  </element>
-                  <optional>
-                    <element name="print_diagnostics">
-                      <a:documentation>Calculate diagnostic variables for each solid.</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                </element>
-              </optional>
-              <optional>
-                <element name="print_diagnostics">
-                  <a:documentation>Calculate diagnostic variables associated with the solids.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-            <element name="two_way_coupling">
-              <element name="mesh">
-                <a:documentation>The solid mesh.
-
-Y3D FEMDEM mesh format only supported.</a:documentation>
-                <attribute name="file_name">
-                  <data type="string"/>
-                </attribute>
-              </element>
-              <element name="fluids_scheme">
-                <a:documentation>Choose which velocity the fluids model will solve for. </a:documentation>
-                <choice>
-                  <element name="use_fluid_velocity">
-                    <a:documentation>Solve for the fluid velocity. </a:documentation>
-                    <empty/>
-                  </element>
-                  <element name="use_bulk_velocity">
-                    <a:documentation>Solve for the bulk velocity.</a:documentation>
-                    <empty/>
-                  </element>
-                </choice>
-              </element>
-            </element>
-          </choice>
-        </element>
-      </optional>
-      <optional>
         <ref name="embedded_models"/>
       </optional>
       <optional>
@@ -4660,7 +4528,7 @@ Requires a continuous mesh.</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>***UNDER TESTING***
-Calculate the stream function of 2D incompressible flow. for multiply connected domains
+Calculate the stream function of 2D incompressible flow for multiply connected domains.
 Note that this *only* makes sense for proper 2D (not pseudo-2D) simulations.
 Requires a continuous mesh.</a:documentation>
         <attribute name="rank">
@@ -6140,7 +6008,7 @@ will be emptied by an adapt.</a:documentation>
         <a:documentation>SumVelocityDivergence
 
 Diagnostic field used in multiphase simulations.
-Sums up the divergence of each phase's bulk velocity, i.e. \sum{ div(vfrac*u) }</a:documentation>
+Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u) }</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -6604,67 +6472,6 @@ FEMDEM or DEM to the fluid mesh. </a:documentation>
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Calculate the control volume auxiliary gradient for a particular field.
-The related field must be a scalar field in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ControlVolumeAuxiliaryGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <attribute name="gradient_of_field">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field.
-The related field must be a scalar field in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>DGAuxiliaryGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <attribute name="gradient_of_field">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Experimental geostrophic source field to be used in combination with
-a free surface. Does not solve a vertical balance yet.</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>GeostrophicSource</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
         <a:documentation>Absolute Difference between two vector fields.
 
 Both fields must be in this material_phase.
@@ -6795,25 +6602,6 @@ applied to the bed shear stress.</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="mesh_choice"/>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Displacement</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>Displacement</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_vector_field"/>
           </element>
           <element name="aliased">

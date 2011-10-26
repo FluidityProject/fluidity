@@ -1626,9 +1626,9 @@ No. 1 pp. 243--268, 1980</a:documentation>
   <define name="particle_reynolds_number_algorithm">
     <element name="algorithm">
       <a:documentation>Diagnostic algorithm used in multiphase simulations.
-Calculates the particle Reynolds number, (vfrac_c*density_c*|u_c-u_p|*d)/viscosity_c
-where _c and _p denote the continuous and particle phases respectively,
-and d is the particle diameter.</a:documentation>
+Calculates the particle Reynolds number, (vfrac_f*density_f * |u_f - u_p| * d)/viscosity_f
+where the subscripts _f and _p denote the fluid (i.e. continuous) and particle (i.e. dispersed)
+phases respectively, and d is the particle diameter.</a:documentation>
       <attribute name="name">
         <value>particle_reynolds_number</value>
       </attribute>
@@ -1652,7 +1652,7 @@ and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous
   </define>
   <define name="apparent_density_algorithm">
     <element name="algorithm">
-      <a:documentation>Diagnostic algorithm used in multiphase simulations.
+      <a:documentation>Diagnostic algorithm used in multiphase flow simulations.
 Calculates the apparent density of the material_phase,
 i.e. Density multiplied by the PhaseVolumeFraction field.</a:documentation>
       <attribute name="name">
@@ -1881,6 +1881,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_advection_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_edge_lengths_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="projection_scalar_potential_algorithm"/>

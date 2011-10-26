@@ -1,5 +1,4 @@
-BIN=../../../bin
-SCRIPTS=../../../scripts
+BIN=../../bin
 RE=5100
 JOB=kepsilon-periodic-adapt
 preprocess:
@@ -13,7 +12,7 @@ preprocess:
 		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
 		echo **********Generating mesh...; \
 		gmsh -3 -o step3d-$(NN).msh ../src/step3d-$(NN).geo; \
-		$(SCRIPTS)/gmsh2triangle step3d-$(NN).msh; \
+		$(BIN)/gmsh2triangle step3d-$(NN).msh; \
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
 		$(BIN)/fldecomp -n $(NPROCS) -f step3d-$(NN); \
 		cd ..; \
@@ -29,7 +28,7 @@ preprocess-periodic:
 		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
 		echo **********Generating mesh...; \
 		gmsh -3 -o step3d-$(NN)-periodic.msh ../src/step3d-$(NN)-periodic.geo; \
-		$(SCRIPTS)/gmsh2triangle step3d-$(NN)-periodic.msh; \
+		$(BIN)/gmsh2triangle step3d-$(NN)-periodic.msh; \
 		echo $(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		$(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
@@ -79,7 +78,7 @@ post-postprocess:
 	./post_postprocessor_3d_les.py
 
 input: clean
-	$(MAKE) preprocess NPROCS=8
+	$(MAKE) preprocess
 
 clean:
 	@$(foreach NN,coarse, \

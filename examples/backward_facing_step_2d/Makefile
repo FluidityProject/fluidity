@@ -1,5 +1,4 @@
-BIN=../../../bin
-SCRIPTS=../../../scripts
+BIN=../../bin
 preprocess:
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make preprocess TYPE=type, where type is reference or kepsilon"; false; fi;
 	echo **********Installing directory for $(TYPE) run:
@@ -8,7 +7,7 @@ preprocess:
 	ln -s ../backward_facing_step_2d_kim_$(TYPE).flml .; \
 	echo **********Generating mesh for $(TYPE) simulation.; \
 	gmsh -2 -o step2d-kim-med.msh ../src/step2d-kim-med.geo; \
-	$(SCRIPTS)/gmsh2triangle -2 step2d-kim-med.msh; \
+	$(BIN)/gmsh2triangle -2 step2d-kim-med.msh; \
 	cd ..
 
 run:

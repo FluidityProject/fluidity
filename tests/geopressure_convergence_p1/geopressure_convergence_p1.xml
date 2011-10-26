@@ -1,5 +1,4 @@
 <?xml version = "1.0" encoding = "UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Geopressure convergence test (P1)</name>
   <owner userid="piggt01"/>

@@ -3,7 +3,7 @@ BIN = `which dfluidity`
 
 mesh: distclean
 	gmsh -2 src/test.geo
-	../../scripts/gmsh2triangle --2d src/test.msh
+	../../bin/gmsh2triangle --2d src/test.msh
 
 p1p1:
 	${BIN} -v3 -x test_p1p1.flml | tee test_p1p1.log
