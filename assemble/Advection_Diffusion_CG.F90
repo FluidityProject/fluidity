@@ -39,7 +39,7 @@ module advection_diffusion_cg
   use boundary_conditions_from_options
   use field_options
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, COLOURING_CG
+  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, COLOURING_CG1
   use profiler
   use spud
   use petsc_solve_state_module
@@ -238,13 +238,20 @@ contains
     type(scalar_field), pointer :: pressure
         
     !! Coloring  data structures for OpenMP parallization
-    type(integer_set), dimension(:), pointer :: clr_sets
+    type(integer_set), dimension(:), pointer :: colours
     integer :: clr, nnid, len, ele
     integer :: num_threads, thread_num
     !! Did we successfully prepopulate the transform_to_physical_cache?
     logical :: cache_valid
       
     type(element_type), dimension(:), allocatable :: supg_element
+
+#ifdef HAVE_LIBNUMA
+    !! number of minor and major faults
+    integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
+    !! Arrays to hold page faults per colour
+    integer, dimension(:), allocatable :: minor_pagefaults
+#endif
   
     ewrite(1, *) "In assemble_advection_diffusion_cg"
     
@@ -489,8 +496,13 @@ contains
     assert(cache_valid)
 #endif
 
-    call get_mesh_colouring(state, t%mesh, COLOURING_CG, clr_sets)
+    call get_mesh_colouring(state, t%mesh, COLOURING_CG1, colours)
     call profiler_toc(t, "advection_diffusion_loop_overhead")
+
+#ifdef HAVE_LIBNUMA
+    ! set array length to number of colours
+    allocate(minor_pagefaults(size(colours)))
+#endif
 
     call profiler_tic(t, "advection_diffusion_loop")
 
@@ -500,11 +512,16 @@ contains
 #else
     thread_num=0
 #endif
-    colour_loop: do clr = 1, size(clr_sets)
-      len = key_count(clr_sets(clr))
+    colour_loop: do clr = 1, size(colours)
+
+#ifdef HAVE_LIBNUMA
+    call profiler_minorpagefaults(minfaults_tic)
+#endif
+
+      len = key_count(colours(clr))
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
-         ele = fetch(clr_sets(clr), nnid)
+         ele = fetch(colours(clr), nnid)
          call assemble_advection_diffusion_element_cg(ele, t, matrix, rhs, &
               positions, old_positions, new_positions, &
               velocity, grid_velocity, &
@@ -513,10 +530,24 @@ contains
               supg_element(thread_num+1))
       end do element_loop
       !$OMP END DO
+
+#ifdef HAVE_LIBNUMA
+    call profiler_minorpagefaults(minfaults_toc)
+    minor_pagefaults(clr) = minfaults_toc - minfaults_tic
+#endif
+
     end do colour_loop
     !$OMP END PARALLEL
 
     call profiler_toc(t, "advection_diffusion_loop")
+
+#ifdef HAVE_LIBNUMA
+    write(20,*) "AD_CG :: Minor page faults = "
+    do clr = 1, size(colours) 
+      write(20,*) "Colour :: ", clr, & 
+         " :: Number of minor page faults = ", minor_pagefaults(clr)
+    end do
+#endif
 
     ! as part of assembly include the already discretised optional source
     ! needed before applying direchlet boundary conditions

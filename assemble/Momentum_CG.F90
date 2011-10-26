@@ -43,7 +43,7 @@
     use field_options
     use halos
     use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, &
-         COLOURING_CG
+         COLOURING_CG1
     use elements
     use transform_elements, only: transform_to_physical
     use coriolis_module
@@ -269,7 +269,7 @@
       type(scalar_field) :: nvfrac ! Non-linear version
 
       !! Coloring  data structures for OpenMP parallization
-      type(integer_set), dimension(:), pointer :: clr_sets
+      type(integer_set), dimension(:), pointer :: colours
       integer :: clr, nnid, len, i
       integer :: num_threads, thread_num
       !! Did we successfully prepopulate the transform_to_physical_cache?
@@ -700,7 +700,7 @@
 
       call set_local_assembly(big_m, local_assembly)
 
-      call get_mesh_colouring(state, x%mesh, COLOURING_CG, clr_sets)
+      call get_mesh_colouring(state, u%mesh, COLOURING_CG1, colours)
       ! ----- Volume integrals over elements -------------
       
 #ifdef _OPENMP
@@ -714,11 +714,11 @@
 #else
     thread_num = 0
 #endif
-    colour_loop: do clr = 1, size(clr_sets)
-      len = key_count(clr_sets(clr))
+    colour_loop: do clr = 1, size(colours)
+      len = key_count(colours(clr))
       !$OMP DO SCHEDULE(STATIC)
       element_loop: do nnid = 1, len
-         ele = fetch(clr_sets(clr), nnid)
+         ele = fetch(colours(clr), nnid)
          call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, visc_inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, p, &

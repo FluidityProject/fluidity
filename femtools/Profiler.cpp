@@ -28,9 +28,16 @@
 
 #include "Profiler.h"
 
+#ifdef HAVE_LIBNUMA
+#include <numa.h>
+#include <numaif.h>
+#include <sys/resource.h>
+#endif 
+
 using namespace std;
 
-Profiler::Profiler(){}
+Profiler::Profiler(){
+}
 
 Profiler::~Profiler(){}
 
@@ -77,7 +84,25 @@ void Profiler::zero(const std::string &key){
   timings[key].second = 0.0;
 }
 
-// Opaque instance of profiler.
+int Profiler::minorpagefaults(){
+  int faults = -99;
+#ifdef HAVE_LIBNUMA
+  getrusage(RUSAGE_SELF, &flprofiler.usage);
+  faults = flprofiler.usage.ru_minflt;
+#endif
+  return faults;
+}
+
+int Profiler::majorpagefaults(){
+  int faults = -99;
+#ifdef HAVE_LIBNUMA
+  getrusage(RUSAGE_SELF, &flprofiler.usage);
+  faults = flprofiler.usage.ru_majflt;
+#endif
+  return faults;
+}
+
+// Opaque instances of profiler.
 Profiler flprofiler;
 
 // Fortran interface
@@ -101,4 +126,15 @@ extern "C" {
   void cprofiler_zero_fc(){
     flprofiler.zero();
   }
+
+#define cprofiler_minorpagefaults_fc F77_FUNC(cprofiler_minorpagefaults, CPROFILER_MINORPAGEFAULTS)
+  void cprofiler_minorpagefaults_fc(int *faults){
+    *faults = flprofiler.minorpagefaults();
+  }
+
+#define cprofiler_majorpagefaults_fc F77_FUNC(cprofiler_majorpagefaults, CPROFILER_MAJORPAGEFAULTS)
+  void cprofiler_majorpagefaults_fc(int *faults){
+    *faults = flprofiler.majorpagefaults();
+  }
+
 }

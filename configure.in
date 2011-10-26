@@ -1500,6 +1500,20 @@ if test "$enable_hyperlight" = "yes"; then
   ])
 fi
 
+#***** LIBNUMA *****
+
+AC_ARG_WITH(libnuma,
+[AC_HELP_STRING([--with-libnuma@<:@=libnuma_library@:>@],
+		[specify the path to libnuma, e.g. -L/usr/lib])])
+
+if test -n "$with_libnuma"; then
+   AC_MSG_NOTICE([Linking against $with-libnuma])
+   LIBS="$with_libnuma -lnuma $LIBS"
+   CPPFLAGS="-DHAVE_LIBNUMA $CPPFLAGS"
+fi
+
+#*******************
+
 AC_OUTPUT(Makefile
           debug/Makefile
           bathymetry/Makefile

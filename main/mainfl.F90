@@ -52,12 +52,17 @@ subroutine mainfl() bind(C)
   ierr = Zoltan_Initialize(ver)  
   assert(ierr == ZOLTAN_OK)
 #endif
+
+#ifdef HAVE_LIBNUMA
+  ! create file to output profiler information to
+  open(unit=20, file="profile.txt", status="replace", action="write")
+#endif
   
   ! Establish signal handlers
   call initialise_signals()
 
   call tictoc_reset()
- 
+
   if(have_option("/model/fluids/pod")) then
      !######################################################
      !       Reduced Fluidity Model
@@ -76,7 +81,10 @@ subroutine mainfl() bind(C)
      ewrite(1, *) "Exited fluids"
      call toc(TICTOC_ID_SIMULATION)
      call tictoc_report(2, TICTOC_ID_SIMULATION)
-     
+
+     ! Close profile.txt
+     close(20)
+
   end if
 
   if(SIG_INT) then
