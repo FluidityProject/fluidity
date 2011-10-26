@@ -415,7 +415,7 @@
         <vector_field name="MomentumFlux" rank="1">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="CoordinateMesh"/>
+            <mesh name="VelocityMesh"/>
             <output/>
             <stat/>
             <convergence>
@@ -432,7 +432,7 @@
         <scalar_field name="HeatFlux" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
-            <mesh name="CoordinateMesh"/>
+            <mesh name="VelocityMesh"/>
             <output/>
             <stat/>
             <convergence>
