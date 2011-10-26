@@ -448,22 +448,18 @@ contains
     type(tensor_field), pointer :: read_field
     character(len = OPTION_PATH_LEN) :: filename
     logical :: checkpoint_exists
-<<<<<<< TREE
     integer :: i
+    integer :: stat
+
+    stat = 1
 
     do i = 1, option_count("/geometry/mesh")
       if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
-        call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename)
+        call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename, stat)
         ewrite(2,*) "mesh from file: ", filename
       end if
     end do
-=======
-    integer :: stat
-    
-    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename, stat)
     if (stat /= 0) return
->>>>>>> MERGE-SOURCE
 
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
