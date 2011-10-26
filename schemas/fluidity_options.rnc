@@ -286,9 +286,23 @@ start =
                      )
                   }
                )*,
+               (
+                  ## By default Fluidity will fail if a detector has left the domain.
+                  element fail_outside_domain {
+                     empty
+                  }|
+                  ## Enable to write NaN values to detector output if a detector has left the domain.
+                  element write_nan_outside_domain {
+                     empty
+                  }
+               ),
                ## Enable to write detector output in binary format
                element binary_output {
                   comment
+               }?,
+               ## Enable to let detectors move with the domain if mesh_movement is enabled.
+               element move_with_mesh {
+                  empty
                }?,
                lagrangian_timestepping?
             }?, 

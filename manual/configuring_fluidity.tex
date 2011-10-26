@@ -270,10 +270,6 @@ There are further options under individual fields, for example to exclude data f
 
 \subsubsection{Detectors}
 \index{detectors!options}\label{detectors_options}
-Note that the algorithm used to determine the element containing a detector (of
-any kind) assumes that the detector is known to be within the simulation domain.
-For points outside the simulation domain the field values will be extrapolated
-if within 0.1 (in ideal space) from any element, or set to zero otherwise.
 
 Detectors are set in Diamond with the \option{/io/detectors} option. The detectors can be set to be static detectors, \option{/io/detectors/static\_detector}, Lagrangian detectors \\
 \option{/io/detectors/lagrangian\_detector} or an array of detectors, \\
@@ -338,6 +334,20 @@ been indicated in \option{/simulation\_name}. If binary output
 \option{name\_of\_simulation.detectors.dat} and in this case \option{name\_of\_simulation.detectors} contains only the header with the
 information about the detectors (name of each detector, in which column the
 position of each detector is stored, etc.).
+
+Note that the algorithm used to determine the element containing a detector (of
+any kind) assumes that the detector is known to be within the simulation domain.
+The option \option{/fail\_outside\_domain} will cause Fluidity to fail if a detector
+is found to be outside the domain boundaries. 
+This option should be the default choice when creating new simulations.
+If detectors are intended to temporarily reside outside of the domain the option
+\option{/write\_nan\_outside\_domain} will cause Fluidity to write "NaN" values 
+to the detector output in this case.
+
+If \option{/move\_with\_mesh} is selected with any mesh movement algorithm the 
+detectors will move according to the mesh displacement. 
+That is to say that a static detector will remain static with reference to the 
+domain boundaries rather than its true physical coordinates.
 
 \subsubsection{Log output}
 

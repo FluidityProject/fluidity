@@ -97,6 +97,7 @@
   return output1</string_value>
         </python>
       </detector_array>
+      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
