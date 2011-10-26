@@ -384,10 +384,10 @@ tensor:
 \end{align}
 Equation \eqref{eqn:defin_sgs_stress_tensor} above also introduces the Leonard decomposition
 \citep{leonard1974} also known as the triple decomposition. The Leonard term $L_{ij}$ represents
-the effect of resolved-resolved scale interations on $\tau_{ij}$, the cross term
+the effect of resolved-resolved scale iterations on $\tau_{ij}$, the cross term
 $C_{ij}$ represent the resolved-subgrid scale interactions and 
 the Reynolds term, $R_{ij}$, represents the subgrid-subgrid scale interactions.
-The Leonard and cross terms are usualy assumed to be much smaller than the Reynolds term, leading to:
+The Leonard and cross terms are usually assumed to be much smaller than the Reynolds term, leading to:
 \begin{equation}
 \tau_{ij} \approx R_{ij} = \widetilde{u_i^\prime u_j^\prime}
 \label{eqn:sgs_stress_approx}
@@ -469,9 +469,9 @@ The fourth-order method is designed as an improvement to the second-order eddy v
 
 \subsubsection{Dynamic Smagorinsky model}
 
-The most important disadvantage of Smagorinsky-type models such as discussed in sections \ref{ssect:second_order_diss_LES} and \ref{ssect:fourth_order_diss_LES} is the behaviour of the eddy viscosity near walls and non-turbulent regions. As shown in \citet{pope2000}, in a fully developed channel flow the sub-grid eddy viscosity $\nu_\tau$ should diminish as $\nu_\tau \propto z^3$, $z$ the wall-normal coordinate. Conversely, it is shown in \citet{nicoud1999} that the Smagorinsky model gives $\sqrt{2 \tilde{S}_{ij} \tilde{S}_{ij}} \sim O(1)$ near walls leading to an incorrect subgrid-scale viscosity. In addition, the Smagorinsky model is absolutelly dissipative: energy transfer is olny allowed from resolved scales to subgrid scales. The opposite (commonly termed as backscatter), commonly occurs in transitional flows, and absolutelly dissipative models have been shown in \citet{piomelli1990} to under-predict the growth rate of perturbations in the flow, leading to delayed transition to turbulence.%check
+The most important disadvantage of Smagorinsky-type models such as discussed in sections \ref{ssect:second_order_diss_LES} and \ref{ssect:fourth_order_diss_LES} is the behaviour of the eddy viscosity near walls and non-turbulent regions. As shown in \citet{pope2000}, in a fully developed channel flow the sub-grid eddy viscosity $\nu_\tau$ should diminish as $\nu_\tau \propto z^3$, $z$ the wall-normal coordinate. Conversely, it is shown in \citet{nicoud1999} that the Smagorinsky model gives $\sqrt{2 \tilde{S}_{ij} \tilde{S}_{ij}} \sim O(1)$ near walls leading to an incorrect subgrid-scale viscosity. In addition, the Smagorinsky model is absolutely dissipative: energy transfer is only allowed from resolved scales to subgrid scales. The opposite (commonly termed as backscatter), commonly occurs in transitional flows, and absolutely dissipative models have been shown in \citet{piomelli1990} to under-predict the growth rate of perturbations in the flow, leading to delayed transition to turbulence.%check
 \par
-Dynamical models were designed to overcome the disadvantages of Smagorinsky type models by using arguments with better physical grounding as a starting point towards the evaluation of the subgrid viscosity. In particular, at the core of dymamical Smagorinsky type models lies the idea of scale similarity \citep{bardina1980}, which states that in the inertial subrange, the statistical properties of the fluctuations at a given wave-number are similar to the statistical properties of fluctuations of near-by wavenumbers.
+Dynamical models were designed to overcome the disadvantages of Smagorinsky type models by using arguments with better physical grounding as a starting point towards the evaluation of the subgrid viscosity. In particular, at the core of dynamical Smagorinsky type models lies the idea of scale similarity \citep{bardina1980}, which states that in the inertial subrange, the statistical properties of the fluctuations at a given wave-number are similar to the statistical properties of fluctuations of near-by wavenumbers.
 
 \section{Ice shelf parameterisation}
 Exchange of heat and salt between the ice and ocean drives the circulation.
@@ -487,7 +487,7 @@ T_b = aS_b+b + cP,
 \label{last}
 \end{equation}
 where $a=-0.0573 ^\circ C$, $b=0.0832 ^\circ C$ and $c=-7.53e^{-8}~^\circ C~Pa^{-1} $.
-The three unknows $T_b$, $S_b$, and $m$ are solved by the three equations (\ref{three})-(\ref{last}). 
+The three unknowns $T_b$, $S_b$, and $m$ are solved by the three equations (\ref{three})-(\ref{last}). 
 
 \subsection{Boundary condition at ice surface}
 At the ice surface, heat and salt fluxes to the ocean based on the melt rate are
