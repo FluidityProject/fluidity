@@ -1441,7 +1441,7 @@ Optional Packages:
   --with-arpack-lib[=<lib>]
                           specify arpack library
   --with-libnuma[=libnuma_library]
-                          specify the path to libnuma, e.g. -L/usr/lib
+                          specify the path to libnuma, e.g. -L/usr/lib -lnuma
 
 Some influential environment variables:
   F77         Fortran 77 compiler command
@@ -14861,17 +14861,15 @@ fi
 
 #***** LIBNUMA *****
 
-
 # Check whether --with-libnuma was given.
 if test "${with_libnuma+set}" = set; then :
   withval=$with_libnuma;
 fi
 
-
 if test -n "$with_libnuma"; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: Linking against $with-libnuma" >&5
 $as_echo "$as_me: Linking against $with-libnuma" >&6;}
-   LIBS="$with_libnuma -lnuma $LIBS"
+   LIBS="$with_libnuma $LIBS"
    CPPFLAGS="-DHAVE_LIBNUMA $CPPFLAGS"
 fi
 

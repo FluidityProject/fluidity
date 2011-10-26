@@ -704,6 +704,7 @@ contains
     do clr = 1, size(colours) 
       write(20,*) "Colour :: ", clr, & 
          " :: Number of minor page faults = ", minor_pagefaults(clr)
+      flush(20)
     end do
 #endif
 

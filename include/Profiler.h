@@ -55,6 +55,7 @@ class Profiler{
   void zero(const std::string&);
   int minorpagefaults();
   int majorpagefaults();
+  int getresidence(void *ptr);
 
 #ifdef HAVE_LIBNUMA
  public:

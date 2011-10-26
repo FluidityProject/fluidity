@@ -106,6 +106,7 @@ module fluids_module
   use multiphase_module
   use detector_parallel, only: deallocate_detector_list_array
 
+
   implicit none
 
   private
@@ -1011,7 +1012,7 @@ contains
           call deallocate(pod_state(i))
        end do
     end if
-
+    
     ! deallocate the pointer to the array of states and sub-state:
     deallocate(state)
     if(use_sub_state()) deallocate(sub_state)
