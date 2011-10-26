@@ -307,8 +307,8 @@ for i in range(field.node_count):
 
 There are three main types of offline diagnostics:
 \begin{itemize}
-\item fltools, section \ref{sect:fltools}: programs written in Fortran that are compiled by running \lstinline[language = XML]+make fltools+ on the command line in the top directory of the \fluidity source tree. The F90 source files can be found in \lstinline[language = XML]+tools+
-\item python scripts, section \ref{sect:diagnostics_useful_scripts}: scripts that can be run from the command line. They are found in \lstinline[language = XML]+scripts+
+\item fltools, section \ref{sect:fltools}: programs written in Fortran that are compiled by running \lstinline[language = bash]+make fltools+ on the command line in the top directory of the \fluidity\ source tree. The binaries are built in \lstinline[language = bash]+bin+. The F90 source files can be found in \lstinline[language = bash]+tools+
+\item python scripts, section \ref{sect:fltools}: run \lstinline[language = bash]+make fltools+ in the top directory of the \fluidity\ source tree and these will be found in the \lstinline[language = bash]+bin+. The source code can be found in \lstinline[language = bash]+tools+.
 \item python modules: modules that can be imported e.g. for use in a test case. They are found in \lstinline[language = XML]+python/fluidity/diagnostics+ and are imported with  \\ \lstinline[language = python]+import python.fluidity.diagnostics.modulename+
 \end{itemize}
 
@@ -318,7 +318,7 @@ There are three main types of offline diagnostics:
 \lstinline[language = bash]+vtktools.py+ is a set of python tools that allows you to analyse data from a vtu or pvtu. The tools are based on python vtk and the module can be found in \lstinline[language = bash]+python/+ directory of the \fluidity\ trunk. To extract the pressure and velocity fields from a vtu, for example, use
 \begin{lstlisting}[language = Python]
 import sys
-sys.path.append(<<fluidity_source_path>>/python/')
+sys.path.append('fluidity\_source\_path/python/') 
 
 import vtktools
 data = vtktools.vtu('example.vtu')
@@ -414,26 +414,27 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 %
 % 
 %
+ &  & \\ \hline
   functions & arguments & use \\ \hline 
 %
 \lstinline[language=Python]+VtuDiff+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+filename=None+ & Generates a vtu with fields that are the difference between the field values in the two supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+. Fields that are not common between the two vtus are neglected. If the cell points of the vtus do not match then the fields of \lstinline[language=Python]+vtu2+ are projected onto the cell points of \lstinline[language=Python]+vtu1+. \\ \hline
 %
-\lstinline[language=Python]+VtuMatchLocations+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations must be in the same order. \\ \hline
+\lstinline[language=Python]+VtuMatchLocations+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=+ \lstinline[language=Python]+9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations must be in the same order. \\ \hline
 %
-\lstinline[language=Python]+VtuMatchLocationsArbitrary+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations may be in a different order. \\ \hline
-\lstinline[language=Python]+arr+ & \lstinline[language=Python]+object,+ \lstinline[language=Python]+dtype=None,+ \lstinline[language=Python]+copy=True,+ \lstinline[language=Python]+order+None,+ \lstinline[language=Python]+subok=False,+ \lstinline[language=Python]+ndim=True+ & Creates an array from \lstinline[language=Python]+object+, where \lstinline[language=Python]+object+ must be an array, any object exposing the array interface, an object whose \lstinline[language=Python]+_array_+ method returns an array, or any (nested) sequence. \\
-& & \lstinline[language=Python]+dtype+: data--type, optional. The desired data--type for the array. If not given (the default), then the type will be determined as the minimum type required to hold the objects in the sequence. This argument can only be used to `upcast' the array. For downcasting use the \lstinline[language=Python]+.astype(t)+ method. \\
-& & \lstinline[language=Python]+copy+: bool, optional. If \lstinline[language=Python]+True+ (default), then the object is copied. Otherwise, a copy will only be made if \lstinline[language=Python]+_array_+ returns a copy, if \lstinline[language=Python]+object+ is a nested sequence, or if a copy is needed to satisfy any of the other requirements. \\
-& & \lstinline[language=Python]+order+: \{`\lstinline[language=Python]+C+', `\lstinline[language=Python]+F+', `\lstinline[language=Python]+A+'\}, optional. Specify the order of the array. If order is \lstinline[language=Python]+`C'\lstinline[language=Python]+ (default), then the array will be in `\lstinline[language=Python]+C+'--contiguous order (last--index varies the fastest). If order is `\lstinline[language=Python]+F+' then the returned array will be in Fortran--contiguous order (first--index varies the fastest). If order is `\lstinline[language=Python]+A+', then the returned array may be in any order (either C--, Fortrain--contiguous, or even discontiguous). \\
-& & \lstinline[language=Python]+subok+: bool, optional. If \lstinline[language=Python]+True+, then sub--classes will be passed--through, otherwise the returned array will be forced to be a base--class array (default). \\
-& & \lstinline[language=Python]+ndim+: int, optional. Specifies the minimum number of dimensions that the resulting array should have. Ones will be pre--prended to the shape as needed to meet this requirement. \\
-& & For examples see the module help information. \\
+\lstinline[language=Python]+VtuMatchLocationsArbitrary+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=+ \lstinline[language=Python]+9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations may be in a different order. \\ \hline
+\lstinline[language=Python]+arr+ & \lstinline[language=Python]+object,+ \lstinline[language=Python]+dtype=None,+ \lstinline[language=Python]+copy=True,+ \lstinline[language=Python]+order=None,+ \lstinline[language=Python]+subok=False,+ \lstinline[language=Python]+ndim=True+ & Creates an array from \lstinline[language=Python]+object+, where \lstinline[language=Python]+object+ must be an array, any object exposing the array interface, an object whose \lstinline[language=Python]+_array_+ method returns an array, or any (nested) sequence. \\
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+dtype+: data--type, optional. The desired data--type for the array. If not given (the default), then the type will be determined as the minimum type required to hold the objects in the sequence. This argument can only be used to `upcast' the array. For downcasting use the \lstinline[language=Python]+.astype(t)+ method.} \\
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+copy+: bool, optional. If \lstinline[language=Python]+True+ (default), then the object is copied. Otherwise, a copy will only be made if \lstinline[language=Python]+_array_+ returns a copy, if \lstinline[language=Python]+object+ is a nested sequence, or if a copy is needed to satisfy any of the other requirements.} \\
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+order+: \{`\lstinline[language=Python]+C+', `\lstinline[language=Python]+F+', `\lstinline[language=Python]+A+'\}, optional. Specify the order of the array. If order is `\lstinline[language=Python]+C+' (default), then the array will be in `\lstinline[language=Python]+C+'--contiguous order (last--index varies the fastest). If order is `\lstinline[language=Python]+F+' then the returned array will be in Fortran--contiguous order (first--index varies the fastest). If order is `\lstinline[language=Python]+A+', then the returned array may be in any order (either C--, Fortrain--contiguous, or even discontiguous).} \\ 
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+subok+: bool, optional. If \lstinline[language=Python]+True+, then sub--classes will be passed--through, otherwise the returned array will be forced to be a base--class array (default).} \\ 
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+ndim+: int, optional. Specifies the minimum number of dimensions that the resulting array should have. Ones will be pre--prended to the shape as needed to meet this requirement.} \\
+& \multicolumn{2}{p{1.05\textwidth}|}{For examples see the module help information.} \\ \hline
 
 %
 %
 %
-\caption[Table of vtktools]{Table of tools available in vtktools for extraction and analysis of data in vtu and pvtu files. The tools which are methods can be applied to an object created from a vtu or pvtu with \lstinline[language=Python]+data = vtktools.vtu('example.vtu')+. The methods can then be used with \lstinline[language=Python]+data.method(arguments)+. Note only the \lstinline[language=Python]+Write+ method can change the original vtu pr pvtu. The functions are used as usual \lstinline[language=Python]+python+ functions. See section \ref{sect:diagnostics_vtk_tools}, the \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, the postprocessing python scripts in the examples, and the test cases for further examples of use. The list can also be obtained in a ipython session with the command \lstinline[language=Python]+help(vtktools)+.}
-
+\caption[Table of vtktools]{Table of tools available in vtktools for extraction and analysis of data in vtu and pvtu files. The tools which are methods can be applied to an object created from a vtu or pvtu with \lstinline[language=Python]+data = vtktools.vtu('example.vtu')+. The methods can then be used with \lstinline[language=Python]+data.method(arguments)+. Note only the \lstinline[language=Python]+Write+ method can change the original vtu pr pvtu. The functions are used as usual \lstinline[language=Python]+python+ functions. See section \ref{sect:diagnostics_vtk_tools}, the \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, the postprocessing python scripts in the examples, the test cases and the source code for the python tools in \lstinline[language = bash]+ tools+ for further examples of use. The list can also be obtained in a ipython session with the command \lstinline[language=Python]+help(vtktools)+.}
+\label{table:vtktools_list}
 \end{longtable}
 \end{landscape}
 
