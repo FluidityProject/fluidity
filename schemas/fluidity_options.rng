@@ -2412,153 +2412,56 @@ in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
   </start>
   <define name="sediment">
     <element name="sediment">
-      <a:documentation>A simple sediment model in which different classes of sediment fall 
-and diffuse at different rates.</a:documentation>
-      <element name="scalar_field">
-        <a:documentation>This field is the basis for all sediment fields. Each
-sediment class has a sediment field with name
-SedimentClassName where ClassName is the name of the
-class.
+      <a:documentation>A sediment model. See the manual for details on how to use this model.</a:documentation>
+      <oneOrMore>
+        <element name="scalar_field">
+          <a:documentation>A single sediment field with discrete characteristics
 
-By default, all sediment classes have exactly the same
-characteristics, however each class can be given its own
-settling velocity, diffusivity and initial condition under
-the sediment_class element and this will override the
-default specified here.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>SedimentTemplate</value>
-        </attribute>
-        <element name="prognostic">
-          <a:documentation>Field type</a:documentation>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="prognostic_scalar_field"/>
-        </element>
-        <optional>
-          <element name="density">
-            <a:documentation>This is the density of this sediment. It will be used
-with the sediment concentration in the equation of state.
-Density must be specified here or for each sediment class.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="diameter">
-            <a:documentation>This is the diameter of the grain in mm.
-Diameter must be specified here or under each sediment class.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="porosity">
-            <a:documentation>Set porosity to use. Default is 0.3. 1.0 is a sold material.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="erodability">
-            <a:documentation>Erodability of the sediment grain. A value of one means that only the
-critical shear stress is used to determine if a grain can be put into 
-suspension. A value of zero means these grains can never be resuspended.
-Default is 1.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="critical_shear_stress">
-            <a:documentation>Critical shear stress of a grain. If not switched on a value
-will be computed according to the particle Reynolds number and Shield's
-criterion. Otherwise inoput a value in Nm-1</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>This field is the template for the sediment deposition
-diagnostic which records the sediment deposited through the prescribed boundary.
+Notes: 
+
+- a sinking velocity is required for sediment fields, this can be set for each
+sediment field under prognostic/SinkingVelocity
+
+- continuity must be the same for all fields. i.e. use the same mesh for all fields
+
+- rentrainment bc's can be used to allow sediment to be picked up from the bed
+due to turbulence. This must be set on the same boundaries as the SedimentDepositon
+field
+
+- see the manual for details on how to use this field type </a:documentation>
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <data type="string" datatypeLibrary=""/>
+          </attribute>
+          <element name="prognostic">
+            <a:documentation>Field type</a:documentation>
+            <ref name="velocity_mesh_choice"/>
+            <ref name="prognostic_scalar_field"/>
+            <element name="scalar_field">
+              <a:documentation>Sediment deposition diagnostic which records the sediment 
+deposited through the prescribed boundary.
 
 The units are in unit distances as a depth of sediment.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>SedimentDepositionTemplate</value>
-        </attribute>
-        <element name="diagnostic">
-          <a:documentation>Field type</a:documentation>
-          <element name="surface_ids">
-            <a:documentation>Surface ids over which to calculate the deposition:</a:documentation>
-            <ref name="integer_vector"/>
-          </element>
-          <ref name="velocity_mesh_choice"/>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
-      </element>
-      <oneOrMore>
-        <element name="sediment_class">
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-          <zeroOrMore>
-            <ref name="initial_condition_scalar"/>
-          </zeroOrMore>
-          <zeroOrMore>
-            <ref name="scalar_boundary_conditions"/>
-          </zeroOrMore>
-          <optional>
-            <element name="tensor_field">
-              <a:documentation>Diffusivity for sediment class</a:documentation>
-              <attribute name="name">
-                <value>Diffusivity</value>
-              </attribute>
-              <attribute name="rank">
-                <value>2</value>
-              </attribute>
-              <choice>
-                <element name="prescribed">
-                  <optional>
-                    <ref name="mesh_choice"/>
-                  </optional>
-                  <ref name="prescribed_tensor_field_no_adapt"/>
-                </element>
-                <element name="diagnostic">
-                  <ref name="tensor_python_diagnostic_algorithm"/>
-                  <ref name="diagnostic_tensor_field"/>
-                </element>
-              </choice>
-            </element>
-          </optional>
-          <optional>
-            <element name="scalar_field">
-              <a:documentation>Velocity at which this sediment sinks through the water column.
-
-This velocity is in the direction of gravity so if the substance
-floats upwards, this field should be negative.
-
-This filed can be diagnostic, in which case a hindered sinking velocity is calculated. 
-If this is the case an unhindered sinking velocity field is required for this sediment class.</a:documentation>
-              <attribute name="name">
-                <value>SinkingVelocity</value>
-              </attribute>
               <attribute name="rank">
                 <value>0</value>
               </attribute>
-              <choice>
-                <element name="prescribed">
-                  <ref name="prescribed_scalar_field_no_adapt"/>
+              <attribute name="name">
+                <value>SedimentDeposition</value>
+              </attribute>
+              <element name="diagnostic">
+                <a:documentation>Field type</a:documentation>
+                <element name="surface_ids">
+                  <a:documentation>Surface ids over which to calculate the deposition:</a:documentation>
+                  <ref name="integer_vector"/>
                 </element>
-                <element name="diagnostic">
-                  <ref name="internal_algorithm"/>
-                  <ref name="diagnostic_scalar_field_no_adapt"/>
-                </element>
-              </choice>
+                <ref name="diagnostic_scalar_field"/>
+              </element>
             </element>
-          </optional>
-          <optional>
-            <element name="scalar_field">
-              <a:documentation>This is the unhindered sinking velocity of the sediment particles. 
+            <optional>
+              <element name="scalar_field">
+                <a:documentation>This is the unhindered sinking velocity of the sediment particles. 
 
 With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
 concentration, to calculate the hindered sinking velocity of sediment particles. 
@@ -2569,47 +2472,56 @@ If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
 
 As with the sinking velocity, this velocity is in the direction of gravity so if the substance
 floats upwards, this field should be negative.</a:documentation>
-              <attribute name="name">
-                <value>UnhinderedSinkingVelocity</value>
-              </attribute>
-              <attribute name="rank">
-                <value>0</value>
-              </attribute>
-              <element name="prescribed">
-                <ref name="prescribed_scalar_field_no_adapt"/>
+                <attribute name="name">
+                  <value>UnhinderedSinkingVelocity</value>
+                </attribute>
+                <attribute name="rank">
+                  <value>0</value>
+                </attribute>
+                <element name="prescribed">
+                  <ref name="prescribed_scalar_field_no_adapt"/>
+                </element>
               </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="density">
-              <a:documentation>This is the density of this sediment. It will be used
-with the sediment concentration in the equation of state.</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="diameter">
-              <a:documentation>This is the diamter of the grain in mm</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="erodability">
-              <a:documentation>Erodability of the sediment grain. A value of one means that only the
+            </optional>
+            <optional>
+              <element name="density">
+                <a:documentation>This is the density of this sediment. It will be used
+with the sediment concentration in the equation of state.
+Density must be specified here or for each sediment class.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="diameter">
+                <a:documentation>This is the diameter of the grain in mm.
+Diameter must be specified here or under each sediment class.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="porosity">
+                <a:documentation>Set porosity to use. Default is 0.3. 1.0 is a sold material.</a:documentation>
+                <ref name="real"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="erodability">
+                <a:documentation>Erodability of the sediment grain. A value of one means that only the
 critical shear stress is used to determine if a grain can be put into 
 suspension. A value of zero means these grains can never be resuspended.
 Default is 1.</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="critical_shear_stress">
-              <a:documentation>Critical shear stress of a grain. If not switched on a value
+                <ref name="real"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="critical_shear_stress">
+                <a:documentation>Critical shear stress of a grain. If not switched on a value
 will be computed according to the particle Reynolds number and Shield's
 criterion. Otherwise inoput a value in Nm-1</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
+                <ref name="real"/>
+              </element>
+            </optional>
+          </element>
         </element>
       </oneOrMore>
     </element>

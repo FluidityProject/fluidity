@@ -32,8 +32,8 @@ module equation_of_state
   use fields
   use state_module
   use global_parameters, only: OPTION_PATH_LEN
+  use sediment, only: get_n_sediment_fields, get_sediment_field_name
   use spud
-  use sediment, only: get_sediment_name, get_nSediments
   implicit none
   
   private
@@ -54,12 +54,12 @@ contains
     type(scalar_field), pointer:: T, S, oldT, oldS, topdis
     type(scalar_field) DeltaT, DeltaS, remapT, remapS, fluidconcentration,&
          & sedimentdensity
-    character(len=OPTION_PATH_LEN) option_path, dep_option_path, class_name
+    character(len=OPTION_PATH_LEN) option_path, dep_option_path, sediment_field_name
     logical, dimension(:), allocatable:: done
     logical include_depth_below
     real T0, S0, gamma, rho_0, salt, temp, dist, dens, theta
     integer, dimension(:), pointer:: density_nodes
-    integer ele, i, node, nSediments
+    integer ele, i, node, n_sediment_fields
     
     ewrite(1,*) 'In calculate_perturbation_density'
     
@@ -184,13 +184,14 @@ contains
             "FluidConcentration")
        call zero(sedimentdensity)
        call set(fluidconcentration, 1.0)
-       nSediments=get_nSediments()
 
-       do i=1,nSediments
+       n_sediment_fields = get_n_sediment_fields()
 
-          class_name = get_sediment_name(i)
+       do i=1,n_sediment_fields
+       
+          sediment_field_name = get_sediment_field_name(i)
 
-          S=>extract_scalar_field(state,trim(class_name))
+          S=>extract_scalar_field(state,trim(sediment_field_name))
           option_path = S%option_path
 
           call get_option(trim(option_path)//'/density', gamma)
@@ -199,7 +200,7 @@ contains
           gamma=rho_0*(gamma/1000.0) - rho_0
 
           oldS => extract_scalar_field(state, &
-               "Old"//trim(class_name))
+               "Old"//trim(sediment_field_name))
           
           ! deltaS=theta*S+(1-theta)*oldS-S0
           call remap_field(S, remapS)

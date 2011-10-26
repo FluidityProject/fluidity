@@ -44,7 +44,7 @@ module momentum_diagnostics
   use spud
   use state_fields_module
   use state_module
-  use sediment
+  use sediment, only : get_n_sediment_fields, get_sediment_field_name
   
   implicit none
   
@@ -101,25 +101,25 @@ contains
     type(tensor_field), pointer :: zero_conc_viscosity
     type(scalar_field) :: rhs
     integer :: sediment_classes, i
-    character(len = OPTION_PATH_LEN) :: class_name
+    character(len = OPTION_PATH_LEN) :: field_name
     
     ewrite(1,*) 'In calculate sediment concentration dependent viscosity'
 
-    sediment_classes = get_nSediments()
+    sediment_classes = get_n_sediment_fields()
 
     if (sediment_classes > 0) then
         allocate(sediment_concs(sediment_classes))
         
-        class_name=get_sediment_name(1)
-        sediment_concs(1)%ptr => extract_scalar_field(state,trim(class_name))
+        field_name = get_sediment_field_name(1)
+        sediment_concs(1)%ptr => extract_scalar_field(state,trim(field_name))
         
         call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
         call set(rhs, 1.0)
         
         ! get sediment concentrations and remove c/0.65 from rhs
         do i=1, sediment_classes
-           class_name=get_sediment_name(i)
-           sediment_concs(i)%ptr => extract_scalar_field(state,trim(class_name))
+           field_name=get_sediment_field_name(i)
+           sediment_concs(i)%ptr => extract_scalar_field(state,trim(field_name))
            call addto(rhs, sediment_concs(i)%ptr, scale=-(1.0/0.65))
         end do
         
@@ -128,6 +128,12 @@ contains
            call set(rhs, i, node_val(rhs, i)**(-1.625))
         end do
         
+        ! check for presence of ZeroSedimentConcentrationViscosity field
+        if (.not. have_option('/material_phase[0]/tensor_field::&
+             &&ZeroSedimentConcentrationViscosity')) then
+           FLExit("You must specify an zero sediment concentration viscosity to be able &&
+                && to calculate sediment concentration dependent viscosity field values")
+        endif
         zero_conc_viscosity => extract_tensor_field(state, 'ZeroSedimentConcentrationViscosity')
         
         call set(t_field, zero_conc_viscosity)

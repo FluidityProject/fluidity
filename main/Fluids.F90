@@ -935,10 +935,6 @@ contains
         call keps_cleanup()
     end if
 
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_cleanup()
-    end if
-
     ! closing .stat, .convergence and .detector files
     call close_diagnostic_files()
 
