@@ -29,6 +29,7 @@
 #include "Profiler.h"
 
 #ifdef HAVE_LIBNUMA
+#include <errno.h>
 #include <numa.h>
 #include <numaif.h>
 #include <sys/resource.h>
