@@ -1277,7 +1277,7 @@ temperature, \PSU{} for salt, \kgmm{} for density. The reference density is
 
 \subsection{GLS}
 
-This option enables the model described in section \ref{Sect:GLS}. There are a few different 
+This option enables the model described in section \ref{sec:GLS}. There are a few different 
 sub-options to configure. First, you must choose which GLS method to use 
 from $k-\epsilon$, $k-kl$, $k-\omega$ and $gen$. Next, the stability functions
 can be chosen. CanutoA or CanutoB are recommended. If you are running a 3D model, then switching on  
@@ -1314,10 +1314,10 @@ If these fields are not set correctly, a user error will occur.
 \index{turbulence model}
 \index{k-$\epsilon$ model}
 
-This option enables the turbulence model described in \ref{Sect:kepsilon}. It must not be confused with the
-$k-\epsilon$ option in the GLS model (see \ref{Sect:GLS}) which is only for oceans like problems.
+This option enables the turbulence model described in \ref{sec:kepsilon}. It must not be confused with the
+$k-\epsilon$ option in the GLS model (see \ref{sec:GLS}) which is only for oceans like problems.
 The user must select either implicit or explicit source and absorption terms via \option{\ldots/option}.
-If \option{explicit} is chosen, the source and absorption terms are as described in \ref{Sect:kepsilon}.
+If \option{explicit} is chosen, the source and absorption terms are as described in \ref{sec:kepsilon}.
 If \option{implicit} is chosen, the source and absorption terms are calculated as follows:
 \begin{align*}
 \textrm{source} &= -\min(0.0, \textrm{diss}-\textrm{prod}), \\
@@ -1646,7 +1646,7 @@ confined to the upper surface.
 \index{generic length scale model!boundary conditions}
 \index{boundary conditions!generic length scale model}
 
-The GLS model (see section \ref{Sect:GLS}) requires that Neumann boundary
+The GLS model (see section \ref{sec:GLS}) requires that Neumann boundary
 conditions are set for stability, however, the boundary conditions on the
 Generic Second Quantity ($\Psi$) depend on other modelled variables. In
 order for the boundary conditions to be set correctly, enable the \linebreak
@@ -1657,7 +1657,7 @@ option.
 \index{k-$\epsilon$ model!boundary conditions}
 \index{boundary conditions!k-$\epsilon$ model}
 
-The k-epsilon turbulence model (see section \ref{Sect:kepsilon}) should apply zero Dirichlet boundary
+The k-epsilon turbulence model (see section \ref{sec:kepsilon}) should apply zero Dirichlet boundary
 conditions to the TurbulentKineticEnergy ($k$) field. The TurbulentDissipation ($\epsilon$) field
 should use the special type of Dirichlet condition called \option{k\_epsilon} which is calculated in the
 k-epsilon module. To enable calculation of the boundary conditions on both fields, set the \linebreak
