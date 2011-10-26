@@ -124,7 +124,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.07995683520871486</real_value>
+      <real_value rank="0">0.007995683520871486</real_value>
       <comment>time/1000</comment>
     </timestep>
     <theta>
@@ -314,7 +314,7 @@ divided by 4</comment>
     </scalar_field>
     <scalar_field name="LayerThicknessDiff" rank="0">
       <diagnostic>
-        <algorithm name="scalar_sum" source_field_1_name="LayerThickness" source_field_2_name="InitialLayerThickness" source_field_2_type="scalar" material_phase_support="single" source_field_1_type="scalar"/>
+        <algorithm source_field_2_type="scalar" name="scalar_sum" source_field_1_name="LayerThickness" source_field_2_name="InitialLayerThickness" material_phase_support="single" source_field_1_type="scalar"/>
         <mesh name="PressureMesh"/>
         <output/>
         <stat/>

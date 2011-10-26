@@ -389,6 +389,28 @@
         </stat>
       </prescribed>
     </vector_field>
+    <vector_field name="VelocityDiff" rank="1">
+      <diagnostic>
+        <algorithm name="vector_difference" source_field_1_name="Velocity" source_field_2_name="PrescribedVelocityFromCommutingProjection" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </diagnostic>
+    </vector_field>
   </material_phase>
   <debug>
     <check_inverse_coriolis_matrix/>

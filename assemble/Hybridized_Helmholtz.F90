@@ -2126,7 +2126,7 @@ contains
        do gi = 1, ele_ngi(X,ele)
           ref_vec_gi(:,gi) = (/0,0,1/)
        end do
-       if(any(abs(sum(e_up_gi*ref_vec_gi,1))>0.999999)) then
+       if(any(abs(sum(e_up_gi*ref_vec_gi-1,1))<1.0e-8)) then
           !normal to the element and the ref vec too close
           do gi = 1, ele_ngi(X,ele)
              ref_vec_gi(:,gi) = (/0,1,0/)
@@ -2499,4 +2499,5 @@ contains
     end do
 
   end subroutine set_velocity_from_lat_long_ele
+
 end module hybridized_helmholtz

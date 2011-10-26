@@ -115,7 +115,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">100</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
@@ -135,8 +135,8 @@
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
     <finish_time>
-      <real_value rank="0">5000</real_value>
-      <comment>params["finish_time"]=4*2*pi*r0/c</comment>
+      <real_value rank="0">500000</real_value>
+      <comment>params["finish_time"]=400*2*pi*r0/c</comment>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -301,44 +301,6 @@
         <stat/>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="LayerThicknessP1dg" rank="0">
-      <diagnostic>
-        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="LayerThickness"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="LayerThicknessRHS" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.0</real_value>
-          </constant>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </prescribed>
     </scalar_field>
   </material_phase>
   <debug>
