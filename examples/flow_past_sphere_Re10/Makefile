@@ -7,7 +7,8 @@ run:
 	../../bin/fluidity -v2 -l flow_past_sphere_Re10.flml
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling the data extraction and plotting script
+	python ./plot_data.py
 
 input: clean preprocess
 

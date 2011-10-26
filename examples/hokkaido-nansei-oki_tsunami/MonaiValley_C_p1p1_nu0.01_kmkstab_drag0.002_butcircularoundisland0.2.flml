@@ -157,6 +157,7 @@ therefore we use: -0.2-6.0675000e-03+d0/2
 = -0.2060175</comment>
         </location>
       </static_detector>
+      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>

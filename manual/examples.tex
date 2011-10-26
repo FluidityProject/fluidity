@@ -1172,23 +1172,29 @@ The timestep is 7200 s and there are two non-linear iterations.  The timestep is
 
 \subsection{Results}
 
-Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at 40 m depth at 5 day intervals. As the column mixes with the surroundings, eddies are seen to form. If this is run with a different resolution, then a different number of eddies may form. If the resolution is too coarse, then no eddies will form at all.
+Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at $40$ m depth at days $10$, $20$, $30$ and $40$. As the column mixes with the surroundings, eddies form at the perimeter of the cylinder. These eddies play a role in the mixing. If this is run with a different resolution, then a different number of eddies may form. The mixing stats diagnostic allows us to quantify the amount of mixing that takes place. It calculates the volume of fluid that has a value of temperature (or other tracer) within certain user-specified bounds as a function of time, and saves this information in the stat file. Figure \ref{fig:rousset-mixing} shows the output from this diagnostic, plotted using the python file provided in the examples directory. The temperature is in units from $0$ to $0.72$. The $0.7$--$0.8$ bin decreases in volume during the course of the simulation because the cold cylinder is mixing with the surrounding stratified fluid.
 
-You might wish to try spinning up before you run this problem.  First run to a steady state with fixed temperature and then run the prognostic simulation from your checkpoints.
 
 \begin{figure}[h!]
 \begin{center}
-\subfigure [0 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0001.png}}
-\subfigure [5 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0002.png}}
-\subfigure [10 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0003.png}}
-\subfigure [15 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0004.png}}
-\subfigure [20 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0005.png}}
-\subfigure [25 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0006.png}}
-\subfigure [30 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0007.png}}
-\subfigure [35 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0008.png}}
-\subfigure [40 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0009.png}}
+\subfigure [10 days]{\includegraphics[width=4cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0003.png}}
+\hspace{1cm}
+\subfigure [20 days]{\includegraphics[width=4cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0005.png}}
+
+\subfigure [30 days]{\includegraphics[width=4cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0007.png}}
+\hspace{1cm}
+\subfigure [40 days]{\includegraphics[width=4cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0009.png}}
 \caption{The temperature cross-section at a depth of 40m.}
 \label{fig:rousset-40m}
+\end{center}
+\end{figure}
+
+
+\begin{figure}[h!]
+\begin{center}
+{\includegraphics[width=12cm]{examples_images/restratification_after_oodc/mixing_stats.png}}
+\label{fig:rousset-mixing}
+\caption{Results of the mixing stats diagnostic, showing how the temperature is mixed during the simulation. There is initially most water with a temperature of 0.7-0.8. This mixes during the course of the simulation.  }
 \end{center}
 \end{figure}
 
