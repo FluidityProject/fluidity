@@ -1588,7 +1588,7 @@ contains
             call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
             call remap_field_to_surface(p_position, position_remapped, &
                                         surface_element_list)
-            call project_field_dg_to_cg(heat_flux, scalar_surface, position_remapped)
+            call project_field(heat_flux, scalar_surface, position_remapped)
             call deallocate(position_remapped)
         else
             call remap_field(heat_flux, scalar_surface)
@@ -1618,7 +1618,7 @@ contains
             call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
             call remap_field_to_surface(p_position, position_remapped, &
                                         surface_element_list)
-            call project_field_dg_to_cg(salinity_flux, scalar_surface, position_remapped)
+            call project_field(salinity_flux, scalar_surface, position_remapped)
             call deallocate(position_remapped)
         else
             call remap_field(salinity_flux, scalar_surface)
@@ -1648,7 +1648,7 @@ contains
             call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
             call remap_field_to_surface(p_position, position_remapped, &
                                         surface_element_list)
-            call project_field_dg_to_cg(solar_flux, scalar_surface, position_remapped)
+            call project_field(solar_flux, scalar_surface, position_remapped)
             call deallocate(position_remapped)
         else
             call remap_field(solar_flux, scalar_surface)

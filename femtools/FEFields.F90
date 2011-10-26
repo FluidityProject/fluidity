@@ -19,14 +19,10 @@ module fefields
   interface project_field
      module procedure project_scalar_field, project_vector_field
   end interface
-
-  interface project_field_dg_to_cg
-      module procedure project_scalar_field_dg_to_cg, project_vector_field_dg_to_cg
-  end interface
   
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
-            compute_lumped_mass_on_submesh, project_field, project_field_dg_to_cg
+            compute_lumped_mass_on_submesh, project_field
 
 contains
 
@@ -284,6 +280,8 @@ contains
 
     type(scalar_field) ::  masslump
     integer :: ele
+    type(csr_matrix)   :: P
+    type(mesh_type)    :: dg_mesh, cg_mesh
 
 
     if(from_field%mesh==to_field%mesh) then
@@ -300,23 +298,28 @@ contains
           end do
 
        else
-          ! CG case
+          ! DG to CG case
+        
+          cg_mesh=to_field%mesh
 
-          call zero(to_field)
-          
-          call allocate(masslump, to_field%mesh, "MassLump")
-
-          call zero(masslump)
-
-          do ele=1,element_count(to_field)
-             call cg_projection_ele(ele, from_field, to_field, masslump, X)
-          end do
-
+          call allocate(masslump, cg_mesh, "LumpedMass")
+      
+          call compute_lumped_mass(X, masslump)
+          ! Invert lumped mass.
           masslump%val=1./masslump%val
 
+          dg_mesh=from_field%mesh
+      
+          P=compute_projection_matrix(cg_mesh, dg_mesh , X)
+      
+          call zero(to_field) 
+          ! Perform projection.
+          call mult(to_field, P, from_field)
+          ! Apply inverted lumped mass to projected quantity.
           call scale(to_field, masslump)
-          
+
           call deallocate(masslump)
+          call deallocate(P)
           
        end if
 
@@ -348,27 +351,6 @@ contains
 
     end subroutine dg_projection_ele
 
-    subroutine cg_projection_ele(ele, from_field, to_field, masslump, X)
-      integer :: ele
-      type(scalar_field), intent(in) :: from_field
-      type(scalar_field), intent(inout) :: to_field, masslump
-      type(vector_field), intent(in) :: X
-      
-      real, dimension(ele_ngi(to_field,ele)) :: detwei
-      type(element_type), pointer :: to_shape
-
-      to_shape=>ele_shape(to_field, ele)
-
-      call transform_to_physical(X, ele, detwei)
-
-      call addto(masslump, ele_nodes(to_field, ele), &
-           shape_rhs(to_shape, detwei))
-
-      call addto(to_field, ele_nodes(to_field, ele), &
-           shape_rhs(to_shape, ele_val(from_field, ele)*detwei))
-
-    end subroutine cg_projection_ele
-
   end subroutine project_scalar_field
   
   subroutine project_vector_field(from_field, to_field, X)
@@ -379,8 +361,11 @@ contains
     type(vector_field), intent(inout) :: to_field    
     type(vector_field), intent(in) :: X
 
-    type(scalar_field) ::  masslump
+    type(scalar_field) ::  masslump, dg_scalar, cg_scalar
     integer :: ele
+    type(csr_matrix)   :: P
+    type(mesh_type)    :: dg_mesh, cg_mesh
+    integer            :: j
 
     
     if(from_field%mesh==to_field%mesh) then
@@ -399,21 +384,32 @@ contains
        else
           ! CG case
 
-          call zero(to_field)
-          
-          call allocate(masslump, to_field%mesh, "MassLump")
+          cg_mesh=to_field%mesh
 
-          call zero(masslump)
-
-          do ele=1,element_count(to_field)
-             call cg_projection_ele(ele, from_field, to_field, masslump, X)
-          end do
-
+          call allocate(masslump, cg_mesh, "LumpedMass")
+      
+          call compute_lumped_mass(X, masslump)
+          ! Invert lumped mass.
           masslump%val=1./masslump%val
 
+          dg_mesh=from_field%mesh
+      
+          P=compute_projection_matrix(cg_mesh, dg_mesh, X)
+      
+          call zero(to_field) 
+          ! Perform projection.     
+          do j=1,to_field%dim
+              cg_scalar=extract_scalar_field_from_vector_field(to_field, j)
+              dg_scalar=extract_scalar_field_from_vector_field(from_field, j)
+              call mult(cg_scalar, P, dg_scalar)
+              call set(to_field, j, cg_scalar)
+          end do
+
+          ! Apply inverted lumped mass to projected quantity.
           call scale(to_field, masslump)
-          
+
           call deallocate(masslump)
+          call deallocate(P)
           
        end if
 
@@ -529,77 +525,5 @@ contains
     end do
       
   end subroutine add_source_to_rhs_vector
-
-  subroutine project_scalar_field_dg_to_cg(dg_field, cg_field, coords)
-
-        type(scalar_field) :: cg_field, dg_field
-        type(vector_field) :: coords
-
-        type(scalar_field) :: lumped_mass
-        type(csr_matrix)   :: P
-        type(mesh_type)    :: dg_mesh, cg_mesh
-        
-        cg_mesh=cg_field%mesh
-
-        call allocate(lumped_mass, cg_mesh, "LumpedMass")
-      
-        call compute_lumped_mass(coords, lumped_mass)
-        ! Invert lumped mass.
-        lumped_mass%val=1./lumped_mass%val
-
-        dg_mesh=dg_field%mesh
-      
-        P=compute_projection_matrix(cg_mesh, dg_mesh, coords)
-      
-        call zero(cg_field) 
-        ! Perform projection.
-        call mult(cg_field, P, dg_field)
-        ! Apply inverted lumped mass to projected quantity.
-        call scale(cg_field, lumped_mass)
-
-        call deallocate(lumped_mass)
-        call deallocate(P)
-
-    end subroutine project_scalar_field_dg_to_cg
-
-    subroutine project_vector_field_dg_to_cg(dg_field, cg_field, coords)
-
-        type(vector_field) :: cg_field, dg_field
-        type(vector_field) :: coords
-        type(scalar_field) :: cg_scalar, dg_scalar
-
-        type(scalar_field) :: lumped_mass
-        type(csr_matrix)   :: P
-        type(mesh_type)    :: dg_mesh, cg_mesh
-        integer            :: j
-        
-        cg_mesh=cg_field%mesh
-
-        call allocate(lumped_mass, cg_mesh, "LumpedMass")
-      
-        call compute_lumped_mass(coords, lumped_mass)
-        ! Invert lumped mass.
-        lumped_mass%val=1./lumped_mass%val
-
-        dg_mesh=dg_field%mesh
-      
-        P=compute_projection_matrix(cg_mesh, dg_mesh, coords)
-      
-        call zero(cg_field) 
-        ! Perform projection.     
-        do j=1,cg_field%dim
-            cg_scalar=extract_scalar_field_from_vector_field(cg_field, j)
-            dg_scalar=extract_scalar_field_from_vector_field(dg_field, j)
-            call mult(cg_scalar, P, dg_scalar)
-            call set(cg_field, j, cg_scalar)
-        end do
-
-        ! Apply inverted lumped mass to projected quantity.
-        call scale(cg_field, lumped_mass)
-
-        call deallocate(lumped_mass)
-        call deallocate(P)
-
-    end subroutine project_vector_field_dg_to_cg
 
 end module fefields
