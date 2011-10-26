@@ -11,6 +11,14 @@
       <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
+      <from_mesh>
+        <mesh name="externalMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="externalMesh">
       <from_file file_name="cube-1">
         <format name="triangle"/>
         <stat>

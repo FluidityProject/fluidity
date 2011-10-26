@@ -338,9 +338,10 @@ This performs the following steps
 A full list of the available tools is given in table \ref{table:vtktools_list}. A summary can also be obtained by typing \lstinline[language=Python]+help(vtktools)+ in an ipython session.  Further examples of use can be found in the online at \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, in the python scripts used for postprocessing of the examples and in the test cases.
  
 \begin{landscape}
-\begin{longtable}{|c | p{0.3\textwidth}| |p{0.75\textwidth}|} \hline
+\begin{longtable}{|c | p{0.3\textwidth} |p{0.75\textwidth}|} 
+\hline
 \centering
-  method & arguments & use \\ \hline
+  method & arguments & use \\ \hline 
 \lstinline[language=Python]+AddField+ & \lstinline[language=Python]+name, array+ & Adds the values in \lstinline[language=Python]+array+ (the entries of which may have an arbitrary number of components) as a field called \lstinline[language=Python]+name+ \\ \hline
 %
 \lstinline[language=Python]+AddFieldtoField+ & \lstinline[language=Python]+fieldname,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName=None+ & Adds the values in \lstinline[language=Python]+array+ to the field \lstinline[language=Python]+fieldname+. If \lstinline[language=Python]+newFieldName+ is specified then a new field with that name is created with the new values, otherwise the original field is replaced. \\ \hline
@@ -413,8 +414,25 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 %
 % 
 %
+  functions & arguments & use \\ \hline 
 %
-\caption[Table of vtktools]{Table of tools available in vtktools for extraction and analysis of data in vtu and pvtu files. Each of these tools is a \lstinline[language=Python]+method+ which can be applied to an object created from a vtu or pvtu with \lstinline[language=Python]+data = vtktools.vtu('example.vtu')+. The methods can then be used with \lstinline[language=Python]+data.method(arguments)+. Note only the \lstinline[language=Python]+Write+ method can change the original vtu pr pvtu. See section \ref{sect:diagnostics_vtk_tools}, online at \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, in the postprocessing python scripts in the examples and the test cases for further examples of use. The list can also be obtained in a ipython session with the command \lstinline[language=Python]+help(vtktools)+.}
+\lstinline[language=Python]+VtuDiff+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+filename=None+ & Generates a vtu with fields that are the difference between the field values in the two supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+. Fields that are not common between the two vtus are neglected. If the cell points of the vtus do not match then the fields of \lstinline[language=Python]+vtu2+ are projected onto the cell points of \lstinline[language=Python]+vtu1+. \\ \hline
+%
+\lstinline[language=Python]+VtuMatchLocations+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations must be in the same order. \\ \hline
+%
+\lstinline[language=Python]+VtuMatchLocationsArbitrary+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations may be in a different order. \\ \hline
+\lstinline[language=Python]+arr+ & \lstinline[language=Python]+object,+ \lstinline[language=Python]+dtype=None,+ \lstinline[language=Python]+copy=True,+ \lstinline[language=Python]+order+None,+ \lstinline[language=Python]+subok=False,+ \lstinline[language=Python]+ndim=True+ & Creates an array from \lstinline[language=Python]+object+, where \lstinline[language=Python]+object+ must be an array, any object exposing the array interface, an object whose \lstinline[language=Python]+_array_+ method returns an array, or any (nested) sequence. \\
+& & \lstinline[language=Python]+dtype+: data--type, optional. The desired data--type for the array. If not given (the default), then the type will be determined as the minimum type required to hold the objects in the sequence. This argument can only be used to `upcast' the array. For downcasting use the \lstinline[language=Python]+.astype(t)+ method. \\
+& & \lstinline[language=Python]+copy+: bool, optional. If \lstinline[language=Python]+True+ (default), then the object is copied. Otherwise, a copy will only be made if \lstinline[language=Python]+_array_+ returns a copy, if \lstinline[language=Python]+object+ is a nested sequence, or if a copy is needed to satisfy any of the other requirements. \\
+& & \lstinline[language=Python]+order+: \{`\lstinline[language=Python]+C+', `\lstinline[language=Python]+F+', `\lstinline[language=Python]+A+'\}, optional. Specify the order of the array. If order is \lstinline[language=Python]+`C'\lstinline[language=Python]+ (default), then the array will be in `\lstinline[language=Python]+C+'--contiguous order (last--index varies the fastest). If order is `\lstinline[language=Python]+F+' then the returned array will be in Fortran--contiguous order (first--index varies the fastest). If order is `\lstinline[language=Python]+A+', then the returned array may be in any order (either C--, Fortrain--contiguous, or even discontiguous). \\
+& & \lstinline[language=Python]+subok+: bool, optional. If \lstinline[language=Python]+True+, then sub--classes will be passed--through, otherwise the returned array will be forced to be a base--class array (default). \\
+& & \lstinline[language=Python]+ndim+: int, optional. Specifies the minimum number of dimensions that the resulting array should have. Ones will be pre--prended to the shape as needed to meet this requirement. \\
+& & For examples see the module help information. \\
+
+%
+%
+%
+\caption[Table of vtktools]{Table of tools available in vtktools for extraction and analysis of data in vtu and pvtu files. The tools which are methods can be applied to an object created from a vtu or pvtu with \lstinline[language=Python]+data = vtktools.vtu('example.vtu')+. The methods can then be used with \lstinline[language=Python]+data.method(arguments)+. Note only the \lstinline[language=Python]+Write+ method can change the original vtu pr pvtu. The functions are used as usual \lstinline[language=Python]+python+ functions. See section \ref{sect:diagnostics_vtk_tools}, the \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, the postprocessing python scripts in the examples, and the test cases for further examples of use. The list can also be obtained in a ipython session with the command \lstinline[language=Python]+help(vtktools)+.}
 
 \end{longtable}
 \end{landscape}
@@ -438,6 +456,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	Program					& Section 				\\
     \hline
 	checkmesh				& \ref{sect:checkmesh}			\\
+    clean\_mayavi\_mesh       & \ref{sect:clean_mayavi_mesh} \\
 	create\_aligned\_mesh 			& \ref{sect:create_aligned_mesh}	\\
 	create\_climatology\_atlas		& \ref{sect:create_climatology_atlas}	\\
 	create\_param\_sweep			& \ref{sect:create_param_sweep}		\\
@@ -469,8 +488,10 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\
 	transform\_mesh				& \ref{sect:transform_mesh}		\\
 	triangle2vtu				& \ref{sect:triangle2vtu}		\\
-	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
+	unifiedmesh				& \ref{sect:unifiedmesh} 		\\
+	update\_options				& \ref{sect:update_options}		\\	
 	vertical\_integration			& \ref{sect:vertical_integration} 	\\
+    visualise\_elements     & \ref{sect:visualise_elements} \\ 
 	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
 	vtk\_projection				& \ref{sect:vtkprojection}		\\
 	vtudecomp				& \ref{sect:vtudecomp}			\\
@@ -523,6 +544,25 @@ Numbering:
 \end{lstlisting}
 \caption{checkmesh reporting a mesh tangling error.}
 \end{example}
+
+%%%%%%%%%%%%%%%%%% CLEAN_MAYAVI_MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{clean\_mayavi\_mesh}
+\label{sect:clean_mayavi_mesh}
+
+This program cleans up vector eps mesh images output by Mayavi2. The program
+removes pointy line joins which are unsightly on very anisotropic meshes and
+calculates an accurate bounding box, replacing the incorrect one produced by Mayavi2.
+
+The input file should be an eps file output by the ``save scene as'' 
+``Vector PS/EPS/PDF/TeX'' option in Mayavi2.
+
+\begin{lstlisting}[language = Bash]
+clean_mayavi_mesh [--margin=n] <input_filename> <output_filename>
+\end{lstlisting}
+
+If present, \lstinline[language = Bash]+--margin+\ sets the margin between
+the figure and the bounding box. 
 
 %%%%%%%%%%%%%%%%%% CREATE ALIGNED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -628,7 +668,7 @@ edge\_length\_distribution is a python script that creates histograms of the edg
 edge_length_distribution [options] vtu_filename
 \end{lstlisting}
 where \lstinline[language = Python]+vtu_filename+ is the input vtu file. The \lstinline[language = Bash]+options+ available are:
-\begin{lstlisting}[language = Python]
+\begin{lstlisting}
 -s START_VTU	The first dump id of files to be included, default = 0
 -e END_VTU	The last dump id of files to be included, if not used
 		all vtus with id >= start_vtu will be included
@@ -702,7 +742,7 @@ fldiagnostics ACTION [OPTIONS] INPUT OUTPUT [FIRST] [LAST]
 \end{lstlisting}
 
 If \lstinline[language = Bash]+FIRST+ is supplied, treats \lstinline[language = Bash]+INPUT+ and \lstinline[language = Bash]+OUTPUT+ as project names, and processes the specified range of project files. The options are:
-\begin{lstlisting}[language = Bash]
+\begin{lstlisting}
 add[-diag]  Add a diagnostics field. Options:
               -m NAME   Field from which to extract a mesh to use with the
                         diagnostic field (default "Velocity")
@@ -726,13 +766,10 @@ fldiagnostics add -o GridReynoldsNumber -r 0 ...
 
 \subsubsection{flredecomp}
 \label{sect:flredecomp}
-flredecomp is similar to fldecomp but runs in parallel. 
-It performs a re-decomposition of a Fluidity checkpoint and must be run on
-max(input no. procs, target no. procs) processors.
+flredecomp is a parallel tool that performs a re-decomposition of a Fluidity checkpoint.
 It is invoked as follows:
 \begin{lstlisting}[language=bash]
-mpiexec -n [target number of processors] \
-   `\fluiditysourcepath'/bin/flredecomp \
+mpiexec -n [target number of processors] flredecomp \
         -i [input number of processors] \
         -o [target number of processors] [input flml] [output flml]
 \end{lstlisting}
@@ -741,12 +778,13 @@ For example, to decompose the serial file \lstinline+foo.flml+
 into four parts, type:
 
 \begin{lstlisting}[language=bash]
-mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
+mpiexec -n 4 flredecomp \
     -i 1 -o 4 foo foo_flredecomp
 \end{lstlisting}
 
 The output of running flredecomp is a series of mesh and vtu files as well
 as the new flml; in this case \lstinline+foo_flredecomp.flml+.
+Note that flredecomp must be run on a number of processors equal to the larger number of processors between input and output.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% GENPVTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -796,7 +834,7 @@ where \lstinline[language = Bash]+constants+ is an optional list of constant ass
 Note: This script creates a backup of the original mesh file with a '.bak' extension.
 Examples:
 
-To rescale the z-dimension by a factor of 1000.
+To rescale the z-dimension by a factor of 1000:
 \begin{lstlisting}[language = Bash]
 gmsh_mesh_transform '(x,y,1000*z)' mesh.msh
 \end{lstlisting} 
@@ -857,9 +895,19 @@ TARGET is the name of the mesh that the fields will be interpolated on to. VTU1,
 
 mean\_flow calculates the mean of the fields in a set of vtus. It is run with python from the command line:
 \begin{lstlisting}[language = Bash]
-mean_flow <options> [vtu basename] [first dump id] [last dump id]
+mean_flow [options] vtu_basename first_id last_id
 \end{lstlisting}
-The options include specification of an area of the domain to sample and the number of sampling planes in each direction. The option \lstinline[language = Bash]+-h+ provides further information on how to use these.
+where the range of vtu files is defined by \lstinline[language = python]+vtu_basename first_id last_id+ . 
+The options include specification of an area of the domain to sample and the number of sampling planes in each direction:
+\begin{lstlisting}[language = Bash]
+-b, --bbox xmin/xmax/ymin/ymax/zmin/zmax
+	bounding box of sampling window
+-i, --intervals i/j/k
+	number of sampling planes in each direction
+-v, --verbose
+   	verbose output
+\end{lstlisting}
+The option \lstinline[language = Bash]+-h+ provides further information on how to use these.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% MMS TRACER ERROR %%%%%%%%%%%%%%%%%%%%%%%
 
@@ -868,7 +916,7 @@ The options include specification of an area of the domain to sample and the num
 
 mms\_tracer\_error evaluates the error between two fields using either an $L_2$ or $L_\infty$ control-volume norm. It is called from a python script e.g.:
 \begin{lstlisting}[language = python]
-import mms\_tracer\_error as error
+import mms_tracer_error as error
 l2_error = error.l2("MMS.vtu", "field1", "field2")
 inf_error = error.inf("MMS.vtu", "field1", "field2")
 \end{lstlisting}
@@ -1031,7 +1079,7 @@ with \lstinline[language = Bash]+PROJECT+ the basename of the pvtus and \lstinli
 rename\_checkpoint takes a list of vtu files in the working directory produced from a serial checkpointed flml file with names base\_filename\_checkpoint\_i.vtu for all i and renames them as base\_filename\_index+i.vtu. Additionally it may take a list of
 vtu and pvtu files in the current directory produced from a checkpointed parallel flml file with names base\_filename\_checkpoint\_i\_j.vtu and base\_filename\_checkpoint\_i.pvtu for all i (index) and j (processor number) and renames them as base\_filename\_index+i\_j.vtu and base\_filename\_index+i.pvtu. It is run from the command line with:
 \begin{lstlisting}[language = Bash]
-rename_checkpoint [options] <base_filename> <index>
+rename_checkpoint [options] base_filename index
 \end{lstlisting}
 
 
@@ -1154,15 +1202,15 @@ serial.
 \subsubsection{transform\_mesh}
 \label{sect:transform_mesh}
 
-transform\_mesh applies a given coordinate transformation to the given mesh. It is run from the command line:
+transform\_mesh applies a given coordinate transformation to the given mesh in triangle format. It is run from the command line:
 \begin{lstlisting}[language = Bash]
-transform_mesh <transformation> <mesh>
+transform_mesh transformation mesh
 \end{lstlisting}
-with \lstinline[language = Bash]+<mesh>+ the base name of the triangle mesh files. A mesh.node, mesh.face and mesh.ele file are required. \lstinline[language = Bash]+<transformation>+ is a python expression giving the coordinate transformation. For example to rescale the z-dimension by a factor of 1000 run:
+with \lstinline[language = Bash]+mesh+ the base name of the triangle mesh files. A mesh.node, mesh.face and mesh.ele file are required. \lstinline[language = Bash]+transformation+ is a python expression giving the coordinate transformation. For example to rescale the z-dimension by a factor of 1000 run:
 \begin{lstlisting}[language = Bash]
 transform_mesh '(x,y,1000*z)' mesh
 \end{lstlisting}
-It can be used for 2D or 3D meshes.
+It can be used for 2D or 3D meshes. Note that a similar script exists to work with gmsh files (section~\ref{sect:gmsh_mesh_transform}).
 
 %%%%%%%%%%%%%%%%%% TRIANGLE2VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1185,6 +1233,17 @@ unifiedmesh dumps the supermesh constructed from two input meshes (see \citet{fa
 unifiedmesh <triangle-file-1> <triangle-file-2> <output-file-name>
 \end{lstlisting} 
 No file names should have extenstions and both the triangle mesh files and the vtu file will have the name \lstinline[language = Bash]+output-file-name+
+
+%%%%%%%%%%%%%%%%%% UPDATE_OPTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{update\_options}
+\label{sect:update_options}
+update\_options is a developer tool that bulk updates flml, bml, swml and adml files after schema changes. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+update_options [OPTIONS] [FILES]
+\end{lstlisting} 
+where \lstinline+FILES+ is a list of files to be updated. If this argument is not provided all files in tests/*/., tests/*/*/., longtests/*/., longtests/*/*/. and examples/*/. will be updated.
+The flag \lstinline[language = Bash]+-h+ prints out the help message and the flag \lstinline[language = Bash]+-v+ enables verbose output.
 
 %%%%%%%%%%%%%%%%%% VERTICAL INTEGRATION %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1224,13 +1283,89 @@ The \lstinline[language = Bash]+-v+ flag enables verbose output.
 
 vertical\_integration can only be used in serial.
 
+%%%%%%%%%%%%%%%%%%%%%% VISUALISE ELEMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{visualise\_elements}
+\label{sect:visualise_elements}
+
+visualise\_elements produces VTK output which approximates the shape
+functions of higher order two dimensional elements which cannot be
+visualised directly by outputting vtu files. This is not useful for
+simulation output but is very useful for producing images of shape functions
+for presentations and publications.
+
+visualise\_elements uses Spud for options handling and is therefore driven
+by an xml input file rather like that used for \fluidity. This uses its own
+schema so the file is edited using:
+\begin{lstlisting}[language=Bash]
+diamond -s `\fluiditysourcepath'/schemas/visualise_elements.rng \
+  <<myfile>>.xml
+\end{lstlisting}
+The program is then invoked with:
+\begin{lstlisting}[language=Bash]
+visualise_elements <<myfile>>.xml
+\end{lstlisting}
+
+There are two modes of operation for visualise\_elements. The first produces an
+illustration of all the basis functions for a given function space on a
+single element. Figure \ref{fig:quadratic_element}\ illustrates this mode of
+usage. The input file used to create this figure is available at
+\fluiditysourcepath\lstinline[language=Bash]+/tools/data/visualise_quadratic.xml+. 
+Table \ref{tab:visualise_elements_mode_1}\ shows the options which are
+relevant to this mode of operation.
+\begin{figure}[htb]
+  \centering
+  \pdffig[width=\textwidth,bb=46 539 550 785,clip=]{visualisation_and_diagnostics_images/quadratic_element}
+  \caption{Visualisation of the six basis functions of the quadratic
+    triangle generated by visualise\_elements.}
+  \label{fig:quadratic_element}
+\end{figure}
+\begin{table}[htb]
+  \centering
+  \begin{tabular}{ll}
+    Option & Meaning \\\hline
+    \option{/project\_name} & Base name for output files.\\
+    \option{/geometry/element\_vertices} & 3 for triangles, 4 for quads.\\
+    \option{/geometry/element\_degree} & Degree of elements to visualise.\\
+    \option{/geometry/quadrature/degree} & Set to at least
+    \option{/geometry/element\_degree}.\\
+    \option{/geometry/visualisation\_degree} & Higher values produce
+    smoother visualisations.\\
+    \option{/geometry/mesh} & Do not enable.\\
+    \option{/material\_phase} & Do not enable.
+  \end{tabular}
+  \caption{Options relevant to the use of visualise\_elements to visualise the basis functions of a given function space.}
+  \label{tab:visualise_elements_mode_1}
+\end{table}
+
+In the second mode of operation, a \option{CoordinateMesh}\ and a
+\option{TracerMesh} are specified. The \option{/materal\_phase}\ option is
+enabled and a prescribed tracer field is set up. In this mode, the output is
+a higher order visualisation of the specified tracer
+field. \fluiditysourcepath\lstinline[language=Bash]+/tools/data/visualise_sin.xml+
+is an input file for this mode of operation which visualises a sin function
+using quadratic elements. In this mode of operation, the
+\option{/geometry/element\_vertices}, \option{/geometry/element\_degree}\ and
+\option{/geometry/element\_family}\ options are ignored in favour of the values
+found in the meshes. \option{/geometry/visualisation\_degree}\ is still
+employed as the degree of the elements used to construct the visualisation.
+
+The output of visualise\_elements is two .vtu files. The one whose name
+commences with the project name from the input file contains the actual
+rendered elements using a large number of visualisation elements per input
+element. The second, with the name commencing ``outline'', contains no
+fields but has the original elements. The most effective visualisation
+mechanism is to load both files into paraview. Set the representation of the
+outline field to ``Wireframe'' and apply the ``Warp By Scalar'' filter to
+the visualisation field.
+
 %%%%%%%%%%%%%%%%%%%%%% VTKDIAGNOSTIC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtkdiagnostic}
 \label{sect:vtkdiagnostic}
 vtkdiagnostic runs diagnostics on a given vtu file. It is run from the command line:
 \begin{lstlisting}[language = Bash]
-./vtkdiagnostic -i example.vtu [OPTIONS]
+vtkdiagnostic -i example.vtu [OPTIONS]
 \end{lstlisting}
 
 The \lstinline[language = Bash]+OPTIONS+ are: \\
@@ -1366,7 +1501,7 @@ $ vtu_bins annulus_1564.vtu Temperature 0.0 1.0
                       -inf -   0.00000000000000000E+000 :  0.23071069007104538E-004
   0.00000000000000000E+000 -   0.10000000000000000E+001 :  0.99951353813554100E+000
   0.10000000000000000E+001 -                        inf :  0.46339079545184387E-003
-  \end{lstlisting}
+  \end{lstlisting}%$
 \caption{Using vtu\_bins to compute the volume of under- and over-shoot errors in
          a DG annulus simulation.}
 \end{example}

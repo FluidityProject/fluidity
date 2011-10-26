@@ -56,25 +56,29 @@ the number of gauss points</a:documentation>
           <a:documentation>The degree of elements to visualise</a:documentation>
           <ref name="integer"/>
         </element>
-        <zeroOrMore>
+        <optional>
           <element name="mesh">
             <attribute name="name">
-              <data type="string"/>
+              <value>CoordinateMesh</value>
             </attribute>
             <ref name="mesh_info"/>
-            <optional>
-              <element name="exclude_from_mesh_adaptivity">
-                <empty/>
-              </element>
-            </optional>
           </element>
-        </zeroOrMore>
+        </optional>
+        <optional>
+          <element name="mesh">
+            <attribute name="name">
+              <value>TracerMesh</value>
+            </attribute>
+            <ref name="mesh_info"/>
+          </element>
+        </optional>
       </element>
       <optional>
         <element name="material_phase">
           <attribute name="name">
-            <data type="string"/>
+            <value>MaterialPhase</value>
           </attribute>
+          <ref name="tracer_field_choice"/>
           <zeroOrMore>
             <ref name="scalar_field_choice"/>
           </zeroOrMore>
@@ -113,28 +117,23 @@ or region IDs.</a:documentation>
             <ref name="comment"/>
           </element>
           <element name="format">
-            <a:documentation>CGNS mesh format (not yet implemented)</a:documentation>
+            <a:documentation>GMSH mesh format</a:documentation>
             <attribute name="name">
-              <value>cgns</value>
+              <value>gmsh</value>
             </attribute>
-            <!-- string_value elements are used only for backwards compatibility - any new format choices should NOT have these -->
-            <element name="string_value">
-              <value>cgns</value>
-            </element>
             <ref name="comment"/>
           </element>
         </choice>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
-        <ref name="from_file_mesh_stat_options"/>
         <ref name="comment"/>
       </element>
       <element name="from_mesh">
         <a:documentation>Make mesh from existing mesh. The existing mesh cannot itself
 be made from an existing mesh (i.e. it must be read from a
 file).</a:documentation>
-        <ref name="mesh_choice"/>
+        <ref name="coordinate_mesh_choice"/>
         <optional>
           <element name="mesh_shape">
             <element name="polynomial_degree">
@@ -202,7 +201,6 @@ layers.</a:documentation>
             </optional>
           </element>
         </optional>
-        <ref name="derived_mesh_stat_options"/>
         <ref name="comment"/>
       </element>
     </choice>
@@ -212,7 +210,7 @@ layers.</a:documentation>
     <choice>
       <element name="mesh">
         <attribute name="name">
-          <data type="string"/>
+          <value>TracerMesh</value>
         </attribute>
       </element>
       <element name="mesh">
@@ -222,27 +220,29 @@ layers.</a:documentation>
       </element>
       <element name="mesh">
         <attribute name="name">
-          <value>VelocityMesh</value>
-        </attribute>
-      </element>
-      <element name="mesh">
-        <attribute name="name">
-          <value>PressureMesh</value>
+          <data type="string"/>
         </attribute>
       </element>
     </choice>
   </define>
-  <define name="from_file_mesh_stat_options">
-    <element name="stat">
-      <a:documentation>Specify what is added to .stat files</a:documentation>
-      <ref name="mesh_stat_options_enabled_default"/>
-    </element>
-  </define>
-  <define name="derived_mesh_stat_options">
-    <element name="stat">
-      <a:documentation>Specify what is added to .stat files</a:documentation>
-      <ref name="mesh_stat_options_disabled_default"/>
-    </element>
+  <define name="coordinate_mesh_choice">
+    <choice>
+      <element name="mesh">
+        <attribute name="name">
+          <value>CoordinateMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <value>TracerMesh</value>
+        </attribute>
+      </element>
+      <element name="mesh">
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+      </element>
+    </choice>
   </define>
   <!-- Choice of input method, e.g. for boundary conditions -->
   <define name="input_choice_real">
@@ -282,11 +282,36 @@ where X is a tuple of length geometry dimension.</a:documentation>
       <choice>
         <a:documentation>Field type</a:documentation>
         <element name="prescribed">
-          <ref name="velocity_mesh_choice"/>
+          <ref name="mesh_choice"/>
           <ref name="prescribed_values_scalar_field"/>
         </element>
         <element name="diagnostic">
-          <ref name="velocity_mesh_choice"/>
+          <ref name="mesh_choice"/>
+        </element>
+      </choice>
+    </element>
+  </define>
+  <!-- This is the choice of additional scalar field to be solved for -->
+  <define name="tracer_field_choice">
+    <!--
+      The first is a generic field, used for any user-defined field that
+      FLUIDITY knows nothing about.  Therefore, this field cannot be diagnostic.
+    -->
+    <element name="scalar_field">
+      <attribute name="rank">
+        <value>0</value>
+      </attribute>
+      <attribute name="name">
+        <value>Tracer</value>
+      </attribute>
+      <choice>
+        <a:documentation>Field type</a:documentation>
+        <element name="prescribed">
+          <ref name="mesh_choice"/>
+          <ref name="prescribed_values_scalar_field"/>
+        </element>
+        <element name="diagnostic">
+          <ref name="mesh_choice"/>
         </element>
       </choice>
     </element>
@@ -312,7 +337,7 @@ where X is a tuple of length geometry dimension.</a:documentation>
           <ref name="prescribed_values_vector_field"/>
         </element>
         <element name="diagnostic">
-          <ref name="velocity_mesh_choice"/>
+          <ref name="mesh_choice"/>
         </element>
       </choice>
     </element>
@@ -343,30 +368,6 @@ In this case each value requires a distinct name for the options dictionary.</a:
         </element>
       </choice>
     </oneOrMore>
-  </define>
-  <define name="velocity_mesh_choice">
-    <choice>
-      <element name="mesh">
-        <attribute name="name">
-          <value>VelocityMesh</value>
-        </attribute>
-      </element>
-      <element name="mesh">
-        <attribute name="name">
-          <value>PressureMesh</value>
-        </attribute>
-      </element>
-      <element name="mesh">
-        <attribute name="name">
-          <value>CoordinateMesh</value>
-        </attribute>
-      </element>
-      <element name="mesh">
-        <attribute name="name">
-          <data type="string" datatypeLibrary=""/>
-        </attribute>
-      </element>
-    </choice>
   </define>
   <define name="prescribed_values_scalar_field">
     <oneOrMore>
@@ -415,5 +416,15 @@ where X and the return value are tuples of length geometry dimension.</a:documen
         <ref name="python_code"/>
       </element>
     </choice>
+  </define>
+  <define name="region_ids">
+    <element name="region_ids">
+      <a:documentation>Optional region ids to associate different values
+to different regions of the mesh.
+Leave unselected if you`re not using multiple regions or
+region_ids.
+Currently only works with triangle files created by gmsh2triangle.</a:documentation>
+      <ref name="integer_vector"/>
+    </element>
   </define>
 </grammar>
