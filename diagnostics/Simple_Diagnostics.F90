@@ -376,20 +376,24 @@ contains
     type(scalar_field), pointer :: read_field
     character(len = OPTION_PATH_LEN) :: path, filename
     logical :: checkpoint_exists
+    integer :: stat
     
     path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    call get_option(trim(path), filename, stat)
+    if (stat /= 0) return
+    
     if(isparallel()) then
-      filename = parallel_filename(trim_file_extension(filename), ".vtu")
+        filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
-      filename = trim(filename) // ".vtu"
+        filename = trim(filename) // ".vtu"
     end if
     inquire(file=trim(filename), exist=checkpoint_exists)
     
     if (checkpoint_exists) then
-      read_field => vtk_cache_read_scalar_field(filename, trim(s_field%name))
-      call set(s_field, read_field)
+        read_field => vtk_cache_read_scalar_field(filename, trim(s_field%name))
+        call set(s_field, read_field)
     end if
+
   end subroutine initialise_diagnostic_scalar_from_checkpoint
 
   subroutine initialise_diagnostic_vector_from_checkpoint(v_field) 
@@ -398,9 +402,12 @@ contains
     type(vector_field), pointer :: read_field
     character(len = OPTION_PATH_LEN) :: path, filename
     logical :: checkpoint_exists
+    integer :: stat
     
     path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    call get_option(trim(path), filename, stat)
+    if (stat /= 0) return
+
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
@@ -412,6 +419,7 @@ contains
       read_field => vtk_cache_read_vector_field(filename, trim(v_field%name))
       call set(v_field, read_field)
     end if
+
   end subroutine initialise_diagnostic_vector_from_checkpoint
 
   subroutine initialise_diagnostic_tensor_from_checkpoint(t_field) 
@@ -420,9 +428,12 @@ contains
     type(tensor_field), pointer :: read_field
     character(len = OPTION_PATH_LEN) :: path, filename
     logical :: checkpoint_exists
+    integer :: stat
     
     path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    call get_option(trim(path), filename, stat)
+    if (stat /= 0) return
+
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
@@ -434,6 +445,7 @@ contains
       read_field => vtk_cache_read_tensor_field(filename, trim(t_field%name))
       call set(t_field, read_field)
     end if
+
   end subroutine initialise_diagnostic_tensor_from_checkpoint
 
  end module simple_diagnostics

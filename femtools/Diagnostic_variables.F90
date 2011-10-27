@@ -77,6 +77,7 @@ module diagnostic_variables
   use detector_tools
   use detector_parallel
   use detector_move_lagrangian
+  use ieee_arithmetic, only: cget_nan
 
   implicit none
 
@@ -1375,7 +1376,8 @@ contains
        if (.not.element_owned(xfield,element)) return
     else
        ! In serial make sure the detector is in the domain
-       if (element<0) then
+       ! unless we have the write_nan_outside override
+       if (element<0 .and. .not.detector_list%write_nan_outside) then
           FLExit("Trying to initialise detector outside of computational domain")
        end if
     end if
@@ -1457,6 +1459,16 @@ contains
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
     allocate(detector_location(dim))
+
+    ! Enable detectors to drift with the mesh
+    if (have_option("/io/detectors/move_with_mesh")) then
+       default_stat%detector_list%move_with_mesh=.true.
+    end if
+
+    ! Set flag for NaN detector output
+    if (have_option("/io/detectors/write_nan_outside_domain")) then
+       default_stat%detector_list%write_nan_outside=.true.
+    end if
     
     ! Retrieve the position of each detector. If the option
     ! "from_checkpoint_file" exists, it means we are continuing the simulation
@@ -2149,32 +2161,43 @@ contains
     subroutine write_body_forces(state, vfield)
       type(state_type), intent(in) :: state
       type(vector_field), intent(in) :: vfield
-      
+      type(tensor_field), pointer :: viscosity
+
+      logical :: have_viscosity      
       integer :: i
       real :: force(vfield%dim), pressure_force(vfield%dim), viscous_force(vfield%dim)
     
+      viscosity=>extract_tensor_field(state, "Viscosity", stat)
+      have_viscosity = stat == 0
+
       if(have_option(trim(complete_field_path(vfield%option_path, stat=stat)) // "/stat/compute_body_forces_on_surfaces/output_terms")) then
-        ! calculate the forces on the surface
-        call diagnostic_body_drag(state, force, pressure_force = pressure_force, viscous_force = viscous_force)   
+        if(have_viscosity) then
+          ! calculate the forces on the surface
+          call diagnostic_body_drag(state, force, pressure_force = pressure_force, viscous_force = viscous_force)
+        else   
+          call diagnostic_body_drag(state, force, pressure_force = pressure_force)   
+        end if
         if(getprocno() == 1) then
-           do i=1, mesh_dim(vfield%mesh)
-              write(default_stat%diag_unit, trim(format), advance="no") force(i)
-           end do
-           do i=1, mesh_dim(vfield%mesh)
-              write(default_stat%diag_unit, trim(format), advance="no") pressure_force(i)
-           end do
-           do i=1, mesh_dim(vfield%mesh)
-              write(default_stat%diag_unit, trim(format), advance="no") viscous_force(i)
-           end do
+          do i=1, mesh_dim(vfield%mesh)
+            write(default_stat%diag_unit, trim(format), advance="no") force(i)
+          end do
+          do i=1, mesh_dim(vfield%mesh)
+            write(default_stat%diag_unit, trim(format), advance="no") pressure_force(i)
+          end do
+          if(have_viscosity) then
+            do i=1, mesh_dim(vfield%mesh)
+             write(default_stat%diag_unit, trim(format), advance="no") viscous_force(i)
+            end do
+          end if
         end if
       else
-        ! calculate the forces on the surface
-        call diagnostic_body_drag(state, force) 
-        if(getprocno() == 1) then
+          ! calculate the forces on the surface
+          call diagnostic_body_drag(state, force) 
+          if(getprocno() == 1) then
            do i=1, mesh_dim(vfield%mesh)
               write(default_stat%diag_unit, trim(format), advance="no") force(i)
            end do
-        end if     
+          end if     
       end if 
       
     end subroutine write_body_forces
@@ -2590,7 +2613,16 @@ contains
 
                 detector => detector_list%first
                 do j=1, detector_list%length
-                   value =  detector_value(sfield, detector)
+                   if (detector%element<0) then
+                      if (detector_list%write_nan_outside) then
+                         call cget_nan(value)
+                      else
+                         FLExit("Trying to write detector that is outside of domain.")
+                      end if
+                   else
+                      value = detector_value(sfield, detector)
+                   end if
+
                    if(detector_list%binary_output) then
                       write(detector_list%output_unit) value
                    else
@@ -2611,7 +2643,16 @@ contains
 
                 detector => detector_list%first
                 do j=1, detector_list%length
-                   vvalue =  detector_value(vfield, detector)
+                   if (detector%element<0) then
+                      if (detector_list%write_nan_outside) then
+                         call cget_nan(value)
+                         vvalue(:) = value
+                      else
+                         FLExit("Trying to write detector that is outside of domain.")
+                      end if
+                   else
+                      vvalue = detector_value(vfield, detector)
+                   end if
 
                    if(detector_list%binary_output) then
                       write(detector_list%output_unit) vvalue
@@ -2742,7 +2783,15 @@ contains
 
           node => detector_list%first
           scalar_node_loop: do j = 1, detector_list%length
-            value =  detector_value(sfield, node)
+            if (node%element<0) then
+               if (detector_list%write_nan_outside) then
+                  call cget_nan(value)
+               else
+                  FLExit("Trying to write detector that is outside of domain.")
+               end if
+            else
+               value = detector_value(sfield, node)
+            end if
 
             offset = location_to_write + (detector_list%total_num_det * (i - 1) + (node%id_number - 1)) * realsize
 
@@ -2768,7 +2817,16 @@ contains
 
           node => detector_list%first
           vector_node_loop: do j = 1, detector_list%length
-            vvalue =  detector_value(vfield, node)
+            if (node%element<0) then
+               if (detector_list%write_nan_outside) then
+                  call cget_nan(value)
+                  vvalue(:) = value
+               else
+                  FLExit("Trying to write detector that is outside of domain.")
+               end if
+            else
+               vvalue = detector_value(vfield, node)
+            end if
 
             ! Currently have to assume single dimension vector fields in
             ! order to compute the offset

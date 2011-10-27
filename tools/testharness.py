@@ -5,7 +5,7 @@ import os
 import os.path
 import glob
 import time
-import regressiontest
+import fluidity.regressiontest as regressiontest
 import traceback
 import threading
 import xml.parsers.expat

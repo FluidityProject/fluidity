@@ -1,9 +1,9 @@
 # directory locations:
 BIN=../../bin/
-SCRIPTS=../../scripts/
+SCRIPTS=../../bin/
 
 preprocess:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors with"; echo "make preprocess NPROCS=N, where N is the number of processors."; echo "Similarly use make run NPROCS=N."; echo "This is a large simulation and will take a very long time in serial."; echo "It is best run in parallel on 8 processors."; false; fi
 	@echo **********Converting the gmsh mesh to triangle format:
 	$(SCRIPTS)gmsh2triangle unit_sphere.msh
 ifneq ($(NPROCS),8)
@@ -34,7 +34,8 @@ else
 endif
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling the data extraction and plotting script
+	python ./plot_data.py
 
 input: clean
 	$(MAKE) preprocess NPROCS=8

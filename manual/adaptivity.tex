@@ -414,6 +414,23 @@ would yield a mesh with fewer nodes.
 For new users, altering the weights should be the primary way to control the
 size of the adapted mesh. 
 
+\subsection{Metric advection}
+Metric advection is a technique that uses the current flow velocity to advect the metric forward in time over the period until the next mesh adapt. This allows an estimate of the mesh resolution required at each time--step before the next adapt to be obtained and incorporated into the adapted mesh \citep{wilson_phdthesis_2009}. Each component of the metric is advected as a scalar using a control volume scheme, section \ref{sec:ND_control_volume_advection}. The time--step for this calculation is determined by a specified Courant number. 
+
+With metric advection, mesh resolution is `pushed ahead' of the flow such that, between mesh adapts, the dynamics of interest are less likely to propagate out of the region of higher resolution. This leads to a larger area that requires refinement and, therefore, an increase in the number of nodes. However, metric advection can allow the frequency of adapt to be reduced whilst maintaining a good representation of the dynamics
+
+In the lock--exchange example, section \ref{sec:lock_exchange}, consider an adapted mesh with high resolution in the region of the interface between the two fluids. As the simulation proceeds, the gravity current fronts may propagate out of this high resolution region before the next adapt. This can lead to a more diffuse interface due to increased numerical diffusion from the advection method at coarser resolutions. Metric advection would increase the resolution in the adapted mesh not only in the interface, but also ahead of it, in the region into which the gravity current fronts will propagate. 
+
+The options for metric advection can be found under \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection}. It is generally recommended for the spatial discretisation to select a first order upwind scheme for calculation the face values (the default) and to use non--conservative form, section \ref{sec:ND_control_volume_advection}. These are selected with options
+\begin{itemize}
+\item \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/spatial\_discretisation/control\_volumes/face\_value::FirstOrderUpwind}
+\item \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/spatial\_discretisation/conservative\_advection} $=0.0$
+\end{itemize}
+For temporal discretisation a semi--implicit discretisation in time is recommended with, section \ref{sec:ND_time_disct_adv_diff}, option
+\begin{itemize}
+\item \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/temporal\_discretisation/theta} $=0.5$
+\end{itemize}
+ 
 \section{Interpolation} \label{sec:interpolation_algorithms}
 As mentioned previously, the application of adaptive remeshing
 divides naturally into three sub-problems. The first is to decide what mesh
@@ -536,3 +553,39 @@ to bound the Galerkin projection is iterative, and the user must set a limit on 
 of iterations it will perform with \option{boundedness\_iterations}. If the bounds are known
 \emph{a priori}, then these may be specified in the \option{bounds} option; otherwise, the
 bounds are derived from the field values before interpolation.
+
+\section{Parallel Adaptivity}
+\index{zoltan}
+
+The approach taken to adaptivity in parallel is as follows:
+
+\begin{itemize}
+\item Each process adapts their local mesh, excluding halo elements.
+\item The mesh is re-partitioned with high edge-weighting applied to those
+elements below the element quality cutoff.
+\item Repeat the two steps above up to adapt iterations.
+\item Finally re-partition without applying edge-weighting to return a
+load balanced mesh.
+\end{itemize}
+
+Zoltan is a parallel partitioning and data distribution library 
+\citep{devine2002}. It is used within Fluidity to do the mesh re-
+partitioning during the parallel adaptivity. Zoltan gives access to
+various different partitioning libraries; ParMETIS, PT-Scotch as well as 
+its own graph and hypergraph partitioners. For the intermediate adapt iterations
+(when edge-weighting is applied) the partitioner to be used by default
+is Zoltan graph and this can be changed using the partitioner option
+in Diamond. For the final adapt iteration where load balance is our
+only concern the default partitioner is ParMETIS and this can be
+changed using the final\_paritioner option.
+
+The high edge-weighting being applied to poor quality elements aims to
+prevent those elements being on a partition boundary after the
+re-partitioning. This is to prevent them being locked for the next
+adapt iteration. Zoltan gives priority to producing load balanced
+partitions so for these intermediate adapts we loosen the Zoltan
+parameter, load imbalance tolerance, to allow Zoltan to produce load
+imbalanced partitions but take into account the edge-weighting we are
+applying. The default load imbalance tolerance is 1.5 but this can be
+changed in the Zoltan options.
+

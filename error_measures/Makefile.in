@@ -26,10 +26,13 @@
 #    USA
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
 FCFLAGS = -I../include @MOD_FLAG@../include @FCFLAGS@
 
-UTFC    = ../scripts/unittest_f90
+UTFC    = ../bin/unittest_f90
 
 CC      = @CC@
 CFLAGS  = @CFLAGS@
@@ -41,7 +44,7 @@ MAKE    = @MAKE@
 AR  = @AR@
 ARFLAGS = @ARFLAGS@
 
-LIB = ../lib/lib@FLUIDITY@.a
+LIB = ../lib/lib$(FLUIDITY).a
 
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 

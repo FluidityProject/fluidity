@@ -415,8 +415,8 @@
             if(full_schur) then
                ! Check to see whether pressure cmc_m preconditioning matrix is needed:
                call get_option(trim(p%option_path)//&
-                           "/prognostic/scheme/use_projection_method&
-                           &/full_schur_complement/preconditioner_matrix[0]/name", pressure_pmat)
+                           &"/prognostic/scheme/use_projection_method"//&
+                           &"/full_schur_complement/preconditioner_matrix[0]/name", pressure_pmat)
              
                ! this is an utter mess, Rhodri, please clean up! 
                select case(pressure_pmat)
@@ -440,8 +440,8 @@
 
                ! Decide on configuration of inner_m for full_projection solve:
                call get_option(trim(p%option_path)//&
-                           "/prognostic/scheme/use_projection_method&
-                           &/full_schur_complement/inner_matrix[0]/name", schur_scheme)
+                           &"/prognostic/scheme/use_projection_method"//&
+                           &"/full_schur_complement/inner_matrix[0]/name", schur_scheme)
                select case(schur_scheme)
                   case("FullMassMatrix")
                      inner_m(istate)%ptr => mass(istate)
@@ -872,10 +872,10 @@
                ! If the velocity isn't prognostic then cycle
                if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
 
-               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/continuous_galerkin").or.&
-                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/discontinuous_galerkin")) then
+               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                       &"/continuous_galerkin").or.&
+                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                       &"/discontinuous_galerkin")) then
 
                   x => extract_vector_field(state(istate), "Coordinate")
 
@@ -963,10 +963,10 @@
                   ! If the velocity isn't prognostic then cycle
                   if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
 
-                  if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                          &/continuous_galerkin").or.&
-                        have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                          &/discontinuous_galerkin")) then
+                  if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                          &"/continuous_galerkin").or.&
+                        have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                          &"/discontinuous_galerkin")) then
                            
                      call profiler_tic(u, "assembly")
 
@@ -1030,10 +1030,10 @@
                ! If the velocity isn't prognostic then cycle
                if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
 
-               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/continuous_galerkin").or.&
-                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                       &/discontinuous_galerkin")) then
+               if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                       &"/continuous_galerkin").or.&
+                  have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                       &"/discontinuous_galerkin")) then
 
                   ! Allocate the change in pressure field
                   call allocate(delta_p, p%mesh, "DeltaP")
@@ -1088,10 +1088,10 @@
             ! If the velocity isn't prognostic then cycle
             if(.not.have_option(trim(u%option_path)//"/prognostic")) cycle
 
-            if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                    &/continuous_galerkin").or.&
-               have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                                    &/discontinuous_galerkin")) then
+            if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                    &"/continuous_galerkin").or.&
+               have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                                    &"/discontinuous_galerkin")) then
 
                call finalise_state(state, istate, u, mass, inverse_mass, inverse_masslump, &
                                 visc_inverse_masslump, big_m, mom_rhs, ct_rhs, subcycle_m)
@@ -1146,22 +1146,22 @@
 
 
          dg(istate) = have_option(trim(u%option_path)//&
-                           "/prognostic/spatial_discretisation&
-                           &/discontinuous_galerkin")
+                           &"/prognostic/spatial_discretisation"//&
+                           &"/discontinuous_galerkin")
 
          subcycle(istate) = have_option(trim(u%option_path)//&
-            "/prognostic/temporal_discretisation/&
-            &discontinuous_galerkin/maximum_courant_number_per_subcycle")
+            &"/prognostic/temporal_discretisation"//&
+            &"/discontinuous_galerkin/maximum_courant_number_per_subcycle")
 
          ! Are we lumping the mass matrix?
          lump_mass(istate) = have_option(trim(u%option_path)//&
-                           "/prognostic/spatial_discretisation&
-                           &/continuous_galerkin/mass_terms&
-                           &/lump_mass_matrix").or.&
+                           &"/prognostic/spatial_discretisation"//&
+                           &"/continuous_galerkin/mass_terms"//&
+                           &"/lump_mass_matrix").or.&
                      have_option(trim(u%option_path)//&
-                           "/prognostic/spatial_discretisation&
-                           &/discontinuous_galerkin/mass_terms&
-                           &/lump_mass_matrix")
+                           &"/prognostic/spatial_discretisation"//&
+                           &"/discontinuous_galerkin/mass_terms"//&
+                           &"/lump_mass_matrix")
 
          ! Here is where we try to decide how big big_m should be
          have_viscosity = have_option(trim(u%option_path)//&
@@ -1169,15 +1169,15 @@
 
          ! The following should include a dg option when a stress form version gets implemented
          stress_form = have_option(trim(u%option_path)//&
-            &"/prognostic/spatial_discretisation/continuous_galerkin&
-            &/stress_terms/stress_form")
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/stress_form")
 
          partial_stress_form = have_option(trim(u%option_path)//&
-            &"/prognostic/spatial_discretisation/continuous_galerkin&
-            &/stress_terms/partial_stress_form")
+            &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+            &"/stress_terms/partial_stress_form")
 
-         have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
-            &/continuous_galerkin/les_model")
+         have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/"//&
+            &"/continuous_galerkin/les_model")
 
          have_coriolis = have_option("/physical_parameters/coriolis")
 
@@ -1761,37 +1761,37 @@
          do i = 0, nmat-1
 
             if(have_option("/material_phase["//int2str(i)//&
-                                 "]/scalar_field::Pressure/prognostic&
-                                 &/reference_node").and.&
+                                 &"]/scalar_field::Pressure/prognostic"//&
+                                 &"/reference_node").and.&
             have_option("/material_phase["//int2str(i)//&
-                                 "]/scalar_field::Pressure/prognostic&
-                                 &/solver/remove_null_space")) then
+                                 &"]/scalar_field::Pressure/prognostic"//&
+                                 &"/solver/remove_null_space")) then
                FLExit("Can't set a pressure reference node and remove the null space.")
             end if
 
             if(have_option("/material_phase["//int2str(i)//&
-                                 "]/scalar_field::Pressure/prognostic&
-                                 /spatial_discretisation/discontinuous_galerkin") &
+                                 &"]/scalar_field::Pressure/prognostic"//&
+                                 &"/spatial_discretisation/discontinuous_galerkin") &
               .and. .not. have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 /spatial_discretisation/continuous_galerkin")) then
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin")) then
               FLExit("With discontinuous galerkin Pressure you need a continuous Velocity")
             end if
  
             if(have_option("/material_phase["//int2str(i)//&
-                        "]/vector_field::Velocity/prognostic/reference_node")) then
+                        &"]/vector_field::Velocity/prognostic/reference_node")) then
                if((.not.(have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin/mass_terms/exclude_mass_terms").and. &
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin/mass_terms/exclude_mass_terms").and. &
                            have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin/advection_terms/exclude_advection_terms"))).and. &
+                                 "]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin/advection_terms/exclude_advection_terms"))).and. &
                   (.not.(have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/discontinuous_galerkin/mass_terms/exclude_mass_terms").and. &
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/discontinuous_galerkin/mass_terms/exclude_mass_terms").and. &
                            have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/discontinuous_galerkin/advection_scheme/none")))) then
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/discontinuous_galerkin/advection_scheme/none")))) then
                   ewrite(-1,*) "Error: You have set a Velocity reference node but don't appear"
                   ewrite(-1,*) "to be solving the Stokes equation."
                   ewrite(-1,*) "Setting a reference node for Velocity only makes sense if both"
@@ -1805,20 +1805,20 @@
 
 
             if(have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin")&
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin")&
                .and.(.not.have_option("/material_phase["//int2str(i)//&
-                                    "]/vector_field::Velocity/prognostic&
-                                    &/spatial_discretisation/continuous_galerkin&
-                                    &/mass_terms/lump_mass_matrix"))) then
+                                    &"]/vector_field::Velocity/prognostic"//&
+                                    &"/spatial_discretisation/continuous_galerkin"//&
+                                    &"/mass_terms/lump_mass_matrix"))) then
 
                if(have_option("/material_phase["//int2str(i)//&
-                                 "]/scalar_field::Pressure/prognostic&
-                                 &/scheme/use_projection_method")) then
+                                 &"]/scalar_field::Pressure/prognostic"//&
+                                 &"/scheme/use_projection_method")) then
                   if(.not.have_option("/material_phase["//int2str(i)//&
-                                    "]/scalar_field::Pressure/prognostic&
-                                    &/scheme/use_projection_method&
-                                    &/full_schur_complement")) then
+                                    &"]/scalar_field::Pressure/prognostic"//&
+                                    &"/scheme/use_projection_method"//&
+                                    &"/full_schur_complement")) then
                      ewrite(-1,*) "Error: You're not lumping the velocity mass matrix"
                      ewrite(-1,*) "but haven't selected any schur complement options."
                      ewrite(-1,*) "Are you sure you don't want to lump the mass?"
@@ -1832,8 +1832,8 @@
                   end if
 
                else if(have_option("/material_phase["//int2str(i)//&
-                                 "]/scalar_field::Pressure/prognostic&
-                                 &/scheme/use_compressible_projection_method")) then
+                                 &"]/scalar_field::Pressure/prognostic"//&
+                                 &"/scheme/use_compressible_projection_method")) then
                   ewrite(-1,*) "You must lump the velocity mass matrix with the"
                   ewrite(-1,*) "compressible projection method."
                   FLExit("Sorry.")
@@ -1842,20 +1842,20 @@
             end if
 
             if(have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/tensor_field::Viscosity/prescribed/value&
-                                 &/isotropic").or. &
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/tensor_field::Viscosity/prescribed/value"//&
+                                 &"/isotropic").or. &
                have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/tensor_field::Viscosity/prescribed/value&
-                                 &/diagonal")) then
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/tensor_field::Viscosity/prescribed/value"//&
+                                 &"/diagonal")) then
 
                if(have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin/stress_terms/stress_form").or.&
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin/stress_terms/stress_form").or.&
                   have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin/stress_terms/partial_stress_form")) then
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin/stress_terms/partial_stress_form")) then
                   ewrite(-1,*) "You have selected stress form viscosity but have entered an isotropic or"
                   ewrite(-1,*) "diagonal Viscosity tensor."
                   ewrite(-1,*) "Zero off diagonal entries in the Viscosity tensor do not make physical"
@@ -1877,19 +1877,19 @@
                                  &/tensor_field::Viscosity/prescribed/value/isotropic") .or. &
                   ! Note: DG only uses tensor form, so only check the CG options
                   &(have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin/") .and. &
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin/") .and. &
                                  &.not.have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin/stress_terms/tensor_form"))) then
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin/stress_terms/tensor_form"))) then
                   ewrite(-1,*) "For multiphase simulations, the stress term can only be in tensor form"
                   ewrite(-1,*) "and viscosity must be isotropic."
                   FLExit("For multiphase flow simulations, use tensor_form and isotropic Viscosity only.")
                end if
             end if
 
-            if(have_option("/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic/&
-               &spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")) then
+            if(have_option("/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic/"//&
+               &"spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")) then
 
                if(.not.have_option("/material_phase["//int2str(i)//"]/scalar_field::Temperature")) then
                   FLExit("You must have a temperature field to have a temperature dependent viscosity.")
@@ -1902,13 +1902,13 @@
                ewrite(-1,*) "stress form are valid for a spatially varying viscosity field."
 
                if(have_option("/material_phase["//int2str(i)//&
-                  "]/vector_field::Velocity/prognostic&
-                  &/tensor_field::Viscosity/prescribed/value&
-                  &/isotropic").or.&
-                  have_option("/material_phase["//int2str(i)//&
-                  "]/vector_field::Velocity/prognostic&
-                  &/tensor_field::Viscosity/prescribed/value&
-                  &/diagonal")) then
+                  &"]/vector_field::Velocity/prognostic"//&
+                  &"/tensor_field::Viscosity/prescribed/value"//&
+                  &"/isotropic").or.&
+                  &have_option("/material_phase["//int2str(i)//&
+                  &"]/vector_field::Velocity/prognostic"//&
+                  &"/tensor_field::Viscosity/prescribed/value"//&
+                  &"/diagonal")) then
 
                   ewrite(-1,*) "A spatially varying viscosity (for example a viscosity that depends"
                   ewrite(-1,*) "upon a spatiall varying temperature field) is only valid with stress"
@@ -1919,27 +1919,27 @@
             end if
 
             if(have_option("/material_phase["//int2str(i)//&
-               "]/vector_field::Velocity/prognostic&
-               &/tensor_field::Viscosity/prescribed/value&
-               &/anisotropic_symmetric").or.&
+               &"]/vector_field::Velocity/prognostic"//&
+               &"/tensor_field::Viscosity/prescribed/value"//&
+               &"/anisotropic_symmetric").or.&
             have_option("/material_phase["//int2str(i)//&
-               "]/vector_field::Velocity/prognostic&
-               &/tensor_field::Viscosity/prescribed/value&
-               &/anisotropic_asymmetric")) then
+               &"]/vector_field::Velocity/prognostic"//&
+               &"/tensor_field::Viscosity/prescribed/value"//&
+               &"/anisotropic_asymmetric")) then
 
                if(have_option("/material_phase["//int2str(i)//&
-                  "]/scalar_field::Pressure/prognostic"//&
+                  &"]/scalar_field::Pressure/prognostic"//&
                   &"/scheme/use_projection_method")) then
 
                   if(have_option("/material_phase["//int2str(i)//&
-                     "]/scalar_field::Pressure/prognostic&
-                     &/scheme/use_projection_method&
-                     &/full_schur_complement")) then
+                     &"]/scalar_field::Pressure/prognostic"//&
+                     &"/scheme/use_projection_method"//&
+                     &"/full_schur_complement")) then
 
                      call get_option("/material_phase["//int2str(i)//&
-                        "]/scalar_field::Pressure/prognostic&
-                        &/scheme/use_projection_method&
-                        &/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
+                        &"]/scalar_field::Pressure/prognostic"//&
+                        &"/scheme/use_projection_method"//&
+                        &"/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
 
                      select case(schur_preconditioner)
                         case("ScaledPressureMassMatrix")
@@ -1955,21 +1955,21 @@
             end if
 
             if(have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/discontinuous_galerkin")) then
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/discontinuous_galerkin")) then
 
                if(have_option("/material_phase["//int2str(i)//&
-                                 "]/scalar_field::Pressure/prognostic&
-                                 &/scheme/use_projection_method")) then
+                                 &"]/scalar_field::Pressure/prognostic"//&
+                                 &"/scheme/use_projection_method")) then
                   if(have_option("/material_phase["//int2str(i)//&
-                                 "]/scalar_field::Pressure/prognostic&
-                                 &/scheme/use_projection_method&
-                                 &/full_schur_complement")) then
+                                 &"]/scalar_field::Pressure/prognostic"//&
+                                 &"/scheme/use_projection_method"//&
+                                 &"/full_schur_complement")) then
 
                      call get_option("/material_phase["//int2str(i)//&
-                                    "]/scalar_field::Pressure/prognostic&
-                                    &/scheme/use_projection_method&
-                                    &/full_schur_complement/inner_matrix[0]/name", schur_scheme)
+                                    &"]/scalar_field::Pressure/prognostic"//&
+                                    &"/scheme/use_projection_method"//&
+                                    &"/full_schur_complement/inner_matrix[0]/name", schur_scheme)
                      select case(schur_scheme)
                         case("FullMassMatrix")
                            FLExit("Can't do a full schur complement solve with dg velocity and a mass inner matrix.")
@@ -1982,17 +1982,17 @@
 
             ! Check options for Low Re Fix:
             if(have_option("/material_phase["//int2str(i)//&
-                                 "]/scalar_field::Pressure/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin&
-                                 &/low_re_p_correction_fix")) then
+                                 &"]/scalar_field::Pressure/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin"//&
+                                 &"/low_re_p_correction_fix")) then
                if(.not.have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin&
-                                 &/mass_terms/lump_mass_matrix").or.&
-                                 have_option("/material_phase["//int2str(i)//&
-                                 "]/vector_field::Velocity/prognostic&
-                                 &/spatial_discretisation/continuous_galerkin&
-                                 &/mass_terms/lump_mass_matrix/use_submesh")) then
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin"//&
+                                 &"/mass_terms/lump_mass_matrix").or.&
+                                 &have_option("/material_phase["//int2str(i)//&
+                                 &"]/vector_field::Velocity/prognostic"//&
+                                 &"/spatial_discretisation/continuous_galerkin"//&
+                                 &"/mass_terms/lump_mass_matrix/use_submesh")) then
                   ewrite(-1,*) "Error: You're not lumping the velocity mass matrix"
                   ewrite(-1,*) "or you are using the 'lump on submesh' option"
                   ewrite(-1,*) "but have selected the low Reynolds number fix."

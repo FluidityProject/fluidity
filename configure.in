@@ -26,7 +26,10 @@
 #    USA
 
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(assemble/Makefile.in)
+
+
+AC_INIT(fluidity, None)
+
 AC_CONFIG_HEADERS(include/config.h)
 
 echo "Hostname: `hostname`"
@@ -81,7 +84,6 @@ if test "x$enable_gcov" == "xyes" ; then
     LDFLAGS="$LDFLAGS -fprofile-arcs -ftest-coverage"
 fi
  
-FLUIDITY="fluidity"
 FLFEMDEM="femdem"
 
 # Check system type
@@ -1120,8 +1122,6 @@ AC_SUBST(USE_CPP)
 dnl Specific -D options
 AC_SUBST(DEFINE_MPI)
 
-AC_SUBST(FLUIDITY)
-
 dnl Checks for library functions.
 if test "$smart_fortran" = "yes" ; then
   F77=$MPIF90
@@ -1514,10 +1514,9 @@ AC_OUTPUT(Makefile
           parameterisation/Makefile parameterisation/tests/Makefile
 	  fldecomp/Makefile
           assemble/Makefile assemble/tests/Makefile
-          radiation/Makefile radiation/tests/Makefile
           diagnostics/Makefile
           main/Makefile
-          scripts/Makefile tools/Makefile
+          tools/Makefile
           python/setup.py
           adjoint/Makefile
           adjoint/tests/Makefile
@@ -1533,8 +1532,5 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
       	  libalgencan/Makefile
           libwm/Makefile
-          libvtkfortran/Makefile 
-          qg_strat/Makefile qg_strat/unittests/Makefile
-          tests/lauwerier/Makefile
-	  reduced_modelling/Makefile
-          legacy_reservoir_prototype/Makefile)
+          libvtkfortran/Makefile
+	  reduced_modelling/Makefile)

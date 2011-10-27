@@ -53,6 +53,7 @@ use fields ! for iceshelf
 use sediment, only: set_sediment_reentrainment, set_sediment_bc_id
 use halos_numbering
 use halos_base
+use fefields
 
 implicit none
 
@@ -1374,7 +1375,7 @@ contains
     type(vector_field) :: stress_flux
     ! the current state to be put on the ocean_mesh - input to the fluxes call
     type(scalar_field) :: temperature, salinity
-    type(vector_field) :: velocity, position
+    type(vector_field) :: velocity, position, position_remapped
     ! these are pointers to the fields in the state
     type(scalar_field), pointer :: p_temperature, p_salinity
     type(vector_field), pointer :: p_velocity, p_position
@@ -1460,7 +1461,6 @@ contains
     p_velocity => extract_vector_field(state, "Velocity")
     p_position => extract_vector_field(state, "Coordinate")
 
-    
     ! remap modelled params onto the appropriate field in ocean_mesh
     call remap_field_to_surface(p_temperature, temperature, &
                                 surface_element_list)
@@ -1547,9 +1547,9 @@ contains
                           NNodes, on_sphere, bulk_formula)
 
     ! finally, we need to reverse-map the temporary fields on the ocean mesh
-    ! to the actual fields in state
-    ! using remap for now, but this assumes the same type of field
-    ! otherwise need to project
+    ! to the actual fields in state using remap unless
+    ! the continuity of the two fields does not match, in which case we project
+
     if (force_velocity .ge. 0) then
         do i=1,NNodes
             temp_vector_2D(1) = Tau_u(i)
@@ -1558,7 +1558,11 @@ contains
         end do
         vector_source_field => extract_vector_field(state, 'Velocity')
         vector_surface => extract_surface_field(vector_source_field, force_velocity , "WindSurfaceField")
+
+        ! Fluxes are calculated on the velocity mesh, so we will only ever need
+        ! to remap, never project as we may have to do on the other fields
         call remap_field(stress_flux, vector_surface)
+
         if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/vector_field::MomentumFlux")) then
             vector_source_field => extract_vector_field(state, 'MomentumFlux')
             ! copy the values onto the mesh using the global node id
@@ -1585,12 +1589,21 @@ contains
         scalar_source_field => extract_scalar_field(state, 'Temperature')
         scalar_surface => extract_surface_field(scalar_source_field, force_temperature,&
                                              "value")
-        call remap_field(heat_flux, scalar_surface)
+        if (heat_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
+            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
+            call remap_field_to_surface(p_position, position_remapped, &
+                                        surface_element_list)
+            call project_field(heat_flux, scalar_surface, position_remapped)
+            call deallocate(position_remapped)
+        else
+            call remap_field(heat_flux, scalar_surface)
+        end if
+        
         if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::HeatFlux")) then
             scalar_source_field => extract_scalar_field(state, 'HeatFlux')
             ! copy the values onto the mesh using the global node id
-            do i=1,size(surface_nodes)
-                call set(scalar_source_field,surface_nodes(i),node_val(scalar_surface,i))
+            do i=1,node_count(heat_flux)
+                call set(scalar_source_field,surface_nodes(i),node_val(heat_flux,i))
             end do   
             sfield => extract_scalar_field(state, 'OldHeatFlux',stat)
             if (stat == 0) then
@@ -1606,12 +1619,21 @@ contains
         scalar_source_field => extract_scalar_field(state, 'Salinity')
         scalar_surface => extract_surface_field(scalar_source_field, force_salinity, &
                                              "value")
-        call remap_field(salinity_flux, scalar_surface)
+        if (salinity_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
+            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
+            call remap_field_to_surface(p_position, position_remapped, &
+                                        surface_element_list)
+            call project_field(salinity_flux, scalar_surface, position_remapped)
+            call deallocate(position_remapped)
+        else
+            call remap_field(salinity_flux, scalar_surface)
+        end if
+        
         if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::SalinityFlux")) then
             scalar_source_field => extract_scalar_field(state, 'SalinityFlux')
             ! copy the values onto the mesh using the global node id
-            do i=1,size(surface_nodes)
-                call set(scalar_source_field,surface_nodes(i),node_val(scalar_surface,i))
+            do i=1,node_count(salinity_flux)
+                call set(scalar_source_field,surface_nodes(i),node_val(salinity_flux,i))
             end do 
             sfield => extract_scalar_field(state, 'OldSalinityFlux',stat)
             if (stat == 0) then
@@ -1627,12 +1649,21 @@ contains
         scalar_source_field => extract_scalar_field(state, 'PhotosyntheticRadiation')
         scalar_surface => extract_surface_field(scalar_source_field, force_solar ,&
                                              "value")
-        call remap_field(solar_flux, scalar_surface)
+        if (solar_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
+            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
+            call remap_field_to_surface(p_position, position_remapped, &
+                                        surface_element_list)
+            call project_field(solar_flux, scalar_surface, position_remapped)
+            call deallocate(position_remapped)
+        else
+            call remap_field(solar_flux, scalar_surface)
+        end if        
+        
         if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::PhotosyntheticRadiationDownward")) then
             scalar_source_field => extract_scalar_field(state, 'PhotosyntheticRadiationDownward')
             ! copy the values onto the mesh using the global node id
-            do i=1,size(surface_nodes)
-                call set(scalar_source_field,surface_nodes(i),node_val(scalar_surface,i))
+            do i=1,node_count(solar_flux)
+                call set(scalar_source_field,surface_nodes(i),node_val(solar_flux,i))
             end do 
 
             sfield => extract_scalar_field(state, 'OldPhotosyntheticRadiationDownward',stat)
