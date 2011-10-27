@@ -351,10 +351,26 @@ The t argument is for future use only - currently detector locations are only se
                 </element>
               </choice>
             </zeroOrMore>
+            <choice>
+              <element name="fail_outside_domain">
+                <a:documentation>By default Fluidity will fail if a detector has left the domain.</a:documentation>
+                <empty/>
+              </element>
+              <element name="write_nan_outside_domain">
+                <a:documentation>Enable to write NaN values to detector output if a detector has left the domain.</a:documentation>
+                <empty/>
+              </element>
+            </choice>
             <optional>
               <element name="binary_output">
                 <a:documentation>Enable to write detector output in binary format</a:documentation>
                 <ref name="comment"/>
+              </element>
+            </optional>
+            <optional>
+              <element name="move_with_mesh">
+                <a:documentation>Enable to let detectors move with the domain if mesh_movement is enabled.</a:documentation>
+                <empty/>
               </element>
             </optional>
             <optional>
@@ -7784,7 +7800,8 @@ useful for psuedo-1D simulations.</a:documentation>
             </element>
           </optional>
           <element name="output_fluxes_diagnostics">
-            <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes</a:documentation>
+            <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
+These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
             <optional>
               <element name="vector_field">
                 <attribute name="rank">

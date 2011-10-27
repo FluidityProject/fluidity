@@ -34,7 +34,8 @@ else
 endif
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling the data extraction and plotting script
+	python ./plot_data.py
 
 input: clean
 	$(MAKE) preprocess NPROCS=8

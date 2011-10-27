@@ -414,7 +414,37 @@ subroutine bulk_parameterisations_check_options
     if (.not.have_option("/material_phase[0]/vector_field::Velocity")) then
         FLExit("You need Velocity field for bulk forumlae")
     end if
+   
+    ! check if the diagnostics are on same mesh as the velocity
+    if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::PhotosyntheticRadiationDownward")) then
+        call get_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::PhotosyntheticRadiationDownward/diagnostic/mesh/name",buffer)
+        if (trim(buffer) .ne. "VelocityMesh") then
+            FLExit("The bulk_forcing diagnostic PhotosyntheticRadiationDownward must be on the velocity mesh")
+        end if
+    end if
+    if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field:SalinityFlux")) then
+        call get_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::SalinityFlux/diagnostic/mesh/name", buffer)
+        print trim(buffer)
+    if (trim(buffer) .ne. "VelocityMesh") then
+            FLExit("The bulk_forcing diagnostic SalinityFlux must be on the velocity mesh")
+        end if
+    end if
+    if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field:HeatFlux")) then
+        call get_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/scalar_field::HeatFlux/diagnostic/mesh/name", buffer)
+        if (trim(buffer) .ne. "VelocityMesh") then
+            FLExit("The bulk_forcing diagnostic HeatFlux must be on the velocity mesh")
+        end if
+    end if
+    if (have_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/vector_field::MomentumFlux")) then
+        call get_option("/ocean_forcing/bulk_formulae/output_fluxes_diagnostics/vector_field::MomentumFlux/diagnostic/mesh/name", buffer)
+        if (trim(buffer) .ne. "VelocityMesh") then
+            FLExit("The bulk_forcing diagnostic MomentumFlux must be on the velocity mesh")
+        end if
+    end if
+
     
+
+
 
 end subroutine bulk_parameterisations_check_options
 
