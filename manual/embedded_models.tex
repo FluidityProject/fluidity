@@ -213,16 +213,30 @@ vertical component of the advecting velocity.
 
 \section{Sediments}
 
-\fluidity\ is capable of simulating an unlimited number of sediment concentration classes.
-Each class has a separate grain size, density and settling velocity. The sediment behaves
-as any other tracer field, except it is subject to a settling velocity:
+\fluidity\ is capable of simulating an unlimited number of sediment concentration fields. 
+Each sediment field, with concentration, $c_{i}$, behaves as any other tracer field, except 
+that it is subject to a settling velocity, $u_{si]$. The equation of conservation of
+suspended sediment mass thus takes the form:
 
 \begin{equation}\label{eq:sediment_conc}
-\ppt{S_m} + \nabla\cdot(\bmu S_m) = \nabla\cdot(\kaptens\nabla S_m) - \sigma S_m
+\ppt{c_i} + \nabla\cdot c_i(u - \delta_{j3}u_{si}) = \nabla\cdot(\kaptens\nabla c_i)
 \end{equation}
 
-The advection in the vertical direction is then modified with a downwards sinking 
-velocity $u_{s}$. 
+Source and absorbtion terms have been removed from the above equation. These will only be
+present on region boundaries.
+
+Each sediment field represents a discrete sediment type with a specific diameter and
+density. A distribution of sediment types can be achieved by using multiple sediment fields.
+
+\emph{Notes on model set up}
+
+Each sediment field must have a sinking velocity. Note that this is not shown as a
+required element in the options tree as it is inherited as a standard option for all
+scalar fields.
+
+A sediment density, and sediment deposition field must also be defined. The sediment
+deposition field stores a record of sediment that has exited the modelled region due to
+settling of sediment particles.
 
 \subsection{Hindered Sinking Velocity}
 
@@ -262,9 +276,9 @@ automatically calculated using:
 \end{equation}
 
 \noindent
-where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}$ and $D$ is the sediment
-diameter (mm). The SedimentDepositon field effectively mixes the deposited sediment, so order of deposition
-is not preserved.
+where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}$ and $D$ is the
+sediment diameter (mm). The SedimentDepositon field effectively mixes the deposited sediment, so
+order of deposition is not preserved.
 
 \subsection{Sediment concentration dependent viscosity}
 

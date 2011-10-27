@@ -1779,7 +1779,7 @@ sediment =
          ## due to turbulence. This must be set on the same boundaries as the SedimentDepositon
          ## field
          ## 
-         ## - see the manual for details on how to use this field type 
+         ## - see the manual for more details on how to use this model 
          element scalar_field {
             attribute rank { "0" },
             attribute name { string },
