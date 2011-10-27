@@ -588,8 +588,10 @@ is run on 256 processors.
 To run in parallel one must first decompose the mesh. See section
 \ref{decomp_meshes_parallel} for more information on how to do this. \fluidity\
 must then be run within the mpirun or mpiexec framework. Simply prepend the
-normal command line with mpiexec: \begin{lstlisting}[language=bash] mpiexec -n
-[PROCESSES] `\fluiditysourcepath'/bin/fluidity foo.flml \end{lstlisting}
+normal command line with mpiexec:
+\begin{lstlisting}[language=bash]
+mpiexec -n [PROCESSES] `\fluiditysourcepath'/bin/fluidity foo.flml
+\end{lstlisting}
 
 \section{Running diamond}
 \label{sec:running_diamond}

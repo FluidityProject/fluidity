@@ -135,23 +135,29 @@ The \lstinline[language = Bash]+gmsh_mesh_transform+ script (section~\ref{sec:gm
 \subsection{Decomposing meshes for parallel}
 \label{decomp_meshes_parallel}
 \index{parallel!mesh decomposition}
-
-For parallel simulations the mesh must be divided into a number of blocks, a process usualy referred to
-as \emph{mesh decomposition}. Each processor then reads the mesh corresponding to a single block.
+To run in parallel one must first divide the mesh into a number of blocks, a proccess
+commonly referred to as \emph{mesh decomposition}. Figure \ref{fig:NACA0025_mesh_with_partitions}
+shows a possible partition of an example mesh. When \fluidity\ is run in parallel (see section
+\ref{sec:running_fluidity_in_parallel}), each processor then reads the mesh corresponding to a
+single block. This section outlines how to decompose a mesh with \fluidity\ tools.
+\begin{figure}[htbp]
+ \centering
+  \includegraphics[width=0.7\textwidth]{misc_images/NACA0025_mesh_with_partitions.pdf}
+  \caption{An unstructures mesh around a NACA0025 aerofoil, the coloured patches show a
+           possible decomposition into 4 partitions.}
+  \label{fig:NACA0025_mesh_with_partitions}
+\end{figure}
 
 \subsubsection{fldecomp}
 \index{mesh!meshing tools!fldecomp}
 \label{mesh!meshing tools!fldecomp}
 
-For parallel simulations, you must use \lstinline[language=bash]+fldecomp+ to decompose a Gmsh
-mesh into sub-meshes for each process. Here, only binary Gmsh files can be
-used - see section \ref{sec:fldecomp} for details.
-
-In order to run fldecomp, if your mesh file is \lstinline[language=bash]+foo.msh+
-and you want to decompose into four parts, type:
+\lstinline[language=bash]+fldecomp+ can be used to decompose a mesh. For example, if your mesh
+file is \lstinline[language=bash]+foo.msh+ and you want to decompose into four parts, type:
 \begin{lstlisting}[language = Bash]
 `\fluiditysourcepath'/bin/fldecomp -n 4 -m gmsh foo
 \end{lstlisting}
+See section \ref{sec:fldecomp} for more details.
 
 \subsubsection{flredecomp}
 \index{mesh!meshing tools!flredecomp}
