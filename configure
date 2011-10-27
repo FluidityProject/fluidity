@@ -607,6 +607,7 @@ CLEAN_LIBADAPT
 BUILD_LIBADAPT
 DEFINE_MPI
 USE_CPP
+FLLINKER
 LINKER
 OPTIMIZATION_FFLAGS
 FORTRAN_REAL_8
@@ -13533,6 +13534,7 @@ fi
 
 
 
+
 if test "$smart_fortran" = "yes" ; then
   F77=$MPIF90
 else
@@ -13665,7 +13667,9 @@ $as_echo "$as_me: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" >&6;}
 $as_echo "$as_me: Building on hector xe6; disabling shared libraries" >&6;}
         SHFLAG=--disable-shared
         SPUD_ONLY="yes"
+        FLLINKER=$CXX
     else
+        FLLINKER=$FC
         SHFLAG=--enable-shared
     fi
 

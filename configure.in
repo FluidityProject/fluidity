@@ -1115,6 +1115,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_SUBST(FORTRAN_REAL_8)
 AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
+AC_SUBST(FLLINKER)
 
 dnl Specific f90 options
 AC_SUBST(USE_CPP)
@@ -1213,7 +1214,9 @@ if test -d libspud ; then
         AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
         SHFLAG=--disable-shared
         SPUD_ONLY="yes"
+        FLLINKER=$CXX
     else
+        FLLINKER=$FC
         SHFLAG=--enable-shared
     fi
     AC_SUBST(SPUD_ONLY)
