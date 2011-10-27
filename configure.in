@@ -26,8 +26,9 @@
 #    USA
 
 dnl Process this file with autoconf to produce a configure script.
-# Version is comprised of the branch name and the repository revision number.
-AC_INIT(fluidity, m4_esyscmd([echo -n `bzr info | egrep 'parent branch|checkout of' | awk -F/ '{print $(NF-1)}'`.`bzr revision-info | awk '{print $1}'`]))
+
+
+AC_INIT(fluidity, None)
 
 AC_CONFIG_HEADERS(include/config.h)
 
