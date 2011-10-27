@@ -166,10 +166,10 @@ main.o: include/version.h include/libspud.h
 
 include/version.h:
 	@echo "DEFINE __FLUIDITY_VERSION__"
-	@grep "$(PACKAGE_VERSION)" include/version.h >/dev/null 2>&1 || \
+	@grep "$(VERSION)" include/version.h >/dev/null 2>&1 || \
 	printf "#ifndef _FLUIDITY_VERSION_H\n\
 	#define _FLUIDITY_VERSION_H\n\
-	#define __FLUIDITY_VERSION__ \"$(PACKAGE_VERSION)\"\n\
+	#define __FLUIDITY_VERSION__ \"$(VERSION)\"\n\
 	#endif /* _FLUIDITY_VERSION_H */\n" > include/version.h
 
 .PHONY: include/version.h
@@ -434,6 +434,8 @@ clean: clean-light clean-test python_clean
 	@cd libalgencan; $(MAKE) clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
+	@echo "    CLEAN manual"
+	@cd manual; $(MAKE) clean
 	@CLEAN_LIBADAPT@
 	@rm -fr include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
@@ -498,7 +500,7 @@ else
         endif
 endif
 
-mediumtest: bin/burgers_equation
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:

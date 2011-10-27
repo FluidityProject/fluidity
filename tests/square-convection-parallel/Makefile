@@ -12,7 +12,7 @@ input: clean
 
 clean: clean-mesh clean-run-debug 
 clean-mesh:
-	rm -f $(MESH).edge $(MESH).ele $(MESH).node
+	rm -f $(MESH)_?*.edge $(MESH)_?*.ele $(MESH)_?*.node $(MESH)_?*.halo
 clean-run:
 	rm -f $(FLMLMODEL)_?*.vtu $(FLMLMODEL)_?*_checkpoint.edge $(FLMLMODEL)_?*_checkpoint.ele $(FLMLMODEL)_?*_checkpoint.node $(FLMLMODEL)_?*_checkpoint.flml $(FLMLMODEL)_?*_?*_checkpoint.vtu $(FLMLMODEL).detectors $(FLMLMODEL).stat fluidity.err-0 fluidity.log-0 matrixdump matrixdump.info
 clean-run-debug: clean-run
