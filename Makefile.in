@@ -434,6 +434,8 @@ clean: clean-light clean-test python_clean
 	@cd libalgencan; $(MAKE) clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
+	@echo "    CLEAN manual"
+	@cd manual; $(MAKE) clean
 	@CLEAN_LIBADAPT@
 	@rm -fr include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
@@ -498,7 +500,7 @@ else
         endif
 endif
 
-mediumtest: bin/burgers_equation
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:

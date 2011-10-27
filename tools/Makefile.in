@@ -204,6 +204,7 @@ $(UNIFIEDMESH): unifiedmesh.o unifiedmesh_main.o lib/
 clean:
 	rm -f *.o *.mod
 	rm -rf build dist fluidity.egg-info 
+	rm -f lib
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.o lib/
 	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
