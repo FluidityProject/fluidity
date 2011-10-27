@@ -6,7 +6,7 @@ required for a simulation, and therefore some form of parameterisation is requir
 This chapter introduces the paramateristations that are available in \fluidity.
 
 \section{Turbulent flow modelling and simulation}
-\label{Sect:turbulence_parametrisations}
+\label{sec:turbulence_parametrisations}
 
 \subsection{Reynolds Averaged Navier Stokes Modelling}
 \label{sec:RANS}
@@ -263,7 +263,7 @@ Available under \option{\ldots/subgridscale\_parameterisations/k-epsilon}.
 
 The widely-used $k-\epsilon$ turbulence model has been implemented in \fluidity\ based on the description given in
 \citet{mathieu2000}. It is distinct from the $k-\epsilon$ option in the generic length scale (GLS) model (see
-Section \ref{Sect:GLS}), in that it uses a 3D isotropic eddy-viscosity tensor, and it can be applied to any geometry. The eddy viscosity is added to the user-specified molecular (background) viscosity when solving for velocity, and if solving for additional prognostic scalar fields, it is scaled by a user-specified Prandtl number to obtain the field eddy diffusivity.
+Section \ref{sec:GLS}), in that it uses a 3D isotropic eddy-viscosity tensor, and it can be applied to any geometry. The eddy viscosity is added to the user-specified molecular (background) viscosity when solving for velocity, and if solving for additional prognostic scalar fields, it is scaled by a user-specified Prandtl number to obtain the field eddy diffusivity.
 
 The model is based on the unsteady Reynolds-averaged Navier-Stokes (RANS) equations, in which the velocity is decomposed into quasi-steady (moving average) and fluctuating (turbulent) components:
 
@@ -325,7 +325,7 @@ $\sigma_k$ & 1.0 \\ \hline
 \end{table}
 
 \par{\textbf{Initial and Boundary Conditions}\\}
-Low- and high-Reynolds-number wall functions are available under the option \linebreak \option{\ldots/boundary\_conditions/type::k\_epsilon/} (see \ref{Sect:kepsilon}). When simulating low Reynolds numbers ($Re<10^4$) the \option{low\_Re} wall functions are recommended \citep{wilcox1998turbulence}:
+Low- and high-Reynolds-number wall functions are available under the option \linebreak \option{\ldots/boundary\_conditions/type::k\_epsilon/} (see \ref{sec:kepsilon}). When simulating low Reynolds numbers ($Re<10^4$) the \option{low\_Re} wall functions are recommended \citep{wilcox1998turbulence}:
 
 \begin{align}
 \bmu &= 0, \label{ubc1}\\
@@ -341,7 +341,7 @@ k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{kbc2}\\
 \epsilon &= \frac{u_*^3}{\kappa y}, \label{epsbc2}\\
 u_* &= (\tau_w / \rho)^{1/2} = \left ( \nu_T \ppx[n]{U_S} \right )^{1/2}, \label{ustar}
 \end{align}
-where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von Karman's constant, $\nu$ is the kinematic laminar (background) viscosity, $\nu_T$ is the kinematic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the gradient operator in the wall-normal direction. For implementation details see \ref{Sect:kepsilon_usage}.
+where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von Karman's constant, $\nu$ is the kinematic laminar (background) viscosity, $\nu_T$ is the kinematic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the gradient operator in the wall-normal direction. For implementation details see \ref{sec:kepsilon_usage}.
 
 \subsection{Large-Eddy Simulation (LES)}
 \index{large eddy simulation}
@@ -469,7 +469,7 @@ The fourth-order method is designed as an improvement to the second-order eddy v
 
 \subsubsection{Dynamic Smagorinsky model}
 
-The most important disadvantage of Smagorinsky-type models such as discussed in sections \ref{ssect:second_order_diss_LES} and \ref{ssect:fourth_order_diss_LES} is the behaviour of the eddy viscosity near walls and non-turbulent regions. As shown in \citet{pope2000}, in a fully developed channel flow the sub-grid eddy viscosity $\nu_\tau$ should diminish as $\nu_\tau \propto z^3$, $z$ the wall-normal coordinate. Conversely, it is shown in \citet{nicoud1999} that the Smagorinsky model gives $\sqrt{2 \tilde{S}_{ij} \tilde{S}_{ij}} \sim O(1)$ near walls leading to an incorrect subgrid-scale viscosity. In addition, the Smagorinsky model is absolutely dissipative: energy transfer is only allowed from resolved scales to subgrid scales. The opposite (commonly termed as backscatter), commonly occurs in transitional flows, and absolutely dissipative models have been shown in \citet{piomelli1990} to under-predict the growth rate of perturbations in the flow, leading to delayed transition to turbulence.%check
+The most important disadvantage of Smagorinsky-type models such as discussed in sections \ref{sec:second_order_diss_LES} and \ref{sec:fourth_order_diss_LES} is the behaviour of the eddy viscosity near walls and non-turbulent regions. As shown in \citet{pope2000}, in a fully developed channel flow the sub-grid eddy viscosity $\nu_\tau$ should diminish as $\nu_\tau \propto z^3$, $z$ the wall-normal coordinate. Conversely, it is shown in \citet{nicoud1999} that the Smagorinsky model gives $\sqrt{2 \tilde{S}_{ij} \tilde{S}_{ij}} \sim O(1)$ near walls leading to an incorrect subgrid-scale viscosity. In addition, the Smagorinsky model is absolutely dissipative: energy transfer is only allowed from resolved scales to subgrid scales. The opposite (commonly termed as backscatter), commonly occurs in transitional flows, and absolutely dissipative models have been shown in \citet{piomelli1990} to under-predict the growth rate of perturbations in the flow, leading to delayed transition to turbulence.%check
 \par
 Dynamical models were designed to overcome the disadvantages of Smagorinsky type models by using arguments with better physical grounding as a starting point towards the evaluation of the subgrid viscosity. In particular, at the core of dynamical Smagorinsky type models lies the idea of scale similarity \citep{bardina1980}, which states that in the inertial subrange, the statistical properties of the fluctuations at a given wave-number are similar to the statistical properties of fluctuations of near-by wavenumbers.
 

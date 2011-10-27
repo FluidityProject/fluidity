@@ -415,18 +415,18 @@ For new users, altering the weights should be the primary way to control the
 size of the adapted mesh. 
 
 \subsection{Metric advection}
-Metric advection is a technique that uses the current flow velocity to advect the metric forward in time over the period until the next mesh adapt. This allows an estimate of the mesh resolution required at each time--step before the next adapt to be obtained and incorporated into the adapted mesh \citep{wilson_phdthesis_2009}. Each component of the metric is advected as a scalar using a control volume scheme, section \ref{Sect:ND_control_volume_advection}. The time--step for this calculation is determined by a specified Courant number. 
+Metric advection is a technique that uses the current flow velocity to advect the metric forward in time over the period until the next mesh adapt. This allows an estimate of the mesh resolution required at each time--step before the next adapt to be obtained and incorporated into the adapted mesh \citep{wilson_phdthesis_2009}. Each component of the metric is advected as a scalar using a control volume scheme, section \ref{sec:ND_control_volume_advection}. The time--step for this calculation is determined by a specified Courant number. 
 
 With metric advection, mesh resolution is `pushed ahead' of the flow such that, between mesh adapts, the dynamics of interest are less likely to propagate out of the region of higher resolution. This leads to a larger area that requires refinement and, therefore, an increase in the number of nodes. However, metric advection can allow the frequency of adapt to be reduced whilst maintaining a good representation of the dynamics
 
-In the lock--exchange example, section \ref{sect:lock_exchange}, consider an adapted mesh with high resolution in the region of the interface between the two fluids. As the simulation proceeds, the gravity current fronts may propagate out of this high resolution region before the next adapt. This can lead to a more diffuse interface due to increased numerical diffusion from the advection method at coarser resolutions. Metric advection would increase the resolution in the adapted mesh not only in the interface, but also ahead of it, in the region into which the gravity current fronts will propagate. 
+In the lock--exchange example, section \ref{sec:lock_exchange}, consider an adapted mesh with high resolution in the region of the interface between the two fluids. As the simulation proceeds, the gravity current fronts may propagate out of this high resolution region before the next adapt. This can lead to a more diffuse interface due to increased numerical diffusion from the advection method at coarser resolutions. Metric advection would increase the resolution in the adapted mesh not only in the interface, but also ahead of it, in the region into which the gravity current fronts will propagate. 
 
-The options for metric advection can be found under \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection}. It is generally recommended for the spatial discretisation to select a first order upwind scheme for calculation the face values (the default) and to use non--conservative form, section \ref{Sect:ND_control_volume_advection}. These are selected with options
+The options for metric advection can be found under \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection}. It is generally recommended for the spatial discretisation to select a first order upwind scheme for calculation the face values (the default) and to use non--conservative form, section \ref{sec:ND_control_volume_advection}. These are selected with options
 \begin{itemize}
 \item \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/spatial\_discretisation/control\_volumes/face\_value::FirstOrderUpwind}
 \item \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/spatial\_discretisation/conservative\_advection} $=0.0$
 \end{itemize}
-For temporal discretisation a semi--implicit discretisation in time is recommended with, section \ref{sect:ND_time_disct_adv_diff}, option
+For temporal discretisation a semi--implicit discretisation in time is recommended with, section \ref{sec:ND_time_disct_adv_diff}, option
 \begin{itemize}
 \item \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/temporal\_discretisation/theta} $=0.5$
 \end{itemize}
