@@ -215,7 +215,7 @@ vertical component of the advecting velocity.
 
 \fluidity\ is capable of simulating an unlimited number of sediment concentration fields. 
 Each sediment field, with concentration, $c_{i}$, behaves as any other tracer field, except 
-that it is subject to a settling velocity, $u_{si]$. The equation of conservation of
+that it is subject to a settling velocity, $u_{si}$. The equation of conservation of
 suspended sediment mass thus takes the form:
 
 \begin{equation}\label{eq:sediment_conc}
@@ -228,7 +228,7 @@ present on region boundaries.
 Each sediment field represents a discrete sediment type with a specific diameter and
 density. A distribution of sediment types can be achieved by using multiple sediment fields.
 
-\emph{Notes on model set up}
+{\bf Notes on model set up}
 
 Each sediment field must have a sinking velocity. Note that this is not shown as a
 required element in the options tree as it is inherited as a standard option for all
@@ -252,16 +252,17 @@ sinking velocity, $u_{s0}$, and the total concentration of sediment, $c$.
 u_{si} = u_{s0}(1-c)^{2.39}
 \end{equation}
 
-\subsection{Bedload and erosion}
+\subsection{Deposition and erosion}
 
 A surface can be defined, the sea-bed, which is a sink for sediment. Once sediment
 fluxes through this surface it is removed from the system and stored in a separate 
-field: the SedimentBedload field. Each sediment class has an equivalent Flux field.
+field: the SedimentBedload field. Each sediment class has its on bedload field.
 
-Erosion occurs when the bed-shear stress is greater than the critical shear stress. Each
-sediment class has a separate shear stress, which can be input or calculated depending
-on the options chosen. Erosion flux, $E_m$ is implemented as a Neumann boundary condition
-on the bedload/erosion surface.
+Erosion of this bed can be modelled by applying the sediment\_reentrainment boundary
+condition. Erosion occurs when the bed-shear stress is greater than the critical shear
+stress. Each sediment class has a separate shear stress, which can be input or calculated
+depending on the options chosen. Erosion flux, $E_m$ is implemented as a Neumann boundary
+condition on the bedload/erosion surface.
 
 \begin{equation}\label{eq:sediment_erosion_rate}
 E_m = E_{0m}\left(1-\varphi\right)\frac{\tau_{sf} - \tau_{cm}}{\tau_{cm}}
