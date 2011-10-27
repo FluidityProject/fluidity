@@ -556,9 +556,6 @@ contains
        do thr = 0, num_threads-1
           minor_pagefaults_sum(clr) = minor_pagefaults_sum(clr) &
                + minor_pagefaults(clr,thr)
-!!$          write(20,*) "Colour :: ",clr," :: Page faults from thread ",thr, & 
-!!$               " = ", minor_pagefaults(clr,thr)
-!!$          write(20,*) "Temporary total = ", minor_pagefaults_sum(clr)
        end do
        write(20,*) "Colour :: ", clr, " :: Sum of minor page faults = ", &
             minor_pagefaults_sum(clr)

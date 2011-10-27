@@ -700,11 +700,6 @@ contains
 #ifdef HAVE_LIBNUMA
       call profiler_minorpagefaults(minfaults_toc)      
       minor_pagefaults(clr,omp_get_thread_num()) = minfaults_toc - minfaults_tic
-!!$      write(20,*) "Colour :: ", clr," Thread ID :: ", omp_get_thread_num(), & 
-!!$         " :: Number of minor page faults = ", (minfaults_toc - minfaults_tic)
-!!$      write(20,*) "Colour :: ", clr," Thread ID :: ", omp_get_thread_num(), & 
-!!$         " :: Number of minor page faults, array index (", clr,",", &
-!!$         omp_get_thread_num(),") = ", minor_pagefaults(clr,omp_get_thread_num())
       flush(20)
 #endif
 
@@ -719,9 +714,6 @@ contains
        do thr = 0, num_threads-1
           minor_pagefaults_sum(clr) = minor_pagefaults_sum(clr) &
                + minor_pagefaults(clr,thr)
-!!$          write(20,*) "Colour :: ",clr," :: Page faults from thread ",thr, & 
-!!$               " = ", minor_pagefaults(clr,thr)
-!!$          write(20,*) "Temporary total = ", minor_pagefaults_sum(clr)
        end do
        write(20,*) "Colour :: ", clr, " :: Sum of minor page faults = ", &
             minor_pagefaults_sum(clr)
