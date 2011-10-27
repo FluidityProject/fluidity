@@ -353,7 +353,9 @@ contains
     end do
 
     ! First check locally
-    call picker_inquire(positions, local_coords(:,:), local_ele(:), local_coords = local_l_coords(:,:), global = .false.)
+    if (detectors%length > 0) then
+       call picker_inquire(positions, local_coords(:,:), local_ele(:), local_coords = local_l_coords(:,:), global = .false.)
+    end if
 
     nglobal_dets = 0
     node => detectors%first
