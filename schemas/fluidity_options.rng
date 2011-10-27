@@ -2428,7 +2428,7 @@ sediment field under prognostic/SinkingVelocity
 due to turbulence. This must be set on the same boundaries as the SedimentDepositon
 field
 
-- see the manual for details on how to use this field type </a:documentation>
+- see the manual for more details on how to use this model </a:documentation>
           <attribute name="rank">
             <value>0</value>
           </attribute>
@@ -2440,7 +2440,7 @@ field
             <ref name="velocity_mesh_choice"/>
             <ref name="prognostic_scalar_field"/>
             <element name="scalar_field">
-              <a:documentation>Sediment deposition diagnostic which records the sediment 
+              <a:documentation>Sediment bedload diagnostic which records the sediment 
 deposited through the prescribed boundary.
 
 The units are in unit distances as a depth of sediment.</a:documentation>
@@ -2448,12 +2448,12 @@ The units are in unit distances as a depth of sediment.</a:documentation>
                 <value>0</value>
               </attribute>
               <attribute name="name">
-                <value>SedimentDeposition</value>
+                <value>SedimentBedload</value>
               </attribute>
               <element name="diagnostic">
                 <a:documentation>Field type</a:documentation>
                 <element name="surface_ids">
-                  <a:documentation>Surface ids over which to calculate the deposition:</a:documentation>
+                  <a:documentation>Surface ids over which to calculate the bedload:</a:documentation>
                   <ref name="integer_vector"/>
                 </element>
                 <ref name="diagnostic_scalar_field"/>

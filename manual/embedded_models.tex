@@ -234,9 +234,12 @@ Each sediment field must have a sinking velocity. Note that this is not shown as
 required element in the options tree as it is inherited as a standard option for all
 scalar fields.
 
-A sediment density, and sediment deposition field must also be defined. The sediment
-deposition field stores a record of sediment that has exited the modelled region due to
+A sediment density, and sediment bedload field must also be defined. The sediment
+bedload field stores a record of sediment that has exited the modelled region due to
 settling of sediment particles.
+
+To use sediment, a linear equation of state must also be enabled
+\option{\ldots/equation\_of\_state/fluids/linear}
 
 \subsection{Hindered Sinking Velocity}
 
@@ -249,16 +252,16 @@ sinking velocity, $u_{s0}$, and the total concentration of sediment, $c$.
 u_{si} = u_{s0}(1-c)^{2.39}
 \end{equation}
 
-\subsection{Deposition and erosion}
+\subsection{Bedload and erosion}
 
 A surface can be defined, the sea-bed, which is a sink for sediment. Once sediment
 fluxes through this surface it is removed from the system and stored in a separate 
-field: the SedimentDeposition field. Each sediment class has an equivalent Flux field.
+field: the SedimentBedload field. Each sediment class has an equivalent Flux field.
 
 Erosion occurs when the bed-shear stress is greater than the critical shear stress. Each
 sediment class has a separate shear stress, which can be input or calculated depending
 on the options chosen. Erosion flux, $E_m$ is implemented as a Neumann boundary condition
-on the deposition/erosion surface.
+on the bedload/erosion surface.
 
 \begin{equation}\label{eq:sediment_erosion_rate}
 E_m = E_{0m}\left(1-\varphi\right)\frac{\tau_{sf} - \tau_{cm}}{\tau_{cm}}
@@ -278,7 +281,7 @@ automatically calculated using:
 \noindent
 where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}$ and $D$ is the
 sediment diameter (mm). The SedimentDepositon field effectively mixes the deposited sediment, so
-order of deposition is not preserved.
+order of bedload is not preserved.
 
 \subsection{Sediment concentration dependent viscosity}
 

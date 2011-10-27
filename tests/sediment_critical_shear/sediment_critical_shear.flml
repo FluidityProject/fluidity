@@ -349,7 +349,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>

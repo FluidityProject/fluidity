@@ -76,10 +76,10 @@ contains
 
     character(len=FIELD_NAME_LEN)           :: field_mesh, sediment_mesh, bc_type
     character(len=OPTION_PATH_LEN)          :: field_option_path, bc_path, bc_path_i
-    integer                                 :: i_field, i_bc, i_bc_surf, i_deposition_surf,&
+    integer                                 :: i_field, i_bc, i_bc_surf, i_bedload_surf,&
          & n_sediment_fields, nbcs
-    integer, dimension(2)                   :: bc_surface_id_count, deposition_surface_id_count
-    integer, dimension(:), allocatable      :: bc_surface_ids, deposition_surface_ids
+    integer, dimension(2)                   :: bc_surface_id_count, bedload_surface_id_count
+    integer, dimension(:), allocatable      :: bc_surface_ids, bedload_surface_ids
 
     if (have_option('/material_phase[0]/sediment/')) then
 
@@ -106,7 +106,7 @@ contains
              FLExit("All sediment fields must be on the same mesh")
           end if
 
-          ! check reentrainment is set on a deposition surface and that a BedShearStress field is
+          ! check reentrainment is set on a bedload surface and that a BedShearStress field is
           !  present if there is reentrainment
 
           ! get boundary condition path and number of boundary conditions
@@ -128,12 +128,12 @@ contains
                 FLExit("Reentrainment boundary condition requires a BedShearStress field")
              end if
 
-             ! get deposition surface ids
-             deposition_surface_id_count=option_shape(trim(field_option_path)//'/scalar_field::SedimentD&
-                  &eposition/diagnostic/surface_ids')
-             allocate(deposition_surface_ids(deposition_surface_id_count(1)))
-             call get_option(trim(field_option_path)//'/scalar_field::SedimentDeposition/diagnostic/surf&
-                  &ace_ids', deposition_surface_ids) 
+             ! get bedload surface ids
+             bedload_surface_id_count=option_shape(trim(field_option_path)//'/scalar_field::SedimentB&
+                  &edload/diagnostic/surface_ids')
+             allocate(bedload_surface_ids(bedload_surface_id_count(1)))
+             call get_option(trim(field_option_path)//'/scalar_field::SedimentBedload/diagnostic/surf&
+                  &ace_ids', bedload_surface_ids) 
 
              ! get reentrainment surface ids
              bc_surface_id_count=option_shape(trim(field_option_path)//'/boundary_conditions['&
@@ -144,20 +144,20 @@ contains
 
              bc_surface_id: do i_bc_surf=1, bc_surface_id_count(1)
 
-                deposition_surface_id: do i_deposition_surf=1, deposition_surface_id_count(1)
+                bedload_surface_id: do i_bedload_surf=1, bedload_surface_id_count(1)
 
-                   if (bc_surface_ids(i_bc_surf) .eq. deposition_surface_ids(i_deposition_surf)) then
+                   if (bc_surface_ids(i_bc_surf) .eq. bedload_surface_ids(i_bedload_surf)) then
                       cycle bc_surface_id
                    end if
 
-                end do deposition_surface_id
+                end do bedload_surface_id
 
-                FLExit("Reentrainment boundary condition is specified on a surface with no deposition")
+                FLExit("Reentrainment boundary condition is specified on a surface with no bedload")
 
              end do bc_surface_id
 
              deallocate(bc_surface_ids)
-             deallocate(deposition_surface_ids)
+             deallocate(bedload_surface_ids)
 
           end do boundary_conditions
 
@@ -227,7 +227,7 @@ contains
              ewrite(1,*) "Setting reentrainment bc for field: ",trim(field_name)
 
              ! get deposited sediment field
-             bedload => extract_scalar_field(state,trim(field_name)//"SedimentDeposition")
+             bedload => extract_scalar_field(state,trim(field_name)//"SedimentBedload")
 
              call get_boundary_condition(field, name=bc_name, type=bc_type, &
                   surface_mesh=bottom_mesh,surface_element_list=surface_element_list)   

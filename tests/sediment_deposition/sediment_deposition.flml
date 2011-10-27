@@ -219,7 +219,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -240,9 +240,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
       <scalar_field name="Sed2mm" rank="0">
@@ -329,7 +326,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -350,9 +347,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
       <scalar_field name="Sed3mm" rank="0">
@@ -439,7 +433,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -460,9 +454,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
       <scalar_field name="Sed4mm" rank="0">
@@ -549,7 +540,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -570,9 +561,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
       <scalar_field name="Sed5mm" rank="0">
@@ -659,7 +647,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -680,9 +668,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
       <scalar_field name="Sed6mm" rank="0">
@@ -769,7 +754,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -790,9 +775,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
       <scalar_field name="Sed7mm" rank="0">
@@ -879,7 +861,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -900,9 +882,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
       <scalar_field name="Sed8mm" rank="0">
@@ -989,7 +968,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -1010,9 +989,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
       <scalar_field name="Sed9mm" rank="0">
@@ -1099,7 +1075,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -1120,9 +1096,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
       <scalar_field name="Sed10mm" rank="0">
@@ -1209,7 +1182,7 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
-          <scalar_field name="SedimentDeposition" rank="0">
+          <scalar_field name="SedimentBedload" rank="0">
             <diagnostic>
               <surface_ids>
                 <integer_value shape="1" rank="1">8</integer_value>
@@ -1230,9 +1203,6 @@
           <density>
             <real_value rank="0">2500</real_value>
           </density>
-          <porosity>
-            <real_value rank="0">0.5</real_value>
-          </porosity>
         </prognostic>
       </scalar_field>
     </sediment>

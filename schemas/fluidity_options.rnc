@@ -1787,16 +1787,16 @@ sediment =
             element prognostic {
                velocity_mesh_choice,
                prognostic_scalar_field,
-               ## Sediment deposition diagnostic which records the sediment 
+               ## Sediment bedload diagnostic which records the sediment 
                ## deposited through the prescribed boundary.
                ##
                ## The units are in unit distances as a depth of sediment.
                element scalar_field {
                   attribute rank { "0" },
-                  attribute name { "SedimentDeposition" },
+                  attribute name { "SedimentBedload" },
                   ## Field type
                   element diagnostic {
-                     ## Surface ids over which to calculate the deposition:
+                     ## Surface ids over which to calculate the bedload:
                      element surface_ids {
                         integer_vector
                      },

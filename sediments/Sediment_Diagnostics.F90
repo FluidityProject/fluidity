@@ -54,7 +54,7 @@ contains
     type(mesh_type), pointer                               :: surface_mesh
     type(vector_field), pointer                            :: X, U, gravity
     type(scalar_field_pointer), dimension(:), allocatable  :: sediment_field&
-         &, deposition_field, sink_U
+         &, bedload_field, sink_U
     type(scalar_field), dimension(:), allocatable          :: surface_field, erosion
     type(scalar_field), pointer                            :: erosion_flux
     type(scalar_field)                                     :: masslump
@@ -69,7 +69,7 @@ contains
          & bc_type
     character(len=OPTION_PATH_LEN)                         :: bc_path
 
-    ewrite(1,*) "In calculate_sediment_deposition"
+    ewrite(1,*) "In calculate_sediment_bedload"
 
     n_sediment_fields = get_n_sediment_fields()
     call get_option("/timestepping/timestep", dt)
@@ -77,7 +77,7 @@ contains
     allocate(sediment_field(n_sediment_fields))
     allocate(erosion(n_sediment_fields))
     allocate(surface_field(n_sediment_fields))
-    allocate(deposition_field(n_sediment_fields))
+    allocate(bedload_field(n_sediment_fields))
     allocate(sink_U(n_sediment_fields))
 
     X => extract_vector_field(state, "Coordinate")
@@ -91,21 +91,21 @@ contains
        sediment_field(i_field)%ptr => &
             extract_scalar_field(state,trim(field_name))
 
-       deposition_field(i_field)%ptr => &
-            extract_scalar_field(state,trim(field_name)//"SedimentDeposition")
+       bedload_field(i_field)%ptr => &
+            extract_scalar_field(state,trim(field_name)//"SedimentBedload")
 
        sink_U(i_field)%ptr => &
             extract_scalar_field(state,trim(field_name)//"SinkingVelocity",&
             & stat=stat)
 
-       surface_mesh => deposition_field(i_field)%ptr%mesh%faces%surface_mesh
+       surface_mesh => bedload_field(i_field)%ptr%mesh%faces%surface_mesh
        
        ! allocate surface field that will contain calculated deposited sediment
-       call allocate(surface_field(i_field), surface_mesh, "SurfaceDeposition")
+       call allocate(surface_field(i_field), surface_mesh, "SurfaceBedload")
        call zero(surface_field(i_field))
 
        ! extract the sediment_reentrainment BC which will contain the erosion flux
-       ! out of the SurfaceDeposition field and store it in erosion
+       ! out of the SurfaceBedload field and store it in erosion
        call allocate(erosion(i_field), surface_mesh, "ErosionAmount")
        call zero(erosion(i_field))
        
@@ -152,18 +152,18 @@ contains
     if(continuity(surface_mesh)>=0) then
        ! For continuous fields we need a global lumped mass. For dg we'll
        ! do the mass inversion on a per face basis inside the element loop.
-       ! Continuity must be the same for all deposition meshes
+       ! Continuity must be the same for all bedload meshes
        call allocate(masslump, surface_mesh, "SurfaceMassLump")
        call zero(masslump)
     end if
     
     sediment_fields: do i_field=1, n_sediment_fields
 
-       ! get deposition surface ids
-       surface_id_count=option_shape(trim(deposition_field(i_field)%ptr%option_path)//"/diagnos&
+       ! get bedload surface ids
+       surface_id_count=option_shape(trim(bedload_field(i_field)%ptr%option_path)//"/diagnos&
             &tic/surface_ids") 
        allocate(surface_ids(surface_id_count(1)))
-       call get_option(trim(deposition_field(i_field)%ptr%option_path)//"/diagnostic/surface_ids", &
+       call get_option(trim(bedload_field(i_field)%ptr%option_path)//"/diagnostic/surface_ids", &
             & surface_ids) 
 
        ewrite(2,*) surface_id_count(1)
@@ -174,13 +174,13 @@ contains
        ! loop through elements in surface field
        elements: do ele=1,element_count(surface_field(i_field))
 
-          ! check if element is on deposition surface
-          if (.not.any(surface_element_id(deposition_field(i_field)%ptr,ele)&
+          ! check if element is on bedload surface
+          if (.not.any(surface_element_id(bedload_field(i_field)%ptr,ele)&
                &==surface_ids)) then
              cycle elements
           end if
 
-          ! assemble deposition element
+          ! assemble bedload element
           call assemble_sediment_flux_ele(ele, surface_field, sediment_field,&
                & X, U, sink_U(i_field)%ptr, gravity, masslump, dt, i_field)
 
@@ -209,13 +209,13 @@ contains
        do node=1,node_count(surface_field(i_field))
           
           ! Add on sediment falling in and subtract sediment coming out
-          call addto(deposition_field(i_field)%ptr, &
-               deposition_field(i_field)%ptr%mesh%faces%surface_node_list(node), &
+          call addto(bedload_field(i_field)%ptr, &
+               bedload_field(i_field)%ptr%mesh%faces%surface_node_list(node), &
                node_val(surface_field(i_field), node) - node_val(erosion(i_field),node))
           
        end do
 
-       ewrite_minmax(deposition_field(i_field)%ptr) 
+       ewrite_minmax(bedload_field(i_field)%ptr) 
 
        call deallocate(surface_field(i_field))
        call deallocate(erosion(i_field))
