@@ -102,6 +102,7 @@ int Profiler::majorpagefaults(){
   return faults;
 }
 
+
 int Profiler::getresidence(void *ptr){
   int residence=-99;
 #ifdef HAVE_LIBNUMA
@@ -118,10 +119,10 @@ int Profiler::getresidence(void *ptr){
    */
   unsigned long flags = MPOL_F_NODE|MPOL_F_ADDR;
 
-  if(get_mempolicy(&mode, NULL, 0, start_of_page, flags)){
-    perror("get_mempolicy()");
-  }
-  residence = mode;  
+  // if(get_mempolicy(&mode, NULL, 0, start_of_page, flags)){
+  //   perror("get_mempolicy()");
+  // }
+  // residence = mode;  
 #endif
   return residence;
 }

@@ -249,8 +249,10 @@ contains
 #ifdef HAVE_LIBNUMA
     !! number of minor and major faults
     integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
+    integer :: thr
     !! Arrays to hold page faults per colour
-    integer, dimension(:), allocatable :: minor_pagefaults
+    integer, dimension(:,:), allocatable :: minor_pagefaults
+    integer, dimension (:), allocatable  :: minor_pagefaults_sum
 #endif
   
     ewrite(1, *) "In assemble_advection_diffusion_cg"
@@ -501,12 +503,19 @@ contains
 
 #ifdef HAVE_LIBNUMA
     ! set array length to number of colours
-    allocate(minor_pagefaults(size(colours)))
+    allocate(minor_pagefaults(size(colours),0:num_threads-1))
+    allocate(minor_pagefaults_sum(size(colours)))
+    write(20,*) "AD_CG element loop :: Minor page faults0"
+    write(20,*) "Number of colours = ",size(colours)
 #endif
 
     call profiler_tic(t, "advection_diffusion_loop")
 
-    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num)
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num) &
+#ifdef HAVE_LIBNUMA
+    !$OMP PRIVATE(minfaults_tic, minfaults_toc)
+#endif
+
 #ifdef _OPENMP    
     thread_num = omp_get_thread_num()
 #else
@@ -533,7 +542,7 @@ contains
 
 #ifdef HAVE_LIBNUMA
     call profiler_minorpagefaults(minfaults_toc)
-    minor_pagefaults(clr) = minfaults_toc - minfaults_tic
+    minor_pagefaults(clr,thread_num) = minfaults_toc - minfaults_tic
 #endif
 
     end do colour_loop
@@ -542,11 +551,15 @@ contains
     call profiler_toc(t, "advection_diffusion_loop")
 
 #ifdef HAVE_LIBNUMA
-    write(20,*) "AD_CG :: Minor page faults = "
     do clr = 1, size(colours) 
-      write(20,*) "Colour :: ", clr, & 
-         " :: Number of minor page faults = ", minor_pagefaults(clr)
-      flush(20);
+       minor_pagefaults_sum = 0
+       do thr = 0, num_threads-1
+          minor_pagefaults_sum(clr) = minor_pagefaults_sum(clr) &
+               + minor_pagefaults(clr,thr)
+       end do
+       write(20,*) "Colour :: ", clr, " :: Sum of minor page faults = ", &
+            minor_pagefaults_sum(clr)
+       flush(20)
     end do
 #endif
 
