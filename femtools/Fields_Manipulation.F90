@@ -231,22 +231,22 @@ implicit none
   subroutine zero_scalar(field)
     !!< Set all entries in the field provided to 0.0
     type(scalar_field), intent(inout) :: field
-#ifdef _OPENMP
-    integer :: i
-#endif
+!!$#ifdef _OPENMP
+!!$    integer :: i
+!!$#endif
     
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     
-#ifdef _OPENMP
-    ! Use first touch policy.
-    !$OMP PARALLEL DO SCHEDULE(STATIC)
-    do i=1, size(field%val)
-       field%val(i)=0.0
-    end do
-    !$OMP END PARALLEL DO
-#else
+!!$#ifdef _OPENMP
+!!$    ! Use first touch policy.
+!!$    !$OMP PARALLEL DO SCHEDULE(STATIC)
+!!$    do i=1, size(field%val)
+!!$       field%val(i)=0.0
+!!$    end do
+!!$    !$OMP END PARALLEL DO
+!!$#else
     field%val=0.0
-#endif
+!!$#endif
 
   end subroutine zero_scalar
 
@@ -254,22 +254,22 @@ implicit none
     !!< Set all entries in the field provided to 0.0
     type(vector_field), intent(inout) :: field
 
-#ifdef _OPENMP
-    integer :: i
-#endif
+!!$#ifdef _OPENMP
+!!$    integer :: i
+!!$#endif
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     
-#ifdef _OPENMP
-    ! Use first touch policy.
-    !$OMP PARALLEL DO SCHEDULE(STATIC)
-    do i=1, size(field%val, 2)
-       field%val(:,i)=0.0
-    end do
-    !$OMP END PARALLEL DO
-#else
+!!$#ifdef _OPENMP
+!!$    ! Use first touch policy.
+!!$    !$OMP PARALLEL DO SCHEDULE(STATIC)
+!!$    do i=1, size(field%val, 2)
+!!$       field%val(:,i)=0.0
+!!$    end do
+!!$    !$OMP END PARALLEL DO
+!!$#else
        field%val=0.0
-#endif
+!!$#endif
 
   end subroutine zero_vector
 
@@ -278,22 +278,22 @@ implicit none
     type(vector_field), intent(inout) :: field
     integer, intent(in) :: dim
 
-#ifdef _OPENMP
-    integer :: j
-#endif
+!!$#ifdef _OPENMP
+!!$    integer :: j
+!!$#endif
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
 
-#ifdef _OPENMP
-       ! Use first touch policy.
-       !$OMP PARALLEL DO SCHEDULE(STATIC)
-       do j=1, size(field%val, 2)
-          field%val(dim,j)=0.0
-       end do
-       !$OMP END PARALLEL DO
-#else
+!!$#ifdef _OPENMP
+!!$       ! Use first touch policy.
+!!$       !$OMP PARALLEL DO SCHEDULE(STATIC)
+!!$       do j=1, size(field%val, 2)
+!!$          field%val(dim,j)=0.0
+!!$       end do
+!!$       !$OMP END PARALLEL DO
+!!$#else
        field%val(dim,:)=0.0
-#endif
+!!$#endif
 
   end subroutine zero_vector_dim
 
@@ -301,22 +301,22 @@ implicit none
     !!< Set all entries in the field provided to 0.0
     type(tensor_field), intent(inout) :: field
 
-#ifdef _OPENMP
-    integer :: j
-#endif
+!!$#ifdef _OPENMP
+!!$    integer :: j
+!!$#endif
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
     
-#ifdef _OPENMP
-    ! Use first touch policy.
-    !$OMP PARALLEL DO SCHEDULE(STATIC)
-    do j=1, size(field%val, 3)
-       field%val(:,:,j)=0.0
-    end do
-    !$OMP END PARALLEL DO
-#else
+!!$#ifdef _OPENMP
+!!$    ! Use first touch policy.
+!!$    !$OMP PARALLEL DO SCHEDULE(STATIC)
+!!$    do j=1, size(field%val, 3)
+!!$       field%val(:,:,j)=0.0
+!!$    end do
+!!$    !$OMP END PARALLEL DO
+!!$#else
     field%val=0.0
-#endif
+!!$#endif
 
   end subroutine zero_tensor  
 
@@ -325,22 +325,22 @@ implicit none
     type(tensor_field), intent(inout) :: field
     integer, intent(in) :: dim1, dim2
 
-#ifdef _OPENMP
-    integer :: j
-#endif
+!!$#ifdef _OPENMP
+!!$    integer :: j
+!!$#endif
 
     assert(field%field_type/=FIELD_TYPE_PYTHON)
 
-#ifdef _OPENMP
-    ! Use first touch policy.
-    !$OMP PARALLEL DO SCHEDULE(STATIC)
-    do j=1, size(field%val, 3)
-       field%val(dim1,dim2,j)=0.0
-    end do
-    !$OMP END PARALLEL DO
-#else
+!!$#ifdef _OPENMP
+!!$    ! Use first touch policy.
+!!$    !$OMP PARALLEL DO SCHEDULE(STATIC)
+!!$    do j=1, size(field%val, 3)
+!!$       field%val(dim1,dim2,j)=0.0
+!!$    end do
+!!$    !$OMP END PARALLEL DO
+!!$#else
     field%val(dim1,dim2,:)=0.0
-#endif
+!!$#endif
     
   end subroutine zero_tensor_dim_dim
 

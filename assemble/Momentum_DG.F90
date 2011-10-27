@@ -667,10 +667,13 @@ contains
     
     call profiler_tic(u, "element_loop")
 
-    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, nnid, ele, len) &
+    !$OMP PARALLEL DEFAULT(SHARED) &
 #ifdef HAVE_LIBNUMA
-    !$OMP PRIVATE(minfaults_tic, minfaults_toc)
+    !$OMP PRIVATE(clr, nnid, ele, len, minfaults_tic, minfaults_toc)
+#else
+    !$OMP PRIVATE(clr, nnid, ele, len)
 #endif
+
     colour_loop: do clr = 1, size(colours) 
 
 #ifdef HAVE_LIBNUMA

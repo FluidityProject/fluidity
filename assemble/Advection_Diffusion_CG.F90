@@ -511,9 +511,11 @@ contains
 
     call profiler_tic(t, "advection_diffusion_loop")
 
-    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num) &
+    !$OMP PARALLEL DEFAULT(SHARED) &
 #ifdef HAVE_LIBNUMA
-    !$OMP PRIVATE(minfaults_tic, minfaults_toc)
+    !$OMP PRIVATE(clr, len, nnid, ele, thread_num, minfaults_tic, minfaults_toc)
+#else
+    !$OMP PRIVATE(clr, len, nnid, ele, thread_num)
 #endif
 
 #ifdef _OPENMP    
