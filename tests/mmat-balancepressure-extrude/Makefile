@@ -1,5 +1,5 @@
 input: clean
-	../../scripts/interval --dx 0.05 --reverse -- -0.5 0.5 line
+	../../bin/interval --dx 0.05 --reverse -- -0.5 0.5 line
 	../../bin/fldecomp -n 2 line
 
 clean:

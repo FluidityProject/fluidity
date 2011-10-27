@@ -1762,7 +1762,8 @@ contains
       name=name)
       
     surface_mesh%periodic=mesh%periodic
-    
+    surface_mesh%continuity=mesh%continuity
+
     allocate(surface_nodes(1:sufnod))
     
     ! create numbering in the same order as full nodal numbering:

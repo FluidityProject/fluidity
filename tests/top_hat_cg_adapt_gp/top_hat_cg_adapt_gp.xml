@@ -1,5 +1,4 @@
 <?xml version = "1.0" encoding = "UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Advected top hat (CG with adaptivity, Galerkin projected)</name>
   <owner userid="dham"/>

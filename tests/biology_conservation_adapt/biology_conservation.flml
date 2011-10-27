@@ -96,6 +96,7 @@
           <real_value shape="3" dim1="dim" rank="1">99. 1. -10.</real_value>
         </location>
       </static_detector>
+      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>

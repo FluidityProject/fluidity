@@ -67,6 +67,18 @@
           <real_value shape="2" dim1="dim" rank="1">0.4 0.4</real_value>
         </location>
       </static_detector>
+      <detector_array name="Darr">
+        <number_of_detectors>
+          <integer_value rank="0">3</integer_value>
+        </number_of_detectors>
+        <static/>
+        <from_file file_name="positions.dat">
+          <format>
+            <string_value>binary</string_value>
+          </format>
+        </from_file>
+      </detector_array>
+      <fail_outside_domain/>
       <binary_output/>
     </detectors>
   </io>

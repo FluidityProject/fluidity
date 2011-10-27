@@ -6,7 +6,10 @@ from numpy import exp, cos
 
 # scipy erfc does not support complex numbers but erf does
 def erfc(z):
-        return 1.0-erf(z)  
+        if z == complex(0,0):
+          return 1.0
+        else:
+          return 1.0-erf(z)  
 
 
 def analytic_solution_simple(t, x, a_0, L, g, eta): # time, x_value, initial maximum perturbation (at the very left), wavelength, gravity, viscosity

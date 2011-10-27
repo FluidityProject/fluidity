@@ -2999,4 +2999,4 @@
 2998 6 660 96 1092 61
 2999 1092 12 220 6 61
 3000 1092 6 220 96 61
-# Produced by: ../../scripts/gmsh2triangle src/square-convection.msh
+# Produced by: ../../bin/gmsh2triangle src/square-convection.msh

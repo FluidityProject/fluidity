@@ -371,11 +371,11 @@
       end if
       
       have_coriolis = have_option("/physical_parameters/coriolis")
-      have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation&
-         &/continuous_galerkin/les_model")
+      have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/continuous_galerkin/les_model")
       if (have_les) then
-         les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation&
-                 &/continuous_galerkin/les_model")
+         les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+                 &"/continuous_galerkin/les_model")
          les_second_order=have_option(trim(les_option_path)//"/second_order")
          les_fourth_order=have_option(trim(les_option_path)//"/fourth_order")
          wale=have_option(trim(les_option_path)//"/wale")
@@ -491,14 +491,14 @@
       end if
       
 
-      have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic/&
-         &spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")
+      have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic"//&
+         &"/spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")
       if (have_temperature_dependent_viscosity) then
-         call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
-              &/continuous_galerkin/temperature_dependent_viscosity/reference_viscosity", &
-              reference_viscosity)
-         call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation/&
-              &/continuous_galerkin/temperature_dependent_viscosity/activation_energy", &
+         call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+              &"/continuous_galerkin/temperature_dependent_viscosity/reference_viscosity", &
+              &reference_viscosity)
+         call get_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+              &"/continuous_galerkin/temperature_dependent_viscosity/activation_energy", &
               activation_energy)
          ! Extract temperature field from state:
          temperature => extract_scalar_field(state,"Temperature")
@@ -578,36 +578,36 @@
                       itheta)
 
       lump_mass=have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation&
-          &/continuous_galerkin/mass_terms/lump_mass_matrix")
+          &"/prognostic/spatial_discretisation"//&
+          &"/continuous_galerkin/mass_terms/lump_mass_matrix")
       lump_absorption=have_option(trim(u%option_path)//&
-          &"/prognostic/vector_field::Absorption&
-          &/lump_absorption")
+          &"/prognostic/vector_field::Absorption"//&
+          &"/lump_absorption")
       abs_lump_on_submesh = have_option(trim(u%option_path)//&
-          &"/prognostic/vector_field::Absorption&
-          &/lump_absorption/use_submesh")
+          &"/prognostic/vector_field::Absorption"//&
+          &"/lump_absorption/use_submesh")
       pressure_corrected_absorption=have_option(trim(u%option_path)//&
-          &"/prognostic/vector_field::Absorption&
-          &/include_pressure_correction") .or. (have_vertical_stabilization)
+          &"/prognostic/vector_field::Absorption"//&
+          &"/include_pressure_correction") .or. (have_vertical_stabilization)
       if (pressure_corrected_absorption) then
          ! as we add the absorption into the mass matrix
          ! lump_absorption needs to match lump_mass
          lump_absorption = lump_mass
       end if
       lump_source=have_option(trim(u%option_path)//&
-          &"/prognostic/vector_field::Source&
-          &/lump_source")
+          &"/prognostic/vector_field::Source"//&
+          &"/lump_source")
       if(have_viscosity) then
          isotropic_viscosity = have_viscosity .and. &
            & isotropic_field(viscosity)
          diagonal_viscosity = have_viscosity .and. &
            & diagonal_field(viscosity)
          stress_form=have_option(trim(u%option_path)//&
-             &"/prognostic/spatial_discretisation/continuous_galerkin&
-             &/stress_terms/stress_form")
+             &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+             &"/stress_terms/stress_form")
          partial_stress_form=have_option(trim(u%option_path)//&
-             &"/prognostic/spatial_discretisation/continuous_galerkin&
-             &/stress_terms/partial_stress_form")
+             &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+             &"/stress_terms/partial_stress_form")
       else
          isotropic_viscosity = .false.
          diagonal_viscosity = .false.
@@ -615,41 +615,41 @@
          partial_stress_form = .false.
       end if
       integrate_continuity_by_parts=have_option(trim(p%option_path)//&
-          &"/prognostic/spatial_discretisation/continuous_galerkin&
-          &/integrate_continuity_by_parts")
+          &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+          &"/integrate_continuity_by_parts")
       low_re_p_correction_fix=have_option(trim(p%option_path)//&
-          &"/prognostic/spatial_discretisation/continuous_galerkin&
-          &/low_re_p_correction_fix")
+          &"/prognostic/spatial_discretisation/continuous_galerkin"//&
+          &"/low_re_p_correction_fix")
       integrate_advection_by_parts = have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation&
-          &/continuous_galerkin/advection_terms/integrate_advection_by_parts")
+          &"/prognostic/spatial_discretisation"//&
+          &"/continuous_galerkin/advection_terms/integrate_advection_by_parts")
       exclude_advection = have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation&
-          &/continuous_galerkin/advection_terms/exclude_advection_terms")
+          &"/prognostic/spatial_discretisation"//&
+          &"/continuous_galerkin/advection_terms/exclude_advection_terms")
       exclude_mass = have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation&
-          &/continuous_galerkin/mass_terms/exclude_mass_terms")
+          &"/prognostic/spatial_discretisation"//&
+          &"/continuous_galerkin/mass_terms/exclude_mass_terms")
       vel_lump_on_submesh = have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation&
-          &/continuous_galerkin/mass_terms&
-          &/lump_mass_matrix/use_submesh")
+          &"/prognostic/spatial_discretisation"//&
+          &"/continuous_galerkin/mass_terms"//&
+          &"/lump_mass_matrix/use_submesh")
       if (pressure_corrected_absorption) then
          ! as we add the absorption into the mass matrix
          ! the meshes need to be the same
          abs_lump_on_submesh = vel_lump_on_submesh
       end if
       cmc_lump_mass = have_option(trim(p%option_path)//&
-          &"/prognostic/scheme&
-          &/use_projection_method/full_schur_complement&
-          &/preconditioner_matrix::LumpedSchurComplement")
+          &"/prognostic/scheme"//&
+          &"/use_projection_method/full_schur_complement"//&
+          &"/preconditioner_matrix::LumpedSchurComplement")
       cmc_lump_on_submesh = have_option(trim(p%option_path)//&
-          &"/prognostic/scheme&
-          &/use_projection_method/full_schur_complement&
-          &/preconditioner_matrix[0]/lump_on_submesh")
+          &"/prognostic/scheme"//&
+          &"/use_projection_method/full_schur_complement"//&
+          &"/preconditioner_matrix[0]/lump_on_submesh")
       assemble_inverse_masslump = lump_mass .or. cmc_lump_mass
       assemble_mass_matrix = have_option(trim(p%option_path)//&
-          "/prognostic/scheme/use_projection_method&
-          &/full_schur_complement/inner_matrix::FullMassMatrix")
+          &"/prognostic/scheme/use_projection_method"//&
+          &"/full_schur_complement/inner_matrix::FullMassMatrix")
       if(have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind")) then
         stabilisation_scheme = STABILISATION_STREAMLINE_UPWIND
         call get_upwind_options(trim(u%option_path) // "/prognostic/spatial_discretisation/continuous_galerkin/stabilisation/streamline_upwind", &
@@ -662,8 +662,8 @@
         stabilisation_scheme = STABILISATION_NONE
       end if
       integrate_surfacetension_by_parts = have_option(trim(u%option_path)//&
-          &"/prognostic/tensor_field::SurfaceTension&
-          &/diagnostic/integrate_by_parts")
+          &"/prognostic/tensor_field::SurfaceTension"//&
+          &"/diagnostic/integrate_by_parts")
           
       ! Are we running a multi-phase simulation?
       if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
@@ -713,11 +713,11 @@
       end if
 
       if (have_wd_abs .and. on_sphere) then
-          FLExit("Wetting and drying does not currently work on the sphere.")
+          FLExit("The wetting and drying absorption term does currently not work on the sphere.")
       end if
 
       if (have_wd_abs .and. .not. has_scalar_field(state, "WettingDryingAlpha")) then
-          FLExit("Wetting and drying needs the diagnostic field WettingDryingAlpha activated.")
+          FLExit("The wetting and drying absorption needs the diagnostic field WettingDryingAlpha activated.")
       end if
       if (have_wd_abs) then
         ! The alpha fields lives on the pressure mesh, but we need it on the velocity, so let's remap it.
@@ -1261,8 +1261,12 @@
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
 
-      ! Volume fraction field
+      ! Non-linear approximation of the volume fraction
       type(scalar_field), intent(in) :: nvfrac
+      ! Pointer to the nvfrac field's shape function
+      type(element_type), pointer :: nvfrac_shape
+      ! Derivative of shape function for nvfrac field
+      real, dimension(:, :, :), allocatable :: dnvfrac_t
 
       integer, dimension(:), pointer :: u_ele, p_ele
       real, dimension(u%dim, ele_loc(u, ele)) :: oldu_val
@@ -1340,6 +1344,12 @@
                                     ele_shape(ug, ele), dshape=dug_t)
         end if
       end if
+
+      if(multiphase) then
+         ! If the PhaseVolumeFraction is on a different mesh to the Velocity,
+         ! then allocate memory to hold the derivative of the nvfrac shape function
+         allocate(dnvfrac_t(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), u%dim))
+      end if
       
       ! Step 2: Set up test function
     
@@ -1375,8 +1385,18 @@
          else
             if(multiphase) then
                ! Split up the divergence term div(vfrac*u) = vfrac*div(u) + u*grad(vfrac)
+
+               ! If the field and nvfrac meshes are different, then we need to
+               ! compute the derivatives of the nvfrac shape functions.
+               if(.not.(nvfrac%mesh == u%mesh)) then
+                  nvfrac_shape => ele_shape(nvfrac%mesh, ele)
+                  call transform_to_physical(x, ele, nvfrac_shape, dshape=dnvfrac_t)
+               else
+                  dnvfrac_t = du_t
+               end if
+
                grad_p_u_mat =  shape_dshape(p_shape, du_t, detwei*ele_val_at_quad(nvfrac, ele)) + &
-                              shape_shape_vector(p_shape, u_shape, detwei, ele_grad_at_quad(nvfrac, ele, du_t))
+                              shape_shape_vector(p_shape, u_shape, detwei, ele_grad_at_quad(nvfrac, ele, dnvfrac_t))
             else
                grad_p_u_mat = shape_dshape(p_shape, du_t, detwei)
             end if
@@ -1393,7 +1413,7 @@
 
       ! Advection terms
       if(.not. exclude_advection) then
-        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, nvfrac, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+        call add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug, density, viscosity, nvfrac, du_t, dug_t, dnvfrac_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       end if
 
       ! Source terms
@@ -1456,6 +1476,10 @@
       end if
       
       call deallocate(test_function)
+
+      if(multiphase) then
+         deallocate(dnvfrac_t)
+      end if
       
     contains
     
@@ -1583,7 +1607,7 @@
       
     end subroutine add_mass_element_cg
     
-    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, nvfrac, du_t, dug_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
+    subroutine add_advection_element_cg(ele, test_function, u, oldu_val, nu, ug,  density, viscosity, nvfrac, du_t, dug_t, dnvfrac_t, detwei, J_mat, big_m_tensor_addto, rhs_addto)
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
@@ -1595,6 +1619,7 @@
       type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: du_t
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in) :: dug_t
+      real, dimension(:, :, :), intent(in) :: dnvfrac_t
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
       real, dimension(u%dim, u%dim, ele_ngi(u,ele)) :: J_mat
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele)), intent(inout) :: big_m_tensor_addto
@@ -1614,7 +1639,6 @@
 
       u_shape=>ele_shape(u, ele)
       
-            
       density_gi=ele_val_at_quad(density, ele)
       relu_gi = ele_val_at_quad(nu, ele)
       if(move_mesh) then
@@ -1624,7 +1648,7 @@
 
       if(multiphase) then
          nvfrac_gi = ele_val_at_quad(nvfrac, ele)
-         grad_nvfrac_gi = ele_grad_at_quad(nvfrac, ele, du_t)
+         grad_nvfrac_gi = ele_grad_at_quad(nvfrac, ele, dnvfrac_t)
       end if
 
       if(integrate_advection_by_parts) then
@@ -2584,8 +2608,8 @@
       call allocate(delta_u1, u%dim, u%mesh, "Delta_U1")
       call allocate(delta_u2, u%dim, u%mesh, "Delta_U2")
       delta_u2%option_path = trim(delta_p%option_path)//&
-                                  "/prognostic/scheme/use_projection_method&
-                                  &/full_schur_complement/inner_matrix[0]"
+                                  &"/prognostic/scheme/use_projection_method"//&
+                                  &"/full_schur_complement/inner_matrix[0]"
       
       ! compute delta_u1=grad delta_p
       call mult_t(delta_u1, ct_m, delta_p)

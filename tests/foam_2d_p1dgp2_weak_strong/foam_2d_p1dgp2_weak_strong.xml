@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>2d square unstructured mesh p1dgp2 foam drainage test with weak bcs for velocity and strong for pressure</name>
   <owner userid="pbritopa"/>
@@ -69,7 +68,7 @@ print a_final_change_vel
     </test>
      <test name="a_error_rho: L2 of absolute difference between numerical and analytical between 4.0E-05 and 4.5E-05" language="python">assert(abs(a_error_rho-4.25E-05) &lt; 2.5E-6)
     </test>
-    <test name="a_error_vel_y: L2 order between 1.0E-06 and 1.2E-06" language="python">assert(abs(a_error_vel[1][0]-1.1E-6) &lt; 1.0E-07)
+    <test name="a_error_vel_y: L2 order between 9.5E-07 and 1.5E-06" language="python">assert(abs(a_error_vel[1][0]-1.0E-6) &lt; 1.0E-07)
     </test>
   </pass_tests>
   <warn_tests/>

@@ -27,6 +27,9 @@
 
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
 FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
@@ -46,11 +49,13 @@ MAKE    = @MAKE@
 AR  = @AR@
 ARFLAGS = @ARFLAGS@
 
-LIB = ../lib/lib@FLUIDITY@.a
+LIB = ../lib/lib$(FLUIDITY).a
 
 OBJS = Fluids.o Usage.o mainfl.o 
 
 .SUFFIXES: .F90 .c .cpp .o .a
+
+.PHONY: ../include/version.h
 
 .F90.o:
 	@echo "        FC $<"
@@ -74,5 +79,8 @@ Usage.o: ../include/Usage.h ../include/version.h
 
 clean:
 	rm -f *.o *.d *.mod
+
+../include/version.h:
+	@$(MAKE) -C ../ include/version.h
 
 include Makefile.dependencies

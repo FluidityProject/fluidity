@@ -101,10 +101,11 @@
  ret=[]
  for j in range(2,11):
    for i in range(2,11):
-    ret.append([float(i)/10, 0.2, -float(j)/10])
+    ret.append([float(i)/10, float(j)/10, -0.2])
  return ret</string_value>
         </python>
       </detector_array>
+      <fail_outside_domain/>
       <binary_output/>
     </detectors>
   </io>

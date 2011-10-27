@@ -171,17 +171,17 @@ contains
        lvelocity_name="NonlinearVelocity"
     end if
 
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation&
-         &/discontinuous_galerkin/advection_scheme&
-         &/project_velocity_to_continuous")) then
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/advection_scheme"//&
+         &"/project_velocity_to_continuous")) then
 
        if(.not.has_scalar_field(state, "Projected"//trim(lvelocity_name))) &
             &then
           
           call get_option(trim(T%option_path)&
-               //"/prognostic/spatial_discretisation&
-               &/discontinuous_galerkin/advection_scheme&
-               &/project_velocity_to_continuous/mesh/name",pmesh_name) 
+               //"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/advection_scheme"//&
+               &"/project_velocity_to_continuous/mesh/name",pmesh_name) 
 
           U_nl=>extract_vector_field(state, lvelocity_name)
           pmesh=>extract_mesh(state, pmesh_name)
@@ -204,26 +204,26 @@ contains
     end if
 
 
-    call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &conservative_advection", beta)
+    call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"conservative_advection", beta)
 
     ! by default we assume we're integrating by parts twice
-    integrate_by_parts_once = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/advection_scheme/integrate_advection_by_parts/once")
+    integrate_by_parts_once = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/advection_scheme/integrate_advection_by_parts/once")
 
-    integrate_conservation_term_by_parts = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/advection_scheme/integrate_conservation_term_by_parts")
+    integrate_conservation_term_by_parts = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/advection_scheme/integrate_conservation_term_by_parts")
 
     ! Determine the scheme to use to discretise diffusivity.
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme/bassi_rebay")) then
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/diffusion_scheme/bassi_rebay")) then
        diffusion_scheme=BASSI_REBAY
-    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme/arbitrary_upwind")) then
+    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/diffusion_scheme/arbitrary_upwind")) then
        diffusion_scheme=ARBITRARY_UPWIND
-    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme&
-         &/compact_discontinuous_galerkin")) then
+    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/diffusion_scheme"//&
+         &"/compact_discontinuous_galerkin")) then
        !=================Compact Discontinuous Galerkin
        diffusion_scheme=CDG
        !Set the switch vector
@@ -237,111 +237,112 @@ contains
        remove_penalty_fluxes = .true.
        interior_penalty_parameter = 0.0
        if(have_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/compact_discontinuous_galerkin/penalty_parameter")) then
+            &"/prognostic/spatial_discretisation/"//&
+            &"discontinuous_galerkin/diffusion_scheme"//&
+            &"/compact_discontinuous_galerkin/penalty_parameter")) then
           remove_penalty_fluxes = .false.
           edge_length_power = 0.0
           call get_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/penalty_parameter"&
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/penalty_parameter"&
                &,Interior_Penalty_Parameter)
        end if
 
        debugging = have_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/compact_discontinuous_galerkin/debug")
+            &"/prognostic/spatial_discretisation/"//&
+            &"discontinuous_galerkin/diffusion_scheme"//&
+            &"/compact_discontinuous_galerkin/debug")
        CDG_penalty = .true.
        if(debugging) then
           call get_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug/gradient_test_bound",&
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug/gradient_test_bound",&
                &gradient_test_bound)
           remove_element_integral = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug/remove_element_integral")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug/remove_element_integral")
           remove_primal_fluxes = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug/remove_primal_fluxes")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug/remove_primal_fluxes")
           remove_cdg_fluxes = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug/remove_cdg_fluxes")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug/remove_cdg_fluxes")
           
           if (have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug&
-               &/edge_length_power")) then
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug"//&
+               &"/edge_length_power")) then
              call get_option(trim(T%option_path)//&
-                  &"/prognostic/spatial_discretisation/&
-                  &discontinuous_galerkin/diffusion_scheme&
-                  &/compact_discontinuous_galerkin/debug&
-                  &/edge_length_power",edge_length_power)
+                  &"/prognostic/spatial_discretisation"//&
+                  &"/discontinuous_galerkin/diffusion_scheme"//&
+                  &"/compact_discontinuous_galerkin/debug"//&
+                  &"/edge_length_power",edge_length_power)
              cdg_penalty = .false.
           end if
        end if
        edge_length_option = USE_FACE_INTEGRALS
 
-    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme&
-         &/interior_penalty")) then
+    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/diffusion_scheme"//&
+         &"/interior_penalty")) then
        remove_penalty_fluxes = .false.
        diffusion_scheme=IP
        CDG_penalty = .false.
-       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/interior_penalty/penalty_parameter",Interior_Penalty_Parameter)
+       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/diffusion_scheme"//&
+            &"/interior_penalty/penalty_parameter",Interior_Penalty_Parameter)
        call get_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/interior_penalty/edge_length_power",edge_length_power)
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/diffusion_scheme"//&
+            &"/interior_penalty/edge_length_power",edge_length_power)
        edge_length_option = USE_FACE_INTEGRALS
        if(have_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/interior_penalty/edge_length_option/use_element_centres")) &
-            & edge_length_option = USE_ELEMENT_CENTRES
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/diffusion_scheme"//&
+            &"/interior_penalty/edge_length_option/use_element_centres")) then
+            edge_length_option = USE_ELEMENT_CENTRES
+       end if
        debugging = have_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/interior_penalty/debug")
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/diffusion_scheme"//&
+            &"/interior_penalty/debug")
        remove_element_integral = .false.
        remove_primal_fluxes = .false.
        if(debugging) then
           call get_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/interior_penalty/debug/gradient_test_bound",gradient_test_bound)
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/interior_penalty/debug/gradient_test_bound",gradient_test_bound)
           remove_element_integral = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/interior_penalty/debug/remove_element_integral")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/interior_penalty/debug/remove_element_integral")
           remove_primal_fluxes = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/interior_penalty/debug/remove_primal_fluxes")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/interior_penalty/debug/remove_primal_fluxes")
           remove_penalty_fluxes = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/interior_penalty/debug/remove_penalty_fluxes")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/interior_penalty/debug/remove_penalty_fluxes")
        end if
-    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme&
-         &/masslumped_rt0")) then
+    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/diffusion_scheme"//&
+         &"/masslumped_rt0")) then
        diffusion_scheme=MASSLUMPED_RT0
        if (have_option(trim(T%option_path)//&
          &"/prognostic/spatial_discretisation/discontinuous_galerkin/diffusion_scheme/masslumped_rt0/arbogast"&
          &)) then
          rt0_masslumping_scheme=RT0_MASSLUMPING_ARBOGAST
-       else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme&
-         &/masslumped_rt0/circumcentred")) then
+       else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/diffusion_scheme"//&
+         &"/masslumped_rt0/circumcentred")) then
          rt0_masslumping_scheme=RT0_MASSLUMPING_CIRCUMCENTRED
        else
          FLAbort("Unknown rt0 masslumping for P0 diffusion.")
@@ -351,15 +352,15 @@ contains
     end if
 
     ! Vertical mixing by diffusion
-    have_buoyancy_adjustment_by_vertical_diffusion=have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/by_vertical_diffusion")    
+    have_buoyancy_adjustment_by_vertical_diffusion=have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/by_vertical_diffusion")
 
     if (have_option(trim(T%option_path)//&
-         "/prognostic/temporal_discretisation/discontinuous_galerkin/&
-         &/number_advection_subcycles")) then
+         &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+         &"/number_advection_subcycles")) then
        call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
     else if (have_option(trim(T%option_path)//&
-         "/prognostic/temporal_discretisation/discontinuous_galerkin/&
-         &/maximum_courant_number_per_subcycle")) then
+         &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+         &"/maximum_courant_number_per_subcycle")) then
        call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
     else
        call solve_advection_diffusion_dg_theta(field_name, state, lvelocity_name)
@@ -532,15 +533,15 @@ contains
     call get_option("/timestepping/timestep", dt)
     
     if(have_option(trim(T%option_path)//&
-         &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-         &/number_advection_subcycles")) then
+         &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+         &"/number_advection_subcycles")) then
        call get_option(trim(T%option_path)//&
-            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-            &/number_advection_subcycles", subcycles)
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/number_advection_subcycles", subcycles)
     else
        call get_option(trim(T%option_path)//&
-            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-            &/maximum_courant_number_per_subcycle", Max_Courant_number)
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/maximum_courant_number_per_subcycle", Max_Courant_number)
        
        s_field => extract_scalar_field(state, "DG_CourantNumber")
        call calculate_diagnostic_variable(state, "DG_CourantNumber", &
@@ -552,8 +553,8 @@ contains
     end if
 
     limit_slope=.false.
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/slope_limiter")) then
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/slope_limiter")) then
        limit_slope=.true.
        
        ! Note unsafe for mixed element meshes
@@ -561,8 +562,8 @@ contains
           FLExit("Slope limiters make no sense for degree 0 fields")
        end if
 
-       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/slope_limiter/name",limiter_name)
+       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/slope_limiter/name",limiter_name)
 
        select case(trim(limiter_name))
        case("Cockburn_Shu")
@@ -748,9 +749,9 @@ contains
 
     on_sphere = have_option('/geometry/spherical_earth/')
 
-    if (.not.have_option(trim(T%option_path)//"/prognostic&
-         &/spatial_discretisation/discontinuous_galerkin&
-         &/advection_scheme/none")) then
+    if (.not.have_option(trim(T%option_path)//"/prognostic"//&
+         &"/spatial_discretisation/discontinuous_galerkin"//&
+         &"/advection_scheme/none")) then
        U_nl_backup=extract_vector_field(state, lvelocity_name)
        call incref(U_nl_backup)
        include_advection=.true.
@@ -767,9 +768,9 @@ contains
     end if
 
     flux_scheme=UPWIND_FLUX
-    if (have_option(trim(T%option_path)//"/prognostic&
-         &/spatial_discretisation/discontinuous_galerkin&
-         &/advection_scheme/lax_friedrichs")) then
+    if (have_option(trim(T%option_path)//"/prognostic"//&
+         &"/spatial_discretisation/discontinuous_galerkin"//&
+         &"/advection_scheme/lax_friedrichs")) then
        flux_scheme=LAX_FRIEDRICHS_FLUX
     end if
 
@@ -853,8 +854,8 @@ contains
     end if
     
     ! Switch on upwind stabilisation if requested.
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/upwind_stabilisation")) then
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"&
+         &"/discontinuous_galerkin/upwind_stabilisation")) then
        stabilisation_scheme=UPWIND
        if(move_mesh) then
           FLExit("Haven't thought about how mesh movement works with stabilisation yet.")
@@ -883,8 +884,8 @@ contains
     if (present(diffusion_m)) call zero(diffusion_m)
     if (present(diffusion_RHS)) call zero(diffusion_RHS)
     if (have_buoyancy_adjustment_by_vertical_diffusion) then
-      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/&
-          &by_vertical_diffusion/project_buoyancy_to_continuous_space")) then    
+      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment"&
+          &"/by_vertical_diffusion/project_buoyancy_to_continuous_space")) then    
         buoyancy_from_state = extract_scalar_field(state, "VelocityBuoyancyDensity", stat)
         if (stat/=0) FLAbort('Error extracting buoyancy field.')
 
@@ -905,7 +906,7 @@ contains
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     
       if (have_option(trim(T%option_path)//&
-          &"/prognostic/buoyancy_adjustment/by_vertical_diffusion/amplitude")) then    
+          &"/prognostic/buoyancy_adjustment/by_vertical_diffusion/amplitude")) then
         call get_option(trim(T%option_path)//&
           &"/prognostic/buoyancy_adjustment/by_vertical_diffusion/amplitude", &
           &mixing_diffusion_amplitude) 

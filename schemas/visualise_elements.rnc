@@ -51,13 +51,17 @@ start =
                integer
             },
             element mesh {
-               attribute name { xsd:string },
-               mesh_info,
-               element exclude_from_mesh_adaptivity{empty}?
-            }*
+               attribute name { "CoordinateMesh" },
+               mesh_info
+            }?,
+            element mesh {
+               attribute name { "TracerMesh" },
+               mesh_info
+            }?
          },
          element material_phase {
-            attribute name { xsd:string },
+            attribute name { "MaterialPhase" },
+            tracer_field_choice,
             scalar_field_choice*,
             vector_field_choice*
          }?
@@ -87,25 +91,20 @@ mesh_info =
               attribute name { "vtu" },
               comment
             }|
-            ## CGNS mesh format (not yet implemented)
+            ## GMSH mesh format
             element format {
-               attribute name { "cgns" },
-               # string_value elements are used only for backwards compatibility - any new format choices should NOT have these
-               element string_value {
-                  "cgns"
-               },
+               attribute name { "gmsh" },
                comment
             }
          ),
          attribute file_name { xsd:string },
-         from_file_mesh_stat_options,
          comment
       }|
       ## Make mesh from existing mesh. The existing mesh cannot itself
       ## be made from an existing mesh (i.e. it must be read from a
       ## file).
       element from_mesh {
-         mesh_choice,
+         coordinate_mesh_choice,
          element mesh_shape {
             element polynomial_degree {
                integer
@@ -156,7 +155,6 @@ mesh_info =
                integer
             }?
          }?,
-         derived_mesh_stat_options,
          comment
       }
    )
@@ -165,31 +163,26 @@ mesh_info =
 mesh_choice = 
    (
       element mesh {
-         attribute name { xsd:string }
+         attribute name { "TracerMesh" }
       }|
       element mesh {
          attribute name { "CoordinateMesh" }
       }|
       element mesh {
-         attribute name { "VelocityMesh" }
-      }|
-      element mesh {
-         attribute name { "PressureMesh" }
+         attribute name { xsd:string }
       }
    )
 
-from_file_mesh_stat_options =
+coordinate_mesh_choice = 
    (
-      ## Specify what is added to .stat files
-      element stat {
-         mesh_stat_options_enabled_default
-      }
-   )
-derived_mesh_stat_options =
-   (
-      ## Specify what is added to .stat files
-      element stat {
-         mesh_stat_options_disabled_default
+      element mesh {
+         attribute name { "CoordinateMesh" }
+      }|
+      element mesh {
+         attribute name { "TracerMesh" }
+      }|
+      element mesh {
+         attribute name { xsd:string }
       }
    )
 
@@ -227,11 +220,32 @@ scalar_field_choice =
          ## Field type
          (
             element prescribed {
-               velocity_mesh_choice,
+               mesh_choice,
                prescribed_values_scalar_field
             }|
             element diagnostic {
-               velocity_mesh_choice
+               mesh_choice
+            }
+         )
+      }   
+   )
+
+# This is the choice of additional scalar field to be solved for
+tracer_field_choice =
+   (
+# The first is a generic field, used for any user-defined field that
+# FLUIDITY knows nothing about.  Therefore, this field cannot be diagnostic.
+      element scalar_field {
+         attribute rank { "0" },
+         attribute name { "Tracer" },
+         ## Field type
+         (
+            element prescribed {
+               mesh_choice,
+               prescribed_values_scalar_field
+            }|
+            element diagnostic {
+               mesh_choice
             }
          )
       }   
@@ -254,7 +268,7 @@ vector_field_choice =
                prescribed_values_vector_field
             }|
             element diagnostic {
-               velocity_mesh_choice
+               mesh_choice
             }
          )
          }
@@ -284,23 +298,6 @@ prescribed_values_vector_field =
    )
 
 
-velocity_mesh_choice =
-   (
-      (
-         element mesh {
-            attribute name { "VelocityMesh" }
-         }|
-         element mesh {
-            attribute name { "PressureMesh" }
-         }|
-         element mesh {
-            attribute name { "CoordinateMesh" }
-         }|
-         element mesh {
-            attribute name { string }
-         }
-      )
-   )
 
 
 prescribed_values_scalar_field =
@@ -347,3 +344,14 @@ input_choice_real_dim_vector_contents =
       python_code
    }
       
+region_ids = 
+   ( 
+      ## Optional region ids to associate different values
+      ## to different regions of the mesh.
+      ## Leave unselected if you`re not using multiple regions or
+      ## region_ids.
+      ## Currently only works with triangle files created by gmsh2triangle.
+      element region_ids {
+         integer_vector
+      }
+   )

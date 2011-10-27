@@ -26,6 +26,9 @@
 #    USA
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
 FCFLAGS = -I../../include @FCFLAGS@ @MODINC_FLAG@../
 
@@ -37,7 +40,7 @@ CXX = @CXX@ -I../../include
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include
 
 LIBS = ./lib/libvtkfortran.a @LIBS@ ./lib/libspud.a ./lib/libjudy.a ./lib/libspatialindex.a @LAPACK_LIBS@
-LIBFLUIDITY=../../lib/lib@FLUIDITY@.a
+LIBFLUIDITY=../../lib/lib$(FLUIDITY).a
 
 FORTRANTESTS= $(basename $(wildcard *.F90))
 
@@ -54,7 +57,6 @@ TEST_BINARIES=$(filter-out $(DISABLED_TESTS), $(TESTS))
 
 unittest: $(TEST_BINARIES)
 	ln -sf $(addprefix ../../ocean_forcing/tests/,$(TEST_BINARIES)) ../../bin/tests/
-	
 
 .SUFFIXES: .f90 .F90 .c .cpp .o
 

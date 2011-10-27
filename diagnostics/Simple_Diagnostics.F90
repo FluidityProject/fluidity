@@ -53,8 +53,12 @@ module simple_diagnostics
   public :: calculate_temporalmax, calculate_temporalmin, calculate_l2norm, &
             calculate_time_averaged_scalar, calculate_time_averaged_vector, &
             calculate_time_averaged_scalar_squared, calculate_time_averaged_vector_squared, &
-            calculate_time_averaged_vector_times_scalar
+            calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar
 
+  ! for the period_averaged_scalar routine
+  real, save :: last_output_time
+  integer, save :: n_times_added
+  
 contains
   subroutine calculate_temporalmax(state, s_field)
     type(state_type), intent(in) :: state
@@ -151,10 +155,11 @@ contains
     type(scalar_field), intent(inout) :: s_field
 
     type(scalar_field), pointer :: source_field
-    real :: a, b, spin_up_time, current_time, dt
+    real :: a, b, spin_up_time, current_time, dt, averaging_period
     integer :: stat
 
     if (timestep==0) then 
+      last_output_time = 0.0
       call initialise_diagnostic_from_checkpoint(s_field)
       return
     end if
@@ -164,17 +169,59 @@ contains
 
     call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
     if (stat /=0) spin_up_time=0.
+
     source_field => scalar_source_field(state, s_field)
 
     if (current_time>spin_up_time) then
-      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
-      ! s_field = a*s_field + b*source_field
-      call scale(s_field, a)
-      call addto(s_field, source_field, b)
+        a = (current_time-spin_up_time-dt)/(current_time-spin_up_time)
+        b = dt/(current_time-spin_up_time)
+        ! s_field = a*s_field + b*source_field
+        call scale(s_field, a)
+        call addto(s_field, source_field, b)
     else
       call set(s_field, source_field)
     end if
   end subroutine calculate_time_averaged_scalar
+
+  subroutine calculate_period_averaged_scalar(state, s_field)
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: s_field
+
+    type(scalar_field) :: cumulative_value
+    type(scalar_field), pointer :: source_field, running_tot
+    real :: current_time, averaging_period, nt
+    integer :: stat
+
+    if (timestep==0) then 
+      last_output_time = 0.0
+      n_times_added = 0
+      call allocate(cumulative_value, s_field%mesh, "_AveCumulativeValue")
+      call zero(cumulative_value)
+      call insert(state, cumulative_value, cumulative_value%name)
+      call deallocate(cumulative_value)
+      call initialise_diagnostic_from_checkpoint(s_field)
+      return
+    end if
+
+    call get_option("/timestepping/current_time", current_time)
+    call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/averaging_period",averaging_period)
+
+    source_field => scalar_source_field(state, s_field)
+    running_tot => extract_scalar_field(state,"_AveCumulativeValue")
+    if (current_time < averaging_period*(floor(last_output_time / averaging_period)+1.)) then
+        call addto(running_tot,source_field)
+        n_times_added = n_times_added+1
+    else
+        nt = n_times_added
+        call scale(running_tot, 1./nt)
+        call set(s_field,running_tot)
+        last_output_time = current_time
+        n_times_added = 0
+        call zero(running_tot)
+        call addto(running_tot,source_field)
+        n_times_added = n_times_added+1
+    end if
+  end subroutine calculate_period_averaged_scalar
 
   subroutine calculate_time_averaged_vector(state, v_field)
     type(state_type), intent(in) :: state
@@ -329,20 +376,24 @@ contains
     type(scalar_field), pointer :: read_field
     character(len = OPTION_PATH_LEN) :: path, filename
     logical :: checkpoint_exists
+    integer :: stat
     
     path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    call get_option(trim(path), filename, stat)
+    if (stat /= 0) return
+    
     if(isparallel()) then
-      filename = parallel_filename(trim_file_extension(filename), ".vtu")
+        filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
-      filename = trim(filename) // ".vtu"
+        filename = trim(filename) // ".vtu"
     end if
     inquire(file=trim(filename), exist=checkpoint_exists)
     
     if (checkpoint_exists) then
-      read_field => vtk_cache_read_scalar_field(filename, trim(s_field%name))
-      call set(s_field, read_field)
+        read_field => vtk_cache_read_scalar_field(filename, trim(s_field%name))
+        call set(s_field, read_field)
     end if
+
   end subroutine initialise_diagnostic_scalar_from_checkpoint
 
   subroutine initialise_diagnostic_vector_from_checkpoint(v_field) 
@@ -351,9 +402,12 @@ contains
     type(vector_field), pointer :: read_field
     character(len = OPTION_PATH_LEN) :: path, filename
     logical :: checkpoint_exists
+    integer :: stat
     
     path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    call get_option(trim(path), filename, stat)
+    if (stat /= 0) return
+
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
@@ -365,6 +419,7 @@ contains
       read_field => vtk_cache_read_vector_field(filename, trim(v_field%name))
       call set(v_field, read_field)
     end if
+
   end subroutine initialise_diagnostic_vector_from_checkpoint
 
   subroutine initialise_diagnostic_tensor_from_checkpoint(t_field) 
@@ -373,9 +428,12 @@ contains
     type(tensor_field), pointer :: read_field
     character(len = OPTION_PATH_LEN) :: path, filename
     logical :: checkpoint_exists
+    integer :: stat
     
     path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    call get_option(trim(path), filename, stat)
+    if (stat /= 0) return
+
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
@@ -387,6 +445,7 @@ contains
       read_field => vtk_cache_read_tensor_field(filename, trim(t_field%name))
       call set(t_field, read_field)
     end if
+
   end subroutine initialise_diagnostic_tensor_from_checkpoint
 
  end module simple_diagnostics

@@ -799,4 +799,4 @@
 798 440 80 441 11 
 799 441 80 4 11 
 800 441 4 42 11 
-# Produced by: ../../../scripts/gmsh2triangle mesh_C.msh
+# Produced by: ../../../bin/gmsh2triangle mesh_C.msh

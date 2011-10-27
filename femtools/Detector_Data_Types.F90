@@ -36,9 +36,16 @@ module detector_data_types
   
   private
   
-  public :: detector_type, detector_linked_list, STATIC_DETECTOR, LAGRANGIAN_DETECTOR
+  public :: detector_type, rk_gs_parameters, detector_linked_list, &
+            detector_list_ptr, stringlist, &
+            STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2  
+
+  type stringlist
+     !!< Container type for a list of strings.
+     character(len=FIELD_NAME_LEN), dimension(:), pointer :: ptr
+  end type stringlist
 
   !! Type for caching detector position and search information.
   type detector_type
@@ -46,20 +53,16 @@ module detector_data_types
      real, dimension(:), allocatable :: position
      !! Name of the detector in input and output.
      character(len=FIELD_NAME_LEN) :: name 
-     !! Whether the detector is on the current processor. 
-     logical :: local
      !! Element number in which the detector lies.
      integer :: element
      !! Local coordinates of the detector in that element.
      real, dimension(:), allocatable :: local_coords
      !! Whether the detector is static or Lagrangian.
      integer :: type = STATIC_DETECTOR
-     !! Bisected time step used when moving the Lagrangian detectors
-     real :: dt
      !! Identification number indicating the order in which the detectors are read
      integer :: id_number
-     !! Processor that owns initially the detector (for parallel)
-     integer :: initial_owner= -1
+     !! ID of the parent list, needed for Zoltan to map the detector back
+     integer :: list_id
      !! RK timestepping stages (first index is stage no., second index is dim)
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
@@ -71,10 +74,48 @@ module detector_data_types
      TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type
 
+  ! Parameters for lagrangian detector movement
+  type rk_gs_parameters
+    ! Runk-Kutta Guided Search parameters
+    integer :: n_stages, n_subcycles
+    real, allocatable, dimension(:) :: timestep_weights
+    real, allocatable, dimension(:,:) :: stage_matrix
+    real :: search_tolerance
+  end type rk_gs_parameters
+
   type detector_linked_list
+     !! Doubly linked list implementation
      integer :: length=0
-     TYPE (detector_type), POINTER :: firstnode => null()
-     TYPE (detector_type), POINTER :: lastnode => null()
+     TYPE (detector_type), pointer :: first => null()
+     TYPE (detector_type), pointer :: last => null()
+
+     !! Internal ID used for packing/unpacking detectors
+     integer :: id  ! IDs are counted from 1
+
+     !! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
+     type(rk_gs_parameters), pointer :: move_parameters => null()
+     logical :: move_with_mesh = .false.
+
+     !! Optional array for detector names; names are held in read order
+     character(len = FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
+
+     !! List of scalar/vector fields to include in detector output
+     type(stringlist), dimension(:), allocatable :: sfield_list
+     type(stringlist), dimension(:), allocatable :: vfield_list
+     integer :: num_sfields = 0   ! Total number of scalar fields across all phases
+     integer :: num_vfields = 0   ! Total number of vector fields across all phases
+
+     !! I/O parameters
+     logical :: binary_output = .false.
+     logical :: write_nan_outside = .false.
+     integer :: output_unit = 0          ! Assumed non-opened as long this is 0
+     integer :: mpi_fh = 0               ! MPI filehandle
+     integer :: mpi_write_count = 0      ! Offset in MPI file
+     integer :: total_num_det = 0        ! Global number of detectors in this list
   end type detector_linked_list
+
+  type detector_list_ptr
+     type(detector_linked_list), pointer :: ptr
+  end type detector_list_ptr
 
 end module detector_data_types
