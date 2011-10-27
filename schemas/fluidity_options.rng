@@ -7800,7 +7800,8 @@ useful for psuedo-1D simulations.</a:documentation>
             </element>
           </optional>
           <element name="output_fluxes_diagnostics">
-            <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes</a:documentation>
+            <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
+These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
             <optional>
               <element name="vector_field">
                 <attribute name="rank">
