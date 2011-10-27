@@ -270,9 +270,11 @@ contains
 
 #ifdef HAVE_LIBNUMA
     !! Arrays to hold page faults per colour
-    integer, dimension(:), allocatable :: minor_pagefaults
+    integer, dimension(:,:), allocatable :: minor_pagefaults
+    integer, dimension (:), allocatable  :: minor_pagefaults_sum
     !! number of minor and major faults
     integer :: minfaults_tic, minfaults_toc, majfaults_tic, majfaults_toc 
+    integer :: thr
 #endif
 
     ewrite(1, *) "In construct_momentum_dg"
@@ -656,13 +658,19 @@ contains
     call profiler_toc(u, "element_loop-omp_overhead")
 
 #ifdef HAVE_LIBNUMA    
-    ! set array length to number of colours
-    allocate(minor_pagefaults(size(colours)))
+    ! set array length to number of colours * number of threads
+    allocate(minor_pagefaults(size(colours),0:num_threads-1))
+    allocate(minor_pagefaults_sum(size(colours)))
+    write(20,*) "Momentum_DG element loop :: Minor page faults"
+    write(20,*) "Number of colours = ",size(colours)
 #endif
     
     call profiler_tic(u, "element_loop")
 
-    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, nnid, ele, len)
+    !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, nnid, ele, len) &
+#ifdef HAVE_LIBNUMA
+    !$OMP PRIVATE(minfaults_tic, minfaults_toc)
+#endif
     colour_loop: do clr = 1, size(colours) 
 
 #ifdef HAVE_LIBNUMA
@@ -690,8 +698,14 @@ contains
       !$OMP BARRIER
 
 #ifdef HAVE_LIBNUMA
-      call profiler_minorpagefaults(minfaults_toc)
-      minor_pagefaults(clr) = minfaults_toc - minfaults_tic
+      call profiler_minorpagefaults(minfaults_toc)      
+      minor_pagefaults(clr,omp_get_thread_num()) = minfaults_toc - minfaults_tic
+!!$      write(20,*) "Colour :: ", clr," Thread ID :: ", omp_get_thread_num(), & 
+!!$         " :: Number of minor page faults = ", (minfaults_toc - minfaults_tic)
+!!$      write(20,*) "Colour :: ", clr," Thread ID :: ", omp_get_thread_num(), & 
+!!$         " :: Number of minor page faults, array index (", clr,",", &
+!!$         omp_get_thread_num(),") = ", minor_pagefaults(clr,omp_get_thread_num())
+      flush(20)
 #endif
 
     end do colour_loop
@@ -700,11 +714,18 @@ contains
     call profiler_toc(u, "element_loop")
 
 #ifdef HAVE_LIBNUMA
-    write(20,*) "Momentum_DG :: Minor page faults = "
     do clr = 1, size(colours) 
-      write(20,*) "Colour :: ", clr, & 
-         " :: Number of minor page faults = ", minor_pagefaults(clr)
-      flush(20)
+       minor_pagefaults_sum = 0
+       do thr = 0, num_threads-1
+          minor_pagefaults_sum(clr) = minor_pagefaults_sum(clr) &
+               + minor_pagefaults(clr,thr)
+!!$          write(20,*) "Colour :: ",clr," :: Page faults from thread ",thr, & 
+!!$               " = ", minor_pagefaults(clr,thr)
+!!$          write(20,*) "Temporary total = ", minor_pagefaults_sum(clr)
+       end do
+       write(20,*) "Colour :: ", clr, " :: Sum of minor page faults = ", &
+            minor_pagefaults_sum(clr)
+       flush(20)
     end do
 #endif
 
