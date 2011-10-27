@@ -77,6 +77,7 @@ module diagnostic_variables
   use detector_tools
   use detector_parallel
   use detector_move_lagrangian
+  use ieee_arithmetic, only: cget_nan
 
   implicit none
 
@@ -1375,7 +1376,8 @@ contains
        if (.not.element_owned(xfield,element)) return
     else
        ! In serial make sure the detector is in the domain
-       if (element<0) then
+       ! unless we have the write_nan_outside override
+       if (element<0 .and. .not.detector_list%write_nan_outside) then
           FLExit("Trying to initialise detector outside of computational domain")
        end if
     end if
@@ -1457,6 +1459,16 @@ contains
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
     allocate(detector_location(dim))
+
+    ! Enable detectors to drift with the mesh
+    if (have_option("/io/detectors/move_with_mesh")) then
+       default_stat%detector_list%move_with_mesh=.true.
+    end if
+
+    ! Set flag for NaN detector output
+    if (have_option("/io/detectors/write_nan_outside_domain")) then
+       default_stat%detector_list%write_nan_outside=.true.
+    end if
     
     ! Retrieve the position of each detector. If the option
     ! "from_checkpoint_file" exists, it means we are continuing the simulation
@@ -2601,7 +2613,16 @@ contains
 
                 detector => detector_list%first
                 do j=1, detector_list%length
-                   value =  detector_value(sfield, detector)
+                   if (detector%element<0) then
+                      if (detector_list%write_nan_outside) then
+                         call cget_nan(value)
+                      else
+                         FLExit("Trying to write detector that is outside of domain.")
+                      end if
+                   else
+                      value = detector_value(sfield, detector)
+                   end if
+
                    if(detector_list%binary_output) then
                       write(detector_list%output_unit) value
                    else
@@ -2622,7 +2643,16 @@ contains
 
                 detector => detector_list%first
                 do j=1, detector_list%length
-                   vvalue =  detector_value(vfield, detector)
+                   if (detector%element<0) then
+                      if (detector_list%write_nan_outside) then
+                         call cget_nan(value)
+                         vvalue(:) = value
+                      else
+                         FLExit("Trying to write detector that is outside of domain.")
+                      end if
+                   else
+                      vvalue = detector_value(vfield, detector)
+                   end if
 
                    if(detector_list%binary_output) then
                       write(detector_list%output_unit) vvalue
@@ -2753,7 +2783,15 @@ contains
 
           node => detector_list%first
           scalar_node_loop: do j = 1, detector_list%length
-            value =  detector_value(sfield, node)
+            if (node%element<0) then
+               if (detector_list%write_nan_outside) then
+                  call cget_nan(value)
+               else
+                  FLExit("Trying to write detector that is outside of domain.")
+               end if
+            else
+               value = detector_value(sfield, node)
+            end if
 
             offset = location_to_write + (detector_list%total_num_det * (i - 1) + (node%id_number - 1)) * realsize
 
@@ -2779,7 +2817,16 @@ contains
 
           node => detector_list%first
           vector_node_loop: do j = 1, detector_list%length
-            vvalue =  detector_value(vfield, node)
+            if (node%element<0) then
+               if (detector_list%write_nan_outside) then
+                  call cget_nan(value)
+                  vvalue(:) = value
+               else
+                  FLExit("Trying to write detector that is outside of domain.")
+               end if
+            else
+               vvalue = detector_value(vfield, node)
+            end if
 
             ! Currently have to assume single dimension vector fields in
             ! order to compute the offset
