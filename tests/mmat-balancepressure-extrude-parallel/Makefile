@@ -4,3 +4,5 @@ input: clean
 
 clean:
 	rm -rf *.stat *.vtu *.pvtu *.convergence *.node *.bound *.ele *.halo *.log-? *.err-? *checkpoint*
+	rm -rf mmat-balancepressure*_?
+	rm -rf mmat-balancepressure*_??
