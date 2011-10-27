@@ -242,7 +242,7 @@
       </diagnostic>
     </vector_field>
     <sediment>
-      <scalar_field name="SedimentTemplate" rank="0">
+      <scalar_field name="Single" rank="0">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="AdvectionDiffusion"/>
@@ -349,48 +349,38 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
+          <scalar_field name="SedimentDeposition" rank="0">
+            <diagnostic>
+              <surface_ids>
+                <integer_value shape="1" rank="1">8</integer_value>
+              </surface_ids>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <include_in_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <density>
+            <real_value rank="0">2000</real_value>
+          </density>
+          <diameter>
+            <real_value rank="0">0.5</real_value>
+          </diameter>
+          <porosity>
+            <real_value rank="0">0.5</real_value>
+          </porosity>
+          <erodability>
+            <real_value rank="0">0.00518674459</real_value>
+          </erodability>
         </prognostic>
-        <density>
-          <real_value rank="0">2000</real_value>
-        </density>
-        <diameter>
-          <real_value rank="0">0.5</real_value>
-        </diameter>
-        <porosity>
-          <real_value rank="0">0.5</real_value>
-        </porosity>
       </scalar_field>
-      <scalar_field name="SedimentDepositionTemplate" rank="0">
-        <diagnostic>
-          <surface_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
-          </surface_ids>
-          <mesh name="VelocityMesh"/>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-        </diagnostic>
-      </scalar_field>
-      <sediment_class name="Single">
-        <density>
-          <real_value rank="0">2000</real_value>
-        </density>
-        <diameter>
-          <real_value rank="0">0.5</real_value>
-        </diameter>
-        <erodability>
-          <real_value rank="0">0.00518674459</real_value>
-          <comment>Fixed to give a flux of 0.01 with a bed shear stress of 1Nm-2</comment>
-        </erodability>
-      </sediment_class>
     </sediment>
   </material_phase>
 </fluidity_options>

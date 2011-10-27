@@ -12,17 +12,17 @@
     <variable name="sediment_deposition_200" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Reentrainment.stat")
-sediment_deposition_200 = s["Fluid"]["SedimentDepositionSingle"]["integral"][199]
+sediment_deposition_200 = s["Fluid"]["SingleSedimentDeposition"]["integral"][199]
     </variable>
     <variable name="sediment_deposition_final" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Reentrainment.stat")
-sediment_deposition_final = s["Fluid"]["SedimentDepositionSingle"]["integral"][-1]
+sediment_deposition_final = s["Fluid"]["SingleSedimentDeposition"]["integral"][-1]
     </variable>    
     <variable name="sediment_deposition_near_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Reentrainment.stat")
-sediment_deposition_near_end = s["Fluid"]["SedimentDepositionSingle"]["integral"][-3]
+sediment_deposition_near_end = s["Fluid"]["SingleSedimentDeposition"]["integral"][-3]
     </variable>
     <variable name="sediment_concentration_initial" language="python">
 from fluidity_tools import stat_parser

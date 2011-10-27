@@ -129,10 +129,9 @@ contains
         end do
         
         ! check for presence of ZeroSedimentConcentrationViscosity field
-        if (.not. have_option('/material_phase[0]/tensor_field::&
-             &&ZeroSedimentConcentrationViscosity')) then
-           FLExit("You must specify an zero sediment concentration viscosity to be able &&
-                && to calculate sediment concentration dependent viscosity field values")
+        if (.not. has_tensor_field(state, "ZeroSedimentConcentrationViscosity")) then
+           FLExit("You must specify an zero sediment concentration viscosity to be able &
+                &to calculate sediment concentration dependent viscosity field values")
         endif
         zero_conc_viscosity => extract_tensor_field(state, 'ZeroSedimentConcentrationViscosity')
         

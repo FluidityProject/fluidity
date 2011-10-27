@@ -12,52 +12,52 @@
     <variable name="sediment_deposition_1_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_1_end = s["Fluid"]["SedimentDepositionSed1mm"]["max"][-1]
+sediment_deposition_1_end = s["Fluid"]["Sed1mmSedimentDeposition"]["max"][-1]
     </variable>
     <variable name="sediment_deposition_2_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_2_end = s["Fluid"]["SedimentDepositionSed2mm"]["max"][-1]
+sediment_deposition_2_end = s["Fluid"]["Sed2mmSedimentDeposition"]["max"][-1]
     </variable>
     <variable name="sediment_deposition_3_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_3_end = s["Fluid"]["SedimentDepositionSed3mm"]["max"][-1]
+sediment_deposition_3_end = s["Fluid"]["Sed3mmSedimentDeposition"]["max"][-1]
     </variable>
     <variable name="sediment_deposition_4_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_4_end = s["Fluid"]["SedimentDepositionSed4mm"]["max"][-1]
+sediment_deposition_4_end = s["Fluid"]["Sed4mmSedimentDeposition"]["max"][-1]
     </variable>
     <variable name="sediment_deposition_5_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_5_end = s["Fluid"]["SedimentDepositionSed5mm"]["max"][-1]
+sediment_deposition_5_end = s["Fluid"]["Sed5mmSedimentDeposition"]["max"][-1]
     </variable>
     <variable name="sediment_deposition_6_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_6_end = s["Fluid"]["SedimentDepositionSed6mm"]["max"][-1]
+sediment_deposition_6_end = s["Fluid"]["Sed6mmSedimentDeposition"]["max"][-1]
     </variable>
     <variable name="sediment_deposition_7_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_7_end = s["Fluid"]["SedimentDepositionSed7mm"]["max"][-1]
+sediment_deposition_7_end = s["Fluid"]["Sed7mmSedimentDeposition"]["max"][-1]
     </variable>
     <variable name="sediment_deposition_8_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_8_end = s["Fluid"]["SedimentDepositionSed8mm"]["max"][-1]
+sediment_deposition_8_end = s["Fluid"]["Sed8mmSedimentDeposition"]["max"][-1]
     </variable>
     <variable name="sediment_deposition_9_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_9_end = s["Fluid"]["SedimentDepositionSed9mm"]["max"][-1]
+sediment_deposition_9_end = s["Fluid"]["Sed9mmSedimentDeposition"]["max"][-1]
     </variable>
     <variable name="sediment_deposition_10_end" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("Sediment_Deposition.stat")
-sediment_deposition_10_end = s["Fluid"]["SedimentDepositionSed10mm"]["max"][-1]
+sediment_deposition_10_end = s["Fluid"]["Sed10mmSedimentDeposition"]["max"][-1]
     </variable>
 
   </variables>

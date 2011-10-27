@@ -1826,7 +1826,7 @@ sediment =
                ## Density must be specified here or for each sediment class.
                element density {
                   real
-               }?,
+               },
                ## This is the diameter of the grain in mm.
                ## Diameter must be specified here or under each sediment class.
                element diameter {

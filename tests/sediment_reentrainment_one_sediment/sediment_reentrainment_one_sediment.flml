@@ -243,7 +243,7 @@
       </diagnostic>
     </vector_field>
     <sediment>
-      <scalar_field name="SedimentTemplate" rank="0">
+      <scalar_field name="Single" rank="0">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="AdvectionDiffusion"/>
@@ -350,48 +350,39 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
+          <scalar_field name="SedimentDeposition" rank="0">
+            <diagnostic>
+              <surface_ids>
+                <integer_value shape="1" rank="1">8</integer_value>
+              </surface_ids>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <include_in_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <density>
+            <real_value rank="0">2650</real_value>
+          </density>
+          <diameter>
+            <real_value rank="0">50</real_value>
+          </diameter>
+          <porosity>
+            <real_value rank="0">0.5</real_value>
+          </porosity>
+          <critical_shear_stress>
+            <real_value rank="0">19.60784314</real_value>
+            <comment>Should give an erosion rate of 0.01m/s with a bed shear stress of 20 with a porosity of 0.5</comment>
+          </critical_shear_stress>
         </prognostic>
-        <density>
-          <real_value rank="0">2650</real_value>
-        </density>
-        <diameter>
-          <real_value rank="0">10</real_value>
-        </diameter>
-        <porosity>
-          <real_value rank="0">0.5</real_value>
-        </porosity>
       </scalar_field>
-      <scalar_field name="SedimentDepositionTemplate" rank="0">
-        <diagnostic>
-          <surface_ids>
-            <integer_value shape="1" rank="1">8</integer_value>
-          </surface_ids>
-          <mesh name="VelocityMesh"/>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-        </diagnostic>
-      </scalar_field>
-      <sediment_class name="Single">
-        <density>
-          <real_value rank="0">2650</real_value>
-        </density>
-        <diameter>
-          <real_value rank="0">50</real_value>
-        </diameter>
-        <critical_shear_stress>
-          <real_value rank="0">19.60784314</real_value>
-          <comment>Should give an erosion rate of 0.01m/s with a bed shear stress of 20 with a porosity of 0.5</comment>
-        </critical_shear_stress>
-      </sediment_class>
     </sediment>
   </material_phase>
 </fluidity_options>

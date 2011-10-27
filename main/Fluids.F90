@@ -190,12 +190,6 @@ contains
     call initialise_qmesh
     call initialise_write_state
 
-
-    ! Initialise sediments
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_init()
-    end if
-
     ! Initialise Hyperlight
 #ifdef HAVE_HYPERLIGHT
     if (have_option("ocean_biology/lagrangian_ensemble/hyperlight")) then

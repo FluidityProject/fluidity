@@ -69,7 +69,7 @@ contains
          & bc_type
     character(len=OPTION_PATH_LEN)                         :: bc_path
 
-    ewrite(1,*) "In calculate_sediment_flux"
+    ewrite(1,*) "In calculate_sediment_deposition"
 
     n_sediment_fields = get_n_sediment_fields()
     call get_option("/timestepping/timestep", dt)
@@ -110,8 +110,8 @@ contains
        call zero(erosion(i_field))
        
        ! get boundary condition path and number of boundary conditions
-       n_bcs = option_count(trim(sediment_field(i_field)%ptr%option_path)//'/prognostic/boundary_co&&
-            && nditions')
+       bc_path = trim(sediment_field(i_field)%ptr%option_path)//'/prognostic/boundary_conditions'
+       n_bcs = option_count(bc_path)
 
        ! Loop over boundary conditions for field
        do i_bcs=0, n_bcs-1
@@ -165,6 +165,11 @@ contains
        allocate(surface_ids(surface_id_count(1)))
        call get_option(trim(deposition_field(i_field)%ptr%option_path)//"/diagnostic/surface_ids", &
             & surface_ids) 
+
+       ewrite(2,*) surface_id_count(1)
+       ewrite(2,*) surface_ids
+
+       ewrite(2,*) element_count(surface_field(i_field))
        
        ! loop through elements in surface field
        elements: do ele=1,element_count(surface_field(i_field))
@@ -180,6 +185,8 @@ contains
                & X, U, sink_U(i_field)%ptr, gravity, masslump, dt, i_field)
 
        end do elements
+
+       ewrite_minmax(surface_field(i_field))  
 
        deallocate(surface_ids)
 
@@ -207,6 +214,8 @@ contains
                node_val(surface_field(i_field), node) - node_val(erosion(i_field),node))
           
        end do
+
+       ewrite_minmax(deposition_field(i_field)%ptr) 
 
        call deallocate(surface_field(i_field))
        call deallocate(erosion(i_field))
