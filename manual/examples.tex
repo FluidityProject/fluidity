@@ -1,7 +1,7 @@
 \chapter{Examples}
 \label{chap:examples}
 \section{Introduction}
-\label{sect:examples_introduction}
+\label{sec:examples_introduction}
 This chapter describes several example problems that cover the various aspects of the functionality
 of \fluidity. The input files for these examples can be found in separate directories
 under \\ \texttt{\fluiditysourcepath/examples/}. Each directory contains a \texttt{Makefile},
@@ -34,18 +34,18 @@ examples plots are created and put in the directory.
   \hline
   Example section & Example directory & N. procs. & Run time \\
   \hline
-  \ref{sect:oned_advection} One dimensional advection & \texttt{top\_hat/} & 1 & 2 min. \\
-  \ref{sect:lock_exchange} The lock-exchange & \texttt{lock\_exchange/} & 1 & 10 min. \\
-  \ref{sect:lid_driven_cavity} Lid-driven cavity & \texttt{driven\_cavity/} & 1 & 7 hr. \\
-  \ref{sect:backward_facing_step} Backward facing step & \texttt{backward\_facing\_step\_2d/} & 1 & 15 min. \\
+  \ref{sec:oned_advection} One dimensional advection & \texttt{top\_hat/} & 1 & 2 min. \\
+  \ref{sec:lock_exchange} The lock-exchange & \texttt{lock\_exchange/} & 1 & 10 min. \\
+  \ref{sec:lid_driven_cavity} Lid-driven cavity & \texttt{driven\_cavity/} & 1 & 7 hr. \\
+  \ref{sec:backward_facing_step} Backward facing step & \texttt{backward\_facing\_step\_2d/} & 1 & 15 min. \\
                        & \texttt{backward\_facing\_step\_3d/} & 8 & 30 min. \\
-  \ref{sect:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 6 hr. \\
-  \ref{sect:periodic_channel} Rotating periodic channel & \texttt{rotating\_channel/} & 1 & 10 min. \\
-  \ref{sect:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
-  \ref{sect:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 20 hr. \\
-  \ref{sect:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr. \\
-  \ref{sect:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 4 & 1.5 hr. \\
-  \ref{sect:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
+  \ref{sec:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 6 hr. \\
+  \ref{sec:periodic_channel} Rotating periodic channel & \texttt{rotating\_channel/} & 1 & 10 min. \\
+  \ref{sec:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
+  \ref{sec:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 20 hr. \\
+  \ref{sec:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr. \\
+  \ref{sec:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 4 & 1.5 hr. \\
+  \ref{sec:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
@@ -74,7 +74,7 @@ If \texttt{NPROCS} is not supplied an error will occur.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{One dimensional advection}
-\label{sect:oned_advection}
+\label{sec:oned_advection}
 \subsection{Overview}
 In this test example a very simple one-dimensional problem is 
 studied: the advection of an inital ``top hat'' distribution 
@@ -114,7 +114,7 @@ This example provides three basic configurations, corresponding to
 the three main discretisation types of the advection-diffusion equation
 available in fluidity:
 \begin{itemize}
-\item {\bf Continuous Galerkin (CG)}, section \ref{sect:ND_advection_diffusion_CG}
+\item {\bf Continuous Galerkin (CG)}, section \ref{sec:ND_advection_diffusion_CG}
 This is the most basic finite-element discretisation that is simple 
 and fairly efficient. It is however not very good for advection problems
 of tracers with sharp discontinuities. In the example configuration
@@ -183,7 +183,7 @@ these cases the initial mesh resolution has changed and is still focussed near t
 
 A more precise analysis of the boundedness and conservation properties of the numerical solution, can be
 derived from the data in the .stat file, which can be visualised using the statplot program 
-(section \ref{sect:statplot}). As can be seen in figure \ref{fig:top_hat_cg_conservation} the tracer
+(section \ref{sec:statplot}). As can be seen in figure \ref{fig:top_hat_cg_conservation} the tracer
 concentration in the CG case is not completely conserved. 
 The CG and CV solutions show perfect conservation (to machine precision). The minimum 
 and maximum (figure \ref{fig:top_hat_dg_max}) tracer concentration of the
@@ -230,9 +230,9 @@ add \option{pivot\_theta} with a value of 0.0.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{The lock-exchange}
-\label{sect:lock_exchange}
+\label{sec:lock_exchange}
 \subsection{Overview}
-\label{sect:lock_exchange_overview}
+\label{sec:lock_exchange_overview}
 
 The lock--exchange is a classic laboratory-scale fluid dynamics problem, \citep{fannelop_94, huppert_06, simpson_87}. A flat--bottomed tank is separated into two portions by a vertical barrier. One portion, the `lock', is filled with the source fluid. This is of different density to the ambient fluid which fills the other portion. As the barrier is removed, the denser fluid collapses under the lighter. Two gravity currents form and propagate in opposite directions, one above the other, along the tank. After an initial acceleration, the gravity current fronts travel at a constant speed until the end walls exert an influence or viscous forces begin to dominate, \citep{cantero_07, hartel_99, huppert_80}. At the current front a bulbous head may develop and become taller than the trailing fluid. A shear instability can manifest at the density--interface (hereafter interface) between the two fluids, \citep{turner_73}, and this leads to the formation of Kelvin--Helmholtz billows that enhance mixing.
 
@@ -250,7 +250,7 @@ In this example, \fluidity\ is used to simulate a lock--exchange and the followi
 \end{itemize}
 
 \subsection{Configuration}
-\label{sect:lock_exchange_configuration}
+\label{sec:lock_exchange_configuration}
 
 The domain and physical parameters are set up after \cite{fringer_06} and \cite{hartel_00}, table \ref{tab:le_physical_parameters}. The domain is a 2D rectangular box, $0\leq x \leq 0.8\,$m, $0 \leq z \leq 0.1\,$m. Initially, dense, cold water of $T = -0.5\,^\circ$C fills one half of the domain, $x<0.4\,$m, and light, warm water of $T = 0.5\,^\circ$C fills the other half, $x\geq0.4\,$m, figure \ref{fig:lock_exchange}. At $t=0\,$s, ${\bf u} = {\bf 0}$ everywhere. A no-slip boundary condition is applied along the bottom of the domain, ${\bf u = 0}$ at $z=0$, and a free-slip boundary condition is applied to the top of the domain and the side walls, ${\bf u\cdot\bf n} = 0$ at $z = 0.1\,$m and $x = 0.0,\, 0.8\,$m.
 
@@ -276,29 +276,29 @@ Grashof number						& $Gr = \left( \frac{h \sqrt{g'h}}{\nu} \right)^2$ 		& $1.25
 \centering
 \begin{tabular}[h]{lll}  \hline
 Numerical component                           & Configuration                   & Section\\ \hline
-Geometry                                      & from triangle file, via gmsh    & \ref{sect:triangle_format}, \ref{sect:meshing_tools_non_fluidity_gmsh}\\
+Geometry                                      & from triangle file, via gmsh    & \ref{sec:triangle_format}, \ref{sec:meshing_tools_non_fluidity_gmsh}\\
 Time step                                     & 0.025\,s                        & \\
-Time loop                                     & 2 non-linear Picard iterations  & \ref{sect:ND_time_loop} \\
-Equation of state                             & linear                          & \ref{sect:equation_of_state} \\
-Momentum and Pressure spatial discretisation  & \Poo                            & \ref{Sect:ND_momentum_equation}, \ref{Sect:ND_pressure_equation}, \ref{sect:configuring_fluidity_continuous_galerkin}, \ref{sect:configuring_fluidity_pressure} \\
-Momentum temporal discretisation              & $\theta = 0.5$ (Crank-Nicholson)  & \ref{sect:ND_time_theta_scheme}, \ref{sect:configuring_fluidity_temporal_discretisation} \\
-                                              & non-linear relaxation term $=0.5$ & \ref{sect:relax} \\
-Temperature advection                         & advection-diffusion equation    & \ref{Sect:MP-AdvdifEqn} \\
-                                              & control volumes                 & \ref{Sect:CVs} \\
-Temperature temporal discretisation           & $\theta = 0.5$ (Crank-Nicholson)& \ref{sect:ND_time_theta_scheme}, \ref{sect:configuring_fluidity_temporal_discretisation} \\
-                                              & 3 advection iterations, limit theta & \ref{sect:cvtemp} \\\hline
+Time loop                                     & 2 non-linear Picard iterations  & \ref{sec:ND_time_loop} \\
+Equation of state                             & linear                          & \ref{sec:equation_of_state} \\
+Momentum and Pressure spatial discretisation  & \Poo                            & \ref{sec:ND_momentum_equation}, \ref{sec:ND_pressure_equation}, \ref{sec:configuring_fluidity_continuous_galerkin}, \ref{sec:configuring_fluidity_pressure} \\
+Momentum temporal discretisation              & $\theta = 0.5$ (Crank-Nicholson)  & \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
+                                              & non-linear relaxation term $=0.5$ & \ref{sec:relax} \\
+Temperature advection                         & advection-diffusion equation    & \ref{sec:MP-AdvdifEqn} \\
+                                              & control volumes                 & \ref{sec:CVs} \\
+Temperature temporal discretisation           & $\theta = 0.5$ (Crank-Nicholson)& \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
+                                              & 3 advection iterations, limit theta & \ref{sec:cvtemp} \\\hline
 \end{tabular}
 \caption{Numerical configuration for the lock-exchange}
 \label{tab:le_numerical_configuration}
 \end{table}
 
 \subsection{Results} 
-\label{sect:lock_exchange_results}
+\label{sec:lock_exchange_results}
 Note, the example is set up for a quick start. Many of these results require the simulation to be run for a longer time.
 
 The expected dynamics of a lock-exchange flow are observed, figure \ref{fig:lock_exchange}: two gravity currents propagate in opposite directions with the foremost point of the no-slip front raised above the lower boundary. Kelvin--Helmholtz billows form at the interface enhancing the mixing of the two fluids which would not be observed with a hydrostatic formulation. The mesh adapts well, increasing the resolution around the interface and Kelvin--Helmholtz billows with anisotropic elements. Similar images can be generated by visualising the vtu files using Paraview, see the \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\ for more information.
 
-Both the gravity current front speeds and the mixing are considered. First the Froude number, $Fr = U/u_b$, which is the ratio of front speed, $U$, to the buoyancy velocity, $u_b$, table \ref{tab:le_physical_parameters} is calculated. The speed with which the no--slip and free--slip fronts propagate along the domain, $U_{ns}$ and $U_{fs}$, are calculated from the model output and are used to give the corresponding no-slip and free-slip Froude numbers, $Fr_{ns}$ and $Fr_{fs}$, figure \ref{fig:lock_exchange_Fr}. For the basic set up given in the example the values are comparable to but generally smaller than previously published values. Spatially varying the horizontal velocity adaptivity settings, as suggested in the exercises, section \ref{sect:le_exercises}, can increase the Froude number, showing good agreement between the \fluidity\ values and previously published values \citep{hiester2011}. Changing the metric, as suggested in the exercises, can also increase the Froude number.
+Both the gravity current front speeds and the mixing are considered. First the Froude number, $Fr = U/u_b$, which is the ratio of front speed, $U$, to the buoyancy velocity, $u_b$, table \ref{tab:le_physical_parameters} is calculated. The speed with which the no--slip and free--slip fronts propagate along the domain, $U_{ns}$ and $U_{fs}$, are calculated from the model output and are used to give the corresponding no-slip and free-slip Froude numbers, $Fr_{ns}$ and $Fr_{fs}$, figure \ref{fig:lock_exchange_Fr}. For the basic set up given in the example the values are comparable to but generally smaller than previously published values. Spatially varying the horizontal velocity adaptivity settings, as suggested in the exercises, section \ref{sec:le_exercises}, can increase the Froude number, showing good agreement between the \fluidity\ values and previously published values \citep{hiester2011}. Changing the metric, as suggested in the exercises, can also increase the Froude number.
 
 The second diagnostic is the background potential energy, which can be used to assess the mixing. The background potential energy is the potential energy of the system reference state \citep{winters1995, winters1996}. The reference state is obtained by adiabatically redistributing the fluid elements into the minimum energy state and is described spatially by an isopycnal coordinate, $z_*$. The background potential energy, $E_b$, is then calculated from
 \begin{equation}
@@ -338,18 +338,18 @@ where $g$ is gravity and $\rho$ the density. Most crucially, for a closed system
 \end{figure}
 
 \subsection{Exercises}
-\label{sect:le_exercises}
+\label{sec:le_exercises}
 The example settings are designed to provide a quick start for running the simulation. To explore the diagnostics and functionality of \fluidity, the following variations on this example would be constructive exercises:
 \begin{itemize}
 \item Run the simulation for a longer time period by increasing the finish time to $30.0\,$s to look at the Froude number and calculate an average value;
-\item Run the simulation from the checkpoint for a longer time period (until $t=200.0\,$s) to look at the mixing later in the simulation, section \ref{sect:configuring_fluidity_checkpointing}. When running from the checkpoint don't forget to rename the vtus with rename\_checkpoint.py, table \ref{tab:fltools};
-\item In the adaptivity settings for the horizontal velocity field try using a spatially varying interpolation error and compare Froude numbers (python can be found in the comment section for the velocity adaptivity settings), section \ref{sect:configuring_fluidity_error_metric};
-\item In the adaptivity settings for both the velocity field and temperature field use a $p$--norm with \mbox{$p=2$}, section \ref{sect:configuring_fluidity_error_metric}. Suggested values for the interpolation error are $0.00005, \, 0.00005 \,\, {\rm and} \,\, 0.0005$ for the horizontal velocity, vertical velocity and temperature fields respectively. 
-\item Change the frequency of the adapt, section \ref{sect:configuring_fluidity_adaptivity_options};
-\item Turn on metric advection, section \ref{sect:configuring_fluidity_metric_advection};
+\item Run the simulation from the checkpoint for a longer time period (until $t=200.0\,$s) to look at the mixing later in the simulation, section \ref{sec:configuring_fluidity_checkpointing}. When running from the checkpoint don't forget to rename the vtus with rename\_checkpoint.py, table \ref{tab:fltools};
+\item In the adaptivity settings for the horizontal velocity field try using a spatially varying interpolation error and compare Froude numbers (python can be found in the comment section for the velocity adaptivity settings), section \ref{sec:configuring_fluidity_error_metric};
+\item In the adaptivity settings for both the velocity field and temperature field use a $p$--norm with \mbox{$p=2$}, section \ref{sec:configuring_fluidity_error_metric}. Suggested values for the interpolation error are $0.00005, \, 0.00005 \,\, {\rm and} \,\, 0.0005$ for the horizontal velocity, vertical velocity and temperature fields respectively. 
+\item Change the frequency of the adapt, section \ref{sec:configuring_fluidity_adaptivity_options};
+\item Turn on metric advection, section \ref{sec:configuring_fluidity_metric_advection};
 \item Change the diffusivity and viscosity values;
-\item Run with a fixed mesh (note this will require making a new input mesh), sections \ref{sect:triangle_format}, \ref{sect:meshing_tools_non_fluidity_gmsh};
-\item Try adding some detectors to visualise the particle trajectories, section \ref{sect:diagnostics_detectors} %or \newline cf. \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_}.
+\item Run with a fixed mesh (note this will require making a new input mesh), sections \ref{sec:triangle_format}, \ref{sec:meshing_tools_non_fluidity_gmsh};
+\item Try adding some detectors to visualise the particle trajectories, section \ref{sec:diagnostics_detectors} %or \newline cf. \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_}.
 \end{itemize}
 Note to compare Froude numbers and mixing between different runs the remember to copy the images and stat files otherwise they will be overwritten.
  
@@ -358,7 +358,7 @@ Note to compare Froude numbers and mixing between different runs the remember to
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Lid-driven cavity}
-\label{sect:lid_driven_cavity}
+\label{sec:lid_driven_cavity}
 
 \subsection{Overview}
 The lid-driven cavity is a problem that is often used as part of the verification procedure for
@@ -448,9 +448,8 @@ error for the same number of nodes compared to the fixed mesh (hint: it may be e
 %---------------------2D BACKWARD FACING STEP------------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{2D Backward facing step}
-\label{sect:backward_facing_step_2d}
-
+\section{Backward facing step}
+\label{sec:backward_facing_step}
 
 \subsection{Overview}
 The backward-facing step is a classical CFD example and one of the most frequently selected
@@ -545,10 +544,17 @@ It is clear that the reattachment point is between $x/h=3.1$ and $x/h=6.1$.}
 \label{sect:backward_facing_step_3d}
 
 \subsection{Configuration}
+\subsubsection{Geometry: 3D}
+A schematic of the domain is shown in figure \ref{fig:Schematic3d}.
+An inflow is imposed at the left hand boundary and encounters a step
+down in the geometry. The region directly downstream of the step is
+of particular interest in this problem. An outflow boundary is located at the
+right hand end of the geometry.
+
 Please note, this 3D example is intended to be run in parallel (see \ref{decomp_meshes_parallel}).
 This is because the mesh must be fine enough, and the Reynolds number high enough, in order to
 generate turbulence over the step and resolve its passage downstream. More information on running
-/fluidity/ in parallel is found in \ref{sect:running_fluidity_in_parallel}.
+/fluidity/ in parallel is found in \ref{sec:running_fluidity_in_parallel}.
 
 The example is run in a very similar way to the other examples.
 To run in serial, the example is run in exactly the same way to the other examples, using
@@ -568,7 +574,7 @@ The region directly downstream of the step is of interest in this problem.
 \pdffig[width=12.0cm]{examples_images/backward_facing_step/backward_facing_step_3d-schematic}
 \caption{Schematic of the domain for the three-dimensional flow past a backward facing step
 problem.}
-\label{Fig:Schematic3d}
+\label{fig:Schematic3d}
 \end{figure}
 
 Following \cite{le1997} the dimensions are: $L_x=30$, $L_i=10$, $L_y=4$, $h=1$, $L_z=6$,
@@ -576,8 +582,22 @@ so that $L_z-h=5$ and the expansion ratio is $L_z/(L_z-h)=1.2$.
 The base of the domain is located at $z=0$, the inflow plane is given by $x=-10$ with the step
 at $x=0$, and the back of the domain in the spanwise direction is given by $y=0$.
 
-\subsection{Initial and boundary conditions}
-The inflow boundary condition at $x=-10$ is a log profile given by
+\subsubsection{Geometry: 2D}
+A schematic of the domain, showing adaptive mesh refinement, is shown in figure \ref{fig:Schematic2d}.
+In the 2D case the expansion ratio is 2, and the upper boundary is treated as no-slip,
+consistent with \cite{armaly1983}.
+
+\begin{figure}
+\centering
+\pdffig[width=17.0cm]{examples_images/backward_facing_step/backward_facing_step_2d-mesh}
+\caption{Schematic of the domain for the two-dimensional flow past a backward facing step
+problem, showing adaptive mesh refinement.}
+\label{fig:Schematic2d}
+\end{figure}
+
+
+\subsubsection{Initial and boundary conditions: 3D}
+In the 3D case, the inflow boundary condition at $x=-10$ is a log profile given by
 \begin{equation*}
 u(z) =
   \begin{cases}
@@ -587,6 +607,14 @@ u(z) =
 \end{equation*}
 
 with parameters $u_{\tau} = 0.1$, $z_0 = 0.01$ and $\kappa = 0.41$.
+
+%A plot of this inflow profile is given in figure \ref{fig:Inflow}.
+%\begin{figure}
+%\centering
+%\pdffig[width=8.0cm]{images/StepInflow.pdf}
+%\caption{Inflow profile.}
+%\label{fig:Inflow}
+%\end{figure}
 
 No-normal flow, free-stress boundary conditions are applied at the upper and lateral
 (spanwise) boundaries:
@@ -605,11 +633,69 @@ No-slip boundary conditions are applied at the bottom of the domain and at the s
 u=v=w=0.
 \end{equation*}
 
-\subsection{Results}
-Three snapshots of the velocity vectors are shown in figure \ref{Fig:velo-magnitude-3d}
+\subsubsection{Initial and boundary conditions: 2D}
+In the 2D case, the inlet velocity profile is a log profile extending from each wall to the midpoint, with the same parameters as the 3D example:
+\begin{equation*}
+u(z) =
+  \begin{cases}
+    0.0 & \text{if } (z-h) \leq z_0 \\
+    \frac{u_{\tau}}{\kappa} \log \left(\frac{z - h}{z_0}\right) & \text{if } z_0 < (z-h) \leq 0.5 \\
+    \frac{u_{\tau}}{\kappa} \log \left(\frac{2h - z}{z_0}\right) & \text{if } 0.5 < (z-h) \leq (2h-z_0) \\
+    0.0 & \text{if } 2h-z_0 < (z-h)
+  \end{cases}
+\end{equation*}
+
+
+\subsection{Results: 2D}
+Three snapshots of the velocity magnitude from the benchmark run at $Re=150$
+are shown in figure \ref{fig:velo-magnitude-2d} at times 5, 10 and 50 seconds.
+Vertical profiles of $\vec{u}$ at several points downstream of the step are shown
+in figure \ref{fig:UProfiles2d}. The reattachment point is clearly between $x/h=2$ and $x/h=4$.
+
+One of the metrics most often considered for this test case is the point at which the
+flow which separates from the step reattaches to the bottom of the domain.
+The length downstream of the step at which this happens
+has been found from laboratory experiments and direct numerical simulations and is considered a
+sensitive measure of the quality of the numerical method. It is typically used to examine the impact
+of turbulence parameterisations but here will be used to examine the use of mesh adaptivity
+as well as the numerical method.
+
+The reattachment length was defined here to be the length (normalised by step height $h$)
+from the step at which the zero-contour of the $x$-component of $\vec{u}$ intersects with
+the bottom boundary. This quantity was computed from $\vec{u}$
+using the VTK library. For the simulation described, the reattachment
+length was approximately 3.6 times the step height, which is consistent with \cite{armaly1983}.
+The precise value for the reattachment length is dependent on exact configuration on the domain and inflow
+conditions, and also strongly on the Reynolds number of the flow.
+
+\begin{figure}
+\centering
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-5sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-10sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-50sec}}
+\caption{Snapshots of the velocity magnitude from the 2D run at times 5, 10 and 50 time units
+(top to bottom) into the simulation from the smaller benchmark run.
+The evolution of the dynamics to steady state can be seen, in particular the downstream movement
+of the streamline reattachment point (indicated by contours of $U=0$).}
+\label{fig:velo-magnitude-2d}
+\end{figure}
+
+\begin{figure}
+\centering
+\pdffig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_2d}
+\caption{Streamwise velocity profiles from the 2D run at $x/h=0, 2, 4 \text{ and } 6$
+downstream of the step, where $h=1$ is the step height. The converged solution is in red.
+The recirculation region is indicated by negative velocity in figure (b).
+It is clear that the reattachment point is between $x/h=2$ and $x/h=4$.}
+\label{fig:UProfiles2d}
+\end{figure}
+
+
+\subsection{Results: 3D}
+Three snapshots of the velocity vectors are shown in figure \ref{fig:velo-magnitude-3d}
 at times 5, 10 and 50 seconds.
 Vertical profiles of $\vec{u}$ at several points downstream of the step are shown in figure
-\ref{Fig:UProfiles3d}, in which the velocity data has been averaged across the span of the domain
+\ref{fig:UProfiles3d}, in which the velocity data has been averaged across the span of the domain
 to obtain quasi-2D data. The reattachment point is clearly between $x/h=6$ and $x/h=10$.
 In fact the flow reattaches at $x/h \approx $.
 
@@ -623,7 +709,7 @@ In fact the flow reattaches at $x/h \approx $.
 the velocity magnitude at times 5, 25 and 50 time units.
 The evolution of the dynamics to steady state can be seen, in particular the downstream movement
 of the streamline reattachment point (indicated by contours of $U=0$).}
-\label{Fig:velo-magnitude-3d}
+\label{fig:velo-magnitude-3d}
 \end{figure}
 
 \begin{figure}
@@ -633,13 +719,13 @@ of the streamline reattachment point (indicated by contours of $U=0$).}
 downstream of the step, where $h=1$ is the step height. The converged solution is in red.
 The recirculation region is indicated by the negative velocity in figure (b).
 It is clear that the flow reattaches between $x/h>6 \text{ and } 10$.}
-\label{Fig:UProfiles3d}
+\label{fig:UProfiles3d}
 \end{figure}
 
 
 %As this is a highly turbulent problem, making quantitative comparisons of
 %individual snapshots is impossible. However, time-averaged quantities are of diagnostic interest.
-%Figure \ref{Fig:TimeAverage} shows 3 snapshots of the $u$ component of velocity from the large
+%Figure \ref{fig:TimeAverage} shows 3 snapshots of the $u$ component of velocity from the large
 %benchmark run and a time
 %averaged field. The removal of fluctuating components in the velocity field can be seen.
 
@@ -652,7 +738,7 @@ It is clear that the flow reattaches between $x/h>6 \text{ and } 10$.}
 %\caption{Snapshots of the $u$ velocity components at three time slices (top three frames) and the
 %average field from 64 input snapshots spaced equally between times 70 and 102 (bottom).
 %Contours are displayed at the $-0.05$, $0.0$, $0.05$, $0.1$, $0.5$ and $1.0$ levels.}
-%\label{Fig:TimeAverage}
+%\label{fig:TimeAverage}
 %\end{figure}
 
 A more rigorous analysis would involve
@@ -667,7 +753,7 @@ length of multiple model runs.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Flow past a sphere: drag calculation}
-\label{sect:flow_past_sphere}
+\label{sec:flow_past_sphere}
 \subsection{Overview}
 In this validation test uniform flow past an isolated sphere is simulated
 and the drag on the sphere is calculated and compared to a curve optimised
@@ -783,7 +869,7 @@ calculated drag is.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Rotating periodic channel}
-\label{sect:periodic_channel}
+\label{sec:periodic_channel}
 
 \subsection{Overview}
 
@@ -912,7 +998,7 @@ state interface in appendix \ref{chap:python}\ may be useful.
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 
 % \section{Open ocean deep convection}
-% \label{sect:OODC}
+% \label{sec:OODC}
 % \subsection{Overview}
 % Open-ocean deep convection (OODC) has been recognised as an
 % important mixing process for over 25 years, and
@@ -948,11 +1034,11 @@ state interface in appendix \ref{chap:python}\ may be useful.
 % %\pdffig[width=8.0cm]{images/oodc-schematic.pdf}
 % %\caption{Schematic of the domain for the three-dimensional open ocean deep convection
 % %problem.}
-% %\label{Fig:Schematic}
+% %\label{fig:Schematic}
 % %\end{figure}
 % 
 % 
-% A schematic of the domain is shown in figure \ref{Fig:Schematic}.
+% A schematic of the domain is shown in figure \ref{fig:Schematic}.
 % The domain is 32km square in the horizontal and 2km deep. A cooling disk of radius
 % 8km is centred at middle of the upper boundary.
 % 
@@ -998,7 +1084,7 @@ state interface in appendix \ref{chap:python}\ may be useful.
 % 
 
 \section{Water column collapse}
-\label{sect:water_collapse}
+\label{sec:water_collapse}
 
 \subsection{Overview}
 A commonly used validation experiment for multi-material models is that of a collapsing column of liquid, normally water, within an atmosphere or vacuum \citep{lakehal_interface_2002}, also known as the dam break problem.  In the experimental set-up a reservoir of water is held behind an impermeable barrier separating it from the rest of the tank.  The barrier is then quickly removed, allowing the water column to collapse and flood the remaining sections of the tank.  In the numerical analogue the initial condition is generally taken as the trapped water column, still behind the dam.  At the start of the simulation the barrier is imagined to have been removed instantaneously and switching on gravity, $|g| = 9.81$, causes the column to collapse.   Several experimental set-ups have been published and used as comparison and validation tools for numerical models \citep{martin_part_1952, greaves_simulation_2006}.  Those with water depth gauges distributed throughout the tank are particularly useful, allowing the direct comparison of data.  Furthermore, pressure gauges located on the tank walls or on any obstacles within the tank provide another useful validation tool.
@@ -1034,14 +1120,14 @@ As no variations were introduced in the third dimension, the experiment is repro
 \label{fig:zhouinitial}
 \end{figure}
 
-The water volume fraction, $\alpha_1$, is solved for using an advection equation (section~\ref{Sect:MP-AdvdifEqn}).  It is advected
+The water volume fraction, $\alpha_1$, is solved for using an advection equation (section~\ref{sec:MP-AdvdifEqn}).  It is advected
 using HyperC on a control volume mesh (section~\ref{sec:hyperc}), while the velocity and pressure are discretised using the
-$\PzoCV$ element pair (section~\ref{Sect:velocity_pressure_element_pairs}) with $\theta=1/2$ and $\theta_i=1/2$ (section~\ref{sect:ND_time_theta_scheme}).  
+$\PzoCV$ element pair (section~\ref{sec:velocity_pressure_element_pairs}) with $\theta=1/2$ and $\theta_i=1/2$ (section~\ref{sec:ND_time_theta_scheme}).  
 
 This example employs an adaptive mesh (chapter~\ref{chap:Adaptivity}). The minimum edge length in the mesh is constrained to $3.33mm$. The upper bound on the edge lengths was specified as half the domain length and height in each dimension.  The water volume fraction was directly adapted to using an interpolation error bound, $\hat{\epsilon}$, of $0.075$. Given the range of this field seen in the fixed mesh runs this corresponds to a desired error of less than 5\%. The volume fraction is transferred between successive meshes using a minimally diffusive bounded projection algorithm.  The velocity is transferred using a straightforward projection while the pressure is consistently interpolated using the linear basis functions from its parent mesh. For details of the remaining adaptivity settings we refer to the documented flml file.  The initial mesh using these settings is shown in Figure \ref{fig:zhouinitial}(b). 
 
 The timestep is selected to achieve a Courant number of $2.5$ while the advection equation uses approximately $10$ subcycles
-(section~\ref{sect:cvtemp}) so the volume fraction is advected at a Courant number of $0.25$.  
+(section~\ref{sec:cvtemp}) so the volume fraction is advected at a Courant number of $0.25$.  
 
 \subsection{Results}
 Several timesteps of the example simulation can be seen in Figure \ref{fig:zhouwholea} where the interface is represented by
@@ -1131,7 +1217,7 @@ To explore the functionality of \fluidity, the following variations on this exam
 
 
 \section{The restratification following open ocean deep convection}
-\label{sect:restratification_after_oodc}
+\label{sec:restratification_after_oodc}
 
 \subsection{Overview}
 
@@ -1157,27 +1243,24 @@ The domain is a cylinder of diameter $L=500\unit{km}$ and height $H=1\unit{km}$.
 The mesh used is a layered mesh, which is created within \fluidity\ from the two dimensional input mesh, \option{circle.geo}. The unstructured triangular mesh is extruded in the vertical, forming triangular prisms which are then divided into unstructured tetrahedra. The columnar arrangement of the nodes is important because the problem has a large aspect ratio, and the elements themselves are wider than they are tall. A fully unstructured mesh would create errors in the pressure, which would then cause errors in the velocity. The layered mesh may be considered to be a special case of the two plus one mesh, in which the nodes are still vertically aligned, but there are different mesh resolutions in different areas of the domain. The resolution is 5 km in the horizontal and 83 m in the vertical. 
 
 
-A $\PoDGPt$ element pair is used. This means that the discretisation is $P_{1\mathrm{DG}}$ for velocity and  $P2$ continuous for pressure. In this case, the temperature is $P1$ continuous. The benefits of $\PoDGPt$ are discussed in \ref{Sect:velocity_pressure_element_pairs}.  To make it more stable, subcycling is switched on under velocity with a maximum Courant number per subcycle of $0.1$. There is a diagnostic free surface field, which requires a free surface boundary condition under the \option{Velocity} options.
+A $\PoDGPt$ element pair is used. This means that the discretisation is $P_{1\mathrm{DG}}$ for velocity and  $P2$ continuous for pressure. In this case, the temperature is $P1$ continuous. The benefits of $\PoDGPt$ are discussed in \ref{sec:velocity_pressure_element_pairs}.  To make it more stable, subcycling is switched on under velocity with a maximum Courant number per subcycle of $0.1$. There is a diagnostic free surface field, which requires a free surface boundary condition under the \option{Velocity} options.
 
 The timestep is 7200 s and there are two non-linear iterations.  The timestep is constrained by the Courant condition, but is allowed to be bigger than would otherwise be expected because an absorption field is added under the \option{Velocity} options.  If this field were not added, the time steps would be limited by the scale of the baroclinic waves.  This term has a vertical component equal to  ${\nicefrac{1}{\rho_0}} {\theta} {\Delta} {t} {g} {\frac{\partial \rho}{\partial z}}$ and the other components are zero. $\rho_0$ is the reference density, $\theta$ is the value set under \option{\ldots/Velocity/temporal\_discretisation/theta}, ${\Delta} {t} $ is the timestep, $g$ is the acceleration due to gravity and $\frac{\partial \rho}{\partial z}$ is the background density stratification.   In this case the absorption term is $0.025$ in the vertical and $0.0$ in the horizontal. The \option{\ldots/Absorption/include\_pressure\_correction} option is turned on. 
 
 \subsection{Results}
 
-Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at 40 m depth at 5 day intervals. As the column mixes with the surroundings, eddies are seen to form. If this is run with a different resolution, then a different number of eddies may form. If the resolution is too coarse, then no eddies will form at all.
+Figure \ref{fig:rousset-40m} shows the temperature field for a cross section at $40$ m depth at days $10$, $20$, $30$ and $40$. As the column mixes with the surroundings, eddies form at the perimeter of the cylinder. These eddies play a role in the mixing. If this is run with a different resolution, then a different number of eddies may form. The mixing stats diagnostic allows us to quantify the amount of mixing that takes place. It calculates the volume of fluid that has a value of temperature (or other tracer) within certain user-specified bounds as a function of time, and saves this information in the stat file. Figure \ref{fig:rousset-mixing} shows the output from this diagnostic, plotted using the python file provided in the examples directory. The temperature is in units from $0$ to $0.72$. The $0.7$--$0.8$ bin decreases in volume during the course of the simulation because the cold cylinder is mixing with the surrounding stratified fluid.
 
-You might wish to try spinning up before you run this problem.  First run to a steady state with fixed temperature and then run the prognostic simulation from your checkpoints.
 
 \begin{figure}[h!]
 \begin{center}
-\subfigure [0 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0001.png}}
-\subfigure [5 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0002.png}}
-\subfigure [10 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0003.png}}
-\subfigure [15 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0004.png}}
-\subfigure [20 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0005.png}}
-\subfigure [25 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0006.png}}
-\subfigure [30 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0007.png}}
-\subfigure [35 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0008.png}}
-\subfigure [40 days]{\includegraphics[width=5cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0009.png}}
+\subfigure [10 days]{\includegraphics[width=4cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0003.png}}
+\hspace{1cm}
+\subfigure [20 days]{\includegraphics[width=4cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0005.png}}
+
+\subfigure [30 days]{\includegraphics[width=4cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0007.png}}
+\hspace{1cm}
+\subfigure [40 days]{\includegraphics[width=4cm]{examples_images/restratification_after_oodc/5000/rousset-res5000-depth-40m0009.png}}
 \caption{The temperature cross-section at a depth of 40m.}
 \label{fig:rousset-40m}
 \end{center}
@@ -1186,9 +1269,9 @@ You might wish to try spinning up before you run this problem.  First run to a s
 
 \begin{figure}[h!]
 \begin{center}
-{\includegraphics[width=10cm]{examples_images/restratification_after_oodc/mixing_stats.png}}
+{\includegraphics[width=12cm]{examples_images/restratification_after_oodc/mixing_stats.png}}
 \label{fig:rousset-mixing}
-\caption{Results of the mixing stats diagnostic, showing how the temperature is mixed during the simulation.}
+\caption{Results of the mixing stats diagnostic, showing how the temperature is mixed during the simulation. There is initially most water with a temperature of 0.7-0.8. This mixes during the course of the simulation.  }
 \end{center}
 \end{figure}
 
@@ -1200,7 +1283,7 @@ You might wish to try spinning up before you run this problem.  First run to a s
 
 
 \section{Tides in the Mediterranean Sea}
-\label{sect:tides_in_the_med}
+\label{sec:tides_in_the_med}
 
 \subsection{Overview}
 
@@ -1221,7 +1304,7 @@ extruded in the vertical to fit a 3 arc-minute resolution bathymetric profile su
 
 The model is is driven by both astronomical and co-oscillating boundary tide forcing (see sections \ref{astronomical} and \ref{sec:boundary_tide})
 for the four main tidal constituents; M$_{\text{2}}$, S$_{\text{2}}$, K$_{\text{1}}$ and O$_{\text{1}}$ (see \citealp{Schwiderski1980,Wells2008}).
-Boundary tide data is sourced from the highly accurate FES2004 model \citep{Lyard2006} which is read in from a NetCDF file (see section\ref{Sect:BCs:specialised}). 
+Boundary tide data is sourced from the highly accurate FES2004 model \citep{Lyard2006} which is read in from a NetCDF file (see section\ref{sec:BCs:specialised}). 
 Frictional drag is applied as a surface-integral boundary condition to the bottom and sides and is based on a quadratic friction law 
 of the form $-C_{D}|u|u$, where $C_{D}$ is the drag coefficient, $u$ is the velocity vector 
 (ms$^{\text{-1}}$) and $|u|$ is the magnitude of the velocity vector ($|u|=\sqrt{u_{c}^{2}+v_{c}^{2}+w_{c}^{2}}$ where $u_{c}$ is the $x$ component of 
@@ -1325,7 +1408,7 @@ positive correlation closely delineating $y=x$.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Hokkaido-Nansei-Oki tsunami}
-\label{sect:hokkaido-nansei-oki_tsunami}
+\label{sec:hokkaido-nansei-oki_tsunami}
 
 \subsection{Overview}
 This example demonstrates the capabilities of simulating wetting and drying processes in \fluidity\ .
@@ -1385,12 +1468,12 @@ The plot shows the surface elevation measurements at the three gauge stations of
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Tephra settling}
-\label{sect:tephra_settling}
+\label{sec:tephra_settling}
 
 \subsection{Overview}
 In this example, \fluidity\ is used to replicate a laboratory experiment of tephra (fine volcanic ash particles) settling through a tank of water \citep{carey1997}. The \cite{carey1997} experiments introduced tephra particles into a $0.3\times 0.3\times 0.7$ m tank, filled with water, from above using a delivery system and a particle disperser. The particles settled through the air in the tank at an approximately constant rate until they landed in the water and began to settle through the water at a much reduced velocity. While the particles in the water were sufficiently dispersed their settling velocity was that predicted by Stokes' flow (a few mm/s).  However, the build-up of particles caused by the air-water interface eventually created a layer of particles and water with a bulk density so great, relative to the density of the particle-poor water beneath, as to be gravitationally unstable and promote the formation of a vertical gravity current (plumes). The settling velocity of these plumes of particles and water was observed to be an order of magnitude greater than the Stokes settling velocity of the individual particles.
 
-In the \fluidity\ simulations, rather than represent each tephra particle individually using a multimaterial approach (which would be prohibitively expensive), a ``dispersed multiphase'' approach is adopted (see \ref{sect:multiphase_equations}), in which one phase represents the water in the tank and the other phase represents all the particles dispersed within the water. Similar to the water column collapse example (\ref{sect:water_collapse}), a volume fraction field is used to distinguish between the continuous phase (water) and the dispersed phase (particles). In an element the volume fraction of particles represents the fraction of the element volume that is occupied by particles, which is typically very small. In contrast to the multimaterial approach, however, the multiphase approach assigns each phase a separate velocity, allowing the dispersed phase (particles) to move through the continuous phase (water). In this example, the dispersed phase is more dense than the continuous phase and so sinks under the influence of gravity.
+In the \fluidity\ simulations, rather than represent each tephra particle individually using a multimaterial approach (which would be prohibitively expensive), a ``dispersed multiphase'' approach is adopted (see \ref{sec:multiphase_equations}), in which one phase represents the water in the tank and the other phase represents all the particles dispersed within the water. Similar to the water column collapse example (\ref{sec:water_collapse}), a volume fraction field is used to distinguish between the continuous phase (water) and the dispersed phase (particles). In an element the volume fraction of particles represents the fraction of the element volume that is occupied by particles, which is typically very small. In contrast to the multimaterial approach, however, the multiphase approach assigns each phase a separate velocity, allowing the dispersed phase (particles) to move through the continuous phase (water). In this example, the dispersed phase is more dense than the continuous phase and so sinks under the influence of gravity.
 
 The simulation replicates one of the \cite{carey1997} experiments (with a characteristic particle size of 48 $\mu$m) by considering a constant influx of the particle phase into a 2D tank of water. The simulation results can be compared to the experiment in terms of the conditions under which plumes of tephra particles form as well as the settling velocities of the individual particles and plumes. The example demonstrates the following functionality:
 \begin{itemize}

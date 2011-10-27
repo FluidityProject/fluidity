@@ -27,7 +27,11 @@
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
-PACKAGE_VERSION = @PACKAGE_VERSION@
+
+# Ignore package version from autoconf. Instead, for releases, set the
+# approperiate version number below. Otherwise it is comprised of the
+# branch name and the repository revision number.
+PACKAGE_VERSION = $(echo -n `bzr version-info --custom --template="{branch_nick}.{revno}"`)
 
 FLUIDITY = $(PACKAGE_NAME)
 
@@ -76,8 +80,6 @@ ARFLAGS	= -cr
 
 EVAL = tools/silenteval.sh
 
-VERSION = $(shell bzr revision-info)
-
 ifeq (@MBA2D@,yes)
 LIBMBA2D = lib/libmba2d.a
 endif
@@ -110,7 +112,7 @@ default: bin/$(FLUIDITY)
 sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
 	lib/libspud.a lib/libjudy.a include/version.h
- 
+
 lib/libjudy.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	@cd libjudy; echo '    MAKE libjudy'; $(MAKE) > make.log ; $(MAKE) install >> make.log ; cd ..
@@ -166,10 +168,10 @@ main.o: include/version.h include/libspud.h
 
 include/version.h:
 	@echo "DEFINE __FLUIDITY_VERSION__"
-	@grep "$(VERSION)" include/version.h >/dev/null 2>&1 || \
+	@grep "$(PACKAGE_VERSION)" include/version.h >/dev/null 2>&1 || \
 	printf "#ifndef _FLUIDITY_VERSION_H\n\
 	#define _FLUIDITY_VERSION_H\n\
-	#define __FLUIDITY_VERSION__ \"$(VERSION)\"\n\
+	#define __FLUIDITY_VERSION__ \"$(PACKAGE_VERSION)\"\n\
 	#endif /* _FLUIDITY_VERSION_H */\n" > include/version.h
 
 .PHONY: include/version.h
@@ -396,6 +398,9 @@ clean-light:
 	@cd horizontal_adaptivity/tests;   $(MAKE) clean
 	@echo "    CLEAN tools"
 	@cd tools;    $(MAKE) clean
+	@echo "    CLEAN adjoint"
+	@cd adjoint;    $(MAKE) clean
+	@cd adjoint/tests;    $(MAKE) clean
 	@echo "    CLEAN bathymetry"
 	@cd bathymetry;  $(MAKE) clean
 	@echo "    CLEAN ocean_forcing"
@@ -434,6 +439,8 @@ clean: clean-light clean-test python_clean
 	@cd libalgencan; $(MAKE) clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
+	@echo "    CLEAN manual"
+	@cd manual; $(MAKE) clean
 	@CLEAN_LIBADAPT@
 	@rm -fr include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
@@ -498,7 +505,7 @@ else
         endif
 endif
 
-mediumtest: bin/burgers_equation
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:

@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Static detectors in a moving mesh in parallel</name>
+  <owner userid="mlange"/>
+  <tags>flml parallel</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l detectors.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="D1_position" language="python">
+from fluidity_tools import stat_parser
+D1_position = stat_parser("detectors.detectors")['D1']['position']
+    </variable>
+    <variable name="D2_position" language="python">
+from fluidity_tools import stat_parser
+D2_position = stat_parser("detectors.detectors")['D2']['position']
+    </variable>
+    <variable name="D1_tracer" language="python">
+from fluidity_tools import stat_parser
+D1_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D1']
+    </variable>
+    <variable name="D2_tracer" language="python">
+from fluidity_tools import stat_parser
+D2_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D2']
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="D1 final position" language="python">
+assert abs(D1_position[0,:] - 0.0).all() &lt; 1e-12
+    </test>
+    <test name="D2 final position" language="python">
+assert abs(D2_position[0,:] - 0.25).all() &lt; 1e-12
+    </test>
+    <test name="tracer at D1" language="python">
+from numpy import isnan
+assert isnan(D1_tracer[-1])
+    </test>
+    <test name="tracer at D2" language="python">
+assert abs(D2_tracer[-1] + 0.35) &lt; 1e-12
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

@@ -66,6 +66,7 @@
   return reshape(concatenate((x,y,z)),(3,100)).T</string_value>
         </python>
       </detector_array>
+      <fail_outside_domain/>
       <lagrangian_timestepping>
         <subcycles>
           <integer_value rank="0">1</integer_value>

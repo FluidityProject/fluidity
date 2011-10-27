@@ -68,6 +68,7 @@
           <real_value shape="3" dim1="dim" rank="1">99. 1. -10.</real_value>
         </location>
       </static_detector>
+      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -187,6 +188,18 @@
             </constant>
           </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -291,6 +304,18 @@
             </constant>
           </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -374,6 +399,18 @@
             </constant>
           </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
@@ -467,6 +504,18 @@
             </constant>
           </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <diagnostic>
             <algorithm name="Internal" material_phase_support="multiple"/>
