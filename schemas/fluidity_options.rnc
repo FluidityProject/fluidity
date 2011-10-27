@@ -6194,6 +6194,7 @@ forcing =
                 }?
             }?,
             ## Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
+            ## These <b>must</b> be on the velocity mesh
             element output_fluxes_diagnostics {
                 element vector_field {
                     attribute rank { "1" },
