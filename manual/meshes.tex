@@ -126,19 +126,18 @@ The \lstinline[language = bash]+create_aligned_mesh+ tool (section~\ref{sec:crea
 \subsection{Mesh conversion}
 \index{mesh!meshing tools!mesh conversion}
 
-The \lstinline[language = Bash]+gmsh2triangle+ tool converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
-can read in Gmsh files directly as noted in section~\ref{sec:supported_mesh_formats}, in
-cases where native Gmsh support does not work this tool should be used instead. More information can be 
-found in section~\ref{sec:gmsh2triangle}.
+The \lstinline[language = Bash]+gmsh2triangle+ tool (section~\ref{sect:gmsh2triangle}) converts ASCII Gmsh mesh files into triangle format.
 
-The \lstinline[language = Bash]+triangle2vtu+ tool (section~\ref{sec:triangle2vtu}) can be used to convert triangle format files into vtu format. 
+The \lstinline[language = Bash]+triangle2vtu+ tool (section~\ref{sect:triangle2vtu}) can be used to convert triangle format files into vtu format. 
 
-The \lstinline[language = Bash]+gmsh_mesh_transform+ script (section~\ref{sec:gmsh_mesh_transform}) applies a coordinate transformation to a region of a given mesh. 
-The coordinate transformation is specified as a python expression and will be applied over a user-defined mesh region.
+The \lstinline[language = Bash]+gmsh_mesh_transform+ script (section~\ref{sect:gmsh_mesh_transform}) applies a coordinate transformation to a region of a given mesh. 
 
 \subsection{Decomposing meshes for parallel}
 \label{decomp_meshes_parallel}
 \index{parallel!mesh decomposition}
+
+For parallel simulations the mesh must be divided into a number of blocks, a process usualy referred to
+as \emph{mesh decomposition}. Each processor then reads the mesh corresponding to a single block.
 
 \subsubsection{fldecomp}
 \index{mesh!meshing tools!fldecomp}
