@@ -31,7 +31,7 @@ PACKAGE_NAME = @PACKAGE_NAME@
 # Ignore package version from autoconf. Instead, for releases, set the
 # approperiate version number below. Otherwise it is comprised of the
 # branch name and the repository revision number.
-PACKAGE_VERSION = $(echo -n `bzr version-info --custom --template="{branch_nick}.{revno}"`)
+PACKAGE_VERSION = `bzr version-info --custom --template='{branch_nick}.{revno}'`
 
 FLUIDITY = $(PACKAGE_NAME)
 
