@@ -226,6 +226,12 @@ contains
        call deallocate(masslump)
     end if    
 
+    deallocate(sediment_field)
+    deallocate(surface_field)
+    deallocate(erosion)
+    deallocate(bedload_field)
+    deallocate(sink_U)
+
   end subroutine calculate_sediment_flux
 
   subroutine assemble_sediment_flux_ele(ele, surface_field, sediment_field,&

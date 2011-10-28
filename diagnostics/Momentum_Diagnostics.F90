@@ -139,6 +139,7 @@ contains
         call scale(t_field, rhs)
         ewrite_minmax(t_field) 
 
+        deallocate(sediment_concs)
         call deallocate(rhs)
     else
         ewrite(1,*) 'No sediment in problem definition'
