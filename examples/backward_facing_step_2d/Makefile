@@ -1,4 +1,4 @@
-BIN=../../bin
+BIN=../../../bin
 preprocess:
 	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make preprocess TYPE=type, where type is reference or kepsilon"; false; fi;
 	echo **********Installing directory for $(TYPE) run:
@@ -27,5 +27,5 @@ input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs
-	rm -r kepsilon reference adaptive *.pdf
+	rm -r kepsilon reference *.pdf
 

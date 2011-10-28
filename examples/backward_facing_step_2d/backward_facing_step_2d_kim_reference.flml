@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">25</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -88,7 +88,9 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin/>
+          <continuous_galerkin>
+            <integrate_continuity_by_parts/>
+          </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
           <poisson_pressure_solution>
@@ -220,20 +222,17 @@
           <surface_ids>
             <integer_value shape="2" rank="1">10 12</integer_value>
           </surface_ids>
-          <type name="dirichlet">
-            <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </x_component>
-              <y_component>
-                <constant>
-                  <real_value rank="0">0.0</real_value>
-                </constant>
-              </y_component>
-            </align_bc_with_cartesian>
+          <type name="log_law_of_wall">
+            <surface_roughness>
+              <real_value rank="0">1.e-6</real_value>
+            </surface_roughness>
           </type>
+        </boundary_conditions>
+        <boundary_conditions name="no_normal">
+          <surface_ids>
+            <integer_value shape="2" rank="1">10 12</integer_value>
+          </surface_ids>
+          <type name="no_normal_flow"/>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
