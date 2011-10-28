@@ -152,6 +152,11 @@ mesh_info =
                ),
                attribute file_name { xsd:string },
                comment
+            }?,
+            # Extrude from bottom to top (i.e. by positive z).
+            # The default is an extrude from top to bottom.
+            element bottom_to_top {
+              empty
             }?
          }?,
          derived_mesh_stat_options,

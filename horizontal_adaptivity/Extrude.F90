@@ -464,15 +464,33 @@ module hadapt_extrude
       else
         delta_h = get_delta_h( xyz, is_constant, constant_value, py_func)
       end if
-      z=z - delta_h
-      if (z<-depth+min_bottom_layer_frac*delta_h) exit
-      call insert(depths, z)
-      if (depths%length>MAX_VERTICAL_NODES) then
-        ewrite(-1,*) "Check your extrude/sizing_function"
-        FLExit("Maximum number of vertical layers reached")
+      
+      ! TODO: Get this out of the loop!
+      if (have_option(trim(mesh%mesh%option_path)//'/from_mesh/extrude/bottom_to_top')) then
+        z=z + delta_h
+        if (z < depth-min_bottom_layer_frac*delta_h) exit
+        call insert(depths, z)
+        if (depths%length>MAX_VERTICAL_NODES) then
+          ewrite(-1,*) "Check your extrude/sizing_function"
+          FLExit("Maximum number of vertical layers reached")
+        end if
+      else
+        z=z - delta_h
+        if (z<-depth+min_bottom_layer_frac*delta_h) exit
+        call insert(depths, z)
+        if (depths%length>MAX_VERTICAL_NODES) then
+          ewrite(-1,*) "Check your extrude/sizing_function"
+          FLExit("Maximum number of vertical layers reached")
+        end if
       end if
     end do
-    call insert(depths, -depth)
+
+    if (have_option(trim(mesh%mesh%option_path)//'/from_mesh/extrude/bottom_to_top')) then
+      call insert(depths, depth)
+    else
+      call insert(depths, -depth)
+
+
     elements=depths%length-1
 
     call allocate(mesh, elements+1, elements, oned_shape, "ZMesh")
