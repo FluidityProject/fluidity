@@ -715,21 +715,25 @@ sphere normal to element normal</a:documentation>
           </element>
         </optional>
       </element>
-      <element name="from_lat_long">
-        <a:documentation>Evaluate velocity from latitude-longitude
-By convention, at the poles the two basis vectors
-are (1,0,0) and (0,1,0) and not (e_long,e_lat)</a:documentation>
+      <element name="from_sphere_pullback">
+        <a:documentation>Evaluate velocity by pulling back from sphere
+using transformation
+z -&gt; z, (x,y) --&gt; R(x,y) where R=(R_0^2-z^2)^0.5
+This just applies the transformation of the velocity 
+to the tangent plane,
+user needs to apply the coordinate transformation in the 
+Python code.</a:documentation>
         <element name="python">
           <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
  def val(X, t):
     # Function code
-    return # Return value
-
-where X is 3D coordinate and returned value is [u_long,u_lat]
-Approximations to e_long and e_lat are computed assuming that
-sphere is centred on the origin</a:documentation>
+    return # Return value</a:documentation>
           <ref name="python_code"/>
+        </element>
+        <element name="sphere_radius">
+          <a:documentation>Radius of sphere</a:documentation>
+          <ref name="real"/>
         </element>
       </element>
     </choice>

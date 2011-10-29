@@ -2389,25 +2389,6 @@ contains
 
   end subroutine set_layerthickness_projection_ele
 
-  subroutine set_velocity_from_lat_long(state)
-    type(state_type), intent(inout) :: state
-    !
-    type(vector_field), pointer :: X,U, down
-    character(len=PYTHON_FUNC_LEN) :: Python_Function
-    integer :: ele
-
-    X=>extract_vector_field(state, "Coordinate")
-    U=>extract_vector_field(state, "LocalVelocity")
-    down=>extract_vector_field(state, "GravityDirection")
-    call get_option("/material_phase::Fluid/vector_field::Velocity&
-         &/prognostic/initial_condition::WholeMesh/&
-         &from_lat_long/python",Python_Function)
-
-    do ele = 1, element_count(U)
-       call set_velocity_from_lat_long_ele(U,X,down,Python_Function,ele)
-    end do
-  end subroutine set_velocity_from_lat_long
-
   subroutine set_velocity_from_lat_long_ele(U,X,down,Python_Function,ele)
     type(vector_field), intent(inout) :: U
     type(vector_field), intent(in) :: X
@@ -2499,5 +2480,157 @@ contains
     end do
 
   end subroutine set_velocity_from_lat_long_ele
+
+  subroutine set_velocity_from_sphere_pullback(state)
+    type(state_type), intent(inout) :: state
+    !
+    type(vector_field), pointer :: X,U, down
+    character(len=PYTHON_FUNC_LEN) :: Python_Function
+    real :: R0
+    integer :: ele
+
+    X=>extract_vector_field(state, "Coordinate")
+    U=>extract_vector_field(state, "LocalVelocity")
+    down=>extract_vector_field(state, "GravityDirection")
+    call get_option("/material_phase::Fluid/vector_field::Velocity&
+         &/prognostic/initial_condition::WholeMesh/&
+         &from_sphere_pullback/python",Python_Function)
+    call get_option("/material_phase::Fluid/vector_field::Velocity&
+         &/prognostic/initial_condition::WholeMesh/&
+         &from_sphere_pullback/sphere_radius",R0)
+
+    do ele = 1, element_count(U)
+       call set_velocity_from_sphere_pullback_ele&
+            &(U,X,down,Python_Function,R0,ele)
+    end do
+    
+  end subroutine set_velocity_from_sphere_pullback
+
+  subroutine set_velocity_from_sphere_pullback_ele&
+       (U,X,down,Python_Function,R0,ele)
+    type(vector_field), intent(inout) :: U
+    type(vector_field), intent(in) :: X
+    type(vector_field), intent(in) :: down
+    character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+    integer, intent(in) :: ele
+    real, intent(in) :: R0
+    !
+    real, dimension(X%dim,ele_ngi(U,ele)) :: X_quad,Us_quad,U_quad
+    !local basis for velocity
+    ! (basis number, dimension, gi)
+    real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: e_basis,m_basis
+    real, dimension(X%dim,ele_ngi(U,ele)) :: pole_axis, e_normal,m_normal
+    integer :: gi,uloc,dim1,dim2,stat
+    real, dimension(mesh_dim(U),mesh_dim(U),ele_ngi(U,ele))::&
+         &Metric
+    real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
+    real, dimension(3,3,ele_ngi(X,ele)) :: Js
+    real, dimension(2,2,ele_ngi(X,ele)) :: Jr
+    real, dimension(ele_ngi(U,ele)) :: detJ, detwei,Rz,Xe,Ye,Ze
+    real, dimension(mesh_dim(U)*ele_loc(U,ele),&
+         mesh_dim(U)*ele_loc(U,ele)) :: l_u_mat
+    real, dimension(mesh_dim(U)*ele_loc(U,ele)) :: l_u_rhs    
+    type(element_type) :: u_shape
+
+    !Get X at quad points
+    X_quad = ele_val_at_quad(X,ele)
+
+    !Get U tangent to the sphere
+    call set_vector_field_from_python(python_function, len(python_function),&
+         & dim=3,nodes=ele_ngi(X,ele),x=X_quad(1,:),y=X_quad(2,:)&
+         &,z=x_quad(3,:),t=0.0,result_dim=2,&
+         & result_x=Us_quad(1,:),&
+         & result_y=Us_quad(2,:),&
+         & result_z=Us_quad(3,:),&
+         & stat=stat)
+    if(stat /= 0) then
+       FLAbort('Failed to set values from Python.')
+    end if
+
+    !Compute the normal to the element at quad points
+    m_normal = -ele_val_at_quad(down,ele)
+    e_normal = m_normal
+    call get_up_gi(X,ele,e_normal)
+    pole_axis = 0.
+    pole_axis(3,:) = 1.
+
+    !Get e_basis, m_basis
+    !Assumes that the centre of the sphere is at (0,0,0)
+    !and that the pole axis is (0,0,1)
+    do gi = 1, ele_ngi(X,ele)
+       if(.not.((x_quad(1,gi)==0.).and.(x_quad(2,gi)==0.))) then
+          e_basis(1,:,gi) = cross_product(pole_axis(:,gi),e_normal(:,gi))
+          e_basis(2,:,gi) = cross_product(e_normal(:,gi),e_basis(1,:,gi))
+          m_basis(1,:,gi) = cross_product(pole_axis(:,gi),m_normal(:,gi))
+          m_basis(2,:,gi) = cross_product(m_normal(:,gi),m_basis(1,:,gi))          
+       else
+          FLAbort('Quadrature point at pole.')
+          e_basis(1,:,gi) = (/1,0,0/)
+          e_basis(2,:,gi) = (/0,1,0/)
+          m_basis(1,:,gi) = (/1,0,0/)
+          m_basis(2,:,gi) = (/0,1,0/)
+       end if
+    end do
+
+    !Get Jacobian of transformation onto the sphere
+    Rz = (R0-X_quad(3,:))**0.5
+    xe = X_quad(1,:)
+    ye = X_quad(2,:)
+    ze = X_quad(3,:)
+    Js(1,1,:) = Rz*Ye**2/(xe**2+ye**2)**0.5
+    Js(1,2,:) = -Rz*Xe*Ye/(xe**2+ye**2)**0.5
+    Js(1,3,:) = -Xe*Ze/(xe**2+ye**2)**0.5/Rz
+    Js(2,1,:) = -Rz*Xe*Ye**2/(xe**2+ye**2)**0.5
+    Js(2,2,:) = Rz*Xe**2/(xe**2+ye**2)**0.5
+    Js(2,3,:) = -Ye*Ze/(xe**2+ye**2)**0.5/Rz
+    Js(3,1,:) = 0.
+    Js(3,2,:) = 0.
+    Js(3,3,:) = 1.
+
+    !Form the reduced matrix
+    do dim1 = 1, 2
+       do dim2 = 1, 2
+          do gi = 1, ele_ngi(X,ele)
+             Jr(dim1,dim2,gi) = dot_product(m_basis(dim1,:,gi),&
+                  matmul(Js(:,:,gi),e_basis(dim2,:,gi)))
+          end do
+       end do
+    end do
+
+    !Transform velocity
+    do gi = 1, ele_ngi(X,ele)
+       U_quad(:,gi) = matmul(Js(:,:,gi),Us_quad(:,gi))
+    end do
+
+    !project into local coordinate system
+    call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
+         detJ=detJ, detwei=detwei)
+    do gi=1,ele_ngi(U,ele)
+       Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
+    end do
+    do gi = 1, ele_ngi(U,ele)
+       u_quad(:,gi) = matmul(J(:,:,gi),u_quad(:,gi))/detJ(gi)
+    end do
+
+    uloc = ele_loc(U,ele)
+    u_shape = ele_shape(U,ele)
+    do dim1 = 1, mesh_dim(U)
+       do dim2 = 1, mesh_dim(U)
+          l_u_mat((dim1-1)*uloc+1:dim1*uloc,&
+               &  (dim2-1)*uloc+1:dim2*uloc ) = &
+               & shape_shape(u_shape,u_shape,&
+               & u_shape%quadrature%weight*Metric(dim1,dim2,:))
+       end do
+       l_u_rhs((dim1-1)*uloc+1:dim1*uloc) = &
+            & shape_rhs(u_shape,u_quad(dim1,:)*detwei)
+    end do
+
+    call solve(l_u_mat,l_u_rhs)
+    do dim1 = 1, mesh_dim(U)
+       call set(U,dim1,ele_nodes(U,ele),l_u_rhs((dim1-1)*uloc+1:dim1*uloc))
+    end do
+
+  end subroutine set_velocity_from_sphere_pullback_ele
+
 
 end module hybridized_helmholtz

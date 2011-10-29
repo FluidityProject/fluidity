@@ -459,8 +459,8 @@
 
       !Set velocity from spherical components
       if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
-           &ic/initial_condition::WholeMesh/from_lat_long")) then
-         call set_velocity_from_lat_long(state(1))
+           &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
+         call set_velocity_from_sphere_pullback(state(1))
       end if
 
       if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&

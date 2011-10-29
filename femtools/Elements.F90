@@ -360,7 +360,7 @@ contains
              FLExit('high order not supported')
           end if
           !The below formulas definitely fail for degree=>3
-          constraint%n_face_basis = constraint%degree
+          constraint%n_face_basis = constraint%degree+1
           constraint%n_grad_basis = 0
           constraint%n_curl_basis = 0
        case default

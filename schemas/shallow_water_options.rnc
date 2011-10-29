@@ -573,24 +573,28 @@ input_choice_initial_condition_vector =
             empty
          }?
       }|
-      ## Evaluate velocity from latitude-longitude
-      ## By convention, at the poles the two basis vectors
-      ## are (1,0,0) and (0,1,0) and not (e_long,e_lat)
-      element from_lat_long {
+      ## Evaluate velocity by pulling back from sphere
+      ## using transformation
+      ## z -> z, (x,y) --> R(x,y) where R=(R_0^2-z^2)^0.5
+      ## This just applies the transformation of the velocity 
+      ## to the tangent plane,
+      ## user needs to apply the coordinate transformation in the 
+      ## Python code.
+      element from_sphere_pullback {
          ## Python function prescribing dimensional vector input. Functions should be of the form:
          ##
          ##  def val(X, t):
          ##     # Function code
          ##     return # Return value
-         ##
-         ## where X is 3D coordinate and returned value is [u_long,u_lat]
-         ## Approximations to e_long and e_lat are computed assuming that
-         ## sphere is centred on the origin
          element python {
             python_code
+         },
+         ## Radius of sphere
+         element sphere_radius {
+            real
          }
       }
-)     
+)
 
 # Choice of input method for initial/boundary conditions
 # version for real symmetric tensor
