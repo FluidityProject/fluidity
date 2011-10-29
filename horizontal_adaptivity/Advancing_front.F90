@@ -86,12 +86,8 @@ module hadapt_advancing_front
       ! sort on last coordinate
       height_field = extract_scalar_field(mesh, mesh%dim)
     end if
-    if (have_option(trim(mesh%mesh%option_path)//'/from_mesh/extrude/bottom_to_top')) then
-      heights = -height_field%val
-    else
-      ! For the default downward extrude, we want it ordered top to bottom
-      heights = -height_field%val
-    fi
+    ! we want it ordered top to bottom
+    heights = -height_field%val
     if (associated(h_mesh%mesh%halos)) then
       call parallel_consistent_ordering(heights, mesh%mesh%halos(2), sorted)
     else
