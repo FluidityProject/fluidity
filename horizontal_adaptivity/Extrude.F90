@@ -569,7 +569,7 @@ module hadapt_extrude
 
       end if
     end do
-
+    call insert(depths, -depth)
     elements=depths%length-1
 
     call allocate(mesh, elements+1, elements, oned_shape, "ZMesh")
