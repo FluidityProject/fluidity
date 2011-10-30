@@ -467,7 +467,9 @@ module hadapt_extrude
     character(len=*), optional, intent(in):: sizing_function
     real, dimension(:), optional, intent(in) :: sizing_vector
     integer, optional, intent(in) :: number_sigma_layers
-
+  
+    ! Assume the top surface lies at z = 0.0 (and hence the highest point on this surface is also at z = 0.0)
+    ! TODO: Check treatment of optional arguments
     call compute_z_nodes_sizing_with_top(z_mesh, bottom, 0.0, 0.0, xy, min_bottom_layer_frac, sizing, &
       sizing_function, sizing_vector, number_sigma_layers)
 
@@ -532,7 +534,7 @@ module hadapt_extrude
       list_size=size(sizing_vector)
     else if (present(number_sigma_layers)) then
       is_constant=.true.
-      constant_value=bottom/float(number_sigma_layers)
+      constant_value = (bottom - top)/float(number_sigma_layers)
       py_func = " "
     else
       FLAbort("Need to supply either sizing or sizing_function")
@@ -541,39 +543,38 @@ module hadapt_extrude
 
 !asc
     ! Start the mesh at z=0 and work down to z=-bottom.
-    z=0.0
-    node=2
+    z = -top
+    node = 2
     ! first size(xy) coordinates remain fixed, 
     ! the last entry will be replaced with the appropriate depth
-    xyz(1:size(xy))=xy
+    xyz(1:size(xy)) = xy
     call insert(depths, z)
     do
-      xyz(size(xy)+1)=z
+      xyz(size(xy)+1) = z
       if (present(sizing_vector)) then
-        if ((node-1)<=list_size) then
+        if ((node-1) <= list_size) then
           delta_h = sizing_vector(node-1)
         else
           delta_h = sizing_vector(list_size)
         end if
-        node=node+1
+        node = node + 1
       else
         delta_h = get_delta_h( xyz, is_constant, constant_value, py_func)
       end if
 
-      z=z - delta_h
-      if (z<-bottom+min_bottom_layer_frac*delta_h) exit
+      z = z - delta_h
+      if (z < -bottom + min_bottom_layer_frac * delta_h) exit
       call insert(depths, z)
-      if (depths%length>MAX_VERTICAL_NODES) then
+      if (depths%length >  MAX_VERTICAL_NODES) then
         ewrite(-1,*) "Check your extrude/sizing_function"
         FLExit("Maximum number of vertical layers reached")
-
       end if
     end do
     call insert(depths, -bottom)
-    elements=depths%length-1
+    elements = depths%length-1
 
     call allocate(mesh, elements+1, elements, oned_shape, "ZMesh")
-    do ele=1,elements
+    do ele = 1,elements
       mesh%ndglno((ele-1) * loc + 1: ele*loc) = (/ele, ele+1/)
     end do
 
@@ -582,7 +583,7 @@ module hadapt_extrude
     call deallocate(oned_shape)
 
     call set(z_mesh, 1, (/0.0/))
-    do node=1, elements+1
+    do node = 1, elements+1
       call set(z_mesh, node,  (/ pop(depths) /))
     end do
 
@@ -619,12 +620,6 @@ module hadapt_extrude
       end function get_delta_h
       
   end subroutine compute_z_nodes_sizing_with_top
-
-
-
-
-
-
 
 
 
