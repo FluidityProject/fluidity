@@ -276,6 +276,17 @@ bottom_depth above, so a positive value
 represents a negative deviation from the
 z = 0.0 geoid.</a:documentation>
         <ref name="input_choice_real_plus_map"/>
+        <optional>
+          <element name="align_with_geoids">
+            <a:documentation>Ensure layers are aligned with geoids.
+Note that boundary representation is maintained
+and takes precedence, so although nodes within
+the domain will lie on geoids, nodes on bondaries
+may not.  This is the best option if nodes are to
+be kept vertically-aligned.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
       </element>
     </optional>
     <element name="sizing_function">

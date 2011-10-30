@@ -222,7 +222,14 @@ extrusion_options =
       ## represents a negative deviation from the
       ## z = 0.0 geoid.
       element top_position {
-          input_choice_real_plus_map
+          input_choice_real_plus_map,
+          ## Ensure layers are aligned with geoids.
+          ## Note that boundary representation is maintained
+          ## and takes precedence, so although nodes within
+          ## the domain will lie on geoids, nodes on bondaries
+          ## may not.  This is the best option if nodes are to
+          ## be kept vertically-aligned.
+          element align_with_geoids {empty}?
       }?,
       ## Constant or function to specify the depth of the
       ## layers. The function is a function of all coordinates
