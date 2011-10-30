@@ -206,12 +206,24 @@ derived_mesh_stat_options =
 
 extrusion_options = 
    (
-      ## Depth over which to extrude
-      ## top will be at z=0
-      ## bottom will be at z=-bottom_depth
+      ## Bottom bathymetry to extrude down to. 
+      ## If top_position is not defined, the 
+      ## extrude originates from the surface
+      ## z = 0.0.  The extrude develops the mesh
+      ## down to z = - bottom_depth
+      ## (Note the sign convention)
       element bottom_depth {
           input_choice_real_plus_map
       },
+      ## Optional surface from which to develop
+      ## the extrusion from.  Default is z = 0.0.
+      ## This follows the same sign convention as
+      ## bottom_depth above, so a positive value
+      ## represents a negative deviation from the
+      ## z = 0.0 geoid.
+      element top_position {
+          input_choice_real_plus_map
+      }?,
       ## Constant or function to specify the depth of the
       ## layers. The function is a function of all coordinates
       ## (so in 2+1D: x,y and z) to specify a layer depth that
