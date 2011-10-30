@@ -7485,4 +7485,4 @@
 7484 2494 2505 2507 2503 12 
 7485 2505 2506 2507 2503 12 
 7486 2504 2503 2506 2505 12 
-# Produced by: ../../scripts/gmsh2triangle src/pseudo2d_square.msh
+# Produced by: ../../bin/gmsh2triangle src/pseudo2d_square.msh

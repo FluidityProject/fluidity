@@ -2,7 +2,7 @@
 NPROCS=1
 # directory locations:
 BIN=../../bin/
-SCRIPTS=../../scripts/
+SCRIPTS=../../bin/
 
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
@@ -35,7 +35,8 @@ else
 endif
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling the data extraction and plotting script
+	python ./plot_data.py
 
 input: clean
 	$(MAKE) preprocess NPROCS=8

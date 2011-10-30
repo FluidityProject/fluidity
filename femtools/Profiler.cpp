@@ -46,8 +46,14 @@ double Profiler::get(const std::string &key) const{
 }
 
 void Profiler::print() const{
+  bool print;
+  double val;
+  print = !MPI::Is_initialized() || MPI::COMM_WORLD.Get_rank() == 0;
   for(map< string, pair<double, double> >::const_iterator it=timings.begin();it!=timings.end();++it){
-    cout<<it->first<<" :: "<<get(it->first)<<endl;
+    val = get(it->first);
+    if ( print ) {
+      cout<<it->first<<" :: "<<val<<endl;
+    }
   }
 }
 

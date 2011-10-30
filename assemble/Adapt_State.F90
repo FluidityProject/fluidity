@@ -949,7 +949,7 @@ contains
     logical, optional, intent(in) :: initialise_fields
 
     character(len = FIELD_NAME_LEN) :: metric_name
-    integer :: i, j, max_adapt_iteration
+    integer :: i, j, k, max_adapt_iteration
     integer :: zoltan_min_adapt_iterations, zoltan_max_adapt_iterations, zoltan_additional_adapt_iterations
     logical :: finished_adapting, final_adapt_iteration
     integer, dimension(:), pointer :: node_ownership

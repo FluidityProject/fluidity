@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
   <name>vb_parallel</name>
   <owner userid="colin"/>
   <tags>flml parallel</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>mpiexec -n 2 ../../bin/fluidity blob.flml; ../../scripts/pvtu2vtu blob 1</command_line>
+    <command_line>mpiexec -n 2 ../../bin/fluidity blob.flml; ../../bin/pvtu2vtu blob 1</command_line>
   </problem_definition>
   <variables>
     <variable name="Tmax" language="python">

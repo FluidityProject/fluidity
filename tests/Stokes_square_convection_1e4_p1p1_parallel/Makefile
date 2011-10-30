@@ -16,11 +16,11 @@ endif
 
 clean: clean-mesh clean-run-debug
 clean-mesh:
-	rm -f $(MESH).ele $(MESH).face $(MESH).node
-	rm -f $(MESH)_?*.ele $(MESH)_?*.face $(MESH)_?*.halo $(MESH)_?*.node decomp.log decomp_err.log
+	rm -f $(MESH).ele $(MESH).face $(MESH).node $(MESH).edge
+	rm -f $(MESH)_?*.ele $(MESH)_?*.edge $(MESH)_?*.face $(MESH)_?*.halo $(MESH)_?*.node decomp.log decomp_err.log
 clean-run:
 	rm -f $(FLMLMODEL)_?*.pvtu $(FLMLMODEL)_?*.vtu
-	rm -f $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*
+	rm -f $(FLMLMODEL).detectors.dat $(FLMLMODEL).detectors $(FLMLMODEL).stat tmpf*
 	rm -f fluidity.err-?* fluidity.log-?*
 	rm -f matrixdump matrixdump.info
 	rm -f $(FLMLMODEL)_?*_checkpoint.flml
@@ -30,6 +30,7 @@ clean-run:
 	rm -f $(FLMLMODEL)_?*_checkpoint.vtu
 clean-run-debug: clean-run
 	rm -f adapted_mesh_?*.vtu bounding_box_?*_?*.vtu final_metric_?*.vtu gmon.out gradation_metric_?*.vtu interpolation_metric_final_?*.vtu interpolation_metric_hessian_?*_?*.vtu interpolation_metric_merge_?*_?*.vtu interpolation_metric_metric_?*_?*.vtu metric_input_?*_?*.vtu
+	rm -rf $(FLMLMODEL)_?
 
 run: clean-run input
 	$(FLUIDITY) $(FLFLAGS) $(MODEL).flml $MESH.*

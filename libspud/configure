@@ -21711,8 +21711,8 @@ else
     { $as_echo "$as_me:${as_lineno-$LINENO}: Setting optimisation flags" >&5
 $as_echo "$as_me: Setting optimisation flags" >&6;}
     CPPFLAGS="$CPPFLAGS -DNDEBUG=1"
-    FCFLAGS="-O3 `echo $FCFLAGS | sed 's/-g -O2//g'`"
-    CXXFLAGS="-O3 `echo $CXXFLAGS | sed 's/-g -O2//g'`"
+    FCFLAGS="-O0 `echo $FCFLAGS | sed 's/-g -O2//g'`"
+    CXXFLAGS="-O0 `echo $CXXFLAGS | sed 's/-g -O2//g'`"
 fi
 
 if test "$FC" = "ifc" ; then
