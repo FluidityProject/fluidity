@@ -120,7 +120,6 @@ def reatt_length(filelist, zarray):
         if((u[i,j] / u[i+1,j]) < 0. and u[i+1,j] > 0. and not numpy.isinf(u[i,j] / u[i+1,j])):
           ##### interpolate between nodes
           p = x2array[i] + (x2array[i+1]-x2array[i]) * (0.0-u[i,j]) / (u[i+1,j]-u[i,j])
-          print 'p: ', p
           ##### Ignore spurious corner points
           if(p>0.1):
             points.append(p)
@@ -132,6 +131,8 @@ def reatt_length(filelist, zarray):
       avpt = sum(points) / len(points)
     else:
       avpt = 0.0
+    print "spanwise-averaged reattachment point: ", avpt
+
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
     results.append([avpt,t])
@@ -169,10 +170,6 @@ def velo(filelist,xarray,zarray,yarray):
 
   ##### Get x-velocity
   uvw = datafile.ProbeData(pts, "Velocity")
-  #umax = max(abs(datafile.GetVectorField("AverageVelocity")[:,0]))
-
-  # WARNING!!! UMAX IS NOT SAFE IN PARALLEL PERIODIC!
-
   umax = 1.55
   u = uvw[:,0]/umax
   u = u.reshape([xarray.size,zarray.size,yarray.size])
@@ -192,32 +189,28 @@ def velo(filelist,xarray,zarray,yarray):
 
 #########################################################################
 
-def plot_length(Re,type,mesh,reattachment_length):
+def plot_length(reattachment_length):
   ##### Plot time series of reattachment length using pylab(matplotlib)
 
-  #av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
-  #avg = numpy.zeros([len(reattachment_length[:,1])])
-  #avg[:] = av_length
   Lemoinkim = numpy.zeros([len(reattachment_length[:,1])])
   Lemoinkim[:]=6.28
 
   plot1 = pylab.figure()
-  pylab.title("Time series of reattachment length: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh")
+  pylab.title("Time series of reattachment length")
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
   pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
-  #pylab.plot(reattachment_length[:,1], avg, linestyle="dashed")
   pylab.plot(reattachment_length[:,1], Lemoinkim, linestyle="dashed")
   pylab.legend(("length (step heights)","Le-Moin-Kim DNS"), loc="lower right")
-  pylab.savefig("../reatt_len_3D_"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
+  pylab.savefig("reatt_len_3d.pdf")
   return
 
 #########################################################################
 
-def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
+def plot_velo(vprofiles,xarray,yarray):
 
   # get profiles from ERCOFTAC data
-  datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC360-table.dat', 'r')
+  datafile = open('Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC360-table.dat', 'r')
   print "reading in data from file: BFS-SEM-ERCOFTAC360-table.dat"
   # ignore header line
   for line in range(1):
@@ -228,7 +221,7 @@ def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
     y4.append(float(line.split()[0]))
     U4.append(float(line.split()[1]))
 
-  datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC411-table.dat', 'r')
+  datafile = open('Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC411-table.dat', 'r')
   print "reading in data from file: BFS-SEM-ERCOFTAC411-table.dat"
   # ignore header line
   for line in range(1):
@@ -239,7 +232,7 @@ def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
     y6.append(float(line.split()[0]))
     U6.append(float(line.split()[1]))
 
-  datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC513-table.dat', 'r')
+  datafile = open('Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC513-table.dat', 'r')
   print "reading in data from file: BFS-SEM-ERCOFTAC513-table.dat"
   # ignore header line
   for line in range(1):
@@ -250,7 +243,7 @@ def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
     y10.append(float(line.split()[0]))
     U10.append(float(line.split()[1]))
 
-  datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC744-table.dat', 'r')
+  datafile = open('Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC744-table.dat', 'r')
   print "reading in data from file: BFS-SEM-ERCOFTAC744-table.dat"
   # ignore header line
   for line in range(1):
@@ -262,40 +255,40 @@ def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
     U19.append(float(line.split()[1]))
 
   # get profiles from Le&Moin U graph. x=4
-  Le = open('../Le-profiles/Le-profile1-U-x4.dat', 'r').readlines()
+  Le = open('Le-profiles/Le-profile1-U-x4.dat', 'r').readlines()
   Le_u4 = [float(line.split()[0]) for line in Le]
   Le_y4 = [float(line.split()[1]) for line in Le]
-  jd = open('../Le-profiles/JD-profile1-U-x4.dat', 'r').readlines()
+  jd = open('Le-profiles/JD-profile1-U-x4.dat', 'r').readlines()
   jd_u4 = [float(line.split()[0]) for line in jd]
   jd_y4 = [float(line.split()[1]) for line in jd]
 
   # get profiles from Le&Moin U graph. x=6
-  Le = open('../Le-profiles/Le-profile1-U-x6.dat', 'r').readlines()
+  Le = open('Le-profiles/Le-profile1-U-x6.dat', 'r').readlines()
   Le_u6 = [float(line.split()[0]) for line in Le]
   Le_y6 = [float(line.split()[1]) for line in Le]
-  jd = open('../Le-profiles/JD-profile1-U-x6.dat', 'r').readlines()
+  jd = open('Le-profiles/JD-profile1-U-x6.dat', 'r').readlines()
   jd_u6 = [float(line.split()[0]) for line in jd]
   jd_y6 = [float(line.split()[1]) for line in jd]
 
   # get profiles from Le&Moin U graph. x=10
-  Le = open('../Le-profiles/Le-profile1-U-x10.dat', 'r').readlines()
+  Le = open('Le-profiles/Le-profile1-U-x10.dat', 'r').readlines()
   Le_u10 = [float(line.split()[0]) for line in Le]
   Le_y10 = [float(line.split()[1]) for line in Le]
-  jd = open('../Le-profiles/JD-profile1-U-x10.dat', 'r').readlines()
+  jd = open('Le-profiles/JD-profile1-U-x10.dat', 'r').readlines()
   jd_u10 = [float(line.split()[0]) for line in jd]
   jd_y10 = [float(line.split()[1]) for line in jd]
 
   # get profiles from Le&Moin U graph. x=19
-  Le = open('../Le-profiles/Le-profile1-U-x19.dat', 'r').readlines()
+  Le = open('Le-profiles/Le-profile1-U-x19.dat', 'r').readlines()
   Le_u19 = [float(line.split()[0]) for line in Le]
   Le_y19 = [float(line.split()[1]) for line in Le]
-  jd = open('../Le-profiles/JD-profile1-U-x19.dat', 'r').readlines()
+  jd = open('Le-profiles/JD-profile1-U-x19.dat', 'r').readlines()
   jd_u19 = [float(line.split()[0]) for line in jd]
   jd_y19 = [float(line.split()[1]) for line in jd]
 
   ##### Plot velocity profiles at different points behind step using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
-  pylab.suptitle("Evolution of U-velocity: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh", fontsize=20)
+  pylab.suptitle("Evolution of U-velocity", fontsize=20)
 
   size = 15
 
@@ -305,7 +298,6 @@ def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
   ax.plot(jd_u4,jd_y4, linestyle="none",marker='o',color='black')
   ax.set_title('(a) x/h='+str(xarray[0]), fontsize=16)
   pylab.legend(('Fluidity',"Le&Moin DNS","Jovic&Driver expt"),loc="upper left")
-  #ax.grid("True")
   for tick in ax.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   for tick in ax.yaxis.get_major_ticks():
@@ -316,7 +308,6 @@ def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
   bx.plot(U6,y6, linestyle="dashed")
   bx.plot(jd_u6,jd_y6, linestyle="none",marker='o',color='black')
   bx.set_title('(a) x/h='+str(xarray[1]), fontsize=16)
-  #bx.grid("True")
   for tick in bx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(bx.get_yticklabels(), visible=False)
@@ -326,7 +317,6 @@ def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
   cx.plot(U10,y10, linestyle="dashed")
   cx.plot(jd_u10,jd_y10, linestyle="none",marker='o',color='black')
   cx.set_title('(a) x/h='+str(xarray[2]), fontsize=16)
-  #bx.grid("True")
   for tick in cx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(cx.get_yticklabels(), visible=False)
@@ -336,7 +326,6 @@ def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
   dx.plot(U19,y19, linestyle="dashed")
   dx.plot(jd_u19,jd_y19, linestyle="none",marker='o',color='black')
   dx.set_title('(a) x/h='+str(xarray[3]), fontsize=16)
-  #bx.grid("True")
   for tick in dx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(dx.get_yticklabels(), visible=False)
@@ -345,18 +334,12 @@ def plot_velo(Re,type,mesh,vprofiles,xarray,yarray):
   bx.set_xlabel('Normalised mean U-velocity (U/Umax)', fontsize=24)
   ax.set_ylabel('y/h', fontsize=24)
 
-  pylab.savefig("../velo_profiles_3d"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
+  pylab.savefig("velo_profiles_3d.pdf")
   return
 
 #########################################################################
 
 def main():
-    ##### Which run is being processed?
-    Re = sys.argv[1]
-    type = sys.argv[2]
-    mesh = sys.argv[3]
-    print "Re, bc type, mesh: ", Re, type, mesh
-
     ##### Only process every nth file by taking integer multiples of n:
     filelist = get_filelist(sample=1, start=0)
 
@@ -367,16 +350,16 @@ def main():
 
     ##### Call reattachment_length function
     reattachment_length = numpy.array(reatt_length(filelist, zarray))
-    numpy.save("../numpy_data/reatt_len_"+str(Re)+"_"+str(type)+"_"+str(mesh), reattachment_length)
-    plot_length(Re,type,mesh,reattachment_length)
+    numpy.save("numpy_data/reatt_length", reattachment_length)
+    plot_length(reattachment_length)
 
     ##### Call velo function
     zarray = numpy.array([2.0])
     vprofiles = velo(filelist, xarray, zarray, yarray)
-    numpy.save("../numpy_data/velo_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
+    numpy.save("numpy_data/velo_profiles", vprofiles)
     print "Showing plot of velocity profiles."
-    plot_velo(Re,type,mesh,vprofiles,xarray,yarray)
-    #pylab.show()
+    plot_velo(vprofiles,xarray,yarray)
+    pylab.show()
 
     print "\nAll done.\n"
 

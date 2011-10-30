@@ -1,86 +1,46 @@
+# directory locations:
 BIN=../../bin
-RE=5100
-JOB=kepsilon-periodic-adapt
-preprocess:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse , \
-		echo **********Installing directory $(RE)-$(JOB)-$(NN):; \
-		install -d $(RE)-$(JOB)-$(NN); \
-		cd $(RE)-$(JOB)-$(NN); \
-		pwd; \
-		echo **********copying flml: _facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
-		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
-		echo **********Generating mesh...; \
-		gmsh -3 -o step3d-$(NN).msh ../src/step3d-$(NN).geo; \
-		$(BIN)/gmsh2triangle step3d-$(NN).msh; \
-		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
-		$(BIN)/fldecomp -n $(NPROCS) -f step3d-$(NN); \
-		cd ..; \
-	)
-
-preprocess-periodic:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,med, \
-		install -d $(RE)-$(JOB)-$(NN); \
-		cd $(RE)-$(JOB)-$(NN); \
-		pwd; \
-		echo **********copying flml: backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
-		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
-		echo **********Generating mesh...; \
-		gmsh -3 -o step3d-$(NN)-periodic.msh ../src/step3d-$(NN)-periodic.geo; \
-		$(BIN)/gmsh2triangle step3d-$(NN)-periodic.msh; \
-		echo $(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
-		$(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
-		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
-		mpiexec -np $(NPROCS) $(BIN)/flredecomp -i 1 -o $(NPROCS) backward_facing_step_3d-$(RE)-$(JOB)-$(NN)_periodised $(RE)-$(JOB)-$(NN)-$(NPROCS)p;\
-		cd ..; \
-	)
+preprocess: 
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
+	@echo **********Generating the mesh using gmsh in 3d:
+	gmsh -3 -o step3d.msh src/step3d.geo
+	@echo **********Converting the gmsh mesh to triangle format:
+	$(BIN)/gmsh2triangle step3d.msh
+ifneq ($(NPROCS),8)
+	@echo **********WARNING: This simulation is best run on 8 processors
+endif
+ifeq ($(NPROCS),1)
+	@echo **********Serial run: not decomposing mesh
+	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
+else
+# exit if no fltools and print warning
+	@if [ ! -e $(BIN)/fldecomp ] ; then echo "ERROR: You must build Fluidity parallel tools, using the command 'make fltools' in the Fluidity directory, prior to running this test in parallel."; false; fi
+	@echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:
+	$(BIN)/fldecomp -n $(NPROCS) -f step3d
+endif
 
 run:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse , \
-		echo Running $(NN) case; \
-		cd $(RE)-$(JOB)-$(NN); \
-		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
-		mpiexec -np $(NPROCS) $(BIN)/fluidity -v2 -l backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml; \
-		cd ..; \
-	)
-
-run-periodic:
-	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse , \
-		echo Running $(NN) case; \
-		cd $(RE)-$(JOB)-$(NN); \
-		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
-		mpiexec -np $(NPROCS) $(BIN)/fluidity -v2 -l $(RE)-$(JOB)-$(NN)-$(NPROCS)p.flml; \
-		cd ..; \
-	)
+	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
+ifneq ($(NPROCS),8)
+	@echo **********WARNING: This simulation is best run on 8 processors
+endif
+ifeq ($(NPROCS),1)
+	@echo **********WARNING: This is a large simulation and will take a very long time in serial. Find a handy supercomputer.
+	@echo **********Calling fluidity in serial with verbose log output enabled:
+	$(BIN)/fluidity -v2 -l backward_facing_step_3d.flml
+else
+	@echo **********Calling fluidity in parallel with verbose log output enabled:
+	mpiexec -n $(NPROCS) $(BIN)/fluidity -v2 -l backward_facing_step_3d.flml
+endif
 
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
-	@$(foreach NN, med, \
-		cd $(RE)-$(JOB)-$(NN); \
-		ln -s ../postprocessor_3d.py .; \
-		./postprocessor_3d.py $(RE) $(JOB) $(NN); \
-		cd ..; \
-	)
-
-postprocess-les:
-	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach NN, med, \
-		cd $(RE)-$(JOB)-$(NN); \
-		ln -s ../postprocessor_3d_les.py .; \
-		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
-		cd ..; \
-	)
-
-post-postprocess:
-	./post_postprocessor_3d_les.py
+	./postprocessor_3d.py
 
 input: clean
 	$(MAKE) preprocess
 
 clean:
-	@$(foreach NN,coarse, \
-		rm -r $(RE)-$(JOB)-$(NN); \
+	@echo **********Cleaning the output from previous fluidity runs:
+	rm -rf *.stat *.msh *.node *.face *.ele backward_facing_step_3d_*.pvtu backward_facing_step_3d_* *.log-* *.err-* matrixdump* *.halo
 

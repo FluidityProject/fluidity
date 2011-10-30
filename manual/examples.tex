@@ -473,7 +473,7 @@ and experimental results from Kim \cite{ilinca_97} are used for comparison.
 To run the example, use the commands \option{make preprocess TYPE=type}, \option{make run TYPE=type}
 and \option{make postprocess TYPE=type}, where \option{type} is one of \option{reference} or
 \option{kepsilon}. \option{reference} is on a fixed mesh with no turbulence model
-or stabilisation. \option{kepsilon} uses the high-Re k-epsilon turbulence model (see \ref{Sect:kepsilon})
+or stabilisation. \option{kepsilon} uses the high-Re k-epsilon turbulence model (see \ref{sec:kepsilon})
 on the same fixed mesh.
 
 \subsection{Geometry}
@@ -550,17 +550,16 @@ The recirculation region is indicated by negative velocities.}
 The solution for the k-epsilon run also contains information on the turbulent kinetic energy, turbulent dissipation and eddy viscosity, which can be plotted in Mayavi or Paraview.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------3D BACKWARD FACING STEP------------------------%
+%---------------------3D BACKWARD FACING STEP---------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{3D Backward facing step}
 \label{sec:backward_facing_step_3d}
 
 \subsection{Configuration}
-Please note, this 3D example is intended to be run in parallel (see \ref{decomp_meshes_parallel}).
-This is because the mesh must be fine enough, and the Reynolds number high enough, in order to
-generate turbulence over the step and resolve its passage downstream. More information on running
-\fluidity\ in parallel is found in \ref{sect:running_fluidity_in_parallel}.
+Please note, this 3D example is intended to be run in parallel (see \ref{decomp_meshes_parallel}),
+because it requires relatively fine mesh to resolve the eddies behind the step.
+More information on running \fluidity\ in parallel is found in \ref{sec:running_fluidity_in_parallel}.
 
 The example is run in a very similar way to the other examples.
 To run in serial, the example is run in exactly the same way to the other examples, using
@@ -570,9 +569,13 @@ To run in parallel with your chosen number of processors (\option{np}), using th
 the command \option{make run NPROCS=np} runs \fluidity\ as (\option{np}) processes on (\option{np}) processors.
 The command \option{make postprocess NPROCS=np} runs the parallel-specific data processing script.
 
+The Reynolds number of this example is set deliberately low (Re=155) in order to
+allow convergence to a steady state, and demonstrate the reduction in runtime obtained
+by running in parallel.
+
 \subsection{Geometry}
 A schematic of the domain is shown in figure \ref{Fig:Schematic3d}.
-A typical mean velocity inflow profile is imposed at the left hand boundary.
+A logarithmic velocity profile is imposed at the left hand boundary (inflow).
 The region directly downstream of the step is of interest in this problem.
 
 \begin{figure}
@@ -625,6 +628,8 @@ Vertical profiles of $\vec{u}$ at several points downstream of the step are show
 to obtain quasi-2D data. The reattachment point is clearly between $x/h=6$ and $x/h=10$.
 In fact the flow reattaches at $x/h \approx $.
 
+The postprocessing script plots graphs of the reattachment length
+and velocity profiles, which are compared against the DNS data from \cite{le1997}.
 
 \begin{figure}
 \centering
@@ -642,37 +647,16 @@ of the streamline reattachment point (indicated by contours of $U=0$).}
 \centering
 \pdffig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_3d}
 \caption{Streamwise velocity profiles from the 3d run at $x/h=4, 6, 10 \text{ and } 19$
-downstream of the step, where $h=1$ is the step height. The converged solution is in red.
-The recirculation region is indicated by the negative velocity in figure (b).
-It is clear that the flow reattaches between $x/h>6 \text{ and } 10$.}
+downstream of the step, where $h=1$ is the step height, at $t=5$ seconds.}
 \label{Fig:UProfiles3d}
 \end{figure}
 
-
-%As this is a highly turbulent problem, making quantitative comparisons of
-%individual snapshots is impossible. However, time-averaged quantities are of diagnostic interest.
-%Figure \ref{Fig:TimeAverage} shows 3 snapshots of the $u$ component of velocity from the large
-%benchmark run and a time
-%averaged field. The removal of fluctuating components in the velocity field can be seen.
-
-%\begin{figure}
-%\centering
-%\subfigure{\pdffig[width=15.0cm]{images/Velocity1.pdf}}
-%\subfigure{\pdffig[width=15.0cm]{images/Velocity33.pdf}}
-%\subfigure{\pdffig[width=15.0cm]{images/Velocity64.pdf}}
-%\subfigure{\pdffig[width=15.0cm]{images/VelocityAverage.pdf}}
-%\caption{Snapshots of the $u$ velocity components at three time slices (top three frames) and the
-%average field from 64 input snapshots spaced equally between times 70 and 102 (bottom).
-%Contours are displayed at the $-0.05$, $0.0$, $0.05$, $0.1$, $0.5$ and $1.0$ levels.}
-%\label{Fig:TimeAverage}
-%\end{figure}
-
-A more rigorous analysis would involve
-repeating the experiment for a range of Reynolds numbers and comparing the reattachment
-length of multiple model runs.
-%It may be seen that pseudo-supermeshing is an efficient
-%method to produce a common mesh suitable for the interpolation of fields from multiple
-%meshes, such as is necessary in time-averaging.
+A more rigorous analysis would involve repeating the experiment for a range of
+Reynolds numbers and comparing the reattachment length of multiple model runs.
+The Reynolds number in this example is considerably lower than the DNS, 
+in order to reduce simulation run time and suppress turbulent eddies, which
+results in the differences seen. To get closer to the DNS, try reducing the
+viscosity from $1.0e-2$ (Re=155) to $3.04e-4$ (Re=5100).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %----------------------Sphere------------------------------------%

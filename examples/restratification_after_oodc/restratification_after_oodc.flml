@@ -366,24 +366,13 @@
             <output/>
           </prescribed>
         </tensor_field>
-        <vector_field name="Absorption" rank="1">
-          <prescribed>
-            <value name="WholeMesh">
-              <constant>
-                <real_value shape="3" dim1="dim" rank="1">0 0 0.025</real_value>
-                <comment>7200*1.0*9.81*0.000195*1.8/1000.</comment>
-              </constant>
-            </value>
-            <output/>
-            <stat>
-              <include_in_stat/>
-            </stat>
-            <detectors>
-              <exclude_from_detectors/>
-            </detectors>
-          </prescribed>
-          <include_pressure_correction/>
-        </vector_field>
+        <vertical_stabilization>
+          <implicit_buoyancy>
+            <min_gradient>
+              <real_value rank="0">1e-6</real_value>
+            </min_gradient>
+          </implicit_buoyancy>
+        </vertical_stabilization>
         <output/>
         <stat>
           <include_in_stat/>
@@ -479,7 +468,16 @@
           </prescribed>
         </tensor_field>
         <output/>
-        <stat/>
+        <stat>
+          <include_mixing_stats name="mixingf">
+            <continuous_galerkin/>
+            <mixing_bin_bounds>
+              <constant>
+                <real_value shape="18" rank="1">0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7</real_value>
+              </constant>
+            </mixing_bin_bounds>
+          </include_mixing_stats>
+        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
