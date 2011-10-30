@@ -22,7 +22,7 @@ module hadapt_extrude
             populate_depth_vector, skip_column_extrude
 
   interface compute_z_nodes
-    module procedure compute_z_nodes_wrapper, compute_z_nodes_sizing
+    module procedure compute_z_nodes_wrapper, compute_z_nodes_sizing_without_top, compute_z_nodes_sizing_with_top
   end interface compute_z_nodes
 
   contains
@@ -38,7 +38,7 @@ module hadapt_extrude
     !!< The full extruded 3D mesh.
     type(vector_field), intent(out) :: out_mesh
 
-    character(len=FIELD_NAME_LEN):: mesh_name, file_name  
+    character(len=FIELD_NAME_LEN):: mesh_name, bottom_file_name, top_file_name
     type(quadrature_type) :: quad
     type(element_type) :: full_shape
     type(vector_field) :: constant_z_mesh
@@ -49,7 +49,7 @@ module hadapt_extrude
     real, dimension(:), allocatable :: depth_vector, top_vector
     real:: min_depth, surface_height
     logical:: sizing_is_constant, depth_is_constant, varies_only_in_z, list_sizing, top_is_constant
-    real:: constant_sizing, depth, min_bottom_layer_frac, top
+    real:: constant_sizing, depth, min_bottom_layer_frac, top, top_max
     integer:: h_dim, column, quadrature_degree
 
     logical :: sigma_layers
@@ -92,7 +92,7 @@ module hadapt_extrude
       constant_z_mesh_initialised = .false.
       
       call get_extrusion_options(option_path, r, apply_region_ids, region_ids, &
-                                 depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, bottom_file_name &
+                                 depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, bottom_file_name, &
                                  top_is_constant, top, top_from_python, top_function, top_from_map, top_file_name, &
                                  have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, list_sizing, &
                                  sizing_function, sizing_vector, min_bottom_layer_frac, varies_only_in_z, sigma_layers, number_sigma_layers)
@@ -101,7 +101,14 @@ module hadapt_extrude
       if (depth_from_map) call populate_depth_vector(h_mesh,bottom_file_name,depth_vector,surface_height)
       allocate(top_vector(size(z_meshes)))
       if (top_from_map) call populate_depth_vector(h_mesh,top_file_name,top_vector,surface_height)
-      
+     
+      ! if z-layer
+      ! First find upper most point on top surface
+      !do column=1, size(z_meshes)
+      !
+      !end do
+      top_max = 0.0
+
       ! create a 1d vertical mesh under each surface node
       do column=1, size(z_meshes)
       
@@ -112,20 +119,20 @@ module hadapt_extrude
         
         if(varies_only_in_z .and. depth_is_constant) then
           if (.not. constant_z_mesh_initialised) then
-            call compute_z_nodes(constant_z_mesh, node_val(h_mesh, column), min_bottom_layer_frac, &
+            call compute_z_nodes_wrapper(constant_z_mesh, node_val(h_mesh, column), min_bottom_layer_frac, &
                             depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, depth_vector(column), &
                             top_is_constant, top, top_from_python, top_function, top_from_map, top_vector(column), &
-                            have_min_depth, min_depth, &
+                            top_max, have_min_depth, min_depth, &
                             sizing_is_constant, constant_sizing, list_sizing, sizing_function, sizing_vector, &
                             sigma_layers, number_sigma_layers)
             constant_z_mesh_initialised = .true.
           end if
           call get_previous_z_nodes(z_meshes(column), constant_z_mesh)
         else
-          call compute_z_nodes(z_meshes(column), node_val(h_mesh, column), min_bottom_layer_frac, &
+          call compute_z_nodes_wrapper(z_meshes(column), node_val(h_mesh, column), min_bottom_layer_frac, &
                             depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, depth_vector(column), &
                             top_is_constant, top, top_from_python, top_function, top_from_map, top_vector(column), &
-                            have_min_depth, min_depth, &
+                            top_max, have_min_depth, min_depth, &
                             sizing_is_constant, constant_sizing, list_sizing, sizing_function, sizing_vector, &
                             sigma_layers, number_sigma_layers)
         end if
@@ -186,6 +193,7 @@ module hadapt_extrude
     
     integer, dimension(:), allocatable :: region_ids
     
+    logical, intent(out) :: depth_is_constant, depth_from_python, depth_from_map
     logical, intent(out) :: top_is_constant, top_from_python, top_from_map
     real, intent(out) :: depth, top
     character(len=PYTHON_FUNC_LEN), intent(out) :: depth_function, top_function
@@ -362,9 +370,9 @@ module hadapt_extrude
 
   subroutine compute_z_nodes_wrapper(z_mesh, xy, min_bottom_layer_frac, &
                                      depth_is_constant, depth, depth_from_python, depth_function, &
-                                     depth_from_map, depth_vector, &
-                                     top_is_constant, top, top_from_python, top_function, top_from_map, top_vector, &
-                                     have_min_depth, min_depth, &
+                                     depth_from_map, map_depth, &
+                                     top_is_constant, top, top_from_python, top_function, top_from_map, map_top, &
+                                     top_max, have_min_depth, min_depth, &
                                      sizing_is_constant, constant_sizing, list_sizing, sizing_function, sizing_vector, &
                                      sigma_layers, number_sigma_layers)
 
@@ -374,15 +382,15 @@ module hadapt_extrude
     logical, intent(in) :: depth_is_constant, sizing_is_constant, depth_from_python, depth_from_map, list_sizing
     logical, intent(in) :: top_is_constant, top_from_python, top_from_map
     logical, intent(in) :: have_min_depth, sigma_layers
-    real, intent(in) :: depth_column, top_column, min_depth
-    real, intent(in) :: depth, constant_sizing, top
+    real, intent(in) :: map_depth, map_top, min_depth
+    real, intent(in) :: depth, constant_sizing, top, top_max
     character(len=*), intent(in) :: depth_function, top_function, sizing_function
     real, dimension(:), intent(in) :: sizing_vector
     integer, intent(in) :: number_sigma_layers
 
     real, dimension(1) :: tmp_position
     real, dimension(size(xy), 1) :: tmp_pos
-    real :: ldepth
+    real :: ldepth, ltop
 
     if(top_is_constant) then
       ltop = top
@@ -425,17 +433,17 @@ module hadapt_extrude
     end if
    
     if (sizing_is_constant) then
-      call compute_z_nodes(z_mesh, ldepth, ltop, xy, &
+      call compute_z_nodes_sizing_with_top(z_mesh, ldepth, ltop, top_max, xy, &
        min_bottom_layer_frac, sizing=constant_sizing)
     else
       if (list_sizing) then
-        call compute_z_nodes(z_mesh, ldepth, ltop, xy, &
+        call compute_z_nodes_sizing_with_top(z_mesh, ldepth, ltop, top_max, xy, &
         min_bottom_layer_frac, sizing_vector=sizing_vector)
       else if (sigma_layers) then
-        call compute_z_nodes(z_mesh, ldepth, ltop, xy, &
+        call compute_z_nodes_sizing_with_top(z_mesh, ldepth, ltop, top_max, xy, &
         min_bottom_layer_frac, number_sigma_layers=number_sigma_layers)
       else
-        call compute_z_nodes(z_mesh, ldepth, ltop, xy, &
+        call compute_z_nodes_sizing_with_top(z_mesh, ldepth, ltop, top_max, xy, &
         min_bottom_layer_frac, sizing_function=sizing_function)
       end if
     end if
@@ -448,19 +456,33 @@ module hadapt_extrude
     call incref(z_mesh)
   end subroutine get_previous_z_nodes
 
+  
+  subroutine compute_z_nodes_sizing_without_top(z_mesh, bottom, xy, min_bottom_layer_frac, sizing, &
+                                    sizing_function, sizing_vector, number_sigma_layers)
+    type(vector_field), intent(out) :: z_mesh
+    real, intent(in):: bottom
+    real, dimension(:), intent(in):: xy
+    real, intent(in) :: min_bottom_layer_frac
+    real, optional, intent(in):: sizing
+    character(len=*), optional, intent(in):: sizing_function
+    real, dimension(:), optional, intent(in) :: sizing_vector
+    integer, optional, intent(in) :: number_sigma_layers
+
+    call compute_z_nodes_sizing_with_top(z_mesh, bottom, 0.0, 0.0, xy, min_bottom_layer_frac, sizing, &
+      sizing_function, sizing_vector, number_sigma_layers)
+
+  end subroutine compute_z_nodes_sizing_without_top
 
 
 
 
 
 
-
-
-  subroutine compute_z_nodes_sizing(z_mesh, bottom, top, xy, min_bottom_layer_frac, sizing, &
+  subroutine compute_z_nodes_sizing_with_top(z_mesh, bottom, top, top_max, xy, min_bottom_layer_frac, sizing, &
                                     sizing_function, sizing_vector, number_sigma_layers)
     !!< Figure out at what depths to put the layers.
     type(vector_field), intent(out) :: z_mesh
-    real, intent(in):: bottom, top
+    real, intent(in):: bottom, top, top_max
     real, dimension(:), intent(in):: xy
     ! to prevent infinitesimally thin bottom layer if sizing function
     ! is an integer mulitple of total depth, the bottom layer needs
@@ -515,10 +537,6 @@ module hadapt_extrude
     else
       FLAbort("Need to supply either sizing or sizing_function")
     end if
-
-
-
-
 
 
 !asc
@@ -600,7 +618,7 @@ module hadapt_extrude
         
       end function get_delta_h
       
-  end subroutine compute_z_nodes_sizing
+  end subroutine compute_z_nodes_sizing_with_top
 
 
 
