@@ -211,15 +211,6 @@ Enter the base name without the .edge .ele, .face or
                 <ref name="comment"/>
               </element>
             </optional>
-            <optional>
-              <!--
-                Extrude from bottom to top (i.e. by positive z).
-                The default is an extrude from top to bottom.
-              -->
-              <element name="bottom_to_top">
-                <empty/>
-              </element>
-            </optional>
           </element>
         </optional>
         <ref name="derived_mesh_stat_options"/>
