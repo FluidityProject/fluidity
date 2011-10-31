@@ -159,8 +159,9 @@ contains
       have_wd_node_int=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/conserve_geometric_volume")
       if (have_wd) then
         if (.not. get_cmc) then
-             FLExit("Wetting and drying needs to be reassembled at each timestep at the moment. Switch it on in &
-                   & diamond under .../Pressure/prognostic/scheme/update_discretised_equation")
+             ewrite(-1,*) "Wetting and drying needs to be reassembled at each timestep at the moment. Switch it on "//&
+                   &"in diamond under .../Pressure/prognostic/scheme/update_discretised_equation"
+             FLExit("Error in user options")
         end if
         call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
         original_bottomdist_remap=>extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh")

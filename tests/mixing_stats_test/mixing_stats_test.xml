@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
 
@@ -41,7 +40,7 @@ filename_ids = ['1','4','7']
 # 7 is after adapt
 for i in range(len(filenames)):
   print 'pvtu2vtu'
-  os.system('../../scripts/pvtu2vtu '+filename_base+' '+filename_ids[i])
+  os.system('../../bin/pvtu2vtu '+filename_base+' '+filename_ids[i])
   # take pvtus -> vtus as otherwise will count multiple nodes in halo regions more than once and make the sum used below incorrect
   matvolume_parallel[0].append(sum(vtktools.vtu(filenames[i]).GetScalarField("Material1::MaterialVolume"))) 
   matvolume_parallel[1].append(sum(vtktools.vtu(filenames[i]).GetScalarField("Material2::MaterialVolume")))  

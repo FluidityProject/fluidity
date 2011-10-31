@@ -11,4 +11,4 @@
 10 1 8 3 3
 11 6 8 5 2
 12 8 6 7 2
-# Produced by: ../../scripts/gmsh2triangle src/cube-1.msh
+# Produced by: ../../bin/gmsh2triangle src/cube-1.msh

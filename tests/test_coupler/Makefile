@@ -2,12 +2,12 @@ preprocess:
 	@echo ********Generating the mesh using gmsh in 2d:
 	gmsh -2 ./domain.geo
 	@echo ********Converting the gmsh mesh to triangle format:
-	../../scripts/gmsh2triangle --2d ./domain.msh
+	../../bin/gmsh2triangle --2d ./domain.msh
 
 	@echo ********Generating the mesh for OASIS coupler
 	gmsh -2 ./domain_struct.geo
 	@echo ********Converting the gmsh mesh to triangle format:
-	../../scripts/gmsh2triangle --2d ./domain_struct.msh
+	../../bin/gmsh2triangle --2d ./domain_struct.msh
 
 clean: 
 	rm -f  *.msh *.ele *.edge *.node *.face *.poly *.vtu *.s  *.stat *.log-0 *.err-0 matrixdump*

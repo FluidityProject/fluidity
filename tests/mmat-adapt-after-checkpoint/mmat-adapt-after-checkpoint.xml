@@ -1,5 +1,4 @@
 <?xml version = "1.0" encoding = "UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Multimaterial adaptivity and interpolation test. Tests adapt_at_first_timestep after checkpoint.</name>
   <owner userid="skramer"/>

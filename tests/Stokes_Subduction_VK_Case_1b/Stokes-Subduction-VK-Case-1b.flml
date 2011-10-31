@@ -97,6 +97,7 @@
   return output1</string_value>
         </python>
       </detector_array>
+      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>
@@ -187,7 +188,7 @@
             <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <absolute_error>
-            <real_value rank="0">9.7e-10</real_value>
+            <real_value rank="0">1.e-7</real_value>
           </absolute_error>
           <max_iterations>
             <integer_value rank="0">25000</integer_value>

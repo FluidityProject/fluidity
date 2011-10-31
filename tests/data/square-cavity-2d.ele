@@ -3701,4 +3701,4 @@
 3700 925 33 984 1 
 3701 34 984 33 1 
 3702 34 456 984 1 
-# Produced by: ../../scripts/gmsh2triangle --2d src/square-cavity.msh
+# Produced by: ../../bin/gmsh2triangle --2d src/square-cavity.msh

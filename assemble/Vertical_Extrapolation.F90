@@ -1269,8 +1269,8 @@ subroutine vertical_extrapolation_module_check_options
   
   if (have_option("/geometry/ocean_boundaries")) then
     if (.not. have_option("/physical_parameters/gravity")) then
-      ewrite(-1,*) "If you select /geometry/ocean_boundaries, you also need to &
-        &set /physical_parameters/gravity"
+      ewrite(-1,*) "If you select /geometry/ocean_boundaries, you also need to "//&
+        &"set /physical_parameters/gravity"
       FLExit("Missing gravity!")
     end if
   end if
