@@ -113,12 +113,12 @@
           <include_in_steady_state/>
         </steady_state>
         <adaptivity_options>
-          <absolute_measure>
+          <relative_measure>
             <scalar_field name="InterpolationErrorBound" rank="0">
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value rank="0">0.05</real_value>
+                    <real_value rank="0">0.1</real_value>
                   </constant>
                 </value>
                 <output/>
@@ -128,7 +128,10 @@
                 </detectors>
               </prescribed>
             </scalar_field>
-          </absolute_measure>
+            <tolerance>
+              <real_value rank="0">1.e-10</real_value>
+            </tolerance>
+          </relative_measure>
         </adaptivity_options>
         <no_interpolation/>
       </prognostic>
@@ -333,7 +336,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value shape="3" dim1="dim" rank="1">0.025 0.025 0.025</real_value>
+                    <real_value shape="3" dim1="dim" rank="1">0.05 0.05 0.05</real_value>
                   </constant>
                 </value>
                 <output/>
@@ -384,7 +387,7 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.005 0. 0. 0. 0.005 0. 0. 0. 0.005</real_value>
+            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">0.05 0. 0. 0. 0.05 0. 0. 0. 0.05</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
