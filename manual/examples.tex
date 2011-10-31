@@ -37,8 +37,8 @@ examples plots are created and put in the directory.
   \ref{sec:oned_advection} One dimensional advection & \texttt{top\_hat/} & 1 & 2 min. \\
   \ref{sec:lock_exchange} The lock-exchange & \texttt{lock\_exchange/} & 1 & 10 min. \\
   \ref{sec:lid_driven_cavity} Lid-driven cavity & \texttt{driven\_cavity/} & 1 & 7 hr. \\
-  \ref{sec:backward_facing_step} Backward facing step & \texttt{backward\_facing\_step\_2d/} & 1 & 15 min. \\
-                       & \texttt{backward\_facing\_step\_3d/} & 8 & 30 min. \\
+  \ref{sec:backward_facing_step_2d} 2D Backward facing step & \texttt{backward\_facing\_step\_2d/} & 1 & 15 min. \\
+  \ref{sec:backward_facing_step_3d} 3D Backward facing step & \texttt{backward\_facing\_step\_3d/} & 8 & 30 min. \\
   \ref{sec:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 6 hr. \\
   \ref{sec:periodic_channel} Rotating periodic channel & \texttt{rotating\_channel/} & 1 & 10 min. \\
   \ref{sec:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
@@ -445,11 +445,11 @@ error for the same number of nodes compared to the fixed mesh (hint: it may be e
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%---------------------BACKWARD FACING STEP------------------------%
+%---------------------2D BACKWARD FACING STEP------------------------%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Backward facing step}
-\label{sec:backward_facing_step}
+\section{2D Backward facing step}
+\label{sec:backward_facing_step_2d}
 
 
 \subsection{Overview}
@@ -457,32 +457,111 @@ The backward-facing step is a classical CFD example and one of the most frequent
 problems for simulating the separation and reattachment of turbulent flows.
 It is also often used as a test problem for validating and benchmarking numerical codes.
 At high Reynolds numbers and in three spatial dimensions the problem has substantial
-computing requirements, this makes it an ideal HPC benchmark problem for use here.
+computing requirements, making it an ideal HPC benchmark problem for use here.
 In the context of ocean modelling flow separation is important
 in large scale western boundary currents such as the Gulf Stream.
 
-Accurate experimental results for a wide range of flow regimes exist
-in 2D and 3D
-(e.g. see \cite{armaly1983}) and the problem has several important flow
-characteristics, such as the downstream length at which the flow reattaches
-with the bottom of the domain. Results from \fluidity\ simulations at Reynolds number 150
-are presented here.
+The problem has several important flow characteristics,
+in particular the downstream length at which the flow reattaches with the bottom of the domain. 
+The reattachment length is considered a sensitive measure of the quality of the numerical method.
+It is used here to examine the impact of the k-epsilon turbulence model.
 
+Results from \fluidity\ simulations at Reynolds number 132,000
+are presented here. Numerical results using RANS from \cite{ilinca_97}
+and experimental results from Kim \cite{ilinca_97} are used for comparison.
+
+To run the example, use the commands \option{make preprocess TYPE=type}, \option{make run TYPE=type}
+and \option{make postprocess TYPE=type}, where \option{type} is one of \option{reference} or
+\option{kepsilon}. \option{reference} is on a fixed mesh with no turbulence model
+or stabilisation. \option{kepsilon} uses the high-Re k-epsilon turbulence model (see \ref{sec:kepsilon})
+on the same fixed mesh.
+
+\subsection{Geometry}
+A schematic of the domain is shown in figure \ref{Fig:Schematic2d}.
+The expansion ratio is 3:2, consistent with \cite{ilinca_97}.
+
+\begin{figure}
+\centering
+\pdffig[width=17.0cm]{examples_images/backward_facing_step/backward_facing_step_2d-mesh}
+\caption{Schematic of the domain for the two-dimensional flow past a backward facing step.}
+\label{Fig:Schematic2d}
+\end{figure}
+
+\subsection{Initial and boundary conditions}
+The inlet velocity profile is a log profile extending reflected in the midpoint of the inlet. Below a small distance $z_0=0.1$ from the top and bottom of the inlet, the velocity is 0.
+\begin{equation*}
+u(z) =
+  \begin{cases}
+    0.0 & \text{if } z \leq 1+z_0 \\
+    \log \left(\frac{z-1}{z_0}\right) & \text{if } 1+z_0 < z \leq 2.0 \\
+    \log \left(\frac{3.0-z}{z_0}\right) & \text{if } 2.0 < z \leq (3.0-z_0) \\
+    0.0 & \text{if } 3.0-z_0 < z
+  \end{cases}
+\end{equation*}
+
+The log law of the wall is applied weakly on the upper and lower boundaries.
+This approach has been found useful in high-Reynolds number flow, allowing coarser near-wall mesh resolution.
+
+\subsection{Results}
+Three snapshots of the velocity magnitude from the k-epsilon run at $Re=132000$
+are shown in figure \ref{Fig:velo-magnitude-2d} at 3 times during the flow's evolution to steady-state.
+
+Vertical profiles of $\vec{u}$ at several points downstream of the step are shown
+in figure \ref{Fig:UProfiles2d}. The evolution of the flow to the converged solution can be seen.
+The evolution of the reattachment length is shown in figure \ref{Fig:RL2d}.
+
+The reattachment length was defined here to be the length (normalised by step height $h=1$)
+from the step at which the zero-contour of the $x$-component of $\vec{u}$ intersects with
+the bottom boundary. This quantity was computed from $\vec{u}$
+using the VTK library. For the simulation described, the reattachment
+length converged to approximately 9.1 times the step height,
+whereas the RANS simulation of \cite{ilinca_97} reattaches at 6.2 and Kim's experiment at 7.0.
+The discrepancy may be due to the difference in discretisation or solution procedure from Ilinca.
+
+\begin{figure}
+\centering
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-5sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-10sec}}
+\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-50sec}}
+\caption{Snapshots of the velocity magnitude from the 2D run at times 5, 10 and 50 time units
+(top to bottom) from the k-epsilon run.
+The evolution of the dynamics to steady state can be seen, in particular the downstream movement
+of the streamline reattachment point (where zero-magnitude contour touches bottom).}
+\label{Fig:velo-magnitude-2d}
+\end{figure}
+
+\begin{figure}
+\centering
+\pdffig[width=17.0cm]{examples_images/backward_facing_step/velocity_profiles_kim_kepsilon}
+\caption{Streamwise velocity profiles from the 2D run at $x/h=1.33, 2.66, 5.33, 8.0 \text{ and } 16.0$
+downstream of the step, where $h=1$ is the step height. The converged solution is in blue.
+Ilinca's numerical and Kim's experimental data \citep{ilinca_97} are in red and black respectively.
+The recirculation region is indicated by negative velocities.}
+\label{Fig:UProfiles2d}
+\end{figure}
+
+\begin{figure}
+\centering
+\pdffig[width=13.0cm]{examples_images/backward_facing_step/reattachment_length_kim_kepsilon}
+\caption{Evolution of reattachment length in k-epsilon simulation.}
+\label{Fig:RL2d}
+\end{figure}
+
+The solution for the k-epsilon run also contains information on the turbulent kinetic energy, turbulent dissipation and eddy viscosity, which can be plotted in Mayavi or Paraview.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%---------------------3D BACKWARD FACING STEP---------------------%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{3D Backward facing step}
+\label{sec:backward_facing_step_3d}
 
 \subsection{Configuration}
-\subsubsection{Geometry: 3D}
-A schematic of the domain is shown in figure \ref{fig:Schematic3d}.
-An inflow is imposed at the left hand boundary and encounters a step
-down in the geometry. The region directly downstream of the step is
-of particular interest in this problem. An outflow boundary is located at the
-right hand end of the geometry.
+Please note, this 3D example is intended to be run in parallel (see \ref{decomp_meshes_parallel}),
+because it requires relatively fine mesh to resolve the eddies behind the step.
+More information on running \fluidity\ in parallel is found in \ref{sec:running_fluidity_in_parallel}.
 
-Please note, this 3D example is intended to be run in parallel (see \ref{decomp_meshes_parallel}).
-This is because the mesh must be fine enough, and the Reynolds number high enough, in order to
-generate turbulence over the step and resolve its passage downstream. More information on running
-/fluidity/ in parallel is found in \ref{sec:running_fluidity_in_parallel}.
-
-In practice the example is run in a very similar way to the other examples.
+The example is run in a very similar way to the other examples.
 To run in serial, the example is run in exactly the same way to the other examples, using
 the commands \option{make preprocess}, \option{make run} and \option{make postprocess}.
 To run in parallel with your chosen number of processors (\option{np}), using the command
@@ -490,35 +569,30 @@ To run in parallel with your chosen number of processors (\option{np}), using th
 the command \option{make run NPROCS=np} runs \fluidity\ as (\option{np}) processes on (\option{np}) processors.
 The command \option{make postprocess NPROCS=np} runs the parallel-specific data processing script.
 
+The Reynolds number of this example is set deliberately low (Re=155) in order to
+allow convergence to a steady state, and demonstrate the reduction in runtime obtained
+by running in parallel.
+
+\subsection{Geometry}
+A schematic of the domain is shown in figure \ref{Fig:Schematic3d}.
+A logarithmic velocity profile is imposed at the left hand boundary (inflow).
+The region directly downstream of the step is of interest in this problem.
+
 \begin{figure}
 \centering
 \pdffig[width=12.0cm]{examples_images/backward_facing_step/backward_facing_step_3d-schematic}
 \caption{Schematic of the domain for the three-dimensional flow past a backward facing step
 problem.}
-\label{fig:Schematic3d}
+\label{Fig:Schematic3d}
 \end{figure}
 
-Following \cite{le1997} the length scales are given by: $L_x=30$, $L_i=10$, $L_y=4$, $h=1$, $L_z=6$,
+Following \cite{le1997} the dimensions are: $L_x=30$, $L_i=10$, $L_y=4$, $h=1$, $L_z=6$,
 so that $L_z-h=5$ and the expansion ratio is $L_z/(L_z-h)=1.2$.
 The base of the domain is located at $z=0$, the inflow plane is given by $x=-10$ with the step
 at $x=0$, and the back of the domain in the spanwise direction is given by $y=0$.
 
-\subsubsection{Geometry: 2D}
-A schematic of the domain, showing adaptive mesh refinement, is shown in figure \ref{fig:Schematic2d}.
-In the 2D case the expansion ratio is 2, and the upper boundary is treated as no-slip,
-consistent with \cite{armaly1983}.
-
-\begin{figure}
-\centering
-\pdffig[width=17.0cm]{examples_images/backward_facing_step/backward_facing_step_2d-mesh}
-\caption{Schematic of the domain for the two-dimensional flow past a backward facing step
-problem, showing adaptive mesh refinement.}
-\label{fig:Schematic2d}
-\end{figure}
-
-
-\subsubsection{Initial and boundary conditions: 3D}
-In the 3D case, the inflow boundary condition at $x=-10$ is a log profile given by
+\subsection{Initial and boundary conditions}
+The inflow boundary condition at $x=-10$ is a log profile given by
 \begin{equation*}
 u(z) =
   \begin{cases}
@@ -528,14 +602,6 @@ u(z) =
 \end{equation*}
 
 with parameters $u_{\tau} = 0.1$, $z_0 = 0.01$ and $\kappa = 0.41$.
-
-%A plot of this inflow profile is given in figure \ref{fig:Inflow}.
-%\begin{figure}
-%\centering
-%\pdffig[width=8.0cm]{images/StepInflow.pdf}
-%\caption{Inflow profile.}
-%\label{fig:Inflow}
-%\end{figure}
 
 No-normal flow, free-stress boundary conditions are applied at the upper and lateral
 (spanwise) boundaries:
@@ -554,72 +620,16 @@ No-slip boundary conditions are applied at the bottom of the domain and at the s
 u=v=w=0.
 \end{equation*}
 
-\subsubsection{Initial and boundary conditions: 2D}
-In the 2D case, the inlet velocity profile is a log profile extending from each wall to the midpoint, with the same parameters as the 3D example:
-\begin{equation*}
-u(z) =
-  \begin{cases}
-    0.0 & \text{if } (z-h) \leq z_0 \\
-    \frac{u_{\tau}}{\kappa} \log \left(\frac{z - h}{z_0}\right) & \text{if } z_0 < (z-h) \leq 0.5 \\
-    \frac{u_{\tau}}{\kappa} \log \left(\frac{2h - z}{z_0}\right) & \text{if } 0.5 < (z-h) \leq (2h-z_0) \\
-    0.0 & \text{if } 2h-z_0 < (z-h)
-  \end{cases}
-\end{equation*}
-
-
-\subsection{Results: 2D}
-Three snapshots of the velocity magnitude from the benchmark run at $Re=150$
-are shown in figure \ref{fig:velo-magnitude-2d} at times 5, 10 and 50 seconds.
-Vertical profiles of $\vec{u}$ at several points downstream of the step are shown
-in figure \ref{fig:UProfiles2d}. The reattachment point is clearly between $x/h=2$ and $x/h=4$.
-
-One of the metrics most often considered for this test case is the point at which the
-flow which separates from the step reattaches to the bottom of the domain.
-The length downstream of the step at which this happens
-has been found from laboratory experiments and direct numerical simulations and is considered a
-sensitive measure of the quality of the numerical method. It is typically used to examine the impact
-of turbulence parameterisations but here will be used to examine the use of mesh adaptivity
-as well as the numerical method.
-
-The reattachment length was defined here to be the length (normalised by step height $h$)
-from the step at which the zero-contour of the $x$-component of $\vec{u}$ intersects with
-the bottom boundary. This quantity was computed from $\vec{u}$
-using the VTK library. For the simulation described, the reattachment
-length was approximately 3.6 times the step height, which is consistent with \cite{armaly1983}.
-The precise value for the reattachment length is dependent on exact configuration on the domain and inflow
-conditions, and also strongly on the Reynolds number of the flow.
-
-\begin{figure}
-\centering
-\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-5sec}}
-\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-10sec}}
-\subfigure{\pdffig[width=15.0cm]{examples_images/backward_facing_step/velo-magnitude-2d-50sec}}
-\caption{Snapshots of the velocity magnitude from the 2D run at times 5, 10 and 50 time units
-(top to bottom) into the simulation from the smaller benchmark run.
-The evolution of the dynamics to steady state can be seen, in particular the downstream movement
-of the streamline reattachment point (indicated by contours of $U=0$).}
-\label{fig:velo-magnitude-2d}
-\end{figure}
-
-\begin{figure}
-\centering
-\pdffig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_2d}
-\caption{Streamwise velocity profiles from the 2D run at $x/h=0, 2, 4 \text{ and } 6$
-downstream of the step, where $h=1$ is the step height. The converged solution is in red.
-The recirculation region is indicated by negative velocity in figure (b).
-It is clear that the reattachment point is between $x/h=2$ and $x/h=4$.}
-\label{fig:UProfiles2d}
-\end{figure}
-
-
-\subsection{Results: 3D}
-Three snapshots of the velocity vectors are shown in figure \ref{fig:velo-magnitude-3d}
+\subsection{Results}
+Three snapshots of the velocity vectors are shown in figure \ref{Fig:velo-magnitude-3d}
 at times 5, 10 and 50 seconds.
 Vertical profiles of $\vec{u}$ at several points downstream of the step are shown in figure
-\ref{fig:UProfiles3d}, in which the velocity data has been averaged across the span of the domain
+\ref{Fig:UProfiles3d}, in which the velocity data has been averaged across the span of the domain
 to obtain quasi-2D data. The reattachment point is clearly between $x/h=6$ and $x/h=10$.
-In fact the flow reattaches at $x/h \approx 8.3$.
+In fact the flow reattaches at $x/h \approx $.
 
+The postprocessing script plots graphs of the reattachment length
+and velocity profiles, which are compared against the DNS data from \cite{le1997}.
 
 \begin{figure}
 \centering
@@ -630,46 +640,23 @@ In fact the flow reattaches at $x/h \approx 8.3$.
 the velocity magnitude at times 5, 25 and 50 time units.
 The evolution of the dynamics to steady state can be seen, in particular the downstream movement
 of the streamline reattachment point (indicated by contours of $U=0$).}
-\label{fig:velo-magnitude-3d}
+\label{Fig:velo-magnitude-3d}
 \end{figure}
 
 \begin{figure}
 \centering
 \pdffig[width=17.0cm]{examples_images/backward_facing_step/velo_profiles_3d}
 \caption{Streamwise velocity profiles from the 3d run at $x/h=4, 6, 10 \text{ and } 19$
-downstream of the step, where $h=1$ is the step height. The converged solution is in red.
-The recirculation region is indicated by the negative velocity in figure (b).
-It is clear that the flow reattaches between $x/h>6 \text{ and } 10$.}
-\label{fig:UProfiles3d}
+downstream of the step, where $h=1$ is the step height, at $t=5$ seconds.}
+\label{Fig:UProfiles3d}
 \end{figure}
 
-
-%As this is a highly turbulent problem, making quantitative comparisons of
-%individual snapshots is impossible. However, time-averaged quantities are of diagnostic interest.
-%Figure \ref{fig:TimeAverage} shows 3 snapshots of the $u$ component of velocity from the large
-%benchmark run and a time
-%averaged field. The removal of fluctuating components in the velocity field can be seen.
-
-%\begin{figure}
-%\centering
-%\subfigure{\pdffig[width=15.0cm]{images/Velocity1.pdf}}
-%\subfigure{\pdffig[width=15.0cm]{images/Velocity33.pdf}}
-%\subfigure{\pdffig[width=15.0cm]{images/Velocity64.pdf}}
-%\subfigure{\pdffig[width=15.0cm]{images/VelocityAverage.pdf}}
-%\caption{Snapshots of the $u$ velocity components at three time slices (top three frames) and the
-%average field from 64 input snapshots spaced equally between times 70 and 102 (bottom).
-%Contours are displayed at the $-0.05$, $0.0$, $0.05$, $0.1$, $0.5$ and $1.0$ levels.}
-%\label{fig:TimeAverage}
-%\end{figure}
-
-
-
-A more rigorous analysis would involve
-repeating the experiment for a range of Reynolds numbers and comparing the reattachment
-length of multiple model runs.
-%It may be seen that pseudo-supermeshing is an efficient
-%method to produce a common mesh suitable for the interpolation of fields from multiple
-%meshes, such as is necessary in time-averaging.
+A more rigorous analysis would involve repeating the experiment for a range of
+Reynolds numbers and comparing the reattachment length of multiple model runs.
+The Reynolds number in this example is considerably lower than the DNS, 
+in order to reduce simulation run time and suppress turbulent eddies, which
+results in the differences seen. To get closer to the DNS, try reducing the
+viscosity from $1.0e-2$ (Re=155) to $3.04e-4$ (Re=5100).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %----------------------Sphere------------------------------------%

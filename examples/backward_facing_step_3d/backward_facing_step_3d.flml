@@ -289,12 +289,12 @@
               <python>
                 <string_value lines="20" type="python">def val(X, t):
     # absorption coefficient
-    k = 0.1
+    k = 0.2
     if(X[0] &gt; 25.):
         A = (X[0]-25.)/5.*k
     else:
         A = 0.0
-    return [A,A,A]</string_value>
+    return [A,0.0,0.0]</string_value>
                 <comment>Linear increase of sponge from 0 at x=25 to k at x=30 (outflow). This is to damp eddies in order to prevent inflow through the outflow.</comment>
               </python>
             </value>
