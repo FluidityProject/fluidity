@@ -211,24 +211,30 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <commuting_projection>
+          <from_sphere_pullback>
             <python>
-              <string_value lines="20" type="python">def val(X,t):
+              <string_value type="python" lines="20">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
   z = X[2]
   R0 = 6.37122e6
-  R = (x**2+y**2+z**2)**0.5
+  #apply mapping
   Rh = (x**2+y**2)**0.5
-  cosphi = Rh/R
+  Rz = (R0**2 - z**2)**0.5
+  Xs = x*Rz/Rh
+  Ys = y*Rz/Rh
+  cosphi = Rz/R0
   u0 = 2*pi*R0/(12.*24.*60.*60.)
-  if(Rh==0):
+  if(z==1.0 or z==-1.0):
     return [0,0,0]
   else:
-    return [-u0*cosphi*y/Rh,u0*cosphi*x/Rh,0]</string_value>
+    return [-u0*cosphi*Ys/Rz,u0*cosphi*Xs/Rz,0]</string_value>
             </python>
-          </commuting_projection>
+            <sphere_radius>
+              <real_value rank="0">6.37122e6</real_value>
+            </sphere_radius>
+          </from_sphere_pullback>
         </initial_condition>
         <output/>
         <convergence>
@@ -342,35 +348,6 @@
         </adjoint_storage>
       </prescribed>
     </scalar_field>
-    <vector_field name="HigherOrderCoordinate" rank="1">
-      <prescribed>
-        <mesh name="HOMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">def val(X,t):
-  x = X[0]
-  y = X[1]
-  z = X[2]
-  R = (x**2+y**2+z**2)**0.5
-  R0 = 6.37122e6
-  x = R0*x/R
-  y = R0*y/R
-  z = R0*z/R
-  return [x,y,z]</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-        <adjoint_storage>
-          <exists_in_forward/>
-        </adjoint_storage>
-      </prescribed>
-    </vector_field>
   </material_phase>
   <debug>
     <check_inverse_coriolis_matrix/>

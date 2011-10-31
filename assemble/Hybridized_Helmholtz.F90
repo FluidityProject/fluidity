@@ -2577,29 +2577,32 @@ contains
     xe = X_quad(1,:)
     ye = X_quad(2,:)
     ze = X_quad(3,:)
-    Js(1,1,:) = Rz*Ye**2/(xe**2+ye**2)**0.5
-    Js(1,2,:) = -Rz*Xe*Ye/(xe**2+ye**2)**0.5
+    Js(1,1,:) = Rz*Ye**2/(xe**2+ye**2)**1.5
+    Js(1,2,:) = -Rz*Xe*Ye/(xe**2+ye**2)**1.5
     Js(1,3,:) = -Xe*Ze/(xe**2+ye**2)**0.5/Rz
-    Js(2,1,:) = -Rz*Xe*Ye**2/(xe**2+ye**2)**0.5
-    Js(2,2,:) = Rz*Xe**2/(xe**2+ye**2)**0.5
+    Js(2,1,:) = -Rz*Xe*Ye**2/(xe**2+ye**2)**1.5
+    Js(2,2,:) = Rz*Xe**2/(xe**2+ye**2)**1.5
     Js(2,3,:) = -Ye*Ze/(xe**2+ye**2)**0.5/Rz
     Js(3,1,:) = 0.
     Js(3,2,:) = 0.
     Js(3,3,:) = 1.
 
     !Form the reduced matrix
-    do dim1 = 1, 2
-       do dim2 = 1, 2
-          do gi = 1, ele_ngi(X,ele)
-             Jr(dim1,dim2,gi) = dot_product(m_basis(dim1,:,gi),&
-                  matmul(Js(:,:,gi),e_basis(dim2,:,gi)))
-          end do
-       end do
+    do gi = 1, ele_ngi(X,ele)
+       Jr(1,1,gi) = dot_product(m_basis(2,:,gi),&
+            matmul(Js(:,:,gi),e_basis(2,:,gi)))
+       Jr(1,2,gi) = -dot_product(e_basis(1,:,gi),&
+            matmul(Js(:,:,gi),m_basis(2,:,gi)))
+       Jr(2,1,gi) = -dot_product(e_basis(2,:,gi),&
+            matmul(Js(:,:,gi),m_basis(1,:,gi)))
+       Jr(2,2,gi) = dot_product(e_basis(1,:,gi),&
+            matmul(Js(:,:,gi),m_basis(1,:,gi)))
     end do
 
     !Transform velocity
     do gi = 1, ele_ngi(X,ele)
-       U_quad(:,gi) = matmul(Js(:,:,gi),Us_quad(:,gi))
+       U_quad(:,gi) = matmul(transpose(e_basis(:,:,gi)),&
+            &matmul(Jr(:,:,gi),matmul(m_basis(:,:,gi),Us_quad(:,gi))))
     end do
 
     !project into local coordinate system
