@@ -241,12 +241,17 @@ extrusion_options =
       ## Do not use if your function depends on x and/or y as it takes a column of z values and re-uses it. 
           element varies_only_in_z {empty}?
       },
-      ## To prevent infinitesimally thin bottom layer if sizing function
-      ## is an integer multiple of total depth, the bottom layer needs
-      ## to have at least this fraction of the layer depth above it. 
+      ## To prevent infinitesimally-thin boundary layers if the 
+      ## sizing function is an integer multiple of total depth,
+      ## the bottom and top layers need to have at least this 
+      ## fraction of the layer depth above it.
+      ##
+      ## Note that in the case of the top surface, this option
+      ## only has an effect if /top_position/align_with_geoids
+      ## is selected.
       ##
       ## Default is 1e-3.
-      element minimum_bottom_layer_fraction {
+      element minimum_layer_fraction {
           real
       }?,
       ## surface_id to assign to the top of the extruded mesh
