@@ -105,10 +105,20 @@ module hadapt_extrude
      
       ! if z-layer
       ! First find upper most point on top surface
-      !do column=1, size(z_meshes)
-      !
-      !end do
-      top_max = 0.0
+      do column=1, size(z_meshes)
+        ! decide if this column needs visiting...
+        !if(skip_column_extrude(h_mesh%mesh, column, &
+        !                      apply_region_ids, column_visited(column), region_ids, &
+        !                      visited_count = visited(column))) cycle
+        call  compute_z_extent(node_val(h_mesh, column), &
+                               depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, depth_vector(column), &
+                               top_is_constant, top, top_from_python, top_function, top_from_map, top_vector(column), &
+                               have_min_depth, min_depth, &
+                               top_max)
+      end do
+      constant_z_mesh_initialised = .false.
+      ewrite(2,*) "Uppermost extent of top surface located at: ", top_max
+      !top_max = 0.0
 
       ! create a 1d vertical mesh under each surface node
       do column=1, size(z_meshes)
@@ -371,6 +381,80 @@ module hadapt_extrude
 
   end subroutine populate_depth_vector
 
+  subroutine compute_z_extent(xy, &
+                              depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, map_depth, &
+                              top_is_constant, top, top_from_python, top_function, top_from_map, map_top, &
+                              have_min_depth, min_depth, &
+                              calculated_bottom, calculated_top, calculated_top_max)
+    real, dimension(:), intent(in) :: xy
+    logical, intent(in) :: depth_is_constant, depth_from_python, depth_from_map
+    logical, intent(in) :: top_is_constant, top_from_python, top_from_map
+    logical, intent(in) :: have_min_depth
+    real, intent(in) :: map_depth, map_top
+    real, intent(in) :: depth, top
+    real, intent(in) :: min_depth
+    character(len=*), intent(in) :: depth_function, top_function
+    ! Calculate the top and bottom extent for the current column
+    real, optional, intent(out) :: calculated_bottom, calculated_top
+    ! Calculate the uppermost point of the top surface for columns scanned so far
+    real, optional, intent(inout) :: calculated_top_max
+
+    real, dimension(1) :: tmp_position
+    real, dimension(size(xy), 1) :: tmp_pos
+    real :: lbottom, ltop
+
+    if(top_is_constant) then
+      ltop = top
+    else 
+      tmp_pos(:,1) = xy
+      if (top_from_python) then
+        call set_from_python_function(tmp_position, trim(top_function), tmp_pos, time=0.0)
+        ltop = tmp_position(1)
+      else if (top_from_map) then
+         ltop = map_top
+      else
+        FLAbort("Unknown method of specifying the top_posiition.")
+      end if
+    end if
+    
+    if(depth_is_constant) then
+      lbottom = depth
+    else 
+      tmp_pos(:,1) = xy
+      if (depth_from_python) then
+        call set_from_python_function(tmp_position, trim(depth_function), tmp_pos, time=0.0)
+        lbottom = tmp_position(1)
+      else if (depth_from_map) then
+         lbottom = map_depth
+         ! Assert the perturbation of the surface from the zero geoid
+         ! is less than that of the depth - otherwise our domain
+         ! has turned inside-out at some point.
+         if (ltop > lbottom) then 
+           ewrite(-1,*) "Atempting to mesh a domain that is inside out."
+           ewrite(-1,*) "Ensure the function describing the surface"
+           ewrite(-1,*) "perturbation is smaller than the depth."
+           FLAbort("Attempting to mesh a domain that is inside out.")
+         end if
+         if (have_min_depth) then
+           if ((lbottom - ltop) < min_depth) lbottom = ltop + min_depth
+         end if
+      else
+        FLAbort("Unknown method of specifying the bottom_depth.")
+      end if
+    end if
+
+    if (present(calculated_top_max)) then
+      ! Note use of min due to sign convention
+      calculated_top_max = min(ltop, calculated_top_max)
+    end if
+    if (present(calculated_bottom)) then
+      calculated_top = lbottom
+    end if
+    if (present(calculated_top)) then
+      calculated_top = ltop
+    end if
+  end subroutine compute_z_extent
+
   subroutine compute_z_nodes_wrapper(z_mesh, xy, min_bottom_layer_frac, &
                                      depth_is_constant, depth, depth_from_python, depth_function, &
                                      depth_from_map, map_depth, &
@@ -395,45 +479,11 @@ module hadapt_extrude
     real, dimension(size(xy), 1) :: tmp_pos
     real :: ldepth, ltop
 
-    if(top_is_constant) then
-      ltop = top
-    else 
-      tmp_pos(:,1) = xy
-      if (top_from_python) then
-        call set_from_python_function(tmp_position, trim(top_function), tmp_pos, time=0.0)
-        ltop = tmp_position(1)
-      else if (top_from_map) then
-         ltop = map_top
-      else
-        FLAbort("Unknown method of specifying the top_posiition.")
-      end if
-    end if
-    
-    if(depth_is_constant) then
-      ldepth = depth
-    else 
-      tmp_pos(:,1) = xy
-      if (depth_from_python) then
-        call set_from_python_function(tmp_position, trim(depth_function), tmp_pos, time=0.0)
-        ldepth = tmp_position(1)
-      else if (depth_from_map) then
-         ldepth = map_depth
-         ! Assert the perturbation of the surface from the zero geoid
-         ! is less than that of the depth - otherwise our domain
-         ! has turned inside-out at some point.
-         if (ltop > ldepth) then 
-           ewrite(-1,*) "Atempting to mesh a domain that is inside out."
-           ewrite(-1,*) "Ensure the function describing the surface"
-           ewrite(-1,*) "perturbation is smaller than the depth."
-           FLAbort("Attempting to mesh a domain that is inside out.")
-         end if
-         if (have_min_depth) then
-           if ((ldepth - ltop) < min_depth) ldepth = ltop + min_depth
-         end if
-      else
-        FLAbort("Unknown method of specifying the bottom_depth.")
-      end if
-    end if
+    call  compute_z_extent(xy, &
+                              depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, map_depth, &
+                              top_is_constant, top, top_from_python, top_function, top_from_map, map_top, &
+                              have_min_depth, min_depth, &
+                              ldepth, ltop)
    
     if (sizing_is_constant) then
       call compute_z_nodes_sizing_with_top(z_mesh, ldepth, ltop, top_max, xy, &
