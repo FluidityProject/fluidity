@@ -189,7 +189,7 @@ module hadapt_extrude_radially
 
       call get_option(trim(option_path)//&
                   '/from_mesh/extrude/regions['//int2str(r)//&
-                  ']/minimum_bottom_layer_fraction', &
+                  ']/minimum_layer_fraction', &
                   min_bottom_layer_frac, default=1.e-3)
       
       ! create a 1d radial mesh under each surface node
