@@ -463,6 +463,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	create\_param\_sweep			& \ref{sec:create_param_sweep}		\\
 	differentiate\_vtu          		& \ref{sec:differentiate_vtu}		\\
 	edge\_length\_distribution		& \ref{sec:edgelengthdist} 		\\
+	encode                  		& \ref{sec:encode} 	        	\\
 	fladapt					& \ref{sec:fladapt}			\\
 	fldecomp				& \ref{sec:fldecomp}			\\
 	fldiagnostics				& \ref{sec:fldiagnostics}		\\
@@ -483,6 +484,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 	project\_vtu				& \ref{sec:project_vtu} 		\\
 	pvtu2vtu				& \ref{sec:pvtu2vtu}			\\
 	rename\_checkpoint			& \ref{sec:rename_checkpoint}		\\
+	runut           			& \ref{sec:runut}		        \\
 	stat2csv				& \ref{sec:stat2csv}			\\
 	statplot				& \ref{sec:statplot} 			\\
 	streamfunction\_2d			& \ref{sec:streamfunction_2d} 		\\
@@ -686,6 +688,23 @@ where \lstinline[language = Python]+vtu_filename+ is the input vtu file. The \ls
 --pvtu		Uses pvtus instead of vtus
 
 \end{lstlisting}
+
+%%%%%%%%%%%%%%%%%% ENCODE %%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{encode}
+\label{sec:encode}
+Script to encode .avi movies playable on Windows machines. Requires arguments:   
+\begin{lstlisting}
+1st     image file type (e.g. jpg,png,etc...)
+2nd     path to folder containing images, and for movie output.
+3rd     name of movie output file (without the file extension).
+4th     OPTIONAL - enter characters here to limit the image files used 
+        as frames (e.g. 'image1' would only select images 
+        which satisfy 'image1*.jpg').
+\end{lstlisting}
+
+For example, \texttt{encode.sh jpg /data/movie\_files my\_movie image002} will encode a movie called my\_movie using all jpg files from the directory /data/movie\_files/ starting with the characters 'image002'.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%% FLADAPT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1083,6 +1102,15 @@ vtu and pvtu files in the current directory produced from a checkpointed paralle
 rename_checkpoint [options] base_filename index
 \end{lstlisting}
 
+%%%%%%%%%%%%%%%%%%%%%% RUNUT %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{runut}
+\label{sec:runut}
+Run a specified unit test with:
+\begin{lstlisting}[language = Bash]
+runut UNIT\_TEST\_NAME
+\end{lstlisting} 
+where \lstinline[language = Bash]+UNIT\_TEST\_NAME+ is the name of the unit test.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% STAT2CSV %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
