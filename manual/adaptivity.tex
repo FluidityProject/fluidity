@@ -415,6 +415,7 @@ For new users, altering the weights should be the primary way to control the
 size of the adapted mesh. 
 
 \subsection{Metric advection}
+\label{section:metric_advection_general}
 Metric advection is a technique that uses the current flow velocity to advect the metric forward in time over the period until the next mesh adapt. This allows an estimate of the mesh resolution required at each time--step before the next adapt to be obtained and incorporated into the adapted mesh \citep{wilson_phdthesis_2009}. Each component of the metric is advected as a scalar using a control volume scheme, section \ref{sec:ND_control_volume_advection}. The time--step for this calculation is determined by a specified Courant number. 
 
 With metric advection, mesh resolution is `pushed ahead' of the flow such that, between mesh adapts, the dynamics of interest are less likely to propagate out of the region of higher resolution. This leads to a larger area that requires refinement and, therefore, an increase in the number of nodes. However, metric advection can allow the frequency of adapt to be reduced whilst maintaining a good representation of the dynamics
