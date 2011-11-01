@@ -195,11 +195,6 @@
             & .true.
     end if
 
-    if(have_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_fiel&
-         &d')) then
-       call recompute_coordinate_field(state(1))
-    end if
-
     call get_parameters
 
     !This needs an option to switch on as we don't always want to do it.

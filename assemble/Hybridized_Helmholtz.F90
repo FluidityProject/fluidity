@@ -2503,6 +2503,7 @@ contains
        call set_velocity_from_sphere_pullback_ele&
             &(U,X,Python_Function,R0,ele)
     end do
+    stop
     
   end subroutine set_velocity_from_sphere_pullback
 
@@ -2534,6 +2535,7 @@ contains
          mesh_dim(U)*ele_loc(U,ele)) :: l_u_mat
     real, dimension(mesh_dim(U)*ele_loc(U,ele)) :: l_u_rhs    
     type(element_type) :: u_shape
+    real :: U0
 
     !Get X at quad points
     X_quad = ele_val_at_quad(X,ele)
@@ -2557,27 +2559,36 @@ contains
     end if
 
     !Compute the normal to the element at quad points
-    m_normal(1,:) = xm/(xm**2+ym**2+zm**2)
-    m_normal(2,:) = ym/(xm**2+ym**2+zm**2)
-    m_normal(3,:) = zm/(xm**2+ym**2+zm**2)
+    m_normal(1,:) = xm/(xm**2+ym**2+zm**2)**0.5
+    m_normal(2,:) = ym/(xm**2+ym**2+zm**2)**0.5
+    m_normal(3,:) = zm/(xm**2+ym**2+zm**2)**0.5
     assert(maxval(abs(sum(Us_quad*m_normal,1)))<1.0e-7)
-    e_normal(1,:) = xe/(xe**2+ye**2+ze**2)
-    e_normal(2,:) = ye/(xe**2+ye**2+ze**2)
-    e_normal(3,:) = ze/(xe**2+ye**2+ze**2)
+    assert(maxval(abs(sum(m_normal**2,1)-1.0))<1.0e-8)
+    e_normal(1,:) = xe/(xe**2+ye**2+ze**2)**0.5
+    e_normal(2,:) = ye/(xe**2+ye**2+ze**2)**0.5
+    e_normal(3,:) = ze/(xe**2+ye**2+ze**2)**0.5
+    assert(maxval(abs(sum(e_normal**2,1)-1.0))<1.0e-8)
     call get_up_gi(X,ele,e_normal)
+    assert(maxval(abs(sum(e_normal**2,1)-1.0))<1.0e-8)
     pole_axis = 0.
     pole_axis(3,:) = 1.
-
     !Get e_basis, m_basis
     !Assumes that the centre of the sphere is at (0,0,0)
     !and that the pole axis is (0,0,1)
     do gi = 1, ele_ngi(X,ele)
        if(.not.((x_quad(1,gi)==0.).and.(x_quad(2,gi)==0.))) then
           e_basis(1,:,gi) = cross_product(pole_axis(:,gi),e_normal(:,gi))
+          e_basis(1,:,gi) = e_basis(1,:,gi)/sqrt(sum(e_basis(1,:,gi)**2))
           assert(abs(dot_product(e_basis(1,:,gi),pole_axis(:,gi)))<1.0e-8)
+          assert(abs(sum(pole_axis(:,gi)**2)-1.0)<1.0e-8)
+          assert(abs(sum(e_basis(1,:,gi)**2)-1.0)<1.0e-8)
           e_basis(2,:,gi) = cross_product(e_normal(:,gi),e_basis(1,:,gi))
+          assert(abs(sum(e_basis(2,:,gi)**2)-1.0)<1.0e-8)
           m_basis(1,:,gi) = cross_product(pole_axis(:,gi),m_normal(:,gi))
-          m_basis(2,:,gi) = cross_product(m_normal(:,gi),m_basis(1,:,gi))          
+          m_basis(1,:,gi) = m_basis(1,:,gi)/sqrt(sum(m_basis(1,:,gi)**2))
+          assert(abs(sum(m_basis(1,:,gi)**2)-1.0)<1.0e-8)
+          m_basis(2,:,gi) = cross_product(m_normal(:,gi),m_basis(1,:,gi))
+          assert(abs(sum(m_basis(2,:,gi)**2)-1.0)<1.0e-8)
        else
           FLAbort('Quadrature point at pole.')
           e_basis(1,:,gi) = (/1,0,0/)
@@ -2587,10 +2598,16 @@ contains
        end if
     end do
 
+    !Debugging - checking that we have the solution we expect
+    !Obviously this only works for the one test case
+    do gi = 1, ele_ngi(X,ele)
+       assert(abs(sum(m_basis(2,:,gi)*us_quad(:,gi)))<1.0e-8)
+       U0 = 3.141592653589793*2*(R0**2-zm(gi)**2)**0.5/(12*24*60*60)
+       ewrite(1,*) '1 cpt US', sum(Us_quad(:,gi)*m_basis(1,:,gi)), U0
+       assert(abs(sum(Us_quad(:,gi)*m_basis(1,:,gi))-U0)<1.0e-8)
+    end do
+
     !Get Jacobian of transformation onto the sphere
-    xe = X_quad(1,:)
-    ye = X_quad(2,:)
-    ze = X_quad(3,:)
     Rz = (R0**2-ze**2)**0.5
     Js(1,1,:) = Rz*Ye**2/(xe**2+ye**2)**1.5
     Js(1,2,:) = -Rz*Xe*Ye/(xe**2+ye**2)**1.5
@@ -2613,6 +2630,7 @@ contains
        Jr(2,2,gi) = dot_product(e_basis(1,:,gi),&
             matmul(Js(:,:,gi),m_basis(1,:,gi)))
     end do
+    ewrite(1,*) 'maxval Jr', maxval(Jr), maxval(m_basis),maxval(e_basis)
 
     !Transform velocity
     do gi = 1, ele_ngi(X,ele)
@@ -2620,8 +2638,19 @@ contains
            &matmul(Jr(:,:,gi),matmul(m_basis(:,:,gi),Us_quad(:,gi))))
     end do
 
+    !debugging stuff
     assert(maxval(abs(sum(U_quad*e_normal,1)))<1.0e-8)
     assert(maxval(abs(sum(U_quad*e_basis(2,:,:),1)))<1.0e-8)
+    !E_basis(1,:,gi) should be the zonal component!
+    do gi = 1, ele_ngi(X,ele)
+       U0 = 3.141592653589793*2*Rz(gi)/(12*24*60*60)
+       ewrite(1,*) '1 cpt', sum(U_quad(:,gi)*e_basis(1,:,gi)), U0
+       assert(abs(sum(U_quad(:,gi)*e_basis(1,:,gi))-U0)<1.0e-8)
+    end do
+
+    do gi = 1, ele_ngi(X,ele)
+       ewrite(1,*) abs(sum(e_basis(1,:,gi)*us_quad(:,gi)))
+    end do
 
     !project into local coordinate system
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
@@ -2659,7 +2688,7 @@ contains
     assert(maxval(abs(U_quad-U_quad_2))<1.0e-7)
 
     do dim1 = 1, mesh_dim(U)
-       call set(U,dim1,ele_nodes(U,ele),l_u_rhs((dim1-1)*uloc+1:dim1*uloc))
+       call set(U,ele_nodes(U,ele),U_local_loc)
     end do
 
   end subroutine set_velocity_from_sphere_pullback_ele
