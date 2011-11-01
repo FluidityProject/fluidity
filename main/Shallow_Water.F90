@@ -202,6 +202,13 @@
 
     call get_parameters
 
+    !This needs an option to switch on as we don't always want to do it.
+    !if(hybridized) then
+    !   !project velocity into div-conforming space
+    !   v_field => extract_vector_field(state(1),"LocalVelocity")
+    !   call project_to_constrained_space(state(1),v_field)
+    !end if
+
     ! No support for multiphase or multimaterial at this stage.
     if (size(state)/=1) then
        FLExit("Multiple material_phases are not supported")
@@ -213,13 +220,6 @@
 
     ! Always output the initial conditions.
     call output_state(state)
-
-    !This needs an option to switch on as we don't always want to do it.
-    !if(hybridized) then
-    !   !project velocity into div-conforming space
-    !   v_field => extract_vector_field(state(1),"LocalVelocity")
-    !   call project_to_constrained_space(state(1),v_field)
-    !end if
 
     if(hybridized) then
        call compute_energy_hybridized(state(1),energy)

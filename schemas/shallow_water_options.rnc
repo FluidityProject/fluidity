@@ -576,11 +576,8 @@ input_choice_initial_condition_vector =
       ## Evaluate velocity by pulling back from sphere
       ## using transformation
       ## z -> z, (x,y) --> R(x,y) where R=(R_0^2-z^2)^0.5
-      ## This just applies the transformation of the velocity 
-      ## to the tangent plane,
-      ## user needs to apply the coordinate transformation in the 
-      ## Python code.
       element from_sphere_pullback {
+         ## Vector field on the sphere to be pulled back to mesh.
          ## Python function prescribing dimensional vector input. Functions should be of the form:
          ##
          ##  def val(X, t):

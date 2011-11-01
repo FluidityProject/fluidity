@@ -2458,7 +2458,7 @@ contains
 
     !real, dimension(mesh_dim(U_local), X%dim, ele_ngi(U_local,ele)) :: J
     do gi = 1, ele_ngi(U,ele)
-       u_cart_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))/detJ(gi)
+       u_cart_quad(:,gi) = matmul(J(:,:,gi),u_cart_quad(:,gi))
     end do
 
     uloc = ele_loc(U,ele)
@@ -2471,7 +2471,8 @@ contains
                & u_shape%quadrature%weight*Metric(dim1,dim2,:))
        end do
        l_u_rhs((dim1-1)*uloc+1:dim1*uloc) = &
-            & shape_rhs(u_shape,u_cart_quad(dim1,:)*detwei)
+            & shape_rhs(u_shape,u_cart_quad(dim1,:)*&
+            U%mesh%shape%quadrature%weight)
     end do
 
     call solve(l_u_mat,l_u_rhs)
@@ -2484,14 +2485,13 @@ contains
   subroutine set_velocity_from_sphere_pullback(state)
     type(state_type), intent(inout) :: state
     !
-    type(vector_field), pointer :: X,U, down
+    type(vector_field), pointer :: X,U
     character(len=PYTHON_FUNC_LEN) :: Python_Function
     real :: R0
     integer :: ele
 
     X=>extract_vector_field(state, "Coordinate")
     U=>extract_vector_field(state, "LocalVelocity")
-    down=>extract_vector_field(state, "GravityDirection")
     call get_option("/material_phase::Fluid/vector_field::Velocity&
          &/prognostic/initial_condition::WholeMesh/&
          &from_sphere_pullback/python",Python_Function)
@@ -2501,21 +2501,23 @@ contains
 
     do ele = 1, element_count(U)
        call set_velocity_from_sphere_pullback_ele&
-            &(U,X,down,Python_Function,R0,ele)
+            &(U,X,Python_Function,R0,ele)
     end do
     
   end subroutine set_velocity_from_sphere_pullback
 
   subroutine set_velocity_from_sphere_pullback_ele&
-       (U,X,down,Python_Function,R0,ele)
+       (U,X,Python_Function,R0,ele)
     type(vector_field), intent(inout) :: U
     type(vector_field), intent(in) :: X
-    type(vector_field), intent(in) :: down
     character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
     integer, intent(in) :: ele
     real, intent(in) :: R0
     !
-    real, dimension(X%dim,ele_ngi(U,ele)) :: X_quad,Us_quad,U_quad
+    real, dimension(X%dim,ele_ngi(U,ele)) :: X_quad,Us_quad,U_quad,&
+         & U_quad_2,Xs_quad
+    real, dimension(mesh_dim(X),ele_ngi(U,ele)) :: U_local_quad
+    real, dimension(mesh_dim(X),ele_loc(U,ele)) :: U_local_loc
     !local basis for velocity
     ! (basis number, dimension, gi)
     real, dimension(mesh_dim(X), X%dim, ele_ngi(X,ele)) :: e_basis,m_basis
@@ -2526,7 +2528,8 @@ contains
     real, dimension(mesh_dim(U), X%dim, ele_ngi(U,ele)) :: J
     real, dimension(3,3,ele_ngi(X,ele)) :: Js
     real, dimension(2,2,ele_ngi(X,ele)) :: Jr
-    real, dimension(ele_ngi(U,ele)) :: detJ, detwei,Rz,Xe,Ye,Ze
+    real, dimension(ele_ngi(U,ele)) :: detJ, detwei,Rz,Xe,Ye,Ze,&
+         Xm,Ym,Zm
     real, dimension(mesh_dim(U)*ele_loc(U,ele),&
          mesh_dim(U)*ele_loc(U,ele)) :: l_u_mat
     real, dimension(mesh_dim(U)*ele_loc(U,ele)) :: l_u_rhs    
@@ -2534,11 +2537,17 @@ contains
 
     !Get X at quad points
     X_quad = ele_val_at_quad(X,ele)
+    !Transform X to sphere using z-preserving projection (cylindrical)
+    xe = X_quad(1,:)
+    ye = X_quad(2,:)
+    ze = X_quad(3,:)
+    Xm = (R0**2-ze**2)**0.5*xe/(xe**2+ye**2)**0.5
+    Ym = (R0**2-ze**2)**0.5*ye/(xe**2+ye**2)**0.5
+    Zm = ze
 
     !Get U tangent to the sphere
     call set_vector_field_from_python(python_function, len(python_function),&
-         & dim=3,nodes=ele_ngi(X,ele),x=X_quad(1,:),y=X_quad(2,:)&
-         &,z=x_quad(3,:),t=0.0,result_dim=2,&
+         & dim=3,nodes=ele_ngi(X,ele),x=Xm,y=Ym,z=Zm,t=0.0,result_dim=3,&
          & result_x=Us_quad(1,:),&
          & result_y=Us_quad(2,:),&
          & result_z=Us_quad(3,:),&
@@ -2548,8 +2557,13 @@ contains
     end if
 
     !Compute the normal to the element at quad points
-    m_normal = -ele_val_at_quad(down,ele)
-    e_normal = m_normal
+    m_normal(1,:) = xm/(xm**2+ym**2+zm**2)
+    m_normal(2,:) = ym/(xm**2+ym**2+zm**2)
+    m_normal(3,:) = zm/(xm**2+ym**2+zm**2)
+    assert(maxval(abs(sum(Us_quad*m_normal,1)))<1.0e-7)
+    e_normal(1,:) = xe/(xe**2+ye**2+ze**2)
+    e_normal(2,:) = ye/(xe**2+ye**2+ze**2)
+    e_normal(3,:) = ze/(xe**2+ye**2+ze**2)
     call get_up_gi(X,ele,e_normal)
     pole_axis = 0.
     pole_axis(3,:) = 1.
@@ -2560,6 +2574,7 @@ contains
     do gi = 1, ele_ngi(X,ele)
        if(.not.((x_quad(1,gi)==0.).and.(x_quad(2,gi)==0.))) then
           e_basis(1,:,gi) = cross_product(pole_axis(:,gi),e_normal(:,gi))
+          assert(abs(dot_product(e_basis(1,:,gi),pole_axis(:,gi)))<1.0e-8)
           e_basis(2,:,gi) = cross_product(e_normal(:,gi),e_basis(1,:,gi))
           m_basis(1,:,gi) = cross_product(pole_axis(:,gi),m_normal(:,gi))
           m_basis(2,:,gi) = cross_product(m_normal(:,gi),m_basis(1,:,gi))          
@@ -2573,14 +2588,14 @@ contains
     end do
 
     !Get Jacobian of transformation onto the sphere
-    Rz = (R0-X_quad(3,:))**0.5
     xe = X_quad(1,:)
     ye = X_quad(2,:)
     ze = X_quad(3,:)
+    Rz = (R0**2-ze**2)**0.5
     Js(1,1,:) = Rz*Ye**2/(xe**2+ye**2)**1.5
     Js(1,2,:) = -Rz*Xe*Ye/(xe**2+ye**2)**1.5
     Js(1,3,:) = -Xe*Ze/(xe**2+ye**2)**0.5/Rz
-    Js(2,1,:) = -Rz*Xe*Ye**2/(xe**2+ye**2)**1.5
+    Js(2,1,:) = -Rz*Xe*Ye/(xe**2+ye**2)**1.5
     Js(2,2,:) = Rz*Xe**2/(xe**2+ye**2)**1.5
     Js(2,3,:) = -Ye*Ze/(xe**2+ye**2)**0.5/Rz
     Js(3,1,:) = 0.
@@ -2602,8 +2617,11 @@ contains
     !Transform velocity
     do gi = 1, ele_ngi(X,ele)
        U_quad(:,gi) = matmul(transpose(e_basis(:,:,gi)),&
-            &matmul(Jr(:,:,gi),matmul(m_basis(:,:,gi),Us_quad(:,gi))))
+           &matmul(Jr(:,:,gi),matmul(m_basis(:,:,gi),Us_quad(:,gi))))
     end do
+
+    assert(maxval(abs(sum(U_quad*e_normal,1)))<1.0e-8)
+    assert(maxval(abs(sum(U_quad*e_basis(2,:,:),1)))<1.0e-8)
 
     !project into local coordinate system
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
@@ -2612,7 +2630,7 @@ contains
        Metric(:,:,gi)=matmul(J(:,:,gi), transpose(J(:,:,gi)))/detJ(gi)
     end do
     do gi = 1, ele_ngi(U,ele)
-       u_quad(:,gi) = matmul(J(:,:,gi),u_quad(:,gi))/detJ(gi)
+       u_local_quad(:,gi) = matmul(J(:,:,gi),u_quad(:,gi))
     end do
 
     uloc = ele_loc(U,ele)
@@ -2625,10 +2643,21 @@ contains
                & u_shape%quadrature%weight*Metric(dim1,dim2,:))
        end do
        l_u_rhs((dim1-1)*uloc+1:dim1*uloc) = &
-            & shape_rhs(u_shape,u_quad(dim1,:)*detwei)
+            & shape_rhs(u_shape,u_local_quad(dim1,:)*&
+            & u_shape%quadrature%weight)
     end do
 
     call solve(l_u_mat,l_u_rhs)
+    do dim1 = 1, mesh_dim(U)
+       U_local_loc(dim1,:) = l_u_rhs((dim1-1)*uloc+1:dim1*uloc)
+    end do
+    !debugging stuff
+    U_local_quad = matmul(U_local_loc,u_shape%n)
+    do gi = 1, ele_ngi(U,ele)
+       U_quad_2(:,gi) = matmul(transpose(J(:,:,gi)),U_local_quad(:,gi))/detJ(gi)
+    end do
+    assert(maxval(abs(U_quad-U_quad_2))<1.0e-7)
+
     do dim1 = 1, mesh_dim(U)
        call set(U,dim1,ele_nodes(U,ele),l_u_rhs((dim1-1)*uloc+1:dim1*uloc))
     end do

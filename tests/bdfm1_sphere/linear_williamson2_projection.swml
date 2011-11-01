@@ -47,7 +47,7 @@
           </solver>
           <check_continuity>
             <tolerance>
-              <real_value rank="0">1.0e-8</real_value>
+              <real_value rank="0">5.0e-7</real_value>
             </tolerance>
           </check_continuity>
           <check_continuity_matrix>
@@ -213,23 +213,17 @@
         <initial_condition name="WholeMesh">
           <from_sphere_pullback>
             <python>
-              <string_value type="python" lines="20">def val(X,t):
+              <string_value lines="20" type="python">def val(X,t):
   from math import pi
   x = X[0]
   y = X[1]
   z = X[2]
   R0 = 6.37122e6
-  #apply mapping
-  Rh = (x**2+y**2)**0.5
-  Rz = (R0**2 - z**2)**0.5
-  Xs = x*Rz/Rh
-  Ys = y*Rz/Rh
-  cosphi = Rz/R0
   u0 = 2*pi*R0/(12.*24.*60.*60.)
   if(z==1.0 or z==-1.0):
     return [0,0,0]
   else:
-    return [-u0*cosphi*Ys/Rz,u0*cosphi*Xs/Rz,0]</string_value>
+    return [-u0*y/R0,u0*x/R0,0]</string_value>
             </python>
             <sphere_radius>
               <real_value rank="0">6.37122e6</real_value>
