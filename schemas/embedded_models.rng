@@ -80,6 +80,13 @@ Requires name of diffusivity field and according gradient field.</a:documentatio
                       <attribute name="diffusivity_gradient">
                         <data type="string"/>
                       </attribute>
+                      <optional>
+                        <element name="auto_subcycle">
+                          <attribute name="diffusivity_2nd_gradient">
+                            <data type="string"/>
+                          </attribute>
+                        </element>
+                      </optional>
                     </element>
                   </choice>
                 </element>

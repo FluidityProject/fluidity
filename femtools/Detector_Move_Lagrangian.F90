@@ -162,22 +162,26 @@ contains
 
     type(rk_gs_parameters), pointer :: parameters
     type(vector_field), pointer :: vfield, xfield
-    type(detector_type), pointer :: detector
+    type(detector_type), pointer :: detector, move_detector
+    type(detector_linked_list) :: subcycle_detector_list
     type(halo_type), pointer :: ele_halo
-    integer :: i, j, num_proc, dim, stage, cycle
+    integer :: i, j, num_proc, dim, stage, cycle, subsubcycle
     logical :: any_lagrangian
-    real :: rk_dt
+    real :: sub_dt
 
     ! Random Walk velocity source
     real, dimension(:), allocatable :: rw_velocity_source
     type(scalar_field), pointer :: diffusivity_field
-    type(vector_field), pointer :: diffusivity_grad
+    type(vector_field), pointer :: diffusivity_grad, diffusivity_2nd_grad
+    integer :: auto_subcycles = 0
 
     ewrite(1,*) "In move_lagrangian_detectors for detectors list: ", detector_list%name
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
 
     parameters => detector_list%move_parameters
+    subcycle_detector_list%move_parameters => parameters
+    subcycle_detector_list%move_parameters => parameters
 
     ! For Random Walk first run the user code, so we can pull fields from state
     if (parameters%do_random_walk.and. .not.parameters%use_internal_rw) then
@@ -188,18 +192,23 @@ contains
 
     ! Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
-    vfield=>extract_vector_field(state(1),"Velocity")
+    vfield=>extract_vector_field(state(1), "Velocity")
     allocate(rw_velocity_source(xfield%dim))
 
     if (parameters%use_internal_rw) then
        diffusivity_field=>extract_scalar_field(state(1), trim(parameters%diffusivity_field))
        diffusivity_grad=>extract_vector_field(state(1), trim(parameters%diffusivity_grad))
+
+       if (parameters%auto_subcycle) then
+          diffusivity_2nd_grad=>extract_vector_field(state(1), trim(parameters%diffusivity_2nd_grad))
+       end if
     end if
 
     ! Allocate det%k and det%update_vector
     call allocate_rk_guided_search(detector_list, xfield%dim, parameters%n_stages)
-    rk_dt = dt/parameters%n_subcycles
+    sub_dt = dt/parameters%n_subcycles
 
+    ! This is the outer, user-defined subcycling loop
     subcycling_loop: do cycle = 1, parameters%n_subcycles
 
        ! Reset update_vector to position
@@ -211,16 +220,15 @@ contains
           detector => detector%next
        end do
 
+       ! Explicit Runge-Kutta iterations
        RKstages_loop: do stage = 1, parameters%n_stages
 
-          ! Compute the update vector
-          call set_stage(detector_list,vfield,xfield,rk_dt,stage)
+          ! Compute the update vector for the current stage
+          call set_stage(detector_list,vfield,xfield,sub_dt,stage)
 
-          !Detectors leaving the domain from non-owned elements
-          !are entering a domain on another processor rather 
-          !than leaving the physical domain. In this subroutine
-          !such detectors are removed from the detector list
-          !and added to the send_list_array
+          ! Move update parametric detector coordinates according to update_vector
+          ! If this takes a detector across parallel domain boundaries
+          ! the routine will also send the detector
           call move_detectors_guided_search(detector_list,xfield)
 
        end do RKstages_loop
@@ -228,23 +236,80 @@ contains
        ! Add the Random Walk displacement 
        if (parameters%do_random_walk) then
 
-          detector => detector_list%first
-          do while (associated(detector))
-             if (detector%type==LAGRANGIAN_DETECTOR) then
-                ! Evaluate the RW python function and add to update_vector
-                if (parameters%use_internal_rw) then
-                   call calc_diffusive_rw(detector, rk_dt, xfield, diffusivity_field, &
-                          diffusivity_grad, rw_velocity_source)
-                else
-                   call python_run_detector_val_function(detector,xfield,rk_dt, &
-                          trim(detector_list%name),trim("random_walk"),rw_velocity_source)
-                end if
-                detector%update_vector=detector%update_vector + (rw_velocity_source)
-             end if
-             detector => detector%next
-          end do
+          if (parameters%use_internal_rw .and. parameters%auto_subcycle) then
+             ! Sub-cycle the RW 
 
-          call move_detectors_guided_search(detector_list,xfield)
+             ! First pass establishes how many sub-sub-cycles are required
+             detector => detector_list%first
+             do while (associated(detector))
+                if (detector%type==LAGRANGIAN_DETECTOR) then
+                   call calc_auto_subcycling_rw(detector, sub_dt, xfield, diffusivity_field, &
+                          diffusivity_2nd_grad, detector%rw_subsubcycles)         
+
+                   call calc_diffusive_rw(detector, sub_dt/detector%rw_subsubcycles, xfield, &
+                          diffusivity_field, diffusivity_grad, rw_velocity_source)
+                   detector%update_vector=detector%update_vector + (rw_velocity_source)
+
+                   ! Separate the ones that have more to do...
+                   if (detector%rw_subsubcycles > 1) then
+                      move_detector=>detector
+                      detector => detector%next
+                      call move(move_detector, detector_list, subcycle_detector_list)
+                   else
+                      detector => detector%next
+                   end if
+                end if
+             end do
+
+             ! Update elements in the subcycle list
+             if (subcycle_detector_list%length > 0) then
+                call move_detectors_guided_search(subcycle_detector_list,xfield)
+             end if
+
+             subsubcycle = 2
+             do while (subcycle_detector_list%length > 0)
+                ewrite(2,*) "ml805 subsubcycle", subsubcycle
+                detector => subcycle_detector_list%first
+                do while (associated(detector))
+                   call calc_diffusive_rw(detector, sub_dt/detector%rw_subsubcycles, xfield, diffusivity_field, &
+                          diffusivity_grad, rw_velocity_source)
+                   detector%update_vector=detector%update_vector + (rw_velocity_source)
+
+                   ! Separate the ones that have more to do...
+                   if (detector%rw_subsubcycles <= subsubcycle) then
+                      move_detector=>detector
+                      detector => detector%next
+                      call move(move_detector, subcycle_detector_list, detector_list)
+                   else
+                      detector => detector%next
+                   end if
+                end do
+                call move_detectors_guided_search(subcycle_detector_list,xfield)
+                subsubcycle = subsubcycle + 1
+             end do
+
+             call move_detectors_guided_search(detector_list,xfield)
+
+          else
+             ! Evaluate RW for one cycle
+             detector => detector_list%first
+             do while (associated(detector))
+                if (detector%type==LAGRANGIAN_DETECTOR) then
+                   ! Evaluate the RW python function and add to update_vector
+                   if (parameters%use_internal_rw) then
+                      call calc_diffusive_rw(detector, sub_dt, xfield, diffusivity_field, &
+                          diffusivity_grad, rw_velocity_source)
+                   else
+                      call python_run_detector_val_function(detector,xfield,sub_dt, &
+                          trim(detector_list%name),trim("random_walk"),rw_velocity_source)
+                   end if
+                   detector%update_vector=detector%update_vector + (rw_velocity_source)
+                end if
+                detector => detector%next
+             end do
+
+             call move_detectors_guided_search(detector_list,xfield)
+          end if
        end if
 
        ! After everything is done, we update detector%position
@@ -422,7 +487,7 @@ contains
 
   end subroutine move_detectors_guided_search
 
-  subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner,l_coords)
+  subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner)
     ! Do a local guided search until we either hit the new element 
     ! or have to leave the local domain. The new_owner argument indicates
     ! whether we have found the new element, where to continue searching
@@ -542,6 +607,27 @@ contains
     deallocate(face_nodes)
 
   end subroutine reflect_on_boundary
+
+  subroutine calc_auto_subcycling_rw(detector, dt, xfield, diff_field, grad2_field, subcycles)
+    type(detector_type), pointer, intent(in) :: detector
+    type(scalar_field), pointer, intent(in) :: diff_field
+    type(vector_field), pointer, intent(in) :: xfield, grad2_field
+    real, intent(in) :: dt
+    integer, intent(out) :: subcycles
+
+    integer, dimension(:), pointer :: current_ele_nodes
+    real, dimension(:), allocatable :: node_vals
+
+    ! Find maximum K'' node value in current element
+    ! dt << MIN(1/|K''|), for all nodes
+    current_ele_nodes=>ele_nodes(grad2_field, detector%element)
+    allocate(node_vals(size(current_ele_nodes)))
+    node_vals = abs(node_val(grad2_field, grad2_field%dim, current_ele_nodes))
+    node_vals = 1.0 / node_vals
+    subcycles = ceiling(dt/minval(node_vals))
+    deallocate(node_vals)
+
+  end subroutine calc_auto_subcycling_rw
 
   subroutine calc_diffusive_rw(detector, dt, xfield, diff_field, grad_field, displacement)
     type(detector_type), pointer, intent(in) :: detector

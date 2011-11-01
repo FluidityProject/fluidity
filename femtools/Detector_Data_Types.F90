@@ -67,6 +67,8 @@ module detector_data_types
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
      real, dimension(:), allocatable :: update_vector
+     !! Counter for internal Random Walk sub-cycling
+     integer :: rw_subsubcycles = 1
      !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null() 
@@ -90,9 +92,12 @@ module detector_data_types
     ! Python code to execute for Random Walk
     character(len=PYTHON_FUNC_LEN) :: rw_pycode
 
-    ! Field names for internal Random Walk schemes
+    ! Internal Diffusive Random Walk with automatic sub-cycling
     logical :: use_internal_rw=.false.
+    logical :: auto_subcycle=.false.
+    ! Field names for internal Diffusive Random Walk scheme
     character(len=FIELD_NAME_LEN) :: diffusivity_field, diffusivity_grad
+    character(len=FIELD_NAME_LEN) :: diffusivity_2nd_grad
   end type rk_gs_parameters
 
   type detector_linked_list

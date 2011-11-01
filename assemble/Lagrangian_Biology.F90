@@ -114,7 +114,14 @@ contains
              ! Initialise random number generator
              rnd_dim=1
              call random_seed(size=rnd_dim)
-             call randoM_seed(put=rnd_seed(1:rnd_dim))
+             call random_seed(put=rnd_seed(1:rnd_dim))
+
+             ! Flag if we want automatic subcycling for internal Diffusive Random Walk
+             if (have_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/auto_subcycle")) then 
+                agent_arrays(i)%move_parameters%auto_subcycle=.true.
+                call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/auto_subcycle/diffusivity_2nd_gradient", &
+                    agent_arrays(i)%move_parameters%diffusivity_2nd_grad)
+             end if
           end if
           
        else

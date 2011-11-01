@@ -70,7 +70,10 @@ lagrangian_biology =
                      ## Requires name of diffusivity field and according gradient field.
                      element diffusive_random_walk {
                         attribute diffusivity_field { xsd:string },
-                        attribute diffusivity_gradient { xsd:string }
+                        attribute diffusivity_gradient { xsd:string },
+                        element auto_subcycle {
+                           attribute diffusivity_2nd_gradient { xsd:string }
+                        }?
                      }
                   )
                }?,

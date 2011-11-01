@@ -75,6 +75,7 @@
     </timestep>
     <finish_time>
       <real_value rank="0">1200000</real_value>
+      <comment>1200000</comment>
     </finish_time>
   </timestepping>
   <material_phase name="Water">
@@ -114,7 +115,7 @@ def get_spline(t):
   # create spline
   height = arange(0.0, 60.0, 0.1)
   mu = [visser_curve(z) for z in height]
-  tck = interpolate.splrep(height,mu, s=0.0002)
+  tck = interpolate.splrep(height,mu)###, s=0.0002)
   return tck
   
 def visser_curve(z):
@@ -225,46 +226,7 @@ def val(X, t):
       </diagnostic>
     </vector_field>
   </material_phase>
-  <mesh_adaptivity>
-    <hr_adaptivity>
-      <period_in_timesteps>
-        <integer_value rank="0">10000</integer_value>
-      </period_in_timesteps>
-      <maximum_number_of_nodes>
-        <integer_value rank="0">200000</integer_value>
-      </maximum_number_of_nodes>
-      <enable_gradation>
-        <gradation_parameter>
-          <real_value rank="0">2.0</real_value>
-        </gradation_parameter>
-      </enable_gradation>
-      <tensor_field name="MinimumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10 0 0 0 10 0 0 0 0.25</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-      <tensor_field name="MaximumEdgeLengths">
-        <anisotropic_symmetric>
-          <constant>
-            <real_value symmetric="true" dim2="dim" shape="3 3" dim1="dim" rank="2">10 0 0 0 10 0 0 0 60.0</real_value>
-          </constant>
-        </anisotropic_symmetric>
-      </tensor_field>
-      <adapt_at_first_timestep>
-        <number_of_adapts>
-          <integer_value rank="0">6</integer_value>
-        </number_of_adapts>
-      </adapt_at_first_timestep>
-      <vertically_structured_adaptivity>
-        <inhomogenous_vertical_resolution>
-          <adapt_in_vertical_only/>
-        </inhomogenous_vertical_resolution>
-        <vertically_align_metric/>
-      </vertically_structured_adaptivity>
-    </hr_adaptivity>
-  </mesh_adaptivity>
+  <mesh_adaptivity/>
   <embedded_models>
     <lagrangian_ensemble_biology>
       <functional_group>
@@ -284,12 +246,14 @@ def val(X, t):
   return reshape(concatenate((x,y,z)),(3,1000)).T</string_value>
           </initial_position>
           <random_walk>
-            <diffusive_random_walk diffusivity_gradient="DiffusivityGradient" diffusivity_field="Diffusivity"/>
+            <diffusive_random_walk diffusivity_gradient="DiffusivityGradient" diffusivity_field="Diffusivity">
+              <auto_subcycle diffusivity_2nd_gradient="DiffusivitySecondGradient"/>
+            </diffusive_random_walk>
           </random_walk>
         </agent_array>
         <lagrangian_timestepping>
           <subcycles>
-            <integer_value rank="0">15</integer_value>
+            <integer_value rank="0">1</integer_value>
           </subcycles>
           <search_tolerance>
             <real_value rank="0">1.0e-10</real_value>
