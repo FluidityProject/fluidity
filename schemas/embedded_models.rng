@@ -85,6 +85,9 @@ Requires name of diffusivity field and according gradient field.</a:documentatio
                           <attribute name="diffusivity_2nd_gradient">
                             <data type="string"/>
                           </attribute>
+                          <element name="scale_factor">
+                            <ref name="real"/>
+                          </element>
                         </element>
                       </optional>
                     </element>

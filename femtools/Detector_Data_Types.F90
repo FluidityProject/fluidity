@@ -95,6 +95,7 @@ module detector_data_types
     ! Internal Diffusive Random Walk with automatic sub-cycling
     logical :: use_internal_rw=.false.
     logical :: auto_subcycle=.false.
+    real :: subcycle_scale_factor = 0.0
     ! Field names for internal Diffusive Random Walk scheme
     character(len=FIELD_NAME_LEN) :: diffusivity_field, diffusivity_grad
     character(len=FIELD_NAME_LEN) :: diffusivity_2nd_grad

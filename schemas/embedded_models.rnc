@@ -72,7 +72,10 @@ lagrangian_biology =
                         attribute diffusivity_field { xsd:string },
                         attribute diffusivity_gradient { xsd:string },
                         element auto_subcycle {
-                           attribute diffusivity_2nd_gradient { xsd:string }
+                           attribute diffusivity_2nd_gradient { xsd:string },
+                           element scale_factor { 
+                              real
+                           }
                         }?
                      }
                   )

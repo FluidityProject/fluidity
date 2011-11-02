@@ -39,7 +39,7 @@ def plot_diffusivity(file):
   ax.set_ylim(60., 0.)
   xlabel('Diffusivity ($m^2s^{-1}$)')
   ylabel('Depth (m)')
-  savefig('./Diffusivity.png', dpi=90,format='png')
+  savefig('./K.png', dpi=90,format='png')
 
   diffusivity_grad = u.GetVectorField("DiffusivityGradient")[:,2]
   # not perfectly sure why we need to do * -1 here, 
@@ -53,7 +53,7 @@ def plot_diffusivity(file):
   ax.set_ylim(60., 0.)
   xlabel('Diffusivity gradient ($ms^{-1}$)')
   ylabel('Depth (m)')
-  savefig('./Diffusivity_grad.png', dpi=90,format='png')
+  savefig('./Kgrad.png', dpi=90,format='png')
 
   diffusivity_second_grad = u.GetVectorField("DiffusivitySecondGradient")[:,2]
   K_second_grad = [diffusivity_second_grad[i] for i in ind]    
@@ -65,7 +65,7 @@ def plot_diffusivity(file):
   ax.set_ylim(60., 0.)
   xlabel('Diffusivity 2nd gradient ($$)')
   ylabel('Depth (m)')
-  savefig('./Diffusivity_2nd_grad.png', dpi=90,format='png')
+  savefig('./Kgrad2.png', dpi=90,format='png')
 
   return
 
@@ -85,6 +85,6 @@ def get_1d_indices(pos, x0=0, y0=0, tolerance=1.0e-5):
 plot_diffusivity("random_walk_diffusive_0.vtu")
 
 det_count_diffusive = get_distribution("Diffusive_RW.detectors", 667, 60, 1000)
-plot_detector_distribution(det_count_diffusive, "Diffusive_RW", 667, 60, 1800.)
+plot_detector_distribution(det_count_diffusive, "AgentRW", 667, 60, 1800.)
 
 show()

@@ -244,7 +244,7 @@ contains
              do while (associated(detector))
                 if (detector%type==LAGRANGIAN_DETECTOR) then
                    call calc_auto_subcycling_rw(detector, sub_dt, xfield, diffusivity_field, &
-                          diffusivity_2nd_grad, detector%rw_subsubcycles)         
+                          diffusivity_2nd_grad, parameters%search_tolerance, parameters%subcycle_scale_factor, detector%rw_subsubcycles)         
 
                    call calc_diffusive_rw(detector, sub_dt/detector%rw_subsubcycles, xfield, &
                           diffusivity_field, diffusivity_grad, rw_velocity_source)
@@ -268,7 +268,6 @@ contains
 
              subsubcycle = 2
              do while (subcycle_detector_list%length > 0)
-                ewrite(2,*) "ml805 subsubcycle", subsubcycle
                 detector => subcycle_detector_list%first
                 do while (associated(detector))
                    call calc_diffusive_rw(detector, sub_dt/detector%rw_subsubcycles, xfield, diffusivity_field, &
@@ -487,7 +486,7 @@ contains
 
   end subroutine move_detectors_guided_search
 
-  subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner)
+  subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner,l_coords,ele_path)
     ! Do a local guided search until we either hit the new element 
     ! or have to leave the local domain. The new_owner argument indicates
     ! whether we have found the new element, where to continue searching
@@ -498,9 +497,11 @@ contains
     real, intent(in) :: search_tolerance
     real, dimension(mesh_dim(xfield)+1), intent(out) :: l_coords
     integer, intent(out) :: new_owner
+    integer, dimension(:), allocatable, intent(inout), optional :: ele_path
 
     integer, dimension(:), pointer :: neigh_list
-    integer :: neigh, face
+    integer, dimension(:), allocatable :: temp_path
+    integer :: neigh, face, new_path_size
     logical :: outside_domain
 
     search_loop: do
@@ -520,6 +521,19 @@ contains
           ! The neighbouring element is also on this domain
           ! so update the element and try again
           element = neigh_list(neigh)
+
+          if (present(ele_path)) then
+             ! Record the elemwnts along the path travelled 
+             ! and record in dynamically reallocated ele_path vector
+             new_path_size = size(ele_path) + 1
+             allocate(temp_path(size(ele_path)))
+             temp_path = ele_path(:)
+             deallocate(ele_path)
+             allocate(ele_path(new_path_size))
+             ele_path = temp_path(:)
+             deallocate(temp_path)
+             ele_path(new_path_size) = element
+          end if
        else
           ! Next element in coordinate direction is not on this domain.
           ! Two cases arise: 
@@ -608,24 +622,57 @@ contains
 
   end subroutine reflect_on_boundary
 
-  subroutine calc_auto_subcycling_rw(detector, dt, xfield, diff_field, grad2_field, subcycles)
+  subroutine calc_auto_subcycling_rw(detector,dt,xfield,diff_field,grad2_field,search_tolerance,scale_factor,subcycles)
     type(detector_type), pointer, intent(in) :: detector
     type(scalar_field), pointer, intent(in) :: diff_field
     type(vector_field), pointer, intent(in) :: xfield, grad2_field
-    real, intent(in) :: dt
+    real, intent(in) :: dt, search_tolerance, scale_factor
     integer, intent(out) :: subcycles
 
     integer, dimension(:), pointer :: current_ele_nodes
     real, dimension(:), allocatable :: node_vals
+    real :: K0, d_z, z_offset, local_subcycling, min_dt
+    integer, dimension(:), allocatable :: ele_path
+    integer :: i, sample_ele, proc_owner
+    real, dimension(size(detector%local_coords)) :: l_coords
+    real, dimension(size(detector%local_coords)) :: sample_coord
 
-    ! Find maximum K'' node value in current element
-    ! dt << MIN(1/|K''|), for all nodes
-    current_ele_nodes=>ele_nodes(grad2_field, detector%element)
+    K0 = abs(detector_value(diff_field, detector))
+    d_z = sqrt(2 * K0 * dt)
+    subcycles = 1
+    allocate(ele_path(1))
+    ele_path(1) = detector%element
+
+    ! Get all elements along the path z0 -> z0 + (2*K0*dt)^1/2
+    sample_ele = detector%element
+    sample_coord = detector%position
+    sample_coord(size(detector%position)) = sample_coord(size(detector%position)) + d_z
+    call local_guided_search(xfield,sample_coord,sample_ele,search_tolerance,proc_owner,l_coords,ele_path)
+
+    ! Get all elements along the path z0 -> z0 - (2*K0*dt)^1/2
+    sample_ele = detector%element
+    sample_coord = detector%position
+    sample_coord(size(detector%position)) = sample_coord(size(detector%position)) - d_z
+    call local_guided_search(xfield,sample_coord,sample_ele,search_tolerance,proc_owner,l_coords,ele_path) 
+
+    ! Find maximum subcycling factor in all elements
+    ! in range [z0-(2*K0*dt)^1/2:z0+(2*K0*dt)^1/2] by
+    ! evaluating dt << MIN(1/|K''|) at all element nodes
+    ! with an additional user-defined scale factor
+    current_ele_nodes=>ele_nodes(grad2_field, ele_path(1))
     allocate(node_vals(size(current_ele_nodes)))
-    node_vals = abs(node_val(grad2_field, grad2_field%dim, current_ele_nodes))
-    node_vals = 1.0 / node_vals
-    subcycles = ceiling(dt/minval(node_vals))
+    do i=1, size(ele_path)
+       current_ele_nodes=>ele_nodes(grad2_field, ele_path(i))
+       node_vals = abs(node_val(grad2_field, grad2_field%dim, current_ele_nodes))
+       node_vals = 1.0 / node_vals
+       min_dt = minval(node_vals) / scale_factor
+       local_subcycling = ceiling(dt/min_dt)
+       if (local_subcycling > subcycles) then
+          subcycles = local_subcycling
+       end if
+    end do
     deallocate(node_vals)
+    deallocate(ele_path)
 
   end subroutine calc_auto_subcycling_rw
 

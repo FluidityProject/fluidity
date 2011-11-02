@@ -121,6 +121,8 @@ contains
                 agent_arrays(i)%move_parameters%auto_subcycle=.true.
                 call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/auto_subcycle/diffusivity_2nd_gradient", &
                     agent_arrays(i)%move_parameters%diffusivity_2nd_grad)
+                call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/auto_subcycle/scale_factor", &
+                    agent_arrays(i)%move_parameters%subcycle_scale_factor)
              end if
           end if
           
