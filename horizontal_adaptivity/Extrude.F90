@@ -131,11 +131,9 @@ module hadapt_extrude
       end if
     
     end do
-
     
-
-    ! asc
-    !top_max in parallel
+    ! Negotiate with all mesh partitions to determine the top surface position 
+    call allmin(top_max)
 
     constant_z_mesh_initialised = .false.
     ewrite(2,*) "Uppermost extent of top surface located at: ", top_max
