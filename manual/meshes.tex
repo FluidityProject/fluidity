@@ -2,13 +2,20 @@
 \index{mesh!generation}
 \index{grid|see{mesh}}
 
-In each run of \fluidity\ an input computational mesh needs to 
+In each run of \fluidity\ an input mesh needs to 
 be provided. Even in adaptive mesh runs an initial mesh is needed
-to define the initial condition of the fields on. This initial mesh
-can be adapted by \fluidity\ at the start of the simulation, 
-in order to optimize the accurate representation of the initial 
-condition. The input mesh is then used as a starting point for the
-mesh adaptivity algorithm.
+to define the initial condition of the fields on. 
+This chapter covers a number of topics 
+related to meshes in \fluidity:  what
+mesh formats are supported (section \ref{sec:supported_mesh_formats})
+, how different regions and boundary surfaces can be
+marked (section \ref{sec:surface_and_region_ids}), 
+the relation between meshes and function spaces (section
+\ref{sec:meshes_and_function_spaces}), the extrusion of 
+horizontal meshes in the vertical (section \ref{sec:extruded_meshes}), 
+the creation of periodic meshes (section \ref{sec:periodic_meshes}),
+and finally an overview of meshing tools provided with \fluidity (section
+\ref{sec:meshing_tools}).
 
 \section{Supported mesh formats}
 \label{sec:supported_mesh_formats}
@@ -24,11 +31,37 @@ is mainly supported for special purposes, like 1D meshes, and some offline
 tools.
 \end{enumerate}
 
-For a detailed, technical description of the two mesh formats see 
+For a detailed, technical description of the two mesh file formats see 
 appendix~\ref{chap:mesh_formats}.
 
-\section{Meshes and discretisation}
-\index{mesh!coordinate}
+\section{Surface and regions ids}
+\label{sec:surface_and_region_ids}
+\index{surface ID}
+\index{region ID}
+Surface ids are used in \fluidity\ to mark different parts of the boundary of the
+computational domain so that different boundary conditions can be associated
+with them. Regions ids are used to mark different parts of the domain itself.
+Both ids can be defined in gmsh by assigning physical ids to different
+geometrical objects. In two dimensions surface ids can be defined by assigning a
+physical id to each group of lines that make up a part of the boundary that
+needs to be considered seperately. Region ids can be defined by dividing the
+domain up in different (groups of) surfaces and assigning different 
+physical ids to them. Similarly, in three dimensions surface ids are defined by
+assigining physical surface ids in gmsh, and regions ids by assigning physical
+volume ids.
+
+It is recommended, and required in parallel, that all parts of the domain
+boundary are marked with a surface id. Region ids are optional. They can be used
+to instruct the adaptivity library to strictly maintain the interface between 
+different regions of the domain. They are also useful to set different constant 
+field values in the regions.
+
+\section{Meshes and function spaces}
+\label{sec:meshes_and_function_spaces}
+\index{mesh!coordinate mesh}
+\index{mesh!nodes}
+\index{mesh!simplicial}
+\index{mesh!cubical}
 The choice of computational mesh directly controls how the fields (velocity,
 presurre, temperature, etc.) of the model are discretised. For example, using a
 triangular mesh with a \Pone continuous Galerkin discretisation, the field
@@ -83,29 +116,7 @@ referred to as the coordinate mesh. For standard, uncurved elements
 the coordinate mesh simply corresponds to the (linear) input mesh
 (except for periodic meshes, see section \ref{sec:periodic_meshes} below).
 
-\section{Surface and regions ids}
-\index{surface ID}
-\index{region ID}
-Surface ids are used in \fluidity\ to mark different parts of the boundary of the
-computational domain so that different boundary conditions can be associated
-with them. Regions ids are used to mark different parts of the domain itself.
-Both ids can be defined in gmsh by assigning physical ids to different
-geometrical objects. In two dimensions surface ids can be defined by assigning a
-physical id to each group of lines that make up a part of the boundary that
-needs to be considered seperately. Region ids can be defined by dividing the
-domain up in different (groups of) surfaces and assigning different 
-physical ids to them. Similarly, in three dimensions surface ids are defined by
-assigining physical surface ids in gmsh, and regions ids by assigning physical
-volume ids.
-
-It is recommended, and required in parallel, that all parts of the domain
-boundary are marked with a surface id. Region ids are optional. They can be used
-to instruct the adaptivity library to strictly maintain the interface between 
-different regions of the domain. They are also useful to set different constant 
-field values in the regions.
-
-\section{Mesh types}
-\subsection{Extruded meshes}
+\section{Extruded meshes}
 \label{sec:extruded_meshes}
 \index{mesh!extruded}
 
@@ -125,9 +136,10 @@ independently. This means we can choose to apply adaptivity in the horizontal
 only and keep a fixed number of layers, or we can choose to keep the horizontal
 mesh fixed and dynamically adjust the vertical grid spacing (vertical
 adaptivity). The combination of both horizontal and vertical adaptivity is
-referred to as ``2+1'' adaptivity, which is described further in ...
+referred to as ``2+1'' adaptivity, which is described further in chapter 
+\ref{chap:Adaptivity}.
 
-\subsection{Periodic meshes}
+\section{Periodic meshes}
 \index{mesh!periodic} 
 \index{periodic domain} 
 \label{sec:periodic_meshes}
@@ -146,6 +158,7 @@ The use of periodic domains requires additional configuration options. See
 section \ref{sec:periodic}.
 
 \section{Meshing tools}
+\label{sec:meshing_tools}
 \index{mesh!meshing tools}
 
 There are a number of meshing tools in tools directory. These can be built by running 
