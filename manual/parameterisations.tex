@@ -469,7 +469,7 @@ tensor defined in equation \eqref{eqn:defin_strain_rate_tensor}):
 \end{equation}
 
 \subsection{Fourth-Order Dissipation}
-\label{ssect:fourth_order_diss_LES}
+\label{sec:fourth_order_diss_LES}
 
 The fourth-order method is designed as an improvement to the second-order eddy viscosity method, which can be too dissipative \citep{adam}. The fourth-order term is taken as the difference of two second-order eddy viscosity discretisations, where one is larger than the other. Usually a smaller time-step and finer grid are necessary to make fourth-order worthwhile.
 
@@ -505,7 +505,7 @@ The Smagorinsky model is used to obtain an expression for both stress tensors. H
 \nu_T = C \overline \bigtriangleup^2 \left | \overline S \right |.
 \end{equation}
 
-Substitution of \eqref{meshtau} and \eqref{testtau} into \eqref{leonard}, and contracting both sides with the rate of strain \eqref{strainrate} gives
+Substitution of \eqref{meshtau} and \eqref{testtau} into \eqref{leonard}, and contracting both sides with the rate of strain \eqref{eqn:defin_strain_rate_tensor} gives
 
 \begin{equation}
 \mathcal L_{ij} \overline S_{ij} = -2C(\widetilde{\overline \bigtriangleup}^2 | \widetilde{\overline S} | \widetilde{\overline S}_{ij} \overline S -
