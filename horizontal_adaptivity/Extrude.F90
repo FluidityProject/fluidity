@@ -14,6 +14,7 @@ module hadapt_extrude
   use linked_lists
   use hadapt_combine_meshes
   use halos
+  use parallel_tools
   implicit none
 
   private
