@@ -274,9 +274,9 @@
               </steady_state>
             </diagnostic>
           </scalar_field>
-          <density>
-            <real_value rank="0">3000</real_value>
-          </density>
+          <submerged_specific_gravity>
+            <real_value rank="0">2.0</real_value>
+          </submerged_specific_gravity>
           <diameter>
             <real_value rank="0">0.001</real_value>
           </diameter>
@@ -390,9 +390,9 @@
               </detectors>
             </prescribed>
           </scalar_field>
-          <density>
-            <real_value rank="0">3000</real_value>
-          </density>
+          <submerged_specific_gravity>
+            <real_value rank="0">2.0</real_value>
+          </submerged_specific_gravity>
           <diameter>
             <real_value rank="0">0.001</real_value>
           </diameter>

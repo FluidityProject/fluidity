@@ -179,11 +179,7 @@ contains
        call allocate(deltaS, density%mesh, "DeltaS")
        call allocate(remapS, density%mesh, "RemapS")
        call allocate(sedimentdensity, density%mesh, "SedimentDensity")
-       ! fluidconcentration is 1-sedimentconcentration.
-       call allocate(fluidconcentration, density%mesh, &
-            "FluidConcentration")
        call zero(sedimentdensity)
-       call set(fluidconcentration, 1.0)
 
        n_sediment_fields = get_n_sediment_fields()
 
@@ -194,10 +190,10 @@ contains
           S=>extract_scalar_field(state,trim(sediment_field_name))
           option_path = S%option_path
 
-          call get_option(trim(option_path)//'/prognostic/density', gamma)
-          ! Note that 1000.0 is a hack. We actually need to properly
-          ! account for the reference density of seawater.
-          gamma=rho_0*(gamma/1000.0) - rho_0
+          call get_option(trim(option_path)//'/prognostic/submerged_specific_gravity',&
+               & gamma)
+          
+          gamma = gamma * rho_0
 
           oldS => extract_scalar_field(state, &
                "Old"//trim(sediment_field_name))
@@ -211,16 +207,13 @@ contains
           call addto(deltaS, remapS, 1.0-theta)
           ! density=density+gamma*deltaS
           call addto(sedimentdensity, deltaS, scale=gamma)
-          call addto(fluidconcentration, deltaS, scale=-1.0)
 
        end do
        
-       call scale(density,fluidconcentration)
        call addto(density,sedimentdensity)
 
        call deallocate(deltaS)
        call deallocate(remapS)
-       call deallocate(fluidconcentration)
        call deallocate(sedimentdensity)
        
     end if

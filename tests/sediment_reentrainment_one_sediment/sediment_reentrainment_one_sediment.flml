@@ -368,9 +368,9 @@
               </steady_state>
             </diagnostic>
           </scalar_field>
-          <density>
-            <real_value rank="0">2650</real_value>
-          </density>
+          <submerged_specific_gravity>
+            <real_value rank="0">1.65</real_value>
+          </submerged_specific_gravity>
           <diameter>
             <real_value rank="0">50</real_value>
           </diameter>

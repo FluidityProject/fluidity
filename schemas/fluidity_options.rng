@@ -2483,10 +2483,14 @@ floats upwards, this field should be negative.</a:documentation>
                 </element>
               </element>
             </optional>
-            <element name="density">
-              <a:documentation>This is the density of this sediment. It will be used
-with the sediment concentration in the equation of state.
-Density must be specified here or for each sediment class.</a:documentation>
+            <element name="submerged_specific_gravity">
+              <a:documentation>This is the submerged specific gravity, R, of this sediment. 
+It will be used with the sediment concentration in the equation
+of state, as well as in erosion algorithms.
+
+R = (rho_s - rho_a)/(rho_a)
+
+Where: rho_s is the sediment density and rho_a is the ambient fluid density</a:documentation>
               <ref name="real"/>
             </element>
             <optional>

@@ -177,7 +177,7 @@ contains
     type(vector_field), pointer        :: bed_shear_stress
     real                               :: erodibility, porosity
     real                               :: critical_shear_stress, shear
-    real                               :: erosion_flux, diameter, density, g, s
+    real                               :: erosion_flux, diameter, R, g, s
     real                               :: viscosity
     integer                            :: i_field, i_bc, j, n_sediment_fields, nbcs
     character(len=FIELD_NAME_LEN)      :: field_name, bc_name, bc_type
@@ -238,71 +238,13 @@ contains
                   &ear_stress_surface")
 
              ! remap deposited sediment and shear stress fields to boundary condition
-             !  surface mesh
+             ! surface mesh
              call remap_field_to_surface(bed_shear_stress, shear_stress_surface, &
                   surface_element_list)
              call remap_field_to_surface(bedload, bedload_surface, &
                   surface_element_list)
 
-             ! get or calculate critical shear stress
-             call get_option(trim(field%option_path)//"/prognostic/erodability", erodibility, default&
-                  &=1.0)
-             if (have_option(trim(field%option_path)//"/prognostic/critical_shear_stress")) then
-                call get_option(trim(field%option_path)//"/prognostic/critical_shear_stress",&
-                     & critical_shear_stress)
-             else
-                if (have_option(trim(field%option_path)//"/prognostic/diameter")) then
-                   call get_option(trim(field%option_path)//"/prognostic/diameter",diameter)
-                else
-                   FLExit("You need to either specify a critical shear stress or a &&
-                        && sediment diameter")
-                end if
-                call get_option(trim(field%option_path)//"/prognostic/density",density)
-                ! calc critical shear stress
-                s = density/1000.
-                !S_star = sqrt((s-1)*g*diameter**3)/viscosity
-                !critical_shear_stress = 0.105*S_star**(-0.13) + &
-                !                        0.045*exp(-35*S_star**(-0.59))
-                ! estimate of critical shear stress assuming grains larger than
-                ! 10 microns and constant viscosity - note the conversion to mm!
-                critical_shear_stress = 0.041 * (s-1) * 1024. * g * (diameter/1000.)
-             end if
-
-             ! calculate eroded sediment flux and set reentrainment BC
-             call get_option(trim(field%option_path)//"/prognostic/porosity", porosity, default=0.3)
-             erosion => extract_surface_field(field, bc_name, "value")
-             ! we only need to add to the source the erosion of sediment from the
-             ! bedload into the neumann BC term
-             !
-             ! The source depends on the erodability of that sediment
-             ! (usually 1 unless you want to do something like mud which sticks),
-             ! the porosity in the bedload and the bed shear stress. 
-             !
-             ! Each sediment class has a critical shear stress, which if exceeded
-             ! by the bed shear stress, sediment is placed into suspension
-
-             ! loop over nodes in bottom surface
-             do j=1,node_count(bedload_surface)
-
-                shear = norm2(node_val(shear_stress_surface, j))
-                ! critical stress is either given by user (optional) or calculated
-                ! using Shield's formula (depends on grain size and density and
-                ! (vertical) viscosity)
-                erosion_flux = erodibility*(1-porosity)*((shear - critical_shear_stress) /&
-                     & critical_shear_stress)
-
-                if (erosion_flux < 0) then 
-                   erosion_flux = 0.0
-                end if
-                ! A limit is placed depending on how much of that sediment is in the
-                ! bedload
-                if (erosion_flux*dt > node_val(bedload_surface,j)) then
-                   erosion_flux = node_val(bedload_surface,j)/dt
-                end if
-
-                call set(erosion,j,erosion_flux)
-
-             end do
+             call j_hill_reentrainment()
 
              call deallocate(bedload_surface)
              call deallocate(shear_stress_surface)
@@ -312,6 +254,76 @@ contains
        end do
 
     end if
+
+    contains
+
+      subroutine Garcia_1991()
+
+
+      end subroutine Garcia_1991
+
+      subroutine j_hill_reentrainment()
+
+        ! get or calculate critical shear stress
+        call get_option(trim(field%option_path)//"/prognostic/erodability", erodibility, default&
+             &=1.0)
+        if (have_option(trim(field%option_path)//"/prognostic/critical_shear_stress")) then
+           call get_option(trim(field%option_path)//"/prognostic/critical_shear_stress",&
+                & critical_shear_stress)
+        else
+           if (have_option(trim(field%option_path)//"/prognostic/diameter")) then
+              call get_option(trim(field%option_path)//"/prognostic/diameter",diameter)
+           else
+              FLExit("You need to either specify a critical shear stress or a &&
+                   && sediment diameter")
+           end if
+           call get_option(trim(field%option_path)//"/prognostic/submerged_specific_gravity",R)
+           ! calc critical shear stress
+           !S_star = sqrt(R*g*diameter**3)/viscosity
+           !critical_shear_stress = 0.105*S_star**(-0.13) + &
+           !                        0.045*exp(-35*S_star**(-0.59))
+           ! estimate of critical shear stress assuming grains larger than
+           ! 10 microns and constant viscosity - note the conversion to mm!
+           critical_shear_stress = 0.041 * R * 1024. * g * (diameter/1000.)
+        end if
+
+        ! calculate eroded sediment flux and set reentrainment BC
+        call get_option(trim(field%option_path)//"/prognostic/porosity", porosity, default=0.3)
+        erosion => extract_surface_field(field, bc_name, "value")
+        ! we only need to add to the source the erosion of sediment from the
+        ! bedload into the neumann BC term
+        !
+        ! The source depends on the erodability of that sediment
+        ! (usually 1 unless you want to do something like mud which sticks),
+        ! the porosity in the bedload and the bed shear stress. 
+        !
+        ! Each sediment class has a critical shear stress, which if exceeded
+        ! by the bed shear stress, sediment is placed into suspension
+
+        ! loop over nodes in bottom surface
+        do j=1,node_count(bedload_surface)
+
+           shear = norm2(node_val(shear_stress_surface, j))
+           ! critical stress is either given by user (optional) or calculated
+           ! using Shield's formula (depends on grain size and density and
+           ! (vertical) viscosity)
+           erosion_flux = erodibility*(1-porosity)*((shear - critical_shear_stress) /&
+                & critical_shear_stress)
+
+           if (erosion_flux < 0) then 
+              erosion_flux = 0.0
+           end if
+           ! A limit is placed depending on how much of that sediment is in the
+           ! bedload
+           if (erosion_flux*dt > node_val(bedload_surface,j)) then
+              erosion_flux = node_val(bedload_surface,j)/dt
+           end if
+
+           call set(erosion,j,erosion_flux)
+
+        end do
+
+      end subroutine j_hill_reentrainment
 
   end subroutine set_sediment_reentrainment
 
