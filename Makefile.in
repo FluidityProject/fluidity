@@ -31,7 +31,8 @@ PACKAGE_NAME = @PACKAGE_NAME@
 # Ignore package version from autoconf. Instead, for releases, set the
 # approperiate version number below. Otherwise it is comprised of the
 # branch name and the repository revision number.
-PACKAGE_VERSION = `bzr version-info --custom --template='{branch_nick}.{revno}'`
+#PACKAGE_VERSION = `bzr version-info --custom --template='{branch_nick}.{revno}'`
+PACKAGE_VERSION = 0
 
 FLUIDITY = $(PACKAGE_NAME)
 
@@ -448,7 +449,7 @@ clean: clean-light clean-test python_clean
 
 clean-test:      
 	@echo "    CLEAN tests"
-	@cd tests; ../tools/testharness.py --clean >/dev/null
+	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
 	@cd tests/data; $(MAKE) clean
 
 distclean: clean
@@ -611,4 +612,4 @@ endif
 install:
 	@mkdir -p $(DESTDIR)$(bindir)
 	cp bin/* $(DESTDIR)$(bindir)
-	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)"
+	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)" --install-layout=deb
