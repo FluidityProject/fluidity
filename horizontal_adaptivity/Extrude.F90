@@ -498,7 +498,6 @@ module hadapt_extrude
         calculated_top_max = ltop
         top_max_defined = .true.
       end if
-      ewrite(3,*) "Uppermosty top update ", top_max_defined, ltop, calculated_top_max
     end if
     if (present(calculated_bottom)) then
       calculated_bottom = lbottom
@@ -657,8 +656,7 @@ module hadapt_extrude
     if (top_align_with_geoids) then
       z = -top_max
     end if 
-    z = z + displacement
-    ewrite(2,*) "Displacement", displacement
+    z = z + abs(displacement)
     node = 2
     ! First size(xy) coordinates remain fixed, 
     ! The last entry will be replaced with the appropriate depth
