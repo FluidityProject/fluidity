@@ -533,7 +533,7 @@ Note that unlike the Smagorinsky-based models of \citet{bentham2003}, the eddy v
 
 \subsubsection{Lilly Modification}
 
-To remove the instability caused by the denominator of \eqref{germanocoeff} becoming small, \citet{lilly} proposed a modified expression for $C$:
+To remove the instability caused by the denominator of \eqref{germanocoeff} becoming small, \citet{lilly1991} proposed a modified expression for $C$:
 
 \begin{equation}\label{lillycoeff}
 C(\mathbf x, t) = - \frac{1}{2} \frac{\mathcal L_{ij} M_{ij}}{M^2_{ij}},
@@ -557,7 +557,7 @@ The inverse Helmholtz filter is implemented in Fluidity for use with the dynamic
 \begin{equation}\label{invhelm}
 \phi = \overline \phi - \alpha^2 \nabla^2 \overline \phi.
 \end{equation}
-where $\alpha$ is the filter width ratio defined above. It is related to the local mesh size by $\alpha^2 = \overline \bigtriangleup^2/24$ \citep{pope}. In Fluidity it is constructed in weak finite element form with a strong Dirichlet boundary condition on the filtered field: $\overline \phi = \phi$.
+where $\alpha$ is the filter width ratio defined above. It is related to the local mesh size by $\alpha^2 = \overline \bigtriangleup^2/24$ \citep{pope2000}. In Fluidity it is constructed in weak finite element form with a strong Dirichlet boundary condition on the filtered field: $\overline \phi = \phi$.
 
 \subsubsection{Dynamic Smagorinsky model}
 
