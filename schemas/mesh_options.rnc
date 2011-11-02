@@ -65,7 +65,25 @@ mesh_info =
                ## Solver is used to apply projections to div-conforming
                ## space, and in elliptic solvers
                linear_solver_options_sym
-            }
+            },
+            ## Debugging option for hybridised solver
+            ## Check continuity in Cartesian space
+            ## Test only works for linear geometry field
+            element check_continuity {
+               ## Tolerance for check
+               element tolerance {
+                  real
+               }               
+            }?,
+            ## Debugging option for hybridised solver
+            ## Check continuity matrix
+            ## Checks for jumps using local coordinates
+            element check_continuity_matrix {
+               ## Tolerance for check
+               element tolerance {
+                  real
+               }
+            }?
          }?,
          ## Make mesh periodic
          element periodic_boundary_conditions {

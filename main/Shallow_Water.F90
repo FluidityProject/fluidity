@@ -113,7 +113,7 @@
     integer :: ierr
 
     type(vector_field), pointer :: v_field
-
+    type(scalar_field), pointer :: D,D_initial
     !! Mass matrices
     type(csr_matrix), pointer :: h_mass_mat
     type(block_csr_matrix), pointer :: u_mass_mat
@@ -131,6 +131,7 @@
     logical :: adjoint
     integer, save :: dump_no=0
     real :: theta, energy
+    integer :: stat
 #ifdef HAVE_ADJOINT
     ierr = adj_create_adjointer(adjointer)
     ! Register the data callbacks
@@ -193,8 +194,15 @@
        if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
             & .true.
     end if
-    
+
     call get_parameters
+
+    !This needs an option to switch on as we don't always want to do it.
+    !if(hybridized) then
+    !   !project velocity into div-conforming space
+    !   v_field => extract_vector_field(state(1),"LocalVelocity")
+    !   call project_to_constrained_space(state(1),v_field)
+    !end if
 
     ! No support for multiphase or multimaterial at this stage.
     if (size(state)/=1) then
@@ -207,13 +215,6 @@
 
     ! Always output the initial conditions.
     call output_state(state)
-
-    !This needs an option to switch on as we don't always want to do it.
-    !if(hybridized) then
-    !   !project velocity into div-conforming space
-    !   v_field => extract_vector_field(state(1),"LocalVelocity")
-    !   call project_to_constrained_space(state(1),v_field)
-    !end if
 
     if(hybridized) then
        call compute_energy_hybridized(state(1),energy)
@@ -238,8 +239,8 @@
        call set_boundary_conditions_values(state, shift_time=.true.)
 
        ! evaluate prescribed fields at time = current_time+dt
-       call set_prescribed_field_values(state, exclude_interpolated=.true., &
-            exclude_nonreprescribed=.true., time=current_time + (theta * dt))
+       !call set_prescribed_field_values(state, exclude_interpolated=.true., &
+       !     exclude_nonreprescribed=.true., time=current_time + (theta * dt))
        ! Read in any control variables
        call adjoint_load_controls(timestep, dt, state)
 
@@ -250,8 +251,8 @@
 
        call execute_timestep(state(1), dt)
 
-       call set_prescribed_field_values(state, exclude_interpolated=.true., &
-            exclude_nonreprescribed=.true., time=current_time + dt)
+       !call set_prescribed_field_values(state, exclude_interpolated=.true., &
+       !     exclude_nonreprescribed=.true., time=current_time + dt)
 
        if(.not. prescribed_velocity) then
           call project_local_to_cartesian(state(1))
@@ -376,8 +377,8 @@
 
     subroutine get_parameters()
       implicit none
-      type(vector_field), pointer :: u, v_field, coord
-      type(scalar_field), pointer :: eta
+      type(vector_field), pointer :: u, v_field, coord, V_initial
+      type(scalar_field), pointer :: eta, D_initial
       type(vector_field) :: dummy_field
       real :: theta
 
@@ -413,7 +414,11 @@
       exclude_pressure_advection = &
            have_option("/material_phase::Fluid/scalar_field::LayerThickness/pro&
            &gnostic/spatial_discretisation/continuous_galerkin/advection_terms&
-           &/exclude_advection_terms")
+           &/exclude_advection_terms") .or. &
+           have_option("/material_phase::Fluid/scalar_field::LayerThickness/p&
+           &rognostic/spatial_discretisation/discontinuous_galerkin/advectio&
+           &n_terms/exclude_advection_terms")
+
       prescribed_velocity=have_option("/material_phase::Fluid/vector_field::Velocity/prescribed")
       exclude_velocity_advection = &
            have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
@@ -431,6 +436,53 @@
          call adjoint_register_initial_u_condition(balanced=.true.)
       else
          call adjoint_register_initial_u_condition(balanced=.false.)
+      end if
+      !Set velocity from commuting projection?
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/&
+           &prognostic/initial_condition::WholeMesh/&
+           &commuting_projection")) then
+         if(hybridized) then
+            call set_velocity_commuting_projection(state(1))
+         else
+            FLAbort('Commuting projection only exists for hybridizable spaces.')
+         end if
+      end if
+      if(have_option("/material_phase::Fluid/vector_field::&
+           &PrescribedVelocityFromCommutingProjection")) then
+         call set_velocity_commuting_projection(state(1),"PrescribedVelocityFromCommutingProjection")
+      end if
+
+      !Set velocity from spherical components
+      if(have_option("/material_phase::Fluid/vector_field::Velocity/prognost&
+           &ic/initial_condition::WholeMesh/from_sphere_pullback")) then
+         call set_velocity_from_sphere_pullback(state(1))
+      end if
+
+      if(have_option("/material_phase::Fluid/scalar_field::LayerThickness/pr&
+           &ognostic/initial_condition::ProjectionFromPython")) then
+         if(hybridized) then
+            call set_layerthickness_projection(state(1))
+         else
+            FLAbort('Commuting projection only exists for hybridizable space&
+                 &s.')
+         end if
+      end if
+      if(have_option("/material_phase::Fluid/scalar_field::PrescribedLayerDe&
+           &pthFromProjection")) then
+         call set_layerthickness_projection(state(1),&
+              &"PrescribedLayerDepthFromProjection")
+      end if
+      D_initial=>extract_scalar_field(state(1), "InitialLayerThickness"&
+           &,stat)    
+      if(stat==0) then
+         D=>extract_scalar_field(state(1), "LayerThickness")
+         D_initial%val = D%val
+      end if
+      V_initial=>extract_vector_field(state(1), "InitialVelocity"&
+           &,stat)    
+      if(stat==0) then
+         v_field=>extract_vector_field(state(1), "Velocity")
+         V_initial%val = v_field%val
       end if
 
       if(.not.hybridized) then
@@ -823,7 +875,7 @@
       ! velocity in local coordinates
       type(vector_field) :: U_local, U_local_old, advecting_u
 
-      type(scalar_field), pointer :: T
+      type(scalar_field), pointer :: T, f_ptr
       type(vector_field), pointer :: X, U
       character(len=PYTHON_FUNC_LEN) :: coriolis
       integer :: stat
@@ -835,15 +887,18 @@
         U=>extract_vector_field(state, "Velocity")
       end if
 
-      call allocate(f, X%mesh, "Coriolis")
-      call get_option("/physical_parameters/coriolis", coriolis, stat)
-      if(stat==0) then
-         call set_from_python_function(f, coriolis, X, time=0.0)
-      else
-         call zero(f)
+      f_ptr => extract_scalar_field(state,"Coriolis",stat=stat)
+      if(stat.ne.0) then
+         call allocate(f, U%mesh, "Coriolis")
+         call get_option("/physical_parameters/coriolis", coriolis, stat)
+         if(stat==0) then
+            call set_from_python_function(f, coriolis, X, time=0.0)
+         else
+            call zero(f)
+         end if
+         call insert(state, f, "Coriolis")
+         call deallocate(f)
       end if
-      call insert(state, f, "Coriolis")
-      call deallocate(f)
 
       if (present_and_true(adjoint)) then
         call allocate(U_local, mesh_dim(U), U%mesh, "AdjointLocalVelocity")
@@ -1531,5 +1586,46 @@
       ! And that's it!
 #endif
     end subroutine adjoint_register_timestep
+
+    subroutine recompute_coordinate_field(state)
+      type(state_type), intent(inout) :: state
+      !
+      type(vector_field), pointer :: X
+      integer :: ele
+      character(len=PYTHON_FUNC_LEN) :: Python_Function
+      
+      X => extract_vector_field(state,"Coordinate")
+      call get_option('/geometry/mesh::CoordinateMesh/recompute_coordinate_f&
+           &ield/python',Python_Function)
+
+      do ele = 1, ele_count(X)
+         call recompute_coordinate_field_ele(X,Python_Function,ele)
+      end do
+    end subroutine recompute_coordinate_field
+
+    subroutine recompute_coordinate_field_ele(X,Python_Function,ele)
+      type(vector_field), intent(inout) :: X
+      character(len=PYTHON_FUNC_LEN), intent(in) :: Python_Function
+      integer, intent(in) :: ele
+      !
+      real, dimension(X%dim,ele_loc(X,ele)) :: X_ele_val,X_ele_val_2
+      
+      X_ele_val = ele_val(X,ele)
+      ewrite(1,*) X_ele_val
+      ewrite(1,*) 'Rs', sqrt(sum(X_ele_val**2,1))
+      call set_vector_field_from_python(python_function, len(python_function),&
+           & dim=3,nodes=face_loc(X,ele),x=X_ele_val(1,:),y=X_ele_val(2,:)&
+           &,z=x_ele_val(3,:),t=0.0,result_dim=3,&
+           & result_x=X_ele_val_2(1,:),&
+           & result_y=X_ele_val_2(2,:),&
+           & result_z=X_ele_val_2(3,:),&
+           & stat=stat)
+    if(stat /= 0) then
+       FLAbort('Failed to set new coordinate values from Python.')
+    end if
+
+    call set(X,ele_nodes(X,ele),X_ele_val_2)
+
+    end subroutine recompute_coordinate_field_ele
 
   end program shallow_water

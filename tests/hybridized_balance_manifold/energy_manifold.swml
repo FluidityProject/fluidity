@@ -225,6 +225,7 @@
                 <monitors/>
               </diagnostics>
             </solver>
+            <elliptic_solver/>
           </balanced>
         </initial_condition>
         <output/>
