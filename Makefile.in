@@ -492,7 +492,7 @@ distclean: clean
 
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
-serialtest:
+serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 ifeq (@MBA2D@,yes)
         ifeq (@ZOLTAN@,yes)
 	        @cd tests; ../bin/testharness -l short -p serial -e nozoltan -n $(THREADS)
