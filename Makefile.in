@@ -612,4 +612,5 @@ endif
 install:
 	@mkdir -p $(DESTDIR)$(bindir)
 	cp bin/* $(DESTDIR)$(bindir)
+	rm $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval
 	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)" --install-layout=deb
