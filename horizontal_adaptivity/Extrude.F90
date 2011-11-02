@@ -56,7 +56,7 @@ module hadapt_extrude
     
     integer :: n_regions, r
     integer, dimension(:), allocatable :: region_ids
-    logical :: apply_region_ids, constant_z_mesh_initialised
+    logical :: apply_region_ids, constant_z_mesh_initialised, top_max_defined
     integer, dimension(node_count(h_mesh)) :: visited
     logical, dimension(node_count(h_mesh)) :: column_visited
 
@@ -82,10 +82,14 @@ module hadapt_extrude
       FLAbort("Negative number of regions options found under extrude.")
     end if
     apply_region_ids = (n_regions>1)
+
+
+    ! This value should always be replaced
+    top_max = 666.0
+    top_max_defined = .false.
     visited = 0 ! a little debugging check - can be removed later
-    
     column_visited = .false.
-    
+    ! First find upper most point on top surface
     do r = 0, n_regions-1
       
       constant_z_mesh_initialised = .false.
@@ -101,8 +105,55 @@ module hadapt_extrude
       if (depth_from_map) call populate_depth_vector(h_mesh,bottom_file_name,depth_vector,surface_height)
       allocate(top_vector(size(z_meshes)))
       if (top_from_map) call populate_depth_vector(h_mesh,top_file_name,top_vector,surface_height)
-     
-      top_max = 0.0
+
+      ! create a 1d vertical mesh under each surface node
+      do column=1, size(z_meshes)
+      
+        ! decide if this column needs visiting...
+        if(skip_column_extrude(h_mesh%mesh, column, &
+                              apply_region_ids, column_visited(column), region_ids, &
+                              visited_count = visited(column))) cycle
+        
+        call  compute_z_extent(node_val(h_mesh, column), &
+                              depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, depth_vector(column), &
+                              top_is_constant, top, top_from_python, top_function, top_from_map, top_vector(column), &
+                              have_min_depth, min_depth, &
+                              calculated_top_max=top_max, top_max_defined=top_max_defined)
+
+      end do
+      
+      if(apply_region_ids) deallocate(region_ids)
+      deallocate(depth_vector)
+      deallocate(top_vector)
+      
+      if (constant_z_mesh_initialised) then
+        call deallocate(constant_z_mesh)
+      end if
+    
+    end do
+
+    constant_z_mesh_initialised = .false.
+    ewrite(2,*) "Uppermost extent of top surface located at: ", top_max
+
+    ! Now develop the extrude
+    visited = 0 ! a little debugging check - can be removed later
+    column_visited = .false.
+
+    do r = 0, n_regions-1
+      
+      constant_z_mesh_initialised = .false.
+      
+      call get_extrusion_options(option_path, r, apply_region_ids, region_ids, &
+                                 depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, bottom_file_name, &
+                                 top_is_constant, top, top_from_python, top_function, top_from_map, top_file_name, top_align_with_geoids, &
+                                 have_min_depth, min_depth, surface_height, sizing_is_constant, constant_sizing, list_sizing, &
+                                 sizing_function, sizing_vector, min_layer_frac, varies_only_in_z, &
+                                 sigma_layers, number_sigma_layers)
+
+      allocate(depth_vector(size(z_meshes)))
+      if (depth_from_map) call populate_depth_vector(h_mesh,bottom_file_name,depth_vector,surface_height)
+      allocate(top_vector(size(z_meshes)))
+      if (top_from_map) call populate_depth_vector(h_mesh,top_file_name,top_vector,surface_height)
 
       ! create a 1d vertical mesh under each surface node
       do column=1, size(z_meshes)
@@ -370,7 +421,7 @@ module hadapt_extrude
                               depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, map_depth, &
                               top_is_constant, top, top_from_python, top_function, top_from_map, map_top, &
                               have_min_depth, min_depth, &
-                              calculated_bottom, calculated_top, calculated_top_max)
+                              calculated_bottom, calculated_top, calculated_top_max, top_max_defined)
     real, dimension(:), intent(in) :: xy
     logical, intent(in) :: depth_is_constant, depth_from_python, depth_from_map
     logical, intent(in) :: top_is_constant, top_from_python, top_from_map
@@ -383,6 +434,7 @@ module hadapt_extrude
     real, optional, intent(out) :: calculated_bottom, calculated_top
     ! Calculate the uppermost point of the top surface for columns scanned so far
     real, optional, intent(inout) :: calculated_top_max
+    logical, optional, intent(inout) :: top_max_defined
 
     real, dimension(1) :: tmp_position
     real, dimension(size(xy), 1) :: tmp_pos
@@ -430,7 +482,13 @@ module hadapt_extrude
 
     if (present(calculated_top_max)) then
       ! Note use of min due to sign convention
-      calculated_top_max = min(ltop, calculated_top_max)
+      if(top_max_defined) then
+        calculated_top_max = min(ltop, calculated_top_max)
+      else
+        calculated_top_max = ltop
+        top_max_defined = .true.
+      end if
+      ewrite(3,*) "Uppermosty top update ", top_max_defined, ltop, calculated_top_max
     end if
     if (present(calculated_bottom)) then
       calculated_bottom = lbottom
@@ -464,7 +522,7 @@ module hadapt_extrude
     real, dimension(size(xy), 1) :: tmp_pos
     real :: ldepth, ltop
 
-    call  compute_z_extent(xy, &
+    call compute_z_extent(xy, &
                               depth_is_constant, depth, depth_from_python, depth_function, depth_from_map, map_depth, &
                               top_is_constant, top, top_from_python, top_function, top_from_map, map_top, &
                               have_min_depth, min_depth, &
