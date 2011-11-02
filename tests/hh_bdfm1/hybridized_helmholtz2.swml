@@ -30,7 +30,7 @@
           <string_value>discontinuous</string_value>
         </mesh_continuity>
         <constraint_type>
-          <string_value>BDM</string_value>
+          <string_value>BDFM</string_value>
           <solver>
             <iterative_method name="preonly"/>
             <preconditioner name="lu"/>

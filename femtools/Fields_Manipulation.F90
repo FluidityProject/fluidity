@@ -1949,12 +1949,7 @@ implicit none
 
     integer :: fromloc, toloc, ele, i
     integer, dimension(:), pointer :: from_ele, to_ele
-    
-    !4debugging
-    real, dimension(size(from_field%mesh%shape%spoly,1)) :: l
-
-    ewrite(1,*) 'REMOVE DEBUGGING STUFF'
-    
+        
     if(present(stat)) stat = 0
 
     assert(to_field%dim>=from_field%dim)

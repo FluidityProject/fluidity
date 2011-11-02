@@ -840,7 +840,7 @@ contains
     logical :: new_shape
     
     ! Get new mesh shape information
-    
+
     new_shape = have_option(trim(mesh_path)//"/from_mesh/mesh_shape")
     if(new_shape) then
       ! Get new mesh element type

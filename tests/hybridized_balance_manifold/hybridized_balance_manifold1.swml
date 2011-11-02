@@ -35,11 +35,12 @@
             <iterative_method name="preonly"/>
             <preconditioner name="lu"/>
             <relative_error>
-              <real_value rank="0">1.0e-12</real_value>
+              <real_value rank="0">1.0e-16</real_value>
             </relative_error>
             <max_iterations>
               <integer_value rank="0">1000</integer_value>
             </max_iterations>
+            <start_from_zero/>
             <never_ignore_solver_failures/>
             <diagnostics>
               <monitors/>
@@ -105,7 +106,7 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">4</integer_value>
+        <integer_value rank="0">6</integer_value>
       </degree>
     </quadrature>
   </geometry>
@@ -167,7 +168,7 @@
     </gravity>
     <coriolis>
       <string_value lines="20" type="python">def val(X,t):
-  return 10.0</string_value>
+  return 1.0</string_value>
       <comment>1.0313e-4</comment>
     </coriolis>
   </physical_parameters>
@@ -212,19 +213,21 @@
         <initial_condition name="WholeMesh">
           <balanced>
             <solver>
-              <iterative_method name="preonly"/>
-              <preconditioner name="lu"/>
+              <iterative_method name="cg"/>
+              <preconditioner name="sor"/>
               <relative_error>
                 <real_value rank="0">1.0e-12</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">1000</integer_value>
               </max_iterations>
+              <remove_null_space/>
               <never_ignore_solver_failures/>
               <diagnostics>
                 <monitors/>
               </diagnostics>
             </solver>
+            <elliptic_solver/>
           </balanced>
         </initial_condition>
         <output/>
