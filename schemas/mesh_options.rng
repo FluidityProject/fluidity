@@ -287,6 +287,21 @@ be kept vertically-aligned.</a:documentation>
             <empty/>
           </element>
         </optional>
+        <optional>
+          <element name="displace_layer_position">
+            <a:documentation>By default the layers are positioned from the
+topmost point for each region and partition, or
+with align_with_geoids, this is from the topmost
+point in the entire domain.
+This value will displace the position of layers.
+A positive value displaces in positive z or r.
+Note this is not an absolute displacement, the
+functions to determine layer thickness etc are
+still evaluated at the new layer positions.
+Note also that the absolute value is used.</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
       </element>
     </optional>
     <element name="sizing_function">

@@ -229,7 +229,22 @@ extrusion_options =
           ## the domain will lie on geoids, nodes on bondaries
           ## may not.  This is the best option if nodes are to
           ## be kept vertically-aligned.
-          element align_with_geoids {empty}?
+          element align_with_geoids {
+            empty
+          }?,
+          ## By default the layers are positioned from the
+          ## topmost point for each region and partition, or
+          ## with align_with_geoids, this is from the topmost
+          ## point in the entire domain.
+          ## This value will displace the position of layers.
+          ## A positive value displaces in positive z or r.
+          ## Note this is not an absolute displacement, the
+          ## functions to determine layer thickness etc are
+          ## still evaluated at the new layer positions.
+          ## Note also that the absolute value is used.
+          element displace_layer_position {
+            real
+          }?
       }?,
       ## Constant or function to specify the depth of the
       ## layers. The function is a function of all coordinates
