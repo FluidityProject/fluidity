@@ -610,7 +610,8 @@ endif
 	@echo "    Congratulations, make makefiles succeeded!"
 
 install:
-	@mkdir -p $(DESTDIR)$(bindir)
+	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	cp bin/* $(DESTDIR)$(bindir)
-	rm $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval
+	rm $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut $(DESTDIR)$(bindir)/testharness
+	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity
 	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)" --install-layout=deb

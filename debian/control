@@ -2,7 +2,7 @@ Source: fluidity
 Section: science
 Priority: extra
 Maintainer: Patrick Farrell <patrick.farrell06@imperial.ac.uk>
-Build-Depends: debhelper (>= 7), fluidity-dev
+Build-Depends: debhelper (>= 7.0.50~), fluidity-dev
 Standards-Version: 3.9.1
 XS-Python-Version: >= 2.5
 Homepage: http://amcg.ese.ic.ac.uk/fluidity
@@ -23,7 +23,7 @@ Package: python-fluidity
 Architecture: any
 Section: python
 XB-Python-Version: ${python:Versions}
-Depends: ${python:Depends}
+Depends: ${python:Depends}, ${misc:Depends}
 Description: 3D adaptive CFD model from Imperial College London
  Fluidity is a general purpose multi-phase CFD code capable of solving
  numerically the Navier-Stokes and accompanying field equations on

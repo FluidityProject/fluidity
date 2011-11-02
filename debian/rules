@@ -22,5 +22,6 @@ export PYTHONPATH=
 
 override_dh_auto_build:
 	make -j8
+	make manual
 
 override_dh_auto_test:
