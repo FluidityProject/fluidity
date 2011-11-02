@@ -700,23 +700,15 @@ An example that returns the three-dimensional identity:
       <element name="discontinuous_galerkin">
         <a:documentation>Discontinuous galerkin formulation. Confusingly it is not necessary to provide
 a discontinuous velocity field for this to work!</a:documentation>
-        <optional>
-          <element name="mass_terms">
-            <a:documentation>Discretisation options for the mass terms in the velocity equation.</a:documentation>
-            <optional>
-              <element name="lump_mass_matrix">
-                <a:documentation>Lump the mass matrix</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-            <optional>
-              <element name="exclude_mass_terms">
-                <a:documentation>Remove the mass terms from the equation.</a:documentation>
-                <empty/>
-              </element>
-            </optional>
-          </element>
-        </optional>
+        <element name="wave_equation">
+          <a:documentation>Options for the wave equation solver</a:documentation>
+          <optional>
+            <element name="no_wave_equation_step">
+              <a:documentation>Leave out the wave equation step</a:documentation>
+              <empty/>
+            </element>
+          </optional>
+        </element>
         <element name="advection_scheme">
           <choice>
             <element name="upwind">
@@ -829,7 +821,6 @@ requires a distinct name for the options dictionary.</a:documentation>
             </optional>
             <choice>
               <ref name="vector_python_diagnostic_algorithm"/>
-              <ref name="imposed_material_velocity_source_algorithm"/>
               <ref name="internal_velocity_source_algorithm"/>
             </choice>
             <ref name="diagnostic_vector_field"/>
@@ -4256,6 +4247,18 @@ that set by /geometry/dimension</a:documentation>
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed vector fields below this</a:documentation>
         <empty/>
+      </element>
+      <element name="vector_field">
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>AdvectingVelocity</value>
+        </attribute>
+        <element name="prescribed">
+          <ref name="mesh_choice"/>
+          <ref name="prescribed_vector_field"/>
+        </element>
       </element>
       <!--
         

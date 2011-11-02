@@ -545,7 +545,7 @@
       !! Layer thickness
       type(scalar_field), pointer :: h, d_src
       !! velocity
-      type(vector_field), pointer :: X, U, advecting_U
+      type(vector_field), pointer :: X, U, advecting_U, advecting_U_prescribed
       !! Source term
       type(vector_field), pointer :: source
 
@@ -578,7 +578,15 @@
            old_u,old_h,old_h_DG,delta_h,delta_u)
 
       ! advecting velocity in local coordinates
-      call set(advecting_u,u)
+      if(have_option('/material_phase::Fluid/vector_field::AdvectingVelocity&
+           &')) then
+         advecting_u_prescribed=> &
+              extract_vector_field(state, "AdvectingVelocity")
+         call set(advecting_u,advecting_u_prescribed)
+         call project_cartesian_to_local(state,advecting_u)
+      else
+         call set(advecting_u,u)
+      end if
       call set(old_u,u)
       call set(old_h,h)
 
@@ -588,11 +596,15 @@
          call set(h,old_h)
          call set(h_DG,old_h_DG)
 
-         if(hybridized) then
-            call solve_linear_timestep_hybridized(&
-                 &state,dt_in=0.5*dt,theta_in=0.0)
-         else
-            call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=0.0)
+         if(.not.have_option('/material_phase::Fluid/vector_field::Velocity/&
+              &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
+              &_equation/no_wave_equation_step')) then
+            if(hybridized) then
+               call solve_linear_timestep_hybridized(&
+                    &state,dt_in=0.5*dt,theta_in=0.0)
+            else
+               call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=0.0)
+            end if
          end if
 
          !velocity advection step
@@ -603,16 +615,17 @@
          end if
          !pressure advection
          if(.not.exclude_pressure_advection) then
-            call project_field(h, h_DG, X)
-            call set(old_h_DG,h_DG)
-            call vtk_write_fields('test', 0, X, U%mesh, sfields=(/h, h_DG/), vfields=(/advecting_u/))
-            ewrite_minmax(h_DG)
-            call solve_advection_dg_subcycle("DGLayerThickness", state, &
-                 "NonlinearVelocity")
-            call vtk_write_fields('test', 1, X, U%mesh, sfields=(/h, h_DG/), vfields=(/advecting_u/))
-            call calculate_scalar_galerkin_projection(state, h_projected)
-            call set(h, h_projected)
-            call vtk_write_fields('test', 2, X, U%mesh, sfields=(/h, h_DG/), vfields=(/advecting_u/))
+            if(h%mesh%continuity==0) then
+               call project_field(h, h_DG, X)
+               call set(old_h_DG,h_DG)
+               call solve_advection_dg_subcycle("DGLayerThickness", state, &
+                    "NonlinearVelocity")
+               call calculate_scalar_galerkin_projection(state, h_projected)
+               call set(h, h_projected)
+            else
+               call solve_advection_dg_subcycle("DGLayerThickness", state, &
+                    "NonlinearVelocity")               
+            end if
          end if
 
          if(has_scalar_field(state,"PassiveTracer")) then
@@ -623,11 +636,15 @@
             call solve_advection_dg_subcycle("PassiveTracer", state, "NonlinearVelocity")
          end if
 
-         if(hybridized) then
-            call solve_linear_timestep_hybridized(&
-                 &state,dt_in=0.5*dt,theta_in=1.0)
-         else
-            call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=1.0)
+         if(.not.have_option('/material_phase::Fluid/vector_field::Velocity/&
+              &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
+              &_equation/no_wave_equation_step')) then
+            if(hybridized) then
+               call solve_linear_timestep_hybridized(&
+                    &state,dt_in=0.5*dt,theta_in=1.0)
+            else
+               call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=1.0)
+            end if
          end if
          call set(advecting_u,old_u)
          call scale(advecting_u,(1-itheta))

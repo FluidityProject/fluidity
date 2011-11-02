@@ -567,17 +567,13 @@ prognostic_sw_velocity_field =
          ## Discontinuous galerkin formulation. Confusingly it is not necessary to provide
          ## a discontinuous velocity field for this to work!
          element discontinuous_galerkin {
-            ## Discretisation options for the mass terms in the velocity equation.
-            element mass_terms{
-               ## Lump the mass matrix
-               element lump_mass_matrix {
-                 empty
-               }?,
-               ## Remove the mass terms from the equation.
-               element exclude_mass_terms {
+            ## Options for the wave equation solver
+            element wave_equation {
+               ## Leave out the wave equation step
+               element no_wave_equation_step {
                   empty
                }?
-            }?,
+            },
             element advection_scheme {
                (
                   ## Straightforward upwinding of the nonlinear velocity.
@@ -666,7 +662,6 @@ prognostic_sw_velocity_field =
                mesh_choice?,
                (
                   vector_python_diagnostic_algorithm |
-                  imposed_material_velocity_source_algorithm |
                   internal_velocity_source_algorithm
                ),
                diagnostic_vector_field
@@ -3549,6 +3544,16 @@ vector_field_choice =
          ## Prescribed vector fields below this
          element ___Prescribed_fields_below___ {
             empty
+         }|
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "AdvectingVelocity" },
+            (
+               element prescribed {
+                  mesh_choice,
+                  prescribed_vector_field
+               }
+            )
          }|
 #
 # Insert new prescribed vector fields here using the template:
