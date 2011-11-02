@@ -2503,7 +2503,6 @@ contains
        call set_velocity_from_sphere_pullback_ele&
             &(U,X,Python_Function,R0,ele)
     end do
-    stop
     
   end subroutine set_velocity_from_sphere_pullback
 
@@ -2598,15 +2597,6 @@ contains
        end if
     end do
 
-    !Debugging - checking that we have the solution we expect
-    !Obviously this only works for the one test case
-    do gi = 1, ele_ngi(X,ele)
-       assert(abs(sum(m_basis(2,:,gi)*us_quad(:,gi)))<1.0e-8)
-       U0 = 3.141592653589793*2*(R0**2-zm(gi)**2)**0.5/(12*24*60*60)
-       ewrite(1,*) '1 cpt US', sum(Us_quad(:,gi)*m_basis(1,:,gi)), U0
-       assert(abs(sum(Us_quad(:,gi)*m_basis(1,:,gi))-U0)<1.0e-8)
-    end do
-
     !Get Jacobian of transformation onto the sphere
     Rz = (R0**2-ze**2)**0.5
     Js(1,1,:) = Rz*Ye**2/(xe**2+ye**2)**1.5
@@ -2619,38 +2609,29 @@ contains
     Js(3,2,:) = 0.
     Js(3,3,:) = 1.
 
+    assert(maxval(abs(m_basis(1,3,:)))<1.0e-8)
+    assert(maxval(abs(e_basis(1,3,:)))<1.0e-8)
+
     !Form the reduced matrix
     do gi = 1, ele_ngi(X,ele)
        Jr(1,1,gi) = dot_product(m_basis(2,:,gi),&
             matmul(Js(:,:,gi),e_basis(2,:,gi)))
-       Jr(1,2,gi) = -dot_product(e_basis(1,:,gi),&
-            matmul(Js(:,:,gi),m_basis(2,:,gi)))
-       Jr(2,1,gi) = -dot_product(e_basis(2,:,gi),&
-            matmul(Js(:,:,gi),m_basis(1,:,gi)))
-       Jr(2,2,gi) = dot_product(e_basis(1,:,gi),&
-            matmul(Js(:,:,gi),m_basis(1,:,gi)))
+       Jr(1,2,gi) = -dot_product(m_basis(1,:,gi),&
+            matmul(Js(:,:,gi),e_basis(2,:,gi)))
+       Jr(2,1,gi) = -dot_product(m_basis(2,:,gi),&
+            matmul(Js(:,:,gi),e_basis(1,:,gi)))
+       Jr(2,2,gi) = dot_product(m_basis(1,:,gi),&
+            matmul(Js(:,:,gi),e_basis(1,:,gi)))
     end do
-    ewrite(1,*) 'maxval Jr', maxval(Jr), maxval(m_basis),maxval(e_basis)
+
+    assert(maxval(abs(Jr(2,1,:)))<1.0e-8)
 
     !Transform velocity
     do gi = 1, ele_ngi(X,ele)
        U_quad(:,gi) = matmul(transpose(e_basis(:,:,gi)),&
            &matmul(Jr(:,:,gi),matmul(m_basis(:,:,gi),Us_quad(:,gi))))
     end do
-
-    !debugging stuff
     assert(maxval(abs(sum(U_quad*e_normal,1)))<1.0e-8)
-    assert(maxval(abs(sum(U_quad*e_basis(2,:,:),1)))<1.0e-8)
-    !E_basis(1,:,gi) should be the zonal component!
-    do gi = 1, ele_ngi(X,ele)
-       U0 = 3.141592653589793*2*Rz(gi)/(12*24*60*60)
-       ewrite(1,*) '1 cpt', sum(U_quad(:,gi)*e_basis(1,:,gi)), U0
-       assert(abs(sum(U_quad(:,gi)*e_basis(1,:,gi))-U0)<1.0e-8)
-    end do
-
-    do gi = 1, ele_ngi(X,ele)
-       ewrite(1,*) abs(sum(e_basis(1,:,gi)*us_quad(:,gi)))
-    end do
 
     !project into local coordinate system
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, &
