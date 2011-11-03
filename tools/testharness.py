@@ -61,7 +61,7 @@ class TestHarness:
             for xml_file in g:
               try:
                 p = etree.parse(os.path.join(subdir, xml_file))
-                x = p.findall("/")[0]
+                x = p.findall("./")[0]
                 if x.tag == "testproblem":
                   xml_files.append(os.path.join(subdir, xml_file))
               except xml.parsers.expat.ExpatError:
