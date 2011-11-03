@@ -422,7 +422,7 @@ endif
 	@cd main; $(MAKE) clean
 	@rm -fr bin/* lib
 
-clean: clean-light clean-test python_clean
+clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libvtkfortran"
 	@cd libvtkfortran; $(MAKE) clean
 	@echo "    CLEAN libjudy"
@@ -445,6 +445,10 @@ clean: clean-light clean-test python_clean
 	@rm -fr include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
+
+clean-debian:
+	@echo "    CLEAN debian"
+	@cd debian; rm -rf files tmp fluidity python-fluidity *.substvars *.debhelper* 
 
 clean-test:      
 	@echo "    CLEAN tests"
