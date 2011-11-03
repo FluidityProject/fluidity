@@ -333,7 +333,7 @@ def main():
     yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,2.95,2.96,2.97,2.98,2.99,3.0])
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=50, start=0)
+    filelist = get_filelist(sample=10, start=0)
 
     ##### Call meanvelo function
     profiles, time = meanvelo(filelist, xarray, yarray)

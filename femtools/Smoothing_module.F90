@@ -170,13 +170,13 @@ contains
     do ele=1, element_count(field_in)
        call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
-    !ewrite_minmax(field_in)
+
     ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
     
     do dim=1, field_in%dim
       call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
     end do
-    !ewrite_minmax(field_in)
+
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
     call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
@@ -384,8 +384,6 @@ contains
     ! factor 1/24 derives from 2nd moment of filter (see Pope 2000, Geurts&Holm 2002)
     mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
-    ewrite(2,*) 'dsd: ', dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei)
-    ewrite(2,*) 'srhs: ', shape_shape(shape_field_in,shape_field_in, detwei)
     ! Local assembly
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei) &
          & + shape_shape(shape_field_in,shape_field_in, detwei)
@@ -430,8 +428,6 @@ contains
     ! mesh size tensor=(edge lengths)**2
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
     mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
-
-    ewrite(2,*) 'mesh_tq: ', mesh_tensor_quad
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &

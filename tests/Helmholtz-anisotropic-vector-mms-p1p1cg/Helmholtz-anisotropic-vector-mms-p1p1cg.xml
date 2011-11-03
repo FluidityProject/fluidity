@@ -5,7 +5,7 @@
   <owner userid="jbull"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml &amp;&amp; fluidity MMS_E.flml</command_line>
+    <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="ab_convergence_vel" language="python">
@@ -156,55 +156,6 @@ output.close()
 
 cd_convergence_vel_f = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
     </variable>
-    <variable name="de_convergence_vel" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log
-output=open('output.log','a')
-d_error_x = stat("MMS_D.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-e_error_x = stat("MMS_E.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
-d_error_y = stat("MMS_D.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-e_error_y = stat("MMS_E.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
-
-d_error_inf_x = stat("MMS_D.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-e_error_inf_x = stat("MMS_E.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
-d_error_inf_y = stat("MMS_D.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
-e_error_inf_y = stat("MMS_E.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
-
-de_ratio_x = d_error_x / e_error_x
-de_ratio_y = d_error_y / e_error_y
-de_ratio_inf_x = d_error_inf_x / e_error_inf_x
-de_ratio_inf_y = d_error_inf_y / e_error_inf_y
-
-output.write('de_convergence_vel '+str(log(de_ratio_x, 2))+' '+str(log(de_ratio_inf_x, 2))+' '+str(log(de_ratio_y, 2))+' '+str(log(de_ratio_inf_y, 2))+'\n')
-output.close()
-
-de_convergence_vel = [[log(de_ratio_x, 2), log(de_ratio_inf_x, 2)], [log(de_ratio_y, 2), log(de_ratio_inf_y, 2)]]
-    </variable>
-    <variable name="de_convergence_vel_f" language="python">
-from fluidity_tools import stat_parser as stat
-from math import log
-output=open('output.log','a')
-
-d_error_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-e_error_x = stat("MMS_E.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-d_error_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
-e_error_y = stat("MMS_E.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
-
-d_error_inf_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["max"][-1]
-e_error_inf_x = stat("MMS_E.stat")["NS"]["FilterDifference%1"]["max"][-1]
-d_error_inf_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["max"][-1]
-e_error_inf_y = stat("MMS_E.stat")["NS"]["FilterDifference%2"]["max"][-1]
-
-de_ratio_x = d_error_x / e_error_x
-de_ratio_y = d_error_y / e_error_y
-de_ratio_inf_x = d_error_inf_x / e_error_inf_x
-de_ratio_inf_y = d_error_inf_y / e_error_inf_y
-
-output.write('de_convergence_vel_f '+str(log(de_ratio_x, 2))+' '+str(log(de_ratio_inf_x, 2))+' '+str(log(de_ratio_y, 2))+' '+str(log(de_ratio_inf_y, 2))+'\n')
-output.close()
-
-de_convergence_vel_f = [[log(de_ratio_x, 2), log(de_ratio_inf_x, 2)], [log(de_ratio_y, 2), log(de_ratio_inf_y, 2)]]
-    </variable>
   </variables>
   <pass_tests>
     <test name="ab_convergence_vel_f_x: L2 order > 1.7" language="python">
@@ -224,12 +175,6 @@ assert(cd_convergence_vel_f[0][0] &gt; 1.7)
     </test>
     <test name="cd_convergence_vel_f_y: L2 order > 1.7" language="python">
 assert(cd_convergence_vel_f[1][0] &gt; 1.7)
-    </test>
-    <test name="de_convergence_vel_f_x: L2 order > 1.7" language="python">
-assert(de_convergence_vel_f[0][0] &gt; 1.7)
-    </test>
-    <test name="de_convergence_vel_f_y: L2 order > 1.7" language="python">
-assert(de_convergence_vel_f[1][0] &gt; 1.7)
     </test>
   </pass_tests>
   <warn_tests>

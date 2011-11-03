@@ -1,7 +1,6 @@
 BIN=../../../bin
-SCRIPTS=../../../scripts
 RE=5100
-JOB=kepsilon-periodic-adapt
+JOB=keps-high-periodic
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
 	@$(foreach NN,coarse , \
@@ -10,10 +9,10 @@ preprocess:
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
 		echo **********copying flml: _facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
-		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
+		ln -s ../flmls/backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
 		echo **********Generating mesh...; \
 		gmsh -3 -o step3d-$(NN).msh ../src/step3d-$(NN).geo; \
-		$(SCRIPTS)/gmsh2triangle step3d-$(NN).msh; \
+		$(BIN)/gmsh2triangle step3d-$(NN).msh; \
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
 		$(BIN)/fldecomp -n $(NPROCS) -f step3d-$(NN); \
 		cd ..; \
@@ -26,10 +25,10 @@ preprocess-periodic:
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \
 		echo **********copying flml: backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml:; \
-		ln -s ../backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
+		ln -s ../flmls/backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml .; \
 		echo **********Generating mesh...; \
 		gmsh -3 -o step3d-$(NN)-periodic.msh ../src/step3d-$(NN)-periodic.geo; \
-		$(SCRIPTS)/gmsh2triangle step3d-$(NN)-periodic.msh; \
+		$(BIN)/gmsh2triangle step3d-$(NN)-periodic.msh; \
 		echo $(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		$(BIN)/periodise backward_facing_step_3d-$(RE)-$(JOB)-$(NN).flml;\
 		echo **********Decomposing the mesh into $(NPROCS) parts for parallel run:; \
@@ -49,7 +48,7 @@ run:
 
 run-periodic:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,coarse , \
+	@$(foreach NN,med , \
 		echo Running $(NN) case; \
 		cd $(RE)-$(JOB)-$(NN); \
 		echo **********Running simulation $(RE)-$(JOB)-$(NN); \

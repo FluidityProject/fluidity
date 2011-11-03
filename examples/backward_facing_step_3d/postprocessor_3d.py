@@ -120,7 +120,6 @@ def reatt_length(filelist, zarray):
         if((u[i,j] / u[i+1,j]) < 0. and u[i+1,j] > 0. and not numpy.isinf(u[i,j] / u[i+1,j])):
           ##### interpolate between nodes
           p = x2array[i] + (x2array[i+1]-x2array[i]) * (0.0-u[i,j]) / (u[i+1,j]-u[i,j])
-          print 'p: ', p
           ##### Ignore spurious corner points
           if(p>0.1):
             points.append(p)
@@ -132,6 +131,7 @@ def reatt_length(filelist, zarray):
       avpt = sum(points) / len(points)
     else:
       avpt = 0.0
+    print 'spanwise averaged reattachment point: ', avpt
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
     results.append([avpt,t])
@@ -376,7 +376,7 @@ def main():
     numpy.save("../numpy_data/velo_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
     print "Showing plot of velocity profiles."
     plot_velo(Re,type,mesh,vprofiles,xarray,yarray)
-    #pylab.show()
+    pylab.show()
 
     print "\nAll done.\n"
 
