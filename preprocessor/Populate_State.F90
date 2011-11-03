@@ -1620,12 +1620,12 @@ contains
           
           if (have_option(trim(sfield%option_path)//&
                "/prognostic/subgridscale_parameterisation&
-               &::k_epsilon")) then
+               &::k-epsilon")) then
 
              ! Get Prandtl number, if specified.
              call get_option(trim(sfield%option_path)//&
                "/prognostic/subgridscale_parameterisation&
-               &::k_epsilon/Prandtl_number", Pr, default = 1.0)
+               &::k-epsilon/Prandtl_number/constant", Pr, default = 1.0)
 
              ! Scale field by Prandtl number
              call scale(tfield, 1./Pr)

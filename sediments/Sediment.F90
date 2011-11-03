@@ -173,7 +173,7 @@ contains
 
     type(state_type), intent(in)                           :: state
     type(scalar_field_pointer), dimension(:), allocatable  :: bedload
-    type(scalar_field), pointer                            :: field, erosion
+    type(scalar_field), pointer                            :: field, erosion, sinking_velocity
     type(scalar_field)                                     :: bedload_surface
     type(vector_field), pointer                            :: bed_shear_stress
     type(vector_field)                                     :: shear_stress_surface
@@ -181,7 +181,7 @@ contains
     type(mesh_type), pointer                               :: bottom_mesh
     real, dimension(:), allocatable                        :: diameter
     real                                                   :: R, g, erosion_flux, shear,&
-         & dt, rho_0, sinking_velocity
+         & dt, rho_0
     real                                                   :: erodibility, porosity,&
          & critical_shear_stress
     logical                                                :: have_erodibility,&
@@ -227,7 +227,7 @@ contains
 
           ! get sediment diameter
           if (have_option(trim(field%option_path)//"/prognostic/diameter")) then
-             call get_option(trim(field%option_path)//"/prognostic/diameter",diameter)
+             call get_option(trim(field%option_path)//"/prognostic/diameter",diameter(i_field))
              have_diameter(i_field) = .true.
           else
              have_diameter(i_field) = .false.
@@ -314,7 +314,7 @@ contains
         call get_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/&
              &linear/reference_density', rho_0)       
 
-        call get_option(trim(field%option_path)//"/prognostic/SinkingVelocity", sinking_velocity)       
+        sinking_velocity => extract_scalar_field(state, trim(field%name)//"SinkingVelocity")       
 
         if (have_option(trim(field%option_path)//"/prognostic/critical_shear_stress")) then
            viscosity => extract_tensor_field(state, "Viscosity")
@@ -325,13 +325,6 @@ contains
            have_viscosity = .true.
         else
            have_viscosity = .false.
-        end if
-
-        if (have_option(trim(field%option_path)//"/prognostic/diameter")) then
-           call get_option(trim(field%option_path)//"/prognostic/diameter",diameter)
-           have_diameter = .true.
-        else
-           have_diameter = .false.
         end if
 
         if (have_option(trim(field%option_path)//"/prognostic/critical_shear_stress")) then
@@ -393,8 +386,8 @@ contains
            sigma = 0
 
            ! calculate Z
-           Z = (1 - 0.288 * sigma) * u_star / sinking_velocity * R_p**0.6 * &
-                & ( diameter(i_field) / d_50 * 1000.0 )**0.2
+           ! Z = (1 - 0.288 * sigma) * u_star / sinking_velocity * R_p**0.6 * &
+           !      & ( diameter(i_field) / d_50 * 1000.0 )**0.2
 
            ! calculate erosion
            erosion_flux = A*Z**5 / (1 + A*Z**5/0.3)
