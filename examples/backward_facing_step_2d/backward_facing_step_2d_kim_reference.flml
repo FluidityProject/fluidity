@@ -222,17 +222,20 @@
           <surface_ids>
             <integer_value shape="2" rank="1">10 12</integer_value>
           </surface_ids>
-          <type name="log_law_of_wall">
-            <surface_roughness>
-              <real_value rank="0">1.e-6</real_value>
-            </surface_roughness>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </x_component>
+              <y_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </y_component>
+            </align_bc_with_cartesian>
           </type>
-        </boundary_conditions>
-        <boundary_conditions name="no_normal">
-          <surface_ids>
-            <integer_value shape="2" rank="1">10 12</integer_value>
-          </surface_ids>
-          <type name="no_normal_flow"/>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
