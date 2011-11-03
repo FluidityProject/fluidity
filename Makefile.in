@@ -28,10 +28,15 @@ SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 
-# Ignore package version from autoconf. Instead, for releases, set the
-# approperiate version number below. Otherwise it is comprised of the
-# branch name and the repository revision number.
+# Ignore package version from autoconf. Instead, for packages
+# FLUIDITY_VERSION is passed into ./configure and used here. If it is not
+# set we obtain version information from bzr. Again, this is not done in
+# configure to ensure the info is up-to-date after a "bzr up" without reconfiguring
+ifeq ("@FLUIDITY_VERSION@","")
 PACKAGE_VERSION = `bzr version-info --custom --template='{branch_nick}.{revno}'`
+else
+PACKAGE_VERSION = "@FLUIDITY_VERSION@"
+endif
 
 FLUIDITY = $(PACKAGE_NAME)
 

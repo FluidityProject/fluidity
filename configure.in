@@ -27,10 +27,13 @@
 
 dnl Process this file with autoconf to produce a configure script.
 
-
 AC_INIT(fluidity, None)
 
 AC_CONFIG_HEADERS(include/config.h)
+
+# we ignore PACKAGE_VERSION as it is useless
+# instead we pass on FLUIDITY_VERSION from the env. if it is set
+AC_SUBST(FLUIDITY_VERSION)
 
 echo "Hostname: `hostname`"
 
