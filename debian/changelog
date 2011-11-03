@@ -1,4 +1,4 @@
-fluidity (4.1.beta0) unstable; urgency=low
+fluidity (4.0.999prerelease1maverick1) maverick; urgency=low
 
   * Fix the Debian packaging for release 4.1.
 
