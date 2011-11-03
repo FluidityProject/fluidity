@@ -9,6 +9,18 @@ def gaussian(XX):
    u=exp(-pi*r**2)
    return u
 
+def gaussian_advected(XX):
+   '''Gaussian bump advected for 1 sec'''
+   x = XX[0]; y = XX[1]
+   u = velocity(XX)[0]
+   v = velocity(XX)[1]
+   t = 1.0
+   r=((x-u*t)**2+(y-v*t)**2)**.5
+   u=exp(-pi*r**2)
+   return u
+
 def velocity(XX):
    x = XX[0]; y = XX[1]
-   return 0.0
+   u = 0.0
+   v = 0.0
+   return [u, v]

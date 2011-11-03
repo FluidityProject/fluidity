@@ -90,9 +90,11 @@
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
-          <constant>
-            <real_value shape="2" dim1="dim" rank="1">0. 0.</real_value>
-          </constant>
+          <python>
+            <string_value type="python" lines="20">def val(X,t):
+    import helmholtz_tools as g
+    return g.velocity(X)</string_value>
+          </python>
         </value>
         <output/>
         <stat>
@@ -234,7 +236,7 @@
           <python>
             <string_value type="python" lines="20">def val(X,t):
     import helmholtz_tools as g
-    return g.gaussian(X)</string_value>
+    return g.gaussian_advected(X)</string_value>
           </python>
         </value>
         <output/>
