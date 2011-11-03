@@ -1,3 +1,10 @@
+fluidity (4.0.999prerelease1maverick4) maverick; urgency=low
+
+  * Removing fluidity-dev dependency; replacing with best guess at what is needed
+    for everyday running and to run the examples.
+
+ -- Tim Bond <timothy.bond@imperial.ac.uk>  Thu, 03 Nov 2011 21:03:59 +0000
+
 fluidity (4.0.999prerelease1maverick1) maverick; urgency=low
 
   * Fix the Debian packaging for release 4.1.
