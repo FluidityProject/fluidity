@@ -13,6 +13,7 @@ export PETSC_ARCH=linux-gnu-c-opt
 export prefix=/usr
 export DEB_BUILD_OPTIONS=nostrip
 export PYTHONPATH=
+export FLUIDITY_PYTHON_INSTALL_ARGS=--install-layout=deb
 # setting this sets the version number reported by ./fluidity --version
 # it also stops the build system trying to use bzr to get a version number
 export FLUIDITY_VERSION=fluidity/4.1
