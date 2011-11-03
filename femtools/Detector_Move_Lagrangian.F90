@@ -221,17 +221,19 @@ contains
        end do
 
        ! Explicit Runge-Kutta iterations
-       RKstages_loop: do stage = 1, parameters%n_stages
+       if (parameters%do_velocity_advect) then
+          RKstages_loop: do stage = 1, parameters%n_stages
 
-          ! Compute the update vector for the current stage
-          call set_stage(detector_list,vfield,xfield,sub_dt,stage)
+             ! Compute the update vector for the current stage
+             call set_stage(detector_list,vfield,xfield,sub_dt,stage)
 
-          ! Move update parametric detector coordinates according to update_vector
-          ! If this takes a detector across parallel domain boundaries
-          ! the routine will also send the detector
-          call move_detectors_guided_search(detector_list,xfield)
+             ! Move update parametric detector coordinates according to update_vector
+             ! If this takes a detector across parallel domain boundaries
+             ! the routine will also send the detector
+             call move_detectors_guided_search(detector_list,xfield)
 
-       end do RKstages_loop
+          end do RKstages_loop
+       end if
 
        ! Add the Random Walk displacement 
        if (parameters%do_random_walk) then
@@ -697,12 +699,21 @@ contains
     position(xfield%dim)=position(xfield%dim) + 0.5*dt*K_grad(xfield%dim)
     offset_element=detector%element
     call local_guided_search(xfield,position,offset_element,1e-10,new_owner,lcoord)
-    if (new_owner/=getprocno()) then
+
+    ! In case the offset sampling point is outside the domain we extrapolate
+    if (new_owner < 0) then
+       K=eval_field(detector%element, diff_field, detector%local_coords)
+    end if
+
+    if (new_owner/=getprocno() .and. new_owner > 0) then
+       ! Offset sampling point is on another parallel domain
        ewrite(-1,*) "Detected non-local element in internal Diffusive Random Walk;"
        ewrite(-1,*) "offset_element", offset_element, "detector%element", detector%element
        FLAbort("Guided search in internal Random Walk function detected non-local element")
+    else
+       ! Evaluate K at the offset sampling point
+       K=eval_field(offset_element, diff_field, lcoord)
     end if
-    K=eval_field(offset_element, diff_field, lcoord)
 
     ! Make sure we don't use negative K values to prevent NaN in the sqrt()
     K = abs(K)

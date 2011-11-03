@@ -103,7 +103,7 @@
           <python>
             <string_value lines="20" type="python">from math import pow
 
-global visser_curve, get_spline, read_physics_file
+global visser_curve, simple_gradient_curve, get_spline, read_physics_file
 
 time = 0.0
 spline = None
@@ -114,9 +114,26 @@ def get_spline(t):
   
   # create spline
   height = arange(0.0, 60.0, 0.1)
-  mu = [visser_curve(z) for z in height]
+  #mu = [visser_curve(z) for z in height]
+  mu = [simple_gradient_curve(z) for z in height]
   tck = interpolate.splrep(height,mu, s=0.001)
   return tck
+  
+def simple_gradient_curve(z):
+  # prescribe a simple K profile of the form:
+  #  / 
+  # |
+  #  \
+  z = abs(z)
+  max_K = 0.03
+  if (z &lt;= 20.):
+    K_z = max_K * (1 - (z / 20.))
+  else:
+    K_z = 1e-6  
+    
+  if (z &gt;= 40. and z &lt;= 60.):
+    K_z = max_K * ((z - 40.) / 20.)
+  return K_z
   
 def visser_curve(z):
   ## Recreate Fig. 1 in Visser, 1997, by using Fig. 3 in Ross and Sharples, 2004
@@ -136,8 +153,10 @@ def val(X, t):
     spline = get_spline(t)
   mu = interpolate.splev(abs(X[2]), spline)
   mu = max(mu, 1e-6)
-  if abs(X[2])&gt;43.:
-    mu = 1e-6
+  # this is for keeping the smoothed spline 
+  # from creating a third peak
+  #if abs(X[2])&gt;43.:
+  #  mu = 1e-6
   return mu</string_value>
           </python>
         </value>
@@ -235,28 +254,31 @@ def val(X, t):
       <functional_group>
         <agent_array name="Diffusive_RW">
           <number_of_agents>
-            <integer_value rank="0">1000</integer_value>
+            <integer_value rank="0">600</integer_value>
           </number_of_agents>
           <lagrangian/>
           <binary_output/>
           <initial_position>
             <string_value lines="20" type="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate
-  # 4000 agents, evenly spaced in [0:50]
-  z = arange(-50.,0.,0.05)#.reshape(1000,1)
-  x = zeros(1000) + 5.0
-  y = zeros(1000) + 5.0  
-  return reshape(concatenate((x,y,z)),(3,1000)).T</string_value>
+  # 600 agents, evenly spaced in [0:60]
+  z = arange(-60.,0.,0.1)#.reshape(1000,1)
+  x = zeros(600) + 5.0
+  y = zeros(600) + 5.0  
+  return reshape(concatenate((x,y,z)),(3,600)).T</string_value>
           </initial_position>
           <random_walk>
             <diffusive_random_walk diffusivity_gradient="DiffusivityGradient" diffusivity_field="Diffusivity">
               <auto_subcycle diffusivity_2nd_gradient="DiffusivitySecondGradient">
                 <scale_factor>
-                  <real_value rank="0">10.0</real_value>
+                  <real_value rank="0">1.0</real_value>
                 </scale_factor>
               </auto_subcycle>
             </diffusive_random_walk>
           </random_walk>
+          <debug>
+            <exclude_from_advection/>
+          </debug>
         </agent_array>
         <lagrangian_timestepping>
           <subcycles>
