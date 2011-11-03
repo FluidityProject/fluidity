@@ -622,4 +622,8 @@ install: default fltools
 	cp bin/* $(DESTDIR)$(bindir)
 	rm $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut $(DESTDIR)$(bindir)/testharness
 	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
+	mkdir -p $(DESTDIR)$(datadir)/fluidity
+	cp -r schemas/ $(DESTDIR)$(datadir)/fluidity/
+	mkdir -p $(DESTDIR)/usr/share/diamond/schemata
+	cp schemas/flml $(DESTDIR)/usr/share/diamond/schemata
 	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS

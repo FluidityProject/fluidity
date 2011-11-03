@@ -19,10 +19,13 @@ export FLUIDITY_PYTHON_INSTALL_ARGS=--install-layout=deb
 export FLUIDITY_VERSION=fluidity/4.1
 
 %:
-	dh --with=python2 $@ 
+	dh --with=python2 $@
 
 override_dh_auto_build:
 	make -j1
 	make manual
+
+override_dh_auto_configure:
+	./configure --prefix=/usr --enable-2d-adaptivity --datadir=/usr/share --datarootdir=/usr/share --docdir=/usr/share/doc
 
 override_dh_auto_test:
