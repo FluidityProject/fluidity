@@ -4939,4 +4939,4 @@
 4938 1981 2472 2260 11
 4939 2472 1981 2069 11
 4940 2472 1531 2260 11
-# Produced by: ../../scripts/gmsh2triangle src/pseudo2d_square.msh
+# Produced by: ../../bin/gmsh2triangle src/pseudo2d_square.msh

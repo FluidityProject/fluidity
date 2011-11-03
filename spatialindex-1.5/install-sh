@@ -3,7 +3,7 @@
 
 scriptversion=2004-09-10.20
 
-# This originates from X11R5 (mit/util/scripts/install.sh), which was
+# This originates from X11R5 (mit/util/bin/install.sh), which was
 # later released in X11R6 (xc/config/util/install.sh) with the
 # following copyright and license.
 #

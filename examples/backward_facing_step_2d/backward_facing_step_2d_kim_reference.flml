@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">10</integer_value>
+        <integer_value rank="0">25</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -88,7 +88,9 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin/>
+          <continuous_galerkin>
+            <integrate_continuity_by_parts/>
+          </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
           <poisson_pressure_solution>

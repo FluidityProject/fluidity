@@ -1,24 +1,20 @@
 This package was debianized by David Ham <david.ham@imperial.ac.uk> on
 Mon, 05 Nov 2007 15:35:54 +0000.
 
-It was downloaded from <url://example.com>
+It was downloaded from http://amcg.ese.ic.ac.uk/fluidity
 
 Upstream Author(s): 
 
-    <put author's name and email here>
-    <likewise for another author>
+    See AUTHORS
 
 Copyright: 
 
-    <Copyright (C) YYYY Name OfAuthor>
-    <likewise for another author>
+    See AUTHORS
+    Copyright (C) 2002-2012 Imperial College London
 
 License:
 
-    <Put the license of the package here indented by 4 spaces>
+    LGPL v2.1
 
 The Debian packaging is (C) 2007, David Ham <david.ham@imperial.ac.uk> and
 is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
-
-# Please also look if there are files or directories which have a
-# different copyright/license attached and list them here.

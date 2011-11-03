@@ -5,7 +5,8 @@ input: clean
 
 clean: 
 	rm -f  ./src/*.msh *.ele *.edge *.node *.face *.halo *.vtu *pvtu *.stat *.log-* *.err-* matrixdump*
+	rm -rf lock_exchange_2d_parallel_?
 
 makemesh = echo $(1) ; \
            gmsh -2 ./src/$(1).geo ; \
-           ../../scripts/gmsh2triangle --2d ./src/$(1).msh
+           ../../bin/gmsh2triangle --2d ./src/$(1).msh

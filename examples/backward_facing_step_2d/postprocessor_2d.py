@@ -113,7 +113,7 @@ def reattachment_length(filelist):
         ##### interpolate between nodes. Correct for origin not at step.
         p = pts[i][0] + (pts[i+1][0]-pts[i][0]) * (0.0-u[i]) / (u[i+1]-u[i]) -5.0
         ##### Ignore spurious corner points
-        if(p>0.1):
+        if(p>0.5):
           points = p
         ##### We have our first point on this plane so...
         break
@@ -180,10 +180,10 @@ def plot_length(type,reattachment_length):
   pylab.title("Time series of reattachment length: Re=132000, "+str(type))
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
-  pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
-  pylab.plot(reattachment_length[:,1], ilinca, linestyle="dashed")
-  pylab.plot(reattachment_length[:,1], kim, linestyle="dashed")
-  pylab.legend(("Fluidity","Ilinca sim.","Kim expt."), loc="lower right")
+  pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid",color='blue')
+  pylab.plot(reattachment_length[:,1], kim, linestyle="solid",color='black')
+  pylab.plot(reattachment_length[:,1], ilinca, linestyle="solid",color='red')
+  pylab.legend(("Fluidity","Kim expt.","Ilinca sim."), loc="lower right")
   pylab.savefig("../reattachment_length_kim_"+str(type)+".pdf")
   return
 
@@ -212,6 +212,12 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   for line in datafile:
     U3.append(float(line.split()[0]))
     y3.append(float(line.split()[1]))
+  datafile = open('../Ilinca-data/Ilinca-U-num-2.66.dat', 'r')
+  print "reading in data from file: Ilinca-U-num-2.66.dat"
+  yn3=[];Un3=[]
+  for line in datafile:
+    Un3.append(float(line.split()[0]))
+    yn3.append(float(line.split()[1]))
 
   datafile = open('../Ilinca-data/Ilinca-U-expt-5.33.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-5.33.dat"
@@ -219,6 +225,12 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   for line in datafile:
     U5.append(float(line.split()[0]))
     y5.append(float(line.split()[1]))
+  datafile = open('../Ilinca-data/Ilinca-U-num-5.33.dat', 'r')
+  print "reading in data from file: Ilinca-U-num-5.33.dat"
+  yn5=[];Un5=[]
+  for line in datafile:
+    Un5.append(float(line.split()[0]))
+    yn5.append(float(line.split()[1]))
 
   datafile = open('../Ilinca-data/Ilinca-U-expt-8.0.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-8.0.dat"
@@ -226,6 +238,12 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   for line in datafile:
     U8.append(float(line.split()[0]))
     y8.append(float(line.split()[1]))
+  datafile = open('../Ilinca-data/Ilinca-U-num-8.0.dat', 'r')
+  print "reading in data from file: Ilinca-U-num-8.0.dat"
+  yn8=[];Un8=[]
+  for line in datafile:
+    Un8.append(float(line.split()[0]))
+    yn8.append(float(line.split()[1]))
 
   datafile = open('../Ilinca-data/Ilinca-U-expt-16.0.dat', 'r')
   print "reading in data from file: Ilinca-U-expt-16.0.dat"
@@ -233,6 +251,12 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   for line in datafile:
     U16.append(float(line.split()[0]))
     y16.append(float(line.split()[1]))
+  datafile = open('../Ilinca-data/Ilinca-U-num-16.0.dat', 'r')
+  print "reading in data from file: Ilinca-U-num-16.0.dat"
+  yn16=[];Un16=[]
+  for line in datafile:
+    Un16.append(float(line.split()[0]))
+    yn16.append(float(line.split()[1]))
 
   size = 15
   ax = pylab.subplot(151)
@@ -240,14 +264,15 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
 
   for i in range(len(time)):
     if(i==len(time)-1):
-      ax.plot(profiles[i,0,:]/max(profiles[i,0,:]),yarray, linestyle="solid",color='blue')
+      ax.plot(profiles[i,0,:]/max(profiles[i,0,:]),yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', )
     else:
       ax.plot(profiles[i,0,:]/max(profiles[i,0,:]),yarray, linestyle="dashed")
     leg_end.append("%.1f secs"%time[i])
-  leg_end.append(("Kim expt.","Ilinca sim."))
+  leg_end.append("Kim expt.")
+  leg_end.append("Ilinca sim.")
   ax.plot(U1,y1, linestyle="solid",color="black")
   ax.plot(Un1,yn1, linestyle="solid",color="red")
-  pylab.legend((leg_end), loc="lower right")
+  pylab.legend((leg_end), loc="upper left")
   ax.set_title('(a) x/h='+str(xarray[0]), fontsize=16)
   for tick in ax.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
@@ -257,11 +282,12 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   bx = pylab.subplot(152, sharex=ax, sharey=ax)
   for i in range(len(time)):
     if(i==len(time)-1):
-      bx.plot(profiles[i,1,:]/max(profiles[i,1,:]),yarray, linestyle="solid",color='blue')
+      bx.plot(profiles[i,1,:]/max(profiles[i,1,:]),yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', )
     else:
       bx.plot(profiles[i,1,:]/max(profiles[i,1,:]),yarray, linestyle="dashed")
   bx.plot(U3,y3, linestyle="solid",color='black')
-  bx.set_title('(a) x/h='+str(xarray[1]), fontsize=16)
+  bx.plot(Un3,yn3, linestyle="solid",color='red')
+  bx.set_title('(b) x/h='+str(xarray[1]), fontsize=16)
   for tick in bx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(bx.get_yticklabels(), visible=False)
@@ -270,11 +296,12 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   shift=0.0
   for i in range(len(time)):
     if(i==len(time)-1):
-      cx.plot(profiles[i,2,:]/max(profiles[i,2,:]),yarray, linestyle="solid",color='blue')
+      cx.plot(profiles[i,2,:]/max(profiles[i,2,:]),yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', )
     else:
       cx.plot(profiles[i,2,:]/max(profiles[i,2,:]),yarray, linestyle="dashed")
   cx.plot(U5,y5, linestyle="solid",color='black')
-  cx.set_title('(a) x/h='+str(xarray[2]), fontsize=16)
+  cx.plot(Un5,yn5, linestyle="solid",color='red')
+  cx.set_title('(c) x/h='+str(xarray[2]), fontsize=16)
   for tick in cx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(cx.get_yticklabels(), visible=False)
@@ -283,11 +310,12 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   shift=0.0
   for i in range(len(time)):
     if(i==len(time)-1):
-      dx.plot(profiles[i,3,:]/max(profiles[i,3,:]),yarray, linestyle="solid",color='blue')
+      dx.plot(profiles[i,3,:]/max(profiles[i,3,:]),yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', )
     else:
       dx.plot(profiles[i,3,:]/max(profiles[i,3,:]),yarray, linestyle="dashed")
   dx.plot(U8,y8, linestyle="solid",color='black')
-  dx.set_title('(a) x/h='+str(xarray[3]), fontsize=16)
+  dx.plot(Un8,yn8, linestyle="solid",color='red')
+  dx.set_title('(d) x/h='+str(xarray[3]), fontsize=16)
   for tick in dx.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(dx.get_yticklabels(), visible=False)
@@ -296,11 +324,12 @@ def plot_meanvelo(type,profiles,xarray,yarray,time):
   shift=0.0
   for i in range(len(time)):
     if(i==len(time)-1):
-      ex.plot(profiles[i,4,:]/max(profiles[i,4,:]),yarray, linestyle="solid",color='blue')
+      ex.plot(profiles[i,4,:]/max(profiles[i,4,:]),yarray, linestyle="solid",color='blue', marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', )
     else:
       ex.plot(profiles[i,4,:]/max(profiles[i,4,:]),yarray, linestyle="dashed")
   ex.plot(U16,y16, linestyle="solid",color='black')
-  ex.set_title('(a) x/h='+str(xarray[4]), fontsize=16)
+  ex.plot(Un16,yn16, linestyle="solid",color='red')
+  ex.set_title('(e) x/h='+str(xarray[4]), fontsize=16)
   for tick in ex.xaxis.get_major_ticks():
     tick.label1.set_fontsize(size)
   pylab.setp(ex.get_yticklabels(), visible=False)
@@ -319,13 +348,12 @@ def main():
     type = sys.argv[1]
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=10, start=0)
+    filelist = get_filelist(sample=5, start=0)
 
     ##### Call reattachment_length function
     reatt_length = numpy.array(reattachment_length(filelist))
     av_length = sum(reatt_length[:,0]) / len(reatt_length[:,0])
     numpy.save("reattachment_length_kim_"+str(type), reatt_length)
-    print "\nReattachment length (in step heights): ", av_length
     plot_length(type,reatt_length)
 
     ##### Points to generate profiles:
@@ -333,7 +361,7 @@ def main():
     yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,2.95,2.96,2.97,2.98,2.99,3.0])
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=10, start=0)
+    filelist = get_filelist(sample=20, start=0)
 
     ##### Call meanvelo function
     profiles, time = meanvelo(filelist, xarray, yarray)

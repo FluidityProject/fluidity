@@ -39,6 +39,9 @@ module biology
   use solvers
   use python_state
   use sparsity_patterns_meshes
+  use fefields
+  use field_options
+
   implicit none
 
   private
@@ -66,6 +69,14 @@ contains
     type(state_type), intent(inout) :: state
 
     character(len=OPTION_PATH_LEN) :: prefix, algorithm
+    ! This is the photosynthetic radiation projected onto the 
+    ! same mesh as the biology fields
+    ! It also takes into account the "active" part of the solar radiation
+    type(scalar_field) :: par_bio
+    ! we use the phytoplankton as the "bio" mesh
+    type(scalar_field), pointer :: phytoplankton, PhotosyntheticRadiation
+    type(vector_field) :: coords
+    integer :: stat
 
     call backup_source_terms(state)
 
@@ -90,6 +101,24 @@ contains
 
     ! Calculate the light field at every point.
     call solve_light_equation(state, prefix)
+
+    par_bio = extract_scalar_field(state, "_PAR", stat)
+    phytoplankton => extract_scalar_field(state, "Phytoplankton")
+    if (stat /= 0) then
+        ! field does not yet exist: create it
+        call allocate(par_bio,phytoplankton%mesh, name="_PAR")
+        call zero(par_bio)
+        call insert(state, par_bio, par_bio%name)
+        call deallocate(par_bio)
+        par_bio = extract_scalar_field(state, "_PAR", stat)
+    end if
+    PhotosyntheticRadiation => extract_scalar_field(state, "PhotosyntheticRadiation")
+    coords = get_coordinate_field(state, par_bio%mesh)
+    ! project the Photosynthetic radaition field onto the _PAR field
+    call project_field(PhotosyntheticRadiation, par_bio, coords)
+    ! scale it to get the active part
+    call scale(par_bio, 0.43)
+    call deallocate(coords)
 
     ! Calculate the sources and sinks at every point.
     call calculate_biology_from_python(state, prefix, algorithm)
@@ -210,13 +239,9 @@ contains
     g=extract_vector_field(state, "GravityDirection")
     light=extract_scalar_field(state, "PhotosyntheticRadiation")
     P=extract_scalar_field(state, "Phytoplankton")
-    
-    if(continuity(light)<0) then
-      ! could be cleverer with this and check if diffusion is assembled
-      sparsity=>get_csr_sparsity_secondorder(state, light%mesh, light%mesh)
-    else
-      sparsity=>get_csr_sparsity_firstorder(state, light%mesh, light%mesh)
-    end if
+
+    ! Only need first order sparsity as we have no diffusion
+    sparsity=>get_csr_sparsity_firstorder(state, light%mesh, light%mesh)
 
     call get_option(trim(light%option_path)//&
          "/prognostic/absorption_coefficients/water", k_w)
@@ -369,23 +394,22 @@ contains
           ! External face.
           face_2=face
        end if
-
-       call construct_light_interface(ele, ele_2, face, face_2, ni,&
+       
+       call construct_light_interface(face, face_2,&
             & light_mat, rhs, X, g, light, &
             & bc_value, bc_type)  
-            
     end do neighbourloop
 
   end subroutine construct_light_element
 
-  subroutine construct_light_interface(ele, ele_2, face, face_2, ni,&
+  subroutine construct_light_interface(face, face_2,&
             & light_mat, rhs, X, g, light, bc_value, bc_type)
     !!< Construct the element boundary integrals on the ni-th face of
     !!< element ele. For continuous discretisation, this is only boundary
     !!< faces. For DG it's all of them.
     implicit none
 
-    integer, intent(in) :: ele, ele_2, face, face_2, ni
+    integer, intent(in) :: face, face_2
     type(csr_matrix), intent(inout) :: light_mat
     type(scalar_field), intent(inout) :: rhs
     ! We pass these additional fields to save on state lookups.
@@ -399,7 +423,7 @@ contains
 
     ! Face objects and numberings.
     type(element_type), pointer ::l_shape, l_shape_2
-    integer, dimension(face_loc(light,face)) :: l_face, l_face_l
+    integer, dimension(face_loc(light,face)) :: l_face
     integer, dimension(face_loc(light,face_2)) :: l_face_2
 
     ! Note that both sides of the face can be assumed to have the same
@@ -428,7 +452,7 @@ contains
     ! Boundary nodes have both faces the same.
     boundary=(face==face_2)
     dirichlet=.false.
-    if (boundary) then
+    if (boundary .and. face < size(bc_type)) then
        if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
           dirichlet=.true.
        end if
@@ -514,24 +538,23 @@ contains
     if (have_option("/ocean_biology/pznd/scalar_field&
          &::PhotosyntheticRadiation/prognostic/solver/&
          &preconditioner::sor")) then
-       ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation equati&
-            &on"
+       ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation "//&
+            &"equation"
        ewrite(0, *) "Consider using ilu as a preconditioner instead."
     end if
     if (have_option("/ocean_biology/six_component/scalar_field&
          &::PhotosyntheticRadiation/prognostic/solver/&
          &preconditioner::sor")) then
-       ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation equati&
-            &on"
+       ewrite(0, *) "Warning: Sor may not work for the PhotosyntheticRadiation "//&
+            &"equation"
        ewrite(0, *) "Consider using ilu as a preconditioner instead."
     end if
 
     call get_option("/timestepping/nonlinear_iterations", itmp, stat)
     
     if (stat/=0.or.itmp<2) then
-       ewrite(0,*) "Warning: For stability reasons it is recommended that yo&
-            &u have at least 2 nonlinear_iterations when using ocean biology&
-            &"
+       ewrite(0,*) "Warning: For stability reasons it is recommended that "//&
+          "you have at least 2 nonlinear_iterations when using ocean biology"
     end if
 
   end subroutine biology_check_options

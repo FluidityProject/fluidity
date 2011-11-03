@@ -47,8 +47,8 @@ module multiphase_diagnostics
    contains
 
       subroutine calculate_particle_reynolds_number(states, state_index, s_field)
-         !!< Calculates the particle Reynolds number, (density_c * |u_c - u_p| * d)/viscosity_c
-         !!< where _c and _p denote the continuous and particle phases respectively,
+         !!< Calculates the particle Reynolds number, (vfrac_f*density_f * |u_f - u_p| * d)/viscosity_f
+         !!< where the subscripts _f and _p denote the fluid and particle phases respectively,
          !!< and d is the particle diameter
 
          type(state_type), dimension(:), intent(inout) :: states
@@ -200,3 +200,4 @@ module multiphase_diagnostics
       end subroutine calculate_apparent_density
 
 end module multiphase_diagnostics
+

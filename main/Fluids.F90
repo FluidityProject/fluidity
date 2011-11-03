@@ -102,7 +102,7 @@ module fluids_module
   use hyperlight
 #endif
   use multiphase_module
-  use detector_parallel, only: deallocate_detector_list_array
+  use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
 
   implicit none
 
@@ -835,6 +835,8 @@ contains
           ! Using state(1) should be safe as they are aliased across all states.
           call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
           call IncrementEventCounter(EVENT_MESH_MOVEMENT)
+
+          call sync_detector_coordinates(state(1))
        end if
 
        current_time=current_time+DT

@@ -4,7 +4,7 @@
   <owner userid="sf1409"/>
   <tags>swml adjoint optimisation</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>time ../../scripts/optimality.py -v optimiser_A.oml;</command_line>
+    <command_line>time ../../bin/optimality -v optimiser_A.oml;</command_line>
   </problem_definition>
   <variables>
     <variable name="functional_gradient_error" language="python">from fluidity_tools import stat_parser as stat

@@ -1,7 +1,7 @@
 default: input
 
 input: clean
-	../../scripts/gmsh2triangle --2d src/square.msh
+	../../bin/gmsh2triangle --2d src/square.msh
 	../../bin/fldecomp -n 2 -v square
 
 clean: clean-mesh clean-run
@@ -11,3 +11,4 @@ clean-mesh:
 clean-run:
 	rm -f matrixdump matrixdump.info
 	rm -f fluidity.err-* fluidity.log-*
+	rm -rf detectors_[0-4]*

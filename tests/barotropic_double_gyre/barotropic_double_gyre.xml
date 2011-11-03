@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
   <name>Barotropic gyre on beta plane in one element deep 3d</name>

@@ -599,4 +599,4 @@
 598 4 161 26 242 34 
 599 242 7 63 4 34 
 600 242 4 63 26 34 
-# Produced by: ../../scripts/gmsh2triangle src/square-cavity.msh
+# Produced by: ../../bin/gmsh2triangle src/square-cavity.msh

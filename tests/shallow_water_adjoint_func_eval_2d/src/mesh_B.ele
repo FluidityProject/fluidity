@@ -199,4 +199,4 @@
 198 120 40 121 11 
 199 121 40 4 11 
 200 121 4 22 11 
-# Produced by: ../../../scripts/gmsh2triangle mesh_B.msh
+# Produced by: ../../../bin/gmsh2triangle mesh_B.msh

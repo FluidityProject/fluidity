@@ -71,6 +71,7 @@
 	return [[0.5, 0.5]]</string_value>
         </python>
       </detector_array>
+      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>

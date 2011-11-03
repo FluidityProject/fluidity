@@ -2,7 +2,7 @@ PROJECT = 2d_periodic_p1p1_streamfunction
 
 input: clean
 	gmsh -2 -o 2d_square.msh src/2d_square.geo
-	../../scripts/gmsh2triangle --2d 2d_square.msh
+	../../bin/gmsh2triangle --2d 2d_square.msh
 	
 	
 	#set up parallel run

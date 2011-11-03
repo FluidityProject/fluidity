@@ -5,8 +5,9 @@ input: clean
 	../../bin/fldecomp -m gmsh -n 2 standing_wave
 
 clean:
-	rm -f *.vtu *.pvtu *.stat *.detectors
+	rm -f *.dat *.vtu *.pvtu *.stat *.detectors
 	rm -f fluidity.err-? fluidity.log-?
 	rm -f *.ele *.edge *.node *.msh *.halo *.face
 	rm -rf matrixdump* *_checkpoint*
 	rm -rf run1_logs/
+	rm -rf standing_wave_?

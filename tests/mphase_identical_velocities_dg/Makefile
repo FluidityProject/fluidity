@@ -1,6 +1,6 @@
 preprocess:
 	@echo **********Converting mesh from gmsh to triangle format
-	../../scripts/gmsh2triangle --2d src/mphase_identical_velocities_dg.msh
+	../../bin/gmsh2triangle --2d src/mphase_identical_velocities_dg.msh
 
 run:
 	@echo **********Running simulation
