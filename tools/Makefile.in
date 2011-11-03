@@ -40,6 +40,8 @@ CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../include
 
 LINKER = @LINKER@ @LDFLAGS@
 
+FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
+
 LIBS = -L../lib ./lib/libadaptivity.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libvtkfortran.a ./lib/libjudy.a @LIBS@ @BLAS_LIBS@ @LIB_FEMDEM@
 FLIBS = -L../lib @FLIBS@
 
@@ -84,7 +86,14 @@ BINARIES = $(DRAWTIMNEW) $(MAKTIMUNIFORM) $(VTKDIAGNOSTIC)		\
   $(PROJECT_TO_CONTINUOUS) 						\
   $(TEST_PRESSURE_SOLVE) $(UNIFIEDMESH) $(VTKPROJECTION) $(PERIODISE)	\
   $(TEST_TRACE_SPACE) $(STREAMFUNCTION_2D) $(TEST_TRACE_SPACE)		\
-  $(TEST_LAPLACIAN) $(VISUALISE_ELEMENTS)
+  $(TEST_LAPLACIAN) 
+
+# Work around Intel compiler bug in visualise elements by simply not
+# building it.
+ifeq (@GFORTRAN_4_5_OR_NEWER@,yes)
+BINARIES += $(VISUALISE_ELEMENTS)
+endif
+
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a 
 
@@ -122,16 +131,16 @@ $(TRIANGLE_TEST_MESH): triangle_test_mesh.o
 	$(LINKER) -o $(TRIANGLE_TEST_MESH) $^ $(FLIBS) $(LIBFLUIDITY) $(LIBS)
 
 $(TEST_LAPLACIAN): test_laplacian.o
-	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(TEST_LAPLACIAN_VECTOR): test_laplacian_vector.o
-	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(VISUALISE_ELEMENTS): visualise_elements.o
-	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FLINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(TIME_AVERAGE_PARALLEL): time_average_parallel.o
-	$(FC) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(VERTICAL_INTEGRATION): Vertical_Integration.o Vertical_Integration_main.o lib/
 	$(LINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
@@ -159,7 +168,7 @@ $(VTKPROJECTION): vtkprojection.cpp lib/
 	$(LINKER) $(CXXFLAGS) -I../include -o $(VTKPROJECTION) vtkprojection.cpp -L../lib/ -l$(FLUIDITY) $(LIBS)
 
 $(PERIODISE): periodise.o lib/
-	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(FLDIAGNOSTICS): fldiagnostics.o fldiagnostics_main.o lib/
 	$(LINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
@@ -197,6 +206,7 @@ $(UNIFIEDMESH): unifiedmesh.o unifiedmesh_main.o lib/
 clean:
 	rm -f *.o *.mod
 	rm -rf build dist fluidity.egg-info 
+	rm -f lib
 
 $(TEST_TRACE_SPACE): Test_Trace_Space.o lib/
-	$(FC) $(FCFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

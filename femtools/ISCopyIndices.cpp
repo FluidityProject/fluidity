@@ -1,6 +1,6 @@
 #include "confdefs.h"
 #include "petsc.h"
-#if PETSC_VERSION_MINOr==0
+#if PETSC_VERSION_MINOR==0
 #include "petscfix.h"
 #include "petscis.h"
 #endif
@@ -9,7 +9,7 @@
 
 extern "C" {
   void iscopyindices_(IS *is, PetscInt *iarray,PetscErrorCode *ierr);
-  void PETSC_STDCALL petscobjectreference_(PetscObject obj, int *__ierr );
+  void petscobjectreference_(PetscObject obj, int *__ierr );
 }
 
 // our own version of IsGetIndices, that just does a copy
@@ -52,7 +52,7 @@ extern void PetscRmPointer(void*);
 #define PetscRmPointer(a)
 #endif
 
-void PETSC_STDCALL petscobjectreference_(PetscObject obj, int *__ierr ){
+void petscobjectreference_(PetscObject obj, int *__ierr ){
 *__ierr = PetscObjectReference(
    (PetscObject)PetscToPointer((obj) ));
 }

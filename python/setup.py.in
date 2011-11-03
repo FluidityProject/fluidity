@@ -15,7 +15,7 @@ setup(
       author = "The ICOM team",
       author_email = "patrick.farrell06@imperial.ac.uk",
       url = "http://amcg.ese.ic.ac.uk",
-      packages = ['fluidity'],
+      packages = ['fluidity', 'fluidity.diagnostics'],
       package_dir = {'fluidity': 'fluidity'}
      )
 

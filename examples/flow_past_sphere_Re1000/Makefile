@@ -34,7 +34,8 @@ else
 endif
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling the data extraction and plotting script
+	python ./plot_data.py
 
 input: clean
 	$(MAKE) preprocess NPROCS=8
@@ -42,4 +43,5 @@ input: clean
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
 	rm -f *.ele *.edge *.face *.node *.halo *.poly *vtu *.stat *.log-? *.err-? matrixdump* 
-	rm -rf flow_past_sphere_Re1000_? flow_past_sphere_Re1000_??
+	rm -rf flow_past_sphere_Re1000_? flow_past_sphere_Re1000_?? 
+	rm Sphere_drag.pdf

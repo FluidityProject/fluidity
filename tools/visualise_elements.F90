@@ -19,6 +19,8 @@ program visualise_elements
 #ifdef HAVE_MPI
   integer :: ierror, stat
 
+  call set_global_debug_level(0)
+
   call mpi_init(ierror)
 #endif
 

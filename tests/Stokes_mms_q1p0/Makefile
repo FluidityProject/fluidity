@@ -11,3 +11,4 @@ input:	clean
 clean:
 	rm -f *.vtu *.stat *.s *.log *.node *.ele *.edge *checkpoint*
 	rm -f *.msh
+	rm -f *.err-? *.log-?

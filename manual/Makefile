@@ -48,7 +48,8 @@ IMAGES=geometry_dimension mesh_name \
 ./visualisation_and_diagnostics_images/Paraview-filedialogue-timeseries \
 ./visualisation_and_diagnostics_images/Paraview-rescaling-view \
 ./visualisation_and_diagnostics_images/Paraview-subwindows \
-./visualisation_and_diagnostics_images/diamond_enable_stat 
+./visualisation_and_diagnostics_images/diamond_enable_stat \
+./visualisation_and_diagnostics_images/quadratic_element 
 
 IMAGE_DIRS=examples_images numerical_discretisation_images \
 visualisation_and_diagnostics_images configuring_fluidity_images \
@@ -59,7 +60,7 @@ EPS_IMAGES=./examples_images/rotating_channel/analytic_solution \
 ./examples_images/rotating_channel/convergence 
 
 CHAPTERS=getting_started model_equations numerical_discretisation parameterisations \
-adaptivity mesh_formats configuring_fluidity external_libraries trouble_shooting \
+adaptivity meshes mesh_formats configuring_fluidity external_libraries trouble_shooting \
 parallel mathematical_notation about visualisation_and_diagnostics examples \
 embedded_models paraviewman python dimensionless useful_numbers
 

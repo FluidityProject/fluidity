@@ -26,10 +26,14 @@
 #    USA
 
 dnl Process this file with autoconf to produce a configure script.
-# Version is comprised of the branch name and the repository revision number.
-AC_INIT(fluidity, m4_esyscmd([echo -n `bzr info | egrep 'parent branch|checkout of' | awk -F/ '{print $(NF-1)}'`.`bzr revision-info | awk '{print $1}'`]))
+
+AC_INIT(fluidity, None)
 
 AC_CONFIG_HEADERS(include/config.h)
+
+# we ignore PACKAGE_VERSION as it is useless
+# instead we pass on FLUIDITY_VERSION from the env. if it is set
+AC_SUBST(FLUIDITY_VERSION)
 
 echo "Hostname: `hostname`"
 
@@ -1114,6 +1118,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_SUBST(FORTRAN_REAL_8)
 AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
+AC_SUBST(FLLINKER)
 
 dnl Specific f90 options
 AC_SUBST(USE_CPP)
@@ -1212,7 +1217,9 @@ if test -d libspud ; then
         AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
         SHFLAG=--disable-shared
         SPUD_ONLY="yes"
+        FLLINKER=$CXX
     else
+        FLLINKER=$FC
         SHFLAG=--enable-shared
     fi
     AC_SUBST(SPUD_ONLY)

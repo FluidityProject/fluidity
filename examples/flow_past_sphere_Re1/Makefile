@@ -7,10 +7,12 @@ run:
 	../../bin/fluidity -v2 -l flow_past_sphere_Re1.flml
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling the data extraction and plotting script
+	python ./plot_data.py
 
 input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.stat *.log-0 *.err-0 matrixdump*
+	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.stat *.log-0 *.err-0 matrixdump* 
+	rm Sphere_drag.pdf

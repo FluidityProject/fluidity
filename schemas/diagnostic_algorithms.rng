@@ -822,6 +822,18 @@ boundaries.</a:documentation>
       <ref name="vector_source_field"/>
     </element>
   </define>
+  <define name="grad_vector_algorithm">
+    <element name="algorithm">
+      <a:documentation>algorithm for the full tensor gradient of a vector field</a:documentation>
+      <attribute name="name">
+        <value>grad_vector</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single </value>
+      </attribute>
+      <ref name="vector_source_field"/>
+    </element>
+  </define>
   <define name="strain_rate_algorithm">
     <element name="algorithm">
       <a:documentation>algorithm for the strain rate of a vector field</a:documentation>
@@ -1726,6 +1738,12 @@ This field needs to be interpolated between adapts.</a:documentation>
           <ref name="real"/>
         </element>
       </optional>
+      <optional>
+        <element name="absolute_values">
+          <a:documentation>If enabled, the average of the absolute value is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="scalar_period_averaged_algorithm">
@@ -1782,6 +1800,12 @@ This field needs to be interpolated between adapts.</a:documentation>
         <element name="spin_up_time">
           <a:documentation>When to start sampling?  Defaults to simulation start time.</a:documentation>
           <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="absolute_values">
+          <a:documentation>If enabled, the average of the absolute value is taken</a:documentation>
+          <ref name="comment"/>
         </element>
       </optional>
     </element>
@@ -1990,6 +2014,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="tensor_copy_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="grad_vector_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="strain_rate_algorithm"/>

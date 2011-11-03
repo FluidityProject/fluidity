@@ -574,7 +574,7 @@ where N_a and N_b are shape functions of the ath and bth node respectively and m
           </element>
           <optional>
             <element name="les_model">
-              <a:documentation>large-eddy simulation models</a:documentation>
+              <a:documentation>large-eddy simulation models (currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless)</a:documentation>
               <choice>
                 <element name="second_order">
                   <a:documentation>similar to the original Smag model</a:documentation>
@@ -645,27 +645,36 @@ default/recommended value: 2.0</a:documentation>
                     <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
                     <ref name="linear_solver_options_sym"/>
                   </element>
-                  <element name="stabilisation_parameter">
-                    <a:documentation>[EXPERIMENTAL] If 0, the smaller filter width G_m is simply the mesh.
-If &gt; 0, G_m is larger than the mesh.
-To achieve this the velocity is Helmholtz-filtered with the specified value.
-This removes some subgrid information, and reduces the effect of the dynamic model.
-The filtering effect is proportional to the square of the value.
-Ensure that 0 &lt;= stabilisation_parameter &lt;= 1.0. Default value: 0.0.
-</a:documentation>
-                    <ref name="real"/>
-                  </element>
-                  <optional>
-                    <element name="enable_averaging">
-                      <a:documentation>Enable averaging of the velocity field to stabilise the model.</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
                   <optional>
                     <element name="enable_lilly">
                       <a:documentation>Use the Lilly modification to the model (see Lilly 1991).
 </a:documentation>
                       <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="enable_backscatter">
+                      <a:documentation>Allow negative eddy viscosity (backscatter).
+WARNING: this may result in the simulation blowing up.
+</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="vector_field">
+                      <a:documentation>Filtered velocity (diagnostic). This is the Velocity field filtered
+with the test filter - see manual.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>FilteredVelocity</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_vector_field"/>
+                      </element>
                     </element>
                   </optional>
                   <optional>
@@ -675,7 +684,7 @@ Ensure that 0 &lt;= stabilisation_parameter &lt;= 1.0. Default value: 0.0.
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>DynamicFilterWidth</value>
+                        <value>FilterWidth</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -691,7 +700,7 @@ Ensure that 0 &lt;= stabilisation_parameter &lt;= 1.0. Default value: 0.0.
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>DynamicStrainRate</value>
+                        <value>StrainRate</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -707,7 +716,7 @@ Ensure that 0 &lt;= stabilisation_parameter &lt;= 1.0. Default value: 0.0.
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>DynamicFilteredStrainRate</value>
+                        <value>FilteredStrainRate</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>

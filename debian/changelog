@@ -1,3 +1,9 @@
+fluidity (4.1.beta0) unstable; urgency=low
+
+  * Fix the Debian packaging for release 4.1.
+
+ -- Patrick Farrell <patrick.farrell06@imperial.ac.uk>  Wed, 02 Nov 2011 14:19:12 +0000
+
 fluidity (3.4.svn6573) unstable; urgency=low
 
   * Another general update. In particular, several tools were out of date.

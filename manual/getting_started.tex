@@ -8,10 +8,10 @@ contains detailed information for your systems administrator to help setting up
 a Linux workstation. 
 
 \section{Obtaining \fluidity}
-\label{sect:obtaining_fluidity}
+\label{sec:obtaining_fluidity}
 
 \subsection{Overview}
-\label{sect:obtaining_fluidity_overview}
+\label{sec:obtaining_fluidity_overview}
 
 \fluidity\ is primarily distributed as source code, which takes the form of
 instructions that are passed through a compiler to generate binary files that
@@ -72,7 +72,7 @@ this case, or for standard tests \lstinline[language=Bash]+tests/+ and long
 tests \lstinline[language=Bash]+longtests/+.
 
 \subsection{Bazaar}
-\label{sect:bazaar}\index{bazaar|primary}\index{bzr|see{bazaar}}
+\label{sec:bazaar}\index{bazaar|primary}\index{bzr|see{bazaar}}
 
 For experienced bzr users, the relevant information that you need to
 obtain a copy of \fluidity\ is that it the latest development version is
@@ -97,7 +97,7 @@ developer who commits changes back into \fluidity\ please contact an existing
 
 \subsubsection{Checking out a current copy of \fluidity}
 \index{subversion}
-\label{sect:subversion_checkout_current}
+\label{sec:subversion_checkout_current}
 
 \fluidity\ can be obtained in three forms: release, stable, and trunk.
 
@@ -192,7 +192,7 @@ should be given the relevant information by whoever has requested the checkout.
 
 \subsubsection{Updating your copy of \fluidity}
 \index{subversion}
-\label{sect:subversion_updating}
+\label{sec:subversion_updating}
 
 If you are interested in keeping up to date with the latest developments in
 \fluidity\ you will probably want to update your local copy of the \fluidity\
@@ -222,7 +222,7 @@ development, outside the scope of this manual.
 
 \subsubsection{Other useful Bazaar commands}
 \index{subversion}
-\label{sect:subversion_extras}
+\label{sec:subversion_extras}
 
 If you can check out and update your copy of \fluidity\ then you are equipped to
 be an active \fluidity\ user. However, you may wish to know about a few more
@@ -270,12 +270,12 @@ detail is
 which is the official Bazaar User Guide.
 
 \section{Building \fluidity}
-\label{sect:building_fluidity}
+\label{sec:building_fluidity}
 
 The build process for \fluidity\ comprises a configuration stage and a compile
 stage. In the simplest form, this can be completed with two commands, run in
 the directory containing your local source code check out, which is denoted
-by \fluiditysourcepath in this manual:
+by \fluiditysourcepath\ in this manual:
 
 \begin{lstlisting}[language=Bash]
 cd `\fluiditysourcepath' 
@@ -318,11 +318,11 @@ refer to (or refer your systems administrator to) appendix \ref{chap:external}
 of this manual before proceeding.
 
 The build environment is discussed in more detail in sections
-\ref{sect:configure_locate_supporting_libs} and
-\ref{sect:configure_environment_vars}.
+\ref{sec:configure_locate_supporting_libs} and
+\ref{sec:configure_environment_vars}.
 
 \subsection{Configuring the build process}
-\label{sect:configuring_the_build_process}
+\label{sec:configuring_the_build_process}
 
 For a full list of the build-time configuration options available in fluidity,
 run:
@@ -356,7 +356,7 @@ you to run:
 We'll go on now to discussing enabling and disabling features.
 
 \subsubsection{Enabling and disabling features}
-\label{sect:configure_enable_disable_features}
+\label{sec:configure_enable_disable_features}
 
 \fluidity\ has a number of optional features which may be enabled or disabled at
 build time. For a list of all these features see the output of configuring with
@@ -375,7 +375,7 @@ are fully aware of the consequences of enabling or disabling features it is
 recommended that you do not do so.
 
 \subsubsection{Specifying locations of supporting libraries}
-\label{sect:configure_locate_supporting_libs}
+\label{sec:configure_locate_supporting_libs}
 
 \fluidity\ requires many supporting libraries, which can either be provided via
 environment variables (see later discussion for how to do this) or, in specific
@@ -393,7 +393,7 @@ arguments, this is likely to be highly prejudicial to the normal running of
 the configuration exits with an error.
 
 \subsubsection{Environment variables set for configuration}
-\label{sect:configure_environment_vars}
+\label{sec:configure_environment_vars}
 
 A description of environment variables is outside the scope of this manual, and
 \fluidity\ users are encouraged to find an experienced UNIX user who can explain
@@ -427,7 +427,7 @@ critical to \fluidity\ for writing output files, and many UNIX systems lack some
 VTK components so it frequently ends up installed in a nonstandard location.
 
 \subsection{Compiling \fluidity}
-\label{sect:compiling_fluidity}
+\label{sec:compiling_fluidity}
 
 Once you have successfully configured \fluidity, you need to compile the source
 code into binary files including programs and libraries. In the simplest form
@@ -453,7 +453,7 @@ should be equal to the task it should not be run on shared machines (ie, login
 nodes of compute clusters) or systems with smaller quantities of memory.
 
 If you want to build the extended set of \fluidity\ tools which supplement the
-main \fluidity\ program, section \ref{sect:fltools}, run:
+main \fluidity\ program, section \ref{sec:fltools}, run:
 
 \begin{lstlisting}[language=Bash]
 make fltools
@@ -493,11 +493,11 @@ on slower systems may take on the order of many hours to complete.
 
 
 \section{Running \fluidity}
-\label{sect:running_fluidity}
+\label{sec:running_fluidity}
 
 
 \subsection{Running \fluidity\ in serial}
-\label{sect:running_fluidity_in_serial}
+\label{sec:running_fluidity_in_serial}
 
 To run \fluidity\ in serial use the following command:
 
@@ -508,7 +508,7 @@ To run \fluidity\ in serial use the following command:
 Here, \lstinline[language=Bash]+foo.flml+ is a \fluidity\ configuration file
 which defines the options for the model. These files are covered in detail in 
 Chapter \ref{chap:configuration} and are set up using a simple Graphical User
-Interface, Diamond. See section \ref{sect:running_diamond} for more information 
+Interface, Diamond. See section \ref{sec:running_diamond} for more information 
 on how to run Diamond.
 
 There are other options that can be passed to the \fluidity\ executable. A full
@@ -572,7 +572,7 @@ Running \fluidity\ will produce several output files. See Chapter \ref{chap:visu
 for more information.
 
 \subsection{Running \fluidity\ in parallel}
-\label{sect:running_fluidity_in_parallel}
+\label{sec:running_fluidity_in_parallel}
 \index{parallel}
 
 \fluidity\ is a fully-parallel program, capable of running on thousands of
@@ -588,11 +588,13 @@ is run on 256 processors.
 To run in parallel one must first decompose the mesh. See section
 \ref{decomp_meshes_parallel} for more information on how to do this. \fluidity\
 must then be run within the mpirun or mpiexec framework. Simply prepend the
-normal command line with mpiexec: \begin{lstlisting}[language=bash] mpiexec -n
-[PROCESSES] `\fluiditysourcepath'/bin/fluidity foo.flml \end{lstlisting}
+normal command line with mpiexec:
+\begin{lstlisting}[language=bash]
+mpiexec -n [PROCESSES] `\fluiditysourcepath'/bin/fluidity foo.flml
+\end{lstlisting}
 
 \section{Running diamond}
-\label{sect:running_diamond}
+\label{sec:running_diamond}
 \index{Diamond}
 
 Diamond is the Graphical User Interface (GUI) by which a \fluidity\ simulation
@@ -624,7 +626,7 @@ sudo apt-get install diamond
 Note that installing Diamond on a system-wide basis will require superuser privileges on the system.
 
 \section{Working with the output}
-\label{sect:working_with_output}
+\label{sec:working_with_output}
 
 Once \fluidity\ has been built and run, result files will be generated, that
 will need visualising and post-processing. These data are stored in VTK files,
@@ -632,7 +634,7 @@ one per output dump.  How these files can be visualised and post-processed is
 covered in detail in chapter \ref{chap:visualisation_and_diagnostics}.
 
 As well as visualisation, another important output resource is the stat file,
-described in detail in section \ref{sect:diagnostics_stat_file}, which contains
+described in detail in section \ref{sec:diagnostics_stat_file}, which contains
 data from the model collected at run time.
 
 See the \href{http://amcg-www.ese.ic.ac.uk/}{AMCG website}\ for more

@@ -27,7 +27,16 @@
 SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
-PACKAGE_VERSION = @PACKAGE_VERSION@
+
+# Ignore package version from autoconf. Instead, for packages
+# FLUIDITY_VERSION is passed into ./configure and used here. If it is not
+# set we obtain version information from bzr. Again, this is not done in
+# configure to ensure the info is up-to-date after a "bzr up" without reconfiguring
+ifeq ("@FLUIDITY_VERSION@","")
+PACKAGE_VERSION = `bzr version-info --custom --template='{branch_nick}.{revno}'`
+else
+PACKAGE_VERSION = "@FLUIDITY_VERSION@"
+endif
 
 FLUIDITY = $(PACKAGE_NAME)
 
@@ -40,6 +49,7 @@ SLIB_FLUIDITY = lib$(FLUIDITY).so
 # Follow: www.gnu.org/prep/standards/html_node/Directory-Variables.html
 PACKAGE_NAME = @PACKAGE_NAME@
 prefix  = @prefix@
+exec_prefix  = @exec_prefix@
 bindir = @bindir@
 libdir = @libdir@
 datadir = @datadir@
@@ -75,8 +85,6 @@ ARFLAGS	= -cr
 
 EVAL = tools/silenteval.sh
 
-VERSION = $(shell bzr revision-info)
-
 ifeq (@MBA2D@,yes)
 LIBMBA2D = lib/libmba2d.a
 endif
@@ -109,7 +117,7 @@ default: bin/$(FLUIDITY)
 sub_system: $(LIBMBA2D) $(LIBMBA3D) $(LIBALGENCAN)  @LIB_FEMDEM@ \
 	lib/libadaptivity.a lib/libvtkfortran.a lib/libspatialindex.a \
 	lib/libspud.a lib/libjudy.a include/version.h
- 
+
 lib/libjudy.a:
 	@echo '    MKDIR lib'; mkdir -p lib
 	@cd libjudy; echo '    MAKE libjudy'; $(MAKE) > make.log ; $(MAKE) install >> make.log ; cd ..
@@ -395,6 +403,9 @@ clean-light:
 	@cd horizontal_adaptivity/tests;   $(MAKE) clean
 	@echo "    CLEAN tools"
 	@cd tools;    $(MAKE) clean
+	@echo "    CLEAN adjoint"
+	@cd adjoint;    $(MAKE) clean
+	@cd adjoint/tests;    $(MAKE) clean
 	@echo "    CLEAN bathymetry"
 	@cd bathymetry;  $(MAKE) clean
 	@echo "    CLEAN ocean_forcing"
@@ -416,7 +427,7 @@ endif
 	@cd main; $(MAKE) clean
 	@rm -fr bin/* lib
 
-clean: clean-light clean-test python_clean
+clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libvtkfortran"
 	@cd libvtkfortran; $(MAKE) clean
 	@echo "    CLEAN libjudy"
@@ -433,14 +444,21 @@ clean: clean-light clean-test python_clean
 	@cd libalgencan; $(MAKE) clean
 	@echo "    CLEAN libwm"
 	@cd libwm; $(MAKE) clean
+	@echo "    CLEAN manual"
+	@cd manual; $(MAKE) clean
 	@CLEAN_LIBADAPT@
 	@rm -fr include/*.mod *.cache core *.o config.status
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
 
+clean-debian:
+	@echo "    CLEAN debian"
+	@cd debian; rm -rf files tmp fluidity python-fluidity *.substvars *.debhelper* 
+
 clean-test:      
 	@echo "    CLEAN tests"
-	@cd tests; ../tools/testharness.py --clean >/dev/null
+	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
+	@cd tests/data; $(MAKE) clean
 
 distclean: clean
 	@echo "   DISTCLEAN"
@@ -482,7 +500,7 @@ distclean: clean
 
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
-serialtest:
+serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 ifeq (@MBA2D@,yes)
         ifeq (@ZOLTAN@,yes)
 	        @cd tests; ../bin/testharness -l short -p serial -e nozoltan -n $(THREADS)
@@ -497,7 +515,7 @@ else
         endif
 endif
 
-mediumtest: bin/burgers_equation
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
 mediumzoltantest:
@@ -599,7 +617,9 @@ endif
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
 
-install:
-	@mkdir -p $(DESTDIR)$(bindir)
+install: default fltools
+	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	cp bin/* $(DESTDIR)$(bindir)
-	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)"
+	rm $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut $(DESTDIR)$(bindir)/testharness
+	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
+	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)" --install-layout=deb
