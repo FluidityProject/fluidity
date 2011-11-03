@@ -17,7 +17,7 @@ setup(
       url = "http://amcg.ese.ic.ac.uk",
       packages = ['fluidity', 'fluidity.diagnostics'],
       package_dir = {'fluidity': 'fluidity'},
-      py_modules = {'fluidity_tools'}
+      py_modules = ['fluidity_tools']
      )
 
 
