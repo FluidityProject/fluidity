@@ -229,6 +229,10 @@ extrusion_options =
           ## the domain will lie on geoids, nodes on bondaries
           ## may not.  This is the best option if nodes are to
           ## be kept vertically-aligned.
+          ##
+          ## Note that this option is fundamentally incompatible
+          ## with sigma layers, and both cannot be applied in the 
+          ## same region.
           element align_with_geoids {
             empty
           }?,

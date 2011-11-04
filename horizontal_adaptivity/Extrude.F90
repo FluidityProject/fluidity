@@ -265,6 +265,7 @@ module hadapt_extrude
     integer, intent(out) :: number_sigma_layers
     
     integer, dimension(2) :: shape_option
+    character(len=FIELD_NAME_LEN) :: region_name
     integer :: stat
 
     if(apply_region_ids) then
@@ -382,6 +383,17 @@ module hadapt_extrude
         FLAbort("Unknown way of specifying sizing function in mesh extrusion")
       end if       
     end if
+
+    if ((sigma_layers) .and. (top_align_with_geoids)) then
+      call get_option(trim(option_path)//'/from_mesh/extrude/regions['//int2str(region_index)//&
+                                         ']/name', region_name, default='(name not available)')
+      ewrite(-1,*) "Incompatible extrude options selected for meshing region '"//trim(region_name)//&
+                                         "' (number "//int2str(region_index)//').'
+      ewrite(-1,*) 'Check options top_position/align_with_geoids and sizing_function/sigma_layers.'
+      ewrite(-1,*) 'It is not possible to ensure sigma layers are aligned with geoids.'
+      FLAbort('Options conflict, see error messages above for more details.')
+    end if
+
 
     varies_only_in_z = have_option(trim(option_path)//&
     '/from_mesh/extrude/regions['//int2str(region_index)//&

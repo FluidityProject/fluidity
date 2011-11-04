@@ -283,7 +283,11 @@ Note that boundary representation is maintained
 and takes precedence, so although nodes within
 the domain will lie on geoids, nodes on bondaries
 may not.  This is the best option if nodes are to
-be kept vertically-aligned.</a:documentation>
+be kept vertically-aligned.
+
+Note that this option is fundamentally incompatible
+with sigma layers, and both cannot be applied in the 
+same region.</a:documentation>
             <empty/>
           </element>
         </optional>
