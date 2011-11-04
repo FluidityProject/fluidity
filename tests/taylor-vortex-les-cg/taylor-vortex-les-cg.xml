@@ -4,7 +4,7 @@
   <name>p1p1-cg LES convergence test</name>
   <owner userid="jbull"/>
   <tags>flml</tags>
-  <problem_definition length="special" nprocs="4">
+  <problem_definition length="short" nprocs="4">
     <command_line>mpiexec ../../bin/fluidity -l -v2 taylor-green-vortex-3d-48.flml</command_line>
   </problem_definition>
   <variables>

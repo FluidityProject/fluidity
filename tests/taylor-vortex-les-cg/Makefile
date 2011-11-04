@@ -8,4 +8,4 @@ input: clean
 	#../../bin/fldecomp -n 4 -f cube-48
 
 clean:
-	rm -f *.ele *.face *.node
+	#rm -f *.ele *.face *.node
