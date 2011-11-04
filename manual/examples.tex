@@ -39,11 +39,11 @@ examples plots are created and put in the directory.
   \ref{sec:lid_driven_cavity} Lid-driven cavity & \texttt{driven\_cavity/} & 1 & 7 hr. \\
   \ref{sec:backward_facing_step_2d} 2D Backward facing step & \texttt{backward\_facing\_step\_2d/} & 1 & 15 min. \\
   \ref{sec:backward_facing_step_3d} 3D Backward facing step & \texttt{backward\_facing\_step\_3d/} & 8 & 30 min. \\
-  \ref{sec:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 6 hr. \\
+  \ref{sec:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 9 hr. \\
   \ref{sec:periodic_channel} Rotating periodic channel & \texttt{rotating\_channel/} & 1 & 10 min. \\
   \ref{sec:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
   \ref{sec:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 20 hr. \\
-  \ref{sec:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr. \\
+  \ref{sec:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 5 hr. \\
   \ref{sec:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 4 & 1.5 hr. \\
   \ref{sec:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
   \hline
@@ -346,7 +346,7 @@ The example settings are designed to provide a quick start for running the simul
 \item In the adaptivity settings for the horizontal velocity field try using a spatially varying interpolation error and compare Froude numbers (python can be found in the comment section for the velocity adaptivity settings), section \ref{sec:configuring_fluidity_error_metric};
 \item In the adaptivity settings for both the velocity field and temperature field use a $p$--norm with \mbox{$p=2$}, section \ref{sec:configuring_fluidity_error_metric}. Suggested values for the interpolation error are $0.00005, \, 0.00005 \,\, {\rm and} \,\, 0.0005$ for the horizontal velocity, vertical velocity and temperature fields respectively. 
 \item Change the frequency of the adapt, section \ref{sec:configuring_fluidity_adaptivity_options};
-\item Turn on metric advection, section \ref{section:metric_advection_general};
+\item Turn on metric advection, sections \ref{section:metric_advection_general} and \ref{sec:configuring_fluidity_metric_advection};
 \item Change the diffusivity and viscosity values;
 \item Run with a fixed mesh (note this will require making a new input mesh), sections \ref{sec:triangle_format}, \ref{sec:meshing_tools_non_fluidity_gmsh};
 \item Try adding some detectors to visualise the particle trajectories, section \ref{sec:diagnostics_detectors} %or \newline cf. \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_}.
@@ -1289,10 +1289,10 @@ such as the Mediterranean Sea.
 \cline{2-3}
 & \bf{\citet{Tsimplis1995}} & \bf{ICOM} \\
 \hline
-M$_{\text{2}}$ &1.37 & 3.8\\
-S$_{\text{2}}$ &0.68 & 2.4\\
-K$_{\text{1}}$ &0.82 & 1.5\\
-O$_{\text{1}}$ &0.34 & 1.3\\
+M$_{\text{2}}$ &1.37 & 3.2\\
+S$_{\text{2}}$ &0.68 & 1.9\\
+K$_{\text{1}}$ &0.82 & 1.7\\
+O$_{\text{1}}$ &0.34 & 1.2\\
 \hline
 \end{tabular}
 \caption{RMS differences between modelled harmonic amplitudes and real-world data from 62 tide gauges.
