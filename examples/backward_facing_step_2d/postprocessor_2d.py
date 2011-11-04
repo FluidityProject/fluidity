@@ -183,7 +183,7 @@ def plot_length(type,reattachment_length):
   pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid",color='blue')
   pylab.plot(reattachment_length[:,1], kim, linestyle="solid",color='black')
   pylab.plot(reattachment_length[:,1], ilinca, linestyle="solid",color='red')
-  pylab.legend(("Fluidity","Kim expt.","Ilinca sim."), loc="lower right")
+  pylab.legend(("Fluidity","Kim expt.","Ilinca sim."), loc="best")
   pylab.savefig("../reattachment_length_kim_"+str(type)+".pdf")
   return
 
