@@ -154,7 +154,6 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[FiniteElementGradient:]Gradient of a scalar field evaluated using the C gradient matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementGradient}. 
   \item[FunctionalGradient:]Same as \option{vector\_field::SolidVelocity} but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.    
  \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as \option{vector\_field::GalerkinProjection}     
- \item[Gradient:]Gradient of a scalar field. The field must be in the same \option{material\_phase} as \option{vector\_field::Gradient}
  \item[InnerElementFullVelocity:]Full velocity in an inner element SGS treatment of momentum.
   Limitations: Requires a geometry dimension of 3. Requires inner element active for momentum. 
  \item[InnerElementFullVorticity:]Vorticity of the full velocity in an inner element SGS treatment of momentum.
@@ -214,7 +213,7 @@ may be defined by a :: delimited ``state\_name\::field\_name'' string.
   \label{fig:diagnostic_algorithm}
 \end{figure}
 
-The available internal \option{scalar\_field} diagnostics are:
+The available internal diagnostics are:
 \begin{description}
 \item[temporalmin:]Writes the (nodewise) minimum scalar value over all previous timesteps.
 \item[temporalmax:]Writes the (nodewise) maximum scalar value over all previous timesteps.
@@ -224,7 +223,8 @@ The available internal \option{scalar\_field} diagnostics are:
 \item[time\_averaged\_scalar\_squared:]Calculates the time average of squared scalar fields.
 \item[free\_surface\_history:]Records the history of a free surface field.
 \item[tidal\_harmonics:]Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" (see \ref{sec:ocean_boundaries}) have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on (see \ref{sec:Internal_diagnostic_fields}).  
-\item[div:]Computes the divergence of a field.
+\item[div:]Computes the divergence of a vector field.
+\item[grad:]Computes the gradient of a scalar field.
 \item[finite\_element\_divergence:]Computes the divergence of a field, where the divergence operator is defined using the finite element $\mathrm{C}^\mathrm{T}$ matrix.
 \item[curl\_2d:][curl (source field)]\_z. Valid in 2D only.
 \item[scalar\_advection:]Computes $\vec{u}\cdot\nabla(s)$, where $s$ is the source field.
