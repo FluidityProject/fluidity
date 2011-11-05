@@ -27,14 +27,6 @@ lagrangian_biology =
                element number_of_agents {
                   integer
                },                     
-               ## Create detectors which move with the fluid velocity.
-               element lagrangian {
-                  empty
-               },
-               ## Enable to write detector output in binary format
-               element binary_output {
-                  empty
-               },
                ## Python function prescribing dimensional vector input. Functions should be of the form:
                ##
                ##  def val(t):
@@ -77,15 +69,16 @@ lagrangian_biology =
                               real
                            }
                         }?
+                     }|
+                     ## Hardcoded Naive Random Walk scheme for verifying the RNG
+                     element naive_random_walk {
+                        attribute diffusivity_field { xsd:string }
                      }
                   )
                }?,
-               ## Debug options
-               element debug {
-                  ## Skip velocity advection algorithm (RK-GS)
-                  element exclude_from_advection {
-                     empty
-                  }?
+               ## Skip velocity advection algorithm (RK-GS)
+               element exclude_from_advection {
+                  empty
                }?
             }*, 
             lagrangian_timestepping

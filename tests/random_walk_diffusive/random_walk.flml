@@ -256,8 +256,6 @@ def val(X, t):
           <number_of_agents>
             <integer_value rank="0">600</integer_value>
           </number_of_agents>
-          <lagrangian/>
-          <binary_output/>
           <initial_position>
             <string_value lines="20" type="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate
@@ -276,9 +274,7 @@ def val(X, t):
               </auto_subcycle>
             </diffusive_random_walk>
           </random_walk>
-          <debug>
-            <exclude_from_advection/>
-          </debug>
+          <exclude_from_advection/>
         </agent_array>
         <lagrangian_timestepping>
           <subcycles>

@@ -151,7 +151,6 @@ void python_run_string_store_locals_c(char *str, int strlen,
   /* Run a python command from Fortran and store local namespace
    * in a global dictionary for later evaluation
    */
-  profiler_tic_c("/python_run_string_store_locals");
 
   char *c = fix_string(str,strlen);
   int tlen=8+strlen;
@@ -203,7 +202,6 @@ void python_run_string_store_locals_c(char *str, int strlen,
   free(local_dict);
   free(local_key);
 
-  profiler_toc_c("/python_run_string_store_locals");
 #endif
 }
 
@@ -217,9 +215,6 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
   /* Evaluate the detector val() function from a previously stored local namespace
    * found in dict under key. The interface is: val(ele, local_coords)
    */
-
-  profiler_tic_c("/python_run_detector_val");
-  profiler_tic_c("/python_run_detector_val_setup");
 
   // Get a reference to the main module and global dictionary
   PyObject *pMain = PyImport_AddModule("__main__");
@@ -254,9 +249,6 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
   pArgs[1] = pLCoords;
   pArgs[2] = pDt;
 
-  profiler_toc_c("/python_run_detector_val_setup");
-  profiler_tic_c("/python_run_detector_val_execute");
-
   // Run val(ele, local_coords)
   PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 3, NULL, 0, NULL, 0, NULL);
  
@@ -267,9 +259,6 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
     *stat=-1;
     return;
   }
-
-  profiler_toc_c("/python_run_detector_val_execute");
-  profiler_tic_c("/python_run_detector_val_teardown");
 
   // Convert the python result
   PyObject *result_ref;
@@ -289,8 +278,6 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
   free(local_dict);
   free(local_key);
 
-  profiler_toc_c("/python_run_detector_val_teardown");
-  profiler_toc_c("/python_run_detector_val");
 #endif
 }
 

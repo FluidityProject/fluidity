@@ -58,10 +58,13 @@ plot_diffusivity("random_walk_1d_0.vtu")
 det_count_naive = get_distribution("Naive_RW.detectors", 600, 40, 1000)
 plot_detector_distribution(det_count_naive, "Naive_RW", 600, 40, 6.)
 
+det_count_naive_internal = get_distribution("Naive_RW_internal.detectors", 600, 40, 1000)
+plot_detector_distribution(det_count_naive_internal, "Naive_RW_internal", 600, 40, 6.)
+
 det_count_diffusive = get_distribution("Diffusive_RW.detectors", 600, 40, 1000)
 plot_detector_distribution(det_count_diffusive, "Diffusive_RW", 600, 40, 6.)
 
-det_count_diffusive_internal = get_distribution("Diffusive_RW_intern.detectors", 600, 40, 1000)
+det_count_diffusive_internal = get_distribution("Diffusive_RW_internal.detectors", 600, 40, 1000)
 plot_detector_distribution(det_count_diffusive_internal, "Diffusive_RW_internal", 600, 40, 6.)
 
 show()

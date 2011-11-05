@@ -31,14 +31,6 @@ In the future, these agents will carry biology information for Lagrangian Ensemb
                 <a:documentation>The initial number of detectors held in this array.</a:documentation>
                 <ref name="integer"/>
               </element>
-              <element name="lagrangian">
-                <a:documentation>Create detectors which move with the fluid velocity.</a:documentation>
-                <empty/>
-              </element>
-              <element name="binary_output">
-                <a:documentation>Enable to write detector output in binary format</a:documentation>
-                <empty/>
-              </element>
               <element name="initial_position">
                 <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
 
@@ -91,18 +83,19 @@ Requires name of diffusivity field and according gradient field.</a:documentatio
                         </element>
                       </optional>
                     </element>
+                    <element name="naive_random_walk">
+                      <a:documentation>Hardcoded Naive Random Walk scheme for verifying the RNG</a:documentation>
+                      <attribute name="diffusivity_field">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
                   </choice>
                 </element>
               </optional>
               <optional>
-                <element name="debug">
-                  <a:documentation>Debug options</a:documentation>
-                  <optional>
-                    <element name="exclude_from_advection">
-                      <a:documentation>Skip velocity advection algorithm (RK-GS)</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
+                <element name="exclude_from_advection">
+                  <a:documentation>Skip velocity advection algorithm (RK-GS)</a:documentation>
+                  <empty/>
                 </element>
               </optional>
             </element>
