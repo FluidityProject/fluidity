@@ -350,15 +350,15 @@ In Large Eddy Simulations the large scales in the ﬂow are captured while the e
 is modelled. Formally, a filtering operator is defined and a decomposition, similar to the Reynolds
 decomposition, is introduced:
 \begin{equation}
-\overline{\alpha} = \int_{-\infty}^\infty G_m\left( \overrightarrow{r} \right) \alpha \left( \overrightarrow{x} - \overrightarrow{r} \right) \text{d} \overrightarrow{r}
+\overline{u}_i = \int_{-\infty}^\infty G_m\left( \overrightarrow{r} \right) u_i \left( \overrightarrow{x} - \overrightarrow{r} \right) \text{d} \overrightarrow{r}
 \label{eqn:les_filtering}
 \end{equation}
 and
 \begin{equation}
-\alpha = \overline{\alpha} + \alpha^\prime
+u_i = \overline{u}_i + u_i^\prime
 \label{eqn:les_decomposition}
 \end{equation}
-where $\alpha^\prime$ denotes the subgrid-scale fluctuation. Applying
+where $u_i^\prime$ denotes the subgrid-scale fluctuation. Applying
 the filtering operator to the continuity and momentum equations for constant-property, incompressible
 flow and introducing the decomposition \eqref{eqn:les_decomposition} to the non-linear terms gives,
 \begin{equation}
@@ -451,7 +451,7 @@ rate (the second invariant of the strain-rate tensor):
 
 The following model developed by \citet{bentham2003} is similar to the original Smagorinsky model, but allows for an anisotropic eddy viscosity that gives better results for flow simulations on unstructured grids:
 
-\begin{equation}\label{smag}
+\begin{equation}
 \frac{\partial \tau_{ij}}{\partial x_j} = \frac{\partial}{\partial x_i} \left [ \nu_{jk}\frac{\partial \overline{u}_j}{\partial x_k} \right ],
 \end{equation}
 with the anisotropic tensorial eddy viscosity:
@@ -509,6 +509,10 @@ near-by wave-numbers.
 \par
 Formally, a second filtering of equations \eqref{eqn:filtered_continuity} and
 \eqref{eqn:filtered_momentum} is introduced:
+\begin{equation}
+\tilde{\overline{u}}_i = \int_{-\infty}^\infty G_t\left( \overrightarrow{r} \right) \overline{u}_i \left( \overrightarrow{x} - \overrightarrow{r} \right) \text{d} \overrightarrow{r}
+\label{eqn:les_test_filtering}
+\end{equation}
 \begin{equation}
 \frac{\partial \tilde{\overline{u}}_i}{\partial x_i} = 0
 \label{eqn:twice_filtered_continuity}
@@ -597,7 +601,7 @@ Equations \eqref{germanocoeff} and \eqref{lillycoeff} require the calculation of
 \overline{u}_i = \left( 1 - \alpha^2 \nabla^2 \right) \tilde{\overline{u}}_i
 \end{equation}
 where $\alpha$ is the filter width ratio defined above. It is related to the local mesh size by $\alpha^2 = \overline \bigtriangleup^2/24$ \citep{pope2000}. In \fluidity\ equation \eqref{invhelm} is constructed in weak finite element form with a strong Dirichlet boundary condition on the filtered field: $\tilde{\overline{u}}_i = \overline{u}_i$. Similar problems must be solved for calculation of
-$\widetilde{ | \overline S | \overline S_{ij}}$ in equations \eqref{}, \eqref{} and \eqref{eqn:lilly_m_tensor} 
+$\widetilde{ | \overline S | \overline S_{ij}}$ in equations \eqref{germanocoeff}, \eqref{germanovisc} and \eqref{eqn:lilly_m_tensor} 
 
 \par
 The options available to the user are located under path \lstinline+.../les_model/dynamic_les+.
@@ -619,11 +623,11 @@ The options available to the user are located under path \lstinline+.../les_mode
         Sub-options allow the user to store realisations of the mesh filter width field,
         $\overline \bigtriangleup$, for post-processing.
   \item \lstinline+.../les_model/dynamic_les/tensor_field::StrainRate+\ : (Optional)
-        Sub-options allow the user to store realisations of the test-filtered product
-        $\widetilde{ | \overline S | \overline S_{ij}}$, for post-processing.
+        Sub-options allow the user to store realisations of the strain rate of the mesh-filtered
+        velocity, for post-processing.
   \item \lstinline+.../les_model/dynamic_les/tensor_field::FilteredStrainRate+\ : (Optional)
-        Sub-options allow the user to store realisations of the strain rate if the twice-filtered
-        velocity $\widetilde{\overline S}$ (see equation \eqref{}), for post-processing.
+        Sub-options allow the user to store realisations of the strain rate of the twice-filtered
+        velocity, for post-processing.
   \item \lstinline+.../les_model/dynamic_les/tensor_field::EddyViscosity+\ : (Optional)
         Sub-options allow the user to store realisations of the eddy viscosity, $\nu_\tau$,
         for post-processing.
