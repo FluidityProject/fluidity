@@ -784,7 +784,7 @@ contains
     real :: K
 
     call random_number(rnd)
-    rnd = (rnd * 2.0) - 1.0
+    rnd(1) = (rnd(1) * 2.0) - 1.0
     K=abs(detector_value(diff_field, detector))
 
     displacement(:)=0.0
