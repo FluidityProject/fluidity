@@ -629,3 +629,8 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	mkdir -p $(DESTDIR)/usr/share/diamond/schemata
 	cp schemas/flml $(DESTDIR)/usr/share/diamond/schemata
 	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
+	cp -r examples/ $(DESTDIR)$(docdir)/fluidity
+	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
+	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/bin\///" '{}' \;
+	tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz $(DESTDIR)$(docdir)/fluidity/examples/
+	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
