@@ -15,4 +15,4 @@ input: clean preprocess
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
 	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.stat *.log-0 *.err-0 matrixdump* 
-	rm Sphere_drag.pdf
+	rm -f Sphere_drag.pdf
