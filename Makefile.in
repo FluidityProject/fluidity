@@ -200,7 +200,7 @@ bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@echo "    LD shallow_water"
-	@$(EVAL) $(LINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
+	@$(EVAL) $(FLLINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
 	@$(EVAL) $(LINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
 
 bin/hybridized_helmholtz_solver: fluidity_library main/Hybridized_Helmholtz_Solver.F90
