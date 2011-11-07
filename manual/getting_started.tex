@@ -68,18 +68,22 @@ tar -zxvf fluidity-4.1.tar.gz
 \end{lstlisting}
 
 This should create a directory, \lstinline[language=Bash]+fluidity-4.1/+,
-containing your copy of the source code. To add examples, standard tests, or
-long tests, download the relevent archive into the
-\lstinline[language=Bash]+fluidity-4.1/+ directory, and in that directory run
-(in the case of examples):
+containing your copy of the source code. To the standard tests (sufficient to
+run 'make mediumtest') or long tests (extended testing), download the relevent
+archive into the \lstinline[language=Bash]+fluidity-4.1/+ directory, and in
+that directory run (in the case of tests):
 
 \begin{lstlisting}[language=Bash]
-tar -zxvf fluidity-examples-4.1.tar.gz
+tar -zxvf fluidity-tests-4.1.tar.gz
 \end{lstlisting}
 
-The files will appear in an \lstinline[language=Bash]+examples/+ directory in
-this case, or for standard tests \lstinline[language=Bash]+tests/+ and long
-tests \lstinline[language=Bash]+longtests/+.
+or in the case of longtests:
+
+\begin{lstlisting}[language=Bash]
+tar -zxvf fluidity-longtests-4.1.tar.gz
+\end{lstlisting}
+
+The files will appear in a \lstinline[language=Bash]+tests/+ directory.
 
 \subsection{Bazaar}
 \label{sec:bazaar}\index{bazaar|primary}\index{bzr|see{bazaar}}
