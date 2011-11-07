@@ -283,11 +283,11 @@ Time step                                     & 0.025\,s                        
 Time loop                                     & 2 non-linear Picard iterations  & \ref{sec:ND_time_loop} \\
 Equation of state                             & linear                          & \ref{sec:equation_of_state} \\
 Momentum and Pressure spatial discretisation  & \Poo                            & \ref{sec:ND_momentum_equation}, \ref{sec:ND_pressure_equation}, \ref{sec:configuring_fluidity_continuous_galerkin}, \ref{sec:configuring_fluidity_pressure} \\
-Momentum temporal discretisation              & $\theta = 0.5$ (Crank-Nicholson)  & \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
+Momentum temporal discretisation              & $\theta = 0.5$ (Crank-Nicolson)  & \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
                                               & non-linear relaxation term $=0.5$ & \ref{sec:relax} \\
 Temperature advection                         & advection-diffusion equation    & \ref{sec:MP-AdvdifEqn} \\
                                               & control volumes                 & \ref{sec:CVs} \\
-Temperature temporal discretisation           & $\theta = 0.5$ (Crank-Nicholson)& \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
+Temperature temporal discretisation           & $\theta = 0.5$ (Crank-Nicolson)& \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
                                               & 3 advection iterations, limit theta & \ref{sec:cvtemp} \\\hline
 \end{tabular}
 \caption{Numerical configuration for the lock-exchange}

@@ -538,7 +538,7 @@ The coordinate mesh read in from file will always have linear elements and
 the Coordinate field is always continuous between elements.
 
 \fluidity\ also has native Gmsh support, which loads in Gmsh files directly into
-\fluidity\, and works with binary and ASCII Gmsh formats. To enable native 
+\fluidity, and works with binary and ASCII Gmsh formats. To enable native 
 support, \fluidity\ needs to be told to expect a Gmsh file, which is achieved 
 by setting the \onlypdf\option{/geometry/mesh/from\_file/format}\ option 
 to \onlypdf\option{gmsh}.  \fluidity\ will now look for a file with the extension 
@@ -1485,7 +1485,7 @@ velocity and temperature are required. More information can be found in section 
 \subsubsection{Zero flux}
 \index{boundary conditions!zero flux}
 
-For control volume discretisations only this options prevents the field fluxing from the boundary.
+For control volume discretisations only, this option prevents the field fluxing from the boundary.
 
 \subsubsection{Flux}
 \index{boundary conditions!flux}
@@ -1529,7 +1529,7 @@ where $\Delta x$ and $l$ are the maximum horizontal element size and number of m
 \subsubsection{Drag}
 \index{boundary conditions!drag}
 
-Applies a quadratic or linear drag to the Velocity field. Both the value and the type of drag need to be set. A Manning-Strickler drag can be used by activating \option{\ldots/quadratic\_drag/manning\_strickler}
+This option applies a quadratic or linear drag to the Velocity field. Both the value and the type of drag need to be set. A Manning-Strickler drag can be used by activating \option{\ldots/quadratic\_drag/manning\_strickler}
 
 \subsubsection{Wind forcing}\label{sec:wind_forcing}
 \index{boundary conditions!wind stress}
