@@ -1215,6 +1215,18 @@ start =
                         }
                      )
                   },
+                  ## Set the value of the background (laminar) diffusivity field here.
+                  ## This is used to calculate scalar field diffusivities.
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "BackgroundDiffusivity" },
+                     (
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_tensor_field
+                        }
+                     )
+                  }?,
                   ## Eddy viscosity (turbulent diffusion of velocity).
                   ## This is a fictitious isotropic viscosity, added to normal viscosity field, that
                   ## carries the influence of turbulence onto the velocity field.
