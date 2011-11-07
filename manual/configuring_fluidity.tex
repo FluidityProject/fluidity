@@ -2102,7 +2102,6 @@ indicates the number of nodes can increase by at most 10\%.
 \item \option{aspect\_ratio\_bound} -  maximum aspect ration of elements in the adapted mesh.
 \item adapt at first timestep - perform mesh adaptivity before the first timestep occurs. This can occur a specified number of times.
 \item \option{preserve\_mesh\_regions} - ensures that regions in your mesh, specified by region IDs, are preserved through adaptivity.
-\item \option{vertically\_structured\_adaptivity} - also known as 2D+1 adaptivity, this option performs adaptivity in two stages - first the horizontal mesh
 is adapted, then the mesh is extruded using the adaptivity metric in the 3rd dimension. You must use an extruded mesh with this option, section \ref{sec:extruded_meshes}.
 \item \option{adaptivity\_library} - choose which adaptivity library to use. In 2D you are restricted to libmba2d. In 3D you can choose either libmba3D or libadaptivity (default).
 \item \option{adapt\_iterations} - this options controls the number of intermediate adapt iteration during parallel adaptive simulations, section \ref{sec:parallel_adaptivity}. The default value is 3. Higher values may give you 
@@ -2110,6 +2109,60 @@ better meshes, especially when the number of elements per process is low.
 \item \option{debug} - options for output that is useful for debugging adaptivity.
 \end{itemize}
 
+\subsubsection{Vertically structured and 2+1D adaptivity}
+\label{sec:vertically_structured_adaptivity}
+For some problems it can be advantageous to apply adaptivity in the horizontal
+and vertical as separate steps. This means a horizontal (surface) mesh is
+adapted first after which a column of nodes is created under each surface node.
+The resolution in the vertical columns is either specified under the extrusion
+options, or determined via a vertical adaptivity step. This functionality is switched
+on using the \option{vertically\_structured\_adaptivity} option. An extruded
+initial mesh is required for this option (see section \ref{sec:extruded_meshes},
+and section \ref{sec:extruded} for its configuration). The horizontal adaptivity
+stage is then applied to the horizontal input mesh, and the
+\option{bottom\_depth} and \option{sizing\_function} extrusion options are
+ reapplied for the creation of the vertical columns.
+If an extruded initial mesh is
+provided \emph{without} \option{vertically\_structured\_adaptivity}, the extruded 
+mesh is simply adapted in all directions, resulting in a fully unstructured mesh
+and the extrusion options are no longer applicable. Further options under
+\option{vertically\_structured\_adaptivity} are:
+\begin{itemize}
+\item \option{inhomogenous\_vertical\_resolution} -
+This option switches on vertical adaptivity. This means it will no longer create
+layers based on the \option{sizing\_function} option. Instead, the distance
+between the nodes in the vertical columns is based on the vertical component of
+the error metric. The vertical resolution will therefore vary over the depth and 
+in each column independently. With the combination of
+\option{vertically\_structured\_adaptivity} and
+\option{inhomogenous\_vertical\_resolution}, adaptivity can thus focus resolution
+in both horizontal and vertical, while maintaining a columnar nodal structure.
+This combination is refered to as 2+1D adaptivity.
+\begin{itemize}
+\item \option{adapt\_in\_vertical\_only} - With this option vertical adaptivity is
+applied, but the horizontal mesh is kept fixed.
+\end{itemize}
+\item \option{split\_gradation} - Instead of applying gradation to the full metric
+before splitting into a horizontal and vertical metric, with this option the
+gradation is applied after the split. Thus in particular when specifying
+anisotropic gradation, the gradation in the horizontal and vertical is applied
+completely independently.
+\item \option{vertically\_align\_metric} or \option{use\_full\_metric} -
+The metric applied in the horizontal adaptivity stage is assembled by merging
+the 3D metric in each column and then projecting to the horizontal plane. 
+Typically the 3D metric for large aspect ratio problems already decomposes 
+in an (almost) vertical eigenvector and 2 horizontal ones. 
+However, even the slightest tilt causes vertical error bounds 
+to be ``leaked'' into the merged horizontal metric, leading to unexpected small
+horizontal edge lengths. Therefore for large aspect ratio problems the option
+\option{vertically\_align\_metric}, which decomposes the metric \emph{before}
+merging in the horizontal, is recommended.
+\item \option{include\_bottom\_metric} - When constructing the horizontal metric
+incorporate the components of the full metric tangential to the bottom boundary.
+For example, this is useful when horizontal contours of a field intersect the
+bathymetry and this information is not automatically incorporated into the
+horizontal metric leading to the contact point being underresolved.
+\end{itemize}
 
 \subsubsection{Zoltan options}
 \label{sec:configuring_fluidity_zoltan_options}
