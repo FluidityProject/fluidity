@@ -142,8 +142,6 @@ contains
     call addto(t_field, background_diffusivity)
     call addto(t_field, eddy_viscosity, 1.0/prandtl_schmidt) 
 
-    ewrite_minmax(t_field)
-
     call deallocate(background_diffusivity)
     call deallocate(local_background_diffusivity_field)
 

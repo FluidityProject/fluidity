@@ -165,11 +165,6 @@ contains
        allocate(surface_ids(surface_id_count(1)))
        call get_option(trim(bedload_field(i_field)%ptr%option_path)//"/diagnostic/surface_ids", &
             & surface_ids) 
-
-       ewrite(2,*) surface_id_count(1)
-       ewrite(2,*) surface_ids
-
-       ewrite(2,*) element_count(surface_field(i_field))
        
        ! loop through elements in surface field
        elements: do ele=1,element_count(surface_field(i_field))
@@ -185,8 +180,6 @@ contains
                & X, U, sink_U(i_field)%ptr, gravity, masslump, dt, i_field)
 
        end do elements
-
-       ewrite_minmax(surface_field(i_field))  
 
        deallocate(surface_ids)
 
