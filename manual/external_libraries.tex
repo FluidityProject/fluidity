@@ -52,7 +52,7 @@ packages available from the Launchpad fluidity-core PPA. These are available
 for as many Ubuntu versions as \fluidity currently supports; at the time of
 writing, 10.10 (Maverick) and newer.
 
-\textbf{BE AWARE:} AMCG packages are provded for use at your own risk and
+\textbf{BE AWARE:} AMCG packages are provided for use at your own risk and
 without warranty. You should ensure that any packages installed from external
 repositories are not going to adversely affect your system before installing
 them!
@@ -197,8 +197,9 @@ Make a target build directory which is OUTSIDE the source tree, then build
 with the following configure:
 
 \begin{lstlisting}[language=bash]
-/path/to/gcc/source/configure --prefix=$WORKING/fluidity --with-gmp=$WORKING/fluidity
---with-mpfr=$WORKING/fluidity --enable-languages=c,c++,fortran
+/path/to/gcc/source/configure --prefix=$WORKING/fluidity 
+--with-gmp=$WORKING/fluidity --with-mpfr=$WORKING/fluidity 
+--enable-languages=c,c++,fortran
 \end{lstlisting}
 
 followed by the standard make and install.
