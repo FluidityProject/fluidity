@@ -13,23 +13,21 @@ This is a one-page primer for obtaining \fluidity and running a simple example. 
 Set up your computer to access the Fluidity repository by typing:
 
 \begin{lstlisting}[language=Bash]
-sudo apt-add-repository ppa:fluidity-core/ppa
+sudo apt-add-repository -y ppa:fluidity-core/ppa
 \end{lstlisting}
 
-Type your password when prompted, and press enter if required to confirm
-adding the repsitory.
+Type your password when prompted.
 
 Once this completes, update your system and install \fluidity along with its
 supporting software by typing:
 
 \begin{lstlisting}[language=Bash]
 sudo apt-get update
-sudo apt-get install fluidity
+sudo apt-get -y install fluidity
 \end{lstlisting}
 
-Confirm the install by pressing 'y' when requested.
-
-Uncompress the packaged examples to a directory in which you can create files (in this example, \lstinline[language=Bash]+/tmp+) by typing:
+Now uncompress the packaged examples to a directory in which you can create
+files (in this example, \lstinline[language=Bash]+/tmp+) by typing:
 
 \begin{lstlisting}[language=Bash]
 cd /tmp

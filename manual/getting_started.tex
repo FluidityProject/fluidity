@@ -13,33 +13,43 @@ a Linux workstation.
 \subsection{Overview}
 \label{sec:obtaining_fluidity_overview}
 
-\fluidity\ is primarily distributed as source code, which takes the form of
-instructions that are passed through a compiler to generate binary files that
-your operating system can run. If you come from a UNIX background you will
-probably be used to this form of distribution; if however you come from a
-Windows or Mac background you may be used to programs being distributed as
-pre-compiled packages which you need do nothing more than put in place and run.
-There are obvious benefits to the ready-to-run approach, namely that they do
-not generally require you to install any more software other than the specific
-program you want, and they have a very short lead-time before you are up and
-running. However, there are a number of obvious disadvantages, particularly that
-making any changes to the program you have just received is extremely
-difficult, and there is an underlying assumption that the computer you run the
-program on will be substantially the same as the computer the program was
-compiled on.
+\fluidity is available both as precompiled binaries for Ubuntu Linux version
+10.10 (Maverick) and newer, and as source code available via bzr (bazaar) or as
+gzipped tarballs. Which method you use to obtain \fluidity depends primarily on
+whether you use Ubuntu Linux and whether you wish to modify the \fluidity
+sourcecode.
 
-For the majority of \fluidity\ users the disadvantages of pre-compiled binaries
-will outweigh the benefits, and distribution of source code is the best
-solution. Indeed, even if you receive a copy of \fluidity\ as a pre-compiled
-binary, the licence (LGPL) under which \fluidity\ is distributed requires that
-the original source code is also made available.
+Users who run Ubuntu Linux and who have no need to change the sourcecode will
+probably wish to use binary packaged \fluidity. Developers and users on
+non-Ubuntu platforms will probably wish to build \fluidity from source.
 
-\fluidity\ is a very actively developed code. The code is distributed both via
-released source archives (gzipped tarballs) and through Bazaar (bzr). If you
-are not familiar with bazaar you may be familiar with CVS (Concurrent Versions
-System) or svn (Subversion) and in that case transitioning to using bazaar
-should be a painless process as the syntax for basic operations is virtually
-identical.
+\subsection{\fluidity\ binary packages for Ubuntu Linux}
+
+\fluidity is distributed via the \lstinline[language=Bash]+fluidity-core+
+launchpad package archive. If you run Ubuntu Linux version 10.10 (Maverick) or
+newer and have administrative privileges on your computer, you can add the
+package archive to your system by typing:
+
+\begin{lstlisting}[language=Bash]
+sudo apt-add-repository -y ppa:fluidity-core/ppa
+\end{lstlisting}
+
+Type your password if prompted. Once the repository has been added, update your
+system and install \fluidity along with the required supporting software by
+typing:
+
+\begin{lstlisting}[language=Bash]
+sudo apt-get update
+sudo apt-get -y install fluidity
+\end{lstlisting}
+
+You now have \fluidity installed on your computer. Examples, as referred to in
+chapter \ref{chap:examples}, are available as a compressed tarball and can be
+expanded into a writeable directory with:
+
+\begin{lstlisting}[language=Bash]
+tar -zxvf /usr/share/doc/fluidity/examples.tar.gz
+\end{lstlisting}
 
 \subsection{\fluidity\ source packages}
 
