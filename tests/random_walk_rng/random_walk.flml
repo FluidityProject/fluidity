@@ -52,7 +52,7 @@
       <real_value rank="0">1.0</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">4000</real_value>
+      <real_value rank="0">2000</real_value>
       <comment>21600 - 6h</comment>
     </finish_time>
   </timestepping>
@@ -79,7 +79,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X, t):
+            <string_value lines="20" type="python">def val(X, t):
   return 1./24.</string_value>
           </python>
         </value>
@@ -106,7 +106,7 @@
           </initial_position>
           <random_walk>
             <python>
-              <string_value type="python" lines="20">from numpy import random, array
+              <string_value lines="20" type="python">from numpy import random, array
 from math import sqrt
 
 diff_eval = state.scalar_fields['Diffusivity'].eval_field
@@ -148,7 +148,7 @@ def val(ele, local_coord, dt):
         </lagrangian_timestepping>
       </functional_group>
       <random_seed>
-        <integer_value rank="0">113165</integer_value>
+        <integer_value rank="0">56494</integer_value>
       </random_seed>
     </lagrangian_ensemble_biology>
   </embedded_models>

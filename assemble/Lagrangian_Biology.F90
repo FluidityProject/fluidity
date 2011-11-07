@@ -65,13 +65,24 @@ contains
     character(len = 254) :: buffer, schema_buffer
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
-    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type, rnd_dim
-    integer, dimension(1) :: rnd_seed
+    integer :: i, j, dim, n_agents, n_agent_arrays, column, ierror, det_type, rnd_dim, rnd_seed_int
+    integer, dimension(:), allocatable :: rnd_seed
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
     ewrite(1,*) "In initialise_lagrangian_biology"
 
+    ! Initialise random number generator
+    call random_seed(size=rnd_dim)
+    allocate(rnd_seed(rnd_dim))
+    call get_option("/embedded_models/lagrangian_ensemble_biology/random_seed", rnd_seed_int)
+    do i=1, rnd_dim
+       rnd_seed(i) = rnd_seed_int + i
+    end do
+    call random_seed(put=rnd_seed(1:rnd_dim))
+    call python_run_string("numpy.random.seed("//trim(int2str(rnd_seed_int))//")")
+    deallocate(rnd_seed)
+    
     n_agent_arrays = option_count("/embedded_models/lagrangian_ensemble_biology/functional_group/agent_array")
     allocate(agent_arrays(n_agent_arrays))
 
@@ -96,13 +107,6 @@ contains
 
        ! Get options for Random Walk
        if (have_option(trim(schema_buffer)//"/random_walk")) then
-          call get_option("/embedded_models/lagrangian_ensemble_biology/random_seed", rnd_seed(1))
-
-          ! Initialise random number generator
-          call python_run_string("numpy.random.seed("//trim(int2str(rnd_seed(1)))//")")
-          rnd_dim=1
-          call random_seed(size=rnd_dim)
-          call random_seed(put=rnd_seed(1:rnd_dim))
 
           if (have_option(trim(schema_buffer)//"/random_walk/python")) then 
              agent_arrays(i)%move_parameters%python_rw=.true.
