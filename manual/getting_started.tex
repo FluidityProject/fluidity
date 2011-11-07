@@ -278,10 +278,10 @@ the central repository use the following:
 bzr diff <filename>
 \end{lstlisting}
 
-You can get help on the bzr command \lstinline[language=Bash]+<command name>+
+You can get help on the bzr command \lstinline[language=Bash]+<command>+
 with:
 \begin{lstlisting}[language=Bash]
-bzr help <command name>
+bzr help <command>
 \end{lstlisting}
 and list available commands with:
 \begin{lstlisting}[language=Bash]
@@ -473,8 +473,9 @@ If you have a modern, powerful computer then you can speed this process up
 significantly by parallelising the make, running:
 
 \begin{lstlisting}[language=Bash]
-make -j
+make -jN
 \end{lstlisting}
+where \lstinline[language=Bash]+N+ is the number of CPU cores of your system.
 
 Note that this is very resource-intensive and whilst most modern workstations
 should be equal to the task it should not be run on shared machines (ie, login
