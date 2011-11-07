@@ -248,7 +248,7 @@ Calculating the corresponding Neumann  conditions by differentiating with respec
 \end{equation}
 
 Note that it is also an option to express the Neumann condition above in terms
-of the fiction velocity, $u^*$. Previous work has shown this causes numerical
+of the friction velocity, $u^*$. Previous work has shown this causes numerical
 difficulties in the case of stress-free surface boundary layers \citep{burchard1999}.
 
 
@@ -346,7 +346,7 @@ where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the fri
 \subsection{Large-Eddy Simulation (LES)}\label{sec:LES}
 \index{large eddy simulation}
 \index{turbulence model}
-In Large Eddy Simulations the large scales in the ﬂow are captured while the effect of the small scales
+In Large Eddy Simulations the large scales in the flow are captured while the effect of the small scales
 is modelled. Formally, a filtering operator is defined and a decomposition, similar to the Reynolds
 decomposition, is introduced:
 \begin{equation}
@@ -389,13 +389,13 @@ see \cite{pope2000} and \cite{sagaut1998}. However, in most implementations the 
 to the mesh and the numerical approximation.%Must check and find out what is the filtering kernel used in Fluidity, this issue is currenlty evaded here.
 \par
 The residual stress tensor is an unknown and a subgrid-scale model is used to close the Navier-Stokes
-equations.All three subgrid-scale models implemented in \fluidity\ are based on the eddy-viscosity concept: The small scales in the flow act as a diffusive agent, so the subgrid stress can be expressed in a way
+equations. All three subgrid-scale models implemented in \fluidity\ are based on the eddy-viscosity concept: The small scales in the flow act as a diffusive agent, so the subgrid stress can be expressed in a way
 similar to the viscous stress:
 \begin{equation}
 \tau_{{ij}_a} = \tau_{ij} - \delta_{ij} \frac 1 3 \tau_{kk} = -2 \nu_\tau \overline{S}_{ij}
 \label{eqn:eddy_viscosity_concept} 
 \end{equation}
-where only the anisotropic part of $\tau_{ij}$ is treated explicitly. This is usual practice, as the isotropic
+where only the anisotropic part of $\tau_{ij}$ is treated explicitly. This is usual practise, as the isotropic
 part can be added to the pressure. In addition, this allows for the diagonal components of $\tau_{ij}$
 to be non-zero when $S_{ij}=0$. Equation \eqref{eqn:filtered_momentum} becomes:
 \begin{equation}
@@ -404,8 +404,8 @@ to be non-zero when $S_{ij}=0$. Equation \eqref{eqn:filtered_momentum} becomes:
  + \frac{\partial}{\partial x_j} \left [ (\nu + \nu_\tau) \left ( \frac{\partial \overline{u}_i}{\partial x_j} + \frac{\partial \overline{u}_j}{\partial x_i} \right ) \right ],
 \end{equation}
 \par
-In comparison with the unfiltered Navier-Stokes equations, equations \eqref{eqn:filtered_momentum}
-feature an additional term. This is reflected in the options that must be adjusted in order to
+In comparison with the unfiltered Navier-Stokes equations, equation \eqref{eqn:filtered_momentum}
+features an additional term. This is reflected in the options that must be adjusted in order to
 perform large eddy simulations using \fluidity. In particular, the user must activate the option
 with path \lstinline+...Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model+
 (See chapter \ref{chap:configuration} for how to configure \fluidity\ options and interact with diamond).
@@ -461,7 +461,7 @@ with the anisotropic tensorial eddy viscosity:
 \end{equation}
 where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}),
 used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter
-width separating resolved and unresolved scales is twice the local element size, which is squared in
+width separating resolved and unresolved scales is assumed to be twice the local element size, which is squared in
 the viscosity model.
 \par
 The options for this model are available under the spud path 
@@ -482,7 +482,7 @@ The options for this model are available under the spud path
 
 The fourth-order method is designed as an improvement to the second-order eddy viscosity method, which can be too dissipative \citep{adam}. The fourth-order term is taken as the difference of two second-order eddy viscosity discretisations, where one is larger than the other. Usually a smaller time-step and finer grid are necessary to make fourth-order worthwhile.
 \par
-Currently the only option for this model allows the specification of the Smagorinsky coefficient. this option 
+Currently the only option for this model allows the specification of the Smagorinsky coefficient. This option 
 is available at the spud path \lstinline+.../les_model/fourth_order/smagorinsky_coefficient+\ , see the
 corresponding option of the second-order dissipation model above for more information.
 
