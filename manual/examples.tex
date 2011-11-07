@@ -217,7 +217,8 @@ of the option
 \item A conservative and bounded CV advection scheme that is less diffusive can be achieved by changing 
 the following options:
 \begin{itemize}
-\item Change \option{\ldots/limit\_face\_value/limiter::Sweby} to \option{limiter::Ultimate}.
+\item Change \option{\ldots/scalar\_field::Tracer/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
+to \option{face\_value::HyperC}.
 \item Under \option{\ldots/temporal\_discretisation}, change theta to 0.0.
 \item Under \option{\ldots/temporal\_discretisation/control\_volumes}
 remove \\
