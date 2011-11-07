@@ -32,13 +32,14 @@ examples plots are created and put in the directory.
 \centering
 \begin{tabular}{|l|l|c|l|}
   \hline
-  Example section & Example directory & N. procs. & Run time \\
+  Example section & Example directory & $n$ & Run time \\
   \hline
   \ref{sec:oned_advection} One dimensional advection & \texttt{top\_hat/} & 1 & 2 min. \\
   \ref{sec:lock_exchange} The lock-exchange & \texttt{lock\_exchange/} & 1 & 10 min. \\
   \ref{sec:lid_driven_cavity} Lid-driven cavity & \texttt{driven\_cavity/} & 1 & 7 hr. \\
-  \ref{sec:backward_facing_step_2d} 2D Backward facing step & \texttt{backward\_facing\_step\_2d/} & 1 & 15 min. \\
-  \ref{sec:backward_facing_step_3d} 3D Backward facing step & \texttt{backward\_facing\_step\_3d/} & 8 & 30 min. \\
+  \ref{sec:backward_facing_step_2d} 2D Backward facing step (reference) & \texttt{backward\_facing\_step\_2d/} & 1 & 25 min. \\
+  \ref{sec:backward_facing_step_2d} 2D Backward facing step (k-$\epsilon$) & \texttt{backward\_facing\_step\_2d/} & 1 & 6 hr. \\
+  \ref{sec:backward_facing_step_3d} 3D Backward facing step & \texttt{backward\_facing\_step\_3d/} & 8 & 5hr. \\
   \ref{sec:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 9 hr. \\
   \ref{sec:periodic_channel} Rotating periodic channel & \texttt{rotating\_channel/} & 1 & 10 min. \\
   \ref{sec:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
@@ -49,7 +50,7 @@ examples plots are created and put in the directory.
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
-the indicated, default number of processes. The times are rough estimates and may vary between 
+the indicated, default number of processes, $n$. The times are rough estimates and may vary between 
 different systems.} \label{tab:example_runtimes}
 \end{table}
 
