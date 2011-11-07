@@ -1622,13 +1622,7 @@ contains
                "/prognostic/subgridscale_parameterisation&
                &::k-epsilon")) then
 
-             ! Get Prandtl number, if specified.
-             call get_option(trim(sfield%option_path)//&
-               "/prognostic/subgridscale_parameterisation&
-               &::k-epsilon/Prandtl_number/constant", Pr, default = 1.0)
-
              ! Scale field by Prandtl number
-             call scale(tfield, 1./Pr)
              tfield%name=trim(sfield%name)//"Diffusivity"
              call insert(states(i), tfield, tfield%name)
 
