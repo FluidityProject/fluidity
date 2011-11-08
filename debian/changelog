@@ -1,3 +1,29 @@
+fluidity (4.1maverick1) maverick; urgency=low
+
+  * Fluidity release 4.1
+
+ -- Tim Bond <timothy.bond@imperial.ac.uk>  Mon, 07 Nov 2011 12:49:49 +0000
+
+fluidity (4.0.999prerelease1maverick5) maverick; urgency=low
+
+  * Additional trunk changes brought in prior to release
+  * Adding in an examples tarball to the package for release
+
+ -- Tim Bond <timothy.bond@imperial.ac.uk> Sun, 06 Nov 2011 20:49:11 +0000
+
+fluidity (4.0.999prerelease1maverick4) maverick; urgency=low
+
+  * Removing fluidity-dev dependency; replacing with best guess at what is
+    needed for everyday running and to run the examples.
+
+ -- Tim Bond <timothy.bond@imperial.ac.uk>  Thu, 03 Nov 2011 21:03:59 +0000
+
+fluidity (4.0.999prerelease1maverick1) maverick; urgency=low
+
+  * Fix the Debian packaging for release 4.1.
+
+ -- Patrick Farrell <patrick.farrell06@imperial.ac.uk>  Wed, 02 Nov 2011 14:19:12 +0000
+
 fluidity (3.4.svn6573) unstable; urgency=low
 
   * Another general update. In particular, several tools were out of date.

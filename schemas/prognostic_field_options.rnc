@@ -484,7 +484,7 @@ prognostic_velocity_field =
                     }
                   )
                },
-               ## large-eddy simulation models
+               ## large-eddy simulation models (currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless)
                element les_model {
                   ## similar to the original Smag model
                   element second_order {
@@ -554,29 +554,34 @@ prognostic_velocity_field =
                      element solver {
                         linear_solver_options_sym
                      },
-                     ## [EXPERIMENTAL] If 0, the smaller filter width G_m is simply the mesh.
-                     ## If > 0, G_m is larger than the mesh.
-                     ## To achieve this the velocity is Helmholtz-filtered with the specified value.
-                     ## This removes some subgrid information, and reduces the effect of the dynamic model.
-                     ## The filtering effect is proportional to the square of the value.
-                     ## Ensure that 0 <= stabilisation_parameter <= 1.0. Default value: 0.0.
-                     ##
-                     element stabilisation_parameter {
-                        real
-                     },
-                     ## Enable averaging of the velocity field to stabilise the model.
-                     element enable_averaging {
-                        empty
-                     }?,
                      ## Use the Lilly modification to the model (see Lilly 1991).
                      ## 
                      element enable_lilly {
                         empty
                      }?,
+                     ## Allow negative eddy viscosity (backscatter).
+                     ## WARNING: this may result in the simulation blowing up.
+                     ## 
+                     element enable_backscatter {
+                        empty
+                     }?,
+                     ## Filtered velocity (diagnostic). This is the Velocity field filtered
+                     ## with the test filter - see manual.
+                     element vector_field {
+                        attribute rank { "2" },
+                        attribute name { "FilteredVelocity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_vector_field
+                           }
+                        )
+                     }?,
                      ## Filter width tensor (diagnostic). This is the square of the mesh size.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicFilterWidth" },
+                        attribute name { "FilterWidth" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -588,7 +593,7 @@ prognostic_velocity_field =
                      ## Strain rate S1: the test filter applied to the strain rate of the mesh-filtered velocity.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicStrainRate" },
+                        attribute name { "StrainRate" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -600,7 +605,7 @@ prognostic_velocity_field =
                      ## Strain rate S2: the strain rate of the test-filtered velocity.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicFilteredStrainRate" },
+                        attribute name { "FilteredStrainRate" },
                         (
                            element diagnostic {
                               internal_algorithm,

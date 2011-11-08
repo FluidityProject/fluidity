@@ -329,7 +329,6 @@ static PyObject *
 spud_get_option_aux_scalar_or_string(const char *key, int key_len, int type, int rank, int *shape)
 {   // this function is for getting option when the option is of type a scalar or string
     int outcomeGetOption;
-
     if (type == SPUD_DOUBLE){
         double val;
         outcomeGetOption = spud_get_option(key, key_len, &val);
@@ -393,7 +392,7 @@ spud_get_option_aux_tensor_doubles(const char *key, int key_len, int type, int r
             return NULL;
         }
         for (n = 0; n < colsize; n++){
-            PyObject* element = Py_BuildValue("f", val[counter]);
+            PyObject* element = Py_BuildValue("d", val[counter]);
             PyList_SetItem(pysublist, n, element);
             counter++;
         }
@@ -432,7 +431,7 @@ spud_get_option_aux_tensor_ints(const char *key, int key_len, int type, int rank
             return NULL;
         }
         for (n = 0; n < colsize; n++){
-            PyObject* element = Py_BuildValue("f", val[counter]);
+            PyObject* element = Py_BuildValue("i", val[counter]);
             PyList_SetItem(pysublist, n, element);
             counter++;
         }
@@ -540,7 +539,7 @@ set_option_aux_list_doubles(PyObject *pylist, const char *key, int key_len, int 
     for (j = 0; j < psize; j++){
         element = -1.0;
         PyObject* pelement = PyList_GetItem(pylist, j);
-        PyArg_Parse(pelement, "f", &element);
+        element = PyFloat_AS_DOUBLE(pelement);
         val[j] = element;
     }
     outcomeSetOption = spud_set_option(key, key_len, val, type, rank, shape);
@@ -601,27 +600,20 @@ set_option_aux_tensor_doubles(PyObject *pylist, const char *key, int key_len, in
     int i;
     int j;
     int counter = 0;
-    int pylistsize = PyList_Size(pylist);
-    shape[0] = pylistsize;
-    
+
     int outcomeSetOption;
-    int pysublistsize;
-    PyObject* pysublist = PyList_GetItem(pylist, 0);
-    pysublistsize = PyList_Size(pysublist);
-    int size = pylistsize*pysublistsize;
+
+    int size = shape[0]*shape[1];
     
     double element;
     double val [size];
     
-    for (i = 0; i < pylistsize; i++){
+    for (i = 0; i < shape[0]; i++){
         PyObject* pysublist = PyList_GetItem(pylist, i);
-        pysublistsize = PyList_Size(pysublist);
-        shape[1] = pysublistsize;
-        for (j = 0; j < pysublistsize; j++){
-            element = -1.0;
+        for (j = 0; j < shape[1]; j++){
             PyObject* pysublistElement = PyList_GetItem(pysublist, j);
-            PyArg_Parse(pysublistElement, "d", &element);
-            val[counter] = element;
+            element = PyFloat_AS_DOUBLE(pysublistElement);
+            val[counter] = (double) element;
             counter ++;
         }
     }
@@ -636,22 +628,15 @@ set_option_aux_tensor_ints(PyObject *pylist, const char *key, int key_len, int t
     int i;
     int j;
     int counter = 0;
-    int pylistsize = PyList_Size(pylist);
-    shape[0] = pylistsize;
-    int pysublistsize;
-    PyObject* pysublist = PyList_GetItem(pylist, 0);
-    pysublistsize = PyList_Size(pysublist);
-    int size = pylistsize*pysublistsize;
+    int size = shape[0]*shape[1];
     int val [size];
     int outcomeSetOption;
 
     int element;
 
-    for (i = 0; i < pylistsize; i++){
+    for (i = 0; i < shape[0]; i++){
         PyObject* pysublist = PyList_GetItem(pylist, i);
-        pysublistsize = PyList_Size(pysublist);
-        shape[1] = pysublistsize;
-        for (j = 0; j < pysublistsize; j++){
+        for (j = 0; j < shape[1]; j++){
             element = 1;
             PyObject* pysublistElement = PyList_GetItem(pysublist, j);
             PyArg_Parse(pysublistElement, "i", &element);
@@ -661,7 +646,7 @@ set_option_aux_tensor_ints(PyObject *pylist, const char *key, int key_len, int t
     }
 
     outcomeSetOption = spud_set_option(key, key_len, val, type, rank, shape);
-    return error_checking(outcomeSetOption, "set option aux tensor doubles");
+    return error_checking(outcomeSetOption, "set option aux tensor ints");
 }
 
 static PyObject*
@@ -689,30 +674,74 @@ libspud_set_option(PyObject *self, PyObject *args)
 {
     const char *key;
     int key_len;
-    int type;
-    int rank;
+    int type=-1;
+    int rank=-1;
     int shape[2];
-    int outcomeGetRank;
-    int outcomeGetShape;
-    int outcomeGetType;
     PyObject* firstArg;
     PyObject* secondArg;
+    
+    if(PyTuple_GET_SIZE(args)!=2){
+        PyErr_SetString(SpudError,"Error: set_option takes exactly 2 arguments.");
+        return NULL;
+    }
 
     firstArg = PyTuple_GetItem(args, 0);
     secondArg = PyTuple_GetItem(args, 1);
     PyArg_Parse(firstArg, "s", &key);
     key_len = strlen(key);
-    outcomeGetType = spud_get_option_type(key, key_len, &type);
-    if (error_checking(outcomeGetType, "set option") == NULL){
-        return NULL;
+    
+    if (!spud_have_option(key, key_len)){ //option does not exist yet
+        int outcomeAddOption = spud_add_option(key, key_len);
+        error_checking(outcomeAddOption, "set option");
+    } 
+    
+    if (PyInt_Check(secondArg)){ //just an int
+        type = SPUD_INT;
+        rank = 0;
+        shape[0] = -1;
+        shape[1] = -1;
+            
+    }       
+    else if (PyString_Check(secondArg)){// a string
+        type = SPUD_STRING;
+        rank = 1;
+        shape[0] = PyString_GET_SIZE(secondArg);
+        shape[1] = -1;
     }
-    outcomeGetRank = spud_get_option_rank(key, key_len, &rank);
-    if (error_checking(outcomeGetRank, "set option") == NULL){
-        return NULL;
+    else if (PyFloat_Check(secondArg)){// a double
+        type = SPUD_DOUBLE;
+        rank = 0;
+        shape[0] = -1;
+        shape[1] = -1;
     }
-    outcomeGetShape = spud_get_option_shape(key, key_len, shape);
-    if (error_checking(outcomeGetShape, "set option") == NULL){
-        return NULL;
+    else if (PyList_Check(secondArg)){
+        PyObject* listElement = PyList_GetItem(secondArg, 0);
+        if (PyInt_Check(listElement)){ //list of ints
+            type = SPUD_INT;
+            rank = 1;
+            shape[0] = 1;
+            shape[1] = -1;
+        }
+        else if (PyFloat_Check(listElement)){
+            type = SPUD_DOUBLE; //list of doubles
+            rank = 1;
+            shape[0] = 1;
+            shape[1] = -1;
+        }
+        else if (PyList_Check(listElement)){ //list of lists
+            int pylistSize = PyList_GET_SIZE(secondArg);
+            int pysublistSize = PyList_GET_SIZE(listElement);
+            PyObject* sublistElement = PyList_GetItem(listElement, 0);
+            if (PyInt_Check(sublistElement)){ //list of lists of ints
+                type = SPUD_INT;
+            }
+            else if (PyFloat_Check(sublistElement)){//list of lists of doubles
+                type = SPUD_DOUBLE;
+            }            
+            rank = 2;
+            shape[0] = pylistSize;
+            shape[1] = pysublistSize;
+        }
     }
     
     if (rank == 0){ // scalar

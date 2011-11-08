@@ -38,7 +38,7 @@ module field_derivatives
     end interface u_dot_nabla
 
     interface grad
-      module procedure grad_scalar, grad_vector
+      module procedure grad_scalar, grad_vector, grad_vector_tensor
     end interface grad
 
     private
@@ -258,6 +258,36 @@ module field_derivatives
       end do
 
     end subroutine grad_vector
+
+    subroutine grad_vector_tensor(infield,positions,t_field)
+      !!< This routine computes the full (tensor) grad of an infield vector field
+      type(vector_field), intent(in) :: infield
+      type(vector_field), intent(in) :: positions
+      type(tensor_field), intent(inout) :: t_field
+
+      type(scalar_field), dimension(infield%dim) :: pardiff
+      type(scalar_field) :: component
+
+      real, dimension(t_field%dim(1),t_field%dim(2)) :: t
+      logical, dimension(infield%dim) :: derivatives
+      integer :: i, j
+      integer :: node
+
+      do j=1,infield%dim
+
+        component = extract_scalar_field(infield, j)
+
+        do i=1,infield%dim
+          pardiff(i) = extract_scalar_field(t_field,i,j)
+        end do
+
+        derivatives = .true.
+
+        call differentiate_field(component, positions, derivatives, pardiff)
+
+      end do
+ 
+    end subroutine grad_vector_tensor
 
     subroutine strain_rate(infield,positions,t_field)
       !!< This routine computes the strain rate of an infield vector field

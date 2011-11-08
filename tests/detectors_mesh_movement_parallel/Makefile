@@ -11,3 +11,4 @@ clean-mesh:
 clean-run:
 	rm -f matrixdump matrixdump.info
 	rm -f fluidity.err-* fluidity.log-*
+	rm -rf detectors_?

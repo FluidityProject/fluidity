@@ -39,4 +39,9 @@ clean-run:
 	rm -f $(FLMLMODEL4).detectors $(FLMLMODEL4).stat tmpf*
 	rm -f fluidity.err-?* fluidity.log-?*
 	rm -f matrixdump matrixdump.info
+	rm -f *.log
+	rm -rf $(FLMLMODEL1)_?
+	rm -rf $(FLMLMODEL2)_?
+	rm -rf $(FLMLMODEL3)_?
+	rm -rf $(FLMLMODEL4)_?
 clean-run-debug: clean-run
