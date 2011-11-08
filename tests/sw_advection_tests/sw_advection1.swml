@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
-    <string_value lines="1">LW2</string_value>
+    <string_value lines="1">pressure_advection</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -191,9 +191,20 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value shape="3" dim1="dim" rank="1">0. 0. 0.</real_value>
-          </constant>
+          <from_sphere_pullback>
+            <python>
+              <string_value type="python" lines="20">def val(X,t):
+  R0 = 6.37122e6
+  x = X[0]
+  y = X[1]
+  z = X[2]
+  u0 = 100.
+  return [-u0*y/R0,u0*x/R0,0.0]</string_value>
+            </python>
+            <sphere_radius>
+              <real_value rank="0">6.37122e6</real_value>
+            </sphere_radius>
+          </from_sphere_pullback>
         </initial_condition>
         <output/>
         <convergence>

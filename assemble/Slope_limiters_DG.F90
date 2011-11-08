@@ -94,7 +94,7 @@ contains
     !assert(field%mesh%continuity<0)
     !assert(field%mesh%shape%degree==1)
 
-    ewrite(2,*) 'subroutiune limit_slope_dg'
+    ewrite(2,*) 'subroutine limit_slope_dg'
 
     select case (limiter)
     case (LIMITER_MINIMAL)
@@ -220,7 +220,7 @@ contains
        FLAbort('no such limiter exists')
     end select
 
-    ewrite(2,*) 'END subroutiune limit_slope_dg'
+    ewrite(2,*) 'END subroutine limit_slope_dg'
 
   end subroutine limit_slope_dg
 
@@ -1373,7 +1373,7 @@ contains
     real :: Tbar
 
     if (.not. element_degree(T%mesh, 1)==1 .or. continuity(T%mesh)>=0) then
-      FLExit("The vertex based slope limiter only works for P1DG fields.")
+       FLExit("The vertex based slope limiter only works for P1DG fields.")
     end if
     
     ! Allocate copy of field

@@ -675,7 +675,7 @@
                call calculate_scalar_galerkin_projection(state, h_projected)
                call set(h, h_projected)
             else
-               call solve_advection_dg_subcycle("DGLayerThickness", state, &
+               call solve_advection_dg_subcycle("LayerThickness", state, &
                     "NonlinearVelocity")               
             end if
          end if
@@ -718,11 +718,13 @@
       dim = U%dim
 
       ! allocate DG h field
-      call allocate(h_DG, U%mesh, "DGLayerThickness")
-      call zero(h_DG)
-      h_DG%option_path=D%option_path
-      call insert(state, h_DG, "DGLayerThickness")
-      call deallocate(h_DG)
+      if(D%mesh%continuity==0) then
+         call allocate(h_DG, U%mesh, "DGLayerThickness")
+         call zero(h_DG)
+         h_DG%option_path=D%option_path
+         call insert(state, h_DG, "DGLayerThickness")
+         call deallocate(h_DG)
+      end if
       !allocate RHS variables
       call allocate(d_rhs, D%mesh, "LayerThickness_RHS")
       call zero(d_rhs)
@@ -742,14 +744,21 @@
       call insert(state, delta_u, "LocalVelocity_update")
       call deallocate(delta_u)
       !allocate previous timestep variables
-      call allocate(old_h_DG, U%mesh, "OldDGLayerThickness")
-      call zero(old_h_DG)
-      call insert(state, old_h_DG, "OldDGLayerThickness")
-      call deallocate(old_h_DG)
-      call allocate(old_d, D%mesh, "LayerThickness_old")
-      call zero(old_d)
-      call insert(state, old_d, "LayerThickness_old")
-      call deallocate(old_d)
+      if(D%mesh%continuity==0) then
+         call allocate(old_h_DG, U%mesh, "OldDGLayerThickness")
+         call zero(old_h_DG)
+         call insert(state, old_h_DG, "OldDGLayerThickness")
+         call deallocate(old_h_DG)
+         call allocate(old_d, D%mesh, "LayerThickness_old")
+         call zero(old_d)
+         call insert(state, old_d, "LayerThickness_old")
+         call deallocate(old_d)
+      else
+         call allocate(old_d, D%mesh, "OldLayerThickness")
+         call zero(old_d)
+         call insert(state, old_d, "OldLayerThickness")
+         call deallocate(old_d)         
+      end if
 
     end subroutine execute_timestep_setup
 

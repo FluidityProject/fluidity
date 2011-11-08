@@ -28,7 +28,8 @@
 
 module advection_local_DG
   !!< This module contains the Discontinuous Galerkin form of the advection
-  !!< -diffusion equation for scalars.
+  !!< equation when vector fields are represented in the local coordinates
+  !!< from the Piola transformation.
   use elements
   use sparse_tools
   use fetools
@@ -188,6 +189,11 @@ contains
     end if
 
     U_nl=>extract_vector_field(state, velocity_name)
+
+    if (limit_slope) then
+       ! Filter wiggles from T
+       call limit_slope_dg(T, U_nl, X, state, limiter)
+    end if
 
     do i=1, subcycles
 

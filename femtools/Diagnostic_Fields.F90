@@ -1712,7 +1712,6 @@ contains
     real, dimension(U%dim, face_ngi(U, 1)) :: normal, U_f_quad
     real, dimension(face_ngi(U,1)) :: flux_quad
     integer, dimension(:), pointer :: u_ele
-    real, dimension(ele_loc(u,ele)) :: Vols
     real :: val
     real, dimension(ele_loc(u,ele)) :: Vals
     !
@@ -1768,10 +1767,9 @@ contains
     real, dimension(U%dim, face_ngi(U, 1)) :: n1, n2, U_f_q, U_f2_q
     real, dimension(face_ngi(U,1)) :: u_q_dotn1, u_q_dotn2, u_q_dotn, flux_quad
     type(element_type), pointer :: U_shape
-    integer, dimension(:), pointer :: u_ele
-    real, dimension(ele_loc(u,ele)) :: Vols
+    integer, dimension(:), pointer :: c_ele
     real :: val, w1, w2
-    real, dimension(ele_loc(u,ele)) :: Vals
+    real, dimension(ele_loc(courant,ele)) :: Vals
     !
     !Get element volume
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), J=J, detwei=detwei)
@@ -1805,11 +1803,11 @@ contains
        Flux = Flux +sum(Flux_quad*U_shape%quadrature%weight,1)
     end do
 
-    u_ele => ele_nodes(U,ele)
+    c_ele => ele_nodes(Courant,ele)
 
     Val = Flux/Vol*dt
     Vals = Val
-    call set(Courant,U_ele,Vals)
+    call set(Courant,c_ele,Vals)
 
   end subroutine calculate_courant_number_local_dg_ele
 

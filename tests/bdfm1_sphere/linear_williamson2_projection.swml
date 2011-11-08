@@ -186,6 +186,7 @@
         <equation name="ShallowWater"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
+            <wave_equation/>
             <advection_scheme>
               <none/>
             </advection_scheme>
