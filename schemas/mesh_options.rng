@@ -259,11 +259,55 @@ Enter the base name without the .edge .ele, .face or
   </define>
   <define name="extrusion_options">
     <element name="bottom_depth">
-      <a:documentation>Depth over which to extrude
-top will be at z=0
-bottom will be at z=-bottom_depth</a:documentation>
+      <a:documentation>Bottom bathymetry to extrude down to. 
+If top_position is not defined, the 
+extrude originates from the surface
+z = 0.0.  The extrude develops the mesh
+down to z = - bottom_depth
+(Note the sign convention)</a:documentation>
       <ref name="input_choice_real_plus_map"/>
     </element>
+    <optional>
+      <element name="top_position">
+        <a:documentation>Optional surface from which to develop
+the extrusion from.  Default is z = 0.0.
+This follows the same sign convention as
+bottom_depth above, so a positive value
+represents a negative deviation from the
+z = 0.0 geoid.</a:documentation>
+        <ref name="input_choice_real_plus_map"/>
+        <optional>
+          <element name="align_with_geoids">
+            <a:documentation>Ensure layers are aligned with geoids.
+Note that boundary representation is maintained
+and takes precedence, so although nodes within
+the domain will lie on geoids, nodes on bondaries
+may not.  This is the best option if nodes are to
+be kept vertically-aligned.
+
+Note that this option is fundamentally incompatible
+with sigma layers, and both cannot be applied in the 
+same region.</a:documentation>
+            <empty/>
+          </element>
+        </optional>
+        <optional>
+          <element name="displace_layer_position">
+            <a:documentation>By default the layers are positioned from the
+topmost point for each region and partition, or
+with align_with_geoids, this is from the topmost
+point in the entire domain.
+This value will displace the position of layers.
+A positive value displaces in positive z or r.
+Note this is not an absolute displacement, the
+functions to determine layer thickness etc are
+still evaluated at the new layer positions.
+Note also that the absolute value is used.</a:documentation>
+            <ref name="real"/>
+          </element>
+        </optional>
+      </element>
+    </optional>
     <element name="sizing_function">
       <a:documentation>Constant or function to specify the depth of the
 layers. The function is a function of all coordinates
@@ -279,10 +323,15 @@ Do not use if your function depends on x and/or y as it takes a column of z valu
       </optional>
     </element>
     <optional>
-      <element name="minimum_bottom_layer_fraction">
-        <a:documentation>To prevent infinitesimally thin bottom layer if sizing function
-is an integer multiple of total depth, the bottom layer needs
-to have at least this fraction of the layer depth above it. 
+      <element name="minimum_layer_fraction">
+        <a:documentation>To prevent infinitesimally-thin boundary layers if the 
+sizing function is an integer multiple of total depth,
+the bottom and top layers need to have at least this 
+fraction of the layer depth above it.
+
+Note that in the case of the top surface, this option
+only has an effect if /top_position/align_with_geoids
+is selected.
 
 Default is 1e-3.</a:documentation>
         <ref name="real"/>
