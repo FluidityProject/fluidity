@@ -1,7 +1,7 @@
 input: clean
 	gmsh -2 ./src/shelf2d.geo
-	../../scripts/gmsh_mesh_transform 'shelflength = 550, shelfslopeheight = 800, minoceandepth = 100' 'x < shelflength' '(x, (y/(shelfslopeheight + minoceandepth)) * ((x/shelflength) * shelfslopeheight + minoceandepth) ,z)' ./src/shelf2d.msh
-	../../scripts/gmsh2triangle --2d ./src/shelf2d.msh
+	../../bin/gmsh_mesh_transform 'shelflength = 550, shelfslopeheight = 800, minoceandepth = 100' 'x < shelflength' '(x, (y/(shelfslopeheight + minoceandepth)) * ((x/shelflength) * shelfslopeheight + minoceandepth) ,z)' ./src/shelf2d.msh
+	../../bin/gmsh2triangle --2d ./src/shelf2d.msh
 
 clean: 
 	rm -f  ./src/*.{msh,bak} ./vtu/*.{,p}vtu *.ele *.edge *.node *.face *.poly *.{p,}vtu *.s  *.stat *.log-0 *.err-0 matrixdump*
@@ -35,5 +35,5 @@ clean:
 # 
 # #/d/srcbzr/myfluidity_icer/bin/fluidity -v2 -l test_caseCiceGravity.flml
 # 
-# #	../../scripts/gmsh_mesh_transform 'shelflength = 550, shelfslopeheight = 800, minoceandepth = 100' 'x < shelflength' '(x, y, (z/(shelfslopeheight + minoceandepth)) * ((x/shelflength) * shelfslopeheight + minoceandepth))' ./src/shelf2d.msh
+# #	../../bin/gmsh_mesh_transform 'shelflength = 550, shelfslopeheight = 800, minoceandepth = 100' 'x < shelflength' '(x, y, (z/(shelfslopeheight + minoceandepth)) * ((x/shelflength) * shelfslopeheight + minoceandepth))' ./src/shelf2d.msh
 #
