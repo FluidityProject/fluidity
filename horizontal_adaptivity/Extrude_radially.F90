@@ -40,7 +40,7 @@ module hadapt_extrude_radially
     type(vector_field), dimension(:), allocatable :: r_meshes
     character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
     logical:: sizing_is_constant, depth_is_constant
-    real:: constant_sizing, depth, min_bottom_layer_frac
+    real:: constant_sizing, depth, min_layer_frac
     real, dimension(:), allocatable :: sizing_vector
     integer :: stat, shell_dim, column, quadrature_degree
     real :: r_shell
@@ -190,7 +190,7 @@ module hadapt_extrude_radially
       call get_option(trim(option_path)//&
                   '/from_mesh/extrude/regions['//int2str(r)//&
                   ']/minimum_layer_fraction', &
-                  min_bottom_layer_frac, default=1.e-3)
+                  min_layer_frac, default=1.e-3)
       
       ! create a 1d radial mesh under each surface node
       do column=1, size(r_meshes)
@@ -234,18 +234,18 @@ module hadapt_extrude_radially
         
         if (sizing_is_constant) then
           call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
-            min_bottom_layer_frac, sizing=constant_sizing) ! Return r_shell, will be needed for working out face id's later
+            min_layer_frac, sizing=constant_sizing) ! Return r_shell, will be needed for working out face id's later
         else
           if (have_option(trim(option_path)//"/from_mesh/extrude/regions["//&
                                       int2str(r)//"]/sizing_function/list")) then
             call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
-              min_bottom_layer_frac, sizing_vector=sizing_vector)
+              min_layer_frac, sizing_vector=sizing_vector)
           else if (sigma_layers) then
             call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
-              min_bottom_layer_frac, number_sigma_layers=number_sigma_layers)
+              min_layer_frac, number_sigma_layers=number_sigma_layers)
           else
             call compute_r_nodes(r_meshes(column), depth, node_val(shell_mesh, column), r_shell, &
-              min_bottom_layer_frac, sizing_function=sizing_function)
+              min_layer_frac, sizing_function=sizing_function)
           end if
         end if
         
@@ -302,7 +302,7 @@ module hadapt_extrude_radially
         
   end subroutine extrude_radially
 
-  subroutine compute_r_nodes(r_mesh, depth, xyz, r_shell, min_bottom_layer_frac, sizing, &
+  subroutine compute_r_nodes(r_mesh, depth, xyz, r_shell, min_layer_frac, sizing, &
                              sizing_function, sizing_vector, number_sigma_layers)
     !!< Figure out at what depths to put the layers.
     type(vector_field), intent(out) :: r_mesh
@@ -319,7 +319,7 @@ module hadapt_extrude_radially
     ! to prevent infinitesimally thin bottom layer if sizing function
     ! is an integer mulitple of total depth, the bottom layer needs
     ! to have at least this fraction of the layer depth above it:
-    real, intent(in) :: min_bottom_layer_frac
+    real, intent(in) :: min_layer_frac
     
     integer :: elements
     logical :: is_constant
@@ -379,7 +379,7 @@ module hadapt_extrude_radially
         delta_r = get_delta_r( xyz_new, is_constant, constant_value, py_func)
       end if
       r=r - delta_r
-      if (r<(r_shell-depth+min_bottom_layer_frac*delta_r)) exit
+      if (r<(r_shell-depth+min_layer_frac*delta_r)) exit
       node=node+1
       if (node>MAX_VERTICAL_NODES) then
         ewrite(-1,*) "Check your extrude/sizing_function"
