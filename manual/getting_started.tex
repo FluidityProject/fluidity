@@ -500,6 +500,11 @@ correctness and can be run with:
 make unittest
 \end{lstlisting}
 
+Please note that, due to compiler bugs which Intel have shown no inclination to
+fix, the 'make unittest' suite is known to fail with all releases of the Intel
+compiler. Thus, it is advised that you not run 'make unittest' if building
+\fluidity\ with any version of the Intel compiler.
+
 To run the suite of short test cases which more extensively test the
 functionality of your \fluidity\ build, run:
 
