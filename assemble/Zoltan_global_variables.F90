@@ -1,3 +1,4 @@
+
 #include "confdefs.h"
 
 module zoltan_global_variables
@@ -14,12 +15,14 @@ module zoltan_global_variables
   use fields, only: scalar_field, vector_field, mesh_type
 
   ! Needed for zoltan_cb_pack_node_sizes
-  use zoltan, only: zoltan_int
+  use zoltan, only: zoltan_int, zoltan_float
   use data_structures, only: integer_set, integer_hash_table
 
   ! Needed for zoltan_cb_pack_field_size
   use state_module, only: state_type
   use detector_data_types, only: detector_linked_list
+
+  use global_parameters, only: OPTION_PATH_LEN
 
   implicit none
 
@@ -37,7 +40,7 @@ module zoltan_global_variables
 
 
   ! Needed for zoltan_cb_get_edge_list
-  integer, save :: zoltan_global_zoltan_iteration, zoltan_global_zoltan_max_adapt_iteration
+  logical, save :: zoltan_global_calculate_edge_weights
   ! elements with quality greater than this value are ok
   ! those with element quality below it need to be adapted
   real, save :: zoltan_global_quality_tolerance
@@ -45,6 +48,9 @@ module zoltan_global_variables
   type(scalar_field), save, pointer :: zoltan_global_max_edge_weight_on_node
   logical, save :: zoltan_global_output_edge_weights = .false.
   type(csr_sparsity), save, pointer :: zoltan_global_zz_nelist
+  ! used for calculating local minimum element_quality during the edge-weight calculation
+  real, save :: zoltan_global_local_min_quality
+  logical, save :: zoltan_global_calculated_local_min_quality
 
 
   ! Needed for zoltan_cb_pack_node_sizes
@@ -95,13 +101,16 @@ module zoltan_global_variables
   type(state_type), save, dimension(:), allocatable :: zoltan_global_source_states, zoltan_global_target_states
   integer, save, dimension(:), allocatable :: zoltan_global_ndets_in_ele  
   integer, save :: zoltan_global_ndata_per_det
-  type(detector_linked_list), target, save :: zoltan_global_to_pack_detectors_list
+  type(detector_linked_list), dimension(:), allocatable, target, save :: zoltan_global_to_pack_detectors_list
 
   ! Needed for zoltan_cb_pack_fields
   integer, save :: zoltan_global_ndims
 
   ! Needed for zoltan_cb_unpack_fields
   type(detector_linked_list), target, save :: zoltan_global_unpacked_detectors_list
+
+  ! Option path set based on whether being called from adaptivity or flredecomp
+  character(len = OPTION_PATH_LEN), save :: zoltan_global_base_option_path
 
 #endif
 

@@ -30,7 +30,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">0.0</real_value>
+        <real_value rank="0">2.0</real_value>
       </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
@@ -56,7 +56,30 @@
           <real_value shape="2" dim1="dim" rank="1">0.0 0.5</real_value>
         </location>
       </static_detector>
+      <detector_array name="Steve">
+        <number_of_detectors>
+          <integer_value rank="0">100</integer_value>
+        </number_of_detectors>
+        <lagrangian/>
+        <python>
+          <string_value lines="20" type="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate
+  x = 0.25*arange(0,100.)/100.
+  y = zeros(100)
+  return reshape(concatenate((x,y)),(2,100)).T</string_value>
+        </python>
+      </detector_array>
+      <fail_outside_domain/>
       <binary_output/>
+      <lagrangian_timestepping>
+        <subcycles>
+          <integer_value rank="0">1</integer_value>
+        </subcycles>
+        <search_tolerance>
+          <real_value rank="0">1.0e-10</real_value>
+        </search_tolerance>
+        <rk4_guided_search/>
+      </lagrangian_timestepping>
     </detectors>
   </io>
   <timestepping>
@@ -64,10 +87,10 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">1.0</real_value>
+      <real_value rank="0">0.1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">3.0</real_value>
+      <real_value rank="0">8.0</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters/>
@@ -77,8 +100,10 @@
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(x, t):
-	return(x[1], x[0])</string_value>
+            <string_value lines="20" type="python">def val(X,t):
+  x = X[0]
+  y = X[1]
+  return [-(y),x]</string_value>
           </python>
         </value>
         <output/>
@@ -88,6 +113,7 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <consistent_interpolation/>
       </prescribed>
     </vector_field>
     <scalar_field name="Tracer" rank="0">
@@ -104,6 +130,7 @@
         <detectors>
           <include_in_detectors/>
         </detectors>
+        <consistent_interpolation/>
       </prescribed>
     </scalar_field>
     <scalar_field name="AdaptivityControl" rank="0">
@@ -112,7 +139,7 @@
         <value name="WholeMesh">
           <python>
             <string_value lines="20" type="python">def val(x, t):
-  if t &lt; 1.5:
+  if t &lt; 4.0:
     if x[0] &lt; 0.0:
       return 0.0
     else:
@@ -187,9 +214,9 @@
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity>
-      <period_in_timesteps>
-        <integer_value rank="0">1</integer_value>
-      </period_in_timesteps>
+      <period>
+        <real_value rank="0">2.0</real_value>
+      </period>
       <minimum_number_of_nodes>
         <integer_value rank="0">1000</integer_value>
       </minimum_number_of_nodes>
@@ -211,15 +238,18 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <adapt_at_first_timestep>
+        <number_of_adapts>
+          <integer_value rank="0">2</integer_value>
+        </number_of_adapts>
+      </adapt_at_first_timestep>
       <zoltan_options>
         <partitioner>
           <metis/>
         </partitioner>
         <zoltan_debug/>
       </zoltan_options>
-      <debug>
-        <write_adapted_state/>
-      </debug>
+      <debug/>
     </hr_adaptivity>
   </mesh_adaptivity>
 </fluidity_options>

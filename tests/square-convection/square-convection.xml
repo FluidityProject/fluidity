@@ -1,5 +1,4 @@
 <?xml version = "1.0" encoding = "UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Square convection (Adaptive CG-test version)</name>
   <owner userid="rhodrid"/>

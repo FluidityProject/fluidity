@@ -27,6 +27,9 @@
 
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
 FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@  -I../libwm -I/usr/local/include -I./
 
@@ -47,11 +50,11 @@ ARFLAGS = @ARFLAGS@
 
 UNROLL_LOOPS = @UNROLL_LOOPS@
 
-LIB = ../lib/lib@FLUIDITY@.a
+LIB = ../lib/lib$(FLUIDITY).a
 
 F90LIB = libfemtools.a
 
-LIBS    = -L../lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@
+LIBS    = -L../lib -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@
 
 TESTLIBS = $(shell echo @LIBS@ | sed 's@./lib/lib\([a-z]*\)\.a@-l\1@g')
 
@@ -87,8 +90,10 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   Halos_Communications.o Halos_Debug.o Halos_Derivation.o Halos_IO.o \
   Halos_Numbering.o Halos_Ownership.o Halos_Registration.o Halos_Repair.o \
   qsortd.o Element_Intersection.o Intersection_finder.o tri_predicate.o \
-  tet_predicate.o Lagrangian_Remap.o Weak_BCs.o Detector_Tools.o \
-  Detector_Data_Types.o Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
+  tet_predicate.o Lagrangian_Remap.o Weak_BCs.o \
+  Detector_Data_Types.o Detector_Tools.o \
+  Detector_Parallel.o Detector_Move_Lagrangian.o \
+  Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
   Pickers_Base.o Pickers_Deallocates.o Pickers_Inquire.o Smoothing_module.o \
   vtk_read_files.o State_Fields.o Unify_meshes.o Adaptive_interpolation.o \
   Wandzura_Quadrature.o Grundmann_Moeller_Quadrature.o Bound_field.o \
@@ -110,6 +115,8 @@ F90LIB_OBJS := $(F90LIB_OBJS) ../libalgencan/*.o
 endif
 
 .SUFFIXES: .F90 .cpp .c .o .a
+
+.PHONY: ../include/version.h
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
 %.o: %.mod
@@ -137,6 +144,9 @@ libfemtools: $(F90LIB)
 
 clean:
 	rm -f *.o *.d *.mod Reference_count_*.F90 $(F90LIB)
+
+../include/version.h:
+	@$(MAKE) -C ../ include/version.h
 
 Reference_count_%.F90: Reference_count_interface_%.F90
 	@true

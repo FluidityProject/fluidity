@@ -3,7 +3,7 @@ PROJECT = channel
 input: clean
 	gmsh -2 src/channel.geo
 	mv src/channel.msh .
-	../../scripts/gmsh2triangle --2d channel.msh
+	../../bin/gmsh2triangle --2d channel.msh
 
 clean:
 	rm -f $(PROJECT).s $(PROJECT).stat

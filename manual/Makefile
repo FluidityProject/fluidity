@@ -1,4 +1,4 @@
-XFIG_IMAGES=./numerical_discretisation_images/bisection_method \
+XFIG_IMAGES=./numerical_discretisation_images/guided_search_method \
 ./configuring_fluidity_images/periodic_domain \
 ./numerical_discretisation_images/P1cgshapefunction1d \
 ./numerical_discretisation_images/P2cgshapefunction1d \
@@ -48,7 +48,8 @@ IMAGES=geometry_dimension mesh_name \
 ./visualisation_and_diagnostics_images/Paraview-filedialogue-timeseries \
 ./visualisation_and_diagnostics_images/Paraview-rescaling-view \
 ./visualisation_and_diagnostics_images/Paraview-subwindows \
-./visualisation_and_diagnostics_images/diamond_enable_stat 
+./visualisation_and_diagnostics_images/diamond_enable_stat \
+./visualisation_and_diagnostics_images/quadratic_element 
 
 IMAGE_DIRS=examples_images numerical_discretisation_images \
 visualisation_and_diagnostics_images configuring_fluidity_images \
@@ -59,7 +60,7 @@ EPS_IMAGES=./examples_images/rotating_channel/analytic_solution \
 ./examples_images/rotating_channel/convergence 
 
 CHAPTERS=getting_started model_equations numerical_discretisation parameterisations \
-adaptivity mesh_generation configuring_fluidity external_libraries trouble_shooting \
+adaptivity meshes mesh_formats configuring_fluidity external_libraries trouble_shooting \
 parallel mathematical_notation about visualisation_and_diagnostics examples \
 embedded_models paraviewman python dimensionless useful_numbers
 
@@ -100,7 +101,7 @@ endif
 #linear_1d_mesh.png: linear_1d_mesh.fig
 
 %.tex: %.pstex_t %.pstex
-	../femtools/doc/scripts/wrap_pstex $<
+	../femtools/doc/bin/wrap_pstex $<
 
 %.dvi: %.tex 
 	pdflatex -output-directory $(dir $@) -shell-escape -output-format dvi $<

@@ -46,6 +46,7 @@ module divergence_matrix_cv
   use global_parameters, only: OPTION_PATH_LEN
   use field_options, only: get_coordinate_field
   use sparsity_patterns_meshes
+  use multiphase_module
   implicit none
 
   private
@@ -110,6 +111,22 @@ contains
 
       logical :: l_get_ct
 
+      !! Multiphase variables
+      logical :: multiphase
+      ! Volume fraction fields
+      type(scalar_field), pointer :: vfrac
+      type(scalar_field) :: nvfrac
+      ! Values of nvfrac at the elements and faces
+      real, dimension(:), allocatable :: nvfrac_gi, nvfrac_gi_f
+      ! CV shape functions for nvfrac (computed only if the Coordinate and
+      ! PhaseVolumeFraction meshes are different, otherwise they are
+      ! assigned x_cvshape and x_cvbdyshape)
+      type(element_type) :: nvfrac_cvshape, nvfrac_cvbdyshape
+
+      ! Boundary condition types
+      integer, parameter :: BC_TYPE_WEAKDIRICHLET = 1, BC_TYPE_NO_NORMAL_FLOW = 2, BC_TYPE_INTERNAL = 3, &
+                            BC_TYPE_FREE_SURFACE = 4
+
       ! =============================================================
       ! Subroutine to construct the matrix CT_m (a.k.a. C1/2/3T).
       ! =============================================================
@@ -136,6 +153,22 @@ contains
                             polydegree=test_mesh%shape%degree, &
                             quaddegree=quaddegree)
 
+      ! Check if we need to multiply through by the non-linear volume fraction
+      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+         multiphase = .true.
+
+         vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+         call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+         call zero(nvfrac)
+         call get_nonlinear_volume_fraction(state, nvfrac)
+
+         ewrite_minmax(nvfrac)
+
+      else
+         multiphase = .false.
+         nullify(vfrac)
+      end if
+
       if(l_get_ct) then
       
         call zero(CT_m)
@@ -145,12 +178,25 @@ contains
         x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
         test_cvshape=make_cv_element_shape(cvfaces, test_mesh%shape)
         field_cvshape=make_cv_element_shape(cvfaces, field%mesh%shape)
-  
+
+        if(multiphase) then
+           ! If the Coordinate and PhaseVolumeFraction meshes are different, then we need to
+           ! get the PhaseVolumeFraction CV shape functions.
+           if(.not.(nvfrac%mesh == x%mesh)) then
+              nvfrac_cvshape = make_cv_element_shape(cvfaces, nvfrac%mesh%shape)
+           else
+              nvfrac_cvshape = x_cvshape
+              call incref(nvfrac_cvshape)
+           end if
+
+           allocate(nvfrac_gi(nvfrac_cvshape%ngi))
+        end if
+
         allocate(x_f(x%dim, x_cvshape%ngi), &
                 detwei(x_cvshape%ngi), &
                 normal(x%dim, x_cvshape%ngi), &
                 normgi(x%dim), &
-                ct_mat_local(x%dim, test_mesh%shape%loc, field%mesh%shape%loc))
+                ct_mat_local(x%dim, test_mesh%shape%loc, field%mesh%shape%loc))                
   
         allocate(notvisited(x_cvshape%ngi))
 
@@ -160,7 +206,11 @@ contains
           test_nodes=>ele_nodes(test_mesh, ele)
           field_nodes=>ele_nodes(field, ele)
           x_test_nodes=>ele_nodes(x_test, ele)
-  
+
+          if(multiphase) then
+             nvfrac_gi = ele_val_at_quad(nvfrac, ele, nvfrac_cvshape)
+          end if
+
           call transform_cvsurf_to_physical(x_ele, x_cvshape, &
                                             detwei, normal, cvfaces)
           notvisited=.true.
@@ -187,10 +237,17 @@ contains
   
                       inner_dimension_loop: do dim = 1, size(normgi)
   
-                        ct_mat_local(dim, iloc, jloc) = ct_mat_local(dim, iloc, jloc) &
-                                                      + field_cvshape%n(jloc, ggi)*detwei(ggi)*normgi(dim)
-                        ct_mat_local(dim, oloc, jloc) = ct_mat_local(dim, oloc, jloc) &
-                                                      + field_cvshape%n(jloc, ggi)*detwei(ggi)*(-normgi(dim)) ! notvisited
+                        if(multiphase) then
+                           ct_mat_local(dim, iloc, jloc) = ct_mat_local(dim, iloc, jloc) &
+                                                         + field_cvshape%n(jloc, ggi)*detwei(ggi)*nvfrac_gi(ggi)*normgi(dim)
+                           ct_mat_local(dim, oloc, jloc) = ct_mat_local(dim, oloc, jloc) &
+                                                         + field_cvshape%n(jloc, ggi)*detwei(ggi)*nvfrac_gi(ggi)*(-normgi(dim)) ! notvisited
+                        else
+                           ct_mat_local(dim, iloc, jloc) = ct_mat_local(dim, iloc, jloc) &
+                                                         + field_cvshape%n(jloc, ggi)*detwei(ggi)*normgi(dim)
+                           ct_mat_local(dim, oloc, jloc) = ct_mat_local(dim, oloc, jloc) &
+                                                         + field_cvshape%n(jloc, ggi)*detwei(ggi)*(-normgi(dim)) ! notvisited
+                        end if
   
                       end do inner_dimension_loop
   
@@ -220,6 +277,10 @@ contains
         deallocate(x_f, detwei, normal, normgi)
         deallocate(notvisited)
         call deallocate(x_test)
+        if(multiphase) then
+           deallocate(nvfrac_gi)
+           call deallocate(nvfrac_cvshape)
+        end if
       end if
 
       if(.not.present_and_true(exclude_boundaries)) then
@@ -227,6 +288,19 @@ contains
         x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
         test_cvbdyshape=make_cvbdy_element_shape(cvfaces, test_mesh%faces%shape)
         field_cvbdyshape=make_cvbdy_element_shape(cvfaces, field%mesh%faces%shape)
+
+        if(multiphase) then
+           ! If the Coordinate and PhaseVolumeFraction meshes are different, then we need to
+           ! generate the PhaseVolumeFraction CV shape functions.
+           if(.not.(nvfrac%mesh == x%mesh)) then
+              nvfrac_cvbdyshape = make_cvbdy_element_shape(cvfaces, nvfrac%mesh%faces%shape)
+           else
+              nvfrac_cvbdyshape = x_cvbdyshape
+              call incref(nvfrac_cvbdyshape)
+           end if
+
+           allocate(nvfrac_gi_f(nvfrac_cvbdyshape%ngi))
+        end if
   
         assert(surface_element_count(test_mesh)==surface_element_count(field))
         allocate(field_bc_type(field%dim, surface_element_count(test_mesh)))
@@ -247,11 +321,12 @@ contains
         surface_element_loop: do sele = 1, surface_element_count(test_mesh)
   
           ! cycle if this is a no_normal_flow or a periodic or a free_surface boundary then cycle
-          if(any(field_bc_type(:,sele)==2).or.any(field_bc_type(:,sele)==3).or.any(field_bc_type(:,sele)==4)) cycle
+          if(any(field_bc_type(:,sele)==BC_TYPE_NO_NORMAL_FLOW).or.any(field_bc_type(:,sele)==BC_TYPE_INTERNAL)&
+             .or.any(field_bc_type(:,sele)==BC_TYPE_FREE_SURFACE)) cycle
           
           ! cycle if there's no rhs present or there's no weakdirichlet conditions or we're not
           ! assembling the matrix
-          if(.not.(present(ct_rhs).and.any(field_bc_type(:,sele)==1)).and..not.l_get_ct) cycle
+          if(.not.(present(ct_rhs).and.any(field_bc_type(:,sele)==BC_TYPE_WEAKDIRICHLET)).and..not.l_get_ct) cycle
   
           ele = face_ele(x, sele)
           x_ele = ele_val(x, ele)
@@ -259,10 +334,14 @@ contains
           test_nodes_bdy=face_global_nodes(test_mesh, sele)
           field_nodes_bdy=face_global_nodes(field, sele)
   
-          if(any(field_bc_type(:, sele)==1)) then
+          if(any(field_bc_type(:, sele)==BC_TYPE_WEAKDIRICHLET)) then
             field_bc_val = ele_val(field_bc, sele)
           else
             field_bc_val = 0.0
+          end if
+
+          if(multiphase) then
+             nvfrac_gi_f = face_val_at_quad(nvfrac, sele, nvfrac_cvbdyshape)
           end if
   
           call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
@@ -284,15 +363,27 @@ contains
   
                     surface_inner_dimension_loop: do dim = 1, size(normal_bdy,1)
   
-                      if((present(ct_rhs)).and.(field_bc_type(dim, sele)==1)) then
+                      if((present(ct_rhs)).and.(field_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET)) then
   
-                        ct_rhs_local(iloc) = ct_rhs_local(iloc) + &
-                              field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*normal_bdy(dim,ggi)*field_bc_val(dim, jloc)
+                        if(multiphase) then
+                           ct_rhs_local(iloc) = ct_rhs_local(iloc) + &
+                                 field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*nvfrac_gi_f(ggi)*&
+                                 normal_bdy(dim,ggi)*field_bc_val(dim, jloc)
+                        else
+                           ct_rhs_local(iloc) = ct_rhs_local(iloc) + &
+                                 field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*normal_bdy(dim,ggi)*&
+                                 field_bc_val(dim, jloc)
+                        end if
   
                       else
-  
-                        ct_mat_local_bdy(dim, iloc, jloc) =  ct_mat_local_bdy(dim, iloc, jloc) + &
-                              field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*normal_bdy(dim, ggi)
+
+                        if(multiphase) then
+                           ct_mat_local_bdy(dim, iloc, jloc) =  ct_mat_local_bdy(dim, iloc, jloc) + &
+                                 field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*nvfrac_gi_f(ggi)*normal_bdy(dim, ggi)
+                        else
+                           ct_mat_local_bdy(dim, iloc, jloc) =  ct_mat_local_bdy(dim, iloc, jloc) + &
+                                 field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*normal_bdy(dim, ggi)
+                        end if
   
                       end if
   
@@ -310,7 +401,7 @@ contains
   
           surface_outer_dimension_loop: do dim = 1, size(normal_bdy,1)
   
-            if((present(ct_rhs)).and.(field_bc_type(dim, sele)==1)) then
+            if((present(ct_rhs)).and.(field_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET)) then
   
               call addto(ct_rhs, test_nodes_bdy, ct_rhs_local)
   
@@ -331,11 +422,19 @@ contains
         call deallocate(field_cvbdyshape)
         deallocate(x_ele_bdy, detwei_bdy, normal_bdy)
         deallocate(test_nodes_bdy, field_nodes_bdy)
+        if(multiphase) then
+           deallocate(nvfrac_gi_f)
+           call deallocate(nvfrac_cvbdyshape)
+        end if
         
       end if
 
       call deallocate(cvfaces)
       deallocate(x_ele)
+
+      if(multiphase) then
+         call deallocate(nvfrac)
+      end if
       
     end subroutine assemble_divergence_matrix_cv
     !************************************************************************

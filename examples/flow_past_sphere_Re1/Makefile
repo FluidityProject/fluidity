@@ -1,13 +1,14 @@
 preprocess:
 	@echo **********Converting the gmsh mesh to triangle format:
-	../../scripts/gmsh2triangle unit_sphere.msh
+	../../bin/gmsh2triangle unit_sphere.msh
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
 	../../bin/fluidity -v2 -l flow_past_sphere_Re1.flml
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling the data extraction and plotting script
+	python ./plot_data.py
 
 input: clean preprocess
 

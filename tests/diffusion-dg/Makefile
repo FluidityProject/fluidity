@@ -1,10 +1,10 @@
 input: default
 default: clean
-	../../scripts/gmsh2triangle --2d src/MMS_A.msh
-	../../scripts/gmsh2triangle --2d src/MMS_B.msh
-	../../scripts/gmsh2triangle --2d src/MMS_C.msh
-	../../scripts/gmsh2triangle --2d src/MMS_D.msh
-	../../scripts/gmsh2triangle --2d src/MMS_E.msh
+	../../bin/gmsh2triangle --2d src/MMS_A.msh
+	../../bin/gmsh2triangle --2d src/MMS_B.msh
+	../../bin/gmsh2triangle --2d src/MMS_C.msh
+	../../bin/gmsh2triangle --2d src/MMS_D.msh
+	../../bin/gmsh2triangle --2d src/MMS_E.msh
 stretch: default
 	./stretch.py -f MMS_A -x 100 -y 1
 	./stretch.py -f MMS_D -x 100 -y 1

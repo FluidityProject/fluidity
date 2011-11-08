@@ -1,6 +1,6 @@
 input: clean
-	../../scripts/gmsh2triangle -2 src/circle-serial.msh
-	../../scripts/gmsh2triangle -2 src/circle-parallel.msh
+	../../bin/gmsh2triangle -2 src/circle-serial.msh
+	../../bin/gmsh2triangle -2 src/circle-parallel.msh
 	../../bin/fldecomp -n 3  circle-parallel
 
 clean:
