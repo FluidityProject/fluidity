@@ -610,6 +610,7 @@ module hadapt_extrude
     real, dimension(:), optional, intent(in) :: sizing_vector
     integer, optional, intent(in) :: number_sigma_layers
     real, optional, intent(in) :: displacement
+    real :: ldisplacement
     ! this is a safety gap:
     integer, parameter:: MAX_VERTICAL_NODES=1e6
 
@@ -655,6 +656,12 @@ module hadapt_extrude
       FLAbort("Need to supply either sizing or sizing_function")
     end if
     
+    if (present(displacement)) then
+      ldisplacement = displacement
+    else
+      ldisplacement = 0.0
+    end if
+
     ! Develop the extrude for this horizontal node,
     ! starting at z = -top, down to z = -bottom.
     ! The top boundary node has to be placed at z = -top
@@ -667,7 +674,7 @@ module hadapt_extrude
     if (top_align_with_geoids) then
       z = -top_max
     end if 
-    z = z + abs(displacement)
+    z = z + abs(ldisplacement)
     node = 2
     ! First size(xy) coordinates remain fixed, 
     ! The last entry will be replaced with the appropriate depth
