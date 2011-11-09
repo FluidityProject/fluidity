@@ -26,6 +26,9 @@
 #    USA
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
 FCFLAGS = -I../include @MOD_FLAG@../include @FCFLAGS@ -I/usr/local/include -I./
 
@@ -39,9 +42,9 @@ MAKE    = @MAKE@
 AR  = @AR@
 ARFLAGS = @ARFLAGS@
 
-LIB = ../lib/lib@FLUIDITY@.a
+LIB = ../lib/lib$(FLUIDITY).a
 
-OBJS = Gent_McWilliams.o Equation_of_State.o \
+OBJS = Equation_of_State.o \
 Gls_vertical_turbulence_model.o \
 k_epsilon.o \
 iceshelf_meltrate_surf_normal.o

@@ -74,3 +74,5 @@ dynamic: $(OBJS)
 clean:
 	rm -f *.o *.mod $(LIB) $(SLIB)* $(DLIB)
 
+distclean: clean
+	rm -f make.log include/confdefs.h include/vtk.h

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>diagnostic_time_averaged_scalar</name>
+  <owner userid="jhill1"/>
+  <tags>flml diagnostic</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity time_averaged_scalar.flml </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="FinalDailyAveragedVal" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("time_average_scalar.stat")
+FinalDailyAveragedVal = s["Fluid"]["DailyAveraged"]["max"][-1]
+    </variable>
+    <variable name="FinalTimeAveraged" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("time_average_scalar.stat")
+FinalTimeAveraged = s["Fluid"]["TimeAveraged"]["max"][-1]
+  </variable>
+  </variables>
+  <pass_tests>
+    <test name="Final daily averaged value is correct" language="python">
+assert abs(FinalDailyAveragedVal-100.0) &lt; 1e-5
+    </test>
+<!-- This converges to the correct average - 10 days it's nearly there...-->
+     <test name="Final daily averaged value is correct" language="python">
+assert abs(FinalTimeAveraged-100.0) &lt; 0.5
+     </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

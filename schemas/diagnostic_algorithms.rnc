@@ -114,7 +114,7 @@ legacy_internal_algorithm =
    )
 internal_velocity_source_algorithm =
    (
-      ## Some code paths (e.g. porous media and the traffic model)
+      ## Some code paths (e.g. porous media)
       ## use their own internal diagnostic source field. Select
       ## this option to these these internal algorithms.
       element algorithm {
@@ -124,7 +124,7 @@ internal_velocity_source_algorithm =
    )
 internal_velocity_absorption_algorithm =
    (
-      ## Some code paths (e.g. porous media and the traffic model)
+      ## Some code paths (e.g. porous media)
       ## use their own internal diagnostic absorption field. Select
       ## this option to these these internal algorithms.
       element algorithm {
@@ -603,6 +603,15 @@ vector_laplacian_algorithm =
       element algorithm {
          attribute name { "vector_laplacian" },
          attribute material_phase_support { "single" },
+         vector_source_field
+      }
+   )
+grad_vector_algorithm =
+   (
+      ## algorithm for the full tensor gradient of a vector field
+       element algorithm {
+         attribute name { "grad_vector" },
+         attribute material_phase_support { "single "},
          vector_source_field
       }
    )
@@ -1181,14 +1190,14 @@ tidal_harmonic_algorithm =
 particle_reynolds_number_algorithm = 
    (
       ## Diagnostic algorithm used in multiphase simulations.
-      ## Calculates the particle Reynolds number, (density_c*|u_c-u_p|*d)/viscosity_c
-      ## where _c and _p denote the continuous and particle phases respectively,
-      ## and d is the particle diameter.
+      ## Calculates the particle Reynolds number, (vfrac_f*density_f * |u_f - u_p| * d)/viscosity_f
+      ## where the subscripts _f and _p denote the fluid (i.e. continuous) and particle (i.e. dispersed)
+      ## phases respectively, and d is the particle diameter.
       element algorithm {
          attribute name { "particle_reynolds_number" },
          attribute material_phase_support { "multiple" },
          ## The particle Reynolds number depends on the Velocity field of both the continuous and dispersed phases,
-         ## and also the Density and Viscosity fields of the continuous phase.
+         ## and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous phase.
          element depends {
             anystring
          },
@@ -1203,6 +1212,16 @@ particle_reynolds_number_algorithm =
       }
    )
 
+apparent_density_algorithm = 
+   (
+      ## Diagnostic algorithm used in multiphase flow simulations.
+      ## Calculates the apparent density of the material_phase,
+      ## i.e. Density multiplied by the PhaseVolumeFraction field.
+      element algorithm {
+         attribute name { "apparent_density" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
 
 # Misc
 
@@ -1255,7 +1274,30 @@ scalar_time_averaged_algorithm =
          ## When to start sampling? Defaults to simulation start time.
          element spin_up_time {
             real
+         }?,
+         ## If enabled, the average of the absolute value is taken
+         element absolute_values {
+            comment
          }?
+      }
+   )
+
+
+scalar_period_averaged_algorithm = 
+   (
+      ## Algorithm for calulating an average of a scalar field over 
+      ## a set period, e.g. daily
+      ## Note that we assume the simulation starts at zero for the
+      ## averaging period,
+      ## This field needs to be interpolated between adapts.
+      element algorithm {
+         attribute name { "period_averaged_scalar" },
+         attribute material_phase_support { "single" },
+         scalar_source_field,
+         ## Over what time period to average over?
+         element averaging_period {
+            real
+         }
       }
    )
 
@@ -1285,6 +1327,10 @@ vector_time_averaged_algorithm =
          ## When to start sampling?  Defaults to simulation start time.
          element spin_up_time {
             real
+         }?,
+         ## If enabled, the average of the absolute value is taken
+         element absolute_values {
+            comment
          }?
       }
    )
@@ -1328,6 +1374,7 @@ scalar_diagnostic_algorithms |= tensor_second_invariant_algorithm
 scalar_diagnostic_algorithms |= temporalmin_algorithm
 scalar_diagnostic_algorithms |= temporalmax_algorithm
 scalar_diagnostic_algorithms |= scalar_time_averaged_algorithm
+scalar_diagnostic_algorithms |= scalar_period_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_sum_algorithm
 scalar_diagnostic_algorithms |= scalar_squared_time_averaged_algorithm
 scalar_diagnostic_algorithms |= scalar_potential_algorithm
@@ -1336,8 +1383,10 @@ scalar_diagnostic_algorithms |= scalar_galerkin_projection_algorithm
 scalar_diagnostic_algorithms |= scalar_difference_algorithm
 scalar_diagnostic_algorithms |= scalar_copy_algorithm
 scalar_diagnostic_algorithms |= scalar_advection_algorithm
+scalar_diagnostic_algorithms |= scalar_edge_lengths_algorithm
 scalar_diagnostic_algorithms |= projection_scalar_potential_algorithm
 scalar_diagnostic_algorithms |= particle_reynolds_number_algorithm
+scalar_diagnostic_algorithms |= apparent_density_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
@@ -1375,6 +1424,7 @@ vector_diagnostic_algorithms |= vector_python_diagnostic_algorithm
 
 tensor_diagnostic_algorithms = vector_squared_time_averaged_algorithm
 tensor_diagnostic_algorithms |= tensor_copy_algorithm
+tensor_diagnostic_algorithms |= grad_vector_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
 tensor_diagnostic_algorithms |= hessian_algorithm
 tensor_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_tensor_algorithm

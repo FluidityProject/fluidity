@@ -3,7 +3,7 @@ FLMLMODEL = top_hat_cv
 default: input
 
 input:
-	../../scripts/gmsh2triangle -2 line.msh
+	../../bin/gmsh2triangle -2 line.msh
 	
 clean: clean-mesh clean-run-debug
 clean-mesh:

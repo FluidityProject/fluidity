@@ -2179,4 +2179,4 @@
 2178 1091 219 1092 59
 2179 1092 219 12 59
 2180 1092 12 220 59
-# Produced by: ../../scripts/gmsh2triangle src/square-convection.msh
+# Produced by: ../../bin/gmsh2triangle src/square-convection.msh

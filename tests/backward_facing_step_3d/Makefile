@@ -1,6 +1,6 @@
 input:
 	##gmsh -3 -o unstructured.msh src/unstructured.geo 
-	../../scripts/gmsh2triangle unstructured.msh
+	../../bin/gmsh2triangle unstructured.msh
 	../../bin/fldecomp -n 64  -f unstructured
 
 clean:

@@ -4,7 +4,7 @@ MESH = cube
 default: input
 
 input: src/$(MESH).msh
-	../../scripts/gmsh2triangle src/$(MESH).msh 
+	../../bin/gmsh2triangle src/$(MESH).msh 
 
 clean: clean-mesh clean-run-debug
 clean-mesh:

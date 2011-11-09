@@ -7,7 +7,7 @@ Extrude {0,100.0,0.0} {
   Line{1}; Layers{1}; 
 }
 Extrude {0.0,0.0,-100.0} {
-  Surface{5}; Layers{50}; 
+  Surface{5}; Layers{40}; 
 }
 //Top
 Physical Surface(38) = {5};

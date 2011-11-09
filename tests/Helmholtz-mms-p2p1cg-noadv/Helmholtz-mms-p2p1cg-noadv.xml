@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>p2p1-cg inverse Helmholtz filter convergence test</name>
+  <owner userid="jbull"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml &amp;&amp; fluidity MMS_E.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ab_convergence" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','w')
+
+a_error = stat("MMS_A.stat")["NS"]["Difference"]["l2norm"][-1]
+b_error = stat("MMS_B.stat")["NS"]["Difference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A.stat")["NS"]["Difference"]["max"][-1]
+b_error_inf = stat("MMS_B.stat")["NS"]["Difference"]["max"][-1]
+
+print a_error
+print b_error
+print a_error_inf
+print b_error_inf
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+
+output.write('ab_convergence '+str(log(ab_ratio, 2))+' '+str(log(ab_ratio_inf, 2))+'\n')
+output.close()
+
+ab_convergence = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+
+b_error = stat("MMS_B.stat")["NS"]["Difference"]["l2norm"][-1]
+c_error = stat("MMS_C.stat")["NS"]["Difference"]["l2norm"][-1]
+
+b_error_inf = stat("MMS_B.stat")["NS"]["Difference"]["max"][-1]
+c_error_inf = stat("MMS_C.stat")["NS"]["Difference"]["max"][-1]
+
+print b_error
+print c_error
+print b_error_inf
+print c_error_inf
+
+bc_ratio = b_error / c_error
+bc_ratio_inf = b_error_inf / c_error_inf
+
+output.write('bc_convergence '+str(log(bc_ratio, 2))+' '+str(log(bc_ratio_inf, 2))+'\n')
+output.close()
+
+bc_convergence = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
+    </variable>
+    <variable name="cd_convergence" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+
+c_error = stat("MMS_C.stat")["NS"]["Difference"]["l2norm"][-1]
+d_error = stat("MMS_D.stat")["NS"]["Difference"]["l2norm"][-1]
+
+c_error_inf = stat("MMS_C.stat")["NS"]["Difference"]["max"][-1]
+d_error_inf = stat("MMS_D.stat")["NS"]["Difference"]["max"][-1]
+
+print c_error
+print d_error
+print c_error_inf
+print d_error_inf
+
+cd_ratio = c_error / d_error
+cd_ratio_inf = c_error_inf / d_error_inf
+
+output.write('cd_convergence '+str(log(cd_ratio, 2))+' '+str(log(cd_ratio_inf, 2))+'\n')
+output.close()
+
+cd_convergence = [log(cd_ratio, 2), log(cd_ratio_inf, 2)]
+    </variable>
+    <variable name="de_convergence" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+
+d_error = stat("MMS_D.stat")["NS"]["Difference"]["l2norm"][-1]
+e_error = stat("MMS_E.stat")["NS"]["Difference"]["l2norm"][-1]
+
+d_error_inf = stat("MMS_D.stat")["NS"]["Difference"]["max"][-1]
+e_error_inf = stat("MMS_E.stat")["NS"]["Difference"]["max"][-1]
+
+print d_error
+print e_error
+print d_error_inf
+print e_error_inf
+
+de_ratio = d_error / e_error
+de_ratio_inf = d_error_inf / e_error_inf
+
+output.write('de_convergence '+str(log(de_ratio, 2))+' '+str(log(de_ratio_inf, 2))+'\n')
+output.close()
+
+de_convergence = [log(de_ratio, 2), log(de_ratio_inf, 2)]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="ab_convergence: L2 order > 0.89" language="python">
+assert(ab_convergence[0] &gt; 0.89)
+    </test>
+    <test name="bc_convergence: L2 order > 0.89" language="python">
+assert(bc_convergence[0] &gt; 0.89)
+    </test>
+    <test name="cd_convergence: L2 order > 0.89" language="python">
+assert(cd_convergence[0] &gt; 0.89)
+    </test>
+    <test name="de_convergence: L2 order > 0.89" language="python">
+assert(de_convergence[0] &gt; 0.89)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

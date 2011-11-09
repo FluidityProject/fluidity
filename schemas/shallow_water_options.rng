@@ -718,13 +718,10 @@ sphere normal to element normal</a:documentation>
       <element name="from_sphere_pullback">
         <a:documentation>Evaluate velocity by pulling back from sphere
 using transformation
-z -&gt; z, (x,y) --&gt; R(x,y) where R=(R_0^2-z^2)^0.5
-This just applies the transformation of the velocity 
-to the tangent plane,
-user needs to apply the coordinate transformation in the 
-Python code.</a:documentation>
+z -&gt; z, (x,y) --&gt; R(x,y) where R=(R_0^2-z^2)^0.5</a:documentation>
         <element name="python">
-          <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+          <a:documentation>Vector field on the sphere to be pulled back to mesh.
+Python function prescribing dimensional vector input. Functions should be of the form:
 
  def val(X, t):
     # Function code
@@ -2886,31 +2883,6 @@ less accurate but faster and might give smoother result.                  </a:do
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic tensor fields below this</a:documentation>
         <empty/>
-      </element>
-      <element name="tensor_field">
-        <a:documentation>From a field on a mesh, diagnose the anisotropic
-interpolation weight that would give the mesh back.
-It is computed as:
-\Eps = M^-1 |H|</a:documentation>
-        <attribute name="rank">
-          <value>2</value>
-        </attribute>
-        <attribute name="name">
-          <value>FieldTolerance</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="source_field_name">
-              <data type="string" datatypeLibrary=""/>
-            </element>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_tensor_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
       </element>
     </choice>
     <!--

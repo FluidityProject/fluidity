@@ -3,6 +3,7 @@
 
 <testproblem>
   <name>lock exchange<comment>Runs a 2d adaptive simulation of the lock exchange, following the set-up of Hartel et al., 2000, JFM. Has basic adaptivity settings so check with in 15% of Hartel values. Also basic checks on mixing stats.
+  WARNING: to test front speeds will need to change example end time so runs for at least 30.0s.
 </comment></name>
   <owner userid="hhiester"/>
   <tags>flml 2dadapt</tags>
@@ -13,12 +14,12 @@
      <variable name="temp_bin_lower_0" language="python"> 
 from fluidity_tools import stat_parser
 stat = stat_parser("lock_exchange.stat")
-temp_bin_lower_0 = stat['fluid']['Temperature']['mixing_bins%cv_normalised'][0,0]
+temp_bin_lower_0 = sum(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][:,0][0:2])
     </variable>
      <variable name="temp_bin_upper_0" language="python"> 
 from fluidity_tools import stat_parser
 stat = stat_parser("lock_exchange.stat")
-temp_bin_upper_0 =  stat['fluid']['Temperature']['mixing_bins%cv_normalised'][2,0]
+temp_bin_upper_0 =  sum(stat['fluid']['Temperature']['mixing_bins%cv_normalised'][:,0][-2:])
     </variable>
      <variable name="temp_bin_total_0" language="python"> 
 from fluidity_tools import stat_parser
@@ -61,16 +62,17 @@ U_fs = le_tools.GetU(time, X_fs)
 results_head_speed = []
 
 domainheight = 0.1
-start_val, end_val = le_tools.GetAverageRange(X_ns, 0.2, domainheight)
+start_val, end_val, tf = le_tools.GetAverageRange(X_ns, 0.2, domainheight)
 results_head_speed.append(numpy.average(U_ns[start_val:end_val]))
 
-start_val, end_val = le_tools.GetAverageRange(X_fs, 0.25, domainheight)
+start_val, end_val, tf = le_tools.GetAverageRange(X_fs, 0.25, domainheight)
 results_head_speed.append(numpy.average(U_fs[start_val:end_val]))
 
 results_head_speed.append(abs(results_head_speed[0]-hartel_no_slip_head_speed))
 results_head_speed.append(abs(results_head_speed[1]-hartel_free_slip_head_speed))
 print "Speed of no slip head, free slip head and errors from literature values"
 print results_head_speed
+print "WARNING: example is set up as a quick start. To check the head speed values properly the example must be run until a finish time of 30.0 s"
     </variable>
  </variables>    
  <pass_tests> 

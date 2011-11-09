@@ -2452,27 +2452,8 @@ tensor_field_choice =
          ## Diagnostic tensor fields below this
          element ___Diagnostic_Fields_Below___ {
             empty
-         }|
-         ## From a field on a mesh, diagnose the anisotropic
-         ## interpolation weight that would give the mesh back.
-         ## It is computed as:
-         ## \Eps = M^-1 |H|
-         element tensor_field {
-            attribute rank { "2" },
-            attribute name { "FieldTolerance" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  element source_field_name { string },
-                  velocity_mesh_choice,
-                  diagnostic_tensor_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
          }
-
+         
 # Insert new diagnostic tensor field here using the template:
 #        element tensor_field {
 #            attribute name { "NewFieldName" },

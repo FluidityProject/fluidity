@@ -1,9 +1,9 @@
 preprocess:
 	@echo **********Creating 2D meshes
-	../../scripts/gmsh2triangle --2d src/MMS_A.msh
-	../../scripts/gmsh2triangle --2d src/MMS_B.msh
-	../../scripts/gmsh2triangle --2d src/MMS_C.msh
-	../../scripts/gmsh2triangle --2d src/MMS_D.msh
+	../../bin/gmsh2triangle --2d src/MMS_A.msh
+	../../bin/gmsh2triangle --2d src/MMS_B.msh
+	../../bin/gmsh2triangle --2d src/MMS_C.msh
+	../../bin/gmsh2triangle --2d src/MMS_D.msh
 
 run:
 	@echo **********Running simulations

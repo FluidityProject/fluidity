@@ -162,7 +162,7 @@ equivalent diagnostic algorithm.</a:documentation>
   </define>
   <define name="internal_velocity_source_algorithm">
     <element name="algorithm">
-      <a:documentation>Some code paths (e.g. porous media and the traffic model)
+      <a:documentation>Some code paths (e.g. porous media)
 use their own internal diagnostic source field. Select
 this option to these these internal algorithms.</a:documentation>
       <attribute name="name">
@@ -175,7 +175,7 @@ this option to these these internal algorithms.</a:documentation>
   </define>
   <define name="internal_velocity_absorption_algorithm">
     <element name="algorithm">
-      <a:documentation>Some code paths (e.g. porous media and the traffic model)
+      <a:documentation>Some code paths (e.g. porous media)
 use their own internal diagnostic absorption field. Select
 this option to these these internal algorithms.</a:documentation>
       <attribute name="name">
@@ -818,6 +818,18 @@ boundaries.</a:documentation>
       </attribute>
       <attribute name="material_phase_support">
         <value>single</value>
+      </attribute>
+      <ref name="vector_source_field"/>
+    </element>
+  </define>
+  <define name="grad_vector_algorithm">
+    <element name="algorithm">
+      <a:documentation>algorithm for the full tensor gradient of a vector field</a:documentation>
+      <attribute name="name">
+        <value>grad_vector</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single </value>
       </attribute>
       <ref name="vector_source_field"/>
     </element>
@@ -1614,9 +1626,9 @@ No. 1 pp. 243--268, 1980</a:documentation>
   <define name="particle_reynolds_number_algorithm">
     <element name="algorithm">
       <a:documentation>Diagnostic algorithm used in multiphase simulations.
-Calculates the particle Reynolds number, (density_c*|u_c-u_p|*d)/viscosity_c
-where _c and _p denote the continuous and particle phases respectively,
-and d is the particle diameter.</a:documentation>
+Calculates the particle Reynolds number, (vfrac_f*density_f * |u_f - u_p| * d)/viscosity_f
+where the subscripts _f and _p denote the fluid (i.e. continuous) and particle (i.e. dispersed)
+phases respectively, and d is the particle diameter.</a:documentation>
       <attribute name="name">
         <value>particle_reynolds_number</value>
       </attribute>
@@ -1625,7 +1637,7 @@ and d is the particle diameter.</a:documentation>
       </attribute>
       <element name="depends">
         <a:documentation>The particle Reynolds number depends on the Velocity field of both the continuous and dispersed phases,
-and also the Density and Viscosity fields of the continuous phase.</a:documentation>
+and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous phase.</a:documentation>
         <ref name="anystring"/>
       </element>
       <element name="particle_diameter">
@@ -1636,6 +1648,19 @@ and also the Density and Viscosity fields of the continuous phase.</a:documentat
         <a:documentation>The name of the state representing the continuous phase</a:documentation>
         <data type="string" datatypeLibrary=""/>
       </element>
+    </element>
+  </define>
+  <define name="apparent_density_algorithm">
+    <element name="algorithm">
+      <a:documentation>Diagnostic algorithm used in multiphase flow simulations.
+Calculates the apparent density of the material_phase,
+i.e. Density multiplied by the PhaseVolumeFraction field.</a:documentation>
+      <attribute name="name">
+        <value>apparent_density</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>multiple</value>
+      </attribute>
     </element>
   </define>
   <!-- Misc -->
@@ -1697,6 +1722,32 @@ This field needs to be interpolated between adapts.</a:documentation>
           <ref name="real"/>
         </element>
       </optional>
+      <optional>
+        <element name="absolute_values">
+          <a:documentation>If enabled, the average of the absolute value is taken</a:documentation>
+          <ref name="comment"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="scalar_period_averaged_algorithm">
+    <element name="algorithm">
+      <a:documentation>Algorithm for calulating an average of a scalar field over 
+a set period, e.g. daily
+Note that we assume the simulation starts at zero for the
+averaging period,
+This field needs to be interpolated between adapts.</a:documentation>
+      <attribute name="name">
+        <value>period_averaged_scalar</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="scalar_source_field"/>
+      <element name="averaging_period">
+        <a:documentation>Over what time period to average over?</a:documentation>
+        <ref name="real"/>
+      </element>
     </element>
   </define>
   <define name="scalar_squared_time_averaged_algorithm">
@@ -1733,6 +1784,12 @@ This field needs to be interpolated between adapts.</a:documentation>
         <element name="spin_up_time">
           <a:documentation>When to start sampling?  Defaults to simulation start time.</a:documentation>
           <ref name="real"/>
+        </element>
+      </optional>
+      <optional>
+        <element name="absolute_values">
+          <a:documentation>If enabled, the average of the absolute value is taken</a:documentation>
+          <ref name="comment"/>
         </element>
       </optional>
     </element>
@@ -1799,6 +1856,9 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="scalar_time_averaged_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_period_averaged_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_sum_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
@@ -1823,10 +1883,16 @@ This field needs to be interpolated between adapts.</a:documentation>
     <ref name="scalar_advection_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="scalar_edge_lengths_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="projection_scalar_potential_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="particle_reynolds_number_algorithm"/>
+  </define>
+  <define name="scalar_diagnostic_algorithms" combine="choice">
+    <ref name="apparent_density_algorithm"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="node_halo_diagnostic_algorithm"/>
@@ -1932,6 +1998,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="tensor_copy_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="grad_vector_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="strain_rate_algorithm"/>

@@ -53,7 +53,7 @@ module momentum_diagnostics
             calculate_tensor_second_invariant, calculate_imposed_material_velocity_source, &
             calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
-            calculate_geostrophic_velocity, calculate_hessian
+            calculate_geostrophic_velocity
            
   
 contains
@@ -74,23 +74,6 @@ contains
 
   end subroutine calculate_strain_rate
 
-  subroutine calculate_hessian(state, t_field)
-    ! Compute Hessian of a scalar field
-    type(state_type), intent(inout) :: state
-    type(tensor_field), intent(inout) :: t_field
-    
-    type(scalar_field), pointer :: source_field
-    type(vector_field), pointer :: positions
-
-    positions => extract_vector_field(state, "Coordinate")
-    source_field => scalar_source_field(state, t_field)
-
-    call check_source_mesh_derivative(source_field, "hessian")
-
-    call compute_hessian(source_field, positions, t_field)
-
-  end subroutine calculate_hessian
-  
   subroutine calculate_tensor_second_invariant(state, s_field)
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: s_field

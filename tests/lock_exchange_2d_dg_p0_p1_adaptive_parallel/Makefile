@@ -1,6 +1,6 @@
 input: clean
 	gmsh -2 ./src/channel_2d.geo
-	../../scripts/gmsh2triangle --2d ./src/channel_2d.msh
+	../../bin/gmsh2triangle --2d ./src/channel_2d.msh
 	fldecomp -n 2  -f channel_2d
 
 clean: 
