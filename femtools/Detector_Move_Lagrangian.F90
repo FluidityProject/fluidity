@@ -168,7 +168,8 @@ contains
     type(halo_type), pointer :: ele_halo
     integer :: i, j, num_proc, dim, stage, cycle, subsubcycle
     logical :: any_lagrangian
-    real :: sub_dt
+    real :: sub_dt, total_subsubcycle
+    integer :: max_subsubcycle
 
     ! Random Walk velocity source
     real, dimension(:), allocatable :: rw_displacement
@@ -292,6 +293,8 @@ contains
        if (parameters%internal_diffusive_rw .and. parameters%auto_subcycle) then
           subcycle_detector_list%move_parameters => parameters
           subcycle_detector_list%name = detector_list%name
+          max_subsubcycle = 1
+          total_subsubcycle = 0
 
           ! First pass establishes how many sub-sub-cycles are required
           detector => detector_list%first
@@ -303,6 +306,10 @@ contains
                           diffusivity_2nd_grad, parameters%search_tolerance, &
                           parameters%subcycle_scale_factor, detector%rw_subsubcycles)
                 call profiler_toc(trim(detector_list%name)//"::get_random_walk_subcycling")
+                total_subsubcycle = total_subsubcycle + detector%rw_subsubcycles
+                if (detector%rw_subsubcycles > max_subsubcycle) then
+                   max_subsubcycle = detector%rw_subsubcycles
+                end if
 
                 call profiler_tic(trim(detector_list%name)//"::diffusive_random_walk")
                 call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, &
@@ -318,6 +325,8 @@ contains
                 else
                    detector => detector%next
                 end if
+             else
+                detector => detector%next
              end if
           end do
 
@@ -353,6 +362,9 @@ contains
 
           ! Update elements after the final move
           call move_detectors_guided_search(detector_list,xfield)
+
+          ewrite(2,*) "Auto-subcycling: max. subcycles:", max_subsubcycle
+          ewrite(2,*) "Auto-subcycling: avg. subcycles:", total_subsubcycle / detector_list%length
        end if
 
        ! After everything is done, we update detector%position
@@ -536,7 +548,7 @@ contains
 
   end subroutine move_detectors_guided_search
 
-  subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner,l_coords,ele_path)
+  subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner,l_coords,ele_path,ele_path_len)
     ! Do a local guided search until we either hit the new element 
     ! or have to leave the local domain. The new_owner argument indicates
     ! whether we have found the new element, where to continue searching
@@ -548,6 +560,7 @@ contains
     real, dimension(mesh_dim(xfield)+1), intent(out) :: l_coords
     integer, intent(out) :: new_owner
     integer, dimension(:), allocatable, intent(inout), optional :: ele_path
+    integer, intent(inout), optional :: ele_path_len
 
     integer, dimension(:), pointer :: neigh_list
     integer, dimension(:), allocatable :: temp_path
@@ -575,14 +588,19 @@ contains
           if (present(ele_path)) then
              ! Record the elements along the path travelled 
              ! in dynamically reallocated ele_path vector
-             new_path_size = size(ele_path) + 1
-             allocate(temp_path(size(ele_path)))
-             temp_path = ele_path(:)
-             deallocate(ele_path)
-             allocate(ele_path(new_path_size))
-             ele_path = temp_path(:)
-             deallocate(temp_path)
-             ele_path(new_path_size) = element
+             if (ele_path_len>=size(ele_path)) then
+                ! If our ele_path array is full we dynamically
+                ! reallocate it with twice the size
+                new_path_size = 2 * size(ele_path)
+                allocate(temp_path(size(ele_path)))
+                temp_path = ele_path(:)
+                deallocate(ele_path)
+                allocate(ele_path(new_path_size))
+                ele_path = temp_path(:)
+                deallocate(temp_path)
+             end if
+             ele_path_len = ele_path_len + 1
+             ele_path(ele_path_len) = element
           end if
        else
           ! Next element in coordinate direction is not on this domain.
@@ -683,27 +701,28 @@ contains
     real, dimension(:), allocatable :: node_vals
     real :: K0, d_z, z_offset, local_subcycling, min_dt
     integer, dimension(:), allocatable :: ele_path
-    integer :: i, sample_ele, proc_owner
+    integer :: i, sample_ele, proc_owner, ele_path_len
     real, dimension(size(detector%local_coords)) :: l_coords
     real, dimension(size(detector%local_coords)) :: sample_coord
 
     K0 = abs(detector_value(diff_field, detector))
     d_z = sqrt(2 * K0 * dt)
     subcycles = 1
-    allocate(ele_path(1))
+    allocate(ele_path(500))
     ele_path(1) = detector%element
+    ele_path_len = 1
 
     ! Get all elements along the path z0 -> z0 + (2*K0*dt)^1/2
     sample_ele = detector%element
     sample_coord = detector%position
     sample_coord(size(detector%position)) = sample_coord(size(detector%position)) + d_z
-    call local_guided_search(xfield,sample_coord,sample_ele,search_tolerance,proc_owner,l_coords,ele_path)
+    call local_guided_search(xfield,sample_coord,sample_ele,search_tolerance,proc_owner,l_coords,ele_path,ele_path_len)
 
     ! Get all elements along the path z0 -> z0 - (2*K0*dt)^1/2
     sample_ele = detector%element
     sample_coord = detector%position
     sample_coord(size(detector%position)) = sample_coord(size(detector%position)) - d_z
-    call local_guided_search(xfield,sample_coord,sample_ele,search_tolerance,proc_owner,l_coords,ele_path) 
+    call local_guided_search(xfield,sample_coord,sample_ele,search_tolerance,proc_owner,l_coords,ele_path,ele_path_len) 
 
     ! Find maximum subcycling factor in all elements
     ! in range [z0-(2*K0*dt)^1/2 : z0+(2*K0*dt)^1/2] by
@@ -711,7 +730,7 @@ contains
     ! with an additional user-defined scale factor
     current_ele_nodes=>ele_nodes(grad2_field, ele_path(1))
     allocate(node_vals(size(current_ele_nodes)))
-    do i=1, size(ele_path)
+    do i=1, ele_path_len
        current_ele_nodes=>ele_nodes(grad2_field, ele_path(i))
        node_vals = abs(node_val(grad2_field, grad2_field%dim, current_ele_nodes))
        node_vals = 1.0 / node_vals

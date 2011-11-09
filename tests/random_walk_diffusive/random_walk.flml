@@ -268,7 +268,7 @@ def val(X, t):
             <diffusive_random_walk diffusivity_gradient="DiffusivityGradient" diffusivity_field="Diffusivity">
               <auto_subcycle diffusivity_2nd_gradient="DiffusivitySecondGradient">
                 <scale_factor>
-                  <real_value rank="0">1.0</real_value>
+                  <real_value rank="0">2.0</real_value>
                 </scale_factor>
               </auto_subcycle>
             </diffusive_random_walk>
