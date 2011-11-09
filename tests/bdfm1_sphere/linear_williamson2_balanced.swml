@@ -391,7 +391,7 @@
     </vector_field>
     <vector_field name="VelocityDiff" rank="1">
       <diagnostic>
-        <algorithm name="vector_difference" source_field_1_name="Velocity" source_field_2_name="PrescribedVelocityFromCommutingProjection" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="PrescribedVelocityFromCommutingProjection" material_phase_support="single" source_field_1_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>

@@ -66,6 +66,9 @@
     <timestep>
       <real_value rank="0">100.0</real_value>
     </timestep>
+    <theta>
+      <real_value rank="0">0.5</real_value>
+    </theta>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
@@ -117,10 +120,12 @@ val=coriolis(omega)</string_value>
               <upwind/>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0.</real_value>
-          </conservative_advection>
         </spatial_discretisation>
+        <temporal_discretisation>
+          <relaxation>
+            <real_value rank="0">0.5</real_value>
+          </relaxation>
+        </temporal_discretisation>
         <solver>
           <iterative_method name="gmres">
             <restart>
@@ -143,15 +148,6 @@ val=coriolis(omega)</string_value>
           <balanced/>
         </initial_condition>
         <output/>
-        <stat>
-          <include_in_stat/>
-          <previous_time_step>
-            <exclude_from_stat/>
-          </previous_time_step>
-          <nonlinear_field>
-            <exclude_from_stat/>
-          </nonlinear_field>
-        </stat>
         <convergence>
           <include_in_convergence/>
         </convergence>
@@ -177,14 +173,7 @@ val=coriolis(omega)</string_value>
             <real_value rank="0">0.</real_value>
           </conservative_advection>
         </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">0.5</real_value>
-          </theta>
-          <relaxation>
-            <real_value rank="0">1.</real_value>
-          </relaxation>
-        </temporal_discretisation>
+        <temporal_discretisation/>
         <solver>
           <iterative_method name="gmres">
             <restart>
