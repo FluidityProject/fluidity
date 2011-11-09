@@ -643,7 +643,7 @@
 
     end subroutine setup_matrices_ele
 
-    subroutine compute_matrix_transposes(matrices)                                                                                                                                                             
+    subroutine compute_matrix_transposes(matrices)
       type(state_type), intent(inout) :: matrices
       type(csr_matrix), pointer :: mass_matrix
       type(csr_matrix) :: mass_matrix_T

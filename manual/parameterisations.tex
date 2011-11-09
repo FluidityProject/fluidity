@@ -248,7 +248,7 @@ Calculating the corresponding Neumann  conditions by differentiating with respec
 \end{equation}
 
 Note that it is also an option to express the Neumann condition above in terms
-of the fiction velocity, $u^*$. Previous work has shown this causes numerical
+of the friction velocity, $u^*$. Previous work has shown this causes numerical
 difficulties in the case of stress-free surface boundary layers \citep{burchard1999}.
 
 
@@ -346,19 +346,19 @@ where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the fri
 \subsection{Large-Eddy Simulation (LES)}\label{sec:LES}
 \index{large eddy simulation}
 \index{turbulence model}
-In Large Eddy Simulations the large scales in the ﬂow are captured while the effect of the small scales
+In Large Eddy Simulations the large scales in the flow are captured while the effect of the small scales
 is modelled. Formally, a filtering operator is defined and a decomposition, similar to the Reynolds
 decomposition, is introduced:
 \begin{equation}
-\overline{\alpha} = \int_{-\infty}^\infty G_m\left( \overrightarrow{r} \right) \alpha \left( \overrightarrow{x} - \overrightarrow{r} \right) \text{d} \overrightarrow{r}
+\overline{u}_i = \int_{-\infty}^\infty G_m\left( \overrightarrow{r} \right) u_i \left( \overrightarrow{x} - \overrightarrow{r} \right) \text{d} \overrightarrow{r}
 \label{eqn:les_filtering}
 \end{equation}
 and
 \begin{equation}
-\alpha = \overline{\alpha} + \alpha^\prime
+u_i = \overline{u}_i + u_i^\prime
 \label{eqn:les_decomposition}
 \end{equation}
-where $\alpha^\prime$ denotes the subgrid-scale fluctuation. Applying
+where $u_i^\prime$ denotes the subgrid-scale fluctuation. Applying
 the filtering operator to the continuity and momentum equations for constant-property, incompressible
 flow and introducing the decomposition \eqref{eqn:les_decomposition} to the non-linear terms gives,
 \begin{equation}
@@ -389,13 +389,13 @@ see \cite{pope2000} and \cite{sagaut1998}. However, in most implementations the 
 to the mesh and the numerical approximation.%Must check and find out what is the filtering kernel used in Fluidity, this issue is currenlty evaded here.
 \par
 The residual stress tensor is an unknown and a subgrid-scale model is used to close the Navier-Stokes
-equations.All three subgrid-scale models implemented in \fluidity\ are based on the eddy-viscosity concept: The small scales in the flow act as a diffusive agent, so the subgrid stress can be expressed in a way
+equations. All three subgrid-scale models implemented in \fluidity\ are based on the eddy-viscosity concept: The small scales in the flow act as a diffusive agent, so the subgrid stress can be expressed in a way
 similar to the viscous stress:
 \begin{equation}
 \tau_{{ij}_a} = \tau_{ij} - \delta_{ij} \frac 1 3 \tau_{kk} = -2 \nu_\tau \overline{S}_{ij}
 \label{eqn:eddy_viscosity_concept} 
 \end{equation}
-where only the anisotropic part of $\tau_{ij}$ is treated explicitly. This is usual practice, as the isotropic
+where only the anisotropic part of $\tau_{ij}$ is treated explicitly. This is usual practise, as the isotropic
 part can be added to the pressure. In addition, this allows for the diagonal components of $\tau_{ij}$
 to be non-zero when $S_{ij}=0$. Equation \eqref{eqn:filtered_momentum} becomes:
 \begin{equation}
@@ -404,13 +404,19 @@ to be non-zero when $S_{ij}=0$. Equation \eqref{eqn:filtered_momentum} becomes:
  + \frac{\partial}{\partial x_j} \left [ (\nu + \nu_\tau) \left ( \frac{\partial \overline{u}_i}{\partial x_j} + \frac{\partial \overline{u}_j}{\partial x_i} \right ) \right ],
 \end{equation}
 \par
-In comparison with the unfiltered Navier-Stokes equations, equations \eqref{eqn:filtered_momentum}
-feature an additional term. This is reflected in the options that must be adjusted in order to
+In comparison with the unfiltered Navier-Stokes equations, equation \eqref{eqn:filtered_momentum}
+features an additional term. This is reflected in the options that must be adjusted in order to
 perform large eddy simulations using \fluidity. In particular, the user must activate the option
-under spud path \lstinline+.../spatial_discretisation/continuous_galerkin/les_model+. Further 
-options under this path allow the user to select a particular subgrid scale model and configure it.
-See chapter \ref{chap:configuration} for how to configure \fluidity\ options.
+with path \lstinline+...Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model+
+(See chapter \ref{chap:configuration} for how to configure \fluidity\ options and interact with diamond).
 Note however, currently \fluidity\ supports ``explicit'' LES only with continuous Galerking discretisations.
+Once the aforementioned option is activated, the user can select and configure one of the three models
+outlined in the next section. The available models (and option paths) are:
+\begin{itemize}
+  \item Second order dissipation model (\lstinline+.../les_model/second_order+)
+  \item Fourth order dissipation model (\lstinline+.../les_model/fourth_order+)
+  \item Dynamic Smagorinsky model (\lstinline+.../les_model/dynamic_les+)
+\end{itemize}
 
 \subsubsection{Subgrid-scale modelling}
 \label{sec:LES_sgs_modelling}
@@ -434,36 +440,54 @@ Equations \eqref{eqn:eddy_viscosity_concept}, \eqref{eqn:mixing_length} and
 \begin{equation}
 \nu_\tau = C_s^2 \ l^2 \ \left| \mathcal{\overline{S}} \right| 
 \end{equation}
-where $C_s$ is the \emph{Smagorinsky constant} and $\left | \mathcal{\overline{S}} \right |$ is the local strain
+where $C_s$ is the \emph{Smagorinsky coefficient} and $\left | \mathcal{\overline{S}} \right |$ is the local strain
 rate (the second invariant of the strain-rate tensor):
 \begin{equation}
 \left| \mathcal{\overline{S}} \right| = \left( 2 \overline{S}_{ij} \overline{S}_{ij} \right)^{1/2}
 \end{equation}
 
-\subsubsection{Second-Order Dissipation}
+\par{\textbf{Second-Order Dissipation model}\\}
 \label{sec:second_order_diss_LES}
 
 The following model developed by \citet{bentham2003} is similar to the original Smagorinsky model, but allows for an anisotropic eddy viscosity that gives better results for flow simulations on unstructured grids:
 
-\begin{equation}\label{smag}
+\begin{equation}
 \frac{\partial \tau_{ij}}{\partial x_j} = \frac{\partial}{\partial x_i} \left [ \nu_{jk}\frac{\partial \overline{u}_j}{\partial x_k} \right ],
 \end{equation}
 with the anisotropic tensorial eddy viscosity:
 
 \begin{equation}
-\nu_{jk} = 4C_S^2 \left | \mathcal{\overline{S}} \right | \mathcal{M}^{-1},
+\nu_{jk} = 4C_s^2 \left | \mathcal{\overline{S}} \right | \mathcal{M}^{-1},
 \end{equation}
 where $\mathcal{M}$ is the length-scale metric from the adaptivity process (see \citet{pain2001}),
 used here to relate eddy viscosity to the local grid size. The factor of 4 arises because the filter
-width separating resolved and unresolved scales is twice the local element size, which is squared in
-the viscosity model. $C_S \approx 0.1$ is the Smagorinsky coefficient, and
+width separating resolved and unresolved scales is assumed to be twice the local element size, which is squared in
+the viscosity model.
+\par
+The options for this model are available under the spud path 
+\lstinline+.../les_model/second_order+. The following options are available to the user:
+\begin{itemize}
+\item \lstinline+.../les_model/second_order/smagorinsky_coefficient+\ : (Compulsory) The user can here
+      specify the value of the Smagorinsky coefficient $C_s$. A value of $0.1$ is recommended for most flows.
+      However, many researchers have carried out calibration studies for particular flows and mesh
+      resolutions, for example see \cite{deardorff1971}, \cite{nicoud1999}, \cite{germano1991} and
+      \cite{canuto_cheng1997}.
+\item \lstinline+.../les_model/second_order/tensor_field::EddyViscosity+\ : (Optional) When this
+      option is active the eddy viscocity is calculated as a diagnostic field. Further sub-options
+      allow the user to store this field for later visualisation and post-processing.
+\end{itemize}
 
-\subsubsection{Fourth-Order Dissipation}
+\par{\textbf{Fourth-Order Dissipation model}\\}
 \label{sec:fourth_order_diss_LES}
 
 The fourth-order method is designed as an improvement to the second-order eddy viscosity method, which can be too dissipative \citep{adam}. The fourth-order term is taken as the difference of two second-order eddy viscosity discretisations, where one is larger than the other. Usually a smaller time-step and finer grid are necessary to make fourth-order worthwhile.
+\par
+Currently the only option for this model allows the specification of the Smagorinsky coefficient. This option 
+is available at the spud path \lstinline+.../les_model/fourth_order/smagorinsky_coefficient+\ , see the
+corresponding option of the second-order dissipation model above for more information.
 
-\subsubsection{Dynamic Smagorinsky model}
+\par{\textbf{Dynamic Smagorinsky model}\\}
+\label{sec:dynamic_smag_LES}
 
 The most important disadvantage of Smagorinsky-type models such as discussed in sections 
 \ref{sec:second_order_diss_LES} and \ref{sec:fourth_order_diss_LES} is the behaviour of the
@@ -486,6 +510,10 @@ near-by wave-numbers.
 Formally, a second filtering of equations \eqref{eqn:filtered_continuity} and
 \eqref{eqn:filtered_momentum} is introduced:
 \begin{equation}
+\tilde{\overline{u}}_i = \int_{-\infty}^\infty G_t\left( \overrightarrow{r} \right) \overline{u}_i \left( \overrightarrow{x} - \overrightarrow{r} \right) \text{d} \overrightarrow{r}
+\label{eqn:les_test_filtering}
+\end{equation}
+\begin{equation}
 \frac{\partial \tilde{\overline{u}}_i}{\partial x_i} = 0
 \label{eqn:twice_filtered_continuity}
 \end{equation}
@@ -496,39 +524,38 @@ Formally, a second filtering of equations \eqref{eqn:filtered_continuity} and
 \label{eqn:twice_filtered_momentum}
 \end{equation}
 
-The first filter is the mesh filter $\overline G(x)$ and $\overline{u}_i$ is simply the velocity represented on the computational mesh. The second filter, $\widetilde{\overline G}(x)$, called the test filter, is the convolution of a wider filter $\widetilde G(x)$ with $\overline G(x)$: $\widetilde{\overline G}^2 = \widetilde G^2 + \overline G^2$. The filter widths are related by $\widetilde \bigtriangleup/\overline \bigtriangleup = \alpha$, with $\alpha=2$ for best results \citep{germano1991}. The mesh- and test-filtered subgrid stresses are:
-
-\begin{equation}\label{meshtau}
-\tau_{ij} = \overline{u_i u_j} - \overline u_i \overline u_j,
+The first filter is the mesh filter $G_m(x)$ (see equation \eqref{eqn:les_filtering}) and has a
+characteristic filter width $\overline \bigtriangleup$ in physical space. $\overline{u}_i$ is simply
+the velocity represented on the computational mesh. The second filter, $G_t(x)$, is called the test filter
+and has a characteristic filter width $\widetilde \bigtriangleup$.
+%It is the convolution of a wider filter $\widetilde G(x)$ with $\overline G(x)$: $\widetilde{\overline G}^2 = \widetilde G^2 + \overline G^2$.
+The filter widths are related by,
+\begin{equation}
+\widetilde \bigtriangleup/\overline \bigtriangleup = \alpha
+\label{eqn:les_filter_ratio}
 \end{equation}
+where $\alpha=2$ for best results \citep{germano1991}. The residual stress resulting from mesh-filtering,
+$\tau_{ij}$ is given in equation \eqref{eqn:defin_sgs_stress_tensor}. The residual stress tensor resulting
+from test-filering, $T_{ij}$ is:
 \begin{equation}\label{testtau}
 T_{ij} = \widetilde{\overline{u_i u_j}} - \widetilde{\overline u}_i \widetilde{\overline u}_j,
 \end{equation}
-and the intermediate turbulent stresses, known as the Leonard term, are defined as
+The Germano identity postulates the relation bewteen the test-filtered $\tau_{ij}$ and $T_{ij}$:
 
 \begin{equation}\label{leonard}
 \mathcal L_{ij} = T_{ij} - \widetilde{\tau}_{ij} = \widetilde{\overline u_i \overline u_j} - \widetilde{\overline u}_i \widetilde{\overline u}_j.
 \end{equation}
 
-\subsubsection{Eddy Viscosity Model}
+The Smagorinsky model is used to obtain an expression for the stress tensors on the right-hand-side of
+the germano identity above. The Smagorinsky model is here written as:
 
-The Smagorinsky model is used to obtain an expression for both stress tensors. Here it is defined as:
-
-\begin{equation}\label{smagtau}
-\tau_{ij} = -2 \nu_T \overline S_{ij},
+\begin{equation}\label{eqn:smag_model}
+\tau_{ij} = -2 \nu_\tau \overline S_{ij} \text{\ \ where,\ \ } \nu_\tau = C \overline \bigtriangleup^2 \left | \overline S \right |
 \end{equation}
 
-\begin{equation}\label{smagnut}
-\nu_T = C \overline \bigtriangleup^2 \left | \overline S \right |.
-\end{equation}
-
-Substitution of \eqref{meshtau} and \eqref{testtau} into \eqref{leonard}, and contracting both sides with the rate of strain \eqref{eqn:defin_strain_rate_tensor} gives
-
-\begin{equation}
-\mathcal L_{ij} \overline S_{ij} = -2C(\widetilde{\overline \bigtriangleup}^2 | \widetilde{\overline S} | \widetilde{\overline S}_{ij} \overline S -
-\overline \bigtriangleup^2 \widetilde{ | \overline S | \overline S_{ij}} \overline S),
-\end{equation}
-Now the Smagorinsky coefficient can be calculated from
+Where $C=C_s^2$ is used, for convenience. The Germano identity is used in conjuction with equation
+\eqref{eqn:smag_model} and after contraction with the strain rate tensor \eqref{eqn:defin_strain_rate_tensor} 
+an expression for the model coefficient $C$ is derived (see \cite{germano1991,germano1992} for details):
 
 \begin{equation}\label{germanocoeff}
 C(\mathbf x, t) = - \frac{1}{2} \frac{\mathcal L_{ij} \overline S_{ij}}
@@ -538,43 +565,73 @@ C(\mathbf x, t) = - \frac{1}{2} \frac{\mathcal L_{ij} \overline S_{ij}}
 Then the eddy viscosity is given by
 
 \begin{equation}\label{germanovisc}
-\nu_T(\mathbf x, t) = - \frac{1}{2} \frac{\mathcal L_{ij} \overline S_{ij}}
+\nu_\tau(\mathbf x, t) = - \frac{1}{2} \frac{\mathcal L_{ij} \overline S_{ij}}
 {(1+\alpha^2) | \widetilde{\overline S} | \widetilde{\overline S}_{ij} \overline S -
 \widetilde{ | \overline S | \overline S_{ij}} \overline S}
 \left | \overline S \right |.
 \end{equation}
 
-Note that unlike the Smagorinsky-based models of \citet{bentham2003}, the eddy viscosity is isotropic here, since the anisotropic filter widths have cancelled top and bottom. The anisotropy of the mesh is accounted for in the definition of the test filter $\widetilde G(x)$ (see \ref{lesfilter}).
+Unlike the Smagorinsky-based models of \citet{bentham2003}, the eddy viscosity is isotropic in equation \eqref{germanovisc}, since the anisotropic filter widths have cancelled top and bottom. The anisotropy of the mesh is accounted for in the definition of the test filter $G_t(x)$.
 
-\citet{germano1991} used the above model in a turbulent channel flow simulation with filtering performed only over the wall-parallel directions. To prevent $C$ becoming unbounded, the quantities were averaged over a plane parallel to the wall. In Fluidity this is not implemented, so the Lilly modification to the model is recommended.
-
-\subsubsection{Lilly Modification}
-
-To remove the instability caused by the denominator of \eqref{germanocoeff} becoming small, \citet{lilly1991} proposed a modified expression for $C$:
+A major drawback of the Germano variant of the dynamic Smagorinsky model is that the denominator in
+equations \eqref{germanocoeff} and \eqref{germanovisc} can become very small. In addition, equation
+\eqref{germanovisc} can give large fluctuations in the subgrid scale viscosity, which can also lead to
+instability. Planar averaging of the terms in the numerator and denominator of equations
+\eqref{germanocoeff} and \eqref{germanovisc} is used in \cite{germano1991} to stabilise turbulent
+channel flow simulations. In \fluidity\ the Germano variant is implemented as well as the Lilly
+variant. In the latter, in order to remove the instability caused by the denominator of
+\eqref{germanocoeff} becoming small, a modified expression for $C$ is proposed in \cite{lilly1991}:
 
 \begin{equation}\label{lillycoeff}
 C(\mathbf x, t) = - \frac{1}{2} \frac{\mathcal L_{ij} M_{ij}}{M^2_{ij}},
 \end{equation}
 where
-\begin{equation}
+\begin{equation}\label{eqn:lilly_m_tensor}
 M_{ij} = {\widetilde{\overline \bigtriangleup} | \widetilde{\overline S} | \widetilde{\overline S}_{ij} -
 \widetilde{\overline \bigtriangleup} \widetilde{ | \overline S | \overline S_{ij}}}.
 \end{equation}
-This represents a least-squares error minimisation of the equation $\mathcal L_{ij} - \frac 1 3 \delta_{ij} \mathcal L_{kk} = 2CM_{ij}$. The modification is reported to remove the need for planar averaging. In Fluidity the use of this modified model prevents large fluctuations of the eddy viscosity.
+This represents a least-squares error minimisation of the equation $\mathcal L_{ij} - \frac 1 3 \delta_{ij} \mathcal L_{kk} = 2CM_{ij}$. The modification is reported to remove the need for planar averaging.
 
+The numerators of \eqref{germanocoeff} and \eqref{lillycoeff} can become negative, resulting in negative eddy viscosity. In this case, energy is transferred from the subgrid scales to the resolved scales. \citet{germano1991} report that the stresses were closer to DNS as a result. This is an option in Fluidity.%, with a lower limit set on the eddy viscosity to prevent $(\nu + \nu_T) < 0$. <---It appears, from the options that no such bound is currently implemented.
 
-\subsubsection{Backscattering}
-
-The numerators of \eqref{germanocoeff} and \eqref{lillycoeff} can become negative, resulting in negative eddy viscosity. In this case, energy is `scattered' back from the subgrid scales to the resolved scales. \citet{germano1991} report that the stresses were closer to DNS as a result. This is an option in Fluidity, with a lower limit set on the eddy viscosity to prevent $(\nu + \nu_T) < 0$.
-
-\subsubsection{Choice of Test Filter}\label{lesfilter}
-
-The inverse Helmholtz filter is implemented in Fluidity for use with the dynamic model. It was introduced by \citet{germano1986a} in the context of LES, and is defined by
+Equations \eqref{germanocoeff} and \eqref{lillycoeff} require the calculation of the test-filtered velocity field $\tilde{\overline{u}}_i$. The inverse Helmholtz filter is implemented in \fluidity\ for use with the dynamic model:
+% It was introduced by \citet{germano1986a} in the context of LES, and is defined by <---had to drop the citation, No metion of Helmholtz filter found therein, could locate another suitable citation.
 
 \begin{equation}\label{invhelm}
-\phi = \overline \phi - \alpha^2 \nabla^2 \overline \phi.
+\overline{u}_i = \left( 1 - \alpha^2 \nabla^2 \right) \tilde{\overline{u}}_i
 \end{equation}
-where $\alpha$ is the filter width ratio defined above. It is related to the local mesh size by $\alpha^2 = \overline \bigtriangleup^2/24$ \citep{pope2000}. In Fluidity it is constructed in weak finite element form with a strong Dirichlet boundary condition on the filtered field: $\overline \phi = \phi$.
+where $\alpha$ is the filter width ratio defined above. It is related to the local mesh size by $\alpha^2 = \overline \bigtriangleup^2/24$ \citep{pope2000}. In \fluidity\ equation \eqref{invhelm} is constructed in weak finite element form with a strong Dirichlet boundary condition on the filtered field: $\tilde{\overline{u}}_i = \overline{u}_i$. Similar problems must be solved for calculation of
+$\widetilde{ | \overline S | \overline S_{ij}}$ in equations \eqref{germanocoeff}, \eqref{germanovisc} and \eqref{eqn:lilly_m_tensor} 
+
+\par
+The options available to the user are located under path \lstinline+.../les_model/dynamic_les+.
+\begin{itemize}
+  \item \lstinline+.../les_model/dynamic_les/alpha+\ : (Compulsory) The test-to-mesh filter ratio,
+        see equation \eqref{eqn:les_filter_ratio}.
+  \item \lstinline+.../les_model/dynamic_les/solver+\ : (Compulsory) Sub-options allow the user to
+        select the matrix solver used in solving equation \eqref{invhelm}, during the calculation
+        of test-filtered fields. See section \ref{ND_Linear_solvers} for available
+        linear solvers and their options.
+  \item \lstinline+.../les_model/dynamic_les/enable_lilly+\ : (Optional) When active, the Lilly
+        variant of the model is used.
+  \item \lstinline+.../les_model/dynamic_les/enable_backscatter+\ : (Optional) When inactive the
+        subgrid eddy viscocity is constrained to be positive, $\nu_\tau \geq 0$.
+  \item \lstinline+.../les_model/dynamic_les/vector_field::FilteredVelocity+\ : (Optional)
+        Sub-options allow the user to store realisations of the twice-filtered velocity field,
+        $\tilde{\overline{u}}_i\ i=1,2,3$, for post-processing.
+  \item \lstinline+.../les_model/dynamic_les/tensor_field::FilterWidth+\ : (Optional)
+        Sub-options allow the user to store realisations of the mesh filter width field,
+        $\overline \bigtriangleup$, for post-processing.
+  \item \lstinline+.../les_model/dynamic_les/tensor_field::StrainRate+\ : (Optional)
+        Sub-options allow the user to store realisations of the strain rate of the mesh-filtered
+        velocity, for post-processing.
+  \item \lstinline+.../les_model/dynamic_les/tensor_field::FilteredStrainRate+\ : (Optional)
+        Sub-options allow the user to store realisations of the strain rate of the twice-filtered
+        velocity, for post-processing.
+  \item \lstinline+.../les_model/dynamic_les/tensor_field::EddyViscosity+\ : (Optional)
+        Sub-options allow the user to store realisations of the eddy viscosity, $\nu_\tau$,
+        for post-processing.
+\end{itemize}
 
 \section{Ice shelf parameterisation}
 Exchange of heat and salt between the ice and ocean drives the circulation.

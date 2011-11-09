@@ -132,25 +132,30 @@ free surface geoid when running on the sphere.
 The advantage of this approach is that the user can provide a horizontal mesh,
 that has been created in the normal way (usually Gmsh), and all the
 configuration related to bathymetry, number of layers and layer depths can be
-done in the .flml (see \ref{sec:extruded} for all options available). It also
+done in the .flml (see section \ref{sec:extruded} for all options available). It also
 enables the application of mesh adaptivity in the horizontal and vertical
 independently. This means we can choose to apply adaptivity in the horizontal
 only and keep a fixed number of layers, or we can choose to keep the horizontal
 mesh fixed and dynamically adjust the vertical grid spacing (vertical
 adaptivity). The combination of both horizontal and vertical adaptivity is
-referred to as ``2+1'' adaptivity, which is described further in chapter 
-\ref{chap:Adaptivity}.
+referred to as ``2+1D'' adaptivity. For the configuration of this kind of
+adaptivity see section \ref{sec:vertically_structured_adaptivity}.
 
 \section{Periodic meshes}
 \index{mesh!periodic} 
 \index{periodic domain} 
 \label{sec:periodic_meshes}
-Periodic meshes are those that are ``virtually'' connected in one or more directions. To make a periodic
-mesh you must first create a triangle file where the edges that are periodic
-can be mapped exactly by a simple transformation. For example, if the mesh
-is periodic in the $x$-direction, the two edges must have nodes at exactly the
-same height on each side. This can be easily accomplished using the
-\lstinline[language=Bash]+create_aligned_mesh+ script in the scripts folder.
+Periodic meshes are those that are ``virtually'' connected on one side of the
+domain to the boundary on the opposite side. This can be done in one or more
+directions. To make a periodic
+mesh you must first create an input mesh where the edges on the two sides
+that will be connected
+can be mapped exactly by a simple transformation. For a 2d mesh that is 
+periodic in the $x$-direction this simply means all the nodes on left and right
+boundary need to be at the same $y$-height. For 3d meshes, not only the nodes
+on the two sides need to be ``periodic'', but also the edges connecting them.
+For a simple box geometry, this can be easily accomplished using the
+\lstinline[language=Bash]+create_aligned_mesh+ script in the tools folder.
 
 Alternatively, if you require a more complex periodic mesh with some structure between the periodic 
 boundaries you can create one using \lstinline[language=Bash]{gmsh}. This can be achieved by 
