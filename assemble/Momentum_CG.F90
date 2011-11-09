@@ -356,6 +356,9 @@
       have_coriolis = have_option("/physical_parameters/coriolis")
       have_les = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
          &"/continuous_galerkin/les_model")
+      have_eddy_visc=.false.;have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.
+      have_lilly=.false.; backscatter=.false.
+
       if (have_les) then
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
@@ -363,28 +366,31 @@
          les_fourth_order=have_option(trim(les_option_path)//"/fourth_order")
          wale=have_option(trim(les_option_path)//"/wale")
          dynamic_les=have_option(trim(les_option_path)//"/dynamic_les")
+
          if (les_second_order) then
             call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
-
             have_eddy_visc = have_option(trim(les_option_path)//"/second_order/tensor_field::EddyViscosity")
-            if(have_eddy_visc) then
-               ! Initialise the eddy viscosity field. Calling this subroutine works because
-               ! you can't have 2 different types of LES model for the same material phase.
-               call les_init_diagnostic_tensor_fields(state, have_eddy_visc, .false., .false., .false.)
-            end if
-         else
-            have_eddy_visc=.false.
+            ! Initialise the eddy viscosity field. Calling this subroutine works because
+            ! you can't have 2 different types of LES model for the same material phase.
+            ewrite(2,*) "Initialising LES diagnostic fields"
+            call les_init_diagnostic_tensor_fields(state, have_eddy_visc,have_strain,have_filtered_strain,have_filter_width)
          end if
          if (les_fourth_order) then
             call get_option(trim(les_option_path)//"/fourth_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
             call allocate( grad_u, u%mesh, "VelocityGradient")
             call differentiate_field_lumped( nu, x, grad_u)
+            have_eddy_visc = have_option(trim(les_option_path)//"/fourth_order/tensor_field::EddyViscosity")
+            ewrite(2,*) "Initialising LES diagnostic fields"
+            call les_init_diagnostic_tensor_fields(state, have_eddy_visc,have_strain,have_filtered_strain,have_filter_width)
          end if
          if (wale) then
             call get_option(trim(les_option_path)//"/wale/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
+            have_eddy_visc = have_option(trim(les_option_path)//"/fourth_order/tensor_field::EddyViscosity")
+            ewrite(2,*) "Initialising LES diagnostic fields"
+            call les_init_diagnostic_tensor_fields(state, have_eddy_visc,have_strain,have_filtered_strain,have_filter_width)
          end if
          if(dynamic_les) then
            ! Are we using the Lilly (1991) modification?
@@ -398,7 +404,8 @@
            have_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::StrainRate")
            have_filtered_strain = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilteredStrainRate")
            have_filter_width = have_option(trim(les_option_path)//"/dynamic_les/tensor_field::FilterWidth")
-           call les_init_diagnostic_tensor_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
+           ewrite(2,*) "Initialising LES diagnostic fields"
+           call les_init_diagnostic_tensor_fields(state, have_eddy_visc,have_strain,have_filtered_strain,have_filter_width)
 
            ! Initialise necessary local fields.
            ewrite(2,*) "Initialising compulsory dynamic LES fields"
@@ -419,18 +426,13 @@
            ! Calculate test-filtered velocity field and Leonard tensor field.
            ewrite(2,*) "Calculating test-filtered velocity and Leonard tensor"
            call leonard_tensor(nu, x, tnu, leonard, alpha, les_option_path)
-
            ewrite_minmax(leonard)
-         else
-           have_lilly=.false.; have_eddy_visc=.false.; backscatter=.false.
-           have_strain=.false.; have_filtered_strain=.false.; have_filter_width=.false.
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
          tnu => dummyvector; leonard => dummytensor
       end if
       
-
       have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic"//&
          &"/spatial_discretisation/continuous_galerkin/temperature_dependent_viscosity")
       if (have_temperature_dependent_viscosity) then
@@ -1987,6 +1989,14 @@
                     wale_coef_gi(gi)**3 * smagorinsky_coefficient**2 / &
                     max(les_coef_gi(gi)**5 + wale_coef_gi(gi)**2.5, 1.e-10)
             end do
+            ! Eddy viscosity tensor field. Calling this subroutine works because
+            ! you can't have 2 different types of LES model for the same material phase.
+            if(have_eddy_visc) then
+              call les_set_diagnostic_tensor_fields(state, u, ele, detwei, &
+                   les_tensor_gi, les_tensor_gi, les_tensor_gi, les_tensor_gi, &
+                 have_eddy_visc, .false., .false., .false.)
+            end if
+
          ! 2nd order Smagorinsky model
          else if(les_second_order) then
             les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
@@ -1995,8 +2005,6 @@
                les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
                     smagorinsky_coefficient**2
             end do
-            ! Eddy viscosity tensor field. Calling this subroutine works because
-            ! you can't have 2 different types of LES model for the same material phase.
             if(have_eddy_visc) then
               call les_set_diagnostic_tensor_fields(state, u, ele, detwei, &
                    les_tensor_gi, les_tensor_gi, les_tensor_gi, les_tensor_gi, &
@@ -2015,6 +2023,12 @@
                        sum(div_les_viscosity(:,:,iloc)*grad_u_nodes(:,dim,:))
                end do
             end do
+            if(have_eddy_visc) then
+              call les_set_diagnostic_tensor_fields(state, u, ele, detwei, &
+                   les_tensor_gi, les_tensor_gi, les_tensor_gi, les_tensor_gi, &
+                 have_eddy_visc, .false., .false., .false.)
+            end if
+
          ! Germano dynamic model
          else if (dynamic_les) then
             shape_nu = ele_shape(nu, ele)

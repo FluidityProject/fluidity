@@ -522,7 +522,21 @@ prognostic_velocity_field =
                      ## suggested value 0.1
                      element smagorinsky_coefficient {
                         real
-                     }
+                     },
+                     ## eddy viscosity (turbulent diffusion of velocity).
+                     ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
+                     ## carries the influence of turbulence onto the velocity field.
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "EddyViscosity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field
+                           }
+                        )
+                     }?
                   }
                |
                   ## similar to the original WALE model
@@ -532,7 +546,21 @@ prognostic_velocity_field =
                      ## suggested value 0.1
                      element smagorinsky_coefficient {
                         real
-                     }
+                     },
+                     ## eddy viscosity (turbulent diffusion of velocity).
+                     ## This is an anisotropic symmetric viscosity, added to normal viscosity field, that
+                     ## carries the influence of turbulence onto the velocity field.
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "EddyViscosity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field
+                           }
+                        )
+                     }?
                   }
                |
                   ## [UNDER DEVELOPMENT] The Germano dynamic method (See Germano 1991, Lilly 1991, Pope)

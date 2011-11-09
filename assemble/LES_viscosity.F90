@@ -51,7 +51,6 @@ contains
     type(tensor_field), pointer     :: tensorfield
     logical                         :: have_eddy_visc, have_strain, have_filtered_strain, have_filter_width
 
-    ewrite(2,*) "Initialising optional dynamic LES diagnostic fields"
     ! Filter width
     if(have_filter_width) then
       tensorfield => extract_tensor_field(state, "FilterWidth")
