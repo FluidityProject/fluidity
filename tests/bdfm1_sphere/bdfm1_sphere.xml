@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+1<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>BDFM1 sphere</name>
   <owner userid="cjc"/>
   <tags>swml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>shallow_water projection3.swml; shallow_water projection4.swml; shallow_water projection4.swml; shallow_water projection5.swml; shallow_water projection6.swml 
 </command_line>
   </problem_definition>
