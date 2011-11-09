@@ -1,4 +1,4 @@
-input: meshes copy_tests clean
+input: clean meshes copy_tests
 
 meshes:
 	cd src; make
