@@ -183,8 +183,6 @@ contains
          "local and", detector_list%total_num_det, "global detectors"
 
     parameters => detector_list%move_parameters
-    subcycle_detector_list%move_parameters => parameters
-    subcycle_detector_list%move_parameters => parameters
 
     ! Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
@@ -244,7 +242,7 @@ contains
        end if
 
        ! Internal Diffusive Random Walk
-       if (parameters%internal_diffusive_rw) then
+       if (parameters%internal_diffusive_rw .and. .not. parameters%auto_subcycle) then
           detector => detector_list%first
           do while (associated(detector))
              if (detector%type==LAGRANGIAN_DETECTOR) then
@@ -292,6 +290,8 @@ contains
 
        ! Internal Diffusive Random Walk with automated sub-cycling
        if (parameters%internal_diffusive_rw .and. parameters%auto_subcycle) then
+          subcycle_detector_list%move_parameters => parameters
+          subcycle_detector_list%name = detector_list%name
 
           ! First pass establishes how many sub-sub-cycles are required
           detector => detector_list%first
@@ -301,8 +301,8 @@ contains
                 call profiler_tic(trim(detector_list%name)//"::get_random_walk_subcycling")
                 call get_random_walk_subcycling(detector, sub_dt, xfield, diffusivity_field, &
                           diffusivity_2nd_grad, parameters%search_tolerance, &
-                          parameters%subcycle_scale_factor, detector%rw_subsubcycles)  
-                call profiler_toc(trim(detector_list%name)//"::get_random_walk_subcycling")       
+                          parameters%subcycle_scale_factor, detector%rw_subsubcycles)
+                call profiler_toc(trim(detector_list%name)//"::get_random_walk_subcycling")
 
                 call profiler_tic(trim(detector_list%name)//"::diffusive_random_walk")
                 call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, &
@@ -723,8 +723,6 @@ contains
     end do
     deallocate(node_vals)
     deallocate(ele_path)
-
-    call profiler_toc("/get_random_walk_subcycling")
 
   end subroutine get_random_walk_subcycling
 

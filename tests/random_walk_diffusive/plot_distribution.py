@@ -11,7 +11,7 @@ def plot_detector_distribution(det_count, filename, timesteps, layers, delta_t):
   x = x*delta_t
   y = arange(0., layers)
   X, Y = meshgrid(x, y)
-  cs=ax.contourf(X, Y, det_count, arange(-1.e-12,30,5))
+  cs=ax.contourf(X, Y, det_count, arange(-1e-12,45,5))
   ax.set_xlim(0., timesteps*delta_t)
   ax.set_ylim(layers-1., 0.)
   xlabel('Time (s)')
@@ -84,7 +84,7 @@ def get_1d_indices(pos, x0=0, y0=0, tolerance=1.0e-5):
 
 plot_diffusivity("random_walk_diffusive_0.vtu")
 
-det_count_diffusive = get_distribution("Diffusive_RW.detectors", 667, 60, 600)
-plot_detector_distribution(det_count_diffusive, "AgentRW", 667, 60, 1800.)
+det_count_diffusive = get_distribution("Diffusive_RW.detectors", 667, 60, 1200)
+plot_detector_distribution(det_count_diffusive, "AgentRW", 667, 60, 1800)
 
 show()

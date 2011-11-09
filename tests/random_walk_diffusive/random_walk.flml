@@ -116,7 +116,7 @@ def get_spline(t):
   height = arange(0.0, 60.0, 0.1)
   #mu = [visser_curve(z) for z in height]
   mu = [simple_gradient_curve(z) for z in height]
-  tck = interpolate.splrep(height,mu, s=0.001)
+  tck = interpolate.splrep(height,mu)#, s=0.001)
   return tck
   
 def simple_gradient_curve(z):
@@ -248,22 +248,21 @@ def val(X, t):
       </diagnostic>
     </vector_field>
   </material_phase>
-  <mesh_adaptivity/>
   <embedded_models>
     <lagrangian_ensemble_biology>
       <functional_group>
         <agent_array name="Diffusive_RW">
           <number_of_agents>
-            <integer_value rank="0">600</integer_value>
+            <integer_value rank="0">1200</integer_value>
           </number_of_agents>
           <initial_position>
             <string_value lines="20" type="python">def val(t):
   from numpy import arange,zeros,reshape,concatenate
-  # 600 agents, evenly spaced in [0:60]
-  z = arange(-60.,0.,0.1)#.reshape(1000,1)
-  x = zeros(600) + 5.0
-  y = zeros(600) + 5.0  
-  return reshape(concatenate((x,y,z)),(3,600)).T</string_value>
+  # 1200 agents, evenly spaced in [0:60]
+  z = arange(-60.,0.,0.05)
+  x = zeros(1200) + 5.0
+  y = zeros(1200) + 5.0  
+  return reshape(concatenate((x,y,z)),(3,1200)).T</string_value>
           </initial_position>
           <random_walk>
             <diffusive_random_walk diffusivity_gradient="DiffusivityGradient" diffusivity_field="Diffusivity">
