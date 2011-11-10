@@ -64,7 +64,7 @@ class TestHarness:
                 x = p.getroot()
                 if x.tag == "testproblem":
                   xml_files.append(os.path.join(subdir, xml_file))
-              except xml.etree.ElementTree.ParseError:
+              except:
                 print "Warning: %s mal-formed" % xml_file
                 traceback.print_exc()
 
