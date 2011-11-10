@@ -918,10 +918,12 @@
       end if
 
       !allocate advecting velocity
-      call allocate(advecting_u, mesh_dim(U), U%mesh, "NonlinearVelocity")
-      call zero(advecting_u)
-      call insert(state, advecting_u, "NonlinearVelocity")
-      call deallocate(advecting_u)
+      if (.not. present_and_true(adjoint)) then
+        call allocate(advecting_u, mesh_dim(U), U%mesh, "NonlinearVelocity")
+        call zero(advecting_u)
+        call insert(state, advecting_u, "NonlinearVelocity")
+        call deallocate(advecting_u)
+      end if
 
     end subroutine allocate_and_insert_additional_fields
 
