@@ -28,7 +28,7 @@ Plane Surface(8) = {7};
 
 // inflow  l1
 Physical Line(9) = {4};
-// bottom of domain  l2
+// bottom of domain  l2, l3, l4
 Physical Line(10) = {5,6,1};
 // outflow  l5
 Physical Line(11) = {2};

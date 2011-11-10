@@ -56,7 +56,6 @@ scalar_boundary_conditions =
                attribute name { "sediment_reentrainment" },
                empty
             }|
-            ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
             ## Special type of Dirichlet boundary condition for the k-epsilon
             ## turbulence model. Can be used on TurbulentKineticEnergy (k)
             ## and/or TurbulentDissipation (epsilon) fields.
