@@ -86,6 +86,9 @@
     <timestep>
       <real_value rank="0">2500.0</real_value>
     </timestep>
+    <theta>
+      <real_value rank="0">0.5</real_value>
+    </theta>
     <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
@@ -166,12 +169,6 @@
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta>
-            <real_value rank="0">0.5</real_value>
-          </theta>
-          <relaxation>
-            <real_value rank="0">1.0</real_value>
-          </relaxation>
           <discontinuous_galerkin>
             <maximum_courant_number_per_subcycle>
               <real_value rank="0">0.2</real_value>
@@ -320,7 +317,7 @@
     </scalar_field>
     <scalar_field name="ProjectedLayerThickness" rank="0">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="scalar" source_field_name="DGLayerThickness" name="scalar_galerkin_projection">
+        <algorithm source_field_type="scalar" material_phase_support="single" name="scalar_galerkin_projection" source_field_name="DGLayerThickness">
           <solver>
             <iterative_method name="cg"/>
             <preconditioner name="sor"/>
@@ -366,12 +363,12 @@
             <mass_terms/>
           </continuous_galerkin>
           <conservative_advection>
-            <real_value rank="0"/>
+            <real_value rank="0">0.</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0"/>
+            <real_value rank="0">0.</real_value>
           </theta>
         </temporal_discretisation>
         <solver>
