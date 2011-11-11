@@ -205,7 +205,6 @@ module supermesh_construction
         intersection(j)%mesh%region_ids = ele_A
         j = j + 1
       else
-        deallocate(intersection(j)%mesh%region_ids)
         call deallocate(intersection(j))
       end if
 
