@@ -86,6 +86,9 @@
     <timestep>
       <real_value rank="0">2500.0</real_value>
     </timestep>
+    <theta>
+      <real_value rank="0">0.5</real_value>
+    </theta>
     <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
     </nonlinear_iterations>
@@ -131,26 +134,14 @@
         <equation name="ShallowWater"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
-            <viscosity_scheme>
-              <compact_discontinuous_galerkin/>
-            </viscosity_scheme>
             <advection_scheme>
               <upwind/>
-              <integrate_advection_by_parts>
-                <twice/>
-              </integrate_advection_by_parts>
             </advection_scheme>
           </discontinuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0"/>
-          </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
-          <theta>
-            <real_value rank="0"/>
-          </theta>
           <relaxation>
-            <real_value rank="0"/>
+            <real_value rank="0">1</real_value>
           </relaxation>
           <discontinuous_galerkin>
             <maximum_courant_number_per_subcycle>
@@ -234,14 +225,7 @@
             <real_value rank="0">0.</real_value>
           </conservative_advection>
         </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">0.5</real_value>
-          </theta>
-          <relaxation>
-            <real_value rank="0">1.0</real_value>
-          </relaxation>
-        </temporal_discretisation>
+        <temporal_discretisation/>
         <solver>
           <iterative_method name="gmres">
             <restart>
