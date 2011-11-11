@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
   <name>sw_fsphere</name>
   <owner userid="jemma"/>
   <tags>swml</tags>
-  <problem_definition length="medium" nprocs="1">
+  <problem_definition length="special" nprocs="1">
     <command_line>shallow_water -v 3 sw_fsphere.swml &amp;&gt; sw.log</command_line>
     <!-- shallow water test case on a f-sphere-->
   </problem_definition>

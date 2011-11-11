@@ -1,5 +1,4 @@
 <?xml version = "1.0" encoding = "UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Simply connected barotropic f-plane source sink</name>
   <owner userid="piggt01"/>

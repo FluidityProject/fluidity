@@ -488,7 +488,7 @@ module shallow_water_adjoint_callbacks
         path = adjoint_field_path(path)
       end if
 
-      call get_option(trim(path) // "/prognostic/temporal_discretisation/theta", theta)
+      call get_option("/timestepping/theta", theta)
       call get_option(trim(path) // "/prognostic/mean_layer_thickness", d0)
 
       if (hermitian==ADJ_FALSE) then

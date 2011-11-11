@@ -188,22 +188,9 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <constrained_dof_initialisation>
-            <python>
-              <string_value type="python" lines="20">def val(X,t):
-  from math import pi
-  x = X[0]
-  y = X[1]
-  z = X[2]
-  el1 = -y/((x**2+y**2)**0.5)
-  el2 =  x/((x**2+y**2)**0.5)
-  R = 6.37122e6
-  u0 = 2*pi*R/(12.*24.*60.*60.)
-  sinphi = z/R
-  cosphi = (1-sinphi**2)**0.5
-  return [el1*u0*cosphi,el2*u0*cosphi,0.0]</string_value>
-            </python>
-          </constrained_dof_initialisation>
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0. 0. 0.</real_value>
+          </constant>
         </initial_condition>
         <output/>
         <convergence>

@@ -256,8 +256,8 @@ divided by 4</comment>
           </constant>
         </initial_condition>
         <mean_layer_thickness>
-          <real_value rank="0">1.0e3</real_value>
-          <comment>H &lt;=&gt; 1/e, e = 1.0e-3</comment>
+          <real_value rank="0">1.0e4</real_value>
+          <comment>H &lt;=&gt; 1/e, e = 1.0e-4</comment>
         </mean_layer_thickness>
         <output/>
         <stat/>

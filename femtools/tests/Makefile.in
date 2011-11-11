@@ -26,6 +26,9 @@
 #    USA
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
 FCFLAGS = -I../../include @FCFLAGS@ @CPPFLAGS@ @MODINC_FLAG@../
 
@@ -38,7 +41,7 @@ CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I../../include
 LDFLAGS  = @LDFLAGS@
 
 LIBS = ./lib/libvtkfortran.a @LIBS@ ./lib/libspud.a ./lib/libjudy.a ./lib/libspatialindex.a @LAPACK_LIBS@
-LIBFLUIDITY=../../lib/lib@FLUIDITY@.a
+LIBFLUIDITY=../../lib/lib$(FLUIDITY).a
 
 # the test binaries NOT to be built
 DISABLED_TESTS=test_blasmul test_surface_ids \

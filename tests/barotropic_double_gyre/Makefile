@@ -3,7 +3,7 @@ PROJECT = gyre
 input:	$(PROJECT).ele
 
 $(PROJECT).ele: $(PROJECT).msh
-	../../scripts/gmsh2triangle $<
+	../../bin/gmsh2triangle $<
 
 $(PROJECT).msh: src/$(PROJECT).geo
 	gmsh -3 -o $@ $<

@@ -15,7 +15,7 @@ femtools_manual.html: femtools_manual.tex notation.tex \
 #linear_1d_mesh.png: linear_1d_mesh.fig
 
 %.tex: %.pstex_t %.pstex
-	./scripts/wrap_pstex $<
+	./bin/wrap_pstex $<
 
 %.dvi: %.tex 
 	pdflatex -output-format dvi $<

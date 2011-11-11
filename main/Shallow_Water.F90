@@ -113,6 +113,7 @@
     integer :: ierr
 
     type(vector_field), pointer :: v_field
+    type(mesh_type), pointer :: v_mesh
     type(scalar_field), pointer :: D,D_initial
     !! Mass matrices
     type(csr_matrix), pointer :: h_mass_mat
@@ -189,9 +190,9 @@
     call initialise_diagnostics(trim(simulation_name),state)
 
     hybridized = .false.
-    v_field => extract_vector_field(state(1),"Velocity")
-    if(associated(v_field%mesh%shape%constraints)) then
-       if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
+    v_mesh => extract_mesh(state(1),"VelocityMesh")
+    if(associated(v_mesh%shape%constraints)) then
+       if(v_mesh%shape%constraints%type.ne.CONSTRAINT_NONE) hybridized =&
             & .true.
     end if
 
@@ -381,15 +382,16 @@
       type(scalar_field), pointer :: eta, D_initial
       type(vector_field) :: dummy_field
       real :: theta
+      integer :: stat
 
       call get_option("/timestepping/current_time", current_time)
       call get_option("/timestepping/timestep", dt)
       call get_option("/timestepping/theta",theta)
 
       hybridized = .false.
-      v_field => extract_vector_field(state(1),"Velocity")
-      if(associated(v_field%mesh%shape%constraints)) then
-         if(v_field%mesh%shape%constraints%type.ne.CONSTRAINT_NONE)&
+      v_mesh => extract_mesh(state(1),"VelocityMesh")
+      if(associated(v_mesh%shape%constraints)) then
+         if(v_mesh%shape%constraints%type.ne.CONSTRAINT_NONE)&
               & hybridized =&
               & .true.
       end if
@@ -402,13 +404,15 @@
          call setup_wave_matrices(state(1),dt,theta)
       end if
 
-      v_field => extract_vector_field(state(1), "Velocity")
-      call project_cartesian_to_local(state(1), v_field)
-      if (has_vector_field(state(1), "VelocitySource")) then
-                v_field => extract_vector_field(state(1), "VelocitySource")
-        call project_cartesian_to_local(state(1), v_field)
+      if(.not.running_adjoint) then
+         v_field => extract_vector_field(state(1), "Velocity", stat)
+         call project_cartesian_to_local(state(1), v_field)
       end if
-
+      if (has_vector_field(state(1), "VelocitySource")) then
+         v_field => extract_vector_field(state(1), "VelocitySource")
+         call project_cartesian_to_local(state(1), v_field)
+      end if
+         
       call get_option("/timestepping/nonlinear_iterations"&
            &,nonlinear_iterations)
       exclude_pressure_advection = &
@@ -942,10 +946,12 @@
       end if
 
       !allocate advecting velocity
-      call allocate(advecting_u, mesh_dim(U), U%mesh, "NonlinearVelocity")
-      call zero(advecting_u)
-      call insert(state, advecting_u, "NonlinearVelocity")
-      call deallocate(advecting_u)
+      if (.not. present_and_true(adjoint)) then
+        call allocate(advecting_u, mesh_dim(U), U%mesh, "NonlinearVelocity")
+        call zero(advecting_u)
+        call insert(state, advecting_u, "NonlinearVelocity")
+        call deallocate(advecting_u)
+      end if
 
     end subroutine allocate_and_insert_additional_fields
 

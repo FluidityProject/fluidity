@@ -37,7 +37,7 @@ def generate_meshfile(name,NN):
 
     os.system("gmsh -2 "+name+".geo")
 
-    os.system("../../../scripts/gmsh2triangle --2d "+name+".msh")
+    os.system("../../../bin/gmsh2triangle --2d "+name+".msh")
 
 
 def plot_results(NN, error):

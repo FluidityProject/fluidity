@@ -8,7 +8,7 @@ source of the model. There are, in fact, two distinct Python interfaces
 presented by \fluidity. The first allows users to specify prescribed fields
 and the initial conditions of prognostic fields by providing a Python
 function of space and time. This interface is documented in section
-\ref{Sect:setting_with_python}. The present chapter documents the much more
+\ref{sec:setting_with_python}. The present chapter documents the much more
 comprehensive \emph{Python state}\ interface which gives the user access to
 the complete current system state. This may be used to specify diagnostic
 fields as a function of the values of other fields. In particular, this is
@@ -150,7 +150,7 @@ results in a list of the fields and meshes in that state.
 
  There will always be a variable named
 \lstinline[language=Python]+state+ of type
-\lstinline[language=Python]+State+ which will contain all of the fields in
+\lstinline[language=Python]+states+ which will contain all of the fields in
 the material phase of diagnostic field currently being calculated.
 
 There will also always be a dictionary called \lstinline[language=Python]+states+
@@ -160,7 +160,7 @@ being used to specify a diagnostic field and the\\
 ``multiple'', then all of the material phases will be present in the
 states dictionary. For example, if there are two material phases, ``Air''
 and ``Water'', then the air velocity will be present as the field\\
-\lstinline[language=Python]+states['Air'].vector\_fields['Velocity']+. 
+\lstinline[language=Python]+states['Air'].vector_fields['Velocity']+. 
 
 In addition to these states, the variable \lstinline[language=Python]+field+
 is preset to the current diagnostic to be set (this does not apply in

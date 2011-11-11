@@ -2893,31 +2893,6 @@ less accurate but faster and might give smoother result.                  </a:do
         <a:documentation>Diagnostic tensor fields below this</a:documentation>
         <empty/>
       </element>
-      <element name="tensor_field">
-        <a:documentation>From a field on a mesh, diagnose the anisotropic
-interpolation weight that would give the mesh back.
-It is computed as:
-\Eps = M^-1 |H|</a:documentation>
-        <attribute name="rank">
-          <value>2</value>
-        </attribute>
-        <attribute name="name">
-          <value>FieldTolerance</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="source_field_name">
-              <data type="string" datatypeLibrary=""/>
-            </element>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_tensor_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
     </choice>
     <!--
       Insert new diagnostic tensor field here using the template:

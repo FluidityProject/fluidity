@@ -11,6 +11,7 @@ input: clean
 	mv src/*_* .
 
 clean: clean-mesh clean-run-debug 
+	rm -fr *.ele *.node *.halo *.edge *checkpoint* square-convection.detectors.dat square-convection_* fluidity.[le]*
 clean-mesh:
 	rm -f $(MESH).edge $(MESH).ele $(MESH).node
 clean-run:

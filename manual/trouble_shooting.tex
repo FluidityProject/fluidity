@@ -1,79 +1,10 @@
 \chapter{Troubleshooting}
 
-\section{Backtraces}
+We have several sources of information in case you run into trouble installing or running \fluidity.
 
-When reporting problems with the model it is often useful to obtain a backtrace
-identifying the source code location of an error. If the model terminated via
-an internal abort command (an FLAbort) then a backtrace is output to standard
-error:
+Firstly, check if your question is answered in this manual. An overview how to correctly set up \fluidity is given in chapter \ref{chap:gettingstarted}.
+Questions about configuring \fluidity are covered in chapter \ref{chap:configuration}.
 
-\begin{lstlisting}[language = Bash]
-*** FLUIDITY ERROR ***
-Source location: (State.F90, 1528)
-Error message: Density is not a field name in this state
-Backtrace will follow if it is available:
-../../bin/dfluidity-debug(fprint_backtrace_+0x1f) [0x81a7bb5]
-../../bin/dfluidity-debug(__fldebug_MOD_flabort_pinpoint+0x2e0) [0x816d575]
-../../bin/dfluidity-debug(__state_module_MOD_extract_from_one_scalar_field+0xb23) [0x822448f]
-../../bin/dfluidity-debug(__momentum_equation_MOD_solve_momentum+0x3983) [0x8779c1c]
-../../bin/dfluidity-debug(__momentum_equation_MOD_momentum_loop+0x970) [0x8785bdc]
-../../bin/dfluidity-debug(__fluids_module_MOD_fluids+0xf1f4) [0x819b7fc]
-../../bin/dfluidity-debug(mainfl_+0x155) [0x816cf7d]
-../../bin/dfluidity-debug(main+0x301) [0x8161931]
-/lib/tls/i686/cmov/libc.so.6(__libc_start_main+0xe5) [0xb5c57685]
-../../bin/dfluidity-debug [0x8161541]
-Use addr2line -e <binary> <address> to decipher.
-Error is terminal.
-\end{lstlisting}
+Secondly, have a look at our ''Cookbook for \fluidity`` (\url{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}). This webpage provides examples of how to set up particular types of problems in \fluidity. 
 
-Line numbers for each call in the backtrace can be obtained via:
-
-\begin{lstlisting}[language = Bash]
-addr2line -e dfluidity-debug address
-\end{lstlisting}
-
-where \lstinline[language = Bash]*address* is one of the addresses in square
-brackets at the end of a line of the backtrace.
-
-If the model aborts via some other error, such as a Fortran run-time error or
-a segmentation fault, then a backtrace can be obtained with gdb. First make
-sure you have compiled with debugging, enabled at configure time with the
-\lstinline[language = Bash]*--enable-debugging* argument. Then run
-\fluidity\ in the debugger:
-
-\begin{lstlisting}[language = Bash]
-gdb dfluidity-debug
-\end{lstlisting}
-
-Run the debugger command ``break exit'':
-
-\begin{lstlisting}[language = Bash]
-(gdb) break exit
-Function "exit" not defined.
-Make breakpoint pending on future shared library load? (y or [n]) y
-Breakpoint 1 (exit) pending.
-\end{lstlisting}
-
-to abort on any exit calls, and run the model:
-
-\begin{lstlisting}[language = Bash]
-(gdb) r arguments
-\end{lstlisting}
-
-where \lstinline[language = Bash]*arguments* are the arguments passed to
-\fluidity. If the debugger breaks due to an exit command or segmentation fault
-you can retrieve a backtrace with:
-
-\begin{lstlisting}[language = Bash]
-(gdb) bt
-\end{lstlisting}
-
-To obtain a backtrace for a parallel simulation you must launch gdb in parallel,
-e.g.:
-
-\begin{lstlisting}[language = Bash]
-mpiexec -n 4 xterm -e gdb dfluidity-debug
-\end{lstlisting}
-
-This will launch multiple instances of the debugger. Run the commands above in
-each instance to retrieve a backtrace for each process.
+If none of these documents answered your question, we highly encourage you to get in contact with us by sending us an email to \url{fluidity@imperial.ac.uk}.

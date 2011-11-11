@@ -6,7 +6,7 @@ import scipy.stats
 import math
 import vtktools
 import numpy
-import vtktools
+from lxml import etree
 from numpy import arange
 import pylab
 from fluidity_tools import stat_parser
@@ -93,11 +93,14 @@ def LeastSquares(x_values,y_values,p0):
   return (plsq,lsq)
 
 
+################################################################################################
+
 def residuals(p, x, y):
   err = y-predictedform(p,x)
   return err
 
-    
+################################################################################################
+   
 def predictedform(p,x):
   pf = 0
   for i in range(len(p)): pf = pf+p[i]*(x**i)
@@ -110,12 +113,16 @@ def predictedform(p,x):
 def GetAverageRange(X, lower_lim, domainheight):
 #
 # get range of X for averaging such that lower_lim<X<h0
-  try: start_val = pylab.find(numpy.array(X)>lower_lim)[0]
-  except IndexError: print "not enough values of X, \n lower lim = " + str(lower_lim) + "\n X = " + str(X); sys.exit(1)
-  try: end_val = pylab.find(numpy.array(X)>0.4-domainheight)[0]
-  except IndexError: end_val = len(X)
+  try: 
+    start_val = pylab.find(numpy.array(X)>lower_lim)[0]
+    end_val = pylab.find(numpy.array(X)>0.4-domainheight)[0]
+    average = True
+  except IndexError: 
+    start_val = 0 
+    end_val = 0
+    average = False
 #
-  return start_val, end_val
+  return start_val, end_val, average
 
 ################################################################################################
 #----------------------------------------------------------------------------------------------#
@@ -167,12 +174,6 @@ def GetstatFiles(directory):
   stat = stat_parser(stat_files[-1])
   time_index_end.append(len(stat['ElapsedTime']['value']))
 
-# in case stat file cut short when writing out:
-  for ti in range(len(time_index_end)):
-    stat = stat_parser(stat_files[ti])
-    for bin_index in range(len(stat['fluid']['Temperature']['mixing_bins%cv_normalised'])):
-      while stat['fluid']['Temperature']['mixing_bins%cv_normalised'][bin_index][time_index_end[ti]-1] == None: time_index_end[ti] = time_index_end[ti] -1
-
   return (stat_files, time_index_end)
   
 def key(tup):
@@ -181,5 +182,70 @@ def key(tup):
 ################################################################################################
 #----------------------------------------------------------------------------------------------#
 ################################################################################################
+
+def not_comment(x):
+# function to filter stream
+  return not 'comment' in x.tag
+  
+################################################################################################
+
+def Getflmlvalue(flml_name, xpath):
+
+# We will be filtering the children of the elements later,
+# to remove comments.
+
+# The spud file to modify
+  filename = flml_name
+
+# The path to the node in the tree - xpath
+
+# Open it up
+  tree = etree.parse(open(filename))
+
+  node = tree.xpath(xpath)[0]
+
+  child = filter(not_comment, node.getchildren())[0]
+
+  return child.text
+  
+################################################################################################ 
+
+def Getflmlnodename(flml_name,xpath):
+  tree = etree.parse(open(flml_name))
+  node = tree.xpath(xpath)
+  names = [n.get('name') for n in node]
+  
+  return names
+  
+################################################################################################
+
+def Getconstantsfromflml(flmlname):
+  
+  material_phase_name = '"'+Getflmlnodename(flmlname,'/fluidity_options/material_phase')[0]+'"'
+  
+  rho_zero = float(Getflmlvalue(flmlname, '/fluidity_options/material_phase[@name='+material_phase_name+']/equation_of_state/fluids/linear/reference_density'))
+  T_zero = float(Getflmlvalue(flmlname, '/fluidity_options/material_phase[@name='+material_phase_name+']/equation_of_state/fluids/linear/temperature_dependency/reference_temperature'))
+  alpha = float(Getflmlvalue(flmlname, '/fluidity_options/material_phase[@name='+material_phase_name+']/equation_of_state/fluids/linear/temperature_dependency/thermal_expansion_coefficient'))
+  g = float(Getflmlvalue(flmlname,'/fluidity_options/physical_parameters/gravity/magnitude'))
+  
+  return rho_zero, T_zero, alpha, g
   
   
+################################################################################################
+ 
+def Getmixingbinboundsfromflml(flmlname):
+  
+  material_phase_name = '"'+Getflmlnodename(flmlname,'/fluidity_options/material_phase')[0]+'"'
+  
+  xpath = '/fluidity_options/material_phase[@name='+material_phase_name+']/scalar_field[@name="Temperature"]/prognostic/stat/include_mixing_stats[@name="cv_normalised"]/mixing_bin_bounds/python'
+  python_func = Getflmlvalue(flmlname, xpath)
+  func_dictionary = {}
+  exec python_func in func_dictionary
+  bounds = func_dictionary['val'](0)
+  func_dictionary = {}
+  
+  return bounds
+  
+################################################################################################
+#----------------------------------------------------------------------------------------------#
+################################################################################################
