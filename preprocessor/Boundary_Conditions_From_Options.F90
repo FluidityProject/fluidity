@@ -185,7 +185,7 @@ contains
     character(len=OPTION_PATH_LEN) bc_path_i
     character(len=FIELD_NAME_LEN) bc_name, bc_type
     integer, dimension(:), allocatable:: surface_ids
-    integer i, nbcs, shape_option(2)
+    integer i, nbcs, shape_option(2), stat
 
     ! Get number of boundary conditions
     nbcs=option_count(trim(bc_path))
@@ -247,7 +247,13 @@ contains
        call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
           surface_element_list=surface_element_list)
        call allocate(bc_position, position%dim, surface_mesh)
-       call remap_field_to_surface(position, bc_position, surface_element_list)
+       call remap_field_to_surface(position, bc_position, surface_element_list, stat=stat)
+       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+         ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+         ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+         ewrite(-1,*) 'to remap them to a continuous field.'
+         FLAbort("Why are your coordinates discontinuous?")
+       end if
 
        ! Dirichlet and Neumann boundary conditions require one input
        ! while a Robin boundary condition requires two. This input can
@@ -341,7 +347,7 @@ contains
     logical applies(3), have_sem_bc, debugging_mode, prescribed(3)
     integer, dimension(:), allocatable:: surface_ids
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer i, j, nbcs, shape_option(2)
+    integer i, j, nbcs, shape_option(2), stat
 
     nbcs=option_count(trim(bc_path))
 
@@ -528,7 +534,13 @@ contains
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
           call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          call remap_field_to_surface(position, bc_position, surface_element_list, stat=stat)
+          if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+            ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+            ewrite(-1,*) 'to remap them to a continuous field.'
+            FLAbort("Why are your coordinates discontinuous?")
+          end if
 
           if (have_option(bc_type_path) .or. bc_type=="near_wall_treatment" &
               .or. bc_type=="log_law_of_wall") then
@@ -684,7 +696,7 @@ contains
     character(len=FIELD_NAME_LEN) bc_name, bc_type
     real:: time, theta, dt
     integer, dimension(:), pointer:: surface_element_list
-    integer i, nbcs
+    integer i, nbcs, stat
 
     ! Get number of boundary conditions
     nbcs=option_count(trim(bc_path))
@@ -736,12 +748,24 @@ contains
          ! first remap to body element centred positions
          call remap_field(position, temp_position)
          ! then remap these to the surface
-         call remap_field_to_surface(temp_position, bc_position, surface_element_list)
+         call remap_field_to_surface(temp_position, bc_position, surface_element_list, stat=stat)
+         if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+           ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+           ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+           ewrite(-1,*) 'to remap them to a continuous field.'
+           FLAbort("Why are your coordinates discontinuous?")
+         end if
          call deallocate(temp_position)
 
        else
          ! in all other cases the positions are remapped to the actual surface
-         call remap_field_to_surface(position, bc_position, surface_element_list)
+         call remap_field_to_surface(position, bc_position, surface_element_list, stat=stat)
+         if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+           ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+           ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+           ewrite(-1,*) 'to remap them to a continuous field.'
+           FLAbort("Why are your coordinates discontinuous?")
+         end if
        end if
 
        ! Dirichlet and Neumann boundary conditions require one input
@@ -864,7 +888,7 @@ contains
     logical applies(3)
     real:: time, theta, dt
     integer, dimension(:), pointer:: surface_element_list
-    integer i, j, k, nbcs
+    integer i, j, k, nbcs, stat
 
     ns=1
     nbcs=option_count(trim(bc_path))
@@ -933,12 +957,24 @@ contains
             ! first remap to body element centred positions
             call remap_field(position, temp_position)
             ! then remap these to the surface
-            call remap_field_to_surface(temp_position, bc_position, surface_element_list)
+            call remap_field_to_surface(temp_position, bc_position, surface_element_list, stat=stat)
+            if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+              ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+              ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+              ewrite(-1,*) 'to remap them to a continuous field.'
+              FLAbort("Why are your coordinates discontinuous?")
+            end if
             call deallocate(temp_position)
     
          else
             ! in all other cases the positions are remapped to the actual surface
-            call remap_field_to_surface(position, bc_position, surface_element_list)
+            call remap_field_to_surface(position, bc_position, surface_element_list, stat=stat)
+            if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+              ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+              ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+              ewrite(-1,*) 'to remap them to a continuous field.'
+              FLAbort("Why are your coordinates discontinuous?")
+            end if
          end if
 
          ! Synthetic Eddy Method for generating inflow turbulence
@@ -1024,7 +1060,13 @@ contains
                surface_element_list=surface_element_list)
           ! map the coordinate field onto this mesh
           call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          call remap_field_to_surface(position, bc_position, surface_element_list, stat=stat)
+          if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+            ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+            ewrite(-1,*) 'to remap them to a continuous field.'
+            FLAbort("Why are your coordinates discontinuous?")
+          end if
 
           surface_field => extract_surface_field(field, bc_name, name="order_zero_coeffcient")
           surface_field2 => extract_surface_field(field, bc_name, name="order_one_coeffcient")
@@ -1051,7 +1093,13 @@ contains
           scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="DragCoefficient")
           ! map the coordinate field onto this mesh
           call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          call remap_field_to_surface(position, bc_position, surface_element_list, stat=stat)
+          if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+            ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+            ewrite(-1,*) 'to remap them to a continuous field.'
+            FLAbort("Why are your coordinates discontinuous?")
+          end if
 
           call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
             time=time)
@@ -1064,7 +1112,13 @@ contains
           surface_field => extract_surface_field(field, bc_name, name="WindSurfaceField")
           ! map the coordinate field onto this mesh
           call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          call remap_field_to_surface(position, bc_position, surface_element_list, stat=stat)
+          if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+            ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+            ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+            ewrite(-1,*) 'to remap them to a continuous field.'
+            FLAbort("Why are your coordinates discontinuous?")
+          end if
 
           if (have_option(trim(bc_path_i)//"/wind_stress")) then
              bc_type_path=trim(bc_path_i)//"/wind_stress"
@@ -1944,6 +1998,8 @@ contains
     real, dimension(x%dim)        :: t1, t2, t1_norm, n
     real                          :: proj1, det
 
+    integer                       :: stat
+
     if(.not.all(prescribed)) then
 
       if(.not.prescribed(1)) then
@@ -2030,7 +2086,13 @@ contains
     ! dump normals when debugging
     if (debugging_mode) then
       call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
-      call remap_field_to_surface(x, bc_position, surface_element_list)
+      call remap_field_to_surface(x, bc_position, surface_element_list, stat=stat)
+      if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+        ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+        ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+        ewrite(-1,*) 'to remap them to a continuous field.'
+        FLAbort("Why are your coordinates discontinuous?")
+      end if
       call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
                 vfields=(/ normal, tangent_1, tangent_2/))
       call deallocate(bc_position)

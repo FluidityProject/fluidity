@@ -1504,6 +1504,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     real, dimension(2)                   :: temp_vector_2D
     real, dimension(3)                   :: temp_vector_3D
     logical                              :: surface_allocated
+    integer                              :: stat
 
     MaxIter = 10
     z0s_min = 0.003
@@ -1526,7 +1527,13 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
             call allocate(surface_forcing, wind_surface_field%dim, ocean_mesh, name="surface_velocity")
             call allocate(surface_pos, positions%dim, ocean_mesh, name="surface_positions")
             call deallocate(ocean_mesh)
-            call remap_field_to_surface(positions, surface_pos, top_surface_element_list)
+            call remap_field_to_surface(positions, surface_pos, top_surface_element_list, stat=stat)
+            if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+              ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+              ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+              ewrite(-1,*) 'to remap them to a continuous field.'
+              FLAbort("Why are your coordinates discontinuous?")
+            end if
 
             if (tke%mesh%continuity == velocity%mesh%continuity) then
                 call set(surface_forcing,wind_surface_field)
