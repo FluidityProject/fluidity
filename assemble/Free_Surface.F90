@@ -58,12 +58,38 @@ public move_mesh_free_surface, add_free_surface_to_cmc_projection, &
 public extend_pressure_mesh_for_viscous_free_surface, copy_to_extended_p, &
   update_pressure_and_viscous_free_surface, extend_matrices_for_viscous_free_surface, &
   add_viscous_free_surface_integrals, extend_schur_auxiliary_matrix_for_viscous_free_surface, &
-  add_viscous_free_surface_scaled_mass_integrals, update_explicit_free_surface
+  add_viscous_free_surface_scaled_mass_integrals, update_explicit_free_surface, &
+  update_prognostic_scaled_free_surface
   
 
 public free_surface_module_check_options
 
 contains
+
+  subroutine update_prognostic_scaled_free_surface(states)
+  type(state_type), dimension(:), intent(in) :: states
+
+    type(scalar_field), pointer:: free_surface, scaled_fs, old_scaled_fs
+    integer:: i, fs_stat
+
+    do i=1,size(states)
+      free_surface => extract_scalar_field(states(i), "FreeSurface", stat=fs_stat)
+      if(fs_stat==0) then
+        if(have_option(trim(free_surface%option_path)//"/prognostic")) then
+          if (has_boundary_condition_name(free_surface, "_free_surface")) then
+            ewrite(2,*) 'Updating OldScaledFreeSurface surface field for the FreeSurface field in state '//trim(states(i)%name)//'.' 
+
+            scaled_fs => extract_surface_field(free_surface, "_free_surface", "ScaledFreeSurface")
+            old_scaled_fs => extract_surface_field(free_surface, "_free_surface", "OldScaledFreeSurface")
+
+            old_scaled_fs%val = scaled_fs%val
+
+          end if
+        end if
+      end if
+    end do
+
+  end subroutine update_prognostic_scaled_free_surface
 
   subroutine insert_original_distance_to_bottom(state)
     !!< Adds the OriginalDistanceToBottom field into the state. 
@@ -817,6 +843,8 @@ contains
     type(scalar_field), pointer :: density
     logical :: have_density, variable_density, move_mesh
 
+    ewrite(1,*) 'Entering initialise_prognostic_free_surface'
+
     call allocate(surface_elements)
     do i=1, get_boundary_condition_count(u)
       call get_boundary_condition(u, i, type=bctype, &
@@ -878,6 +906,8 @@ contains
    end do
 
    call petsc_solve(scaled_fs, fs_matrix, fs_rhs, option_path=trim(fs%option_path))
+   ewrite_minmax(fs)
+   ewrite_minmax(scaled_fs)
 
    call deallocate(fs_matrix)
    call deallocate(fs_rhs)
@@ -1025,6 +1055,8 @@ contains
     type(scalar_field), pointer :: scaled_fs
     logical :: have_density, variable_density, move_mesh
 
+    ewrite(1,*) 'Entering update_pressure_and_viscous_free_surface'
+
     u => extract_vector_field(state, "Velocity")
     if (.not. has_boundary_condition_name(fs, "_free_surface")) then
       assert(have_option(trim(u%option_path)//"/prognostic"))
@@ -1043,6 +1075,7 @@ contains
     p%val = p%val + delta_p%val(1:node_count(p))/dt
 
     scaled_fs%val = scaled_fs%val + delta_p%val(node_count(p)+1:)/(dt*theta_pg)
+    ewrite_minmax(scaled_fs)
 
     move_mesh = have_option("/mesh_adaptivity/mesh_movement/free_surface")
     x => extract_vector_field(state, "Coordinate")
@@ -1087,11 +1120,13 @@ contains
     call deallocate(sele_to_fs_ele)
 
     call petsc_solve(surface_fs, fs_matrix, fs_rhs, option_path=trim(fs%option_path))
+    ewrite_minmax(surface_fs)
 
     call deallocate(fs_matrix)
     call deallocate(fs_rhs)
 
-    call addto(fs, surface_node_list, surface_fs%val)
+    call set(fs, surface_node_list, surface_fs%val)
+    ewrite_minmax(fs)
     call deallocate(surface_fs)
 
     ! if /geometry/ocean_boundaries are specified take the new fs values
@@ -1119,12 +1154,12 @@ contains
       integer, intent(in):: sele
 
       real, dimension(face_ngi(fs, sele)) :: detwei_bdy
-      real, dimension(face_ngi(p, sele)):: delta_rho_quad
+      real, dimension(face_ngi(fs, sele)):: inv_delta_rho_g_quad
 
       if(variable_density) then
-        delta_rho_quad = face_val_at_quad(density, sele)-external_density
+        inv_delta_rho_g_quad = 1.0/g/(face_val_at_quad(density, sele)-external_density)
       else
-        delta_rho_quad = rho0-external_density
+        inv_delta_rho_g_quad = 1.0/g/(rho0-external_density)
       end if
       
       
@@ -1133,13 +1168,13 @@ contains
 
       call addto(fs_matrix, ele_nodes(surface_mesh, fetch(sele_to_fs_ele, sele)), &
                             ele_nodes(surface_mesh, fetch(sele_to_fs_ele, sele)), &
-                            shape_shape(face_shape(fs, sele), face_shape(fs, sele), detwei_bdy* &
-                                                                                    g*delta_rho_quad))
+                            shape_shape(face_shape(fs, sele), face_shape(fs, sele), detwei_bdy))
 
       call addto(fs_rhs, ele_nodes(surface_mesh, fetch(sele_to_fs_ele, sele)),  &
                                                shape_rhs(face_shape(fs,sele),  &
                                                          detwei_bdy* &
-                                                         ele_val_at_quad(scaled_fs, fetch(sele_to_fs_ele, sele))))
+                                                         ele_val_at_quad(scaled_fs, fetch(sele_to_fs_ele, sele))* &
+                                                         inv_delta_rho_g_quad))
 
     end subroutine add_boundary_integral_sele
 

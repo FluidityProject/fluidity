@@ -2362,7 +2362,7 @@ contains
 
     elseif(apply_reference_node_from_coordinates) then
 
-       ewrite(1,*) 'Imposing_reference_pressure_node at user-specified coordinates'    
+       ewrite(1,*) 'Imposing_reference_velocity_node at user-specified coordinates'    
        call find_reference_node_from_coordinates(positions,rhs%mesh,option_path,reference_node,reference_node_owned)
        reference_node_path=trim(complete_field_path(option_path, stat=stat2))//&
           &"/reference_coordinates"

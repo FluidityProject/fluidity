@@ -76,7 +76,6 @@ module fluids_module
   use foam_flow_module, only: calculate_potential_flow, calculate_foam_velocity
   use momentum_equation
   use timeloop_utilities
-  use free_surface_module
   use field_priority_lists
   use boundary_conditions
   use porous_media
@@ -496,6 +495,7 @@ contains
           ! For the free surface this is dealt with within move_mesh_free_surface() below
           call set_vector_field_in_state(state(1), "OldCoordinate", "Coordinate")
        end if
+       call update_prognostic_scaled_free_surface(state)
 
        ! this may already have been done in populate_state, but now
        ! we evaluate at the correct "shifted" time level:
