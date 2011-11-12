@@ -298,6 +298,7 @@
             <no_normal_stress>
               <explicit/>
             </no_normal_stress>
+            <variable_density/>
             <external_density>
               <real_value rank="0">2.0</real_value>
             </external_density>
@@ -311,6 +312,7 @@
             <no_normal_stress>
               <explicit/>
             </no_normal_stress>
+            <variable_density/>
           </type>
         </boundary_conditions>
         <boundary_conditions name="Internal">

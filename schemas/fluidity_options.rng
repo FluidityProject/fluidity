@@ -3381,7 +3381,15 @@ condition p=0 (this is full pressure without subtracting the hydrostatic compone
 For viscous fluids the correct boundary condition is a no normal
 stress condition, which includes a viscosity term. When using
 this option a prognostic FreeSurface field is required.</a:documentation>
-              <empty/>
+              <optional>
+                <element name="explicit">
+                  <a:documentation>Treat the free surface evolution equation separately from the momentum equation.  
+i.e. stagger the solves.
+
+Requires a prognostic FreeSurface field.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -3411,18 +3419,6 @@ IN DEVELOPMENT</a:documentation>
             </element>
           </optional>
         </group>
-      </element>
-      <element name="type">
-        <attribute name="name">
-          <value>explicit_free_surface</value>
-        </attribute>
-        <optional>
-          <element name="external_density">
-            <a:documentation>When selected a hydrostatic pressure distribution on the outside is assumed
-using the specified density.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
       </element>
       <element name="type">
         <a:documentation>Apply quadratic drag. Specify drag coefficient. If you

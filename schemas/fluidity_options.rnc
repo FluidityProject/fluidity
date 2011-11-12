@@ -2547,7 +2547,13 @@ velocity_boundary_conditions =
               ## stress condition, which includes a viscosity term. When using
               ## this option a prognostic FreeSurface field is required.
               element no_normal_stress {
-                 empty
+                 ## Treat the free surface evolution equation separately from the momentum equation.  
+                 ## i.e. stagger the solves.
+                 ##
+                 ## Requires a prognostic FreeSurface field.
+                 element explicit {
+                   empty
+                 }?
               }?,
               ## When selected the density at the surface is calculated using the Density field.  Therefore
               ## this requires a Density field!
@@ -2568,16 +2574,6 @@ velocity_boundary_conditions =
                   element scale_factor{
                     real
                   }
-              }?
-           )
-         }|
-         element type {
-           attribute name { "explicit_free_surface" },
-           (
-              ## When selected a hydrostatic pressure distribution on the outside is assumed
-              ## using the specified density.
-              element external_density {
-                 real
               }?
            )
          }|

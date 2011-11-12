@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">viscous_fs_zhong_D</string_value>
+    <string_value lines="1">viscous_fs_zhong_B</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">stokes</string_value>
@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="squareD">
+      <from_file file_name="squareB">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -298,6 +298,7 @@
             <no_normal_stress>
               <explicit/>
             </no_normal_stress>
+            <variable_density/>
             <external_density>
               <real_value rank="0">2.0</real_value>
             </external_density>
@@ -311,6 +312,7 @@
             <no_normal_stress>
               <explicit/>
             </no_normal_stress>
+            <variable_density/>
           </type>
         </boundary_conditions>
         <boundary_conditions name="Internal">
@@ -378,7 +380,7 @@ F = solution.nond_F
 G = solution.nond_G
 
 def val(X,t):
-  dx = 1./160.
+  dx = 1./40.
   if(X[1]&gt;(1.-dx/2.)):
     return F(X[0], 0.0)
   elif(X[1]&lt;dx/2.):
@@ -437,7 +439,7 @@ F = solution.nond_F
 G = solution.nond_G
 
 def val(X,t):
-  dx = 1./160.
+  dx = 1./40.
   if(X[1]&gt;(1.-dx/2.)):
     return F(X[0], t)
   elif(X[1]&lt;dx/2.):

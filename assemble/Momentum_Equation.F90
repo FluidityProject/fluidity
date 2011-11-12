@@ -132,6 +132,10 @@
       ! Are we running a multi-phase simulation?
       logical :: multiphase
 
+      ! Do we have a prognostic free surface (currently only in 
+      ! combination with a no_normal_stress free_surface)
+      logical :: implicit_prognostic_fs, explicit_prognostic_fs, standard_fs
+
    contains
 
       subroutine solve_momentum(state, at_first_timestep, timestep, POD_state)
@@ -214,7 +218,7 @@
          ! Velocity and space
          type(vector_field), pointer :: u, x
          ! with a no_normal_stress free_surface we use a prognostic free surface
-         type(scalar_field), pointer:: free_surface, old_free_surface
+         type(scalar_field), pointer:: free_surface
 
          ! with free-surface or compressible pressure projection pressures 
          ! are at integer time levels and we apply a theta weighting to the
@@ -251,9 +255,6 @@
          integer :: prognostic_count
          ! Do we have a prognostic pressure field to solve for?
          logical :: prognostic_p
-         ! Do we have a prognostic free surface (currently only in 
-         ! combination with a no_normal_stress free_surface)
-         logical :: prognostic_fs
          ! Prognostic pressure field's state index (if present)
          integer :: prognostic_p_istate 
          ! The 'global' CMC matrix (the sum of all individual phase CMC matrices)
@@ -310,7 +311,9 @@
            free_surface => dummypressure
 
            prognostic_p=.false.
-           prognostic_fs=.false.
+           standard_fs=.false.
+           implicit_prognostic_fs=.false.
+           explicit_prognostic_fs=.false.
 
          else
 
@@ -325,25 +328,22 @@
              prognostic_p_istate = istate
            end if
 
+           u => extract_vector_field(state, "Velocity")
+           standard_fs = has_standard_free_surface_bc(u)
+           implicit_prognostic_fs = has_implicit_viscous_free_surface_bc(u)
+           explicit_prognostic_fs = has_explicit_viscous_free_surface_bc(u)
 
-           free_surface => extract_scalar_field(state(istate), "FreeSurface", stat=stat)
-           if (stat==0) then
-             prognostic_fs = have_option(trim(free_surface%option_path)//"/prognostic")
+           if(implicit_prognostic_fs.or.explicit_prognostic_fs) then
+             free_surface => extract_scalar_field(state(istate), "FreeSurface")
+             assert(have_option(trim(free_surface%option_path)//"/prognostic"))
            else
-             prognostic_fs = .false.
+             free_surface => dummypressure
            end if
-           if (prognostic_fs) then
-             old_free_surface => extract_scalar_field(state(istate), "OldFreeSurface", stat=stat)
-             if (stat/=0) then
-               old_free_surface => free_surface
-             end if
-             
-             u => extract_vector_field(state, "Velocity")
-             if (has_boundary_condition(u, "free_surface")) then
-               allocate(p_mesh)
-               call extend_pressure_mesh_for_viscous_free_surface(state(istate), &
-                  p%mesh, free_surface, p_mesh)
-             end if
+
+           if (implicit_prognostic_fs) then
+             allocate(p_mesh)
+             call extend_pressure_mesh_for_viscous_free_surface(state(istate), &
+                p%mesh, free_surface, p_mesh)
            end if
 
          end if
@@ -416,7 +416,7 @@
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
                reassemble_cmc_m = reassemble_cmc_m .or. reassemble_all_cmc_m
 
-               if (prognostic_fs.and.has_boundary_condition(u, "free_surface")) then
+               if (implicit_prognostic_fs) then
                  call extend_matrices_for_viscous_free_surface(state(istate), cmc_m, ct_m(istate)%ptr, u, p, free_surface)
                end if
                call profiler_toc(p, "assembly")
@@ -492,7 +492,7 @@
                end select
             end if
 
-            if (has_boundary_condition(u, "free_surface") .or. use_compressible_projection) then
+            if (standard_fs .or. implicit_prognostic_fs .or. use_compressible_projection) then
                ! this needs fixing for multiphase theta_pg could in principle be chosen
                ! per phase but then we need an array and we'd have to include theta_pg
                ! in cmc_m, i.e. solve for theta_div*dt*dp instead of theta_div*theta_pg*dt*dp
@@ -526,7 +526,7 @@
                theta_pg=1.0
             end if
 
-            if (prognostic_fs.and.has_boundary_condition(u, "free_surface")) then
+            if (implicit_prognostic_fs) then
                allocate(p_theta)
                ! allocate p_theta on the extended mesh:
                call allocate(p_theta, p_mesh, "PressureAndFreeSurfaceTheta")
@@ -675,9 +675,14 @@
                call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                  test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
             end if
-            if (prognostic_fs .and. has_boundary_condition(u, "free_surface") .and. reassemble_ct_m) then
-              call add_viscous_free_surface_integrals(state(istate), ct_m(istate)%ptr, u, p, free_surface)
+            if (implicit_prognostic_fs .and. reassemble_ct_m) then
+              call add_implicit_viscous_free_surface_integrals(state(istate), ct_m(istate)%ptr, u, p, free_surface)
             end if
+            if (explicit_prognostic_fs) then
+              call add_explicit_viscous_free_surface_integrals(state(istate), mom_rhs(istate), ct_m(istate)%ptr, reassemble_ct_m, &
+                                                                u, p, free_surface)
+            end if
+
             call profiler_toc(p, "assembly")
 
             call profiler_tic(u, "assembly")
@@ -762,7 +767,7 @@
                   if(apply_kmk) then
                      assemble_schur_auxiliary_matrix = .true.
                   end if
-                  if (has_boundary_condition(u, "free_surface")) then
+                  if (standard_fs .or. implicit_prognostic_fs) then
                      assemble_schur_auxiliary_matrix = .true.
                   end if
 
@@ -773,7 +778,7 @@
                      schur_auxiliary_matrix_sparsity => get_csr_sparsity_secondorder(state(istate), p%mesh, u%mesh)
                      call allocate(schur_auxiliary_matrix, schur_auxiliary_matrix_sparsity,&
                         name="schur_auxiliary_matrix")
-                     if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then
+                     if (implicit_prognostic_fs) then
                        call extend_schur_auxiliary_matrix_for_viscous_free_surface(state(istate), schur_auxiliary_matrix, u, p, free_surface)
                      end if
                      ! Initialize matrix:
@@ -782,7 +787,7 @@
                         ewrite(2,*) "Adding kmk stabilisation matrix to full_projection auxiliary matrix"
                         call add_kmk_matrix(state(istate), schur_auxiliary_matrix)
                      end if
-                     if (has_boundary_condition(u, "free_surface")) then
+                     if (standard_fs .or. implicit_prognostic_fs) then
                         ewrite(2,*) "Adding free surface to full_projection auxiliary matrix"
                         call add_free_surface_to_cmc_projection(state(istate), &
                                           schur_auxiliary_matrix, dt, theta_pg, &
@@ -821,7 +826,7 @@
 
                end if ! end 'if(reassemble_cmc_m)'
 
-               if (has_boundary_condition(u, "free_surface")) then
+               if (standard_fs .or. implicit_prognostic_fs) then
                   call add_free_surface_to_cmc_projection(state(istate), &
                            cmc_m, dt, theta_pg, theta_divergence, &
                            assemble_cmc=reassemble_cmc_m, rhs=ct_rhs(istate))
@@ -835,7 +840,7 @@
                      ewrite(2,*) "Adding P1-P1 stabilisation to diagonal schur complement preconditioner matrix"
                      call add_kmk_matrix(state(istate), cmc_m)
                   end if
-                  if (has_boundary_condition(u, "free_surface")) then
+                  if (standard_fs .or. implicit_prognostic_fs) then
                      ewrite(2,*) "Adding free surface to diagonal schur complement preconditioner matrix"
                      call add_free_surface_to_cmc_projection(state(istate), &
                            cmc_m, dt, theta_pg, theta_divergence, assemble_cmc=.true.)
@@ -849,14 +854,14 @@
                   scaled_pressure_mass_matrix_sparsity => get_csr_sparsity_firstorder(state(istate), p%mesh, p%mesh)
                   call allocate(scaled_pressure_mass_matrix, scaled_pressure_mass_matrix_sparsity,&
                            name="scaled_pressure_mass_matrix")
-                  if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then
+                  if (implicit_prognostic_fs) then
                     call extend_schur_auxiliary_matrix_for_viscous_free_surface(state(istate), scaled_pressure_mass_matrix, u, p, free_surface)
                   end if
                   call assemble_scaled_pressure_mass_matrix(state(istate),scaled_pressure_mass_matrix)
-                  if (has_boundary_condition(u, "free_surface").and.prognostic_fs) then
-                    call add_viscous_free_surface_scaled_mass_integrals(state(istate), scaled_pressure_mass_matrix, u, p, free_surface)
+                  if (implicit_prognostic_fs) then
+                    call add_implicit_viscous_free_surface_scaled_mass_integrals(state(istate), scaled_pressure_mass_matrix, u, p, free_surface)
                   end if
-                  if (has_boundary_condition(u, "free_surface")) then
+                  if (standard_fs .or. implicit_prognostic_fs) then
                      ewrite(2,*) "Adding free surface to scaled pressure mass matrix preconditioner"
                      call add_free_surface_to_cmc_projection(state(istate), &
                            scaled_pressure_mass_matrix, dt, theta_pg, theta_divergence, assemble_cmc=.true.)
@@ -1003,7 +1008,7 @@
                end if
 
                call correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, &
-                                    p_theta, free_surface, theta_pg, theta_divergence, prognostic_fs, &
+                                    p_theta, free_surface, theta_pg, theta_divergence, &
                                     cmc_m, ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
                                     schur_auxiliary_matrix, stiff_nodes_list)
 
@@ -1053,8 +1058,9 @@
                         FLAbort("Don't know how to correct the velocity.")
                      end if
 
-                     if(prognostic_fs.and.has_boundary_condition(u, "explicit_free_surface")) then
-                       call update_explicit_free_surface(state(istate), free_surface, old_free_surface, u, dt)
+                     if(implicit_prognostic_fs.or.explicit_prognostic_fs) then
+                       call update_prognostic_free_surface(state(istate), free_surface, implicit_prognostic_fs, &
+                                                           explicit_prognostic_fs)
                      end if
 
                      call profiler_toc(u, "assembly")
@@ -1171,11 +1177,11 @@
          call profiler_toc("finalisation_loop")
 
          u => extract_vector_field(state, "Velocity")
-         if (prognostic_fs.and.has_boundary_condition(u, "free_surface")) then
+         if (implicit_prognostic_fs) then
            call deallocate(p_mesh)
            deallocate(p_mesh)
          end if
-         if((prognostic_fs.and.has_boundary_condition(u, "free_surface")) .or. use_theta_pg) then
+         if(implicit_prognostic_fs .or. use_theta_pg) then
             call deallocate(p_theta)
             deallocate(p_theta)
          end if
@@ -1379,7 +1385,7 @@
             end if
          end if
 
-         if (has_boundary_condition(u, "free_surface")) then
+         if (standard_fs .or. implicit_prognostic_fs) then
             call add_free_surface_to_poisson_rhs(poisson_rhs, state(prognostic_p_istate), dt, theta_pg)
          end if
 
@@ -1405,7 +1411,7 @@
          end if
          call profiler_tic(p, "assembly")
 
-         if (has_boundary_condition(u, "free_surface")) then
+         if (standard_fs .or. implicit_prognostic_fs) then
             ! Use this as initial pressure guess, except at the free surface
             ! where we use the prescribed initial condition
             call copy_poisson_solution_to_interior(state(prognostic_p_istate), &
@@ -1645,7 +1651,7 @@
       end subroutine assemble_projection
 
       subroutine correct_pressure(state, prognostic_p_istate, x, u, p, old_p, delta_p, &
-                                 p_theta, free_surface, theta_pg, theta_divergence, prognostic_fs, &
+                                 p_theta, free_surface, theta_pg, theta_divergence, &
                                  cmc_m, ct_m, ctp_m, projec_rhs, inner_m, full_projection_preconditioner, &
                                  schur_auxiliary_matrix, stiff_nodes_list)
          !!< Finds the pressure correction term delta_p needed to make the intermediate velocity field (u^{*}) divergence-free         
@@ -1660,8 +1666,6 @@
 
          real, intent(inout) :: theta_pg
          real, intent(inout) :: theta_divergence
-
-         logical, intent(in) :: prognostic_fs
 
          ! The pressure projection matrix (extracted from state)
          type(csr_matrix), pointer :: cmc_m
@@ -1744,7 +1748,7 @@
             call scale(delta_p, 1.0/theta_divergence)
          end if
 
-         if (prognostic_fs.and.has_boundary_condition(u, "free_surface")) then
+         if (implicit_prognostic_fs) then
            call update_pressure_and_viscous_free_surface(state(prognostic_p_istate), p, free_surface, delta_p, theta_pg)
          else
            ! Add the change in pressure to the pressure
