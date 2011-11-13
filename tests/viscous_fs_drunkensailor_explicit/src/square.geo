@@ -1,9 +1,9 @@
-Point(1) = {-250e3, -500e3, 0, 2e4};
-Extrude {500.e3, 0, 0} {
-  Point{1}; Layers{50};
+Point(1) = {-0.5, -1.0, 0, 0.05};
+Extrude {1.0, 0, 0} {
+  Point{1}; Layers{100};
 }
-Extrude {0.0, 500.e3, 0} {
-  Line{1}; Layers{50};
+Extrude {0.0, 1.0, 0} {
+  Line{1}; Layers{100};
 }
 Physical Line(6) = {1};
 Physical Line(7) = {4};
