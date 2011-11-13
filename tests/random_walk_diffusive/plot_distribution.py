@@ -11,7 +11,7 @@ def plot_detector_distribution(det_count, filename, timesteps, layers, delta_t):
   x = x*delta_t
   y = arange(0., layers)
   X, Y = meshgrid(x, y)
-  cs=ax.contourf(X, Y, det_count, arange(-1e-12,45,5))
+  cs=ax.contourf(X, Y, det_count, arange(-1e-12,40,5))
   ax.set_xlim(0., timesteps*delta_t)
   ax.set_ylim(layers-1., 0.)
   xlabel('Time (s)')

@@ -22,7 +22,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">1.0</real_value>
+                <real_value rank="0">0.25</real_value>
               </constant>
             </sizing_function>
           </regions>
@@ -118,7 +118,7 @@ def get_spline(t):
   mu = [simple_gradient_curve(z) for z in height]
   tck = interpolate.splrep(height,mu)#, s=0.001)
   return tck
-  
+
 def simple_gradient_curve(z):
   # prescribe a simple K profile of the form:
   #  / 
