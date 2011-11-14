@@ -42,10 +42,11 @@ assert libspud.get_option(list_path)==[11, 12, 13, 14, 15]
 tensor_path = '/material_phase::Material1/tensor_field::DummyTensor/prescribed/value::WholeMesh/anisotropic_asymmetric/constant'
 assert libspud.get_option_shape(tensor_path) == (2, 2)
 assert libspud.get_option_rank(tensor_path) == 2
+
 assert libspud.get_option(tensor_path)==[[1.0,2.0],[3.0,4.0]]
 
 libspud.set_option(tensor_path, [[5.0,6.0,2.0],[7.0,8.0,1.0]])
-#assert libspud.get_option_shape(tensor_path) == (3,3)
+assert libspud.get_option_shape(tensor_path) == (2,3)
 assert libspud.get_option_rank(tensor_path) == 2
 
 assert(libspud.get_option(tensor_path)==[[5.0, 6.0, 2.0],[7.0, 8.0, 1.0]])
@@ -85,5 +86,32 @@ except libspud.SpudTypeError, e:
   pass
 
 libspud.write_options('test_out.flml')
+
+libspud.set_option('/test',4)
+
+assert libspud.get_option('/test') == 4
+
+libspud.set_option('/test',[[4.0,2.0,3.0],[2.0,5.0,6.6]]) 
+
+assert libspud.get_option('/test') == [[4.0,2.0,3.0],[2.0,5.0,6.6]]
+
+libspud.set_option('/test',"Hallo")
+
+assert libspud.get_option('/test') == "Hallo"
+
+libspud.set_option('/test',[1,2,3])
+
+assert libspud.get_option('/test') == [1,2,3] 
+
+libspud.set_option('/test',[2.3,3.3])
+
+assert libspud.get_option('/test') == [2.3,3.3]
+
+try:
+  libspud.set_option('/test')
+  assert False
+except libspud.SpudError, e:
+  pass
+  
 
 print "All tests passed!"

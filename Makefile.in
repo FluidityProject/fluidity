@@ -28,10 +28,15 @@ SHELL = @SHELL@
 
 PACKAGE_NAME = @PACKAGE_NAME@
 
-# Ignore package version from autoconf. Instead, for releases, set the
-# approperiate version number below. Otherwise it is comprised of the
-# branch name and the repository revision number.
+# Ignore package version from autoconf. Instead, for packages
+# FLUIDITY_VERSION is passed into ./configure and used here. If it is not
+# set we obtain version information from bzr. Again, this is not done in
+# configure to ensure the info is up-to-date after a "bzr up" without reconfiguring
+ifeq ("@FLUIDITY_VERSION@","")
 PACKAGE_VERSION = `bzr version-info --custom --template='{branch_nick}.{revno}'`
+else
+PACKAGE_VERSION = "@FLUIDITY_VERSION@"
+endif
 
 FLUIDITY = $(PACKAGE_NAME)
 
@@ -66,6 +71,8 @@ CXX	= @CXX@
 CXXFLAGS= @CPPFLAGS@ @CXXFLAGS@ -I./include
 
 LINKER  = @LINKER@ @LDFLAGS@
+
+FLLINKER = @FLLINKER@ @LDFLAGS@ $(FCFLAGS)
 
 LIBS    = -L./lib -l$(FLUIDITY) @BLAS_LIBS@ @LIB_FEMDEM@ ./lib/libadaptivity.a \
            ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a \
@@ -193,8 +200,8 @@ bin/shallow_water: fluidity_library bin/hybridized_helmholtz_solver main/Shallow
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@echo "    LD shallow_water"
-	@$(EVAL) $(LINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
-	@$(EVAL) $(LINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
+	@$(EVAL) $(FLLINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
+	@$(EVAL) $(FLLINKER) -o bin/shallow_water main/Shallow_Water.o $(LIBS)
 
 bin/hybridized_helmholtz_solver: fluidity_library main/Hybridized_Helmholtz_Solver.F90
 	@cd main; $(MAKE) Hybridized_Helmholtz_Solver.o
@@ -202,7 +209,7 @@ bin/hybridized_helmholtz_solver: fluidity_library main/Hybridized_Helmholtz_Solv
 	@echo "    MKDIR bin"
 	@mkdir -p bin
 	@echo "    LD hybridized_helmholtz_solver"
-	@$(EVAL) $(LINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
+	@$(EVAL) $(FLLINKER) -o bin/hybridized_helmholtz_solver main/Hybridized_Helmholtz_Solver.o $(LIBS)
 
 bin/burgers_equation: fluidity_library main/Burgers_Equation.F90
 	@cd main; $(MAKE) Burgers_Equation.o
@@ -422,7 +429,7 @@ endif
 	@cd main; $(MAKE) clean
 	@rm -fr bin/* lib
 
-clean: clean-light clean-test python_clean
+clean: clean-light clean-test python_clean clean-debian
 	@echo "    CLEAN libvtkfortran"
 	@cd libvtkfortran; $(MAKE) clean
 	@echo "    CLEAN libjudy"
@@ -446,9 +453,13 @@ clean: clean-light clean-test python_clean
 	@find ./ \( -name work.pc \) -exec rm {} \;
 	@find ./ \( -name work.pcl \) -exec rm {} \;
 
+clean-debian:
+	@echo "    CLEAN debian"
+	@cd debian; rm -rf files tmp fluidity python-fluidity *.substvars *.debhelper* 
+
 clean-test:      
 	@echo "    CLEAN tests"
-	@cd tests; ../tools/testharness.py --clean >/dev/null
+	@cd tests; PYTHONPATH=../python ../tools/testharness.py --clean >/dev/null
 	@cd tests/data; $(MAKE) clean
 
 distclean: clean
@@ -482,7 +493,7 @@ distclean: clean
 	 include/spatialindex include/spud include/spud.h		\
 	 include/spud_enums.h include/tinystr.h include/tinyxml.h	\
 	 include/version.h include/vtk.h				\
-	 preprocessor/check_options.F90					\
+	 preprocessor/check_options.F90 schemas/flml			\
 	 preprocessor/register_diagnostics.F90 python/setup.py >	\
 	 /dev/null
 	@for i in `find ./*/ -name Makefile.in`; do rm -f `echo $$i | sed 's/.in$$//'`; done > /dev/null
@@ -491,7 +502,7 @@ distclean: clean
 
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
-serialtest:
+serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 ifeq (@MBA2D@,yes)
         ifeq (@ZOLTAN@,yes)
 	        @cd tests; ../bin/testharness -l short -p serial -e nozoltan -n $(THREADS)
@@ -608,7 +619,18 @@ endif
 	$(MAKE) clean-light
 	@echo "    Congratulations, make makefiles succeeded!"
 
-install:
-	@mkdir -p $(DESTDIR)$(bindir)
+install: default fltools bin/shallow_water bin/burgers_equation
+	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	cp bin/* $(DESTDIR)$(bindir)
-	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)"
+	rm $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
+	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
+	mkdir -p $(DESTDIR)$(datadir)/fluidity
+	cp -r schemas/ $(DESTDIR)$(datadir)/fluidity/
+	mkdir -p $(DESTDIR)/usr/share/diamond/schemata
+	cp schemas/flml $(DESTDIR)/usr/share/diamond/schemata
+	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
+	cp -r examples/ $(DESTDIR)$(docdir)/fluidity
+	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
+	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/bin\///" '{}' \;
+	tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz $(DESTDIR)$(docdir)/fluidity/examples/
+	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/

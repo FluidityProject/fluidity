@@ -51,4 +51,5 @@ def print_convergence_rates(pattern, fields):
   print ""
   print " =============== Time decreasing, mesh resolution increasing ================"
   statfiles = sorted(glob.glob(pattern))
+  assert len(statfiles) > 0
   print_convergence(statfiles, fields)

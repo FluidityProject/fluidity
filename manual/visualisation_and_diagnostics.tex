@@ -154,7 +154,6 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[FiniteElementGradient:]Gradient of a scalar field evaluated using the C gradient matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementGradient}. 
   \item[FunctionalGradient:]Same as \option{vector\_field::SolidVelocity} but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.    
  \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as \option{vector\_field::GalerkinProjection}     
- \item[Gradient:]Gradient of a scalar field. The field must be in the same \option{material\_phase} as \option{vector\_field::Gradient}
  \item[InnerElementFullVelocity:]Full velocity in an inner element SGS treatment of momentum.
   Limitations: Requires a geometry dimension of 3. Requires inner element active for momentum. 
  \item[InnerElementFullVorticity:]Vorticity of the full velocity in an inner element SGS treatment of momentum.
@@ -214,7 +213,7 @@ may be defined by a :: delimited ``state\_name\::field\_name'' string.
   \label{fig:diagnostic_algorithm}
 \end{figure}
 
-The available internal \option{scalar\_field} diagnostics are:
+The available internal diagnostics are:
 \begin{description}
 \item[temporalmin:]Writes the (nodewise) minimum scalar value over all previous timesteps.
 \item[temporalmax:]Writes the (nodewise) maximum scalar value over all previous timesteps.
@@ -224,7 +223,8 @@ The available internal \option{scalar\_field} diagnostics are:
 \item[time\_averaged\_scalar\_squared:]Calculates the time average of squared scalar fields.
 \item[free\_surface\_history:]Records the history of a free surface field.
 \item[tidal\_harmonics:]Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" (see \ref{sec:ocean_boundaries}) have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on (see \ref{sec:Internal_diagnostic_fields}).  
-\item[div:]Computes the divergence of a field.
+\item[div:]Computes the divergence of a vector field.
+\item[grad:]Computes the gradient of a scalar field.
 \item[finite\_element\_divergence:]Computes the divergence of a field, where the divergence operator is defined using the finite element $\mathrm{C}^\mathrm{T}$ matrix.
 \item[curl\_2d:][curl (source field)]\_z. Valid in 2D only.
 \item[scalar\_advection:]Computes $\vec{u}\cdot\nabla(s)$, where $s$ is the source field.
@@ -354,7 +354,7 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 %
 \lstinline[language=Python]+ApplyEarthProjection+ & & assumes the input geometry is Cartesian and projects to longitude, latitude and depth. It will overwrite the exisiting coordinate values. \\ \hline
 %
-***\lstinline[language=Python]+ApplyProjection+ & \lstinline[language=Python]+projection_x,+ \lstinline[language=Python]+projection_y,+ \lstinline[language=Python]+projection_z+ & Applys a projection to the grid coordinates. It will overwrite the existing values.*** \\ \hline
+\lstinline[language=Python]+ApplyProjection+ & \lstinline[language=Python]+projection_x,+ \lstinline[language=Python]+projection_y,+ \lstinline[language=Python]+projection_z+ & Applys a projection to the grid coordinates. It will overwrite the existing values. \lstinline[language=Python]+projection_x+, \lstinline[language=Python]+projection_y+ and \lstinline[language=Python]+projection_z+ should all be strings that contain the projection to be evaluated, with \lstinline[language=Python]+x+, \lstinline[language=Python]+y+ and \lstinline[language=Python]+z+ for the $x$, $y$ and $z$ coordinates respectively. For example,  \lstinline[language=Python]+projection_x='x+2'+ will translate all the values of $x$ by $2$. \\ \hline
 %
 \lstinline[language=Python]+CellDataToPointData+ & & transforms all cell--wise fields to point--wise fields. All existing fields will remain, \\ \hline
 \lstinline[language=Python]+Crop+ & \lstinline[language=Python]+min_x, max_x,+ \lstinline[language=Python]+min_y, max_y+, \lstinline[language=Python]+min_z, max_z+ & Crops the edges defined by the bounding box given by the arguments \\ \hline
@@ -367,7 +367,7 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 %
 \lstinline[language=Python]+GetCellVolume+ & \lstinline[language=Python]+id+ & Returns the volume of the cell (mesh element) with number \lstinline[language=Python]+id+ \\ \hline
 %
-***\lstinline[language=Python]+GetDerivative+ & \lstinline[language=Python]+name+ & Returns the derivative of the field called \lstinline[language=Python]+name+. Each component of the returned array has form*** The field \lstinline[language=Python]+name+ has to be point--wise data. The returned array gives a cell--wise derivative. (To obtain the point--wise derivative use \lstinline[language=Python]+CellDataToPointData+.)  \\ \hline
+\lstinline[language=Python]+GetDerivative+ & \lstinline[language=Python]+name+ & Returns the derivative of the field called \lstinline[language=Python]+name+. Each component of the returned array has form $ \frac{\partial T}{\partial x}, \frac{\partial T}{\partial y}, \frac{\partial T}{\partial z}$ for a scalar field and $\frac{\partial u}{\partial x}, \frac{\partial v}{\partial x}, \frac{\partial w}{\partial x}, \frac{\partial u}{\partial y}, \frac{\partial v}{\partial y}, \frac{\partial w}{\partial y}, \frac{\partial u}{\partial z}, \frac{\partial v}{\partial z}, \frac{\partial w}{\partial z}$ for a vector field where $T$ is a scalar field, $(u,v,w)$ a vector field and $(x,y,z)$ the spatial coordinate vector field. The field \lstinline[language=Python]+name+ has to be point--wise data. The returned array gives a cell--wise derivative. (To obtain the point--wise derivative add the field to the vtu object and use \lstinline[language=Python]+CellDataToPointData+.)  \\ \hline
 %
 \lstinline[language=Python]+GetDistance+ & \lstinline[language=Python]+x,y+ & Returns the distance in physical space between \lstinline[language=Python]+x+ and \lstinline[language=Python]+y+ \\ \hline
 %
@@ -1417,7 +1417,7 @@ General options:
 	Print debugging information
 -o, --offset <scalar name>/<offset value>
 -r, --radial-scaling=scale_factor
-	 Assume shperical earth geometry and scale the radius
+	 Assume spherical Earth geometry and scale the radius
 -h, --help
 	Print this usage information
 \end{lstlisting}
