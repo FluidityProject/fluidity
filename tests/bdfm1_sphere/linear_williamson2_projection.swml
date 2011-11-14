@@ -45,16 +45,6 @@
               <monitors/>
             </diagnostics>
           </solver>
-          <check_continuity>
-            <tolerance>
-              <real_value rank="0">5.0e-7</real_value>
-            </tolerance>
-          </check_continuity>
-          <check_continuity_matrix>
-            <tolerance>
-              <real_value rank="0">1.0e-7</real_value>
-            </tolerance>
-          </check_continuity_matrix>
         </constraint_type>
         <stat>
           <exclude_from_stat/>

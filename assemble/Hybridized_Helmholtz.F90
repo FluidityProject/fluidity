@@ -226,8 +226,7 @@ contains
        end if
     end if
 
-    if(have_option('/geometry/mesh::VelocityMesh/from_mesh/constraint_type/&
-         &check_continuity_matrix')) then
+    if(have_option('/geometry/mesh::VelocityMesh/check_continuity_matrix')) then
        ewrite(2,*) 'Checking continuity'
 
        call zero(lambda_rhs)
@@ -247,8 +246,7 @@ contains
        ewrite(2,*)'JUMPS MIN:MAX',minval(lambda_rhs%val),&
             &maxval(lambda_rhs%val), u_max
 
-       call get_option('/geometry/mesh::VelocityMesh/from_mesh/constraint_ty&
-            &pe/check_continuity_matrix/tolerance',tolerance)
+       call get_option('/geometry/mesh::VelocityMesh/check_continuity_matrix/tolerance',tolerance)
        if(maxval(abs(lambda_rhs%val))/max(1.0,u_max/3.0)>tolerance) then
           ewrite(-1,*) 'value =', maxval(abs(lambda_rhs%val))/max(1.0,u_max/3.0)
           FLExit('Continuity matrix tolerance failure')
@@ -263,8 +261,7 @@ contains
        else
           call project_local_to_cartesian(X,U,U_cart,weights=weights)
        end if
-       call get_option('/geometry/mesh::VelocityMesh/from_mesh/constraint_ty&
-            &pe/check_continuity/tolerance', tolerance)
+       call get_option('/geometry/mesh::VelocityMesh/check_continuity/tolerance', tolerance)
        do ele = 1, ele_count(U)
           call check_continuity_ele(U_cart,X,ele,tolerance)
        end do

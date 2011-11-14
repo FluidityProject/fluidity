@@ -65,6 +65,28 @@ field Functions should be of the form:
             <value>VelocityMesh</value>
           </attribute>
           <ref name="mesh_info"/>
+          <optional>
+            <element name="check_continuity">
+              <a:documentation>Debugging option for hybridised solver
+Check continuity in Cartesian space
+Test only works for linear geometry field</a:documentation>
+              <element name="tolerance">
+                <a:documentation>Tolerance for check</a:documentation>
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
+          <optional>
+            <element name="check_continuity_matrix">
+              <a:documentation>Debugging option for hybridised solver
+Check continuity matrix
+Checks for jumps using local coordinates</a:documentation>
+              <element name="tolerance">
+                <a:documentation>Tolerance for check</a:documentation>
+                <ref name="real"/>
+              </element>
+            </element>
+          </optional>
         </element>
         <element name="mesh">
           <a:documentation>The pressure mesh</a:documentation>
