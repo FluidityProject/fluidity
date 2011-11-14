@@ -58,6 +58,7 @@ implicit none
   public :: get_patch_ele, get_patch_node, patch_type
   public :: set_ele_nodes, normalise, tensor_second_invariant
   public :: remap_to_subdomain, remap_to_full_domain
+  public :: get_coordinates_remapped_to_surface, get_remapped_coordinates
   
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
@@ -1495,14 +1496,7 @@ implicit none
        end if
     else
        ! Remap position first.
-       call allocate(lposition, dim, field%mesh, "Local Position")
-       call remap_field(position, lposition, stat=stat)
-       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-          ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-          ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-          ewrite(-1,*) 'to remap them to a continuous field.'
-          FLAbort("Why are your coordinates discontinuous?")
-       end if
+       lposition = get_remapped_coordinates(position, field%mesh)
        ! we've just allowed remapping from a higher order to a lower order continuous field as this should be valid for
        ! coordinates
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
@@ -1576,14 +1570,7 @@ implicit none
        end if
     else
        ! Remap position first.
-       call allocate(lposition, dim, field%mesh, "Local Position")
-       call remap_field(position, lposition, stat=stat)
-       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-          ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-          ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-          ewrite(-1,*) 'to remap them to a continuous field.'
-          FLAbort("Why are your coordinates discontinuous?")
-       end if
+       lposition = get_remapped_coordinates(position, field%mesh)
        ! we've just allowed remapping from a higher order to a lower order continuous field as this should be valid for
        ! coordinates
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
@@ -1666,14 +1653,7 @@ implicit none
        end if
     else
        ! Remap position first.
-       call allocate(lposition, dim, field%mesh, "Local Position")
-       call remap_field(position, lposition, stat=stat)
-       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-          ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-          ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-          ewrite(-1,*) 'to remap them to a continuous field.'
-          FLAbort("Why are your coordinates discontinuous?")
-       end if
+       lposition = get_remapped_coordinates(position, field%mesh)
        ! we've just allowed remapping from a higher order to a lower order continuous field as this should be valid for
        ! coordinates
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
@@ -4019,6 +3999,55 @@ implicit none
     end if
     
   end subroutine remap_to_full_domain_tensor
+
+  function get_remapped_coordinates(positions, mesh) result(remapped_positions)
+    type(vector_field), intent(in):: positions
+    type(mesh_type), intent(inout):: mesh
+    type(vector_field):: remapped_positions
+
+    integer:: stat
+
+    call allocate(remapped_positions, positions%dim, mesh, "RemappedCoordinates")
+    call remap_field(positions, remapped_positions, stat=stat)
+    ! we allow stat==REMAP_ERR_UNPERIODIC_PERIODIC, to create periodic surface positions with coordinates 
+    ! at the periodic boundary having a value that is only determined upto a random number of periodic mappings
+    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+      ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+      ewrite(-1,*) 'to remap them to a continuous field.'
+      FLAbort("Why are your coordinates discontinuous?")
+    else if ((stat/=REMAP_ERR_UNPERIODIC_PERIODIC).and. &
+             (stat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+             (stat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+      FLAbort('Unknown error in mapping coordinates from mesh to surface')
+    end if
+
+  end function get_remapped_coordinates
+  
+  function get_coordinates_remapped_to_surface(positions, surface_mesh, surface_element_list) result(surface_positions)
+    type(vector_field), intent(in):: positions
+    type(mesh_type), intent(inout):: surface_mesh
+    integer, dimension(:), intent(in):: surface_element_list
+    type(vector_field):: surface_positions
+
+    integer:: stat
+
+    call allocate(surface_positions, positions%dim, surface_mesh, "RemappedSurfaceCoordinates")
+    call remap_field_to_surface(positions, surface_positions, surface_element_list, stat=stat)
+    ! we allow stat==REMAP_ERR_UNPERIODIC_PERIODIC, to create periodic surface positions with coordinates 
+    ! at the periodic boundary having a value that is only determined upto a random number of periodic mappings
+    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+      ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+      ewrite(-1,*) 'to remap them to a continuous field.'
+      FLAbort("Why are your coordinates discontinuous?")
+    else if ((stat/=REMAP_ERR_UNPERIODIC_PERIODIC).and. &
+             (stat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+             (stat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+      FLAbort('Unknown error in mapping coordinates from mesh to surface')
+    end if
+
+  end function get_coordinates_remapped_to_surface
   
 end module fields_manipulation
 

@@ -145,14 +145,7 @@ contains
                 call incref(field_position)
               else
                 ! otherwise the position mapped onto field%mesh
-                call allocate(field_position, position%dim, field%mesh, "VTKFieldPosition")
-                call remap_field(position, field_position, stat=stat)
-                if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-                  ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-                  ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-                  ewrite(-1,*) 'to remap them to a continuous field.'
-                  FLAbort("Why are your coordinates discontinuous?")
-                end if
+                field_position = get_remapped_coordinates(position, field%mesh)
               end if
               if (.not. mesh_compatible(vtk_position, field_position)) then
                 ! repeat, this to make sure it ends up in any error log
@@ -294,14 +287,7 @@ contains
                 call incref(field_position)
               else
                 ! otherwise the position mapped onto field%mesh
-                call allocate(field_position, position%dim, field%mesh, "VTKFieldPosition")
-                call remap_field(position, field_position, stat=stat)
-                if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-                  ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-                  ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-                  ewrite(-1,*) 'to remap them to a continuous field.'
-                  FLAbort("Why are your coordinates discontinuous?")
-                end if
+                field_position = get_remapped_coordinates(position, field%mesh)
               end if
               
               if (.not. mesh_compatible(vtk_position, field_position)) then
