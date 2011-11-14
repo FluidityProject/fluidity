@@ -83,10 +83,13 @@ enforcing continuity by Lagrange multipliers).</a:documentation>
         </optional>
         <optional>
           <element name="constraint_type">
+            <a:documentation>Constraint type.  
+Apply additional constraints to the polynomial representation
+of a vector field.
+This is used to implement div-conforming
+elements such as RT0 in a hybridised solver.</a:documentation>
             <element name="string_value">
-              <a:documentation>Set the constraint type. This is used to implement
-div-conforming elements such as RT0 in a hybridised
-solver.</a:documentation>
+              <a:documentation>Select constraint type.</a:documentation>
               <choice>
                 <value>BDM</value>
                 <value>BDFM</value>
@@ -99,28 +102,6 @@ solver.</a:documentation>
 space, and in elliptic solvers</a:documentation>
               </ref>
             </element>
-            <optional>
-              <element name="check_continuity">
-                <a:documentation>Debugging option for hybridised solver
-Check continuity in Cartesian space
-Test only works for linear geometry field</a:documentation>
-                <element name="tolerance">
-                  <a:documentation>Tolerance for check</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </element>
-            </optional>
-            <optional>
-              <element name="check_continuity_matrix">
-                <a:documentation>Debugging option for hybridised solver
-Check continuity matrix
-Checks for jumps using local coordinates</a:documentation>
-                <element name="tolerance">
-                  <a:documentation>Tolerance for check</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </element>
-            </optional>
           </element>
         </optional>
         <zeroOrMore>
