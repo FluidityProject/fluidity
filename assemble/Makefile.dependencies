@@ -478,13 +478,6 @@ Linear_Shallow_Water.o ../include/linear_shallow_water.mod: \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_module.mod ../include/timeloop_utilities.mod \
    ../include/write_state_module.mod
-../include/linear_shallow_water_legacy.mod: Linear_Shallow_Water_Legacy.o
-../include/manifold_projections.mod: Manifold_Projections.o
-	@true
-
-Manifold_Projections.o ../include/manifold_projections.mod: \
-   Manifold_Projections.F90 ../include/fdebug.h ../include/fields.mod \
-   ../include/fields_base.mod ../include/state_module.mod
 
 ../include/mba2d_integration.mod: Mba2d_Integration.o
 	@true
