@@ -185,7 +185,7 @@ contains
     character(len=OPTION_PATH_LEN) bc_path_i
     character(len=FIELD_NAME_LEN) bc_name, bc_type
     integer, dimension(:), allocatable:: surface_ids
-    integer i, nbcs, shape_option(2), stat
+    integer i, nbcs, shape_option(2)
 
     ! Get number of boundary conditions
     nbcs=option_count(trim(bc_path))
@@ -340,7 +340,7 @@ contains
     logical applies(3), have_sem_bc, debugging_mode, prescribed(3)
     integer, dimension(:), allocatable:: surface_ids
     integer, dimension(:), pointer:: surface_element_list, surface_node_list
-    integer i, j, nbcs, shape_option(2), stat
+    integer i, j, nbcs, shape_option(2)
 
     nbcs=option_count(trim(bc_path))
 
@@ -683,7 +683,7 @@ contains
     character(len=FIELD_NAME_LEN) bc_name, bc_type
     real:: time, theta, dt
     integer, dimension(:), pointer:: surface_element_list
-    integer i, nbcs, stat
+    integer i, nbcs
 
     ! Get number of boundary conditions
     nbcs=option_count(trim(bc_path))
@@ -861,7 +861,7 @@ contains
     logical applies(3)
     real:: time, theta, dt
     integer, dimension(:), pointer:: surface_element_list
-    integer i, j, k, nbcs, stat
+    integer i, j, k, nbcs
 
     ns=1
     nbcs=option_count(trim(bc_path))
@@ -1934,8 +1934,6 @@ contains
     integer                       :: t1_max
     real, dimension(x%dim)        :: t1, t2, t1_norm, n
     real                          :: proj1, det
-
-    integer                       :: stat
 
     if(.not.all(prescribed)) then
 
