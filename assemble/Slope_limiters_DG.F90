@@ -1438,7 +1438,6 @@ contains
        call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
     end do
 
-
     !Deallocate copy of field
     call set(T, T_limit)
     call halo_update(T)

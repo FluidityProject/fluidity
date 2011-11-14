@@ -164,7 +164,7 @@ contains
     else
        call get_option(trim(T%option_path)//&
             &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-            &/maximum_courant_number_per_subcycle", Max_Courant_number)
+            &maximum_courant_number_per_subcycle", Max_Courant_number)
        
        s_field => extract_scalar_field(state, "DG_CourantNumber")
        call calculate_diagnostic_variable(state, "DG_CourantNumber_Local", &
@@ -719,17 +719,22 @@ contains
     end if
 
     do i=1, subcycles
-
        call mult_t(U_cartesian_tmp, L, U)
        call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
        ! dU = Advection * U
        call mult(delta_U_tmp, A, U_cartesian)
        ! dU = dU + RHS
+       !------------------------------------------
+       !Is there anything in RHS?
        call addto(delta_U_tmp, RHS, -1.0)
+       !------------------------------------------
        ! dU = M^(-1) dU
        call mult(delta_U, inv_mass_local, delta_U_tmp)
+       !------------------------------------------
+       !Do we need the below?
        call mult_t(U_cartesian_tmp, L, delta_U)
        call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
+       !------------------------------------------
 
        ! U = U + dt/s * dU
        call addto(U, delta_U, scale=-dt/subcycles)
@@ -742,7 +747,10 @@ contains
           ! Filter wiggles from U
           do j=1,U_cartesian%dim
              U_component=extract_scalar_field(U_cartesian,j)
+             !-----------------------------------------
+             !Will need to make a vector limiter
              call limit_slope_dg(U_component, U_nl, X, state, limiter)
+             !-----------------------------------------
           end do
 
           call mult(U_tmp, L, U_cartesian)

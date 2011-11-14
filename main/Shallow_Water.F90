@@ -640,8 +640,6 @@
               extract_vector_field(state, "AdvectingVelocity")
          call project_cartesian_to_local(X,advecting_u_prescribed,&
               advecting_u)
-         call set(advecting_u,advecting_u_prescribed)
-         call project_cartesian_to_local(state,advecting_u)
       else
          call set(advecting_u,u)
       end if

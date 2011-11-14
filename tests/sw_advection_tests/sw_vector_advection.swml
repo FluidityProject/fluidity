@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <shallow_water_options>
   <simulation_name>
-    <string_value lines="1">pressure_advection</string_value>
+    <string_value lines="1">vector_advection</string_value>
   </simulation_name>
   <geometry>
     <dimension>
@@ -92,7 +92,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">10</real_value>
+        <real_value rank="0">1</real_value>
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
@@ -162,14 +162,20 @@
               <no_wave_equation_step/>
             </wave_equation>
             <advection_scheme>
-              <none/>
+              <upwind/>
             </advection_scheme>
+            <slope_limiter/>
           </discontinuous_galerkin>
         </spatial_discretisation>
         <temporal_discretisation>
           <relaxation>
             <real_value rank="0">0.5</real_value>
           </relaxation>
+          <discontinuous_galerkin>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.1</real_value>
+            </maximum_courant_number_per_subcycle>
+          </discontinuous_galerkin>
         </temporal_discretisation>
         <solver>
           <iterative_method name="preonly"/>
@@ -187,7 +193,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   from math import sin, pi
   x = X[0]
   y = X[1]
