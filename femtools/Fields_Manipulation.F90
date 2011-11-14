@@ -4016,10 +4016,11 @@ implicit none
       ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
       ewrite(-1,*) 'to remap them to a continuous field.'
       FLAbort("Why are your coordinates discontinuous?")
-    else if ((stat/=REMAP_ERR_UNPERIODIC_PERIODIC).and. &
+    else if ((stat/=0).and. &
+             (stat/=REMAP_ERR_UNPERIODIC_PERIODIC).and. &
              (stat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
              (stat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
-      FLAbort('Unknown error in mapping coordinates from mesh to surface')
+      FLAbort('Unknown error when remapping coordinates')
     end if
 
   end function get_remapped_coordinates
@@ -4041,7 +4042,8 @@ implicit none
       ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
       ewrite(-1,*) 'to remap them to a continuous field.'
       FLAbort("Why are your coordinates discontinuous?")
-    else if ((stat/=REMAP_ERR_UNPERIODIC_PERIODIC).and. &
+    else if ((stat/=0).and. &
+             (stat/=REMAP_ERR_UNPERIODIC_PERIODIC).and. &
              (stat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
              (stat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
       FLAbort('Unknown error in mapping coordinates from mesh to surface')
