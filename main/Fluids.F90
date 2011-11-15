@@ -881,6 +881,11 @@ contains
 
              call pre_adapt_tasks(sub_state)
 
+             ! skramer: moving mesh+adapt hack
+             call set_vector_field_in_state(state(1), "Coordinate", "OriginalCoordinate")
+             call IncrementEventCounter(EVENT_MESH_MOVEMENT)
+             ! skramer: end hack
+
              call qmesh(state, metric_tensor)
              if(have_option("/io/stat/output_before_adapts")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
              call run_diagnostics(state)
@@ -1091,6 +1096,10 @@ contains
       end if
       call CalculateTopBottomDistance(state(1))
     end if
+
+    ! skramer: moving mesh+adapt hack!!
+    call move_mesh_free_surface(state, initialise=.true.)
+
 
     ! Diagnostic fields
     call calculate_diagnostic_variables(state)
