@@ -2301,7 +2301,11 @@ vector_field_choice =
            (
               element prescribed {
                  mesh_choice,
-                 prescribed_vector_field
+                 prescribed_vector_field,
+                 ## Set the field from sphere pullback
+                 element set_from_sphere_pullback {
+                    empty
+                 }?
               }
            )
         }|

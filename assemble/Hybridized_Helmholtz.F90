@@ -2479,8 +2479,10 @@ contains
 
   end subroutine set_velocity_from_lat_long_ele
 
-  subroutine set_velocity_from_sphere_pullback(state)
+  subroutine set_velocity_from_sphere_pullback(state,v_field,Python_Function_in)
     type(state_type), intent(inout) :: state
+    type(vector_field), target, intent(inout), optional :: v_field
+    character(len=*), intent(in), optional :: Python_Function_in
     !
     type(vector_field), pointer :: X,U
     character(len=PYTHON_FUNC_LEN) :: Python_Function
@@ -2488,10 +2490,18 @@ contains
     integer :: ele
 
     X=>extract_vector_field(state, "Coordinate")
-    U=>extract_vector_field(state, "LocalVelocity")
-    call get_option("/material_phase::Fluid/vector_field::Velocity&
-         &/prognostic/initial_condition::WholeMesh/&
-         &from_sphere_pullback/python",Python_Function)
+    if(present(v_field)) then
+       U=>v_field
+    else
+       U=>extract_vector_field(state, "LocalVelocity")
+    end if
+    if(present(Python_Function_in)) then
+       Python_Function = trim(Python_Function_in)
+    else
+       call get_option("/material_phase::Fluid/vector_field::Velocity&
+            &/prognostic/initial_condition::WholeMesh/&
+            &from_sphere_pullback/python",Python_Function)
+    end if
     call get_option("/material_phase::Fluid/vector_field::Velocity&
          &/prognostic/initial_condition::WholeMesh/&
          &from_sphere_pullback/sphere_radius",R0)
@@ -2658,12 +2668,6 @@ contains
     do dim1 = 1, mesh_dim(U)
        U_local_loc(dim1,:) = l_u_rhs((dim1-1)*uloc+1:dim1*uloc)
     end do
-    !debugging stuff
-    U_local_quad = matmul(U_local_loc,u_shape%n)
-    do gi = 1, ele_ngi(U,ele)
-       U_quad_2(:,gi) = matmul(transpose(J(:,:,gi)),U_local_quad(:,gi))/detJ(gi)
-    end do
-    assert(maxval(abs(U_quad-U_quad_2))<1.0e-7)
 
     do dim1 = 1, mesh_dim(U)
        call set(U,ele_nodes(U,ele),U_local_loc)

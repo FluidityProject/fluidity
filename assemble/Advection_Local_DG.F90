@@ -61,7 +61,7 @@ module advection_local_DG
   character(len=255), private :: message
 
   private
-  public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle, construct_vector_adv_element_dg
+  public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle
 
   ! Local private control parameters. These are module-global parameters
   ! because it would be expensive and/or inconvenient to re-evaluate them
@@ -70,8 +70,7 @@ module advection_local_DG
 
   ! Whether to include various terms
   logical :: include_advection
-  
-contains
+  contains
 
   subroutine solve_advection_dg_subcycle(field_name, state, velocity_name)
     !!< Construct and solve the advection equation for the given
@@ -722,6 +721,7 @@ contains
        call mult_t(U_cartesian_tmp, L, U)
        call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
        ! dU = Advection * U
+       ! A maps from cartesian to local
        call mult(delta_U_tmp, A, U_cartesian)
        ! dU = dU + RHS
        !------------------------------------------
@@ -950,10 +950,31 @@ contains
     U_nl_q=ele_val_at_quad(U_nl,ele)
     U_nl_div_q=ele_div_at_quad(U_nl, ele, U_shape%dn)
 
+    ! WE HAVE INTEGRATED BY PARTS TWICE
     ! Element advection matrix
-    !    /                           /
-    !  - | (grad W dot U_nl) T dV -  | W ( div U_nl ) G W dV
-    !    /                           /
+    !    / 
+    !    | w . div (\bar{U} \tensor u )dV
+    !    / 
+    
+    ! becomes
+    
+    !    /
+    !    | \phi_i (dx/d\xi)^T.\div_L (\bar{U}_L \tensor \phi_j)dV_L
+    !    /
+    ! underscore U indicates local coordinates
+
+    ! split into two terms
+
+    !    /
+    !    | \phi_i (dx/d\xi)^T(\div_L \bar{U}_L)\phi_j dV_L
+    !    /
+
+    ! and 
+
+    !    /
+    !    | \phi_i (dx/d\xi)^T\bar{U}_L . grad_L \phi_j dV_L
+    !    /
+
 
     U_cartesian_q=0.
     do gi=1,ele_ngi(X,ele)
@@ -963,6 +984,7 @@ contains
        dshape(:,gi,:)=matmul(U_shape%dn(:,gi,:),transpose(pinvJ(:,:,gi)))
     end do
     Advection_mat = shape_vector_dot_dshape_tensor(U_shape, U_nl_q, U_shape%dn, J_scaled, U_shape%quadrature%weight)
+    FLExit('need to put in the other divergence term')
 
    !----------------------------------------------------------------------
    ! Perform global assembly.
@@ -1131,23 +1153,34 @@ contains
     income = merge(1.0,0.0,inflow)
 
     ! Calculate tensor on face
+    if(ele_loc(X,ele).ne.3) then
+       ewrite(1,*) 'Nloc=',ele_loc(X,ele)
+       FLAbort('Hard coded for linear elements at the moment')
+    end if
     call compute_jacobian(ele_val(X,ele), ele_shape(X,ele), detwei=detwei, J=J, detJ=detJ)
     forall(gi=1:face_ngi(X,face))
        J_scaled(:,:,gi)=J(:,:,1)/detJ(1)
     end forall
 
-    ! Get outward pointing normals in physical space for each element
+    ! Get outward pointing normals in physical space for face1
+    ! inward pointing normals in physical space for face2
     n1=get_face_normal_manifold(X, ele, face)
+    !needs checking
     if(ele_2<0) then
        ! external boundary
-       n2=-n1
+       n2=n1
     else
-       n2=get_face_normal_manifold(X, ele_2, face_2)
+       n2=-get_face_normal_manifold(X, ele_2, face_2)
     end if
 
     ! Form 'bending' tensor
+    ! This rotates the normal to face 2 into -normal from face 1
+    ! u_b = t(t.u_b) + n_b(n_b.u_b)
+    ! u_a = t(t.u_b) + n_a(n_b.u_b)
+    !     = u_b - n_b(n_b.u_b) + n_a(n_b.u_b)
+    !     = (I + (n_a-n_b)n_b^T)u_b == B u_b
     forall(gi=1:face_ngi(X,face))
-       Btmp(:,:,gi)=-outer_product(n1(:,gi),n2(:,gi))-outer_product(n2(:,gi),n2(:,gi))
+       Btmp(:,:,gi)=outer_product(n1(:,gi)-n2(:,gi),n2(:,gi))
        forall(i=1:size(Btmp,1)) Btmp(i,i,gi)=Btmp(i,i,gi)+1.0
        B(:,:,gi)=matmul(J_scaled(:,:,gi),Btmp(:,:,gi))
     end forall
@@ -1164,13 +1197,13 @@ contains
     ! (this is the flux *out* of the element)
     inner_advection_integral = -income*u_nl_q_dotn_l
     nnAdvection_out=shape_shape_tensor(U_shape, U_shape,  &
-         &            inner_advection_integral*U_shape%quadrature%weight, J_scaled)
+         &inner_advection_integral*U_shape%quadrature%weight, J_scaled)
     
     ! now the integral around the outside of the element
     ! (this is the flux *in* to the element)
     outer_advection_integral = income*u_nl_q_dotn_l
     nnAdvection_in=shape_shape_tensor(U_shape, U_shape_2, &
-         &            outer_advection_integral*U_shape%quadrature%weight, B)
+         &outer_advection_integral*U_shape%quadrature%weight, B)
        
     !----------------------------------------------------------------------
     ! Perform global assembly.

@@ -2704,6 +2704,12 @@ that set by /geometry/dimension</a:documentation>
         <element name="prescribed">
           <ref name="mesh_choice"/>
           <ref name="prescribed_vector_field"/>
+          <optional>
+            <element name="set_from_sphere_pullback">
+              <a:documentation>Set the field from sphere pullback</a:documentation>
+              <empty/>
+            </element>
+          </optional>
         </element>
       </element>
       <element name="vector_field">

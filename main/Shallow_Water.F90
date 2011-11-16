@@ -612,6 +612,7 @@
       integer :: nit, d1
       real :: itheta, energy
       logical :: have_source
+      character(len=PYTHON_FUNC_LEN) :: Python_Function
 
       ! get itheta
       call get_option("/material_phase::Fluid/vector_field::Velocity/pro&
@@ -636,10 +637,20 @@
       ! advecting velocity in local coordinates
       if(have_option('/material_phase::Fluid/vector_field::AdvectingVelocity&
            &')) then
-         advecting_u_prescribed=> &
-              extract_vector_field(state, "AdvectingVelocity")
-         call project_cartesian_to_local(X,advecting_u_prescribed,&
-              advecting_u)
+         if(have_option('/material_phase::Fluid/vector_field::AdvectingVelocity&
+              &/prescribed/set_from_sphere_pullback')) then
+            
+               call get_option('/material_phase::Fluid/vector_field::AdvectingV&
+                    &elocity/prescribed/value::WholeMesh/python', Python_Function)
+
+            call set_velocity_from_sphere_pullback(state&
+                &,advecting_u,Python_Function)
+         else
+            advecting_u_prescribed=> &
+                 extract_vector_field(state, "AdvectingVelocity")
+            call project_cartesian_to_local(X,advecting_u_prescribed,&
+                 advecting_u)
+         end if
       else
          call set(advecting_u,u)
       end if
@@ -649,8 +660,10 @@
       do nit = 1, nonlinear_iterations
 
          call set(u,old_u)
-         call set(h,old_h)
-         call set(h_DG,old_h_DG)
+         call set(h,old_h)         
+         if(h%mesh%continuity==0) then
+            call set(h_DG,old_h_DG)
+         end if
 
          if(.not.have_option('/material_phase::Fluid/vector_field::Velocity/&
               &prognostic/spatial_discretisation/discontinuous_galerkin/wave&
@@ -674,6 +687,7 @@
             if(h%mesh%continuity==0) then
                call project_field(h, h_DG, X)
                call set(old_h_DG,h_DG)
+               FLExit('need to solve continuity equation')
                call solve_advection_dg_subcycle("DGLayerThickness", state, &
                     "NonlinearVelocity")
                call calculate_scalar_galerkin_projection(state, h_projected)
@@ -702,10 +716,13 @@
                call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=1.0)
             end if
          end if
-         call set(advecting_u,old_u)
-         call scale(advecting_u,(1-itheta))
-         call addto(advecting_u,u,scale=itheta)
-
+         ! advecting velocity in local coordinates
+         if(.not.have_option('/material_phase::Fluid/vector_field::AdvectingVelocity&
+              &')) then            
+            call set(advecting_u,old_u)
+            call scale(advecting_u,(1-itheta))
+            call addto(advecting_u,u,scale=itheta)
+         end if
       end do
 
     end subroutine execute_timestep
