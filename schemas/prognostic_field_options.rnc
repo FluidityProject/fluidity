@@ -1153,6 +1153,12 @@ prognostic_pressure_field =
                ## ** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.
                element low_re_p_correction_fix {
                   empty
+               }?,
+               ## Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
+               ## Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
+               ## considered when selecting the pressure solver options.
+               element test_continuity_with_cv_dual {
+                  comment
                }?
             }|
             ## Select this discretisation if Pressure is defined on a discontinous mesh.

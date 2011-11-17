@@ -98,6 +98,8 @@
       logical, dimension(:), allocatable :: lump_mass
       ! are we using a cv pressure 
       logical :: cv_pressure 
+      ! for a CG pressure are we testing the continuity with cv
+      logical :: cg_pressure_cv_test_continuity
 
       ! Do we need to reassemble the C^T or CMC matrices?
       logical :: reassemble_all_ct_m, reassemble_all_cmc_m
@@ -150,6 +152,9 @@
 
          ! The pressure gradient matrix (extracted from state)
          type(block_csr_matrix_pointer), dimension(:), allocatable :: ct_m
+         ! The velocity divergence (or pressure gradient) matrix with a CV test space (extracted from state)
+         ! This is only used for incompressible flow with a CG pressure and a CV tested continuity equation
+         type(block_csr_matrix_pointer), dimension(:), allocatable :: cv_test_ct_m
          ! The pressure projection matrix (extracted from state)
          type(csr_matrix), pointer :: cmc_m
 
@@ -324,6 +329,12 @@
          allocate(subcycle_m(size(state)))
          allocate(inner_m(size(state)))
 
+         ! if incompressible, CG pressure with CV weighted
+         ! continuity then allocate another ct_m
+         if ((.not. use_compressible_projection) .and. cg_pressure_cv_test_continuity) then
+            allocate(cv_test_ct_m(size(state)))
+         end if
+
          nullify(cmc_global)
 
          ! Allocate arrays for phase-dependent options
@@ -377,6 +388,13 @@
                ! Get the pressure gradient matrix (i.e. the divergence matrix)
                ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=reassemble_ct_m) ! Sets reassemble_ct_m to true if it does not already exist in state(i) 
                reassemble_ct_m = reassemble_ct_m .or. reassemble_all_ct_m
+               
+               ! Get the CV tested pressure gradient matrix (i.e. the divergence matrix)
+               ! if required with a different unique name. Note there is no need
+               ! to again decide reassemble_ct_m as cv_test_ct_m is assemlbed when ct_m is.
+               if ((.not. use_compressible_projection) .and. cg_pressure_cv_test_continuity) then
+                  cv_test_ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), ct_m_name = "CVTestedVelocityDivergenceMatrix")
+               end if
 
                ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
@@ -517,7 +535,10 @@
             ! Initialise the big_m and ct_m matrices
             call zero(big_m(istate))
             if(reassemble_ct_m) then
-               call zero(ct_m(istate)%ptr)
+               call zero(ct_m(istate)%ptr)               
+               if ((.not. use_compressible_projection) .and. cg_pressure_cv_test_continuity) then
+                  call zero(cv_test_ct_m(istate)%ptr)
+               end if
             end if
 
             ! Allocate the momentum RHS
@@ -680,7 +701,32 @@
                      call rotate_ct_m_sphere(state(istate), ctp_m(istate)%ptr, u)
                   end if
                else
-                  ctp_m(istate)%ptr => ct_m(istate)%ptr  ! Incompressible scenario
+                  ! Incompressible scenario
+                  if (cg_pressure_cv_test_continuity) then
+                     ! Form the CV tested diveregence matrix and ct_rhs.
+                     ! This will only reassemble cv_test_ct_m when ct_m 
+                     ! also requires reassemble. NOTE that this is not optimal in that the ct_rhs
+                     ! was formed already above. The call here will overwrite those values.
+                     call assemble_divergence_matrix_cv(cv_test_ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
+                                                        test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
+                     if (have_rotated_bcs(u)) then
+                        if (dg(istate)) then
+                          call zero_non_owned(u)
+                        end if
+                        call rotate_ct_m(cv_test_ct_m(istate)%ptr, u)
+                     end if
+                     if (sphere_absorption(istate)) then
+                        if (dg(istate)) then
+                          call zero_non_owned(u)
+                        end if
+                        call rotate_ct_m_sphere(state(istate), cv_test_ct_m(istate)%ptr, u)
+                     end if
+                     ! Point the actual variable used below when forming cmc
+                     ctp_m(istate)%ptr => cv_test_ct_m(istate)%ptr  
+                  else    
+                     ! Point the actual variable used below when forming cmc         
+                     ctp_m(istate)%ptr => ct_m(istate)%ptr  
+                  end if
                end if
                ewrite_minmax(ctp_m(istate)%ptr)
                ewrite_minmax(ct_rhs(istate))
@@ -1113,6 +1159,8 @@
          deallocate(subcycle_m)
          deallocate(inner_m)
 
+         if (allocated(cv_test_ct_m)) deallocate(cv_test_ct_m)
+
          if(multiphase .and. associated(cmc_global)) then
             call deallocate(cmc_global)
             deallocate(cmc_global)
@@ -1241,6 +1289,11 @@
          ! Are we getting the pressure gradient matrix using control volumes?
          cv_pressure = have_option(trim(p%option_path)//&
                            "/prognostic/spatial_discretisation/control_volumes")
+
+         ! For CG pressure are we testing the continuity with the CV dual 
+         cg_pressure_cv_test_continuity = have_option(trim(p%option_path)//&
+                   &"/prognostic/spatial_discretisation/continuous_galerkin&
+                   &/test_continuity_with_cv_dual")
 
       end subroutine get_pressure_options
 
@@ -2004,7 +2057,27 @@
                   FLExit("Lump the mass matrix (of the velocity) if you want to make use of the low Reynolds number fix")
                end if
             end if
-            
+
+            ! Check options for case with CG pressure and
+            ! testing continuity with CV dual mesh
+            if (have_option("/material_phase["//int2str(i)//&
+                                 "]/scalar_field::Pressure/prognostic&
+                                 &/spatial_discretisation/continuous_galerkin&
+                                 &/test_continuity_with_cv_dual")) then
+
+               if(.not.have_option("/material_phase["//int2str(i)//&
+                                 "]/scalar_field::Pressure/prognostic&
+                                 &/scheme/use_projection_method")) then
+
+                  ewrite(-1,*) "Error: For a CG Pressure the continuity"
+                  ewrite(-1,*) "can only be tested with the cv dual mesh"
+                  ewrite(-1,*) "if the pressure scheme is the incompressible"
+                  ewrite(-1,*) "projection method, which is given by the option"
+                  ewrite(-1,*) "path material_phase/Pressure/spatial_discretisation/"
+                  ewrite(-1,*) "continuous_galerkin/scheme/use_projection_method"
+                  FLExit("Use incompressible projection method if wanting to test continuity with cv dual with CG pressure")                  
+               end if
+            end if            
          end do
 
          ewrite(1,*) 'Finished checking momentum discretisation options'
