@@ -32,24 +32,25 @@ examples plots are created and put in the directory.
 \centering
 \begin{tabular}{|l|l|c|l|}
   \hline
-  Example section & Example directory & N. procs. & Run time \\
+  Example section & Example directory & $n$ & Run time \\
   \hline
   \ref{sec:oned_advection} One dimensional advection & \texttt{top\_hat/} & 1 & 2 min. \\
   \ref{sec:lock_exchange} The lock-exchange & \texttt{lock\_exchange/} & 1 & 10 min. \\
   \ref{sec:lid_driven_cavity} Lid-driven cavity & \texttt{driven\_cavity/} & 1 & 7 hr. \\
-  \ref{sec:backward_facing_step_2d} 2D Backward facing step & \texttt{backward\_facing\_step\_2d/} & 1 & 15 min. \\
-  \ref{sec:backward_facing_step_3d} 3D Backward facing step & \texttt{backward\_facing\_step\_3d/} & 8 & 30 min. \\
-  \ref{sec:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 6 hr. \\
+  \ref{sec:backward_facing_step_2d} 2D Backward facing step (reference) & \texttt{backward\_facing\_step\_2d/} & 1 & 25 min. \\
+  \ref{sec:backward_facing_step_2d} 2D Backward facing step (k-$\epsilon$) & \texttt{backward\_facing\_step\_2d/} & 1 & 6 hr. \\
+  \ref{sec:backward_facing_step_3d} 3D Backward facing step & \texttt{backward\_facing\_step\_3d/} & 8 & 5hr. \\
+  \ref{sec:flow_past_sphere} Flow past a sphere & \texttt{flow\_past\_a\_sphereRe*/} & 8 & 9 hr. \\
   \ref{sec:periodic_channel} Rotating periodic channel & \texttt{rotating\_channel/} & 1 & 10 min. \\
   \ref{sec:water_collapse} Water column collapse & \texttt{water\_collapse/} & 1 & 2 hr. \\
   \ref{sec:restratification_after_oodc} The restratification after OODC & \texttt{restratification\_after\_oodc/} & 32 & 20 hr. \\
-  \ref{sec:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 12 hr. \\
+  \ref{sec:tides_in_the_med} Tides in the Mediterranean Sea  & \texttt{tides\_in\_the\_Mediterranean\_Sea/} & 64 & 5 hr. \\
   \ref{sec:hokkaido-nansei-oki_tsunami} Hokkaido-Nansei-Oki tsunami  & \texttt{hokkaido-nansei-oki\_tsunami/} & 4 & 1.5 hr. \\
   \ref{sec:tephra_settling} Tephra settling & \texttt{tephra\_settling/} & 1 & 1 hr. \\
   \hline
 \end{tabular}
 \caption{Estimated run times (wall time) for the examples. For parallel examples this is using
-the indicated, default number of processes. The times are rough estimates and may vary between 
+the indicated, default number of processes, $n$. The times are rough estimates and may vary between 
 different systems.} \label{tab:example_runtimes}
 \end{table}
 
@@ -146,7 +147,7 @@ will be directly prescribed on this first adapted mesh and not interpolated
 from the user provided initial mesh.
 
 Since we want to exactly conserve the amount of tracer in this example
-a galerkin projection based interpolation scheme is used to interpolate
+a Galerkin projection based interpolation scheme is used to interpolate
 between subsequently adapted meshes. To keep the solution bounded the
 ``minimally dissipative'' bounding procedure is used (only available for CG and DG).
 
@@ -216,7 +217,8 @@ of the option
 \item A conservative and bounded CV advection scheme that is less diffusive can be achieved by changing 
 the following options:
 \begin{itemize}
-\item Change \option{\ldots/limit\_face\_value/limiter::Sweby} to \option{limiter::Ultimate}.
+\item Change \option{\ldots/scalar\_field::Tracer/prognostic/spatial\_discretisation/control\_volumes/face\_value::FiniteElement}
+to \option{face\_value::HyperC}.
 \item Under \option{\ldots/temporal\_discretisation}, change theta to 0.0.
 \item Under \option{\ldots/temporal\_discretisation/control\_volumes}
 remove \\
@@ -281,11 +283,11 @@ Time step                                     & 0.025\,s                        
 Time loop                                     & 2 non-linear Picard iterations  & \ref{sec:ND_time_loop} \\
 Equation of state                             & linear                          & \ref{sec:equation_of_state} \\
 Momentum and Pressure spatial discretisation  & \Poo                            & \ref{sec:ND_momentum_equation}, \ref{sec:ND_pressure_equation}, \ref{sec:configuring_fluidity_continuous_galerkin}, \ref{sec:configuring_fluidity_pressure} \\
-Momentum temporal discretisation              & $\theta = 0.5$ (Crank-Nicholson)  & \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
+Momentum temporal discretisation              & $\theta = 0.5$ (Crank-Nicolson)  & \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
                                               & non-linear relaxation term $=0.5$ & \ref{sec:relax} \\
 Temperature advection                         & advection-diffusion equation    & \ref{sec:MP-AdvdifEqn} \\
                                               & control volumes                 & \ref{sec:CVs} \\
-Temperature temporal discretisation           & $\theta = 0.5$ (Crank-Nicholson)& \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
+Temperature temporal discretisation           & $\theta = 0.5$ (Crank-Nicolson)& \ref{sec:ND_time_theta_scheme}, \ref{sec:configuring_fluidity_temporal_discretisation} \\
                                               & 3 advection iterations, limit theta & \ref{sec:cvtemp} \\\hline
 \end{tabular}
 \caption{Numerical configuration for the lock-exchange}
@@ -346,7 +348,7 @@ The example settings are designed to provide a quick start for running the simul
 \item In the adaptivity settings for the horizontal velocity field try using a spatially varying interpolation error and compare Froude numbers (python can be found in the comment section for the velocity adaptivity settings), section \ref{sec:configuring_fluidity_error_metric};
 \item In the adaptivity settings for both the velocity field and temperature field use a $p$--norm with \mbox{$p=2$}, section \ref{sec:configuring_fluidity_error_metric}. Suggested values for the interpolation error are $0.00005, \, 0.00005 \,\, {\rm and} \,\, 0.0005$ for the horizontal velocity, vertical velocity and temperature fields respectively. 
 \item Change the frequency of the adapt, section \ref{sec:configuring_fluidity_adaptivity_options};
-\item Turn on metric advection, section \ref{section:metric_advection_general};
+\item Turn on metric advection, sections \ref{section:metric_advection_general} and \ref{sec:configuring_fluidity_metric_advection};
 \item Change the diffusivity and viscosity values;
 \item Run with a fixed mesh (note this will require making a new input mesh), sections \ref{sec:triangle_format}, \ref{sec:meshing_tools_non_fluidity_gmsh};
 \item Try adding some detectors to visualise the particle trajectories, section \ref{sec:diagnostics_detectors} %or \newline cf. \option{\ldots/fluidity-longtests/lock\_exchange\_2d\_}.
@@ -1289,10 +1291,10 @@ such as the Mediterranean Sea.
 \cline{2-3}
 & \bf{\citet{Tsimplis1995}} & \bf{ICOM} \\
 \hline
-M$_{\text{2}}$ &1.37 & 3.8\\
-S$_{\text{2}}$ &0.68 & 2.4\\
-K$_{\text{1}}$ &0.82 & 1.5\\
-O$_{\text{1}}$ &0.34 & 1.3\\
+M$_{\text{2}}$ &1.37 & 3.2\\
+S$_{\text{2}}$ &0.68 & 1.9\\
+K$_{\text{1}}$ &0.82 & 1.7\\
+O$_{\text{1}}$ &0.34 & 1.2\\
 \hline
 \end{tabular}
 \caption{RMS differences between modelled harmonic amplitudes and real-world data from 62 tide gauges.
@@ -1321,12 +1323,12 @@ positive correlation closely delineating $y=x$.
 \label{sec:hokkaido-nansei-oki_tsunami}
 
 \subsection{Overview}
-This example demonstrates the capabilities of simulating wetting and drying processes in \fluidity\ .
+This example demonstrates the capabilities of simulating wetting and drying processes in \fluidity.
 The event of interest is the Okushiri tsunami in 1993 caused by the Hokkaido Nansei-Oki earthquake offshore of southwestern Hokkaido Island, Japan. 
 This earthquake reached a magnitude of 7.8 (Mw) and the resulting tsunami hit a sparsely populated part of the Okushiri island, Japan with a runup height of up to 30m.
 
 To investigate the danger of such events, the Research Institute for Electric Power Industry (CRIEPI) in Abiko, Japan constructed a $1/400$ laboratory model of the area around the island \cite{liu2008advanced}. 
-The following configuration simulates this laboratory setup and uses the experimental measurements to benchmark \fluidity\ .
+The following configuration simulates this laboratory setup and uses the experimental measurements to benchmark \fluidity.
 
 Fluidity features used in this example:
 \begin{itemize}

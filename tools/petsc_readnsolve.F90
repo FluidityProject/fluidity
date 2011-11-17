@@ -328,6 +328,7 @@ contains
   
     type(petsc_numbering_type):: petsc_numbering
     type(element_type):: shape
+    type(quadrature_type):: quad
     type(mesh_type), pointer:: linear_mesh
     type(mesh_type):: mesh
     type(state_type), pointer:: states(:)
@@ -338,8 +339,7 @@ contains
     logical read_state, fail
     integer i, n, istate, stat
     type(halo_type), pointer :: my_halo
-    integer nstates, universal_nodes, components
-    type(ele_numbering_type), pointer :: ele_num
+    integer nstates, universal_nodes, components, dim
 
     ewrite(1,*) "Opening flml file ", trim(flml)
     call load_options(flml)
@@ -440,11 +440,15 @@ contains
       
     else
     
-      ! allocate a dummy shape and mesh:
-       ele_num => find_element_numbering(&
-         &vertices = 1, dimension = 1, degree = 1)
-      call allocate(shape,ele_num,1)
+      ! allocate a dummy quadrature, shape and mesh
+      ! all we need is a mesh with node_count(mesh)=n
+      call get_option('/geometry/dimension/', dim)
+      quad=make_quadrature(vertices=dim+1, dim=dim, degree=1)
+      shape=make_element_shape(vertices=dim+1, dim=dim, degree=1, quad=quad)
+      ! allocate the mesh with n nodes and 1 element
       call allocate(mesh, n, 1, shape, "Mesh")
+      call deallocate(shape)
+      call deallocate(quad)
       
       ! setup trivial petsc numbering
       call allocate(petsc_numbering, n, 1)
