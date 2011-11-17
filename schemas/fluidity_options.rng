@@ -973,7 +973,7 @@ Make sure that the Diffusivity tensor field in here is set to diagnostic/interna
                       </element>
                       <element name="diagnostic">
                         <ref name="mesh_choice"/>
-                        <ref name="sediment_concentration_dependent_viscosity"/>
+                        <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
                         <ref name="diagnostic_tensor_field"/>
                       </element>
                     </choice>
@@ -2509,7 +2509,7 @@ Where: rho_s is the sediment density and rho_a is the ambient fluid density</a:d
             </element>
             <optional>
               <element name="diameter">
-                <a:documentation>This is the diameter of the grain in mm.
+                <a:documentation>This is the diameter of the grain.
 Diameter must be specified here or under each sediment class.</a:documentation>
                 <ref name="real"/>
               </element>
@@ -2533,13 +2533,83 @@ Default is 1.</a:documentation>
               <element name="critical_shear_stress">
                 <a:documentation>Critical shear stress of a grain. If not switched on a value
 will be computed according to the particle Reynolds number and Shield's
-criterion. Otherwise inoput a value in Nm-1</a:documentation>
+criterion.</a:documentation>
                 <ref name="real"/>
               </element>
             </optional>
           </element>
         </element>
       </oneOrMore>
+      <optional>
+        <element name="scalar_field">
+          <a:documentation>The median sediment diameter in the active layer of the bed. 
+Required for some reentrainment algorithms.</a:documentation>
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>SedimentBedActiveLayerD50</value>
+          </attribute>
+          <choice>
+            <element name="diagnostic">
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+            <element name="aliased">
+              <ref name="generic_aliased_field"/>
+            </element>
+          </choice>
+        </element>
+      </optional>
+      <optional>
+        <element name="scalar_field">
+          <a:documentation>The standard deviation of sediment in the active layer of the
+bed. Required for some reentrainment algorithms</a:documentation>
+          <attribute name="rank">
+            <value>0</value>
+          </attribute>
+          <attribute name="name">
+            <value>SedimentBedActiveLayerSigma</value>
+          </attribute>
+          <choice>
+            <element name="diagnostic">
+              <ref name="internal_algorithm"/>
+              <ref name="velocity_mesh_choice"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+            <element name="aliased">
+              <ref name="generic_aliased_field"/>
+            </element>
+          </choice>
+        </element>
+      </optional>
+      <optional>
+        <element name="tensor_field">
+          <a:documentation>ZeroSedimentConcentrationViscosity field:
+
+Field for the viscosity of this a fluid with zero 
+concentration of sediment.
+Required if using a diagnostic viscosity
+in a sediment problem where sediment concentration
+dependent viscosity is required.</a:documentation>
+          <attribute name="rank">
+            <value>2</value>
+          </attribute>
+          <attribute name="name">
+            <value>ZeroSedimentConcentrationViscosity</value>
+          </attribute>
+          <choice>
+            <element name="prescribed">
+              <ref name="velocity_mesh_choice"/>
+              <ref name="prescribed_tensor_field"/>
+            </element>
+            <element name="aliased">
+              <ref name="generic_aliased_field"/>
+            </element>
+          </choice>
+        </element>
+      </optional>
     </element>
   </define>
   <define name="prognostic_density_field">
@@ -6762,30 +6832,6 @@ in a multimaterial simulation.</a:documentation>
       <element name="___Prescribed_fields_below___">
         <a:documentation>Prescribed scalar fields below this</a:documentation>
         <empty/>
-      </element>
-      <element name="tensor_field">
-        <a:documentation>ZeroSedimentConcentrationViscosity field:
-
-Field for the viscosity of this a fluid with zero 
-concentration of sediment.
-Required if using a diagnostic viscosity
-in a sediment problem where sediment concentration
-dependent viscosity is required.</a:documentation>
-        <attribute name="rank">
-          <value>2</value>
-        </attribute>
-        <attribute name="name">
-          <value>ZeroSedimentConcentrationViscosity</value>
-        </attribute>
-        <choice>
-          <element name="prescribed">
-            <ref name="velocity_mesh_choice"/>
-            <ref name="prescribed_tensor_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
       </element>
       <!--
         

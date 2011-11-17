@@ -32,7 +32,7 @@ module equation_of_state
   use fields
   use state_module
   use global_parameters, only: OPTION_PATH_LEN
-  use sediment, only: get_n_sediment_fields, get_sediment_field_name
+  use sediment, only: get_n_sediment_fields, get_sediment_item
   use spud
   implicit none
   
@@ -185,13 +185,10 @@ contains
 
        do i=1,n_sediment_fields
        
-          sediment_field_name = get_sediment_field_name(i)
+          call get_sediment_item(state, i, 'name', sediment_field_name)
 
           S=>extract_scalar_field(state,trim(sediment_field_name))
-          option_path = S%option_path
-
-          call get_option(trim(option_path)//'/prognostic/submerged_specific_gravity',&
-               & gamma)
+          call get_sediment_item(state, i, 'submerged_specific_gravity', gamma)
           
           gamma = gamma * rho_0
 

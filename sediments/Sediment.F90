@@ -44,33 +44,277 @@ module sediment
   implicit none
 
   public set_sediment_reentrainment, sediment_check_options, get_n_sediment_fields, &
-       & get_sediment_field_name
+       & get_sediment_item
 
-  private
+  private 
+
+  interface get_sediment_item
+     module procedure get_sediment_string, get_sediment_real, get_sediment_scalar_field
+  end interface get_sediment_item
 
 contains
 
-  function get_n_sediment_fields()
+  function get_n_sediment_fields() result (n_fields)
 
     ! Returns the number of sediment fields
+    integer                      :: n_fields
 
-    integer :: get_n_sediment_fields
-
-    get_n_sediment_fields = option_count('/material_phase[0]/sediment/scalar_field')
+    n_fields = option_count('/material_phase[0]/sediment/scalar_field')
 
   end function get_n_sediment_fields
 
-  function get_sediment_field_name(i_field)
+  subroutine get_sediment_string(state, i_field, option, item, stat)
 
-    ! Returns 1-based sediment field name
+    ! Returns sediment field string option
+    type(state_type), intent(in)                :: state
+    integer, intent(in)                         :: i_field
+    character(len=*), intent(in)                :: option
+    character(len=FIELD_NAME_LEN), intent(out)  :: item
+    integer, intent(out), optional              :: stat
 
-    integer, intent(in)            :: i_field
-    character(len=FIELD_NAME_LEN)  :: get_sediment_field_name
+    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+         & 1)//']/'//option, item) 
 
-    call get_option('/material_phase[0]/sediment/scalar_field['//int2str(i_field - 1)&
-         &//']/name', get_sediment_field_name) 
+  end subroutine get_sediment_string
 
-  end function get_sediment_field_name
+  subroutine get_sediment_real(state, i_field, option, item, stat)
+
+    ! Returns sediment field real option
+    type(state_type), intent(in)                :: state
+    integer, intent(in)                         :: i_field
+    character(len=*), intent(in)                :: option
+    real, intent(out)                           :: item
+    integer, intent(out), optional              :: stat
+    
+    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+         & 1)//']/'//option, item, stat = stat) 
+
+  end subroutine get_sediment_real
+
+  subroutine get_sediment_scalar_field(state, i_field, option, item, stat)
+
+    ! Returns sediment field related scalar field
+    type(state_type), intent(in)                :: state
+    integer, intent(in)                         :: i_field
+    type(scalar_field), pointer, intent(out)    :: item
+    character(len=*), intent(in)                :: option
+    integer, intent(out), optional              :: stat
+    
+    character(len=FIELD_NAME_LEN)               :: field_name
+
+    call get_sediment_item(state, i_field, 'name', field_name, stat)
+    item => extract_scalar_field(state, trim(field_name)//option, stat)
+
+  end subroutine get_sediment_scalar_field
+
+  subroutine set_sediment_reentrainment(state)
+
+    type(state_type), intent(in)     :: state
+    type(scalar_field), pointer      :: sediment_field
+    integer                          :: i_field, i_bc, n_bc
+    character(len = FIELD_NAME_LEN)  :: field_name, bc_name, bc_type, algorithm
+    character(len = OPTION_PATH_LEN) :: bc_path, bc_path_
+
+    ewrite(1,*) "In set_sediment_reentrainment"
+
+    sediment_fields: do i_field = 1, get_n_sediment_fields()
+
+       ! extract sediment field from state
+       call get_sediment_item(state, i_field, 'name', field_name)
+       sediment_field => extract_scalar_field(state, trim(field_name))
+
+       ! get boundary condition path and number of boundary conditions
+       bc_path = trim(sediment_field%option_path)//'/prognostic/boundary_conditions'
+       n_bc = option_count(trim(bc_path))
+
+       ! Loop over boundary conditions for field
+       boundary_conditions: do i_bc = 0, n_bc - 1
+          
+          ! Get name and type of boundary condition
+          bc_path_ = trim(bc_path)//"["//int2str(i_bc)//"]"
+          call get_option(trim(bc_path_)//"/name", bc_name)
+          call get_option(trim(bc_path_)//"/type[0]/name", bc_type)
+
+          ! skip if this is not a reentrainment boundary
+          if (.not. (trim(bc_type) .eq. "sediment_reentrainment")) then
+             cycle boundary_conditions
+          end if
+
+          ewrite(1,*) "Setting reentrainment boundary condition "//trim(bc_name)//" for fi&
+               &eld: "//trim(field_name)
+
+          call get_option(trim(bc_path_)//"/type[0]/algorithm", algorithm) 
+
+          call set_reentrainment_bc(state, sediment_field, bc_name, i_field, algorithm)    
+
+       end do boundary_conditions
+
+    end do sediment_fields
+
+  end subroutine set_sediment_reentrainment
+
+  subroutine set_reentrainment_bc(state, sediment_field, bc_name, i_field, algorithm)
+
+    type(state_type), intent(in)              :: state
+    type(scalar_field), intent(in), pointer   :: sediment_field
+    type(scalar_field), pointer               :: reentrainment, bedload, sink_U
+    type(scalar_field)                        :: masslump, bedload_remap
+    type(tensor_field), pointer               :: viscosity
+    type(vector_field), pointer               :: x, shear_stress
+    character(len = FIELD_NAME_LEN)           :: bc_name, algorithm
+    integer                                   :: stat, i_ele, i_field, i_node
+    type(mesh_type), pointer                  :: surface_mesh
+    integer, dimension(:), pointer            :: surface_element_list
+
+    ! get boundary condition field and zero
+    reentrainment => extract_surface_field(sediment_field, bc_name, "value")
+    call set(reentrainment, 0.0)
+
+    ! get boundary condition info
+    call get_boundary_condition(sediment_field, name=bc_name,&
+         & surface_mesh=surface_mesh, surface_element_list=surface_element_list)
+
+    ! get bedload field
+    call get_sediment_item(state, i_field, 'SedimentBedload', bedload)
+
+    ! get sinking velocity
+    call get_sediment_item(state, i_field, 'SinkingVelocity', sink_U)
+
+    ! get viscosity
+    viscosity => extract_tensor_field(state, "Viscosity", stat)
+    if (stat /= 0) then
+       FLExit("A viscosity field must be specified to calculate reentrainment")
+    end if
+
+    ! get shear stress
+    shear_stress => extract_vector_field(state, "BedShearStress", stat)
+    if (stat /= 0) then
+       FLExit("A bed shear stress must be specified to calculate reentrainment")
+    end if    
+
+    ! get coordinate field
+    x => extract_vector_field(state, "Coordinate")
+
+    if (continuity(surface_mesh)>=0) then
+       ! For continuous fields we need a global lumped mass. For dg we'll
+       ! do the mass inversion on a per face basis inside the element loop.
+       ! Continuity must be the same for all bedload meshes
+       call allocate(masslump, surface_mesh, "SurfaceMassLump")
+       call zero(masslump)
+    end if
+       
+    ! loop through elements in surface field
+    elements: do i_ele = 1, element_count(reentrainment)
+
+       select case(trim(algorithm))
+       case("Hill_2010")
+          ! call hill_2010_reentrainment(state, sediment_field, bc_name)
+       case("Garcia_1991")
+          call assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
+               & x, masslump, surface_mesh, surface_element_list, viscosity, shear_stress,&
+               & bedload)
+       case default
+          FLExit("A valid reentrainment algorithm must be selected")
+       end select   
+
+    end do elements
+
+    ! invert global lumped mass for continuous fields
+    if(continuity(surface_mesh)>=0) then
+       where (masslump%val/=0.0)
+          masslump%val=1./masslump%val
+       end where
+       call scale(reentrainment, masslump)
+    end if
+
+    ! check bound of entrainment so that it does not exceed the available sediment in the
+    ! bed and is larger than zero.
+    call allocate(bedload_remap, surface_mesh, name="bedload_remap")
+    call remap_field_to_surface(bedload, bedload_remap, surface_element_list)
+    nodes: do i_node = 1, node_count(reentrainment)
+       call set(reentrainment, i_node, min(max(node_val(reentrainment, i_node), 0.0),&
+            & node_val(bedload_remap, i_ele)))
+    end do nodes
+
+  end subroutine set_reentrainment_bc
+  
+  subroutine assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
+       & x, masslump, surface_mesh, surface_element_list, viscosity, shear_stress, sink_U)
+
+    type(state_type), intent(in)                     :: state
+    integer, intent(in)                              :: i_ele, i_field
+    type(tensor_field), pointer, intent(in)          :: viscosity
+    type(vector_field), intent(in)                   :: x, shear_stress
+    type(scalar_field), intent(inout)                :: masslump
+    type(scalar_field), pointer, intent(inout)       :: reentrainment
+    type(scalar_field), pointer, intent(in)          :: sink_U
+    type(mesh_type), pointer, intent(in)             :: surface_mesh
+    type(element_type), pointer                      :: shape
+    integer, dimension(:), pointer, intent(in)       :: surface_element_list
+    integer, dimension(:), pointer                   :: ele
+    real, dimension(ele_ngi(reentrainment, i_ele))   :: detwei
+    real, dimension(ele_loc(reentrainment, i_ele), &
+         & ele_loc(reentrainment, i_ele))            :: invmass
+    real                                             :: A, R, d, g, rho_0
+    real, dimension(ele_ngi(reentrainment, i_ele))   :: R_p, u_star, Z
+    real, dimension(ele_loc(reentrainment, i_ele))   :: E
+
+    A = 1.3*10.0**(-7.0)
+    
+    ele => ele_nodes(reentrainment, i_ele)
+    shape => ele_shape(reentrainment, i_ele)
+
+    call transform_facet_to_physical(x, surface_element_list(i_ele), detwei)
+    
+    if(continuity(reentrainment)>=0) then
+       call addto(masslump, ele, &
+            sum(shape_shape(shape, shape, detwei), 1))
+    else
+       ! In the DG case we will apply the inverse mass locally.
+       invmass=inverse(shape_shape(shape, shape, detwei))
+    end if
+
+    ! calculate particle Reynolds number
+    call get_sediment_item(state, i_field, 'submerged_specific_gravity', R)
+    call get_sediment_item(state, i_field, 'diameter', d)
+    call get_option("/physical_parameters/gravity/magnitude", g)
+    ! VISCOSITY ASSUMED TO BE ISOTROPIC - maybe should be in normal direction to surface
+    R_p = sqrt(R*g*d**3)/face_val_at_quad(viscosity, 1, 1, surface_element_list(i_ele))
+    
+    ! calculate u_star (shear velocity)
+    call get_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/line&
+         &ar/reference_density', rho_0)
+    u_star = sqrt(norm2(face_val_at_quad(shear_stress, surface_element_list(i_ele)))&
+         &/rho_0)
+
+    ! calculate Z
+    Z = (1 - 0.288) * u_star / face_val_at_quad(sink_U, surface_element_list(i_ele)) *&
+         & R_p**0.6 * d**0.2   
+
+    ! calculate reentrainment
+    E = shape_rhs(shape, A*Z**5 / (1 + A*Z**5/0.3) * detwei)
+
+    if(continuity(reentrainment)<0) then
+       ! DG case.
+       E = matmul(invmass, E)
+    end if
+
+    call addto(reentrainment, ele, E)
+    
+  end subroutine assemble_garcia_1991_reentrainment_ele
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   subroutine sediment_check_options
 
@@ -169,289 +413,362 @@ contains
 
   end subroutine sediment_check_options
 
-  subroutine set_sediment_reentrainment(state)
+!   subroutine set_sediment_reentrainment(state)
 
-    type(state_type), intent(in)                           :: state
-    type(scalar_field_pointer), dimension(:), allocatable  :: bedload
-    type(scalar_field), pointer                            :: field, erosion, sinking_velocity
-    type(scalar_field)                                     :: bedload_surface
-    type(vector_field), pointer                            :: bed_shear_stress
-    type(vector_field)                                     :: shear_stress_surface
-    type(tensor_field)                                     :: viscosity_surface
-    type(mesh_type), pointer                               :: bottom_mesh
-    real, dimension(:), allocatable                        :: diameter
-    real                                                   :: R, g, erosion_flux, shear,&
-         & dt, rho_0
-    real                                                   :: erodibility, porosity,&
-         & critical_shear_stress
-    logical                                                :: have_erodibility,&
-         & have_porosity, have_critical_shear_stress, have_viscosity
-    logical, dimension(:), allocatable                     :: have_bedload, have_diameter
-    integer, dimension(:), pointer                         :: surface_element_list
-    integer                                                :: i_field, i_bc, j,&
-         & n_sediment_fields, nbcs, stat
-    character(len=FIELD_NAME_LEN)                          :: field_name, bc_name, bc_type
-    character(len=OPTION_PATH_LEN)                         :: bc_path, bc_path_i
+!     type(rtrmnt_info)                :: info
+!     type(state_type), intent(in)     :: state
+!     type(scalar_field), pointer      :: field, reentrainment
+!     integer                          :: i_field, stat, i_bc, n_bc
+!     character(len = FIELD_NAME_LEN)  :: bc_name, bc_type, algorithm
+!     character(len = OPTION_PATH_LEN) :: bc_path, bc_path_
 
-    ewrite(1,*) "In set_sediment_reentrainment"
+!     ewrite(1,*) "In set_sediment_reentrainment"
 
-    ! without the bed shear stress we cannot calculate reentrainment
-    if (has_vector_field(state, "BedShearStress")) then
-       bed_shear_stress => extract_vector_field(state, "BedShearStress")
+    
 
-       call get_option("/timestepping/timestep", dt)
-       call get_option("/physical_parameters/gravity/magnitude", g)
+!     sediment_fields: do i_field = 1, info%n_fields
 
-       n_sediment_fields = get_n_sediment_fields()
+!        ! get boundary condition path and number of boundary conditions
+!        bc_path = trim(info%fields(i_field)%base%option_path)//'/prognostic/boundary_conditions'
+!        n_bc = option_count(trim(bc_path))
+
+!        ! Loop over boundary conditions for field
+!        boundary_conditions: do i_bc = 0, n_bc - 1
+          
+!           bc_path_ = trim(bc_path)//"["//int2str(i_bc)//"]"
+!           ! Get name and type of boundary condition
+!           call get_option(trim(bc_path_)//"/name", bc_name)
+!           call get_option(trim(bc_path_)//"/type[0]/name", bc_type)
+
+!           ! If this is a reentrainment boundary then store info
+!           if (.not. (trim(bc_type) .eq. "sediment_reentrainment")) then
+!              cycle boundary_conditions
+!           end if
+
+!           ewrite(1,*) "Setting reentrainment boundary conditions for field: ",trim(info&
+!                &%fields(i_field)%base%name)
+
+!           ! get boundary condition field and zero
+!           reentrainment => extract_surface_field(info%fields(i_field)%base, bc_name, "value")
+!           call set(reentrainment, 0.0)
+
+!           call remap_info_to_boundary(info, i_field, bc_name)
+
+!           call get_option(trim(bc_path_)//"/type[0]/algorithm", algorithm)     
+!           select case(algorithm)
+!           case("Hill_2010")
+!              call hill_2010_reentrainment(info, i_field, reentrainment) 
+!           case("Garcia_1991")
+!              call garcia_1991_reentrainment(info, i_field, reentrainment)
+!           case default
+!              FLExit("A valid reentrainment algorithm must be selected")
+!           end select          
+
+!        end do boundary_conditions
+
+!     end do sediment_fields  
+
+!     call deallocate_info(info)
+
+!   end subroutine set_sediment_reentrainment
+
+!   subroutine garcia_1991_reentrainment(info, i_field, reentrainment)
+    
+!     type(rtrmnt_info), intent(in)         :: info
+!     integer, intent(in)                   :: i_field
+!     type(scalar_field), intent(inout)     :: reentrainment
+!     logical                               :: have_d = .true.
+!     real                                  :: R_p, u_star, mean_d, sigma_d, Z, d50, E, A
+!     integer                               :: i_field_internal, i_node
+
+!     do i_field_internal = 1, info%n_fields
+!        if (.not. info%fields(i_field_internal)%have_d) have_d = .false.
+!     end do
+
+!     if (.not. (have_d .and. info%have_viscosity)) then
+!        FLExit("All sediment fields must have a diameter, and a viscosity field must be&
+!             & specified to calculate reentrainment using the Garcia_1991 formula")
+!     end if
+
+!     A = 1.3*10.0**(-7.0)
+
+!     nodes: do i_node = 1, node_count(reentrainment)
        
-       allocate (bedload(n_sediment_fields))
-       allocate (have_bedload(n_sediment_fields))
-       allocate (diameter(n_sediment_fields))
-       allocate (have_diameter(n_sediment_fields))
+!        ! calculate particle Reynolds number
+!        R_p = sqrt(info%fields(i_field)%R*info%g*(info%fields(i_field)%d)**3)&
+!             &/node_val(info%viscosity_iso_remap, i_node)
 
-       ! get deposited sediment for each sediment field
-       do i_field=1,n_sediment_fields
+!        ! calculate u_star (shear velocity)
+!        u_star = sqrt(norm2(node_val(info%shear_stress, i_node))/info%rho_0)
 
-          ! get field and field name
-          field_name = get_sediment_field_name(i_field)
-          field => extract_scalar_field(state, trim(field_name))
+!        ! calculate d_50 (median grain size by volume)
+!        call get_d50_sigma_d(info, i_node, d50, sigma_d)       
 
-          ! get field bedload
-          bedload(i_field)%ptr => extract_scalar_field(state,trim(field_name)//"SedimentBe&
-               &dload", stat=stat)
-          if (stat .eq. 0) then 
-             have_bedload(i_field) = .true.
-          else
-             have_bedload(i_field) = .false.
-          end if
+!        ! calculate Z
+!        Z = (1 - 0.288 * sigma_d) * u_star / node_val(info%fields(i_field)%sink_U_remap,&
+!             & i_node) * R_p**0.6 * (info%fields(i_field)%d / d50)**0.2   
 
-          ! get sediment diameter
-          if (have_option(trim(field%option_path)//"/prognostic/diameter")) then
-             call get_option(trim(field%option_path)//"/prognostic/diameter",diameter(i_field))
-             have_diameter(i_field) = .true.
-          else
-             have_diameter(i_field) = .false.
-          end if
+!        ! calculate reentrainment (minimum is 0.0, maximum is bedload/dt)
+!        E = max(min(&
+!             & A*Z**5 / (1 + A*Z**5/0.3) &
+!             &,0.0),node_val(info%fields(i_field)%bedload_remap, i_node)/info%dt)
 
-       end do
+!        call addto(reentrainment, i_node, E)
 
-       do i_field=1,n_sediment_fields
+!     end do nodes
 
-          ! get field and field name
-          field_name = get_sediment_field_name(i_field)
-          field => extract_scalar_field(state, trim(field_name))
+!   end subroutine garcia_1991_reentrainment
 
-          ! get boundary condition path and number of boundary conditions
-          bc_path=trim(field%option_path)//'/prognostic/boundary_conditions'
-          nbcs=option_count(trim(bc_path))
+!   subroutine get_d50_sigma_d(info, i_node, d50, sigma_d)
 
-          ! Loop over boundary conditions for field
-          boundary_conditions: do i_bc=0, nbcs-1
+!     type(rtrmnt_info), intent(in)  :: info
+!     integer, intent(in)            :: i_node
+!     real, intent(out)              :: d50, sigma_d
+!     real, dimension(info%n_fields) :: sorted_bedload, sorted_diameter
+!     logical                        :: sorted
+!     real                           :: total_bedload, cumulative_bedload, temp, mean_d
+!     integer                        :: i_field
 
-             bc_path_i=trim(bc_path)//"["//int2str(i_bc)//"]"
+!     do i_field = 1, info%n_fields
+!        sorted_bedload(i_field) = node_val(info%fields(i_field)%bedload_remap, i_node)
+!        sorted_diameter(i_field) = info%fields(i_field)%d
+!     end do
+!     sorted = .false.
 
-             ! Get name and type of boundary condition
-             call get_option(trim(bc_path_i)//"/name", bc_name)
-             call get_option(trim(bc_path_i)//"/type[0]/name", bc_type)
+!     do while (.not. sorted)
+!        sorted = .true.
+!        do i_field = 2, info%n_fields
+!           if (sorted_diameter(i_field-1) > sorted_diameter(i_field)) then
+!              temp = sorted_diameter(i_field)
+!              sorted_diameter(i_field) = sorted_diameter(i_field-1)
+!              sorted_diameter(i_field-1) = temp
+!              temp = sorted_bedload(i_field)
+!              sorted_bedload(i_field) = sorted_bedload(i_field-1)
+!              sorted_bedload(i_field-1) = temp
+!              sorted = .false.
+!           end if
+!        end do
+!     end do
 
-             ! Only reentrainment boundaries are handled here
-             if (.not. (trim(bc_type) .eq. "sediment_reentrainment")) then
-                cycle boundary_conditions
-             end if
+!     total_bedload = sum(sorted_bedload)
 
-             ewrite(1,*) "Setting reentrainment bc for field: ",trim(field_name)
+!     cumulative_bedload = 0.
+!     i_field = 0
+!     do while (cumulative_bedload < 0.5*total_bedload)
+!        i_field = i_field + 1
+!        cumulative_bedload = cumulative_bedload + sorted_bedload(i_field)
+!     end do
 
-             call get_erosion_parameters()
+!     d50 = sorted_diameter(i_field)   
 
-             call j_hill_reentrainment()
+!     ! calculate sigma (standard deviation of bed sediment by volume) 
+!     mean_d = sum(sorted_diameter*sorted_bedload)/sum(sorted_bedload)
+!     sigma_d = sqrt(sum((sorted_diameter-mean_d)**2))         
 
-             call deallocate(bedload_surface)
-             call deallocate(shear_stress_surface)
+!   end subroutine get_d50_sigma_d
 
-          end do boundary_conditions
+!   subroutine Hill_2010_reentrainment(info, i_field, reentrainment)
+    
+!     type(rtrmnt_info), intent(inout)           :: info
+!     integer, intent(in)                        :: i_field
+!     type(scalar_field), intent(inout)          :: reentrainment
+!     real                                       :: E
+!     integer                                    :: i_node
 
-       end do
+!     ! get or calculate critical shear stress
+!     if ((.not. info%fields(i_field)%have_shear_crit) .and. info%fields(i_field)%have_d)&
+!          & then
+!        ! estimate of critical shear stress assuming grains larger than
+!        ! 10 microns and constant viscosity
+!        ! critical stress is either given by user (optional) or calculated
+!        ! using Shield's formula (depends on grain size and density and
+!        ! (vertical) viscosity) 
+!        info%fields(i_field)%shear_crit = 0.041 * info%fields(i_field)%R * 1024. * info%g &
+!             &* info%fields(i_field)%d
+!     else
+!        FLExit("You need to either specify a critical shear stress or a &&
+!             && sediment diameter to use the j_hill formula for reentrainment")
+!     end if
 
-       ! deallocate
-       deallocate (bedload)
-       deallocate (have_bedload)
-       deallocate (diameter)
+!     ! calculate eroded sediment flux and set reentrainment BC
+!     ! we only need to add to the source the reentrainment of sediment from the
+!     ! bedload into the neumann BC term
+!     !
+!     ! The source depends on the erodability of that sediment
+!     ! (usually 1 unless you want to do something like mud which sticks),
+!     ! the porosity in the bedload and the bed shear stress. 
+!     !
+!     ! Each sediment class has a critical shear stress, which if exceeded
+!     ! by the bed shear stress, sediment is placed into suspension
+!     !
+!     ! loop over nodes in bottom surface
+!     nodes: do i_node = 1, node_count(reentrainment)
 
-    end if
+!        ! calculate reentrainment (minimum is 0.0, maximum is bedload/dt)
+!        E = max(min(&
+!             &info%fields(i_field)%erod*(1-info%fields(i_field)%poro)&
+!             &*((norm2(node_val(info%shear_stress, i_node)) - info%fields(i_field)&
+!             &%shear_crit) / info%fields(i_field)%shear_crit)&
+!             &,0.0),node_val(info%fields(i_field)%bedload_remap, i_node)/info%dt)
 
-    contains
+!        call addto(reentrainment, i_node, E)
 
-      subroutine get_erosion_parameters()
+!     end do nodes
 
-        type(tensor_field), pointer        :: viscosity
+!   end subroutine hill_2010_reentrainment
 
-        call get_boundary_condition(field, name=bc_name, type=bc_type, &
-             surface_mesh=bottom_mesh,surface_element_list=surface_element_list)   
+!   subroutine get_reentrainment_info(info, state)
+    
+!     type(rtrmnt_info), intent(inout) :: info
+!     type(state_type), intent(in)     :: state
+!     integer                          :: i_field, stat
 
-        ! allocate surface fields for deposited sediment, shear stress and viscosity
-        call allocate(bedload_surface, bottom_mesh, name="bedload_surface")
-        call allocate(shear_stress_surface, bed_shear_stress%dim, bottom_mesh, name="sh&
-             &ear_stress_surface")
+!     ! find number of fields and allocate space in info object
+!     info%n_fields = get_n_sediment_fields()
+!     allocate(info%fields(info%n_fields))
 
-        ! remap deposited sediment and shear stress fields to boundary condition
-        ! surface mesh
-        call remap_field_to_surface(bed_shear_stress, shear_stress_surface, &
-             surface_element_list)
-        call remap_field_to_surface(bedload(i_field)%ptr, bedload_surface, &
-             surface_element_list)
-        
-        call get_option(trim(field%option_path)//"/prognostic/submerged_specific_gravity"&
-             &,R)
+!     ! get global information required for reentrainment algorithms
+!     info%shear_stress => extract_vector_field(state, "BedShearStress")
+!     info%viscosity => extract_tensor_field(state, "Viscosity", stat)
+!     info%have_viscosity = .true.
+!     if (stat /= 0) then
+!        info%have_viscosity = .false.
+!     end if
+!     call get_option("/timestepping/timestep", info%dt)
+!     call get_option("/physical_parameters/gravity/magnitude", info%g)
+!     call get_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/line&
+!          &ar/reference_density', info%rho_0)   
 
-        erosion => extract_surface_field(field, bc_name, "value")
-        
-        call get_option(trim(field%option_path)//"/prognostic/erodability", erodibility, default&
-             &=1.0)
+!     ! get sediment field information required for reentrainment algorithms
+!     sediment_fields: do i_field = 1, info%n_fields
+!        call get_field_reentrainment_info(info%fields(i_field), state, i_field)
+!     end do sediment_fields
 
-        call get_option(trim(field%option_path)//"/prognostic/porosity", porosity,&
-             & default=0.3)
+!   end subroutine get_reentrainment_info
 
-        call get_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/&
-             &linear/reference_density', rho_0)       
+!   subroutine get_field_reentrainment_info(field_info, state, i_field)
+    
+!     type(rtrmnt_class_info), intent(inout) :: field_info
+!     type(state_type), intent(in)           :: state
+!     character(len=FIELD_NAME_LEN)          :: field_name
+!     integer                                :: i_field, stat
+    
+!     ! field name
+!     field_name = get_sediment_field_name(i_field)
+!     field_info%base => extract_scalar_field(state, trim(field_name))
+!     ! bedload
+!     field_info%bedload => extract_scalar_field(state,trim(field_name)//"SedimentBedload",&
+!          & stat=stat)
+!     field_info%have_bedload = .true.
+!     if (stat /= 0) then 
+!        field_info%have_bedload = .false.
+!     end if
+!     ! diameter
+!     if (have_option(trim(field_info%base%option_path)//"/prognostic/diameter")) then
+!        call get_option(trim(field_info%base%option_path)//"/prognostic/diameter"&
+!             &, field_info%d)
+!        field_info%have_d = .true.
+!     else
+!        field_info%have_d = .false.
+!     end if
+!     ! erodability
+!     call get_option(trim(field_info%base%option_path)//"/prognostic/erodability",&
+!          & field_info%erod, default=1.0)
+!     ! porosity
+!     call get_option(trim(field_info%base%option_path)//"/prognostic/porosity", field_info&
+!          &%poro, default=0.3)  
+!     ! specific gravity
+!     call get_option(trim(field_info%base%option_path)//"/prognostic/submerged_specific_gra&
+!          &vity", field_info%R, default=1000.0)
+!     ! sinking velocity
+!     field_info%sink_U => extract_scalar_field(state, trim(field_name)//"SinkingVelocity")
+!     ! critical shear stress
+!     if (have_option(trim(field_info%base%option_path)//"/prognostic&
+!          &/critical_shear_stress")) then
+!        call get_option(trim(field_info%base%option_path)//"/prognostic/critical_shear_stre&
+!             &ss", field_info%shear_crit)
+!        field_info%have_shear_crit = .true.
+!     else
+!        field_info%have_shear_crit = .false.
+!     end if
 
-        sinking_velocity => extract_scalar_field(state, trim(field%name)//"SinkingVelocity")       
+!   end subroutine get_field_reentrainment_info
 
-        if (have_option(trim(field%option_path)//"/prognostic/critical_shear_stress")) then
-           viscosity => extract_tensor_field(state, "Viscosity")
-           ! call allocate(viscosity_surface, mesh=bottom_mesh, dim=viscosity%dim, name="viscosity_sh&
-           !      &ear_stress")
-           ! call remap_field_to_surface(viscosity, viscosity_surface, surface_element_list) 
-           
-           have_viscosity = .true.
-        else
-           have_viscosity = .false.
-        end if
+!   subroutine remap_info_to_boundary(info, i_field, bc_name)
 
-        if (have_option(trim(field%option_path)//"/prognostic/critical_shear_stress")) then
-           call get_option(trim(field%option_path)//"/prognostic/critical_shear_stress",&
-                & critical_shear_stress)
-           have_critical_shear_stress = .true.
-        else
-           have_critical_shear_stress = .false.
-        end if
+!     type(rtrmnt_info), intent(inout)            :: info
+!     integer, intent(in)                         :: i_field
+!     character(len = FIELD_NAME_LEN), intent(in) :: bc_name
+!     type(mesh_type), pointer                    :: bottom_mesh
+!     type(scalar_field)                          :: viscosity_iso
+!     integer, dimension(:), pointer              :: surface_element_list
+!     integer                                     :: i_field_internal
 
-      end subroutine get_erosion_parameters
+!     ! get boundary condition info
+!     call get_boundary_condition(info%fields(i_field)%base, name=bc_name,&
+!          & surface_mesh=bottom_mesh, surface_element_list=surface_element_list)
 
-      subroutine Garcia_1991_reentrainment()
+!     call deallocate_remapped_info(info)
 
-        real, dimension(:,:), allocatable  :: viscosity_node_val
-        real                               :: R_p, u_star, d_50, A, sigma, Z
-        integer                            :: node, row, column
+!     ! convert viscosity to scalar field (ASSUMED ISOTROPIC) and remap to boundary
+!     ! condition surface
+!     call allocate(viscosity_iso, info%viscosity%mesh, name="viscosity_iso")
+!     call set(viscosity_iso, info%viscosity, 1, 1)
+!     call allocate(info%viscosity_iso_remap, bottom_mesh, name="viscosity_iso_remap")
+!     call remap_field_to_surface(viscosity_iso, info%viscosity_iso_remap,&
+!          & surface_element_list)
+!     call deallocate(viscosity_iso)
 
-        if (.not. (all(have_diameter) .and. have_viscosity)) then
-           FLExit("All sediment fields must have a diameter, and a viscosity field must be&
-                & specified to calculate erosion using the Garcia_1991 formula")
-        end if
+!     ! remap shear stress to boundary condition surface
+!     call allocate(info%shear_stress_remap, info%shear_stress%dim, bottom_mesh, name="shear&
+!          &_stress_remap")
+!     call remap_field_to_surface(info%shear_stress, info%shear_stress_remap, &
+!          surface_element_list)
 
-        ! allocate (viscosity_node_val(viscosity_surface%dim, viscosity_surface%dim))
+!     sediment_fields: do i_field_internal = 1, info%n_fields
+       
+!        ! remap bedload to boundary condition surface
+!        call allocate(info%fields(i_field_internal)%bedload_remap, bottom_mesh, name&
+!             &=trim(info%fields(i_field_internal)%base%name)//"bedload_remap")
+!        call remap_field_to_surface(info%fields(i_field_internal)%bedload, info&
+!             &%fields(i_field_internal)%bedload_remap, surface_element_list)
+       
+!        ! remap sink_U to boundary condition surface
+!        call allocate(info%fields(i_field_internal)%sink_U_remap, bottom_mesh, name&
+!             &=trim(info%fields(i_field_internal)%base%name)//"sink_U_remap")
+!        call remap_field_to_surface(info%fields(i_field_internal)%sink_U, info&
+!             &%fields(i_field_internal)%sink_U_remap, surface_element_list)
 
-        A = 1.3*10**(-7)
-        
-        do node = 1, node_count(bedload_surface)
+!     end do sediment_fields
+    
+!     ! if this has been remapped allocated fields will need deallocating later
+!     info%remapped = .true.
 
-           ! check viscosity is isotropic (NOT DOING THIS AS IT MIGHT BE SLOW - not in schema)
-           ! viscosity_node_val = node_val(viscosity_surface, node)
-           ! do row = 1, viscosity_surface%dim
-           !    do column = 1, viscosity_surface%dim
-           !       if (row .eq. column) then
-           !          if (.not. (viscosity_node_val(row, column) .eq. viscosity_node_val(1,&
-           !               & 1))) then
-           !             FLExit("Garcia_1991 entrainment is only valid for isotropic viscosi&
-           !                  &ty fields")
-           !          end if
-           !       else
-           !          if (.not. (viscosity_node_val(row, column) .eq. 0.0)) then
-           !             FLExit("Garcia_1991 entrainment is only valid for isotropic viscosi&
-           !                  &ty fields")
-           !          end if
-           !       end if
-           !    end do
-           ! end do
+!   end subroutine remap_info_to_boundary
 
-           ! calculate particle Reynolds number
-           R_p = (R*g*(diameter(i_field)/1000.0)**3)**0.5/viscosity_node_val(1,1)
+!   subroutine deallocate_remapped_info(info)
 
-           ! calculate u_star (shear velocity)
-           u_star = (node_val(bedload_surface, node)/rho_0)**0.5
+!     type(rtrmnt_info), intent(inout) :: info
+!     integer                          :: i_field
 
-           ! calculate d_50 (median grain size by volume)
-           d_50 = 0
+!     if (info%remapped) then
+!        call deallocate(info%viscosity_iso_remap)
+!        call deallocate(info%shear_stress_remap)
+!        sediment_fields : do i_field = 1, info%n_fields
+!           call deallocate(info%fields(i_field)%bedload_remap)
+!           call deallocate(info%fields(i_field)%sink_U_remap)
+!        end do sediment_fields
+!     end if
 
-           ! calculate sigma (standard deviation of bed sediment)
-           sigma = 0
+!   end subroutine deallocate_remapped_info
 
-           ! calculate Z
-           ! Z = (1 - 0.288 * sigma) * u_star / sinking_velocity * R_p**0.6 * &
-           !      & ( diameter(i_field) / d_50 * 1000.0 )**0.2
+!   subroutine deallocate_info(info)
 
-           ! calculate erosion
-           erosion_flux = A*Z**5 / (1 + A*Z**5/0.3)
-           ! A limit is placed depending on how much of that sediment is in the
-           ! bedload
-           if (erosion_flux*dt > node_val(bedload_surface, node)) then
-              erosion_flux = node_val(bedload_surface, node)/dt
-           end if
-           call set(erosion, node, erosion_flux)
+!     type(rtrmnt_info), intent(inout) :: info
 
-        end do
+!     call deallocate_remapped_info(info)
+!     deallocate(info%fields)
 
-        deallocate (viscosity_node_val)
-
-      end subroutine Garcia_1991_reentrainment
-
-      subroutine j_hill_reentrainment()
-
-        ! get or calculate critical shear stress
-        if ((.not. have_critical_shear_stress) .and. have_diameter(i_field)) then
-           ! estimate of critical shear stress assuming grains larger than
-           ! 10 microns and constant viscosity - note the conversion to mm!
-           critical_shear_stress = 0.041 * R * 1024. * g * (diameter(i_field)/1000.)
-        else
-           FLExit("You need to either specify a critical shear stress or a &&
-                && sediment diameter to use the j_hill formula for erosion")
-        end if
-
-        ! calculate eroded sediment flux and set reentrainment BC
-        ! we only need to add to the source the erosion of sediment from the
-        ! bedload into the neumann BC term
-        !
-        ! The source depends on the erodability of that sediment
-        ! (usually 1 unless you want to do something like mud which sticks),
-        ! the porosity in the bedload and the bed shear stress. 
-        !
-        ! Each sediment class has a critical shear stress, which if exceeded
-        ! by the bed shear stress, sediment is placed into suspension
-        !
-        ! loop over nodes in bottom surface
-        do j=1,node_count(bedload_surface)
-
-           shear = norm2(node_val(shear_stress_surface, j))
-           ! critical stress is either given by user (optional) or calculated
-           ! using Shield's formula (depends on grain size and density and
-           ! (vertical) viscosity)
-           erosion_flux = erodibility*(1-porosity)*((shear - critical_shear_stress) /&
-                & critical_shear_stress)
-
-           if (erosion_flux < 0) then 
-              erosion_flux = 0.0
-           end if
-           ! A limit is placed depending on how much of that sediment is in the
-           ! bedload
-           if (erosion_flux*dt > node_val(bedload_surface,j)) then
-              erosion_flux = node_val(bedload_surface,j)/dt
-           end if
-
-           call set(erosion,j,erosion_flux)
-
-        end do
-
-      end subroutine j_hill_reentrainment
-
-  end subroutine set_sediment_reentrainment
+!   end subroutine deallocate_info
 
 end module sediment

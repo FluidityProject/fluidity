@@ -44,7 +44,7 @@ module momentum_diagnostics
   use spud
   use state_fields_module
   use state_module
-  use sediment, only : get_n_sediment_fields, get_sediment_field_name
+  use sediment, only : get_n_sediment_fields, get_sediment_item
   
   implicit none
   
@@ -165,7 +165,7 @@ contains
     if (sediment_classes > 0) then
         allocate(sediment_concs(sediment_classes))
         
-        field_name = get_sediment_field_name(1)
+        call get_sediment_item(state, 1, 'name', field_name)
         sediment_concs(1)%ptr => extract_scalar_field(state,trim(field_name))
         
         call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
@@ -173,7 +173,7 @@ contains
         
         ! get sediment concentrations and remove c/0.65 from rhs
         do i=1, sediment_classes
-           field_name=get_sediment_field_name(i)
+           call get_sediment_item(state, i, 'name', field_name)
            sediment_concs(i)%ptr => extract_scalar_field(state,trim(field_name))
            call addto(rhs, sediment_concs(i)%ptr, scale=-(1.0/0.65))
         end do
@@ -199,7 +199,6 @@ contains
     else
         ewrite(1,*) 'No sediment in problem definition'
     end if  
-
   end subroutine calculate_sediment_concentration_dependent_viscosity
   
   subroutine calculate_tensor_second_invariant(state, s_field)

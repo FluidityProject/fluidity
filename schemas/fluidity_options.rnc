@@ -792,7 +792,7 @@ start =
                         element diagnostic {
                            mesh_choice,
                            (
-                              sediment_concentration_dependent_viscosity
+                              sediment_concentration_dependent_viscosity_algorithm
                            ),
                            diagnostic_tensor_field
                         }
@@ -1841,7 +1841,7 @@ sediment =
                element submerged_specific_gravity {
                   real
                },
-               ## This is the diameter of the grain in mm.
+               ## This is the diameter of the grain.
                ## Diameter must be specified here or under each sediment class.
                element diameter {
                   real
@@ -1859,12 +1859,64 @@ sediment =
                }?,
                ## Critical shear stress of a grain. If not switched on a value
                ## will be computed according to the particle Reynolds number and Shield's
-               ## criterion. Otherwise inoput a value in Nm-1
+               ## criterion.
                element critical_shear_stress {
                   real
                }?
             }
-         }+
+         }+,
+         ## The median sediment diameter in the active layer of the bed. 
+         ## Required for some reentrainment algorithms.
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "SedimentBedActiveLayerD50" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }?,
+         ## The standard deviation of sediment in the active layer of the
+         ## bed. Required for some reentrainment algorithms
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "SedimentBedActiveLayerSigma" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }?,
+         ## ZeroSedimentConcentrationViscosity field:
+         ##
+         ## Field for the viscosity of this a fluid with zero 
+         ## concentration of sediment.
+         ## Required if using a diagnostic viscosity
+         ## in a sediment problem where sediment concentration
+         ## dependent viscosity is required.
+         element tensor_field {
+            attribute rank { "2" },
+            attribute name { "ZeroSedimentConcentrationViscosity" },
+            (
+               element prescribed {
+                  velocity_mesh_choice,
+                  prescribed_tensor_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }?
       }
    )
 
@@ -5390,27 +5442,6 @@ tensor_field_choice =
          ## Prescribed scalar fields below this
          element ___Prescribed_fields_below___ {
             empty
-         }|
-
-         ## ZeroSedimentConcentrationViscosity field:
-         ##
-         ## Field for the viscosity of this a fluid with zero 
-         ## concentration of sediment.
-         ## Required if using a diagnostic viscosity
-         ## in a sediment problem where sediment concentration
-         ## dependent viscosity is required.
-         element tensor_field {
-            attribute rank { "2" },
-            attribute name { "ZeroSedimentConcentrationViscosity" },
-            (
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_tensor_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
          }|
 
 #

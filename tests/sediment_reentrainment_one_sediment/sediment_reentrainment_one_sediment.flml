@@ -306,7 +306,9 @@
             <surface_ids>
               <integer_value shape="1" rank="1">8</integer_value>
             </surface_ids>
-            <type name="sediment_reentrainment"/>
+            <type name="sediment_reentrainment">
+              <algorithm>Garcia_1991</algorithm>
+            </type>
           </boundary_conditions>
           <tensor_field name="Diffusivity" rank="2">
             <prescribed>

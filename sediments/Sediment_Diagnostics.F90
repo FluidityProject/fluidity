@@ -41,7 +41,8 @@ module sediment_diagnostics
   
   private
 
-  public calculate_sediment_flux, calculate_sinking_velocity
+  public calculate_sediment_flux, calculate_sediment_sinking_velocity,&
+       & calculate_sediment_active_layer_d50, calculate_sediment_active_layer_sigma
 
 contains
   
@@ -86,7 +87,7 @@ contains
 
     do i_field=1, n_sediment_fields 
        
-       field_name = get_sediment_field_name(i_field)
+       call get_sediment_item(state, i_field, 'name', field_name)
  
        sediment_field(i_field)%ptr => &
             extract_scalar_field(state,trim(field_name))
@@ -283,7 +284,7 @@ contains
 
   end subroutine assemble_sediment_flux_ele
 
-  subroutine calculate_sinking_velocity(state)
+  subroutine calculate_sediment_sinking_velocity(state)
     
     type(state_type), intent(inout) :: state
 
@@ -292,7 +293,7 @@ contains
     type(scalar_field)                                        :: rhs
     integer                                                   :: n_sediment_fields,&
          & i_field, i_node
-    character(len = OPTION_PATH_LEN)                          :: field_name
+    character(len = FIELD_NAME_LEN)                          :: field_name
 
     ewrite(1,*) 'In calculate sediment sinking velocities'
 
@@ -301,14 +302,14 @@ contains
     allocate(sediment_concs(n_sediment_fields))
 
     ! allocate storage for rhs and set all to 1
-    field_name = get_sediment_field_name(1)
+    call get_sediment_item(state, 1, 'name', field_name)
     sediment_concs(1)%ptr => extract_scalar_field(state, field_name)
     call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
     call set(rhs, 1.0)
        
     ! get sediment concentrations and remove from rhs
     do i_field=1, n_sediment_fields
-       field_name = get_sediment_field_name(i_field)
+       call get_sediment_item(state, i_field, 'name', field_name)
        sediment_concs(i_field)%ptr => extract_scalar_field(state, field_name)
        call addto(rhs, sediment_concs(i_field)%ptr, scale=-1.0)
     end do
@@ -353,6 +354,92 @@ contains
     call deallocate(rhs)
     deallocate(sediment_concs)
 
-  end subroutine calculate_sinking_velocity
+  end subroutine calculate_sediment_sinking_velocity
+
+  subroutine calculate_sediment_active_layer_d50(state)
+
+    type(state_type), intent(inout)             :: state
+    type(scalar_field), pointer                 :: d50
+    type(scalar_field)                          :: total_bedload
+    type(scalar_field_pointer), dimension(:), allocatable :: sorted_bedload
+    real, dimension(:), allocatable             :: sorted_diameter
+    type(scalar_field_pointer)                  :: temp_bedload
+    real                                        :: temp_diameter
+    real                                        :: cumulative_bedload
+    logical                                     :: sorted = .false.
+    integer                                     :: i_field, n_fields, i_node, stat
+
+    d50 => extract_scalar_field(state, "SedimentBedActiveLayerD50", stat)
+    if (stat /= 0) return
+
+    n_fields = get_n_sediment_fields()
+
+    allocate(sorted_bedload(n_fields))
+    allocate(sorted_diameter(n_fields))
+
+    do i_field = 1, n_fields
+       call get_sediment_item(state, i_field, 'diameter', sorted_diameter(i_field), stat)
+       if (stat /= 0) FLExit("All sediment fields must have a diameter to be able to calcu&
+            &late the SedimentBedActiveLayerD50")
+       call get_sediment_item(state, i_field, 'SedimentBedload', sorted_bedload(i_field)&
+            &%ptr, stat)
+    end do
+
+    do while (.not. sorted)
+       sorted = .true.
+       do i_field = 2, n_fields
+          if (sorted_diameter(i_field-1) > sorted_diameter(i_field)) then
+             temp_diameter = sorted_diameter(i_field)
+             sorted_diameter(i_field) = sorted_diameter(i_field-1)
+             sorted_diameter(i_field-1) = temp_diameter
+             temp_bedload = sorted_bedload(i_field)
+             sorted_bedload(i_field) = sorted_bedload(i_field-1)
+             sorted_bedload(i_field-1) = temp_bedload
+             sorted = .false.
+          end if
+       end do
+    end do
+
+    call allocate(total_bedload, sorted_bedload(1)%ptr%mesh, "TotalBedload")
+    call zero(d50)
+    call zero(total_bedload)
+
+    do i_field = 1, n_fields
+       call addto(total_bedload, sorted_bedload(i_field)%ptr)
+    end do
+ 
+    elements: do i_node = 1, node_count(d50)
+
+       i_field = 0
+       cumulative_bedload = 0.0
+       do while (cumulative_bedload < 0.5*node_val(total_bedload, i_node))
+          i_field = i_field + 1
+          cumulative_bedload = cumulative_bedload + node_val(sorted_bedload(i_field)%ptr,&
+               & i_node)
+       end do
+
+       if (i_field == 0) then
+          call set(d50, i_node, 0.0)
+          cycle elements
+       end if
+
+       call set(d50, i_node, sorted_diameter(i_field))
+
+    end do elements  
+
+    deallocate(sorted_diameter)
+    deallocate(sorted_bedload)
+    call deallocate(total_bedload)  
+
+  end subroutine calculate_sediment_active_layer_d50
+
+  subroutine calculate_sediment_active_layer_sigma(state)
+
+    type(state_type), intent(inout)             :: state
+
+    ! mean_d = sum(sorted_diameter*sorted_bedload)/sum(sorted_bedload)
+    ! sigma_d = sqrt(sum((sorted_diameter-mean_d)**2)) 
+    
+  end subroutine calculate_sediment_active_layer_sigma
 
 end module sediment_diagnostics

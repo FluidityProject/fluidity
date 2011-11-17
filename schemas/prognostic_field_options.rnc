@@ -54,7 +54,8 @@ scalar_boundary_conditions =
             ## sediment grain
             element type {
                attribute name { "sediment_reentrainment" },
-               empty
+               ## Select algorithm to calculate reentrainment by (see the manual for more detail)
+               element algorithm { "Garcia_1991" | "Hill_2010" }
             }|
             ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
             ## Special type of Dirichlet boundary condition for the k-epsilon

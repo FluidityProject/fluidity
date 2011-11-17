@@ -705,7 +705,7 @@ contains
        end if
 
        if (trim(bc_type) .eq. "sediment_reentrainment") then
-          ! skip sediment boundareis - done seperately
+          ! skip sediment boundaries - done seperately
           ! see assemble/Sediment.F90
           cycle boundary_conditions
        end if
