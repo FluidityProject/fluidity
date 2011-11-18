@@ -824,8 +824,16 @@ a discontinuous velocity field for this to work!</a:documentation>
         </element>
         <element name="advection_scheme">
           <choice>
-            <element name="upwind">
-              <a:documentation>Straightforward upwinding of the nonlinear velocity.</a:documentation>
+            <element name="edge_coordinates_upwind">
+              <a:documentation>Upwinding using the coordinate system consisting
+of the edge tangential and normal components of
+the nonlinear velocity.</a:documentation>
+              <empty/>
+            </element>
+            <element name="sphere_coordinates_upwind">
+              <a:documentation>Upwinding using the sphere coordinate system
+where one tangent vector is orthogonal to the
+(0,0,1) vector.</a:documentation>
               <empty/>
             </element>
             <element name="none">

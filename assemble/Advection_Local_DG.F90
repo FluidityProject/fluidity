@@ -719,6 +719,7 @@ module advection_local_DG
 
     do i=1, subcycles
        call mult_t(U_cartesian_tmp, L, U)
+       assert(all(abs(U_cartesian_tmp%val(3,:))<1.0e-7))
        call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
        ! dU = Advection * U
        ! A maps from cartesian to local
@@ -980,11 +981,9 @@ module advection_local_DG
     do gi=1,ele_ngi(X,ele)
        U_cartesian_q(:,gi)=matmul(transpose(J(:,:,gi)),U_nl_q(:,gi))
        U_cartesian_q(:,gi)=U_cartesian_q(:,gi)/detJ(gi)
-       pinvJ(:,:,gi)=pseudoinverse(J(:,:,gi))
-       dshape(:,gi,:)=matmul(U_shape%dn(:,gi,:),transpose(pinvJ(:,:,gi)))
     end do
-    Advection_mat = shape_vector_dot_dshape_tensor(U_shape, U_nl_q, U_shape%dn, J_scaled, U_shape%quadrature%weight)
-    FLExit('need to put in the other divergence term')
+    Advection_mat = shape_vector_dot_dshape_tensor(U_shape, U_nl_q, U_shape&
+         &%dn, J_scaled, U_shape%quadrature%weight)
 
    !----------------------------------------------------------------------
    ! Perform global assembly.

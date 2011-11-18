@@ -673,8 +673,16 @@ prognostic_sw_velocity_field =
             },
             element advection_scheme {
                (
-                  ## Straightforward upwinding of the nonlinear velocity.
-                  element upwind {
+                  ## Upwinding using the coordinate system consisting
+                  ## of the edge tangential and normal components of
+                  ## the nonlinear velocity.
+                  element edge_coordinates_upwind {
+                     empty
+                  }|
+                  ## Upwinding using the sphere coordinate system
+                  ## where one tangent vector is orthogonal to the
+                  ## (0,0,1) vector.
+                  element sphere_coordinates_upwind {
                      empty
                   }|
                   ## Disable advection
