@@ -4,13 +4,13 @@
 <testproblem>
   <name>1 material column under gravity using CG pressure with continuity tested with the CV dual</name>
   <owner userid="btollit"/>
-  <tags>flml solidity</tags>
+  <tags>flml cg_press_test_cty_cv</tags>
     <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity gravity-col-press_cg_test_cty_cv_p0p1_2d.flml
-../../bin/fluidity gravity-col-press_cg_test_cty_cv_p1dgp2_2d.flml
-../../bin/fluidity gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.flml
-../../bin/fluidity gravity-col-press_cg_test_cty_cv_p2p1_2d.flml
+fluidity gravity-col-press_cg_test_cty_cv_p0p1_2d.flml
+fluidity gravity-col-press_cg_test_cty_cv_p1dgp2_2d.flml
+fluidity gravity-col-press_cg_test_cty_cv_p2lumpedp1_2d.flml
+fluidity gravity-col-press_cg_test_cty_cv_p2p1_2d.flml
     </command_line>
   </problem_definition>  
   <variables>  

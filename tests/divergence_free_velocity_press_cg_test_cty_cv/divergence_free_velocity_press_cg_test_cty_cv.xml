@@ -2,7 +2,7 @@
 <testproblem>
   <name>Checks that velocity is divergence free with CG pressure and the continuity tested with the CV dual functions</name>
   <owner userid="btollit"/>
-  <tags>flml</tags>
+  <tags>flml cg_press_test_cty_cv</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
 fluidity divergence_free_velocity_press_cg_test_cty_cv_p0p1_3d.flml
