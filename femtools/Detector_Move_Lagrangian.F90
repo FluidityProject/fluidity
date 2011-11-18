@@ -314,17 +314,12 @@ contains
           do while (associated(detector))
              if (detector%type==LAGRANGIAN_DETECTOR) then
 
-                call profiler_tic(trim(detector_list%name)//"::get_random_walk_subcycling")
-                !call get_random_walk_subcycling(detector, sub_dt, xfield, diffusivity_field, &
-                !          diffusivity_grad, diffusivity_2nd_grad, parameters%search_tolerance, &
-                !          parameters%subcycle_scale_factor, detector%rw_subsubcycles)
+                ! Establish how many subcycles are needed
                 detector%rw_subsubcycles = auto_subcycle_per_ele(detector%element)
-                call profiler_toc(trim(detector_list%name)//"::get_random_walk_subcycling")
                 total_subsubcycle = total_subsubcycle + detector%rw_subsubcycles
                 if (detector%rw_subsubcycles > max_subsubcycle) then
                    max_subsubcycle = detector%rw_subsubcycles
                 end if
-                !ewrite(2,*) "ml805 old det auto", detector%rw_subsubcycles, "new det auto", auto_subcycle_per_ele(detector%element)
 
                 call profiler_tic(trim(detector_list%name)//"::diffusive_random_walk")
                 call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, &
@@ -700,7 +695,7 @@ contains
     integer, intent(out) :: subcycles
 
     type(ilist) :: neigh_ele_list, ele_in_range
-    type(integer_hash_table) :: ihash
+    type(integer_hash_table) :: visited_eles
     type(inode), pointer :: ele
     integer :: i, current_ele, local_subcycling, key, value
     real :: k0, d_z, z_0, min_z, max_z, ele_min_z, ele_max_z, neigh_min_z, neigh_max_z, min_dt
@@ -708,7 +703,6 @@ contains
     real, dimension(xfield%mesh%shape%loc) :: coords
     real, dimension(grad_field%mesh%shape%loc) :: k_grad
     real, dimension(grad2_field%mesh%shape%loc) :: k_grad2
-    logical :: already_visited
 
     subcycles = 1
     k0 = maxval(abs(ele_val(diff_field, element)))
@@ -722,102 +716,36 @@ contains
 
     call insert(neigh_ele_list, element)
 
-    !call profiler_tic("/element_rw_subcycling/ihash")
-    call allocate(ihash)
-    !call profiler_toc("/element_rw_subcycling/ihash")
+    call allocate(visited_eles)
 
     ! Now unfold neighbours into neigh_ele_list until we are out of range
     do while (neigh_ele_list%length >= 1)
        current_ele = ipop(neigh_ele_list)
 
-       !call profiler_tic("/element_rw_subcycling/ihash_lookup")
-       already_visited = has_key(ihash, current_ele)
-       !call profiler_toc("/element_rw_subcycling/ihash_lookup")
+       if (has_key(visited_eles, current_ele)) cycle
 
-       if (already_visited) cycle
+       call insert(visited_eles, current_ele, 0)
 
-       !call profiler_tic("/element_rw_subcycling/ihash")
-       call insert(ihash, current_ele, 0)
-       !call profiler_toc("/element_rw_subcycling/ihash")
-
-       !call profiler_tic("/element_rw_subcycling/ele_min_max")
        coords = ele_val(xfield, xfield%dim, current_ele)
        ele_min_z = minval(coords)
        ele_max_z = maxval(coords)
-       !call profiler_toc("/element_rw_subcycling/ele_min_max")
 
-       ! The initial case of elements with ele_min_z < d_z < ele_max_z
-       if (ele_min_z < z_0 .and. ele_max_z > z_0) then
-          call insert(ele_in_range, current_ele)
-
-          ! add neighbours that are further up or down to search space
-          !call profiler_tic("/element_rw_subcycling/neighbour_search")
-          neighbours => ele_neigh(xfield, current_ele)
-          do i=1, size(neighbours)
-             if (neighbours(i)>0) then
-                coords = ele_val(xfield, xfield%dim, neighbours(i))
-                neigh_min_z = minval(coords)
-                neigh_max_z = maxval(coords)
-
-                if (neigh_max_z>=ele_max_z) then
-                   call insert(neigh_ele_list, neighbours(i))
-                end if
-
-                if (neigh_min_z<=ele_min_z) then
-                   call insert(neigh_ele_list, neighbours(i))
-                end if
-             end if
-          end do
-          !call profiler_toc("/element_rw_subcycling/neighbour_search")
-
-       ! if ele is in upper half-range
-       elseif (ele_min_z>z_0 .and. ele_min_z<max_z) then
+       ! if one of the two z coordinates is in the range add the neighbours to our search space
+       if ((ele_min_z>min_z .and. ele_min_z<max_z).or.(ele_max_z<max_z .and. ele_max_z>min_z)) then
           call insert(ele_in_range, current_ele)
 
           ! add neighbours that are further up to search space
-          !call profiler_tic("/element_rw_subcycling/neighbour_search")
           neighbours => ele_neigh(xfield, current_ele)
           do i=1, size(neighbours)
              if (neighbours(i)>0) then
-                coords = ele_val(xfield, xfield%dim, neighbours(i))
-                neigh_max_z = maxval(coords)
-
-                if (neigh_max_z>=ele_max_z) then
-                   call insert(neigh_ele_list, neighbours(i))
-                end if
+                call insert(neigh_ele_list, neighbours(i))
              end if
           end do
-          !call profiler_toc("/element_rw_subcycling/neighbour_search")
-
-       ! if ele is in lower half-range
-       elseif (ele_max_z<z_0 .and. ele_max_z>min_z) then
-          call insert(ele_in_range, current_ele)
-
-          ! add neighbours that are further down to search space
-          !call profiler_tic("/element_rw_subcycling/neighbour_search")
-          neighbours => ele_neigh(xfield, current_ele)
-          do i=1, size(neighbours)
-             if (neighbours(i)>0) then
-                coords = ele_val(xfield, xfield%dim, neighbours(i))
-                neigh_min_z = minval(coords)
-
-                if (neigh_min_z<=ele_min_z) then
-                   call insert(neigh_ele_list, neighbours(i))
-                end if
-             end if
-          end do
-          !call profiler_toc("/element_rw_subcycling/neighbour_search")
-
        end if
        
     end do
 
-    !call profiler_tic("/element_rw_subcycling/ihash")
-    call deallocate(ihash)
-    !call profiler_toc("/element_rw_subcycling/ihash")
-
     ! Now we have all elements in our range and we can find the maximum sub-cycle number
-    !call profiler_tic("/element_rw_subcycling/fin_auto_num")
     ele => ele_in_range%firstnode
     i = 1
     do while(associated(ele))
@@ -831,71 +759,10 @@ contains
        ele => ele%next
        i = i + 1
     end do
-    !call profiler_toc("/element_rw_subcycling/fin_auto_num")
     call flush_list(ele_in_range)
+    call deallocate(visited_eles)
 
   end subroutine element_rw_subcycling
-
-  subroutine get_random_walk_subcycling(detector,dt,xfield,diff_field,grad_field,grad2_field,search_tolerance,scale_factor,subcycles)
-    type(detector_type), pointer, intent(in) :: detector
-    type(scalar_field), pointer, intent(in) :: diff_field
-    type(vector_field), pointer, intent(in) :: xfield, grad_field, grad2_field
-    real, intent(in) :: dt, search_tolerance, scale_factor
-    integer, intent(out) :: subcycles
-
-    integer, dimension(:), pointer :: current_ele_nodes
-    real, dimension(:), allocatable :: node_vals
-    real :: K0, d_z, z_offset, local_subcycling, min_dt
-    type(ilist) :: ele_path
-    type(inode), pointer :: current_ele
-    integer :: i, sample_ele, proc_owner
-    real, dimension(size(detector%local_coords)) :: l_coords
-    real, dimension(size(detector%local_coords)) :: sample_coord
-    real, dimension(grad_field%dim) :: K_grad
-
-    K0 = abs(detector_value(diff_field, detector))
-    K_grad = detector_value(grad_field, detector)
-    d_z = sqrt(6 * K0 * dt) + abs(K_grad(grad_field%dim)) * dt
-    subcycles = 1
-
-    call insert(ele_path, detector%element)
-
-    ! Get all elements along the path z0 -> z0 + (2*K0*dt)^1/2
-    sample_ele = detector%element
-    sample_coord = detector%position
-    sample_coord(size(detector%position)) = sample_coord(size(detector%position)) + d_z
-    call local_guided_search(xfield,sample_coord,sample_ele,search_tolerance,proc_owner,l_coords,ele_path)
-
-    ! Get all elements along the path z0 -> z0 - (2*K0*dt)^1/2
-    sample_ele = detector%element
-    sample_coord = detector%position
-    sample_coord(size(detector%position)) = sample_coord(size(detector%position)) - d_z
-    call local_guided_search(xfield,sample_coord,sample_ele,search_tolerance,proc_owner,l_coords,ele_path) 
-
-    ! Find maximum subcycling factor in all elements
-    ! in range [z0-(2*K0*dt)^1/2 : z0+(2*K0*dt)^1/2] by
-    ! evaluating dt << MIN(1/|K''|) at all element nodes
-    ! with an additional user-defined scale factor
-    current_ele_nodes=>ele_nodes(grad2_field, ele_path%firstnode%value)
-    allocate(node_vals(size(current_ele_nodes)))
-    i = 1
-    current_ele => ele_path%firstnode
-    do while (associated(current_ele%next))
-       current_ele_nodes=>ele_nodes(grad2_field, current_ele%value)
-       node_vals = abs(node_val(grad2_field, grad2_field%dim, current_ele_nodes))
-       node_vals = 1.0 / node_vals
-       min_dt = minval(node_vals) / scale_factor
-       local_subcycling = ceiling(dt/min_dt)
-       if (local_subcycling > subcycles) then
-          subcycles = local_subcycling
-       end if
-       i = i + 1
-       current_ele => current_ele%next
-    end do
-    deallocate(node_vals)
-    call flush_list(ele_path)
-
-  end subroutine get_random_walk_subcycling
 
   subroutine diffusive_random_walk(detector, dt, xfield, diff_field, grad_field, displacement)
     type(detector_type), pointer, intent(in) :: detector
