@@ -3381,6 +3381,21 @@ condition p=0 (this is full pressure without subtracting the hydrostatic compone
 For viscous fluids the correct boundary condition is a no normal
 stress condition, which includes a viscosity term. When using
 this option a prognostic FreeSurface field is required.</a:documentation>
+              <optional>
+                <element name="explicit">
+                  <a:documentation>Treat the free surface evolution equation separately from the momentum equation.  
+i.e. stagger the solves.
+
+Requires a prognostic FreeSurface field.</a:documentation>
+                  <empty/>
+                </element>
+              </optional>
+            </element>
+          </optional>
+          <optional>
+            <element name="variable_density">
+              <a:documentation>When selected the density at the surface is calculated using the Density field.  Therefore
+this requires a Density field!</a:documentation>
               <empty/>
             </element>
           </optional>
@@ -3388,7 +3403,7 @@ this option a prognostic FreeSurface field is required.</a:documentation>
             <element name="external_density">
               <a:documentation>When selected a hydrostatic pressure distribution on the outside is assumed
 using the specified density, i.e. instead of applying p=0 (resp.
-no_normal_stress=0) we apply p=p_external (resp. no_normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g</a:documentation>
+normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g</a:documentation>
               <ref name="real"/>
             </element>
           </optional>
@@ -3404,18 +3419,6 @@ IN DEVELOPMENT</a:documentation>
             </element>
           </optional>
         </group>
-      </element>
-      <element name="type">
-        <attribute name="name">
-          <value>explicit_free_surface</value>
-        </attribute>
-        <optional>
-          <element name="external_density">
-            <a:documentation>When selected a hydrostatic pressure distribution on the outside is assumed
-using the specified density.</a:documentation>
-            <ref name="real"/>
-          </element>
-        </optional>
       </element>
       <element name="type">
         <a:documentation>Apply quadratic drag. Specify drag coefficient. If you
@@ -4260,8 +4263,7 @@ with the free_surface or explicit_free_surface boundary condition applied to the
 field in combination with the no_normal_stress_option.
 It gives you a 3D field (constant over the vertical)
 of the free surface elevation. Initial and boundary conditions
-for free surface should be set on this field.
-Solver options must be set for the explicit_free_surface.</a:documentation>
+for free surface should be set on this field.</a:documentation>
             <ref name="pressure_mesh_choice">
               <a:documentation>Must be on the same mesh as Pressure</a:documentation>
             </ref>
@@ -4294,12 +4296,10 @@ requires a distinct name for the options dictionary.</a:documentation>
                 </element>
               </choice>
             </oneOrMore>
-            <optional>
-              <element name="solver">
-                <a:documentation>Solver - only necessary in combination with an explicit_free_surface bc under Velocity.</a:documentation>
-                <ref name="linear_solver_options_sym"/>
-              </element>
-            </optional>
+            <element name="solver">
+              <a:documentation>Solver - only necessary in combination with an explicit_free_surface bc under Velocity.</a:documentation>
+              <ref name="linear_solver_options_sym"/>
+            </element>
             <ref name="prognostic_scalar_output_options"/>
             <ref name="prognostic_scalar_stat_options"/>
             <ref name="scalar_convergence_options"/>

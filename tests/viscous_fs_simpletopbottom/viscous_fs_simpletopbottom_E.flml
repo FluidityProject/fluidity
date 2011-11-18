@@ -140,6 +140,7 @@
                   </max_iterations>
                   <never_ignore_solver_failures/>
                   <diagnostics>
+                    <print_norms/>
                     <monitors/>
                   </diagnostics>
                 </solver>
@@ -162,6 +163,7 @@
               </max_iterations>
               <never_ignore_solver_failures/>
               <diagnostics>
+                <print_norms/>
                 <monitors/>
               </diagnostics>
             </solver>
@@ -177,6 +179,7 @@
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
+            <print_norms/>
             <monitors/>
           </diagnostics>
         </solver>
@@ -262,6 +265,7 @@
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>
+            <print_norms/>
             <monitors/>
           </diagnostics>
         </solver>
@@ -357,6 +361,21 @@ def val(X,t):
     return 0.0</string_value>
           </python>
         </initial_condition>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.e-6</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <print_norms/>
+            <monitors/>
+          </diagnostics>
+        </solver>
         <output/>
         <stat>
           <surface_integral type="value" name="Top">

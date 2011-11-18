@@ -473,7 +473,7 @@ contains
           call insert_surface_field(field, i+1, surface_field)
           call deallocate(surface_field)
           
-       case ("free_surface", "no_normal_flow", "explicit_free_surface")
+       case ("free_surface", "no_normal_flow")
 
           ! these are marked as applying in the 1st direction only
           ! so they could potentially be combined with rotated bcs
@@ -1089,7 +1089,7 @@ contains
               call zero(scalar_surface_field)
            end if
 
-         case ("explicit_free_surface", "no_normal_flow", "near_wall_treatment", "log_law_of_wall", "outflow")
+         case ("no_normal_flow", "near_wall_treatment", "log_law_of_wall", "outflow")
 
           ! nothing to be done (yet?)
           
@@ -2362,7 +2362,7 @@ contains
 
     elseif(apply_reference_node_from_coordinates) then
 
-       ewrite(1,*) 'Imposing_reference_pressure_node at user-specified coordinates'    
+       ewrite(1,*) 'Imposing_reference_velocity_node at user-specified coordinates'    
        call find_reference_node_from_coordinates(positions,rhs%mesh,option_path,reference_node,reference_node_owned)
        reference_node_path=trim(complete_field_path(option_path, stat=stat2))//&
           &"/reference_coordinates"

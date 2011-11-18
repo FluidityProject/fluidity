@@ -1138,7 +1138,6 @@ contains
     character(len=OPTION_PATH_LEN) :: field_name
     integer :: i ! counters
     integer :: nstates ! number of states
-    integer :: ncars   ! number of vehicles
     character(len=255) :: tmp ! temporary string to make life a little easier
     type(scalar_field), pointer :: fshistory_sfield
     integer :: fshistory_levels 

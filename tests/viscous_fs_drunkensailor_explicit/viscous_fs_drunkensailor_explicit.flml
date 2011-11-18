@@ -287,7 +287,11 @@
           <surface_ids>
             <integer_value shape="1" rank="1">8</integer_value>
           </surface_ids>
-          <type name="explicit_free_surface"/>
+          <type name="free_surface">
+            <no_normal_stress>
+              <explicit/>
+            </no_normal_stress>
+          </type>
         </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <diagnostic>

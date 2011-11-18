@@ -583,18 +583,23 @@ contains
 
   end subroutine insert_vector_scalar_surface_field_by_name
     
-  function extract_scalar_surface_field_by_number(field, n, name) result (surface_field)
+  function extract_scalar_surface_field_by_number(field, n, name, stat) result (surface_field)
   !!< Extracts one of the surface_fields by name of the n-th b.c. of field
   type(scalar_field), pointer:: surface_field
   type(scalar_field), intent(in):: field
   integer, intent(in):: n
   character(len=*), intent(in):: name
+  integer, intent(out), optional:: stat
   
     type(scalar_boundary_condition), pointer:: bc
     integer i
 
     assert(n>=1 .and. n<=size(field%bc%boundary_condition))
     bc => field%bc%boundary_condition(n)
+
+    if(present(stat)) then
+      stat = 0
+    end if
     
     if (associated(bc%surface_fields)) then
       do i=1, size(bc%surface_fields)
@@ -604,18 +609,23 @@ contains
         end if
       end do
     end if
-    
-    ewrite(-1, '(a," is not a surface_field of boundary condition n=",i0," of field ",a)') trim(name), n, trim(field%name)
-    FLAbort("Sorry!")
+
+    if (present(stat)) then
+      stat = 1
+    else    
+      ewrite(-1, '(a," is not a surface_field of boundary condition n=",i0," of field ",a)') trim(name), n, trim(field%name)
+      FLAbort("Sorry!")
+    end if
     
   end function extract_scalar_surface_field_by_number
 
-  function extract_vector_surface_field_by_number(field, n, name) result (surface_field)
+  function extract_vector_surface_field_by_number(field, n, name, stat) result (surface_field)
   !!< Extracts one of the surface_fields by name of the n-th b.c. of field
   type(vector_field), pointer:: surface_field
   type(vector_field), intent(in):: field
   integer, intent(in):: n
   character(len=*), intent(in):: name
+  integer, intent(out), optional:: stat
   
     type(vector_boundary_condition), pointer:: bc
     integer i
@@ -623,6 +633,10 @@ contains
     assert(n>=1 .and. n<=size(field%bc%boundary_condition))
     bc => field%bc%boundary_condition(n)
     
+    if(present(stat)) then
+      stat = 0
+    end if
+    
     if (associated(bc%surface_fields)) then
       do i=1, size(bc%surface_fields)
         if (bc%surface_fields(i)%name==name) then
@@ -632,23 +646,32 @@ contains
       end do
     end if
     
-    ewrite(-1, '(a," is not a surface_field of boundary condition n=",i0," of field ",a)') trim(name), n, trim(field%name)
-    FLAbort("Sorry!")
+    if (present(stat)) then
+      stat = 1
+    else    
+      ewrite(-1, '(a," is not a surface_field of boundary condition n=",i0," of field ",a)') trim(name), n, trim(field%name)
+      FLAbort("Sorry!")
+    end if
     
   end function extract_vector_surface_field_by_number
 
-  function extract_vector_scalar_surface_field(field, n, name) result (surface_field)
+  function extract_vector_scalar_surface_field(field, n, name, stat) result (surface_field)
   !!< Extracts one of the surface_fields by name of the n-th b.c. of field
   type(scalar_field), pointer:: surface_field
   type(vector_field), intent(in):: field
   integer, intent(in):: n
   character(len=*), intent(in):: name
+  integer, intent(out), optional:: stat
   
   type(vector_boundary_condition), pointer:: bc
     integer i
 
     assert(n>=1 .and. n<=size(field%bc%boundary_condition))
     bc => field%bc%boundary_condition(n)
+
+    if (present(stat)) then
+      stat = 0
+    end if
     
     if (associated(bc%scalar_surface_fields)) then
       do i=1, size(bc%scalar_surface_fields)
@@ -659,62 +682,99 @@ contains
       end do
     end if
     
-    ewrite(-1, '(a," is not a surface_field of boundary condition n=",i0," of field ",a)') trim(name), n, trim(field%name)
-    FLAbort("Sorry!")
+    if(present(stat)) then
+      stat=1
+    else
+      ewrite(-1, '(a," is not a surface_field of boundary condition n=",i0," of field ",a)') trim(name), n, trim(field%name)
+      FLAbort("Sorry!")
+    end if
     
   end function extract_vector_scalar_surface_field
   
-  function extract_scalar_surface_field_by_name(field, bc_name, name) result (surface_field)
+  function extract_scalar_surface_field_by_name(field, bc_name, name, stat) result (surface_field)
   !!< Extracts one of the surface_fields of the b.c. 'bc_name' by name of field
   type(scalar_field), pointer:: surface_field
   type(scalar_field), intent(in):: field
   character(len=*), intent(in):: bc_name, name
+  integer, intent(out), optional:: stat
   
     integer i
+
+    if (present(stat)) then
+      stat = 0
+    end if
+
     do i=1, size(field%bc%boundary_condition)
       if (field%bc%boundary_condition(i)%name==bc_name) then
-        surface_field => extract_scalar_surface_field_by_number(field, i, name)
+        surface_field => extract_scalar_surface_field_by_number(field, i, name, stat)
         return
       end if
     end do
-    ewrite(-1,*) 'Unknown boundary condition: ', name
-    FLAbort("Sorry!")
+
+    if (present(stat)) then
+      stat = 1
+    else
+      ewrite(-1,*) 'Unknown boundary condition: ', name
+      FLAbort("Sorry!")
+    end if
     
   end function extract_scalar_surface_field_by_name
   
-  function extract_vector_surface_field_by_name(field, bc_name, name) result (surface_field)
+  function extract_vector_surface_field_by_name(field, bc_name, name, stat) result (surface_field)
   !!< Extracts one of the surface_fields of the b.c. 'bc_name' by name of field
   type(vector_field), pointer:: surface_field
   type(vector_field), intent(in):: field
   character(len=*), intent(in):: bc_name, name
+  integer, intent(out), optional:: stat
   
     integer i
+
+    if (present(stat)) then
+      stat=0
+    end if
+
     do i=1, size(field%bc%boundary_condition)
       if (field%bc%boundary_condition(i)%name==bc_name) then
-        surface_field => extract_vector_surface_field_by_number(field, i, name)
+        surface_field => extract_vector_surface_field_by_number(field, i, name, stat)
         return
       end if
     end do
-    ewrite(-1,*) 'Unknown boundary condition: ', name
-    FLAbort("Sorry!")
+
+    if (present(stat)) then
+      stat = 1
+    else
+      ewrite(-1,*) 'Unknown boundary condition: ', name
+      FLAbort("Sorry!")
+    end if
     
   end function extract_vector_surface_field_by_name
 
-  function extract_vector_scalar_surface_field_by_name(field, bc_name, name) result (surface_field)
+  function extract_vector_scalar_surface_field_by_name(field, bc_name, name, stat) result (surface_field)
   !!< Extracts one of the surface_fields of the b.c. 'bc_name' by name of field
   type(scalar_field), pointer:: surface_field
   type(vector_field), intent(in):: field
   character(len=*), intent(in):: bc_name, name
+  integer, intent(out), optional:: stat
   
     integer i
+
+    if (present(stat)) then
+      stat = 0
+    end if
+
     do i=1, size(field%bc%boundary_condition)
       if (field%bc%boundary_condition(i)%name==bc_name) then
-        surface_field => extract_vector_scalar_surface_field(field, i, name)
+        surface_field => extract_vector_scalar_surface_field(field, i, name, stat)
         return
       end if
     end do
-    ewrite(-1,*) 'Unknown boundary condition: ', name
-    FLAbort("Sorry!")
+
+    if (present(stat)) then
+      stat = 1
+    else
+      ewrite(-1,*) 'Unknown boundary condition: ', name
+      FLAbort("Sorry!")
+    end if
     
   end function extract_vector_scalar_surface_field_by_name
   
