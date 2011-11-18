@@ -145,7 +145,7 @@
               <no_wave_equation_step/>
             </wave_equation>
             <advection_scheme>
-              <upwind/>
+              <edge_coordinates_upwind/>
             </advection_scheme>
           </discontinuous_galerkin>
         </spatial_discretisation>

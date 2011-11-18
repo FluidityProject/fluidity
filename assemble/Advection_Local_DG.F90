@@ -54,6 +54,7 @@ module advection_local_DG
   use manifold_tools
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
+  use hybridized_helmholtz, only : get_up_gi
 
   implicit none
 
@@ -62,6 +63,9 @@ module advection_local_DG
 
   private
   public solve_advection_dg_subcycle, solve_vector_advection_dg_subcycle
+
+  !parameters specifying vector upwind options
+  integer, parameter :: VECTOR_UPWIND_EDGE=1, VECTOR_UPWIND_SPHERE=2
 
   ! Local private control parameters. These are module-global parameters
   ! because it would be expensive and/or inconvenient to re-evaluate them
@@ -593,7 +597,7 @@ module advection_local_DG
     type(vector_field), pointer :: U, U_old, U_cartesian
 
     !! Coordinate and advecting velocity fields
-    type(vector_field), pointer :: X, U_nl
+    type(vector_field), pointer :: X, U_nl, down
 
     !! Temporary velocity fields
     type(vector_field) :: U_tmp, U_cartesian_tmp
@@ -631,11 +635,27 @@ module advection_local_DG
 
     character(len=FIELD_NAME_LEN) :: limiter_name
     integer :: i, j, dim, ele
+    integer :: upwinding_option
+
+    if(have_option('/material_phase::Fluid/vector_field::Velocity/prognostic&
+         &/spatial_discretisation/discontinuous_galerkin/advection_scheme/ed&
+         &ge_coordinates_upwind')) then
+       upwinding_option = VECTOR_UPWIND_EDGE
+    else
+       if(have_option('/material_phase::Fluid/vector_field::Velocity/prognostic&
+            &/spatial_discretisation/discontinuous_galerkin/advection_scheme/ed&
+            &ge_coordinates_upwind')) then
+          upwinding_option = VECTOR_UPWIND_SPHERE
+       else
+          FLAbort('Unknown upwinding option')
+       end if
+    end if
 
     U=>extract_vector_field(state, field_name)
     U_old=>extract_vector_field(state, "Old"//field_name)
     X=>extract_vector_field(state, "Coordinate")
     U_cartesian=>extract_vector_field(state, "Velocity")
+    down=>extract_vector_field(state, "GravityDirection")
 
     dim=mesh_dim(U)
 
@@ -675,7 +695,7 @@ module advection_local_DG
    
     call construct_vector_advection_dg(A, L, mass_local, &
          inv_mass_local, inv_mass_cartesian,&
-         rhs, field_name, state, &
+         rhs, field_name, state, upwinding_option, down, &
          velocity_name=velocity_name)
     
     ! Note that since dt is module global, these lines have to
@@ -719,6 +739,7 @@ module advection_local_DG
 
     do i=1, subcycles
        call mult_t(U_cartesian_tmp, L, U)
+       ewrite(1,*) i, maxval(abs(U_cartesian_tmp%val(3,:)))
        assert(all(abs(U_cartesian_tmp%val(3,:))<1.0e-7))
        call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
        ! dU = Advection * U
@@ -773,7 +794,7 @@ module advection_local_DG
 
   subroutine construct_vector_advection_dg(A, L, mass_local, inv_mass_local,&
        & inv_mass_cartesian, rhs, field_name, &
-       & state, velocity_name) 
+       & state, upwinding_option, down, velocity_name) 
     !!< Construct the advection equation for discontinuous elements in
     !!< acceleration form.
     !!< 
@@ -788,11 +809,12 @@ module advection_local_DG
          inv_mass_cartesian
     !! Right hand side vector.
     type(vector_field), intent(inout) :: rhs
-    
+    type(vector_field), intent(in) :: down
     !! Name of the field to be advected.
     character(len=*), intent(in) :: field_name
     !! Collection of fields defining system state.
     type(state_type), intent(inout) :: state
+    integer, intent(in) :: upwinding_option
 
     !! Optional velocity name
     character(len = *), intent(in), optional :: velocity_name
@@ -836,7 +858,7 @@ module advection_local_DG
        
        call construct_vector_adv_element_dg(ele, A, L,&
             & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
-            & X, U, U_nl)
+            & X, U, U_nl, upwinding_option, down)
        
     end do element_loop
     
@@ -848,7 +870,7 @@ module advection_local_DG
 
   subroutine construct_vector_adv_element_dg(ele, A, L,&
        & mass_local, inv_mass_local, inv_mass_cartesian, rhs,&
-       & X, U, U_nl)
+       & X, U, U_nl, upwinding_option, down)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -865,7 +887,10 @@ module advection_local_DG
     type(vector_field), intent(inout) :: rhs
     
     !! Position, velocity and advecting velocity.
-    type(vector_field), intent(in) :: X, U, U_nl
+    type(vector_field), intent(in) :: X, U, U_nl, down
+
+    !! Upwinding option
+    integer, intent(in) :: upwinding_option
 
     ! Bilinear forms.
     real, dimension(mesh_dim(U),mesh_dim(U),ele_loc(U,ele),ele_loc(U,ele)) :: local_mass_mat
@@ -1069,14 +1094,14 @@ module advection_local_DG
       end if
 
       call construct_vector_adv_interface_dg(ele, ele_2, face, face_2,&
-           & A, rhs, X, U, U_nl)
+           & A, rhs, X, U, U_nl, upwinding_option, down)
 
    end do neighbourloop
     
  end subroutine construct_vector_adv_element_dg
   
   subroutine construct_vector_adv_interface_dg(ele, ele_2, face, face_2, &
-       & A, rhs, X, U, U_nl)
+       & A, rhs, X, U, U_nl, upwinding_option, down)
 
     !!< Construct the DG element boundary integrals on the ni-th face of
     !!< element ele.
@@ -1086,7 +1111,8 @@ module advection_local_DG
     type(block_csr_matrix), intent(inout) :: A
     type(vector_field), intent(inout) :: rhs
     ! We pass these additional fields to save on state lookups.
-    type(vector_field), intent(in) :: X, U, U_nl
+    type(vector_field), intent(in) :: X, U, U_nl, down
+    integer, intent(in) :: upwinding_option
 
     ! Face objects and numberings.
     type(element_type), pointer :: U_shape, U_shape_2
@@ -1101,7 +1127,9 @@ module advection_local_DG
          & U_nl_f_q, U_nl_f2_q
     logical, dimension(face_ngi(U_nl, face)) :: inflow
     real, dimension(face_ngi(U_nl, face)) :: U_nl_q_dotn1_l, U_nl_q_dotn2_l, U_nl_q_dotn_l, income
-    real, dimension(X%dim, face_ngi(X,face)) :: n1, n2
+    real, dimension(X%dim, face_ngi(X,face)) :: n1, n2, t11, t12, t21,t22,&
+         & pole_axis
+    real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi, up_gi2
     real, dimension(X%dim, X%dim, face_ngi(X,face)) :: Btmp
     real, dimension(mesh_dim(U), X%dim, face_ngi(X,face)) :: B
     ! Variable transform times quadrature weights.
@@ -1161,28 +1189,64 @@ module advection_local_DG
        J_scaled(:,:,gi)=J(:,:,1)/detJ(1)
     end forall
 
-    ! Get outward pointing normals in physical space for face1
-    ! inward pointing normals in physical space for face2
-    n1=get_face_normal_manifold(X, ele, face)
-    !needs checking
-    if(ele_2<0) then
-       ! external boundary
-       n2=n1
-    else
-       n2=-get_face_normal_manifold(X, ele_2, face_2)
-    end if
+    select case(upwinding_option)
+    case (VECTOR_UPWIND_EDGE)
+       ! Get outward pointing normals in physical space for face1
+       ! inward pointing normals in physical space for face2
+       n1=get_face_normal_manifold(X, ele, face)
+       !needs checking
+       if(ele_2<0) then
+          ! external boundary
+          n2=n1
+       else
+          n2=-get_face_normal_manifold(X, ele_2, face_2)
+       end if
+       ! Form 'bending' tensor
+       ! This rotates the normal to face 2 into -normal from face 1
+       ! u_b = t(t.u_b) + n_b(n_b.u_b)
+       ! u_a = t(t.u_b) + n_a(n_b.u_b)
+       !     = u_b - n_b(n_b.u_b) + n_a(n_b.u_b)
+       !     = (I + (n_a-n_b)n_b^T)u_b == B u_b
+       forall(gi=1:face_ngi(X,face))
+          Btmp(:,:,gi)=outer_product(n1(:,gi)-n2(:,gi),n2(:,gi))
+          forall(i=1:size(Btmp,1)) Btmp(i,i,gi)=Btmp(i,i,gi)+1.0
+          B(:,:,gi)=matmul(J_scaled(:,:,gi),Btmp(:,:,gi))
+       end forall
+    case (VECTOR_UPWIND_SPHERE)
+       if(mesh_dim(X).ne.2) then
+          FLExit('Assumes 2d surface. Surface of the sphere, in fact.')
+       end if
+       !Get element normal
+       up_gi = -ele_val_at_quad(down,ele)
+       call get_up_gi(X,ele,up_gi)
+       up_gi2 = -ele_val_at_quad(down,ele_2)
+       call get_up_gi(X,ele_2,up_gi2)
+       ! Form 'bending' tensor
+       ! Coordinate system is:
+       ! t1: normal to local normal and (0,0,1)
+       ! t2: normal to t1 and local normal
+       ! u2 = t21(t21.u2) + t22(t22.u2)
+       ! u1 = t11(t21.u2) + t12(t22.u2)
+       !    = (t11 t21^T + t12 t22^T)u2
 
-    ! Form 'bending' tensor
-    ! This rotates the normal to face 2 into -normal from face 1
-    ! u_b = t(t.u_b) + n_b(n_b.u_b)
-    ! u_a = t(t.u_b) + n_a(n_b.u_b)
-    !     = u_b - n_b(n_b.u_b) + n_a(n_b.u_b)
-    !     = (I + (n_a-n_b)n_b^T)u_b == B u_b
-    forall(gi=1:face_ngi(X,face))
-       Btmp(:,:,gi)=outer_product(n1(:,gi)-n2(:,gi),n2(:,gi))
-       forall(i=1:size(Btmp,1)) Btmp(i,i,gi)=Btmp(i,i,gi)+1.0
-       B(:,:,gi)=matmul(J_scaled(:,:,gi),Btmp(:,:,gi))
-    end forall
+       pole_axis = 0.
+       pole_axis(3,:) = 1.
+       do gi = 1, face_ngi(X,face)
+          t11(:,gi) = cross_product(pole_axis(:,gi),up_gi(:,gi))
+          t11(:,gi) = t11(:,gi)/sqrt(sum(t11(:,gi)**2))
+          t12(:,gi) = cross_product(up_gi(:,gi),t11(:,gi))
+          t21(:,gi) = cross_product(pole_axis(:,gi),up_gi2(:,gi))
+          t21(:,gi) = t21(:,gi)/sqrt(sum(t21(:,gi)**2))
+          t22(:,gi) = cross_product(up_gi2(:,gi),t21(:,gi))
+          
+          forall(i=1:2,k=1:2)
+             B(i,k,gi) = t11(i,gi)*t21(k,gi) + t12(i,gi)*t22(k,gi)
+          end forall
+       end do
+       FLAbort('implement it')
+    case default
+       FLAbort('Unknown vector upwinding option')
+    end select
 
     !----------------------------------------------------------------------
     ! Construct bilinear forms.

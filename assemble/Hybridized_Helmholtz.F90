@@ -2131,6 +2131,7 @@ contains
        end if
        
        !construct a tangent basis on the manifold
+       FLExit('This is bugged because vectors arent normalised.')
        do gi = 1, ele_ngi(X,ele)
           m_basis(1,:,gi) = cross_product(ref_vec_gi(:,gi),up_gi(:,gi))
           m_basis(2,:,gi) = cross_product(up_gi(:,gi),m_basis(1,:,gi))
