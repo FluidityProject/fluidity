@@ -142,7 +142,7 @@ module sparse_tools_petsc
 contains
 
   subroutine allocate_petsc_csr_matrix_from_sparsity(matrix, sparsity, blocks, &
-      name, diagonal, use_inodes)
+      name, diagonal, use_inodes, group_size)
     !!< Allocates a petsc_csr_matrix, i.e. a csr_matrix variant
     !!< that directly stores in petsc format. The provided sparsity
     !!< is only used to workout the number of nonzeros per row and may be
@@ -157,21 +157,36 @@ contains
     !! petsc's inodes don't work with certain preconditioners ("mg" and "eisenstat")
     !! that's why we default to not use them
     logical, intent(in), optional:: use_inodes
+    !! in the numbering of petsc dofs, split the blocks in 'g' groups of size 'group_size', where
+    !! g=blocks/group_size and the petsc numbers within each group are contiguous. Thus the petsc
+    !! numbering, going from major to minor, is given by g x nodes x group_size
+    !! Default is group_size=(1,1), i.e. no grouping is taking place and all dofs are numbered such that
+    !! all dofs of the first block are numbered continously first, followed by those of the second block, etc.
+    integer, dimension(2), intent(in), optional:: group_size
 
     PetscErrorCode:: ierr
     logical:: ldiagonal
+    integer, dimension(2):: lgroup_size
     integer:: nprows
     
     ldiagonal=present_and_true(diagonal)
+
+    if (present(group_size)) then
+      lgroup_size=group_size
+    else
+      lgroup_size=(/ 1,1 /)
+    end if
 
     matrix%name = name
     
     call allocate( matrix%row_numbering, &
       nnodes=size(sparsity,1), &
       nfields=blocks(1), &
+      group_size=lgroup_size(1), &
       halo=sparsity%row_halo )
       
     if (size(sparsity,1)==size(sparsity,2) .and. blocks(1)==blocks(2) .and. &
+      lgroup_size(1)==lgroup_size(2) .and. &
       associated(sparsity%row_halo, sparsity%column_halo)) then
         
       ! row and column numbering are the same
@@ -184,6 +199,7 @@ contains
       call allocate( matrix%column_numbering, &
         nnodes=size(sparsity,2), &
         nfields=blocks(2), &
+        group_size=lgroup_size(2), &
         halo=sparsity%column_halo )
     end if
     
@@ -1098,9 +1114,9 @@ contains
     
     ! note: the row/column_halo is passed as a pointer, and is allowed to be disassociated
     call allocate(row_numbering, size(matrix, 1), 1, &
-        matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
+        halo=matrix%sparsity%row_halo, ghost_nodes=ghost_nodes)
     call allocate(column_numbering, size(matrix, 2), 1, &
-        matrix%sparsity%column_halo, ghost_nodes=ghost_nodes)
+        halo=matrix%sparsity%column_halo, ghost_nodes=ghost_nodes)
     M=csr2petsc(matrix, row_numbering, column_numbering)
     call allocate(A, M, row_numbering, column_numbering, &
       name=trim(matrix%name), use_inodes=use_inodes)

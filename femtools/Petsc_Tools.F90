@@ -142,7 +142,7 @@ contains
   ! as group to avoid confusion with the above definition.
   
   subroutine allocate_petsc_numbering(petsc_numbering, &
-       nnodes, nfields, halo, ghost_nodes)
+       nnodes, nfields, group_size, halo, ghost_nodes)
     !!< Set ups the 'universal'(what most people call global)
     !!< numbering used in PETSc. In serial this is trivial
     !!< but could still be used for reordering schemes.
@@ -152,13 +152,15 @@ contains
     !! (here nfields counts each scalar component of vector fields, so
     !!  e.g. for nphases velocity fields in 3 dimensions nfields=3*nphases)
     integer, intent(in):: nnodes, nfields
+    !! if present 'group_size' fields are grouped in the petsc numbering, i.e.
+    integer, intent(in), optional:: group_size
     !! for parallel: halo information
     type(halo_type), pointer, optional :: halo
     !! If supplied number these as -1, so they'll be skipped by Petsc
     integer, dimension(:), optional, intent(in):: ghost_nodes 
     integer, dimension(:), allocatable:: ghost_marker
-    integer i, g, f, start, offset
-    integer nuniversalnodes, ngroups, lgroup_size, ierr
+    integer i, g, f, start, offset, fpg
+    integer nuniversalnodes, ngroups, ierr
 
     allocate( petsc_numbering%gnn2unn(1:nnodes, 1:nfields) )
 
@@ -172,7 +174,14 @@ contains
        end if
     end if
 
-    ngroups=nfields
+    if (present(group_size)) then
+      fpg=group_size ! fields per group
+      ngroups=nfields/fpg
+      assert(nfields==fpg*ngroups)
+    else
+      fpg=1
+      ngroups=nfields
+    end if
 
     ! first we set up the petsc numbering for the first entry of each group only:
 
@@ -181,11 +190,13 @@ contains
        ! *** Serial case *or* parallel without halo
 
        ! standard, trivial numbering, starting at 0:
-       start=0 ! start of each field -1
-       do g=1, nfields
-          petsc_numbering%gnn2unn(:, g )= &
-               (/ ( start+i, i=0, nnodes-1 ) /)
-          start=start+nnodes
+       start=0 ! start of each group of fields
+       do g=0, ngroups-1
+          do f=0, fpg-1
+            petsc_numbering%gnn2unn(:, g*fpg+f+1 )= &
+               (/ ( start + fpg*i+f, i=0, nnodes-1 ) /)
+          end do
+          start=start+nnodes*fpg
        end do
 
        if (isParallel()) then
@@ -225,7 +236,7 @@ contains
     if (isParallel()) then
        ! work out the length of global(universal) vector
        call mpi_allreduce(petsc_numbering%nprivatenodes, nuniversalnodes, 1, MPI_INTEGER, &
-           MPI_SUM, MPI_COMM_FEMTOOLS, ierr)       
+           MPI_SUM, MPI_COMM_FEMTOOLS, ierr)
 
        petsc_numbering%universal_length=nuniversalnodes*nfields
     else
@@ -1434,7 +1445,7 @@ contains
     if (.not. IsParallel()) return
     
     call allocate(petsc_numbering, node_count(vfield), vfield%dim, &
-      halo)
+      halo=halo)
     vec=PetscNumberingCreateVec(petsc_numbering)
     ! assemble vfield into petsc Vec, this lets petsc do the adding up
     call field2petsc(vfield, petsc_numbering, vec)

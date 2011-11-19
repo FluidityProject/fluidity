@@ -591,7 +591,7 @@
                ! Create a sparsity if necessary or pull it from state:
                u_sparsity => get_csr_sparsity_firstorder(state, u%mesh, u%mesh)
                ! and then allocate
-               call allocate(big_m(istate), u_sparsity, (/u%dim, u%dim/), &
+               call allocate(big_m(istate), u_sparsity, (/u%dim, u%dim/), group_size=(/u%dim, u%dim/),&
                                        diagonal=diagonal_big_m, name="BIG_m")
             end if
 
