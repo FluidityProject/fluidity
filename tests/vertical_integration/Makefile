@@ -10,3 +10,4 @@ clean-run:
 	rm -f matrixdump matrixdump.info
 	rm -f output.vtu
 	rm -f tmpf*
+	rm -f *.log

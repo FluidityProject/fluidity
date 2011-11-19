@@ -320,7 +320,11 @@
 #include "finclude/petscpc.h"
 #endif
 
-    PetscTruth :: flag
+#if PETSC_VERSION_MINOR==2
+    PetscBool:: flag
+#else
+    PetscTruth:: flag
+#endif
     PetscErrorCode :: ierr
     PetscReal :: number_in=0.0
 

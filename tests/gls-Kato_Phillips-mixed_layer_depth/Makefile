@@ -3,4 +3,4 @@ input: clean
 	../../bin/gmsh2triangle --2d ./src/KatoPhillips-2D-periodic.msh
 
 clean: 
-	rm -f  *.ele *.edge *.node *.face *.poly *.vtu *.s  *.stat *.log-0 *.err-0 matrixdump*
+	rm -f src/*.msh *.ele *.edge *.node *.face *.poly *.vtu *.s  *.stat *.log-0 *.err-0 matrixdump*

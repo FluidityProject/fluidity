@@ -701,7 +701,7 @@ def main():
 
   model_file = rename_file(model_file)
   opt_file = rename_file(opt_file)
-  superspud(opt_file, ["libspud.delete_option('/model/option_file'), libspud.set_option('/model/option_file', '" + model_file + "')", "libspud.write_options('" + opt_file + "')"])
+  superspud(opt_file, ["libspud.set_option('/model/option_file', '" + model_file + "')", "libspud.write_options('" + opt_file + "')"])
 
   # Check consistency of the option files
   check_option_consistency(opt_file, model_file)

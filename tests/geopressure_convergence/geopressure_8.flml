@@ -126,17 +126,13 @@
           </relaxation>
         </temporal_discretisation>
         <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
+          <iterative_method name="preonly"/>
+          <preconditioner name="none"/>
           <relative_error>
-            <real_value rank="0">1.0e16</real_value>
+            <real_value rank="0">0.5</real_value>
           </relative_error>
           <max_iterations>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">0</integer_value>
           </max_iterations>
           <never_ignore_solver_failures/>
           <diagnostics>

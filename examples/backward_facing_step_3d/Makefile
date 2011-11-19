@@ -3,7 +3,7 @@ BIN=../../bin
 preprocess: 
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
 	@echo **********Generating the mesh using gmsh in 3d:
-	gmsh -3 -clmin 0.25 -optimize -o step3d.msh src/step3d.geo
+	gmsh -3 -optimize -o step3d.msh src/step3d.geo
 	@echo **********Converting the gmsh mesh to triangle format:
 	$(BIN)/gmsh2triangle step3d.msh
 ifneq ($(NPROCS),8)
@@ -35,6 +35,7 @@ endif
 
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
+	@mkdir -p numpy_data 
 	./postprocessor_3d.py
 
 input: clean

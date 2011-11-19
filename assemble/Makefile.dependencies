@@ -131,11 +131,11 @@ Assemble_CMC.o ../include/assemble_cmc.mod: Assemble_CMC.F90 \
 
 Biology.o ../include/biology.mod: Biology.F90 \
    ../include/boundary_conditions.mod ../include/fdebug.h \
-   ../include/fetools.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/python_state.mod \
-   ../include/solvers.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fefields.mod ../include/fetools.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/python_state.mod ../include/solvers.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/burgers_assembly.mod: Burgers_Assembly.o
 	@true

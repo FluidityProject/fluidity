@@ -1463,10 +1463,10 @@ unedited surface.</a:documentation>
               </optional>
               <optional>
                 <element name="k-epsilon">
-                  <a:documentation>Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
+                  <a:documentation>Standard k-epsilon turbulence model (see e.g. Ferziger and Peric(2002) p.295).
 Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
 in order to close momentum equations.
-Generates an isotropic 'eddy viscosity', added to normal viscosity field, that
+Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
 carries the influence of turbulence onto the velocity field. See the manual for details.</a:documentation>
                   <element name="scalar_field">
                     <a:documentation>Turbulent kinetic energy (k).
@@ -1479,10 +1479,16 @@ carries the influence of turbulence onto the velocity field. See the manual for 
                     <attribute name="name">
                       <value>TurbulentKineticEnergy</value>
                     </attribute>
-                    <element name="prognostic">
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="prognostic_scalar_field"/>
-                    </element>
+                    <choice>
+                      <element name="prognostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prognostic_scalar_field"/>
+                      </element>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </choice>
                   </element>
                   <element name="scalar_field">
                     <a:documentation>TurbulentDissipation (epsilon).
@@ -1495,10 +1501,16 @@ carries the influence of turbulence onto the velocity field. See the manual for 
                     <attribute name="name">
                       <value>TurbulentDissipation</value>
                     </attribute>
-                    <element name="prognostic">
-                      <ref name="velocity_mesh_choice"/>
-                      <ref name="prognostic_scalar_field"/>
-                    </element>
+                    <choice>
+                      <element name="prognostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prognostic_scalar_field"/>
+                      </element>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </choice>
                   </element>
                   <element name="tensor_field">
                     <a:documentation>Set the value of the background (laminar) viscosity field here.
@@ -1523,7 +1535,7 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                       <value>2</value>
                     </attribute>
                     <attribute name="name">
-                      <value>KEpsEddyViscosity</value>
+                      <value>EddyViscosity</value>
                     </attribute>
                     <element name="diagnostic">
                       <ref name="internal_algorithm"/>
@@ -1532,7 +1544,7 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                     </element>
                   </element>
                   <element name="scalar_field">
-                    <a:documentation>Scalar component of the eddy viscosity tensor (diagnostic).
+                    <a:documentation>Scalar component of the eddy viscosity tensor.
 This will appear in the stat file.</a:documentation>
                     <attribute name="rank">
                       <value>0</value>
@@ -1540,60 +1552,32 @@ This will appear in the stat file.</a:documentation>
                     <attribute name="name">
                       <value>ScalarEddyViscosity</value>
                     </attribute>
+                    <choice>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </choice>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>Integral length scale of the turbulence (diagnostic).</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>LengthScale</value>
+                    </attribute>
                     <element name="diagnostic">
                       <ref name="internal_algorithm"/>
                       <ref name="velocity_mesh_choice"/>
                       <ref name="diagnostic_scalar_field"/>
                     </element>
                   </element>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Integral length scale of the turbulence (diagnostic).</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>LengthScale</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Ratio of TurbulentKineticEnergy to TurbulentDissipation (diagnostic).</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>TKEOverEpsilon</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="scalar_field">
-                      <a:documentation>Reciprocal of the above ratio, a.k.a. Omega or specific dissipation (diagnostic).</a:documentation>
-                      <attribute name="rank">
-                        <value>0</value>
-                      </attribute>
-                      <attribute name="name">
-                        <value>EpsilonOverTKE</value>
-                      </attribute>
-                      <element name="diagnostic">
-                        <ref name="internal_algorithm"/>
-                        <ref name="velocity_mesh_choice"/>
-                        <ref name="diagnostic_scalar_field"/>
-                      </element>
-                    </element>
-                  </optional>
                   <element name="source_absorption">
                     <a:documentation>Select whether source and absorption terms for k and epsilon
 are implicit or explicit.</a:documentation>
@@ -1603,6 +1587,11 @@ are implicit or explicit.</a:documentation>
                         <value>implicit</value>
                       </choice>
                     </element>
+                  </element>
+                  <element name="lengthscale_limit">
+                    <a:documentation>Limit the turbulence lengthscale to within physical bounds (e.g. inlet min dimension).
+This helps to prevent instabilities during simulation spin-up.</a:documentation>
+                    <ref name="real"/>
                   </element>
                   <element name="C_mu">
                     <a:documentation>Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
@@ -3241,28 +3230,48 @@ formulations</a:documentation>
   <define name="rotation_matrix_components">
     <optional>
       <element name="normal_direction">
-        <a:documentation>Select if you want to specify the normal direction
+        <a:documentation>Select if you want to specify the unit normal direction
 of the rotation matrix.
-If off then fluidity computes the normal
-If on the tangents vectors must also be specified.</a:documentation>
+If off then fluidity computes the normal.  </a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
     <optional>
       <element name="tangent_direction_1">
-        <a:documentation>specify first unit tangent vector to boundary</a:documentation>
+        <a:documentation>Select if you want to specify the first unit tangent direction
+of the rotation matrix (in dim &gt; 1 simulations).
+If off then fluidity computes the tangent.  </a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
     <optional>
       <element name="tangent_direction_2">
-        <a:documentation>specify second (if exists, i.e. if 3d) unit tangent vector to boundary</a:documentation>
+        <a:documentation>Select if you want to specify the second unit tangent direction
+of the rotation matrix (in dim &gt; 2 simulations).
+If off then fluidity computes the tangent.  </a:documentation>
         <ref name="input_choice_real_dim_vector"/>
       </element>
     </optional>
   </define>
   <define name="velocity_components_choice">
     <choice>
+      <element name="align_bc_with_cartesian">
+        <optional>
+          <element name="x_component">
+            <ref name="input_choice_real_bc_component"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="y_component">
+            <ref name="input_choice_real_bc_component"/>
+          </element>
+        </optional>
+        <optional>
+          <element name="z_component">
+            <ref name="input_choice_real_bc_component"/>
+          </element>
+        </optional>
+      </element>
       <element name="align_bc_with_surface">
         <optional>
           <element name="normal_component">
@@ -3287,23 +3296,6 @@ rotation matrix for every boundary node
 and dump a vtu with the node 
 normals and tangenials 1/2</a:documentation>
             <empty/>
-          </element>
-        </optional>
-      </element>
-      <element name="align_bc_with_cartesian">
-        <optional>
-          <element name="x_component">
-            <ref name="input_choice_real_bc_component"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="y_component">
-            <ref name="input_choice_real_bc_component"/>
-          </element>
-        </optional>
-        <optional>
-          <element name="z_component">
-            <ref name="input_choice_real_bc_component"/>
           </element>
         </optional>
       </element>
@@ -7910,7 +7902,8 @@ useful for psuedo-1D simulations.</a:documentation>
             </element>
           </optional>
           <element name="output_fluxes_diagnostics">
-            <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes</a:documentation>
+            <a:documentation>Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
+These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
             <optional>
               <element name="vector_field">
                 <attribute name="rank">

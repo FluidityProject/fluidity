@@ -443,6 +443,14 @@ contains
         ewrite(-1,*) "Please switch to a non-periodic output_mesh."
         FLExit("Just remapped from an unperiodic to a periodic continuous field!")
       end if
+    else if ((lstat/=0).and. &
+             (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+             (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+      if(present(stat)) then
+        stat = lstat
+      else
+        FLAbort("Unknown error when remapping coordinates while outputting to vtu.")
+      end if
     end if
     ! we've just allowed remapping from a higher order to a lower order continuous field
 
@@ -482,6 +490,14 @@ contains
                 stat = lstat
               else
                 FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+              end if
+            else if ((lstat/=0).and. &
+                     (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+              if(present(stat)) then
+                stat = lstat
+              else
+                FLAbort("Unknown error when remapping field.")
               end if
             end if
             ! we've just allowed remapping from a higher order to a lower order continuous field
@@ -574,6 +590,14 @@ contains
               else
                 FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
               end if
+            else if ((lstat/=0).and. &
+                     (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+              if(present(stat)) then
+                stat = lstat
+              else
+                FLAbort("Unknown error when remapping field.")
+              end if
             end if
             ! we've just allowed remapping from a higher order to a lower order continuous field
           
@@ -654,6 +678,14 @@ contains
                 stat = lstat
               else
                 FLAbort("Just remapped from an unperiodic to a periodic continuous field!")
+              end if
+            else if ((lstat/=0).and. &
+                     (lstat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+                     (lstat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+              if(present(stat)) then
+                stat = lstat
+              else
+                FLAbort("Unknown error when remapping field.")
               end if
             end if
             ! we've just allowed remapping from a higher order to a lower order continuous field

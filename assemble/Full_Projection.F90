@@ -44,8 +44,8 @@
     use petsc_solve_state_module
     use boundary_conditions_from_options
 
-#ifdef HAVE_PETSC_MODULES
 #include "petscversion.h"
+#ifdef HAVE_PETSC_MODULES
     use petsc
 #if PETSC_VERSION_MINOR==0
     use petscvec
