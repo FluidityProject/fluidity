@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">darcy_p0p1cv_velBCinlet_1d</string_value>
-    <comment>a simple short test case for darcy flow using the element type p0p1cv for velocity-pressure
+    <string_value lines="1">darcy_p1dgp2_pressBCinlet_3d</string_value>
+    <comment>a simple short test case for darcy flow using the element type p1dgp2 for velocity-pressure
 
 the darcy velocity is solved for and the interstitial velocity is a diagnostic from this (assuming a dg solution)
 
@@ -16,24 +16,30 @@ sigma is a function of viscosity and permeability which are two input fields tha
 
 python diagnostics are used to form the sigma term that is assoicated with a p0 dg mesh (ie. element wise) and the interstitial velocity
 
-this case has a 1 region 1 material with velocity boundary condition inflow. 
+this case has a 1 region 1 material with pressure boundary condition inflow. 
 
 to get a darcy equation the time, stress and advection terms are not included in a bousinessq formulation (to avoid needing to specify a density). Ideally it would be better to actually have a darcy momentum option to simplify the input.
 
 the absorption term is included in the pressure correction (being a necessity as it is the only term in the matrix equation) 
 
-the geometry is 1d and one time step is done (as nothing depends on time)</comment>
+the geometry is 3d (although this is a 1d problem) and one time step is done (as nothing depends on time)
+
+the left and right boundary conditions of pressure are applied strongly.
+
+For 2d and 3d a second approach is also done via solving a pressure poisson equation then calculating the 
+velocity diagnostically from this. This uses generic scalar and vector fields and python diagnostics. 
+The latter didnt work in 1d. The same vel-press element pair is used as the mixed projection formulation.</comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
     <dimension>
-      <integer_value rank="0">1</integer_value>
+      <integer_value rank="0">3</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="darcy_p0p1cv_velBCinlet_1d">
-        <format name="triangle"/>
+      <from_file file_name="cube">
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -42,11 +48,6 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
     <mesh name="VelocityMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
-            <integer_value rank="0">0</integer_value>
-          </polynomial_degree>
-        </mesh_shape>
         <mesh_continuity>
           <string_value>discontinuous</string_value>
         </mesh_continuity>
@@ -60,7 +61,7 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">1</integer_value>
+            <integer_value rank="0">2</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <stat>
@@ -84,17 +85,6 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="OutputMesh">
-      <from_mesh>
-        <mesh name="CoordinateMesh"/>
-        <mesh_continuity>
-          <string_value>discontinuous</string_value>
-        </mesh_continuity>
-        <stat>
-          <exclude_from_stat/>
-        </stat>
-      </from_mesh>
-    </mesh>
     <quadrature>
       <degree>
         <integer_value rank="0">5</integer_value>
@@ -110,7 +100,7 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
         <integer_value rank="0">0</integer_value>
       </constant>
     </dump_period_in_timesteps>
-    <output_mesh name="OutputMesh"/>
+    <output_mesh name="VelocityMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -129,7 +119,7 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <control_volumes/>
+          <continuous_galerkin/>
         </spatial_discretisation>
         <scheme>
           <poisson_pressure_solution>
@@ -153,11 +143,21 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
         </solver>
         <boundary_conditions name="right_outflow">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value shape="1" rank="1">4</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
               <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="left_inflow">
+          <surface_ids>
+            <integer_value shape="1" rank="1">3</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">1.5e+09</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -226,21 +226,36 @@ the geometry is 1d and one time step is done (as nothing depends on time)</comme
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="left_inflow">
+        <boundary_conditions name="no_outflow_top_bottom">
           <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
+            <integer_value shape="2" rank="1">1 2</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <apply_weakly/>
             <align_bc_with_cartesian>
-              <x_component>
+              <z_component>
                 <constant>
-                  <real_value rank="0">5.0</real_value>
+                  <real_value rank="0">0.0</real_value>
                 </constant>
-              </x_component>
+              </z_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="no_outflow_front_back">
+          <surface_ids>
+            <integer_value shape="2" rank="1">5 6</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <apply_weakly/>
+            <align_bc_with_cartesian>
+              <y_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </y_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
@@ -349,11 +364,261 @@ also assume that the velocity is dg</comment>
         </detectors>
       </prescribed>
     </scalar_field>
+    <scalar_field name="PoissonPressure" rank="0">
+      <prognostic>
+        <mesh name="PressureMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <no_stabilisation/>
+            </stabilisation>
+            <advection_terms>
+              <exclude_advection_terms/>
+            </advection_terms>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">1.0</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="right_outflow">
+          <surface_ids>
+            <integer_value shape="1" rank="1">4</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="left_inflow">
+          <surface_ids>
+            <integer_value shape="1" rank="1">3</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">1.5e+09</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="no_outflow_top_bottom">
+          <surface_ids>
+            <integer_value shape="2" rank="1">1 2</integer_value>
+          </surface_ids>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="no_outflow_front_back">
+          <surface_ids>
+            <integer_value shape="2" rank="1">5 6</integer_value>
+          </surface_ids>
+          <type name="neumann">
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <diagnostic>
+            <mesh name="DGP0"/>
+            <algorithm name="tensor_python_diagnostic" material_phase_support="multiple">
+              <string_value lines="20" type="python">from numpy import zeros
+
+# get the prescribed fields 
+perm = states["fluid"].scalar_fields["Permeability"]
+visc = states["fluid"].scalar_fields["Viscosity"]
+
+# set up diff coeff
+dim = 3
+diff_n = zeros((dim,dim))
+
+# loop the DGP0 nodes (which are element centred)
+for n in range(field.node_count):
+   perm_n = perm.node_val(n)
+   visc_n = visc.node_val(n)
+   
+   # calc the diff coeff term
+   diff_n_coeff = perm_n / visc_n
+   
+   # set the diff tensor term (diagonal constant, already zeroed)
+   for i in range(dim):
+      
+      diff_n[i,i] = diff_n_coeff
+      
+   field.set(n,diff_n)</string_value>
+            </algorithm>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+          </diagnostic>
+        </tensor_field>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
     <vector_field name="interstitial_velocity" rank="1">
       <diagnostic>
         <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
           <string_value lines="20" type="python">phi = states["fluid"].scalar_fields["Porosity"]
 darcy_vel = states["fluid"].vector_fields["Velocity"]
+
+for ele in range(field.element_count):
+   phi_ele = phi.node_val(ele)
+   
+   factor_ele = 1.0/max(phi_ele,1.0e-08)
+   
+   vel_ele = []
+   for i in range(len(darcy_vel.ele_val(ele))):
+     vel_ele.append(factor_ele*darcy_vel.ele_val(ele)[i])
+   
+   field.set(darcy_vel.ele_nodes(ele),vel_ele)</string_value>
+          <comment>this assumes that the porosity, absorption, permeability, and viscosity are defined on a p0 dg mesh (ie. element wise) such that the number of nodes is also the number of elements
+
+also assume that the velocity is dg</comment>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="VelocityFromPoissonPressure" rank="1">
+      <diagnostic>
+        <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
+          <string_value lines="20" type="python">import numpy, sys
+
+# set the dimension (should get this from import libspud)
+dim = 3
+
+# get the prescribed fields 
+perm = states["fluid"].scalar_fields["Permeability"]
+visc = states["fluid"].scalar_fields["Viscosity"]
+coord = states["fluid"].vector_fields["Coordinate"]
+poisson_pressure  = states["fluid"].scalar_fields["PoissonPressure"]
+
+# check that the mesh of this field is discontinuous 
+# as the code below relies on inverting local element wise
+# mass matrices
+if not (field.mesh.continuity &lt; 0):
+   
+   print 'Calculating velocity from PoissonPressure using python diagnostics requires that the associated velocity mesh be discontinuous'
+   
+   sys.exit()
+
+# loop elements
+for ele in range(field.element_count):
+   
+   # form a zeroed array of velocity values for this element
+   velocity_val_ele = numpy.zeros((field.ele_loc(ele),dim))
+   
+   # perm and visc are element wise
+   perm_ele = perm.node_val(ele)
+   visc_ele = visc.node_val(ele)
+   
+   # calc the sigma term
+   sigma_ele = visc_ele/perm_ele   
+  
+   # form element transform object
+   tr_ele = Transform(ele, coord)
+   
+   # field local mass matrix (lhs) - this is a numpy array
+   f_mass_matrix_ele = tr_ele.shape_shape(field.mesh.shape, field.mesh.shape)
+   
+   # invert local mass matrix - this is a numpy array
+   f_inv_mass_matrix_ele = numpy.linalg.inv(f_mass_matrix_ele)   
+
+   # local rhs matrix = -(1.0/sigma_ele)*shape_dshape - this is a numpy array
+   rhs_matrix_ele = -(1.0/sigma_ele) * tr_ele.shape_dshape(field.mesh.shape, tr_ele.grad(poisson_pressure.mesh.shape))
+
+   # form rhs_ele via rhs_matrix_ele * poisson_pressure_ele
+   # taking account of each dimension - this is a numpy array
+   # and then find the dimension velocity values
+   rhs_ele = numpy.dot(rhs_matrix_ele[:,:,0], poisson_pressure.ele_val(ele))
+   
+   velocity_val_ele[:,0] = numpy.dot(f_inv_mass_matrix_ele, rhs_ele)
+   
+   if dim &gt; 1:
+      
+      for i in range(dim-1):
+         
+         rhs_ele = numpy.dot(rhs_matrix_ele[:,:,i+1], poisson_pressure.ele_val(ele))
+
+         velocity_val_ele[:,i+1] = numpy.dot(f_inv_mass_matrix_ele, rhs_ele)
+
+   field.set(field.ele_nodes(ele), velocity_val_ele)</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
+    <vector_field name="interstitial_velocity_from_poisson_pressure" rank="1">
+      <diagnostic>
+        <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
+          <string_value lines="20" type="python">phi = states["fluid"].scalar_fields["Porosity"]
+darcy_vel = states["fluid"].vector_fields["VelocityFromPoissonPressure"]
 
 for ele in range(field.element_count):
    phi_ele = phi.node_val(ele)

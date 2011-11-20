@@ -366,11 +366,11 @@ contains
                       if((present(ct_rhs)).and.(field_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET)) then
   
                         if(multiphase) then
-                           ct_rhs_local(iloc) = ct_rhs_local(iloc) + &
+                           ct_rhs_local(iloc) = ct_rhs_local(iloc) - &
                                  field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*nvfrac_gi_f(ggi)*&
                                  normal_bdy(dim,ggi)*field_bc_val(dim, jloc)
                         else
-                           ct_rhs_local(iloc) = ct_rhs_local(iloc) + &
+                           ct_rhs_local(iloc) = ct_rhs_local(iloc) - &
                                  field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*normal_bdy(dim,ggi)*&
                                  field_bc_val(dim, jloc)
                         end if

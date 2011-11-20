@@ -2,47 +2,47 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>darcy_p0p1cv_velBCinlet</name>
+  <name>darcy_p0p1cv_velBCinlet_1solidphase</name>
   <owner userid="btollit"/>
   <tags>flml darcy</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity darcy_p0p1cv_velBCinlet_1d.flml 
-../../bin/fluidity darcy_p0p1cv_velBCinlet_2d.flml 
-../../bin/fluidity darcy_p0p1cv_velBCinlet_3d.flml 
+../../bin/fluidity darcy_p0p1cv_velBCinlet_1solidphase_1d.flml 
+../../bin/fluidity darcy_p0p1cv_velBCinlet_1solidphase_2d.flml 
+../../bin/fluidity darcy_p0p1cv_velBCinlet_1solidphase_3d.flml 
     </command_line>
-    <!-- One/two/three dimensional problem for darcy flow with one region and one material using p0p1cv element type testing the pressure gradient against analytic and the interstitial velocity. This tests using a diagnostic velocity absorption field associated with a mesh and momentum dg for darcy flow-->
+    <!-- One/two/three dimensional problem for darcy flow with one region and one material using p0p1cv element type testing the pressure gradient against analytic and the interstitial velocity. This tests using a diagnostic velocity absorption field associated with a mesh and momentum dg for darcy flow. Also a second phase is used to represent the solid phase.-->
   </problem_definition>
   <variables>
     <variable name="pressure_1d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_p0p1cv_velBCinlet_1d_1.vtu")
-pressure_1d = v.GetScalarRange("Pressure")
+v = vtktools.vtu("darcy_p0p1cv_velBCinlet_1solidphase_1d_1.vtu")
+pressure_1d = v.GetScalarRange("fluid::Pressure")
     </variable>
     <variable name="inter_vel_1d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_p0p1cv_velBCinlet_1d_1.vtu")
-inter_vel_1d = max(v.GetScalarRange("interstitial_velocity"))
+v = vtktools.vtu("darcy_p0p1cv_velBCinlet_1solidphase_1d_1.vtu")
+inter_vel_1d = max(v.GetScalarRange("fluid::Velocity"))
     </variable>
     <variable name="pressure_2d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_p0p1cv_velBCinlet_2d_1.vtu")
-pressure_2d = v.GetScalarRange("Pressure")
+v = vtktools.vtu("darcy_p0p1cv_velBCinlet_1solidphase_2d_1.vtu")
+pressure_2d = v.GetScalarRange("fluid::Pressure")
     </variable>
     <variable name="inter_vel_2d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_p0p1cv_velBCinlet_2d_1.vtu")
-inter_vel_2d = max(v.GetScalarRange("interstitial_velocity"))
+v = vtktools.vtu("darcy_p0p1cv_velBCinlet_1solidphase_2d_1.vtu")
+inter_vel_2d = max(v.GetScalarRange("fluid::Velocity"))
     </variable>
     <variable name="pressure_3d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_p0p1cv_velBCinlet_3d_1.vtu")
-pressure_3d = v.GetScalarRange("Pressure")
+v = vtktools.vtu("darcy_p0p1cv_velBCinlet_1solidphase_3d_1.vtu")
+pressure_3d = v.GetScalarRange("fluid::Pressure")
     </variable>
     <variable name="inter_vel_3d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_p0p1cv_velBCinlet_3d_1.vtu")
-inter_vel_3d = max(v.GetScalarRange("interstitial_velocity"))
+v = vtktools.vtu("darcy_p0p1cv_velBCinlet_1solidphase_3d_1.vtu")
+inter_vel_3d = max(v.GetScalarRange("fluid::Velocity"))
     </variable>
   </variables>
   <pass_tests>

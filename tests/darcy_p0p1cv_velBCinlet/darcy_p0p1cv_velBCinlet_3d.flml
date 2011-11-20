@@ -22,9 +22,7 @@ to get a darcy equation the time, stress and advection terms are not included in
 
 the absorption term is included in the pressure correction (being a necessity as it is the only term in the matrix equation) 
 
-the geometry is 3d (although this is a 1d problem) and one time step is done (as nothing depends on time)
-
-to get this to work properly a weak inlet velocity boundary condition and a strong zero pressure outlet boundary condition was found necessary</comment>
+the geometry is 3d (although this is a 1d problem) and one time step is done (as nothing depends on time)</comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
