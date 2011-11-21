@@ -526,7 +526,6 @@ contains
           ! map the coordinate field onto this mesh
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
-          call allocate(bc_position, position%dim, surface_mesh)
           bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           if (have_option(bc_type_path) .or. bc_type=="near_wall_treatment" &
