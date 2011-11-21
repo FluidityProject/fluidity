@@ -147,8 +147,6 @@ contains
   subroutine detector_list_deallocate(detector_list)
     type(detector_linked_list), pointer :: detector_list
 
-    type(rk_gs_parameters), pointer :: parameters
-
     ! Delete detectors
     if (detector_list%length > 0) then
        call delete_all(detector_list)
@@ -166,14 +164,11 @@ contains
     end if
 
     ! Deallocate move_parameters
-    parameters => detector_list%move_parameters
-    if (associated(parameters)) then 
-       if (allocated(parameters%timestep_weights)) then
-          deallocate(parameters%timestep_weights)
-       end if
-       if (allocated(parameters%stage_matrix)) then
-          deallocate(parameters%stage_matrix)
-       end if
+    if (allocated(detector_list%timestep_weights)) then
+       deallocate(detector_list%timestep_weights)
+    end if
+    if (allocated(detector_list%stage_matrix)) then
+       deallocate(detector_list%stage_matrix)
     end if
 
   end subroutine detector_list_deallocate

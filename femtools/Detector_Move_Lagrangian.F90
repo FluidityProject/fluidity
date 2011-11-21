@@ -49,72 +49,66 @@ module detector_move_lagrangian
   
   private
 
-  public :: move_lagrangian_detectors, read_detector_move_options, check_any_lagrangian
+  public :: move_lagrangian_detectors, read_detector_move_options, check_any_lagrangian, &
+            read_random_walk_options
 
   character(len=OPTION_PATH_LEN), parameter :: rk_gs_path="/lagrangian_timestepping/explicit_runge_kutta_guided_search"
 
 contains
 
-  subroutine read_detector_move_options(detector_list, detector_path)
+  subroutine read_detector_move_options(detector_list, options_path)
     ! Subroutine to allocate the detector parameters, 
     ! including RK stages and update vector
     type(detector_linked_list), intent(inout) :: detector_list
-    character(len=*), intent(in) :: detector_path
+    character(len=*), intent(in) :: options_path
 
-    type(rk_gs_parameters), pointer :: parameters
     integer :: i, j, k
     real, allocatable, dimension(:) :: stage_weights
     integer, dimension(2) :: option_rank
 
-    if (associated(detector_list%move_parameters)) then
-       deallocate(detector_list%move_parameters)
-    end if
-    allocate(detector_list%move_parameters)
-    parameters => detector_list%move_parameters
-
-    if (have_option(trim(detector_path)//trim("/lagrangian_timestepping/reflect_on_boundary"))) then
-       parameters%reflect_on_boundary=.true.
+    if (have_option(trim(options_path)//trim("/lagrangian_timestepping/reflect_on_boundary"))) then
+       detector_list%reflect_on_boundary=.true.
     end if
 
-    if(have_option(trim(detector_path)//"/lagrangian_timestepping")) then
+    if(have_option(trim(options_path)//"/lagrangian_timestepping")) then
 
-       call get_option(trim(detector_path)//"/lagrangian_timestepping/subcycles",parameters%n_subcycles)
-       call get_option(trim(detector_path)//"/lagrangian_timestepping/search_tolerance",parameters%search_tolerance)
+       call get_option(trim(options_path)//"/lagrangian_timestepping/subcycles",detector_list%n_subcycles)
+       call get_option(trim(options_path)//"/lagrangian_timestepping/search_tolerance",detector_list%search_tolerance)
 
        ! Forward Euler options
-       if (have_option(trim(detector_path)//"/lagrangian_timestepping/forward_euler_guided_search")) then
-          parameters%n_stages = 1
-          allocate(parameters%timestep_weights(parameters%n_stages))
-          parameters%timestep_weights = 1.0
+       if (have_option(trim(options_path)//"/lagrangian_timestepping/forward_euler_guided_search")) then
+          detector_list%n_stages = 1
+          allocate(detector_list%timestep_weights(detector_list%n_stages))
+          detector_list%timestep_weights = 1.0
        end if
 
        ! Parameters for classical Runge-Kutta
-       if (have_option(trim(detector_path)//"/lagrangian_timestepping/rk4_guided_search")) then
-          parameters%n_stages = 4
-          allocate(stage_weights(parameters%n_stages*(parameters%n_stages-1)/2))
+       if (have_option(trim(options_path)//"/lagrangian_timestepping/rk4_guided_search")) then
+          detector_list%n_stages = 4
+          allocate(stage_weights(detector_list%n_stages*(detector_list%n_stages-1)/2))
           stage_weights = (/0.5, 0., 0.5, 0., 0., 1./)
-          allocate(parameters%stage_matrix(parameters%n_stages,parameters%n_stages))
-          parameters%stage_matrix = 0.
+          allocate(detector_list%stage_matrix(detector_list%n_stages,detector_list%n_stages))
+          detector_list%stage_matrix = 0.
           k = 0
-          do i = 1, parameters%n_stages
-             do j = 1, parameters%n_stages
+          do i = 1, detector_list%n_stages
+             do j = 1, detector_list%n_stages
                 if(i>j) then
                    k = k + 1
-                   parameters%stage_matrix(i,j) = stage_weights(k)
+                   detector_list%stage_matrix(i,j) = stage_weights(k)
                 end if
              end do
           end do
-          allocate(parameters%timestep_weights(parameters%n_stages))
-          parameters%timestep_weights = (/ 1./6., 1./3., 1./3., 1./6. /)
+          allocate(detector_list%timestep_weights(detector_list%n_stages))
+          detector_list%timestep_weights = (/ 1./6., 1./3., 1./3., 1./6. /)
        end if
 
        ! Generic Runge-Kutta options
-       if (have_option(trim(detector_path)//trim(rk_gs_path))) then
-          call get_option(trim(detector_path)//trim(rk_gs_path)//"/n_stages",parameters%n_stages)
+       if (have_option(trim(options_path)//trim(rk_gs_path))) then
+          call get_option(trim(options_path)//trim(rk_gs_path)//"/n_stages",detector_list%n_stages)
 
           ! Allocate and read stage_matrix from options
-          allocate(stage_weights(parameters%n_stages*(parameters%n_stages-1)/2))
-          option_rank = option_shape(trim(detector_path)//trim(rk_gs_path)//"/stage_weights")
+          allocate(stage_weights(detector_list%n_stages*(detector_list%n_stages-1)/2))
+          option_rank = option_shape(trim(options_path)//trim(rk_gs_path)//"/stage_weights")
           if (option_rank(2).ne.-1) then
              FLExit('Stage Array wrong rank')
           end if
@@ -123,29 +117,29 @@ contains
              ewrite(-1,*) 'size actually was', option_rank(1)
              FLExit('Stage Array wrong size')
           end if
-          call get_option(trim(detector_path)//trim(rk_gs_path)//"/stage_weights",stage_weights)
-          allocate(parameters%stage_matrix(parameters%n_stages,parameters%n_stages))
-          parameters%stage_matrix = 0.
+          call get_option(trim(options_path)//trim(rk_gs_path)//"/stage_weights",stage_weights)
+          allocate(detector_list%stage_matrix(detector_list%n_stages,detector_list%n_stages))
+          detector_list%stage_matrix = 0.
           k = 0
-          do i = 1, parameters%n_stages
-             do j = 1, parameters%n_stages
+          do i = 1, detector_list%n_stages
+             do j = 1, detector_list%n_stages
                 if(i>j) then
                    k = k + 1
-                   parameters%stage_matrix(i,j) = stage_weights(k)
+                   detector_list%stage_matrix(i,j) = stage_weights(k)
                 end if
              end do
           end do
 
           ! Allocate and read timestep_weights from options
-          allocate(parameters%timestep_weights(parameters%n_stages))
-          option_rank = option_shape(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights")
+          allocate(detector_list%timestep_weights(detector_list%n_stages))
+          option_rank = option_shape(trim(options_path)//trim(rk_gs_path)//"/timestep_weights")
           if (option_rank(2).ne.-1) then
              FLExit('Timestep Array wrong rank')
           end if
-          if (option_rank(1).ne.size(parameters%timestep_weights)) then
+          if (option_rank(1).ne.size(detector_list%timestep_weights)) then
              FLExit('Timestep Array wrong size')
           end if
-          call get_option(trim(detector_path)//trim(rk_gs_path)//"/timestep_weights",parameters%timestep_weights)
+          call get_option(trim(options_path)//trim(rk_gs_path)//"/timestep_weights",detector_list%timestep_weights)
        end if
 
     else
@@ -157,13 +151,49 @@ contains
 
   end subroutine read_detector_move_options
 
+  subroutine read_random_walk_options(detector_list, options_path)
+    ! Subroutine to set the meta-parameters concerning random walks
+    type(detector_linked_list), intent(inout) :: detector_list
+    character(len=*), intent(in) :: options_path
+
+    if (have_option(trim(options_path)//"/random_walk")) then
+
+       if (have_option(trim(options_path)//"/random_walk/python")) then 
+          detector_list%python_rw=.true.
+          call get_option(trim(options_path)//"/random_walk/python", detector_list%rw_pycode)
+       end if
+
+       if (have_option(trim(options_path)//"/random_walk/diffusive_random_walk")) then 
+          detector_list%internal_diffusive_rw=.true.
+          call get_option(trim(options_path)//"/random_walk/diffusive_random_walk/diffusivity_field", &
+                    detector_list%diffusivity_field)
+          call get_option(trim(options_path)//"/random_walk/diffusive_random_walk/diffusivity_gradient", &
+                    detector_list%diffusivity_grad)
+
+          ! Flag if we want automatic subcycling for internal Diffusive Random Walk
+          if (have_option(trim(options_path)//"/random_walk/diffusive_random_walk/auto_subcycle")) then 
+             detector_list%auto_subcycle=.true.
+             call get_option(trim(options_path)//"/random_walk/diffusive_random_walk/auto_subcycle/diffusivity_2nd_gradient", &
+                    detector_list%diffusivity_2nd_grad)
+             call get_option(trim(options_path)//"/random_walk/diffusive_random_walk/auto_subcycle/scale_factor", &
+                    detector_list%subcycle_scale_factor)
+          end if
+       end if
+
+       if (have_option(trim(options_path)//"/random_walk/naive_random_walk")) then 
+          detector_list%internal_naive_rw=.true.
+          call get_option(trim(options_path)//"/random_walk/naive_random_walk/diffusivity_field", &
+                    detector_list%diffusivity_field)
+       end if
+    end if
+  end subroutine read_random_walk_options
+
   subroutine move_lagrangian_detectors(state, detector_list, dt, timestep)
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: dt
     integer, intent(in) :: timestep
 
-    type(rk_gs_parameters), pointer :: parameters
     type(vector_field), pointer :: vfield, xfield
     type(detector_type), pointer :: detector, move_detector
     type(detector_linked_list) :: subcycle_detector_list
@@ -186,40 +216,38 @@ contains
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
 
-    parameters => detector_list%move_parameters
-
     ! Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
     vfield=>extract_vector_field(state(1), "Velocity")
     allocate(rw_displacement(xfield%dim))
 
     ! For Python Random Walk first run the user code, so we can pull fields from state
-    if (parameters%python_rw) then
+    if (detector_list%python_rw) then
        ! Run the user's code and store val object in "random_walk" dict
-       call python_run_detector_string(trim(parameters%rw_pycode),&
+       call python_run_detector_string(trim(detector_list%rw_pycode),&
               trim(detector_list%name),trim("random_walk"))
     end if
 
     ! For hardcoded Random Walks pull the relevant fields from state
-    if (parameters%internal_diffusive_rw) then
-       diffusivity_field=>extract_scalar_field(state(1), trim(parameters%diffusivity_field))
-       diffusivity_grad=>extract_vector_field(state(1), trim(parameters%diffusivity_grad))
+    if (detector_list%internal_diffusive_rw) then
+       diffusivity_field=>extract_scalar_field(state(1), trim(detector_list%diffusivity_field))
+       diffusivity_grad=>extract_vector_field(state(1), trim(detector_list%diffusivity_grad))
 
-       if (parameters%auto_subcycle) then
-          diffusivity_2nd_grad=>extract_vector_field(state(1), trim(parameters%diffusivity_2nd_grad))
+       if (detector_list%auto_subcycle) then
+          diffusivity_2nd_grad=>extract_vector_field(state(1), trim(detector_list%diffusivity_2nd_grad))
        end if
     end if
 
-    if(parameters%internal_naive_rw) then
-       diffusivity_field=>extract_scalar_field(state(1), trim(parameters%diffusivity_field))
+    if(detector_list%internal_naive_rw) then
+       diffusivity_field=>extract_scalar_field(state(1), trim(detector_list%diffusivity_field))
     end if
 
     ! Allocate det%k and det%update_vector for RK advection
-    call allocate_rk_guided_search(detector_list, xfield%dim, parameters%n_stages)
-    sub_dt = dt/parameters%n_subcycles
+    call allocate_rk_guided_search(detector_list, xfield%dim, detector_list%n_stages)
+    sub_dt = dt/detector_list%n_subcycles
 
     ! This is the outer, user-defined subcycling loop
-    subcycling_loop: do cycle = 1, parameters%n_subcycles
+    subcycling_loop: do cycle = 1, detector_list%n_subcycles
 
        ! Reset update_vector to position
        detector => detector_list%first
@@ -231,8 +259,8 @@ contains
        end do
 
        ! Explicit Runge-Kutta iterations
-       if (parameters%do_velocity_advect) then
-          RKstages_loop: do stage = 1, parameters%n_stages
+       if (detector_list%do_velocity_advect) then
+          RKstages_loop: do stage = 1, detector_list%n_stages
 
              ! Compute the update vector for the current stage
              call set_stage(detector_list,vfield,xfield,sub_dt,stage)
@@ -246,7 +274,7 @@ contains
        end if
 
        ! Internal Diffusive Random Walk
-       if (parameters%internal_diffusive_rw .and. .not. parameters%auto_subcycle) then
+       if (detector_list%internal_diffusive_rw .and. .not. detector_list%auto_subcycle) then
           detector => detector_list%first
           do while (associated(detector))
              if (detector%type==LAGRANGIAN_DETECTOR) then
@@ -262,7 +290,7 @@ contains
        end if
 
        ! Internal Naive Random Walk
-       if (parameters%internal_naive_rw) then
+       if (detector_list%internal_naive_rw) then
           detector => detector_list%first
           do while (associated(detector))
              if (detector%type==LAGRANGIAN_DETECTOR) then
@@ -277,7 +305,7 @@ contains
        end if
 
        ! Apply user-defined Python function as a Random Walk
-       if (parameters%python_rw) then
+       if (detector_list%python_rw) then
           detector => detector_list%first
           do while (associated(detector))
              if (detector%type==LAGRANGIAN_DETECTOR) then
@@ -293,8 +321,9 @@ contains
        end if
 
        ! Internal Diffusive Random Walk with automated sub-cycling
-       if (parameters%internal_diffusive_rw .and. parameters%auto_subcycle) then
-          subcycle_detector_list%move_parameters => parameters
+       if (detector_list%internal_diffusive_rw .and. detector_list%auto_subcycle) then
+          subcycle_detector_list%search_tolerance = detector_list%search_tolerance
+          subcycle_detector_list%reflect_on_boundary = detector_list%reflect_on_boundary
           subcycle_detector_list%name = detector_list%name
           max_subsubcycle = 1
           total_subsubcycle = 0
@@ -304,8 +333,8 @@ contains
           allocate(auto_subcycle_per_ele(element_count(xfield)))
           do ele=1, element_count(xfield)
              call element_rw_subcycling(ele, sub_dt, xfield, diffusivity_field, &
-                          diffusivity_grad, diffusivity_2nd_grad, parameters%search_tolerance, &
-                          parameters%subcycle_scale_factor, auto_subcycle_per_ele(ele))
+                          diffusivity_grad, diffusivity_2nd_grad, detector_list%search_tolerance, &
+                          detector_list%subcycle_scale_factor, auto_subcycle_per_ele(ele))
           end do
           call profiler_toc(trim(detector_list%name)//"::element_rw_subcycling")
 
@@ -416,12 +445,9 @@ contains
     real, intent(in) :: dt
     integer, intent(in) :: stage
     
-    type(rk_gs_parameters), pointer :: parameters
     type(detector_type), pointer :: detector
     integer :: j0
     real, dimension(mesh_dim(xfield)+1) :: stage_local_coords
-
-    parameters => detector_list%move_parameters
     
     detector => detector_list%first
     do while (associated(detector))
@@ -429,7 +455,7 @@ contains
        if(detector%type==LAGRANGIAN_DETECTOR) then
 
           ! Evaluate velocity at update_vector and set k
-          if (parameters%do_velocity_advect) then
+          if (detector_list%do_velocity_advect) then
              ! stage vector is computed by evaluating velocity at current position
              stage_local_coords=local_coords(xfield,detector%element,detector%update_vector)
              detector%k(stage,:)=eval_field(detector%element, vfield, stage_local_coords)
@@ -438,18 +464,18 @@ contains
              detector%k(stage,:)=0.0
           end if
 
-          if(stage<parameters%n_stages) then
+          if(stage<detector_list%n_stages) then
              ! Update vector maps from current position to place required
              ! for computing next stage vector
              detector%update_vector = detector%position
              do j0 = 1, stage
-                detector%update_vector = detector%update_vector + dt*parameters%stage_matrix(stage+1,j0)*detector%k(j0,:)
+                detector%update_vector = detector%update_vector + dt*detector_list%stage_matrix(stage+1,j0)*detector%k(j0,:)
              end do
           else
              ! Update vector maps from current position to final position
              detector%update_vector = detector%position
-             do j0 = 1, parameters%n_stages
-                detector%update_vector = detector%update_vector + dt*parameters%timestep_weights(j0)*detector%k(j0,:)
+             do j0 = 1, detector_list%n_stages
+                detector%update_vector = detector%update_vector + dt*detector_list%timestep_weights(j0)*detector%k(j0,:)
              end do
           end if
 
@@ -483,7 +509,7 @@ contains
     nprocs=getnprocs()
     allocate(send_list_array(nprocs))
 
-    search_tolerance=detector_list%move_parameters%search_tolerance
+    search_tolerance=detector_list%search_tolerance
 
     ! This loop continues until all detectors have completed their
     ! timestep this is measured by checking if the send and receive
@@ -508,7 +534,7 @@ contains
                         search_tolerance,new_owner,detector%local_coords)
 
              if (new_owner==-1) then
-                if (detector_list%move_parameters%reflect_on_boundary) then
+                if (detector_list%reflect_on_boundary) then
                    ! We reflect the detector path at the face we just went through
                    call reflect_on_boundary(xfield,detector%update_vector,detector%element)
 
@@ -698,7 +724,7 @@ contains
     type(integer_hash_table) :: visited_eles
     type(inode), pointer :: ele
     integer :: i, current_ele, local_subcycling, key, value
-    real :: k0, d_z, z_0, min_z, max_z, ele_min_z, ele_max_z, neigh_min_z, neigh_max_z, min_dt
+    real :: k0, d_z, min_z, max_z, ele_min_z, ele_max_z, neigh_min_z, neigh_max_z, min_dt
     integer, dimension(:), pointer :: neighbours
     real, dimension(xfield%mesh%shape%loc) :: coords
     real, dimension(grad_field%mesh%shape%loc) :: k_grad
@@ -712,7 +738,6 @@ contains
     coords = ele_val(xfield, xfield%dim, element)
     min_z = minval(coords) - d_z
     max_z = maxval(coords) + d_z
-    z_0 = (min_z + max_z) / 2.0
 
     call insert(neigh_ele_list, element)
 

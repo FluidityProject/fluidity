@@ -331,9 +331,9 @@ contains
     end if
 
     ! Get buffer size, depending on whether RK-GS parameters are still allocated
-    have_update_vector=associated(detector_list%move_parameters)
+    have_update_vector=allocated(detector_list%stage_matrix)
     if(have_update_vector) then
-       n_stages=detector_list%move_parameters%n_stages
+       n_stages=detector_list%n_stages
        det_size=detector_buffer_size(dim,have_update_vector,n_stages)
     else
        det_size=detector_buffer_size(dim,have_update_vector)

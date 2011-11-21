@@ -106,45 +106,15 @@ contains
        call read_detector_move_options(agent_arrays(i),"/embedded_models/lagrangian_ensemble_biology/functional_group")
 
        ! Get options for Random Walk
-       if (have_option(trim(schema_buffer)//"/random_walk")) then
-
-          if (have_option(trim(schema_buffer)//"/random_walk/python")) then 
-             agent_arrays(i)%move_parameters%python_rw=.true.
-             call get_option(trim(schema_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
-          end if
-
-          if (have_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk")) then 
-             agent_arrays(i)%move_parameters%internal_diffusive_rw=.true.
-             call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/diffusivity_field", &
-                    agent_arrays(i)%move_parameters%diffusivity_field)
-             call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/diffusivity_gradient", &
-                    agent_arrays(i)%move_parameters%diffusivity_grad)
-
-             ! Flag if we want automatic subcycling for internal Diffusive Random Walk
-             if (have_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/auto_subcycle")) then 
-                agent_arrays(i)%move_parameters%auto_subcycle=.true.
-                call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/auto_subcycle/diffusivity_2nd_gradient", &
-                    agent_arrays(i)%move_parameters%diffusivity_2nd_grad)
-                call get_option(trim(schema_buffer)//"/random_walk/diffusive_random_walk/auto_subcycle/scale_factor", &
-                    agent_arrays(i)%move_parameters%subcycle_scale_factor)
-             end if
-          end if
-
-          if (have_option(trim(schema_buffer)//"/random_walk/naive_random_walk")) then 
-             agent_arrays(i)%move_parameters%internal_naive_rw=.true.
-             call get_option(trim(schema_buffer)//"/random_walk/naive_random_walk/diffusivity_field", &
-                    agent_arrays(i)%move_parameters%diffusivity_field)
-          end if
-       end if
-       agent_arrays(i)%total_num_det=n_agents
+       call read_random_walk_options(agent_arrays(i), trim(schema_buffer))
 
        ! Set other meta-information
        agent_arrays(i)%binary_output=.true.
        det_type=LAGRANGIAN_DETECTOR
        if (have_option(trim(schema_buffer)//"/exclude_from_advection")) then
-          agent_arrays(i)%move_parameters%do_velocity_advect=.false.
+          agent_arrays(i)%do_velocity_advect=.false.
        else
-          agent_arrays(i)%move_parameters%do_velocity_advect=.true.
+          agent_arrays(i)%do_velocity_advect=.true.
        end if
 
        ! Create agent and insert into list
