@@ -44,7 +44,7 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">2</integer_value>
+        <integer_value rank="0">5</integer_value>
       </degree>
     </quadrature>
   </geometry>
@@ -54,7 +54,7 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">20.0</real_value>
+        <real_value rank="0">10000.0</real_value>
       </constant>
     </dump_period>
     <output_mesh name="CoordinateMesh"/>
@@ -73,9 +73,10 @@
     </finish_time>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.E-10</real_value>
+        <real_value rank="0">1.E-5</real_value>
         <infinity_norm/>
       </tolerance>
+      <acceleration_form/>
     </steady_state>
   </timestepping>
   <physical_parameters/>
@@ -161,7 +162,7 @@
         <spatial_discretisation>
           <discontinuous_galerkin>
             <viscosity_scheme>
-              <bassi_rebay/>
+              <compact_discontinuous_galerkin/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>

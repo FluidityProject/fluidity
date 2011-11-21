@@ -21,11 +21,6 @@
     <mesh name="VelocityMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
-        <mesh_shape>
-          <polynomial_degree>
-            <integer_value rank="0">0</integer_value>
-          </polynomial_degree>
-        </mesh_shape>
         <mesh_continuity>
           <string_value>discontinuous</string_value>
         </mesh_continuity>
@@ -106,8 +101,12 @@
           <use_projection_method/>
         </scheme>
         <solver>
-          <iterative_method name="fgmres"/>
-          <preconditioner name="sor"/>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="ilu"/>
           <relative_error>
             <real_value rank="0">1.E-10</real_value>
           </relative_error>
@@ -162,7 +161,7 @@
         <spatial_discretisation>
           <discontinuous_galerkin>
             <viscosity_scheme>
-              <compact_discontinuous_galerkin/>
+              <bassi_rebay/>
             </viscosity_scheme>
             <advection_scheme>
               <upwind/>
@@ -189,7 +188,7 @@
               <integer_value rank="0">30</integer_value>
             </restart>
           </iterative_method>
-          <preconditioner name="sor"/>
+          <preconditioner name="ilu"/>
           <relative_error>
             <real_value rank="0">1.E-10</real_value>
           </relative_error>

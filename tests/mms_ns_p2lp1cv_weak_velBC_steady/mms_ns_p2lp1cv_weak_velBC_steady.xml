@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <testproblem>
-  <name>p0p1cv with weak velBC navier stokes spatial convergence test using a rotated domain such as to have non cartesian aligned BC</name>
+  <name>p2lp1cv with weak velBC navier stokes spatial convergence test using a rotated domain such as to have non cartesian aligned BC</name>
   <owner userid="btollit"/>
   <tags>flml</tags>
   <problem_definition length="special" nprocs="1">

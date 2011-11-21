@@ -1,0 +1,20 @@
+[0]PETSC ERROR: ------------------------------------------------------------------------
+[0]PETSC ERROR: Caught signal number 1 Hang up: Some other process (or the batch system) has told this process to end
+[0]PETSC ERROR: Try option -start_in_debugger or -on_error_attach_debugger
+[0]PETSC ERROR: or see http://www.mcs.anl.gov/petsc/petsc-as/documentation/troubleshooting.html#Signal[0]PETSC ERROR: or try http://valgrind.org on GNU/linux and Apple Mac OS X to find memory corruption errors
+[0]PETSC ERROR: configure using --with-debugging=yes, recompile, link, and run 
+[0]PETSC ERROR: to get more information on the crash.
+[0]PETSC ERROR: --------------------- Error Message ------------------------------------
+[0]PETSC ERROR: Signal received!
+[0]PETSC ERROR: ------------------------------------------------------------------------
+[0]PETSC ERROR: Petsc Release Version 3.1.0, Patch 3, Fri Jun  4 15:34:52 CDT 2010
+[0]PETSC ERROR: See docs/changes/index.html for recent updates.
+[0]PETSC ERROR: See docs/faq.html for hints about trouble shooting.
+[0]PETSC ERROR: See docs/index.html for manual pages.
+[0]PETSC ERROR: ------------------------------------------------------------------------
+[0]PETSC ERROR: fluidity on a linux-gnu named btollit-Latitude-E4310 by btollit Mon Nov 21 09:58:17 2011
+[0]PETSC ERROR: Libraries linked from /build/buildd/petsc-3.1.dfsg/linux-gnu-c-opt/lib
+[0]PETSC ERROR: Configure run at Fri Sep 10 04:57:14 2010
+[0]PETSC ERROR: Configure options --with-shared --with-debugging=0 --useThreads 0 --with-clanguage=C++ --with-c-support --with-fortran-interfaces=1 --with-mpi-dir=/usr/lib/openmpi --with-mpi-shared=1 --with-blas-lib=-lblas --with-lapack-lib=-llapack --with-umfpack=1 --with-umfpack-include=/usr/include/suitesparse --with-umfpack-lib="[/usr/lib/libumfpack.so,/usr/lib/libamd.so]" --with-spooles=1 --with-spooles-include=/usr/include/spooles --with-spooles-lib=/usr/lib/libspooles.so --with-hypre=1 --with-hypre-dir=/usr --with-scotch=1 --with-scotch-include=/usr/include/scotch --with-scotch-lib=/usr/lib/libscotch.so --with-hdf5=1 --with-hdf5-dir=/usr
+[0]PETSC ERROR: ------------------------------------------------------------------------
+[0]PETSC ERROR: User provided function() line 0 in unknown directory unknown file
