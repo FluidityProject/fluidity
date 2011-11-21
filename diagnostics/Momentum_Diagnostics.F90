@@ -165,16 +165,14 @@ contains
     if (sediment_classes > 0) then
         allocate(sediment_concs(sediment_classes))
         
-        call get_sediment_item(state, 1, 'name', field_name)
-        sediment_concs(1)%ptr => extract_scalar_field(state,trim(field_name))
+        call get_sediment_item(state, 1, sediment_concs(1)%ptr)
         
         call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
         call set(rhs, 1.0)
         
         ! get sediment concentrations and remove c/0.65 from rhs
         do i=1, sediment_classes
-           call get_sediment_item(state, i, 'name', field_name)
-           sediment_concs(i)%ptr => extract_scalar_field(state,trim(field_name))
+           call get_sediment_item(state, i, sediment_concs(i)%ptr)
            call addto(rhs, sediment_concs(i)%ptr, scale=-(1.0/0.65))
         end do
         

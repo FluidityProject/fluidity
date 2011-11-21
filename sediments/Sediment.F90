@@ -49,7 +49,9 @@ module sediment
   private 
 
   interface get_sediment_item
-     module procedure get_sediment_string, get_sediment_real, get_sediment_scalar_field
+     module procedure get_sediment_field, get_sediment_field_name,&
+          & get_sediment_option_string, get_sediment_option_real,&
+          & get_sediment_option_scalar_field
   end interface get_sediment_item
 
 contains
@@ -61,9 +63,44 @@ contains
 
     n_fields = option_count('/material_phase[0]/sediment/scalar_field')
 
+    if (have_option('/material_phase[0]/sediment/scalar_field::SedimentBedActiveLayer&
+         &D50')) n_fields = n_fields - 1
+    if (have_option('/material_phase[0]/sediment/scalar_field::SedimentBedActiveLayer&
+         &Sigma')) n_fields = n_fields - 1
+    if (have_option('/material_phase[0]/sediment/scalar_field::ZeroSedimentConcentrat&
+         &ionViscosity')) n_fields = n_fields - 1
+
   end function get_n_sediment_fields
 
-  subroutine get_sediment_string(state, i_field, option, item, stat)
+  subroutine get_sediment_field(state, i_field, item, stat)
+
+    ! Returns sediment field string option
+    type(state_type), intent(in)                :: state
+    integer, intent(in)                         :: i_field
+    type(scalar_field), pointer, intent(out)    :: item
+    integer, intent(out), optional              :: stat
+    character(len=FIELD_NAME_LEN)               :: name
+
+    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+         & 1)//']/name', name) 
+    item => extract_scalar_field(state, trim(name), stat)
+
+  end subroutine get_sediment_field
+
+  subroutine get_sediment_field_name(state, i_field, item, stat)
+
+    ! Returns sediment field string option
+    type(state_type), intent(in)                :: state
+    integer, intent(in)                         :: i_field
+    character(len=FIELD_NAME_LEN), intent(out)  :: item
+    integer, intent(out), optional              :: stat
+
+    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+         & 1)//']/name', item) 
+
+  end subroutine get_sediment_field_name
+
+  subroutine get_sediment_option_string(state, i_field, option, item, stat)
 
     ! Returns sediment field string option
     type(state_type), intent(in)                :: state
@@ -73,11 +110,11 @@ contains
     integer, intent(out), optional              :: stat
 
     call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
-         & 1)//']/'//option, item) 
+         & 1)//']/prognostic/'//option, item) 
 
-  end subroutine get_sediment_string
+  end subroutine get_sediment_option_string
 
-  subroutine get_sediment_real(state, i_field, option, item, stat)
+  subroutine get_sediment_option_real(state, i_field, option, item, stat)
 
     ! Returns sediment field real option
     type(state_type), intent(in)                :: state
@@ -87,11 +124,11 @@ contains
     integer, intent(out), optional              :: stat
     
     call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
-         & 1)//']/'//option, item, stat = stat) 
+         & 1)//']/prognostic/'//option, item, stat = stat) 
 
-  end subroutine get_sediment_real
+  end subroutine get_sediment_option_real
 
-  subroutine get_sediment_scalar_field(state, i_field, option, item, stat)
+  subroutine get_sediment_option_scalar_field(state, i_field, option, item, stat)
 
     ! Returns sediment field related scalar field
     type(state_type), intent(in)                :: state
@@ -102,17 +139,18 @@ contains
     
     character(len=FIELD_NAME_LEN)               :: field_name
 
-    call get_sediment_item(state, i_field, 'name', field_name, stat)
+    call get_option(trim(state%option_path)//'/sediment/scalar_field['//int2str(i_field -&
+         & 1)//']/name', field_name) 
     item => extract_scalar_field(state, trim(field_name)//option, stat)
 
-  end subroutine get_sediment_scalar_field
+  end subroutine get_sediment_option_scalar_field
 
   subroutine set_sediment_reentrainment(state)
 
     type(state_type), intent(in)     :: state
     type(scalar_field), pointer      :: sediment_field
     integer                          :: i_field, i_bc, n_bc
-    character(len = FIELD_NAME_LEN)  :: field_name, bc_name, bc_type, algorithm
+    character(len = FIELD_NAME_LEN)  :: bc_name, bc_type, algorithm
     character(len = OPTION_PATH_LEN) :: bc_path, bc_path_
 
     ewrite(1,*) "In set_sediment_reentrainment"
@@ -120,8 +158,7 @@ contains
     sediment_fields: do i_field = 1, get_n_sediment_fields()
 
        ! extract sediment field from state
-       call get_sediment_item(state, i_field, 'name', field_name)
-       sediment_field => extract_scalar_field(state, trim(field_name))
+       call get_sediment_item(state, i_field, sediment_field)
 
        ! get boundary condition path and number of boundary conditions
        bc_path = trim(sediment_field%option_path)//'/prognostic/boundary_conditions'
@@ -141,11 +178,9 @@ contains
           end if
 
           ewrite(1,*) "Setting reentrainment boundary condition "//trim(bc_name)//" for fi&
-               &eld: "//trim(field_name)
+               &eld: "//trim(sediment_field%name)
 
-          call get_option(trim(bc_path_)//"/type[0]/algorithm", algorithm) 
-
-          call set_reentrainment_bc(state, sediment_field, bc_name, i_field, algorithm)    
+          call set_reentrainment_bc(state, sediment_field, bc_name, bc_path_, i_field)    
 
        end do boundary_conditions
 
@@ -153,21 +188,23 @@ contains
 
   end subroutine set_sediment_reentrainment
 
-  subroutine set_reentrainment_bc(state, sediment_field, bc_name, i_field, algorithm)
+  subroutine set_reentrainment_bc(state, sediment_field, bc_name, bc_path, i_field)
 
     type(state_type), intent(in)              :: state
     type(scalar_field), intent(in), pointer   :: sediment_field
-    type(scalar_field), pointer               :: reentrainment, bedload, sink_U
+    type(scalar_field), pointer               :: reentrainment, bedload, sink_U, d50
     type(scalar_field)                        :: masslump, bedload_remap
-    type(tensor_field), pointer               :: viscosity
+    type(tensor_field), pointer               :: viscosity_pointer
+    type(tensor_field), target                :: viscosity
     type(vector_field), pointer               :: x, shear_stress
-    character(len = FIELD_NAME_LEN)           :: bc_name, algorithm
-    integer                                   :: stat, i_ele, i_field, i_node
     type(mesh_type), pointer                  :: surface_mesh
+    character(len = FIELD_NAME_LEN)           :: bc_name, bc_path, algorithm
+    integer                                   :: stat, i_ele, i_field, i_node, i, j
     integer, dimension(:), pointer            :: surface_element_list
+    real, dimension(2,2)                      :: algorithm_viscosity
 
     ! get boundary condition field and zero
-    reentrainment => extract_surface_field(sediment_field, bc_name, "value")
+    reentrainment => extract_surface_field(sediment_field, bc_name, 'value')
     call set(reentrainment, 0.0)
 
     ! get boundary condition info
@@ -177,13 +214,31 @@ contains
     ! get bedload field
     call get_sediment_item(state, i_field, 'SedimentBedload', bedload)
 
-    ! get sinking velocity
-    call get_sediment_item(state, i_field, 'SinkingVelocity', sink_U)
+    ! get d50
+    d50 => extract_scalar_field(state, 'SedimentBedActiveLayerD50', stat)
+    if (stat /= 0) then
+       FLExit("A SedimentBedActiveLayerD50 field must be activated to calculate reentrainm&
+            &ent")
+    end if
 
     ! get viscosity
-    viscosity => extract_tensor_field(state, "Viscosity", stat)
-    if (stat /= 0) then
-       FLExit("A viscosity field must be specified to calculate reentrainment")
+    call get_option(trim(bc_path)//"/type[0]/viscosity", algorithm_viscosity(1,1), stat&
+         &=stat)
+    if (stat == 0) then
+       do j = 1, 2
+          do i = 1, 2
+             algorithm_viscosity(i,j) = algorithm_viscosity(1,1)
+          end do
+       end do
+       call allocate(viscosity, sediment_field%mesh, "Viscosity")
+       call zero(viscosity)
+       call set(viscosity, algorithm_viscosity)
+       viscosity_pointer => viscosity
+    else
+       viscosity_pointer => extract_tensor_field(state, "Viscosity", stat)
+       if (stat /= 0) then
+          FLExit("A viscosity must be specified to calculate reentrainment")
+       end if
     end if
 
     ! get shear stress
@@ -202,6 +257,8 @@ contains
        call allocate(masslump, surface_mesh, "SurfaceMassLump")
        call zero(masslump)
     end if
+
+    call get_option(trim(bc_path)//"/type[0]/algorithm", algorithm) 
        
     ! loop through elements in surface field
     elements: do i_ele = 1, element_count(reentrainment)
@@ -211,8 +268,8 @@ contains
           ! call hill_2010_reentrainment(state, sediment_field, bc_name)
        case("Garcia_1991")
           call assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
-               & x, masslump, surface_mesh, surface_element_list, viscosity, shear_stress,&
-               & bedload)
+               & x, masslump, surface_mesh, surface_element_list, viscosity_pointer,&
+               & shear_stress, bedload, d50)
        case default
           FLExit("A valid reentrainment algorithm must be selected")
        end select   
@@ -233,13 +290,19 @@ contains
     call remap_field_to_surface(bedload, bedload_remap, surface_element_list)
     nodes: do i_node = 1, node_count(reentrainment)
        call set(reentrainment, i_node, min(max(node_val(reentrainment, i_node), 0.0),&
-            & node_val(bedload_remap, i_ele)))
+            & node_val(bedload_remap, i_node)))
     end do nodes
+
+    ewrite_minmax(bedload)  
+    ewrite_minmax(reentrainment)  
+
+    call deallocate(viscosity)
 
   end subroutine set_reentrainment_bc
   
   subroutine assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
-       & x, masslump, surface_mesh, surface_element_list, viscosity, shear_stress, sink_U)
+       & x, masslump, surface_mesh, surface_element_list, viscosity, shear_stress, sink_U&
+       &, d50)
 
     type(state_type), intent(in)                     :: state
     integer, intent(in)                              :: i_ele, i_field
@@ -247,15 +310,17 @@ contains
     type(vector_field), intent(in)                   :: x, shear_stress
     type(scalar_field), intent(inout)                :: masslump
     type(scalar_field), pointer, intent(inout)       :: reentrainment
-    type(scalar_field), pointer, intent(in)          :: sink_U
+    type(scalar_field), pointer, intent(in)          :: sink_U, d50
     type(mesh_type), pointer, intent(in)             :: surface_mesh
     type(element_type), pointer                      :: shape
     integer, dimension(:), pointer, intent(in)       :: surface_element_list
     integer, dimension(:), pointer                   :: ele
+    integer                                          :: i_node
     real, dimension(ele_ngi(reentrainment, i_ele))   :: detwei
     real, dimension(ele_loc(reentrainment, i_ele), &
          & ele_loc(reentrainment, i_ele))            :: invmass
     real                                             :: A, R, d, g, rho_0
+    real                                             :: algorithm_viscosity
     real, dimension(ele_ngi(reentrainment, i_ele))   :: R_p, u_star, Z
     real, dimension(ele_loc(reentrainment, i_ele))   :: E
 
@@ -279,7 +344,7 @@ contains
     call get_sediment_item(state, i_field, 'diameter', d)
     call get_option("/physical_parameters/gravity/magnitude", g)
     ! VISCOSITY ASSUMED TO BE ISOTROPIC - maybe should be in normal direction to surface
-    R_p = sqrt(R*g*d**3)/face_val_at_quad(viscosity, 1, 1, surface_element_list(i_ele))
+    R_p = sqrt(R*g*d**3)/face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1)
     
     ! calculate u_star (shear velocity)
     call get_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/line&
@@ -289,7 +354,7 @@ contains
 
     ! calculate Z
     Z = (1 - 0.288) * u_star / face_val_at_quad(sink_U, surface_element_list(i_ele)) *&
-         & R_p**0.6 * d**0.2   
+         & R_p**0.6 * (d / face_val_at_quad(d50, surface_element_list(i_ele)))**0.2   
 
     ! calculate reentrainment
     E = shape_rhs(shape, A*Z**5 / (1 + A*Z**5/0.3) * detwei)

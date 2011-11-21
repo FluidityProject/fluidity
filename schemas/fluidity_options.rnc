@@ -1864,7 +1864,7 @@ sediment =
                   real
                }?
             }
-         }+,
+         }*,
          ## The median sediment diameter in the active layer of the bed. 
          ## Required for some reentrainment algorithms.
          element scalar_field {

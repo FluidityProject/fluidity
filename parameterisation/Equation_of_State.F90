@@ -185,15 +185,14 @@ contains
 
        do i=1,n_sediment_fields
        
-          call get_sediment_item(state, i, 'name', sediment_field_name)
+          call get_sediment_item(state, i, S)
 
-          S=>extract_scalar_field(state,trim(sediment_field_name))
           call get_sediment_item(state, i, 'submerged_specific_gravity', gamma)
           
           gamma = gamma * rho_0
 
           oldS => extract_scalar_field(state, &
-               "Old"//trim(sediment_field_name))
+               "Old"//trim(S%name))
           
           ! deltaS=theta*S+(1-theta)*oldS-S0
           call remap_field(S, remapS)

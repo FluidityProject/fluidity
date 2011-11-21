@@ -55,7 +55,11 @@ scalar_boundary_conditions =
             element type {
                attribute name { "sediment_reentrainment" },
                ## Select algorithm to calculate reentrainment by (see the manual for more detail)
-               element algorithm { "Garcia_1991" | "Hill_2010" }
+               element algorithm { "Garcia_1991" | "Hill_2010" },
+               ## Viscosity value to use within this algorithm. This allows the user to override 
+               ## use of the material viscosity used for the rest of the simulation for calculating 
+               ## sediment reentrainment. 
+               element viscosity { real }?
             }|
             ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
             ## Special type of Dirichlet boundary condition for the k-epsilon

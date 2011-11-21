@@ -78,6 +78,14 @@ sediment grain</a:documentation>
               <value>Hill_2010</value>
             </choice>
           </element>
+          <optional>
+            <element name="viscosity">
+              <a:documentation>Viscosity value to use within this algorithm. This allows the user to override 
+use of the material viscosity used for the rest of the simulation for calculating 
+sediment reentrainment. </a:documentation>
+              <ref name="real"/>
+            </element>
+          </optional>
         </element>
         <element name="type">
           <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]

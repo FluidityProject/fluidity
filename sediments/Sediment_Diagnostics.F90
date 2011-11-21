@@ -87,17 +87,9 @@ contains
 
     do i_field=1, n_sediment_fields 
        
-       call get_sediment_item(state, i_field, 'name', field_name)
- 
-       sediment_field(i_field)%ptr => &
-            extract_scalar_field(state,trim(field_name))
-
-       bedload_field(i_field)%ptr => &
-            extract_scalar_field(state,trim(field_name)//"SedimentBedload")
-
-       sink_U(i_field)%ptr => &
-            extract_scalar_field(state,trim(field_name)//"SinkingVelocity",&
-            & stat=stat)
+       call get_sediment_item(state, i_field, sediment_field(i_field)%ptr)
+       call get_sediment_item(state, i_field, "SedimentBedload", bedload_field(i_field)%ptr)
+       call get_sediment_item(state, i_field, "SinkingVelocity", sink_U(i_field)%ptr)
 
        surface_mesh => bedload_field(i_field)%ptr%mesh%faces%surface_mesh
        
@@ -302,15 +294,13 @@ contains
     allocate(sediment_concs(n_sediment_fields))
 
     ! allocate storage for rhs and set all to 1
-    call get_sediment_item(state, 1, 'name', field_name)
-    sediment_concs(1)%ptr => extract_scalar_field(state, field_name)
+    call get_sediment_item(state, 1, sediment_concs(1)%ptr)
     call allocate(rhs, sediment_concs(1)%ptr%mesh, name="Rhs")
     call set(rhs, 1.0)
        
     ! get sediment concentrations and remove from rhs
     do i_field=1, n_sediment_fields
-       call get_sediment_item(state, i_field, 'name', field_name)
-       sediment_concs(i_field)%ptr => extract_scalar_field(state, field_name)
+       call get_sediment_item(state, i_field, sediment_concs(i_field)%ptr)
        call addto(rhs, sediment_concs(i_field)%ptr, scale=-1.0)
     end do
     
@@ -419,7 +409,7 @@ contains
        end do
 
        if (i_field == 0) then
-          call set(d50, i_node, 0.0)
+          call set(d50, i_node, INFINITY)
           cycle elements
        end if
 

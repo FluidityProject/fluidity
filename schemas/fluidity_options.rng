@@ -2427,7 +2427,7 @@ in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
   <define name="sediment">
     <element name="sediment">
       <a:documentation>A sediment model. See the manual for details on how to use this model.</a:documentation>
-      <oneOrMore>
+      <zeroOrMore>
         <element name="scalar_field">
           <a:documentation>A single sediment field with discrete characteristics
 
@@ -2539,7 +2539,7 @@ criterion.</a:documentation>
             </optional>
           </element>
         </element>
-      </oneOrMore>
+      </zeroOrMore>
       <optional>
         <element name="scalar_field">
           <a:documentation>The median sediment diameter in the active layer of the bed. 

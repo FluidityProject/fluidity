@@ -122,7 +122,8 @@ contains
              nfields = get_n_sediment_fields()
              do f = 1, nfields
                 nsol=nsol+1
-                call get_sediment_item(state(p), f, 'name', temp_field_name_list(nsol))
+                
+                call get_sediment_item(state(p+1), f, temp_field_name_list(nsol))
                 temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
                      ']/sediment/scalar_field['//int2str(f-1)//']'
                 temp_field_state_list(nsol) = p+1
