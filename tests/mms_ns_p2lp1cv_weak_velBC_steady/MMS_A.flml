@@ -39,9 +39,25 @@
         </stat>
       </from_mesh>
     </mesh>
+    <mesh name="OutputMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">4</integer_value>
+        <integer_value rank="0">5</integer_value>
       </degree>
       <controlvolume_surface_degree>
         <integer_value rank="0">2</integer_value>
@@ -57,7 +73,7 @@
         <real_value rank="0">20.0</real_value>
       </constant>
     </dump_period>
-    <output_mesh name="CoordinateMesh"/>
+    <output_mesh name="OutputMesh"/>
     <stat/>
   </io>
   <timestepping>
@@ -73,9 +89,10 @@
     </finish_time>
     <steady_state>
       <tolerance>
-        <real_value rank="0">1.E-10</real_value>
+        <real_value rank="0">1.E-5</real_value>
         <infinity_norm/>
       </tolerance>
+      <acceleration_form/>
     </steady_state>
   </timestepping>
   <physical_parameters/>
