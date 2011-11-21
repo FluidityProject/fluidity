@@ -180,19 +180,19 @@ d_finish_time = stat("MMS_D.stat")["ElapsedTime"]["value"][-1]
     </variable>
    <variable name="a_div" language="python">
 from fluidity_tools import stat_parser as stat
-a_div = max(max(abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["min"])))
+a_div = max(abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]), abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["min"][-1]))
     </variable>
     <variable name="b_div" language="python">
 from fluidity_tools import stat_parser as stat
-b_div = max(max(abs(stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["min"])))
+b_div = max(abs(stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]), abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["min"][-1]))
     </variable>
     <variable name="c_div" language="python">
 from fluidity_tools import stat_parser as stat
-c_div = max(max(abs(stat("MMS_C.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["min"])))
+c_div = max(abs(stat("MMS_C.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]), abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["min"][-1]))
     </variable>
     <variable name="d_div" language="python">
 from fluidity_tools import stat_parser as stat
-d_div = max(max(abs(stat("MMS_D.stat")["NS"]["ControlVolumeDivergence"]["max"])), max(abs(stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["min"])))
+d_div = max(abs(stat("MMS_D.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]), abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["min"][-1]))
     </variable>
     <variable name="a_final_change_vel" language="python">
 import vtktools
