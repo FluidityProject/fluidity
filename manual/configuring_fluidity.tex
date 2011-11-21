@@ -538,7 +538,7 @@ The coordinate mesh read in from file will always have linear elements and
 the Coordinate field is always continuous between elements.
 
 \fluidity\ also has native Gmsh support, which loads in Gmsh files directly into
-\fluidity\, and works with binary and ASCII Gmsh formats. To enable native 
+\fluidity, and works with binary and ASCII Gmsh formats. To enable native 
 support, \fluidity\ needs to be told to expect a Gmsh file, which is achieved 
 by setting the \onlypdf\option{/geometry/mesh/from\_file/format}\ option 
 to \onlypdf\option{gmsh}.  \fluidity\ will now look for a file with the extension 
@@ -1059,7 +1059,7 @@ selected. Please refer to section \ref{sec:ND_momentum_equation} for a comprehen
 
 \subsection{Temporal discretisations}
 \label{sec:configuring_fluidity_temporal_discretisation}
-Under temporal discretisation, you can set the value of theta, where $0$ is explicit, $0.5$ is Crank-Nicolson and $1$ is implicit. For scalar fields, the control volumes option may be selected if you are using control volumes or coupled cv spatial discretisation.  It contains options to set up nonlinear advection iterations, subcycling and the value of the pivot implicitness factor (see section \ref{sec:cvtemp}). The discontinuous galerkin option can be used if you are using discontinuous galerkin spatial discretisation to set the maximum courant number per subcycle, or the number of subcyles. 
+Under temporal discretisation, you can set the value of theta, where $0$ is explicit, $0.5$ is Crank-Nicolson and $1$ is implicit. For scalar fields, the control volumes option may be selected if you are using control volumes or coupled cv spatial discretisation.  It contains options to set up nonlinear advection iterations, subcycling and the value of the pivot implicitness factor (see section \ref{sec:cvtemp}). The discontinuous Galerkin option can be used if you are using discontinuous galerkin spatial discretisation to set the maximum courant number per subcycle, or the number of subcyles. 
 
 \subsection{Source and absorption terms}\label{sec:Source}
 \index{source term}
@@ -1379,7 +1379,44 @@ However, if using a sufficiently fine near-wall mesh, roughly the correct veloci
 
 If using Dirichlet conditions, it is recommended that $k$ and $\epsilon$ be set to small values, chosen such that the eddy viscosity on the boundaries is of order $O(\nu)$ (background viscosity), and both fields perhaps of order $O(1/Re)$.
 
-\section{Boundary conditions}\label{sec:BCs_configure}
+\subsection{Large Eddy Simulation Models}
+
+LES models are available as options under \option{\ldots/Velocity/prognostic/spatial\_discretisation/continuous\_galerkin/les\_model}. See \ref{sec:LES} for details of the various LES models available. These models require a prescribed viscosity (\ldots/Velocity/prognostic/tensor\_field::Viscosity/prescribed), to which an eddy viscosity is added to account for subgrid-scale turbulence. The LES models are currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless.
+
+\subsubsection{Second-Order Smagorinsky}
+
+The modified second-order Smagorinsky model of \citet{bentham2003} is available under \option{\ldots/les\_model/second\_order}. The Smagorinsky coefficient (\option{\ldots/second\_order/smagorinsky\_coefficient}) must be set; its value should be that suggested by the literature for a particular flow type. A reasonable all-round figure is 0.1. The eddy viscosity is available as an optional diagnostic field (\option{\ldots/second\_order/tensor\_field::EddyViscosity}).
+
+\subsubsection{Fourth-Order Smagorinsky}
+
+The fourth-order Smagorinsky model of \citet{bentham2003} is available under \option{\ldots/les\_model/fourth\_order}. The Smagorinsky coefficient (\option{\ldots/second\_order/smagorinsky\_coefficient}) must be set; 0.1 is recommended. A fine mesh is required to get good results from this model.
+
+\subsubsection{WALE}
+
+The wall-adapted local eddy viscosity (WALE) model is available under \option{\ldots/les\_model/wale}. The Smagorinsky coefficient (\option{\ldots/second\_order/smagorinsky\_coefficient}) must be set; 0.1 is recommended.
+
+\subsubsection{Dynamic LES}
+
+The Germano dynamic LES model is available under \option{\ldots/les\_model/dynamic\_les}. The following options have to be set: first, the filter width ratio $\alpha$ (\option{\ldots/dynamic\_les/alpha}); 2 is recommended. Second, the solver options (\option{\ldots/dynamic\_les/solver}) are for solving the inverse Helmholtz equation for the test-filtered velocity; cg/SOR is recommended.
+
+Optional options:
+\begin{itemize}
+\item \option{\ldots/dynamic\_les/enable\_lilly}: use the Lilly modification to the Germano model. It is recommended.
+\item \option{\ldots/dynamic\_les/enable\_backscatter}: allows negative eddy viscosity, which may result in more realistic turbulent flow if the mesh resolution is fine enough.
+\end{itemize}
+
+Several diagnostic fields are available if desired:
+
+\begin{itemize}
+\item \option{\ldots/dynamic\_les/vector\_field::FilteredVelocity}: the velocity field filtered with the test filter.
+\item \option{\ldots/dynamic\_les/tensor\_field::FilterWidth}: the mesh size tensor
+\item \option{\ldots/dynamic\_les/tensor\_field::StrainRate}: the strain rate $\overline S_{ij}$.
+\item \option{\ldots/dynamic\_les/tensor\_field::FilteredStrainRate}: the filtered strain rate $\widetilde{\overline S}_{ij}$.
+\item \option{\ldots/dynamic\_les/tensor\_field::EddyViscosity}: the eddy viscosity $\nu_T$.
+\end{itemize}
+
+\section{Boundary conditions}\label{Sec:BCs_configure}
+
 \index{boundary conditions}
 
 The simulated system requires suitable boundary conditions for full closure.
@@ -1448,7 +1485,7 @@ velocity and temperature are required. More information can be found in section 
 \subsubsection{Zero flux}
 \index{boundary conditions!zero flux}
 
-For control volume discretisations only this options prevents the field fluxing from the boundary.
+For control volume discretisations only, this option prevents the field fluxing from the boundary.
 
 \subsubsection{Flux}
 \index{boundary conditions!flux}
@@ -1492,7 +1529,7 @@ where $\Delta x$ and $l$ are the maximum horizontal element size and number of m
 \subsubsection{Drag}
 \index{boundary conditions!drag}
 
-Applies a quadratic or linear drag to the Velocity field. Both the value and the type of drag need to be set. A Manning-Strickler drag can be used by activating \option{\ldots/quadratic\_drag/manning\_strickler}
+This option applies a quadratic or linear drag to the Velocity field. Both the value and the type of drag need to be set. A Manning-Strickler drag can be used by activating \option{\ldots/quadratic\_drag/manning\_strickler}
 
 \subsubsection{Wind forcing}\label{sec:wind_forcing}
 \index{boundary conditions!wind stress}
@@ -1564,7 +1601,13 @@ for information on setting prescribed fields from NEMO data. Then, under
 \option{\ldots/NEMO\_data/field\_name}, set the string to that of the prescribed
 field containing the NEMO pressure data to enable this option.
 
-%\option{\ldots/synthetic\_eddy\_method} does stuff. Available for velocity.
+\index{boundary conditions!synthetic eddy method}
+\option{\ldots/synthetic\_eddy\_method} Available for velocity.
+This generates statistically realistic turbulent flow at an inflow using a
+statistical method (for a full explanation see \cite{jarrin_06}.
+The user specifies a mean velocity (e.g. python profile),
+turbulence lengthscale, Reynolds stress profile and number of samples.
+This is useful for high-Reynolds-number industrial CFD flow, and/or if using an LES model.
 
 \subsection{Special cases}\label{sec:BCs:special}
 
@@ -1769,7 +1812,7 @@ The temperature and salinity are continuous galerkin.
 
 \subsubsection{Pressure options}
 
-This is continuous galerkin discretisation, with a mesh of polynomial order two (already specified above).
+This is continuous Galerkin discretisation, with a mesh of polynomial order two (already specified above).
 
 \begin{itemize}
 \item \option{\ldots/spatial\_discretisation} must be Continuous Galerkin
@@ -1792,7 +1835,7 @@ The quadrature degree is usually four in these cases.
 \item \option{\ldots/temporal\_discretisation/theta} is $0.5$ (Crank-Nicolson), or $1$ if the advection term is switched off (e.g. during spinning up)
 \item \option{\ldots/temporal\_discretisation/conservative\_advection} is set to $0.0$
 \item \option{\ldots/solvers} normally gmres - or cg if the advection term is switched off (e.g. during spinning up)
-\item \option{\ldots/solvers/preconditioner} eisenstat - or try mg if using compact discontinuous galerkin vorticity
+\item \option{\ldots/solvers/preconditioner} eisenstat - or try mg if using compact discontinuous Galerkin vorticity
 \end{itemize}
 
 
@@ -1959,18 +2002,18 @@ If enabled a `geopressure' solver is used, \ref{sec:config_geostrophic_balance}.
 The configuration on mesh adaptivity occurs in two places: under \option{mesh\_adaptivity} where 
 the overall adaptive settings are configured, and on a per-field basis where both the interpolation
 method is set and if that field should be considered when creating the error metric. See chapter 
-\ref{chap:Adaptivity} for information on how the metric is formed.
+\ref{chap:Adaptivity} for the background to adaptivity and more detailled information.
 
 \subsection{Field settings}
 
 For each field present in the simulation there are up to two options that should be set. The first
-is the interpolation method that should be used to transfer the values of a field from the old to the new mesh.
-Second, in order to form the error metric by which the mesh is adapted, the user must set which fields
+is the interpolation method that should be used to transfer the values of a field from the old to the new mesh, section \ref{sec:interpolation_algorithms}.
+Second, in order to form the error metric by which the mesh is adapted, section \ref{sec:norm_choice}, the user must set which fields
 should form the error metric and how the error for that field should be calculated.
 
 \subsubsection{Interpolation method} \label{sec:config_adapt_interp}
 
-For each prognostic field in the current state, an interpolation type must be set. These can be set by selecting an
+For each prognostic field in the current state, an interpolation type, section \ref{sec:interpolation_algorithms}, must be set. These can be set by selecting an
 option \option{\ldots/prognostic/<interpolation type>} where \texttt{<interpolation type>} is one of:
 \begin{itemize}
 \item Consistent interpolation - the default and quick interpolation method, but is non-conservative and dissipative.
@@ -2011,16 +2054,17 @@ again with an optional tolerance:\\
 
 The second step for configuring adaptivity is to set up the fields that are to form the error metric used
 to adapt the mesh. For each field that should be considered when forming the metric the option
-\option{\ldots/adaptivity\_options} needs to be enabled. The error bound is set as separate fields within 
+\option{\ldots/adaptivity\_options} needs to be enabled. The type or error norm on which the metric is based (absolute or relative) is set with \option{\ldots/adaptivity\_options/absolute\_measure} or \option{\ldots/adaptivity\_options/relative\_measure}. For a $p$--norm \option{\ldots/adaptivity\_options/absolute\_measure} should be selected and the value of $p$ set with the option \option{\ldots/adaptivity\_options/absolute\_measure/p\_norm} ($p=2$ is recommended).
+
+The InterpolationErrorBound field must be set and as with any other prescribed field can take a constant value or vary in space and time (by prescribing a python function for example). The error bound is set as separate fields within 
 state, so for Temperature, for example, the acceptable error is stored an a field called 
-TemperatureInterpolationErrorBound. There are two methods available for calculating the error, absolute and relative.
-Both have similar options in which the InterpolationErrorBound field can be set as with any other prescribed field.
-One can, for example, set a different error metric in different regions on the mesh. This field
-is output as any other field too.
+TemperatureInterpolationErrorBound. This field is output as any other field too.
 
 For relative interpolation error bounds a tolerance value also has to be set under \newline
 \option{\ldots/adaptivity\_options/relative\_measure/tolerance}. This value prevents division by zero
 and should be set to a small enough number that the field can effectively be considered zero at this value.
+
+For discussion of the different metrics and error norms see section \ref{sec:norm_choice}.
 
 \subsection{General adaptivity options}
 \label{sec:configuring_fluidity_adaptivity_options}
@@ -2031,35 +2075,94 @@ prescribed adaptivity (serial only) or hr adaptivity. hr adaptivity is the norma
 
 Under \option{/mesh\_adaptivity/hr\_adaptivity} there are a number of mandatory options, which are:
 \begin{itemize}
-\item period - how often should the mesh be adapted. This can be set in number of simulation seconds, 
+\item \option{period} - how often should the mesh be adapted. This can be set in number of simulation seconds, 
 or in number of timesteps. It is recommended that adapt happen every 10-20 timesteps.
-\item maximum number of nodes - sets the maximum possible number of nodes in the domain. In parallel this is the
-global maximum number, but can be altered to be the number per process. The mesh is coarsened everywhere until this is acheived.
-\item enable gradation - is on by default and set to a value of 1.5. 
-\item minimum edge lengths - a tensor specifying the minimum edge length of an element.
-\item maximum edge lengths - a tensor specifying the maximum edge length of an element.
+\item \option{maximum\_number\_of\_nodes} - sets the maximum possible number of nodes in the domain. In parallel this is the
+global maximum number, but can be altered to be the number per process. If the maximum number of nodes is reached the mesh is coarsened everywhere until this is acheived.
+\item \option{enable\_gradation} - is on by default and set to a value of 1.5. This constrains the jump in desired edge lengths along an edge and therefore controls how fast the mesh size may change.
+\item \option{tensor\_field::MinimumEdgeLengths} - a tensor specifying the minimum edge length of an element.
+\item \option{tensor\_field::MaximumEdgeLengths} - a tensor specifying the maximum edge length of an element.
 \end{itemize}
 
 In addition to these mandatory settings, there are a number of other configuration options.
 \begin{itemize}
-\item minimum number of nodes - sets the minimum possible number of nodes in the domain. In parallel this is the
+\item \option{cpu\_period} - sets the time interval for the mesh adapt in cpu time.
+\item \option{minimum\_number\_of\_nodes} - sets the minimum possible number of nodes in the domain. In parallel this is the
 global minimum number. The mesh is refined until this is acheived.
-\item adaptive timestep at adapt - used in conjuction with adaptive timestep (see section \ref{section:config_adaptive_timestep}), this
-option resets the timestep back to the minumum value under \option{\ldots/adaptive\_timestep/minimum\_timestep} immediately follwing
+\item \option{adaptive\_timestep\_at\_adapt} - used in conjuction with adaptive timestep (see section \ref{section:config_adaptive_timestep}), this
+option resets the timestep back to the minumum value under \option{\ldots/adaptive\_timestep/minimum\_timestep} immediately following
 a mesh adapt.
-\item maximum node increase - The maximum ration by which the number of nodes is allowed to increase. A value of 1.1
+\item \option{maximum\_node\_increase} - the maximum ratio by which the number of nodes is allowed to increase. A value of 1.1
 indicates the number of nodes can increase by at most 10\%.
-\item node locking - Allows the locking of nodes via a python function that cannot be moved by adaptivity.
-\item metric advection - advect the metric along with the flow, ensuring the resolution can be pushed ahead of any flow, rather than lagging behind.
+\item \option{node\_locking} - allows the locking of nodes via a python function that cannot be moved by adaptivity.
+\item \option{functional\_tolerance} - specifies the minimum element functional value for which elements are considered for adaptivity, section \ref{sec:adaptive_remeshing_technology}. Default value is $0.15$.
+\item \option{geometric\_constraints} - this applies geometric constraints to the metric formation which aims to prevent the metric demanding edge length that are inappropriately large in comparison to the resolution required to preserve the geometric accuracy of the boundaries. If you get `knife elements' near the boundaries try turning this option on. This only works in 3D. 
+\item \option{bounding\_box\_factor} - this option bounds the edge lengths requested by the metric by bounding box of the domain, multiplied by the specified factor. The default value is $2$.
+\item \option{reference\_mesh} - supply a reference mesh which supplies the minimum or maximum edge length to the metric.
+\item \option{aspect\_ratio\_bound} -  maximum aspect ration of elements in the adapted mesh.
 \item adapt at first timestep - perform mesh adaptivity before the first timestep occurs. This can occur a specified number of times.
-\item preserve mesh regions - ensures that regions in your mesh, specified by region IDs, are preserved through adaptivity.
-\item vertically structured adaptivity - Also known as 2D+1 adaptivity, this option performs adaptivity in two stages - first the horizontal mesh
-is adapted, then the mesh is extruded using the adaptivity metric in the 3rd dimension. You must use an extruded mesh with this option.
-\item adaptivity library - choose which adaptivity library to use. In 2D you are restricted to libmba2d. In 3D you can choose either libmba3D or libadaptivity (default).
-\item adapt iterations - this options controls the number of intermediate adapt iteration during parallel adaptive simulations. The default value is 3. Higher values may give you 
+\item \option{preserve\_mesh\_regions} - ensures that regions in your mesh, specified by region IDs, are preserved through adaptivity.
+is adapted, then the mesh is extruded using the adaptivity metric in the 3rd dimension. You must use an extruded mesh with this option, section \ref{sec:extruded_meshes}.
+\item \option{adaptivity\_library} - choose which adaptivity library to use. In 2D you are restricted to libmba2d. In 3D you can choose either libmba3D or libadaptivity (default).
+\item \option{adapt\_iterations} - this options controls the number of intermediate adapt iteration during parallel adaptive simulations, section \ref{sec:parallel_adaptivity}. The default value is 3. Higher values may give you 
 better meshes, especially when the number of elements per process is low.
+\item \option{debug} - options for output that is useful for debugging adaptivity.
 \end{itemize}
 
+\subsubsection{Vertically structured and 2+1D adaptivity}
+\label{sec:vertically_structured_adaptivity}
+For some problems it can be advantageous to apply adaptivity in the horizontal
+and vertical as separate steps. This means a horizontal (surface) mesh is
+adapted first after which a column of nodes is created under each surface node.
+The resolution in the vertical columns is either specified under the extrusion
+options, or determined via a vertical adaptivity step. This functionality is switched
+on using the \option{vertically\_structured\_adaptivity} option. An extruded
+initial mesh is required for this option (see section \ref{sec:extruded_meshes},
+and section \ref{sec:extruded} for its configuration). The horizontal adaptivity
+stage is then applied to the horizontal input mesh, and the
+\option{bottom\_depth} and \option{sizing\_function} extrusion options are
+ reapplied for the creation of the vertical columns.
+If an extruded initial mesh is
+provided \emph{without} \option{vertically\_structured\_adaptivity}, the extruded 
+mesh is simply adapted in all directions, resulting in a fully unstructured mesh
+and the extrusion options are no longer applicable. Further options under
+\option{vertically\_structured\_adaptivity} are:
+\begin{itemize}
+\item \option{inhomogenous\_vertical\_resolution} -
+This option switches on vertical adaptivity. This means it will no longer create
+layers based on the \option{sizing\_function} option. Instead, the distance
+between the nodes in the vertical columns is based on the vertical component of
+the error metric. The vertical resolution will therefore vary over the depth and 
+in each column independently. With the combination of
+\option{vertically\_structured\_adaptivity} and
+\option{inhomogenous\_vertical\_resolution}, adaptivity can thus focus resolution
+in both horizontal and vertical, while maintaining a columnar nodal structure.
+This combination is refered to as 2+1D adaptivity.
+\begin{itemize}
+\item \option{adapt\_in\_vertical\_only} - With this option vertical adaptivity is
+applied, but the horizontal mesh is kept fixed.
+\end{itemize}
+\item \option{split\_gradation} - Instead of applying gradation to the full metric
+before splitting into a horizontal and vertical metric, with this option the
+gradation is applied after the split. Thus in particular when specifying
+anisotropic gradation, the gradation in the horizontal and vertical is applied
+completely independently.
+\item \option{vertically\_align\_metric} or \option{use\_full\_metric} -
+The metric applied in the horizontal adaptivity stage is assembled by merging
+the 3D metric in each column and then projecting to the horizontal plane. 
+Typically the 3D metric for large aspect ratio problems already decomposes 
+in an (almost) vertical eigenvector and 2 horizontal ones. 
+However, even the slightest tilt causes vertical error bounds 
+to be ``leaked'' into the merged horizontal metric, leading to unexpected small
+horizontal edge lengths. Therefore for large aspect ratio problems the option
+\option{vertically\_align\_metric}, which decomposes the metric \emph{before}
+merging in the horizontal, is recommended.
+\item \option{include\_bottom\_metric} - When constructing the horizontal metric
+incorporate the components of the full metric tangential to the bottom boundary.
+For example, this is useful when horizontal contours of a field intersect the
+bathymetry and this information is not automatically incorporated into the
+horizontal metric leading to the contact point being underresolved.
+\end{itemize}
 
 \subsubsection{Zoltan options}
 \label{sec:configuring_fluidity_zoltan_options}
@@ -2074,13 +2177,23 @@ and after adaptivity, which can be found under \option{mesh\_adaptivity/zoltan\_
 \item element quality cutoff - at what value of element quality is an element deemed ``bad''. Default is 0.6.
 \item load imbalance tolerance - a value of 1 means each processor will have exactly the same numebr of elements. However, smaller numbers here mean that the intermediate adapts may
 not be able to move the mesh sufficiently to get a good quality mesh from adaptivity.
+\item additional adapt iterations - increases the number of intermediate adapt iterations during parallel adaptive simulations.
 \item zoltan debug - debugging options.
 \end{itemize}
 
+For more information on the approach to parallel adaptivity adopted in \fluidity\ see section \ref{sec:parallel_adaptivity}.
 \subsubsection{Metric advection}
 \label{sec:configuring_fluidity_metric_advection}
-
-
+Metric advection advects the metric along with the flow, ensuring the resolution can be pushed ahead of any flow, rather than lagging behind, section \ref{section:metric_advection_general}. The advection equation is discretised with a control volume method,  section \ref{sec:ND_control_volume_advection}. For spatial discretisation a first order upwind scheme for calculation the face values (the default) and non--conservative form are generally recommended. These are selected with options
+\begin{itemize}
+\item \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/spatial\_discretisation/control\_volumes/face\_value::FirstOrderUpwind}
+\item \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/spatial\_discretisation/conservative\_advection} $=0.0$
+\end{itemize}
+For temporal discretisation a semi--implicit discretisation in time is recommended, section \ref{sec:ND_time_disct_adv_diff}, with option
+\begin{itemize}
+\item \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/temporal\_discretisation/theta} $=0.5$
+\end{itemize}
+The time step is controlled by the choice of CFL number, specified in \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/temporal\_discretisation/maximum\_courant\_number\_per\_subcycle}. The metric is advected over the time period between the current and the next adapt. This time period can be scaled with the option \option{/mesh\_adaptivity/hr\_adaptivity/metric\_advection/temporal\_discretisation/scale\_advection\_time} which has a default value of $1.1$.
 
 \section{Multiple material/phase models} \label{sec:config_multimatph}
 

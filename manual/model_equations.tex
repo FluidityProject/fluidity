@@ -2,7 +2,7 @@
 
 \section{How to navigate this chapter}
 
-This chapter covers the fluid and associated field equations modeled by {\fluidity}.
+This chapter covers the fluid and associated field equations modelled by {\fluidity}.
 
 \begin{center}
 \begin{tabular}{lccc}
@@ -374,7 +374,7 @@ where the tangential components of stress are set to zero.
 \subsubsection{Free surface boundary condition}\label{sec:FS}
 \index{free surface}
 The free surface height $\eta\equiv\eta(x,y,t)$ measured from the initial state of the ocean
-may be modeled either via the integrated continuity equation,
+may be modelled either via the integrated continuity equation,
 or for simplicity here by the kinematic boundary condition which simply states
 that particles on the free surface remain on it, \ie
 \begin{equation}\label{freesurf2}
@@ -390,7 +390,7 @@ $\vec r=(\sin\theta\cos\phi,\sin\theta\sin\phi,\cos\theta)$ where $\phi$ and $\t
 
 \subsubsection{Wetting and drying}\label{sec:WD}
 \index{free surface!Wetting and drying}
-If wetting and drying occurs, the free surface boundary condition \ref{freesurf3} need to be changed to ensure that the water level $\eta$ does not sink below the bathymetry level $b$:
+If wetting and drying occurs, the free surface boundary condition \ref{freesurf3} needs to be changed to ensure that the water level $\eta$ does not sink below the bathymetry level $b$:
 
 \begin{equation}\label{eq:wd1}
 \frac{\partial \max(\eta, b+d_0)}{\partial t}=\frac{\bmu \cdot \vec n}{\vec n \cdot \vec k},
@@ -422,7 +422,7 @@ For useful discussions see \citep{batchelor1967,cushman1994,gill1982}.
 \caption{Schematic of coordinates in a frame rotating with a sphere. The rotation is about a vector
 pointing from South to North pole. A point on the surface of the sphere $\bmx$ and its perpendicular
 distance from the axes of rotation $\bmx_{\perp}$ are shown. The latitude of $\bmx$ is given by $\phi$ 
-and the unit vectors $\bmi$, $\bmj$ and $\bmk$ represent a local coordinate axes at point $\bmx$ in the rotating
+and the unit vectors $\bmi$, $\bmj$ and $\bmk$ represent a local coordinate axes at a point $\bmx$ in the rotating
 frame: $\bmi$ points Eastwards, $\bmj$ points Northwards and $\bmk$ points in the radial outwards direction.}
 \end{figure}
 
@@ -685,9 +685,9 @@ As there is no interest in calculating the tide for an exact date, the astronomi
 is typically excluded from the multi-constituent theory of tides equation for ICOM applications meaning that all satellites 
 start at 0$^{\circ}$ latitude \citep{Wells2008}.
 
-The astronomical tidal potential can be modified to account for the deformation of the solid earth
+The astronomical tidal potential can be modified to account for the deformation of the solid Earth
 (the body tide) if desired. The multi-constituent equilibrium theory of tides equation includes the effects of the
-solid earth deformation, adding this to the overall free surface height. 
+solid Earth deformation, adding this to the overall free surface height. 
 This is fine
 when validating model results against measurements that record the overall elevation of the 
 Earth's oceans (e.g. satellite altimeter readings and surface tide gauges). If however, the model

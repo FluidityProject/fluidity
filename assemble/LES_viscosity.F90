@@ -54,17 +54,17 @@ contains
     ewrite(2,*) "Initialising optional dynamic LES diagnostic fields"
     ! Filter width
     if(have_filter_width) then
-      tensorfield => extract_tensor_field(state, "DynamicFilterWidth")
+      tensorfield => extract_tensor_field(state, "FilterWidth")
       call zero(tensorfield)
     end if
     ! Strain rate field S1
     if(have_strain) then
-      tensorfield => extract_tensor_field(state, "DynamicStrainRate")
+      tensorfield => extract_tensor_field(state, "StrainRate")
       call zero(tensorfield)
     end if
     ! Filtered strain rate field S2
     if(have_filtered_strain) then
-      tensorfield => extract_tensor_field(state, "DynamicFilteredStrainRate")
+      tensorfield => extract_tensor_field(state, "FilteredStrainRate")
       call zero(tensorfield)
     end if
     ! Eddy viscosity field m_ij
@@ -98,31 +98,31 @@ contains
 
     ! Strain rate field S1
     if(have_strain) then
-      tensorfield => extract_tensor_field(state, "DynamicStrainRate")
+      tensorfield => extract_tensor_field(state, "StrainRate")
       tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), strain_gi, detwei)
       call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
     ! Filtered strain rate field S2
     if(have_filtered_strain) then
-      tensorfield => extract_tensor_field(state, "DynamicFilteredStrainRate")
+      tensorfield => extract_tensor_field(state, "FilteredStrainRate")
       tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), t_strain_gi, detwei)
       call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
     ! Filter width
     if(have_filter_width) then
-      tensorfield => extract_tensor_field(state, "DynamicFilterWidth")
+      tensorfield => extract_tensor_field(state, "FilterWidth")
       tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), mesh_size_gi, detwei)
       call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
   end subroutine les_set_diagnostic_tensor_fields
 
-  subroutine leonard_tensor(mnu, positions, tnu, leonard, alpha, path)
+  subroutine leonard_tensor(nu, positions, tnu, leonard, alpha, path)
 
     ! Unfiltered velocity
-    type(vector_field), pointer               :: mnu
+    type(vector_field), pointer               :: nu
     type(vector_field), intent(in)            :: positions
     ! Filtered velocity
     type(vector_field), pointer               :: tnu
@@ -140,31 +140,30 @@ contains
 
     ! Path is to level above solver options
     lpath = (trim(path)//"/dynamic_les")
-    ewrite(2,*) "path: ", trim(lpath)
-    ewrite(2,*) "alpha: ", alpha
+    ewrite(2,*) "filter factor alpha: ", alpha
 
-    ewrite_minmax(mnu)
+    ewrite_minmax(nu)
     ewrite_minmax(tnu)
 
-    call anisotropic_smooth_vector(mnu, positions, tnu, alpha, lpath)
+    call anisotropic_smooth_vector(nu, positions, tnu, alpha, lpath)
 
-    ewrite_minmax(mnu)
+    ewrite_minmax(nu)
     ewrite_minmax(tnu)
 
     ! Velocity products (ui*uj)
     allocate(ui_uj); allocate(tui_tuj)
-    call allocate(ui_uj, mnu%mesh, "NonlinearVelocityProduct")
-    call allocate(tui_tuj, mnu%mesh, "TestNonlinearVelocityProduct")
+    call allocate(ui_uj, nu%mesh, "NonlinearVelocityProduct")
+    call allocate(tui_tuj, nu%mesh, "TestNonlinearVelocityProduct")
     call zero(ui_uj); call zero(tui_tuj)
 
     ! Other local variables
-    allocate(u_loc(mnu%dim)); allocate(t_loc(mnu%dim, mnu%dim))
+    allocate(u_loc(nu%dim)); allocate(t_loc(nu%dim, nu%dim))
     u_loc=0.0; t_loc=0.0
 
     ! Get cross products of velocities
-    do i=1, node_count(mnu)
+    do i=1, node_count(nu)
       ! Mesh filter ^r
-      u_loc = node_val(mnu,i)
+      u_loc = node_val(nu,i)
       t_loc = outer_product(u_loc, u_loc)
       call set( ui_uj, i, t_loc )
       ! Test filter ^t
