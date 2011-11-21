@@ -1806,6 +1806,8 @@
          integer :: i, nmat
          character(len=FIELD_NAME_LEN) :: schur_scheme
          character(len=FIELD_NAME_LEN) :: schur_preconditioner
+         character(len=FIELD_NAME_LEN) :: pressure_mesh
+         character(len=FIELD_NAME_LEN) :: pressure_mesh_element_type
 
          ewrite(1,*) 'Checking momentum discretisation options'
 
@@ -2059,7 +2061,10 @@
             end if
 
             ! Check options for case with CG pressure and
-            ! testing continuity with CV dual mesh
+            ! testing continuity with CV dual mesh. 
+            ! Will not work with compressible, free surface or 
+            ! wetting and drying. Also will not work if the pressure 
+            ! is on a mesh that has bubble or trace shape functions.
             if (have_option("/material_phase["//int2str(i)//&
                                  "]/scalar_field::Pressure/prognostic&
                                  &/spatial_discretisation/continuous_galerkin&
@@ -2077,7 +2082,36 @@
                   ewrite(-1,*) "continuous_galerkin/scheme/use_projection_method"
                   FLExit("Use incompressible projection method if wanting to test continuity with cv dual with CG pressure")                  
                end if
-            end if            
+               
+               if(have_option("/mesh_adaptivity/mesh_movement/free_surface")) then
+                  FLExit("For CG Pressure cannot test the continuity equation with CV when using the free surface model")
+               end if
+               
+               if(have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+                  FLExit("For CG Pressure cannot test the continuity equation with CV when using the wetting and drying model")
+               end if
+               
+               ! get the pressure mesh name
+               call get_option("/material_phase["//int2str(i)//&
+                                 "]/scalar_field::Pressure/prognostic&
+                                 &/mesh/name",&
+                                 pressure_mesh)
+               
+               ! check that the pressure mesh options 
+               ! do NOT say bubble or trace
+               call get_option("/geometry/mesh::"//trim(pressure_mesh)//"/from_mesh/mesh_shape/element_type", &
+                                pressure_mesh_element_type, &
+                                default = "lagranian")
+               
+               if (trim(pressure_mesh_element_type) == "bubble") then
+                  FLExit("For CG Pressure cannot test the continuity equation with CV if the pressure mesh has element type bubble")
+               end if
+               
+               if (trim(pressure_mesh_element_type) == "trace") then
+                  FLExit("For CG Pressure cannot test the continuity equation with CV if the pressure mesh has element type trace")
+               end if
+               
+            end if  
          end do
 
          ewrite(1,*) 'Finished checking momentum discretisation options'

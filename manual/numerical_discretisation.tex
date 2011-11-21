@@ -1538,11 +1538,11 @@ where (again assuming CG and ignoring boundary conditions):
 
 For incompressible flow the momentum equation needs to be solved
 in conjunction with the continuity equation
-$\div\vec u=0$. The discretised weak form of
-the continuity equation, integrated by parts, is given by
+$\div\vec u=0$. Using test functions represented as $\zeta_{i}$ the discretised 
+weak form of the continuity equation, integrated by parts, is given by
 \begin{equation*}
-  \sum_j \int_\Omega \left(\grad\psi_i\right)\cdot\bmphi_j u_j -
-    \int_\dOmega \psi_i\bmphi_j\cdot\vec n u_j = 0.
+  \sum_j \int_\Omega \left(\grad\zeta_i\right)\cdot\bmphi_j u_j -
+    \int_\dOmega \zeta_i\bmphi_j\cdot\vec n u_j = 0.
   \label{continuity_byparts}
 \end{equation*}
 Similar to the scalar advection equation, Dirichlet boundary conditions for the
@@ -1553,23 +1553,35 @@ boundary $\dOmega$ into a part
 $\dOmega_D$ where we prescribe $\vec u\cdot\vec n=g_D$ and
 $\dOmega_{\mathrm{open}}$ where the normal component is left free.
 
-Note that the test functions $\psi_i$ we use here are the
-same as the pressure trial functions used above. As a consequence
-the first term involves a matrix that is the
-transpose of \eqref{pgmatrix}. Therefore if we redefine the pressure
-gradient matrix as
+If we define a gradient matrix as
 \begin{equation*}
-  \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j
-    -\int_{\dOmega_{\mathrm{open}}} \bmphi_i\cdot\vec n\psi_j ,
+  \matB_{ij}=\int_\Omega \bmphi_i\cdot\grad\zeta_j
+    -\int_{\dOmega_{\mathrm{open}}} \bmphi_i\cdot\vec n\zeta_j ,
 \end{equation*}
-we can write the continuity equation in the following matrix form:
+we can write the continuity equation in the following form:
+\begin{equation}
+  \matB^T \dvec u=
+    \vec{\mat{M}}_D ~\dvec{g}{}_D,
+    \quad\text{ with }\;
+    \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \zeta_i\bmphi_j\cdot\vec n.
+  \label{discrete_incompressible_continuity}
+\end{equation}
+
+If we choose the continuity equation test functions $\zeta_{i}$ to be the 
+same as the pressure basis functions $\psi_i$ the discrete continuity 
+equation \eqref{discrete_incompressible_continuity} becomes
 \begin{equation}
   \matC^T \dvec u=
     \vec{\mat{M}}_D ~\dvec{g}{}_D,
     \quad\text{ with }\;
-    \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \psi_i\bmphi_j\cdot\vec n.
-  \label{discrete_incompressible_continuity}
+    \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \psi_i\bmphi_j\cdot\vec n,
+  \label{discrete_incompressible_continuity_CT}
 \end{equation}
+where we have redefined the pressure gradient matrix \eqref{pgmatrix} as
+\begin{equation*}
+  \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j
+    -\int_{\dOmega_{\mathrm{open}}} \bmphi_i\cdot\vec n\psi_j.
+\end{equation*}
 
 The extra surface integral over $\dOmega_{\mathrm{open}}$ in
 $\matC$ in the momentum equation will enforce
@@ -1642,11 +1654,11 @@ Subtracting \eqref{eqn:presscorr_1} from \eqref{eqn:presscorr_2} yields:
     =0,
 \end{equation}
 
-Left-multipliying by $\matC^TM^{-1}$ and
+Left-multipliying by $\matB^TM^{-1}$ and
 some rearrangement results in:
 \begin{equation*}
-  \matC^T \mat{M^{-1}}\matC ( \dvec p^{n+\tfrac 12} -  \dvec p_*)
-  =-\frac{\matC^T  ({\dvec{\tilde u}^{n+1}-\dvec{u}_*^{n+1}})}{\Delta t},
+  \matB^T \mat{M^{-1}}\matC ( \dvec p^{n+\tfrac 12} -  \dvec p_*)
+  =-\frac{\matB^T  ({\dvec{\tilde u}^{n+1}-\dvec{u}_*^{n+1}})}{\Delta t},
 \end{equation*}
 The left hand side of this equation contains the sought after pressure
 correction $\Delta\dvec p=\dvec p^{n+\tfrac 12}-\dvec p_*$.
@@ -1654,12 +1666,28 @@ Taking into account the discretised incompressible continuity
 \eqref{discrete_incompressible_continuity} evaluated at
 $t^{n+1}$, we finally arrive at the pressure correction equation:
 \begin{equation}
- \matC^T \mat{M^{-1}}\matC~\Delta\dvec p
-   =\frac{ \matC^T \dvec{u}_*^{n+1}-\vec{\mat{M}}_D ~\dvec{g}{}_D}{\Delta t},
+ \matB^T \mat{M^{-1}}\matC~\Delta\dvec p
+   =\frac{ \matB^T \dvec{u}_*^{n+1}-\vec{\mat{M}}_D ~\dvec{g}{}_D}{\Delta t}.
    \label{eqn:pressure_correction}
 \end{equation}
-This discrete Poisson equation can now be solved
-for $\Delta\dvec p$, after which the pressure and velocity can
+If we choose the continuity equation test functions $\zeta_{i}$ to be the 
+same as the pressure basis functions $\psi_i$ the discrete pressure correction 
+equation \eqref{eqn:pressure_correction} becomes
+\begin{equation}
+ \matC^T \mat{M^{-1}}\matC~\Delta\dvec p
+   =\frac{ \matC^T \dvec{u}_*^{n+1}-\vec{\mat{M}}_D ~\dvec{g}{}_D}{\Delta t}.
+   \label{eqn:pressure_correction_CT}
+\end{equation}
+If the continuity test functions are chosen to be the same
+as the pressure basis functions then the symmetric discrete Poisson equation 
+given by \eqref{eqn:pressure_correction_CT} can now be solved
+for $\Delta\dvec p$. Else if the continuity test functions are chosen to be the
+different to the pressure basis functions then the non symmetric discrete Poisson equation 
+given by \eqref{eqn:pressure_correction} can now be solved for $\Delta\dvec p$. For the latter 
+case to be well posed there must be the same number of continuity test functions $\zeta_{i}$ as 
+pressure basis functions $\psi_{i}$ such that the matrix $\matB^T \mat{M^{-1}}\matC$ is square.
+
+After obtaining the pressure correction the pressure and velocity can
 be updated by:
 \begin{equation*}
 \begin{split}
@@ -1707,8 +1735,9 @@ matrix takes on a block-diagonal form, with $n\times n$ blocks along
 the diagonal, where $n$ is the number of nodes per element. These blocks
 can be independently inverted and the inverse mass matrix still has the
 same block-diagonal form. As a consequence the matrix
-$\matC^T M^{-1} \matC$ is sparse and can be explicitly
-constructed. Moreover with a continuous $P_{n+1}$ discretisation of pressure,
+$\matB^T M^{-1} \matC$ (or $\matC^T M^{-1} \matC$) is sparse and can be explicitly
+constructed. Moreover for the case where the continuity test functions and pressure 
+basis functions are the same, with a continuous $P_{n+1}$ discretisation of pressure,
 and a discontinuous $P_m, m\leq n$ discretisation of velocity, we
 have the following property\citep{cotter2009}:
 \begin{equation*}
@@ -1777,6 +1806,27 @@ a special mass lumping procedure. It is often used in problems with a dominant v
 pure Stokes problems).
 \end{tabular}
 \end{center}
+
+\subsection{Continuous Galerkin pressure with control volume tested continuity}
+\index{pressure!CG with CV tested continuity}
+\label{sec:cg_pressure_cv_continuity}
+
+As was shown in section \ref{sec:ND_pressure_equation} the continuity test functions 
+$\zeta_{i}$ need not be chosen to be the same as the pressure basis functions $\psi_{i}$. 
+As well as being required to form a valid discrete finite element function space the continuity 
+test function space must contain the same number of functions as the pressure basis function space. 
+This is necessary such that the pressure correction matrix is square. 
+
+A particular choice for a different continuity test function space is to use the control volume dual 
+space of the pressure basis standard finite element function space (for example consisting of Lagrangian 
+functions). This is available in \fluidity when the pressure basis functions are continuous. The purpose of this 
+choice is to select a velocity and pressure element pair to satisfy a particular balance and to 
+then also ensure a discrete velocity divergence suitable for the transport of tracers (or volume fractions) 
+using a control volume discretisation. An immediate drawback of this test function choice is that 
+the pressure correction matrix is not symmetric, which must be considered when selecting a linear algebra solver.
+
+Currently the capabilities and stability of using this method with different element pairs has not been fully 
+established.
 
 \section{Balance pressure}
 \label{sec:balance_pressure}
@@ -1870,7 +1920,7 @@ Using the fact that the pressure is zero on the free surface and therefore $p=g\
 \frac{1}{g} \int_{\Omega_{fs}} {\psi_i }\frac{\partial p}{\partial t}\vec z \cdot \vec n=\int_{\Omega_{fs}} \psi_i {n \cdot \bmu} \quad
   \forall \psi_i,
 \end{equation}
-and $\Omega_{fs}$ is the boundary where the free surface is to be applied. This condition is now incorporated into the boundary integrals of the continuity equation \eqref{continuity_byparts} giving:
+and $\Omega_{fs}$ is the boundary where the free surface is to be applied. This condition is now incorporated into the boundary integrals of the continuity equation \eqref{continuity_byparts}, taking the continuity test functions to be the same as the pressure basis functions, giving:
 
 \begin{equation}\label{continuity_byparts_withfs}
   -\int_\Omega \grad\psi_i \cdot \vec u
@@ -1883,7 +1933,7 @@ and $\Omega_{fs}$ is the boundary where the free surface is to be applied. This 
 
 Following the spatial and temporal discretisation described in section \ref{sec:ND_pressure_equation}, 
 the matrix form of the continuity equation now includes the free surface boundary term (compare with 
-\eqref{discrete_incompressible_continuity}):
+\eqref{discrete_incompressible_continuity_CT}):
 \begin{equation}
 \theta C^T u^{n+1} + (1-\theta) C^T u^n + M_s \frac{\hat p^{n+1}-\hat p^n}{g \Delta t}=0
 \end{equation}
@@ -1892,7 +1942,7 @@ Repeating the steps from section \ref{sec:pressure_correction}, the pressure cor
 \left(\theta C^T(\frac{M_u}{\Delta t})^{-1} \theta C + \frac{M_s}{g(\Delta t)^2}\right)\Delta \hat p = -\frac{\theta C^T u_*^{n+1} + (1-\theta)C^Tu^n}{\Delta t}-\frac{M_s}{g(\Delta t)^2}(\hat p_*^{n+1}-\hat p^n)
 \end{equation}
 
-\section{Wetting and drying}
+\section{Wetting and drying}\label{sec:wetting_and_drying}
 The discretisation of free surface boundary condition with wetting and drying is very similar to the derivation in section \ref{sec:free_surface}, 
 but uses $p=g\max(\eta, b+d_0)$ as relationship between pressure and free surface eleveation. Hence the free surface boundary condition with wetting and drying becomes (compare with equation \ref{weakfreesurf3}):
 

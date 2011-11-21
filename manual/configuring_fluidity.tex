@@ -1142,6 +1142,27 @@ pressure and neither \option{\ldots/reference\_node} nor
 \option{\ldots/remove\_null\_space} should be set. An example
 may be stress free outflow or the presence of a free surface.
 
+\subsection{Continuous Galerkin pressure with control volume tested continuity}
+\index{pressure!CG with CV tested continuity}
+\label{sec:config_cg_pressure_cv_continuity}
+
+As described in section \ref{sec:cg_pressure_cv_continuity} when using a continuous Galerkin 
+discrestisation of pressure the continuity equation can be tested with the corresponding 
+dual control volume mesh. This is achieved by including the \linebreak 
+\option{\ldots/scalar\_field::Pressure/prognostic/spatial\_discretisation/continuous\_galerkin/test\_continuity\_with\_cv\_dual}
+option. As described in the theory section \ref{sec:cg_pressure_cv_continuity} this will imply a 
+non symmetric pressure correction matrix which must be considered when selecting the pressure 
+matrix solver options.
+
+The current limitations of this method are:
+\begin{enumerate}
+  \item It can only be used for incompressible flow \ref{sec:ND_pressure_equation}.
+  \item It cannot be used with the free surface model \ref{sec:free_surface}.
+  \item It cannot be used with the wetting and drying model \ref{sec:wetting_and_drying}.
+  \item It can only be used if the pressure has a mesh associated with Lagrangian shape functions.
+  \item It can only be used with control volume shape functions that are available, of which only P1CV are considered reliable. 
+\end{enumerate}
+
 \section{Solution of linear systems}\label{sec:Solve}
 \index{linear solvers!options}
 
