@@ -2,8 +2,6 @@
 
 from pylab import *
 import argparse
-import sys
-sys.path.append('/home/slm06/fluidity/sea-ice-coupling/python')
 import vtktools
 
 parser = argparse.ArgumentParser(description='Radially scale a .vtu file.')
