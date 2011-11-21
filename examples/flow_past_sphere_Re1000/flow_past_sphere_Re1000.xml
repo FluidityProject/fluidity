@@ -30,14 +30,14 @@ print exact_xforce
     </variable>
   </variables>
   <pass_tests>
-    <test name="relative drag force difference (3%)." language="python">
+    <test name="relative drag force difference (4%)." language="python">
 print (100.0*abs(time_average_xforce - exact_xforce)/exact_xforce)
-assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.03)
+assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.04)
     </test>
   </pass_tests>
   <warn_tests>
-    <test name="relative drag force difference (2%)." language="python">
-assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.02)
+    <test name="relative drag force difference (3%)." language="python">
+assert(abs(time_average_xforce - exact_xforce)/exact_xforce &lt; 0.03)
     </test>
   </warn_tests>
 </testproblem>

@@ -1,14 +1,11 @@
 preprocess:
-	@echo **********Creating mesh for each refinement.
 	@$(foreach layers,4 8 16 32 64, \
 		echo **********Installing directory for $(layers) layer simulation.;\
 		install -d channel-$(layers); \
 		cd channel-$(layers); \
 		ln -s ../channel.flml .;\
 		ln -s ../channel_tools.py .;\
-		ln -s ../generate_mesh .;\
-		echo **********Generating mesh for $(layers) layer simulation.;\
-		./generate_mesh $(layers); \
+		ln -s ../src/chan$(layers).msh ./channel.msh;\
 		cd ..; \
 	)
 
@@ -32,4 +29,3 @@ clean:
 	$(foreach layers,4 8 16 32 64, rm -rf channel-$(layers);)
 	rm -f *.stat
 	rm -f *.d.* *.vtu
-	rm -f *.msh *.geo

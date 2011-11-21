@@ -8,3 +8,4 @@ clean:
 	rm -f *.stat *.vtu *.pvtu *.convergence *checkpoint* *.err* *.log*  
 	rm -f mixing_stats_test_serial.flml mixing_stats_test_parallel.flml
 	rm -f *.halo *.node *.ele *.face *.msh
+	rm -rf mixing_stats_test_parallel_?

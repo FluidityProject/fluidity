@@ -352,6 +352,7 @@ void ParseArguments(int argc, char** argv){
   load_options(fl_command_line_options["xml"]);
   if(!have_option("/simulation_name")){
     cerr<<"ERROR: failed to find simulation name after loading options file\n";
+    cerr<<"  or specified options file not found\n";
     exit(-1);
   }
   OptionError stat = get_option("/simulation_name", fl_command_line_options["simulation_name"]);

@@ -204,7 +204,7 @@ London, SW7 2AZ, UK
 
 
 {\Large
-Version 4.0 trunk revision \input{version} (\today)
+Version 4.1 trunk revision \input{version} (\today)
 \\}
 
 \vfill
@@ -216,6 +216,7 @@ Version 4.0 trunk revision \input{version} (\today)
 \end{titlepage}
 
 \input{overview}
+\input{primer}
 
 \makeatletter
 % originals from book.cls
@@ -253,8 +254,8 @@ Version 4.0 trunk revision \input{version} (\today)
 \include{numerical_discretisation}
 \include{parameterisations}
 \include{embedded_models}
+\include{meshes}
 \include{adaptivity}
-\include{mesh_generation}
 \include{configuring_fluidity}
 \include{visualisation_and_diagnostics}
 \include{examples}
@@ -270,13 +271,14 @@ Version 4.0 trunk revision \input{version} (\today)
 \appendix
 
 \include{about}
-\include{mathematical_notation}
-\include{useful_numbers}
-\include{dimensionless}
+%\include{mathematical_notation}
+%\include{useful_numbers}
+%\include{dimensionless}
 \include{python}
 \include{external_libraries}
 %\include{parallel}
 \include{trouble_shooting}
+\include{mesh_formats}
 
 
 \cleardoublepage

@@ -173,7 +173,7 @@ contains
     real :: quality, min_quality, my_min_quality
     
     ! variables for recording the local maximum/minimum edge weights and local 90th percentile edge weight
-    real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight
+    real(zoltan_float) :: min_weight, max_weight, ninety_weight, my_max_weight, my_min_weight
     
     integer, dimension(:), pointer :: my_nelist, nbor_nelist
     
@@ -295,7 +295,6 @@ contains
           end if
        end do
        
-       value = maxval(ewgts(head:head+size(neighbours)-1))
        head = head + size(neighbours)
     end do
     
@@ -307,8 +306,14 @@ contains
     my_max_weight = maxval(ewgts(1:head-1))
     
     ! calculate the local minimum edge weight
-    min_weight = minval(ewgts(1:head-1))
-    call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_INTEGER,MPI_MAX, MPI_COMM_FEMTOOLS,err)
+    my_min_weight = minval(ewgts(1:head-1))
+
+    ! calculate global maximum edge weight
+    call MPI_ALLREDUCE(my_max_weight,max_weight,1,MPI_REAL,MPI_MAX, MPI_COMM_FEMTOOLS,err)
+
+    ! calculate global minimum edge weight
+    call MPI_ALLREDUCE(my_min_weight,min_weight,1,MPI_REAL,MPI_MIN, MPI_COMM_FEMTOOLS,err)
+
     ! calculate the local 90th percentile edge weight   
     ninety_weight = max_weight * 0.90
     

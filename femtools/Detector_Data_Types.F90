@@ -115,6 +115,7 @@ module detector_data_types
 
      !! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
      type(rk_gs_parameters), pointer :: move_parameters => null()
+     logical :: move_with_mesh = .false.
 
      !! Biology options
      integer :: fg_id
@@ -140,6 +141,7 @@ module detector_data_types
 
      !! I/O parameters
      logical :: binary_output = .false.
+     logical :: write_nan_outside = .false.
      integer :: output_unit = 0          ! Assumed non-opened as long this is 0
      integer :: mpi_fh = 0               ! MPI filehandle
      integer :: mpi_write_count = 0      ! Offset in MPI file

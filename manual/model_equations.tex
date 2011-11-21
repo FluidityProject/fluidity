@@ -2,26 +2,26 @@
 
 \section{How to navigate this chapter}
 
-This chapter covers the fluid and associated field equations modeled by {\fluidity}.
+This chapter covers the fluid and associated field equations modelled by {\fluidity}.
 
 \begin{center}
 \begin{tabular}{lccc}
 \hline
 problem & underlying equations & boundary conditions & other considerations\\
 \hline
-scalar advection & \ref{Sect:MP-AdvdifEqn-eqns}, \ref{Sect:MP-AdvdifEqn-adv} & \ref{sect:bc_scalar_dirichlet}, \ref{sect:bc_scalar_neumann} & × \\
-scalar advection-diffusion & \ref{Sect:MP-AdvdifEqn-eqns}, \ref{Sect:MP-AdvdifEqn-diff} & × & ×\\
-momentum equation & \ref{Sect:MP-MomEqn} & \ref{sect:bc_vector_dirichlet}, \ref{sect:bc_vector_stress}, \ref{sect:bc_vector_traction}, \ref{Sect:FS} & \ref{sect:eqn_extensions} \\
+scalar advection & \ref{sec:MP-AdvdifEqn-eqns}, \ref{sec:MP-AdvdifEqn-adv} & \ref{sec:bc_scalar_dirichlet}, \ref{sec:bc_scalar_neumann} & × \\
+scalar advection-diffusion & \ref{sec:MP-AdvdifEqn-eqns}, \ref{sec:MP-AdvdifEqn-diff} & × & ×\\
+momentum equation & \ref{sec:MP-MomEqn} & \ref{sec:bc_vector_dirichlet}, \ref{sec:bc_vector_stress}, \ref{sec:bc_vector_traction}, \ref{sec:FS} & \ref{sec:eqn_extensions} \\
 \hline
 \end{tabular}
 \end{center}
 
 The material covered in this chapter is dealt with in great detail in \citet{batchelor1967} and \citet{landau}. \cite{cushman1994} is also a useful reference.
 
-\section{Advection--Diffusion equation}\label{Sect:MP-AdvdifEqn}
+\section{Advection--Diffusion equation}\label{sec:MP-AdvdifEqn}
 \index{advection-diffusion equation}
 
-\subsection{General equation}\label{Sect:MP-AdvdifEqn-eqns}
+\subsection{General equation}\label{sec:MP-AdvdifEqn-eqns}
 
 The general form the equation that governs the evolution of a scalar field $c$
 (\eg passive tracer, species concentration, temperature, salinity) is
@@ -30,12 +30,12 @@ The general form the equation that governs the evolution of a scalar field $c$
 \end{equation}
 where $\bmu=(u,v,w)^{T}$ is the velocity vector, $\kaptens$ is the diffusivity (tensor), $\sigma$ is an absorption coefficient ($-\sigma c$ is sometimes termed Rayleigh or linear friction) and $F$ represents any source or reaction terms.
 
-\subsubsection{Advection}\label{Sect:MP-AdvdifEqn-adv}
+\subsubsection{Advection}\label{sec:MP-AdvdifEqn-adv}
 The advection term in \eqref{eq:general_scalar_eqn}, given by
 \begin{equation}\label{eq:scalar_advection}
 \nabla\cdot(\bmu c) = \bmu\cdot\nabla c + (\nabla\cdot\bmu)c,
 \end{equation}
-expresses the transport of the scalar quantity $c$ in the flow field $\bmu$. Note that for an incompressible flow $\nabla\cdot\bmu=0$ (see section \ref{sect:equation_of_state}) resulting in the second term on the right hand side of \eqref{eq:scalar_advection} dropping out. However, there may be numerical
+expresses the transport of the scalar quantity $c$ in the flow field $\bmu$. Note that for an incompressible flow $\nabla\cdot\bmu=0$ (see section \ref{sec:equation_of_state}) resulting in the second term on the right hand side of \eqref{eq:scalar_advection} dropping out. However, there may be numerical
 reasons why the discrete velocity field is not exactly divergence free, in which case this term may
 be included in the discretisation. {\fluidity} deals with the advection term in the form
 \begin{equation}\label{eq:fluidity_scalar_advection}
@@ -43,7 +43,7 @@ be included in the discretisation. {\fluidity} deals with the advection term in 
 \end{equation}
 so that $\beta=1$ corresponds to the conservative form of the equation and $\beta=0$ to the non-conservative.
 
-\subsubsection{Diffusion}\label{Sect:MP-AdvdifEqn-diff}
+\subsubsection{Diffusion}\label{sec:MP-AdvdifEqn-diff}
 The diffusion term in \eqref{eq:general_scalar_eqn}, given by 
 \begin{equation}\label{eq:scalar_diffusion}
 \nabla\cdot(\kaptens\nabla c),
@@ -65,7 +65,7 @@ In this case the diffusion term may be written as
 Note that the second-order terms defined above are often termed Laplacian diffusion.
 
 
-\subsubsection{Absorption, reaction and source terms}\label{Sect:MP-AdvdifEqn-abs}
+\subsubsection{Absorption, reaction and source terms}\label{sec:MP-AdvdifEqn-abs}
 \index{absorption term}
 \index{source term}
 \index{reaction term}
@@ -86,7 +86,7 @@ a given function of time, location or a-priori known fields are termed sources (
 sinks if they are negative). Those terms which are also functions of other prognostic fields
 are termed reactions and are common when dealing with chemistry or biology.
 
-\subsection{Scalar boundary conditions} \label{Sect:BCs}
+\subsection{Scalar boundary conditions} \label{sec:BCs}
 
 \index{boundary conditions!scalar}
 
@@ -95,7 +95,7 @@ set of equations (discussed above) describing the behaviour of the
 system must be supplemented with appropriate boundary conditions.
 
 
-\subsubsection{Dirichlet condition for a scalar field}\label{sect:bc_scalar_dirichlet}
+\subsubsection{Dirichlet condition for a scalar field}\label{sec:bc_scalar_dirichlet}
 \index{boundary conditions!Dirichlet}
 For a scalar field, $c$ say, a Dirichlet condition on the boundary
 $\partial\Omega$ takes the form
@@ -104,7 +104,7 @@ c=\tilde{c},\quad \textrm{on}\quad \partial\Omega.
 \end{equation*}
 
 
-\subsubsection{Neumann condition for a scalar field}\label{sect:bc_scalar_neumann}
+\subsubsection{Neumann condition for a scalar field}\label{sec:bc_scalar_neumann}
 \index{boundary conditions!Neumann}
 
 Taking the weak form (applying Green's theorem to the diffusion term) of the advection-diffusion equation \eqref{eq:general_scalar_eqn} leads to a surface integral of the form
@@ -119,7 +119,7 @@ The Neumann condition is specified by assigning a value to $(\kaptens\nabla c)\c
 and substituting in this surface integral to the discretised equation. Note that $q$ is often termed a flux.
 
 
-\section{Fluid equations}\label{Sect:MP-MomEqn}
+\section{Fluid equations}\label{sec:MP-MomEqn}
 
 \index{conservation!equation}
 \index{momentum equation}
@@ -176,7 +176,7 @@ By adding $-\tautens$ to the previously introduced \textit{momentum flux density
  \tensor{\Pi}=p\mathbf{I}+\rho\bmu\bmu-\tautens=-\sigtens+\rho\bmu\bmu,
 \end{equation}
 
-where $\sigtens=-p\mathbf{I}+\tautens$, the viscous transfer of momentum in the fluid can be taken into account. $\sigtens$ is called the stress tensor and gives the part of the momentum flux which is not due to direct transfer of momentum with the mass of the fluid. $\tautens$ is named the deviatoric or viscous stress tensor. These tensors and the forms which they may take are discussed in more detail in section \ref{sect:equation_of_state}. Thus, the most general form of the momentum equation of a compressible viscous fluid may be written as
+where $\sigtens=-p\mathbf{I}+\tautens$, the viscous transfer of momentum in the fluid can be taken into account. $\sigtens$ is called the stress tensor and gives the part of the momentum flux which is not due to direct transfer of momentum with the mass of the fluid. $\tautens$ is named the deviatoric or viscous stress tensor. These tensors and the forms which they may take are discussed in more detail in section \ref{sec:equation_of_state}. Thus, the most general form of the momentum equation of a compressible viscous fluid may be written as
 
 \begin{equation}\label{viscous_fluids_1}
  \rho\left(\frac{\partial\bmu}{\partial{t}}+\bmu\cdot\nabla\bmu\right)=-\nabla\cdot\sigtens+\rho\bmF,
@@ -187,7 +187,7 @@ where $\bmF$ is a volume force per unit mass (\eg gravity, astronomical forcing)
 % Note: Something needs to be added about the difference between the two forms outlined below within Fluidity i.e. a reference
 % to somewhere in chapter 3 that goes over this.
 
-\subsubsection{Compressible equations in conservative form}\label{Sect:compressible_conservative}
+\subsubsection{Compressible equations in conservative form}\label{sec:compressible_conservative}
 Using the conservation laws outlined above the following point-wise PDE system governing the motion of a compressible fluid is obtained
 
 \begin{subeqnarray}
@@ -199,7 +199,7 @@ Using the conservation laws outlined above the following point-wise PDE system g
 \end{subeqnarray}
 where $\tote\equiv\inte+\modu^2/2$ is the total specific energy (in which $\inte$ is the internal energy). \eqref{conmass} is exactly the conservative form of the continuity equation given in \eqref{mass_conservation_2}, \eqref{conmom} is equivalent to equation \eqref{viscous_fluids_1} and \eqref{conenergy} is obtained from making the substitutions $w=\inte+p/\rho$ and $\tote\equiv\inte+\modu^2/2$ in \eqref{viscous_fluids_1}.
 
-\subsubsection{Compressible equations in non-conservative form}\label{Sect:compressible_nonconservative}
+\subsubsection{Compressible equations in non-conservative form}\label{sec:compressible_nonconservative}
 Expanding terms in \eqref{conservativesystem} yields the
 non-conservative form of the compressible equations\footnote{\eqref{nonconmass}
 is trivial to obtain. \eqref{nonconmom} makes use of \eqref{conmass}
@@ -218,12 +218,12 @@ note that substituting for $\tote\equiv\inte+\modu^2/2$ results in the cancellat
 Note that, provided the fields (\eg density and pressure) vary smoothly, that is, the fields are differentiable functions, equations \eqref{conservativesystem} and \eqref{nonconservativesystem} are identical.
 
 \subsection{Equations of state \& constitutive relations}
-\label{sect:equation_of_state}
+\label{sec:equation_of_state}
 \index{equation of state}
 
 Closure of the conservation equations requires an additional equation describing how the stress tensor is related to density, temperature and any other state variables of relevance. In general, this relationship is dependent of the physical and chemical properties of the material in the domain; hence, this relationship is known as the material model (note that in multi-material simulations a different material model can and must be specified for each material).
 
-It is convenient to separate the full stress tensor $\sigtens$ into an isotropic (hydrostatic) part, the pressure $p$, and a deviatoric part $\tautens$.  With the convention that compressive stress is negative, the stress tensor is given by $\sigtens =-p \bmI + \tautens$, where $\bmI$ is the identity matrix. If the stress tensor is separated in this way, the material model comprises two parts: an equation of state\footnote{Equation of state settings in \fluidity\ are described in section~\ref{Sect:ConfigEOS}} $f(p,\rho,T,\ldots)=0$ relating density to pressure, temperature, etc., and a constitutive relationship\footnote{constitutive relationship settings in \fluidity\ are described in section (to be written)} $g(\tautens,\bmu)=0$.
+It is convenient to separate the full stress tensor $\sigtens$ into an isotropic (hydrostatic) part, the pressure $p$, and a deviatoric part $\tautens$.  With the convention that compressive stress is negative, the stress tensor is given by $\sigtens =-p \bmI + \tautens$, where $\bmI$ is the identity matrix. If the stress tensor is separated in this way, the material model comprises two parts: an equation of state\footnote{Equation of state settings in \fluidity\ are described in section~\ref{sec:ConfigEOS}} $f(p,\rho,T,\ldots)=0$ relating density to pressure, temperature, etc., and a constitutive relationship\footnote{constitutive relationship settings in \fluidity\ are described in section (to be written)} $g(\tautens,\bmu)=0$.
 
 \subsubsection{Newtonian fluids}
 \index{stress}
@@ -252,7 +252,7 @@ where $\mu$ is the molecular viscosity. See \cite{batchelor1967} for further
 details.
 
 \subsubsection{Equation of state for incompressible flow}
-\label{Sect:IncompressibleFlow}
+\label{sec:IncompressibleFlow}
 \index{equation of state}
 
 If a material is \emph{perfectly} incompressible its density cannot change;
@@ -284,7 +284,7 @@ adjacent parcels changes but any one parcel has a constant density
 \cite{panton2006}.  In such cases it is often important to account for
 changes in buoyancy caused by the dependence of density on pressure,
 temperature and composition $C$ (see, for example,
-section~\ref{sect:boussinesq_approximation}).  If the change in $\rho,p,T,C$
+section~\ref{sec:boussinesq_approximation}).  If the change in $\rho,p,T,C$
 about a reference state $\rho_0,p_0,T_0,C_0$ is small, the dependence of
 density on each state variable can be assumed to be linear.  In this case, a
 general equation of state takes the form
@@ -309,22 +309,22 @@ For ocean modelling applications the most important compositional variation is s
 \begin{equation}
 \rho = \rho_0(1 - \alpha(T-T_0) + \beta(S-S_0)),
 \end{equation}
-where $\beta$ is the saline contraction coefficient (not to be confused with the beta plane parameters defined in the section \ref{sect:coriolis}.)
+where $\beta$ is the saline contraction coefficient (not to be confused with the beta plane parameters defined in the section \ref{sec:coriolis}.)
 
-\subsubsection{Pade equation of state for ocean modelling}\label{Sect:PadeDescription}
+\subsubsection{Pade equation of state for ocean modelling}\label{sec:PadeDescription}
 \index{equation of state!Pade approximation}
 
 Within \fluidity it is also possible to relate the density of sea water to the in situ temperature and salinity through the Pad{\'e} approximation to the equation of state. This approximation offers an accurate and computationally efficient method for calculating the density of seawater and is described by \citet{mcdougall2003}.
 
 % The Pade approx may not actually be coded for the in situ temp, this needs to be checked.
 
-\subsection{Momentum boundary conditions} \label{Sect:BCs-mom}
+\subsection{Momentum boundary conditions} \label{sec:BCs-mom}
 
 \index{boundary conditions!Momentum}
 
-As with the scalar equations discussed previously in section \ref{Sect:MP-AdvdifEqn}, any well posed problem requires appropriate boundary conditions for the momentum equation. Possible momentum boundary conditions are discussed below.
+As with the scalar equations discussed previously in section \ref{sec:MP-AdvdifEqn}, any well posed problem requires appropriate boundary conditions for the momentum equation. Possible momentum boundary conditions are discussed below.
 
-\subsubsection{Prescribed Dirichlet condition for momentum --- no-slip as a special case}\label{sect:bc_vector_dirichlet}
+\subsubsection{Prescribed Dirichlet condition for momentum --- no-slip as a special case}\label{sec:bc_vector_dirichlet}
 \index{boundary conditions!Dirichlet}
 \index{momentum equation}
 
@@ -333,12 +333,12 @@ velocity. For example, we might specify an inflow boundary where the normal comp
 of velocity is non-zero, but the two tangential directions are zero. A special case is
 where all three components are zero and this is referred to as no-slip.
 
-\subsubsection{Prescribed stress condition for momentum --- free-stress as a special case}\label{sect:bc_vector_stress}
+\subsubsection{Prescribed stress condition for momentum --- free-stress as a special case}\label{sec:bc_vector_stress}
 \index{boundary conditions!prescribed stress}
 \index{traction force}
 \index{momentum equation}
 
-As with the scalar equation (see section \ref{sect:bc_scalar_neumann}), applying Green's theorem to the stress term and the pressure
+As with the scalar equation (see section \ref{sec:bc_scalar_neumann}), applying Green's theorem to the stress term and the pressure
 gradient in \eqref{mtm} results in a surface integral of the form
 \begin{equation}\label{StressBC}
 \tautens\cdot\bmn - p\bmn = \bmT,\quad \textrm{on}\quad \partial\Omega,
@@ -351,7 +351,7 @@ component to zero (in the presence of a free surface) and impose the two tangent
 \index{boundary conditions!free stress}
 The free-stress condition is the case where we take $\bmT\equiv\vec{0}$.
 
-\subsubsection{Traction boundary condition for momentum --- free-stress as a special case}\label{sect:bc_vector_traction}
+\subsubsection{Traction boundary condition for momentum --- free-stress as a special case}\label{sec:bc_vector_traction}
 \index{boundary conditions!traction}
 \index{momentum equation}
 In this case the normal component of velocity can be prescribed (\eg inflow or
@@ -371,10 +371,10 @@ the two tangential directions to correspond to the available stress or wind velo
 information, \ie east-west and north-south) or bottom drag. Also, what we often term free-slip
 where the tangential components of stress are set to zero.
 
-\subsubsection{Free surface boundary condition}\label{Sect:FS}
+\subsubsection{Free surface boundary condition}\label{sec:FS}
 \index{free surface}
 The free surface height $\eta\equiv\eta(x,y,t)$ measured from the initial state of the ocean
-may be modeled either via the integrated continuity equation,
+may be modelled either via the integrated continuity equation,
 or for simplicity here by the kinematic boundary condition which simply states
 that particles on the free surface remain on it, \ie
 \begin{equation}\label{freesurf2}
@@ -388,11 +388,22 @@ $\bmu_H$ is the horizontal component of $\bmu$. Using the fact that the normal v
 where $\vec k=(0,0,1)$ is the vertical standard basis vector. Note that in spherical geometries $\vec k$ is replaced with
 $\vec r=(\sin\theta\cos\phi,\sin\theta\sin\phi,\cos\theta)$ where $\phi$ and $\theta$ are the azimuthal and co-latitudinal angles respectively. 
 
-\section{Extensions, assumptions and derived equation sets}\label{sect:eqn_extensions}
+\subsubsection{Wetting and drying}\label{sec:WD}
+\index{free surface!Wetting and drying}
+If wetting and drying occurs, the free surface boundary condition \ref{freesurf3} needs to be changed to ensure that the water level $\eta$ does not sink below the bathymetry level $b$:
 
-In certain scenarios it is desirable to simplify the equations of sections \ref{Sect:MP-AdvdifEqn} and \ref {Sect:MP-MomEqn} according to various approximations. Such approximations can drastically reduce the complexity of the system under consideration while maintaining much of the important physics. In this section we consider approximate forms and assumptions of the conservation equations that are appropriate to different problems. 
+\begin{equation}\label{eq:wd1}
+\frac{\partial \max(\eta, b+d_0)}{\partial t}=\frac{\bmu \cdot \vec n}{\vec n \cdot \vec k},
+\end{equation}
+where $d_0$ is a threshold defining the minimum water depth.
 
-\subsection{Equations in a moving reference frame}\label{sect:coriolis}
+The details of the wetting and drying are described in \cite{Funke2011}.
+
+\section{Extensions, assumptions and derived equation sets}\label{sec:eqn_extensions}
+
+In certain scenarios it is desirable to simplify the equations of sections \ref{sec:MP-AdvdifEqn} and \ref {sec:MP-MomEqn} according to various approximations. Such approximations can drastically reduce the complexity of the system under consideration while maintaining much of the important physics. In this section we consider approximate forms and assumptions of the conservation equations that are appropriate to different problems. 
+
+\subsection{Equations in a moving reference frame}\label{sec:coriolis}
 \index{Coriolis}
 Newton's second law holds in a fixed inertial reference frame, \ie
 fixed with respect to the distant stars. 
@@ -411,7 +422,7 @@ For useful discussions see \citep{batchelor1967,cushman1994,gill1982}.
 \caption{Schematic of coordinates in a frame rotating with a sphere. The rotation is about a vector
 pointing from South to North pole. A point on the surface of the sphere $\bmx$ and its perpendicular
 distance from the axes of rotation $\bmx_{\perp}$ are shown. The latitude of $\bmx$ is given by $\phi$ 
-and the unit vectors $\bmi$, $\bmj$ and $\bmk$ represent a local coordinate axes at point $\bmx$ in the rotating
+and the unit vectors $\bmi$, $\bmj$ and $\bmk$ represent a local coordinate axes at a point $\bmx$ in the rotating
 frame: $\bmi$ points Eastwards, $\bmj$ points Northwards and $\bmk$ points in the radial outwards direction.}
 \end{figure}
 
@@ -512,7 +523,7 @@ Applying this law to a control volume\footnote{The concept of a control volume a
 \end{equation}
 where $V$ is the control volume, $S$ is the surface of the control volume and $\vec n$ is the unit normal to the surface of the control volume and $\vec F$ is a volume force per unit mass. Physically, \ref{LinMom} states that the sum of all forces applied on the control volume is equal to the sum of the rate of change of momentum inside the control volume and the net flux of momentum through the control surface. More details regarding the derivation and properties of this equation can be found in \citet{batchelor1967}.
 
-\subsection{Buoyancy and Hydrostacy}\label{sect:hydrostacy}
+\subsection{Buoyancy and Hydrostacy}\label{sec:hydrostacy}
 \index{density}
 \index{buoyancy}
 \index{pressure!hydrostatic}
@@ -556,7 +567,7 @@ additional term of the form
 \end{equation*}
 must therefore be included in the horizontal momentum equations.
 
-\subsection{The Boussinesq approximation} \label{sect:boussinesq_approximation}
+\subsection{The Boussinesq approximation} \label{sec:boussinesq_approximation}
 \index{density!reference}
 \index{Boussinesq!approximation}
 
@@ -570,12 +581,12 @@ where $\rho'\ll\rho_0$. Such an approximation, namely, the Boussinesq approximat
 \end{equation}
 where buoyancy has explicitly been removed from the forcing term $\bmF$ and $\bmg$ is the gravitational vector (e.g. $\bmg = -g\bmk$ in planar problems when gravity points in the negative $z$ direction and $\bmg = -g\vec r$ on the sphere).
 
-\subsubsection{The non-hydrostatic Boussinesq equations}\label{sect:typical_ICOM_equations}
+\subsubsection{The non-hydrostatic Boussinesq equations}\label{sec:typical_ICOM_equations}
 \index{Boussinesq!equations}
 \index{momentum equation}
 \index{continuity equation}
 
-Applying the approximations outlined in section \ref{sect:boussinesq_approximation} to (\ref{viscous_fluids_1}) and (\ref{mass_conservation_2}), along with scalar transport equations for salinity and temperature (see (\ref{eq:general_scalar_eqn})) and an appropriate equation of state (see section \ref{sect:equation_of_state}), the three-dimensional non-hydrostatic Boussinesq equations can be written as
+Applying the approximations outlined in section \ref{sec:boussinesq_approximation} to (\ref{viscous_fluids_1}) and (\ref{mass_conservation_2}), along with scalar transport equations for salinity and temperature (see (\ref{eq:general_scalar_eqn})) and an appropriate equation of state (see section \ref{sec:equation_of_state}), the three-dimensional non-hydrostatic Boussinesq equations can be written as
 
 \begin{subeqnarray}
 \frac{\pp\bmu}{\pp t} + \bmu\cdot\nabla \bmu + 2 \bmOmega \times \bmu
@@ -590,7 +601,7 @@ f(p,\rho,T,\ldots)&=&0,\slabel{state}
 \label{boussinesq}
 \end{subeqnarray}
 
-where $p'$ is the perturbation pressure (see section \ref{sect:hydrostacy}),
+where $p'$ is the perturbation pressure (see section \ref{sec:hydrostacy}),
 $\rho=\rho_0+\rho'$ where $\rho'(=(\rho-\rho_0)/\rho_0)$ is the perturbation density,
 $T$ is the temperature, $S$ is salinity, $\eta$ is the free surface height and
 $\tautens,\kaptens_T,\kaptens_S$ are the viscosity, thermal diffusivity and saline
@@ -641,9 +652,9 @@ constituent (m), $t$ is the time (s), $\phi$ is the phase of the tidal constitue
 The nature of the co-oscillating tide can take the form of either one fixed cosine wave of constant amplitude 
 and phase applied across the entire length of the boundary, or it can be variable as delimited via an 
 interpolation of different amplitudes and phases at a series of points spread along the boundary \citep{Wells2008}.
-Within \fluidity, co-oscillating boundary tides can be applied through \eg the FES2004 data set (see \ref{sect:tides_in_the_med}).
+Within \fluidity, co-oscillating boundary tides can be applied through \eg the FES2004 data set (see \ref{sec:tides_in_the_med}).
 
-\subsubsection{Astronomical tides}\label{Sect:AST}
+\subsubsection{Astronomical tides}\label{sec:AST}
 \index{body forces!astronomical tides}
 \label{astronomical}
 
@@ -674,9 +685,9 @@ As there is no interest in calculating the tide for an exact date, the astronomi
 is typically excluded from the multi-constituent theory of tides equation for ICOM applications meaning that all satellites 
 start at 0$^{\circ}$ latitude \citep{Wells2008}.
 
-The astronomical tidal potential can be modified to account for the deformation of the solid earth
+The astronomical tidal potential can be modified to account for the deformation of the solid Earth
 (the body tide) if desired. The multi-constituent equilibrium theory of tides equation includes the effects of the
-solid earth deformation, adding this to the overall free surface height. 
+solid Earth deformation, adding this to the overall free surface height. 
 This is fine
 when validating model results against measurements that record the overall elevation of the 
 Earth's oceans (e.g. satellite altimeter readings and surface tide gauges). If however, the model
@@ -708,7 +719,7 @@ In a multi-material approach, the various forms of the conservation equations ca
 \begin{equation}
 \rho = \sum_{i=1}^n \phi_i\rho_i
 \end{equation}
-where $\rho_i$ is the density of each material.  For incompressible materials $\rho_i = \rho_{i0}$; for materials whose density is defined by an equation of state (see section~\ref{sect:equation_of_state}) $\rho_i = f(p,T,S,\ldots)$.  Conservation of mass at each point also requires that
+where $\rho_i$ is the density of each material.  For incompressible materials $\rho_i = \rho_{i0}$; for materials whose density is defined by an equation of state (see section~\ref{sec:equation_of_state}) $\rho_i = f(p,T,S,\ldots)$.  Conservation of mass at each point also requires that
 \begin{equation}
 \sum_{i=1}^n \phi_{i} = 1.
 \end{equation}
@@ -724,20 +735,21 @@ The transport of the $i^{th}$ volume fraction is given by
 where the volume fraction field at time zero must be specified.
 
 \subsection{Multi-phase simulations}
+\label{sec:multiphase_equations}
 \index{multi-phase flow}
 Multi-phase flows are defined by \cite{prosperettiEtAl2007} to be flows in which two or more phases of matter (solid, liquid, gas, etc) are simultaneously present and are allowed to inter-penetrate. Simple examples include the flow of a fizzy drink which is composed of a liquid and a finite number of gas bubbles, the transportation of solid sediment particles in a river, and the flow of blood cells around the human body.
 
 Further to the above definition, each phase is classed as either \textit{continuous} or \textit{dispersed}, where a continuous phase is a connected liquid or gas substance in which dispersed phases (comprising a finite number of solid particles, liquid droplets and/or gas bubbles) may be immersed \citep{croweEtAl1998}.
 
-To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate set of continuity and momentum equations) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Thus, for each phase $i$, the governing equations (based on those derived in \cite{ishii1975}) are:
+To enable the mixing and inter-penetration of phases, a separate velocity field (and hence a separate momentum equation) is assigned to each one and solved for. Extra terms are then included to account for inter-phase interactions. Furthermore, the model currently assumes no mass transfer between phases, incompressible flow, and a common pressure field $p$ so that only one continuity equation is used. Thus, the continuity equation and momentum equation for phase $i$ (based on the derivation in \cite{ishii1975}, written in non-conservative form) are:
 \begin{equation}
-\frac{\partial}{\partial t}\left(\alpha_i\rho_i\right) + \nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\right) = 0,
+\sum_{i=1}^N\nabla\cdot\left(\alpha_i\mathbf{u}_i\right) = 0,
 \end{equation}
 \begin{equation}
-\frac{\partial}{\partial t}\left(\alpha_i\rho_i\mathbf{u}_i\right) +
-\nabla\cdot\left(\alpha_i\rho_i\mathbf{u}_i\mathbf{u}_i\right) =
+\alpha_i\rho_i\frac{\partial \mathbf{u}_i}{\partial t} +
+\alpha_i\rho_i\mathbf{u}_i\cdot\nabla\mathbf{u}_i =
 -\alpha_i\nabla p + \alpha_i\rho_i\mathbf{g} +
-\nabla\cdot\left(\alpha_i\tautens_i\right) +
+\nabla\cdot\left(\alpha_i\mu_i\nabla\mathbf{u}_i\right) +
 \mathbf{F}_i,
 \end{equation}
-where $\mathbf{u}_i$, $\rho_i$, $\tautens_i$ and $\alpha_i$ are the velocity, density, stress tensor and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. The model currently assumes a common pressure field $p$ and no mass transfer between phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
+where $\mathbf{u}_i$, $\rho_i$, $\mu_i$ and $\alpha_i$ are the velocity, density, isotropic viscosity and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.

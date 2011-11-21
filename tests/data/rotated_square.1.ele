@@ -63,4 +63,4 @@
 62 8 43 23 7 
 63 43 8 2 7 
 64 43 17 23 7 
-# Produced by: /home/james/build/fluidity/trunk-dev/scripts/gmsh2triangle --2d rotated_square.1.msh
+# Produced by: /home/james/build/fluidity/trunk-dev/bin/gmsh2triangle --2d rotated_square.1.msh

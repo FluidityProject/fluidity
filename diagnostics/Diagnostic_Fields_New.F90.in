@@ -790,7 +790,7 @@ DIAGNOSTIC_ARGUMENTS
         ! Not handled here
       
 SINGLE_STATE_SCALAR_DIAGNOSTICS
-      
+      ! Diagnostic algorithms that require the full states array
 MULTIPLE_STATE_SCALAR_DIAGNOSTICS
 
       case default

@@ -1,5 +1,5 @@
 input: clean
-	../../scripts/gmsh2triangle src/test1.msh
+	../../bin/gmsh2triangle src/test1.msh
 clean:
 	rm -f  *.poly *.s *.d.1 *.detectors
 	rm -f test1_checkpoint.stat
