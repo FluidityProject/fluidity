@@ -571,6 +571,11 @@
                      include_pressure_and_continuity_bcs=.not. cv_pressure)
             end if
             
+            ! If CV pressure then add in any weak dirichlet pressure BC's to the mom_rhs.
+            if (cv_pressure) then
+               call add_cv_pressure_weak_dirichlet_bcs(mom_rhs(istate), u, p, state(istate))
+            end if
+            
             ! Add in multiphase interactions (e.g. fluid-particle drag) if necessary
             ! Note: this is done outside of construct_momentum_cg/dg to keep things
             ! neater in Momentum_CG/DG.F90, since we would need to pass around multiple phases 

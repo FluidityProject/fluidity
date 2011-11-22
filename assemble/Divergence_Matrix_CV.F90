@@ -50,7 +50,8 @@ module divergence_matrix_cv
   implicit none
 
   private
-  public :: assemble_divergence_matrix_cv, assemble_compressible_divergence_matrix_cv
+  public :: assemble_divergence_matrix_cv, assemble_compressible_divergence_matrix_cv, &
+            add_cv_pressure_weak_dirichlet_bcs
 
 contains
 
@@ -1475,6 +1476,246 @@ contains
       call clean_deferred_deletion(state)
 
     end subroutine assemble_mmat_compressible_divergence_matrix_cv
+    !************************************************************************
+
+    subroutine add_cv_pressure_weak_dirichlet_bcs(mom_rhs, u, p, state)
+       
+      !!< Add any CV pressure weak dirichlet BC's to the mom_rhs field if required.
+      !!< This will evaluate the BC values with the velocity, u, theta value.
+      !!< If this is a multiphase simulation then the phase volume fraction is also
+      !!< evaluated with the velocity theta and the phase volume fraction spatial 
+      !!< interpolation uses finite elements. This isnt striclty correct if the 
+      !!< phase volume fractions where solved with a control volume discretisation 
+      !!< and also whether of not they themselves have a weak BC is ignored. If the 
+      !!< latter was to be considered then the upwind value should be used.
+             
+      type(vector_field), intent(inout) :: mom_rhs
+      type(vector_field), intent(in) :: u
+      type(scalar_field), intent(in) :: p
+      type(state_type), intent(inout) :: state
+
+      ! local variables
+            
+      real :: u_theta
+      
+      ! degree of quadrature over cv faces
+      integer :: quaddegree
+
+      real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
+      real, dimension(:,:), allocatable :: normal_bdy
+      real, dimension(:), allocatable :: detwei_bdy
+      integer, dimension(:), allocatable :: u_nodes_bdy
+
+      integer :: ele, sele, iloc, jloc, face, gi, ggi, dim
+
+      ! information about cv faces
+      type(cv_faces_type) :: cvfaces
+      ! shape functions for surface
+      type(element_type) :: x_cvbdyshape
+      type(element_type) :: u_cvbdyshape
+      
+      ! pointer to coordinates
+      type(vector_field), pointer :: x
+      
+      ! pressure BC info
+      integer, dimension(:), allocatable :: pressure_bc_type, oldpressure_bc_type
+      real, dimension(:), allocatable :: pressure_bc_val
+      type(scalar_field) :: pressure_bc, oldpressure_bc
+      type(scalar_field), pointer :: oldp => null()
+      
+      ! local ct matrix
+      real, dimension(:,:,:), allocatable :: ct_mat_local_bdy
+
+      !! Multiphase variables
+      logical :: multiphase
+      ! Volume fraction fields
+      type(scalar_field), pointer :: vfrac, oldvfrac
+      type(scalar_field) :: nvfrac
+      
+      ! Variables used if FE interpolation of vfrac on surface
+      ! Values of nvfrac at the faces 
+      real, dimension(:), allocatable :: nvfrac_gi_f
+      ! CV shape functions for nvfrac (computed only if the Coordinate and
+      ! PhaseVolumeFraction meshes are different, otherwise it is
+      ! assigned x_cvbdyshape)
+      type(element_type) :: nvfrac_cvbdyshape
+
+      ewrite(1,*) 'In add_cv_pressure_weak_dirichlet_bcs'
+
+      x => extract_vector_field(state, "Coordinate")
+      
+      allocate(x_ele(x%dim, x%mesh%shape%loc))
+
+      call get_option("/geometry/quadrature/controlvolume_surface_degree", quaddegree, default=1)
+
+      cvfaces = find_cv_faces(vertices   = ele_vertices(p, 1), &
+                              dimension  = mesh_dim(p), &
+                              polydegree = p%mesh%shape%degree, &
+                              quaddegree = quaddegree)
+
+      x_cvbdyshape = make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
+      u_cvbdyshape = make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape)
+   
+      assert(surface_element_count(p) == surface_element_count(u))
+      
+      ! get the end of time step pressure BC field
+      allocate(pressure_bc_type(surface_element_count(p)))
+      
+      call get_entire_boundary_condition(p, (/"weakdirichlet"/), pressure_bc, pressure_bc_type)
+      
+      ! extract the start of time step pressure
+      oldp => extract_scalar_field(state, "OldPressure")
+      
+      ! get the the start of time step pressure BC field
+      allocate(oldpressure_bc_type(surface_element_count(oldp)))
+      
+      call get_entire_boundary_condition(oldp, (/"weakdirichlet"/), oldpressure_bc, oldpressure_bc_type)
+
+      assert(surface_element_count(p) == surface_element_count(oldp))
+  
+      allocate(x_ele_bdy(x%dim,x%mesh%faces%shape%loc), &
+               detwei_bdy(x_cvbdyshape%ngi), &
+               normal_bdy(x%dim, x_cvbdyshape%ngi), &
+               pressure_bc_val(pressure_bc%mesh%shape%loc))
+      
+      allocate(u_nodes_bdy(u%mesh%faces%shape%loc))
+            
+      allocate(ct_mat_local_bdy(x%dim, p%mesh%faces%shape%loc, u%mesh%faces%shape%loc))
+
+      ! Check if we need to multiply through by the non-linear volume fraction
+      if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+         multiphase = .true.
+
+         vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+         oldvfrac => extract_scalar_field(state, "OldPhaseVolumeFraction")
+         call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+         call zero(nvfrac)
+         call get_nonlinear_volume_fraction(state, nvfrac)
+         
+         assert(surface_element_count(p) == surface_element_count(vfrac))
+         
+         ewrite_minmax(nvfrac)
+         
+         ! If the Coordinate and PhaseVolumeFraction meshes are different, then we need to
+         ! generate the PhaseVolumeFraction CV shape functions.
+         if(.not.(nvfrac%mesh == x%mesh)) then
+            nvfrac_cvbdyshape = make_cvbdy_element_shape(cvfaces, nvfrac%mesh%faces%shape)
+         else
+            nvfrac_cvbdyshape = x_cvbdyshape
+            call incref(nvfrac_cvbdyshape)
+         end if
+
+         allocate(nvfrac_gi_f(nvfrac_cvbdyshape%ngi))
+                  
+      else
+         multiphase = .false.
+         nullify(vfrac)
+         nullify(oldvfrac)
+      end if
+      
+      ! Find the momentum equation theta value
+      call get_option(trim(u%option_path)//'/prognostic/temporal_discretisation/theta', u_theta, default = 1.0)
+  
+      surface_element_loop: do sele = 1, surface_element_count(p)
+  
+        ! cycle if this not a weak dirichlet pressure BC.
+        if (pressure_bc_type(sele) == 0) cycle
+        
+        ! assert that the type of pressure BC hasnt changed
+        assert(pressure_bc_type(sele) == oldpressure_bc_type(sele))
+            
+        ele         = face_ele(x, sele)
+        x_ele       = ele_val(x, ele)
+        x_ele_bdy   = face_val(x, sele)
+        u_nodes_bdy = face_global_nodes(u, sele)
+        
+        ! Get the pressure BC value using the velocity theta average. - should latest be relaxed to non linear?
+        pressure_bc_val = u_theta*ele_val(pressure_bc, sele) + &
+                          (1.0 - u_theta)*ele_val(oldpressure_bc, sele)
+        
+        ! Get the phase volume fraction face value theta averaged
+        if(multiphase) then
+           nvfrac_gi_f = u_theta*face_val_at_quad(nvfrac, sele, nvfrac_cvbdyshape) + &
+                         (1.0 - u_theta)*face_val_at_quad(oldvfrac, sele, nvfrac_cvbdyshape)
+        end if
+  
+        call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
+                              x_cvbdyshape, normal_bdy, detwei_bdy)
+  
+        ct_mat_local_bdy = 0.0
+        
+        ! calculate the ct local matrix
+        surface_nodal_loop_i: do iloc = 1, p%mesh%faces%shape%loc
+  
+           surface_face_loop: do face = 1, cvfaces%sfaces
+          
+              if(cvfaces%sneiloc(iloc,face) /= 0) then
+  
+                 surface_quadrature_loop: do gi = 1, cvfaces%shape%ngi
+  
+                    ggi = (face-1)*cvfaces%shape%ngi + gi
+                                        
+                    surface_nodal_loop_j: do jloc = 1, u%mesh%faces%shape%loc
+                       
+                       surface_inner_dimension_loop: do dim = 1, size(normal_bdy,1)
+
+                          if(multiphase) then
+                             ct_mat_local_bdy(dim, iloc, jloc) =  ct_mat_local_bdy(dim, iloc, jloc) + &
+                                   u_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*nvfrac_gi_f(ggi)*normal_bdy(dim, ggi)
+                          else
+                             ct_mat_local_bdy(dim, iloc, jloc) =  ct_mat_local_bdy(dim, iloc, jloc) + &
+                                   u_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*normal_bdy(dim, ggi)
+                          end if
+    
+                       end do surface_inner_dimension_loop
+  
+                    end do surface_nodal_loop_j
+  
+                 end do surface_quadrature_loop
+  
+              end if
+  
+           end do surface_face_loop
+  
+        end do surface_nodal_loop_i
+        
+        ! pressure dirichlet BC is -c*press_bc_val = -press_bc_val*ct, integrated over surface elements appropriate
+        surface_outer_dimension_loop: do dim = 1, size(normal_bdy,1)
+
+          ! for weak pressure dirichlet bcs:
+          !      /
+          ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
+          !      /
+          
+          call addto(mom_rhs, dim, u_nodes_bdy, -matmul(pressure_bc_val, ct_mat_local_bdy(dim,:,:)))
+  
+        end do surface_outer_dimension_loop
+  
+      end do surface_element_loop
+  
+      call deallocate(pressure_bc)
+      deallocate(pressure_bc_type)
+      call deallocate(oldpressure_bc)
+      deallocate(oldpressure_bc_type)      
+      deallocate(pressure_bc_val)
+      call deallocate(x_cvbdyshape)
+      call deallocate(u_cvbdyshape)
+      deallocate(x_ele_bdy, detwei_bdy, normal_bdy)
+      
+      deallocate(u_nodes_bdy)
+      deallocate(ct_mat_local_bdy)
+        
+      call deallocate(cvfaces)
+      deallocate(x_ele)
+
+      if(multiphase) then
+         call deallocate(nvfrac)
+         deallocate(nvfrac_gi_f)
+         call deallocate(nvfrac_cvbdyshape)         
+      end if
+       
+    end subroutine add_cv_pressure_weak_dirichlet_bcs
+
     !************************************************************************
 
 end module divergence_matrix_cv
