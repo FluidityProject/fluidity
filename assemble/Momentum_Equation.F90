@@ -571,9 +571,9 @@
                      include_pressure_and_continuity_bcs=.not. cv_pressure)
             end if
             
-            ! If CV pressure then add in any weak dirichlet pressure BC's to the mom_rhs.
+            ! If CV pressure then add in any dirichlet pressure BC integrals to the mom_rhs.
             if (cv_pressure) then
-               call add_cv_pressure_weak_dirichlet_bcs(mom_rhs(istate), u, p, state(istate))
+               call add_cv_pressure_dirichlet_bcs(mom_rhs(istate), u, p, state(istate))
             end if
             
             ! Add in multiphase interactions (e.g. fluid-particle drag) if necessary

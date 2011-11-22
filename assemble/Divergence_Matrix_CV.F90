@@ -51,7 +51,7 @@ module divergence_matrix_cv
 
   private
   public :: assemble_divergence_matrix_cv, assemble_compressible_divergence_matrix_cv, &
-            add_cv_pressure_weak_dirichlet_bcs
+            add_cv_pressure_dirichlet_bcs
 
 contains
 
@@ -1478,9 +1478,9 @@ contains
     end subroutine assemble_mmat_compressible_divergence_matrix_cv
     !************************************************************************
 
-    subroutine add_cv_pressure_weak_dirichlet_bcs(mom_rhs, u, p, state)
+    subroutine add_cv_pressure_dirichlet_bcs(mom_rhs, u, p, state)
        
-      !!< Add any CV pressure weak dirichlet BC's to the mom_rhs field if required.
+      !!< Add any CV pressure dirichlet BC integrals to the mom_rhs field if required.
       !!< This will evaluate the BC values with the velocity, u, theta value.
       !!< If this is a multiphase simulation then the phase volume fraction is also
       !!< evaluated with the velocity theta and the phase volume fraction spatial 
@@ -1561,7 +1561,8 @@ contains
       ! get the end of time step pressure BC field
       allocate(pressure_bc_type(surface_element_count(p)))
       
-      call get_entire_boundary_condition(p, (/"weakdirichlet"/), pressure_bc, pressure_bc_type)
+      call get_entire_boundary_condition(p, (/"weakdirichlet", &
+                                              "dirichlet    "/), pressure_bc, pressure_bc_type)
       
       ! extract the start of time step pressure
       oldp => extract_scalar_field(state, "OldPressure")
@@ -1569,7 +1570,8 @@ contains
       ! get the the start of time step pressure BC field
       allocate(oldpressure_bc_type(surface_element_count(oldp)))
       
-      call get_entire_boundary_condition(oldp, (/"weakdirichlet"/), oldpressure_bc, oldpressure_bc_type)
+      call get_entire_boundary_condition(oldp, (/"weakdirichlet", &
+                                                 "dirichlet    "/), oldpressure_bc, oldpressure_bc_type)
 
       assert(surface_element_count(p) == surface_element_count(oldp))
   
@@ -1682,7 +1684,7 @@ contains
         ! pressure dirichlet BC is -c*press_bc_val = -press_bc_val*ct, integrated over surface elements appropriate
         surface_outer_dimension_loop: do dim = 1, size(normal_bdy,1)
 
-          ! for weak pressure dirichlet bcs:
+          ! for weak and strong pressure dirichlet bcs:
           !      /
           ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
           !      /
@@ -1714,7 +1716,7 @@ contains
          call deallocate(nvfrac_cvbdyshape)         
       end if
        
-    end subroutine add_cv_pressure_weak_dirichlet_bcs
+    end subroutine add_cv_pressure_dirichlet_bcs
 
     !************************************************************************
 
