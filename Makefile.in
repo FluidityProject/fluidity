@@ -622,7 +622,7 @@ endif
 install: default fltools bin/shallow_water bin/burgers_equation
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
 	cp bin/* $(DESTDIR)$(bindir)
-	rm $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
+	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
 	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
 	cp -r schemas/ $(DESTDIR)$(datadir)/fluidity/
