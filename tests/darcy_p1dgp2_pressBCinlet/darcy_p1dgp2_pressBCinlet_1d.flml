@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">darcy_p1dgp2_velBCinlet_1d</string_value>
+    <string_value lines="1">darcy_p1dgp2_pressBCinlet_1d</string_value>
     <comment>a simple short test case for darcy flow using the element type p1dgp2 for velocity-pressure
 
 the darcy velocity is solved for and the interstitial velocity is a diagnostic from this (assuming a dg solution)
@@ -16,7 +16,7 @@ sigma is a function of viscosity and permeability which are two input fields tha
 
 python diagnostics are used to form the sigma term that is assoicated with a p0 dg mesh (ie. element wise) and the interstitial velocity
 
-this case has a 1 region 1 material with velocity boundary condition inflow. 
+this case has a 1 region 1 material with pressure boundary condition inflow. 
 
 to get a darcy equation the time, stress and advection terms are not included in a bousinessq formulation (to avoid needing to specify a density). Ideally it would be better to actually have a darcy momentum option to simplify the input.
 
@@ -24,7 +24,12 @@ the absorption term is included in the pressure correction (being a necessity as
 
 the geometry is 1d and one time step is done (as nothing depends on time)
 
-to get this to work properly a weak inlet velocity boundary condition and a strong zero pressure outlet boundary condition was found necessary</comment>
+the left and right boundary conditions of pressure are applied strongly.
+
+For 2d and 3d a second approach is also done via solving a pressure poisson equation then calculating the 
+velocity diagnostically from this. This uses generic scalar and vector fields and python diagnostics. 
+The latter didnt work in 1d. The same vel-press element pair is used as the mixed projection formulation.
+    </comment>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -34,7 +39,7 @@ to get this to work properly a weak inlet velocity boundary condition and a stro
       <integer_value rank="0">1</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="darcy_p1dgp2_velBCinlet_1d">
+      <from_file file_name="darcy_p1dgp2_pressBCinlet_1d">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
@@ -65,7 +70,7 @@ to get this to work properly a weak inlet velocity boundary condition and a stro
         </stat>
       </from_mesh>
     </mesh>
-    <mesh name="DGmesh_p0">
+    <mesh name="DGP0">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
@@ -83,7 +88,7 @@ to get this to work properly a weak inlet velocity boundary condition and a stro
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">4</integer_value>
+        <integer_value rank="0">5</integer_value>
       </degree>
     </quadrature>
   </geometry>
@@ -110,7 +115,6 @@ to get this to work properly a weak inlet velocity boundary condition and a stro
       <real_value rank="0">1.0</real_value>
     </finish_time>
   </timestepping>
-  <physical_parameters/>
   <material_phase name="fluid">
     <scalar_field name="Pressure" rank="0">
       <prognostic>
@@ -123,7 +127,6 @@ to get this to work properly a weak inlet velocity boundary condition and a stro
             <string_value lines="1">never</string_value>
           </poisson_pressure_solution>
           <use_projection_method/>
-          <update_discretised_equation/>
         </scheme>
         <solver>
           <iterative_method name="cg"/>
@@ -149,6 +152,16 @@ to get this to work properly a weak inlet velocity boundary condition and a stro
             </constant>
           </type>
         </boundary_conditions>
+        <boundary_conditions name="left_inflow">
+          <surface_ids>
+            <integer_value shape="1" rank="1">1</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">1.5e+09</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -169,7 +182,9 @@ to get this to work properly a weak inlet velocity boundary condition and a stro
         <equation name="Boussinesq"/>
         <spatial_discretisation>
           <discontinuous_galerkin>
-            <mass_terms/>
+            <mass_terms>
+              <exclude_mass_terms/>
+            </mass_terms>
             <viscosity_scheme>
               <compact_discontinuous_galerkin/>
             </viscosity_scheme>
@@ -215,24 +230,9 @@ to get this to work properly a weak inlet velocity boundary condition and a stro
             <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="left_inflow">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <apply_weakly/>
-            <align_bc_with_cartesian>
-              <x_component>
-                <constant>
-                  <real_value rank="0">5.0</real_value>
-                </constant>
-              </x_component>
-            </align_bc_with_cartesian>
-          </type>
-        </boundary_conditions>
         <vector_field name="Absorption" rank="1">
           <diagnostic>
-            <mesh name="DGmesh_p0"/>
+            <mesh name="DGP0"/>
             <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
               <string_value lines="20" type="python"># get the prescribed fields 
 perm = states["fluid"].scalar_fields["Permeability"]
@@ -292,7 +292,7 @@ also assume that the velocity is dg</comment>
     </vector_field>
     <scalar_field name="Porosity" rank="0">
       <prescribed>
-        <mesh name="DGmesh_p0"/>
+        <mesh name="DGP0"/>
         <value name="WholeMesh">
           <constant>
             <real_value rank="0">0.5</real_value>
@@ -307,7 +307,7 @@ also assume that the velocity is dg</comment>
     </scalar_field>
     <scalar_field name="Permeability" rank="0">
       <prescribed>
-        <mesh name="DGmesh_p0"/>
+        <mesh name="DGP0"/>
         <value name="WholeMesh">
           <constant>
             <real_value rank="0">1.0e-10</real_value>
@@ -322,7 +322,7 @@ also assume that the velocity is dg</comment>
     </scalar_field>
     <scalar_field name="Viscosity" rank="0">
       <prescribed>
-        <mesh name="DGmesh_p0"/>
+        <mesh name="DGP0"/>
         <value name="WholeMesh">
           <constant>
             <real_value rank="0">1.0e-04</real_value>
