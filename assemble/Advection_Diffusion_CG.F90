@@ -46,6 +46,7 @@ module advection_diffusion_cg
   use state_module
   use upwind_stabilisation
   use sparsity_patterns_meshes
+  use equation_of_state, only: compressible_eos ! used for shock_viscosity in internal energy eqn.
   
   implicit none
   
@@ -84,7 +85,8 @@ module advection_diffusion_cg
   integer :: stabilisation_scheme
   integer :: nu_bar_scheme
   real :: nu_bar_scale
-  real :: shock_viscosity_cq
+  ! non-dimensional coefficients to scale linear and quadratic shock viscosity
+  real :: shock_viscosity_cl, shock_viscosity_cq
   
   ! equation type
   integer :: equation_type
@@ -216,7 +218,7 @@ contains
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
-    type(state_type), intent(in) :: state
+    type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
     type(scalar_field), intent(in), optional :: extra_discretised_source
@@ -231,7 +233,7 @@ contains
     type(vector_field), pointer :: gravity_direction, velocity_ptr, grid_velocity
     type(vector_field), pointer :: positions, old_positions, new_positions
     type(scalar_field), target :: dummydensity
-    type(scalar_field), pointer :: density, olddensity
+    type(scalar_field), pointer :: density, olddensity, drhodp
     character(len = OPTION_PATH_LEN) :: shock_viscosity_path
     character(len = FIELD_NAME_LEN) :: density_name
     type(scalar_field), pointer :: pressure
@@ -474,12 +476,22 @@ contains
            &/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
         have_shock_viscosity=have_option(shock_viscosity_path)
       end if
-      if (have_shock_viscosity) then
-        call get_option(trim(shock_viscosity_path)// &
-           & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
-      end if
     else
       have_shock_viscosity=.false.
+    end if
+    if (have_shock_viscosity) then
+      call get_option(trim(shock_viscosity_path)// &
+        & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
+      call get_option(trim(shock_viscosity_path)// &
+        & "/linear_shock_viscosity_coefficient", shock_viscosity_cl)
+      ! compute drhodp, used in the linear shock viscosity to work out the speed of sound
+      ! presumably t%mesh is the internal energy mesh:
+      allocate(drhodp)
+      call allocate(drhodp, t%mesh, "_shock_viscosity_drhodp")
+      call compressible_eos(state, drhodp)
+      ewrite_minmax(drhodp)
+    else
+      drhodp => dummydensity
     end if
     
     ! Step 3: Assembly
@@ -492,7 +504,7 @@ contains
                                         positions, old_positions, new_positions, &
                                         velocity, grid_velocity, &
                                         source, absorption, diffusivity, &
-                                        density, olddensity, pressure)
+                                        density, olddensity, pressure, drhodp)
     end do
 
     ! as part of assembly include the already discretised optional source
@@ -541,6 +553,10 @@ contains
     
     call deallocate(velocity)
     call deallocate(dummydensity)
+    if (have_shock_viscosity) then
+      call deallocate(drhodp)
+      deallocate(drhodp)
+    end if
     
     ewrite(1, *) "Exiting assemble_advection_diffusion_cg"
     
@@ -591,7 +607,7 @@ contains
                                       positions, old_positions, new_positions, &
                                       velocity, grid_velocity, &
                                       source, absorption, diffusivity, &
-                                      density, olddensity, pressure)
+                                      density, olddensity, pressure, drhodp)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
@@ -606,6 +622,7 @@ contains
     type(scalar_field), intent(in) :: density
     type(scalar_field), intent(in) :: olddensity
     type(scalar_field), intent(in) :: pressure
+    type(scalar_field), intent(in) :: drhodp
     
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(t, ele)) :: detwei, detwei_old, detwei_new
@@ -728,7 +745,8 @@ contains
         velocity, pressure, &
         du_t, detwei, rhs_addto)
       if (have_shock_viscosity) then
-        call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, density, detwei, shock_viscosity_cq)
+        call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, density, drhodp, detwei, &
+          shock_viscosity_cl, shock_viscosity_cq)
       end if
       call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, du_t, detwei, rhs_addto)
     end if
@@ -1015,29 +1033,30 @@ contains
     
   end subroutine add_pressurediv_element_cg
 
-  subroutine add_shock_viscosity_element_cg(rhs_addto, test_function, nu, ele, du_t, J_mat, density, detwei, shock_viscosity_cq)
+  subroutine add_shock_viscosity_element_cg(rhs_addto, test_function, nu, ele, du_t, J_mat, density, drhodp, detwei, &
+      cl, cq)
     real, dimension(:), intent(inout) :: rhs_addto ! uloc
     type(element_type), intent(in) :: test_function
     type(vector_field), intent(in):: nu
     integer, intent(in):: ele
     real, dimension(:,:,:):: du_t ! uloc x ngi x udim
     real, dimension(:,:,:):: J_mat ! xdim x xdim x ngi
-    type(scalar_field), intent(in):: density
+    type(scalar_field), intent(in):: density, drhodp
     real, dimension(:), intent(in):: detwei ! ngi
-    ! needs to be passed in as we also want to use this routine in advection_diffusion_dg
-    real, intent(in):: shock_viscosity_cq
+    ! shock_viscosity_cl and shock_viscosity_cq - need to be passed in as we also want to use this routine in advection_diffusion_dg
+    real, intent(in):: cl, cq
 
     real, dimension(nu%dim,nu%dim,size(detwei)):: gradu_gi, shock_viscosity_gi
     real, dimension(size(detwei)):: integrand
     integer:: i, j, k
 
     gradu_gi=ele_grad_at_quad(nu, ele, du_t)
-    shock_viscosity_gi=shock_viscosity_tensor(nu, ele, du_t, J_mat, density)
+    shock_viscosity_gi=shock_viscosity_tensor(nu, ele, du_t, J_mat, density, drhodp, cl, cq)
     integrand=0.0
     do i=1, nu%dim
       do j=1, nu%dim
         do k=1, nu%dim
-          integrand=integrand + shock_viscosity_cq * &
+          integrand=integrand + &
              gradu_gi(i,k,:)*shock_viscosity_gi(i,j,:)*gradu_gi(j,k,:)
         end do
       end do
@@ -1047,21 +1066,27 @@ contains
     
   end subroutine add_shock_viscosity_element_cg
 
-  function shock_viscosity_tensor(nu, ele, du_t, J_mat, density) result(viscosity_gi)
+  function shock_viscosity_tensor(nu, ele, du_t, J_mat, density, drhodp, cl, cq) result(viscosity_gi)
     type(vector_field), intent(in):: nu
     integer, intent(in):: ele
     real, dimension(:,:,:):: du_t ! uloc x ngi x udim
     real, dimension(:,:,:):: J_mat ! xdim x xdim x ngi
-    type(scalar_field), intent(in):: density
-    real, dimension(size(du_t,3), size(du_t,3), size(du_t,2)) :: viscosity_gi ! udim x udim x ngi
+    type(scalar_field), intent(in):: density, drhodp
+    ! shock_viscosity_cl and shock_viscosity_cq - need to be passed in as we also want to use this routine in advection_diffusion_dg and momentum_cg
+    real, intent(in):: cl, cq
 
-    real, dimension(size(du_t,2)):: switch_gi, density_gi
-    integer:: gi
+    real, dimension(size(du_t,3), size(du_t,3), size(du_t,2)) :: viscosity_gi ! udim x udim x ngi
+    ! scalars at the gausspoints:
+    real, dimension(size(du_t,2)):: contraction_gi, density_gi, length_scale_gi, sound_speed_gi, scalar_gi
+    integer:: i, gi
 
     density_gi=ele_val_at_quad(density, ele)
-    switch_gi = max(-ele_div_at_quad(nu, ele, du_t), 0.0) ! switch to only apply viscosity in flow contractions 
+    sound_speed_gi=sqrt(1.0/ele_val_at_quad(drhodp, ele))
+    length_scale_gi=(/ (J_mat(i,i,:), i=1, size(J_mat,1)) /)
+    contraction_gi = max(-ele_div_at_quad(nu, ele, du_t), 0.0) ! switch to only apply viscosity in flow contraction
+    scalar_gi = density_gi * ( cl * sound_speed_gi/length_scale_gi + cq * contraction_gi)
     do gi=1, size(du_t,2)
-      viscosity_gi(:,:,gi)=density_gi(gi) * switch_gi(gi) * matmul(transpose(J_mat(:,:,gi)), J_mat(:,:,gi))
+      viscosity_gi(:,:,gi) = scalar_gi(gi) * matmul(transpose(J_mat(:,:,gi)), J_mat(:,:,gi))
     end do
 
   end function shock_viscosity_tensor

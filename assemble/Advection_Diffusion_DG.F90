@@ -55,6 +55,7 @@ module advection_diffusion_DG
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
   use field_options
   use advection_diffusion_cg
+  use equation_of_state, only: compressible_eos ! used for shock_viscosity in internal energy eqn.
 
   implicit none
 
@@ -138,8 +139,8 @@ module advection_diffusion_DG
   integer, parameter :: RT0_MASSLUMPING_ARBOGAST=1
   integer, parameter :: RT0_MASSLUMPING_CIRCUMCENTRED=2
 
-  ! coefficient for quadratic shock viscosity
-  real :: shock_viscosity_cq
+  ! non-dimensional coefficients to scale linear and quadratic shock viscosity
+  real :: shock_viscosity_cl, shock_viscosity_cq
 
   ! Are we on a sphere?
   logical :: on_sphere
@@ -721,8 +722,8 @@ contains
     type(scalar_field) :: buoyancy_from_state
     !! Pressure for pressure*divu term
     type(scalar_field), pointer :: pressure
-    !! Density for shock viscosity term
-    type(scalar_field), pointer :: density
+    !! Density and drhodp for shock viscosity term
+    type(scalar_field), pointer :: density, drhodp
     real :: gravity_magnitude
     real :: mixing_diffusion_amplitude
 
@@ -856,28 +857,35 @@ contains
     if (include_pressure_divu) then
       pressure => extract_scalar_field(state, "Pressure")
 
-      shock_viscosity_path=trim(state%option_path)//"/vector_field::Velocity&
-      &/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
+      shock_viscosity_path=trim(state%option_path)//"/vector_field::Velocity"//&
+        &"/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
       include_shock_viscosity=have_option(shock_viscosity_path)
       if (.not. include_shock_viscosity) then
         ! try under Momentum instead
-        shock_viscosity_path=trim(state%option_path)//"/vector_field::Momentum&
-        &/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
+        shock_viscosity_path=trim(state%option_path)//"/vector_field::Momentum"//&
+          &"/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
         include_shock_viscosity=have_option(shock_viscosity_path)
-      end if
-      if (include_shock_viscosity) then
-        call get_option(trim(shock_viscosity_path)// &
-        & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
-        ! should we have an option for density here??
-        density=>extract_scalar_field(state, "Density")
-        ewrite_minmax(density)
-      else
-        nullify(density)
       end if
     else
       nullify(pressure)
-      nullify(density)
       include_shock_viscosity=.false.
+    end if
+    if (include_shock_viscosity) then
+      call get_option(trim(shock_viscosity_path)// &
+        & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
+      call get_option(trim(shock_viscosity_path)// &
+        & "/linear_shock_viscosity_coefficient", shock_viscosity_cl)
+      ! compute drhodp, used in the linear shock viscosity to work out the speed of sound
+      ! presumably t%mesh is the internal energy mesh:
+      allocate(drhodp)
+      call allocate(drhodp, t%mesh, "_shock_viscosity_drhodp")
+      call compressible_eos(state, drhodp)
+      ewrite_minmax(drhodp)
+      density => extract_scalar_field(state, "Density")
+      ewrite_minmax(density)
+    else
+      nullify(density)
+      nullify(drhodp)
     end if
 
     ! Retrieve scalar options from the options dictionary.
@@ -976,13 +984,17 @@ contains
        
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
-            Absorption, Diffusivity, pressure, density, bc_value, bc_type, q_mesh, mass, &
+            Absorption, Diffusivity, pressure, density, drhodp, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude) 
        
     end do element_loop
     
     ! Drop any extra field references.
     if (have_buoyancy_adjustment_by_vertical_diffusion) call deallocate(buoyancy)
+    if (include_shock_viscosity) then
+      call deallocate(drhodp)
+      deallocate(drhodp)
+    end if
     call deallocate(Diffusivity)
     call deallocate(Source)
     call deallocate(Absorption)
@@ -1083,7 +1095,7 @@ contains
 
   subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
        & rhs_diff, &
-       & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity, pressure, density, &
+       & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity, pressure, density, drhodp, &
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude)
     !!< Construct the advection_diffusion equation for discontinuous elements in
@@ -1114,8 +1126,8 @@ contains
     type(tensor_field), intent(in) :: Diffusivity
     !! Pressure - if (include_pressure_divu) otherwise => null
     type(scalar_field), pointer :: pressure
-    !! Density - if (include_shock_viscosity) otherwise => null
-    type(scalar_field), pointer :: density
+    !! Density and drhodp - needed if (include_shock_viscosity) otherwise => null
+    type(scalar_field), pointer :: density, drhodp
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -1585,7 +1597,7 @@ contains
     end if
 
     if (include_shock_viscosity) then
-      call add_shock_viscosity_element_cg(l_T_rhs, T_shape, U_nl, ele, du_t, J_mat, density, detwei, shock_viscosity_cq)
+      call add_shock_viscosity_element_cg(l_T_rhs, T_shape, U_nl, ele, du_t, J_mat, density, drhodp, detwei, shock_viscosity_cl, shock_viscosity_cq)
     end if
 
     ! Right hand side field.

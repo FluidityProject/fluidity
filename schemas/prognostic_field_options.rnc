@@ -647,6 +647,9 @@ prognostic_velocity_options =
                ## For compressible flows with shocks this adds to artificial
                ## viscosity near the shock front
                element shock_viscosity {
+                  element linear_shock_viscosity_coefficient {
+                     real
+                  },
                   element quadratic_shock_viscosity_coefficient {
                      real
                   }
