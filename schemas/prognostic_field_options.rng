@@ -372,8 +372,7 @@ This determines the order in which scalar_fields are solved for:
   <!-- same options as prognostic velocity, only with equation hard coded to LinearMomentum -->
   <define name="prognostic_momentum_field">
     <element name="equation">
-      <a:documentation>Select the equation used to solve for velocity.
-LinearMomentum is the norm and works for all discretisation types.</a:documentation>
+      <a:documentation>LinearMomentum is the only equation available for momentum.</a:documentation>
       <attribute name="name">
         <value>LinearMomentum</value>
       </attribute>
@@ -760,6 +759,9 @@ upon temperature. This is only valid when you have a temperature field.</a:docum
             <element name="shock_viscosity">
               <a:documentation>For compressible flows with shocks this adds to artificial
 viscosity near the shock front</a:documentation>
+              <element name="linear_shock_viscosity_coefficient">
+                <ref name="real"/>
+              </element>
               <element name="quadratic_shock_viscosity_coefficient">
                 <ref name="real"/>
               </element>
