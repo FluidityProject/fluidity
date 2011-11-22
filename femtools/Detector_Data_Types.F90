@@ -36,7 +36,7 @@ module detector_data_types
   
   private
   
-  public :: detector_type, rk_gs_parameters, detector_linked_list, &
+  public :: detector_type, detector_linked_list, &
             detector_list_ptr, stringlist, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
@@ -68,39 +68,17 @@ module detector_data_types
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
      real, dimension(:), allocatable :: update_vector
-     !! Have we completed the search?
-     logical :: search_complete
 
      !! Biology variables
      real, dimension(:), allocatable :: biology
+
+     !! Counter for internal Random Walk sub-cycling
+     integer :: rw_subsubcycles = 1
 
      !! Pointers for detector linked lists
      TYPE (detector_type), POINTER :: next=> null()
      TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type
-
-  ! Parameters for lagrangian detector movement
-  type rk_gs_parameters
-    ! Flag indicating whether to apply lagrangian advection
-    logical :: do_velocity_advect=.true.
-    ! Flag indicating whther Python Random Walk should be used
-    logical :: do_random_walk=.false.
-    ! Flag indicating whether we reflect detectors at the domain boundary
-    logical :: reflect_on_boundary=.false.
-
-    ! Runk-Kutta Guided Search parameters
-    integer :: n_stages, n_subcycles
-    real, allocatable, dimension(:) :: timestep_weights
-    real, allocatable, dimension(:,:) :: stage_matrix
-    real :: search_tolerance
-
-    ! Python code to execute for Random Walk
-    character(len=PYTHON_FUNC_LEN) :: rw_pycode
-
-    ! Field names for internal Random Walk schemes
-    logical :: use_internal_rw=.false.
-    character(len=FIELD_NAME_LEN) :: diffusivity_field, diffusivity_grad
-  end type rk_gs_parameters
 
   type detector_linked_list
      !! Doubly linked list implementation
@@ -113,8 +91,14 @@ module detector_data_types
      !! Name as specified in options (Lagrangian agents only)
      character(len=FIELD_NAME_LEN) :: name
 
-     !! Parameters for lagrangian movement (n_stages, stage_matrix, etc)
-     type(rk_gs_parameters), pointer :: move_parameters => null()
+     !!!!!!!!!!!!!!!!!!!!!!!!!
+     !!! Detector movement !!!
+     !!!!!!!!!!!!!!!!!!!!!!!!!
+     ! Flag indicating whether to apply lagrangian advection
+     logical :: do_velocity_advect=.true.
+     ! Flag indicating whether we reflect detectors at the domain boundary
+     logical :: reflect_on_boundary=.false.
+     ! Flag indicating whether we update physical coordinates when the mesh moves
      logical :: move_with_mesh = .false.
 
      !! Biology options
@@ -130,6 +114,31 @@ module detector_data_types
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
      real :: pm_max, pm_min
 
+     ! Runk-Kutta Guided Search parameters
+     integer :: n_stages, n_subcycles
+     real, allocatable, dimension(:) :: timestep_weights
+     real, allocatable, dimension(:,:) :: stage_matrix
+     real :: search_tolerance
+
+     ! Python code to execute for Random Walk
+     logical :: python_rw=.false.
+     character(len=PYTHON_FUNC_LEN) :: rw_pycode
+
+     ! Internal Diffusive Random Walk with automatic sub-cycling
+     logical :: internal_diffusive_rw=.false.
+     logical :: auto_subcycle=.false.
+     real :: subcycle_scale_factor = 0.0
+
+     ! Internal Naive Random Walk
+     logical :: internal_naive_rw=.false.
+
+     ! Field names for internal Diffusive Random Walk scheme
+     character(len=FIELD_NAME_LEN) :: diffusivity_field, diffusivity_grad
+     character(len=FIELD_NAME_LEN) :: diffusivity_2nd_grad
+
+     !!!!!!!!!!!!!!!!!!!!!!!!!
+     !!! Detector I/O      !!!
+     !!!!!!!!!!!!!!!!!!!!!!!!!
      !! Optional array for detector names; names are held in read order
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: detector_names
 

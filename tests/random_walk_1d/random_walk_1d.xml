@@ -4,15 +4,43 @@
 <testproblem>
   <name>random_walk_1d</name>
   <owner userid="mlange"/>
-  <tags>flml</tags>
-  <problem_definition length="special" nprocs="1">
+  <tags>flml random_walk</tags>
+  <problem_definition length="medium" nprocs="1">
     <command_line>
-../../bin/fluidity -v3 -l -p random_walk.flml
+../../bin/fluidity -v2 -l -p random_walk.flml
     </command_line>
   </problem_definition>
   <variables>
+    <variable name="final_distribution_naive" language="python">
+from detector_distribution import get_distribution
+final_distribution_naive = get_distribution("Naive_RW.detectors", 600, 40, 1000)[:,-1]
+    </variable>
+    <variable name="final_distribution_naive_internal" language="python">
+from detector_distribution import get_distribution
+final_distribution_naive_internal = get_distribution("Naive_RW_internal.detectors", 600, 40, 1000)[:,-1]
+    </variable>
+    <variable name="final_distribution_diffusive" language="python">
+from detector_distribution import get_distribution
+final_distribution_diffusive = get_distribution("Diffusive_RW.detectors", 600, 40, 1000)[:,-1]
+    </variable>
+    <variable name="final_distribution_diffusive_internal" language="python">
+from detector_distribution import get_distribution
+final_distribution_diffusive_internal = get_distribution("Diffusive_RW_internal.detectors", 600, 40, 1000)[:,-1]
+    </variable>
   </variables>
   <pass_tests>
+    <test name="naive_distribution_outside_bounds" language="python">
+assert abs(final_distribution_naive).max() &gt; 50
+    </test>
+    <test name="naive_internal_distribution_outside_bounds" language="python">
+assert abs(final_distribution_naive_internal).max() &gt; 50
+    </test>
+    <test name="diffusive_distribution_within_bounds" language="python">
+assert abs(final_distribution_diffusive-25).all() &lt; 10
+    </test>
+    <test name="diffusive_internal_distribution_within_bounds" language="python">
+assert abs(final_distribution_diffusive_internal-25).all() &lt; 10
+    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

@@ -72,13 +72,24 @@ contains
     real, allocatable, dimension(:,:) :: coords
     real:: current_time
     integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, column, &
-               ierror, det_type, biovar_index, biovar_total, biovar_state, &
+               ierror, det_type, biovar_index, biovar_total, biovar_state, rnd_seed_int, &
                biovar_chemical, biovar_uptake, biovar_release, index, rnd_dim, n_env_fields
-    integer, dimension(1) :: rnd_seed
+    integer, dimension(:), allocatable :: rnd_seed
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
     ewrite(1,*) "In initialise_lagrangian_biology"
+
+    ! Initialise random number generator
+    call random_seed(size=rnd_dim)
+    allocate(rnd_seed(rnd_dim))
+    call get_option("/embedded_models/lagrangian_ensemble_biology/random_seed", rnd_seed_int)
+    do i=1, rnd_dim
+       rnd_seed(i) = rnd_seed_int + i
+    end do
+    call random_seed(put=rnd_seed(1:rnd_dim))
+    call python_run_string("numpy.random.seed("//trim(int2str(rnd_seed_int))//")")
+    deallocate(rnd_seed)
 
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
@@ -90,7 +101,6 @@ contains
     n_fgroups = option_count("/embedded_models/lagrangian_ensemble_biology/functional_group")
     do fg=1, n_fgroups
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
-
        n_agent_arrays = n_agent_arrays + option_count(trim(fg_buffer)//"/stages/stage")
     end do
 
@@ -125,39 +135,15 @@ contains
           call read_detector_move_options(agent_arrays(i),trim(fg_buffer))
 
           ! Get options for Random Walk
-          if (have_option(trim(stage_buffer)//"/random_walk")) then
-             agent_arrays(i)%move_parameters%do_random_walk=.true.
-             call get_option("/embedded_models/lagrangian_ensemble_biology/random_seed", rnd_seed(1))
-
-             ! Initialise random number generator in Python
-             call python_run_string("numpy.random.seed("//trim(int2str(rnd_seed(1)))//")")
-             if (have_option(trim(stage_buffer)//"/random_walk/python")) then 
-                call get_option(trim(stage_buffer)//"/random_walk/python", agent_arrays(i)%move_parameters%rw_pycode)
-             end if
-
-             if (have_option(trim(stage_buffer)//"/random_walk/diffusive_random_walk")) then 
-                agent_arrays(i)%move_parameters%use_internal_rw=.true.
-                call get_option(trim(stage_buffer)//"/random_walk/diffusive_random_walk/diffusivity_field", &
-                       agent_arrays(i)%move_parameters%diffusivity_field)
-                call get_option(trim(stage_buffer)//"/random_walk/diffusive_random_walk/diffusivity_gradient", &
-                       agent_arrays(i)%move_parameters%diffusivity_grad)
-                ! Initialise random number generator
-                rnd_dim=1
-                call random_seed(size=rnd_dim)
-                call randoM_seed(put=rnd_seed(1:rnd_dim))
-             end if
-
-          else
-             agent_arrays(i)%move_parameters%do_random_walk=.false.
-          end if
+          call read_random_walk_options(agent_arrays(i), trim(stage_buffer))
 
           ! Set other meta-information
           agent_arrays(i)%binary_output=.true.
           det_type=LAGRANGIAN_DETECTOR
           if (have_option(trim(stage_buffer)//"/debug/exclude_from_advection")) then
-             agent_arrays(i)%move_parameters%do_velocity_advect=.false.
+             agent_arrays(i)%do_velocity_advect=.false.
           else
-             agent_arrays(i)%move_parameters%do_velocity_advect=.true.
+             agent_arrays(i)%do_velocity_advect=.true.
           end if
 
           ! Create agent and insert into list
@@ -340,8 +326,7 @@ contains
           ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
           ! gradually overwritten, mixing detector output from the current with that of a previous run
           call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(i)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
-          call MPI_FILE_CLOSE(agent_arrays(i)%mpi_fh, ierror)
-    
+          call MPI_FILE_CLOSE(agent_arrays(i)%mpi_fh, ierror)    
           call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(i)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, agent_arrays(i)%mpi_fh, ierror)
           assert(ierror == MPI_SUCCESS)
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

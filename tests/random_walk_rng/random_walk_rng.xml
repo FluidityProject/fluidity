@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>random_walk_rng</name>
+  <owner userid="mlange"/>
+  <tags>flml random_walk</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>
+../../bin/fluidity -v2 -l -p random_walk.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+
+    <variable name="final_variance_fortran" language="python">
+from detector_variance import get_detector_variance
+final_variance_fortran = get_detector_variance("Fortran_Naive.detectors", 2000, 1000)[-1]
+    </variable>
+
+    <variable name="final_variance_python" language="python">
+from detector_variance import get_detector_variance
+final_variance_python = get_detector_variance("Python_Naive.detectors", 2000, 1000)[-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="final_variance_fortran" language="python">
+assert (final_variance_fortran - 174.120226592) &lt; 1e-12
+assert (final_variance_fortran - 159.213106667) &gt; -1e-12
+    </test>
+    <test name="final_variance_python" language="python">
+assert (final_variance_python - 174.120226592) &lt; 1e-12
+assert (final_variance_python - 159.213106667) &gt; -1e-12
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

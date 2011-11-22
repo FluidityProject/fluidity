@@ -176,7 +176,7 @@ contains
     end do
     call allmax(all_send_lists_empty)
     if (all_send_lists_empty/=0) then
-       call exchange_detectors(state,detector_list,send_list_array)
+       call exchange_detectors(detector_list,xfield,send_list_array)
     end if
 
     ! Make sure send lists are empty and deallocate them
@@ -294,16 +294,15 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine exchange_detectors(state, detector_list, send_list_array)
+  subroutine exchange_detectors(detector_list,xfield,send_list_array)
     ! This subroutine serialises send_list_array, sends it, 
     ! receives serialised detectors from all procs and unpacks them.
-    type(state_type), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
+    type(vector_field), pointer, intent(in) :: xfield
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
 
     real, dimension(:,:), allocatable :: detector_buffer
     type(detector_type), pointer :: detector, detector_received
-    type(vector_field), pointer :: xfield
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: ele_numbering_inverse
     integer :: j, dim, count, n_stages, target_proc, receive_proc, &
@@ -319,7 +318,6 @@ contains
     nprocs=getnprocs()
     assert(size(send_list_array)==nprocs)
 
-    xfield => extract_vector_field(state,"Coordinate")
     dim=xfield%dim
     allocate( sendRequest(nprocs) )
 
@@ -333,9 +331,9 @@ contains
     end if
 
     ! Get buffer size, depending on whether RK-GS parameters are still allocated
-    have_update_vector=associated(detector_list%move_parameters)
+    have_update_vector=allocated(detector_list%stage_matrix)
     if(have_update_vector) then
-       n_stages=detector_list%move_parameters%n_stages
+       n_stages=detector_list%n_stages
        det_size=detector_buffer_size(dim,have_update_vector,n_stages)
     else
        det_size=detector_buffer_size(dim,have_update_vector)
