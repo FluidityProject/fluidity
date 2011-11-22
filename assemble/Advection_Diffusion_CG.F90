@@ -748,7 +748,6 @@ contains
         call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, density, drhodp, detwei, &
           shock_viscosity_cl, shock_viscosity_cq)
       end if
-      call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, du_t, detwei, rhs_addto)
     end if
     
     ! Step 4: Insertion
@@ -1025,7 +1024,7 @@ contains
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
     
-    !assert(equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY)
+    assert(equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY)
     assert(ele_ngi(pressure, ele)==ele_ngi(t, ele))
     
     rhs_addto = rhs_addto - &
