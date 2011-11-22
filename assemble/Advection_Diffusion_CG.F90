@@ -1024,7 +1024,6 @@ contains
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
     real, dimension(ele_loc(t, ele)), intent(inout) :: rhs_addto
     
-    assert(equation_type==FIELD_EQUATION_INTERNALENERGY .or. equation_type==FIELD_EQUATION_INTERNALENERGYDENSITY)
     assert(ele_ngi(pressure, ele)==ele_ngi(t, ele))
     
     rhs_addto = rhs_addto - &

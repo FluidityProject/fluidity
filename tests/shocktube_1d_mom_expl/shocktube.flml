@@ -477,6 +477,9 @@ for (i,xi) in enumerate(x.val):
               <tensor_form/>
             </stress_terms>
             <shock_viscosity>
+              <linear_shock_viscosity_coefficient>
+                <real_value rank="0">0.0</real_value>
+              </linear_shock_viscosity_coefficient>
               <quadratic_shock_viscosity_coefficient>
                 <real_value rank="0">1.0</real_value>
               </quadratic_shock_viscosity_coefficient>
