@@ -1081,8 +1081,11 @@ contains
     integer:: i, gi
 
     density_gi=ele_val_at_quad(density, ele)
-    sound_speed_gi=sqrt(1.0/ele_val_at_quad(drhodp, ele))
-    length_scale_gi=(/ (J_mat(i,i,:), i=1, size(J_mat,1)) /)
+    ! FIXME hard-coded cap FIXME!!!!
+    sound_speed_gi=sqrt(1.0/max(ele_val_at_quad(drhodp, ele),1e-20))
+    do gi=1, size(J_mat,3)
+      length_scale_gi(gi)=sum( (/ (J_mat(i,i,gi), i=1, size(J_mat,1)) /) )
+    end do
     contraction_gi = max(-ele_div_at_quad(nu, ele, du_t), 0.0) ! switch to only apply viscosity in flow contraction
     scalar_gi = density_gi * ( cl * sound_speed_gi/length_scale_gi + cq * contraction_gi)
     do gi=1, size(du_t,2)

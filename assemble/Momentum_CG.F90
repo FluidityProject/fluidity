@@ -209,7 +209,7 @@
 
       type(scalar_field), pointer :: buoyancy
       type(scalar_field), pointer :: gp
-      type(scalar_field), pointer :: drhodp
+      type(scalar_field), pointer :: drhodp, internal_energy
       type(vector_field), pointer :: gravity
       type(vector_field), pointer :: oldu, nu, ug, source, absorption
       type(tensor_field), pointer :: viscosity
@@ -484,16 +484,18 @@
 
       have_shock_viscosity=have_option(trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity")
       if (have_shock_viscosity) then
-        shock_viscosity_path = trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin"//&
-           &"/shock_viscosity/quadratic_shock_viscosity_coefficient"
+        shock_viscosity_path = trim(u%option_path)//"/prognostic/spatial_discretisation/continuous_galerkin/shock_viscosity"
         call get_option(trim(shock_viscosity_path)// &
            & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
         call get_option(trim(shock_viscosity_path)// &
            & "/linear_shock_viscosity_coefficient", shock_viscosity_cl)
         ! compute drhodp, used in the linear shock viscosity to work out the speed of sound
-        ! we assume density%mesh==internal_energy%mesh ??? (if we want to be consistent with energy eqn.)
+        internal_energy => extract_scalar_field(state, "InternalEnergy", stat=stat)
+        if (stat/=0) then
+          internal_energy => extract_scalar_field(state, "InternalEnergyDensity")
+        end if
         allocate(drhodp)
-        call allocate(drhodp, density%mesh, "_shock_viscosity_drhodp")
+        call allocate(drhodp, internal_energy%mesh, "_shock_viscosity_drhodp")
         call compressible_eos(state, drhodp)
         ewrite_minmax(drhodp)
       else
