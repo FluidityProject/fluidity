@@ -54,7 +54,7 @@ module advection_diffusion_DG
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN
   use field_options
-  use advection_diffusion_cg
+  use internal_energy_equation
   use equation_of_state, only: compressible_eos ! used for shock_viscosity in internal energy eqn.
 
   implicit none

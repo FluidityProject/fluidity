@@ -61,7 +61,7 @@
     use Coordinates
     use multiphase_module
     use edge_length_module
-    use advection_diffusion_cg
+    use internal_energy_equation
     use equation_of_state, only: compressible_eos ! used for shock_viscosity in internal energy eqn.
 
     implicit none
