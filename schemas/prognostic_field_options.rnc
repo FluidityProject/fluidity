@@ -215,6 +215,7 @@ prognostic_scalar_field =
                 prescribed_tensor_field_no_adapt
             }|
             element diagnostic {
+               mesh_choice?,
                (
                   tensor_python_diagnostic_algorithm |
                   internal_algorithm

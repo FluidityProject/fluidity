@@ -272,6 +272,9 @@ elements when buoyancy is a discontinuous field.</a:documentation>
             <ref name="prescribed_tensor_field_no_adapt"/>
           </element>
           <element name="diagnostic">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
             <choice>
               <ref name="tensor_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
