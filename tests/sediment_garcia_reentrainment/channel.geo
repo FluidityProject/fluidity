@@ -1,4 +1,4 @@
-edgeLength = 0.01;
+edgeLength = 0.05;
 
 Point(1) = {0.0, 0.0, 0.0, 1};
 

@@ -73,7 +73,7 @@
       <real_value rank="0">0.1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">20</real_value>
+      <real_value rank="0">60</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -137,7 +137,7 @@
         if (t &lt; 10):
                 return [0,0]
         else:
-                return [(t-10)*0.005, 0]</string_value>
+                return max([(t-10)*0.005, 0],0.005)</string_value>
           </python>
         </value>
         <output/>
@@ -208,12 +208,32 @@
           <initial_condition name="ic">
             <python>
               <string_value lines="20" type="python">def val(X, t):
-  if (X[1] &lt; 0.03):
-    return 1
+  if (X[1] &lt; 0.1):
+    return 5
   else:
     return 0</string_value>
             </python>
           </initial_condition>
+          <boundary_conditions name="lid_neumann">
+            <surface_ids>
+              <integer_value shape="1" rank="1">2</integer_value>
+            </surface_ids>
+            <type name="neumann">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </type>
+          </boundary_conditions>
+          <boundary_conditions name="lid_dirichlet">
+            <surface_ids>
+              <integer_value shape="1" rank="1">2</integer_value>
+            </surface_ids>
+            <type name="dirichlet">
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </type>
+          </boundary_conditions>
           <boundary_conditions name="reentrainment">
             <surface_ids>
               <integer_value shape="1" rank="1">1</integer_value>
@@ -229,9 +249,13 @@
             <prescribed>
               <value name="WholeMesh">
                 <isotropic>
-                  <constant>
-                    <real_value rank="0">0.01</real_value>
-                  </constant>
+                  <python>
+                    <string_value lines="20" type="python">def val(X, t):
+  if (t &lt; 10):
+    return 0
+  else:
+    return 0 #1e-5</string_value>
+                  </python>
                 </isotropic>
               </value>
               <output/>
@@ -240,9 +264,13 @@
           <scalar_field name="SinkingVelocity" rank="0">
             <prescribed>
               <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.01</real_value>
-                </constant>
+                <python>
+                  <string_value lines="20" type="python">def val(X, t):
+  if (t &lt; 10):
+    return 0.25
+  else:
+    return 0</string_value>
+                </python>
               </value>
               <output/>
               <stat/>
@@ -269,7 +297,13 @@
                 <integer_value shape="1" rank="1">1</integer_value>
               </surface_ids>
               <output/>
-              <stat/>
+              <stat>
+                <surface_integral type="value" name="BedloadIntegral">
+                  <surface_ids>
+                    <integer_value shape="1" rank="1">1</integer_value>
+                  </surface_ids>
+                </surface_integral>
+              </stat>
               <convergence>
                 <include_in_convergence/>
               </convergence>

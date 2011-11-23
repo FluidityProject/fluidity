@@ -307,7 +307,10 @@
               <integer_value shape="1" rank="1">8</integer_value>
             </surface_ids>
             <type name="sediment_reentrainment">
-              <algorithm>Garcia_1991</algorithm>
+              <algorithm>Hill_2010</algorithm>
+              <viscosity>
+                <real_value rank="0">1e-07</real_value>
+              </viscosity>
             </type>
           </boundary_conditions>
           <tensor_field name="Diffusivity" rank="2">
@@ -374,7 +377,7 @@
             <real_value rank="0">1.65</real_value>
           </submerged_specific_gravity>
           <diameter>
-            <real_value rank="0">50</real_value>
+            <real_value rank="0">0.05</real_value>
           </diameter>
           <porosity>
             <real_value rank="0">0.5</real_value>
@@ -384,6 +387,23 @@
             <comment>Should give an erosion rate of 0.01m/s with a bed shear stress of 20 with a porosity of 0.5</comment>
           </critical_shear_stress>
         </prognostic>
+      </scalar_field>
+      <scalar_field name="SedimentBedActiveLayerD50" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="VelocityMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
       </scalar_field>
     </sediment>
   </material_phase>

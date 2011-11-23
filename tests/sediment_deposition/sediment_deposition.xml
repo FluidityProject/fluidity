@@ -5,109 +5,137 @@
   <owner userid="jhill1"/>
   <tags>flml sediment</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity sediment_deposition.flml</command_line>
+    <command_line>fluidity sediment_deposition_1.flml</command_line>
+    <command_line>fluidity sediment_deposition_05.flml</command_line>
+    <command_line>fluidity sediment_deposition_025.flml</command_line>
+    <command_line>fluidity sediment_deposition_0125.flml</command_line>
     <!-- Check that the sediment bedload rate is correct -->
 </problem_definition>
   <variables>   
-    <variable name="sediment_bedload_1_end" language="python">
+    <variable name="sediment_bedload_1" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_1_end = s["Fluid"]["Sed1mmSedimentBedload"]["max"][-1]
+sediment_bedload_1 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_1.append(s["Fluid"]["Sed1mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_1.append(s["Fluid"]["Sed1mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_1.append(s["Fluid"]["Sed1mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_1.append(s["Fluid"]["Sed1mmSedimentBedload"]["max"][-1])
     </variable>
-    <variable name="sediment_bedload_2_end" language="python">
+    <variable name="sediment_bedload_2" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_2_end = s["Fluid"]["Sed2mmSedimentBedload"]["max"][-1]
+sediment_bedload_2 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_2.append(s["Fluid"]["Sed2mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_2.append(s["Fluid"]["Sed2mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_2.append(s["Fluid"]["Sed2mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_2.append(s["Fluid"]["Sed2mmSedimentBedload"]["max"][-1])
     </variable>
-    <variable name="sediment_bedload_3_end" language="python">
+    <variable name="sediment_bedload_3" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_3_end = s["Fluid"]["Sed3mmSedimentBedload"]["max"][-1]
+sediment_bedload_3 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_3.append(s["Fluid"]["Sed3mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_3.append(s["Fluid"]["Sed3mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_3.append(s["Fluid"]["Sed3mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_3.append(s["Fluid"]["Sed3mmSedimentBedload"]["max"][-1])
     </variable>
-    <variable name="sediment_bedload_4_end" language="python">
+    <variable name="sediment_bedload_4" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_4_end = s["Fluid"]["Sed4mmSedimentBedload"]["max"][-1]
+sediment_bedload_4 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_4.append(s["Fluid"]["Sed4mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_4.append(s["Fluid"]["Sed4mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_4.append(s["Fluid"]["Sed4mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_4.append(s["Fluid"]["Sed4mmSedimentBedload"]["max"][-1])
     </variable>
-    <variable name="sediment_bedload_5_end" language="python">
+    <variable name="sediment_bedload_5" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_5_end = s["Fluid"]["Sed5mmSedimentBedload"]["max"][-1]
+sediment_bedload_5 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_5.append(s["Fluid"]["Sed5mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_5.append(s["Fluid"]["Sed5mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_5.append(s["Fluid"]["Sed5mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_5.append(s["Fluid"]["Sed5mmSedimentBedload"]["max"][-1])
     </variable>
-    <variable name="sediment_bedload_6_end" language="python">
+    <variable name="sediment_bedload_6" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_6_end = s["Fluid"]["Sed6mmSedimentBedload"]["max"][-1]
+sediment_bedload_6 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_6.append(s["Fluid"]["Sed6mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_6.append(s["Fluid"]["Sed6mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_6.append(s["Fluid"]["Sed6mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_6.append(s["Fluid"]["Sed6mmSedimentBedload"]["max"][-1])
     </variable>
-    <variable name="sediment_bedload_7_end" language="python">
+    <variable name="sediment_bedload_7" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_7_end = s["Fluid"]["Sed7mmSedimentBedload"]["max"][-1]
+sediment_bedload_7 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_7.append(s["Fluid"]["Sed7mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_7.append(s["Fluid"]["Sed7mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_7.append(s["Fluid"]["Sed7mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_7.append(s["Fluid"]["Sed7mmSedimentBedload"]["max"][-1])
     </variable>
-    <variable name="sediment_bedload_8_end" language="python">
+    <variable name="sediment_bedload_8" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_8_end = s["Fluid"]["Sed8mmSedimentBedload"]["max"][-1]
+sediment_bedload_8 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_8.append(s["Fluid"]["Sed8mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_8.append(s["Fluid"]["Sed8mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_8.append(s["Fluid"]["Sed8mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_8.append(s["Fluid"]["Sed8mmSedimentBedload"]["max"][-1])
     </variable>
-    <variable name="sediment_bedload_9_end" language="python">
+    <variable name="sediment_bedload_9" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_9_end = s["Fluid"]["Sed9mmSedimentBedload"]["max"][-1]
+sediment_bedload_9 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_9.append(s["Fluid"]["Sed9mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_9.append(s["Fluid"]["Sed9mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_9.append(s["Fluid"]["Sed9mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_9.append(s["Fluid"]["Sed9mmSedimentBedload"]["max"][-1])
     </variable>
-    <variable name="sediment_bedload_10_end" language="python">
+    <variable name="sediment_bedload_10" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("Sediment_Deposition.stat")
-sediment_bedload_10_end = s["Fluid"]["Sed10mmSedimentBedload"]["max"][-1]
+sediment_bedload_10 = []
+s = stat_parser("Sediment_Deposition_1.stat")
+sediment_bedload_10.append(s["Fluid"]["Sed10mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_05.stat")
+sediment_bedload_10.append(s["Fluid"]["Sed10mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_025.stat")
+sediment_bedload_10.append(s["Fluid"]["Sed10mmSedimentBedload"]["max"][-1])
+s = stat_parser("Sediment_Deposition_0125.stat")
+sediment_bedload_10.append(s["Fluid"]["Sed10mmSedimentBedload"]["max"][-1])
     </variable>
 
   </variables>
   <pass_tests>
-      <!-- In a 10 second run, with 1% sediment concentration, 1mm settling velocity should give us 
-           0.0001m of sediment; 2mm will be 0.0002mm, etc
-           One small complication is that the diagnostic algorithm is called at time zero, add another timestep
-             Settling Vel            |    Final bedload
-                 1mm                 |    0.00011m
-                 2mm                 |    0.00022m                 
-                 3mm                 |    0.00033m
-                 4mm                 |    0.00044m                 
-                 5mm                 |    0.00055m
-                 6mm                 |    0.00066m                 
-                 7mm                 |    0.00077m
-                 8mm                 |    0.00088m
-                 9mm                 |    0.00099m
-                 10mm                |    0.0011m
-           -->
-    <test name="1mm sediment is deposited" language="python">
-assert(0.000109 &lt; sediment_bedload_1_end &lt; 0.000111)
-    </test>
-    <test name="2mm sediment is deposited" language="python">
-assert(0.000219 &lt; sediment_bedload_2_end &lt; 0.000221)
-    </test>
-    <test name="3mm sediment is deposited" language="python">
-assert(0.000329 &lt; sediment_bedload_3_end &lt; 0.000331)
-    </test>
-    <test name="4mm sediment is deposited" language="python">
-assert(0.000439 &lt; sediment_bedload_4_end &lt; 0.000441)
-    </test>
-    <test name="5mm sediment is deposited" language="python">
-assert(0.000549 &lt; sediment_bedload_5_end &lt; 0.000551)
-    </test>
-    <test name="6mm sediment is deposited" language="python">
-assert(0.000659 &lt; sediment_bedload_6_end &lt; 0.000661)
-    </test>
-    <test name="7mm sediment is deposited" language="python">
-assert(0.000769 &lt; sediment_bedload_7_end &lt; 0.000771)
-    </test>
-    <test name="8mm sediment is deposited" language="python">
-assert(0.000879 &lt; sediment_bedload_8_end &lt; 0.000881)
-    </test>
-    <test name="9mm sediment is deposited" language="python">
-assert(0.000989 &lt; sediment_bedload_9_end &lt; 0.000991)
-    </test>
-    <test name="10mm sediment is deposited" language="python">
-assert(0.00109 &lt; sediment_bedload_10_end &lt; 0.00111)
-    </test>
-
+    
   </pass_tests>
   <warn_tests>
   </warn_tests>

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">Sediment_Deposition</string_value>
+    <string_value lines="1">Sediment_Deposition_1</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="column">
+      <from_file file_name="column_1">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -179,9 +179,10 @@
             </diagnostics>
           </solver>
           <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
+            <python>
+              <string_value lines="20" type="python">def val(X,t):
+  return -X[0] * 1/20</string_value>
+            </python>
           </initial_condition>
           <boundary_conditions name="SolidLid">
             <surface_ids>
@@ -197,114 +198,7 @@
             <prescribed>
               <value name="WholeMesh">
                 <constant>
-                  <real_value rank="0">0.001</real_value>
-                </constant>
-              </value>
-              <output/>
-              <stat/>
-              <detectors>
-                <exclude_from_detectors/>
-              </detectors>
-            </prescribed>
-          </scalar_field>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-          <consistent_interpolation/>
-          <scalar_field name="SedimentBedload" rank="0">
-            <diagnostic>
-              <surface_ids>
-                <integer_value shape="1" rank="1">8</integer_value>
-              </surface_ids>
-              <output/>
-              <stat/>
-              <convergence>
-                <include_in_convergence/>
-              </convergence>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-              <steady_state>
-                <include_in_steady_state/>
-              </steady_state>
-            </diagnostic>
-          </scalar_field>
-          <submerged_specific_gravity>
-            <real_value rank="0">1.5</real_value>
-          </submerged_specific_gravity>
-        </prognostic>
-      </scalar_field>
-      <scalar_field name="Sed2mm" rank="0">
-        <prognostic>
-          <mesh name="VelocityMesh"/>
-          <equation name="AdvectionDiffusion"/>
-          <spatial_discretisation>
-            <discontinuous_galerkin>
-              <advection_scheme>
-                <upwind/>
-                <integrate_advection_by_parts>
-                  <twice/>
-                </integrate_advection_by_parts>
-              </advection_scheme>
-              <diffusion_scheme>
-                <compact_discontinuous_galerkin/>
-              </diffusion_scheme>
-            </discontinuous_galerkin>
-            <conservative_advection>
-              <real_value rank="0">1</real_value>
-            </conservative_advection>
-          </spatial_discretisation>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">1</real_value>
-            </theta>
-          </temporal_discretisation>
-          <solver>
-            <iterative_method name="gmres">
-              <restart>
-                <integer_value rank="0">30</integer_value>
-              </restart>
-            </iterative_method>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1e-7</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">3000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-          <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
-          </initial_condition>
-          <boundary_conditions name="SolidLid">
-            <surface_ids>
-              <integer_value shape="1" rank="1">11</integer_value>
-            </surface_ids>
-            <type name="neumann">
-              <constant>
-                <real_value rank="0">0</real_value>
-              </constant>
-            </type>
-          </boundary_conditions>
-          <scalar_field name="SinkingVelocity" rank="0">
-            <prescribed>
-              <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.002</real_value>
+                  <real_value rank="0">0.1</real_value>
                 </constant>
               </value>
               <output/>
@@ -393,9 +287,10 @@
             </diagnostics>
           </solver>
           <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
+            <python>
+              <string_value lines="20" type="python">def val(X,t):
+  return -X[0] * 1/20</string_value>
+            </python>
           </initial_condition>
           <boundary_conditions name="SolidLid">
             <surface_ids>
@@ -411,114 +306,7 @@
             <prescribed>
               <value name="WholeMesh">
                 <constant>
-                  <real_value rank="0">0.003</real_value>
-                </constant>
-              </value>
-              <output/>
-              <stat/>
-              <detectors>
-                <exclude_from_detectors/>
-              </detectors>
-            </prescribed>
-          </scalar_field>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-          <consistent_interpolation/>
-          <scalar_field name="SedimentBedload" rank="0">
-            <diagnostic>
-              <surface_ids>
-                <integer_value shape="1" rank="1">8</integer_value>
-              </surface_ids>
-              <output/>
-              <stat/>
-              <convergence>
-                <include_in_convergence/>
-              </convergence>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-              <steady_state>
-                <include_in_steady_state/>
-              </steady_state>
-            </diagnostic>
-          </scalar_field>
-          <submerged_specific_gravity>
-            <real_value rank="0">1.5</real_value>
-          </submerged_specific_gravity>
-        </prognostic>
-      </scalar_field>
-      <scalar_field name="Sed4mm" rank="0">
-        <prognostic>
-          <mesh name="VelocityMesh"/>
-          <equation name="AdvectionDiffusion"/>
-          <spatial_discretisation>
-            <discontinuous_galerkin>
-              <advection_scheme>
-                <upwind/>
-                <integrate_advection_by_parts>
-                  <twice/>
-                </integrate_advection_by_parts>
-              </advection_scheme>
-              <diffusion_scheme>
-                <compact_discontinuous_galerkin/>
-              </diffusion_scheme>
-            </discontinuous_galerkin>
-            <conservative_advection>
-              <real_value rank="0">1</real_value>
-            </conservative_advection>
-          </spatial_discretisation>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">1</real_value>
-            </theta>
-          </temporal_discretisation>
-          <solver>
-            <iterative_method name="gmres">
-              <restart>
-                <integer_value rank="0">30</integer_value>
-              </restart>
-            </iterative_method>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1e-7</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">3000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-          <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
-          </initial_condition>
-          <boundary_conditions name="SolidLid">
-            <surface_ids>
-              <integer_value shape="1" rank="1">11</integer_value>
-            </surface_ids>
-            <type name="neumann">
-              <constant>
-                <real_value rank="0">0</real_value>
-              </constant>
-            </type>
-          </boundary_conditions>
-          <scalar_field name="SinkingVelocity" rank="0">
-            <prescribed>
-              <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.004</real_value>
+                  <real_value rank="0">0.3</real_value>
                 </constant>
               </value>
               <output/>
@@ -607,9 +395,10 @@
             </diagnostics>
           </solver>
           <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
+            <python>
+              <string_value lines="20" type="python">def val(X,t):
+  return -X[0] * 1/20</string_value>
+            </python>
           </initial_condition>
           <boundary_conditions name="SolidLid">
             <surface_ids>
@@ -625,114 +414,7 @@
             <prescribed>
               <value name="WholeMesh">
                 <constant>
-                  <real_value rank="0">0.005</real_value>
-                </constant>
-              </value>
-              <output/>
-              <stat/>
-              <detectors>
-                <exclude_from_detectors/>
-              </detectors>
-            </prescribed>
-          </scalar_field>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-          <consistent_interpolation/>
-          <scalar_field name="SedimentBedload" rank="0">
-            <diagnostic>
-              <surface_ids>
-                <integer_value shape="1" rank="1">8</integer_value>
-              </surface_ids>
-              <output/>
-              <stat/>
-              <convergence>
-                <include_in_convergence/>
-              </convergence>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-              <steady_state>
-                <include_in_steady_state/>
-              </steady_state>
-            </diagnostic>
-          </scalar_field>
-          <submerged_specific_gravity>
-            <real_value rank="0">1.5</real_value>
-          </submerged_specific_gravity>
-        </prognostic>
-      </scalar_field>
-      <scalar_field name="Sed6mm" rank="0">
-        <prognostic>
-          <mesh name="VelocityMesh"/>
-          <equation name="AdvectionDiffusion"/>
-          <spatial_discretisation>
-            <discontinuous_galerkin>
-              <advection_scheme>
-                <upwind/>
-                <integrate_advection_by_parts>
-                  <twice/>
-                </integrate_advection_by_parts>
-              </advection_scheme>
-              <diffusion_scheme>
-                <compact_discontinuous_galerkin/>
-              </diffusion_scheme>
-            </discontinuous_galerkin>
-            <conservative_advection>
-              <real_value rank="0">1</real_value>
-            </conservative_advection>
-          </spatial_discretisation>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">1</real_value>
-            </theta>
-          </temporal_discretisation>
-          <solver>
-            <iterative_method name="gmres">
-              <restart>
-                <integer_value rank="0">30</integer_value>
-              </restart>
-            </iterative_method>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1e-7</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">3000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-          <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
-          </initial_condition>
-          <boundary_conditions name="SolidLid">
-            <surface_ids>
-              <integer_value shape="1" rank="1">11</integer_value>
-            </surface_ids>
-            <type name="neumann">
-              <constant>
-                <real_value rank="0">0</real_value>
-              </constant>
-            </type>
-          </boundary_conditions>
-          <scalar_field name="SinkingVelocity" rank="0">
-            <prescribed>
-              <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.006</real_value>
+                  <real_value rank="0">0.5</real_value>
                 </constant>
               </value>
               <output/>
@@ -821,9 +503,10 @@
             </diagnostics>
           </solver>
           <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
+            <python>
+              <string_value lines="20" type="python">def val(X,t):
+  return -X[0] * 1/20</string_value>
+            </python>
           </initial_condition>
           <boundary_conditions name="SolidLid">
             <surface_ids>
@@ -839,328 +522,7 @@
             <prescribed>
               <value name="WholeMesh">
                 <constant>
-                  <real_value rank="0">0.007</real_value>
-                </constant>
-              </value>
-              <output/>
-              <stat/>
-              <detectors>
-                <exclude_from_detectors/>
-              </detectors>
-            </prescribed>
-          </scalar_field>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-          <consistent_interpolation/>
-          <scalar_field name="SedimentBedload" rank="0">
-            <diagnostic>
-              <surface_ids>
-                <integer_value shape="1" rank="1">8</integer_value>
-              </surface_ids>
-              <output/>
-              <stat/>
-              <convergence>
-                <include_in_convergence/>
-              </convergence>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-              <steady_state>
-                <include_in_steady_state/>
-              </steady_state>
-            </diagnostic>
-          </scalar_field>
-          <submerged_specific_gravity>
-            <real_value rank="0">1.5</real_value>
-          </submerged_specific_gravity>
-        </prognostic>
-      </scalar_field>
-      <scalar_field name="Sed8mm" rank="0">
-        <prognostic>
-          <mesh name="VelocityMesh"/>
-          <equation name="AdvectionDiffusion"/>
-          <spatial_discretisation>
-            <discontinuous_galerkin>
-              <advection_scheme>
-                <upwind/>
-                <integrate_advection_by_parts>
-                  <twice/>
-                </integrate_advection_by_parts>
-              </advection_scheme>
-              <diffusion_scheme>
-                <compact_discontinuous_galerkin/>
-              </diffusion_scheme>
-            </discontinuous_galerkin>
-            <conservative_advection>
-              <real_value rank="0">1</real_value>
-            </conservative_advection>
-          </spatial_discretisation>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">1</real_value>
-            </theta>
-          </temporal_discretisation>
-          <solver>
-            <iterative_method name="gmres">
-              <restart>
-                <integer_value rank="0">30</integer_value>
-              </restart>
-            </iterative_method>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1e-7</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">3000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-          <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
-          </initial_condition>
-          <boundary_conditions name="SolidLid">
-            <surface_ids>
-              <integer_value shape="1" rank="1">11</integer_value>
-            </surface_ids>
-            <type name="neumann">
-              <constant>
-                <real_value rank="0">0</real_value>
-              </constant>
-            </type>
-          </boundary_conditions>
-          <scalar_field name="SinkingVelocity" rank="0">
-            <prescribed>
-              <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.008</real_value>
-                </constant>
-              </value>
-              <output/>
-              <stat/>
-              <detectors>
-                <exclude_from_detectors/>
-              </detectors>
-            </prescribed>
-          </scalar_field>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-          <consistent_interpolation/>
-          <scalar_field name="SedimentBedload" rank="0">
-            <diagnostic>
-              <surface_ids>
-                <integer_value shape="1" rank="1">8</integer_value>
-              </surface_ids>
-              <output/>
-              <stat/>
-              <convergence>
-                <include_in_convergence/>
-              </convergence>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-              <steady_state>
-                <include_in_steady_state/>
-              </steady_state>
-            </diagnostic>
-          </scalar_field>
-          <submerged_specific_gravity>
-            <real_value rank="0">1.5</real_value>
-          </submerged_specific_gravity>
-        </prognostic>
-      </scalar_field>
-      <scalar_field name="Sed9mm" rank="0">
-        <prognostic>
-          <mesh name="VelocityMesh"/>
-          <equation name="AdvectionDiffusion"/>
-          <spatial_discretisation>
-            <discontinuous_galerkin>
-              <advection_scheme>
-                <upwind/>
-                <integrate_advection_by_parts>
-                  <twice/>
-                </integrate_advection_by_parts>
-              </advection_scheme>
-              <diffusion_scheme>
-                <compact_discontinuous_galerkin/>
-              </diffusion_scheme>
-            </discontinuous_galerkin>
-            <conservative_advection>
-              <real_value rank="0">1</real_value>
-            </conservative_advection>
-          </spatial_discretisation>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">1</real_value>
-            </theta>
-          </temporal_discretisation>
-          <solver>
-            <iterative_method name="gmres">
-              <restart>
-                <integer_value rank="0">30</integer_value>
-              </restart>
-            </iterative_method>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1e-7</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">3000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-          <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
-          </initial_condition>
-          <boundary_conditions name="SolidLid">
-            <surface_ids>
-              <integer_value shape="1" rank="1">11</integer_value>
-            </surface_ids>
-            <type name="neumann">
-              <constant>
-                <real_value rank="0">0</real_value>
-              </constant>
-            </type>
-          </boundary_conditions>
-          <scalar_field name="SinkingVelocity" rank="0">
-            <prescribed>
-              <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.009</real_value>
-                </constant>
-              </value>
-              <output/>
-              <stat/>
-              <detectors>
-                <exclude_from_detectors/>
-              </detectors>
-            </prescribed>
-          </scalar_field>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-          <consistent_interpolation/>
-          <scalar_field name="SedimentBedload" rank="0">
-            <diagnostic>
-              <surface_ids>
-                <integer_value shape="1" rank="1">8</integer_value>
-              </surface_ids>
-              <output/>
-              <stat/>
-              <convergence>
-                <include_in_convergence/>
-              </convergence>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-              <steady_state>
-                <include_in_steady_state/>
-              </steady_state>
-            </diagnostic>
-          </scalar_field>
-          <submerged_specific_gravity>
-            <real_value rank="0">1.5</real_value>
-          </submerged_specific_gravity>
-        </prognostic>
-      </scalar_field>
-      <scalar_field name="Sed10mm" rank="0">
-        <prognostic>
-          <mesh name="VelocityMesh"/>
-          <equation name="AdvectionDiffusion"/>
-          <spatial_discretisation>
-            <discontinuous_galerkin>
-              <advection_scheme>
-                <upwind/>
-                <integrate_advection_by_parts>
-                  <twice/>
-                </integrate_advection_by_parts>
-              </advection_scheme>
-              <diffusion_scheme>
-                <compact_discontinuous_galerkin/>
-              </diffusion_scheme>
-            </discontinuous_galerkin>
-            <conservative_advection>
-              <real_value rank="0">1</real_value>
-            </conservative_advection>
-          </spatial_discretisation>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">1</real_value>
-            </theta>
-          </temporal_discretisation>
-          <solver>
-            <iterative_method name="gmres">
-              <restart>
-                <integer_value rank="0">30</integer_value>
-              </restart>
-            </iterative_method>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1e-7</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">3000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-          <initial_condition name="WholeMesh">
-            <constant>
-              <real_value rank="0">0.01</real_value>
-            </constant>
-          </initial_condition>
-          <boundary_conditions name="SolidLid">
-            <surface_ids>
-              <integer_value shape="1" rank="1">11</integer_value>
-            </surface_ids>
-            <type name="neumann">
-              <constant>
-                <real_value rank="0">0</real_value>
-              </constant>
-            </type>
-          </boundary_conditions>
-          <scalar_field name="SinkingVelocity" rank="0">
-            <prescribed>
-              <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.01</real_value>
+                  <real_value rank="0">0.7</real_value>
                 </constant>
               </value>
               <output/>
