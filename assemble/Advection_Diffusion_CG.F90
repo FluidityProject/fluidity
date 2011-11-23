@@ -488,7 +488,7 @@ contains
       ! presumably t%mesh is the internal energy mesh:
       allocate(drhodp)
       call allocate(drhodp, t%mesh, "_shock_viscosity_drhodp")
-      call compressible_eos(state, drhodp)
+      call compressible_eos(state, drhodp=drhodp)
       ewrite_minmax(drhodp)
     else
       drhodp => dummydensity

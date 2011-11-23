@@ -397,18 +397,43 @@ contains
     call zero(drhodp)
     
     if(.not.incompressible) then
-      energy_local=>extract_scalar_field(state,'InternalEnergy',stat=stat)
+      if (gstat==0) then
+        energy_local=>extract_scalar_field(state,'InternalEnergy',stat=stat)
 
-      ! drhodp = 1.0/( bulk_sound_speed_squared + (ratio_specific_heats - 1.0)*energy )
-      if((stat==0).and.(gstat==0)) then   ! we have an internal energy field and we want to use it
-        call allocate(energy_remap, drhodp%mesh, 'RemappedInternalEnergy')
-        call remap_field(energy_local, energy_remap)
-        
-        call addto(drhodp, energy_remap, (ratio_specific_heats-1.0))
-        
-        call deallocate(energy_remap)
+        ! drhodp = 1.0/( bulk_sound_speed_squared + (ratio_specific_heats - 1.0)*energy )
+        if(stat==0) then   ! we have an internal energy field and we want to use it
+          call allocate(energy_remap, drhodp%mesh, 'RemappedInternalEnergy')
+          call remap_field(energy_local, energy_remap)
+
+          
+
+          call addto(drhodp, energy_remap, (ratio_specific_heats-1.0))
+
+          call deallocate(energy_remap)
+        else
+          energy_local=>extract_scalar_field(state,'InternalEnergyDensity',stat=stat)
+
+          ! drhodp = 1.0/( bulk_sound_speed_squared + (ratio_specific_heats - 1.0)*energy )
+          if(stat==0) then   ! we have an internal energy field and we want to use it
+            call allocate(energy_remap, drhodp%mesh, 'RemappedInternalEnergyDensity')
+            call remap_field(energy_local, energy_remap)
+            density_local => extract_scalar_field(state,'Density')
+            call allocate(density_remap, drhodp%mesh, "RemappedDensity")
+            call remap_field(density_local, density_remap)
+            call invert(density_remap)
+            call scale(energy_remap, density_remap)
+
+            call addto(drhodp, energy_remap, (ratio_specific_heats-1.0))
+
+            call deallocate(energy_remap)
+            call deallocate(density_remap)
+          end if
+
+        end if
       end if
-      call addto(drhodp, bulk_sound_speed_squared)
+      if (cstat==0) then
+        call addto(drhodp, bulk_sound_speed_squared)
+      end if
       call invert(drhodp)
     end if
 

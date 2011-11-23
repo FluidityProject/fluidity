@@ -496,7 +496,7 @@
         end if
         allocate(drhodp)
         call allocate(drhodp, internal_energy%mesh, "_shock_viscosity_drhodp")
-        call compressible_eos(state, drhodp)
+        call compressible_eos(state, drhodp=drhodp)
         ewrite_minmax(drhodp)
       else
         drhodp => dummyscalar
