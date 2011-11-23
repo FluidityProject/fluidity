@@ -1575,9 +1575,8 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, force_temperature,&
                                              "value")
         if (heat_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
-            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
-            call remap_field_to_surface(p_position, position_remapped, &
-                                        surface_element_list)
+            position_remapped=get_coordinates_remapped_to_surface(p_position, &
+              scalar_surface%mesh, surface_element_list)
             call project_field(heat_flux, scalar_surface, position_remapped)
             call deallocate(position_remapped)
         else
