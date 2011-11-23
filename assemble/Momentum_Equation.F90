@@ -386,7 +386,7 @@
                ! For the CG pressure with CV tested continuity case 
                ! get the CV tested pressure gradient matrix (i.e. the divergence matrix)
                ! if required with a different unique name. Note there is no need
-               ! to again decide reassemble_ct_m as ctp_m for this case is assemlbed when ct_m is.
+               ! to again decide reassemble_ct_m as ctp_m for this case is assembled when ct_m is.
                if ((.not. use_compressible_projection) .and. cg_pressure_cv_test_continuity) then
                   ctp_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), ct_m_name = "CVTestedVelocityDivergenceMatrix")
                end if
