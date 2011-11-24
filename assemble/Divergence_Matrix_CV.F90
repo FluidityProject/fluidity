@@ -1481,23 +1481,24 @@ contains
     subroutine add_cv_pressure_dirichlet_bcs(mom_rhs, u, p, state)
        
       !!< Add any CV pressure dirichlet BC integrals to the mom_rhs field if required.
-      !!< This will evaluate the BC values with the velocity, u, theta value.
-      !!< If this is a multiphase simulation then the phase volume fraction is also
-      !!< evaluated with the velocity theta and the phase volume fraction spatial 
+      !!< If this is a multiphase simulation then the phase volume fraction spatial 
       !!< interpolation uses finite elements. This isnt striclty correct if the 
-      !!< phase volume fractions where solved with a control volume discretisation 
+      !!< phase volume fractions were solved with a control volume discretisation 
       !!< and also whether of not they themselves have a weak BC is ignored. If the 
       !!< latter was to be considered then the upwind value should be used.
-             
+      
+      ! Note the pressure BC values come from the end of time step Pressure field
+      ! rather than using a theta average. The latter was tried but didnt work 
+      ! because OldPressure had no BC info. Taking the end of time step value 
+      ! for the BC is also what the pressure CG routine(s) do.
+      
       type(vector_field), intent(inout) :: mom_rhs
       type(vector_field), intent(in) :: u
       type(scalar_field), intent(in) :: p
-      type(state_type), intent(inout) :: state
+      type(state_type), intent(inout) :: state ! required for phase volume fraction
 
       ! local variables
-            
-      real :: u_theta
-      
+
       ! degree of quadrature over cv faces
       integer :: quaddegree
 
@@ -1518,10 +1519,9 @@ contains
       type(vector_field), pointer :: x
       
       ! pressure BC info
-      integer, dimension(:), allocatable :: pressure_bc_type, oldpressure_bc_type
+      integer, dimension(:), allocatable :: pressure_bc_type
       real, dimension(:), allocatable :: pressure_bc_val
-      type(scalar_field) :: pressure_bc, oldpressure_bc
-      type(scalar_field), pointer :: oldp => null()
+      type(scalar_field) :: pressure_bc
       
       ! local ct matrix
       real, dimension(:,:,:), allocatable :: ct_mat_local_bdy
@@ -1529,7 +1529,7 @@ contains
       !! Multiphase variables
       logical :: multiphase
       ! Volume fraction fields
-      type(scalar_field), pointer :: vfrac, oldvfrac
+      type(scalar_field), pointer :: vfrac
       type(scalar_field) :: nvfrac
       
       ! Variables used if FE interpolation of vfrac on surface
@@ -1558,23 +1558,12 @@ contains
    
       assert(surface_element_count(p) == surface_element_count(u))
       
-      ! get the end of time step pressure BC field
+      ! get the pressure BC field
       allocate(pressure_bc_type(surface_element_count(p)))
       
       call get_entire_boundary_condition(p, (/"weakdirichlet", &
                                               "dirichlet    "/), pressure_bc, pressure_bc_type)
       
-      ! extract the start of time step pressure
-      oldp => extract_scalar_field(state, "OldPressure")
-      
-      ! get the the start of time step pressure BC field
-      allocate(oldpressure_bc_type(surface_element_count(oldp)))
-      
-      call get_entire_boundary_condition(oldp, (/"weakdirichlet", &
-                                                 "dirichlet    "/), oldpressure_bc, oldpressure_bc_type)
-
-      assert(surface_element_count(p) == surface_element_count(oldp))
-  
       allocate(x_ele_bdy(x%dim,x%mesh%faces%shape%loc), &
                detwei_bdy(x_cvbdyshape%ngi), &
                normal_bdy(x%dim, x_cvbdyshape%ngi), &
@@ -1589,7 +1578,6 @@ contains
          multiphase = .true.
 
          vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
-         oldvfrac => extract_scalar_field(state, "OldPhaseVolumeFraction")
          call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
          call zero(nvfrac)
          call get_nonlinear_volume_fraction(state, nvfrac)
@@ -1612,33 +1600,21 @@ contains
       else
          multiphase = .false.
          nullify(vfrac)
-         nullify(oldvfrac)
       end if
-      
-      ! Find the momentum equation theta value
-      call get_option(trim(u%option_path)//'/prognostic/temporal_discretisation/theta', u_theta, default = 1.0)
   
       surface_element_loop: do sele = 1, surface_element_count(p)
   
         ! cycle if this not a weak dirichlet pressure BC.
         if (pressure_bc_type(sele) == 0) cycle
-        
-        ! assert that the type of pressure BC hasnt changed
-        assert(pressure_bc_type(sele) == oldpressure_bc_type(sele))
             
         ele         = face_ele(x, sele)
         x_ele       = ele_val(x, ele)
         x_ele_bdy   = face_val(x, sele)
         u_nodes_bdy = face_global_nodes(u, sele)
         
-        ! Get the pressure BC value using the velocity theta average. - should latest be relaxed to non linear?
-        pressure_bc_val = u_theta*ele_val(pressure_bc, sele) + &
-                          (1.0 - u_theta)*ele_val(oldpressure_bc, sele)
-        
-        ! Get the phase volume fraction face value theta averaged
+        ! Get the phase volume fraction face value 
         if(multiphase) then
-           nvfrac_gi_f = u_theta*face_val_at_quad(nvfrac, sele, nvfrac_cvbdyshape) + &
-                         (1.0 - u_theta)*face_val_at_quad(oldvfrac, sele, nvfrac_cvbdyshape)
+           nvfrac_gi_f = face_val_at_quad(nvfrac, sele, nvfrac_cvbdyshape)
         end if
   
         call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
@@ -1689,7 +1665,7 @@ contains
           ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
           !      /
           
-          call addto(mom_rhs, dim, u_nodes_bdy, -matmul(pressure_bc_val, ct_mat_local_bdy(dim,:,:)))
+          call addto(mom_rhs, dim, u_nodes_bdy, -matmul(ele_val(pressure_bc, sele), ct_mat_local_bdy(dim,:,:)))
   
         end do surface_outer_dimension_loop
   
@@ -1697,8 +1673,6 @@ contains
   
       call deallocate(pressure_bc)
       deallocate(pressure_bc_type)
-      call deallocate(oldpressure_bc)
-      deallocate(oldpressure_bc_type)      
       deallocate(pressure_bc_val)
       call deallocate(x_cvbdyshape)
       call deallocate(u_cvbdyshape)
