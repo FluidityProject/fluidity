@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testproblem>
+  <name>p0p1cv with weak velBC navier stokes spatial convergence test using a rotated domain such as to have non cartesian aligned BC</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+fluidity -v1 -l MMS_A.flml
+fluidity -v1 -l MMS_B.flml
+fluidity -v1 -l MMS_C.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ab_convergence_vel" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+a_error_x = stat("MMS_A.stat")["NS"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_A.stat")["NS"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
+
+a_error_inf_x = stat("MMS_A.stat")["NS"]["VectorAbsoluteDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_A.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
+
+print a_error_x
+print b_error_x
+print a_error_y
+print b_error_y
+
+print a_error_inf_x
+print b_error_inf_x
+print a_error_inf_y
+print b_error_inf_y
+
+ab_ratio_x = a_error_x / b_error_x
+ab_ratio_y = a_error_y / b_error_y
+ab_ratio_inf_x = a_error_inf_x / b_error_inf_x
+ab_ratio_inf_y = a_error_inf_y / b_error_inf_y
+ab_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
+    </variable>
+    <variable name="ab_convergence_p" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+a_error = stat("MMS_A.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
+b_error = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
+
+a_error_inf = stat("MMS_A.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
+b_error_inf = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
+
+print a_error
+print b_error
+
+print a_error_inf
+print b_error_inf
+
+ab_ratio = a_error / b_error
+ab_ratio_inf = a_error_inf / b_error_inf
+ab_convergence_p = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
+    </variable>
+    <variable name="bc_convergence_vel" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+b_error_x = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
+c_error_x = stat("MMS_C.stat")["NS"]["VectorAbsoluteDifference%1"]["l2norm"][-1]
+b_error_y = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
+c_error_y = stat("MMS_C.stat")["NS"]["VectorAbsoluteDifference%2"]["l2norm"][-1]
+
+b_error_inf_x = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%1"]["max"][-1]
+c_error_inf_x = stat("MMS_C.stat")["NS"]["VectorAbsoluteDifference%1"]["max"][-1]
+b_error_inf_y = stat("MMS_B.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
+c_error_inf_y = stat("MMS_C.stat")["NS"]["VectorAbsoluteDifference%2"]["max"][-1]
+
+print b_error_x
+print c_error_x
+print b_error_y
+print c_error_y
+
+print b_error_inf_x
+print c_error_inf_x
+print b_error_inf_y
+print c_error_inf_y
+
+bc_ratio_x = b_error_x / c_error_x
+bc_ratio_y = b_error_y / c_error_y
+bc_ratio_inf_x = b_error_inf_x / c_error_inf_x
+bc_ratio_inf_y = b_error_inf_y / c_error_inf_y
+bc_convergence_vel = [[log(bc_ratio_x, 2), log(bc_ratio_inf_x, 2)], [log(bc_ratio_y, 2), log(bc_ratio_inf_y, 2)]]
+    </variable>
+    <variable name="bc_convergence_p" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+
+b_error = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
+c_error = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["l2norm"][-1]
+
+b_error_inf = stat("MMS_B.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
+c_error_inf = stat("MMS_C.stat")["NS"]["ScalarAbsoluteDifference"]["max"][-1]
+
+print b_error
+print c_error
+
+print b_error_inf
+print c_error_inf
+
+bc_ratio = b_error / c_error
+bc_ratio_inf = b_error_inf / c_error_inf
+bc_convergence_p = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
+    </variable>
+   <variable name="a_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+a_finish_time = stat("MMS_A.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="b_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+b_finish_time = stat("MMS_B.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="c_finish_time" language="python">
+from fluidity_tools import stat_parser as stat
+c_finish_time = stat("MMS_C.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+   <variable name="a_div" language="python">
+from fluidity_tools import stat_parser as stat
+a_div = max(abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]), abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["min"][-1]))
+    </variable>
+    <variable name="b_div" language="python">
+from fluidity_tools import stat_parser as stat
+b_div = max(abs(stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]), abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["min"][-1]))
+    </variable>
+    <variable name="c_div" language="python">
+from fluidity_tools import stat_parser as stat
+c_div = max(abs(stat("MMS_C.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]), abs(stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["min"][-1]))
+    </variable>
+    <variable name="a_final_change_vel" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+vtu = vtktools.vtu("MMS_A_1.vtu")
+dt = stat("MMS_A.stat")["dt"]["value"][-1]
+a_final_change_vel = max(max(abs(vtu.GetVectorField("Velocity")[:,0]-vtu.GetVectorField("OldVelocity")[:,0])/dt), max(abs(vtu.GetVectorField("Velocity")[:,1]-vtu.GetVectorField("OldVelocity")[:,1])/dt))
+    </variable>
+    <variable name="b_final_change_vel" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+vtu = vtktools.vtu("MMS_B_1.vtu")
+dt = stat("MMS_B.stat")["dt"]["value"][-1]
+b_final_change_vel = max(max(abs(vtu.GetVectorField("Velocity")[:,0]-vtu.GetVectorField("OldVelocity")[:,0])/dt), max(abs(vtu.GetVectorField("Velocity")[:,1]-vtu.GetVectorField("OldVelocity")[:,1])/dt))
+    </variable>
+    <variable name="c_final_change_vel" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+vtu = vtktools.vtu("MMS_C_1.vtu")
+dt = stat("MMS_C.stat")["dt"]["value"][-1]
+c_final_change_vel = max(max(abs(vtu.GetVectorField("Velocity")[:,0]-vtu.GetVectorField("OldVelocity")[:,0])/dt), max(abs(vtu.GetVectorField("Velocity")[:,1]-vtu.GetVectorField("OldVelocity")[:,1])/dt))
+    </variable>
+    <variable name="a_final_change_p" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+vtu = vtktools.vtu("MMS_A_1.vtu")
+dt = stat("MMS_A.stat")["dt"]["value"][-1]
+a_final_change_p = max(abs(vtu.GetScalarField("Pressure")-vtu.GetScalarField("OldPressure"))/dt)
+    </variable>
+    <variable name="b_final_change_p" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+vtu = vtktools.vtu("MMS_B_1.vtu")
+dt = stat("MMS_B.stat")["dt"]["value"][-1]
+b_final_change_p = max(abs(vtu.GetScalarField("Pressure")-vtu.GetScalarField("OldPressure"))/dt)
+    </variable>
+    <variable name="c_final_change_p" language="python">
+import vtktools
+from fluidity_tools import stat_parser as stat
+vtu = vtktools.vtu("MMS_C_1.vtu")
+dt = stat("MMS_C.stat")["dt"]["value"][-1]
+c_final_change_p = max(abs(vtu.GetScalarField("Pressure")-vtu.GetScalarField("OldPressure"))/dt)
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="ab_convergence_vel_x: L2 order between 1.6 and 2.0" language="python">
+assert(abs(ab_convergence_vel[0][0]-1.8) &lt; 0.2)
+    </test>
+    <test name="ab_convergence_vel_y: L2 order between 1.6 and 2.0" language="python">
+assert(abs(ab_convergence_vel[1][0]-1.8) &lt; 0.2)
+    </test>
+    <test name="ab_convergence_p: L2 order between 2.0 and 2.2" language="python">
+assert(abs(ab_convergence_p[0]-2.1) &lt; 0.11)
+    </test>
+    <test name="bc_convergence_vel_x: L2 order between 0.8 and 1.0" language="python">
+assert(abs(bc_convergence_vel[0][0]-0.9) &lt; 0.1)
+    </test>
+    <test name="bc_convergence_vel_y: L2 order between 0.8 and 1.0" language="python">
+assert(abs(bc_convergence_vel[1][0]-0.9) &lt; 0.1)
+    </test>
+    <test name="bc_convergence_p: L2 order between 0.8 and 1.0" language="python">
+assert(abs(bc_convergence_p[0]-0.9) &lt; 0.1)
+    </test>
+    <test name="checking divergence in A vel with tolerance 1.0e-08" language="python">
+assert(a_div &lt; 1.E-8)
+    </test>
+    <test name="checking divergence in B vel with tolerance 1.0e-08" language="python">
+assert(b_div &lt; 1.E-8)
+    </test>
+    <test name="checking divergence in C vel with tolerance 1.0e-08" language="python">
+assert(c_div &lt; 1.E-8)
+    </test>
+    <test name="checking A finished in less than 50.0" language="python">
+assert(a_finish_time-50.0 &lt; 1.E-10)
+    </test>
+    <test name="checking B finished in less than 50.0" language="python">
+assert(b_finish_time-50.0 &lt; 1.E-10)
+    </test>
+    <test name="checking C finished in less than 50.0" language="python">
+assert(c_finish_time-50.0 &lt; 1.E-10)
+    </test>
+    <test name="checking steady state was reached in A vel with tolerance 1.0e-05" language="python">
+assert(a_final_change_vel &lt; 1.0e-05)
+    </test>
+    <test name="checking steady state was reached in B vel with tolerance 1.0e-05" language="python">
+assert(b_final_change_vel &lt; 1.0e-05)
+    </test>
+    <test name="checking steady state was reached in C vel with tolerance 1.0e-05" language="python">
+assert(c_final_change_vel &lt; 1.0e-05)
+    </test>
+    <test name="checking steady state was reached in A p with tolerance 1.0e-05" language="python">
+assert(a_final_change_p &lt; 1.0e-05)
+    </test>
+    <test name="checking steady state was reached in B p with tolerance 1.0e-05" language="python">
+assert(b_final_change_p &lt; 1.0e-05)
+    </test>
+    <test name="checking steady state was reached in C p with tolerance 1.0e-05" language="python">
+assert(c_final_change_p &lt; 1.0e-05)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

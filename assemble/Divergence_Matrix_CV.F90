@@ -107,7 +107,7 @@ contains
       type(vector_field) :: field_bc
 
       real, dimension(:,:,:), allocatable :: ct_mat_local, ct_mat_local_bdy
-      real, dimension(:), allocatable :: ct_rhs_local
+      real, dimension(:,:), allocatable :: ct_rhs_local
 
       logical :: l_get_ct
 
@@ -316,7 +316,7 @@ contains
         allocate(field_nodes_bdy(field%mesh%faces%shape%loc))
         allocate(test_nodes_bdy(test_mesh%faces%shape%loc))
         allocate(ct_mat_local_bdy(x%dim, test_mesh%faces%shape%loc, field%mesh%faces%shape%loc), &
-                ct_rhs_local(test_mesh%faces%shape%loc))
+                 ct_rhs_local(x%dim, test_mesh%faces%shape%loc))
   
         surface_element_loop: do sele = 1, surface_element_count(test_mesh)
   
@@ -366,11 +366,11 @@ contains
                       if((present(ct_rhs)).and.(field_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET)) then
   
                         if(multiphase) then
-                           ct_rhs_local(iloc) = ct_rhs_local(iloc) + &
+                           ct_rhs_local(dim, iloc) = ct_rhs_local(dim, iloc) - &
                                  field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*nvfrac_gi_f(ggi)*&
                                  normal_bdy(dim,ggi)*field_bc_val(dim, jloc)
                         else
-                           ct_rhs_local(iloc) = ct_rhs_local(iloc) + &
+                           ct_rhs_local(dim, iloc) = ct_rhs_local(dim, iloc) - &
                                  field_cvbdyshape%n(jloc,ggi)*detwei_bdy(ggi)*normal_bdy(dim,ggi)*&
                                  field_bc_val(dim, jloc)
                         end if
@@ -403,7 +403,7 @@ contains
   
             if((present(ct_rhs)).and.(field_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET)) then
   
-              call addto(ct_rhs, test_nodes_bdy, ct_rhs_local)
+              call addto(ct_rhs, test_nodes_bdy, ct_rhs_local(dim,:))
   
             elseif(l_get_ct) then
   

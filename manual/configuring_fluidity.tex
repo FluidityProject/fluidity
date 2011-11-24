@@ -1059,7 +1059,7 @@ selected. Please refer to section \ref{sec:ND_momentum_equation} for a comprehen
 
 \subsection{Temporal discretisations}
 \label{sec:configuring_fluidity_temporal_discretisation}
-Under temporal discretisation, you can set the value of theta, where $0$ is explicit, $0.5$ is Crank-Nicolson and $1$ is implicit. For scalar fields, the control volumes option may be selected if you are using control volumes or coupled cv spatial discretisation.  It contains options to set up nonlinear advection iterations, subcycling and the value of the pivot implicitness factor (see section \ref{sec:cvtemp}). The discontinuous galerkin option can be used if you are using discontinuous galerkin spatial discretisation to set the maximum courant number per subcycle, or the number of subcyles. 
+Under temporal discretisation, you can set the value of theta, where $0$ is explicit, $0.5$ is Crank-Nicolson and $1$ is implicit. For scalar fields, the control volumes option may be selected if you are using control volumes or coupled cv spatial discretisation.  It contains options to set up nonlinear advection iterations, subcycling and the value of the pivot implicitness factor (see section \ref{sec:cvtemp}). The discontinuous Galerkin option can be used if you are using discontinuous galerkin spatial discretisation to set the maximum courant number per subcycle, or the number of subcyles. 
 
 \subsection{Source and absorption terms}\label{sec:Source}
 \index{source term}
@@ -1141,6 +1141,28 @@ component of velocity is not specified then there is no free constant in the
 pressure and neither \option{\ldots/reference\_node} nor
 \option{\ldots/remove\_null\_space} should be set. An example
 may be stress free outflow or the presence of a free surface.
+
+\subsection{Continuous Galerkin pressure with control volume tested continuity}
+\index{pressure!CG with CV tested continuity}
+\label{sec:config_cg_pressure_cv_continuity}
+
+As described in section \ref{sec:cg_pressure_cv_continuity} when using a continuous Galerkin 
+discrestisation of pressure the continuity equation can be tested with the corresponding 
+dual control volume mesh. This is achieved by including the \linebreak 
+\option{\ldots/scalar\_field::Pressure/prognostic/spatial\_discretisation/continuous\_galerkin/test\_continuity\_with\_cv\_dual}
+option. As described in the theory section \ref{sec:cg_pressure_cv_continuity} this will imply a 
+non symmetric pressure correction matrix which must be considered when selecting the pressure 
+matrix solver options.
+
+The current limitations of this method are:
+\begin{enumerate}
+  \item It can only be used for incompressible flow \ref{sec:ND_pressure_equation}.
+  \item It cannot be used with the free surface model \ref{sec:free_surface}.
+  \item It cannot be used with the wetting and drying model \ref{sec:wetting_and_drying}.
+  \item It cannot be used with the implicit solids model with two way coupling.
+  \item It can only be used if the pressure has a mesh associated with Lagrangian shape functions.
+  \item It can only be used with control volume shape functions that are available, of which only P1CV are considered reliable. 
+\end{enumerate}
 
 \section{Solution of linear systems}\label{sec:Solve}
 \index{linear solvers!options}
@@ -1812,7 +1834,7 @@ The temperature and salinity are continuous galerkin.
 
 \subsubsection{Pressure options}
 
-This is continuous galerkin discretisation, with a mesh of polynomial order two (already specified above).
+This is continuous Galerkin discretisation, with a mesh of polynomial order two (already specified above).
 
 \begin{itemize}
 \item \option{\ldots/spatial\_discretisation} must be Continuous Galerkin
@@ -1835,7 +1857,7 @@ The quadrature degree is usually four in these cases.
 \item \option{\ldots/temporal\_discretisation/theta} is $0.5$ (Crank-Nicolson), or $1$ if the advection term is switched off (e.g. during spinning up)
 \item \option{\ldots/temporal\_discretisation/conservative\_advection} is set to $0.0$
 \item \option{\ldots/solvers} normally gmres - or cg if the advection term is switched off (e.g. during spinning up)
-\item \option{\ldots/solvers/preconditioner} eisenstat - or try mg if using compact discontinuous galerkin vorticity
+\item \option{\ldots/solvers/preconditioner} eisenstat - or try mg if using compact discontinuous Galerkin vorticity
 \end{itemize}
 
 
