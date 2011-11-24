@@ -7,8 +7,8 @@
 
 \section{Visualisation}
 
-\label{sect:mayavi}
-\label{sect:paraview}
+\label{sec:mayavi}
+\label{sec:paraview}
 \index{vtu}
 \index{visualisation}
 
@@ -35,12 +35,12 @@ See the \href{http://amcg-www.ese.ic.ac.uk/}{AMCG website}\ for more information
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Online diagnostics}
-\label{sect:online_diagnostics}
+\label{sec:online_diagnostics}
 
 \subsection{Fields}
-\label{sect:diagnostics_fields}
+\label{sec:diagnostics_fields}
 
-\subsubsection{Internal diagnostic fields}\label{sect:Internal_diagnostic_fields}
+\subsubsection{Internal diagnostic fields}\label{sec:Internal_diagnostic_fields}
 \fluidity\ has a set of predefined diagnostic fields called internal diagnostic fields. These diagnostic fields can be scalar, vector and tensor fields. Common used internal diagnostic field are the CFLNumber or the Gradient of a specified scalar\_field.
 
 
@@ -71,7 +71,7 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[CVMaterialDensityCFLNumber:]Courant Number as defined on a control volume mesh and incorporating the MaterialDensity. Requires a MaterialDensity field!
 \item[DG\_CourantNumber:]CFLNumber as defined on a DG mesh. It is calculated as $\triangle t \frac{1}{V} \int _{element} \vec{u}$ where $\triangle t$ is the timestep and $\vec{u}$ the velocity. The integral is taken over the faces of the element $V$ is the volume of the element.
 \item[DiffusiveDissipation:]The rate at which internal energy is converted to potential energy: $-g\ppx[y]{\rho}$, where $\rho$ is the Density. Note the actual diffusive dissipation is $-2g\tensor{\kappa} \ppx[y]{\rho}$ (2 subject to definition) where $\ppt[t]{\rho} + \vec{u}\cdot \nabla \rho = \tensor{\kappa} \nabla^2 \rho$. This should be taken into account when post-processing. It also assumes kappa is isotropic and constant, cf. \cite{winters1995}.
-\item[DiscontinuityDetector:]This field detects the discontinuities in a discontinuous Galerkin field, the larger the discontinuity, the larger the value it takes. The discontinuity field is used by the HWENO slope limiter, \ref{sect:ND_hermite_weno_limiter}.
+\item[DiscontinuityDetector:]This field detects the discontinuities in a discontinuous Galerkin field, the larger the discontinuity, the larger the value it takes. The discontinuity field is used by the HWENO slope limiter, \ref{sec:ND_hermite_weno_limiter}.
 \item[FiniteElementDivergence:]Divergence of the velocity field where the divergence operator is defined using the finite element $\mathrm{C}^\mathrm{T}$ matrix.
 \item[FreeSurface:]Computes the free surface. Note: the diagnostic FreeSurface field only works in combination with the free\_surface boundary condition applied to the Velocity field. It gives you a 3D field (constant over the vertical) of the free surface elevation.
 \item[FreeSurfaceHistory:]The free surface history diagnostics saves snapshots of the free surface field. The regularity and amount of snapshots can be specified in diamond. The main usage of this diagnostic is for harmonic analysis, see \ref{sec:diagnostic_algorithms}
@@ -107,12 +107,12 @@ Limitations: Requires the diagnostic \option{scalar\_field::IsopycnalCoordinate}
 \item[MaxEdgeWeightOnNodes:]An estimate of the edge weights whilst adapting using Zoltan.
 \item[MultiplyConnectedStreamFunction:]Calculate the stream function of 2D incompressible flow for multiply connected domains. Note that this only makes sense for proper 2D (not pseudo-2D) simulations. Requires a continuous mesh.
 \item[NodeOwner:]Output the processors which own the nodes of the mesh on which this field is based.   
-\item[PhytoplanktonGrazing:]Grazing rate of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. See section \ref{sect:biology_model} for more details.
+\item[PhytoplanktonGrazing:]Grazing rate of Phytoplankton by Zooplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated. See section \ref{sec:biology_model} for more details.
 \item[PerturbationDensity:]Calculates the perturbation of the density from the reference density.
 \item[PhaseVolumeFraction:]Volume fraction $\alpha^N$ of phase $N$ in multimaterial simulations. Required in multiphase simulations. If \option{diagnostic}, this computes $\alpha^N = 1 - \sum_{i=1}^{N-1}\alpha^i$.
 \item[PotentialVorticity:]Ertel potential vorticity: $(\vec{f} + \nabla \times \vec{u}) \cdot \nabla \rho'$ where $\vec{f}$ is the magnitude of the Coriolis force, $\vec{u}$ the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}.
 	Limitations: Requires a geometry dimension of 3. 
-\item[PrimaryProduction:]Primary production rate of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.  See section \ref{sect:biology_model} for more details.
+\item[PrimaryProduction:]Primary production rate of Phytoplankton. This is calculated by the ocean biology module and will not be calculated unless ocean biology is being simulated.  See section \ref{sec:biology_model} for more details.
 \item[RelativePotentialVorticity:]Relative potential vorticity:  $\nabla \times \vec{u} \cdot \nabla \rho'$, where $\vec{u}$ is the velocity and $\rho '$ the perturbation density as calculated in \option{\ldots/scalar\_field::PertubationDensity}   
 \item[RichardsonNumber:]Returns the Richardson number: $\frac{N^2}{(\ppt[z]{u})^2+(\ppx[z]{v})^2}$ where $N^2 = \frac{g}{\rho_0}\ppt[z]{\rho}$ is the buoyancy frequency, $z$ is the vertical direction, $g$ is the magnitude of gravity $(u,v)$ is the horizontal velocity, $\rho_0$ is the reference density and $\rho '$ the perturbation density. (In 2D $z\rightarrow y$ and $\ppx[z]{v}$ is not included). 
 \item[ScalarAbsoluteDifference:]Absolute Difference between two scalar fields. Both fields and this diagnostic \option{scalar\_field} must be in the same \option{material\_phase}. Assumes both fields are on the same mesh as the AbsoluteDifference field.  
@@ -154,7 +154,6 @@ The available internal \option{vector\_field}  diagnostics are:
  \item[FiniteElementGradient:]Gradient of a scalar field evaluated using the C gradient matrix constructed using finite elements. The field must be in the same \option{material\_phase} as \option{vector\_field::FiniteElementGradient}. 
   \item[FunctionalGradient:]Same as \option{vector\_field::SolidVelocity} but it is on the Particle mesh. It is used to map the velocities coming from an external program like FEMDEM or DEM to the fluid mesh.    
  \item[GalerkinProjection:]Galerkin projection of one field onto another mesh. The field must be in the same \option{material\_phase} as \option{vector\_field::GalerkinProjection}     
- \item[Gradient:]Gradient of a scalar field. The field must be in the same \option{material\_phase} as \option{vector\_field::Gradient}
  \item[InnerElementFullVelocity:]Full velocity in an inner element SGS treatment of momentum.
   Limitations: Requires a geometry dimension of 3. Requires inner element active for momentum. 
  \item[InnerElementFullVorticity:]Vorticity of the full velocity in an inner element SGS treatment of momentum.
@@ -214,7 +213,7 @@ may be defined by a :: delimited ``state\_name\::field\_name'' string.
   \label{fig:diagnostic_algorithm}
 \end{figure}
 
-The available internal \option{scalar\_field} diagnostics are:
+The available internal diagnostics are:
 \begin{description}
 \item[temporalmin:]Writes the (nodewise) minimum scalar value over all previous timesteps.
 \item[temporalmax:]Writes the (nodewise) maximum scalar value over all previous timesteps.
@@ -223,8 +222,9 @@ The available internal \option{scalar\_field} diagnostics are:
 \item[period\_averaged\_scalar:]Calculates the time average of a scalar field over a defined period, e.g. daily.
 \item[time\_averaged\_scalar\_squared:]Calculates the time average of squared scalar fields.
 \item[free\_surface\_history:]Records the history of a free surface field.
-\item[tidal\_harmonics:]Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" (see \ref{sec:ocean_boundaries}) have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on (see \ref{sect:Internal_diagnostic_fields}).  
-\item[div:]Computes the divergence of a field.
+\item[tidal\_harmonics:]Calculates the (tidal) harmonics of the FreeSurface field. Note that "ocean boundaries" (see \ref{sec:ocean_boundaries}) have to be set and the FreeSurface and FreeSurfaceHistory diagnostic field have to be switched on (see \ref{sec:Internal_diagnostic_fields}).  
+\item[div:]Computes the divergence of a vector field.
+\item[grad:]Computes the gradient of a scalar field.
 \item[finite\_element\_divergence:]Computes the divergence of a field, where the divergence operator is defined using the finite element $\mathrm{C}^\mathrm{T}$ matrix.
 \item[curl\_2d:][curl (source field)]\_z. Valid in 2D only.
 \item[scalar\_advection:]Computes $\vec{u}\cdot\nabla(s)$, where $s$ is the source field.
@@ -303,22 +303,22 @@ for i in range(field.node_count):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Offline diagnostics}
-\label{sect:offline_diagnostics}
+\label{sec:offline_diagnostics}
 
 There are three main types of offline diagnostics:
 \begin{itemize}
-\item fltools, section \ref{sect:fltools}: programs written in Fortran that are compiled by running \lstinline[language = XML]+make fltools+ on the command line in the top directory of the \fluidity source tree. The F90 source files can be found in \lstinline[language = XML]+tools+
-\item python scripts, section \ref{sect:diagnostics_useful_scripts}: scripts that can be run from the command line. They are found in \lstinline[language = XML]+scripts+
+\item fltools, section \ref{sec:fltools}: programs written in Fortran that are compiled by running \lstinline[language = bash]+make fltools+ on the command line in the top directory of the \fluidity\ source tree. The binaries are built in \lstinline[language = bash]+bin+. The F90 source files can be found in \lstinline[language = bash]+tools+
+\item python scripts, section \ref{sec:fltools}: run \lstinline[language = bash]+make fltools+ in the top directory of the \fluidity\ source tree and these will be found in the \lstinline[language = bash]+bin+. The source code can be found in \lstinline[language = bash]+tools+.
 \item python modules: modules that can be imported e.g. for use in a test case. They are found in \lstinline[language = XML]+python/fluidity/diagnostics+ and are imported with  \\ \lstinline[language = python]+import python.fluidity.diagnostics.modulename+
 \end{itemize}
 
 \subsection{vtktools}
-\label{sect:diagnostics_vtk_tools}
+\label{sec:diagnostics_vtk_tools}
 
 \lstinline[language = bash]+vtktools.py+ is a set of python tools that allows you to analyse data from a vtu or pvtu. The tools are based on python vtk and the module can be found in \lstinline[language = bash]+python/+ directory of the \fluidity\ trunk. To extract the pressure and velocity fields from a vtu, for example, use
 \begin{lstlisting}[language = Python]
 import sys
-sys.path.append(<<fluidity_source_path>>/python/')
+sys.path.append('fluidity\_source\_path/python/') 
 
 import vtktools
 data = vtktools.vtu('example.vtu')
@@ -338,9 +338,10 @@ This performs the following steps
 A full list of the available tools is given in table \ref{table:vtktools_list}. A summary can also be obtained by typing \lstinline[language=Python]+help(vtktools)+ in an ipython session.  Further examples of use can be found in the online at \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, in the python scripts used for postprocessing of the examples and in the test cases.
  
 \begin{landscape}
-\begin{longtable}{|c | p{0.3\textwidth}| |p{0.75\textwidth}|} \hline
+\begin{longtable}{|c | p{0.3\textwidth} |p{0.75\textwidth}|} 
+\hline
 \centering
-  method & arguments & use \\ \hline
+  method & arguments & use \\ \hline 
 \lstinline[language=Python]+AddField+ & \lstinline[language=Python]+name, array+ & Adds the values in \lstinline[language=Python]+array+ (the entries of which may have an arbitrary number of components) as a field called \lstinline[language=Python]+name+ \\ \hline
 %
 \lstinline[language=Python]+AddFieldtoField+ & \lstinline[language=Python]+fieldname,+ \lstinline[language=Python]+array,+ \lstinline[language=Python]+newFieldName=None+ & Adds the values in \lstinline[language=Python]+array+ to the field \lstinline[language=Python]+fieldname+. If \lstinline[language=Python]+newFieldName+ is specified then a new field with that name is created with the new values, otherwise the original field is replaced. \\ \hline
@@ -353,7 +354,7 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 %
 \lstinline[language=Python]+ApplyEarthProjection+ & & assumes the input geometry is Cartesian and projects to longitude, latitude and depth. It will overwrite the exisiting coordinate values. \\ \hline
 %
-***\lstinline[language=Python]+ApplyProjection+ & \lstinline[language=Python]+projection_x,+ \lstinline[language=Python]+projection_y,+ \lstinline[language=Python]+projection_z+ & Applys a projection to the grid coordinates. It will overwrite the existing values.*** \\ \hline
+\lstinline[language=Python]+ApplyProjection+ & \lstinline[language=Python]+projection_x,+ \lstinline[language=Python]+projection_y,+ \lstinline[language=Python]+projection_z+ & Applys a projection to the grid coordinates. It will overwrite the existing values. \lstinline[language=Python]+projection_x+, \lstinline[language=Python]+projection_y+ and \lstinline[language=Python]+projection_z+ should all be strings that contain the projection to be evaluated, with \lstinline[language=Python]+x+, \lstinline[language=Python]+y+ and \lstinline[language=Python]+z+ for the $x$, $y$ and $z$ coordinates respectively. For example,  \lstinline[language=Python]+projection_x='x+2'+ will translate all the values of $x$ by $2$. \\ \hline
 %
 \lstinline[language=Python]+CellDataToPointData+ & & transforms all cell--wise fields to point--wise fields. All existing fields will remain, \\ \hline
 \lstinline[language=Python]+Crop+ & \lstinline[language=Python]+min_x, max_x,+ \lstinline[language=Python]+min_y, max_y+, \lstinline[language=Python]+min_z, max_z+ & Crops the edges defined by the bounding box given by the arguments \\ \hline
@@ -366,7 +367,7 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 %
 \lstinline[language=Python]+GetCellVolume+ & \lstinline[language=Python]+id+ & Returns the volume of the cell (mesh element) with number \lstinline[language=Python]+id+ \\ \hline
 %
-***\lstinline[language=Python]+GetDerivative+ & \lstinline[language=Python]+name+ & Returns the derivative of the field called \lstinline[language=Python]+name+. Each component of the returned array has form*** The field \lstinline[language=Python]+name+ has to be point--wise data. The returned array gives a cell--wise derivative. (To obtain the point--wise derivative use \lstinline[language=Python]+CellDataToPointData+.)  \\ \hline
+\lstinline[language=Python]+GetDerivative+ & \lstinline[language=Python]+name+ & Returns the derivative of the field called \lstinline[language=Python]+name+. Each component of the returned array has form $ \frac{\partial T}{\partial x}, \frac{\partial T}{\partial y}, \frac{\partial T}{\partial z}$ for a scalar field and $\frac{\partial u}{\partial x}, \frac{\partial v}{\partial x}, \frac{\partial w}{\partial x}, \frac{\partial u}{\partial y}, \frac{\partial v}{\partial y}, \frac{\partial w}{\partial y}, \frac{\partial u}{\partial z}, \frac{\partial v}{\partial z}, \frac{\partial w}{\partial z}$ for a vector field where $T$ is a scalar field, $(u,v,w)$ a vector field and $(x,y,z)$ the spatial coordinate vector field. The field \lstinline[language=Python]+name+ has to be point--wise data. The returned array gives a cell--wise derivative. (To obtain the point--wise derivative add the field to the vtu object and use \lstinline[language=Python]+CellDataToPointData+.)  \\ \hline
 %
 \lstinline[language=Python]+GetDistance+ & \lstinline[language=Python]+x,y+ & Returns the distance in physical space between \lstinline[language=Python]+x+ and \lstinline[language=Python]+y+ \\ \hline
 %
@@ -413,17 +414,35 @@ A full list of the available tools is given in table \ref{table:vtktools_list}. 
 %
 % 
 %
+ &  & \\ \hline
+  functions & arguments & use \\ \hline 
 %
-\caption[Table of vtktools]{Table of tools available in vtktools for extraction and analysis of data in vtu and pvtu files. Each of these tools is a \lstinline[language=Python]+method+ which can be applied to an object created from a vtu or pvtu with \lstinline[language=Python]+data = vtktools.vtu('example.vtu')+. The methods can then be used with \lstinline[language=Python]+data.method(arguments)+. Note only the \lstinline[language=Python]+Write+ method can change the original vtu pr pvtu. See section \ref{sect:diagnostics_vtk_tools}, online at \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, in the postprocessing python scripts in the examples and the test cases for further examples of use. The list can also be obtained in a ipython session with the command \lstinline[language=Python]+help(vtktools)+.}
+\lstinline[language=Python]+VtuDiff+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+filename=None+ & Generates a vtu with fields that are the difference between the field values in the two supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+. Fields that are not common between the two vtus are neglected. If the cell points of the vtus do not match then the fields of \lstinline[language=Python]+vtu2+ are projected onto the cell points of \lstinline[language=Python]+vtu1+. \\ \hline
+%
+\lstinline[language=Python]+VtuMatchLocations+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=+ \lstinline[language=Python]+9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations must be in the same order. \\ \hline
+%
+\lstinline[language=Python]+VtuMatchLocationsArbitrary+ & \lstinline[language=Python]+vtu1,+ \lstinline[language=Python]+vtu2,+ \lstinline[language=Python]+tolerance=+ \lstinline[language=Python]+9.9999999999999995e-07+ & Checks that the locations in the supplied vtus, \lstinline[language=Python]+vtu1+ and \lstinline[language=Python]+vtu2+ match to within the value of \lstinline[language=Python]+tolerance+. The locations may be in a different order. \\ \hline
+\lstinline[language=Python]+arr+ & \lstinline[language=Python]+object,+ \lstinline[language=Python]+dtype=None,+ \lstinline[language=Python]+copy=True,+ \lstinline[language=Python]+order=None,+ \lstinline[language=Python]+subok=False,+ \lstinline[language=Python]+ndim=True+ & Creates an array from \lstinline[language=Python]+object+, where \lstinline[language=Python]+object+ must be an array, any object exposing the array interface, an object whose \lstinline[language=Python]+_array_+ method returns an array, or any (nested) sequence. \\
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+dtype+: data--type, optional. The desired data--type for the array. If not given (the default), then the type will be determined as the minimum type required to hold the objects in the sequence. This argument can only be used to `upcast' the array. For downcasting use the \lstinline[language=Python]+.astype(t)+ method.} \\
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+copy+: bool, optional. If \lstinline[language=Python]+True+ (default), then the object is copied. Otherwise, a copy will only be made if \lstinline[language=Python]+_array_+ returns a copy, if \lstinline[language=Python]+object+ is a nested sequence, or if a copy is needed to satisfy any of the other requirements.} \\
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+order+: \{`\lstinline[language=Python]+C+', `\lstinline[language=Python]+F+', `\lstinline[language=Python]+A+'\}, optional. Specify the order of the array. If order is `\lstinline[language=Python]+C+' (default), then the array will be in `\lstinline[language=Python]+C+'--contiguous order (last--index varies the fastest). If order is `\lstinline[language=Python]+F+' then the returned array will be in Fortran--contiguous order (first--index varies the fastest). If order is `\lstinline[language=Python]+A+', then the returned array may be in any order (either C--, Fortrain--contiguous, or even discontiguous).} \\ 
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+subok+: bool, optional. If \lstinline[language=Python]+True+, then sub--classes will be passed--through, otherwise the returned array will be forced to be a base--class array (default).} \\ 
+& \multicolumn{2}{p{1.05\textwidth}|}{\lstinline[language=Python]+ndim+: int, optional. Specifies the minimum number of dimensions that the resulting array should have. Ones will be pre--prended to the shape as needed to meet this requirement.} \\
+& \multicolumn{2}{p{1.05\textwidth}|}{For examples see the module help information.} \\ \hline
 
+%
+%
+%
+\caption[Table of vtktools]{Table of tools available in vtktools for extraction and analysis of data in vtu and pvtu files. The tools which are methods can be applied to an object created from a vtu or pvtu with \lstinline[language=Python]+data = vtktools.vtu('example.vtu')+. The methods can then be used with \lstinline[language=Python]+data.method(arguments)+. Note only the \lstinline[language=Python]+Write+ method can change the original vtu pr pvtu. The functions are used as usual \lstinline[language=Python]+python+ functions. See section \ref{sec:diagnostics_vtk_tools}, the \href{http://amcg.ese.ic.ac.uk/index.php?title=Cook_Book}{Cook Book}\, the postprocessing python scripts in the examples, the test cases and the source code for the python tools in \lstinline[language = bash]+ tools+ for further examples of use. The list can also be obtained in a ipython session with the command \lstinline[language=Python]+help(vtktools)+.}
+\label{table:vtktools_list}
 \end{longtable}
 \end{landscape}
 
 \subsection{Diagnostic output}
-\label{sect:diagnostic_output}
+\label{sec:diagnostic_output}
 
 \subsection{fltools}
-\label{sect:fltools}
+\label{sec:fltools}
 An extended set of \fluidity\ tools exist that supplement the main
 \fluidity\ program. Table \ref{tab:fltools} lists them and descriptions can
 be found by referring to the relevant section. The tools can be built by
@@ -437,45 +456,50 @@ the \fluidity\ trunk. The programs generated can then be found in the
     \hline
 	Program					& Section 				\\
     \hline
-	checkmesh				& \ref{sect:checkmesh}			\\
-	create\_aligned\_mesh 			& \ref{sect:create_aligned_mesh}	\\
-	create\_climatology\_atlas		& \ref{sect:create_climatology_atlas}	\\
-	create\_param\_sweep			& \ref{sect:create_param_sweep}		\\
-	differentiate\_vtu          		& \ref{sect:differentiate_vtu}		\\
-	edge\_length\_distribution		& \ref{sect:edgelengthdist} 		\\
-	fladapt					& \ref{sect:fladapt}			\\
-	fldecomp				& \ref{sect:fldecomp}			\\
-	fldiagnostics				& \ref{sect:fldiagnostics}		\\
-	flredecomp				& \ref{sect:flredecomp}			\\
-	genpvtu					& \ref{sect:genpvtu}			\\
-	gen\_square\_meshes			& \ref{sect:gen_square_meshes} 		\\
-	gmsh2triangle				& \ref{sect:gmsh2triangle}		\\
-	gmsh\_mesh\_transform			& \ref{sect:gmsh_mesh_transform}	\\
-	interval				& \ref{sect:interval} 			\\
-	linear\_interpolation			& \ref{sect:scripts_linear_interpolation} \\	
-	mean\_flow				& \ref{sect:mean_flow}			\\
-	mms\_tracer\_error			& \ref{sect:mms_tracer_error}		\\
-	nodecount				& \ref{sect:nodecount}			\\
-	periodise				& \ref{sect:periodise}			\\
-	petsc\_readnsolve			& \ref{sect:petsc_readnsolve} 		\\
-	probe\_vtu  				& \ref{sect:probe_vtu} 			\\
-	project\_to\_continuous			& \ref{sect:project_to_continuous} 	\\
-	project\_vtu				& \ref{sect:project_vtu} 		\\
-	pvtu2vtu				& \ref{sect:pvtu2vtu}			\\
-	rename\_checkpoint			& \ref{sect:rename_checkpoint}		\\
-	stat2csv				& \ref{sect:stat2csv}			\\
-	statplot				& \ref{sect:statplot} 			\\
-	streamfunction\_2d			& \ref{sect:streamfunction_2d} 		\\
-	supermesh\_difference			& \ref{sect:supermesh_difference} 	\\
-	transform\_mesh				& \ref{sect:transform_mesh}		\\
-	triangle2vtu				& \ref{sect:triangle2vtu}		\\
-	unifiedmesh				& \ref{sect:unifiedmesh} 		\\	
-	vertical\_integration			& \ref{sect:vertical_integration} 	\\
-	vtkdiagnostic				& \ref{sect:vtkdiagnostic}		\\
-	vtk\_projection				& \ref{sect:vtkprojection}		\\
-	vtudecomp				& \ref{sect:vtudecomp}			\\
-	vtudiff					& \ref{sect:vtudiff}			\\
-	vtu\_bins           			& \ref{sect:vtu_bins}			\\
+	checkmesh				& \ref{sec:checkmesh}			\\
+    clean\_mayavi\_mesh       & \ref{sec:clean_mayavi_mesh} \\
+	create\_aligned\_mesh 			& \ref{sec:create_aligned_mesh}	\\
+	create\_climatology\_atlas		& \ref{sec:create_climatology_atlas}	\\
+	create\_param\_sweep			& \ref{sec:create_param_sweep}		\\
+	differentiate\_vtu          		& \ref{sec:differentiate_vtu}		\\
+	edge\_length\_distribution		& \ref{sec:edgelengthdist} 		\\
+	encode                  		& \ref{sec:encode} 	        	\\
+	fladapt					& \ref{sec:fladapt}			\\
+	fldecomp				& \ref{sec:fldecomp}			\\
+	fldiagnostics				& \ref{sec:fldiagnostics}		\\
+	flredecomp				& \ref{sec:flredecomp}			\\
+	genpvtu					& \ref{sec:genpvtu}			\\
+	gen\_square\_meshes			& \ref{sec:gen_square_meshes} 		\\
+	gmsh2triangle				& \ref{sec:gmsh2triangle}		\\
+	gmsh\_mesh\_transform			& \ref{sec:gmsh_mesh_transform}	\\
+	interval				& \ref{sec:interval} 			\\
+	linear\_interpolation			& \ref{sec:scripts_linear_interpolation} \\	
+	mean\_flow				& \ref{sec:mean_flow}			\\
+	mms\_tracer\_error			& \ref{sec:mms_tracer_error}		\\
+	nodecount				& \ref{sec:nodecount}			\\
+	periodise				& \ref{sec:periodise}			\\
+	petsc\_readnsolve			& \ref{sec:petsc_readnsolve} 		\\
+	probe\_vtu  				& \ref{sec:probe_vtu} 			\\
+	project\_to\_continuous			& \ref{sec:project_to_continuous} 	\\
+	project\_vtu				& \ref{sec:project_vtu} 		\\
+	pvtu2vtu				& \ref{sec:pvtu2vtu}			\\
+	rename\_checkpoint			& \ref{sec:rename_checkpoint}		\\
+	runut           			& \ref{sec:runut}		        \\
+	stat2csv				& \ref{sec:stat2csv}			\\
+	statplot				& \ref{sec:statplot} 			\\
+	streamfunction\_2d			& \ref{sec:streamfunction_2d} 		\\
+	supermesh\_difference			& \ref{sec:supermesh_difference} 	\\
+	transform\_mesh				& \ref{sec:transform_mesh}		\\
+	triangle2vtu				& \ref{sec:triangle2vtu}		\\
+	unifiedmesh				& \ref{sec:unifiedmesh} 		\\
+	update\_options				& \ref{sec:update_options}		\\	
+	vertical\_integration			& \ref{sec:vertical_integration} 	\\
+    visualise\_elements     & \ref{sec:visualise_elements} \\ 
+	vtkdiagnostic				& \ref{sec:vtkdiagnostic}		\\
+	vtk\_projection				& \ref{sec:vtkprojection}		\\
+	vtudecomp				& \ref{sec:vtudecomp}			\\
+	vtudiff					& \ref{sec:vtudiff}			\\
+	vtu\_bins           			& \ref{sec:vtu_bins}			\\
     \hline
   \end{tabular}
 \end{center}
@@ -486,7 +510,7 @@ the \fluidity\ trunk. The programs generated can then be found in the
 %%%%%%%%%%%%%%%%%% CHECKMESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{checkmesh}
-\label{sect:checkmesh}
+\label{sec:checkmesh}
 checkmesh can be used to form a number of verification tests on a mesh in triangle mesh
 format. It is run from the command line:
 \begin{lstlisting}[language = Bash]
@@ -524,10 +548,29 @@ Numbering:
 \caption{checkmesh reporting a mesh tangling error.}
 \end{example}
 
+%%%%%%%%%%%%%%%%%% CLEAN_MAYAVI_MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{clean\_mayavi\_mesh}
+\label{sec:clean_mayavi_mesh}
+
+This program cleans up vector eps mesh images output by Mayavi2. The program
+removes pointy line joins which are unsightly on very anisotropic meshes and
+calculates an accurate bounding box, replacing the incorrect one produced by Mayavi2.
+
+The input file should be an eps file output by the ``save scene as'' 
+``Vector PS/EPS/PDF/TeX'' option in Mayavi2.
+
+\begin{lstlisting}[language = Bash]
+clean_mayavi_mesh [--margin=n] <input_filename> <output_filename>
+\end{lstlisting}
+
+If present, \lstinline[language = Bash]+--margin+\ sets the margin between
+the figure and the bounding box. 
+
 %%%%%%%%%%%%%%%%%% CREATE ALIGNED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{create\_aligned\_mesh}
-\label{sect:create_aligned_mesh}
+\label{sec:create_aligned_mesh}
 
 Creates the triangle files for a mesh that lines up in all directions, so that it can be made it into a singly, doubly or triply periodic mesh. It is run from the command line:
 
@@ -540,7 +583,7 @@ This creates a box that is $\mathrm{Lx} \times \mathrm{Ly} \times \mathrm{Lz}$ w
 %%%%%%%%%%%%%%%%%% CREATE CLIMATOLOGY ATLAS %%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{create\_climatology\_atlas}
-\label{sect:create_climatology_atlas}
+\label{sec:create_climatology_atlas}
 
 This creates a climatology atlas, for use with ICOM, using "High resolution ($1/4 ^\circ$) Temperature and Salinity Analyses of the World's Oceans. Version 2"
 
@@ -552,7 +595,7 @@ To use this just execute it in the directory which contains all the files listed
 
 %%%%%%%%%%%%%%%%%%%%% CREATE_PARAM_SWEEP %%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{create\_param\_sweep}
-\label{sect:create_param_sweep}
+\label{sec:create_param_sweep}
 
 It is sometimes useful to vary certain parameters of your simulation to assess the effect of 
 that parameter on some part of the output. This can be a tedious thing to set up, especially 
@@ -602,12 +645,12 @@ output_dir/
 %%%%%%%%%%%%%%%%%%%%% DIFFERENTIATE_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{differentiate\_vtu}
-\label{sect:differentiate_vtu}
+\label{sec:differentiate_vtu}
 
 differentiate\_vtu takes the gradient of every scalar field and vector field
 component within an vtu. It is primarily intended for cases where the derivatives
 of large numbers of fields are required. differentiate\_vtu is built as part of the fltools
-build target (see section \ref{sect:fltools}), and is used via:
+build target (see section \ref{sec:fltools}), and is used via:
 
 \begin{lstlisting}[language = Bash]
 differentiate_vtu [-v] input_filename output_filename [input_fieldname]
@@ -621,14 +664,14 @@ is differentiated. The \lstinline[language = Bash]+-v+ flag enables verbose outp
 %%%%%%%%%%%%%%%%%% EDGE LENGTH DISTRIBUTION %%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{edge\_length\_distribution}
-\label{sect:edgelengthdist}
+\label{sec:edgelengthdist}
 
 edge\_length\_distribution is a python script that creates histograms of the edge lengths of the elements in the mesh at each time step. It also produces line graphs of the maximum and minimum edge lengths as a function of time. This is useful for analysing adaptive runs to see how the edge lengths compare to a fixed run of the same process.  It is run from the command line:
 \begin{lstlisting}[language = Bash]
 edge_length_distribution [options] vtu_filename
 \end{lstlisting}
 where \lstinline[language = Python]+vtu_filename+ is the input vtu file. The \lstinline[language = Bash]+options+ available are:
-\begin{lstlisting}[language = Python]
+\begin{lstlisting}
 -s START_VTU	The first dump id of files to be included, default = 0
 -e END_VTU	The last dump id of files to be included, if not used
 		all vtus with id >= start_vtu will be included
@@ -646,10 +689,27 @@ where \lstinline[language = Python]+vtu_filename+ is the input vtu file. The \ls
 
 \end{lstlisting}
 
+%%%%%%%%%%%%%%%%%% ENCODE %%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{encode}
+\label{sec:encode}
+Script to encode .avi movies playable on Windows machines. Requires arguments:   
+\begin{lstlisting}
+1st     image file type (e.g. jpg,png,etc...)
+2nd     path to folder containing images, and for movie output.
+3rd     name of movie output file (without the file extension).
+4th     OPTIONAL - enter characters here to limit the image files used 
+        as frames (e.g. 'image1' would only select images 
+        which satisfy 'image1*.jpg').
+\end{lstlisting}
+
+For example, \texttt{encode.sh jpg /data/movie\_files my\_movie image002} will encode a movie called my\_movie using all jpg files from the directory /data/movie\_files/ starting with the characters 'image002'.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%% FLADAPT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{fladapt}
-\label{sect:fladapt}
+\label{sec:fladapt}
 fladapt performs a single mesh adapt based on the input options file (which may be a checkpoint) and outputs the resulting mesh. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
@@ -660,7 +720,7 @@ where \lstinline[language = Bash]+INPUT+ is the name of the input options file a
 %%%%%%%%%%%%%%%%%%%%%%%%% FLDECOMP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{fldecomp}
-\label{sect:fldecomp}
+\label{sec:fldecomp}
 fldecomp is used to decompose a mesh into multiple regions, one per
 process. In order to run fldecomp, if your mesh files have the base name
 \lstinline{foo}\ and you want to decompose into four parts, type:
@@ -694,7 +754,7 @@ This creates a 3D binary Gmsh mesh called \lstinline{project.msh} from the geome
 %%%%%%%%%%%%%%%%%%%%%%%%% FLDIAGNOSTICS %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{fldiagnostics}
-\label{sect:fldiagnostics}
+\label{sec:fldiagnostics}
 fldiagnostics is an offline diagnostic tool. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
@@ -702,7 +762,7 @@ fldiagnostics ACTION [OPTIONS] INPUT OUTPUT [FIRST] [LAST]
 \end{lstlisting}
 
 If \lstinline[language = Bash]+FIRST+ is supplied, treats \lstinline[language = Bash]+INPUT+ and \lstinline[language = Bash]+OUTPUT+ as project names, and processes the specified range of project files. The options are:
-\begin{lstlisting}[language = Bash]
+\begin{lstlisting}
 add[-diag]  Add a diagnostics field. Options:
               -m NAME   Field from which to extract a mesh to use with the
                         diagnostic field (default "Velocity")
@@ -725,14 +785,11 @@ fldiagnostics add -o GridReynoldsNumber -r 0 ...
 %%%%%%%%%%%%%%%%%%%%% FLREDECOMP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{flredecomp}
-\label{sect:flredecomp}
-flredecomp is similar to fldecomp but runs in parallel. 
-It performs a re-decomposition of a Fluidity checkpoint and must be run on
-max(input no. procs, target no. procs) processors.
+\label{sec:flredecomp}
+flredecomp is a parallel tool that performs a re-decomposition of a Fluidity checkpoint.
 It is invoked as follows:
 \begin{lstlisting}[language=bash]
-mpiexec -n [target number of processors] \
-   `\fluiditysourcepath'/bin/flredecomp \
+mpiexec -n [target number of processors] flredecomp \
         -i [input number of processors] \
         -o [target number of processors] [input flml] [output flml]
 \end{lstlisting}
@@ -741,17 +798,18 @@ For example, to decompose the serial file \lstinline+foo.flml+
 into four parts, type:
 
 \begin{lstlisting}[language=bash]
-mpiexec -n 4 `\fluiditysourcepath'/bin/flredecomp \
+mpiexec -n 4 flredecomp \
     -i 1 -o 4 foo foo_flredecomp
 \end{lstlisting}
 
 The output of running flredecomp is a series of mesh and vtu files as well
 as the new flml; in this case \lstinline+foo_flredecomp.flml+.
+Note that flredecomp must be run on a number of processors equal to the larger number of processors between input and output.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% GENPVTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{genpvtu}
-\label{sect:genpvtu}
+\label{sec:genpvtu}
 genpvtu creates a set of pvtus from a base set of vtus. It is run from the command line:
 \begin{lstlisting}[language = Bash]
 genpvtu basename 
@@ -761,7 +819,7 @@ with basename that of the vtu set e.g. $\{$example\_0\_0.vtu, example\_0\_1.vtu,
 %%%%%%%%%%%%%%%%%%%%% GEN SQUARE MESHES %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{gen\_square\_meshes}
-\label{sect:gen_square_meshes}
+\label{sec:gen_square_meshes}
 gen\_square\_meshes will generate triangle files for 2D square meshes. It is run with python from the command line:
 \begin{lstlisting}[language = Bash]
 gen_square_meshes [OPTIONS] NODES MESHES 
@@ -771,9 +829,9 @@ NODES is the number of nodes in the mesh and MESHES is the number of meshes to b
 %%%%%%%%%%%%%%%%%%%%%%%%%% GMSH2TRIANGLE %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{gmsh2triangle}
-\label{sect:gmsh2triangle}
+\label{sec:gmsh2triangle}
 gmsh2triangle converts ASCII Gmsh mesh files into triangle format. Whilst Fluidity
-can read in Gmsh files directly as noted in section \ref{sect:supported_mesh_formats}, 
+can read in Gmsh files directly as noted in section \ref{sec:supported_mesh_formats}, 
 this tool should be used in cases where native Gmsh support does not work.
 It is run from the command line:
 \begin{lstlisting}[language = Bash]
@@ -786,7 +844,7 @@ to process a 2D input .msh file. Otherwise, 3D input is assumed.
 %%%%%%%%%%%%%%%%%%%%%%%%%% GMSH_MESH_TRANSFORM %%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{gmsh\_mesh\_transform}
-\label{sect:gmsh_mesh_transform}
+\label{sec:gmsh_mesh_transform}
 
 gmsh\_mesh\_transform applies a coordinate transformation to a region of a given mesh. It is run from the command line:
 \begin{lstlisting}[language = Bash]
@@ -796,7 +854,7 @@ where \lstinline[language = Bash]+constants+ is an optional list of constant ass
 Note: This script creates a backup of the original mesh file with a '.bak' extension.
 Examples:
 
-To rescale the z-dimension by a factor of 1000.
+To rescale the z-dimension by a factor of 1000:
 \begin{lstlisting}[language = Bash]
 gmsh_mesh_transform '(x,y,1000*z)' mesh.msh
 \end{lstlisting} 
@@ -825,7 +883,7 @@ mesh.msh
 %%%%%%%%%%%%%%%%%%%%%%%%%% INTERVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{interval}
-\label{sect:interval}
+\label{sec:interval}
 
 This is a one-dimensional mesh generator. It is run from the command line:
 \begin{lstlisting}[language = Bash]
@@ -843,7 +901,7 @@ where left and right define the range of the line. It has a number of user defin
 %%%%%%%%%%%%%%%%%%%%%%%%%% LINEAR INTERPOLATION %%%%%%%%%%%%%%%%%%%
 
 \subsubsection{linear\_interpolation}
-\label{sect:scripts_linear_interpolation}
+\label{sec:scripts_linear_interpolation}
 linear\_interpolation linearly interpolates all the fields of a set of vtus on to the mesh of a target vtu. It is run with python from the command line:
 \begin{lstlisting}[language = Bash]
 linear_interpolation TARGET VTU1 VTU2 VTU3 
@@ -853,22 +911,32 @@ TARGET is the name of the mesh that the fields will be interpolated on to. VTU1,
 %%%%%%%%%%%%%%%%%%%%%%%%%% MEAN FLOW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
 \subsubsection{mean\_flow}
-\label{sect:mean_flow}
+\label{sec:mean_flow}
 
 mean\_flow calculates the mean of the fields in a set of vtus. It is run with python from the command line:
 \begin{lstlisting}[language = Bash]
-mean_flow <options> [vtu basename] [first dump id] [last dump id]
+mean_flow [options] vtu_basename first_id last_id
 \end{lstlisting}
-The options include specification of an area of the domain to sample and the number of sampling planes in each direction. The option \lstinline[language = Bash]+-h+ provides further information on how to use these.
+where the range of vtu files is defined by \lstinline[language = python]+vtu_basename first_id last_id+ . 
+The options include specification of an area of the domain to sample and the number of sampling planes in each direction:
+\begin{lstlisting}[language = Bash]
+-b, --bbox xmin/xmax/ymin/ymax/zmin/zmax
+	bounding box of sampling window
+-i, --intervals i/j/k
+	number of sampling planes in each direction
+-v, --verbose
+   	verbose output
+\end{lstlisting}
+The option \lstinline[language = Bash]+-h+ provides further information on how to use these.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% MMS TRACER ERROR %%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{mms\_tracer\_error}
-\label{sect:mms_tracer_error}
+\label{sec:mms_tracer_error}
 
 mms\_tracer\_error evaluates the error between two fields using either an $L_2$ or $L_\infty$ control-volume norm. It is called from a python script e.g.:
 \begin{lstlisting}[language = python]
-import mms\_tracer\_error as error
+import mms_tracer_error as error
 l2_error = error.l2("MMS.vtu", "field1", "field2")
 inf_error = error.inf("MMS.vtu", "field1", "field2")
 \end{lstlisting}
@@ -877,7 +945,7 @@ where \lstinline[language = python]+MMS.vtu+ is the name of the vtu and \lstinli
 %%%%%%%%%%%%%%%%%%%%%%%%%% NODECOUNT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{nodecount}
-\label{sect:nodecount}
+\label{sec:nodecount}
 nodecount will return the number of nodes in a list of vtus. It is run from the command line:
 \begin{lstlisting}[language = Bash]
 nodecount [vtulist]
@@ -887,11 +955,11 @@ If \lstinline[language = Bash]+vtulist+ is not supplied it will run on any vtu i
 %%%%%%%%%%%%%%%%%%%%%%%%%% PERIODISE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{periodise}
-\label{sect:periodise}
+\label{sec:periodise}
 periodise is used to create a periodic mesh. The input to periodise is your flml (in this case
 \lstinline{foo.flml}). This flml file should already contain the mapping for
 the periodic boundary as described in section
-\ref{Sect:periodic}. Periodise is run with the command:
+\ref{sec:periodic}. Periodise is run with the command:
 
 \begin{lstlisting}[language=bash]
 `\fluiditysourcepath'/bin/periodise foo.flml
@@ -912,7 +980,7 @@ mpiexec -n [number of processors] \
 %%%%%%%%%%%%%%%%%% PETSC READNSOLVE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{petsc\_readnsolve}
-\label{sect:petsc_readnsolve} 
+\label{sec:petsc_readnsolve} 
 Whenever in \fluidity\ a linear solve has not completed successfully the equation is dumped out in a file called matrixdump. This file can be used to analyse the behaviour of this solve without having to rerun the model with petsc\_readnsolve. It reads in the matrixdump and tries to solve it with PETSc options set in the flml file. It is advisable to first reproduce the failing solve with the same options as it happened in \fluidity. After that the solver options in the flml file can be changed to see if that fixes the problem. The options under \option{\ldots/solver/diagnostics} are particularly useful to diagnose the problem.  petsc\_readnsolve is run from the command line:
 
 \begin{lstlisting}[language = Bash]
@@ -970,11 +1038,11 @@ petsc\_readnsolve in parallel requires the mesh files of the same mesh as the on
 %%%%%%%%%%%%%%%%%%%%% PROBE_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{probe\_vtu}
-\label{sect:probe_vtu}
+\label{sec:probe_vtu}
 
 Returns the value of a field at a specified coordinate in a vtu file.
 probe\_vtu is built as part of the fltools
-build target (see section \ref{sect:fltools}), and is used via:
+build target (see section \ref{sec:fltools}), and is used via:
 
 \begin{lstlisting}[language = Bash]
 probe_vtu [-v] input_filename field_name x [y z]
@@ -989,7 +1057,7 @@ be evaluated. The \lstinline[language = Bash]+-v+ flag enables verbose output.
 %%%%%%%%%%%%%%%%%% PROJECT TO CONTINUOUS %%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{project\_to\_continuous}
-\label{sect:project_to_continuous}
+\label{sec:project_to_continuous}
 project\_to\_continuous, given a vtu file containing fields on a discontinuous mesh and triangle files for the corresponding continuous mesh, will produce a vtu with its fields projected onto the continuous mesh. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
@@ -1002,7 +1070,7 @@ where \lstinline[language = Bash]+vtufile+ is the name of the discontinuous vtu 
 %%%%%%%%%%%%%%%%%% PROJECT_VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{project\_vtu}
-\label{sect:project_vtu}
+\label{sec:project_vtu}
 project\_vtu performs a Galerkin projection on a given vtu file from a specified donor mesh to a target mesh. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
@@ -1017,7 +1085,7 @@ The flag \lstinline[language = Bash]+-h+ prints out the help message and the fla
 %%%%%%%%%%%%%%%%%%%%%%%%%% PVTU2VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{pvtu2vtu}
-\label{sect:pvtu2vtu}
+\label{sec:pvtu2vtu}
 pvtu2vtu combines pvtus into vtus. It is run from the command line:
 \begin{lstlisting}[language = Bash]
 pvtu2vtu [OPTIONS] PROJECT FIRSTID [LASTID]
@@ -1027,18 +1095,27 @@ with \lstinline[language = Bash]+PROJECT+ the basename of the pvtus and \lstinli
 %%%%%%%%%%%%%%%%%%%%%% RENAME CHECKPOINT %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{rename\_checkpoint}
-\label{sect:rename_checkpoint}
+\label{sec:rename_checkpoint}
 rename\_checkpoint takes a list of vtu files in the working directory produced from a serial checkpointed flml file with names base\_filename\_checkpoint\_i.vtu for all i and renames them as base\_filename\_index+i.vtu. Additionally it may take a list of
 vtu and pvtu files in the current directory produced from a checkpointed parallel flml file with names base\_filename\_checkpoint\_i\_j.vtu and base\_filename\_checkpoint\_i.pvtu for all i (index) and j (processor number) and renames them as base\_filename\_index+i\_j.vtu and base\_filename\_index+i.pvtu. It is run from the command line with:
 \begin{lstlisting}[language = Bash]
-rename_checkpoint [options] <base_filename> <index>
+rename_checkpoint [options] base_filename index
 \end{lstlisting}
 
+%%%%%%%%%%%%%%%%%%%%%% RUNUT %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{runut}
+\label{sec:runut}
+Run a specified unit test with:
+\begin{lstlisting}[language = Bash]
+runut UNIT\_TEST\_NAME
+\end{lstlisting} 
+where \lstinline[language = Bash]+UNIT\_TEST\_NAME+ is the name of the unit test.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%% STAT2CSV %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{stat2csv}
-\label{sect:stat2csv}
+\label{sec:stat2csv}
 stat2csv converts a \fluidity\ stat file into a csv file. It is run from the command line:
 \begin{lstlisting}[language = Bash]
 stat2csv [OPTIONS] PROJECT
@@ -1048,7 +1125,7 @@ with \lstinline[language = Bash]+PROJECT+ the base name of the stat file. The de
 %%%%%%%%%%%%%%%%%%%%%%%%%% STATPLOT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{statplot}
-\label{sect:statplot}
+\label{sec:statplot}
 
 statplot is a graphical program for previewing files in the .stat file format.
 statplot can be launched via:
@@ -1096,7 +1173,7 @@ Additional keyboard commands:
 %%%%%%%%%%%%%%%%%% STREAMFUNCTION 2D %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{streamfunction\_2d}
-\label{sect:streamfunction_2d}
+\label{sec:streamfunction_2d}
 
 streamfunction\_2d solves the Poisson equation for the 2D streamfunction $\Psi$:
 
@@ -1114,7 +1191,7 @@ boundary condition of:
 for all surfaces, and hence is only suitable for problems with a no normal flow boundary
 condition on all surfaces.
 
-streamfunction\_2d is built as part of the fltools build target (see section \ref{sect:fltools}),
+streamfunction\_2d is built as part of the fltools build target (see section \ref{sec:fltools}),
 and is used via:
 
 \begin{lstlisting}[language = Bash]
@@ -1130,11 +1207,11 @@ streamfunction\_2d can only be used in serial.
 %%%%%%%%%%%%%%%%%% SUPERMESH DIFFERENCE %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{supermesh\_difference}
-\label{sect:supermesh_difference}
+\label{sec:supermesh_difference}
 
 The supermesh\_difference tool computes the difference between two vtu
 files using supermesh construction. supermesh\_difference is built as part of
-the fltools build target (see section \ref{sect:fltools}), and is used via:
+the fltools build target (see section \ref{sec:fltools}), and is used via:
 
 \begin{lstlisting}[language = Bash]
 supermesh_difference vtu_1 vtu_2 output_vtu
@@ -1152,22 +1229,22 @@ serial.
 %%%%%%%%%%%%%%%%%%%%%%% TRANSFORM MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{transform\_mesh}
-\label{sect:transform_mesh}
+\label{sec:transform_mesh}
 
-transform\_mesh applies a given coordinate transformation to the given mesh. It is run from the command line:
+transform\_mesh applies a given coordinate transformation to the given mesh in triangle format. It is run from the command line:
 \begin{lstlisting}[language = Bash]
-transform_mesh <transformation> <mesh>
+transform_mesh transformation mesh
 \end{lstlisting}
-with \lstinline[language = Bash]+<mesh>+ the base name of the triangle mesh files. A mesh.node, mesh.face and mesh.ele file are required. \lstinline[language = Bash]+<transformation>+ is a python expression giving the coordinate transformation. For example to rescale the z-dimension by a factor of 1000 run:
+with \lstinline[language = Bash]+mesh+ the base name of the triangle mesh files. A mesh.node, mesh.face and mesh.ele file are required. \lstinline[language = Bash]+transformation+ is a python expression giving the coordinate transformation. For example to rescale the z-dimension by a factor of 1000 run:
 \begin{lstlisting}[language = Bash]
 transform_mesh '(x,y,1000*z)' mesh
 \end{lstlisting}
-It can be used for 2D or 3D meshes.
+It can be used for 2D or 3D meshes. Note that a similar script exists to work with gmsh files (section~\ref{sec:gmsh_mesh_transform}).
 
 %%%%%%%%%%%%%%%%%% TRIANGLE2VTU %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{triangle2vtu}
-\label{sect:triangle2vtu}
+\label{sec:triangle2vtu}
 This converts triangle format files into vtu format. It is run from the command line:
 
 \begin{lstlisting}[language = Bash]
@@ -1179,17 +1256,28 @@ where \lstinline+input+ is the triangle file base name.
 %%%%%%%%%%%%%%%%%% UNIFIED MESH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{unifiedmesh}
-\label{sect:unifiedmesh}
+\label{sec:unifiedmesh}
 unifiedmesh dumps the supermesh constructed from two input meshes (see \citet{farrell2009a,farrell2010a}) to discontinuous triangle mesh files and a vtu file. It is run from the command line:
 \begin{lstlisting}[language = Bash]
 unifiedmesh <triangle-file-1> <triangle-file-2> <output-file-name>
 \end{lstlisting} 
 No file names should have extenstions and both the triangle mesh files and the vtu file will have the name \lstinline[language = Bash]+output-file-name+
 
+%%%%%%%%%%%%%%%%%% UPDATE_OPTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{update\_options}
+\label{sec:update_options}
+update\_options is a developer tool that bulk updates flml, bml, swml and adml files after schema changes. It is run from the command line:
+\begin{lstlisting}[language = Bash]
+update_options [OPTIONS] [FILES]
+\end{lstlisting} 
+where \lstinline+FILES+ is a list of files to be updated. If this argument is not provided all files in tests/*/., tests/*/*/., longtests/*/., longtests/*/*/. and examples/*/. will be updated.
+The flag \lstinline[language = Bash]+-h+ prints out the help message and the flag \lstinline[language = Bash]+-v+ enables verbose output.
+
 %%%%%%%%%%%%%%%%%% VERTICAL INTEGRATION %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vertical\_integration}
-\label{sect:vertical_integration}
+\label{sec:vertical_integration}
 
 The vertical\_integration tool computes the Galerkin projection of the vertical
 integral of some field onto a specified target surface mesh, via supermeshing (see \citet{farrell2009a,farrell2010a})
@@ -1197,7 +1285,7 @@ of the source mesh with a vertical extrusion of the target mesh. This can be use
 compute vertically integrated quantities for arbitrary unstructured meshes (with
 no columnar vertical structure).
 
-vertical\_integration is built as part of the fltools build target (see section \ref{sect:fltools}),
+vertical\_integration is built as part of the fltools build target (see section \ref{sec:fltools}),
 and is used via:
 
 \begin{lstlisting}[language = Bash]
@@ -1224,13 +1312,89 @@ The \lstinline[language = Bash]+-v+ flag enables verbose output.
 
 vertical\_integration can only be used in serial.
 
+%%%%%%%%%%%%%%%%%%%%%% VISUALISE ELEMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{visualise\_elements}
+\label{sec:visualise_elements}
+
+visualise\_elements produces VTK output which approximates the shape
+functions of higher order two dimensional elements which cannot be
+visualised directly by outputting vtu files. This is not useful for
+simulation output but is very useful for producing images of shape functions
+for presentations and publications.
+
+visualise\_elements uses Spud for options handling and is therefore driven
+by an xml input file rather like that used for \fluidity. This uses its own
+schema so the file is edited using:
+\begin{lstlisting}[language=Bash]
+diamond -s `\fluiditysourcepath'/schemas/visualise_elements.rng \
+  <<myfile>>.xml
+\end{lstlisting}
+The program is then invoked with:
+\begin{lstlisting}[language=Bash]
+visualise_elements <<myfile>>.xml
+\end{lstlisting}
+
+There are two modes of operation for visualise\_elements. The first produces an
+illustration of all the basis functions for a given function space on a
+single element. Figure \ref{fig:quadratic_element}\ illustrates this mode of
+usage. The input file used to create this figure is available at
+\fluiditysourcepath\lstinline[language=Bash]+/tools/data/visualise_quadratic.xml+. 
+Table \ref{tab:visualise_elements_mode_1}\ shows the options which are
+relevant to this mode of operation.
+\begin{figure}[htb]
+  \centering
+  \pdffig[width=\textwidth,bb=46 539 550 785,clip=]{visualisation_and_diagnostics_images/quadratic_element}
+  \caption{Visualisation of the six basis functions of the quadratic
+    triangle generated by visualise\_elements.}
+  \label{fig:quadratic_element}
+\end{figure}
+\begin{table}[htb]
+  \centering
+  \begin{tabular}{ll}
+    Option & Meaning \\\hline
+    \option{/project\_name} & Base name for output files.\\
+    \option{/geometry/element\_vertices} & 3 for triangles, 4 for quads.\\
+    \option{/geometry/element\_degree} & Degree of elements to visualise.\\
+    \option{/geometry/quadrature/degree} & Set to at least
+    \option{/geometry/element\_degree}.\\
+    \option{/geometry/visualisation\_degree} & Higher values produce
+    smoother visualisations.\\
+    \option{/geometry/mesh} & Do not enable.\\
+    \option{/material\_phase} & Do not enable.
+  \end{tabular}
+  \caption{Options relevant to the use of visualise\_elements to visualise the basis functions of a given function space.}
+  \label{tab:visualise_elements_mode_1}
+\end{table}
+
+In the second mode of operation, a \option{CoordinateMesh}\ and a
+\option{TracerMesh} are specified. The \option{/materal\_phase}\ option is
+enabled and a prescribed tracer field is set up. In this mode, the output is
+a higher order visualisation of the specified tracer
+field. \fluiditysourcepath\lstinline[language=Bash]+/tools/data/visualise_sin.xml+
+is an input file for this mode of operation which visualises a sin function
+using quadratic elements. In this mode of operation, the
+\option{/geometry/element\_vertices}, \option{/geometry/element\_degree}\ and
+\option{/geometry/element\_family}\ options are ignored in favour of the values
+found in the meshes. \option{/geometry/visualisation\_degree}\ is still
+employed as the degree of the elements used to construct the visualisation.
+
+The output of visualise\_elements is two .vtu files. The one whose name
+commences with the project name from the input file contains the actual
+rendered elements using a large number of visualisation elements per input
+element. The second, with the name commencing ``outline'', contains no
+fields but has the original elements. The most effective visualisation
+mechanism is to load both files into paraview. Set the representation of the
+outline field to ``Wireframe'' and apply the ``Warp By Scalar'' filter to
+the visualisation field.
+
 %%%%%%%%%%%%%%%%%%%%%% VTKDIAGNOSTIC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtkdiagnostic}
-\label{sect:vtkdiagnostic}
+\label{sec:vtkdiagnostic}
 vtkdiagnostic runs diagnostics on a given vtu file. It is run from the command line:
 \begin{lstlisting}[language = Bash]
-./vtkdiagnostic -i example.vtu [OPTIONS]
+vtkdiagnostic -i example.vtu [OPTIONS]
 \end{lstlisting}
 
 The \lstinline[language = Bash]+OPTIONS+ are: \\
@@ -1253,7 +1417,7 @@ General options:
 	Print debugging information
 -o, --offset <scalar name>/<offset value>
 -r, --radial-scaling=scale_factor
-	 Assume shperical earth geometry and scale the radius
+	 Assume spherical Earth geometry and scale the radius
 -h, --help
 	Print this usage information
 \end{lstlisting}
@@ -1273,7 +1437,7 @@ Vorticity integral diagnostic options:
 %%%%%%%%%%%%%%%%%%%%%% VTKPROJECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtk\_projection}
-\label{sect:vtkprojection}
+\label{sec:vtkprojection}
 vtk\_projection projects the co-ordinates of an input vtu to a specified type of output co-ordinates. It is run from the command line:
 \begin{lstlisting}[language = Bash]
 vtk_projection[OPTIONS] -I <in-coordinates> -O <out-coordinates> infile.vtu
@@ -1312,18 +1476,18 @@ The \lstinline[language = Bash]+OPTIONS+ are:
 %%%%%%%%%%%%%%%%%%%%%%%%%  VTUDECOMP %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtudecomp}
-\label{sect:vtudecomp}
+\label{sec:vtudecomp}
 
 vtudecomp decomposes a vtu given a decomposed triangle mesh. It is run from the command line:
 \begin{lstlisting}[language = Bash]
 vtudecomp [OPTIONS] MESH VTU
 \end{lstlisting}
-with \lstinline[language = Bash]+MESH+ the base name of the decomposed triangle mesh and \lstinline[language = Bash]+VTU+ the name of the vtu file to be decomposed. Running with the option \lstinline[language = Bash]+-h+ provides further information on the other options. Note, genpvtu, section \ref{sect:genpvtu} can be used to create a pvtu from the decomposed vtus.
+with \lstinline[language = Bash]+MESH+ the base name of the decomposed triangle mesh and \lstinline[language = Bash]+VTU+ the name of the vtu file to be decomposed. Running with the option \lstinline[language = Bash]+-h+ provides further information on the other options. Note, genpvtu, section \ref{sec:genpvtu} can be used to create a pvtu from the decomposed vtus.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%  VTUDIFF %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtudiff}
-\label{sect:vtudiff}
+\label{sec:vtudiff}
 
 vtudiff generates vtus with fields equal to the difference between the corresponding fields in two input vtus (\lstinline[language = Bash]+INPUT1+ - \lstinline[language = Bash]+INPUT2+). The fields of \lstinline[language = Bash]+INPUT2+ are projected onto the cell points of \lstinline[language = Bash]+INPUT1+. It is run from the command line:
 \begin{lstlisting}[language = Bash]
@@ -1334,11 +1498,11 @@ with \lstinline[language = Bash]+OUTPUT+ the name of the output vtu. If \lstinli
 %%%%%%%%%%%%%%%%%%%%%%%%% VTU_BINS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection{vtu\_bins}
-\label{sect:vtu_bins}
+\label{sec:vtu_bins}
 
 vtu\_bins returns the fraction of the domain contained within given values
 for a given scalar field in a vtu. vtu\_bins is built as part of the fltools
-build target (see section \ref{sect:fltools}), and is used via:
+build target (see section \ref{sec:fltools}), and is used via:
 
 \begin{lstlisting}[language = Bash]
 vtu_bins [-v] input_filename input_fieldname BOUND1 [BOUND2 BOUND3]
@@ -1366,19 +1530,19 @@ $ vtu_bins annulus_1564.vtu Temperature 0.0 1.0
                       -inf -   0.00000000000000000E+000 :  0.23071069007104538E-004
   0.00000000000000000E+000 -   0.10000000000000000E+001 :  0.99951353813554100E+000
   0.10000000000000000E+001 -                        inf :  0.46339079545184387E-003
-  \end{lstlisting}
+  \end{lstlisting}%$
 \caption{Using vtu\_bins to compute the volume of under- and over-shoot errors in
          a DG annulus simulation.}
 \end{example}
 
 
 \section{The stat file}
-\label{sect:diagnostics_stat_file}
+\label{sec:diagnostics_stat_file}
 \index{stat file}
 
-The stat file contains information about the simulation, collected at run time. These diagnostics can be extracted from it using the stat\_parser, section \ref{sect:diagnostic_output} and it can be quickly and easily visualised with statplot, section \ref{sect:statplot}. Note, for parallel runs, unless otherwise stated the values have been calculated in a `parallel-safe' manner.
+The stat file contains information about the simulation, collected at run time. These diagnostics can be extracted from it using the stat\_parser, section \ref{sec:diagnostic_output} and it can be quickly and easily visualised with statplot, section \ref{sec:statplot}. Note, for parallel runs, unless otherwise stated the values have been calculated in a `parallel-safe' manner.
 
-The diagnostics that are recorded in the stat file for each field are selected by the user.  What is included should be considered carefully as including a lot of information can make a notable increase in the simulation run time. To configure the stat file locate the \option{\ldots/stat} element for a generic \option{scalar\_field}, \option{vector\_field} or \option{tensor\_field}, e.g. Figure \ref{fig:diamond_enable_stat}. This contains further elements that will allow the configuration of the stat file as outlined in table \ref{tab:stat_file_diagnostics}. Diagnostics that are more involved and require a longer description are listed in table \ref{tab:stat_file_diagnostics} and documented in section \ref{sect:stat_diagnostics}.
+The diagnostics that are recorded in the stat file for each field are selected by the user.  What is included should be considered carefully as including a lot of information can make a notable increase in the simulation run time. To configure the stat file locate the \option{\ldots/stat} element for a generic \option{scalar\_field}, \option{vector\_field} or \option{tensor\_field}, e.g. Figure \ref{fig:diamond_enable_stat}. This contains further elements that will allow the configuration of the stat file as outlined in table \ref{tab:stat_file_diagnostics}. Diagnostics that are more involved and require a longer description are listed in table \ref{tab:stat_file_diagnostics} and documented in section \ref{sec:stat_diagnostics}.
 
 \begin{figure}[ht]
   \centering
@@ -1512,7 +1676,7 @@ At present the data section of binary .stat files contains only floating point
 data.
 
 \subsection{Reading .stat files in python}
-\label{sect:diagnostics_stat_parser}
+\label{sec:diagnostics_stat_parser}
 
 A .stat file can be read into a dictionary object using the
 \lstinline[language = Python]*fluidity_tools* python module via:
@@ -1548,7 +1712,7 @@ pylab.show()
 
 
 \subsection{Stat file diagnostics}
-\label{sect:stat_diagnostics}
+\label{sec:stat_diagnostics}
 
 \begin{landscape}
 \begin{longtable}{|p{0.2\textwidth}|p{0.18\textwidth}|p{0.10\textwidth}|p{0.4\textwidth}|p{0.35\textwidth}|}
@@ -1595,8 +1759,8 @@ Temperature		& l2norm		& fluid			& \option{\ldots/stat/include\_in\_stat} & \Ltw
 Temperature		& integral		& fluid			& \option{\ldots/stat/include\_in\_stat} & integral of the field over the mesh over the mesh the scalar field is on \\
 Temperature		& cv\_l2norm		& fluid			& \option{\ldots/stat/include\_cv\_stats} & \Ltwo norm of the scalar field over the control volume dual mesh to the mesh the scalar field is on\\
 Temperature		& cv\_integral		& fluid			& \option{\ldots/stat/include\_cv\_stats} & integral of the field over the control volume dual mesh to the mesh the scalar field is on\\
-Temperature		& surface\_integral\% name& fluid		& \option{\ldots/stat/surface\_integral[0]} & section \ref{sect:stat_surface_integral} \\
-Temperature		& mixing\_bins		& fluid			& \option{\ldots/stat/} \option{include\_mixing\_stats[0]} & section \ref{sect:stat_mixing_stats} \\
+Temperature		& surface\_integral\% name& fluid		& \option{\ldots/stat/surface\_integral[0]} & section \ref{sec:stat_surface_integral} \\
+Temperature		& mixing\_bins		& fluid			& \option{\ldots/stat/} \option{include\_mixing\_stats[0]} & section \ref{sec:stat_mixing_stats} \\
 %-----------------------------------------------------------------------------------------------------------------------------------%
 \hline \multicolumn{5}{|p{1.25\textwidth}|}{{\bf Vector field diagnostics} e.g. for \option{/material\_phase::fluid/vector\_field::Velocity/prognostic}. The values of component will range from 1 to number of dimensions. The force, pressure force and viscous force statistics have not been rigorously tested in parallel} \\ \hline
 %-----------------------------------------------------------------------------------------------------------------------------------%
@@ -1607,19 +1771,19 @@ Velocity\%component	& min			& fluid			& \option{\ldots/stat/include\_in\_stat} &
 Velocity\%component	& max			& fluid			& \option{\ldots/stat/include\_in\_stat} & maximum of component 1 of the vector field \\
 Velocity\%component	& l2norm		& fluid			& \option{\ldots/stat/include\_in\_stat} & \Ltwo norm of component 1 of the vector field \\
 Velocity\%component	& integral		& fluid			& \option{\ldots/stat/include\_in\_stat} & integral of component 1 of the vector field over the mesh \\
-Velocity		& surface integral\% name& fluid			& \option{\ldots/stat/surface\_integral[0]} & section \ref{sect:stat_surface_integral} \\
+Velocity		& surface integral\% name& fluid			& \option{\ldots/stat/surface\_integral[0]} & section \ref{sec:stat_surface_integral} \\
 Velocity		& force			& fluid			& \option{\ldots/stat/} \option{compute\_body\_forces\_on\_surfaces} &  this requires a list of surface ids overwhich the total force is calculated???\\
 Velocity		& pressure force	& fluid			& \option{\ldots/stat/} \option{compute\_body\_forces\_on\_surfaces/} \option{output\_terms}& pressure force over the surfaces with ids given in the attribute for \option{\ldots/stat/compute\_body\_forces\_on\_surfaces} ???  \\
 Velocity		& viscous force		& fluid			& \option{\ldots/stat/} \option{compute\_body\_forces\_on\_surfaces/} \option{output\_terms}& outputs the viscous force over the surfaces with ids given in the attribute for \option{\ldots/stat/compute\_body\_forces\_on\_surfaces} ??? \\
 %-----------------------------------------------------------------------------------------------------------------------------------%
 \hline
-\caption[Stat file diagnostics]{Stat file diagnostics  \newline This table contains the `Name' of the diagnostic, `Statistic' and `Material phase name' as they will appear in the stat file, section \ref{sect:diagnostic_output}. `Diamond information' contains the spud path to locate where the option is in Diamond. Finally `Notes' offers information about the diagnostic.}
+\caption[Stat file diagnostics]{Stat file diagnostics  \newline This table contains the `Name' of the diagnostic, `Statistic' and `Material phase name' as they will appear in the stat file, section \ref{sec:diagnostic_output}. `Diamond information' contains the spud path to locate where the option is in Diamond. Finally `Notes' offers information about the diagnostic.}
 \label{tab:stat_file_diagnostics}
 \end{longtable}
 \end{landscape}
 
 \subsubsection{Surface integrals}
-\label{sect:stat_surface_integral}
+\label{sec:stat_surface_integral}
 
 The surface integral diagnostics allow the calculation of surface integrated quantities
 for arbitrary scalar or vector fields. The options can be found for any scalar
@@ -1665,7 +1829,7 @@ normal:
 \textbf{Surface integral options}
 
 The \option{name} attribute must be set for all diagnostic surface integrals. In
-addition to this, surface IDs (see section \ref{sect:surface_ids}) may be specified at
+addition to this, surface IDs (see section \ref{sec:surface_ids}) may be specified at
 \option{\ldots/stat/surface\_integral/surface\_ids}. If specified, the surface
 integral is computed over just these surfaces. If it is disabled the integral is computed
 over the whole surface of the
@@ -1673,7 +1837,7 @@ mesh. If the element \option{\ldots/stat/surface\_integral/normalise} is activat
 the integral is normalised by dividing by the surface area.
 
 \subsubsection{Mixing stats}
-\label{sect:stat_mixing_stats}
+\label{sec:stat_mixing_stats}
 Mixing stats calculates the volume fraction of the scalar field in a set of `bins' the bounds of which are specified by the user. 
 
 The mixing stats can be calculated using the control-volume mesh or for \Poo using the mesh that the scalar field is on. This is specified by setting the choice element under \option{\ldots/stat/include\_mixing\_stats[0]} to either \option{continuous\_galerkin} or \option{control\_volumes}. The bin bounds must also be specified.  The element \option{\ldots/stat/include\_mixing\_stats[0]/mixing\_bin\_bounds} requires a list of floats that are the values of the bin bounds e.g. if the list reads 0.0 1.0 2.0 3.0 4.0 then 5 bins will be returned with ($c$: the scalar field):
@@ -1687,7 +1851,7 @@ The mixing stats can be calculated using the control-volume mesh or for \Poo usi
 The volume fractions can be normalised by the total volume of the domain by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/normalise}. The `tolerance' beneath the bin bounds for which the scalar field should be included can be specified by activating the element \option{\ldots/stat/include\_mixing\_stats[0]/control\_volumes/tolerance} (i.e. $1.0-\mathrm{tolerance} \leq c < 2.0-\mathrm{tolerance}$). If not selected it defaults to machine tolerance epsilon(0.0). For an example of using the mixing stats see the test case in the \fluidity\ trunk \lstinline[language = bash]+.../tests/lock_exchange_2d_cg+ or \lstinline[language = bash]+.../tests/cv_mixing_bin_test_serial/+.
 
 \subsection{Detectors}
-\label{sect:diagnostics_detectors}
+\label{sec:diagnostics_detectors}
 The detectors file contains information about the positions of the detectors which is the same for all time steps in the case of static detectors and change at each time step for the Lagrangian detectors as they are advected by the flow. It also contains information about the values of different flow variables at the positions of the detectors. Both, position and variables information are collected at run time.
 
 The user selects which field variables should be included in the detectors file by setting the corresponding option in Diamond. For example, if interested in the value of Temperature at the different detectors positions and at each time step, the option \option{\ldots/scalar\_field/prognostic/detectors} \option{/include\_in\_detectors} should be set. Only the fields of interest should be included since extra information will make the detectors file very large and more difficult to handle. If many detectors are present and/or information from many flow variables is required, it is recommended to set the \option{/io/detectors/binary\_output} in Diamond, since an ascii file will quickly become very large.
@@ -1697,7 +1861,7 @@ The information of the detectors can be extracted with stat\_parser and it can b
 The position of the detectors and value of the selected variables at those positions is saved into the output file at every time step, starting from the end of the first time step and it is done before the mesh is adapted. 
 
 \subsubsection{File format}
-\label{sect:detectors_output}
+\label{sec:detectors_output}
 Similarly to the .stat file, the detectors file formats are ascii or plain text format and binary format.
 
 In plain text format, the .detectors file contains first an XML header followed by a section with the data. The header is contained within \lstinline[language = XML]*<header>* $\ldots$
@@ -1736,7 +1900,7 @@ In plain text format, the .detectors file contains first an XML header followed 
 
 when having the \option{/io/detectors/binary\_output} option set in Diamond, the header is stored in a plain text file with the .detectors extension and the data is stored in binary in another file with .detectors.dat extension.
 
-In order to read the .detectors files in python, the \lstinline[language = Python]*fluidity_tools* python module described in \ref{sect:diagnostics_stat_parser} should be used.
+In order to read the .detectors files in python, the \lstinline[language = Python]*fluidity_tools* python module described in \ref{sec:diagnostics_stat_parser} should be used.
 
 \begin{lstlisting}[language = Python]
 import fluidity_tools

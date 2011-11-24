@@ -1,0 +1,53 @@
+\chapter*{Fluidity Primer}
+% \pagenumbering{roman} \setcounter{page}{}
+
+Please check the \fluidity\ webpage at
+\href{http://amcg.ese.ic.ac.uk/Fluidity}{http://amcg.ese.ic.ac.uk/Fluidity}
+to ensure you are reading the most recent version of this manual. Methods for
+installing Fluidity may sometimes change, and instructions may be updated!
+
+This is a one-page primer for obtaining \fluidity\ and running a simple example. It assumes that:
+
+\begin{itemize}
+\item You are running Ubuntu Linux, release 10.10 (Maverick) or newer
+\item You have administrative rights on your computer
+\item You know how to run a terminal with a command prompt
+\item You have a directory in which you can create files
+\end{itemize}
+
+Set up your computer to access the Fluidity repository by typing:
+
+\begin{lstlisting}[language=Bash]
+sudo apt-add-repository -y ppa:fluidity-core/ppa
+\end{lstlisting}
+
+Type your password when prompted.
+
+Once this completes, update your system and install \fluidity along with its
+supporting software by typing:
+
+\begin{lstlisting}[language=Bash]
+sudo apt-get update
+sudo apt-get -y install fluidity
+\end{lstlisting}
+
+Now uncompress the packaged examples to a directory in which you can create
+files (in this example, \lstinline[language=Bash]+/tmp+) by typing:
+
+\begin{lstlisting}[language=Bash]
+cd /tmp
+tar -zxvf /usr/share/doc/fluidity/examples.tar.gz
+\end{lstlisting}
+
+Change into an examples directory (top\_hat is suggested as a straightforward
+starter) and run the example:
+
+\begin{lstlisting}[language=Bash]
+cd examples/top_hat/
+make preprocess
+make run
+make postprocess
+\end{lstlisting}
+
+You have now run your first \fluidity model. Chapter \ref{chap:examples}
+describes this and the other examples provided with \fluidity.  

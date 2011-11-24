@@ -2,7 +2,7 @@
 
 <testproblem>
   <name>photosynthetic_radiation</name>
-  <owner userid="jhill1"/>
+  <owner userid="dham"/>
   <tags>flml biology par</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>fluidity  photosynthetic_radiation.flml </command_line>

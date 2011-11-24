@@ -1,5 +1,5 @@
 input: clean
-	../../scripts/create_aligned_mesh box 50 50 -- -50 10 10 10
+	../../bin/create_aligned_mesh box 50 50 -- -50 10 10 10
 	../../bin/fldecomp -n 2 box
 
 clean:

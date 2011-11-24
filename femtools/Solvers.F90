@@ -1840,7 +1840,11 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PCType:: pctype
     PetscReal:: rtol, atol, dtol
     PetscInt:: maxits
+#if PETSC_VERSION_MINOR==2
+    PetscBool:: flag
+#else
     PetscTruth:: flag
+#endif
     PetscErrorCode:: ierr
     
     ewrite(2, *) 'Using solver options from cache:'

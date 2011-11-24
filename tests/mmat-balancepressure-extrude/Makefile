@@ -3,4 +3,4 @@ input: clean
 	../../bin/fldecomp -n 2 line
 
 clean:
-	rm -rf *.d.* *.stat *.vtu *.pvtu *.convergence *.node *.bound *.ele *checkpoint*
+	rm -rf *.halo *.log *.d.* *.stat *.vtu *.pvtu *.convergence *.node *.bound *.ele *checkpoint*

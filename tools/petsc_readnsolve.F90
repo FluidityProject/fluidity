@@ -11,13 +11,6 @@
 !! -prns_filename <file>   reads from specified file instead of 'matrixdump'
 !! -prns_zero_init_guess   no init.guess is read from matrixdump
 !!                          instead the init.guess is zeroed
-!! -prns_read_solution <file>        reads solutions vector from specified
-!!                                    file, so that exact errors can be 
-!!                                    calculated(*).
-!! -prns_write_solution <file>       writes solution vector to specified file
-!!                                    so that it can be used in next runs
-!!                                    of petsc_readnsolve (provided we are
-!!                                    suff. confident in the obtained solution)
 !! -prns_scipy             writes out several files that can be read in scipy.
 !! -prns_random_rhs        randomize rhs of the equation
 !! -prns_verbosity <n>   sets the verbosity level -1..3 (similar to fluidity)
@@ -76,8 +69,12 @@ implicit none
 #include "finclude/petscsys.h"
 #endif
 #endif
+! hack around PetscTruth->PetscBool change in petsc 3.2
+#if PETSC_VERSION_MINOR==2
+#define PetscTruth PetscBool
+#endif
   ! options read from command-line (-prns_... options)
-  character(len=4096) filename, flml, read_solution, write_solution
+  character(len=4096) filename, flml
   character(len=FIELD_NAME_LEN):: field
   logical zero_init_guess, scipy, random_rhs
 
@@ -88,14 +85,39 @@ implicit none
   PetscErrorCode ierr
 
   call petsc_readnsolve_options(filename, flml, field, &
-     zero_init_guess, read_solution, &
-     write_solution, scipy, random_rhs)
+     zero_init_guess, &
+     scipy, random_rhs)
     
   ewrite(1,*) 'Opening: ', trim(filename)
   
   ! read in the matrix equation and init. guess:
   call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, trim(filename), &
      FILE_MODE_READ, viewer, ierr)
+#if PETSC_VERSION_MINOR==2
+  ! in petsc 3.2 MatLoad and VecLoad do no longer create a new vector
+  call MatCreate(MPI_COMM_FEMTOOLS, matrix, ierr)
+  call VecCreate(MPI_COMM_FEMTOOLS, rhs, ierr)
+  if (IsParallel()) then
+    call MatSetType(matrix, MATMPIAIJ, ierr)
+    call VecSetType(rhs, VECMPI, ierr)
+  else
+    call MatSetType(matrix, MATSEQAIJ, ierr)
+    call VecSetType(rhs, VECSEQ, ierr)
+  end if
+  call MatLoad(matrix, viewer, ierr)
+  call VecLoad(rhs, viewer, ierr)
+  if (zero_init_guess) then
+    call VecDuplicate(rhs, x, ierr)
+  else 
+    call VecCreate(MPI_COMM_FEMTOOLS, x, ierr)
+    if (IsParallel()) then
+      call VecSetType(x, VECMPI, ierr)
+    else
+      call VecSetType(x, VECSEQ, ierr)
+    end if
+    call VecLoad(x, viewer, ierr)
+  end if
+#else
   if (IsParallel()) then
     call MatLoad(viewer, MATMPIAIJ, matrix, ierr)
     call VecLoad(viewer, VECMPI, rhs, ierr)
@@ -110,6 +132,7 @@ implicit none
   else
     call VecLoad(viewer, VECSEQ, x, ierr)
   end if
+#endif
   call PetscViewerDestroy(viewer, ierr)
   if (random_rhs) then
     call PetscRandomCreate(PETSC_COMM_WORLD, pr, ierr)
@@ -119,7 +142,7 @@ implicit none
 
   
   if (flml=='') then
-    call petsc_readnsolve_old_style(filename, read_solution, write_solution, &
+    call petsc_readnsolve_old_style(filename, &
       zero_init_guess, scipy, &
       matrix, x, rhs)
   else
@@ -129,14 +152,14 @@ implicit none
     
 contains
 
-  subroutine petsc_readnsolve_old_style(filename, read_solution, write_solution, &
+  subroutine petsc_readnsolve_old_style(filename, &
       zero_init_guess, scipy, &
       matrix, x, rhs)
   !! this is the old way of running petsc_readnsolve, everything
   !! is handled with PETSc calls locally, i.e. nothing from petsc_solve()
   !! in fluidity is used
   ! options read from command line:
-  character(len=*), intent(in):: filename, read_solution, write_solution
+  character(len=*), intent(in):: filename
   logical, intent(in):: zero_init_guess, scipy
   ! PETSc matrix, rhs vector and initial guess vector read from matrixdump:
   Mat, intent(inout):: matrix
@@ -267,32 +290,6 @@ contains
     call VecNorm(y, NORM_INFINITY, real(value, kind = PetscScalar_kind), ierr)
     ewrite(2,*) 'Final residual inf-norm:', value  
 
-    ! write out solution vector if asked:
-    if (write_solution/='') then
-      ewrite(2, *) 'Writing obtained solution to ',trim(write_solution)
-      call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, &
-          write_solution, FILE_MODE_WRITE, &
-          viewer, ierr)
-      call VecView(x, viewer, ierr)
-      call PetscViewerDestroy(viewer, ierr)
-    end if
-    
-    ! read previous solution vector if specified and compare result:
-    if (read_solution/='') then
-      ewrite(2, *) 'Comparing solution with previous from ',trim(write_solution)
-      call PetscViewerBinaryOpen(MPI_COMM_FEMTOOLS, &
-          read_solution, FILE_MODE_READ, &
-          viewer, ierr)
-      call VecLoad(viewer, VECSEQ, y, ierr)
-      call PetscViewerDestroy(viewer, ierr)
-
-      call VecAXPY(y, real(-1.0, kind = PetscScalar_kind), x, ierr)
-      call VecNorm(y, NORM_2, real(value, kind = PetscScalar_kind), ierr)
-      ewrite(2,*) 'Error in 2-norm:', value
-      call VecNorm(y, NORM_INFINITY, real(value, kind = PetscScalar_kind), ierr)
-      ewrite(2,*) 'Error in inf-norm:', value  
-    end if
-    
     ! write matrix and rhs in scipy readable format
     if (scipy) then
       
@@ -752,8 +749,14 @@ contains
     ncomponents=size(petsc_numbering%gnn2unn, 2)
     allocate(unns(1:n*ncomponents))
     unns=reshape( petsc_numbering%gnn2unn(1:n,:), (/ n*ncomponents /))
+#if PETSC_VERSION_MINOR==2
+    ! for petsc 3.2 we have an extra PetscCopyMode argument
+    call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
+       size(unns), unns, PETSC_COPY_VALUES, row_indexset, ierr)
+#else
     call ISCreateGeneral(MPI_COMM_FEMTOOLS, &
        size(unns), unns, row_indexset, ierr)
+#endif
        
     m=petsc_numbering%universal_length ! global length
        
@@ -816,10 +819,9 @@ contains
   end subroutine redistribute_matrix
 
   subroutine petsc_readnsolve_options(filename, flml, field, &
-    zero_init_guess, read_solution, &
-    write_solution, scipy, random_rhs)
+    zero_init_guess, &
+    scipy, random_rhs)
   character(len=*), intent(out):: filename, flml, field
-  character(len=*), intent(out):: read_solution, write_solution
   logical, intent(out):: zero_init_guess, scipy, random_rhs
 
     PetscTruth flag
@@ -840,16 +842,6 @@ contains
       field=''
     end if
     
-    call PetscOptionsGetString('prns_', '-read_solution', read_solution, flag, ierr)
-    if (.not. flag) then
-      read_solution=''
-    end if
-    
-    call PetscOptionsGetString('prns_', '-write_solution', write_solution, flag, ierr)
-    if (.not. flag) then
-      write_solution=''
-    end if
-
     call PetscOptionsHasName('prns_', '-zero_init_guess', zero_init_guess, ierr)
 
     call PetscOptionsHasName('prns_', '-scipy', scipy, ierr)

@@ -6,6 +6,8 @@ module smoothing_module
   use sparse_tools
   use sparsity_patterns
   use solvers
+  use metric_tools
+  use boundary_conditions, only: apply_dirichlet_conditions
   use global_parameters, only : OPTION_PATH_LEN
   implicit none
 
@@ -101,45 +103,42 @@ contains
 
   end subroutine smooth_vector
 
-  subroutine anisotropic_smooth_scalar(field_in,positions,field_out,alpha,path)
+  subroutine anisotropic_smooth_scalar(field_in,positions,velocity,field_out,alpha,path)
 
     !smoothing length tensor
-    real, intent(in)                           :: alpha
+    real, intent(in)                  :: alpha
     !input field
-    type(scalar_field), intent(inout)    :: field_in
-    !coordinates field
-    type(vector_field), intent(in)             :: positions
+    type(scalar_field), intent(inout) :: field_in
+    !coordinates and velocity fields
+    type(vector_field), pointer, intent(in) :: positions, velocity
     !output field, should have same mesh as input field
     type(scalar_field), intent(inout) :: field_out
-    character(len=*), intent(in)               :: path
+    character(len=*), intent(in)      :: path
     
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
-    type(scalar_field) :: RHSFIELD
+    type(scalar_field) :: rhsfield
     integer :: ele
 
-    !allocate smoothing matrix
-    M_sparsity=make_sparsity(field_in%mesh, &
-         & field_in%mesh, name='HelmholtzScalarSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzScalarSmoothingMatrix")   
-    call deallocate(M_sparsity) 
-    call zero(M)
-    
-    !allocate RHSFIELD
+    !allocate smoothing matrix, RHS
+    M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzScalarSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzScalarSmoothingMatrix")
     call allocate(rhsfield, field_in%mesh, "HelmholtzScalarSmoothingRHS")
-    call zero(rhsfield)
+    call zero(M); call zero(rhsfield); call zero(field_out)
 
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
-       call assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
+       call assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, path, alpha, ele)
     end do
 
-    call zero(field_out)
+    ! Boundary conditions
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
+    call apply_dirichlet_conditions(M, rhsfield, field_in)
+
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
-    call deallocate(rhsfield)
-    call deallocate(M)
+    call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
 
   end subroutine anisotropic_smooth_scalar
 
@@ -158,30 +157,29 @@ contains
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
-    type(vector_field) :: RHSFIELD
-    integer :: ele
+    type(vector_field) :: rhsfield
+    integer :: ele, dim
 
     !allocate smoothing matrix
-    M_sparsity=make_sparsity(field_in%mesh, &
-         & field_in%mesh, name='HelmholtzVectorSparsity')
-    call allocate(M, M_sparsity, name="HelmholtzVectorSmoothingMatrix")   
-    call deallocate(M_sparsity) 
-    call zero(M)
-    
-    !allocate RHSFIELD
+    M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzVectorSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzVectorSmoothingMatrix")
     call allocate(rhsfield, field_in%dim, field_in%mesh, "HelmholtzVectorSmoothingRHS")
-    call zero(rhsfield)
+    call zero(M); call zero(rhsfield); call zero(field_out)
 
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
        call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
-
-    call zero(field_out)
+    !ewrite_minmax(field_in)
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
+    
+    do dim=1, field_in%dim
+      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
+    end do
+    !ewrite_minmax(field_in)
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
-    call deallocate(rhsfield)
-    call deallocate(M)
+    call deallocate(rhsfield); call deallocate(M); call deallocate(M_sparsity)
 
   end subroutine anisotropic_smooth_vector
 
@@ -200,7 +198,7 @@ contains
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
-    type(tensor_field) :: RHSFIELD
+    type(tensor_field) :: rhsfield
     integer :: ele
 
     !allocate smoothing matrix
@@ -352,14 +350,14 @@ contains
 
   end subroutine assemble_smooth_vector
 
-  subroutine assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
+  subroutine assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, path, alpha, ele)
     type(csr_matrix), intent(inout) :: M
-    type(scalar_field), intent(inout) :: RHSFIELD
+    type(scalar_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: field_in
+    character(len=*), intent(in) :: path
     real, intent(in) :: alpha
     integer, intent(in) :: ele
-    real :: beta
     real, dimension(ele_ngi(positions,ele))                                      :: field_in_quad
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
@@ -381,21 +379,19 @@ contains
     call transform_to_physical(positions, ele, shape_field_in, dshape&
          &=dshape_field_in, detwei=detwei)
 
-    ! mesh size tensor = gamma * (mesh size)**2
-    ! gamma is a function of mesh shape e.g. hexahedral, unstructured triangular etc.
-    ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
-    ! Factor of 1/24 comes from Geurts & Holm, 2002
-    beta=1.0/24.0
-    mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
+    ! mesh size tensor=(edge lengths)**2
+    ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
+    ! factor 1/24 derives from 2nd moment of filter (see Pope 2000, Geurts&Holm 2002)
+    mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
-    ! Local assembly:
-    field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
-         dshape_field_in, detwei) + shape_shape(shape_field_in&
-         &,shape_field_in, detwei)
-
+    ewrite(2,*) 'dsd: ', dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei)
+    ewrite(2,*) 'srhs: ', shape_shape(shape_field_in,shape_field_in, detwei)
+    ! Local assembly
+    field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei) &
+         & + shape_shape(shape_field_in,shape_field_in, detwei)
     lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
 
-    ! Global assembly:
+    ! Global assembly
     call addto(M, ele_field_in, ele_field_in, field_in_mat)
 
     call addto(rhsfield, ele_field_in, lrhsfield)
@@ -404,13 +400,12 @@ contains
 
   subroutine assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     type(csr_matrix), intent(inout) :: M
-    type(vector_field), intent(inout) :: RHSFIELD
+    type(vector_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(vector_field), intent(in) :: field_in
     real, intent(in) :: alpha
     integer, intent(in) :: ele
-    real :: beta
-
+    integer :: dim
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: field_in_quad
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
@@ -432,12 +427,11 @@ contains
     call transform_to_physical(positions, ele, shape_field_in, dshape&
          &=dshape_field_in, detwei=detwei)
 
-    ! mesh size tensor = gamma * (mesh size)**2
-    ! gamma is a function of mesh shape e.g. hexahedral, unstructured triangular etc.
-    ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
-    ! Factor of 1/24 comes from Geurts & Holm, 2002
-    beta=1.0/24.0
-    mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
+    ! mesh size tensor=(edge lengths)**2
+    ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
+    mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
+
+    ewrite(2,*) 'mesh_tq: ', mesh_tensor_quad
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
@@ -448,20 +442,17 @@ contains
 
     ! Global assembly:
     call addto(M, ele_field_in, ele_field_in, field_in_mat)
-
     call addto(rhsfield, ele_field_in, lrhsfield)
 
   end subroutine assemble_anisotropic_smooth_vector
 
   subroutine assemble_anisotropic_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
     type(csr_matrix), intent(inout) :: M
-    type(tensor_field), intent(inout) :: RHSFIELD
+    type(tensor_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(tensor_field), intent(in) :: field_in
     real, intent(in) :: alpha
     integer, intent(in) :: ele
-    real :: beta
-
     real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele))          :: field_in_quad
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
     real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
@@ -483,14 +474,11 @@ contains
     call transform_to_physical(positions, ele, shape_field_in, dshape&
          &=dshape_field_in, detwei=detwei)
 
-    ! mesh size tensor = gamma * (mesh size)**2
-    ! gamma is a function of mesh geometry
-    ! Helmholtz smoothing factor = alpha * 1/24 * mesh size tensor
-    ! Factor of 1/24 comes from Geurts & Holm, 2002
-    beta=1.0/24.0
-    mesh_tensor_quad = alpha*beta*length_scale_tensor(dshape_field_in, shape_field_in)
+    ! mesh size tensor=(edge lengths)**2
+    ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
+    mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
-    ! Local assembly: (1+alpha^2.M) or (1-alpha^2.M)?
+    ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
          dshape_field_in, detwei) + shape_shape(shape_field_in&
          &,shape_field_in, detwei)
@@ -515,31 +503,35 @@ contains
 
     real, dimension(size(t,1), size(t,2)):: M
     real r
-    integer gi, loc, i
-    integer dim, ngi, nloc, compute_ngi
+    integer gi, loc, i, dim, nloc, compute_ngi
 
     t=0.0
-
     nloc=size(du_t,1)
-    ngi=size(du_t,2)
     dim=size(du_t,3)
 
-    if (shape%degree<=1 .and. shape%numbering%family==FAMILY_SIMPLEX) then
-       compute_ngi=1
+    if (.not.(shape%degree==1 .and. shape%numbering%family==FAMILY_SIMPLEX)) then
+      ! for non-linear compute on all gauss points
+      compute_ngi=shape%ngi
     else
-       compute_ngi=ngi
+      ! for linear: compute only the first and copy the rest
+      compute_ngi=1
     end if
+
+    !ewrite(2,*) 'ngi: ', compute_ngi
 
     do gi=1, compute_ngi
        do loc=1, nloc
           M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
           r=sum( (/ ( M(i,i), i=1, dim) /) )
-          t(:,:,gi)=t(:,:,gi)+M/(r**2)
+          if (.not. r==0.0) then
+             t(:,:,gi)=t(:,:,gi)+M/(r**2)
+          end if
        end do
+       !ewrite(2,*) 't: ', t(:,:,gi)
     end do
 
     ! copy the rest
-    do gi=compute_ngi+1, ngi
+    do gi=compute_ngi+1, shape%ngi
        t(:,:,gi)=t(:,:,1)
     end do
 
