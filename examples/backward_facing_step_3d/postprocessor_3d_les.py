@@ -93,7 +93,7 @@ def reatt_length(filelist, zarray):
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
     print file, ', elapsed time = ', t
-    if(t<200.):
+    if(t<100.):
       continue
     else:
       print "extracting data..."
@@ -123,12 +123,12 @@ def reatt_length(filelist, zarray):
           if((u[i,j] / u[i+1,j]) < 0. and u[i+1,j] > 0. and not numpy.isinf(u[i,j] / u[i+1,j])):
             ##### interpolate between nodes
             p = x2array[i] + (x2array[i+1]-x2array[i]) * (0.0-u[i,j]) / (u[i+1,j]-u[i,j])
-            print 'p: ', p
             ##### Ignore spurious corner points
             if(p>0.1):
               points.append(p)
-            ##### We have our first point on this plane so...
-            break
+              print 'p: ', p
+              ##### We have our first point on this plane so...
+              break
 
       ##### This is the spanwise-averaged reattachment point:
       if (len(points)>0):
@@ -285,9 +285,9 @@ def reynolds_stresses2(filelist,xarray,zarray,yarray):
 def plot_length(Re,type,mesh,reattachment_length):
   ##### Plot time series of reattachment length using pylab(matplotlib)
 
-  #av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
-  #avg = numpy.zeros([len(reattachment_length[:,1])])
-  #avg[:] = av_length
+  av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
+  avg = numpy.zeros([len(reattachment_length[:,1])])
+  avg[:] = av_length
   Lemoinkim = numpy.zeros([len(reattachment_length[:,1])])
   Lemoinkim[:]=6.28
 
@@ -296,9 +296,9 @@ def plot_length(Re,type,mesh,reattachment_length):
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
   pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
-  #pylab.plot(reattachment_length[:,1], avg, linestyle="dashed")
+  pylab.plot(reattachment_length[:,1], avg, linestyle="dashed")
   pylab.plot(reattachment_length[:,1], Lemoinkim, linestyle="dashed")
-  pylab.legend(("length (step heights)","Le-Moin-Kim DNS"), loc="lower right")
+  pylab.legend(("length (step heights)","av. length","Le-Moin-Kim DNS"), loc="best")
   pylab.savefig("../reatt_len_3D_"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
   return
 
@@ -714,7 +714,7 @@ def main():
 
     ##### Points to generate profiles:
     xarray = numpy.array([4.0, 6.0, 10.0, 19.0])
-    zarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
+    zarray = numpy.array([0.2, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.8])
     yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23,0.24,0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5.0])
 
     ##### Call reattachment_length function

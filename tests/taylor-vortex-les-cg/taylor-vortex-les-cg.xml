@@ -4,8 +4,8 @@
   <name>p1p1-cg LES convergence test</name>
   <owner userid="jbull"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="4">
-    <command_line>mpiexec ../../bin/fluidity -l -v2 taylor-green-vortex-3d-48.flml</command_line>
+  <problem_definition length="short" nprocs="1">
+    <command_line>ls</command_line>
   </problem_definition>
   <variables>
     <variable name="tke_dissipation_rate" language="python">
@@ -22,8 +22,22 @@ vort_48 = stat("taylor-green-vortex-3d-48.stat")["Fluid"]["Vorticity%magnitude"]
 time_48 = stat("taylor-green-vortex-3d-48.stat")["ElapsedTime"]["value"]
 vort_les12 = stat("taylor-green-vortex-3d-les-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
 time_les12 = stat("taylor-green-vortex-3d-les-12.stat")["ElapsedTime"]["value"]
+vort_les24 = stat("taylor-green-vortex-3d-les-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
+time_les24 = stat("taylor-green-vortex-3d-les-24.stat")["ElapsedTime"]["value"]
+vort_les48 = stat("taylor-green-vortex-3d-les-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
+time_les48 = stat("taylor-green-vortex-3d-les-48.stat")["ElapsedTime"]["value"]
+vort_dynles12 = stat("taylor-green-vortex-3d-dynles-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
+time_dynles12 = stat("taylor-green-vortex-3d-dynles-12.stat")["ElapsedTime"]["value"]
+vort_dynles24 = stat("taylor-green-vortex-3d-dynles-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
+time_dynles24 = stat("taylor-green-vortex-3d-dynles-24.stat")["ElapsedTime"]["value"]
+vort_dynlesa24 = stat("taylor-green-vortex-3d-dynles-aniso-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
+time_dynlesa24 = stat("taylor-green-vortex-3d-dynles-aniso-24.stat")["ElapsedTime"]["value"]
+vort_dynles48 = stat("taylor-green-vortex-3d-dynles-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
+time_dynles48 = stat("taylor-green-vortex-3d-dynles-48.stat")["ElapsedTime"]["value"]
+vort_dynlesa48 = stat("taylor-green-vortex-3d-dynles-aniso-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
+time_dynlesa48 = stat("taylor-green-vortex-3d-dynles-aniso-48.stat")["ElapsedTime"]["value"]
 
-vplot(vort_12,time_12,vort_24,time_24,vort_48,time_48,vort_les12,time_les12)
+vplot(vort_12,time_12,vort_24,time_24,vort_48,time_48,vort_les12,time_les12,vort_les24,time_les24,vort_les48,time_les48,vort_dynles12,time_dynles12,vort_dynles24,time_dynles24,vort_dynlesa24,time_dynlesa24,vort_dynles48,time_dynles48,vort_dynlesa48,time_dynlesa48)
 
 tke_dissipation_rate = 1.0
     </variable>

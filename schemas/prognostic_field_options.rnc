@@ -586,11 +586,29 @@ prognostic_velocity_field =
                      element enable_lilly {
                         empty
                      }?,
+                     ## Use Bentham's anisotropic SGS model,
+                     ## a variation on Smagorinsky that is related to mesh anisotropy.
+                     ##
+                     element anisotropic_viscosity {
+                        empty
+                     }?,
                      ## Allow negative eddy viscosity (backscatter).
                      ## WARNING: this may result in the simulation blowing up.
                      ## 
                      element enable_backscatter {
                         empty
+                     }?,
+                     ## Spatially varying Smagorinsky coefficient
+                     element scalar_field {
+                        attribute name { "SmagorinskyCoefficient" },
+                        attribute rank { "1" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field
+                           }
+                        )
                      }?,
                      ## Filtered velocity (diagnostic). This is the Velocity field filtered
                      ## with the test filter - see manual.

@@ -1,6 +1,6 @@
 BIN=../../../bin
 RE=5100
-JOB=keps-high-periodic
+JOB=dynles-lilly-iso-periodic
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
 	@$(foreach NN,coarse , \
@@ -48,7 +48,7 @@ run:
 
 run-periodic:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,med , \
+	@$(foreach NN,coarse , \
 		echo Running $(NN) case; \
 		cd $(RE)-$(JOB)-$(NN); \
 		echo **********Running simulation $(RE)-$(JOB)-$(NN); \
@@ -58,7 +58,7 @@ run-periodic:
 
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
-	@$(foreach NN, med, \
+	@$(foreach NN, coarse, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d.py .; \
 		./postprocessor_3d.py $(RE) $(JOB) $(NN); \
@@ -67,7 +67,7 @@ postprocess:
 
 postprocess-les:
 	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach NN, med, \
+	@$(foreach NN, coarse, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d_les.py .; \
 		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \

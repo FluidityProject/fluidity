@@ -84,7 +84,7 @@ module populate_state_module
   !! A list of locations in which additional scalar/vector/tensor fields
   !! are to be found. It is assumed that all additional fields are
   !! in state 1.
-  character(len=OPTION_PATH_LEN), dimension(11) :: field_locations=&
+  character(len=OPTION_PATH_LEN), dimension(13) :: field_locations=&
        (/ &
        "/ocean_biology/pznd                                                                                                   ", &
        "/ocean_biology/six_component                                                                                          ", &
@@ -96,7 +96,9 @@ module populate_state_module
        "/ocean_forcing/bulk_formulae/output_fluxes_diagnostics                                                                ", &
        "/porous_media                                                                                                         ", &
        "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/dynamic_les ", &
-       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order" &
+       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/second_order", &
+       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/fourth_order", &
+       "/material_phase[0]/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/les_model/WALE        " &
        /)
 
   !! Relative paths under a field that are searched for grandchildren

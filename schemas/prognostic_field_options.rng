@@ -689,11 +689,35 @@ default/recommended value: 2.0</a:documentation>
                     </element>
                   </optional>
                   <optional>
+                    <element name="anisotropic_viscosity">
+                      <a:documentation>Use Bentham's anisotropic SGS model,
+a variation on Smagorinsky that is related to mesh anisotropy.
+</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="enable_backscatter">
                       <a:documentation>Allow negative eddy viscosity (backscatter).
 WARNING: this may result in the simulation blowing up.
 </a:documentation>
                       <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Spatially varying Smagorinsky coefficient</a:documentation>
+                      <attribute name="name">
+                        <value>SmagorinskyCoefficient</value>
+                      </attribute>
+                      <attribute name="rank">
+                        <value>1</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
                     </element>
                   </optional>
                   <optional>

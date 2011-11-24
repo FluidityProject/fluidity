@@ -390,7 +390,7 @@ contains
     do i = 1, option_count("/geometry/mesh")
       if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
         call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename, stat)
-        ewrite(2,*) "mesh from file: ", filename
+        ewrite(2,*) "mesh from file: ", trim(filename)
       end if
     end do
     if (stat /= 0) return
@@ -423,7 +423,7 @@ contains
     do i = 1, option_count("/geometry/mesh")
       if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
         call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename , stat)
-        ewrite(2,*) "mesh from file: ", filename
+        ewrite(2,*) "mesh from file: ", trim(filename)
       end if
     end do
     if (stat /= 0) return
@@ -456,7 +456,7 @@ contains
     do i = 1, option_count("/geometry/mesh")
       if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
         call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename, stat)
-        ewrite(2,*) "mesh from file: ", filename
+        ewrite(2,*) "mesh from file: ", trim(filename)
       end if
     end do
     if (stat /= 0) return

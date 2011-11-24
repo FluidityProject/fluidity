@@ -60,7 +60,7 @@
       <real_value rank="0">0.2</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">10</real_value>
+      <real_value rank="0">20</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
@@ -228,7 +228,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">0.0001</real_value>
+                  <real_value rank="0">0.0</real_value>
                 </constant>
               </isotropic>
             </value>
