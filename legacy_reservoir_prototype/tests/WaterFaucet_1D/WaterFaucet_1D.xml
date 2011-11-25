@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>water_faucet</name>
+  <owner userid="blindley"/>
+  <problem_definition length="special" nprocs="1">
+    <command_line>../../bin/multiphase_prototype -v2 -l WaterFaucet_1D.mpml</command_line>
+  </problem_definition>
+</testproblem>
