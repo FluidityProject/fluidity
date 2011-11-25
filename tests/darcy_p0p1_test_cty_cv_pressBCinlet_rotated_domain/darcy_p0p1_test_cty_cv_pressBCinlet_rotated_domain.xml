@@ -2,24 +2,24 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>darcy_p0p1cv_pressBCinlet_rotated_domain</name>
+  <name>darcy_p0p1_test_cty_cv_pressBCinlet_rotated_domain</name>
   <owner userid="btollit"/>
   <tags>flml darcy</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>
-../../bin/fluidity darcy_p0p1cv_pressBCinlet_rotated_domain_2d.flml 
+../../bin/fluidity darcy_p0p1_test_cty_cv_pressBCinlet_rotated_domain_2d.flml 
     </command_line>
-    <!-- Two dimensional problem (actually 1d done in 2d) for darcy flow with one region and one material using p0p1cv element type testing the pressure gradient against analytic and the interstitial velocity. This tests using a diagnostic velocity absorption field associated with a mesh and momentum dg for darcy flow. This will use a rotated gmsh domain to test applying the weak pressure BC at a non cartesian aligned axis.-->
+    <!-- Two dimensional problem (actually 1d done in 2d) for darcy flow with one region and one material using p0p1_test_cty_cv element type testing the pressure gradient against analytic and the interstitial velocity. This tests using a diagnostic velocity absorption field associated with a mesh and momentum dg for darcy flow. This will use a rotated gmsh domain to test applying the weak pressure BC at a non cartesian aligned axis.-->
   </problem_definition>
   <variables>
     <variable name="pressure_2d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_p0p1cv_pressBCinlet_rotated_domain_2d_1.vtu")
+v = vtktools.vtu("darcy_p0p1_test_cty_cv_pressBCinlet_rotated_domain_2d_1.vtu")
 pressure_2d = v.GetScalarRange("Pressure")
     </variable>
     <variable name="inter_vel_2d" language="python">
 import vtktools
-v = vtktools.vtu("darcy_p0p1cv_pressBCinlet_rotated_domain_2d_1.vtu")
+v = vtktools.vtu("darcy_p0p1_test_cty_cv_pressBCinlet_rotated_domain_2d_1.vtu")
 inter_vel_2d = max(v.GetScalarRange("interstitial_velocity"))
     </variable>
   </variables>
