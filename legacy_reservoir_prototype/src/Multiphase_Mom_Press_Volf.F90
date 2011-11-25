@@ -120,9 +120,9 @@ contains
        mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
        mx_ncolm, ncolm, findm, colm, midm, & ! CV-FEM matrix
        have_temperature_fields, cv_one, nits_flux_lim_t, t_use_theta_flux, t_get_theta_flux )
-       
+
     implicit none
-    
+
     type(state_type), dimension(:), intent( inout ) :: state
 
     integer, intent( in ) :: nphase, ncomp, totele, ndim, &
@@ -135,7 +135,7 @@ contains
          ndpset 
     real :: dt, current_time
     integer :: dump_no
-    
+
     ! The following need to be changed later in the other subrts as it should be controlled by the 
     ! input files
     real, intent( inout ) :: v_beta, v_theta
@@ -242,11 +242,11 @@ contains
     integer, dimension( mx_ncolm ), intent (in ) :: colm
     ! integer, dimension( ncolm ), intent (in ) :: colm
     integer, dimension( cv_nonods ), intent (in ) :: midm
-    
+
     logical, intent(in) :: have_temperature_fields
     real, dimension( cv_nonods * nphase ), intent( inout ) :: cv_one
     integer, intent(in) :: nits_flux_lim_t
-    
+
     ! Local variables
     real :: acctim ! Accumulated time
     integer :: itime, iphase, jphase, its, its2, icomp, ncomp2
@@ -273,7 +273,7 @@ contains
     integer :: scvngi_theta, cv_ngi, cv_ngi_short, sbcvngi, nface, cv_nodi, IPLIKE_GRAD_SOU
 
     real, dimension( : ), allocatable :: T_FEMT
-        
+
     real :: finish_time
     integer :: dump_period_in_timesteps
     integer :: final_timestep
@@ -328,37 +328,37 @@ contains
     call get_option("/io/dump_period_in_timesteps/constant", dump_period_in_timesteps, default=1)
 
     nstates = option_count("/material_phase")
-    
+
     itime = 0
-    
+
     Loop_Time: DO 
-       
+
        itime = itime + 1
-       
+
        ACCTIM = ACCTIM + DT
-       
+
        if ( ACCTIM > finish_time ) then 
-          
+
           ewrite(1, *) "Passed final time"
-          
+
           exit Loop_Time
-       
-       end if 
-       
+
+       end if
+
        call get_option("/timestepping/final_timestep", final_timestep, stat)
-       
+
        if(stat == SPUD_NO_ERROR) then
-       
+
           if(itime > final_timestep) then
 
              ewrite(1, *) "Passed final timestep"
-             
+
              exit Loop_Time
-             
+
           end if
-          
-       end if              
-              
+
+       end if
+
        UOLD = U
        NU = U
        NUOLD = U
@@ -375,60 +375,60 @@ contains
 
        ! Non linear its:
        Loop_ITS: DO ITS = 1, NITS
-          
+
           ! solve temperature fields if found in input and prognostic
           solve_temp: if (have_temperature_fields .and. &
-                          have_option('/material_phase[0]/scalar_field::Temperature/prognostic')) then
-             
+               have_option('/material_phase[0]/scalar_field::Temperature/prognostic')) then
+
              call INTENERGE_ASSEM_SOLVE(  &
-               NCOLACV, FINACV, COLACV, MIDACV, & 
-               NCOLCT, FINDCT, COLCT, &
-               CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
-               U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
-               NPHASE,  &
-               CV_NLOC, U_NLOC, X_NLOC,  &
-               CV_NDGLN, X_NDGLN, U_NDGLN, &
-               CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
-               X, Y, Z, &
-               NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG, &
-               T, TOLD, &
-               CV_ONE, CV_ONE,  &
-               MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-               T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
-               SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
-               SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
-               WIC_T_BC, WIC_D_BC, WIC_U_BC, &
-               DERIV, P, &
-               T_SOURCE, T_ABSORB, VOLFRA_PORE, &
-               NDIM,  &
-               NCOLM, FINDM, COLM, MIDM, &
-               XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
-               OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, T_FEMT, CV_ONE, &
-               IGOT_T2,T,TOLD, IGOT_THETA_FLUX, SCVNGI_THETA, T_GET_THETA_FLUX, T_USE_THETA_FLUX, &
-               T, T, T, &
-               SUF_T_BC, SUF_T_BC_ROB1, SUF_T_BC_ROB2, WIC_T_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
-               NOIT_DIM, &
-               nits_flux_lim_t, &
-               MEAN_PORE_CV, &
-               option_path = '/material_phase[0]/scalar_field::Temperature' )
-               
-               if (SIG_INT) exit Loop_ITS
-                  
+                  NCOLACV, FINACV, COLACV, MIDACV, & 
+                  NCOLCT, FINDCT, COLCT, &
+                  CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
+                  U_ELE_TYPE, CV_ELE_TYPE, CV_SELE_TYPE,  &
+                  NPHASE,  &
+                  CV_NLOC, U_NLOC, X_NLOC,  &
+                  CV_NDGLN, X_NDGLN, U_NDGLN, &
+                  CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+                  X, Y, Z, &
+                  NU, NV, NW, NUOLD, NVOLD, NWOLD, UG, VG, WG, &
+                  T, TOLD, &
+                  CV_ONE, CV_ONE,  &
+                  MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
+                  T_DISOPT, T_DG_VEL_INT_OPT, DT, T_THETA, T_BETA, &
+                  SUF_T_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
+                  SUF_T_BC_ROB1, SUF_T_BC_ROB2,  &
+                  WIC_T_BC, WIC_D_BC, WIC_U_BC, &
+                  DERIV, P, &
+                  T_SOURCE, T_ABSORB, VOLFRA_PORE, &
+                  NDIM,  &
+                  NCOLM, FINDM, COLM, MIDM, &
+                  XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, LUMP_EQNS, &
+                  OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, T_FEMT, CV_ONE, &
+                  IGOT_T2,T,TOLD, IGOT_THETA_FLUX, SCVNGI_THETA, T_GET_THETA_FLUX, T_USE_THETA_FLUX, &
+                  T, T, T, &
+                  SUF_T_BC, SUF_T_BC_ROB1, SUF_T_BC_ROB2, WIC_T_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
+                  NOIT_DIM, &
+                  nits_flux_lim_t, &
+                  MEAN_PORE_CV, &
+                  option_path = '/material_phase[0]/scalar_field::Temperature' )
+
+             if (SIG_INT) exit Loop_ITS
+
           end if solve_temp
-          
+
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                T, CV_P )
-          
+
           if (SIG_INT) exit Loop_ITS
-          
+
           ! Calculate absorption for momentum eqns    
           CALL calculate_absorption( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
                CV_NDGLN, MAT_NDGLN, &
                U_ABSORB, PERM, MOBILITY, &
                OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS )
-          
+
           if (SIG_INT) exit Loop_ITS
-          
+
           IF( have_option("/material_phase[0]/multiphase_properties/capillary_pressure") ) THEN
              CALL calculate_capillary_pressure( state, CV_NONODS, NPHASE, PLIKE_GRAD_SOU_GRAD, SATURA )
           ENDIF
@@ -439,7 +439,7 @@ contains
 
           ewrite(3,*)'satura:',satura
           ewrite(3,*)'saturaold:',saturaold
-          
+
           ! A hard wired option :(
           IF( NCOMP <= 1 ) THEN
              VOLFRA_USE_THETA_FLUX = .false.
@@ -447,6 +447,11 @@ contains
              VOLFRA_USE_THETA_FLUX = .true.
           END IF
 
+          ! If it is an inertia-dominated problem then
+          if( .not. have_option( "/material_phase[0]/multiphase_properties/relperm_type" ) ) then
+             uden = den
+             udenold = udenold
+          end if
 
           CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
                NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -485,12 +490,12 @@ contains
                IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD ) 
 
           if (SIG_INT) exit Loop_ITS
-          
+
           CALL calculate_multiphase_density( state, CV_NONODS, CV_PHA_NONODS, DEN, DERIV, &
                T, CV_P )
-          
+
           if (SIG_INT) exit Loop_ITS
-          
+
           NU = U
           NV = V
           NW = W
@@ -529,7 +534,7 @@ contains
                option_path = '/material_phase[0]/scalar_field::PhaseVolumeFraction')
 
           if (SIG_INT) exit Loop_ITS
-          
+
           SUM_THETA_FLUX = 0.0
           SUM_ONE_M_THETA_FLUX = 0.0
           V_SOURCE_COMP = 0.0
@@ -553,7 +558,7 @@ contains
                   TOTELE, CV_NLOC, CV_NDGLN )
 
              IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
-                             "]/is_multiphase_component/KComp_Sigmoid" )) THEN
+                  "]/is_multiphase_component/KComp_Sigmoid" )) THEN
                 DO CV_NODI = 1, CV_NONODS
                    IF( SATURAOLD( CV_NODI ) > 0.95 ) THEN
                       COMP_ABSORB( CV_NODI, 1, 2 ) = COMP_ABSORB( CV_NODI, 1, 2 ) * &
@@ -632,22 +637,22 @@ contains
                    END DO
                 END DO
              END DO
-             
+
              if (SIG_INT) exit Loop_COMPONENTS
 
           END DO Loop_COMPONENTS
 
           IF( have_option("/material_phase[" // int2str(nstates-ncomp) // &
-           "]/is_multiphase_component/Comp_Sum2One") .AND. ( NCOMP2 > 1 ) ) THEN
+               "]/is_multiphase_component/Comp_Sum2One") .AND. ( NCOMP2 > 1 ) ) THEN
              ! make sure the composition sums to 1.0 by putting constraint into V_SOURCE_COMP.
              CALL CAL_COMP_SUM2ONE_SOU( V_SOURCE_COMP, CV_NONODS, NPHASE, NCOMP2, DT, ITS, NITS,  &  
                   MEAN_PORE_CV, SATURA, SATURAOLD, DEN, DENOLD, COMP, COMPOLD ) 
           ENDIF
 
           ewrite(3,*)'Finished VOLFRA_ASSEM_SOLVE ITS,nits,ITIME:',ITS,nits,ITIME
-          
+
           if (SIG_INT) exit Loop_ITS
-          
+
        END DO Loop_ITS
 
        call set_option("/timestepping/current_time", ACCTIM)
@@ -680,7 +685,7 @@ contains
              close(output_channel)
 
           end do Phase_output_loop
-          
+
           ! Output the component fields
           Loop_Comp_Print: do icomp = 1, ncomp
 
@@ -752,49 +757,49 @@ contains
              close( output_channel )  
 
           end do Loop_Comp_Print2
-          
+
           ! Copy back to state
           call copy_into_state(state, &
-                               satura, &
-                               Sat_FEMT, &
-                               t, &
-                               T_FEMT, &
-                               p, &
-                               u, &
-                               v, &
-                               w, &
-                               velocity_dg, &
-                               den, &
-                               Den_FEMT, &
-                               comp, &
-                               Comp_FEMT, &
-                               ncomp, &
-                               nphase, &
-                               cv_ndgln, &
-                               p_ndgln, &
-                               u_ndgln, &
-                               ndim)
+               satura, &
+               Sat_FEMT, &
+               t, &
+               T_FEMT, &
+               p, &
+               u, &
+               v, &
+               w, &
+               velocity_dg, &
+               den, &
+               Den_FEMT, &
+               comp, &
+               Comp_FEMT, &
+               ncomp, &
+               nphase, &
+               cv_ndgln, &
+               p_ndgln, &
+               u_ndgln, &
+               ndim)
 
           ! find the current time - that reached by the prototype
           call get_option("/timestepping/current_time", current_time)
-       
+
           ! calc diagnostic fields 
           call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
           call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
-       
+
           ! Call the modern and significantly less satanic version of study
           call write_diagnostics(state, current_time, dt, itime)
-          
+
           ! Make the vtu dump number dump_no the same as the prototype output number
           dump_no = itime
-          
+
           ! Write state out to vtu
           call write_state(dump_no, state)
-       
+
        end if Conditional_TIMDUMP
-       
+
        if (SIG_INT) exit Loop_Time
-       
+
     END DO Loop_Time
 
     ewrite(3,*) 'Leaving solve_multiphase_mom_press_volf'
