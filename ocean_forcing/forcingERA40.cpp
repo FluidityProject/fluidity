@@ -28,8 +28,10 @@
 #include "confdefs.h"
 #include "BulkForcing.h"
 #include "FluxesReader.h"
+#include "spud"
 
 using namespace std;
+using namespace Spud;
 
 extern int projections(int nPoints, double *x, double *y, double *z, string current_coord, string output_coord);
 
@@ -43,8 +45,10 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     const double air_density = 1.22, 
                q1 = 0.98*640380, 
                q2 = -5107.4,
-               kelvin_centrigrade = 273.15,
-               accumulated_correction = 6.0*60.0*60.0; // Assumes data every 6 hours.
+               kelvin_centrigrade = 273.15;
+    
+    // Set up for ERA40 data. Options to change rate are set below
+    double accumulated_correction = 6.0*60.0*60.0; // Assumes data every 6 hours.
 
     // problem constants
     const int nFields = 9;
@@ -65,6 +69,11 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     double *SST = new double[NNodes];
 
     FluxesReader_global.SetTimeSeconds(*time);
+
+    if(have_option("/ocean_forcing/bulk_formulae/input_file_type/type::ERA40/no_accumulation")) {
+        cout<<"Found flag"<<endl;
+        accumulated_correction = 1;
+    }
     
     // convert from Cart to long-lat
     double *x = new double[NNodes];
@@ -189,10 +198,11 @@ void get_era40_fluxes_fc(double *time, const double *X, const double *Y, const d
     delete [] runoff;
     delete [] ppt;
     delete [] SST;
+    delete [] speed;
+    delete [] qs;
     delete [] x;
     delete [] y;
     delete [] z;
-
 
 }
 

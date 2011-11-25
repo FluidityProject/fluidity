@@ -9,14 +9,17 @@ use FLDebug
 use spud
 use futils
 use parallel_tools
+#include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
+#if PETSC_VERSION_MINOR==0
   use petscvec
   use petscmat
   use petscksp
   use petscpc
   use petscis
   use petscmg
+#endif
 #endif
 implicit none
 #ifdef HAVE_PETSC_MODULES
@@ -36,6 +39,9 @@ implicit none
 #include "finclude/petscpc.h"
 #include "finclude/petscsys.h"
 #endif
+#endif
+#if PETSC_VERSION_MINOR==2
+#define KSP_NORM_NO KSP_NORM_NONE
 #endif
 
 !! Some parameters that change the behaviour of 
@@ -704,7 +710,11 @@ PetscReal, intent(out):: epsilon, epsilon_decay, omega
 integer, intent(out):: maxlevels, coarsesize
 integer, intent(out):: nosmd, nosmu, clustersize
 
+#if PETSC_VERSION_MINOR==2
+  PetscBool flag
+#else
   PetscTruth flag
+#endif
   PetscErrorCode ierr
 
     call PetscOptionsGetReal('', '-mymg_epsilon', epsilon, flag, ierr)
@@ -801,7 +811,11 @@ integer, optional, dimension(:), intent(out):: cluster
   
   !
   call VecCopy(diag, sqrt_diag, ierr)
+#if PETSC_VERSION_MINOR==2
+  call VecSqrtAbs(sqrt_diag, ierr)
+#else
   call VecSqrt(sqrt_diag, ierr)
+#endif
   !
   call VecDuplicate(sqrt_diag, inv_sqrt_diag, ierr)
   call VecCopy(sqrt_diag, inv_sqrt_diag, ierr)

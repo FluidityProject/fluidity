@@ -17,6 +17,8 @@ subroutine test_mba_adapt
   include "mpif.h"
 #endif
 
+#ifdef HAVE_MBA
+
   type(state_type) :: state, state_array(1)
   type(mesh_type), pointer :: mesh
   type(vector_field), pointer :: positions, velocity_pointer
@@ -26,8 +28,6 @@ subroutine test_mba_adapt
 
   integer :: i, stat
   real :: x, y
-
-#ifdef HAVE_MBA
 
   call vtk_read_state("data/mms_a.vtu", state)
   mesh => extract_mesh(state, "Mesh")

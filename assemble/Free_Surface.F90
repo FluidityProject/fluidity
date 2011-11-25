@@ -63,8 +63,9 @@ contains
     !!< Note: In order to to get the correct values, this subroutine 
     !!< has to be called before the first timestep.
     type(state_type), intent(inout) :: state
+    type(mesh_type), pointer :: p_mesh
     type(scalar_field), pointer :: bottomdist
-    type(scalar_field) :: original_bottomdist
+    type(scalar_field) :: original_bottomdist, original_bottomdist_remap
 
     if (.not. has_scalar_field(state, "OriginalDistanceToBottom")) then
        ewrite(2, *), "Inserting OriginalDistanceToBottom field into state."   
@@ -74,6 +75,14 @@ contains
        call addto(original_bottomdist, bottomdist)
        call insert(state, original_bottomdist, name="OriginalDistanceToBottom")
        call deallocate(original_bottomdist)
+
+       ! We also cache  the OriginalDistanceToBottom on the pressure mesh
+       ewrite(2, *), "Inserting OriginalDistanceToBottomPressureMesh field into state."   
+       p_mesh => extract_pressure_mesh(state)
+       call allocate(original_bottomdist_remap, p_mesh, "OriginalDistanceToBottomPressureMesh")
+       call remap_field(original_bottomdist, original_bottomdist_remap)
+       call insert(state, original_bottomdist_remap, name="OriginalDistanceToBottomPressureMesh")
+       call deallocate(original_bottomdist_remap)
     end if
          
   end subroutine insert_original_distance_to_bottom
@@ -115,8 +124,7 @@ contains
     type(scalar_field), optional, intent(inout) :: rhs
     
       type(vector_field), pointer:: positions, u, gravity_normal, old_positions
-      type(scalar_field), pointer:: p, prevp, original_bottomdist
-      type(scalar_field) :: original_bottomdist_remap
+      type(scalar_field), pointer:: p, prevp, original_bottomdist_remap
       character(len=FIELD_NAME_LEN):: bctype
       character(len=OPTION_PATH_LEN) :: fs_option_path
       real:: g, rho0, alpha, coef, d0
@@ -151,14 +159,12 @@ contains
       have_wd_node_int=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/conserve_geometric_volume")
       if (have_wd) then
         if (.not. get_cmc) then
-             FLExit("Wetting and drying needs to be reassembled at each timestep at the moment. Switch it on in &
-                   & diamond under .../Pressure/prognostic/scheme/update_discretised_equation")
+             ewrite(-1,*) "Wetting and drying needs to be reassembled at each timestep at the moment. Switch it on "//&
+                   &"in diamond under .../Pressure/prognostic/scheme/update_discretised_equation"
+             FLExit("Error in user options")
         end if
         call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-        original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
-        ! OriginalDistanceToBottom is needed on the pressure mesh
-        call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
-        call remap_field(original_bottomdist, original_bottomdist_remap)
+        original_bottomdist_remap=>extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh")
       end if
 
 
@@ -217,9 +223,6 @@ contains
     
       if(present(rhs)) then
          ewrite_minmax(rhs)
-      end if
-      if (have_wd) then
-            call deallocate(original_bottomdist_remap)
       end if
       
     contains 
@@ -919,8 +922,9 @@ contains
     
      integer, dimension(:), pointer:: surface_element_list
      type(vector_field), pointer:: x, u, vertical_normal
-     type(scalar_field), pointer:: p, topdis, original_bottomdist
-     type(scalar_field) :: original_bottomdist_remap
+     type(scalar_field), pointer:: p, topdis, original_bottomdist_remap
+     type(scalar_field) :: p_min
+     type(scalar_field), target :: p_capped
      character(len=FIELD_NAME_LEN):: bctype
      real:: g, rho0, d0
      integer:: i, j, sele, stat
@@ -949,22 +953,24 @@ contains
        vertical_normal => extract_vector_field(state, "GravityDirection")
     
  
-       ! Do the wetting and drying corrections: In dry regions, the free surface is not coupled to 
-       ! the pressure but is fixed to -OriginalCoordinate+d0
+       ! Do the wetting and drying corrections: 
+       ! In dry regions, the free surface is not coupled to the pressure but is fixed to -OriginalCoordinate+d0.
+       ! Hence, we create temporary pressure that is capped to d0-bottom_depth on the surface before extruding it downwards.
        if (have_wd) then
+          call allocate(p_min, p%mesh, "MinimumSurfacePressure")
+          call allocate(p_capped, p%mesh, "CappedPressure")
           call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
-          original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
-          ! We need the OriginalDistanceToBottom on the pressure mesh
-          call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
-          call remap_field(original_bottomdist, original_bottomdist_remap)
-          call addto(original_bottomdist_remap, -d0)
-          call scale(original_bottomdist_remap, -g*rho0)
-          call set(free_surface, p)
-          !call set(p, free_surface)
-          !call set(original_bottomdist_remap, -0.3)
-          call bound(free_surface, lower_bound=original_bottomdist_remap)
-          call deallocate(original_bottomdist_remap)
-          p=>free_surface
+          original_bottomdist_remap=>extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh")
+
+          ! We are looking for p_capped = min(p, g*rho0*(d0-bottom_depth)) on the surface
+          call set(p_min, original_bottomdist_remap)
+          call addto(p_min, -d0)
+          call scale(p_min, -g*rho0)
+          call set(p_capped, p)
+          call bound(p_capped, lower_bound=p_min)
+          p=>p_capped
+
+          call deallocate(p_min)
        end if      
 
        ! vertically extrapolate pressure values at the free surface downwards
@@ -975,6 +981,10 @@ contains
        ! divide by rho0 g
        call scale(free_surface, 1/g/rho0)
        
+       if (have_wd) then
+         call deallocate(p_capped)
+       end if
+
      else
      
        ! if no vertical extrapolation is available, only copy
@@ -1011,8 +1021,7 @@ contains
 
   integer, dimension(:), pointer :: surface_element_list
   type(vector_field), pointer:: u
-  type(scalar_field), pointer:: p, original_bottomdist
-  type(scalar_field) :: original_bottomdist_remap
+  type(scalar_field), pointer:: p, original_bottomdist_remap
   character(len=FIELD_NAME_LEN):: bctype
   character(len=OPTION_PATH_LEN) fs_option_path
   real:: rho0, g, d0
@@ -1031,12 +1040,10 @@ contains
              scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
              ! Update WettingDryingAlpha
              call get_reference_density_from_options(rho0, state%option_path)
-             original_bottomdist => extract_scalar_field(state, "OriginalDistanceToBottom") 
+             original_bottomdist_remap => extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh") 
              call get_option('/physical_parameters/gravity/magnitude', g)
              call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
 
-             call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
-             call remap_field(original_bottomdist, original_bottomdist_remap)
              ! Calculate alpha for each surface element
              face_loop: do j=1, size(surface_element_list)
                 sele=surface_element_list(j)
@@ -1045,7 +1052,6 @@ contains
                      ele_nodes(scalar_surface_field, j), &
                      alpha)
              end do face_loop
-             call deallocate(original_bottomdist_remap)
        end if
    end do
    deallocate(alpha)
@@ -1125,8 +1131,7 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
       real :: dt
       
       type(vector_field), pointer:: positions, u, gravity_normal
-      type(scalar_field), pointer:: p, original_bottomdist
-      type(scalar_field) :: original_bottomdist_remap
+      type(scalar_field), pointer:: p, original_bottomdist_remap
       character(len=FIELD_NAME_LEN):: bctype
       character(len=OPTION_PATH_LEN) :: fs_option_path
       real:: g, rho0, alpha, volume, d0
@@ -1141,14 +1146,11 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
       ! get the pressure, and the pressure at the beginning of the time step
       p => extract_scalar_field(state, "Pressure")
       u => extract_vector_field(state, "Velocity")
-      original_bottomdist => extract_scalar_field(state, "OriginalDistanceToBottom")
       have_wd=have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")
       if (have_wd) then
         call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
         ! original_bottomdist is needed on the pressure mesh
-        original_bottomdist=>extract_scalar_field(state, "OriginalDistanceToBottom")
-        call allocate(original_bottomdist_remap, p%mesh, "OriginalDistanceToBottomOnPressureMesh")
-        call remap_field(original_bottomdist, original_bottomdist_remap)
+        original_bottomdist_remap=>extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh")
       end if
       
       ! reference density
@@ -1177,10 +1179,6 @@ end subroutine calculate_diagnostic_wettingdrying_alpha
         end if
       end do
 
-      if (have_wd) then
-        call deallocate(original_bottomdist_remap)
-      end if
- 
     contains 
 
     function calculate_volume_by_surface_integral_element(sele) result(volume)

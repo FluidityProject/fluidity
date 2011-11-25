@@ -1,16 +1,19 @@
-import numpy,sys,copy,operator
+import numpy,sys,copy,operator,scipy
+import scipy.sparse
 
 class State:
   def __init__(self,n=""):
     self.scalar_fields = {}
     self.vector_fields = {}
     self.tensor_fields = {}
+    self.csr_matrices = {}
     self.meshes = {}
     self.name = n
   def __repr__(self):
     return '(State) %s' % self.name
   def print_fields(self):
-    print "scalar: ",self.scalar_fields,"\nvector:",self.vector_fields,"\ntensor:",self.tensor_fields,"\n"
+    print "scalar: ",self.scalar_fields,"\nvector:",self.vector_fields,"\ntensor:", \
+    self.tensor_fields,"\ncsr_matrices:", self.csr_matrices
 
 class Field:
   def __init__(self,n,ft,op,description):
@@ -86,11 +89,9 @@ class Field:
 
   def ele_val_at_quad(self,ele_number):
     # Return the values of field at the quadrature points of ele_number
-    shape_n = numpy.matrix(self.ele_shape(ele_number).n)
-    ele_val = numpy.matrix(self.ele_val(ele_number))
-    #print "ele_val:",ele_val.shape
-    #print "shape_n:",shape_n.shape
-    return numpy.array(ele_val*shape_n)
+    shape_n = self.ele_shape(ele_number).n
+    ele_val = self.ele_val(ele_number)
+    return numpy.array(numpy.dot(ele_val, shape_n))
 
   def ele_region_id(self,ele_number):
     return self.mesh.ele_region_id(ele_number)
@@ -140,6 +141,15 @@ class TensorField(Field):
     self.val = v
     self.dimension = numpy.array([dim0,dim1])
     self.node_count=self.val.shape[0]
+
+class CsrMatrix(scipy.sparse.csr_matrix):
+  "A csr matrix"
+  def __init__(self, *args, **kwargs):
+    try:
+      scipy.sparse.csr_matrix.__init__(self, *args, **kwargs)
+      self.format = 'csr'
+    except TypeError: # old version of scipy
+      pass
 
 
 class Mesh:
@@ -248,133 +258,72 @@ class Transform:
     self.field = field
     # Jacobian matrix and its inverse at each quadrature point (dim x dim x field.mesh.shape.ngi)
     # Facilitates access to this information externally
-    self.J = [ [] for i in range(field.mesh.shape.ngi) ]
-    self.invJ = [ [] for i in range(field.mesh.shape.ngi) ]
-    
+    self.J = [numpy.zeros((field.dimension, self.element.dimension)) for gi in range(self.element.ngi)]
+    self.invJ = [numpy.zeros((self.element.dimension, field.dimension)) for gi in range(self.element.ngi)]
+    self.detwei = numpy.zeros(self.element.ngi)
+    self.det = numpy.zeros(self.element.ngi)
     # Calculate detwei, i.e. the gauss weights transformed by the coordinate transform
     # from real to computational space
     self.transform_to_physical_detwei(field)
 
   def set_J(self,J,gi):
     # Set J for the specified quadrature point and calculate its inverse
-    self.J[gi] = numpy.matrix(J)
-    if max(J.shape) != min(J.shape):
-      # we don't have a square Jacobian, i.e. mesh_dim < coord_dim
-      if hasattr(self, "invJ"):
-        del self.invJ
-    else:
-      self.invJ[gi] = numpy.matrix(numpy.linalg.inv(self.J[gi]))
+    self.J[gi] = J
+    S = numpy.linalg.svd(J, compute_uv=False)
+    self.det[gi] = abs(reduce(lambda x,y: x*y, [s for s in S if s > 0], 1))
+    self.detwei[gi] = self.det[gi] * self.element.quadrature.weights[gi]
+    self.invJ[gi] = numpy.linalg.pinv(J)
 
   def transform_to_physical_detwei(self,field):
-     # field is the Coordinate Field
-
-    # Column n of X is the position of the nth node. (dim x n%loc)
-    # only need position of n nodes since Jacobian is only calculated once
-
-    # element is the referenced velocity Element
-    ele_num = self.ele_num
-    X = numpy.transpose(numpy.matrix(field.ele_val(ele_num)))
-    element = field.mesh.shape 
-
-    # Quadrature weights for physical coordinates.
-    self.detwei = numpy.zeros(element.ngi)
-    dim = field.dimension     # Dimension of space
-    ldim = element.dimension  # Dimension of element
-    if(dim == ldim):
-      if(dim==1):
-        for gi in range(element.ngi):
-          J = numpy.zeros([dim, ldim])
-          J[0,0] = numpy.dot(X[0,:],element.dn[:,gi,0])  # Still wrong probably!
-          self.detwei[gi] = abs(J[0,0])*element.quadrature.weights[gi]
-          # The Jacobian is the transpose of the J that was calculated
-          self.set_J(numpy.transpose(J),gi)
-      elif(dim==2 or dim == 3):
-        for gi in range(element.ngi):
-          J = numpy.dot(X, element.dn[:,gi,:])
-          self.detwei[gi] = abs( numpy.linalg.det(J)) * element.quadrature.weights[gi]
-          # The Jacobian is the transpose of the J that was calculated
-          self.set_J(numpy.transpose(J),gi)
-      else:
-        sys.exit("More than 3 dimensions!")
-
-    # Lower dimensional element (ldim) embedded in higher dimensional space (dim)
-    elif(ldim<dim):
-      # 1-dim element embedded in 'dim'-dimensional space:
-      if(ldim==1):
-        for gi in range(element.ngi):
-          J = numpy.zeros([dim, ldim])
-          J[:,0] = numpy.dot(X, element.dn[:,gi,0])
-          det = numpy.linalg.norm(J[:,0])
-          self.detwei[gi] = det * element.quadrature.weights[gi]
-          self.set_J(numpy.transpose(J),gi)
-
-      # 1-dim element embedded in 'dim'-dimensional space:
-      elif(ldim==2):
-        # J is 2 columns of 2 'dim'-dimensional vectors:
-        for gi in range(element.ngi):
-          J = numpy.dot(X, element.dn[:,gi,:])
-          # Outer product times quad. weight
-          self.detwei[gi] = abs( J[1,0]*J[2,1]-J[2,0]*J[1,1]
-                          - J[2,0]*J[0,1]+J[0,0]*J[2,1]
-                          + J[0,0]*J[1,1]-J[1,0]*J[0,1]) * element.quadrature.weights[gi]
-          self.set_J(numpy.transpose(J),gi)
-
-    else:
-      sys.exit("Dimension of shape exceeds dimension of coordinate field.")
-    numpy.matrix(self.detwei)
-
+    X = numpy.transpose(numpy.matrix(field.ele_val(self.ele_num)))
+    for gi in range(self.element.ngi):
+      J = numpy.dot(X, self.element.dn[:, gi, :])
+      self.set_J(J, gi)
 
   def grad(self,shape):
-    # Evaluate derivatives in physical space
-
-    # dn is loc x ngi x dim
-
-    # Derivatives (dm_t and dn_t in Fortran)
-
-    # Create a new object with the same values of 
     newshape = copy.copy(shape)
-    newshape.dn = numpy.zeros((shape.loc,shape.ngi,shape.dimension))
-  
-    for gi in range(self.field.mesh.shape.ngi):
-      #self.grad(i,field.mesh.shape)
+    newshape.dn = numpy.zeros((shape.loc,shape.ngi,self.field.dimension))
 
+    for gi in range(self.field.mesh.shape.ngi):
       for i in range(shape.loc):
-        a = numpy.array(self.invJ[gi]*(numpy.transpose(shape.dn[i,gi])))
-        newshape.dn[i,gi,:] = numpy.array(a.reshape(1,shape.dimension)[0])
-  
-      #self.gradient = newshape.dn
+        newshape.dn[i,gi,:] = numpy.dot(shape.dn[i, gi, :], self.invJ[gi])
     return newshape
 
-
-  def shape_shape(self,shape1,shape2):
+  def shape_shape(self,shape1,shape2, coeff=None):
     # For each node in each element shape1, shape2 calculate the
     # coefficient of the integral int(shape1shape2)dV.
     #
     # In effect, this calculates a mass matrix.
     m = numpy.zeros((shape1.loc,shape2.loc))
 
-    for i in range(shape1.loc):
-      for j in range(shape2.loc):
-        m[i,j] = numpy.dot(shape1.n[i]*shape2.n[j], self.detwei)
+    if coeff is None:
+      for i in range(shape1.loc):
+        for j in range(shape2.loc):
+          m[i,j] = numpy.dot(shape1.n[i]*shape2.n[j], self.detwei)
+    else:
+      assert len(coeff) == len(self.detwei)
+      for i in range(shape1.loc):
+        for j in range(shape2.loc):
+          m[i,j] = numpy.dot(shape1.n[i]*shape2.n[j], numpy.array(self.detwei) * coeff)
     return m
-
 
   def shape_dshape(self,shape,dshape):
     # For each node in element shape and transformed gradient dshape
     # calculate the coefficient of the integral int(shape dshape)dV
-    
+
     # The dimensions of dshape are: (nodes, gauss points, dimensions)
 
     # dshape is usually the element returned by calling element.grad()
-    
+
     # dshape_loc = size(self.gradient)
     dshape_loc = len(dshape.dn)
+    dshape_dim = dshape.dn.shape[2]
     field = self.field
-    
-    shape_dshape = numpy.array([ [ numpy.zeros(field.mesh.shape.dimension) for inner in range(field.mesh.shape.loc) ] for outer in range(dshape_loc)])
+
+    shape_dshape = numpy.zeros((shape.loc, dshape_loc, dshape_dim))
     for i in range(shape.loc):
       for j in range(dshape_loc):
-        shape_dshape[i,j,:] = ( numpy.matrix(self.detwei) * numpy.matrix(self.spread(shape.n[i],shape.dimension)*dshape.dn[j]))
+        shape_dshape[i,j,:] = ( numpy.matrix(self.detwei) * numpy.matrix(self.spread(shape.n[i], dshape_dim)*dshape.dn[j])).reshape((dshape_dim,))
     return shape_dshape
 
   def spread(self,arr,dim):

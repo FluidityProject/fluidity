@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<optimality_options>
+  <name>
+    <string_value lines="1">shallow_water_optimisation_E</string_value>
+  </name>
+  <model command_line="../../bin/shallow_water" option_file="adjoint_E.swml"/>
+  <functional name="integral_eta_t1"/>
+  <optimisation_options>
+    <optimisation_algorithm name="BFGS">
+      <tolerance>
+        <real_value rank="0">1e-8</real_value>
+      </tolerance>
+    </optimisation_algorithm>
+  </optimisation_options>
+  <control_io>
+    <control name="InitEta">
+      <type name="default"/>
+    </control>
+  </control_io>
+</optimality_options>

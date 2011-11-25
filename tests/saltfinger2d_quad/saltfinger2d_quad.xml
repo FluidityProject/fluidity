@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
   <name>2D salt finger quads</name>
   <owner userid="fmactavish"/>
   <tags>flml</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity  saltfinger2d_quad.flml </command_line>
+    <command_line>../../bin/fluidity -v3 -l saltfinger2d_quad.flml </command_line>
   </problem_definition>
   <variables>
     <variable name="final_time" language="python">

@@ -50,7 +50,7 @@ implicit none
   public :: addto, zero, set_from_function, set, set_all, &
     & set_from_python_function, remap_field, remap_field_to_surface, &
     & set_to_submesh, set_from_submesh, scale, bound, invert, &
-    & absolute_value, inner_product, cross_product, clone_header
+    & absolute_value, inner_product, cross_prod, clone_header
   public :: piecewise_constant_field, piecewise_constant_mesh
   public :: renumber_positions, renumber_positions_trailing_receives, &
     & renumber_positions_elements, &
@@ -58,6 +58,7 @@ implicit none
   public :: get_patch_ele, get_patch_node, patch_type
   public :: set_ele_nodes, normalise, tensor_second_invariant
   public :: remap_to_subdomain, remap_to_full_domain
+  public :: get_coordinates_remapped_to_surface, get_remapped_coordinates
   
   integer, parameter, public :: REMAP_ERR_DISCONTINUOUS_CONTINUOUS = 1, &
                                 REMAP_ERR_HIGHER_LOWER_CONTINUOUS  = 2, &
@@ -118,6 +119,11 @@ implicit none
           & set_from_python_function_tensor
   end interface
 
+  interface test_remap_validity
+     module procedure test_remap_validity_scalar, test_remap_validity_vector, &
+                      test_remap_validity_tensor, test_remap_validity_generic
+  end interface
+
   interface remap_field
      module procedure remap_scalar_field, remap_vector_field, remap_tensor_field, &
                     & remap_scalar_field_specific, remap_vector_field_specific
@@ -161,9 +167,11 @@ implicit none
         inner_product_field_field
   end interface inner_product
   
-  interface cross_product
+  !  This is named cross_prod rather than cross_product to avoid a name
+  !  clash with various cross_product functions (this one is a subroutine).
+  interface cross_prod
      module procedure cross_product_vector
-  end interface cross_product
+  end interface cross_prod
 
   interface clone_header
     module procedure clone_header_scalar, clone_header_vector, clone_header_tensor
@@ -197,33 +205,35 @@ implicit none
     
   contains
 
-  subroutine tensor_second_invariant(source_field,s_field)
-      !!< This routine computes the second invariant of an infield tensor field
-      type(tensor_field), intent(in):: source_field
-      type(scalar_field), intent(inout) :: s_field
+  subroutine tensor_second_invariant(t_field,second_invariant)
+      !!< This routine computes the second invariant of an infield tensor field t_field.
+      !!< Note - currently assumes that tensor field t_field is symmetric.
+      type(tensor_field), intent(in):: t_field
+      type(scalar_field), intent(inout) :: second_invariant
 
-      real, dimension(source_field%dim(1)) :: evals
-      real, dimension(source_field%dim(1), source_field%dim(2)) :: evecs
-      real, dimension(3) :: v
+      type(tensor_field) :: t_field_local
 
-      real :: s
-      integer :: node, dimen
+      integer :: node, dim1, dim2
+      real :: val
 
-      v = 0.0
+      ! Remap t_field to second invariant mesh if required:
+      call allocate(t_field_local, second_invariant%mesh, "LocalTensorField")  
+      call remap_field(t_field, t_field_local)
 
-      ! Making sure the second invariant gets evaluated over the whole mesh
-      do node=1,node_count(s_field)
-             call eigendecomposition_symmetric(node_val(source_field, node), evecs, evals)
-             do dimen=1,source_field%dim(1)
-               v(dimen)=evals(dimen)
-             end do
-             s = -(v(1)*v(2) + v(2)*v(3) + v(3)*v(1))
-             call set(s_field, node, s)
+      do node = 1, node_count(second_invariant)
+         val = 0.
+         do dim1 = 1, t_field_local%dim(1)
+            do dim2 = 1, t_field_local%dim(2) 
+               val = val + node_val(t_field_local,dim1,dim2,node)**2
+            end do
+         end do
+         call set(second_invariant,node,sqrt(val/2.))
       end do
 
+      call deallocate(t_field_local)
+               
   end subroutine tensor_second_invariant
 
-  
   subroutine zero_scalar(field)
     !!< Set all entries in the field provided to 0.0
     type(scalar_field), intent(inout) :: field
@@ -656,7 +666,7 @@ implicit none
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
        
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,:)
+             field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,:)
           end do
 
        else
@@ -672,28 +682,28 @@ implicit none
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
        
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val(1)*lfield2%val(i,1)
+             field1%val(i,:)=field1%val(i,:)+lscale%val(1)*lfield2%val(i,1)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_NORMAL) .and. &
             (lscale%field_type==FIELD_TYPE_CONSTANT)) then
 
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val(1)*lfield2%val(i,:)
+             field1%val(i,:)=field1%val(i,:)+lscale%val(1)*lfield2%val(i,:)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_CONSTANT) .and. &
             (lscale%field_type==FIELD_TYPE_NORMAL)) then
 
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,1)
+             field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,1)
           end do
 
        else if ((lfield2%field_type==FIELD_TYPE_NORMAL) .and. &
             (lscale%field_type==FIELD_TYPE_NORMAL)) then
 
           do i=1,field1%dim
-             field1%val(i,:)=field1%val(i,:)+scale%val*lfield2%val(i,:)
+             field1%val(i,:)=field1%val(i,:)+lscale%val*lfield2%val(i,:)
           end do
 
        else
@@ -1486,14 +1496,7 @@ implicit none
        end if
     else
        ! Remap position first.
-       call allocate(lposition, dim, field%mesh, "Local Position")
-       call remap_field(position, lposition, stat=stat)
-       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-          ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-          ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-          ewrite(-1,*) 'to remap them to a continuous field.'
-          FLAbort("Why are your coordinates discontinuous?")
-       end if
+       lposition = get_remapped_coordinates(position, field%mesh)
        ! we've just allowed remapping from a higher order to a lower order continuous field as this should be valid for
        ! coordinates
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
@@ -1567,14 +1570,7 @@ implicit none
        end if
     else
        ! Remap position first.
-       call allocate(lposition, dim, field%mesh, "Local Position")
-       call remap_field(position, lposition, stat=stat)
-       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-          ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-          ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-          ewrite(-1,*) 'to remap them to a continuous field.'
-          FLAbort("Why are your coordinates discontinuous?")
-       end if
+       lposition = get_remapped_coordinates(position, field%mesh)
        ! we've just allowed remapping from a higher order to a lower order continuous field as this should be valid for
        ! coordinates
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
@@ -1657,14 +1653,7 @@ implicit none
        end if
     else
        ! Remap position first.
-       call allocate(lposition, dim, field%mesh, "Local Position")
-       call remap_field(position, lposition, stat=stat)
-       if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
-          ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
-          ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
-          ewrite(-1,*) 'to remap them to a continuous field.'
-          FLAbort("Why are your coordinates discontinuous?")
-       end if
+       lposition = get_remapped_coordinates(position, field%mesh)
        ! we've just allowed remapping from a higher order to a lower order continuous field as this should be valid for
        ! coordinates
        ! also allowed to remap from unperiodic to periodic... hopefully the python function used will also be periodic!
@@ -1803,6 +1792,108 @@ implicit none
   ! Mapping of fields between different meshes
   ! ------------------------------------------------------------------------
   
+  subroutine test_remap_validity_scalar(from_field, to_field, stat)
+    type(scalar_field), intent(in):: from_field, to_field
+    integer, intent(out), optional:: stat
+
+    if(present(stat)) stat = 0
+
+    call test_remap_validity_generic(trim(from_field%name), trim(to_field%name), &
+                                     continuity(from_field), continuity(to_field), &
+                                     element_degree(from_field, 1), element_degree(to_field, 1), &
+                                     mesh_periodic(from_field), mesh_periodic(to_field), &
+                                     from_field%mesh%shape%numbering%type, to_field%mesh%shape%numbering%type, &
+                                     stat)
+
+  end subroutine test_remap_validity_scalar
+
+  subroutine test_remap_validity_vector(from_field, to_field, stat)
+    type(vector_field), intent(in):: from_field, to_field
+    integer, intent(out), optional:: stat
+
+    if(present(stat)) stat = 0
+
+    call test_remap_validity_generic(trim(from_field%name), trim(to_field%name), &
+                                     continuity(from_field), continuity(to_field), &
+                                     element_degree(from_field, 1), element_degree(to_field, 1), &
+                                     mesh_periodic(from_field), mesh_periodic(to_field), &
+                                     from_field%mesh%shape%numbering%type, to_field%mesh%shape%numbering%type, &
+                                     stat)
+
+  end subroutine test_remap_validity_vector
+
+  subroutine test_remap_validity_tensor(from_field, to_field, stat)
+    type(tensor_field), intent(in):: from_field, to_field
+    integer, intent(out), optional:: stat
+
+    if(present(stat)) stat = 0
+
+    call test_remap_validity_generic(trim(from_field%name), trim(to_field%name), &
+                                     continuity(from_field), continuity(to_field), &
+                                     element_degree(from_field, 1), element_degree(to_field, 1), &
+                                     mesh_periodic(from_field), mesh_periodic(to_field), &
+                                     from_field%mesh%shape%numbering%type, to_field%mesh%shape%numbering%type, &
+                                     stat)
+
+  end subroutine test_remap_validity_tensor
+
+  subroutine test_remap_validity_generic(from_name, to_name, &
+                                         from_continuity, to_continuity, &
+                                         from_degree, to_degree, &
+                                         from_periodic, to_periodic, &
+                                         from_type, to_type, &
+                                         stat)
+    character(len=*), intent(in):: from_name, to_name
+    integer, intent(in):: from_continuity, to_continuity
+    integer, intent(in):: from_degree, to_degree
+    logical, intent(in):: from_periodic, to_periodic
+    integer, intent(in):: from_type, to_type
+    integer, intent(out), optional:: stat
+
+    if(present(stat)) stat = 0
+
+    if((from_continuity<0).and.(.not.(to_continuity<0))) then
+      if(present(stat)) then
+        stat = REMAP_ERR_DISCONTINUOUS_CONTINUOUS
+      else
+        ewrite(-1,*) "Remapping from field "//trim(from_name)//" to field "//trim(to_name)//"."
+        FLAbort("Trying to remap from discontinuous to continuous field.")
+      end if
+    end if
+
+    ! this test currently assumes that the shape function degree is constant over the mesh
+    if((.not.(from_continuity<0)).and.(.not.(to_continuity<0))&
+        .and.(from_degree>to_degree)) then
+      if(present(stat)) then
+        stat = REMAP_ERR_HIGHER_LOWER_CONTINUOUS
+      else
+        ewrite(-1,*) "Remapping from field "//trim(from_name)//" to field "//trim(to_name)//"."
+        FLAbort("Trying to remap from higher order to lower order continuous field")
+      end if
+    end if
+    
+    if((.not.(from_continuity<0)).and.(.not.(to_continuity<0))&
+        .and.(.not.from_periodic).and.(to_periodic)) then
+      if(present(stat)) then
+        stat = REMAP_ERR_UNPERIODIC_PERIODIC
+      else
+        ewrite(-1,*) "Remapping from field "//trim(from_name)//" to field "//trim(to_name)//"."
+        FLAbort("Trying to remap from an unperiodic to a periodic continuous field")
+      end if
+    end if
+    
+    if((from_type==ELEMENT_BUBBLE).and.&
+       (to_type==ELEMENT_LAGRANGIAN)) then
+      if(present(stat)) then
+        stat = REMAP_ERR_BUBBLE_LAGRANGE
+      else
+        ewrite(-1,*) "Remapping from field "//trim(from_name)//" to field "//trim(to_name)//"."
+        FLAbort("Trying to remap from a bubble to a lagrange field")
+      end if
+    end if
+
+  end subroutine test_remap_validity_generic
+
   subroutine remap_scalar_field(from_field, to_field, stat)
     !!< Remap the components of from_field onto the locations of to_field.
     !!< This is used to change the element type of a field.
@@ -1811,7 +1902,7 @@ implicit none
     !!< field. 
     type(scalar_field), intent(in) :: from_field
     type(scalar_field), intent(inout) :: to_field
-    integer, intent(inout), optional :: stat
+    integer, intent(out), optional :: stat
 
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
 
@@ -1829,41 +1920,7 @@ implicit none
       select case(from_field%field_type)
       case(FIELD_TYPE_NORMAL)
 
-        if((continuity(from_field)<0).and.(.not.(continuity(to_field)<0))) then
-          if(present(stat)) then
-            stat = REMAP_ERR_DISCONTINUOUS_CONTINUOUS
-          else
-            FLAbort("Trying to remap from discontinuous to continuous scalar field.")
-          end if
-        end if
-        
-        ! this test currently assumes that the shape function degree is constant over the mesh
-        if((.not.(continuity(from_field)<0)).and.(.not.(continuity(to_field)<0))&
-            .and.(element_degree(from_field, 1)>element_degree(to_field, 1))) then
-          if(present(stat)) then
-            stat = REMAP_ERR_HIGHER_LOWER_CONTINUOUS
-          else
-            FLAbort("Trying to remap from higher order to lower order continuous scalar field")
-          end if
-        end if
-          
-        if((.not.(continuity(from_field)<0)).and.(.not.(continuity(to_field)<0))&
-            .and.(.not.mesh_periodic(from_field)).and.(mesh_periodic(to_field))) then
-          if(present(stat)) then
-            stat = REMAP_ERR_UNPERIODIC_PERIODIC
-          else
-            FLAbort("Trying to remap from an unperiodic to a periodic continuous scalar field")
-          end if
-        end if
-
-        if((from_field%mesh%shape%numbering%type==ELEMENT_BUBBLE).and.&
-           (to_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)) then
-          if(present(stat)) then
-            stat = REMAP_ERR_BUBBLE_LAGRANGE
-          else
-            FLAbort("Trying to remap from a bubble to a lagrange scalar field")
-          end if
-        end if
+        call test_remap_validity(from_field, to_field, stat=stat)
 
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
@@ -1890,7 +1947,7 @@ implicit none
 
   end subroutine remap_scalar_field
 
-  subroutine remap_scalar_field_specific(from_field, to_field, elements, output, locweight)
+  subroutine remap_scalar_field_specific(from_field, to_field, elements, output, locweight, stat)
     !!< Remap the components of from_field onto the locations of to_field.
     !!< This is used to change the element type of a field.
     !!<
@@ -1902,16 +1959,21 @@ implicit none
     type(scalar_field), intent(inout) :: to_field
     integer, dimension(:), intent(in) :: elements
     real, dimension(size(elements), to_field%mesh%shape%loc), intent(out) :: output
+    integer, intent(out), optional:: stat
 
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc), optional :: locweight
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: llocweight
 
     integer :: fromloc, toloc, ele, i
 
+    if(present(stat)) stat = 0
+
     if (from_field%field_type == FIELD_TYPE_CONSTANT) then
       output = from_field%val(1)
       return
     end if
+
+    call test_remap_validity(from_field, to_field, stat=stat)
 
     if (.not. present(locweight)) then
       ! First construct remapping weights.
@@ -1939,7 +2001,7 @@ implicit none
     !!< The result will only be valid if to_field is DG.
     type(vector_field), intent(in) :: from_field
     type(vector_field), intent(inout) :: to_field
-    integer, intent(inout), optional :: stat
+    integer, intent(out), optional :: stat
 
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: locweight
 
@@ -1969,41 +2031,7 @@ implicit none
       select case(from_field%field_type)
       case(FIELD_TYPE_NORMAL)
 
-        if((continuity(from_field)<0).and.(.not.(continuity(to_field)<0))) then
-          if(present(stat)) then
-            stat = REMAP_ERR_DISCONTINUOUS_CONTINUOUS
-          else
-            FLAbort("Trying to remap from discontinuous to continuous vector field.")
-          end if
-        end if
-
-        ! this test currently assumes that the shape function degree is constant over the mesh
-        if((.not.(continuity(from_field)<0)).and.(.not.(continuity(to_field)<0))&
-            .and.(element_degree(from_field, 1)>element_degree(to_field, 1))) then
-          if(present(stat)) then
-            stat = REMAP_ERR_HIGHER_LOWER_CONTINUOUS
-          else
-            FLAbort("Trying to remap from higher order to lower order continuous vector field")
-          end if
-        end if
-        
-        if((.not.(continuity(from_field)<0)).and.(.not.(continuity(to_field)<0))&
-            .and.(.not.mesh_periodic(from_field)).and.(mesh_periodic(to_field))) then
-          if(present(stat)) then
-            stat = REMAP_ERR_UNPERIODIC_PERIODIC
-          else
-            FLAbort("Trying to remap from an unperiodic to a periodic continuous vector field")
-          end if
-        end if
-        
-        if((from_field%mesh%shape%numbering%type==ELEMENT_BUBBLE).and.&
-           (to_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)) then
-          if(present(stat)) then
-            stat = REMAP_ERR_BUBBLE_LAGRANGE
-          else
-            FLAbort("Trying to remap from a bubble to a lagrange vector field")
-          end if
-        end if
+        call test_remap_validity(from_field, to_field, stat=stat)
 
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
@@ -2040,7 +2068,7 @@ implicit none
     
   end subroutine remap_vector_field
 
-  subroutine remap_vector_field_specific(from_field, to_field, elements, output, locweight)
+  subroutine remap_vector_field_specific(from_field, to_field, elements, output, locweight, stat)
     !!< Remap the components of from_field onto the locations of to_field.
     !!< This is used to change the element type of a field.
     !!<
@@ -2049,11 +2077,14 @@ implicit none
     type(vector_field), intent(inout) :: to_field
     integer, dimension(:), intent(in) :: elements
     real, dimension(size(elements), to_field%dim, to_field%mesh%shape%loc), intent(out) :: output
+    integer, intent(out), optional:: stat
 
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc), optional :: locweight
     real, dimension(to_field%mesh%shape%loc, from_field%mesh%shape%loc) :: llocweight
 
     integer :: fromloc, toloc, ele, i, j
+
+    if(present(stat)) stat = 0
 
     assert(to_field%dim>=from_field%dim)
 
@@ -2066,6 +2097,8 @@ implicit none
       end do
       return
     end select
+
+    call test_remap_validity(from_field, to_field, stat=stat)
 
     if (.not. present(locweight)) then
       ! First construct remapping weights.
@@ -2115,41 +2148,7 @@ implicit none
       select case(from_field%field_type)
       case(FIELD_TYPE_NORMAL)
 
-        if((continuity(from_field)<0).and.(.not.(continuity(to_field)<0))) then
-          if(present(stat)) then
-            stat = REMAP_ERR_DISCONTINUOUS_CONTINUOUS
-          else
-            FLAbort("Trying to remap from discontinuous to continuous tensor field.")
-          end if
-        end if
-        
-        ! this test currently assumes that the shape function degree is constant over the mesh
-        if((.not.(continuity(from_field)<0)).and.(.not.(continuity(to_field)<0))&
-            .and.(element_degree(from_field, 1)>element_degree(to_field, 1))) then
-          if(present(stat)) then
-            stat = REMAP_ERR_HIGHER_LOWER_CONTINUOUS
-          else
-            FLAbort("Trying to remap from higher order to lower order continuous tensor field")
-          end if
-        end if
-        
-        if((.not.(continuity(from_field)<0)).and.(.not.(continuity(to_field)<0))&
-            .and.(.not.mesh_periodic(from_field)).and.(mesh_periodic(to_field))) then
-          if(present(stat)) then
-            stat = REMAP_ERR_UNPERIODIC_PERIODIC
-          else
-            FLAbort("Trying to remap from an unperiodic to a periodic continuous tensor field")
-          end if
-        end if
-        
-        if((from_field%mesh%shape%numbering%type==ELEMENT_BUBBLE).and.&
-           (to_field%mesh%shape%numbering%type==ELEMENT_LAGRANGIAN)) then
-          if(present(stat)) then
-            stat = REMAP_ERR_BUBBLE_LAGRANGE
-          else
-            FLAbort("Trying to remap from a bubble to a lagrange tensor field")
-          end if
-        end if
+        call test_remap_validity(from_field, to_field, stat=stat)
 
         ! First construct remapping weights.
         do toloc=1,size(locweight,1)
@@ -2181,13 +2180,14 @@ implicit none
 
   end subroutine remap_tensor_field
     
-  subroutine remap_scalar_field_to_surface(from_field, to_field, surface_element_list)
+  subroutine remap_scalar_field_to_surface(from_field, to_field, surface_element_list, stat)
     !!< Remap the values of from_field onto the surface_field to_field, which is defined
     !!< on the faces given by surface_element_list.
     !!< This also deals with remapping between different orders.
     type(scalar_field), intent(in):: from_field
     type(scalar_field), intent(inout):: to_field
     integer, dimension(:), intent(in):: surface_element_list
+    integer, intent(out), optional:: stat
     
     real, dimension(ele_loc(to_field,1), face_loc(from_field,1)) :: locweight
     type(element_type), pointer:: from_shape, to_shape
@@ -2195,8 +2195,12 @@ implicit none
     integer, dimension(:), pointer :: to_nodes
     integer toloc, fromloc, ele, face
 
+    if (present(stat)) stat = 0
+
     select case(from_field%field_type)
     case(FIELD_TYPE_NORMAL)
+
+      call test_remap_validity(from_field, to_field, stat=stat)
     
       ! the remapping happens from a face of from_field which is at the same
       ! time an element of to_field
@@ -2231,13 +2235,14 @@ implicit none
 
   end subroutine remap_scalar_field_to_surface
 
-  subroutine remap_vector_field_to_surface(from_field, to_field, surface_element_list)
+  subroutine remap_vector_field_to_surface(from_field, to_field, surface_element_list, stat)
     !!< Remap the values of from_field onto the surface_field to_field, which is defined
     !!< on the faces given by surface_element_list.
     !!< This also deals with remapping between different orders.
     type(vector_field), intent(in):: from_field
     type(vector_field), intent(inout):: to_field
     integer, dimension(:), intent(in):: surface_element_list
+    integer, intent(out), optional:: stat
     
     real, dimension(ele_loc(to_field,1), face_loc(from_field,1)) :: locweight
     type(element_type), pointer:: from_shape, to_shape
@@ -2245,11 +2250,15 @@ implicit none
     integer, dimension(:), pointer :: to_nodes
     integer toloc, fromloc, ele, face, i
 
+    if(present(stat)) stat = 0
+
     assert(to_field%dim>=from_field%dim)
 
     select case(from_field%field_type)
     case(FIELD_TYPE_NORMAL)
     
+      call test_remap_validity(from_field, to_field, stat=stat)
+
       ! the remapping happens from a face of from_field which is at the same
       ! time an element of to_field
       from_shape => face_shape(from_field, 1)
@@ -3990,6 +3999,57 @@ implicit none
     end if
     
   end subroutine remap_to_full_domain_tensor
+
+  function get_remapped_coordinates(positions, mesh) result(remapped_positions)
+    type(vector_field), intent(in):: positions
+    type(mesh_type), intent(inout):: mesh
+    type(vector_field):: remapped_positions
+
+    integer:: stat
+
+    call allocate(remapped_positions, positions%dim, mesh, "RemappedCoordinates")
+    call remap_field(positions, remapped_positions, stat=stat)
+    ! we allow stat==REMAP_ERR_UNPERIODIC_PERIODIC, to create periodic surface positions with coordinates 
+    ! at the periodic boundary having a value that is only determined upto a random number of periodic mappings
+    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+      ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+      ewrite(-1,*) 'to remap them to a continuous field.'
+      FLAbort("Why are your coordinates discontinuous?")
+    else if ((stat/=0).and. &
+             (stat/=REMAP_ERR_UNPERIODIC_PERIODIC).and. &
+             (stat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+             (stat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+      FLAbort('Unknown error when remapping coordinates')
+    end if
+
+  end function get_remapped_coordinates
+  
+  function get_coordinates_remapped_to_surface(positions, surface_mesh, surface_element_list) result(surface_positions)
+    type(vector_field), intent(in):: positions
+    type(mesh_type), intent(inout):: surface_mesh
+    integer, dimension(:), intent(in):: surface_element_list
+    type(vector_field):: surface_positions
+
+    integer:: stat
+
+    call allocate(surface_positions, positions%dim, surface_mesh, "RemappedSurfaceCoordinates")
+    call remap_field_to_surface(positions, surface_positions, surface_element_list, stat=stat)
+    ! we allow stat==REMAP_ERR_UNPERIODIC_PERIODIC, to create periodic surface positions with coordinates 
+    ! at the periodic boundary having a value that is only determined upto a random number of periodic mappings
+    if(stat==REMAP_ERR_DISCONTINUOUS_CONTINUOUS) then
+      ewrite(-1,*) 'Remapping of the coordinates just threw an error because'
+      ewrite(-1,*) 'the input coordinates are discontinuous and you are trying'
+      ewrite(-1,*) 'to remap them to a continuous field.'
+      FLAbort("Why are your coordinates discontinuous?")
+    else if ((stat/=0).and. &
+             (stat/=REMAP_ERR_UNPERIODIC_PERIODIC).and. &
+             (stat/=REMAP_ERR_BUBBLE_LAGRANGE).and. &
+             (stat/=REMAP_ERR_HIGHER_LOWER_CONTINUOUS)) then
+      FLAbort('Unknown error in mapping coordinates from mesh to surface')
+    end if
+
+  end function get_coordinates_remapped_to_surface
   
 end module fields_manipulation
 

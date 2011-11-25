@@ -48,7 +48,7 @@ module mixing_statistics
   
   interface heaviside_integral
     module procedure heaviside_integral_single, &
-      & heaviside_integral_multiple, heaviside_integral_options
+      & heaviside_integral_multiple
   end interface heaviside_integral
 
   interface mixing_stats
@@ -71,7 +71,8 @@ contains
     if(have_option(trim(complete_field_path(sfield%option_path))//&
          &"/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/continuous_galerkin")) then
 
-       call heaviside_integral(f_mix_fraction, sfield, Xfield, mixing_stats_count = mixing_stats_count)
+       call heaviside_integral_options(f_mix_fraction, sfield, Xfield,&
+            & mixing_stats_count = mixing_stats_count)
 
     else if(have_option(trim(complete_field_path(sfield%option_path))//&
          &"/stat/include_mixing_stats["// int2str(mixing_stats_count) // "]/control_volumes")) then
@@ -365,7 +366,7 @@ contains
     
     do i = 1, size(bounds)
       ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bounds(i)
-      ewrite(2, *) "Heaviside integral > bound = ", integrals(i)
+      ewrite(2, *) "Heaviside integral >= bound = ", integrals(i)
     end do
   
   end function heaviside_integral_line
@@ -488,7 +489,7 @@ contains
     
     do i = 1, size(bounds)
       ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bounds(i)
-      ewrite(2, *) "Heaviside integral > bound = ", integrals(i)
+      ewrite(2, *) "Heaviside integral >= bound = ", integrals(i)
     end do
     
   end function heaviside_integral_tri
@@ -673,7 +674,7 @@ contains
     
     do i = 1, size(bounds)
       ewrite(2, *) "For field " // trim(sfield%name) // " with bound: ", bounds(i)
-      ewrite(2, *) "Heaviside integral > bound = ", integrals(i)
+      ewrite(2, *) "Heaviside integral >= bound = ", integrals(i)
     end do
 
   end function heaviside_integral_tet

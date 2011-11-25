@@ -65,14 +65,15 @@
   return reshape(concatenate((x,y)),(2,100)).T</string_value>
         </python>
       </detector_array>
+      <fail_outside_domain/>
       <lagrangian_timestepping>
+        <subcycles>
+          <integer_value rank="0">1</integer_value>
+        </subcycles>
+        <search_tolerance>
+          <real_value rank="0">1.0e-10</real_value>
+        </search_tolerance>
         <explicit_runge_kutta_guided_search>
-          <subcycles>
-            <integer_value rank="0">1</integer_value>
-          </subcycles>
-          <search_tolerance>
-            <real_value rank="0">1.0e-10</real_value>
-          </search_tolerance>
           <n_stages>
             <integer_value rank="0">4</integer_value>
           </n_stages>

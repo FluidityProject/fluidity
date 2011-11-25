@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # install - install a program, script, or datafile
-# This comes from X11R5 (mit/util/scripts/install.sh).
+# This comes from X11R5 (mit/util/bin/install.sh).
 #
 # Copyright 1991 by the Massachusetts Institute of Technology
 #

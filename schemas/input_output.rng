@@ -229,9 +229,9 @@ be set to use this option.</a:documentation>
       </element>
       <element name="from_netcdf">
         <a:documentation>Initialize a single field from data contained within a NetCDF file.
-Data should be in the form x,y,z where where x and y are the coordinates
+Data should be in the form x,y,z(y,x) where where x and y are the coordinates
 (either cartesian or longitude-latitude) and z is the value of the intial
-condition to be imposed. 
+condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
 Note: This option currently only supports 'single layer' data sets.</a:documentation>
         <attribute name="file_name">
           <data type="string"/>

@@ -500,7 +500,11 @@ implicit none
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
+#if PETSC_VERSION_MINOR==2
+      PetscBool flg
+#else
       PetscTruth  flg
+#endif
       PetscScalar v,one,neg_one
       Vec         x,b,u
       Mat         A 
@@ -990,7 +994,7 @@ if test $zoltan != no; then
     tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
     tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
   fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis $ZOLTAN_DEPS"
+  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis -lmetis $ZOLTAN_DEPS"
   tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
 fi
 LIBS=$tmpLIBS
@@ -1030,10 +1034,11 @@ AC_ARG_WITH(
 	[adjoint="$withval"],
     [])
 
+bakLIBS=$LIBS
 tmpLIBS=$LIBS
 tmpCPPFLAGS=$CPPFLAGS
-if test $adjoint != no; then
-  if test $adjoint != yes; then
+if test "$adjoint" != "no"; then
+  if test "$adjoint" != "yes"; then
     adjoint_LIBS_PATH="$adjoint/lib"
     adjoint_INCLUDES_PATH="$adjoint/include"
     # Ensure the comiler finds the library...
@@ -1051,10 +1056,9 @@ AC_LANG_C
 AC_CHECK_LIB(
 	[adjoint],
 	[adj_register_equation],
-	[AC_DEFINE(HAVE_ADJOINT,1,[Define if you have libadjoint.])],
-	[AC_MSG_ERROR( [Could not link in libadjoint ... exiting] )] )
+	[AC_DEFINE(HAVE_ADJOINT,1,[Define if you have libadjoint.])HAVE_ADJOINT=yes],
+	[AC_MSG_WARN( [Could not link in libadjoint ... ] );HAVE_ADJOINT=no;LIBS=$bakLIBS] )
 # Save variables...
 AC_LANG_RESTORE
 
-echo $LIBS
 ])dnl ACX_adjoint

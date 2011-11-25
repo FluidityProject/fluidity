@@ -53,8 +53,7 @@ module momentum_diagnostics
             calculate_tensor_second_invariant, calculate_imposed_material_velocity_source, &
             calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
-            calculate_vector_potential, calculate_geostrophic_velocity, &
-            calculate_hessian
+            calculate_geostrophic_velocity
            
   
 contains
@@ -75,23 +74,6 @@ contains
 
   end subroutine calculate_strain_rate
 
-  subroutine calculate_hessian(state, t_field)
-    ! Compute Hessian of a scalar field
-    type(state_type), intent(inout) :: state
-    type(tensor_field), intent(inout) :: t_field
-    
-    type(scalar_field), pointer :: source_field
-    type(vector_field), pointer :: positions
-
-    positions => extract_vector_field(state, "Coordinate")
-    source_field => scalar_source_field(state, t_field)
-
-    call check_source_mesh_derivative(source_field, "hessian")
-
-    call compute_hessian(source_field, positions, t_field)
-
-  end subroutine calculate_hessian
-  
   subroutine calculate_tensor_second_invariant(state, s_field)
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: s_field
@@ -421,82 +403,6 @@ contains
 
   end subroutine calculate_projection_scalar_potential
 
-  subroutine calculate_vector_potential(state, v_field)
-    type(state_type), intent(inout) :: state
-    type(vector_field), intent(inout) :: v_field
-    
-    integer :: i
-    type(csr_sparsity), pointer :: sparsity
-    type(csr_matrix) :: matrix
-    type(vector_field) :: rhs
-    type(vector_field), pointer :: positions, source_field
-    
-    positions => extract_vector_field(state, "Coordinate")
-    if(positions%dim /= 3) then
-      FLExit("Can only compute vector potentials in 3D")
-    else if(continuity(v_field) /= 0) then
-      FLExit("Can only compute vector potentials on a continuous mesh")
-    end if
-    source_field => vector_source_field(state, v_field)
-    
-    sparsity => get_csr_sparsity_firstorder(state, v_field%mesh, v_field%mesh)
-    ! Could cache this
-    call allocate(matrix, sparsity, name = "LaplacianMatrix")
-    call allocate(rhs, v_field%dim, v_field%mesh, "VectorPotentialRHS")
-    
-    call zero(matrix)
-    call zero(rhs)
-    do i = 1, ele_count(rhs)
-      call assemble_vector_potential_ele(i, positions, source_field, matrix, rhs)
-    end do
-
-    ! Strong Dirichlet bc of zero on all boundaries
-    do i = 1, surface_element_count(rhs)
-      call set_inactive(matrix, face_global_nodes(rhs, i))
-      call set(rhs, face_global_nodes(rhs, i), spread(spread(0.0, 1, face_loc(rhs, i)), 1, rhs%dim))
-    end do
-
-    call petsc_solve(v_field, matrix, rhs, option_path = trim(complete_field_path(v_field%option_path)) // "/algorithm")
-    
-    call deallocate(matrix)
-    call deallocate(rhs)
-    
-  contains
-
-    subroutine assemble_vector_potential_ele(ele, positions, source_field, matrix, rhs)
-      integer, intent(in) :: ele
-      type(vector_field), intent(in) :: positions
-      type(vector_field), intent(in) :: source_field
-      type(csr_matrix), intent(inout) :: matrix
-      type(vector_field), intent(inout) :: rhs
-
-      integer, dimension(:), pointer :: nodes
-      real, dimension(ele_ngi(rhs, ele)) :: detwei
-      real, dimension(ele_loc(rhs, ele), ele_ngi(rhs, ele), positions%dim) :: dshape_f
-      real, dimension(ele_loc(rhs, ele), ele_ngi(rhs, ele), positions%dim) :: dshape
-      type(element_type), pointer :: shape, shape_f
-
-      shape => ele_shape(rhs, ele)
-      shape_f => ele_shape(source_field, ele)
-
-      call transform_to_physical(positions, ele, shape, &
-        & dshape = dshape, detwei = detwei)
-      if(shape == shape_f) then
-        dshape_f = dshape
-      else
-        call transform_to_physical(positions, ele, shape_f, &
-          & dshape = dshape_f)
-      end if
-
-      nodes => ele_nodes(rhs, ele)
-
-      call addto(matrix, nodes, nodes, dshape_dot_dshape(dshape, dshape, detwei))
-      call addto(rhs, nodes, shape_vector_rhs(shape, ele_curl_at_quad(source_field, ele, dshape_f), detwei))
-
-    end subroutine assemble_vector_potential_ele
-
-  end subroutine calculate_vector_potential
-  
   subroutine calculate_geostrophic_velocity(state, v_field)
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout) :: v_field

@@ -21,7 +21,7 @@ module ieee_arithmetic
 
   integer, parameter :: ieee_quiet_nan=0
 
-  interface ieee_get_value
+  interface ieee_value
     module procedure ieee_get_value_r4, ieee_get_value_r8
   end interface
   
@@ -49,7 +49,6 @@ module ieee_arithmetic
     real(kind=4) :: val
     real(kind=8) :: nan
     integer, intent(in) :: flag
-
     assert(flag == ieee_quiet_nan)
     call cget_nan(nan)
     val = nan

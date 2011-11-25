@@ -1,7 +1,7 @@
 default: input
 
 input: src/target.msh
-	../../scripts/gmsh2triangle --2d src/target.msh
+	../../bin/gmsh2triangle --2d src/target.msh
 
 clean: clean-mesh clean-run
 clean-mesh:
@@ -10,3 +10,4 @@ clean-run:
 	rm -f matrixdump matrixdump.info
 	rm -f output.vtu
 	rm -f tmpf*
+	rm -f *.log

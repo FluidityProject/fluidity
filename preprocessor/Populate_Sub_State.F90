@@ -622,6 +622,8 @@ contains
        end do
 
        ! Deal with tensor fields:
+       ntfields = tensor_field_count(states(istate))
+
        do ifield = 1, ntfields
 
           tfield => extract_tensor_field(states(istate),ifield)

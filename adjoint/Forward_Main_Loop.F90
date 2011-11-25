@@ -40,6 +40,7 @@ module forward_main_loop
     use adjoint_global_variables
     use adjoint_functional_evaluation
     use populate_state_module
+    use boundary_conditions_from_options
     use signal_vars
     use mangle_options_tree
     use mangle_dirichlet_rows_module
@@ -53,12 +54,13 @@ module forward_main_loop
     implicit none
 
     private
+    public :: forward_main_loop_register_diagnostic
 #ifdef HAVE_ADJOINT
-    public :: compute_forward
+    public :: compute_forward, calculate_functional_values, register_functional_callbacks
 #endif
 
-#ifdef HAVE_ADJOINT
     contains
+#ifdef HAVE_ADJOINT
 
     subroutine compute_forward(state)
       type(state_type), dimension(:), intent(inout) :: state
@@ -94,15 +96,12 @@ module forward_main_loop
       ierr = adj_adjointer_check_consistency(adjointer)
       call adj_chkierr(ierr)
 
-      ! Forget everything up to the first equation
-      ierr = adj_forget_adjoint_equation(adjointer, 0)
-
       call get_option("/timestepping/timestep", dt)
       call get_option("/simulation_name", simulation_base_name)
       running_adjoint = .false.
 
       ! Switch the html output on if you are interested what the adjointer has registered
-      if (have_option("/adjoint/html_output")) then
+      if (have_option("/adjoint/debug/html_output")) then
         ierr = adj_adjointer_to_html(adjointer, "adjointer_forward.html", ADJ_FORWARD)
         call adj_chkierr(ierr)
         ierr = adj_adjointer_to_html(adjointer, "adjointer_adjoint.html", ADJ_ADJOINT)
@@ -141,7 +140,7 @@ module forward_main_loop
           material_phase_name = variable_name(1:s_idx - 1)
           field_name = variable_name(s_idx + 2:len_trim(variable_name))
           ierr = adj_dict_find(adj_path_lookup, trim(variable_name), path)
-          if (ierr == ADJ_ERR_OK) then
+          if (ierr == ADJ_OK) then
             has_path = .true.
           else
             has_path = .false.
@@ -156,6 +155,11 @@ module forward_main_loop
 
               if (has_path) then
                 sfield_soln%option_path = trim(path)
+                ! We need to populate the BC values:
+                call insert(state(1), sfield_soln, trim(sfield_soln%name))
+                call populate_boundary_conditions(state)
+                call set_boundary_conditions_values(state, shift_time=.false.)
+                sfield_soln = extract_scalar_field(state(1), trim(sfield_soln%name))
               end if
 
               select case(lhs%klass)
@@ -171,6 +175,10 @@ module forward_main_loop
                       call adj_chkierr(ierr)
                     end if
 
+                    sfield_rhs%bc => sfield_soln%bc
+                    call set_dirichlet_consistent(sfield_rhs)
+                    sfield_rhs%bc => null()
+
                     call petsc_solve(sfield_soln, csr_mat, sfield_rhs, option_path=path)
                     call compute_inactive_rows(sfield_soln, csr_mat, sfield_rhs)
                   endif
@@ -181,15 +189,19 @@ module forward_main_loop
               end select
 
               call insert(state(1), sfield_soln, trim(sfield_soln%name))
+
               soln = field_to_adj_vector(sfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
+
+              ierr = adj_storage_set_compare(storage, .true., 1.0d-10)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
+              call adj_chkierr(ierr)
+
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(sfield_soln)
-              if (ierr == ADJ_WARN_ALREADY_RECORDED) then
-                call femtools_vec_destroy_proc(soln)
-              end if
             case(ADJ_VECTOR_FIELD)
               call field_from_adj_vector(rhs, vfield_rhs)
               call allocate(vfield_soln, vfield_rhs%dim, vfield_rhs%mesh, trim(field_name))
@@ -197,6 +209,11 @@ module forward_main_loop
 
               if (has_path) then
                 vfield_soln%option_path = trim(path)
+                ! We need to populate the BC values:
+                call insert(state(1), vfield_soln, trim(vfield_soln%name))
+                call populate_boundary_conditions(state)
+                call set_boundary_conditions_values(state, shift_time=.false.)
+                vfield_soln = extract_vector_field(state(1), trim(vfield_soln%name))
               end if
 
               select case(lhs%klass)
@@ -211,6 +228,10 @@ module forward_main_loop
                       ierr = adj_dict_find(adj_solver_path_lookup, trim(variable_name), path)
                       call adj_chkierr(ierr)
                     end if
+
+                    vfield_rhs%bc => vfield_soln%bc
+                    call set_dirichlet_consistent(vfield_rhs)
+                    vfield_rhs%bc => null()
 
                     call petsc_solve(vfield_soln, csr_mat, vfield_rhs, option_path=path)
                     !call compute_inactive_rows(vfield_soln, csr_mat, vfield_rhs)
@@ -233,15 +254,19 @@ module forward_main_loop
               end select
 
               call insert(state(1), vfield_soln, trim(vfield_soln%name))
+
               soln = field_to_adj_vector(vfield_soln)
               ierr = adj_storage_memory_incref(soln, storage)
               call adj_chkierr(ierr)
+
+              ierr = adj_storage_set_compare(storage, .true., 1.0d-10)
+              call adj_chkierr(ierr)
+              ierr = adj_storage_set_overwrite(storage, .true.)
+              call adj_chkierr(ierr)
+
               ierr = adj_record_variable(adjointer, fwd_var, storage)
               call adj_chkierr(ierr)
               call deallocate(vfield_soln)
-              if (ierr == ADJ_WARN_ALREADY_RECORDED) then
-                call femtools_vec_destroy_proc(soln)
-              end if
             case default
               FLAbort("Unknown rhs%klass")
           end select
@@ -258,11 +283,20 @@ module forward_main_loop
           end if
         end do ! end of the equation loop
 
-        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time+dt)
+        call set_prescribed_field_values(state, exclude_interpolated=.true., exclude_nonreprescribed=.true., time=current_time)
         call calculate_diagnostic_variables(state, exclude_nonrecalculated = .true.)
         call calculate_diagnostic_variables_new(state, exclude_nonrecalculated = .true.)
+        ! The first timestep is the initialisation of the model.
+        ! We skip the evaluation of the functional at timestep zero to get the correct value.
+        if (timestep > 0) then
+          call calculate_functional_values(timestep-1)
+          ! The last timestep is a the dummy timestep added at the end to act
+          ! as a container for the last equation
+          if (start_time == end_time) then
+            assert(timestep == no_timesteps-1)
+          end if
+        end if
         call write_diagnostics(state, current_time, dt, equation+1)
-
         if (do_write_state(current_time, timestep)) then
           call write_state(dump_no, state)
         endif
@@ -283,5 +317,69 @@ module forward_main_loop
       call get_option("/timestepping/finish_time", finish_time)
       assert(current_time == finish_time)
     end subroutine compute_forward
+
+    subroutine register_functional_callbacks()                                                                                                                                                                 
+      integer :: no_functionals, functional
+      character(len=ADJ_NAME_LEN) :: functional_name
+      integer :: ierr
+
+      no_functionals = option_count("/adjoint/functional")
+      do functional=0,no_functionals-1
+        if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
+          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          ! Register the callback to compute J
+          ierr = adj_register_functional_callback(adjointer, trim(functional_name), c_funloc(libadjoint_evaluate_functional))
+          call adj_chkierr(ierr)
+        end if
+      end do
+    end subroutine register_functional_callbacks
+
+    subroutine calculate_functional_values(timestep)
+      integer, intent(in) :: timestep
+      integer :: functional, no_functionals
+      character(len=OPTION_PATH_LEN) :: functional_name
+      real, dimension(:), pointer :: fn_value
+      real :: J
+      integer :: ierr
+
+      no_functionals = option_count("/adjoint/functional")
+      do functional=0,no_functionals-1
+        if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
+          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          ierr = adj_evaluate_functional(adjointer, timestep, functional_name, J)
+          call adj_chkierr(ierr)
+          ! So we've computed the component of the functional associated with this timestep.
+          ! We also want to sum them all up ...
+          call set_diagnostic(name=trim(functional_name) // "_component", statistic="value", value=(/J/))
+          fn_value => get_diagnostic(name=trim(functional_name), statistic="value")
+          J = J + fn_value(1)
+          call set_diagnostic(name=trim(functional_name), statistic="value", value=(/J/))
+        end if
+      end do
+    end subroutine calculate_functional_values
+  
 #endif
+
+    ! Register a diagnostic variable for each functional.
+    subroutine forward_main_loop_register_diagnostic
+      integer :: functional, no_functionals
+      character(len=OPTION_PATH_LEN) :: functional_name
+
+#ifdef HAVE_ADJOINT
+      no_functionals = option_count("/adjoint/functional")
+      
+      do functional=0,no_functionals-1
+        ! Register a diagnostic for each functional 
+        if (have_option("/adjoint/functional[" // int2str(functional) // "]/functional_value")) then
+          call get_option("/adjoint/functional[" // int2str(functional) // "]/name", functional_name)
+          call register_diagnostic(dim=1, name=trim(functional_name) // "_component", statistic="value")
+          call register_diagnostic(dim=1, name=trim(functional_name), statistic="value")
+          ! The functional value will be accumulated, so initialise it with zero.
+          call set_diagnostic(name=trim(functional_name) // "_component", statistic="value", value=(/0.0/))
+          call set_diagnostic(name=trim(functional_name), statistic="value", value=(/0.0/))
+        end if
+      end do
+#endif
+   end subroutine forward_main_loop_register_diagnostic
+   
 end module forward_main_loop

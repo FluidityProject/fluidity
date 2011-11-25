@@ -38,14 +38,33 @@ mesh_info =
                integer
             }?,
             element element_type {
+               ## Select the element type. "lagrangian" means the usual
+               ## Pn element type. "bubble" adds bubble functions that
+               ## vanish on the element boundaries, and
+               ## trace defines an element that is only defined on faces
+               ## and is undefined on the element interior (used for 
+               ## enforcing continuity by Lagrange multipliers).
               element string_value{
-                 "lagrangian" | "bubble"
+                 "lagrangian" | "bubble" | "trace"
               }
             }?
          }?,
          element mesh_continuity {
             element string_value{
                "continuous" | "discontinuous"
+            }
+         }?,
+         element constraint_type {
+            ## Set the constraint type. This is used to implement
+            ## div-conforming elements such as RT0 in a hybridised
+            ## solver.
+            element string_value{
+               "BDM" | "BDFM" | "RT"
+            },
+            element solver {
+               ## Solver is used to apply projections to div-conforming
+               ## space, and in elliptic solvers
+               linear_solver_options_sym
             }
          }?,
          ## Make mesh periodic

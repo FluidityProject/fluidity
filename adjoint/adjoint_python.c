@@ -37,9 +37,11 @@ USA
 #endif
 #ifdef HAVE_ADJOINT
 #include "libadjoint/libadjoint.h"
+#else
+#define adj_adjointer int
 #endif
 
-void adj_variables_from_python(char* function, int function_len,
+void adj_variables_from_python(adj_adjointer* adjointer, char* function, int function_len,
                                double start_time, double end_time, long timestep,
                                void** result,
                                int* result_len,
@@ -191,7 +193,17 @@ void adj_variables_from_python(char* function, int function_len,
     if (strstr(PyString_AsString(pName), "Coordinate") != NULL)
       auxiliary = ADJ_TRUE;
 
-    ierr = adj_create_variable(PyString_AsString(pName), (int) PyLong_AsLong(pTimestep), 0, auxiliary, &(result_var[i]));
+    {
+      int iteration_count;
+      ierr = adj_create_variable(PyString_AsString(pName), (int) PyLong_AsLong(pTimestep), 0, auxiliary, &(result_var[i]));
+      adj_chkierr(ierr);
+      ierr = adj_iteration_count(adjointer, result_var[i], &iteration_count);
+      if (ierr != ADJ_ERR_INVALID_INPUTS)
+      {
+        ierr = adj_create_variable(PyString_AsString(pName), (int) PyLong_AsLong(pTimestep), iteration_count-1, auxiliary, &(result_var[i]));
+        adj_chkierr(ierr);
+      }
+    }
 
     Py_DECREF(pResultItem);
   }

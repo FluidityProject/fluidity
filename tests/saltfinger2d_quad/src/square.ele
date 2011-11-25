@@ -9999,4 +9999,4 @@
 9998 10199 398 10200 399 10 
 9999 10200 399 10201 400 10 
 10000 10201 400 202 4 10 
-# Produced by: ../../../scripts/gmsh2triangle --2d square.msh
+# Produced by: ../../../bin/gmsh2triangle --2d square.msh

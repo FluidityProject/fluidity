@@ -14,7 +14,7 @@
 #include <string>
 
 #include "confdefs.h"
-#include "spud.h"
+#include "spud"
 
 #ifdef HAVE_MPI
 #include <mpi.h>

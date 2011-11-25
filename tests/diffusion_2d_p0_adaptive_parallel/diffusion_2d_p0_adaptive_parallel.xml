@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
   <name>heat_2d_dg</name>
@@ -83,8 +82,8 @@ regionids = array(regionids)
     </variable>
   </variables>
   <pass_tests>
-    <test name="finish time is 750" language="python">
-assert abs(finish_time - 750) &lt; 1e-9
+    <test name="finish time is 500" language="python">
+assert abs(finish_time - 500) &lt; 1e-9
     </test>
     <test name="no. nodes is initially 231" language="python">
 assert abs(no_nodes[0] - 231) &lt; 1e-9

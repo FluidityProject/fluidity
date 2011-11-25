@@ -130,8 +130,7 @@ contains
           end if
         end if
 
-        call allocate(element=shape, dim=dim, loc=nodes, ngi=ngi, coords=coords, &
-                      type=ELEMENT_CONTROLVOLUME_SURFACE)
+        call allocate(element=shape, ele_num=ele_num, ngi=ngi, type = ELEMENT_CONTROLVOLUME_SURFACE)
 
         shape%numbering=>ele_num
 
@@ -263,8 +262,7 @@ contains
           end if
         end if
 
-        call allocate(element=shape, dim=dim, loc=nodes, ngi=ngi, coords=coords, &
-                      type=ELEMENT_CONTROLVOLUMEBDY_SURFACE)
+        call allocate(element=shape, ele_num=ele_num,  ngi=ngi, type=ELEMENT_CONTROLVOLUMEBDY_SURFACE)
 
         shape%numbering=>ele_num
 

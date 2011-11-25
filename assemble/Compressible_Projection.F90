@@ -46,6 +46,7 @@ module compressible_projection
 
   private
   public :: assemble_compressible_projection_cv, assemble_compressible_projection_cg, update_compressible_density
+  public :: compressible_projection_check_options
 
   ! Stabilisation schemes
   integer, parameter :: STABILISATION_NONE = 0, &
@@ -614,6 +615,21 @@ contains
     end if
   
   end subroutine update_compressible_density
+
+  subroutine compressible_projection_check_options
+
+    character(len=OPTION_PATH_LEN):: prognostic_pressure_path
+    integer:: i
+
+    do i=0, option_count("/material_phase")-1
+      prognostic_pressure_path="/material_phase"//int2str(i)//"/scalar_field::Pressure/prognostic"
+      if (have_option(trim(prognostic_pressure_path)//"/spatial_discretisation/discontinuous_galerkin") &
+        .and. have_option(trim(prognostic_pressure_path)//"/scheme/use_compressible_projection")) then
+        FLExit("With a DG pressure you cannot have use_compressible_projection")
+      end if
+    end do
+
+  end subroutine compressible_projection_check_options
 
 end module compressible_projection
 

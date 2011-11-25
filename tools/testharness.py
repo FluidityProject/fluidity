@@ -5,17 +5,20 @@ import os
 import os.path
 import glob
 import time
-import regressiontest
+import fluidity.regressiontest as regressiontest
 import traceback
 import threading
 import xml.parsers.expat
 
 
 sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
-import elementtree.ElementTree as etree
+try:
+  import xml.etree.ElementTree as etree
+except ImportError:
+  import elementtree.ElementTree as etree
 
 class TestHarness:
-    def __init__(self, length="short", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
+    def __init__(self, length="any", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
         valgrind=False):
         self.tests = []
         self.verbose = verbose
@@ -30,6 +33,16 @@ class TestHarness:
         self.valgrind = valgrind
 
         fluidity_command = self.decide_fluidity_command()
+
+        if file == "":
+          print "Test criteria:"
+          print "-" * 80
+          print "length: ", length
+          print "parallel: ", parallel
+          print "tags to include: ", tags
+          print "tags to exclude: ", exclude_tags
+          print "-" * 80
+          print 
 
         # step 1. form a list of all the xml files to be considered.
 
@@ -48,7 +61,7 @@ class TestHarness:
             for xml_file in g:
               try:
                 p = etree.parse(os.path.join(subdir, xml_file))
-                x = p.findall("/")[0]
+                x = p.getroot()
                 if x.tag == "testproblem":
                   xml_files.append(os.path.join(subdir, xml_file))
               except xml.parsers.expat.ExpatError:
@@ -74,7 +87,7 @@ class TestHarness:
           prob_defn = p.findall("problem_definition")[0]
           prob_length = prob_defn.attrib["length"]
           prob_nprocs = int(prob_defn.attrib["nprocs"])
-          if prob_length == length or length == "any":
+          if prob_length == length or (length == "any" and prob_length not in ["special", "long"]):
             if self.parallel is True:
               if prob_nprocs > 1:
                 working_set.append(xml_file)
@@ -130,7 +143,6 @@ class TestHarness:
           self.tests.append((subdir, testprob))
 
         if len(self.tests) == 0:
-          print
           print "Warning: no matching tests."
 
     def length_matches(self, filelength):
@@ -310,11 +322,11 @@ if __name__ == "__main__":
     import optparse
 
     parser = optparse.OptionParser()
-    parser.add_option("-l", "--length", dest="length", help="length of problem (default=short)", default="short")
+    parser.add_option("-l", "--length", dest="length", help="length of problem (default=short)", default="any")
     parser.add_option("-p", "--parallelism", dest="parallel", help="parallelism of problem (default=serial)",
                       default="serial")
-    parser.add_option("-e", "--exclude-tags", dest="exclude_tags", help="run only tests that do not have specific tags (takes precidence over -t)", default="")
-    parser.add_option("-t", "--tags", dest="tags", help="run tests with specific tags", default="")
+    parser.add_option("-e", "--exclude-tags", dest="exclude_tags", help="run only tests that do not have specific tags (takes precidence over -t)", default=[], action="append")
+    parser.add_option("-t", "--tags", dest="tags", help="run tests with specific tags", default=[], action="append")
     parser.add_option("-f", "--file", dest="file", help="specific test case to run (by filename)", default="")
     parser.add_option("-n", "--threads", dest="thread_count", type="int",
                       help="number of tests to run at the same time", default=1)
@@ -335,6 +347,10 @@ if __name__ == "__main__":
       os.environ["PYTHONPATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")) + ":" + os.environ["PYTHONPATH"]
     except KeyError:
       os.putenv("PYTHONPATH", os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "python")))
+    try:
+      os.environ["LD_LIBRARY_PATH"] = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "lib")) + ":" + os.environ["LD_LIBRARY_PATH"]
+    except KeyError:
+      os.putenv("LD_LIBRARY_PATH", os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "..", "lib")))
 
     try:
         os.mkdir(os.environ["HOME"] + os.sep + "lock")
@@ -344,11 +360,12 @@ if __name__ == "__main__":
     if len(options.exclude_tags) == 0:
       exclude_tags = None
     else:
-      exclude_tags = options.exclude_tags.split()
+      exclude_tags = options.exclude_tags
+
     if len(options.tags) == 0:
       tags = None
     else:
-      tags = options.tags.split()
+      tags = options.tags
 
     testharness = TestHarness(length=options.length, parallel=para, exclude_tags=exclude_tags, tags=tags, file=options.file, verbose=True,
         justtest=options.justtest, valgrind=options.valgrind)

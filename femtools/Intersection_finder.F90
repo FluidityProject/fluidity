@@ -14,6 +14,7 @@ use parallel_fields
 use parallel_tools
 use supermesh_construction
 use transform_elements
+use data_structures
 
 implicit none
 
@@ -366,23 +367,20 @@ contains
     type(ilist), dimension(ele_count(positionsA)) :: map_AB
     integer, optional, intent(in) :: seed
 
-    ! A list to store where next to go in the A mesh.
-    ! This list stores 2-tuples: the first is the resolved
-    ! element, and the second is a neighbour of the first.
-    type(elist) :: active_eles
+    ! processed_neighbour maps an element to a neighbour that has already been processed (i.e. its clue)
+    type(integer_hash_table) :: processed_neighbour
+    ! we also need to keep a set of the elements we've seen: this is different to
+    ! the elements that have map_AB(ele)%length > 0 in the case where the domain
+    ! is not simply connected!
+    type(integer_set) :: seen_elements
 
     integer :: ele_A
     type(mesh_type), pointer :: mesh_A, mesh_B
     integer :: i, neighbour
-    integer, dimension(2) :: edge
     real, dimension(ele_count(positionsB), positionsB%dim, 2) :: bboxes_B
     integer, dimension(:), pointer :: neigh_A
     type(csr_sparsity), pointer :: eelist_A, eelist_B
 
-    ! Evil large working memory !! Sorry !!
-    logical, dimension(ele_count(positionsB)) :: in_list
-    integer, dimension(ele_count(positionsB)) :: possibles
-    integer :: possible_size
     type(ilist) :: clues
 
     ewrite(1, *) "In advancing_front_intersection_finder"
@@ -395,10 +393,6 @@ contains
 
     call compute_bboxes(positionsB, bboxes_B)
 
-    in_list = .false.
-    possibles = 0
-    possible_size = 0
-
     if(present(seed)) then
       assert(seed > 0)
       assert(seed <= ele_count(positionsA))
@@ -408,35 +402,46 @@ contains
     end if
     map_AB(ele_A) = brute_force_search(ele_val(positionsA, ele_A), positionsB, bboxes_B)
 
+    call allocate(processed_neighbour)
+    call allocate(seen_elements)
+
     neigh_A => row_m_ptr(eelist_A, ele_A)
     do i=1,size(neigh_A)
       neighbour = neigh_A(i)
       if (neighbour <= 0) cycle
-      call insert(active_eles, ele_A, neighbour)
+      call insert(processed_neighbour, neighbour, ele_A)
     end do
+    call insert(seen_elements, ele_A)
 
-    do while (active_eles%length /= 0)
-      edge = pop(active_eles)
-      ele_A = edge(2)
-      if (map_AB(ele_A)%length > 0) then
-        ! We've already seen it
-        cycle
-      end if
-      clues = clueful_search(ele_val(positionsA, ele_A), map_AB(edge(1)), &
-                           & bboxes_B, ele_A, edge(1))
+    do while (key_count(processed_neighbour) > 0)
+      call fetch_pair(processed_neighbour, 1, ele_A, neighbour)
+      ! try to keep our memory footprint low
+      call remove(processed_neighbour, ele_A)
+      call insert(seen_elements, ele_A)
+
+      assert(map_AB(ele_A)%length == 0) ! we haven't seen it yet
+
+      clues = clueful_search(ele_val(positionsA, ele_A), map_AB(neighbour), &
+                           & bboxes_B, ele_A, neighbour)
       map_AB(ele_A) = advance_front(ele_val(positionsA, ele_A), positionsB, clues, bboxes_B, eelist_B)
       call deallocate(clues)
+
+      ! Now that ele_A has been computed, make its clues available to anyone who needs them
       neigh_A => row_m_ptr(eelist_A, ele_A)
       do i=1,size(neigh_A)
         neighbour = neigh_A(i)
         if (neighbour <= 0) cycle
-        if (map_AB(neighbour)%length > 0) then
+        if (has_value(seen_elements, neighbour)) then
           ! We've already seen it
           cycle
         end if
-        call insert(active_eles, ele_A, neighbour)
+        call insert(processed_neighbour, neighbour, ele_A)
       end do
     end do
+
+    assert(key_count(processed_neighbour) == 0)
+    call deallocate(processed_neighbour)
+    call deallocate(seen_elements)
 
     ewrite(1, *) "Exiting advancing_front_intersection_finder"
 
@@ -455,19 +460,22 @@ contains
         type(mesh_type), pointer :: mesh_B
         real, dimension(size(posA, 1), 2) :: bboxA
         integer :: ele_B
-        type(ilist) :: seen_list
-        type(inode), pointer :: seen_ptr
+        type(integer_set) :: in_list
+        type(integer_hash_table) :: possibles_tbl
+        integer :: possible_size
 
         bboxA = bbox(posA)
+        call allocate(in_list)
+        call allocate(possibles_tbl)
+        possible_size = 0
 
         mesh_B => positionsB%mesh
 
         do while (clues%length /= 0)
           ele_B = pop(clues)
-          if (.not. in_list(ele_B)) then
+          if (.not. has_value(in_list, ele_B)) then
             call insert(map, ele_B)
-            in_list(ele_B) = .true.
-            call insert(seen_list, ele_B)
+            call insert(in_list, ele_B)
           end if
 
           ! Append all the neighbours of ele_B to possibles. 
@@ -475,11 +483,10 @@ contains
           do i=1,size(neigh_B)
             neighbour = neigh_B(i)
             if (neighbour <= 0) cycle
-            if (.not. in_list(neighbour)) then
+            if (.not. has_value(in_list, neighbour)) then
               possible_size = possible_size + 1
-              possibles(possible_size) = neighbour
-              in_list(neighbour) = .true.
-              call insert(seen_list, neighbour)
+              call insert(possibles_tbl, possible_size, neighbour)
+              call insert(in_list, neighbour)
             end if
           end do
         end do
@@ -490,7 +497,7 @@ contains
 
         j = 1
         do while (j <= possible_size)
-          possible = possibles(j)
+          possible = fetch(possibles_tbl, j)
           intersects = bbox_predicate(bboxA, bboxes_B(possible, :, :))
           if (intersects) then
             call insert(map, possible)
@@ -498,23 +505,18 @@ contains
             do i=1,size(neigh_B)
               neighbour = neigh_B(i)
               if (neighbour <= 0) cycle
-              if (.not. in_list(neighbour)) then
+              if (.not. has_value(in_list, neighbour)) then
                 possible_size = possible_size + 1
-                possibles(possible_size) = neighbour
-                in_list(neighbour) = .true.
-                call insert(seen_list, neighbour)
+                call insert(possibles_tbl, possible_size, neighbour)
+                call insert(in_list, neighbour)
               end if
             end do
           end if
           j = j + 1
         end do
 
-        seen_ptr => seen_list%firstnode
-        do while(associated(seen_ptr))
-          in_list(seen_ptr%value) = .false.
-          seen_ptr => seen_ptr%next
-        end do
-        call flush_list(seen_list)
+        call deallocate(in_list)
+        call deallocate(possibles_tbl)
 
         possible_size = 0
       end function advance_front

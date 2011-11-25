@@ -164,7 +164,10 @@ subroutine load_nemo_values(state)
   real, dimension(:), allocatable :: radius, depth
   real :: rsphere
   
-  call get_option('/ocean_forcing/mesh_choice/mesh/name', input_mesh_name)
+  ! The input mesh was previously set in the flml file. As this is no longer
+  ! the case it is by default set to the coordinate mesh. This may need to be
+  ! re-though in the future.
+  input_mesh_name="CoordinateMesh"
   input_mesh = extract_mesh(state, input_mesh_name)
   position = get_coordinate_field(state, input_mesh)
 

@@ -41,7 +41,7 @@ def run_test(layers, binary):
     generate_meshfile("channel.geo",layers)
 
     os.system("gmsh -2 channel.geo")
-    os.system("../../scripts/gmsh2triangle --2d channel.msh")
+    os.system("../../bin/gmsh2triangle --2d channel.msh")
 
     os.system(binary+" channel.flml")
 

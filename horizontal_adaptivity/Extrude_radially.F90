@@ -37,7 +37,7 @@ module hadapt_extrude_radially
     character(len=FIELD_NAME_LEN):: mesh_name, file_name
     type(quadrature_type) :: quad
     type(element_type) :: full_shape
-    type(vector_field), dimension(node_count(shell_mesh)) :: r_meshes
+    type(vector_field), dimension(:), allocatable :: r_meshes
     character(len=PYTHON_FUNC_LEN) :: sizing_function, depth_function
     logical:: sizing_is_constant, depth_is_constant
     real:: constant_sizing, depth, min_bottom_layer_frac
@@ -68,6 +68,7 @@ module hadapt_extrude_radially
 
     ewrite(1,*) 'In extrude_radially'
 
+    allocate(r_meshes(node_count(shell_mesh)))
     !! We assume that for the extrusion operation,
     !! the layer configuration is independent of phi and theta.
     !! (i.e. the layers are the same everywhere.)
@@ -285,7 +286,7 @@ module hadapt_extrude_radially
 
     ! combine the 1d radial meshes into a full mesh
     call combine_r_meshes(shell_mesh, r_meshes, out_mesh, &
-       full_shape, mesh_name, option_path)
+       full_shape, mesh_name, option_path, sigma_layers)
 
 !     vtk_write_state(filename, index, model, state, write_region_ids, stat)
 !     call vtk_write_fields("extruded_mesh", 0, out_mesh, out_mesh%mesh, vfields=(/out_mesh/))
@@ -297,6 +298,7 @@ module hadapt_extrude_radially
       call deallocate(r_meshes(column))
     end do
     call deallocate(full_shape)
+    deallocate(r_meshes)
         
   end subroutine extrude_radially
 

@@ -27,8 +27,11 @@
 
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
-FCFLAGS = -I../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
+FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
 MPIF90  = @MPIF90@
 
@@ -42,21 +45,18 @@ MAKE    = @MAKE@
 AR  = @AR@
 ARFLAGS = @ARFLAGS@
 
-LIB = ../lib/lib@FLUIDITY@.a
+LIB = ../lib/lib$(FLUIDITY).a
 
 AUTO_WRAPPER = Diagnostic_Fields_New
 DISABLED_DIAGS = $(AUTO_WRAPPER) Diagnostic_Source_Fields Diagnostic_Fields_Interfaces
 DIAGOBJS = $(addsuffix .o, $(filter-out $(DISABLED_DIAGS), $(basename $(wildcard *.F90))))
 OBJS = $(AUTO_WRAPPER).o $(DIAGOBJS) Diagnostic_Source_Fields.o  Diagnostic_Fields_Interfaces.o
 
-.SUFFIXES: .f90 .F90 .c .cpp .o .a
+.SUFFIXES: .F90 .c .cpp .o .a
 
-.f90.o:
-	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
 .F90.o:
 	@echo "        FC $<"
-	$(FC) $(FCFLAGS) -c $<
+	$(FC) $(FCFLAGS) $(GENFLAGS) -c $< 
 .c.o:
 	@echo "        CC $<"
 	$(CC) $(CFLAGS) -c $<
@@ -66,8 +66,7 @@ OBJS = $(AUTO_WRAPPER).o $(DIAGOBJS) Diagnostic_Source_Fields.o  Diagnostic_Fiel
 
 $(LIB): $(OBJS)
 	@mkdir -p ../lib
-	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
-	@cp *.mod ../include/
+
 default: $(LIB)
 
 # cancel implicit rule that tries to make .o from .mod with m2c:
@@ -76,12 +75,14 @@ default: $(LIB)
 $(addsuffix .o, $(filter-out Diagnostic_Source_Fields, $(basename $(wildcard *.F90)))): Diagnostic_Source_Fields.o
 
 $(AUTO_WRAPPER).F90: $(DIAGOBJS) $(AUTO_WRAPPER).F90.in \
-  ../scripts/make_diagnostic_fields 
-	../scripts/make_diagnostic_fields
-	
+  ../bin/make_diagnostic_fields
+	../bin/make_diagnostic_fields
+
 Diagnostic_Fields_New.o: $(DIAGOBJS) $(AUTO_WRAPPER).F90
 Diagnostic_Fields_Interfaces.o: Diagnostic_Fields_New.o
 
 clean:
 	rm -f *.o *.d *.mod
 	rm -f $(AUTO_WRAPPER).F90
+
+include Makefile.dependencies

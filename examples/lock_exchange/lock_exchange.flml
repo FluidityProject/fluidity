@@ -62,7 +62,9 @@
       </checkpoint_period_in_dumps>
       <checkpoint_at_end/>
     </checkpointing>
-    <stat/>
+    <stat>
+      <output_at_start/>
+    </stat>
   </io>
   <timestepping>
     <current_time>
@@ -72,7 +74,7 @@
       <real_value rank="0">0.025</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">30.0</real_value>
+      <real_value rank="0">10.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
@@ -138,7 +140,7 @@
         </scheme>
         <solver>
           <iterative_method name="cg"/>
-          <preconditioner name="eisenstat"/>
+          <preconditioner name="mg"/>
           <relative_error>
             <real_value rank="0">1.0e-6</real_value>
           </relative_error>
@@ -303,8 +305,7 @@
                 <value name="WholeMesh">
                   <constant>
                     <real_value shape="2" dim1="dim" rank="1">0.001 0.001</real_value>
-                    <comment>Python to get a spatially varying interpolation error bound for horizontal velocity
-def val(X, t):
+                    <comment>def val(X, t):
 
 # exponential function of form p = Ae^(aq) + B, 
 # with q = q_1, p=p_1 and q = q_2, p=p_2
@@ -320,7 +321,7 @@ def val(X, t):
   q_2 = 0.05
   p_2 = 0.001  
 
-  if(X[1]&amp;lt;=0.05):
+  if(X[1]&amp;amp;lt;=0.05):
     C = (p_2 - p_1)/((math.exp(a*(q_2 - q_1)))-1)
     q = X[1]
     p = p_1 + C*((math.exp(a*(q - q_1)))-1)
@@ -409,18 +410,6 @@ def val(X, t):
 		return 0.5</string_value>
           </python>
         </initial_condition>
-        <tensor_field name="Diffusivity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <isotropic>
-                <constant>
-                  <real_value rank="0">0.0E-14</real_value>
-                </constant>
-              </isotropic>
-            </value>
-            <output/>
-          </prescribed>
-        </tensor_field>
         <output/>
         <stat>
           <include_mixing_stats name="cv_normalised">
@@ -428,9 +417,13 @@ def val(X, t):
               <normalise/>
             </control_volumes>
             <mixing_bin_bounds>
-              <constant>
-                <real_value shape="3" rank="1">-1E10 -0.4 0.4</real_value>
-              </constant>
+              <python>
+                <string_value lines="20" type="python">def val(t):
+  bounds = [-1E10]
+  for i in range(501):
+    bounds.append(-0.5+(i/500.))  
+  return bounds</string_value>
+              </python>
             </mixing_bin_bounds>
           </include_mixing_stats>
         </stat>

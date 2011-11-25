@@ -27,7 +27,6 @@
 
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(include/spud.h)
-AC_CONFIG_HEADERS(include/spud_config.h)
 
 LT_INIT
 LT_LANG([CXX])
@@ -272,8 +271,8 @@ if test "$enable_debugging" = "yes" ; then
 else
     AC_MSG_NOTICE([Setting optimisation flags])
     CPPFLAGS="$CPPFLAGS -DNDEBUG=1"
-    FCFLAGS="-O3 `echo $FCFLAGS | sed 's/-g -O2//g'`"
-    CXXFLAGS="-O3 `echo $CXXFLAGS | sed 's/-g -O2//g'`"
+    FCFLAGS="-O0 `echo $FCFLAGS | sed 's/-g -O2//g'`"
+    CXXFLAGS="-O0 `echo $CXXFLAGS | sed 's/-g -O2//g'`"
 fi
 
 if test "$FC" = "ifc" ; then
@@ -307,5 +306,4 @@ AC_SUBST(LIBS)
 
 AC_OUTPUT(Makefile src/tests/Makefile examples/Makefile
           bin/spud-preprocess
-          python/libspud.py
           diamond/setup.py diamond/diamond/plugins.py diamond/diamond/preprocess.py)

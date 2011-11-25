@@ -374,14 +374,8 @@
         </linear>
       </fluids>
     </equation_of_state>
-    <scalar_field name="Pressure" rank="0">
-      <aliased material_phase_name="Oil" field_name="Pressure"/>
-    </scalar_field>
-    <scalar_field name="Density" rank="0">
-      <aliased material_phase_name="Oil" field_name="Density"/>
-    </scalar_field>
     <vector_field name="Velocity" rank="1">
-      <aliased material_phase_name="Oil" field_name="Velocity"/>
+      <aliased material_phase_name="Water" field_name="Velocity"/>
     </vector_field>
     <scalar_field name="MaterialVolumeFraction" rank="0">
       <diagnostic>
