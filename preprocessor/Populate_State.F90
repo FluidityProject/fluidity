@@ -1423,9 +1423,16 @@ contains
       ! Allocate diagnostic fields to represent agent variables
       type(state_type), intent(inout) :: state
 
+      type(mesh_type) :: parent_mesh, biology_mesh
       character(len=OPTION_PATH_LEN) :: fg_path, fg_buffer, var_buffer, stage_buffer, field_buffer
-      character(len=FIELD_NAME_LEN) :: var_name, field_name, stage_name, fg_name
+      character(len=FIELD_NAME_LEN) :: var_name, field_name, stage_name, fg_name, parent_mesh_name
       integer :: i, j, k, var_count, fg_count, stage_count
+
+      ! First we allocate a piecewise constant mesh for lagrangian biology diagostics
+      call get_option("/embedded_models/lagrangian_ensemble_biology/mesh/name", parent_mesh_name)
+      parent_mesh = extract_mesh(state, trim(parent_mesh_name))
+      biology_mesh = piecewise_constant_mesh(parent_mesh, "BiologyMesh")
+      call insert(state, biology_mesh, "BiologyMesh")
 
       ! Go through all agent arrays and allocate the specified diagnostic fields
       fg_path = "/embedded_models/lagrangian_ensemble_biology/functional_group"
@@ -1434,7 +1441,7 @@ contains
          write(fg_buffer, "(a,i0,a)") trim(fg_path)//"[",i-1,"]"
          call get_option(trim(fg_buffer)//"/name", fg_name)
 
-         ! Allocate agent count fields
+         ! Allocate FG diagnostic field, eg. agent count
          if (have_option(trim(fg_buffer)//"/scalar_field::Agents")) then
             write(field_buffer, "(a,i0,a)") trim(fg_buffer)//"/scalar_field::Agents"
             call get_option(trim(field_buffer)//"/name", field_name)
@@ -1447,19 +1454,20 @@ contains
                   call get_option(trim(stage_buffer)//"/name", stage_name)
 
                   call allocate_and_insert_scalar_field(trim(field_buffer), &
-                           state, field_name=trim(fg_name)//trim(field_name)//trim(stage_name), &
-                           dont_allocate_prognostic_value_spaces&
-                           =dont_allocate_prognostic_value_spaces)
+                        state, parent_mesh="BiologyMesh", &
+                        field_name=trim(fg_name)//trim(field_name)//trim(stage_name), &
+                        dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                end do
             else
                ! Or a global one, ie. ParticulateChemical
                call allocate_and_insert_scalar_field(trim(field_buffer), &
-                           state, field_name=trim(fg_name)//trim(field_name), &
-                           dont_allocate_prognostic_value_spaces&
-                           =dont_allocate_prognostic_value_spaces)
+                     state, parent_mesh="BiologyMesh", &
+                     field_name=trim(fg_name)//trim(field_name), &
+                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
             end if
          end if
 
+         ! Allocate diagnostic fields for agent variables
          var_count = option_count(trim(fg_buffer)//"/variables/state_variable")
          do j=1, var_count
             write(var_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/state_variable[",j-1,"]"
@@ -1476,19 +1484,17 @@ contains
                      write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
                      call get_option(trim(stage_buffer)//"/name", stage_name)
 
-                     call allocate_and_insert_scalar_field(&
-                           trim(var_buffer)//"/scalar_field", &
-                           state, field_name=trim(fg_name)//trim(field_name)//trim(stage_name), &
-                           dont_allocate_prognostic_value_spaces&
-                           =dont_allocate_prognostic_value_spaces)
+                     call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
+                           state, parent_mesh="BiologyMesh", &
+                           field_name=trim(fg_name)//trim(field_name)//trim(stage_name), &
+                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                   end do
                else
                   ! Or a global one, ie. ParticulateChemical
-                  call allocate_and_insert_scalar_field(&
-                           trim(var_buffer)//"/scalar_field", &
-                           state, field_name=trim(fg_name)//trim(field_name), &
-                           dont_allocate_prognostic_value_spaces&
-                           =dont_allocate_prognostic_value_spaces)
+                  call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
+                        state, parent_mesh="BiologyMesh", &
+                        field_name=trim(fg_name)//trim(field_name), &
+                        dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                end if
             end if
          end do
@@ -1510,19 +1516,17 @@ contains
                      write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
                      call get_option(trim(stage_buffer)//"/name", stage_name)
 
-                     call allocate_and_insert_scalar_field(&
-                           trim(var_buffer)//"/scalar_field", &
-                           state, field_name=trim(fg_name)//trim(field_name)//trim(var_name)//trim(stage_name), &
-                           dont_allocate_prognostic_value_spaces&
-                           =dont_allocate_prognostic_value_spaces)
+                     call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
+                           state, parent_mesh="BiologyMesh", &
+                           field_name=trim(fg_name)//trim(field_name)//trim(var_name)//trim(stage_name), &
+                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                   end do
                else
                   ! Or a global one, ie. ParticulateChemical
-                  call allocate_and_insert_scalar_field(&
-                           trim(var_buffer)//"/scalar_field", &
-                           state, field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
-                           dont_allocate_prognostic_value_spaces&
-                           =dont_allocate_prognostic_value_spaces)
+                  call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
+                           state, parent_mesh="BiologyMesh", &
+                           field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                end if
             end if
 

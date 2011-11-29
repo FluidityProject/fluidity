@@ -964,7 +964,7 @@ contains
 
     ! cleanup lagrangian biology
     if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
-        call lagrangian_biology_cleanup()
+        call lagrangian_biology_cleanup(state(1))
     end if
 
     if (have_option("/material_phase[0]/sediment")) then

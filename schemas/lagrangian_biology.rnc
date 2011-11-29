@@ -2,6 +2,7 @@ lagrangian_biology =
    (
       ## Lagrangian particle biology from the VEW project.
       element lagrangian_ensemble_biology {
+         mesh_choice,
          ## Seed used for the random number generator. 
          element random_seed{
             integer
@@ -29,19 +30,30 @@ lagrangian_biology =
                      attribute name { 'Biomass' },
                      element diagnostic {
                         internal_algorithm,
-                        mesh_choice,
                         diagnostic_scalar_field_no_adapt
                      },
                      ## A diagnostic field 'Biomass<stage>' is created for each agent stage
                      element per_stage {
                         empty
-                     }
-                  }
+                     }?
+                  }?
                },
                (
                   ## Internal state variable of a biology agent that defines an arbitrary internal property.
                   element state_variable {
-                     attribute name { xsd:string }
+                     attribute name { xsd:string },
+                     # Agent diagnostic field
+                     element scalar_field {
+                        attribute name { xsd:string },
+                        element diagnostic {
+                           internal_algorithm,
+                           diagnostic_scalar_field_no_adapt
+                        },
+                        ## A diagnostic field 'Biomass<stage>' is created for each agent stage
+                        element per_stage {
+                           empty
+                        }?
+                     }?
                   }|
                   ## State variable representing the internal chemical pool of an agent. 
                   ## Chemicals can be exchanged with the environment via the 'release' and 'uptake' options. 
@@ -55,7 +67,6 @@ lagrangian_biology =
                         attribute name { 'Particulate' },
                         element diagnostic {
                            internal_algorithm,
-                           mesh_choice,
                            diagnostic_scalar_field_no_adapt
                         },
                         ## Option to create a diagnostic field for each stage of the Functional Group.
@@ -79,7 +90,6 @@ lagrangian_biology =
                            attribute name { "DGRequest" },
                            element diagnostic {
                               internal_algorithm,
-                              mesh_choice,
                               diagnostic_scalar_field_no_adapt
                            }
                         },
@@ -88,7 +98,6 @@ lagrangian_biology =
                            attribute name { "Depletion" },
                            element diagnostic {
                               internal_algorithm,
-                              mesh_choice,
                               diagnostic_scalar_field_no_adapt
                            }
                         }
@@ -102,7 +111,6 @@ lagrangian_biology =
                            attribute name { "DGRelease" },
                            element diagnostic {
                               internal_algorithm,
-                              mesh_choice,
                               diagnostic_scalar_field_no_adapt
                            }
                         }
@@ -114,7 +122,7 @@ lagrangian_biology =
             ## The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.
             element environment {
                ## Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.
-               element environment_field {
+               element field {
                   attribute name { xsd:string }
                }*
             },
@@ -207,7 +215,7 @@ lagrangian_biology =
                      element maximum {
                         real
                      }
-                  },
+                  }?,
                   ## Debug options
                   element debug {
                      ## Skip velocity advection algorithm (RK-GS)
@@ -222,7 +230,6 @@ lagrangian_biology =
                attribute name { 'Agents' },
                element diagnostic {
                   internal_algorithm,
-                  mesh_choice,
                   diagnostic_scalar_field_no_adapt
                },
                ## A diagnostic '<FG>Agents<stage>' field is created for each agent stage

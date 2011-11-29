@@ -107,7 +107,7 @@ contains
     allocate(agent_arrays(n_agent_arrays))
     ewrite(2,*) "Found a total of ", n_agent_arrays, " agent arrays in ", n_fgroups, " functional groups"
 
-    ! Create a persistent dictionary of FG variable name mappings
+    ! Create a persistent dictionary of FG variable and environment name mappings
     call python_run_string("persistent['fg_var_names'] = dict()")
     call python_run_string("persistent['fg_env_names'] = dict()")
 
@@ -289,8 +289,11 @@ contains
              end do
 
              ! Add Particle Management options
-             call get_option(trim(stage_buffer)//"/particle_management/minimum", agent_arrays(i)%pm_min)
-             call get_option(trim(stage_buffer)//"/particle_management/maximum", agent_arrays(i)%pm_max)
+             if (have_option(trim(stage_buffer)//"/particle_management")) then
+                agent_arrays(i)%do_particle_management = .true.
+                call get_option(trim(stage_buffer)//"/particle_management/minimum", agent_arrays(i)%pm_min)
+                call get_option(trim(stage_buffer)//"/particle_management/maximum", agent_arrays(i)%pm_max)
+             end if
           end if
 
           ! Create simple position-only agent I/O header 
@@ -336,8 +339,11 @@ contains
 
   end subroutine initialise_lagrangian_biology
 
-  subroutine lagrangian_biology_cleanup()
+  subroutine lagrangian_biology_cleanup(state)
+    type(state_type), intent(inout) :: state
+
     integer :: i, ierror
+    type(mesh_type) :: biology_mesh
 
     do i = 1, size(agent_arrays)
        call delete_all(agent_arrays(i))
@@ -348,6 +354,9 @@ contains
           end if
        end if
     end do
+
+    biology_mesh = extract_mesh(state, "BiologyMesh")
+    call deallocate(biology_mesh)
 
   end subroutine lagrangian_biology_cleanup
 
@@ -416,7 +425,9 @@ contains
 
     ! Particle Management
     do i = 1, size(agent_arrays)
-       call particle_management(agent_arrays(i), xfield)
+       if (agent_arrays(i)%do_particle_management) then
+          call particle_management(agent_arrays(i), xfield)
+       end if
     end do
 
     ! Output agent positions
@@ -434,145 +445,115 @@ contains
     type(scalar_field), pointer :: sfield, request_field_dg, request_field_cg, chemical_field, absorption_field, &
                                    depletion_field, release_field_dg, release_field_cg, source_field
     type(vector_field), pointer :: xfield
+    type(detector_type), pointer :: agent
     integer :: i, j, n, current_fg
+    real :: ele_volume
 
     ewrite(1,*) "In calculate_agent_diagnostics"
-    call profiler_tic("/calculate_agent_diagnostics")
 
     xfield=>extract_vector_field(state, "Coordinate")
 
+    ! First we derive the primary diagnostic quantities
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
-
-          sfield=>extract_scalar_field(state, trim(agent_arrays(i)%fg_name)//"Agents"//trim(agent_arrays(i)%stage_name))
-          call zero(sfield)
-
-          ! Reset the diagnostic fields associated with the agent array
-          do j=1, size(agent_arrays(i)%biovar_name)
-             if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
-                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
-                call zero(sfield)
-             end if
-             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
-                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Absorption")
-                call zero(sfield)
-             end if
-             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
-                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Source")
-                call zero(sfield)
-             end if
-          end do
+          call derive_primary_diagnostics(agent_arrays(i), state)
        end if
     end do
 
-    do i = 1, size(agent_arrays)
-       if (agent_arrays(i)%has_biology) then
-          sfield=>extract_scalar_field(state, trim(agent_arrays(i)%fg_name)//"Agents"//trim(agent_arrays(i)%stage_name))
-          call addto_agent_count(agent_arrays(i), sfield)
-
-          do j=1, size(agent_arrays(i)%biovar_name)
-             if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
-                sfield=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
-                call addto_diagnostic_field_from_agents(agent_arrays(i), j, sfield, xfield)
-             end if
-          end do
-       end if
-    end do
-
-    current_fg = 1
-    do i = 1, size(agent_arrays)
+    !current_fg = 1
+    !do i = 1, size(agent_arrays)
        ! We only want to do this for each functional group
-       if (agent_arrays(i)%has_biology.and.agent_arrays(i)%fg_id>=current_fg) then
-          do j=1, size(agent_arrays(i)%biovar_name)
+    !   if (agent_arrays(i)%has_biology.and.agent_arrays(i)%fg_id>=current_fg) then
+    !      do j=1, size(agent_arrays(i)%biovar_name)
              ! Handle chemical uptake
-             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
+    !         if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
 
-                request_field_dg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
-                chemical_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j)))
-                absorption_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Absorption")
-                depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Depletion")
+    !            request_field_dg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
+    !            chemical_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j)))
+    !            absorption_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Absorption")
+    !            depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Depletion")
 
-                do n=1, node_count(request_field_dg)
-                   if (node_val(request_field_dg,n) > node_val(chemical_field,n)) then
+     !           do n=1, node_count(request_field_dg)
+     !              if (node_val(request_field_dg,n) > node_val(chemical_field,n)) then
                       ! Scale back the request
-                      call set(depletion_field, n, node_val(chemical_field,n) / node_val(request_field_dg,n))
-                   else
-                      call set(depletion_field, n, 1.0)
-                   end if
+     !                 call set(depletion_field, n, node_val(chemical_field,n) / node_val(request_field_dg,n))
+     !              else
+     !                 call set(depletion_field, n, 1.0)
+     !              end if
 
-                   call set(absorption_field, n, node_val(request_field_dg,n) * node_val(depletion_field,n))
-                end do
-             end if
+     !              call set(absorption_field, n, node_val(request_field_dg,n) * node_val(depletion_field,n))
+     !           end do
+     !        end if
 
              ! Handle chemical release
-             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
-                release_field_dg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
-                source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Source")
+     !        if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
+     !           release_field_dg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_dg_name(j)))
+     !           source_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Source")
 
-                do n=1, node_count(release_field_dg)
-                   call set(source_field, n, node_val(release_field_dg,n))
-                end do
-             end if
-          end do
+     !           do n=1, node_count(release_field_dg)
+     !              call set(source_field, n, node_val(release_field_dg,n))
+     !           end do
+     !        end if
+     !     end do
 
-          current_fg = current_fg + 1
-       end if
-    end do
+     !     current_fg = current_fg + 1
+     !  end if
+    !end do
 
     ewrite(2,*) "Exiting calculate_agent_diagnostics"
-    call profiler_toc("/calculate_agent_diagnostics")
 
   end subroutine calculate_agent_diagnostics
 
-  subroutine addto_diagnostic_field_from_agents(agent_list, biovar_id, sfield, xfield)
+  subroutine derive_primary_diagnostics(agent_list, state)
+    ! Set primary diagnostic fields from agent variables
+    ! This includes agent count and all fields directly linked to agent variables
     type(detector_linked_list), intent(inout) :: agent_list
-    integer, intent(in) :: biovar_id
-    type(scalar_field), pointer, intent(inout) :: sfield
-    type(vector_field), pointer, intent(inout) :: xfield
+    type(state_type), intent(inout) :: state
 
+    type(vector_field), pointer :: xfield
+    type(scalar_field), dimension(size(agent_list%biofield_dg_name)) :: diagfields
+    type(scalar_field), pointer :: agent_count_field
     type(detector_type), pointer :: agent
-    type(element_type), pointer :: shape
-    integer, dimension(ele_loc(sfield, agent_list%first%element)) :: element_nodes
-    real :: value, scaled_value, ele_volume, shape_val
-    integer :: i, j
-
-    ewrite(2,*) "In addto_diagnostic_field_from_agents: ", sfield%name
-
-    agent => agent_list%first
-    do while (associated(agent))
-       value = agent%biology(biovar_id)
-       ele_volume = element_volume(xfield, agent%element)
-       element_nodes = ele_nodes(sfield, agent%element)
-       scaled_value = value / ele_volume
-
-       do i=1, ele_loc(sfield, agent%element)
-          call addto(sfield, element_nodes(i), scaled_value)
-       end do
-
-       agent => agent%next
-    end do
-
-  end subroutine addto_diagnostic_field_from_agents
-
-  subroutine addto_agent_count(agent_list, sfield)
-    type(detector_linked_list), intent(inout) :: agent_list
-    type(scalar_field), pointer, intent(inout) :: sfield
-
-    type(detector_type), pointer :: agent
-    integer, dimension(ele_loc(sfield, agent_list%first%element)) :: element_nodes
     integer :: i
+    real :: ele_volume
 
+    call profiler_tic(trim(agent_list%name)//"::derive_primary_diagnostics")
+
+    xfield=>extract_vector_field(state, "Coordinate")
+
+    ! Pull and reset agent count field
+    agent_count_field=>extract_scalar_field(state, trim(agent_list%fg_name)//"Agents"//trim(agent_list%stage_name))
+    call zero(agent_count_field)
+
+    ! Pull and reset all primary diagnostic fields
+    do i=1, size(agent_list%biovar_name)
+       if (agent_list%biofield_type(i) /= BIOFIELD_NONE) then
+          diagfields(i)=extract_scalar_field(state, agent_list%biofield_dg_name(i))
+          call zero(diagfields(i))
+       end if
+    end do
+
+    ! Loop over all agents in this list and determine element volume
     agent => agent_list%first
     do while (associated(agent))
-       element_nodes = ele_nodes(sfield, agent%element)
-       do i=1, ele_loc(sfield, agent%element)
-          call addto(sfield, element_nodes(i), 1.0)
+       ele_volume = element_volume(xfield, agent%element)
+
+       ! Increase agent density field
+       call addto(agent_count_field, agent%element, 1.0/ele_volume)
+
+       ! Add diagnostic quantities to field for all variables
+       do i=1, size(agent_list%biovar_name)
+          if (agent_list%biofield_type(i) /= BIOFIELD_NONE) then
+             call addto(diagfields(i), agent%element, agent%biology(i)/ele_volume)
+          end if
        end do
 
        agent => agent%next
     end do
 
-  end subroutine addto_agent_count
+    call profiler_toc(trim(agent_list%name)//"::derive_primary_diagnostics")
+
+  end subroutine derive_primary_diagnostics
 
   subroutine particle_management(agent_list, xfield)
     type(detector_linked_list), intent(inout) :: agent_list

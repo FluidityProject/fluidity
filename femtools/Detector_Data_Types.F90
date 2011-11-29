@@ -112,6 +112,7 @@ module detector_data_types
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: chemfield_name
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: env_field_name
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
+     logical :: do_particle_management=.false.
      real :: pm_max, pm_min
 
      ! Runk-Kutta Guided Search parameters

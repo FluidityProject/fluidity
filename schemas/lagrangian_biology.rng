@@ -3,6 +3,7 @@
   <define name="lagrangian_biology">
     <element name="lagrangian_ensemble_biology">
       <a:documentation>Lagrangian particle biology from the VEW project.</a:documentation>
+      <ref name="mesh_choice"/>
       <element name="random_seed">
         <a:documentation>Seed used for the random number generator. </a:documentation>
         <ref name="integer"/>
@@ -32,21 +33,24 @@ All internal quantities that are exchanged with the environment get scaled by th
               <attribute name="name">
                 <value>Biomass</value>
               </attribute>
-              <element name="scalar_field">
-                <a:documentation>Biology agent field</a:documentation>
-                <attribute name="name">
-                  <value>Biomass</value>
-                </attribute>
-                <element name="diagnostic">
-                  <ref name="internal_algorithm"/>
-                  <ref name="mesh_choice"/>
-                  <ref name="diagnostic_scalar_field_no_adapt"/>
+              <optional>
+                <element name="scalar_field">
+                  <a:documentation>Biology agent field</a:documentation>
+                  <attribute name="name">
+                    <value>Biomass</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="diagnostic_scalar_field_no_adapt"/>
+                  </element>
+                  <optional>
+                    <element name="per_stage">
+                      <a:documentation>A diagnostic field 'Biomass&lt;stage&gt;' is created for each agent stage</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
                 </element>
-                <element name="per_stage">
-                  <a:documentation>A diagnostic field 'Biomass&lt;stage&gt;' is created for each agent stage</a:documentation>
-                  <empty/>
-                </element>
-              </element>
+              </optional>
             </element>
             <zeroOrMore>
               <choice>
@@ -55,6 +59,24 @@ All internal quantities that are exchanged with the environment get scaled by th
                   <attribute name="name">
                     <data type="string"/>
                   </attribute>
+                  <optional>
+                    <!-- Agent diagnostic field -->
+                    <element name="scalar_field">
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="diagnostic_scalar_field_no_adapt"/>
+                      </element>
+                      <optional>
+                        <element name="per_stage">
+                          <a:documentation>A diagnostic field 'Biomass&lt;stage&gt;' is created for each agent stage</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                    </element>
+                  </optional>
                 </element>
                 <element name="chemical_variable">
                   <a:documentation>State variable representing the internal chemical pool of an agent. 
@@ -73,7 +95,6 @@ This field must be on a discontinuous mesh</a:documentation>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
-                        <ref name="mesh_choice"/>
                         <ref name="diagnostic_scalar_field_no_adapt"/>
                       </element>
                       <optional>
@@ -107,7 +128,6 @@ The scaled request quantity will then get added to the according absorption fiel
                         </attribute>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
-                          <ref name="mesh_choice"/>
                           <ref name="diagnostic_scalar_field_no_adapt"/>
                         </element>
                       </element>
@@ -118,7 +138,6 @@ The scaled request quantity will then get added to the according absorption fiel
                         </attribute>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
-                          <ref name="mesh_choice"/>
                           <ref name="diagnostic_scalar_field_no_adapt"/>
                         </element>
                       </element>
@@ -136,7 +155,6 @@ The scaled release quantity will then get added to the according source field of
                         </attribute>
                         <element name="diagnostic">
                           <ref name="internal_algorithm"/>
-                          <ref name="mesh_choice"/>
                           <ref name="diagnostic_scalar_field_no_adapt"/>
                         </element>
                       </element>
@@ -150,7 +168,7 @@ The scaled release quantity will then get added to the according source field of
             <a:documentation>This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
 The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.</a:documentation>
             <zeroOrMore>
-              <element name="environment_field">
+              <element name="field">
                 <a:documentation>Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.</a:documentation>
                 <attribute name="name">
                   <data type="string"/>
@@ -253,18 +271,20 @@ This option is generally only useful for testing. </a:documentation>
                     <empty/>
                   </element>
                 </choice>
-                <element name="particle_management">
-                  <a:documentation>Particle Management rules</a:documentation>
-                  <element name="period_in_timesteps">
-                    <ref name="integer"/>
+                <optional>
+                  <element name="particle_management">
+                    <a:documentation>Particle Management rules</a:documentation>
+                    <element name="period_in_timesteps">
+                      <ref name="integer"/>
+                    </element>
+                    <element name="minimum">
+                      <ref name="real"/>
+                    </element>
+                    <element name="maximum">
+                      <ref name="real"/>
+                    </element>
                   </element>
-                  <element name="minimum">
-                    <ref name="real"/>
-                  </element>
-                  <element name="maximum">
-                    <ref name="real"/>
-                  </element>
-                </element>
+                </optional>
                 <optional>
                   <element name="debug">
                     <a:documentation>Debug options</a:documentation>
@@ -287,7 +307,6 @@ This option is generally only useful for testing. </a:documentation>
               </attribute>
               <element name="diagnostic">
                 <ref name="internal_algorithm"/>
-                <ref name="mesh_choice"/>
                 <ref name="diagnostic_scalar_field_no_adapt"/>
               </element>
               <element name="per_stage">
