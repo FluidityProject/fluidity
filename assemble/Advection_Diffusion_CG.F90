@@ -99,6 +99,8 @@ module advection_diffusion_cg
   logical :: integrate_advection_by_parts
   ! Source?
   logical :: have_source
+  ! Add source directly to the right hand side?
+  logical :: add_src_directly_to_rhs
   ! Absorption?
   logical :: have_absorption
   ! Diffusivity?
@@ -281,10 +283,19 @@ contains
     if(have_source) then
       assert(mesh_dim(source) == mesh_dim(t))
       assert(ele_count(source) == ele_count(t))
-    
+      
+      add_src_directly_to_rhs = have_option(trim(source%option_path)//'/diagnostic/add_directly_to_rhs')
+      
+      if (add_src_directly_to_rhs) then 
+         ewrite(2, *) "Adding Source field directly to the right hand side"
+         assert(node_count(source) == node_count(t))
+      end if
+      
       ewrite_minmax(source)
     else
       ewrite(2, *) "No source"
+      
+      add_src_directly_to_rhs = .false.
     end if
     
     ! Absorption
@@ -464,10 +475,10 @@ contains
                                         supg_element)
     end do
 
-    ! as part of assembly include the already discretised optional source
-    ! needed before applying direchlet boundary conditions
-    call addto_rhs_extra_discretised_source(rhs, extra_discretised_source = extra_discretised_source)
-
+    ! Add the source directly to the rhs if required 
+    ! which must be included before dirichlet BC's.
+    if (add_src_directly_to_rhs) call addto(rhs, source)
+    
     ! Step 4: Boundary conditions
     
     if( &
@@ -692,7 +703,9 @@ contains
     if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
     
     ! Source
-    if(have_source) call add_source_element_cg(ele, test_function, t, source, detwei, rhs_addto)
+    if(have_source .and. (.not. add_src_directly_to_rhs)) then 
+       call add_source_element_cg(ele, test_function, t, source, detwei, rhs_addto)
+    end if
     
     ! Pressure
     if(equation_type==FIELD_EQUATION_INTERNALENERGY) call add_pressurediv_element_cg(ele, test_function, t, &
