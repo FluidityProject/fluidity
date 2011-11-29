@@ -1,13 +1,13 @@
-edgeLength = 0.05;
+edgeLength = 0.005;
 
 Point(1) = {0.0, 0.0, 0.0, 1};
 
-Extrude {1.0, 0.0, 0.0} {
-  Point{1}; Layers{1/edgeLength};
+Extrude {0.1, 0.0, 0.0} {
+  Point{1}; Layers{0.1/edgeLength};
 }
 
-Extrude {0.0, 0.3, 0.0} {
-  Line{1}; Layers{0.3/edgeLength};
+Extrude {0.0, 0.1, 0.0} {
+  Line{1}; Layers{0.1/edgeLength};
 }
 
 Physical Line(1) = {1};  //reentrainment

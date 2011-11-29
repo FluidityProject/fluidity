@@ -436,4 +436,12 @@ contains
     
   end subroutine calculate_sediment_active_layer_sigma
 
+  subroutine calculate_sediment_active_layer_volume_fraction(state)
+
+    type(state_type), intent(inout)             :: state
+
+    ! 
+    
+  end subroutine calculate_sediment_active_layer_volume_fraction  
+
 end module sediment_diagnostics

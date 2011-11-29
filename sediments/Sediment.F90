@@ -215,6 +215,9 @@ contains
     ! get bedload field
     call get_sediment_item(state, i_field, 'SedimentBedload', bedload)
 
+    ! get sinking velocity
+    call get_sediment_item(state, i_field, 'SinkingVelocity', sink_U)
+
     ! get d50
     d50 => extract_scalar_field(state, 'SedimentBedActiveLayerD50', stat)
     if (stat /= 0) then
@@ -260,17 +263,17 @@ contains
     end if
 
     call get_option(trim(bc_path)//"/type[0]/algorithm", algorithm) 
-    ! loop through elements in surface field
+    ! loop through elements in surface field and calculate reentrainment
     elements: do i_ele = 1, element_count(reentrainment)
 
        select case(trim(algorithm))
        case("Hill_2010")
           call assemble_hill_2010_reentrainment_ele(state, i_field, i_ele, reentrainment,&
-               & shear_stress, surface_element_list, x, masslump)
+               & shear_stress, surface_element_list, x, masslump, sink_U)
        case("Garcia_1991")
           call assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
                & x, masslump, surface_mesh, surface_element_list, viscosity_pointer,&
-               & shear_stress, bedload, d50)
+               & shear_stress, d50, sink_U)
        case default
           FLExit("A valid reentrainment algorithm must be selected")
        end select   
@@ -284,7 +287,7 @@ contains
        end where
        call scale(reentrainment, masslump)
        call deallocate(masslump)
-    end if
+    end if   
 
     ! check bound of entrainment so that it does not exceed the available sediment in the
     ! bed and is larger than zero.
@@ -304,8 +307,8 @@ contains
   end subroutine set_reentrainment_bc
   
   subroutine assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
-       & x, masslump, surface_mesh, surface_element_list, viscosity, shear_stress, sink_U&
-       &, d50)
+       & x, masslump, surface_mesh, surface_element_list, viscosity, shear_stress, d50,&
+       & sink_U)
 
     type(state_type), intent(in)                     :: state
     integer, intent(in)                              :: i_ele, i_field
@@ -313,7 +316,7 @@ contains
     type(vector_field), intent(in)                   :: x, shear_stress
     type(scalar_field), intent(inout)                :: masslump
     type(scalar_field), pointer, intent(inout)       :: reentrainment
-    type(scalar_field), pointer, intent(in)          :: sink_U, d50
+    type(scalar_field), pointer, intent(in)          :: d50, sink_U
     type(mesh_type), pointer, intent(in)             :: surface_mesh
     integer, dimension(:), pointer, intent(in)       :: surface_element_list
     type(element_type), pointer                      :: shape
@@ -321,7 +324,7 @@ contains
     real, dimension(ele_ngi(reentrainment, i_ele))   :: detwei
     real, dimension(ele_loc(reentrainment, i_ele), &
          & ele_loc(reentrainment, i_ele))            :: invmass
-    real                                             :: A, R, d, g, rho_0
+    real                                             :: A, R, d, g, density
     real                                             :: algorithm_viscosity
     real, dimension(ele_ngi(reentrainment, i_ele))   :: R_p, u_star, Z
     real, dimension(ele_loc(reentrainment, i_ele))   :: E
@@ -353,21 +356,21 @@ contains
     R_p = sqrt(R*g*d**3)/face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1)
     
     ! calculate u_star (shear velocity)
-    call get_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/line&
-         &ar/reference_density', rho_0)
+    call get_option(trim(shear_stress%option_path)//"/diagnostic/density", density)
     ! calculate magnitude of shear stress at quadrature points
     shear_quad = face_val_at_quad(shear_stress, surface_element_list(i_ele))
     do i_gi = 1, ele_ngi(reentrainment, i_ele)
        shear(i_gi) = norm2(shear_quad(:, i_gi))
     end do
-    u_star = sqrt(shear/rho_0)
+    u_star = sqrt(shear/density)
 
     ! calculate Z
-    Z = (1 - 0.288) * u_star / face_val_at_quad(sink_U, surface_element_list(i_ele)) *&
-         & R_p**0.6 * (d / face_val_at_quad(d50, surface_element_list(i_ele)))**0.2   
+    Z = u_star/face_val_at_quad(sink_U, surface_element_list(i_ele)) * R_p**0.6 * (d /&
+         & face_val_at_quad(d50, surface_element_list(i_ele)))**0.2   
 
-    ! calculate reentrainment
-    E = shape_rhs(shape, A*Z**5 / (1 + A*Z**5/0.3) * detwei)
+    ! calculate reentrainment v_s*E
+    E = shape_rhs(shape, face_val_at_quad(sink_U, surface_element_list(i_ele)) * A*Z**5 /&
+         & (1 + A*Z**5/0.3) * detwei)  
 
     if(continuity(reentrainment)<0) then
        ! DG case.
@@ -379,7 +382,7 @@ contains
   end subroutine assemble_garcia_1991_reentrainment_ele
 
   subroutine assemble_hill_2010_reentrainment_ele(state, i_field, i_ele, reentrainment,&
-       & shear_stress, surface_element_list, x, masslump)
+       & shear_stress, surface_element_list, x, masslump, sink_U)
 
     type(state_type), intent(in)                     :: state
     integer, intent(in)                              :: i_ele, i_field
@@ -387,6 +390,7 @@ contains
     type(vector_field), intent(in)                   :: x, shear_stress
     integer, dimension(:), pointer, intent(in)       :: surface_element_list
     type(scalar_field), intent(inout)                :: masslump
+    type(scalar_field), pointer, intent(in)          :: sink_U
     type(element_type), pointer                      :: shape
     integer, dimension(:), pointer                   :: ele
     real, dimension(ele_ngi(reentrainment, i_ele))   :: detwei
@@ -394,7 +398,7 @@ contains
          & ele_loc(reentrainment, i_ele))            :: invmass
     integer, dimension(2)                            :: stat
     real                                             :: shear_crit, d, R, g, erod,&
-         & poro
+         & poro, density, rho_0
     real, dimension(ele_loc(reentrainment, i_ele))   :: E
     real, dimension(ele_ngi(reentrainment, i_ele))   :: shear
     real, dimension(shear_stress%dim, &
@@ -404,6 +408,9 @@ contains
 
     call get_sediment_item(state, i_field, 'critical_shear_stress', shear_crit, stat(1))
     call get_sediment_item(state, i_field, 'diameter', d, stat(2))
+    ! non-dimensionalise shear stress
+    call get_option('/material_phase::'//trim(state%name)//'/equation_of_state/fluids/line&
+         &ar/reference_density', rho_0)
     ! get or calculate critical shear stress
     if (.not.any(stat .eq. 0)) then
        FLExit("You need to either specify a critical shear stress or a &
@@ -416,7 +423,7 @@ contains
        ! (vertical) viscosity) 
        call get_sediment_item(state, i_field, 'submerged_specific_gravity', R)
        call get_option("/physical_parameters/gravity/magnitude", g)
-       shear_crit = 0.041 * R * 1024. * g * d
+       shear_crit = 0.041 * R * rho_0 * g * d
     end if
 
     ! calculate eroded sediment flux and set reentrainment BC
@@ -433,10 +440,6 @@ contains
     ! loop over nodes in bottom surface
     call get_sediment_item(state, i_field, 'erodability', erod, default=1.0)
     call get_sediment_item(state, i_field, 'porosity', poro, default=0.3)
-    if (.not.all(stat .eq. 0)) then
-       FLExit("You need to specify erodability and porosity to use the j_hill formula for &
-            &reentrainment")
-    end if
     
     ele => ele_nodes(reentrainment, i_ele)
     shape => ele_shape(reentrainment, i_ele) 
@@ -456,9 +459,13 @@ contains
     do i_gi = 1, ele_ngi(reentrainment, i_ele)
        shear(i_gi) = norm2(shear_quad(:, i_gi))
     end do
+    ! non-dimensionalise shear stress
+    call get_option(trim(shear_stress%option_path)//"/diagnostic/density", density)
+    shear = shear / density
 
-    ! calculate reentrainment (minimum is 0.0, maximum is bedload/dt)
-    E = shape_rhs(shape, erod * (1-poro) * (shear - shear_crit)/shear_crit * detwei )
+    ! calculate reentrainment vs*E
+    E = shape_rhs(shape, face_val_at_quad(sink_U, surface_element_list(i_ele)) * erod *&
+         & (1-poro) * (shear - shear_crit)/shear_crit * detwei)
 
     if(continuity(reentrainment)<0) then
        ! DG case.
