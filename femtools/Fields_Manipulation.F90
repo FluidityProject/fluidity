@@ -127,6 +127,10 @@ implicit none
      module procedure remap_scalar_field_to_surface, remap_vector_field_to_surface
   end interface
 
+  interface remap_surface_to_field
+     module procedure remap_scalar_surface_to_field
+  end interface
+
   interface set_to_submesh
     module procedure set_to_submesh_scalar, set_to_submesh_vector
   end interface
@@ -2293,6 +2297,56 @@ implicit none
     end do
 
   end subroutine remap_vector_field_to_surface
+    
+  subroutine remap_scalar_surface_to_field(from_field, to_field, surface_element_list)
+    !!< Remap the values on the surface_field from_field, which is
+    !! defined on the faces given by surface_element_list, to the field to_field,
+    !!< This also deals with remapping between different orders.
+    type(scalar_field), intent(in):: from_field
+    type(scalar_field), intent(inout):: to_field
+    integer, dimension(:), intent(in):: surface_element_list
+    
+    real, dimension(ele_loc(to_field,1), face_loc(from_field,1)) :: locweight
+    type(element_type), pointer:: from_shape, to_shape
+    real, dimension(face_loc(from_field,1)) :: from_val
+    integer, dimension(:), pointer :: to_nodes
+    integer toloc, fromloc, ele, face
+
+    select case(from_field%field_type)
+    case(FIELD_TYPE_NORMAL)
+    
+      ! the remapping happens from an element of from_field which is at the same
+      ! time an face of to_field
+      to_shape => face_shape(from_field, 1)
+      from_shape => ele_shape(to_field, 1)
+      ! First construct remapping weights.
+      do toloc=1,size(locweight,1)
+         do fromloc=1,size(locweight,2)
+            locweight(toloc,fromloc)=eval_shape(from_shape, fromloc, &
+                 local_coords(toloc, to_shape))
+         end do
+      end do
+    
+      ! Now loop over the surface elements.
+      do ele=1, size(surface_element_list)
+         ! element ele is a face in the mesh of from_field:
+         face = surface_element_list(ele)
+         
+         to_nodes => ele_nodes(to_field, face)
+
+         from_val = node_val(from_field, ele)
+
+         to_field%val(to_nodes)=matmul(locweight,from_val)
+         
+      end do
+      
+    case(FIELD_TYPE_CONSTANT)
+      
+      to_field%val = from_field%val(1)
+
+    end select
+
+  end subroutine remap_scalar_field_to_surface
 
   function piecewise_constant_mesh(in_mesh, name) result(new_mesh)
     !!< From a given mesh, return a scalar field
