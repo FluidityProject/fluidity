@@ -59,10 +59,11 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">1.0</real_value>
+        <real_value rank="0">35</real_value>
       </constant>
     </dump_period>
     <disable_dump_at_start/>
+    <disable_dump_at_end/>
     <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>

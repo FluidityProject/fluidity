@@ -433,13 +433,15 @@ contains
 
     type(state_type), intent(inout)                       :: state
     type(scalar_field), pointer                           :: sigma
-    type(mesh_type), pointer                              :: surface_mesh
+    type(mesh_type)                                       :: surface_mesh
+    integer, dimension(:), pointer                        :: surface_node_list
     type(vector_field), pointer                           :: x
     type(scalar_field_pointer), dimension(:), allocatable :: bedload
     real, dimension(:), allocatable                       :: diameter
     type(scalar_field)                                    :: mean, total_bedload,&
          & masslump, sigma_surface, sigma_remap
-    integer                                               :: n_fields, i_field, i_ele, stat
+    integer                                               :: n_fields, i_field, i_ele,&
+         & i_node, stat
     integer, dimension(2)                                 :: surface_id_count
     integer, dimension(:), allocatable                    :: surface_ids
     
@@ -451,6 +453,7 @@ contains
     allocate(bedload(n_fields))
     allocate(diameter(n_fields))    
 
+    ! collect information required to calculate standard deviation
     data_collection_loop: do i_field = 1, n_fields
        call get_sediment_item(state, i_field, 'diameter', diameter(i_field), stat)
        if (stat /= 0) FLExit("All sediment fields must have a diameter to be able to calcu&
@@ -459,7 +462,8 @@ contains
     end do data_collection_loop
        
     ! allocate surface field that will contain the calculated sigma values
-    surface_mesh => bedload(1)%ptr%mesh%faces%surface_mesh
+    call create_surface_mesh(surface_mesh, surface_node_list, mesh=sigma%mesh, name='Surfa&
+         &ceMesh')
     call allocate(sigma_surface, surface_mesh, "SigmaSurface")
     call zero(sigma_surface)
 
@@ -470,7 +474,7 @@ contains
        call zero(masslump)
     end if
 
-    ! obtain surface ids over which to record deposition
+    ! obtain surface ids over which to calculate sigma
     surface_id_count=option_shape(trim(sigma%option_path)//"/diagnostic/surface_ids") 
     allocate(surface_ids(surface_id_count(1)))
     call get_option(trim(sigma%option_path)//"/diagnostic/surface_ids", surface_ids)
@@ -478,7 +482,7 @@ contains
     ! loop through elements in surface field
     elements: do i_ele=1, element_count(sigma_surface)
 
-       ! check if element is on bedload surface
+       ! check if element is on prescribed surface
        if (.not.any(surface_element_id(sigma, i_ele) == surface_ids)) then
           cycle elements
        end if
@@ -498,16 +502,15 @@ contains
        call deallocate(masslump)
     end if
 
-    call zero(sigma)
-    
-    node_val_remap: do i_ele = 1, element_count(sigma_surface)
-       sigma%val(face_global_nodes(sigma, i_ele)) = sigma_surface&
-            &%val(ele_nodes(sigma_surface, i_ele))
-    end do node_val_remap
+    ! remap surface node values on to sigma field
+    do i_node = 1, node_count(surface_mesh)
+       call set(sigma, surface_node_list(i_node), node_val(sigma_surface, i_node))
+    end do
 
     deallocate(bedload)
     deallocate(diameter) 
     call deallocate(sigma_surface)
+    call deallocate(surface_mesh)
     deallocate(surface_ids)
     
   end subroutine calculate_sediment_active_layer_sigma
@@ -576,9 +579,83 @@ contains
 
   subroutine calculate_sediment_active_layer_volume_fractions(state)
 
-    type(state_type), intent(inout)             :: state
-
+    type(state_type), intent(inout)                       :: state
+    type(scalar_field), pointer                           :: sigma
+    type(mesh_type)                                       :: surface_mesh
+    integer, dimension(:), pointer                        :: surface_node_list
+    type(vector_field), pointer                           :: x
+    type(scalar_field_pointer), dimension(:), allocatable :: bedload
+    type(scalar_field)                                    :: mean, total_bedload,&
+         & masslump, sigma_surface, sigma_remap
+    integer                                               :: n_fields, i_field, i_ele,&
+         & i_node, stat
+    integer, dimension(2)                                 :: surface_id_count
+    integer, dimension(:), allocatable                    :: surface_ids
     
+    x => extract_vector_field(state, "Coordinate")
+
+    n_fields = get_n_sediment_fields()
+    allocate(bedload(n_fields))  
+    
+    
+    ! ! collect information required to calculate standard deviation
+    ! data_collection_loop: do i_field = 1, n_fields
+    !    call get_sediment_item(state, i_field, 'SedimentBedload', bedload) 
+       
+    ! end do data_collection_loop
+
+    ! ! allocate surface field that will contain the calculated sigma values
+    ! call create_surface_mesh(surface_mesh, surface_node_list, mesh=bedload(1)%ptr%mesh,&
+    !      & name='SurfaceMesh')
+    ! call allocate(total_bedload_surface, surface_mesh, "TotalBedload")
+    ! call zero(total_bedload_surface) 
+
+    ! ! For continuous fields we need a global lumped mass. For dg we'll
+    ! ! do the mass inversion on a per face basis inside the element loop.
+    ! if(continuity(sigma_surface)>=0) then
+    !    call allocate(masslump, surface_mesh, "SurfaceMassLump")
+    !    call zero(masslump)
+    ! end if
+
+    ! ! obtain surface ids over which to calculate sigma
+    ! surface_id_count=option_shape(trim(sigma%option_path)//"/diagnostic/surface_ids") 
+    ! allocate(surface_ids(surface_id_count(1)))
+    ! call get_option(trim(sigma%option_path)//"/diagnostic/surface_ids", surface_ids)
+
+    ! ! loop through elements in surface field
+    ! bedload_sum_loop: do i_ele=1, element_count(sigma_surface)
+
+    !    ! check if element is on prescribed surface
+    !    if (.not.any(surface_element_id(sigma, i_ele) == surface_ids)) then
+    !       cycle elements
+    !    end if
+
+       
+
+    !    ! calculate sigma
+    !    call calculate_sediment_active_layer_element_sigma(i_ele, sigma_surface, bedload,&
+    !         & masslump, X, diameter, n_fields)
+
+    ! end do bedload_sum_loop
+
+    ! ! For continuous fields we divide by the inverse global lumped mass
+    ! if(continuity(surface_mesh)>=0) then
+    !    where (masslump%val/=0.0)
+    !       masslump%val=1./masslump%val
+    !    end where
+    !    call scale(sigma_surface, masslump)
+    !    call deallocate(masslump)
+    ! end if
+
+    ! ! remap surface node values on to sigma field
+    ! do i_node = 1, node_count(surface_mesh)
+    !    call set(sigma, surface_node_list(i_node), node_val(sigma_surface, i_node))
+    ! end do
+
+    ! deallocate(bedload)
+    ! deallocate(diameter) 
+    ! call deallocate(sigma_surface)
+    ! deallocate(surface_ids)
     
   end subroutine calculate_sediment_active_layer_volume_fractions
 
