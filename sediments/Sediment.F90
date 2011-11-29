@@ -193,7 +193,8 @@ contains
 
     type(state_type), intent(in)              :: state
     type(scalar_field), intent(in), pointer   :: sediment_field
-    type(scalar_field), pointer               :: reentrainment, bedload, sink_U, d50
+    type(scalar_field), pointer               :: reentrainment, bedload, sink_U, d50,&
+         & sigma 
     type(scalar_field)                        :: masslump, bedload_remap
     type(tensor_field), pointer               :: viscosity_pointer
     type(tensor_field), target                :: viscosity
@@ -223,6 +224,13 @@ contains
     if (stat /= 0) then
        FLExit("A SedimentBedActiveLayerD50 field must be activated to calculate reentrainm&
             &ent")
+    end if
+
+    ! get sigma
+    sigma => extract_scalar_field(state, 'SedimentBedActiveLayerSigma', stat)
+    if (stat /= 0) then
+       FLExit("A SedimentBedActiveLayerSigma field must be activated to calculate reentrai&
+            &nment")
     end if
 
     ! get viscosity
@@ -273,7 +281,7 @@ contains
        case("Garcia_1991")
           call assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
                & x, masslump, surface_mesh, surface_element_list, viscosity_pointer,&
-               & shear_stress, d50, sink_U)
+               & shear_stress, d50, sink_U, sigma)
        case default
           FLExit("A valid reentrainment algorithm must be selected")
        end select   
@@ -308,7 +316,7 @@ contains
   
   subroutine assemble_garcia_1991_reentrainment_ele(state, i_field, i_ele, reentrainment,&
        & x, masslump, surface_mesh, surface_element_list, viscosity, shear_stress, d50,&
-       & sink_U)
+       & sink_U, sigma)
 
     type(state_type), intent(in)                     :: state
     integer, intent(in)                              :: i_ele, i_field
@@ -316,7 +324,7 @@ contains
     type(vector_field), intent(in)                   :: x, shear_stress
     type(scalar_field), intent(inout)                :: masslump
     type(scalar_field), pointer, intent(inout)       :: reentrainment
-    type(scalar_field), pointer, intent(in)          :: d50, sink_U
+    type(scalar_field), pointer, intent(in)          :: d50, sink_U, sigma
     type(mesh_type), pointer, intent(in)             :: surface_mesh
     integer, dimension(:), pointer, intent(in)       :: surface_element_list
     type(element_type), pointer                      :: shape
@@ -328,7 +336,7 @@ contains
     real                                             :: algorithm_viscosity
     real, dimension(ele_ngi(reentrainment, i_ele))   :: R_p, u_star, Z
     real, dimension(ele_loc(reentrainment, i_ele))   :: E
-    real, dimension(ele_ngi(reentrainment, i_ele))   :: shear
+    real, dimension(ele_ngi(reentrainment, i_ele))   :: shear, lambda_m
     real, dimension(shear_stress%dim, &
          & ele_ngi(reentrainment, i_ele))            :: shear_quad
     integer                                          :: i_gi
@@ -364,9 +372,16 @@ contains
     end do
     u_star = sqrt(shear/density)
 
+    ! calculate lambda_m
+    do i_gi = 1, ele_ngi(reentrainment, i_ele)
+       lambda_m(i_gi) = 1.0
+    end do
+    ewrite(1,*) face_val_at_quad(sigma, surface_element_list(i_ele))
+    lambda_m = lambda_m - 0.288 * face_val_at_quad(sigma, surface_element_list(i_ele))
+
     ! calculate Z
-    Z = u_star/face_val_at_quad(sink_U, surface_element_list(i_ele)) * R_p**0.6 * (d /&
-         & face_val_at_quad(d50, surface_element_list(i_ele)))**0.2   
+    Z = lambda_m * u_star/face_val_at_quad(sink_U, surface_element_list(i_ele)) * R_p&
+         &**0.6 * (d / face_val_at_quad(d50, surface_element_list(i_ele)))**0.2  
 
     ! calculate reentrainment v_s*E
     E = shape_rhs(shape, face_val_at_quad(sink_U, surface_element_list(i_ele)) * A*Z**5 /&

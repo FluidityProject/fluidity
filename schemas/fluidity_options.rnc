@@ -1872,12 +1872,13 @@ sediment =
             attribute name { "SedimentBedActiveLayerD50" },
             (
                element diagnostic {
+                  ## Surface ids over which to calculate the bedload:
+                  element surface_ids {
+                     integer_vector
+                  },
                   internal_algorithm,
                   velocity_mesh_choice,
                   diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
                }
             )
          }?,
@@ -1888,12 +1889,13 @@ sediment =
             attribute name { "SedimentBedActiveLayerSigma" },
             (
                element diagnostic {
+                  ## Surface ids over which to calculate the bedload:
+                  element surface_ids {
+                     integer_vector
+                  },
                   internal_algorithm,
                   velocity_mesh_choice,
                   diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
                }
             )
          }?,

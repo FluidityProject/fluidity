@@ -548,6 +548,7 @@ contains
           call calculate_sediment_flux(state(i))
           call calculate_sediment_active_layer_d50(state(i))
           call calculate_sediment_active_layer_sigma(state(i))
+          call calculate_sediment_active_layer_volume_fractions(state(i))
        end if
        ! End of sediment diagnostics.
 
