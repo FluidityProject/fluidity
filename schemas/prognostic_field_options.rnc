@@ -224,7 +224,10 @@ prognostic_scalar_field =
             }
          )
       }?,
-      ## source term
+      ## Source term. If the scalar field to be 
+      ## solved for is subcycled then variations 
+      ## in this source field across the subcycled 
+      ## time steps are not considered.
       element scalar_field {
          attribute name { "Source" },
          attribute rank { "0" },
@@ -237,6 +240,14 @@ prognostic_scalar_field =
                   scalar_python_diagnostic_algorithm |
                   internal_algorithm
                ),
+               ## Add the source field directly to the 
+               ## matrix system right hand side. To be 
+               ## consistent this term should be discretised  
+               ## using the test function space that 
+               ## is used for the spatial discretisation.
+               element add_directly_to_rhs {
+                  comment
+               }?,
                diagnostic_scalar_field_no_adapt
             } 
          )
