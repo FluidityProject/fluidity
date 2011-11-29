@@ -31,6 +31,7 @@ module sediment_diagnostics
   use global_parameters, only:FIELD_NAME_LEN, OPTION_PATH_LEN, dt, timestep
   use state_module
   use fields
+  use fields_base
   use vector_tools
   use spud
   use fetools
@@ -499,7 +500,10 @@ contains
 
     call zero(sigma)
     
-    call addto(sigma, sigma_surface)
+    node_val_remap: do i_ele = 1, element_count(sigma_surface)
+       sigma%val(face_global_nodes(sigma, i_ele)) = sigma_surface&
+            &%val(ele_nodes(sigma_surface, i_ele))
+    end do node_val_remap
 
     deallocate(bedload)
     deallocate(diameter) 

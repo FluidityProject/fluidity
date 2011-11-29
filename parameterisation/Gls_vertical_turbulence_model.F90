@@ -1504,6 +1504,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     real, dimension(2)                   :: temp_vector_2D
     real, dimension(3)                   :: temp_vector_3D
     logical                              :: surface_allocated
+    integer                              :: stat
 
     MaxIter = 10
     z0s_min = 0.003
@@ -1524,9 +1525,8 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
             call create_surface_mesh(ocean_mesh, top_surface_nodes, tke%mesh, &
                                      top_surface_element_list, 'OceanTop')
             call allocate(surface_forcing, wind_surface_field%dim, ocean_mesh, name="surface_velocity")
-            call allocate(surface_pos, positions%dim, ocean_mesh, name="surface_positions")
+            surface_pos = get_coordinates_remapped_to_surface(positions, ocean_mesh, top_surface_element_list) 
             call deallocate(ocean_mesh)
-            call remap_field_to_surface(positions, surface_pos, top_surface_element_list)
 
             if (tke%mesh%continuity == velocity%mesh%continuity) then
                 call set(surface_forcing,wind_surface_field)
