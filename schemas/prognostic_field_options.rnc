@@ -242,8 +242,8 @@ prognostic_scalar_field =
                ),
                ## Add the source field directly to the 
                ## matrix system right hand side. To be 
-               ## consistent this term should be discretised  
-               ## using the test function space that 
+               ## consistent this term should be tested   
+               ## using the function space that 
                ## is used for the spatial discretisation.
                element add_directly_to_rhs {
                   comment
