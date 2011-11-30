@@ -1527,6 +1527,22 @@ IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
                       <ref name="prescribed_tensor_field"/>
                     </element>
                   </element>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>Set the value of the background (laminar) diffusivity field here.
+This is used to calculate scalar field diffusivities.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>BackgroundDiffusivity</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
                   <element name="tensor_field">
                     <a:documentation>Eddy viscosity (turbulent diffusion of velocity).
 This is a fictitious isotropic viscosity, added to normal viscosity field, that
