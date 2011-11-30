@@ -693,7 +693,6 @@ def val(X,t):
                     <include_in_detectors/>
                   </detectors>
                 </diagnostic>
-                <stage_aggregate/>
               </scalar_field>
             </release>
           </chemical_variable>

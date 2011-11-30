@@ -244,8 +244,12 @@ contains
                    agent_arrays(i)%biovar_name(index) = trim(biovar_name)//"Ing"
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_UPTAKE
                    agent_arrays(i)%biofield_name(index) = trim(fg_name)//"Request"//trim(biovar_name)
-                   agent_arrays(i)%biofield_aggregate(index)=.true.
                    call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_name(index))
+                   if (have_option(trim(biovar_buffer)//"/uptake/scalar_field::Request/stage_aggregate")) then
+                      agent_arrays(i)%biofield_aggregate(index)=.true.
+                   else
+                      agent_arrays(i)%biofield_aggregate(index)=.false.
+                   end if
                    index = index+1
                 end if
 
@@ -257,8 +261,12 @@ contains
                    agent_arrays(i)%biovar_name(index) = trim(biovar_name)//"Rel"
                    agent_arrays(i)%biofield_type(index) = BIOFIELD_RELEASE
                    agent_arrays(i)%biofield_name(index) = trim(fg_name)//"Release"//trim(biovar_name)
-                   agent_arrays(i)%biofield_aggregate(index)=.true.
                    call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(i)%chemfield_name(index))
+                   if (have_option(trim(biovar_buffer)//"/release/scalar_field::Release/stage_aggregate")) then
+                      agent_arrays(i)%biofield_aggregate(index)=.true.
+                   else
+                      agent_arrays(i)%biofield_aggregate(index)=.false.
+                   end if
                    index = index+1
                 end if
 
@@ -462,26 +470,60 @@ contains
        end if
     end do
 
-    ! Then we reset all stage-aggregated diagnostics
+    ! Then we reset all aggregated diagnostics
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovar_name)
-             if (agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
+             ! Reset stage-aggregated diagnostics
+             if (agent_arrays(i)%biofield_aggregate(j).and.agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_name(j)))
+                call zero(diagfield_agg)
+             end if
+
+             ! Reset request global aggregate fields
+             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
+                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Request")
+                call zero(diagfield_agg)
+             end if
+
+             ! Reset release global aggregate fields
+             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
+                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Release")
                 call zero(diagfield_agg)
              end if
           end do
        end if
     end do
 
+    ! Now we derive all aggregated quantities
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
-
-          ! Aggregate stage-aggregated diagnostic fields
           do j=1, size(agent_arrays(i)%biovar_name)
+
+             ! Aggregate stage-aggregated diagnostic fields
              if (agent_arrays(i)%biofield_aggregate(j).and.agent_arrays(i)%biofield_type(j) /= BIOFIELD_NONE) then
                 diagfield_stage=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_name(j))//trim(agent_arrays(i)%stage_name))
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_name(j)))
+
+                do ele=1, ele_count(diagfield_agg)
+                   call addto(diagfield_agg, ele, node_val(diagfield_stage, ele))
+                end do
+             end if
+
+             ! Aggregate chemical uptake request
+             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
+                diagfield_stage=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_name(j))//trim(agent_arrays(i)%stage_name))
+                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Request")
+
+                do ele=1, ele_count(diagfield_agg)
+                   call addto(diagfield_agg, ele, node_val(diagfield_stage, ele))
+                end do
+             end if
+
+             ! Aggregate chemical release quantity
+             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_RELEASE) then
+                diagfield_stage=>extract_scalar_field(state, trim(agent_arrays(i)%biofield_name(j))//trim(agent_arrays(i)%stage_name))
+                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Release")
 
                 do ele=1, ele_count(diagfield_agg)
                    call addto(diagfield_agg, ele, node_val(diagfield_stage, ele))
@@ -516,7 +558,7 @@ contains
     agent_count_field=>extract_scalar_field(state, trim(agent_list%fg_name)//"Agents"//trim(agent_list%stage_name))
     call zero(agent_count_field)
 
-    ! Pull and reset all primary diagnostic fields
+    ! Pull and reset all per-stage-array diagnostic fields
     do i=1, size(agent_list%biovar_name)
        if (agent_list%biofield_type(i) /= BIOFIELD_NONE) then
           diagfields(i)=extract_scalar_field(state, trim(agent_list%biofield_name(i))//trim(agent_list%stage_name))

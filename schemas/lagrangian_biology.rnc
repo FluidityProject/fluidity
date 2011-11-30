@@ -95,7 +95,7 @@ lagrangian_biology =
                            ## Add diagnostic field that represents the total quantity across all stages of the FG.
                            element stage_aggregate {
                               empty
-                           }
+                           }?
                         },
                         ## Depletion factor
                         element scalar_field {
@@ -120,7 +120,7 @@ lagrangian_biology =
                            ## Add diagnostic field that represents the total quantity across all stages of the FG.
                            element stage_aggregate {
                               empty
-                           }
+                           }?
                         }
                      }?
                   }

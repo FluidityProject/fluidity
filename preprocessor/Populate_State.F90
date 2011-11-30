@@ -1532,7 +1532,7 @@ contains
 
             if (have_option(trim(var_buffer)//"/uptake")) then
 
-               ! DGRequest
+               ! Request
                if (have_option(trim(var_buffer)//"/uptake/scalar_field::Request")) then
                   write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::Request"
                   call get_option(trim(field_buffer)//"/name", field_name)
@@ -1549,21 +1549,30 @@ contains
                            dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                   end do
 
+                  ! Optional aggregated request field for the FG
+                  if (have_option(trim(field_buffer)//"/stage_aggregate")) then
+                     call allocate_and_insert_scalar_field(trim(field_buffer), &
+                           state, parent_mesh="BiologyMesh", &
+                           field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+                  end if
+
+                  ! Global request field
                   call allocate_and_insert_scalar_field(trim(field_buffer), &
                         state, parent_mesh="BiologyMesh", &
-                        field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                        field_name=trim(var_name)//trim(field_name), &
                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
                   FLExit("Chemical uptake requires a Request field")
                end if
 
-               ! Depletion field
+               ! Global depletion field
                if (have_option(trim(var_buffer)//"/uptake/scalar_field::Depletion")) then
                   write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::Depletion"
                   call get_option(trim(field_buffer)//"/name", field_name)
                   call allocate_and_insert_scalar_field(trim(field_buffer), &
                         state, parent_mesh="BiologyMesh", &
-                        field_name=trim(var_name)//trim(field_name), &
+                        field_name=trim(field_name)//trim(var_name), &
                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
                   FLExit("Chemical uptake requires a Depletion field")
@@ -1572,7 +1581,7 @@ contains
 
             if (have_option(trim(var_buffer)//"/release")) then
 
-               ! DGRelease
+               ! Release
                if (have_option(trim(var_buffer)//"/release/scalar_field::Release")) then
                   write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/release/scalar_field::Release"
                   call get_option(trim(field_buffer)//"/name", field_name)
@@ -1589,9 +1598,16 @@ contains
                            dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                   end do
 
+                  if (have_option(trim(field_buffer)//"/stage_aggregate")) then
+                     call allocate_and_insert_scalar_field(trim(field_buffer), &
+                           state, parent_mesh="BiologyMesh", &
+                           field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+                  end if
+
                   call allocate_and_insert_scalar_field(trim(field_buffer), &
                         state, parent_mesh="BiologyMesh", &
-                        field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                        field_name=trim(var_name)//trim(field_name), &
                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
                   FLExit("Chemical release requires a Release field")

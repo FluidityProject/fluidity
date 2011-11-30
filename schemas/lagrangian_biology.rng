@@ -126,10 +126,12 @@ The scaled request quantity will then get added to the according absorption fiel
                           <ref name="internal_algorithm"/>
                           <ref name="diagnostic_scalar_field_no_adapt"/>
                         </element>
-                        <element name="stage_aggregate">
-                          <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
-                          <empty/>
-                        </element>
+                        <optional>
+                          <element name="stage_aggregate">
+                            <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
+                            <empty/>
+                          </element>
+                        </optional>
                       </element>
                       <element name="scalar_field">
                         <a:documentation>Depletion factor</a:documentation>
@@ -157,10 +159,12 @@ The scaled release quantity will then get added to the according source field of
                           <ref name="internal_algorithm"/>
                           <ref name="diagnostic_scalar_field_no_adapt"/>
                         </element>
-                        <element name="stage_aggregate">
-                          <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
-                          <empty/>
-                        </element>
+                        <optional>
+                          <element name="stage_aggregate">
+                            <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
+                            <empty/>
+                          </element>
+                        </optional>
                       </element>
                     </element>
                   </optional>
