@@ -92,7 +92,7 @@ contains
 
        ! obtain scalar fields for this sediment class
        call get_sediment_item(state, i_field, sediment_field)
-       call get_sediment_item(state, i_field, "SedimentBedload", bedload_field)
+       call get_sediment_item(state, i_field, "Bedload", bedload_field)
 
        ! allocate a field that will hold the quantity of sediment eroded from the bed in
        ! this timestep
@@ -153,7 +153,7 @@ contains
 
        ! obtain scalar fields for this sediment class
        call get_sediment_item(state, i_field, sediment_field)
-       call get_sediment_item(state, i_field, "SedimentBedload", bedload_field)
+       call get_sediment_item(state, i_field, "Bedload", bedload_field)
        call get_sediment_item(state, i_field, "SinkingVelocity", sink_U) 
        
        ! allocate surface field that will contain the calculated deposited sediment for
@@ -202,7 +202,7 @@ contains
     net_flux_loop: do i_field=1, n_sediment_fields
        
        ! obtain scalar fields for this sediment class
-       call get_sediment_item(state, i_field, "SedimentBedload", bedload_field)
+       call get_sediment_item(state, i_field, "Bedload", bedload_field)
 
        nodes: do node=1,node_count(deposited_sediment(i_field))
           
@@ -378,7 +378,7 @@ contains
        call get_sediment_item(state, i_field, 'diameter', sorted_diameter(i_field), stat)
        if (stat /= 0) FLExit("All sediment fields must have a diameter to be able to calcu&
             &late the SedimentBedActiveLayerD50")
-       call get_sediment_item(state, i_field, 'SedimentBedload', sorted_bedload(i_field)&
+       call get_sediment_item(state, i_field, 'Bedload', sorted_bedload(i_field)&
             &%ptr, stat)
     end do
 
@@ -459,7 +459,7 @@ contains
        call get_sediment_item(state, i_field, 'diameter', diameter(i_field), stat)
        if (stat /= 0) FLExit("All sediment fields must have a diameter to be able to calcu&
             &late the SedimentBedActiveLayerSigma")
-       call get_sediment_item(state, i_field, 'SedimentBedload', bedload(i_field)%ptr)      
+       call get_sediment_item(state, i_field, 'Bedload', bedload(i_field)%ptr)      
     end do data_collection_loop
        
     ! allocate surface field that will contain the calculated sigma values
@@ -598,7 +598,7 @@ contains
     
     ! calculate combined bedload
     data_collection_loop: do i_field = 1, n_fields
-       call get_sediment_item(state, i_field, 'SedimentBedload', bedload) 
+       call get_sediment_item(state, i_field, 'Bedload', bedload) 
        if (i_field == 1) then
           call allocate(total_bedload, bedload%mesh, "TotalBedload")
           call zero(total_bedload)
@@ -609,7 +609,7 @@ contains
     calculation_loop: do i_field = 1, n_fields
 
        ! get sediment bedload and volume fraction fields
-       call get_sediment_item(state, i_field, 'SedimentBedload', bedload) 
+       call get_sediment_item(state, i_field, 'Bedload', bedload) 
        call get_sediment_item(state, i_field, 'BedloadVolumeFraction', volume_fraction)        
        
        ! generate surface_mesh for calculation of volume fraction and create surface field
