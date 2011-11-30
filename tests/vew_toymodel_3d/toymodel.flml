@@ -634,8 +634,8 @@ def val(X,t):
       <functional_group name="Diatom">
         <variables>
           <state_variable name="Stage"/>
-          <state_variable name="Biomass">
-            <scalar_field name="Biomass">
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
               <diagnostic>
                 <algorithm name="Internal" material_phase_support="multiple"/>
                 <output/>
@@ -644,9 +644,59 @@ def val(X,t):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <per_stage/>
+              <stage_aggregate/>
             </scalar_field>
           </state_variable>
+          <chemical_variable name="Ammonium">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+              <stage_aggregate/>
+            </scalar_field>
+            <chemical_field name="Ammonium"/>
+            <uptake>
+              <scalar_field name="Request">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+                <stage_aggregate/>
+              </scalar_field>
+              <scalar_field name="Depletion">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+              </scalar_field>
+            </uptake>
+            <release>
+              <scalar_field name="Release">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+                <stage_aggregate/>
+              </scalar_field>
+            </release>
+          </chemical_variable>
         </variables>
         <environment>
           <field name="Temperature"/>
@@ -674,7 +724,7 @@ def val(X,t):
             </initial_position>
             <initial_state>
               <values>
-                <real_value shape="2" rank="1">0.0 50000.0</real_value>
+                <real_value shape="5" rank="1">0.0 50000.0 2.2e-9 0.0 0.0</real_value>
               </values>
             </initial_state>
             <biology_update>
@@ -682,6 +732,38 @@ def val(X,t):
 
 def val(variables, environment, dt):
   #bio.update_living_diatom(variables, environment, dt) 
+  return variables</string_value>
+            </biology_update>
+          </stage>
+          <stage name="Dead">
+            <id>
+              <real_value rank="0">1.0</real_value>
+            </id>
+            <number_of_agents>
+              <integer_value rank="0">1000</integer_value>
+            </number_of_agents>
+            <initial_position>
+              <string_value lines="20" type="python">def val(t):
+  from numpy import arange,zeros,reshape,concatenate,append,random
+  
+  # 1000 agents, evenly spaced in [0:200]
+  z = arange(-200.,0.,0.2)
+  random.seed(5678)
+  x = random.uniform(0., 10., 1000)
+  y = random.uniform(0., 10., 1000)
+
+  return reshape(concatenate((x,y,z)),(3,1000)).T</string_value>
+            </initial_position>
+            <initial_state>
+              <values>
+                <real_value shape="5" rank="1">0.0 10000.0 0.2e-9 0.0 0.0</real_value>
+              </values>
+            </initial_state>
+            <biology_update>
+              <string_value lines="20" type="python">#import fluidity.lagrangian_biology as bio
+
+def val(variables, environment, dt):
+  #bio.update_dead_diatom(variables, environment, dt) 
   return variables</string_value>
             </biology_update>
           </stage>
@@ -695,7 +777,6 @@ def val(variables, environment, dt):
               <include_in_detectors/>
             </detectors>
           </diagnostic>
-          <per_stage/>
         </scalar_field>
         <lagrangian_timestepping>
           <subcycles>

@@ -107,8 +107,9 @@ module detector_data_types
      logical :: has_biology=.false.
      character(len=FIELD_NAME_LEN) :: fg_name, stage_name
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biovar_name
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_name
      integer, dimension(:), allocatable :: biofield_type
-     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_dg_name
+     logical, dimension(:), allocatable :: biofield_aggregate
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: chemfield_name
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: env_field_name
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode

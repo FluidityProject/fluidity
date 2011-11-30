@@ -1446,20 +1446,20 @@ contains
             write(field_buffer, "(a,i0,a)") trim(fg_buffer)//"/scalar_field::Agents"
             call get_option(trim(field_buffer)//"/name", field_name)
 
-            ! One for each stage, ie. DiatomAgentsLiving and DiatomAgentsDead
-            if (have_option(trim(field_buffer)//"/per_stage")) then
-               stage_count = option_count(trim(fg_buffer)//"/stages/stage")
-               do k=1, stage_count
-                  write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
-                  call get_option(trim(stage_buffer)//"/name", stage_name)
+            ! Allocate primary agent count diagnostic fields, ie. <FG>Agents<Stage>
+            stage_count = option_count(trim(fg_buffer)//"/stages/stage")
+            do k=1, stage_count
+               write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
+               call get_option(trim(stage_buffer)//"/name", stage_name)
 
-                  call allocate_and_insert_scalar_field(trim(field_buffer), &
-                        state, parent_mesh="BiologyMesh", &
-                        field_name=trim(fg_name)//trim(field_name)//trim(stage_name), &
-                        dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-               end do
-            else
-               ! Or a global one, ie. ParticulateChemical
+               call allocate_and_insert_scalar_field(trim(field_buffer), &
+                     state, parent_mesh="BiologyMesh", &
+                     field_name=trim(fg_name)//trim(field_name)//trim(stage_name), &
+                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+            end do
+
+            ! Allocate an additional diagnostic field for the stage-aggregate, ie. <FG>Agents
+            if (have_option(trim(field_buffer)//"/stage_aggregate")) then
                call allocate_and_insert_scalar_field(trim(field_buffer), &
                      state, parent_mesh="BiologyMesh", &
                      field_name=trim(fg_name)//trim(field_name), &
@@ -1477,23 +1477,23 @@ contains
             if (have_option(trim(var_buffer)//"/scalar_field")) then
                call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
 
-               ! One for each stage, ie. BiomassLiving and BiomassDead
-               if (have_option(trim(var_buffer)//"/scalar_field/per_stage")) then
-                  stage_count = option_count(trim(fg_buffer)//"/stages/stage")
-                  do k=1, stage_count
-                     write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
-                     call get_option(trim(stage_buffer)//"/name", stage_name)
+               ! Allocate primary agent count diagnostic fields, ie. <FG>Biomass<Stage>
+               stage_count = option_count(trim(fg_buffer)//"/stages/stage")
+               do k=1, stage_count
+                  write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
+                  call get_option(trim(stage_buffer)//"/name", stage_name)
 
-                     call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
-                           state, parent_mesh="BiologyMesh", &
-                           field_name=trim(fg_name)//trim(field_name)//trim(stage_name), &
-                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-                  end do
-               else
-                  ! Or a global one, ie. ParticulateChemical
                   call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
                         state, parent_mesh="BiologyMesh", &
-                        field_name=trim(fg_name)//trim(field_name), &
+                        field_name=trim(fg_name)//trim(field_name)//trim(var_name)//trim(stage_name), &
+                        dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               end do
+
+               ! Allocate an additional diagnostic field for the stage-aggregate, ie. <FG>Biomass
+               if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate")) then
+                  call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
+                        state, parent_mesh="BiologyMesh", &
+                        field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                end if
             end if
@@ -1509,47 +1509,62 @@ contains
             if (have_option(trim(var_buffer)//"/scalar_field")) then
                call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
 
-               ! One for each stage, ie. BiomassLiving and BiomassDead
-               if (have_option(trim(var_buffer)//"/scalar_field/per_stage")) then
-                  stage_count = option_count(trim(fg_buffer)//"/stages/stage")
-                  do k=1, stage_count
-                     write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
-                     call get_option(trim(stage_buffer)//"/name", stage_name)
+               ! Allocate primary agent count diagnostic fields, ie. <FG>Particulate<Chem><Stage>
+               stage_count = option_count(trim(fg_buffer)//"/stages/stage")
+               do k=1, stage_count
+                  write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
+                  call get_option(trim(stage_buffer)//"/name", stage_name)
 
-                     call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
-                           state, parent_mesh="BiologyMesh", &
-                           field_name=trim(fg_name)//trim(field_name)//trim(var_name)//trim(stage_name), &
-                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
-                  end do
-               else
-                  ! Or a global one, ie. ParticulateChemical
                   call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
-                           state, parent_mesh="BiologyMesh", &
-                           field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
-                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+                        state, parent_mesh="BiologyMesh", &
+                        field_name=trim(fg_name)//trim(field_name)//trim(var_name)//trim(stage_name), &
+                        dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+               end do
+
+               ! Allocate an additional diagnostic field for the stage-aggregate, ie. <FG>Particulate<Chem>
+               if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate")) then
+                  call allocate_and_insert_scalar_field(trim(var_buffer)//"/scalar_field", &
+                        state, parent_mesh="BiologyMesh", &
+                        field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                        dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                end if
             end if
 
             if (have_option(trim(var_buffer)//"/uptake")) then
 
                ! DGRequest
-               if (have_option(trim(var_buffer)//"/uptake/scalar_field::DGRequest")) then
-                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::DGRequest"
+               if (have_option(trim(var_buffer)//"/uptake/scalar_field::Request")) then
+                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::Request"
                   call get_option(trim(field_buffer)//"/name", field_name)
-                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
-                     field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
-                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+
+                  ! Allocate primary chem request diagnostic fields, ie. <FG>Request<Chem><Stage>
+                  stage_count = option_count(trim(fg_buffer)//"/stages/stage")
+                  do k=1, stage_count
+                     write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
+                     call get_option(trim(stage_buffer)//"/name", stage_name)
+
+                     call allocate_and_insert_scalar_field(trim(field_buffer), &
+                           state, parent_mesh="BiologyMesh", &
+                           field_name=trim(fg_name)//trim(field_name)//trim(var_name)//trim(stage_name), &
+                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+                  end do
+
+                  call allocate_and_insert_scalar_field(trim(field_buffer), &
+                        state, parent_mesh="BiologyMesh", &
+                        field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                        dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
-                  FLExit("Chemical uptake requires a DGRequest field")
+                  FLExit("Chemical uptake requires a Request field")
                end if
 
                ! Depletion field
                if (have_option(trim(var_buffer)//"/uptake/scalar_field::Depletion")) then
                   write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::Depletion"
                   call get_option(trim(field_buffer)//"/name", field_name)
-                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
-                     field_name=trim(var_name)//trim(field_name), &
-                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+                  call allocate_and_insert_scalar_field(trim(field_buffer), &
+                        state, parent_mesh="BiologyMesh", &
+                        field_name=trim(var_name)//trim(field_name), &
+                        dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
                   FLExit("Chemical uptake requires a Depletion field")
                end if
@@ -1558,14 +1573,28 @@ contains
             if (have_option(trim(var_buffer)//"/release")) then
 
                ! DGRelease
-               if (have_option(trim(var_buffer)//"/release/scalar_field::DGRelease")) then
-                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/release/scalar_field::DGRelease"
+               if (have_option(trim(var_buffer)//"/release/scalar_field::Release")) then
+                  write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/release/scalar_field::Release"
                   call get_option(trim(field_buffer)//"/name", field_name)
-                  call allocate_and_insert_scalar_field(trim(field_buffer), state, &
-                     field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
-                     dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+
+                  ! Allocate primary chem release diagnostic fields, ie. <FG>Release<Chem><Stage>
+                  stage_count = option_count(trim(fg_buffer)//"/stages/stage")
+                  do k=1, stage_count
+                     write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",k-1,"]"
+                     call get_option(trim(stage_buffer)//"/name", stage_name)
+
+                     call allocate_and_insert_scalar_field(trim(field_buffer), &
+                           state, parent_mesh="BiologyMesh", &
+                           field_name=trim(fg_name)//trim(field_name)//trim(var_name)//trim(stage_name), &
+                           dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
+                  end do
+
+                  call allocate_and_insert_scalar_field(trim(field_buffer), &
+                        state, parent_mesh="BiologyMesh", &
+                        field_name=trim(fg_name)//trim(field_name)//trim(var_name), &
+                        dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
-                  FLExit("Chemical release requires a DGRelease field")
+                  FLExit("Chemical release requires a Release field")
                end if
             end if
 

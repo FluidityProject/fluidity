@@ -24,19 +24,19 @@ lagrangian_biology =
                ## Dynamic size of the ensemble the agent represents. 
                ## All internal quantities that are exchanged with the environment get scaled by this factor.
                element state_variable {
-                  attribute name { 'Biomass' },
+                  attribute name { 'Size' },
                   ## Biology agent field
                   element scalar_field {
-                     attribute name { 'Biomass' },
+                     attribute name { 'Ensemble' },
                      element diagnostic {
                         internal_algorithm,
                         diagnostic_scalar_field_no_adapt
                      },
-                     ## A diagnostic field 'Biomass<stage>' is created for each agent stage
-                     element per_stage {
+                     ## Add diagnostic field that represents the total quantity across all stages of the FG.
+                     element stage_aggregate {
                         empty
                      }?
-                  }?
+                  }
                },
                (
                   ## Internal state variable of a biology agent that defines an arbitrary internal property.
@@ -49,8 +49,8 @@ lagrangian_biology =
                            internal_algorithm,
                            diagnostic_scalar_field_no_adapt
                         },
-                        ## A diagnostic field 'Biomass<stage>' is created for each agent stage
-                        element per_stage {
+                        ## Add diagnostic field that represents the total quantity across all stages of the FG.
+                        element stage_aggregate {
                            empty
                         }?
                      }?
@@ -69,8 +69,8 @@ lagrangian_biology =
                            internal_algorithm,
                            diagnostic_scalar_field_no_adapt
                         },
-                        ## Option to create a diagnostic field for each stage of the Functional Group.
-                        element per_stage {
+                        ## Add diagnostic field that represents the total quantity across all stages of the FG.
+                        element stage_aggregate {
                            empty
                         }?
                      }?,
@@ -78,7 +78,7 @@ lagrangian_biology =
                      ## This option is required if 'uptake' or 'release' are specified.
                      element chemical_field {
                         attribute name { xsd:string }
-                     }?,
+                     },
                      ## Option to define chemical uptake from the environment. 
                      ## This will create internal fields to represent the accumulated requested quantity 
                      ## and the depletion factor, which scales the amount actually ingested by the agent 
@@ -87,10 +87,14 @@ lagrangian_biology =
                      element uptake {
                         ## Request field on a discontinuous mesh mesh
                         element scalar_field {
-                           attribute name { "DGRequest" },
+                           attribute name { "Request" },
                            element diagnostic {
                               internal_algorithm,
                               diagnostic_scalar_field_no_adapt
+                           },
+                           ## Add diagnostic field that represents the total quantity across all stages of the FG.
+                           element stage_aggregate {
+                              empty
                            }
                         },
                         ## Depletion factor
@@ -108,10 +112,14 @@ lagrangian_biology =
                      element release {
                         ## Release field on a discontinuous mesh mesh
                         element scalar_field {
-                           attribute name { "DGRelease" },
+                           attribute name { "Release" },
                            element diagnostic {
                               internal_algorithm,
                               diagnostic_scalar_field_no_adapt
+                           },
+                           ## Add diagnostic field that represents the total quantity across all stages of the FG.
+                           element stage_aggregate {
+                              empty
                            }
                         }
                      }?
@@ -231,10 +239,6 @@ lagrangian_biology =
                element diagnostic {
                   internal_algorithm,
                   diagnostic_scalar_field_no_adapt
-               },
-               ## A diagnostic '<FG>Agents<stage>' field is created for each agent stage
-               element per_stage {
-                  empty
                }
             }?,
             lagrangian_timestepping
