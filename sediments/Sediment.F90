@@ -228,6 +228,7 @@ contains
     ! get sigma
     sigma => extract_scalar_field(state, 'SedimentBedActiveLayerSigma', stat)
 
+    call allocate(viscosity, sediment_field%mesh, "Viscosity")
     ! get viscosity
     call get_option(trim(bc_path)//"/type[0]/viscosity", algorithm_viscosity(1,1), stat&
          &=stat)
@@ -237,7 +238,6 @@ contains
              algorithm_viscosity(i,j) = algorithm_viscosity(1,1)
           end do
        end do
-       call allocate(viscosity, sediment_field%mesh, "Viscosity")
        call zero(viscosity)
        call set(viscosity, algorithm_viscosity)
        viscosity_pointer => viscosity
@@ -546,8 +546,8 @@ contains
              end if
 
              ! get bedload surface ids
-             bedload_surface_id_count=option_shape(trim(field_option_path)//'/scalar_field::SedimentB&
-                  &edload/diagnostic/surface_ids')
+             bedload_surface_id_count=option_shape(trim(field_option_path)//'/scalar_field&
+                  &::Bedload/diagnostic/surface_ids')
              allocate(bedload_surface_ids(bedload_surface_id_count(1)))
              call get_option(trim(field_option_path)//'/scalar_field::Bedload/diagnostic/surf&
                   &ace_ids', bedload_surface_ids) 
