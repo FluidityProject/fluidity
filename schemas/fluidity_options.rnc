@@ -1803,7 +1803,7 @@ sediment =
                ## The units are in unit distances as a depth of sediment.
                element scalar_field {
                   attribute rank { "0" },
-                  attribute name { "SedimentBedload" },
+                  attribute name { "Bedload" },
                   ## Field type
                   element diagnostic {
                      ## Surface ids over which to calculate the bedload:

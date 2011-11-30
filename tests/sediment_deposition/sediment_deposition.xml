@@ -23,7 +23,7 @@ s = stat_parser("Sediment_Deposition.stat")
 
 dt = s["dt"]["value"]
 for i in range(len(classes)):
-    bed_height = append(bed_height, s["Fluid"][classes[i] + "SedimentBedload"]["max"][-1])
+    bed_height = append(bed_height, s["Fluid"][classes[i] + "Bedload"]["max"][-1])
     concentration = s["Fluid"][classes[i]]["max"]
     sink_U = s["Fluid"][classes[i] + "SinkingVelocity"]["max"]
     deposition_rate = sink_U*concentration
@@ -47,7 +47,7 @@ mass = []
 s = stat_parser("Sediment_Deposition.stat")   
 
 for i in range(len(classes)):
-    bedload.append(s["Fluid"][classes[i] + "SedimentBedload"]["surface_integral%BedloadIntegral"])
+    bedload.append(s["Fluid"][classes[i] + "Bedload"]["surface_integral%BedloadIntegral"])
     suspension.append(s["Fluid"][classes[i]]["integral"])
     mass.append((bedload[i] + suspension[i])/(bedload[i][0] + suspension[i][0])*100)
 

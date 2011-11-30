@@ -54,7 +54,7 @@ module momentum_diagnostics
             calculate_buoyancy, calculate_coriolis, calculate_tensor_second_invariant, &
             calculate_imposed_material_velocity_source, calculate_imposed_material_velocity_absorption, &
             calculate_scalar_potential, calculate_projection_scalar_potential, &
-            calculate_geostrophic_velocity, calculate_k_epsilon_diffusivity
+            calculate_geostrophic_velocity
            
   
 contains
@@ -74,78 +74,6 @@ contains
     call strain_rate(source_field, positions, t_field)
 
   end subroutine calculate_strain_rate
-
-  subroutine calculate_k_epsilon_diffusivity(state, t_field)
-    ! calculates scalar field diffusivity based upon eddy viscosity and background
-    !  diffusivity
-    type(state_type), intent(inout)   :: state
-    type(tensor_field), intent(inout) :: t_field
-    character(len = OPTION_PATH_LEN)  :: parent_path
-    integer                           :: slash_location, i, stat
-    real                              :: prandtl_schmidt, local_background_diffusivity
-    type(scalar_field)                :: local_background_diffusivity_field
-    type(tensor_field), pointer       :: global_background_diffusivity, eddy_viscosity
-    type(tensor_field)                :: background_diffusivity
-
-    ewrite(1,*) 'In calculate_k_epsilon_diffusivity'
-
-    ! get parent scalar field path
-    slash_location = scan(t_field%option_path, '/', .true.)
-    parent_path = t_field%option_path(1:slash_location-1)
-
-    ! check options
-    if (.not.(have_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon')))&
-         & then
-       FLExit('you must have /subgridscale_parameterisation(k-epsilon) to be able to calculate&
-            & diffusivity based upon the k-epsilon model')
-    end if
-
-    ! get prandtl_schmidt number
-    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/Prandtl_&
-         &Schmidt_Number', prandtl_schmidt, stat=stat)
-    if (stat /= 0) then 
-       prandtl_schmidt = 1.0
-    end if
-
-    ! allocate and zero required fields
-    call allocate(background_diffusivity, t_field%mesh, name="background_diff&
-         &usivity")
-    call zero(background_diffusivity)
-    call allocate(local_background_diffusivity_field, t_field%mesh, name="local_backgro&
-         &und_diffusivity_field")
-    call zero(local_background_diffusivity_field)
-
-    ! set background_diffusivity (local takes precendence over global)
-    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/Backg&
-            &roundDiffusivity', local_background_diffusivity, stat=stat)
-    if (stat == 0) then 
-       ! set local isotropic background diffusivity
-       call addto(local_background_diffusivity_field, local_background_diffusivity)
-       do i = 1, background_diffusivity%dim(1)
-          call set(background_diffusivity, i, i, local_background_diffusivity_field)
-       end do
-    else
-       global_background_diffusivity => extract_tensor_field(state, 'BackgroundDiffusivity', stat=stat)
-       if (stat == 0) then 
-          call set(background_diffusivity, global_background_diffusivity)
-       end if
-    end if
-
-    ! get eddy viscosity
-    eddy_viscosity => extract_tensor_field(state, 'EddyViscosity', stat)
-    if (stat /= 0) then 
-       FLExit("No EddyViscosity field was found. Check the k-epsilon model is turned on an&
-            &d you have a valid flml input file.")
-    end if
-
-    call zero(t_field)
-    call addto(t_field, background_diffusivity)
-    call addto(t_field, eddy_viscosity, 1.0/prandtl_schmidt) 
-
-    call deallocate(background_diffusivity)
-    call deallocate(local_background_diffusivity_field)
-
-  end subroutine calculate_k_epsilon_diffusivity
 
   subroutine calculate_sediment_concentration_dependent_viscosity(state, t_field)
     ! calculates viscosity based upon total sediment concentration

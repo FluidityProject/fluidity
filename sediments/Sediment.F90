@@ -214,7 +214,7 @@ contains
          & surface_mesh=surface_mesh, surface_element_list=surface_element_list)
 
     ! get bedload field
-    call get_sediment_item(state, i_field, 'SedimentBedload', bedload)
+    call get_sediment_item(state, i_field, 'Bedload', bedload)
     
     ! get volume fraction
     call get_sediment_item(state, i_field, 'BedloadVolumeFraction', volume_fraction)
@@ -549,7 +549,7 @@ contains
              bedload_surface_id_count=option_shape(trim(field_option_path)//'/scalar_field::SedimentB&
                   &edload/diagnostic/surface_ids')
              allocate(bedload_surface_ids(bedload_surface_id_count(1)))
-             call get_option(trim(field_option_path)//'/scalar_field::SedimentBedload/diagnostic/surf&
+             call get_option(trim(field_option_path)//'/scalar_field::Bedload/diagnostic/surf&
                   &ace_ids', bedload_surface_ids) 
 
              ! get reentrainment surface ids
