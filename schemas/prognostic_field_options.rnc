@@ -163,17 +163,28 @@ prognostic_scalar_field =
          element subgridscale_parameterisation {
             attribute name { "GLS"}
          }|
-         ## [UNDER DEVELOPMENT - DOES NOT WORK YET]
-         ## Set the diffusivity to the eddy diffusivity calculated by the
-         ## k-epsilon turbulence model. If using this, set the diffusivity field to
-         ## diagnostic/algorithm(internal).
+         ## Set the diffusivity, D, to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+         ## by the k-epsilon turbulence model.
+         ##
+         ## D = D_bg  nu_t / Pr
+         ##
+         ## where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
+         ##
+         ## If using this, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+         ##
+         ## A background diffusivity can either be set globally
+         ## under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
+         ## applied upon. If it is set globally and locally, the local background diffusivity is used.
          element subgridscale_parameterisation {
             attribute name { "k-epsilon"},
-            ## Option to set the Prandtl number (ratio of momentum diffusivity to field diffusivity)
-            ##  for this field. Default = 1.0 if not specified.
-            element Prandtl_number {
-               input_choice_real
-            }?
+            ## Option to set the Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
+            ## massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
+            ## for thermal fields.
+            ##
+            ## For this field. Default = 1.0 if not specified.
+            element Prandtl_Schmidt_Number { real }?,
+            ## Option to set a unique isotropic background diffusivity for this field.
+            element BackgroundDiffusivity { real }?
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}
@@ -218,7 +229,8 @@ prognostic_scalar_field =
                mesh_choice?,
                (
                   tensor_python_diagnostic_algorithm |
-                  internal_algorithm
+                  internal_algorithm |
+                  k_epsilon_diffusivity_algorithm
                ),
                diagnostic_tensor_field
             }
