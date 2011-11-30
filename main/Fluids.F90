@@ -386,14 +386,6 @@ contains
        FLExit("Rejig your FLML: /io/dump_format")
     end if
 
-    ! Initialise k_epsilon
-    have_k_epsilon = .false.
-    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
-    if (have_option(trim(keps_option_path))) then
-        have_k_epsilon = .true.
-        call keps_init(state(1))
-    end if
-
     ! initialise the multimaterial fields
     call initialise_diagnostic_material_properties(state)
 
@@ -417,11 +409,6 @@ contains
             call melt_bc(state(1))
           endif
     end if
-
-    ! Initialise GLS
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
-        call gls_init(state(1))
-    end if
     
     ! Checkpoint at start
     if(do_checkpoint_simulation(dump_no)) call checkpoint_simulation(state, cp_no = dump_no)
@@ -443,6 +430,19 @@ contains
     if(have_option("/io/stat/output_at_start")) call write_diagnostics(state, current_time, dt, timestep, not_to_move_det_yet=.true.)
 
     not_to_move_det_yet=.false.
+
+    ! Initialise GLS
+    if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
+        call gls_init(state(1))
+    end if
+
+    ! Initialise k_epsilon
+    have_k_epsilon = .false.
+    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
+    if (have_option(trim(keps_option_path))) then
+        have_k_epsilon = .true.
+        call keps_init(state(1))
+    end if
 
     ! ******************************
     ! *** Start of timestep loop ***
