@@ -2473,6 +2473,22 @@ The units are in unit distances as a depth of sediment.</a:documentation>
                 <ref name="diagnostic_scalar_field"/>
               </element>
             </element>
+            <element name="scalar_field">
+              <a:documentation>Sediment bedload diagnostic which records the sediment 
+deposited through the prescribed boundary.
+
+The units are in unit distances as a depth of sediment.</a:documentation>
+              <attribute name="rank">
+                <value>0</value>
+              </attribute>
+              <attribute name="name">
+                <value>BedloadVolumeFraction</value>
+              </attribute>
+              <element name="diagnostic">
+                <a:documentation>Field type</a:documentation>
+                <ref name="diagnostic_scalar_field"/>
+              </element>
+            </element>
             <optional>
               <element name="scalar_field">
                 <a:documentation>This is the unhindered sinking velocity of the sediment particles. 
@@ -2540,48 +2556,44 @@ criterion.</a:documentation>
           </element>
         </element>
       </zeroOrMore>
-      <optional>
-        <element name="scalar_field">
-          <a:documentation>The median sediment diameter in the active layer of the bed. 
+      <element name="scalar_field">
+        <a:documentation>The median sediment diameter in the active layer of the bed. 
 Required for some reentrainment algorithms.</a:documentation>
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>SedimentBedActiveLayerD50</value>
-          </attribute>
-          <element name="diagnostic">
-            <element name="surface_ids">
-              <a:documentation>Surface ids over which to calculate the bedload:</a:documentation>
-              <ref name="integer_vector"/>
-            </element>
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>SedimentBedActiveLayerD50</value>
+        </attribute>
+        <element name="diagnostic">
+          <element name="surface_ids">
+            <a:documentation>Surface ids over which to calculate the bedload:</a:documentation>
+            <ref name="integer_vector"/>
           </element>
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
         </element>
-      </optional>
-      <optional>
-        <element name="scalar_field">
-          <a:documentation>The standard deviation of sediment in the active layer of the
+      </element>
+      <element name="scalar_field">
+        <a:documentation>The standard deviation of sediment in the active layer of the
 bed. Required for some reentrainment algorithms</a:documentation>
-          <attribute name="rank">
-            <value>0</value>
-          </attribute>
-          <attribute name="name">
-            <value>SedimentBedActiveLayerSigma</value>
-          </attribute>
-          <element name="diagnostic">
-            <element name="surface_ids">
-              <a:documentation>Surface ids over which to calculate the bedload:</a:documentation>
-              <ref name="integer_vector"/>
-            </element>
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
+        <attribute name="rank">
+          <value>0</value>
+        </attribute>
+        <attribute name="name">
+          <value>SedimentBedActiveLayerSigma</value>
+        </attribute>
+        <element name="diagnostic">
+          <element name="surface_ids">
+            <a:documentation>Surface ids over which to calculate the bedload:</a:documentation>
+            <ref name="integer_vector"/>
           </element>
+          <ref name="internal_algorithm"/>
+          <ref name="velocity_mesh_choice"/>
+          <ref name="diagnostic_scalar_field"/>
         </element>
-      </optional>
+      </element>
       <optional>
         <element name="tensor_field">
           <a:documentation>ZeroSedimentConcentrationViscosity field:

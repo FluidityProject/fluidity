@@ -1813,6 +1813,18 @@ sediment =
                      diagnostic_scalar_field
                   }
                },
+               ## Sediment bedload diagnostic which records the sediment 
+               ## deposited through the prescribed boundary.
+               ##
+               ## The units are in unit distances as a depth of sediment.
+               element scalar_field {
+                  attribute rank { "0" },
+                  attribute name { "BedloadVolumeFraction" },
+                  ## Field type
+                  element diagnostic {
+                     diagnostic_scalar_field
+                  }
+               },
                ## This is the unhindered sinking velocity of the sediment particles. 
                ## 
                ## With the sinking velocity field set to diagnostic, this field is used, along with the sediment 
@@ -1881,7 +1893,7 @@ sediment =
                   diagnostic_scalar_field
                }
             )
-         }?,
+         },
          ## The standard deviation of sediment in the active layer of the
          ## bed. Required for some reentrainment algorithms
          element scalar_field {
@@ -1898,7 +1910,7 @@ sediment =
                   diagnostic_scalar_field
                }
             )
-         }?,
+         },
          ## ZeroSedimentConcentrationViscosity field:
          ##
          ## Field for the viscosity of this a fluid with zero 

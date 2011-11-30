@@ -20,6 +20,8 @@ bed_height = []
 entrainment = []
 deposition = []
 expected_entrainment = []
+volume_fraction = []
+sink_U = []
 
 s = stat_parser("Sediment_Reentrainment.stat")   
 time = s["ElapsedTime"]["value"]
@@ -31,9 +33,10 @@ for i in range(len(algorithms)):
     entrainment[i] = -1*(entrainment[i][50:]/dt[51:])
     entrainment[i] = array(entrainment[i])
     concentration = s["Fluid"][algorithms[i]]["max"]
-    sink_U = s["Fluid"][algorithms[i] + "SinkingVelocity"]["max"]
-    deposition.append(sink_U*concentration)
+    sink_U.append(s["Fluid"][algorithms[i] + "SinkingVelocity"]["max"])
+    deposition.append(sink_U[-1]*concentration)
     entrainment[i] = entrainment[i] + deposition[i][51:]
+    volume_fraction.append(s["Fluid"][algorithms[i] + "BedloadVolumeFraction"]["max"])
 
 velocity = s["Fluid"]["Velocity%1"]["max"]
 shear = s["Fluid"]["BedShearStress%magnitude"]["max"]
@@ -42,9 +45,9 @@ d = 0.0001
 nu = 1e-06
 g = 9.81
 
-Z = (sqrt(shear[50:-1])/sink_U[50:-1])*(sqrt(R*g*d**3.0)/nu)**0.6
+Z = (sqrt(shear[50:-1])/sink_U[0][50:-1])*(sqrt(R*g*d**3.0)/nu)**0.6
 A = 1.3e-7
-expected_entrainment.append(sink_U[50:-1] * (A*Z**5 / (1 + A*Z**5/0.3)))
+expected_entrainment.append(volume_fraction[0][50:-1] * sink_U[0][50:-1] * (A*Z**5 / (1 + A*Z**5/0.3)))
 
 erod = 0.5
 poro = 0.5
@@ -55,8 +58,9 @@ for i in range(len(shear)):
     if (shear[i] &gt; 0.0):
         E.append(max(0.0,erod*(1-poro)*(shear[i]-shear_crit)/shear_crit))
     else: E.append(0.0)
+
 E = array(E)
-expected_entrainment.append(sink_U[50:-1] * E[50:-1])
+expected_entrainment.append(volume_fraction[1][50:-1] * sink_U[1][50:-1] * E[50:-1])
 
 entrainment = array([entrainment[0],entrainment[1]])
 expected_entrainment = array([expected_entrainment[0],expected_entrainment[1]])

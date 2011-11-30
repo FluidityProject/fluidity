@@ -231,20 +231,21 @@ contains
   subroutine assemble_sediment_flux_ele(ele, deposited_sediment, sediment_field,&
        & X, U, sink_U, gravity, masslump, i_field, surface_element_list)
 
-    integer, intent(in)                                               :: ele, i_field
-    type(scalar_field), dimension(:), intent(inout)                   :: deposited_sediment
-    type(vector_field), pointer, intent(in)                           :: X, U, gravity
-    type(scalar_field), pointer, intent(in)                           :: sink_U, sediment_field
-    type(scalar_field), intent(inout)                                 :: masslump
-    integer, dimension(:), pointer                                    :: s_ele
+    integer, intent(in) :: ele, i_field
+    type(scalar_field), dimension(:), intent(inout) :: deposited_sediment
+    type(vector_field), pointer, intent(in) :: X, U, gravity
+    type(scalar_field), pointer, intent(in) :: sink_U, sediment_field
+    type(scalar_field), intent(inout) :: masslump
+
+    integer, dimension(:), pointer :: s_ele
     real, dimension(ele_loc(deposited_sediment(i_field), ele), &
-         & ele_loc(deposited_sediment(i_field), ele))                 :: invmass
-    real, dimension(ele_loc(deposited_sediment(i_field), ele))        :: flux
-    real, dimension(ele_ngi(deposited_sediment(i_field), ele))        :: detwei,&
+         & ele_loc(deposited_sediment(i_field), ele)) :: invmass
+    real, dimension(ele_loc(deposited_sediment(i_field), ele)) :: flux
+    real, dimension(ele_ngi(deposited_sediment(i_field), ele)) :: detwei,&
          & U_normal_detwei, G_normal_detwei, U_sink_detwei
     real, dimension(U%dim, ele_ngi(deposited_sediment(i_field), ele)) :: normal
-    type(element_type), pointer                                       :: s_shape
-    integer, dimension(:), pointer                                    :: surface_element_list
+    type(element_type), pointer :: s_shape
+    integer, dimension(:), pointer :: surface_element_list
 
     s_ele=>ele_nodes(deposited_sediment(i_field), ele)
     s_shape=>ele_shape(deposited_sediment(i_field), ele)
@@ -489,7 +490,7 @@ contains
 
        ! calculate sigma
        call calculate_sediment_active_layer_element_sigma(i_ele, sigma_surface, bedload,&
-            & masslump, X, diameter, n_fields)
+            & masslump, x, diameter, n_fields)
 
     end do elements
 
@@ -580,13 +581,12 @@ contains
   subroutine calculate_sediment_active_layer_volume_fractions(state)
 
     type(state_type), intent(inout)                       :: state
-    type(scalar_field), pointer                           :: sigma
+    type(scalar_field), pointer                           :: volume_fraction, bedload
     type(mesh_type)                                       :: surface_mesh
     integer, dimension(:), pointer                        :: surface_node_list
     type(vector_field), pointer                           :: x
-    type(scalar_field_pointer), dimension(:), allocatable :: bedload
-    type(scalar_field)                                    :: mean, total_bedload,&
-         & masslump, sigma_surface, sigma_remap
+    type(scalar_field)                                    :: total_bedload,&
+         & volume_fraction_surface, masslump
     integer                                               :: n_fields, i_field, i_ele,&
          & i_node, stat
     integer, dimension(2)                                 :: surface_id_count
@@ -595,68 +595,116 @@ contains
     x => extract_vector_field(state, "Coordinate")
 
     n_fields = get_n_sediment_fields()
-    allocate(bedload(n_fields))  
     
-    
-    ! ! collect information required to calculate standard deviation
-    ! data_collection_loop: do i_field = 1, n_fields
-    !    call get_sediment_item(state, i_field, 'SedimentBedload', bedload) 
+    ! calculate combined bedload
+    data_collection_loop: do i_field = 1, n_fields
+       call get_sediment_item(state, i_field, 'SedimentBedload', bedload) 
+       if (i_field == 1) then
+          call allocate(total_bedload, bedload%mesh, "TotalBedload")
+          call zero(total_bedload)
+       end if
+       call addto(total_bedload, bedload)
+    end do data_collection_loop
+
+    calculation_loop: do i_field = 1, n_fields
+
+       ! get sediment bedload and volume fraction fields
+       call get_sediment_item(state, i_field, 'SedimentBedload', bedload) 
+       call get_sediment_item(state, i_field, 'BedloadVolumeFraction', volume_fraction)        
        
-    ! end do data_collection_loop
-
-    ! ! allocate surface field that will contain the calculated sigma values
-    ! call create_surface_mesh(surface_mesh, surface_node_list, mesh=bedload(1)%ptr%mesh,&
-    !      & name='SurfaceMesh')
-    ! call allocate(total_bedload_surface, surface_mesh, "TotalBedload")
-    ! call zero(total_bedload_surface) 
-
-    ! ! For continuous fields we need a global lumped mass. For dg we'll
-    ! ! do the mass inversion on a per face basis inside the element loop.
-    ! if(continuity(sigma_surface)>=0) then
-    !    call allocate(masslump, surface_mesh, "SurfaceMassLump")
-    !    call zero(masslump)
-    ! end if
-
-    ! ! obtain surface ids over which to calculate sigma
-    ! surface_id_count=option_shape(trim(sigma%option_path)//"/diagnostic/surface_ids") 
-    ! allocate(surface_ids(surface_id_count(1)))
-    ! call get_option(trim(sigma%option_path)//"/diagnostic/surface_ids", surface_ids)
-
-    ! ! loop through elements in surface field
-    ! bedload_sum_loop: do i_ele=1, element_count(sigma_surface)
-
-    !    ! check if element is on prescribed surface
-    !    if (.not.any(surface_element_id(sigma, i_ele) == surface_ids)) then
-    !       cycle elements
-    !    end if
-
+       ! generate surface_mesh for calculation of volume fraction and create surface field
+       call create_surface_mesh(surface_mesh, surface_node_list, mesh=bedload%mesh,&
+            & name='SurfaceMesh')
+       call allocate(volume_fraction_surface, surface_mesh, "VolumeFraction")
+       call zero(volume_fraction_surface) 
        
+       ! For continuous fields we need a global lumped mass. For dg we'll
+       ! do the mass inversion on a per face basis inside the element loop.
+       if(continuity(volume_fraction_surface)>=0) then
+          call allocate(masslump, surface_mesh, "SurfaceMassLump")
+          call zero(masslump)
+       end if
 
-    !    ! calculate sigma
-    !    call calculate_sediment_active_layer_element_sigma(i_ele, sigma_surface, bedload,&
-    !         & masslump, X, diameter, n_fields)
+       ! obtain sediment bedload surface ids
+       surface_id_count=option_shape(trim(bedload%option_path)//"/diagnostic/surface_ids") 
+       allocate(surface_ids(surface_id_count(1)))
+       call get_option(trim(bedload%option_path)//"/diagnostic/surface_ids", surface_ids)
+       
+       ! loop through elements in surface field
+       elements: do i_ele=1, element_count(volume_fraction_surface)
 
-    ! end do bedload_sum_loop
+          ! check if element is on prescribed surface
+          if (.not.any(surface_element_id(volume_fraction, i_ele) == surface_ids)) then
+             cycle elements
+          end if
 
-    ! ! For continuous fields we divide by the inverse global lumped mass
-    ! if(continuity(surface_mesh)>=0) then
-    !    where (masslump%val/=0.0)
-    !       masslump%val=1./masslump%val
-    !    end where
-    !    call scale(sigma_surface, masslump)
-    !    call deallocate(masslump)
-    ! end if
+          ! calculate volume_fraction
+          call calculate_sediment_active_layer_element_volume_fractions(i_ele,&
+               & volume_fraction_surface, bedload, total_bedload, masslump, x)
+       end do elements
 
-    ! ! remap surface node values on to sigma field
-    ! do i_node = 1, node_count(surface_mesh)
-    !    call set(sigma, surface_node_list(i_node), node_val(sigma_surface, i_node))
-    ! end do
+       ! For continuous fields we divide by the inverse global lumped mass
+       if(continuity(volume_fraction_surface)>=0) then
+          where (masslump%val/=0.0)
+             masslump%val=1./masslump%val
+          end where
+          call scale(volume_fraction_surface, masslump)
+          call deallocate(masslump)
+       end if
+       
+       ! remap surface node values on to sigma field
+       do i_node = 1, node_count(surface_mesh)
+          call set(volume_fraction, surface_node_list(i_node),&
+               & node_val(volume_fraction_surface, i_node))
+       end do
 
-    ! deallocate(bedload)
-    ! deallocate(diameter) 
-    ! call deallocate(sigma_surface)
-    ! deallocate(surface_ids)
+       call deallocate(volume_fraction_surface)
+       call deallocate(surface_mesh)
+       deallocate(surface_ids)
+       
+    end do calculation_loop
+
+    call deallocate(total_bedload)
     
   end subroutine calculate_sediment_active_layer_volume_fractions
+
+  subroutine calculate_sediment_active_layer_element_volume_fractions(i_ele,&
+       & volume_fraction_surface, bedload, total_bedload, masslump, x)
+
+    integer, intent(in)                                      :: i_ele
+    type(scalar_field), intent(inout)                        :: volume_fraction_surface
+    type(scalar_field), intent(in)                           :: bedload, total_bedload
+    type(scalar_field), intent(inout)                        :: masslump
+    type(vector_field), pointer, intent(in)                  :: x
+    integer, dimension(:), pointer                           :: ele
+    type(element_type), pointer                              :: shape
+    real, dimension(ele_loc(volume_fraction_surface, i_ele), &
+         & ele_loc(volume_fraction_surface, i_ele))          :: invmass
+    real, dimension(ele_ngi(volume_fraction_surface, i_ele)) :: detwei, volume_fraction
+
+    ele => ele_nodes(volume_fraction_surface, i_ele)
+    shape => ele_shape(volume_fraction_surface, i_ele)
+
+    call transform_facet_to_physical(x, i_ele, detwei)
+
+    if(continuity(volume_fraction_surface)>=0) then
+       call addto(masslump, ele, &
+            sum(shape_shape(shape, shape, detwei), 1))
+    else
+       ! In the DG case we will apply the inverse mass locally.
+       invmass=inverse(shape_shape(shape, shape, detwei))
+    end if
+
+    volume_fraction = shape_rhs(shape, face_val_at_quad(bedload, i_ele) /&
+         & face_val_at_quad(total_bedload, i_ele) * detwei)
+
+    if(continuity(volume_fraction_surface)<0) then
+       ! DG case.
+       volume_fraction = matmul(invmass, volume_fraction)
+    end if
+
+    call addto(volume_fraction_surface, ele, volume_fraction)
+    
+  end subroutine calculate_sediment_active_layer_element_volume_fractions
 
 end module sediment_diagnostics
