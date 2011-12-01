@@ -13,7 +13,7 @@
     <variable name="viscosity" language="python">
 import vtktools
 import numpy
-data = vtktools.vtu('sediment_hindered_settling_0.vtu')
+data = vtktools.vtu('sediment_concentration_dependent_viscosity_0.vtu')
 viscosity = []
 
 coordinates = numpy.zeros([11,3])
@@ -25,7 +25,7 @@ viscosity = data.ProbeData(coordinates, 'Viscosity')
     <variable name="concentration" language="python">
 import vtktools
 import numpy
-data = vtktools.vtu('sediment_hindered_settling_0.vtu')
+data = vtktools.vtu('sediment_concentration_dependent_viscosity_0.vtu')
 concentration = []
 
 coordinates = numpy.zeros([11,3])

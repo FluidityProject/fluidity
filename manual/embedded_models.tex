@@ -373,16 +373,33 @@ vertical component of the advecting velocity.
 
 \section{Sediments}
 
-\fluidity\ is capable of simulating an unlimited number of sediment concentration classes.
-Each class has a separate grain size, density and settling velocity. The sediment behaves
-as any other tracer field, except it is subject to a settling velocity:
+\fluidity\ is capable of simulating an unlimited number of sediment concentration fields. 
+Each sediment field, with concentration, $c_{i}$, behaves as any other tracer field, except 
+that it is subject to a settling velocity, $u_{si}$. The equation of conservation of
+suspended sediment mass thus takes the form:
 
 \begin{equation}\label{eq:sediment_conc}
-\ppt{S_m} + \nabla\cdot(\bmu S_m) = \nabla\cdot(\kaptens\nabla S_m) - \sigma S_m
+\ppt{c_i} + \nabla\cdot c_i(u - \delta_{j3}u_{si}) = \nabla\cdot(\kaptens\nabla c_i)
 \end{equation}
 
-The advection in the vertical direction is then modified with a downwards sinking 
-velocity $u_{s}$. 
+Source and absorbtion terms have been removed from the above equation. These will only be
+present on region boundaries.
+
+Each sediment field represents a discrete sediment type with a specific diameter and
+density. A distribution of sediment types can be achieved by using multiple sediment fields.
+
+{\bf Notes on model set up}
+
+Each sediment field must have a sinking velocity. Note that this is not shown as a
+required element in the options tree as it is inherited as a standard option for all
+scalar fields.
+
+A sediment density, and sediment bedload field must also be defined. The sediment
+bedload field stores a record of sediment that has exited the modelled region due to
+settling of sediment particles.
+
+To use sediment, a linear equation of state must also be enabled
+\option{\ldots/equation\_of\_state/fluids/linear}
 
 \subsection{Hindered Sinking Velocity}
 
@@ -399,12 +416,13 @@ u_{si} = u_{s0}(1-c)^{2.39}
 
 A surface can be defined, the sea-bed, which is a sink for sediment. Once sediment
 fluxes through this surface it is removed from the system and stored in a separate 
-field: the SedimentDeposition field. Each sediment class has an equivalent Flux field.
+field: the Bedload field. Each sediment class has its on bedload field.
 
-Erosion occurs when the bed-shear stress is greater than the critical shear stress. Each
-sediment class has a separate shear stress, which can be input or calculated depending
-on the options chosen. Erosion flux, $E_m$ is implemented as a Neumann boundary condition
-on the deposition/erosion surface.
+Erosion of this bed can be modelled by applying the sediment\_reentrainment boundary
+condition. Erosion occurs when the bed-shear stress is greater than the critical shear
+stress. Each sediment class has a separate shear stress, which can be input or calculated
+depending on the options chosen. Erosion flux, $E_m$ is implemented as a Neumann boundary
+condition on the bedload/erosion surface.
 
 \begin{equation}\label{eq:sediment_erosion_rate}
 E_m = E_{0m}\left(1-\varphi\right)\frac{\tau_{sf} - \tau_{cm}}{\tau_{cm}}
@@ -422,9 +440,9 @@ automatically calculated using:
 \end{equation}
 
 \noindent
-where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}$ and $D$ is the sediment
-diameter (mm). The SedimentDepositon field effectively mixes the deposited sediment, so order of deposition
-is not preserved.
+where s is the relative density of the sediment, i.e. $\frac{\rho_{S_{m}}}{\rho}$ and $D$ is the
+sediment diameter (mm). The SedimentDepositon field effectively mixes the deposited sediment, so
+order of bedload is not preserved.
 
 \subsection{Sediment concentration dependent viscosity}
 

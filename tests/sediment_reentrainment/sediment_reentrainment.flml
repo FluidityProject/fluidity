@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">Sediment_Deposition</string_value>
+    <string_value lines="1">Sediment_Reentrainment</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -59,10 +59,11 @@
     </dump_format>
     <dump_period>
       <constant>
-        <real_value rank="0">35.0</real_value>
+        <real_value rank="0">35</real_value>
       </constant>
     </dump_period>
     <disable_dump_at_start/>
+    <disable_dump_at_end/>
     <output_mesh name="CoordinateMesh"/>
     <stat/>
   </io>
@@ -74,7 +75,7 @@
       <real_value rank="0">0.1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">5</real_value>
+      <real_value rank="0">35</real_value>
     </finish_time>
   </timestepping>
   <physical_parameters>
@@ -133,9 +134,13 @@
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
-          <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="python">def val(X,t):
+        if (t &lt; 5):
+                return [0,0]
+        else:
+                return [(t-5)*0.0005, 0]</string_value>
+          </python>
         </value>
         <output/>
         <stat>
@@ -146,8 +151,44 @@
         </detectors>
       </prescribed>
     </vector_field>
+    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="BedShearStress" rank="1">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <density>
+          <real_value rank="0">1</real_value>
+        </density>
+        <drag_coefficient>
+          <real_value rank="0">1</real_value>
+        </drag_coefficient>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+      </diagnostic>
+    </vector_field>
     <sediment>
-      <scalar_field name="1mms" rank="0">
+      <scalar_field name="garcia" rank="0">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="AdvectionDiffusion"/>
@@ -189,9 +230,13 @@
             </diagnostics>
           </solver>
           <initial_condition name="ic">
-            <constant>
-              <real_value rank="0">0.1</real_value>
-            </constant>
+            <python>
+              <string_value lines="20" type="python">def val(X, t):
+  if (X[1] &lt; 0.1):
+    return 0.015
+  else:
+    return 0</string_value>
+            </python>
           </initial_condition>
           <boundary_conditions name="lid_neumann">
             <surface_ids>
@@ -199,22 +244,43 @@
             </surface_ids>
             <type name="zero_flux"/>
           </boundary_conditions>
-          <boundary_conditions name="ZeroReentrainment">
+          <boundary_conditions name="reentrainment">
             <surface_ids>
               <integer_value shape="1" rank="1">1</integer_value>
             </surface_ids>
-            <type name="neumann">
-              <constant>
-                <real_value rank="0">0.0</real_value>
-              </constant>
+            <type name="sediment_reentrainment">
+              <algorithm>Garcia_1991</algorithm>
+              <viscosity>
+                <real_value rank="0">1e-06</real_value>
+              </viscosity>
             </type>
           </boundary_conditions>
+          <tensor_field name="Diffusivity" rank="2">
+            <prescribed>
+              <value name="WholeMesh">
+                <isotropic>
+                  <python>
+                    <string_value lines="20" type="python">def val(X, t):
+  if (t &lt; 10):
+    return 0
+  else:
+    return 0.00001</string_value>
+                  </python>
+                </isotropic>
+              </value>
+              <output/>
+            </prescribed>
+          </tensor_field>
           <scalar_field name="SinkingVelocity" rank="0">
             <prescribed>
               <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.001</real_value>
-                </constant>
+                <python>
+                  <string_value lines="20" type="python">def val(X, t):
+  if (t &lt; 5):
+    return 0.25
+  else:
+    return 0.001</string_value>
+                </python>
               </value>
               <output/>
               <stat/>
@@ -241,7 +307,13 @@
                 <integer_value shape="1" rank="1">1</integer_value>
               </surface_ids>
               <output/>
-              <stat/>
+              <stat>
+                <surface_integral type="value" name="BedloadIntegral">
+                  <surface_ids>
+                    <integer_value shape="1" rank="1">1</integer_value>
+                  </surface_ids>
+                </surface_integral>
+              </stat>
               <convergence>
                 <include_in_convergence/>
               </convergence>
@@ -272,11 +344,11 @@
             <real_value rank="0">1.65</real_value>
           </submerged_specific_gravity>
           <diameter>
-            <real_value rank="0">0.001</real_value>
+            <real_value rank="0">0.0001</real_value>
           </diameter>
         </prognostic>
       </scalar_field>
-      <scalar_field name="5mms" rank="0">
+      <scalar_field name="hill" rank="0">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="AdvectionDiffusion"/>
@@ -318,9 +390,13 @@
             </diagnostics>
           </solver>
           <initial_condition name="ic">
-            <constant>
-              <real_value rank="0">0.1</real_value>
-            </constant>
+            <python>
+              <string_value lines="20" type="python">def val(X, t):
+  if (X[1] &lt; 0.1):
+    return 0.015
+  else:
+    return 0</string_value>
+            </python>
           </initial_condition>
           <boundary_conditions name="lid_neumann">
             <surface_ids>
@@ -328,22 +404,43 @@
             </surface_ids>
             <type name="zero_flux"/>
           </boundary_conditions>
-          <boundary_conditions name="ZeroReentrainment">
+          <boundary_conditions name="reentrainment">
             <surface_ids>
               <integer_value shape="1" rank="1">1</integer_value>
             </surface_ids>
-            <type name="neumann">
-              <constant>
-                <real_value rank="0">0.0</real_value>
-              </constant>
+            <type name="sediment_reentrainment">
+              <algorithm>Hill_2010</algorithm>
+              <viscosity>
+                <real_value rank="0">1e-06</real_value>
+              </viscosity>
             </type>
           </boundary_conditions>
+          <tensor_field name="Diffusivity" rank="2">
+            <prescribed>
+              <value name="WholeMesh">
+                <isotropic>
+                  <python>
+                    <string_value lines="20" type="python">def val(X, t):
+  if (t &lt; 10):
+    return 0
+  else:
+    return 0.00001</string_value>
+                  </python>
+                </isotropic>
+              </value>
+              <output/>
+            </prescribed>
+          </tensor_field>
           <scalar_field name="SinkingVelocity" rank="0">
             <prescribed>
               <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.005</real_value>
-                </constant>
+                <python>
+                  <string_value lines="20" type="python">def val(X, t):
+  if (t &lt; 5):
+    return 0.25
+  else:
+    return 0.001</string_value>
+                </python>
               </value>
               <output/>
               <stat/>
@@ -370,7 +467,13 @@
                 <integer_value shape="1" rank="1">1</integer_value>
               </surface_ids>
               <output/>
-              <stat/>
+              <stat>
+                <surface_integral type="value" name="BedloadIntegral">
+                  <surface_ids>
+                    <integer_value shape="1" rank="1">1</integer_value>
+                  </surface_ids>
+                </surface_integral>
+              </stat>
               <convergence>
                 <include_in_convergence/>
               </convergence>
@@ -401,137 +504,14 @@
             <real_value rank="0">1.65</real_value>
           </submerged_specific_gravity>
           <diameter>
-            <real_value rank="0">0.001</real_value>
+            <real_value rank="0">0.0001</real_value>
           </diameter>
-        </prognostic>
-      </scalar_field>
-      <scalar_field name="10mms" rank="0">
-        <prognostic>
-          <mesh name="VelocityMesh"/>
-          <equation name="AdvectionDiffusion"/>
-          <spatial_discretisation>
-            <control_volumes>
-              <face_value name="FirstOrderUpwind"/>
-              <diffusion_scheme name="BassiRebay"/>
-            </control_volumes>
-            <conservative_advection>
-              <real_value rank="0">0.5</real_value>
-            </conservative_advection>
-          </spatial_discretisation>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">1.0</real_value>
-            </theta>
-            <control_volumes>
-              <number_advection_iterations>
-                <integer_value rank="0">5</integer_value>
-              </number_advection_iterations>
-            </control_volumes>
-          </temporal_discretisation>
-          <solver>
-            <iterative_method name="gmres">
-              <restart>
-                <integer_value rank="0">30</integer_value>
-              </restart>
-            </iterative_method>
-            <preconditioner name="sor"/>
-            <relative_error>
-              <real_value rank="0">1e-07</real_value>
-            </relative_error>
-            <max_iterations>
-              <integer_value rank="0">3000</integer_value>
-            </max_iterations>
-            <never_ignore_solver_failures/>
-            <diagnostics>
-              <monitors/>
-            </diagnostics>
-          </solver>
-          <initial_condition name="ic">
-            <constant>
-              <real_value rank="0">0.1</real_value>
-            </constant>
-          </initial_condition>
-          <boundary_conditions name="lid_neumann">
-            <surface_ids>
-              <integer_value shape="1" rank="1">2</integer_value>
-            </surface_ids>
-            <type name="zero_flux"/>
-          </boundary_conditions>
-          <boundary_conditions name="ZeroReentrainment">
-            <surface_ids>
-              <integer_value shape="1" rank="1">1</integer_value>
-            </surface_ids>
-            <type name="neumann">
-              <constant>
-                <real_value rank="0">0.0</real_value>
-              </constant>
-            </type>
-          </boundary_conditions>
-          <scalar_field name="SinkingVelocity" rank="0">
-            <prescribed>
-              <value name="WholeMesh">
-                <constant>
-                  <real_value rank="0">0.01</real_value>
-                </constant>
-              </value>
-              <output/>
-              <stat/>
-              <detectors>
-                <exclude_from_detectors/>
-              </detectors>
-            </prescribed>
-          </scalar_field>
-          <output/>
-          <stat/>
-          <convergence>
-            <include_in_convergence/>
-          </convergence>
-          <detectors>
-            <include_in_detectors/>
-          </detectors>
-          <steady_state>
-            <include_in_steady_state/>
-          </steady_state>
-          <consistent_interpolation/>
-          <scalar_field name="Bedload" rank="0">
-            <diagnostic>
-              <surface_ids>
-                <integer_value shape="1" rank="1">1</integer_value>
-              </surface_ids>
-              <output/>
-              <stat/>
-              <convergence>
-                <include_in_convergence/>
-              </convergence>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-              <steady_state>
-                <include_in_steady_state/>
-              </steady_state>
-            </diagnostic>
-          </scalar_field>
-          <scalar_field name="BedloadVolumeFraction" rank="0">
-            <diagnostic>
-              <output/>
-              <stat/>
-              <convergence>
-                <include_in_convergence/>
-              </convergence>
-              <detectors>
-                <include_in_detectors/>
-              </detectors>
-              <steady_state>
-                <include_in_steady_state/>
-              </steady_state>
-            </diagnostic>
-          </scalar_field>
-          <submerged_specific_gravity>
-            <real_value rank="0">1.65</real_value>
-          </submerged_specific_gravity>
-          <diameter>
-            <real_value rank="0">0.001</real_value>
-          </diameter>
+          <porosity>
+            <real_value rank="0">0.5</real_value>
+          </porosity>
+          <erodability>
+            <real_value rank="0">0.5</real_value>
+          </erodability>
         </prognostic>
       </scalar_field>
       <scalar_field name="SedimentBedActiveLayerD50" rank="0">

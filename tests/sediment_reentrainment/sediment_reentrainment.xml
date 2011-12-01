@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>sediment_reentrainment</name>
+  <owner userid="sp911"/>
+  <tags>flml sediment</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity sediment_reentrainment.flml</command_line>
+    <!-- Check that the sediment re-entrainment rate is correct -->
+</problem_definition>
+  <variables>   
+    <variable name="rate_error" language="python">
+
+from fluidity_tools import stat_parser
+from numpy import *
+
+algorithms = ['garcia','hill']
+
+bed_height = []
+entrainment = []
+deposition = []
+expected_entrainment = []
+volume_fraction = []
+sink_U = []
+
+s = stat_parser("Sediment_Reentrainment.stat")   
+time = s["ElapsedTime"]["value"]
+dt = s["dt"]["value"]   
+
+for i in range(len(algorithms)):
+    bed_height.append(s["Fluid"][algorithms[i] + "Bedload"]["max"])
+    entrainment.append([bed_height[i][j+1] - bed_height[i][j] for j in range(len(bed_height[i]) - 1)])
+    entrainment[i] = -1*(entrainment[i][50:]/dt[51:])
+    entrainment[i] = array(entrainment[i])
+    concentration = s["Fluid"][algorithms[i]]["max"]
+    sink_U.append(s["Fluid"][algorithms[i] + "SinkingVelocity"]["max"])
+    deposition.append(sink_U[-1]*concentration)
+    entrainment[i] = entrainment[i] + deposition[i][51:]
+    volume_fraction.append(s["Fluid"][algorithms[i] + "BedloadVolumeFraction"]["max"])
+
+velocity = s["Fluid"]["Velocity%1"]["max"]
+shear = s["Fluid"]["BedShearStress%magnitude"]["max"]
+R = 1.65
+d = 0.0001
+nu = 1e-06
+g = 9.81
+
+Z = (sqrt(shear[50:-1])/sink_U[0][50:-1])*(sqrt(R*g*d**3.0)/nu)**0.6
+A = 1.3e-7
+expected_entrainment.append(volume_fraction[0][50:-1] * sink_U[0][50:-1] * (A*Z**5 / (1 + A*Z**5/0.3)))
+
+erod = 0.5
+poro = 0.5
+
+shear_crit = 0.041*R*g*d
+E = []
+for i in range(len(shear)):
+    if (shear[i] &gt; 0.0):
+        E.append(max(0.0,erod*(1-poro)*(shear[i]-shear_crit)/shear_crit))
+    else: E.append(0.0)
+
+E = array(E)
+expected_entrainment.append(volume_fraction[1][50:-1] * sink_U[1][50:-1] * E[50:-1])
+
+entrainment = array([entrainment[0],entrainment[1]])
+expected_entrainment = array([expected_entrainment[0],expected_entrainment[1]])
+
+error = abs((entrainment - expected_entrainment)/expected_entrainment)
+rate_error = ma.masked_greater(error, 100)[:,5:].max()
+
+    </variable>    
+    <variable name="mass_error" language="python">
+
+from fluidity_tools import stat_parser
+from numpy import *
+
+algorithms = ['garcia','hill']
+
+bedload = []
+suspension = []
+mass = []
+
+s = stat_parser("Sediment_Reentrainment.stat")   
+
+for i in range(len(algorithms)):
+    bedload.append(s["Fluid"][algorithms[i] + "Bedload"]["surface_integral%BedloadIntegral"])
+    suspension.append(s["Fluid"][algorithms[i]]["integral"])
+    mass.append((bedload[i] + suspension[i])/(bedload[i][0] + suspension[i][0])*100)
+
+mass = array([mass[0], mass[1]])
+mass = abs(mass - 100)
+
+mass_error = mass.max()
+
+    </variable>
+  </variables>
+  <pass_tests>
+      <!-- reentrainment rates as expected -->
+    <test name="Reentrainment rate error less than 0.001% for all algorithms" language="python">
+assert(rate_error &lt; 0.00001)
+    </test>
+    <!-- has it all gone? -->
+    <test name="Mass is conserved. Mass change is less than 0.001%" language="python">
+assert(mass_error &lt; 0.00001)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

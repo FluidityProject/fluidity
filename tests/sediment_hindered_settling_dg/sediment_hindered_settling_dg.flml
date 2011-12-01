@@ -109,7 +109,7 @@
       </prescribed>
     </vector_field>
     <sediment>
-      <scalar_field name="SedimentTemplate" rank="0">
+      <scalar_field name="Unhindered" rank="0">
         <prognostic>
           <mesh name="VelocityMesh"/>
           <equation name="AdvectionDiffusion"/>
@@ -148,11 +148,47 @@
               <monitors/>
             </diagnostics>
           </solver>
-          <initial_condition name="WholeMesh">
+          <initial_condition name="MixedLayer">
+            <region_ids>
+              <integer_value shape="1" rank="1">1</integer_value>
+            </region_ids>
+            <constant>
+              <real_value rank="0">0.2</real_value>
+            </constant>
+          </initial_condition>
+          <initial_condition name="DeepOcean">
+            <region_ids>
+              <integer_value shape="2" rank="1">2 3</integer_value>
+            </region_ids>
             <constant>
               <real_value rank="0">0.0</real_value>
             </constant>
           </initial_condition>
+          <boundary_conditions name="noflux">
+            <surface_ids>
+              <integer_value shape="1" rank="1">111</integer_value>
+            </surface_ids>
+            <type name="dirichlet">
+              <apply_weakly/>
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </type>
+          </boundary_conditions>
+          <scalar_field name="SinkingVelocity" rank="0">
+            <prescribed>
+              <value name="WholeMesh">
+                <constant>
+                  <real_value rank="0">1</real_value>
+                </constant>
+              </value>
+              <output/>
+              <stat/>
+              <detectors>
+                <exclude_from_detectors/>
+              </detectors>
+            </prescribed>
+          </scalar_field>
           <output/>
           <stat/>
           <convergence>
@@ -165,19 +201,190 @@
             <include_in_steady_state/>
           </steady_state>
           <consistent_interpolation/>
+          <scalar_field name="Bedload" rank="0">
+            <diagnostic>
+              <surface_ids>
+                <integer_value shape="1" rank="1">1</integer_value>
+              </surface_ids>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <include_in_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="BedloadVolumeFraction" rank="0">
+            <diagnostic>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <include_in_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <submerged_specific_gravity>
+            <real_value rank="0">2.0</real_value>
+          </submerged_specific_gravity>
         </prognostic>
-        <density>
-          <real_value rank="0">3000</real_value>
-        </density>
-        <diameter>
-          <real_value rank="0">0.001</real_value>
-        </diameter>
       </scalar_field>
-      <scalar_field name="SedimentDepositionTemplate" rank="0">
+      <scalar_field name="Hindered" rank="0">
+        <prognostic>
+          <mesh name="VelocityMesh"/>
+          <equation name="AdvectionDiffusion"/>
+          <spatial_discretisation>
+            <discontinuous_galerkin>
+              <advection_scheme>
+                <upwind/>
+                <integrate_advection_by_parts>
+                  <twice/>
+                </integrate_advection_by_parts>
+              </advection_scheme>
+              <diffusion_scheme>
+                <bassi_rebay/>
+              </diffusion_scheme>
+            </discontinuous_galerkin>
+            <conservative_advection>
+              <real_value rank="0">1</real_value>
+            </conservative_advection>
+          </spatial_discretisation>
+          <temporal_discretisation>
+            <theta>
+              <real_value rank="0">0.5</real_value>
+            </theta>
+          </temporal_discretisation>
+          <solver>
+            <iterative_method name="cg"/>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1.0e-07</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">2000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+          <initial_condition name="MixedLayer">
+            <region_ids>
+              <integer_value shape="1" rank="1">1</integer_value>
+            </region_ids>
+            <constant>
+              <real_value rank="0">0.2</real_value>
+            </constant>
+          </initial_condition>
+          <initial_condition name="DeepOcean">
+            <region_ids>
+              <integer_value shape="2" rank="1">2 3</integer_value>
+            </region_ids>
+            <constant>
+              <real_value rank="0">0.0</real_value>
+            </constant>
+          </initial_condition>
+          <boundary_conditions name="noflux">
+            <surface_ids>
+              <integer_value shape="1" rank="1">111</integer_value>
+            </surface_ids>
+            <type name="dirichlet">
+              <apply_weakly/>
+              <constant>
+                <real_value rank="0">0.0</real_value>
+              </constant>
+            </type>
+          </boundary_conditions>
+          <scalar_field name="SinkingVelocity" rank="0">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+          </scalar_field>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+          <consistent_interpolation/>
+          <scalar_field name="Bedload" rank="0">
+            <diagnostic>
+              <surface_ids>
+                <integer_value shape="1" rank="1">1</integer_value>
+              </surface_ids>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <include_in_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="BedloadVolumeFraction" rank="0">
+            <diagnostic>
+              <output/>
+              <stat/>
+              <convergence>
+                <include_in_convergence/>
+              </convergence>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+              <steady_state>
+                <include_in_steady_state/>
+              </steady_state>
+            </diagnostic>
+          </scalar_field>
+          <scalar_field name="UnhinderedSinkingVelocity" rank="0">
+            <prescribed>
+              <value name="WholeMesh">
+                <constant>
+                  <real_value rank="0">1</real_value>
+                </constant>
+              </value>
+              <output/>
+              <stat/>
+              <detectors>
+                <exclude_from_detectors/>
+              </detectors>
+            </prescribed>
+          </scalar_field>
+          <submerged_specific_gravity>
+            <real_value rank="0">2.0</real_value>
+          </submerged_specific_gravity>
+        </prognostic>
+      </scalar_field>
+      <scalar_field name="SedimentBedActiveLayerD50" rank="0">
         <diagnostic>
           <surface_ids>
-            <integer_value shape="1" rank="1">111</integer_value>
+            <integer_value shape="1" rank="1">1</integer_value>
           </surface_ids>
+          <algorithm name="Internal" material_phase_support="multiple"/>
           <mesh name="VelocityMesh"/>
           <output/>
           <stat/>
@@ -192,102 +399,26 @@
           </steady_state>
         </diagnostic>
       </scalar_field>
-      <sediment_class name="Unhindered">
-        <initial_condition name="MixedLayer">
-          <region_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </region_ids>
-          <constant>
-            <real_value rank="0">0.2</real_value>
-          </constant>
-        </initial_condition>
-        <initial_condition name="DeepOcean">
-          <region_ids>
-            <integer_value shape="2" rank="1">2 3</integer_value>
-          </region_ids>
-          <constant>
-            <real_value rank="0">0.0</real_value>
-          </constant>
-        </initial_condition>
-        <boundary_conditions name="noflux">
+      <scalar_field name="SedimentBedActiveLayerSigma" rank="0">
+        <diagnostic>
           <surface_ids>
-            <integer_value shape="1" rank="1">111</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <apply_weakly/>
-            <constant>
-              <real_value rank="0">0.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <scalar_field name="SinkingVelocity" rank="0">
-          <prescribed>
-            <value name="WholeMesh">
-              <constant>
-                <real_value rank="0">1</real_value>
-              </constant>
-            </value>
-            <output/>
-            <stat/>
-            <detectors>
-              <exclude_from_detectors/>
-            </detectors>
-          </prescribed>
-        </scalar_field>
-      </sediment_class>
-      <sediment_class name="Hindered">
-        <initial_condition name="MixedLayer">
-          <region_ids>
             <integer_value shape="1" rank="1">1</integer_value>
-          </region_ids>
-          <constant>
-            <real_value rank="0">0.2</real_value>
-          </constant>
-        </initial_condition>
-        <initial_condition name="DeepOcean">
-          <region_ids>
-            <integer_value shape="2" rank="1">2 3</integer_value>
-          </region_ids>
-          <constant>
-            <real_value rank="0">0.0</real_value>
-          </constant>
-        </initial_condition>
-        <boundary_conditions name="noflux">
-          <surface_ids>
-            <integer_value shape="1" rank="1">111</integer_value>
           </surface_ids>
-          <type name="dirichlet">
-            <apply_weakly/>
-            <constant>
-              <real_value rank="0">0.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <scalar_field name="SinkingVelocity" rank="0">
-          <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
-            <output/>
-            <stat/>
-            <detectors>
-              <include_in_detectors/>
-            </detectors>
-          </diagnostic>
-        </scalar_field>
-        <scalar_field name="UnhinderedSinkingVelocity" rank="0">
-          <prescribed>
-            <value name="WholeMesh">
-              <constant>
-                <real_value rank="0">1</real_value>
-              </constant>
-            </value>
-            <output/>
-            <stat/>
-            <detectors>
-              <exclude_from_detectors/>
-            </detectors>
-          </prescribed>
-        </scalar_field>
-      </sediment_class>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="VelocityMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
     </sediment>
   </material_phase>
 </fluidity_options>

@@ -75,7 +75,7 @@ contains
 subroutine keps_init(state)
 
     type(state_type), intent(inout) :: state
-    type(scalar_field), pointer     :: Field
+    type(scalar_field), pointer     :: field
     character(len=OPTION_PATH_LEN)  :: keps_path
     real                            :: visc
 
@@ -99,31 +99,23 @@ subroutine keps_init(state)
     call get_option(trim(keps_path)//'/sigma_k', sigma_k, default = 1.0)
     call get_option(trim(keps_path)//'sigma_eps', sigma_eps, default = 1.3)
 
-    ! Get background viscosity
-    call get_option(trim(keps_path)//"/tensor_field::BackgroundViscosity/prescribed/&
-                          &value::WholeMesh/isotropic/constant", visc)
-    
-    ! initialise eddy viscosity
-    if (have_option(trim(keps_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-       Field => extract_scalar_field(state, "ScalarEddyViscosity")
-       call set(Field, visc)
-    end if
-
     ! initialise lengthscale
-    Field => extract_scalar_field(state, "LengthScale")
-    call zero(Field)
+    field => extract_scalar_field(state, "LengthScale")
+    call zero(field)
+
+    ! initialise scalar eddy viscosity
+    call keps_eddyvisc(state)
 
     ewrite(2,*) "k-epsilon parameters"
     ewrite(2,*) "--------------------------------------------"
-    ewrite(2,*) "c_mu: ",     c_mu
-    ewrite(2,*) "c_eps_1: ",  c_eps_1
-    ewrite(2,*) "c_eps_2: ",  c_eps_2
-    ewrite(2,*) "sigma_k: ",  sigma_k
-    ewrite(2,*) "sigma_eps: ",sigma_eps
-    ewrite(2,*) "fields_min: ",fields_min
-    ewrite(2,*) "background visc: ",   visc
-    ewrite(2,*) "implicit/explicit source/absorption terms: ",   trim(src_abs)
-    ewrite(2,*) "max turbulence lengthscale: ",     lmax
+    ewrite(2,*) "c_mu: ", c_mu
+    ewrite(2,*) "c_eps_1: ", c_eps_1
+    ewrite(2,*) "c_eps_2: ", c_eps_2
+    ewrite(2,*) "sigma_k: ", sigma_k
+    ewrite(2,*) "sigma_eps: ", sigma_eps
+    ewrite(2,*) "fields_min: ", fields_min
+    ewrite(2,*) "implicit/explicit source/absorption terms: ", trim(src_abs)
+    ewrite(2,*) "max turbulence lengthscale: ", lmax
     ewrite(2,*) "--------------------------------------------"
 
 end subroutine keps_init

@@ -194,12 +194,6 @@ contains
     call initialise_qmesh
     call initialise_write_state
 
-
-    ! Initialise sediments
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_init()
-    end if
-
     ! Initialise Hyperlight
 #ifdef HAVE_HYPERLIGHT
     if (have_option("ocean_biology/lagrangian_ensemble/hyperlight")) then
@@ -391,6 +385,15 @@ contains
        ewrite(-1,*) "You must specify a dump format and it must be vtk."
        FLExit("Rejig your FLML: /io/dump_format")
     end if
+ 
+    ! Initialise k_epsilon before other diagnostic fields are calculated so that
+    !  diffusivity fields are calculated correctly
+    have_k_epsilon = .false.
+    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
+    if (have_option(trim(keps_option_path))) then
+        have_k_epsilon = .true.
+        call keps_init(state(1))
+    end if
 
     ! initialise the multimaterial fields
     call initialise_diagnostic_material_properties(state)
@@ -440,14 +443,6 @@ contains
     ! Initialise GLS
     if (have_option("/material_phase[0]/subgridscale_parameterisations/GLS/option")) then
         call gls_init(state(1))
-    end if
-
-    ! Initialise k_epsilon
-    have_k_epsilon = .false.
-    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
-    if (have_option(trim(keps_option_path))) then
-        have_k_epsilon = .true.
-        call keps_init(state(1))
     end if
 
     ! ******************************
@@ -942,10 +937,6 @@ contains
     ! cleanup k_epsilon
     if (have_k_epsilon) then
         call keps_cleanup()
-    end if
-
-    if (have_option("/material_phase[0]/sediment")) then
-        call sediment_cleanup()
     end if
 
     ! closing .stat, .convergence and .detector files
