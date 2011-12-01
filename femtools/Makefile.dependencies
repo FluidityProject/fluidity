@@ -218,12 +218,12 @@ Detector_Data_Types.o ../include/detector_data_types.mod: \
 
 Detector_Move_Lagrangian.o ../include/detector_move_lagrangian.mod: \
    Detector_Move_Lagrangian.F90 ../include/detector_data_types.mod \
-   ../include/detector_parallel.mod ../include/detector_tools.mod \
-   ../include/fdebug.h ../include/fields.mod ../include/global_parameters.mod \
-   ../include/halo_data_types.mod ../include/halos_base.mod \
-   ../include/integer_hash_table_module.mod ../include/python_state.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/transform_elements.mod
+   ../include/detector_parallel.mod ../include/detector_python.mod \
+   ../include/detector_tools.mod ../include/fdebug.h ../include/fields.mod \
+   ../include/global_parameters.mod ../include/halo_data_types.mod \
+   ../include/halos_base.mod ../include/integer_hash_table_module.mod \
+   ../include/linked_lists.mod ../include/profiler.mod ../include/spud.mod \
+   ../include/state_module.mod ../include/transform_elements.mod
 
 ../include/detector_parallel.mod: Detector_Parallel.o
 	@true
@@ -234,6 +234,13 @@ Detector_Parallel.o ../include/detector_parallel.mod: Detector_Parallel.F90 \
    ../include/halos_numbering.mod ../include/integer_hash_table_module.mod \
    ../include/mpi_interfaces.mod ../include/pickers.mod ../include/spud.mod \
    ../include/state_module.mod
+
+../include/detector_python.mod: Detector_Python.o
+	@true
+
+Detector_Python.o ../include/detector_python.mod: Detector_Python.F90 \
+   ../include/detector_data_types.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/fldebug.mod
 
 ../include/detector_tools.mod: Detector_Tools.o
 	@true
