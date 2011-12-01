@@ -241,7 +241,13 @@
                 <integer_value shape="1" rank="1">1</integer_value>
               </surface_ids>
               <output/>
-              <stat/>
+              <stat>
+                <surface_integral type="value" name="BedloadIntegral">
+                  <surface_ids>
+                    <integer_value shape="1" rank="1">1</integer_value>
+                  </surface_ids>
+                </surface_integral>
+              </stat>
               <convergence>
                 <include_in_convergence/>
               </convergence>
@@ -370,7 +376,13 @@
                 <integer_value shape="1" rank="1">1</integer_value>
               </surface_ids>
               <output/>
-              <stat/>
+              <stat>
+                <surface_integral type="value" name="BedloadIntegral">
+                  <surface_ids>
+                    <integer_value shape="1" rank="1">1</integer_value>
+                  </surface_ids>
+                </surface_integral>
+              </stat>
               <convergence>
                 <include_in_convergence/>
               </convergence>
@@ -499,7 +511,13 @@
                 <integer_value shape="1" rank="1">1</integer_value>
               </surface_ids>
               <output/>
-              <stat/>
+              <stat>
+                <surface_integral type="value" name="BedloadIntegral">
+                  <surface_ids>
+                    <integer_value shape="1" rank="1">1</integer_value>
+                  </surface_ids>
+                </surface_integral>
+              </stat>
               <convergence>
                 <include_in_convergence/>
               </convergence>
