@@ -285,10 +285,11 @@ contains
              end do
 
              ! Initialise agent variables
+             call get_option(trim(stage_buffer)//"/initial_state", func)
              agent => agent_arrays(i)%first
              do while (associated(agent))
                 allocate(agent%biology(biovar_total))
-                call get_option(trim(stage_buffer)//"/initial_state/values", agent%biology)
+                call python_init_agent_biology(agent, agent_arrays(i), trim(func))
                 agent => agent%next
              end do
 

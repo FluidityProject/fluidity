@@ -281,6 +281,70 @@ void python_run_detector_val_from_locals_c(int ele, int dim,
 #endif
 }
 
+void python_run_agent_biology_init_c(char *function, int function_len, double *stage_id,
+                                 char *var_list, int var_list_len, 
+                                 double biovars[], int n_biovars, int *stat){
+#ifdef HAVE_PYTHON
+  /* 
+   */
+
+  // Get a reference to the main module and global dictionary
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pGlobals = PyModule_GetDict(pMain);
+  PyObject *pLocals = PyDict_New();
+
+  char *local_key = fix_string(var_list, var_list_len);
+  char *py_function = fix_string(function, function_len);
+
+  // Execute the user's code.
+  PyObject *pCode=PyRun_String(py_function, Py_file_input, pGlobals, pLocals);
+  PyObject *pFunc=PyDict_GetItemString(pLocals, "val");
+  PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
+
+  PyObject *pPersistent= PyDict_GetItemString(pGlobals, "persistent");
+  PyObject *pFGVarNames= PyDict_GetItemString(pPersistent, "fg_var_names");
+  PyObject *pVarNames= PyDict_GetItemString(pFGVarNames, local_key);
+
+  int i;
+  PyObject *pBiology = PyDict_New();
+  PyObject *pStageVal = PyFloat_FromDouble(*stage_id);
+  PyDict_SetItem(pBiology, PyList_GET_ITEM(pVarNames, 0), pStageVal);
+  Py_DECREF(pStageVal);
+  for(i=1; i<n_biovars; i++){
+    PyObject *pZeroVal = PyFloat_FromDouble(0.0);
+    PyDict_SetItem(pBiology, PyList_GET_ITEM(pVarNames, i), pZeroVal);
+    Py_DECREF(pZeroVal);
+  }
+
+  // Create argument array
+  PyObject **pArgs= malloc(sizeof(PyObject*));
+  pArgs[0] = pBiology;
+
+  // Run val(ele, local_coords)
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 1, NULL, 0, NULL, 0, NULL);
+
+  // Check for Python errors
+  *stat=0;
+  if(!pResult){
+    PyErr_Print();
+    *stat=-1;
+    return;
+  }
+
+  // Convert the python result
+  for(i=0; i<n_biovars; i++){
+    biovars[i] = PyFloat_AsDouble( PyDict_GetItem(pResult, PyList_GET_ITEM(pVarNames, i)) );
+  }
+
+  Py_DECREF(pBiology);
+  Py_DECREF(pFuncCode);
+  Py_DECREF(pResult);
+  free(pArgs);
+  free(local_key);
+  free(py_function);
+#endif
+}
+
 void python_run_agent_biology_c(double *dt, char *dict, int dictlen, char *key, int keylen,
                                 double biovars[], int n_biovars, double env_vars[],
                                 int n_env_vars, int *stat){

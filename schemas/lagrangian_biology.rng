@@ -218,10 +218,14 @@ The t argument is for future use only - currently detector locations are only se
                   <ref name="python_code"/>
                 </element>
                 <element name="initial_state">
-                  <a:documentation/>
-                  <element name="values">
-                    <ref name="real_vector"/>
-                  </element>
+                  <a:documentation>Python function to set the initial state of the agent. 
+A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
+which needs to be returned with the appropriate initial variable values, eg.:
+
+ def val(vars):
+     vars['VarName'] = 1.0
+     return vars</a:documentation>
+                  <ref name="python_code"/>
                 </element>
                 <optional>
                   <element name="random_walk">

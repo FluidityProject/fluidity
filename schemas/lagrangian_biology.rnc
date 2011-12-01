@@ -160,11 +160,15 @@ lagrangian_biology =
                   element initial_position {
                      python_code
                   },
+                  ## Python function to set the initial state of the agent. 
+                  ## A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
+                  ## which needs to be returned with the appropriate initial variable values, eg.:
                   ##
+                  ##  def val(vars):
+                  ##      vars['VarName'] = 1.0
+                  ##      return vars
                   element initial_state {
-                     element values {
-                        real_vector
-                     }
+                     python_code
                   },
                   ##
                   element random_walk {

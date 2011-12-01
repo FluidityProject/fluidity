@@ -40,7 +40,7 @@ module python_state
   public :: python_add_state, python_add_states, python_add_states_time
   public :: python_run_string, python_run_file
   public :: python_run_detector_string, python_run_detector_val_function
-  public :: python_calc_agent_biology
+  public :: python_init_agent_biology, python_calc_agent_biology
   public :: python_shell
   public :: python_fetch_real
 
@@ -124,6 +124,19 @@ module python_state
       real(c_double), dimension(n_env_values), intent(inout) :: env_values
       integer(c_int), intent(out) :: stat
     end subroutine python_run_agent_biology
+
+    subroutine python_run_agent_biology_init(function, function_len, stage_id, &
+           var_list, var_list_len, biovars, n_biovars, stat) &
+           bind(c, name='python_run_agent_biology_init_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: n_biovars, function_len, var_list_len
+      character(kind=c_char), dimension(function_len), intent(in) :: function
+      character(kind=c_char), dimension(var_list_len), intent(in) :: var_list
+      real(c_double), dimension(n_biovars), intent(inout) :: biovars
+      real(c_double), intent(in) :: stage_id
+      integer(c_int), intent(out) :: stat
+    end subroutine python_run_agent_biology_init
 
   end interface
 
@@ -766,5 +779,29 @@ module python_state
     end if
     
   end subroutine python_calc_agent_biology
+
+  subroutine python_init_agent_biology(agent, agent_list, pyfunction, stat)
+    type(detector_type), pointer, intent(in) :: agent
+    type(detector_linked_list), intent(in) :: agent_list
+    character(len=*), intent(in) :: pyfunction
+    integer, optional, intent(out) :: stat
+
+    integer :: lstat
+
+    if(present(stat)) stat = 0
+
+    call python_run_agent_biology_init(trim(pyfunction), len_trim(pyfunction), &
+           agent_list%stage_id, trim(agent_list%name), len_trim(agent_list%name), &
+           agent%biology, size(agent%biology), lstat)
+
+    if(lstat /= 0) then
+      if(present(stat)) then
+        stat = -1
+      else
+        ewrite(-1, *) "Python error in biology agent initialisation"
+        FLExit("Dying")
+      end if
+    end if
+  end subroutine python_init_agent_biology
 
 end module python_state
