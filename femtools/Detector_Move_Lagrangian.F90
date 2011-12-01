@@ -38,7 +38,7 @@ module detector_move_lagrangian
   use detector_data_types
   use detector_tools
   use detector_parallel
-  use python_state
+  use detector_python
   use iso_c_binding
   use transform_elements
   use Profiler
@@ -310,7 +310,7 @@ contains
           do while (associated(detector))
              if (detector%type==LAGRANGIAN_DETECTOR) then
                 call profiler_tic(trim(detector_list%name)//"::python_random_walk")
-                call python_run_detector_val_function(detector,xfield,sub_dt, &
+                call python_run_random_walk(detector,xfield,sub_dt, &
                           trim(detector_list%name),trim("random_walk"),rw_displacement)
                 call profiler_toc(trim(detector_list%name)//"::python_random_walk")
                 detector%update_vector=detector%update_vector + rw_displacement

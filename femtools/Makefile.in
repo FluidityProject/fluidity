@@ -93,6 +93,7 @@ OBJS = Dgtools.o Coordinates.o EventCounter.o \
   tet_predicate.o Lagrangian_Remap.o Weak_BCs.o \
   Detector_Data_Types.o Detector_Tools.o \
   Detector_Parallel.o Detector_Move_Lagrangian.o \
+  Detector_Python.o detector_pythonc.o \
   Picker_Data_Types.o Pickers.o Pickers_Allocates.o \
   Pickers_Base.o Pickers_Deallocates.o Pickers_Inquire.o Smoothing_module.o \
   vtk_read_files.o State_Fields.o Unify_meshes.o Adaptive_interpolation.o \
