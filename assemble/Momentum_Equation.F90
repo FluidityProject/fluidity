@@ -98,6 +98,8 @@
       logical, dimension(:), allocatable :: lump_mass
       ! are we using a cv pressure 
       logical :: cv_pressure 
+      ! for a CG pressure are we testing the continuity with cv
+      logical :: cg_pressure_cv_test_continuity
 
       ! Do we need to reassemble the C^T or CMC matrices?
       logical :: reassemble_all_ct_m, reassemble_all_cmc_m
@@ -179,7 +181,10 @@
          ! Scaled pressure mass matrix - used for preconditioning full projection solve:
          type(csr_matrix), target :: scaled_pressure_mass_matrix
          type(csr_sparsity), pointer :: scaled_pressure_mass_matrix_sparsity
-         ! Compressible pressure gradient operator/left hand matrix of CMC
+         ! Left hand matrix of CMC. For incompressibe flow this points to ct_m as they are identical, 
+         ! unless for CG pressure with CV tested continuity case when this matrix will be the 
+         ! CV divergence tested matrix and ct_m the CG divergence tested matrix (right hand matrix of CMC).
+         ! For compressible flow this differs to ct_m in that it will contain the variable density.
          type(block_csr_matrix_pointer), dimension(:), allocatable :: ctp_m
          ! The lumped mass matrix (may vary per component as absorption could be included)
          type(vector_field), dimension(1:size(state)) :: inverse_masslump, visc_inverse_masslump
@@ -377,6 +382,14 @@
                ! Get the pressure gradient matrix (i.e. the divergence matrix)
                ct_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), get_ct=reassemble_ct_m) ! Sets reassemble_ct_m to true if it does not already exist in state(i) 
                reassemble_ct_m = reassemble_ct_m .or. reassemble_all_ct_m
+               
+               ! For the CG pressure with CV tested continuity case 
+               ! get the CV tested pressure gradient matrix (i.e. the divergence matrix)
+               ! if required with a different unique name. Note there is no need
+               ! to again decide reassemble_ct_m as ctp_m for this case is assembled when ct_m is.
+               if ((.not. use_compressible_projection) .and. cg_pressure_cv_test_continuity) then
+                  ctp_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), ct_m_name = "CVTestedVelocityDivergenceMatrix")
+               end if
 
                ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
                cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for reassemble_cmc_m
@@ -514,10 +527,13 @@
                                        diagonal=diagonal_big_m, name="BIG_m")
             end if
 
-            ! Initialise the big_m and ct_m matrices
+            ! Initialise the big_m, ct_m and ctp_m matrices
             call zero(big_m(istate))
             if(reassemble_ct_m) then
-               call zero(ct_m(istate)%ptr)
+               call zero(ct_m(istate)%ptr)               
+               if ((.not. use_compressible_projection) .and. cg_pressure_cv_test_continuity) then
+                  call zero(ctp_m(istate)%ptr)
+               end if
             end if
 
             ! Allocate the momentum RHS
@@ -563,6 +579,8 @@
                   call subtract_geostrophic_pressure_gradient(mom_rhs(istate), state(istate))
                end if
             else
+               ! This call will form the ct_rhs, which for use_compressible_projection
+               ! or cg_pressure_cv_test_continuity is formed for a second time later below.
                call construct_momentum_cg(u, p, density, x, &
                      big_m(istate), mom_rhs(istate), ct_m(istate)%ptr, &
                      ct_rhs(istate), mass(istate), inverse_masslump(istate), visc_inverse_masslump(istate), &
@@ -607,22 +625,20 @@
                call wall_functions(big_m(istate), mom_rhs(istate), state(istate))
             end if
 
-            ! Add mass source-absorption for implicit solids
-            if (have_option("/implicit_solids/two_way_coupling")) then
-               call add_mass_source_absorption(ct_rhs(istate), state(istate))
-            end if
-
             call profiler_toc(u, "assembly")
 
             call profiler_tic(p, "assembly")
             if(cv_pressure) then
+               ! This call will form the ct_rhs, which for use_compressible_projection
+               ! is formed for a second time later below.
                call assemble_divergence_matrix_cv(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                                              test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
             end if
 
-            !! Assemble divergence matrix C^T
-            ! At the moment cg does its own ct assembly. We might change this in
-            ! the future.
+            ! Assemble divergence matrix C^T.
+            ! At the moment cg does its own ct assembly. We might change this in the future.
+            ! This call will form the ct_rhs, which for use_compressible_projection
+            ! or cg_pressure_cv_test_continuity is formed for a second time later below.
             if(dg(istate) .and. .not. cv_pressure) then
                call assemble_divergence_matrix_cg(ct_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
                  test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
@@ -658,15 +674,35 @@
             call profiler_tic(p, "assembly")
             
             if (prognostic_p .and. .not.reduced_model) then
-
+               
+               ! Set up the left C matrix in CMC
+               
                if(use_compressible_projection) then
                   allocate(ctp_m(istate)%ptr)
                   call allocate(ctp_m(istate)%ptr, ct_m(istate)%ptr%sparsity, (/1, u%dim/), name="CTP_m")
+                  ! NOTE that this is not optimal in that the ct_rhs
+                  ! was formed already above. The call here will overwrite those values.
                   if(cv_pressure) then
                      call assemble_compressible_divergence_matrix_cv(ctp_m(istate)%ptr, state, ct_rhs(istate))
                   else
                      call assemble_compressible_divergence_matrix_cg(ctp_m(istate)%ptr, state, ct_rhs(istate))
+                  end if               
+               else                  
+                  ! Incompressible scenario
+                  if (cg_pressure_cv_test_continuity) then
+                     ! Form the CV tested divergence matrix and ct_rhs.
+                     ! This will only reassemble ctp_m when ct_m 
+                     ! also requires reassemble. NOTE that this is not optimal in that the ct_rhs
+                     ! was formed already above. The call here will overwrite those values.
+                     call assemble_divergence_matrix_cv(ctp_m(istate)%ptr, state(istate), ct_rhs=ct_rhs(istate), &
+                                                        test_mesh=p%mesh, field=u, get_ct=reassemble_ct_m)
+                  else                  
+                     ! ctp_m is identical to ct_m
+                     ctp_m(istate)%ptr => ct_m(istate)%ptr
                   end if
+               end if
+               
+               if (use_compressible_projection .or. cg_pressure_cv_test_continuity) then
                   if (have_rotated_bcs(u)) then
                      if (dg(istate)) then
                        call zero_non_owned(u)
@@ -679,9 +715,18 @@
                      end if
                      call rotate_ct_m_sphere(state(istate), ctp_m(istate)%ptr, u)
                   end if
-               else
-                  ctp_m(istate)%ptr => ct_m(istate)%ptr  ! Incompressible scenario
                end if
+
+               ! Add mass source-absorption for implicit solids.
+               ! This needs to be done after ct_rhs has been formed
+               ! in the divergence routines as they zero the field.
+               ! This routine assumes the continuity is tested with 
+               ! FE basis functions, so is not correct for cv_pressure
+               ! or cg_pressure_cv_test_continuity.
+               if (have_option("/implicit_solids/two_way_coupling")) then
+                  call add_mass_source_absorption(ct_rhs(istate), state(istate))
+               end if
+
                ewrite_minmax(ctp_m(istate)%ptr)
                ewrite_minmax(ct_rhs(istate))
 
@@ -1242,6 +1287,11 @@
          cv_pressure = have_option(trim(p%option_path)//&
                            "/prognostic/spatial_discretisation/control_volumes")
 
+         ! For CG pressure are we testing the continuity with the CV dual 
+         cg_pressure_cv_test_continuity = have_option(trim(p%option_path)//&
+                   &"/prognostic/spatial_discretisation/continuous_galerkin&
+                   &/test_continuity_with_cv_dual")
+
       end subroutine get_pressure_options
 
 
@@ -1750,9 +1800,11 @@
 
       subroutine momentum_equation_check_options
 
-         integer :: i, nmat
+         integer :: i, nmat, bc, nbc
          character(len=FIELD_NAME_LEN) :: schur_scheme
          character(len=FIELD_NAME_LEN) :: schur_preconditioner
+         character(len=FIELD_NAME_LEN) :: pressure_mesh
+         character(len=FIELD_NAME_LEN) :: pressure_mesh_element_type
 
          ewrite(1,*) 'Checking momentum discretisation options'
 
@@ -2003,6 +2055,91 @@
                   ewrite(-1,*) "continuous_galerkin/mass_terms/lump_mass_matrix"
                   FLExit("Lump the mass matrix (of the velocity) if you want to make use of the low Reynolds number fix")
                end if
+            end if
+
+            ! Check options for case with CG pressure and
+            ! testing continuity with CV dual mesh. 
+            ! Will not work with compressible, free surface or 
+            ! wetting and drying and implicit solids two way coupling. 
+            ! Also will not work if the pressure is on a mesh that has 
+            ! bubble or trace shape functions.
+            if (have_option("/material_phase["//int2str(i)//&
+                                 &"]/scalar_field::Pressure/prognostic&
+                                 &/spatial_discretisation/continuous_galerkin&
+                                 &/test_continuity_with_cv_dual")) then
+               
+               ! Check that the incompressible projection is being used
+               if(.not.have_option("/material_phase["//int2str(i)//&
+                                 &"]/scalar_field::Pressure/prognostic&
+                                 &/scheme/use_projection_method")) then
+
+                  ewrite(-1,*) "Error: For a CG Pressure the continuity"
+                  ewrite(-1,*) "can only be tested with the cv dual mesh"
+                  ewrite(-1,*) "if the pressure scheme is the incompressible"
+                  ewrite(-1,*) "projection method, which is given by the option"
+                  ewrite(-1,*) "path material_phase/Pressure/spatial_discretisation/"
+                  ewrite(-1,*) "continuous_galerkin/scheme/use_projection_method"
+                  FLExit("Use incompressible projection method if wanting to test continuity with cv dual with CG pressure")                  
+               end if
+               
+               ! Check that there are no free_surface boundary conditions for Velocity
+               nbc = option_count("/material_phase["//int2str(i)//"]/vector_field::Velocity&
+                                  &/prognostic/boundary_conditions")
+               
+               bc_loop: do bc = 0, nbc - 1               
+
+                  if(have_option("/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic&
+                                 &/boundary_conditions["//int2str(bc)//"]/type::free_surface")) then
+                     ewrite(-1,*) "Cannot have free_surface BC for Velocity of phase ",i+1
+                     ewrite(-1,*) "when using a CG pressure with a CV tested continuity equation"
+                     FLExit("For CG Pressure cannot test the continuity equation with CV when Velocity has a free_surface BC")
+                  end if               
+
+               end do bc_loop
+               
+               ! Check that the wetting_and_drying model is not being used
+               if(have_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying")) then
+                  FLExit("For CG Pressure cannot test the continuity equation with CV when using the wetting and drying model")
+               end if
+               
+               ! Check that implicit solids two way coupling is not being used
+               if (have_option("/implicit_solids/two_way_coupling")) then
+                  FLExit("For CG Pressure cannot test the continuity equation with CV when using implicit solids two way coupling model")
+               end if
+               
+               ! get the pressure mesh name
+               call get_option("/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic/mesh/name", &
+                                pressure_mesh)
+               
+               ! check that the pressure mesh options 
+               ! do NOT say bubble or trace
+               call get_option("/geometry/mesh::"//trim(pressure_mesh)//"/from_mesh/mesh_shape/element_type", &
+                                pressure_mesh_element_type, &
+                                default = "lagranian")
+               
+               if (trim(pressure_mesh_element_type) == "bubble") then
+                  FLExit("For CG Pressure cannot test the continuity equation with CV if the pressure mesh has element type bubble")
+               end if
+               
+               if (trim(pressure_mesh_element_type) == "trace") then
+                  FLExit("For CG Pressure cannot test the continuity equation with CV if the pressure mesh has element type trace")
+               end if
+               
+            end if
+            
+            ! Check that is using implicit solids two way coupling that 
+            ! the pressure is NOT CV. CV pressure implies CV tested continuity
+            ! which is not possible yet for the two way coupling terms.
+            ! Note the check of CG pressure with CV tested continuity 
+            ! and implicit solids two way coupling has been done above.
+            if (have_option("/implicit_solids/two_way_coupling")) then
+               
+               if (have_option("/material_phase["//int2str(i)//&
+                                 &"]/scalar_field::Pressure/prognostic&
+                                 &/spatial_discretisation/control_volumes")) then
+                  FLExit("Cannot use implicit solids two way coupling if the pressure is control volume discretised")
+               end if
+               
             end if
             
          end do
