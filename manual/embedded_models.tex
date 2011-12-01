@@ -6,16 +6,22 @@ contrast, the models described in this chapter detail models embedded in
 \fluidity\ which model non-fluids processes.
 
 \section{Biology}
-\label{sect:biology_model}
-The Biology model in \fluidity\ is a very simple four-equation model in
-which the variables are phytoplankton, zooplankton, nutrient and detritus.
-These four variables evolve under an advection-diffusion equation similar to
-that for other tracers such as temperature and salinity but modified by the
+\label{sec:biology_model}
+The Biology model in \fluidity\ contains a number of different submodels. All are
+currently population level models where variables evolve under an 
+advection-diffusion equation similar to that for other tracers, such as 
+temperature and salinity, but modified by the
 addition of a source term which contains the interactions between the
-biological fields.
+biological fields. The fluxes depend on which model is selected and which
+tracers are available. 
 
-Figure \ref{fig:biofluxes} shows the interactions between the four
-biological tracers. Nutrients (plus sunlight) are converted into
+There are two models currently distributed with \fluidity: a four-component model
+and a six-component model.
+
+\subsection{Four component model}
+
+Figure \ref{fig:biofluxes} shows the interactions between the
+biological tracers in the four component model. Nutrients (plus sunlight) are converted into
 phytoplankton. Zooplankton feed on phytoplankton and detritus but in doing
 so produce some nutrients and detritus so grazing also results in fluxes
 from phytoplankton and detritus to nutrient and detritus. Both phytoplankton
@@ -70,7 +76,7 @@ nutrient by a remineralisation process.
   \label{fig:biofluxes}
 \end{figure}
 
-\subsection{Biological source terms}
+\subsubsection{Biological source terms}
 The source terms for phytoplankton ($P$), zooplankton ($Z$), nutrient ($N$)
 and detritus ($D$) respectively are given by the following expressions:
 \begin{gather}
@@ -116,7 +122,7 @@ always conserved. The terms in these equations are given in table
   \label{tab:bioparameters}
 \end{table}
 
-\subsubsection{$\mathrm{R}_P$, the phytoplankton growth rate}\label{sec:R_P}
+\textbf{$\mathrm{R}_P$, the phytoplankton growth rate}\label{sec:R_P}
 
 $\mathrm{R}_P$ is the growth-rate of phytoplankton which is governed by the
 current phytoplankton concentration, the available nutrients and the
@@ -139,7 +145,7 @@ $Q$ is the nutrient limiting factor and is given by:
 \end{equation}
 where $k_N$ is the half-saturation constant for nutrient.
 
-\subsubsection{$\mathrm{G}_P$, the rate of phytoplankton grazing by zooplankton}\label{sec:G_P}
+\textbf{$\mathrm{G}_P$, the rate of phytoplankton grazing by zooplankton}\label{sec:G_P}
 The rate at which zooplankton eat phytoplankton is given by:
 \begin{equation}
   \mathrm{G}_P=\frac{g p_P P^2 Z}{k^2 + p_P P^2 + (1-p_P) D^2},
@@ -149,7 +155,7 @@ over grazing detritus, $g$ is the maximum zooplankton growth rate and $k$ is
 a parameter which limits the grazing rate if the concentration of
 phytoplankton and detritus becomes very low.
 
-\subsubsection{$\mathrm{G}_D$, the rate of detritus grazing by zooplankton}\label{sec:G_D}
+\textbf{$\mathrm{G}_D$, the rate of detritus grazing by zooplankton}\label{sec:G_D}
 The rate at which zooplankton eat detritus is given by:
 \begin{equation}
   \mathrm{G}_D=\frac{g (1-p_P) D^2 Z}{k^2 + p_P P^2 + (1-p_P) D^2},
@@ -157,7 +163,7 @@ The rate at which zooplankton eat detritus is given by:
 in which all of the parameters have the meaning given in the previous
 section.
 
-\subsubsection{$\mathrm{De}_P$, the phytoplankton death rate}\label{sec:De_P}
+\textbf{$\mathrm{De}_P$, the phytoplankton death rate}\label{sec:De_P}
 
 A proportion of the phytoplankton in the system will die in any given time
 interval. The dead phytoplankton become detritus:
@@ -166,7 +172,7 @@ interval. The dead phytoplankton become detritus:
 \end{equation}
 in which $\mu_P$ is the phytoplankton mortality rate.
 
-\subsubsection{$\mathrm{De}_Z$, the zooplankton death rate}\label{sec:De_Z}
+\textbf{$\mathrm{De}_Z$, the zooplankton death rate}\label{sec:De_Z}
 
 A proportion of the zooplankton in the system will die in any given time
 interval. The dead zooplankton become detritus:
@@ -174,7 +180,7 @@ interval. The dead zooplankton become detritus:
   \mathrm{De}_Z=\mu_Z Z^2.
 \end{equation}
 
-\subsubsection{$\mathrm{De}_D$, the detritus remineralisation rate}\label{sec:De_D}
+\textbf{$\mathrm{De}_D$, the detritus remineralisation rate}\label{sec:De_D}
 
 As the detritus falls through the water column, it gradually converts to
 nutrient:
@@ -182,7 +188,163 @@ nutrient:
   \mathrm{De}_D=\mu_D D.
 \end{equation}
 
-\subsection{Photosynthetically active radiation}\label{sec:I}
+\subsection{Six-component model}
+\label{sec:bio-6-component}
+
+The six-component model is based on the model of \citet{popova2006}
+which is designed to be applicably globally. 
+Figure \ref{fig:biofluxes6} shows the interactions between the six
+biological tracers. Nutrients, either ammonium or nitrate, (plus sunlight) are converted into
+phytoplankton. Zooplankton feed on phytoplankton and detritus but in doing
+so produce some nutrients and detritus so grazing also results in fluxes
+from phytoplankton and detritus to nutrient and detritus. Both phytoplankton
+and zooplankton die producing detritus and detritus is gradually converted to
+nutrient by a re-mineralisation process. In addition, chlorophyll is present
+as a subset of the phytoplankton.
+
+\begin{figure}[ht]
+  \centering
+  \pdffig[width=0.7\textwidth]{embedded_models_images/bio_model_6}
+  \caption{Six-component biology model.}
+  \label{fig:biofluxes6}
+\end{figure}
+
+
+The source terms for phytoplankton ($P$), Chlorophyll-a ($\mathrm{Chl}$), zooplankton ($Z$), nitrate ($N$),
+ammonium ($A$), and detritus ($D$) respectively are given by the following expressions:
+\begin{gather}\label{eq:bio6_sources}
+  S_P=PJ(\mathrm{Q}_N+\mathrm{Q}_A) - \mathrm{G}_P - \mathrm{De}_P,\\
+  S_{\mathrm{Chl}}=(\mathrm{R}_P*J*(\mathrm{Q}_N+\mathrm{Q}_A)*P + 
+      (-\mathrm{G}_P-\mathrm{De}_P))*\theta/\zeta),\\
+  S_Z=\delta*(\beta_P*\mathrm{G}_P+\beta_D*\mathrm{G}_D) - \mathrm{De}_Z,\\
+  S_N=-J*P*\mathrm{Q}_N+\mathrm{De}_A,\\
+  S_A=-J*P*\mathrm{Q}_A + \mathrm{De}_D + (1 - \delta)*(\beta_P*\mathrm{G}_P + \beta_D*\mathrm{G}_D) + (1-\gamma)*\mathrm{De}_Z-\mathrm{De}_A,\\
+  S_D=-\mathrm{De}_D + \mathrm{De}_P + \gamma*\mathrm{De}_Z +(1-\beta_P)*\mathrm{G}_P - \beta_D*\mathrm{G}_D
+\end{gather}
+The terms in these equations are given in table 
+
+\ref{tab:bioparameters6}. The variable terms are explained in more detail below.
+\subsubsection{Biological source terms}
+
+\begin{table}[ht]
+  \centering
+  \begin{tabular}{lp{8cm}p{5cm}l}\hline
+    \textbf{Symbol} & \textbf{Meaning} & \textbf{Typical value} & \textbf{Equation}\\\hline
+    $\alpha$ & initial slope of $P-I$ curve,\unit[(W m${-2}$)${-1}$ day$^{-1}$] && \eqref{eq:bio6_alpha} \\
+    $\alpha_c$ & Chl-a specific initial slope of $P-I$ curve & 2 \unit[(gCgChl$^{-1}$Wm$^{-2}$)${-1}$day$^{-1}$] & \\
+    $\beta_P, \beta_D$ & assimilation coefficients of zooplankton & 0.75 & \\
+    $\mathrm{De}_D$ & rate of breakdown of detritus to ammonium && \eqref{eq:bio6_dd}\\
+    $\mathrm{De}_P$ & rate of phytoplankton natural mortality && \eqref{eq:bio6_dp}\\
+    $\mathrm{De}_Z$ & rate of zooplankton natural mortality && \eqref{eq:bio6_dz} \\
+    $\mathrm{De}_A$ & ammonium nitrification rate && \eqref{eq:bio6_da} \\    
+    $\delta$ & excretion parameter & 0.7 & \\
+    $\epsilon$ & grazing parameter relating capture of prey items to prey density & 0.4 & \\
+    $\mathrm{G}_P$ & rate of zooplankton grazing on phytoplankton && \eqref{eq:bio6_gp}\\
+    $\mathrm{G}_D$ & rate of zooplankton grazing on detritus && \eqref{eq:bio6_gd}\\
+    $g$ & zooplankton maximum growth rate & 1.3 \unit[day$^{-1}$] & \\
+    $\gamma$ & fraction of zooplankton mortality going to detritus & 0.5 & \\
+    $I_0$ & photosynthetically active radiation (PAR) immediately below surface of water. Assumed to be 0.43 of the surface radiation &  \\
+    $J$ & light-limited phytoplankton growth rate, \unit[day$^{-1}$] && \eqref{eq:bio6_j}\\
+    $k_A$ & half-saturation constant for ammonium uptake & 0.5 \unit[mmol m$^{-3}$]  & \\
+    $k_N$ & half-saturation constant for nitrate uptake & 0.5 \unit[mmol m$^{-3}$]  & \\
+    $k_P$ & half-saturation constant for phytoplankton mortality & 1 \unit[mmol m$^{-3}$]  & \\
+    $k_Z$ & half-saturation constant for zooplankton mortality & 3 \unit[mmol m$^{-3}$]  & \\
+    $k_w$ & light attenuation due to water & 0.04 \unit[m$^{-1}$] & \\ 
+    $k_c$ & light attenuation due to phytoplankton & 0.03 \unit[m$^2$ mmol$^{-1}$] & \\ 
+    $\lambda_{\mathrm{bio}}$ & rate of the phytoplankton and zooplankton transfer into detritus & 0.05 \unit[day$^{-1}$]& \\
+    $\lambda_A$ & nitrification rate  & 0.03 \unit[day$^{-1}$]& \\
+    $\mu_P$ & phytoplankton mortality rate & 0.05 \unit[day$^{-1}$] & \\
+    $\mu_Z$ & zooplankton mortality rate & 0.2 \unit[day$^{-1}$] & \\
+    $\mu_D$ & detritus reference mineralisaiton rate & 0.05 \unit[day$^{-1}$] & \\
+    $\Psi$ & strength of ammonium inhibition of nitrate uptake & 2.9 \unit[(mmol m$^{-3}$)$^{-1}$] & \\
+    $p_P$ & relative grazing preference for phytoplankton & 0.75 & \\
+    $p_D$ & relative grazing preference for detritus & 0.25 & \\
+    $\mathrm{Q}_N$ & non-dimensional nitrate limiting factor && \eqref{eq:bio6_qn}  \\
+    $\mathrm{Q}_A$ & non-dimensional ammonium limiting factor && \eqref{eq:bio6_qa}  \\
+    $\mathrm{R}_P$ & Chl growth scaling factor && \eqref{eq:bio6_chlgrowth} \\
+    $v$ & Maximum phytoplankton growth rate & 1 \unit[day$^{-1}$] & \\
+    $w_g$ & detritus sinking velocity & 10 \unit[m day$^{-1}$]& \\
+    $z$ & depth && \\
+    $\theta$ & Chl to carbon ratio, \unit[mg Chl mgC$^{-1}$] && \\
+    $\theta_m$ & maximum Chl to carbon ratio & 0.05 \unit[mg Chl mgC$^{-1}$] &\\
+    $\zeta$ & conversion factor from \unit[gC] to \unit[mmolN] based on C:N ratio of 6.5 & 0.0128 \unit[mmolN ngC$^{-1}$] & \\
+    \hline
+  \end{tabular}
+  \caption{Meanings of symbols in the six-component biology model. Typical values are
+    provided for externally set parameters.}
+  \label{tab:bioparameters6}
+\end{table}
+
+Unlike the model of \citet{popova2006} we use a continuous model, with no
+change of equations (bar one exception) above or below the photic zone. For
+our purposes, the photic zone is defined as 100m water depth. First we calculate
+$\theta$:
+\begin{equation}
+    \theta = \frac{\mathrm{Chl}}{\mathrm{P}\zeta}
+\label{eq:bio6_theta}
+\end{equation}
+
+However, at low light levels, $\mathrm{Chl}$ might be zero, therefore
+we take the limit that $\theta \rightarrow \zeta$ at low levels ($1e^{-7}$) of
+chlorphyll-a or photoplankton.
+
+We then calculate $\alpha$:
+\begin{equation}
+    alpha = \alpha_c \theta
+\label{eq:bio6_alpha}
+\end{equation}
+
+Using the PAR available at each vertex of the mesh, we now calculate the
+light-limited phytoplankton growth rate, $J$:
+\begin{equation}
+    J = \frac{v\alpha I_n}{\sqrt{v^2 + \alpha^2 + I_n^2}}
+\label{eq:bio6_j}
+\end{equation}
+
+The limiting factors on nitrate and ammonium are now calculated:
+\begin{equation}
+    \mathrm{Q}_N = \frac{N\exp^{-\Psi A}}{K_N+N}\label{eq:bio6_qn}, 
+\end{equation}
+\begin{equation}
+    \mathrm{Q}_A = \frac{A}{K_A+A}\label{eq:bio6_qa}
+\end{equation}
+
+From these the diagnostic field, primary production ($\mathrm{X_P}$), can be calculated:
+\begin{equation}
+    \mathrm{X_P}=J\left(Q_N + Q_A\right)P
+\label{eq:bio6_primprod}
+\end{equation}
+
+The chlorophyll growth scaling factor is given by:
+\begin{equation}
+    \mathrm{R}_P = Q_N Q_A \left(\frac{\theta_m}{\theta}\right) \left(\frac{v}{\sqrt{v^2 + \alpha^2 + I_n^2}}\right)
+\label{eq:bio6_chlgrowth}
+\end{equation}
+
+The zooplankton grazing terms are now calculated:
+\begin{equation}
+    \mathrm{G}_P = \frac{gp_PP^2Z}{\epsilon + \left(p_PP^2 + p_DD^2\right)}\label{eq:bio6_gp},
+\end{equation}
+\begin{equation}
+    \mathrm{G}_D = \frac{gp_DD^2*Z}{\epsilon+\left(p_PP^2 + p_DD^2\right)}\label{eq:bio6_gd}
+\end{equation}
+
+Finally, the four death rates and re-mineralisation rates are calculated:
+\begin{equation}
+    \mathrm{De}_P = \frac{\mu_pP^2}{P+k_p} + \lambda_{\mathrm{bio}}*P\label{eq:bio6_dp},
+\end{equation}
+\begin{equation}
+    \mathrm{De}_Z = \frac{\mu_zZ^3}{Z+k_z} + \lambda_{\mathrm{bio}}*Z\label{eq:bio6_dz},
+\end{equation}
+\begin{equation}
+    \mathrm{De}_D = \mu_DD+\lambda_{\mathrm{bio}}*P + \lambda_{\mathrm{bio}}*Z\label{eq:bio6_dd},
+\end{equation}
+\begin{equation}
+    \mathrm{De}_A = \lambda_A A \; \mbox{where $z < 100$}\label{eq:bio6_da}
+\end{equation}
+
+
+\subsection{Photosynthetically active radiation (PAR)}\label{sec:I}
 
 Phytoplankton depends on the levels of light in the water column at the
 frequencies useful for photosynthesis. This is referred to as
@@ -208,8 +370,6 @@ water so it will slowly sink through the water-column. This is modelled by
 modifying the advecting velocity in the advection-diffusion equation for
 detritus by subtracting a sinking velocity $u_{\mathrm{sink}}$ from the
 vertical component of the advecting velocity.
-
-
 
 \section{Sediments}
 

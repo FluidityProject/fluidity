@@ -5,3 +5,4 @@ input: clean
 
 clean:
 	rm -f *.halo *.ele *.edge *.face *.node *.poly *.vtu *.pvtu *.s *.d.* *.stat *.s *.log-0 *.err-0
+	rm -rf circle-2d-drag-parallel_? circle-2d-drag-parallel-adaptive_?

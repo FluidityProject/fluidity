@@ -102,7 +102,7 @@ module fluids_module
   use hyperlight
 #endif
   use multiphase_module
-  use detector_parallel, only: deallocate_detector_list_array
+  use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
 
   implicit none
 
@@ -160,6 +160,10 @@ contains
     !New options
     INTEGER :: ss,ph
     LOGICAL :: have_solids
+
+    !     Turbulence modelling - JBull 24-05-11
+    LOGICAL :: have_k_epsilon
+    character(len=OPTION_PATH_LEN) :: keps_option_path
 
     ! Pointers for scalars and velocity fields
     type(scalar_field), pointer :: sfield
@@ -439,7 +443,10 @@ contains
     end if
 
     ! Initialise k_epsilon
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
+    have_k_epsilon = .false.
+    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
+    if (have_option(trim(keps_option_path))) then
+        have_k_epsilon = .true.
         call keps_init(state(1))
     end if
 
@@ -633,7 +640,7 @@ contains
              end if
 
              ! do we have the k-epsilon 2 equation turbulence model?
-             if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
+             if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::"//trim(field_name_list(it)//"/prognostic"))) then
                 if( (trim(field_name_list(it))=="TurbulentKineticEnergy")) then
                     call keps_tke(state(1))
                 else if( (trim(field_name_list(it))=="TurbulentDissipation")) then
@@ -715,7 +722,7 @@ contains
           end if
 
           ! k_epsilon after the solve on Epsilon has finished
-          if( have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
+          if(have_k_epsilon .and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
             ! Update the diffusivity, at each iteration.
             call keps_eddyvisc(state(1))
           end if
@@ -828,6 +835,8 @@ contains
           ! Using state(1) should be safe as they are aliased across all states.
           call set_vector_field_in_state(state(1), "Coordinate", "IteratedCoordinate")
           call IncrementEventCounter(EVENT_MESH_MOVEMENT)
+
+          call sync_detector_coordinates(state(1))
        end if
 
        current_time=current_time+DT
@@ -931,7 +940,7 @@ contains
     end if
 
     ! cleanup k_epsilon
-    if (have_option('/material_phase[0]/subgridscale_parameterisations/k-epsilon/')) then
+    if (have_k_epsilon) then
         call keps_cleanup()
     end if
 
@@ -1038,7 +1047,8 @@ contains
     real, intent(inout) :: dt
     integer, intent(inout) :: nonlinear_iterations, nonlinear_iterations_adapt
     type(state_type), dimension(:), pointer :: sub_state
-    
+    character(len=OPTION_PATH_LEN) :: keps_option_path
+
     ! Overwrite the number of nonlinear iterations if the option is switched on
     if(have_option("/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt")) then
       call get_option('/timestepping/nonlinear_iterations/nonlinear_iterations_at_adapt',nonlinear_iterations_adapt)
@@ -1103,7 +1113,10 @@ contains
     end if
 
     ! k_epsilon
-    if (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/")) then
+    keps_option_path="/material_phase[0]/subgridscale_parameterisations/k-epsilon/"
+    if (have_option(trim(keps_option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic") &
+        &.and. have_option(trim(keps_option_path)//"/scalar_field::TurbulentDissipation/prognostic") &
+        &.and. have_option(trim(keps_option_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
         call keps_adapt_mesh(state(1))
     end if
 

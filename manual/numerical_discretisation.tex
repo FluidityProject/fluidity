@@ -1,5 +1,5 @@
 \chapter{Numerical discretisation}\label{chap:numerical_discretisation}
-\section{Introduction \& some definitions}\label{Sect:ND_Intro}
+\section{Introduction \& some definitions}\label{sec:ND_Intro}
 This chapter covers the numerical discretisation of the model equations
 given in the previous chapter as they are assembled and solved 
 in \fluidity. For a more general introduction into finite element theory
@@ -21,7 +21,7 @@ In the following this notation is used to describe both the normal vector at the
 and between elements in the interior.
 
 \section{Spatial discretisation of the advection-diffusion equation}
-\label{Sect:ND_advection_diffusion_discretisation}
+\label{sec:ND_advection_diffusion_discretisation}
 
 The advection-diffusion equation for a scalar tracer $c$,
 is given in conservative form by
@@ -38,7 +38,7 @@ $\partial\Omega = \dOmega^{N}\cup \dOmega^{D}$, and impose boundary conditions o
 \end{gather}
 
 \subsection{Continuous Galerkin discretisation}
-\label{sect:ND_advection_diffusion_CG}
+\label{sec:ND_advection_diffusion_CG}
 
 The Continuous Galerkin method (often abbreviated to CG, 
 not to be confused with Conjugate Gradients) method,
@@ -206,7 +206,7 @@ where $\mat{M}, \mat{A}$ and $\mat{K}$ are the following matrices
 \end{equation}
 
 \subsubsection{Advective stabilisation for CG}
-\label{Sect:ND_advective_stabilisation_CG}
+\label{sec:ND_advective_stabilisation_CG}
 \index{advection-diffusion equation!continuous Galerkin}
 \index{Galerkin!continuous!advection}
 \index{stabilisation!advection}
@@ -537,7 +537,7 @@ conditions, this results in:
 \end{multline}
 
 \subsubsection{Discontinuous Galerkin advection}
-\label{Sect:ND_discontinuous_galerkin_advection}
+\label{sec:ND_discontinuous_galerkin_advection}
 
 Consider first the case in which $\tensor{\kappa}\equiv 0$. In this case, equation
 \eqref{eq:adv_diff_dg}\ reduces to:
@@ -682,7 +682,7 @@ bounded element-wise, and hence the adjustment schemes are called
 \emph{slope limiters}.
 
 \paragraph{Types of slope limiter}
-\label{Sect:ND_DG_slope_limiters}
+\label{sec:ND_DG_slope_limiters}
 \index{slope limiters}
 There are two stages in any slope limiter. First all the elements
 which do not currently satisfy the element bounded condition must be
@@ -722,7 +722,7 @@ scales the reconstructed slope (the value recommended in the paper is
 assumes an $\mathcal{O}(1)$ field, so these factors need tuning for
 other scalings.
 
-\subparagraph{Hermite-WENO limiter} \label{sect:ND_hermite_weno_limiter}
+\subparagraph{Hermite-WENO limiter} \label{sec:ND_hermite_weno_limiter}
 This limiter makes use of the Weighted Essentially Non-Oscillatory
 (WENO) interpolation methods, originally used to obtain high-order
 non-oscillatory fluxes for finite volume methods, to reconstruct the
@@ -946,7 +946,7 @@ resulting matrix). It is worth noting at this point that the method of
 rewriting the second-order operator as a first-order system has some
 superficial connections with the discrete pressure projection method
 for continuous finite element methods as described in Section
-\ref{Sect:pressure_correction}. However, many of the ideas do not
+\ref{sec:pressure_correction}. However, many of the ideas do not
 carry over to the discontinuous Galerkin framework, for example, it is
 neither necessary nor sufficient to reduce the polynomial order of
 $\phi^\delta$ relative to the polynomial order of
@@ -1105,7 +1105,7 @@ The application of boundary conditions occurs in the same manner as for the disc
 \end{multline}
 
 \subsubsection{Control Volume advection}
-\label{Sect:ND_control_volume_advection}
+\label{sec:ND_control_volume_advection}
 
 Consider first the case in which $\tensor{\kappa}\equiv 0$. In this case, equation \eqref{eq:adv_diff_cv}\ reduces to:
 \begin{equation}\label{eq:adv_cv}
@@ -1282,7 +1282,7 @@ The Bassi-Rebay discretisation \citep{bassi1997} method was discussed in section
 Both disadvantages of the simplest Bassi-Rebay discretisation may be overcome for fields, $c$, represented on piecewise linear parent finite element meshes by selecting a piecewise constant (element centred) representation of the diffusivity.  This results in the auxilliary equation for the gradient being solved for on the elements rather than at the nodes.  This can still be implicitly inserted into the equation but results in the same first order sparsity structure as the element gradient scheme.  Additionally the use of staggered finite/control volume meshes stabilises the equation and helps eliminate spurious modes.
 
 \section{The time loop}
-\label{sect:ND_time_loop}
+\label{sec:ND_time_loop}
 
 \fluidity\ solves a coupled system of nonlinear equations with (typically)
 time-varying solutions. The time-marching algorithm employed uses a
@@ -1331,7 +1331,7 @@ all other variables.
   \label{fig:timestep}
 \end{figure}
 
-\subsection{Nonlinear relaxation}\label{sect:relax}
+\subsection{Nonlinear relaxation}\label{sec:relax}
 
 Where a variable is used in the solution of another variable, there are two
 available values of the first variable which might be employed: that at time
@@ -1350,7 +1350,7 @@ Note at the first nonlinear iteration we generally have $\vec{\tilde u}^{n+1} = 
 \subsection{The $\theta$ scheme}
 \index{theta-scheme@$\theta$-scheme}
 \index{time!theta-scheme@$\theta$-scheme}
-\label{sect:ND_time_theta_scheme}
+\label{sec:ND_time_theta_scheme}
 
 The $\theta$ timestepping scheme requires the expression of a linear
 combination of the known field values at the present timestep and the as-yet
@@ -1364,7 +1364,7 @@ generally possible to choose different theta timestepping schemes for different 
 variables.
 
 \section{Time discretisation of the advection-diffusion equation}
-\label{sect:ND_time_disct_adv_diff}
+\label{sec:ND_time_disct_adv_diff}
 
 Regardless of the spatial discretisation options used, the
 advection-diffusion equation produces a semi-discrete matrix equation of the
@@ -1439,7 +1439,7 @@ multiplies and a vector addition.
 If a slope limiter is employed, the slope limiter is applied to
 $\dvec{c}_{\mathrm{new}}$ after each subtimestep.
 
-\subsection{Control Volumes} \label{sect:cvtemp}
+\subsection{Control Volumes} \label{sec:cvtemp}
 
 Advection subcycling based upon a CFL criterion or a fixed number of subcycles is also available for control volume discretisations, although in this case the $\theta$ value is applied globally so no advection diffusion splitting takes place.  This is generally applied to explicit discretisations of the advection equation.
 
@@ -1454,7 +1454,7 @@ In \fluidity\ the low order pivot value uses first order upwinding (see section 
 \section{Momentum equation}
 \index{momentum equation!discretised}
 
-\label{Sect:ND_momentum_equation}
+\label{sec:ND_momentum_equation}
 The discretisation of the momentum equation in non-conservative
 form \eqref{nonconmom} is very similar to that of the advection-diffusion 
 equation. Assuming a tensor form for viscosity, we
@@ -1534,15 +1534,15 @@ where (again assuming CG and ignoring boundary conditions):
 
 \section{Pressure equation for incompressible flow}
 \index{pressue!discretisation}
-\label{Sect:ND_pressure_equation}
+\label{sec:ND_pressure_equation}
 
 For incompressible flow the momentum equation needs to be solved
 in conjunction with the continuity equation
-$\div\vec u=0$. The discretised weak form of
-the continuity equation, integrated by parts, is given by
+$\div\vec u=0$. Using test functions represented as $\zeta_{i}$ the discretised 
+weak form of the continuity equation, integrated by parts, is given by
 \begin{equation*}
-  \sum_j \int_\Omega \left(\grad\psi_i\right)\cdot\bmphi_j u_j -
-    \int_\dOmega \psi_i\bmphi_j\cdot\vec n u_j = 0.
+  \sum_j \int_\Omega \left(\grad\zeta_i\right)\cdot\bmphi_j u_j -
+    \int_\dOmega \zeta_i\bmphi_j\cdot\vec n u_j = 0.
   \label{continuity_byparts}
 \end{equation*}
 Similar to the scalar advection equation, Dirichlet boundary conditions for the
@@ -1553,23 +1553,35 @@ boundary $\dOmega$ into a part
 $\dOmega_D$ where we prescribe $\vec u\cdot\vec n=g_D$ and
 $\dOmega_{\mathrm{open}}$ where the normal component is left free.
 
-Note that the test functions $\psi_i$ we use here are the
-same as the pressure trial functions used above. As a consequence
-the first term involves a matrix that is the
-transpose of \eqref{pgmatrix}. Therefore if we redefine the pressure
-gradient matrix as
+If we define a gradient matrix as
 \begin{equation*}
-  \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j
-    -\int_{\dOmega_{\mathrm{open}}} \bmphi_i\cdot\vec n\psi_j ,
+  \matB_{ij}=\int_\Omega \bmphi_i\cdot\grad\zeta_j
+    -\int_{\dOmega_{\mathrm{open}}} \bmphi_i\cdot\vec n\zeta_j ,
 \end{equation*}
-we can write the continuity equation in the following matrix form:
+we can write the continuity equation in the following form:
+\begin{equation}
+  \matB^T \dvec u=
+    \vec{\mat{M}}_D ~\dvec{g}{}_D,
+    \quad\text{ with }\;
+    \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \zeta_i\bmphi_j\cdot\vec n.
+  \label{discrete_incompressible_continuity}
+\end{equation}
+
+If we choose the continuity equation test functions $\zeta_{i}$ to be the 
+same as the pressure basis functions $\psi_i$ the discrete continuity 
+equation \eqref{discrete_incompressible_continuity} becomes
 \begin{equation}
   \matC^T \dvec u=
     \vec{\mat{M}}_D ~\dvec{g}{}_D,
     \quad\text{ with }\;
-    \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \psi_i\bmphi_j\cdot\vec n.
-  \label{discrete_incompressible_continuity}
+    \vec{\mat{M}}_{D,ij}=\int_{\dOmega_D} \psi_i\bmphi_j\cdot\vec n,
+  \label{discrete_incompressible_continuity_CT}
 \end{equation}
+where we have redefined the pressure gradient matrix \eqref{pgmatrix} as
+\begin{equation*}
+  \matC_{ij}=\int_\Omega \bmphi_i\cdot\grad\psi_j
+    -\int_{\dOmega_{\mathrm{open}}} \bmphi_i\cdot\vec n\psi_j.
+\end{equation*}
 
 The extra surface integral over $\dOmega_{\mathrm{open}}$ in
 $\matC$ in the momentum equation will enforce
@@ -1593,7 +1605,7 @@ velocity, we simply do not integrate by parts so that again no face integrals
 are required. For this reason, \fluidity currently only supports mixed velocity,
 pressure finite element pairs where at least one of them is continuous.
 
-\subsection{Pressure correction}\label{Sect:pressure_correction}
+\subsection{Pressure correction}\label{sec:pressure_correction}
 \index{pressure!correction}
 
 After solving the momentum equation \eqref{eq:momentum_equation} for the
@@ -1633,7 +1645,7 @@ here $\dvec{\tilde p}^{n+\tfrac 12}$ is the pressure
 obtained after the pressure correction.
 
 Note that $\mat{A}$ depends on $\vec{u}$ itself. For the definition of the
-$\urelax$ term used to calculate $\mat{A}$, see section \ref{sect:relax}.
+$\urelax$ term used to calculate $\mat{A}$, see section \ref{sec:relax}.
 
 Subtracting \eqref{eqn:presscorr_1} from \eqref{eqn:presscorr_2} yields:
 \begin{equation}\label{eqn:presscorr_substract}
@@ -1642,11 +1654,11 @@ Subtracting \eqref{eqn:presscorr_1} from \eqref{eqn:presscorr_2} yields:
     =0,
 \end{equation}
 
-Left-multipliying by $\matC^TM^{-1}$ and
+Left-multipliying by $\matB^TM^{-1}$ and
 some rearrangement results in:
 \begin{equation*}
-  \matC^T \mat{M^{-1}}\matC ( \dvec p^{n+\tfrac 12} -  \dvec p_*)
-  =-\frac{\matC^T  ({\dvec{\tilde u}^{n+1}-\dvec{u}_*^{n+1}})}{\Delta t},
+  \matB^T \mat{M^{-1}}\matC ( \dvec p^{n+\tfrac 12} -  \dvec p_*)
+  =-\frac{\matB^T  ({\dvec{\tilde u}^{n+1}-\dvec{u}_*^{n+1}})}{\Delta t},
 \end{equation*}
 The left hand side of this equation contains the sought after pressure
 correction $\Delta\dvec p=\dvec p^{n+\tfrac 12}-\dvec p_*$.
@@ -1654,12 +1666,28 @@ Taking into account the discretised incompressible continuity
 \eqref{discrete_incompressible_continuity} evaluated at
 $t^{n+1}$, we finally arrive at the pressure correction equation:
 \begin{equation}
- \matC^T \mat{M^{-1}}\matC~\Delta\dvec p
-   =\frac{ \matC^T \dvec{u}_*^{n+1}-\vec{\mat{M}}_D ~\dvec{g}{}_D}{\Delta t},
+ \matB^T \mat{M^{-1}}\matC~\Delta\dvec p
+   =\frac{ \matB^T \dvec{u}_*^{n+1}-\vec{\mat{M}}_D ~\dvec{g}{}_D}{\Delta t}.
    \label{eqn:pressure_correction}
 \end{equation}
-This discrete Poisson equation can now be solved
-for $\Delta\dvec p$, after which the pressure and velocity can
+If we choose the continuity equation test functions $\zeta_{i}$ to be the 
+same as the pressure basis functions $\psi_i$ the discrete pressure correction 
+equation \eqref{eqn:pressure_correction} becomes
+\begin{equation}
+ \matC^T \mat{M^{-1}}\matC~\Delta\dvec p
+   =\frac{ \matC^T \dvec{u}_*^{n+1}-\vec{\mat{M}}_D ~\dvec{g}{}_D}{\Delta t}.
+   \label{eqn:pressure_correction_CT}
+\end{equation}
+If the continuity test functions are chosen to be the same
+as the pressure basis functions then the symmetric discrete Poisson equation 
+given by \eqref{eqn:pressure_correction_CT} can now be solved
+for $\Delta\dvec p$. If the continuity test functions are chosen to be the
+different to the pressure basis functions then the non symmetric discrete Poisson equation 
+given by \eqref{eqn:pressure_correction} can now be solved for $\Delta\dvec p$. For the latter 
+case to be well posed there must be the same number of continuity test functions $\zeta_{i}$ as 
+pressure basis functions $\psi_{i}$ such that the matrix $\matB^T \mat{M^{-1}}\matC$ is square.
+
+After obtaining the pressure correction the pressure and velocity can
 be updated by:
 \begin{equation*}
 \begin{split}
@@ -1682,7 +1710,7 @@ $\dvec{\tilde p}^{n+\tfrac 12}$ and $\dvec{\tilde u}^{n+1}$ from the previous
 non-linear iteration.
 
 \subsubsection{Inverting the mass matrix}
-\label{Sect:ND_cg_mass_lumping}
+\label{sec:ND_cg_mass_lumping}
 \index{mass lumping}
 The pressure correction equation \eqref{eqn:pressure_correction} contains
 the inverse of the mass matrix $\mat{M}$. For a continuous Galerkin
@@ -1707,8 +1735,9 @@ matrix takes on a block-diagonal form, with $n\times n$ blocks along
 the diagonal, where $n$ is the number of nodes per element. These blocks
 can be independently inverted and the inverse mass matrix still has the
 same block-diagonal form. As a consequence the matrix
-$\matC^T M^{-1} \matC$ is sparse and can be explicitly
-constructed. Moreover with a continuous $P_{n+1}$ discretisation of pressure,
+$\matB^T M^{-1} \matC$ (or $\matC^T M^{-1} \matC$) is sparse and can be explicitly
+constructed. Moreover for the case where the continuity test functions and pressure 
+basis functions are the same, with a continuous $P_{n+1}$ discretisation of pressure,
 and a discontinuous $P_m, m\leq n$ discretisation of velocity, we
 have the following property\citep{cotter2009}:
 \begin{equation*}
@@ -1719,7 +1748,7 @@ is the same as that would be obtained from a direct $P_{n+1}$
 discretisation of the continuous pressure poisson equation.
 
 \section{Velocity and pressure element pairs}
-\label{Sect:velocity_pressure_element_pairs}
+\label{sec:velocity_pressure_element_pairs}
 As we have seen, various methods are available in \fluidity for the discretisation of
 velocity and pressure. The momentum equation can be discretised
 using continuous or discontinuous Galerkin for velocity, with arbitrary degree
@@ -1761,7 +1790,7 @@ is highly recommended for large scale ocean applications of \fluidity. It is
 LBB stable and can represent the discrete geostrophic balance exactly. See \cite{cotter2009} for more 
 information on the use of this element pair in ocean applications. One of the advantages of choosing
 a discontinuous element pair is that the mass matrix can be inverted locally, so that the mass matrix
-does not have to be lumped, as explained in section \ref{Sect:ND_cg_mass_lumping}. \\
+does not have to be lumped, as explained in section \ref{sec:ND_cg_mass_lumping}. \\
 $\Pzo$ & The $\PoDGPt$ pair can be extended to a family of velocity, pressure pairs $P_{N+1\text{DG}}P_N$.
 The $\Pzo$ pair can therefore be seen as a lower order version of $\PoDGPt$, which is less accurate
 but also cheaper to compute. Unfortunately it is known that for $P0$ velocity, the viscosity schemes 
@@ -1778,8 +1807,29 @@ pure Stokes problems).
 \end{tabular}
 \end{center}
 
+\subsection{Continuous Galerkin pressure with control volume tested continuity}
+\index{pressure!CG with CV tested continuity}
+\label{sec:cg_pressure_cv_continuity}
+
+As was shown in section \ref{sec:ND_pressure_equation} the continuity test functions 
+$\zeta_{i}$ need not be chosen to be the same as the pressure basis functions $\psi_{i}$. 
+As well as being required to form a valid discrete finite element function space the continuity 
+test function space must contain the same number of functions as the pressure basis function space. 
+This is necessary such that the pressure correction matrix is square. 
+
+A particular choice for a different continuity test function space is to use the control volume dual 
+space of the pressure basis standard finite element function space (for example consisting of Lagrangian 
+functions). This is available in \fluidity when the pressure basis functions are continuous. The purpose of this 
+choice is to select a velocity and pressure element pair to satisfy a particular balance and to 
+then also ensure a discrete velocity divergence suitable for the transport of tracers (or volume fractions) 
+using a control volume discretisation. An immediate drawback of this test function choice is that 
+the pressure correction matrix is not symmetric, which must be considered when selecting a linear algebra solver.
+
+Currently the capabilities and stability of using this method with different element pairs has not been fully 
+established.
+
 \section{Balance pressure}
-\label{Sect:balance_pressure}
+\label{sec:balance_pressure}
 \index{pressure!balance}
 
 In a balanced pressure decomposition the pressure correction equation \eqref{eqn:presscorr_substract}
@@ -1870,7 +1920,7 @@ Using the fact that the pressure is zero on the free surface and therefore $p=g\
 \frac{1}{g} \int_{\Omega_{fs}} {\psi_i }\frac{\partial p}{\partial t}\vec z \cdot \vec n=\int_{\Omega_{fs}} \psi_i {n \cdot \bmu} \quad
   \forall \psi_i,
 \end{equation}
-and $\Omega_{fs}$ is the boundary where the free surface is to be applied. This condition is now incorporated into the boundary integrals of the continuity equation \eqref{continuity_byparts} giving:
+and $\Omega_{fs}$ is the boundary where the free surface is to be applied. This condition is now incorporated into the boundary integrals of the continuity equation \eqref{continuity_byparts}, taking the continuity test functions to be the same as the pressure basis functions, giving:
 
 \begin{equation}\label{continuity_byparts_withfs}
   -\int_\Omega \grad\psi_i \cdot \vec u
@@ -1881,18 +1931,18 @@ and $\Omega_{fs}$ is the boundary where the free surface is to be applied. This 
   \forall \psi_i.
 \end{equation}
 
-Following the spatial and temporal discretisation described in section \ref{Sect:ND_pressure_equation}, 
+Following the spatial and temporal discretisation described in section \ref{sec:ND_pressure_equation}, 
 the matrix form of the continuity equation now includes the free surface boundary term (compare with 
-\eqref{discrete_incompressible_continuity}):
+\eqref{discrete_incompressible_continuity_CT}):
 \begin{equation}
 \theta C^T u^{n+1} + (1-\theta) C^T u^n + M_s \frac{\hat p^{n+1}-\hat p^n}{g \Delta t}=0
 \end{equation}
-Repeating the steps from section \ref{Sect:pressure_correction}, the pressure correction equation takes the form:
+Repeating the steps from section \ref{sec:pressure_correction}, the pressure correction equation takes the form:
 \begin{equation}
 \left(\theta C^T(\frac{M_u}{\Delta t})^{-1} \theta C + \frac{M_s}{g(\Delta t)^2}\right)\Delta \hat p = -\frac{\theta C^T u_*^{n+1} + (1-\theta)C^Tu^n}{\Delta t}-\frac{M_s}{g(\Delta t)^2}(\hat p_*^{n+1}-\hat p^n)
 \end{equation}
 
-\section{Wetting and drying}
+\section{Wetting and drying}\label{sec:wetting_and_drying}
 The discretisation of free surface boundary condition with wetting and drying is very similar to the derivation in section \ref{sec:free_surface}, 
 but uses $p=g\max(\eta, b+d_0)$ as relationship between pressure and free surface eleveation. Hence the free surface boundary condition with wetting and drying becomes (compare with equation \ref{weakfreesurf3}):
 
@@ -2152,7 +2202,7 @@ which relates the tolerated error to a rough order estimate of the answer:
 
 In some exceptional cases the right-handside of the equation may
 become zero. For instance the lock exchange problem
-(see \ref{sect:lock_exchange}) starts with an unstable equilibrium in which the righthand
+(see \ref{sec:lock_exchange}) starts with an unstable equilibrium in which the righthand
 side of the momentum equation will be zero. The right solution in this case
 is of course $\dvec{x}=0$, but due to numerical round off the solver may
 never exactly reach this,
@@ -2165,7 +2215,7 @@ always be a very good approximation. The quality of the error estimate is
 then very much dependent on the quality of the preconditioner.
 
 \section{Algorithm for detectors (Lagrangian trajectories)}
-\label{Sect:lagrangian_trajectories}
+\label{sec:lagrangian_trajectories}
 \index{Lagrangian trajectories} \index{detectors!Lagrangian}
 Detectors can be set in the code at specific positions where the user wants
 to know the values of certain variables at each time step. They are virtual

@@ -157,6 +157,7 @@ contains
     type(scalar_field), pointer :: source_field
     real :: a, b, spin_up_time, current_time, dt, averaging_period
     integer :: stat
+    logical :: absolute_vals=.false.
 
     if (timestep==0) then 
       last_output_time = 0.0
@@ -167,10 +168,12 @@ contains
     call get_option("/timestepping/current_time", current_time)
     call get_option("/timestepping/timestep", dt)
 
+    absolute_vals=have_option(trim(s_field%option_path)//"/diagnostic/algorithm/absolute_values")
     call get_option(trim(s_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
     if (stat /=0) spin_up_time=0.
 
     source_field => scalar_source_field(state, s_field)
+    if(absolute_vals) source_field%val = abs(source_field%val)
 
     if (current_time>spin_up_time) then
         a = (current_time-spin_up_time-dt)/(current_time-spin_up_time)
@@ -230,6 +233,7 @@ contains
     type(vector_field), pointer :: source_field
     real :: a, b, spin_up_time, current_time, dt
     integer :: stat
+    logical :: absolute_vals
 
     if (timestep==0) then 
       call initialise_diagnostic_from_checkpoint(v_field)
@@ -239,9 +243,11 @@ contains
     call get_option("/timestepping/current_time", current_time)
     call get_option("/timestepping/timestep", dt)
 
+    absolute_vals=have_option(trim(v_field%option_path)//"/diagnostic/algorithm/absolute_values")
     call get_option(trim(v_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
     if (stat /=0) spin_up_time=0.
     source_field => vector_source_field(state, v_field)
+    if(absolute_vals) source_field%val = abs(source_field%val)
 
     if (current_time>spin_up_time) then
       a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
@@ -374,33 +380,54 @@ contains
     type(scalar_field), intent(inout) :: s_field
 
     type(scalar_field), pointer :: read_field
-    character(len = OPTION_PATH_LEN) :: path, filename
+    character(len = OPTION_PATH_LEN) :: filename
     logical :: checkpoint_exists
-    
-    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    integer :: i
+    integer :: stat
+
+    stat = 1
+
+    do i = 1, option_count("/geometry/mesh")
+      if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
+        call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename, stat)
+        ewrite(2,*) "mesh from file: ", filename
+      end if
+    end do
+    if (stat /= 0) return
+
     if(isparallel()) then
-      filename = parallel_filename(trim_file_extension(filename), ".vtu")
+        filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
-      filename = trim(filename) // ".vtu"
+        filename = trim(filename) // ".vtu"
     end if
     inquire(file=trim(filename), exist=checkpoint_exists)
     
     if (checkpoint_exists) then
-      read_field => vtk_cache_read_scalar_field(filename, trim(s_field%name))
-      call set(s_field, read_field)
+        read_field => vtk_cache_read_scalar_field(filename, trim(s_field%name))
+        call set(s_field, read_field)
     end if
+
   end subroutine initialise_diagnostic_scalar_from_checkpoint
 
   subroutine initialise_diagnostic_vector_from_checkpoint(v_field) 
     type(vector_field), intent(inout) :: v_field
 
     type(vector_field), pointer :: read_field
-    character(len = OPTION_PATH_LEN) :: path, filename
+    character(len = OPTION_PATH_LEN) :: filename
     logical :: checkpoint_exists
-    
-    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    integer :: i
+    integer :: stat
+
+    stat = 1
+
+    do i = 1, option_count("/geometry/mesh")
+      if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
+        call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename , stat)
+        ewrite(2,*) "mesh from file: ", filename
+      end if
+    end do
+    if (stat /= 0) return
+
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
@@ -412,17 +439,28 @@ contains
       read_field => vtk_cache_read_vector_field(filename, trim(v_field%name))
       call set(v_field, read_field)
     end if
+
   end subroutine initialise_diagnostic_vector_from_checkpoint
 
   subroutine initialise_diagnostic_tensor_from_checkpoint(t_field) 
     type(tensor_field), intent(inout) :: t_field
 
     type(tensor_field), pointer :: read_field
-    character(len = OPTION_PATH_LEN) :: path, filename
+    character(len = OPTION_PATH_LEN) :: filename
     logical :: checkpoint_exists
-    
-    path = "/geometry/mesh::CoordinateMesh/from_file/file_name"
-    call get_option(trim(path), filename)
+    integer :: i
+    integer :: stat
+
+    stat = 1
+
+    do i = 1, option_count("/geometry/mesh")
+      if(have_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name")) then
+        call get_option("/geometry/mesh["//int2str(i)//"]/from_file/file_name", filename, stat)
+        ewrite(2,*) "mesh from file: ", filename
+      end if
+    end do
+    if (stat /= 0) return
+
     if(isparallel()) then
       filename = parallel_filename(trim_file_extension(filename), ".vtu")
     else
@@ -434,6 +472,7 @@ contains
       read_field => vtk_cache_read_tensor_field(filename, trim(t_field%name))
       call set(t_field, read_field)
     end if
+
   end subroutine initialise_diagnostic_tensor_from_checkpoint
 
  end module simple_diagnostics

@@ -286,9 +286,23 @@ start =
                      )
                   }
                )*,
+               (
+                  ## By default Fluidity will fail if a detector has left the domain.
+                  element fail_outside_domain {
+                     empty
+                  }|
+                  ## Enable to write NaN values to detector output if a detector has left the domain.
+                  element write_nan_outside_domain {
+                     empty
+                  }
+               ),
                ## Enable to write detector output in binary format
                element binary_output {
                   comment
+               }?,
+               ## Enable to let detectors move with the domain if mesh_movement is enabled.
+               element move_with_mesh {
+                  empty
                }?,
                lagrangian_timestepping?
             }?, 
@@ -1139,10 +1153,10 @@ start =
                      }
                   }
                }?,
-               ## Standard k-epsilon turbulence model (see Ferziger and Peric(2002) p.295).
+               ## Standard k-epsilon turbulence model (see e.g. Ferziger and Peric(2002) p.295).
                ## Solves 2 additional equations for TurbulentDissipation (epsilon) and TurbulentKineticEnergy (k),
                ## in order to close momentum equations.
-               ## Generates an isotropic 'eddy viscosity', added to normal viscosity field, that
+               ## Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
                ## carries the influence of turbulence onto the velocity field. See the manual for details.
                element k-epsilon {
                   ## Turbulent kinetic energy (k).
@@ -1156,6 +1170,10 @@ start =
                         element prognostic {
                            velocity_mesh_choice,
                            prognostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
                         }
                      )
                   },
@@ -1171,12 +1189,9 @@ start =
                            velocity_mesh_choice,
                            prognostic_scalar_field
                         }|
-                        element diagnostic {
+                        element prescribed {
                            velocity_mesh_choice,
-                           (
-                              sediment_concentration_dependent_viscosity_algorithm
-                           ),
-                           diagnostic_tensor_field
+                           prescribed_scalar_field
                         }
                      )
                   },
@@ -1205,7 +1220,7 @@ start =
                   ## carries the influence of turbulence onto the velocity field.
                   element tensor_field {
                      attribute rank { "2" },
-                     attribute name { "KEpsEddyViscosity" },
+                     attribute name { "EddyViscosity" },
                      (
                         element diagnostic {
                            internal_algorithm,
@@ -1214,7 +1229,7 @@ start =
                         }
                      )
                   },
-                  ## Scalar component of the eddy viscosity tensor (diagnostic).
+                  ## Scalar component of the eddy viscosity tensor.
                   ## This will appear in the stat file.
                   element scalar_field {
                      attribute rank { "0" },
@@ -1224,6 +1239,10 @@ start =
                            internal_algorithm,
                            velocity_mesh_choice,
                            diagnostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
                         }
                      )
                   },
@@ -1238,31 +1257,7 @@ start =
                            diagnostic_scalar_field
                         }
                      )
-                  }?,
-                  ## Ratio of TurbulentKineticEnergy to TurbulentDissipation (diagnostic).
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "TKEOverEpsilon" },
-                     (
-                        element diagnostic {
-                           internal_algorithm,
-                           velocity_mesh_choice,
-                           diagnostic_scalar_field
-                        }
-                     )
-                  }?,
-                  ## Reciprocal of the above ratio, a.k.a. Omega or specific dissipation (diagnostic).
-                  element scalar_field {
-                     attribute rank { "0" },
-                     attribute name { "EpsilonOverTKE" },
-                     (
-                        element diagnostic {
-                           internal_algorithm,
-                           velocity_mesh_choice,
-                           diagnostic_scalar_field
-                        }
-                     )
-                  }?,
+                  },
                   ## Select whether source and absorption terms for k and epsilon
                   ## are implicit or explicit.
                   element source_absorption {
@@ -1270,6 +1265,9 @@ start =
                      "explicit"|"implicit"
                      }
                   },
+                  ## Limit the turbulence lengthscale to within physical bounds (e.g. inlet min dimension).
+                  ## This helps to prevent instabilities during simulation spin-up.
+                  element lengthscale_limit {real},
                   ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
                   ## Recommended value (default): 0.09.
                   element C_mu {real},
@@ -2473,18 +2471,21 @@ diagnostic_fe_divergence_scalar_field =
 # three optional input vectors for user-specified rotation matrix
 rotation_matrix_components =
    (
-      ## Select if you want to specify the normal direction
+      ## Select if you want to specify the unit normal direction
       ## of the rotation matrix.
-      ## If off then fluidity computes the normal
-      ## If on the tangents vectors must also be specified.
+      ## If off then fluidity computes the normal.  
       element normal_direction {
          input_choice_real_dim_vector
       }?,
-      ## specify first unit tangent vector to boundary
+      ## Select if you want to specify the first unit tangent direction
+      ## of the rotation matrix (in dim > 1 simulations).
+      ## If off then fluidity computes the tangent.  
       element tangent_direction_1 {
          input_choice_real_dim_vector
       }?,
-      ## specify second (if exists, i.e. if 3d) unit tangent vector to boundary
+      ## Select if you want to specify the second unit tangent direction
+      ## of the rotation matrix (in dim > 2 simulations).
+      ## If off then fluidity computes the tangent.  
       element tangent_direction_2 {
          input_choice_real_dim_vector
       }?
@@ -2493,6 +2494,17 @@ rotation_matrix_components =
 velocity_components_choice =
    (
       (
+         element align_bc_with_cartesian {
+            element x_component {
+               input_choice_real_bc_component
+            }?,
+            element y_component {
+               input_choice_real_bc_component
+            }?,
+            element z_component {
+               input_choice_real_bc_component
+            }?
+         }|
          element align_bc_with_surface {
             element normal_component {
                input_choice_real
@@ -2509,17 +2521,6 @@ velocity_components_choice =
             ## and dump a vtu with the node 
             ## normals and tangenials 1/2
             element debugging_mode{empty}?
-         }|
-         element align_bc_with_cartesian {
-            element x_component {
-               input_choice_real_bc_component
-            }?,
-            element y_component {
-               input_choice_real_bc_component
-            }?,
-            element z_component {
-               input_choice_real_bc_component
-            }?
          }
       )
    )
@@ -6254,6 +6255,7 @@ forcing =
                 }?
             }?,
             ## Ouput some extra diagnostic fields for the momentum, temperature and salinity fluxes
+            ## These <b>must</b> be on the velocity mesh
             element output_fluxes_diagnostics {
                 element vector_field {
                     attribute rank { "1" },

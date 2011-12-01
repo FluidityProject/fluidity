@@ -5,3 +5,4 @@ input:
 
 clean:
 	rm -f *.stat *vtu *.log-0 *.err-0 *.ele *.node *.edge *.halo *.msh
+	rm -rf backward_facing_step_2d_?

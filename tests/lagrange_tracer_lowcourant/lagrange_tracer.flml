@@ -73,6 +73,7 @@
    return coords</string_value>
         </python>
       </detector_array>
+      <fail_outside_domain/>
       <binary_output/>
       <lagrangian_timestepping>
         <subcycles>

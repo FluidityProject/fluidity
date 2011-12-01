@@ -293,15 +293,20 @@ def six_component(state, parameters):
         C_n=max(.5*(C.node_val(n)+Cnew.node_val(n)), 0.0)
         D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
         I_n=max(I.node_val(n), 0.0)
-        
-        if (P_n < 1e-7):
-            theta = 1000.
+        depth=abs(coords.node_val(n)[2])
+ 
+        # In the continuous model we start calculating Chl-a related 
+        # properties at light levels close to zero with a potential /0. 
+        # It seems that assuming theta = zeta at very low P and Chl takes
+        # care of this most effectively       
+        if (P_n < 1e-7 or  C_n < 1e-7):
+            theta = zeta
         else:
-            theta = C_n/P_n*zeta # C=P_n*zeta
+           theta = C_n/P_n*zeta # C=P_n*zeta
         alpha = alpha_c * theta
 
         # Light limited phytoplankton growth rate.
-        J=(v*alpha*I_n)/(v**2+alpha**2*I_n**2)**0.5
+        J=(v*alpha*I_n)/(v**2+alpha**2*I_n**2)**0.5	    
 
         # Nitrate limiting factor.
         Q_N=(N_n*math.exp(-psi * A_n))/(k_N+N_n)
@@ -310,43 +315,46 @@ def six_component(state, parameters):
         Q_A=A_n/(k_A+A_n)
 
         # Chl growth scaling factor
-        R_P=(theta_m/theta)*J*(Q_N+Q_A)/(alpha*I_n) 
+        # R_P=(theta_m/theta)*J*(Q_N+Q_A)/(alpha*I_n+1e-7) 
+        R_P=(theta_m/theta)*(Q_N+Q_A)*v/(v**2+alpha**2*I_n**2)**0.5 
 
         # Primary production
         X_P=J*(Q_N+Q_A)*P_n
 
         # Zooplankton grazing of phytoplankton.
-        G_P=(g * epsilon * p_P * P_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
+	    # It looks a bit different from the original version, however
+	    # it is the same function with differently normalised parameters to 
+	    # simplify tuning 
+        # G_P=(g * epsilon * p_P * P_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
+        G_P=(g * p_P * P_n**2 * Z_n)/(epsilon + (p_P*P_n**2 + p_D*D_n**2))
 
         # Zooplankton grazing of detritus. (p_D - 1-p_P)
-        G_D=(g * epsilon * (1-p_P) * D_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
+        # G_D=(g * epsilon * (1-p_P) * D_n**2 * Z_n)/(g+epsilon*(p_P*P_n**2 + p_D*D_n**2))
+        G_D=(g  * (1-p_P) * D_n**2 * Z_n)/(epsilon + (p_P*P_n**2 + p_D*D_n**2))
 
         # Death rate of phytoplankton.
-        De_P=mu_P*P_n*P_n/(P_n+k_p)
+	    # There is an additional linear term because we have a unified model
+	    # (no below/above photoc zone distinction)
+        De_P=mu_P*P_n*P_n/(P_n+k_p)+lambda_bio*P_n
 
         # Death rate of zooplankton.
-        De_Z=mu_Z*Z_n**3/(Z_n+k_z)
+	    # There is an additional linear term because we have a unified model
+	    # (no below/above photoc zone distinction)
+        De_Z=mu_Z*Z_n**3/(Z_n+k_z)+lambda_bio*Z_n
 
         # Detritus remineralisation.
-        De_D=mu_D*D_n
+        De_D=mu_D*D_n+lambda_bio*P_n+lambda_bio*Z_n
 
-        # We have 2 sources depending on whether we're below or above the photic zone
-        # below
-        if (I_n < photicZoneLimit):
-            P_source.set(n, -lambda_bio * P_n)
-            C_source.set(n, -lambda_bio*C_n)
-            Z_source.set(n, -lambda_bio*Z_n)
-            D_source.addto(n, lambda_bio*(P_n + Z_n) - mu_D*D_n)
-            A_source.set(n, -lambda_A*A_n)
-            N_source.set(n, lambda_A*A_n + mu_D*D_n)
-        # above
-        else:
-            P_source.set(n, J*(Q_N+Q_A)*P_n - G_P - De_P)
-            C_source.set(n, (R_P*J*(Q_N+Q_A)*P_n + (-G_P-De_P))*theta/zeta)
-            Z_source.set(n, delta*(beta_P*G_P+beta_D*G_D) - De_Z)
-            D_source.set(n, -De_D + De_P + gamma*De_Z +(1-beta_P)*G_P - beta_D*G_D)
-            N_source.set(n, -J*P_n*Q_N)
-            A_source.set(n, -J*P_n*Q_A + De_D + (1 - delta)*(beta_P*G_P + beta_D*G_D) + (1-gamma)*De_Z)
+        # Ammonium nitrification (only below the photic zone)
+	    # This is the only above/below term
+        De_A=lambda_A*A_n*(1-photic_zone(depth,100,20))
+
+        P_source.set(n, J*(Q_N+Q_A)*P_n - G_P - De_P)
+        C_source.set(n, (R_P*J*(Q_N+Q_A)*P_n + (-G_P-De_P))*theta/zeta)
+        Z_source.set(n, delta*(beta_P*G_P+beta_D*G_D) - De_Z)
+        D_source.set(n, -De_D + De_P + gamma*De_Z +(1-beta_P)*G_P - beta_D*G_D)
+        N_source.set(n, -J*P_n*Q_N+De_A)
+        A_source.set(n, -J*P_n*Q_A + De_D + (1 - delta)*(beta_P*G_P + beta_D*G_D) + (1-gamma)*De_Z-De_A)
 
         if PP:
             PP.set(n, X_P)
@@ -469,4 +477,12 @@ def check_six_component_parameters(parameters):
 
     return valid
 
+def photic_zone(z,limit,transition_length):
 
+    depth = abs(z)
+    if (depth < limit):
+        return 1.
+    elif (depth < limit+transition_length):
+        return 1.-(depth-limit)/float(transition_length)
+    else:
+        return 0.0
