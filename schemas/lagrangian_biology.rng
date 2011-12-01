@@ -103,13 +103,15 @@ This field must be on a discontinuous mesh</a:documentation>
                       </optional>
                     </element>
                   </optional>
-                  <element name="chemical_field">
-                    <a:documentation>Name of the field representing the dissolved chemical in the environment.
+                  <optional>
+                    <element name="chemical_field">
+                      <a:documentation>Name of the field representing the dissolved chemical in the environment.
 This option is required if 'uptake' or 'release' are specified.</a:documentation>
-                    <attribute name="name">
-                      <data type="string"/>
-                    </attribute>
-                  </element>
+                      <attribute name="name">
+                        <data type="string"/>
+                      </attribute>
+                    </element>
+                  </optional>
                   <optional>
                     <element name="uptake">
                       <a:documentation>Option to define chemical uptake from the environment. 
@@ -307,18 +309,16 @@ This option is generally only useful for testing. </a:documentation>
               </element>
             </zeroOrMore>
           </element>
-          <optional>
-            <element name="scalar_field">
-              <a:documentation>Number of agents</a:documentation>
-              <attribute name="name">
-                <value>Agents</value>
-              </attribute>
-              <element name="diagnostic">
-                <ref name="internal_algorithm"/>
-                <ref name="diagnostic_scalar_field_no_adapt"/>
-              </element>
+          <element name="scalar_field">
+            <a:documentation>Number of agents</a:documentation>
+            <attribute name="name">
+              <value>Agents</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="internal_algorithm"/>
+              <ref name="diagnostic_scalar_field_no_adapt"/>
             </element>
-          </optional>
+          </element>
           <ref name="lagrangian_timestepping"/>
         </element>
       </zeroOrMore>

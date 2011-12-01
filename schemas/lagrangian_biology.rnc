@@ -78,7 +78,7 @@ lagrangian_biology =
                      ## This option is required if 'uptake' or 'release' are specified.
                      element chemical_field {
                         attribute name { xsd:string }
-                     },
+                     }?,
                      ## Option to define chemical uptake from the environment. 
                      ## This will create internal fields to represent the accumulated requested quantity 
                      ## and the depletion factor, which scales the amount actually ingested by the agent 
@@ -240,7 +240,7 @@ lagrangian_biology =
                   internal_algorithm,
                   diagnostic_scalar_field_no_adapt
                }
-            }?,
+            },
             lagrangian_timestepping
          }*
       }

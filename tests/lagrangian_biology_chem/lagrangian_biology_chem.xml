@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>lagrangian_biology_chem_exchange</name>
+  <owner userid="mlange"/>
+  <tags>flml lagrangian_biology</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>
+../../bin/fluidity -v2 -l -p lagrangian_biology.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+  </variables>
+  <pass_tests>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
