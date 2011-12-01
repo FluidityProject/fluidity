@@ -526,7 +526,6 @@ contains
           ! map the coordinate field onto this mesh
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
-          call allocate(bc_position, position%dim, surface_mesh)
           bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           if (have_option(bc_type_path) .or. bc_type=="near_wall_treatment" &
@@ -1576,9 +1575,8 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, force_temperature,&
                                              "value")
         if (heat_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
-            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
-            call remap_field_to_surface(p_position, position_remapped, &
-                                        surface_element_list)
+            position_remapped=get_coordinates_remapped_to_surface(p_position, &
+              scalar_surface%mesh, surface_element_list)
             call project_field(heat_flux, scalar_surface, position_remapped)
             call deallocate(position_remapped)
         else
