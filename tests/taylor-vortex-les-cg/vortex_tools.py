@@ -47,21 +47,10 @@ def dissipation_goldstein(t):
       omega_g[i] = nu*0.75*(exp(-6.*t[i]*nu) - 1./384./nu**2*(exp(-6.*t[i]*nu) - 20.*exp(-12.*t[i]*nu) + 35.*exp(-14.*t[i]*nu) - 16.*exp(-16.*t[i]*nu)) + 1./nu**4*(4105/635830272*exp(-6.*t[i]*nu)))
    return omega_g
 
-def plot_dissipation(vort_12,time_12,vort_24,time_24,vort_48,time_48,vort_les12,time_les12,vort_les24,time_les24,vort_les48,time_les48,vort_dynles12,time_dynles12,vort_dynles24,time_dynles24,vort_dynlesa24,time_dynlesa24,vort_dynles48,time_dynles48,vort_dynlesa48,time_dynlesa48):
+def plot_dissipation(vort_12,time_12,vort_24,time_24,vort_48,time_48,vort_les12,time_les12,vort_les24,time_les24,vort_les48,time_les48,
+vort_dynles12,time_dynles12,vort_dynles24,time_dynles24,vort_dynlesa24,time_dynlesa24,vort_dynles48,time_dynles48,
+vort_dynlesa48,time_dynlesa48):
   ##### Plot time series of turbulent kinetic energy dissipation rate (epsilon)
-  # vorticity L2 norm = sqrt(vort_x**2+vort_y**2+vort_z**2)
-  # volume-average dissipation rate = nu*(vort_x**2+vort_y**2+vort_z**2)/volume
-  vort_12 = nu*vort_12**2/(2*pi)**3
-  vort_24 = nu*vort_24**2/(2*pi)**3
-  vort_48 = nu*vort_48**2/(2*pi)**3
-  vort_les12 = nu*vort_les12**2/(2*pi)**3
-  vort_les24 = nu*vort_les24**2/(2*pi)**3
-  vort_les48 = nu*vort_les48**2/(2*pi)**3
-  vort_dynles12 = nu*vort_dynles12**2/(2*pi)**3
-  vort_dynles24 = nu*vort_dynles24**2/(2*pi)**3
-  vort_dynlesa24 = nu*vort_dynlesa24**2/(2*pi)**3
-  vort_dynles48 = nu*vort_dynles48**2/(2*pi)**3
-  vort_dynlesa48 = nu*vort_dynlesa48**2/(2*pi)**3
 
   pylab.figure(1)
   pylab.title('Simulated vs. analytical dissipation')

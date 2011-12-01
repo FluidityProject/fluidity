@@ -5,19 +5,20 @@
   <owner userid="jbull"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>ls</command_line>
+    <command_line>mpiexec -np 4 ../../bin/fluidity taylor-green-vortex-3d-48.flml</command_line>
   </problem_definition>
   <variables>
-    <variable name="tke_dissipation_rate" language="python">
+    <variable name="dissipation_error" language="python">
 from fluidity_tools import stat_parser as stat
 from math import log, pi
-from vortex_tools import plot_dissipation as vplot
+from vortex_tools import plot_dissipation
+from vortex_tools import dissipation_goldstein
 import numpy
 
 vort_12 = stat("taylor-green-vortex-3d-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
 time_12 = stat("taylor-green-vortex-3d-12.stat")["ElapsedTime"]["value"]
-vort_24 = stat("taylor-green-vortex-3d.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_24 = stat("taylor-green-vortex-3d.stat")["ElapsedTime"]["value"]
+vort_24 = stat("taylor-green-vortex-3d-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
+time_24 = stat("taylor-green-vortex-3d-24.stat")["ElapsedTime"]["value"]
 vort_48 = stat("taylor-green-vortex-3d-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
 time_48 = stat("taylor-green-vortex-3d-48.stat")["ElapsedTime"]["value"]
 vort_les12 = stat("taylor-green-vortex-3d-les-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
@@ -37,14 +38,57 @@ time_dynles48 = stat("taylor-green-vortex-3d-dynles-48.stat")["ElapsedTime"]["va
 vort_dynlesa48 = stat("taylor-green-vortex-3d-dynles-aniso-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
 time_dynlesa48 = stat("taylor-green-vortex-3d-dynles-aniso-48.stat")["ElapsedTime"]["value"]
 
-vplot(vort_12,time_12,vort_24,time_24,vort_48,time_48,vort_les12,time_les12,vort_les24,time_les24,vort_les48,time_les48,vort_dynles12,time_dynles12,vort_dynles24,time_dynles24,vort_dynlesa24,time_dynlesa24,vort_dynles48,time_dynles48,vort_dynlesa48,time_dynlesa48)
+# vorticity L2 norm = sqrt(vort_x**2+vort_y**2+vort_z**2)
+# volume-average dissipation rate = nu*(vort_x**2+vort_y**2+vort_z**2)/volume
+nu=0.01
+vort_12 = nu*vort_12**2/(2*pi)**3
+vort_24 = nu*vort_24**2/(2*pi)**3
+vort_48 = nu*vort_48**2/(2*pi)**3
+vort_les12 = nu*vort_les12**2/(2*pi)**3
+vort_les24 = nu*vort_les24**2/(2*pi)**3
+vort_les48 = nu*vort_les48**2/(2*pi)**3
+vort_dynles12 = nu*vort_dynles12**2/(2*pi)**3
+vort_dynles24 = nu*vort_dynles24**2/(2*pi)**3
+vort_dynlesa24 = nu*vort_dynlesa24**2/(2*pi)**3
+vort_dynles48 = nu*vort_dynles48**2/(2*pi)**3
+vort_dynlesa48 = nu*vort_dynlesa48**2/(2*pi)**3
 
-tke_dissipation_rate = 1.0
+plot_dissipation(vort_12,time_12,vort_24,time_24,vort_48,time_48,vort_les12,time_les12,vort_les24,time_les24,vort_les48,time_les48,
+vort_dynles12,time_dynles12,vort_dynles24,time_dynles24,vort_dynlesa24,time_dynlesa24,vort_dynles48,time_dynles48,
+vort_dynlesa48,time_dynlesa48)
+
+# Integral over time
+int_vort_12 = sum(vort_12*time_12)
+int_vort_24 = sum(vort_24*time_24)
+int_vort_48 = sum(vort_48*time_48)
+int_vort_dynles_12 = sum(vort_dynles12*time_dynles12)
+int_vort_dynles_24 = sum(vort_dynles24*time_dynles24)
+int_vort_dynles_48 = sum(vort_dynles48*time_dynles48)
+
+# Analytical solution
+goldstein = dissipation_goldstein(time_12)
+int_gold = sum(goldstein*time_12)
+
+# Convergence
+conv_12_24 = abs((int_vort_12-int_gold)/(int_vort_24-int_gold))
+conv_24_48 = abs((int_vort_24-int_gold)/(int_vort_48-int_gold))
+conv_dynles_12_24 = abs((int_vort_dynles_12-int_gold)/(int_vort_dynles_24-int_gold))
+conv_dynles_24_48 = abs((int_vort_dynles_24-int_gold)/(int_vort_dynles_48-int_gold))
+print conv_12_24, conv_24_48, conv_dynles_12_24, conv_dynles_24_48
+
+output=open('output.log','w')
+output.write('convergence_12_24 '+str(log(conv_12_24,2))+'\n')
+output.write('convergence_24_48 '+str(log(conv_24_48,2))+'\n')
+output.write('convergence_dynles_12_24 '+str(log(conv_dynles_12_24,2))+'\n')
+output.write('convergence_dynles_24_48 '+str(log(conv_dynles_24_48,2))+'\n')
+output.close()
+
+dissipation_error = [log(conv_12_24,2),log(conv_24_48,2)]
     </variable>
   </variables>
   <pass_tests>
-    <test name="test" language="python">
-assert(tke_dissipation_rate==1.0)
+    <test name="convergence-12-24" language="python">
+assert(dissipation_error[0]>2. and dissipation_error[1]>2.)
     </test>
   </pass_tests>
   <warn_tests>

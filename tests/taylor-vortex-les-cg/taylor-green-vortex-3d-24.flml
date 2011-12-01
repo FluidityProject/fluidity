@@ -46,7 +46,7 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">0</integer_value>
+        <integer_value rank="0">10</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="CoordinateMesh"/>
@@ -276,7 +276,7 @@
     </scalar_field>
     <vector_field name="Vorticity" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_name="Velocity" name="curl">
+        <algorithm material_phase_support="single" name="curl" source_field_name="Velocity">
           <lump_mass/>
         </algorithm>
         <mesh name="VelocityMesh"/>

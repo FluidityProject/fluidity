@@ -9,6 +9,8 @@ module smoothing_module
   use metric_tools
   use boundary_conditions, only: apply_dirichlet_conditions
   use global_parameters, only : OPTION_PATH_LEN
+  use elements
+  use transform_elements
   implicit none
 
   private
@@ -158,7 +160,7 @@ contains
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
     type(vector_field) :: rhsfield
-    integer :: ele, dim
+    integer :: ele, sele, dim
 
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, field_in%mesh, name='HelmholtzVectorSparsity')
@@ -168,7 +170,8 @@ contains
 
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
-       call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
+       sele = surface_elements(ele)
+       call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele, sele)
     end do
 
     ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
@@ -387,6 +390,7 @@ contains
     ! Local assembly
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, dshape_field_in, detwei) &
          & + shape_shape(shape_field_in,shape_field_in, detwei)
+    ! Add a Neumann term?: - dshape_dot_vector_shape(dshape_field_in, normal_bdy, shape_field_in, detwei)
     lrhsfield=shape_rhs(shape_field_in, field_in_quad*detwei)
 
     ! Global assembly
@@ -396,26 +400,35 @@ contains
 
   end subroutine assemble_anisotropic_smooth_scalar
 
-  subroutine assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
+  subroutine assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele, sele)
     type(csr_matrix), intent(inout) :: M
     type(vector_field), intent(inout) :: rhsfield
     type(vector_field), intent(in) :: positions
     type(vector_field), intent(in) :: field_in
     real, intent(in) :: alpha
-    integer, intent(in) :: ele
+    integer, intent(in) :: ele, sele
     integer :: dim
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: field_in_quad
     real, dimension(positions%dim,ele_ngi(positions,ele))                        :: X_quad
-    real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele))           :: mesh_tensor_quad
+    real,dimension(positions%dim,positions%dim,ele_ngi(field_in,ele))           :: mesh_tensor_quad
     real, dimension(ele_loc(field_in,ele), ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
-    real, dimension(ele_ngi(positions,ele))                                      :: detwei
+    real, dimension(ele_ngi(field_in,ele))                                      :: detwei
     integer, dimension(:), pointer                                               :: ele_field_in
-    type(element_type), pointer                                                  :: shape_field_in
+    type(element_type), pointer                                                  :: shape_field_in, f_shape
     real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele))              :: field_in_mat
     real, dimension(positions%dim, ele_loc(field_in, ele))                       :: lrhsfield
+    real, dimension(positions%dim,face_ngi(field_in,sele))                      :: normal_bdy
+    real, dimension(face_ngi(field_in,sele))                                    :: detwei_bdy
+    real, dimension(positions%dim, positions%dim, ele_ngi(field_in, sele))        :: invJ
+    real, dimension(positions%dim, positions%dim, face_ngi(field_in, sele))       :: invJ_face
+    type(element_type)                                     :: augmented_shape
+    real, dimension(ele_loc(field_in, ele), face_ngi(field_in, sele),positions%dim):: vol_dshape_face
+    integer                       :: l_face_number
 
     ele_field_in=>ele_nodes(field_in, ele)
     shape_field_in=>ele_shape(field_in, ele)
+    f_shape   =>face_shape(field_in, sele)
+    l_face_number = local_face_number(field_in, sele)
 
     ! Locations of quadrature points. Fields evaluated at quads.
     X_quad=ele_val_at_quad(positions, ele)
@@ -425,14 +438,26 @@ contains
     call transform_to_physical(positions, ele, shape_field_in, dshape&
          &=dshape_field_in, detwei=detwei)
 
+    call transform_facet_to_physical(positions, sele, detwei_f=detwei_bdy, normal=normal_bdy)
+
+    ! face wizardry
+    augmented_shape = make_element_shape(shape_field_in%loc, shape_field_in%dim, &
+                       shape_field_in%degree, shape_field_in%quadrature, quad_s=f_shape%quadrature )
+
+    call compute_inverse_jacobian( ele_val(positions, ele), shape_field_in, invJ )
+    invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))
+
+    ! nloc x sngi x dim
+    vol_dshape_face = eval_volume_dshape_at_face_quad(augmented_shape, l_face_number, invJ_face)
+
     ! mesh size tensor=(edge lengths)**2
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
     mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
-    ! Local assembly:
+    ! Local assembly with Neumann term:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
-         dshape_field_in, detwei) + shape_shape(shape_field_in&
-         &,shape_field_in, detwei)
+         dshape_field_in, detwei) + shape_shape(shape_field_in,shape_field_in, detwei) &
+         - dshape_dot_vector_shape(vol_dshape_face, normal_bdy, f_shape, detwei_bdy)
 
     lrhsfield=shape_vector_rhs(shape_field_in, field_in_quad, detwei)
 
@@ -513,8 +538,6 @@ contains
       compute_ngi=1
     end if
 
-    !ewrite(2,*) 'ngi: ', compute_ngi
-
     do gi=1, compute_ngi
        do loc=1, nloc
           M=outer_product( du_t(loc,gi,:), du_t(loc,gi,:) )
@@ -523,7 +546,6 @@ contains
              t(:,:,gi)=t(:,:,gi)+M/(r**2)
           end if
        end do
-       !ewrite(2,*) 't: ', t(:,:,gi)
     end do
 
     ! copy the rest

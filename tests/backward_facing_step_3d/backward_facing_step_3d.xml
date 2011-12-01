@@ -4,8 +4,8 @@
   <name>Three-dimensional backward facing step.</name>
   <owner userid="piggott"/>
   <tags>flml parallel</tags>
-  <problem_definition length="special" nprocs="8">
-    <command_line>mpiexec ../../bin/fluidity -v3 -l backward_facing_step_3d.flml</command_line>
+  <problem_definition length="short" nprocs="1">
+    <command_line>mpiexec -np 4 ../../bin/fluidity -v3 -l backward_facing_step_3d.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="FinalTime" language="python">
