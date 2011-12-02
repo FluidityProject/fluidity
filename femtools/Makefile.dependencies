@@ -240,7 +240,7 @@ Detector_Parallel.o ../include/detector_parallel.mod: Detector_Parallel.F90 \
 
 Detector_Python.o ../include/detector_python.mod: Detector_Python.F90 \
    ../include/detector_data_types.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/fldebug.mod
+   ../include/fields.mod ../include/fldebug.mod ../include/state_module.mod
 
 ../include/detector_tools.mod: Detector_Tools.o
 	@true

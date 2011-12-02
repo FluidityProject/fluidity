@@ -164,9 +164,9 @@ lagrangian_biology =
                   ## A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
                   ## which needs to be returned with the appropriate initial variable values, eg.:
                   ##
-                  ##  def val(vars):
-                  ##      vars['VarName'] = 1.0
-                  ##      return vars
+                  ##  def val(biovars):
+                  ##      biovars['VarName'] = 1.0
+                  ##      return biovars
                   element initial_state {
                      python_code
                   },

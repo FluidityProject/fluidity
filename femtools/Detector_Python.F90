@@ -3,6 +3,7 @@
 module detector_python
   use fldebug
   use fields
+  use state_module 
   use iso_c_binding
   use detector_data_types
 
@@ -11,6 +12,7 @@ module detector_python
   private
   
   public :: python_run_detector_string, python_run_random_walk
+  public :: python_init_agent_biology, python_calc_agent_biology
 
   interface
 
@@ -29,11 +31,12 @@ module detector_python
       integer(c_int), intent(out) :: stat
     end subroutine python_run_string_store_locals
 
-    !! Evaluate the detector random walk function from a local namespace given by dict and key
+    !! Evaluate the detector random walk function from a local namespace given by dict and key.
     !! Interface: val(ele, local_coords, dt), where
     !!   ele: elelement number, integer, 
     !!   local_coords: vector of size dim
     !!   dt: timestep of the subcycle; val function needs to scale by this
+    !! Wrapped by python_run_random_walk
     subroutine python_run_random_walk_from_locals(ele, dim, lcoords, dt, dict, dictlen, key, keylen, &
            value, stat) bind(c, name='python_run_random_walk_from_locals_c')
       use :: iso_c_binding
@@ -48,12 +51,51 @@ module detector_python
       integer(c_int), intent(out) :: stat
     end subroutine python_run_random_walk_from_locals
 
+    !! Evaluate the detector val() function for agent-based biology
+    !! Interface: val(biovars, environment, dt), where 
+    !!   biovars: dict mapping agent variables to values
+    !!   environment: dict mapping environment fields to local values
+    !!   dt: timestep size
+    !! Wrapped by python_calc_agent_biology
+    subroutine python_run_agent_biology(dt, dict, dictlen, key, keylen, &
+           biovars, n_biovars, env_values, n_env_values, stat) &
+           bind(c, name='python_run_agent_biology_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: n_biovars, n_env_values
+      real(c_double), intent(in) :: dt
+      integer(c_int), intent(in), value :: dictlen, keylen
+      character(kind=c_char), dimension(dictlen), intent(in) :: dict
+      character(kind=c_char), dimension(keylen), intent(in) :: key
+      real(c_double), dimension(n_biovars), intent(inout) :: biovars
+      real(c_double), dimension(n_env_values), intent(inout) :: env_values
+      integer(c_int), intent(out) :: stat
+    end subroutine python_run_agent_biology
+
+    !! Initialise agent biology variables.
+    !! Interface: val(biovars), where 
+    !!   biovars: dict mapping agent variables to values; This gets initialised
+    !!            with stage already set and everything else set to 0.0
+    !! Wrapped by python_init_agent_biology
+    subroutine python_run_agent_biology_init(function, function_len, stage_id, &
+           var_list, var_list_len, biovars, n_biovars, stat) &
+           bind(c, name='python_run_agent_biology_init_c')
+      use :: iso_c_binding
+      implicit none
+      integer(c_int), intent(in), value :: n_biovars, function_len, var_list_len
+      character(kind=c_char), dimension(function_len), intent(in) :: function
+      character(kind=c_char), dimension(var_list_len), intent(in) :: var_list
+      real(c_double), dimension(n_biovars), intent(inout) :: biovars
+      real(c_double), intent(in) :: stage_id
+      integer(c_int), intent(out) :: stat
+    end subroutine python_run_agent_biology_init
+
   end interface
 
 contains
 
   subroutine python_run_detector_string(str, dict, key, stat)
-    !!< Wrapper function for python_run_string_keep_locals_c
+    !!< Wrapper function for python_run_string_store_locals_c
     character(len = *), intent(in) :: str, dict, key
     integer, optional, intent(out) :: stat
     
@@ -102,5 +144,67 @@ contains
     end if
     
   end subroutine python_run_random_walk
+
+  subroutine python_calc_agent_biology(agent, agent_list, xfield, state, dt, dict, key, stat)
+    !!< Wrapper function for python_run_agent_biology_c
+    type(detector_type), pointer, intent(in) :: agent
+    type(detector_linked_list), intent(in) :: agent_list
+    type(vector_field), pointer, intent(in) :: xfield
+    type(state_type), intent(inout) :: state
+    real, intent(in) :: dt
+    character(len = *), intent(in) :: dict, key
+    integer, optional, intent(out) :: stat
+    
+    integer :: lstat, i
+    real, dimension(size(agent%local_coords)) :: stage_local_coords
+    real, dimension(size(agent_list%env_field_name)) :: env_field_values
+    type(scalar_field), pointer :: env_field
+
+    if(present(stat)) stat = 0
+    
+    do i=1, size(agent_list%env_field_name)
+       env_field=>extract_scalar_field(state,trim(agent_list%env_field_name(i)))
+       env_field_values(i)=eval_field(agent%element,env_field,agent%local_coords)
+    end do
+
+    stage_local_coords=local_coords(xfield,agent%element,agent%position)
+    call python_run_agent_biology(dt, dict, len_trim(dict), key,len_trim(key), &
+           agent%biology, size(agent%biology), env_field_values, size(env_field_values), lstat) 
+
+    if(lstat /= 0) then
+      if(present(stat)) then
+        stat = -1
+      else
+        ewrite(-1, *) "Python error in biology update function of agent array"
+        FLExit("Dying")
+      end if
+    end if
+    
+  end subroutine python_calc_agent_biology
+
+  subroutine python_init_agent_biology(agent, agent_list, pyfunction, stat)
+    !!< Wrapper function for python_run_agent_biology_init_c
+    type(detector_type), pointer, intent(in) :: agent
+    type(detector_linked_list), intent(in) :: agent_list
+    character(len=*), intent(in) :: pyfunction
+    integer, optional, intent(out) :: stat
+
+    integer :: lstat
+
+    if(present(stat)) stat = 0
+
+    call python_run_agent_biology_init(trim(pyfunction), len_trim(pyfunction), &
+           agent_list%stage_id, trim(agent_list%name), len_trim(agent_list%name), &
+           agent%biology, size(agent%biology), lstat)
+
+    if(lstat /= 0) then
+      if(present(stat)) then
+        stat = -1
+      else
+        ewrite(-1, *) "Python error in biology agent initialisation"
+        FLExit("Dying")
+      end if
+    end if
+  end subroutine python_init_agent_biology
 
 end module detector_python

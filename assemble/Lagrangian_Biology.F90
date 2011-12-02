@@ -40,6 +40,7 @@ module lagrangian_biology
   use detector_tools
   use detector_move_lagrangian
   use detector_parallel
+  use detector_python
   use diagnostic_variables, only: initialise_constant_diagnostics, field_tag, &
                                   write_detectors, create_single_detector
   use python_state

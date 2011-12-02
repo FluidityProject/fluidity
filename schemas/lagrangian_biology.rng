@@ -222,9 +222,9 @@ The t argument is for future use only - currently detector locations are only se
 A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
 which needs to be returned with the appropriate initial variable values, eg.:
 
- def val(vars):
-     vars['VarName'] = 1.0
-     return vars</a:documentation>
+ def val(biovars):
+     biovars['VarName'] = 1.0
+     return biovars</a:documentation>
                   <ref name="python_code"/>
                 </element>
                 <optional>
