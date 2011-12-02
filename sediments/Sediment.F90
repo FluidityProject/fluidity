@@ -372,7 +372,6 @@ contains
     do i_gi = 1, ele_ngi(reentrainment, i_ele)
        lambda_m(i_gi) = 1.0
     end do
-    ewrite(1,*) face_val_at_quad(sigma, surface_element_list(i_ele))
     lambda_m = lambda_m - 0.288 * face_val_at_quad(sigma, surface_element_list(i_ele))
 
     ! calculate Z
