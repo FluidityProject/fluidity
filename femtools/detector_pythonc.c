@@ -139,9 +139,10 @@ void python_run_random_walk_from_locals_c(int ele, int dim,
 #endif
 }
 
-void python_run_agent_biology_init_c(char *function, int function_len, double *stage_id,
+void python_run_agent_biology_init_c(char *function, int function_len,
                                  char *var_list, int var_list_len, 
-                                 double biovars[], int n_biovars, int *stat){
+                                 double biovars[], int n_biovars, 
+                                 double *stage_id, int *stat){
 #ifdef HAVE_PYTHON
   /* Initialise agent biology variables via a dictionary of name -> value pairs.
    * This will create a dict of all variables stored by the agent, set the stage explicitly,

@@ -77,8 +77,8 @@ module detector_python
     !!   biovars: dict mapping agent variables to values; This gets initialised
     !!            with stage already set and everything else set to 0.0
     !! Wrapped by python_init_agent_biology
-    subroutine python_run_agent_biology_init(function, function_len, stage_id, &
-           var_list, var_list_len, biovars, n_biovars, stat) &
+    subroutine python_run_agent_biology_init(function, function_len, &
+           var_list, var_list_len, biovars, n_biovars, stage_id, stat) &
            bind(c, name='python_run_agent_biology_init_c')
       use :: iso_c_binding
       implicit none
@@ -194,8 +194,8 @@ contains
     if(present(stat)) stat = 0
 
     call python_run_agent_biology_init(trim(pyfunction), len_trim(pyfunction), &
-           agent_list%stage_id, trim(agent_list%name), len_trim(agent_list%name), &
-           agent%biology, size(agent%biology), lstat)
+           trim(agent_list%name), len_trim(agent_list%name), &
+           agent%biology, size(agent%biology), agent_list%stage_id, lstat)
 
     if(lstat /= 0) then
       if(present(stat)) then

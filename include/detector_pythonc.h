@@ -1,3 +1,6 @@
+#include "confdefs.h"
+#include "python_statec.h"
+
 #ifdef HAVE_PYTHON
 #include "Python.h"
 #endif
@@ -10,7 +13,7 @@ void python_run_detector_val_from_locals_c(int ele, int dim, double lcoords[], d
 
 /* Initialise agent biology variables via a dictionary of name -> value pairs. This will create a dict of all variables stored by the agent, set the stage explicitly,
  * and let the user fill in the blanks in the val(biovars) function. */
-void python_run_agent_biology_init_c(char *function, int function_len, double *stage_id, char *var_list, int var_list_len, double biovars[], int n_biovars, int *stat);
+void python_run_agent_biology_init_c(char *function, int function_len, char *var_list, int var_list_len, double biovars[], int n_biovars, double *stage_id, int *stat);
 
 /* Evaluate the detector biology update function using a previously stored local namespace found in dict under key. 
  * The interface is: val(biovars, envvars, dt), where biovars is a dict of agent variables, 
