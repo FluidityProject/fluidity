@@ -714,6 +714,9 @@ contains
     integer, dimension(:), allocatable :: bc_type
 
     type(mesh_type), pointer :: mesh_cg
+    
+    !! Add the Source directly to the right hand side?
+    logical :: add_src_directly_to_rhs
 
     ewrite(1,*) "Writing advection-diffusion equation for "&
          &//trim(field_name)
@@ -797,9 +800,19 @@ contains
        call allocate(Source, T%mesh, trim(field_name)//"Source",&
             FIELD_TYPE_CONSTANT)
        call zero(Source)
+       
+       add_src_directly_to_rhs = .false.
     else
        ! Grab an extra reference to cause the deallocate below to be safe.
        call incref(Source)
+      
+       add_src_directly_to_rhs = have_option(trim(Source%option_path)//'/diagnostic/add_directly_to_rhs')
+      
+       if (add_src_directly_to_rhs) then 
+          ewrite(2, *) "Adding Source field directly to the right hand side"
+          assert(node_count(Source) == node_count(T))
+       end if
+
     end if
 
     Absorption=extract_scalar_field(state, trim(field_name)//"Absorption"&
@@ -921,10 +934,15 @@ contains
        
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
-            Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
-            & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude) 
+            & Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
+            & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
+            & add_src_directly_to_rhs) 
        
     end do element_loop
+
+    ! Add the source directly to the rhs if required 
+    ! which must be included before dirichlet BC's.
+    if (add_src_directly_to_rhs) call addto(rhs, Source)
     
     ! Drop any extra field references.
     if (have_buoyancy_adjustment_by_vertical_diffusion) call deallocate(buoyancy)
@@ -1030,7 +1048,8 @@ contains
        & rhs_diff, &
        & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
        & bc_value, bc_type, &
-       & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude)
+       & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
+       & add_src_directly_to_rhs)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -1057,6 +1076,10 @@ contains
     type(scalar_field), intent(in) :: T, Source, Absorption
     !! Diffusivity
     type(tensor_field), intent(in) :: Diffusivity
+    
+    !! If adding Source directly to rhs then
+    !! do nothing with it here
+    logical, intent(in) :: add_src_directly_to_rhs
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -1513,9 +1536,11 @@ contains
     end if
 
     ! Source term
-    l_T_rhs=l_T_rhs &
-         + shape_rhs(T_shape, detwei*ele_val_at_quad(Source, ele))
-         
+    if (.not. add_src_directly_to_rhs) then
+       l_T_rhs=l_T_rhs &
+              + shape_rhs(T_shape, detwei*ele_val_at_quad(Source, ele))
+    end if
+        
     if(move_mesh) then
       l_T_rhs=l_T_rhs &
          -shape_rhs(T_shape, ele_val_at_quad(t, ele)*(detwei_new-detwei_old)/dt)
