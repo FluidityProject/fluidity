@@ -95,8 +95,7 @@ contains
     ! check options
     if (.not.(have_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon')))&
          & then
-       FLExit('you must have /subgridscale_parameterisation(k-epsilon) to be able to calculate&
-            & diffusivity based upon the k-epsilon model')
+       FLExit('you must have /subgridscale_parameterisation(k-epsilon) to be able to calculate diffusivity based upon the k-epsilon model')
     end if
 
     ! get prandtl_schmidt number
@@ -133,8 +132,7 @@ contains
     ! get eddy viscosity
     eddy_viscosity => extract_tensor_field(state, 'EddyViscosity', stat)
     if (stat /= 0) then 
-       FLExit("No EddyViscosity field was found. Check the k-epsilon model is turned on an&
-            &d you have a valid flml input file.")
+       FLExit("No EddyViscosity field was found. Check the k-epsilon model is turned on and you have a valid flml input file.")
     end if
 
     call zero(t_field)
