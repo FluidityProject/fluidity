@@ -21,6 +21,11 @@
     <mesh name="VelocityMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">1</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -29,6 +34,11 @@
     <mesh name="PressureMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">1</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -60,20 +70,15 @@
       <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">5.0</real_value>
+      <real_value rank="0">0.6</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
-    </nonlinear_iterations>
-    <steady_state>
       <tolerance>
-        <real_value rank="0">1.0e-7</real_value>
+        <real_value rank="0">1.0e-12</real_value>
         <infinity_norm/>
       </tolerance>
-      <steady_state_file>
-        <binary_output/>
-      </steady_state_file>
-    </steady_state>
+    </nonlinear_iterations>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -115,7 +120,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -136,12 +141,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <streamline_upwind_petrov_galerkin>
+              <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
                   <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
-              </streamline_upwind_petrov_galerkin>
+              </streamline_upwind>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
@@ -297,7 +302,7 @@
       <fluids>
         <linear>
           <reference_density>
-            <real_value rank="0">0.9</real_value>
+            <real_value rank="0">1.0</real_value>
           </reference_density>
         </linear>
       </fluids>
@@ -311,7 +316,7 @@
           </continuous_galerkin>
         </spatial_discretisation>
         <reference_node>
-          <integer_value rank="0">100</integer_value>
+          <integer_value rank="0">1</integer_value>
         </reference_node>
         <scheme>
           <poisson_pressure_solution>
@@ -350,7 +355,7 @@
     <scalar_field name="Density" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
+        <mesh name="CoordinateMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -371,12 +376,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <streamline_upwind_petrov_galerkin>
+              <streamline_upwind>
                 <nu_bar_optimal/>
                 <nu_scale name="0.5">
                   <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
-              </streamline_upwind_petrov_galerkin>
+              </streamline_upwind>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
@@ -513,7 +518,11 @@
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -566,18 +575,19 @@
         <consistent_interpolation/>
         <cap_values>
           <upper_cap>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.999999</real_value>
           </upper_cap>
           <lower_cap>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">1e-6</real_value>
           </lower_cap>
         </cap_values>
       </prognostic>
     </scalar_field>
     <scalar_field name="SumVelocityDivergence" rank="0">
       <diagnostic>
-        <mesh name="VelocityMesh"/>
+        <mesh name="PressureMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
+        <integrate_divergence_by_parts/>
         <output/>
         <stat/>
         <detectors>

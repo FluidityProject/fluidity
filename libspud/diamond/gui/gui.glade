@@ -131,7 +131,7 @@
                         <signal name="activate" handler="on_paste"/>
                         <accelerator key="V" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
-                    </child>
+                    </child> 
                     <child>
                       <widget class="GtkMenuItem" id="menuitemGroup">
                         <property name="visible">True</property>
@@ -220,6 +220,27 @@
                 <child>
                   <widget class="GtkMenu" id="menu4">
                     <property name="visible">True</property>
+                    <child>
+                      <widget class="GtkMenuItem" id="menuitemDiff">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Diff</property>
+                        <signal name="activate" handler="on_diff"/>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkMenuItem" id="menuitemDiffSave">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Diff against last save</property>
+                        <signal name="activate" handler="on_diffsave"/>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkMenuItem" id="menuitemFindUseage">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Find schema usage</property>
+                        <signal name="activate" handler="on_finduseage"/>
+                      </widget>
+                    </child>
                     <child>
                       <widget class="GtkCheckMenuItem" id="display_properties">
                         <property name="visible">True</property>

@@ -431,8 +431,6 @@ contains
     ! Helmholtz smoothing lengthscale = alpha**2 * 1/24 * mesh size tensor
     mesh_tensor_quad = alpha**2 / 24. * length_scale_tensor(dshape_field_in, shape_field_in)
 
-    ewrite(2,*) 'mesh_tq: ', mesh_tensor_quad
-
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, mesh_tensor_quad, &
          dshape_field_in, detwei) + shape_shape(shape_field_in&
