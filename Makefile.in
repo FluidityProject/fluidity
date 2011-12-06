@@ -634,3 +634,11 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/bin\///" '{}' \;
 	tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz $(DESTDIR)$(docdir)/fluidity/examples/
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
+
+install-diamond: 
+	cd libspud/diamond;     python setup.py install --prefix=$(DESTDIR)@prefix@; cd ../..
+
+install-user-schemata:
+	mkdir -p $(HOME)/.schemata/
+	echo "Fluidity Markup Language" > $(HOME)/.schemata/flml
+	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.schemata/flml
