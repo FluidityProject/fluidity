@@ -57,6 +57,7 @@ implicit none
   type(detector_linked_list), dimension(:), allocatable, target, save :: agent_arrays
 
   integer, parameter :: BIOFIELD_NONE=0, BIOFIELD_DIAG=1, BIOFIELD_UPTAKE=2, BIOFIELD_RELEASE=3
+  integer, parameter :: BIOVAR_STAGE=1, BIOVAR_SIZE=2
 
 contains
 
@@ -295,11 +296,11 @@ contains
              end do
 
              ! Record which environment fields to evaluate and pass to the update function
-             n_env_fields = option_count(trim(fg_buffer)//"/environment/environment_field")
+             n_env_fields = option_count(trim(fg_buffer)//"/environment/field")
              call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(i)%name)//"'] = []")
              allocate(agent_arrays(i)%env_field_name(n_env_fields))
              do j=1, n_env_fields
-                write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment/environment_field[",j-1,"]"
+                write(env_field_buffer, "(a,i0,a)") trim(fg_buffer)//"/environment/field[",j-1,"]"
                 call get_option(trim(env_field_buffer)//"/name", agent_arrays(i)%env_field_name(j))
                 call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(i)%name)//"'].append('"//trim(agent_arrays(i)%env_field_name(j))//"')")
              end do
@@ -437,6 +438,8 @@ contains
        agent=>agent%next
     end do
 
+    call calculate_agent_diagnostics(state(1))
+
     ewrite(2,*) "Particle Management..."
 
     ! Particle Management
@@ -461,7 +464,6 @@ contains
     type(scalar_field), pointer :: diagfield_stage, diagfield_agg, agent_count_field
     type(detector_type), pointer :: agent
     integer :: i, j, ele
-    real :: ele_volume
 
     ewrite(1,*) "In calculate_agent_diagnostics"
 
@@ -579,7 +581,7 @@ contains
        ! Add diagnostic quantities to field for all variables
        do i=1, size(agent_list%biovar_name)
           if (agent_list%biofield_type(i) /= BIOFIELD_NONE) then
-             call addto(diagfields(i), agent%element, agent%biology(i)/ele_volume)
+             call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE)/ele_volume)
           end if
        end do
 

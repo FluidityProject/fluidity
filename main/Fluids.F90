@@ -499,11 +499,6 @@ contains
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
 
-       ! Calculate diagnostic fields from agents variables before any fields get solved
-       if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
-          call calculate_agent_diagnostics(state(1))
-       end if
-
        call copy_to_stored_values(state,"Old")
        if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
           ! Coordinate isn't handled by the standard timeloop utility calls.
