@@ -60,7 +60,7 @@ module zoltan_integration
 
     type(state_type), dimension(:), intent(inout), target :: states
     logical, intent(in) :: final_adapt_iteration
-    real, intent(out) :: global_min_quality
+    real, intent(out), optional :: global_min_quality
     ! the metric is the metric we base the quality functions on
     type(tensor_field), intent(inout), optional :: metric
     ! the full_metric is the metric we need to interpolate
@@ -152,23 +152,27 @@ module zoltan_integration
        & p1_num_export, p1_export_global_ids, p1_export_local_ids, p1_export_procs, &
        & load_imbalance_tolerance, flredecomp, flredecomp_input_procs, flredecomp_target_procs)
 
-    if (.NOT. final_adapt_iteration) then
 
-       if (.NOT. zoltan_global_calculated_local_min_quality) then
-          FLAbort("Minimum element quality was not calculated during the load balance call.")
+    ! Only calculate the global minimum element quality if additional adapt iterations are being used
+    if (present(global_min_quality)) then
+       if (.NOT. final_adapt_iteration) then
+          
+          if (.NOT. zoltan_global_calculated_local_min_quality) then
+             FLAbort("Minimum element quality was not calculated during the load balance call.")
+          end if
+          
+          ! calculate the global minimum element quality
+          call mpi_allreduce(zoltan_global_local_min_quality, global_min_quality, 1, getPREAL(), &
+               & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
+          assert(ierr == MPI_SUCCESS)
+          
+          ewrite(1,*) "local minimum element quality = ", zoltan_global_local_min_quality
+          ewrite(1,*) "global minimum element quality = ", global_min_quality
+          
+       else
+          ! On final iteration we do not calculate the minimum element quality
+          global_min_quality = 1.0
        end if
-
-       ! calculate the global minimum element quality
-       call mpi_allreduce(zoltan_global_local_min_quality, global_min_quality, 1, getPREAL(), &
-          & MPI_MIN, MPI_COMM_FEMTOOLS, ierr)
-       assert(ierr == MPI_SUCCESS)
-       
-       ewrite(1,*) "local minimum element quality = ", zoltan_global_local_min_quality
-       ewrite(1,*) "global minimum element quality = ", global_min_quality
-       
-    else
-       ! On final iteration we do not calculate the minimum element quality
-       global_min_quality = 1.0
     end if
 
     if (changes .eqv. .false.) then
