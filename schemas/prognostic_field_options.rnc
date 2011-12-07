@@ -193,7 +193,7 @@ prognostic_scalar_field =
             ## for thermal fields.
             ##
             ## For this field. Default = 1.0 if not specified.
-            element prandtl_schmidt_number { real }?,
+            element prandtl_schmidt_number { real },
             ## Option to set a unique isotropic background diffusivity for this field.
             element background_diffusivity { real }?,
             ## Option to enable buoyancy source term for this field.
