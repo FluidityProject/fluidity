@@ -215,7 +215,7 @@ applied upon. If it is set globally and locally, the local background diffusivit
             <value>k-epsilon</value>
           </attribute>
           <optional>
-            <element name="Prandtl_Schmidt_Number">
+            <element name="prandtl_schmidt_number">
               <a:documentation>Option to set the Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
 massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
 for thermal fields.
@@ -225,7 +225,7 @@ For this field. Default = 1.0 if not specified.</a:documentation>
             </element>
           </optional>
           <optional>
-            <element name="BackgroundDiffusivity">
+            <element name="background_diffusivity">
               <a:documentation>Option to set a unique isotropic background diffusivity for this field.</a:documentation>
               <ref name="real"/>
             </element>

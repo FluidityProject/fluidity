@@ -292,7 +292,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">1.0e-07</real_value>
+                  <real_value rank="0">1e-07</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -509,9 +509,9 @@
           </constant>
         </initial_condition>
         <subgridscale_parameterisation name="k-epsilon">
-          <Prandtl_Schmidt_Number>
+          <prandtl_schmidt_number>
             <real_value rank="0">0.5</real_value>
-          </Prandtl_Schmidt_Number>
+          </prandtl_schmidt_number>
         </subgridscale_parameterisation>
         <tensor_field name="Diffusivity" rank="2">
           <diagnostic>

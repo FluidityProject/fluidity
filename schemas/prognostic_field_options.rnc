@@ -182,9 +182,9 @@ prognostic_scalar_field =
             ## for thermal fields.
             ##
             ## For this field. Default = 1.0 if not specified.
-            element Prandtl_Schmidt_Number { real }?,
+            element prandtl_schmidt_number { real }?,
             ## Option to set a unique isotropic background diffusivity for this field.
-            element BackgroundDiffusivity { real }?
+            element background_diffusivity { real }?
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}

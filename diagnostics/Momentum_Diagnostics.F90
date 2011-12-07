@@ -99,8 +99,8 @@ contains
     end if
 
     ! get prandtl_schmidt number
-    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/Prandtl_&
-         &Schmidt_Number', prandtl_schmidt, stat=stat)
+    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/prandtl_&
+         &schmidt_number', prandtl_schmidt, stat=stat)
     if (stat /= 0) then 
        prandtl_schmidt = 1.0
     end if
@@ -114,8 +114,8 @@ contains
     call zero(local_background_diffusivity_field)
 
     ! set background_diffusivity (local takes precendence over global)
-    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/Backg&
-            &roundDiffusivity', local_background_diffusivity, stat=stat)
+    call get_option(trim(parent_path)//'/subgridscale_parameterisation::k-epsilon/backg&
+            &round_diffusivity', local_background_diffusivity, stat=stat)
     if (stat == 0) then 
        ! set local isotropic background diffusivity
        call addto(local_background_diffusivity_field, local_background_diffusivity)
