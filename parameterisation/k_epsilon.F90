@@ -126,15 +126,16 @@ subroutine keps_tke(state)
 
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_kk, abs_kk, kk, eps, EV, lumped_mass
+    type(scalar_field_pointer), allocatable, dimension(:) :: scalar_fields
     type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_kk, prescribed_abs_kk
-    type(vector_field), pointer        :: positions, nu, u
+    type(vector_field), pointer        :: positions, nu, u, g
     type(tensor_field), pointer        :: kk_diff
-    type(element_type), pointer        :: shape_kk
-    integer                            :: i, ele
+    type(element_type), pointer        :: shape_kk, shape_s
+    integer                            :: i, ele, no_gravity
     integer, pointer, dimension(:)     :: nodes_kk
-    real                               :: residual
-    real, allocatable, dimension(:)    :: detwei, strain_ngi, rhs_addto
-    real, allocatable, dimension(:,:,:):: dshape_kk
+    real                               :: residual, g_magnitude
+    real, allocatable, dimension(:)    :: beta, delta_t, detwei, strain_ngi, rhs_addto
+    real, allocatable, dimension(:,:,:):: dshape_kk, dshape_s 
     logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_tke"
@@ -148,6 +149,9 @@ subroutine keps_tke(state)
     kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
+    g               => extract_vector_field(state, "GravityDirection", no_gravity)
+    call get_option('physical_parameters/gravity/magnitude', g_magnitude, no_gravity)   
+    call get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
 
     ! Set copy of old kk for eps solve
     call set(tke_old, kk)
@@ -179,6 +183,12 @@ subroutine keps_tke(state)
         ! Absorption term:
         rhs_addto = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(kk,ele))
         call addto(abs_rhs, nodes_kk, rhs_addto)
+
+        if (no_gravity == 0) then
+           ! Buoyancy terms
+           call calculate_buoyancy_term_kk()
+           call addto(src_rhs, nodes_kk, rhs_addto)
+        end if
 
         deallocate(dshape_kk, detwei, strain_ngi, rhs_addto)
     end do
@@ -259,6 +269,61 @@ subroutine keps_tke(state)
     ewrite_minmax(tke_src_old)
     ewrite_minmax(abs_kk)
 
+  contains 
+    
+    !------------------------------------------------------------------------------!
+    ! calculate the buoyancy source term for each buoyant scalar field             !
+    !------------------------------------------------------------------------------!
+    subroutine calculate_buoyancy_term_kk()
+
+      integer                            :: i_gi, i_loc, i_field
+      real, allocatable, dimension(:,:)  :: vector
+      real, allocatable, dimension(:)    :: scalar 
+
+      ! zero addto array so that it can be added to in the field calculation loop
+      do i_loc = 1, ele_loc(kk, ele)
+         rhs_addto(i_loc) = 0.0
+      end do
+
+      ! exit if there are no buoyant scalar fields
+      if (.not.allocated(scalar_fields)) then 
+         return
+      end if
+
+      ! loop through buoyant fields, calculate source term and add to addto array
+      do i_field = 1, size(scalar_fields, 1)
+
+         ! get dshape for scalar field so that we can obtain gradients 
+         shape_s => ele_shape(scalar_fields(i_field)%ptr, ele)
+         allocate(dshape_s (ele_loc(scalar_fields(i_field)%ptr, ele),&
+              & ele_ngi(scalar_fields(i_field)%ptr, ele), positions%dim))
+         call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )        
+
+         ! calculate scalar and vector components of the source term
+         allocate(scalar(ele_ngi(u, ele)))
+         allocate(vector(u%dim, ele_ngi(u, ele)))
+         vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(scalar_fields(i_field)%ptr,&
+              & ele, dshape_s)
+         scalar = beta(i_field)*g_magnitude*ele_val_at_quad(EV, ele)/delta_t(i_field)
+         
+         ! multiply vector component by scalar and sum across dimensions - note that the
+         ! vector part has been multiplied by the gravitational direction so the it is
+         ! zero everywhere apart from in this direction
+         do i_gi = 1, ele_ngi(u, ele)
+            scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
+         end do
+       
+         ! multiply by determinate weights and integrate
+         rhs_addto = rhs_addto + shape_rhs(shape_kk, scalar * detwei)        
+         
+         deallocate(scalar)
+         deallocate(vector)
+         deallocate(dshape_s)
+
+      end do
+
+    end subroutine calculate_buoyancy_term_kk
+
 end subroutine keps_tke
 
 !----------------------------------------------------------------------------------
@@ -267,24 +332,30 @@ subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, EV, lumped_mass
-    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps
-    type(vector_field), pointer        :: positions
+    type(scalar_field_pointer), allocatable, dimension(:) :: scalar_fields
+    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps 
+    type(vector_field), pointer        :: positions, u, g
     type(tensor_field), pointer        :: eps_diff
-    type(element_type), pointer        :: shape_eps
-    integer                            :: i, ele
-    real                               :: residual
-    real, allocatable, dimension(:)    :: detwei, rhs_addto
+    type(element_type), pointer        :: shape_eps, shape_s
+    integer                            :: i, ele, no_gravity
+    real                               :: residual, g_magnitude
+    real, allocatable, dimension(:)    :: beta, delta_t, detwei, rhs_addto
+    real, allocatable, dimension(:,:,:):: dshape_s 
     integer, pointer, dimension(:)     :: nodes_eps
     logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_eps"
     eps             => extract_scalar_field(state, "TurbulentDissipation")
-    src_eps      => extract_scalar_field(state, "TurbulentDissipationSource")
-    src_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
-    abs_eps  => extract_scalar_field(state, "TurbulentDissipationAbsorption")
+    src_eps         => extract_scalar_field(state, "TurbulentDissipationSource")
+    src_kk          => extract_scalar_field(state, "TurbulentKineticEnergySource")
+    abs_eps         => extract_scalar_field(state, "TurbulentDissipationAbsorption")
     eps_diff        => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
     positions       => extract_vector_field(state, "Coordinate")
+    g               => extract_vector_field(state, "GravityDirection", no_gravity)
+    u               => extract_vector_field(state, "Velocity")
+    call get_option('physical_parameters/gravity/magnitude', g_magnitude, no_gravity)   
+    call get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
 
     call allocate(src_rhs, eps%mesh, name="EPSSRCRHS")
     call allocate(abs_rhs, eps%mesh, name="EPSABSRHS")
@@ -308,6 +379,12 @@ subroutine keps_eps(state)
         rhs_addto = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
                               ele_val_at_quad(tke_old,ele))
         call addto(abs_rhs, nodes_eps, rhs_addto)
+
+        if (no_gravity == 0) then
+           ! Buoyancy terms
+           call calculate_buoyancy_term_eps()
+           call addto(src_rhs, nodes_eps, rhs_addto)
+        end if
 
         deallocate(detwei, rhs_addto)
     end do
@@ -383,6 +460,85 @@ subroutine keps_eps(state)
     ewrite_minmax(eps)
     ewrite_minmax(src_eps)
     ewrite_minmax(abs_eps)
+
+  contains 
+    
+    !------------------------------------------------------------------------------!
+    ! calculate the buoyancy source term for each buoyant scalar field             !
+    !------------------------------------------------------------------------------!    
+    subroutine calculate_buoyancy_term_eps()
+
+      integer                            :: i_dim, i_gi, i_loc, i_field
+      real, allocatable, dimension(:,:)  :: u_z, u_xy, vector
+      real, allocatable, dimension(:)    :: c_eps_3, scalar 
+      real                               :: u_min = 1e-10
+      
+      ! zero addto array so that it can be added to in the field calculation loop
+      do i_loc = 1, ele_loc(eps, ele)
+         rhs_addto(i_loc) = 0.0
+      end do
+
+      ! exit if there are no buoyant scalar fields
+      if (.not.allocated(scalar_fields)) then 
+         return
+      end if
+
+      allocate(u_z(u%dim, ele_ngi(u, ele)))
+      allocate(u_xy(u%dim, ele_ngi(u, ele)))    
+
+      ! get components of velocity in direction of gravity and in other directions
+      u_z = ele_val_at_quad(g, ele) * ele_val_at_quad(u, ele)
+      u_xy = ele_val_at_quad(u, ele) - u_z
+
+      ! calculate c_eps_3 = tanh(v/u)
+      allocate(c_eps_3(ele_ngi(u, ele)))
+      do i_gi = 1, ele_ngi(u, ele)
+         do i_dim = 1, u%dim
+            u_z(i_dim, i_gi) = max(u_z(i_dim, i_gi), u_min)
+            u_xy(i_dim, i_gi) = max(u_xy(i_dim, i_gi), u_min)
+         end do
+         c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
+      end do
+
+      deallocate(u_z)
+      deallocate(u_xy)
+
+      ! loop through buoyant fields, calculate source term and add to addto array
+      do i_field = 1, size(scalar_fields, 1)
+
+         ! get dshape for scalar field so that we can obtain gradients 
+         shape_s => ele_shape(scalar_fields(i_field)%ptr, ele)
+         allocate(dshape_s (ele_loc(scalar_fields(i_field)%ptr, ele),&
+              & ele_ngi(scalar_fields(i_field)%ptr, ele), positions%dim))
+         call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )       
+
+         ! calculate scalar and vector components of the source term
+         allocate(scalar(ele_ngi(u, ele)))
+         allocate(vector(u%dim, ele_ngi(u, ele)))
+         vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(scalar_fields(i_field)%ptr,&
+              & ele, dshape_s)
+         scalar = c_eps_1*c_eps_3*beta(i_field)*g_magnitude*ele_val_at_quad(EV, ele)&
+              &/delta_t(i_field)
+         
+         ! multiply vector component by scalar and sum across dimensions - note that the
+         ! vector part has been multiplied by the gravitational direction so the it is
+         ! zero everywhere apart from in this direction
+         do i_gi = 1, ele_ngi(u, ele)
+            scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
+         end do
+       
+         ! multiply by determinate weights and integrate
+         rhs_addto = rhs_addto + shape_rhs(shape_eps, scalar * detwei)
+         
+         deallocate(scalar)
+         deallocate(vector)
+         deallocate(dshape_s)
+
+      end do
+      
+      deallocate(c_eps_3)
+
+    end subroutine calculate_buoyancy_term_eps
 
 end subroutine keps_eps
 
@@ -883,6 +1039,85 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
     end if
 
 end subroutine keps_wall_function
+
+!----------------------------------------------------------------------------------------! 
+! Collect information required from scalar fields in order to calculate buoyancy source  !
+! terms                                                                                  !
+!----------------------------------------------------------------------------------------!
+subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
+  
+  type(state_type), intent(in)                                      :: state
+  type(scalar_field_pointer), allocatable, dimension(:), intent(out):: scalar_fields
+  real, allocatable, dimension(:), intent(out)                      :: beta, delta_t
+  type(scalar_field_pointer), allocatable, dimension(:)             :: temp_scalar_fields
+  real, allocatable, dimension(:)                                   :: temp_beta, temp_delta_t
+  type(scalar_field), pointer                                       :: field
+  integer                                                           :: n_fields, i_field, stat
+
+  ! Get number of scalar fields that are children of this state
+  n_fields = scalar_field_count(state)
+
+  ! Loop over scalar fields and copy required information to arrays if buoyancy_effects
+  !  are selected for the field
+  scalar_field_loop: do i_field = 1, n_fields
+
+     field => extract_scalar_field(state, i_field)
+     
+     if (have_option(trim(field%option_path)//&
+          &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects')) then
+        
+        ! determine allocation requirements, resize array and store required values
+        if (allocated(scalar_fields)) then
+
+           allocate(temp_scalar_fields(size(scalar_fields, 1)))
+           allocate(temp_beta(size(beta, 1)))
+           allocate(temp_delta_t(size(delta_t, 1)))
+
+           temp_scalar_fields = scalar_fields
+           temp_beta = beta
+           temp_delta_t = delta_t
+
+           deallocate(scalar_fields)
+           deallocate(beta)
+           deallocate(delta_t)
+
+           allocate(scalar_fields(size(temp_scalar_fields, 1) + 1))
+           allocate(beta(size(temp_beta, 1) + 1))
+           allocate(delta_t(size(temp_delta_t, 1) + 1))
+           
+           scalar_fields(1:size(temp_scalar_fields,1)) = temp_scalar_fields
+           beta(1:size(temp_beta, 1)) = temp_beta
+           delta_t(1:size(temp_delta_t, 1)) = temp_delta_t
+
+           scalar_fields(ubound(scalar_fields,1))%ptr => extract_scalar_field(state, i_field)
+           call get_option(trim(field%option_path)//&
+                &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects/beta', &
+                & beta(ubound(beta,1))) 
+           call get_option(trim(field%option_path)//&
+                &'/prognostic/subgridscale_parameterisation::k-epsilon/prandtl_schmidt_number', &
+                & delta_t(ubound(delta_t,1)), stat) 
+
+        else
+           
+           allocate(scalar_fields(1))
+           allocate(beta(1))
+           allocate(delta_t(1))
+
+           scalar_fields(1)%ptr => extract_scalar_field(state, i_field)
+           call get_option(trim(field%option_path)//&
+                &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects/beta', &
+                & beta(1)) 
+           call get_option(trim(field%option_path)//&
+                &'/prognostic/subgridscale_parameterisation::k-epsilon/prandtl_schmidt_number', &
+                & delta_t(1))         
+           
+        end if
+
+     end if
+
+  end do scalar_field_loop
+  
+end subroutine get_scalar_field_buoyancy_data
 
 !------------------------------------------------------------------------------------------!
 ! Computes the strain rate for the LES model. Double-dot product results in a scalar:      !

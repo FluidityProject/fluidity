@@ -168,18 +168,29 @@ prognostic_scalar_field =
          element subgridscale_parameterisation {
             attribute name { "GLS"}
          }|
-         ## Set the diffusivity, D, to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+         ## Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy 
+         ## source terms for this field in the k_eps code.
+         ##
+         ## TURBULENT DIFFUSIVITY
+         ##
+         ## To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+         ##
+         ## The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
          ## by the k-epsilon turbulence model.
          ##
          ## D = D_bg + nu_t / Pr
          ##
          ## where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
          ##
-         ## If using this, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
-         ##
          ## A background diffusivity can either be set globally
          ## under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
          ## applied upon. If it is set globally and locally, the local background diffusivity is used.
+         ##
+         ## BUOYANCY EFFECTS
+         ##
+         ## Enable this by selecting the buoyancy_effects node. A buoyancy source term is added to the right hand side of the k
+         ## and epsilon equations. See the manual for more information.
+         ##
          element subgridscale_parameterisation {
             attribute name { "k-epsilon"},
             ## Option to set the Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
@@ -187,13 +198,24 @@ prognostic_scalar_field =
             ## for thermal fields.
             ##
             ## For this field. Default = 1.0 if not specified.
-            element Prandtl_Schmidt_Number { real }?,
+            element prandtl_schmidt_number { real },
             ## Option to set a unique isotropic background diffusivity for this field.
-            element BackgroundDiffusivity { real }?
+            element background_diffusivity { real }?,
+            ## Option to enable buoyancy source term for this field.
+            element buoyancy_effects {
+               ## The beta value given here is used to calculate the perturbation in density due to a unit increase in this 
+               ## scalar field. This is only used within the k-epsilon function. For a temperature field this will be the 
+               ## thermal expansion coefficient, for a sediment field it will be the submerged specific gravity.
+               ##
+               ## \delta rho = S * \beta
+               ##
+               ## where S is the value of the scalar field.
+               element beta { real }
+            }?
          }|
          element subgridscale_parameterisation {
             attribute name { "prescribed_diffusivity"}
-         }
+         }         
       )?,
       ## Buoyancy adjustment (vertical stabilization) schemes.
       element buoyancy_adjustment {

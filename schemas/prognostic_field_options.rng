@@ -213,23 +213,34 @@ At this time, do not switch on this option if you are using Mellor-Yamada.</a:do
           </attribute>
         </element>
         <element name="subgridscale_parameterisation">
-          <a:documentation>Set the diffusivity, D, to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
+          <a:documentation>Turning this option on enables calculation of turbulent diffusivity for this field, and calculation of buoyancy 
+source terms for this field in the k_eps code.
+
+TURBULENT DIFFUSIVITY
+
+To enable, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
+
+The diffusivity, D, is set to the sum of the background diffusivity, D_bg, and the eddy diffusivity calculated 
 by the k-epsilon turbulence model.
 
 D = D_bg + nu_t / Pr
 
 where: nu_t = turbulent viscosity ; Pr = Prandtl or Schmidt number
 
-If using this, set the diffusivity field to diagnostic/algorithm(k_epsilon). 
-
 A background diffusivity can either be set globally
 under material_phase[]/subgridscale_parameterisations/k-epsilon, or individually for each field this is 
-applied upon. If it is set globally and locally, the local background diffusivity is used.</a:documentation>
+applied upon. If it is set globally and locally, the local background diffusivity is used.
+
+BUOYANCY EFFECTS
+
+Enable this by selecting the buoyancy_effects node. A buoyancy source term is added to the right hand side of the k
+and epsilon equations. See the manual for more information.
+</a:documentation>
           <attribute name="name">
             <value>k-epsilon</value>
           </attribute>
           <optional>
-            <element name="Prandtl_Schmidt_Number">
+            <element name="prandtl_schmidt_number">
               <a:documentation>Option to set the Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
 massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
 for thermal fields.
@@ -239,9 +250,24 @@ For this field. Default = 1.0 if not specified.</a:documentation>
             </element>
           </optional>
           <optional>
-            <element name="BackgroundDiffusivity">
+            <element name="background_diffusivity">
               <a:documentation>Option to set a unique isotropic background diffusivity for this field.</a:documentation>
               <ref name="real"/>
+            </element>
+          </optional>
+          <optional>
+            <element name="buoyancy_effects">
+              <a:documentation>Option to enable buoyancy source term for this field.</a:documentation>
+              <element name="beta">
+                <a:documentation>The beta value given here is used to calculate the perturbation in density due to a unit increase in this 
+scalar field. This is only used within the k-epsilon function. For a temperature field this will be the 
+thermal expansion coefficient, for a sediment field it will be the submerged specific gravity.
+
+\delta rho = S * \beta
+
+where S is the value of the scalar field.</a:documentation>
+                <ref name="real"/>
+              </element>
             </element>
           </optional>
         </element>
