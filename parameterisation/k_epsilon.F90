@@ -990,14 +990,14 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
   ! Get number of scalar fields that are children of this state
   n_fields = option_count(trim(state%option_path)//"/scalar_field")
 
-  ! Loop over scalar fields and copy required information to arrays if BuoyancyEffects
+  ! Loop over scalar fields and copy required information to arrays if buoyancy_effects
   !  are selected for the field
   scalar_field_loop: do i_field = 0, n_fields - 1
 
      field => extract_scalar_field(state, i_field)
      
      if (have_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
-          &epsilon)/BuoyancyEffects')) then
+          &epsilon)/buoyancy_effects')) then
         
         if (allocated(scalar_fields)) then
 
@@ -1019,7 +1019,7 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
 
            scalar_fields(-1)%ptr = field
            call get_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
-                &epsilon)/BuoyancyEffects/Beta', beta(-1)) 
+                &epsilon)/buoyancy_effects/beta', beta(-1)) 
            call get_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
                 &epsilon)/Prandtl_Schmidt_Number', delta_t(-1)) 
 
@@ -1031,7 +1031,7 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
 
            scalar_fields(1)%ptr = field 
            call get_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
-                &epsilon)/BuoyancyEffects/Beta', beta(-1)) 
+                &epsilon)/buoyancy_effects/beta', beta(-1)) 
            call get_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
                 &epsilon)/Prandtl_Schmidt_Number', delta_t(-1))         
            

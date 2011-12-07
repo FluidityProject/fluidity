@@ -183,7 +183,7 @@ prognostic_scalar_field =
          ##
          ## BUOYANCY EFFECTS
          ##
-         ## Enable this by selecting the BuoyancyEffects node. A buoyancy source term is added to the right hand side of the k
+         ## Enable this by selecting the buoyancy_effects node. A buoyancy source term is added to the right hand side of the k
          ## and epsilon equations. See the manual for more information.
          ##
          element subgridscale_parameterisation {
@@ -193,11 +193,11 @@ prognostic_scalar_field =
             ## for thermal fields.
             ##
             ## For this field. Default = 1.0 if not specified.
-            element Prandtl_Schmidt_Number { real },
+            element prandtl_schmidt_number { real }?,
             ## Option to set a unique isotropic background diffusivity for this field.
-            element BackgroundDiffusivity { real }?,
+            element background_diffusivity { real }?,
             ## Option to enable buoyancy source term for this field.
-            element BuoyancyEffects {
+            element buoyancy_effects {
                ## The beta value given here is used to calculate the perturbation in density due to a unit increase in this 
                ## scalar field. This is only used within the k-epsilon function. For a temperature field this will be the 
                ## thermal expansion coefficient, for a sediment field it will be the submerged specific gravity.
@@ -205,7 +205,7 @@ prognostic_scalar_field =
                ## \delta rho = S * \beta
                ##
                ## where S is the value of the scalar field.
-               element Beta { real }
+               element beta { real }
             }?
          }|
          element subgridscale_parameterisation {
