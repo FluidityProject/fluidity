@@ -823,7 +823,7 @@
             <wind_stress>
               <python>
                 <string_value lines="20" type="python">def val(X, t):
-   return [1.0e-4,0.0]</string_value>
+   return [1.0e-4]</string_value>
               </python>
             </wind_stress>
           </type>

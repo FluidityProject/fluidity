@@ -170,7 +170,7 @@ contains
 
     ! Assemble M element by element.
     do ele=1, element_count(field_in)
-       sele = surface_elements(ele)
+       !sele = surface_elements(ele)
        call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele, sele)
     end do
 
