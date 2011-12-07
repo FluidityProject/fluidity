@@ -75,7 +75,7 @@ contains
 subroutine keps_init(state)
 
     type(state_type), intent(inout) :: state
-    type(scalar_field), pointer     :: Field
+    type(scalar_field), pointer     :: field
     character(len=OPTION_PATH_LEN)  :: keps_path
     real                            :: visc
 
@@ -99,31 +99,23 @@ subroutine keps_init(state)
     call get_option(trim(keps_path)//'/sigma_k', sigma_k, default = 1.0)
     call get_option(trim(keps_path)//'sigma_eps', sigma_eps, default = 1.3)
 
-    ! Get background viscosity
-    call get_option(trim(keps_path)//"/tensor_field::BackgroundViscosity/prescribed/&
-                          &value::WholeMesh/isotropic/constant", visc)
-    
-    ! initialise eddy viscosity
-    if (have_option(trim(keps_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-       Field => extract_scalar_field(state, "ScalarEddyViscosity")
-       call set(Field, visc)
-    end if
-
     ! initialise lengthscale
-    Field => extract_scalar_field(state, "LengthScale")
-    call zero(Field)
+    field => extract_scalar_field(state, "LengthScale")
+    call zero(field)
+
+    ! initialise scalar eddy viscosity
+    call keps_eddyvisc(state)
 
     ewrite(2,*) "k-epsilon parameters"
     ewrite(2,*) "--------------------------------------------"
-    ewrite(2,*) "c_mu: ",     c_mu
-    ewrite(2,*) "c_eps_1: ",  c_eps_1
-    ewrite(2,*) "c_eps_2: ",  c_eps_2
-    ewrite(2,*) "sigma_k: ",  sigma_k
-    ewrite(2,*) "sigma_eps: ",sigma_eps
-    ewrite(2,*) "fields_min: ",fields_min
-    ewrite(2,*) "background visc: ",   visc
-    ewrite(2,*) "implicit/explicit source/absorption terms: ",   trim(src_abs)
-    ewrite(2,*) "max turbulence lengthscale: ",     lmax
+    ewrite(2,*) "c_mu: ", c_mu
+    ewrite(2,*) "c_eps_1: ", c_eps_1
+    ewrite(2,*) "c_eps_2: ", c_eps_2
+    ewrite(2,*) "sigma_k: ", sigma_k
+    ewrite(2,*) "sigma_eps: ", sigma_eps
+    ewrite(2,*) "fields_min: ", fields_min
+    ewrite(2,*) "implicit/explicit source/absorption terms: ", trim(src_abs)
+    ewrite(2,*) "max turbulence lengthscale: ", lmax
     ewrite(2,*) "--------------------------------------------"
 
 end subroutine keps_init
@@ -134,15 +126,16 @@ subroutine keps_tke(state)
 
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_kk, abs_kk, kk, eps, EV, lumped_mass
+    type(scalar_field_pointer), allocatable, dimension(:) :: scalar_fields
     type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_kk, prescribed_abs_kk
-    type(vector_field), pointer        :: positions, nu, u
+    type(vector_field), pointer        :: positions, nu, u, g
     type(tensor_field), pointer        :: kk_diff
-    type(element_type), pointer        :: shape_kk
-    integer                            :: i, ele
+    type(element_type), pointer        :: shape_kk, shape_s
+    integer                            :: i, ele, no_gravity, i_loc, i_field
     integer, pointer, dimension(:)     :: nodes_kk
-    real                               :: residual
-    real, allocatable, dimension(:)    :: detwei, strain_ngi, rhs_addto
-    real, allocatable, dimension(:,:,:):: dshape_kk
+    real                               :: residual, g_magnitude
+    real, allocatable, dimension(:)    :: beta, delta_t, detwei, strain_ngi, rhs_addto
+    real, allocatable, dimension(:,:,:):: dshape_kk, dshape_s 
     logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_tke"
@@ -156,6 +149,9 @@ subroutine keps_tke(state)
     kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
+    g               => extract_vector_field(state, "GravityDirection", no_gravity)
+    call get_option('physical_parameters/gravity/magnitude', g_magnitude, no_gravity)   
+    call get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
 
     ! Set copy of old kk for eps solve
     call set(tke_old, kk)
@@ -187,6 +183,12 @@ subroutine keps_tke(state)
         ! Absorption term:
         rhs_addto = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(kk,ele))
         call addto(abs_rhs, nodes_kk, rhs_addto)
+
+        if (no_gravity == 0) then
+           ! Buoyancy terms
+           call calculate_buoyancy_term_kk()
+           call addto(src_rhs, nodes_kk, rhs_addto)
+        end if
 
         deallocate(dshape_kk, detwei, strain_ngi, rhs_addto)
     end do
@@ -267,6 +269,29 @@ subroutine keps_tke(state)
     ewrite_minmax(tke_src_old)
     ewrite_minmax(abs_kk)
 
+  contains 
+    
+    subroutine calculate_buoyancy_term_kk()
+
+      do i_loc = 1, ele_loc(kk, ele)
+         rhs_addto(i_loc) = 0.0
+      end do
+
+      do i_field = 1, size(scalar_fields, 1)
+         shape_s = ele_shape(scalar_fields(i_field)%ptr, ele)
+         allocate(dshape_s (ele_loc(scalar_fields(i_field)%ptr, ele),&
+              & ele_ngi(scalar_fields(i_field)%ptr, ele), positions%dim))
+         call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )         
+         
+         ! rhs_addto = rhs_addto + shape_rhs(shape_kk, g_magnitude*ele_val_at_quad(g, ele)&
+         !      &*ele_val_at_quad(EV, ele)/delta_t(i_field)&
+         !      &*ele_grad_at_quad(scalar_fields(i_field)%ptr, ele, dshape_s))
+         
+         deallocate(dshape_s)
+      end do
+
+    end subroutine calculate_buoyancy_term_kk
+
 end subroutine keps_tke
 
 !----------------------------------------------------------------------------------
@@ -275,13 +300,16 @@ subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, EV, lumped_mass
-    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps
-    type(vector_field), pointer        :: positions
+    type(scalar_field_pointer), allocatable, dimension(:) :: scalar_fields
+    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps 
+    type(vector_field), pointer        :: positions, u, g
     type(tensor_field), pointer        :: eps_diff
-    type(element_type), pointer        :: shape_eps
-    integer                            :: i, ele
-    real                               :: residual
-    real, allocatable, dimension(:)    :: detwei, rhs_addto
+    type(element_type), pointer        :: shape_eps, shape_s
+    integer                            :: i, ele, no_gravity, i_gi, i_loc, i_field
+    real                               :: residual, g_magnitude
+    real, allocatable, dimension(:)    :: beta, delta_t, detwei, rhs_addto, c_eps_3 
+    real, allocatable, dimension(:,:)  :: u_z, u_xy
+    real, allocatable, dimension(:,:,:):: dshape_s 
     integer, pointer, dimension(:)     :: nodes_eps
     logical                            :: prescribed_src, prescribed_abs
 
@@ -293,6 +321,10 @@ subroutine keps_eps(state)
     eps_diff        => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
     positions       => extract_vector_field(state, "Coordinate")
+    g               => extract_vector_field(state, "GravityDirection", no_gravity)
+    u               => extract_vector_field(state, "Velocity")
+    call get_option('physical_parameters/gravity/magnitude', g_magnitude, no_gravity)   
+    call get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
 
     call allocate(src_rhs, eps%mesh, name="EPSSRCRHS")
     call allocate(abs_rhs, eps%mesh, name="EPSABSRHS")
@@ -316,6 +348,12 @@ subroutine keps_eps(state)
         rhs_addto = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
                               ele_val_at_quad(tke_old,ele))
         call addto(abs_rhs, nodes_eps, rhs_addto)
+
+        if (no_gravity == 0) then
+           ! Buoyancy terms
+           call calculate_buoyancy_term_eps()
+           call addto(src_rhs, nodes_eps, rhs_addto)
+        end if
 
         deallocate(detwei, rhs_addto)
     end do
@@ -391,6 +429,49 @@ subroutine keps_eps(state)
     ewrite_minmax(eps)
     ewrite_minmax(src_eps)
     ewrite_minmax(abs_eps)
+
+  contains 
+    
+    subroutine calculate_buoyancy_term_eps()
+
+      do i_loc = 1, ele_loc(eps, ele)
+         rhs_addto(i_loc) = 0.0
+      end do
+
+      u_z = matmul(ele_val_at_quad(g, ele), ele_val_at_quad(u, ele))
+      u_xy = ele_val_at_quad(u, ele) - u_z
+      ewrite(1,*) u_z
+      ewrite(1,*) u_xy
+
+      allocate(c_eps_3(ele_ngi(u, ele)))
+      do i_gi = 1, ele_ngi(u, ele)
+         c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
+      end do
+
+      do i_field = 1, size(scalar_fields, 1)
+         shape_s = ele_shape(scalar_fields(i_field)%ptr, ele)
+         allocate(dshape_s (ele_loc(scalar_fields(i_field)%ptr, ele),&
+              & ele_ngi(scalar_fields(i_field)%ptr, ele), positions%dim))
+         call transform_to_physical( positions, ele, shape_s, dshape=dshape_s ) 
+
+         ewrite(1,*) c_eps_1
+         ewrite(1,*) c_eps_3  
+         ewrite(1,*) g_magnitude
+         ewrite(1,*) ele_val_at_quad(g, ele)  
+         ewrite(1,*) ele_val_at_quad(EV, ele) 
+         ewrite(1,*) delta_t(i_field)
+         ewrite(1,*) ele_grad_at_quad(scalar_fields(i_field)%ptr, ele, dshape_s)       
+       
+         ! rhs_addto = rhs_addto + shape_rhs(shape_eps, c_eps_1*c_eps_3*g_magnitude&
+         !      &*ele_val_at_quad(g, ele)*ele_val_at_quad(EV, ele)/delta_t(i_field)&
+         !      &*ele_grad_at_quad(scalar_fields(i_field)%ptr, ele, dshape_s))
+         
+         deallocate(dshape_s)
+      end do
+      
+      deallocate(c_eps_3)
+
+    end subroutine calculate_buoyancy_term_eps
 
 end subroutine keps_eps
 
@@ -891,6 +972,76 @@ subroutine keps_wall_function(field1,field2,positions,u,bg_visc,EV,ele,sele,inde
     end if
 
 end subroutine keps_wall_function
+
+!----------------------------------------------------------------------------------------! 
+! Collect information required from scalar fields in order to calculate buoyancy source  !
+! terms                                                                                  !
+!----------------------------------------------------------------------------------------!
+subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
+  
+  type(state_type), intent(in)                                       :: state
+  type(scalar_field_pointer), allocatable, dimension(:), intent(out) :: scalar_fields
+  real, allocatable, dimension(:), intent(out)                       :: beta, delta_t
+  type(scalar_field_pointer), allocatable, dimension(:)              :: temp_scalar_fields
+  real, allocatable, dimension(:)                                    :: temp_beta, temp_delta_t
+  type(scalar_field), pointer                                        :: field
+  integer                                                            :: n_fields, i_field
+
+  ! Get number of scalar fields that are children of this state
+  n_fields = option_count(trim(state%option_path)//"/scalar_field")
+
+  ! Loop over scalar fields and copy required information to arrays if BuoyancyEffects
+  !  are selected for the field
+  scalar_field_loop: do i_field = 0, n_fields - 1
+
+     field => extract_scalar_field(state, i_field)
+     
+     if (have_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
+          &epsilon)/BuoyancyEffects')) then
+        
+        if (allocated(scalar_fields)) then
+
+           temp_scalar_fields = scalar_fields
+           temp_beta = beta
+           temp_delta_t = delta_t
+
+           deallocate(scalar_fields)
+           deallocate(beta)
+           deallocate(delta_t)
+
+           allocate(scalar_fields(size(temp_scalar_fields, 1) + 1))
+           allocate(beta(size(temp_beta, 1) + 1))
+           allocate(delta_t(size(temp_delta_t, 1) + 1))
+           
+           scalar_fields(1:-1) = temp_scalar_fields
+           beta(1:-1) = temp_beta
+           delta_t(1:-1) = temp_delta_t
+
+           scalar_fields(-1)%ptr = field
+           call get_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
+                &epsilon)/BuoyancyEffects/Beta', beta(-1)) 
+           call get_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
+                &epsilon)/Prandtl_Schmidt_Number', delta_t(-1)) 
+
+        else
+           
+           allocate(scalar_fields(1))
+           allocate(beta(1))
+           allocate(delta_t(1))
+
+           scalar_fields(1)%ptr = field 
+           call get_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
+                &epsilon)/BuoyancyEffects/Beta', beta(-1)) 
+           call get_option(trim(field%option_path)//'/prognostic/subgridscale_parameterisation(k-&
+                &epsilon)/Prandtl_Schmidt_Number', delta_t(-1))         
+           
+        end if
+
+     end if
+
+  end do scalar_field_loop
+  
+end subroutine get_scalar_field_buoyancy_data
 
 !------------------------------------------------------------------------------------------!
 ! Computes the strain rate for the LES model. Double-dot product results in a scalar:      !

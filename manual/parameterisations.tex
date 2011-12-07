@@ -341,7 +341,29 @@ k &= \frac{u_*^2}{C_{\mu}^{1/2}}, \label{kbc2}\\
 \epsilon &= \frac{u_*^3}{\kappa y}, \label{epsbc2}\\
 u_* &= (\tau_w / \rho)^{1/2} = \left ( \nu_T \ppx[n]{U_S} \right )^{1/2}, \label{ustar}
 \end{align}
-where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von Karman's constant, $\nu$ is the kinematic laminar (background) viscosity, $\nu_T$ is the kinematic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the gradient operator in the wall-normal direction. For implementation details see \ref{sec:kepsilon_usage}.
+where $B$ is a model constant, $y$ is the distance to the wall, $u_*$ is the friction
+velocity, $U_S$ is the streamwise velocity parallel to the wall, $\kappa=0.43$ is Von
+Karman's constant, $\nu$ is the kinematic laminar (background) viscosity, $\nu_T$ is the
+kinematic eddy (turbulent) viscosity, $\rho$ is the density and $\ppx[n]{}$ is the
+gradient operator in the wall-normal direction. For implementation details see
+\ref{sec:kepsilon_usage}.
+
+\par{\textbf{Turbulent diffusivity of scalar fields}\\}
+When using scalar fields, such as a temperature or sediment field, The k-$\epsilon$ model
+simulates subgridscale eddies by increasing the diffusivity  of the scalar fields such
+that the diffusivity tensor, $\kaptens$, in the advection diffusion equation~\ref{eq:general_scalar_eqn} becomes:
+
+\begin{equation}\label{eq:keps_diff}
+\kaptens = D + v_T/C_T
+\end{equation}
+
+where $D$ is the background diffusivity tensor for the fluid or the scalar field, and
+$C_T$ is the Prandtl number, $Pr_T$, for temperature fields or the Schmidt number, $Sc_T$,
+for massive fields.  
+
+The Prandtl number is the ratio of momentum diffusivity (eddy viscosity) to the eddy
+thermal diffusivity. The Schmidt number is the ratio of momentum diffusivity to the
+diffusivity of mass. 
 
 \subsection{Large-Eddy Simulation (LES)}\label{sec:LES}
 \index{large eddy simulation}
