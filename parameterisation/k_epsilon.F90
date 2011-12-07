@@ -285,6 +285,11 @@ subroutine keps_tke(state)
          rhs_addto(i_loc) = 0.0
       end do
 
+      ! exit if there are no buoyant scalar fields
+      if (.not.allocated(scalar_fields)) then 
+         return
+      end if
+
       ! loop through buoyant fields, calculate source term and add to addto array
       do i_field = 1, size(scalar_fields, 1)
 
@@ -472,6 +477,11 @@ subroutine keps_eps(state)
       do i_loc = 1, ele_loc(eps, ele)
          rhs_addto(i_loc) = 0.0
       end do
+
+      ! exit if there are no buoyant scalar fields
+      if (.not.allocated(scalar_fields)) then 
+         return
+      end if
 
       allocate(u_z(u%dim, ele_ngi(u, ele)))
       allocate(u_xy(u%dim, ele_ngi(u, ele)))    
@@ -1045,7 +1055,7 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
   integer                                                           :: n_fields, i_field, stat
 
   ! Get number of scalar fields that are children of this state
-  n_fields = option_count(trim(state%option_path)//"/scalar_field")
+  n_fields = scalar_field_count(state)
 
   ! Loop over scalar fields and copy required information to arrays if buoyancy_effects
   !  are selected for the field
@@ -1058,6 +1068,10 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
         
         ! determine allocation requirements, resize array and store required values
         if (allocated(scalar_fields)) then
+
+           allocate(temp_scalar_fields(size(scalar_fields, 1)))
+           allocate(temp_beta(size(beta, 1)))
+           allocate(temp_delta_t(size(delta_t, 1)))
 
            temp_scalar_fields = scalar_fields
            temp_beta = beta
@@ -1075,7 +1089,7 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
            beta(1:size(temp_beta, 1)) = temp_beta
            delta_t(1:size(temp_delta_t, 1)) = temp_delta_t
 
-           scalar_fields(ubound(scalar_fields,1))%ptr = field
+           scalar_fields(ubound(scalar_fields,1))%ptr => extract_scalar_field(state, i_field)
            call get_option(trim(field%option_path)//&
                 &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects/beta', &
                 & beta(ubound(beta,1))) 
