@@ -305,7 +305,7 @@ subroutine keps_tke(state)
          vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(scalar_fields(i_field)%ptr,&
               & ele, dshape_s)
          scalar = beta(i_field)*g_magnitude*ele_val_at_quad(EV, ele)/delta_t(i_field)
-         
+
          ! multiply vector component by scalar and sum across dimensions - note that the
          ! vector part has been multiplied by the gravitational direction so the it is
          ! zero everywhere apart from in this direction
@@ -314,7 +314,7 @@ subroutine keps_tke(state)
          end do
        
          ! multiply by determinate weights and integrate
-         rhs_addto = rhs_addto + shape_rhs(shape_kk, scalar * detwei)        
+         rhs_addto = rhs_addto - shape_rhs(shape_kk, scalar * detwei)        
          
          deallocate(scalar)
          deallocate(vector)
@@ -528,7 +528,7 @@ subroutine keps_eps(state)
          end do
        
          ! multiply by determinate weights and integrate
-         rhs_addto = rhs_addto + shape_rhs(shape_eps, scalar * detwei)
+         rhs_addto = rhs_addto - shape_rhs(shape_eps, scalar * detwei)
          
          deallocate(scalar)
          deallocate(vector)
@@ -543,7 +543,7 @@ subroutine keps_eps(state)
 end subroutine keps_eps
 
 !----------
-! eddyvisc calculates the lengthscale, and then the eddy viscosity.
+! eddyvisc calculates the lengthscale, and then the eddy viscosity.!
 ! Eddy viscosity is added to the background viscosity.
 !----------
 
