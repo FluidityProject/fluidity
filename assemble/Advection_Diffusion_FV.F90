@@ -59,6 +59,8 @@ module advection_diffusion_fv
   logical :: have_advection
   ! Source?
   logical :: have_source
+  ! Add source directly to the right hand side?
+  logical :: add_src_directly_to_rhs
   ! Absorption?
   logical :: have_absorption
   ! Diffusivity?
@@ -160,10 +162,19 @@ contains
     if(have_source) then
       assert(mesh_dim(source) == mesh_dim(t))
       assert(ele_count(source) == ele_count(t))
+      
+      add_src_directly_to_rhs = have_option(trim(source%option_path)//'/diagnostic/add_directly_to_rhs')
+      
+      if (add_src_directly_to_rhs) then 
+         ewrite(2, *) "Adding Source field directly to the right hand side"
+         assert(node_count(source) == node_count(t))
+      end if
     
       ewrite_minmax(source)
     else
       ewrite(2,*) 'No source'
+      
+      add_src_directly_to_rhs = .false.
     end if
 
     ! Absorption
@@ -256,6 +267,10 @@ contains
                                                    source, absorption, diffusivity)
     end do
 
+    ! Add the source directly to the rhs if required 
+    ! which must be included before dirichlet BC's.
+    if (add_src_directly_to_rhs) call addto(rhs, source)
+
     ewrite(2, *) "Applying strong Dirichlet boundary conditions"
     call apply_dirichlet_conditions(matrix, rhs, t, dt)
     
@@ -314,7 +329,9 @@ contains
     if(have_absorption) call add_absorption_element_fv(ele, t_shape, t, absorption, detwei, matrix_addto(:loc,:loc), rhs_addto(:loc))
     
     ! Source
-    if(have_source) call add_source_element_fv(ele, t_shape, t, source, detwei, rhs_addto(:loc))
+    if(have_source .and. (.not. add_src_directly_to_rhs)) then 
+       call add_source_element_fv(ele, t_shape, t, source, detwei, rhs_addto(:loc))
+    end if
     
     if(have_diffusivity.or.have_advection) then
 

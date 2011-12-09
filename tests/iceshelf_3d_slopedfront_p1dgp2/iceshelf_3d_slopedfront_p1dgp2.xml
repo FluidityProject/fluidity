@@ -2,7 +2,7 @@
 <!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
-  <name>iceshelf_3d_slopedfront_p1dgp2_largeaspectratio</name>
+  <name>iceshelf_3d_slopedfront_p1dgp2</name>
   <owner userid="asc"/>
   <tags>flml iceshelf</tags>
   <problem_definition length="short" nprocs="1">

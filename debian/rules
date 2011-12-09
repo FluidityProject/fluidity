@@ -22,7 +22,7 @@ export FLUIDITY_VERSION=fluidity/4.1
 	dh --with=python2 $@
 
 override_dh_auto_build:
-	make -j1
+	make -j8
 	make manual
 
 override_dh_auto_configure:

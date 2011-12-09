@@ -20,15 +20,19 @@ import os
 import os.path
 import sys
 import traceback
+import string
 
 import gtk
 import gtk.gdk
 gtk.gdk.threads_init()
 import gobject
+gobject.threads_init()
 
 # do this right at the start, so we can find the diamond modules
 diamond_path = os.path.join( os.path.realpath(os.path.dirname(__file__)), os.pardir )
 sys.path.insert(0, diamond_path)
+dxdiff_path = os.path.join( os.path.realpath(os.path.dirname(__file__)), os.pardir, os.pardir, "dxdiff" )
+sys.path.insert(0, dxdiff_path)
 
 import diamond.debug as debug
 
@@ -47,7 +51,11 @@ def Help():
                "-h               Display this message\n" + \
                "-f               Forks at startup\n" + \
                "-s [SCHEMAFILE]  Use the supplied schema file *\n" + \
+               "-a [ALIAS]       Use the supplied alias, if not given use \"default\"\n" + \
                "-t [TRONFILE]    Use the supplied schematron file for extended validation\n" + \
+               "-d [FILE]        Diff against the supplied file. (FILE must be specified)\n" + \
+               "-u [DIRECTORY]   Find unused schema entries in the given directory\n" + \
+               "--ub [DIRECTORY] Find unused schema entries, batch mode\n" + \
                "-v               Verbosity switch - if supplied Diamond prints additional\n" + \
                "                 debugging information to standard output and standard error\n" + \
                "\n" + \
@@ -59,7 +67,7 @@ def Help():
 def main():
 
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hvfs:t:")
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "hvfs:a:t:d:u:", ["ub="])
   except:
     Help()
     sys.exit(1)
@@ -90,9 +98,11 @@ def main():
   import diamond.config as config
   import diamond.dialogs as dialogs
   import diamond.interface as interface
+  import diamond.schemausage as schemausage
   import diamond.schema as schema
   import diamond.tree as tree
   import diamond.plugins as plugins
+  import diamond.useview as useview
 
   try:
     input_filename = args[0]
@@ -116,45 +126,60 @@ def main():
   # if the user specifies a schema on the command line, use that.
 
   input_schemafile = None
+  input_alias = None
   input_schematron_file = None
   for opt in opts:
     if opt[0] == "-s":
       input_schemafile = opt[1]
+    elif opt[0] == "-a":
+      input_alias = opt[1]    
     elif opt[0] == "-t":
       input_schematron_file = opt[1]
 
-  # if the user has specified a file to work on, use the suffix as a key
+  if input_schemafile is not None and input_alias is not None:
+    debug.deprint("-s and -a are mutually exclusive", 0)
+    sys.exit(1)
 
-  if input_filename is not None and input_schemafile is None:
-    suffix = input_filename.split(".")[-1]
+  #schemafile is not given so look up actual path
+  if input_schemafile is None:
+
+    # if the user has specified a file to work on, use the suffix as a key
+    if input_filename is not None:
+      suffix = input_filename.split(".")[-1]
+      try:
+        schemata = config.schemata[suffix]
+      except:
+        debug.deprint("Could not find schema matching suffix %s." % suffix, 0)
+        debug.deprint("Have you registered it in /etc/diamond/schemata/ or $HOME/.diamond/schemata?", 0)
+        debug.deprint("To register a schema, place a file in one of those directories, and let its name be the suffix of your language.", 0)
+        debug.deprint("The file should consist of:", 0)
+        debug.deprint("  A Verbal Description Of The Language Purpose", 0)
+        debug.deprint("  Lines of the format alias=/path/to/the/schema/file.rng", 0)
+        debug.deprint("  alias= is optional, if not given default= is added automaticly")
+        sys.exit(1)
+      
+    # if there is only one schema, use that
+    elif len(config.schemata) == 1:
+      suffix = config.schemata.keys()[0]
+      schemata = config.schemata[suffix]
+    
+    # otherwise ask the user to choose
+    else:
+      choices = [key + ": " + value[0] for key, value in config.schemata.iteritems()]
+      choice = dialogs.radio_dialog("Choose a schema", "Choose a schema to use:", choices, logofile)
+      suffix = choice.split(":")[0]
+      schemata = config.schemata[suffix]
+
     try:
-      input_schemafile = config.schemata[suffix][1]
-    except:
-      debug.deprint("Could not find schema matching suffix %s." % suffix, 0)
-      debug.deprint("Have you registered it in /etc/diamond/schemata/ or $HOME/.diamond/schemata?", 0)
-      debug.deprint("To register a schema, place a file in one of those directories, and let its name be the suffix of your language.", 0)
-      debug.deprint("The file should have two lines in it:", 0)
-      debug.deprint("A Verbal Description Of The Language Purpose", 0)
-      debug.deprint("/path/to/the/schema/file.rng", 0)
+      #if input_alias is None it will just use the default
+      input_schemafile = schemata[1][input_alias]
+    except KeyError:
+      debug.deprint("""Could not find alias "%s"!""" % (input_alias or "default"), 0)
       sys.exit(1)
 
-  # if there is only one schema, use that
-
-  if input_schemafile is None:
-    if len(config.schemata) == 1:
-      suffix = config.schemata.keys()[0]
-      input_schemafile = config.schemata[suffix][1]
-
-  # otherwise ask the user to choose
-
-  if input_schemafile is None:
-    choices = [key + ": " + config.schemata[key][0] for key in config.schemata]
-    choice = dialogs.radio_dialog("Choose a schema", "Choose a schema to use:", choices, logofile)
-    suffix = choice.split(":")[0]
-    input_schemafile = config.schemata[suffix][1]
+  #endif
 
   # ensure that the specified schema actually exists!
-
   try:
     if 'http' not in input_schemafile:
       os.stat(input_schemafile)
@@ -203,13 +228,54 @@ def main():
                "Logo file:   " + str(logofile) + "\n" + \
                "Input file:  " + str(input_filename) + "\n")
 
-  plugins.configure_plugins(suffix)
+  # see if the user wants to find usage
+  input_usage = None
+  input_usagebatch = None
+  for opt in opts:
+    if opt[0] == "-u":
+      input_usage = opt[1]
+    if opt[0] == "--ub":
+      input_usagebatch = opt[1]
 
-  i = interface.Diamond(gladefile = gladefile, logofile = logofile, suffix = suffix)
+  if input_usagebatch:
+    paths = []
+    for dirpath, dirnames, filenames in os.walk(input_usagebatch):
+      paths.extend([os.path.join(dirpath, filename) for filename in filenames if filename.endswith(suffix)])
 
-  i.main_window.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
-  i.open_file(schemafile = input_schemafile, filename = input_filename)
-  i.main_window.window.set_cursor(None)  
+    unused = schemausage.find_unusedset(schema.Schema(input_schemafile), paths)
+
+    for xpath in unused:
+      print xpath
+
+    if unused:
+      return 1
+    else:
+      return 0
+
+  elif input_usage:
+    view = useview.UseView(schema.Schema(input_schemafile), suffix, input_usage)
+    view.connect("delete_event", lambda widget, event: gtk.main_quit())
+  else:
+    plugins.configure_plugins(suffix)
+
+    i = interface.Diamond(gladefile = gladefile, logofile = logofile, suffix = suffix)
+
+    i.main_window.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.WATCH))
+    i.open_file(schemafile = input_schemafile, filename = input_filename)
+    i.main_window.window.set_cursor(None)
+
+    # see if the user wants to diff against a file
+    input_difffile = None
+    for opt in opts:
+      if opt[0] == "-d":
+        input_difffile = opt[1]
+
+    if input_difffile:
+      if input_filename:
+        i.on_diff(None, input_difffile)
+      else:
+        debug.dprint("Cannot diff if against nothing.", 0)
+  #endif
 
   gtk.main()
 
@@ -220,4 +286,4 @@ if __name__ == "__main__":
 #  prof = hotshot.Profile("hotshot_stats.prof")
 #  prof.runcall(main)
 #  prof.close()
-  main()
+  sys.exit(main())
