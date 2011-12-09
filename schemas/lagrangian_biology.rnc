@@ -2,7 +2,6 @@ lagrangian_biology =
    (
       ## Lagrangian particle biology from the VEW project.
       element lagrangian_ensemble_biology {
-         mesh_choice,
          ## Seed used for the random number generator. 
          element random_seed{
             integer

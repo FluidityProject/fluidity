@@ -440,6 +440,8 @@ contains
 
     call calculate_agent_diagnostics(state(1))
 
+    call chemical_exchange(state(1))
+
     ewrite(2,*) "Particle Management..."
 
     ! Particle Management
@@ -581,7 +583,13 @@ contains
        ! Add diagnostic quantities to field for all variables
        do i=1, size(agent_list%biovar_name)
           if (agent_list%biofield_type(i) /= BIOFIELD_NONE) then
-             call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE)/ele_volume)
+             if (i == BIOVAR_SIZE) then
+                ! Don't multiply size by size
+                call addto(diagfields(i), agent%element, agent%biology(i)/ele_volume)
+             else
+                ! Any other quantity gets scales by size(plankters per agent) and element volume
+                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE)/ele_volume)
+             end if
           end if
        end do
 
@@ -591,6 +599,51 @@ contains
     call profiler_toc(trim(agent_list%name)//"::derive_per_stage_diagnostics")
 
   end subroutine derive_per_stage_diagnostics
+
+  subroutine chemical_exchange(state)
+    ! Handle uptake and release of chemicals
+    type(state_type), intent(inout) :: state
+
+    type(scalar_field), pointer :: request_field, chemfield, depletion_field
+    integer :: i, j, n, ele
+    integer, dimension(:), pointer :: element_nodes
+    real :: chemval, reqval
+
+    ! Now simply modify quantities on the chemical fields
+    do i = 1, size(agent_arrays)
+       if (agent_arrays(i)%has_biology) then
+          do j=1, size(agent_arrays(i)%biovar_name)
+             if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
+                request_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Request")
+                chemfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j)))
+                depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Depletion")
+
+                ! Loop over all elements in chemical fields
+                do ele=1,ele_count(chemfield)
+                   element_nodes=>ele_nodes(chemfield, ele)
+                   do n=1, size(element_nodes)
+                      chemval = node_val(chemfield, element_nodes(n))
+                      reqval = node_val(request_field, ele)
+
+                      if (reqval <= chemval) then
+                         ! If we have enough chemicals available the depletion factor is 1.0 
+                         ! and we subtract from the chemical directly
+                         call set(chemfield, element_nodes(n), chemval - reqval)
+                         call set(depletion_field, element_nodes(n), 1.0)
+                      else
+                         ! If we don't have enough chemicals available 
+                         ! we calculate depletion factor and set chemical to 0.0
+                         call set(chemfield, element_nodes(n), 0.0)
+                         call set(depletion_field, element_nodes(n), chemval / reqval)
+                      end if
+                   end do
+                end do
+             end if
+          end do
+       end if
+    end do
+
+  end subroutine chemical_exchange
 
   subroutine particle_management(agent_list, xfield)
     type(detector_linked_list), intent(inout) :: agent_list

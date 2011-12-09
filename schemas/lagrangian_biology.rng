@@ -3,7 +3,6 @@
   <define name="lagrangian_biology">
     <element name="lagrangian_ensemble_biology">
       <a:documentation>Lagrangian particle biology from the VEW project.</a:documentation>
-      <ref name="mesh_choice"/>
       <element name="random_seed">
         <a:documentation>Seed used for the random number generator. </a:documentation>
         <ref name="integer"/>

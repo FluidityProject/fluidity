@@ -151,7 +151,6 @@
   </material_phase>
   <embedded_models>
     <lagrangian_ensemble_biology>
-      <mesh name="VelocityMesh"/>
       <random_seed>
         <integer_value rank="0">123456789</integer_value>
       </random_seed>
