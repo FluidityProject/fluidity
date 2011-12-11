@@ -205,9 +205,22 @@ contains
     
     if (.not. IsParallel()) then
 
-      ! Create serial matrix:
-      matrix%M=csr2petsc_CreateSeqAIJ(sparsity, matrix%row_numbering, &
-        matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
+      if (product(lgroup_size)==1) then
+        ! Create serial matrix:
+        matrix%M=csr2petsc_CreateSeqAIJ(sparsity, matrix%row_numbering, &
+          matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
+        ! this is very important for assembly routines (e.g. DG IP viscosity)
+        ! that try to add zeros outside the provided sparsity; if we go outside
+        ! the provided n/o nonzeros the assembly will become very slow!!!
+        call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
+
+      else if (lgroup_size(1)==lgroup_size(2)) then
+        matrix%M=csr2petsc_CreateSeqBAIJ(sparsity, matrix%row_numbering, &
+          matrix%column_numbering, lgroup_size(1))
+      else
+        FLAbort("skramer - not yet sure if there's any use for this")
+      end if
+
       
     else
 
@@ -224,6 +237,11 @@ contains
       matrix%M=csr2petsc_CreateMPIAIJ(sparsity, matrix%row_numbering, &
         matrix%column_numbering, ldiagonal, use_inodes=use_inodes)
       
+      ! this is very important for assembly routines (e.g. DG IP viscosity)
+      ! that try to add zeros outside the provided sparsity; if we go outside
+      ! the provided n/o nonzeros the assembly will become very slow!!!
+      call MatSetOption(matrix%M, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE, ierr)
+
     endif
     
     ! this is very important for assembly routines (e.g. DG IP viscosity)
