@@ -634,7 +634,7 @@ module advection_local_DG
     real :: max_courant_number
 
     character(len=FIELD_NAME_LEN) :: limiter_name
-    integer :: i, j, dim, ele
+    integer :: i, j, dim, ele, dim1
     integer :: upwinding_option
 
     if(have_option('/material_phase::Fluid/vector_field::Velocity/prognostic&
@@ -643,8 +643,7 @@ module advection_local_DG
        upwinding_option = VECTOR_UPWIND_EDGE
     else
        if(have_option('/material_phase::Fluid/vector_field::Velocity/prognostic&
-            &/spatial_discretisation/discontinuous_galerkin/advection_scheme/ed&
-            &ge_coordinates_upwind')) then
+            &/spatial_discretisation/discontinuous_galerkin/advection_scheme/sphere_coordinates_upwind')) then
           upwinding_option = VECTOR_UPWIND_SPHERE
        else
           FLAbort('Unknown upwinding option')
@@ -739,10 +738,8 @@ module advection_local_DG
 
     do i=1, subcycles
        call mult_t(U_cartesian_tmp, L, U)
-       ewrite(1,*) i, maxval(abs(U_cartesian_tmp%val(3,:)))
-       assert(all(abs(U_cartesian_tmp%val(3,:))<1.0e-7))
        call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
-       ! dU = Advection * U
+        ! dU = Advection * U
        ! A maps from cartesian to local
        call mult(delta_U_tmp, A, U_cartesian)
        ! dU = dU + RHS
@@ -761,6 +758,7 @@ module advection_local_DG
        ! U = U + dt/s * dU
        call addto(U, delta_U, scale=-dt/subcycles)
        call halo_update(U)
+
        if (limit_slope) then
 
           call mult_t(U_cartesian_tmp, L, U)
@@ -1130,6 +1128,7 @@ module advection_local_DG
     real, dimension(X%dim, face_ngi(X,face)) :: n1, n2, t11, t12, t21,t22,&
          & pole_axis
     real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi, up_gi2
+    real, dimension(X%dim, face_ngI(X,face)) :: X_quad
     real, dimension(X%dim, X%dim, face_ngi(X,face)) :: Btmp
     real, dimension(mesh_dim(U), X%dim, face_ngi(X,face)) :: B
     ! Variable transform times quadrature weights.
@@ -1151,6 +1150,7 @@ module advection_local_DG
 
     U_face=face_global_nodes(U, face)
     U_shape=>face_shape(U, face)
+    X_quad = face_val_at_quad(X, face)
 
     U_face_2=face_global_nodes(U, face_2)
     U_shape_2=>face_shape(U, face_2)
@@ -1231,19 +1231,20 @@ module advection_local_DG
 
        pole_axis = 0.
        pole_axis(3,:) = 1.
+       btmp = 0.
        do gi = 1, face_ngi(X,face)
-          t11(:,gi) = cross_product(pole_axis(:,gi),up_gi(:,gi))
+          t11(:,gi) = cross_product(pole_axis(:,gi),up_gi(:,1))
           t11(:,gi) = t11(:,gi)/sqrt(sum(t11(:,gi)**2))
-          t12(:,gi) = cross_product(up_gi(:,gi),t11(:,gi))
-          t21(:,gi) = cross_product(pole_axis(:,gi),up_gi2(:,gi))
+          t12(:,gi) = cross_product(up_gi(:,1),t11(:,gi))
+          t21(:,gi) = cross_product(pole_axis(:,gi),up_gi2(:,1))
           t21(:,gi) = t21(:,gi)/sqrt(sum(t21(:,gi)**2))
-          t22(:,gi) = cross_product(up_gi2(:,gi),t21(:,gi))
+          t22(:,gi) = cross_product(up_gi2(:,1),t21(:,gi))
           
-          forall(i=1:2,k=1:2)
-             B(i,k,gi) = t11(i,gi)*t21(k,gi) + t12(i,gi)*t22(k,gi)
+          forall(i=1:3,k=1:3)
+             Btmp(i,k,gi) = t11(i,gi)*t21(k,gi) + t12(i,gi)*t22(k,gi)
           end forall
+          B(:,:,gi)=matmul(J_scaled(:,:,gi),Btmp(:,:,gi))
        end do
-       FLAbort('implement it')
     case default
        FLAbort('Unknown vector upwinding option')
     end select

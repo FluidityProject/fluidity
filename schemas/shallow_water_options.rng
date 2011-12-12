@@ -2715,7 +2715,9 @@ that set by /geometry/dimension</a:documentation>
           <optional>
             <element name="set_from_sphere_pullback">
               <a:documentation>Set the field from sphere pullback</a:documentation>
-              <empty/>
+              <element name="sphere_radius">
+                <ref name="real"/>
+              </element>
             </element>
           </optional>
         </element>

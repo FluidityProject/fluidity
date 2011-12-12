@@ -1624,10 +1624,7 @@ contains
 
     u=>extract_vector_field(state, "NonlinearVelocity",stat)
     if(stat.ne.0) then    
-       u=>extract_vector_field(state, "Velocity",stat)
-       if(stat.ne.0) then
-          FLExit('Missing velocity field!')
-       end if
+       FLExit('Missing velocity field!')
     end if
     x=>extract_vector_field(state, "Coordinate")
 
@@ -1786,7 +1783,7 @@ contains
        else
           face_2=ele_face(U, ele_2, ele)
        end if
-       
+
        call get_local_normal(n1, w1, U, local_face_number(U%mesh,face))
        call get_local_normal(n2, w2, U, local_face_number(U%mesh,face_2))
 
@@ -1796,11 +1793,13 @@ contains
        u_q_dotn1 = -sum(U_f_q*w1*n1,1)
        u_q_dotn2 = sum(U_f2_q*w2*n2,1)
        Flux_quad=0.5*(u_q_dotn1+u_q_dotn2)
-       Flux_quad = max(Flux_quad,0.0)
+       !Flux_quad = max(Flux_quad,0.0)
 
        U_shape=>face_shape(U,face)
 
-       Flux = Flux +sum(Flux_quad*U_shape%quadrature%weight,1)
+       if(sum(Flux_quad)>0.0) then
+          Flux = Flux +sum(Flux_quad*U_shape%quadrature%weight,1)
+       end if
     end do
 
     c_ele => ele_nodes(Courant,ele)

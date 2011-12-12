@@ -610,8 +610,9 @@
       type(vector_field) :: u_rhs, delta_u, old_u
       type(scalar_field), pointer ::h_projected, passive_tracer, old_passive_tracer
       integer :: nit, d1
-      real :: itheta, energy
+      real :: itheta, energy, sphere_radius
       logical :: have_source
+      logical, save :: advecting_velocity_set = .false.
       character(len=PYTHON_FUNC_LEN) :: Python_Function
 
       ! get itheta
@@ -637,19 +638,27 @@
       ! advecting velocity in local coordinates
       if(have_option('/material_phase::Fluid/vector_field::AdvectingVelocity&
            &')) then
-         if(have_option('/material_phase::Fluid/vector_field::AdvectingVelocity&
-              &/prescribed/set_from_sphere_pullback')) then
-            
+         if(advecting_velocity_set.eqv..false.) then
+            if(have_option('/material_phase::Fluid/vector_field::AdvectingVe&
+                 &locity&
+                 &/prescribed/set_from_sphere_pullback')) then
+               
                call get_option('/material_phase::Fluid/vector_field::AdvectingV&
-                    &elocity/prescribed/value::WholeMesh/python', Python_Function)
-
-            call set_velocity_from_sphere_pullback(state&
-                &,advecting_u,Python_Function)
-         else
-            advecting_u_prescribed=> &
-                 extract_vector_field(state, "AdvectingVelocity")
-            call project_cartesian_to_local(X,advecting_u_prescribed,&
-                 advecting_u)
+                    &elocity/prescribed/value::WholeMesh/python',&
+                    & Python_Function)
+               call get_option('/material_phase::Fluid/vector_field::Advecti&
+                    &ngVelocity&
+                    &/prescribed/set_from_sphere_pullback/sphere_radius'&
+                    &,sphere_radius)
+               call set_velocity_from_sphere_pullback(state&
+                    &,advecting_u,Python_Function,sphere_radius)
+               advecting_velocity_set = .true.
+            else
+               advecting_u_prescribed=> &
+                    extract_vector_field(state, "AdvectingVelocity")
+               call project_cartesian_to_local(X,advecting_u_prescribed,&
+                    advecting_u)
+            end if
          end if
       else
          call set(advecting_u,u)

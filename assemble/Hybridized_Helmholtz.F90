@@ -2480,10 +2480,12 @@ contains
 
   end subroutine set_velocity_from_lat_long_ele
 
-  subroutine set_velocity_from_sphere_pullback(state,v_field,Python_Function_in)
+  subroutine set_velocity_from_sphere_pullback(state,v_field&
+       &,Python_Function_in,R0_in)
     type(state_type), intent(inout) :: state
     type(vector_field), target, intent(inout), optional :: v_field
     character(len=*), intent(in), optional :: Python_Function_in
+    real, intent(in), optional :: R0_in
     !
     type(vector_field), pointer :: X,U
     character(len=PYTHON_FUNC_LEN) :: Python_Function
@@ -2503,9 +2505,13 @@ contains
             &/prognostic/initial_condition::WholeMesh/&
             &from_sphere_pullback/python",Python_Function)
     end if
-    call get_option("/material_phase::Fluid/vector_field::Velocity&
-         &/prognostic/initial_condition::WholeMesh/&
-         &from_sphere_pullback/sphere_radius",R0)
+    if(present(R0_in)) then
+       R0 = R0_in
+    else
+       call get_option("/material_phase::Fluid/vector_field::Velocity&
+            &/prognostic/initial_condition::WholeMesh/&
+            &from_sphere_pullback/sphere_radius",R0)
+    end if
 
     do ele = 1, element_count(U)
        call set_velocity_from_sphere_pullback_ele&

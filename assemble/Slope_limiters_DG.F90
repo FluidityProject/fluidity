@@ -43,14 +43,19 @@ implicit none
 private
 public limit_slope_dg, limit_fpn, limit_vb
 
+interface limit_slope_dg
+   module procedure limit_slope_dg_scalar, limit_slope_dg_vector
+end interface limit_slope_dg
+
 integer, parameter :: LIMITER_MINIMAL=1
 integer, parameter :: LIMITER_COCKBURN=2
 integer, parameter :: LIMITER_HERMITE_WENO=3
 integer, parameter :: LIMITER_FPN=4
 integer, parameter :: LIMITER_VB=5
+integer, parameter :: VECTOR_LIMITER_BJ=6
 
 public :: LIMITER_MINIMAL, LIMITER_COCKBURN, LIMITER_HERMITE_WENO,&
-     & LIMITER_FPN, LIMITER_VB
+     & LIMITER_FPN, LIMITER_VB, VECTOR_LIMITER_BJ
 
 !!CockburnShuLimiter stuff
 real :: TVB_factor=5.0
@@ -80,7 +85,7 @@ integer :: limit_count
 
 contains
 
-  subroutine limit_slope_dg(T, U, X, state, limiter)
+  subroutine limit_slope_dg_scalar(T, U, X, state, limiter)
     !! Assume 1D linear elements
     type(scalar_field), intent(inout) :: T
     type(vector_field), intent(in) :: X, U
@@ -222,7 +227,32 @@ contains
 
     ewrite(2,*) 'END subroutine limit_slope_dg'
 
-  end subroutine limit_slope_dg
+  end subroutine limit_slope_dg_scalar
+
+  subroutine limit_slope_dg_vector(V, U, X, state, limiter)
+    !! Advected velocity
+    type(vector_field), intent(inout) :: V
+    !! Advecting velocity, and coordinates
+    type(vector_field), intent(in) :: X, U
+    type(state_type), intent(inout) :: state
+    integer, intent(in) :: limiter
+
+    integer :: ele, stat
+
+    ewrite(2,*) 'subroutine limit_slope_dg_vector'
+
+    select case (limiter)
+    case (VECTOR_LIMITER_BJ)
+       call limit_vector_BJ(state, V, X)
+       
+    case default
+       ewrite(-1,*) 'limiter = ', limiter
+       FLAbort('no such limiter exists')
+    end select
+
+    ewrite(2,*) 'END subroutine limit_slope_dg'
+
+  end subroutine limit_slope_dg_scalar
 
   subroutine limit_slope_ele_dg(ele, T, X, T_limit)
     
@@ -1446,6 +1476,80 @@ contains
     call deallocate(T_min)
 
   end subroutine limit_vb
+
+  subroutine limit_vector_BJ(state, V, X)
+    !Vector valued limiter on manifolds
+    !Based on Barth-Jespersen limiter
+    type(state_type), intent(inout) :: state
+    type(scalar_field), intent(inout) :: t
+    !
+    ! This is the limited version of the field, we have to make a copy
+    type(vector_field) :: V_limit, V_mean
+    ! counters
+    integer :: ele, node
+    ! local numbers
+    integer, dimension(:), pointer :: V_ele
+    ! gradient scaling factor
+    real, dimension(V%dim) :: alpha
+    ! local field values
+    real, dimension(V%dim,ele_loc(V,1)) :: V_val,V_val_slope,V_mean
+    real, dimension(V%dim) :: Vbar
+
+    if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
+       FLExit("The vertex based slope limiter only works for P1DG fields.")
+    end if
+    
+    ! Allocate copy of field
+    call allocate(V_limit, V%mesh,trim(V%name)//"Limited")
+    call set(V_limit, V)
+    
+    call allocate(V_mean, V%mesh, trim(V%name)//"LimitMean")
+
+    ! for each vertex in the mesh store the min and max values of the P1DG nodes directly surrounding it
+    do ele = 1, ele_count(V)
+       V_ele => ele_nodes(V,ele)
+       V_val = ele_val(V,ele)
+       Vbar = sum(V_val,2)/size(V_val,2)
+       call set(V_mean, ele_nodes(V_mean, ele), Vbar)
+    end do
+
+    ! now for each edge make sure the edge max and mean is between the min
+    !and max on either side of the edge in the intrinsic sphere components
+
+    FLExit('wont work yet')
+    ! this is done without changing the element average (Tbar)
+    do ele = 1, ele_count(T)
+       !Set slope factor to 1
+       alpha = 1.
+       !Get local node lists
+       T_ele=>ele_nodes(T,ele)
+       
+       T_val = ele_val(T,ele)
+       Tbar = sum(T_val)/size(T_val)
+       T_val_slope = T_val - Tbar
+       T_val_max = ele_val(T_max,ele)
+       T_val_min = ele_val(T_min,ele)
+
+       !loop over nodes, adjust alpha
+       do node = 1, size(T_val)
+          if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
+             alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
+          else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
+             alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
+          end if
+       end do
+
+       call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
+    end do
+
+    !Deallocate copy of field
+    call set(T, T_limit)
+    call halo_update(T)
+    call deallocate(T_limit)
+    call deallocate(T_max)
+    call deallocate(T_min)
+
+  end subroutine limit_vector_BJ
 
   subroutine limit_fpn(state, t)
 
