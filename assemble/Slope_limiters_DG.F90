@@ -52,10 +52,10 @@ integer, parameter :: LIMITER_COCKBURN=2
 integer, parameter :: LIMITER_HERMITE_WENO=3
 integer, parameter :: LIMITER_FPN=4
 integer, parameter :: LIMITER_VB=5
-integer, parameter :: VECTOR_LIMITER_BJ=6
+integer, parameter :: VECTOR_LIMITER_vb=6
 
 public :: LIMITER_MINIMAL, LIMITER_COCKBURN, LIMITER_HERMITE_WENO,&
-     & LIMITER_FPN, LIMITER_VB, VECTOR_LIMITER_BJ
+     & LIMITER_FPN, LIMITER_VB, VECTOR_LIMITER_VB
 
 !!CockburnShuLimiter stuff
 real :: TVB_factor=5.0
@@ -229,11 +229,9 @@ contains
 
   end subroutine limit_slope_dg_scalar
 
-  subroutine limit_slope_dg_vector(V, U, X, state, limiter)
+  subroutine limit_slope_dg_vector(V, state, limiter)
     !! Advected velocity
     type(vector_field), intent(inout) :: V
-    !! Advecting velocity, and coordinates
-    type(vector_field), intent(in) :: X, U
     type(state_type), intent(inout) :: state
     integer, intent(in) :: limiter
 
@@ -242,8 +240,8 @@ contains
     ewrite(2,*) 'subroutine limit_slope_dg_vector'
 
     select case (limiter)
-    case (VECTOR_LIMITER_BJ)
-       call limit_vector_BJ(state, V, X)
+    !case (VECTOR_LIMITER_vb)
+    !   call limit_vector_vb(state, V)
        
     case default
        ewrite(-1,*) 'limiter = ', limiter
@@ -252,7 +250,7 @@ contains
 
     ewrite(2,*) 'END subroutine limit_slope_dg'
 
-  end subroutine limit_slope_dg_scalar
+  end subroutine limit_slope_dg_vector
 
   subroutine limit_slope_ele_dg(ele, T, X, T_limit)
     
@@ -1477,79 +1475,84 @@ contains
 
   end subroutine limit_vb
 
-  subroutine limit_vector_BJ(state, V, X)
-    !Vector valued limiter on manifolds
-    !Based on Barth-Jespersen limiter
-    type(state_type), intent(inout) :: state
-    type(scalar_field), intent(inout) :: t
-    !
-    ! This is the limited version of the field, we have to make a copy
-    type(vector_field) :: V_limit, V_mean
-    ! counters
-    integer :: ele, node
-    ! local numbers
-    integer, dimension(:), pointer :: V_ele
-    ! gradient scaling factor
-    real, dimension(V%dim) :: alpha
-    ! local field values
-    real, dimension(V%dim,ele_loc(V,1)) :: V_val,V_val_slope,V_mean
-    real, dimension(V%dim) :: Vbar
+   subroutine limit_vector_vb(state, V)
+     !Vector valued limiter on manifolds
+     !Based on VB limiter of Kuzmin
+     type(state_type), intent(inout) :: state
+     type(vector_field), intent(inout) :: V
+     !
+     ! This is the limited version of the field, we have to make a copy
+     type(vector_field) :: V_limit, V_mean
+     type(mesh_type), pointer :: vertex_mesh
+     ! counters
+     integer :: ele, node, ele2, neigh
+     ! local numbers
+     integer, dimension(:), pointer :: V_ele, neighs
+     ! gradient scaling factor
+     real, dimension(V%dim) :: alpha
+     ! local field values
+     real, dimension(V%dim,ele_loc(V,1)) :: V_val!,V_val_slope,V_mean
+     real, dimension(V%dim) :: Vbar
+     type(csr_sparsity), pointer :: NEList
+     type(tensor_field), pointer :: Basis
 
-    if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
-       FLExit("The vertex based slope limiter only works for P1DG fields.")
-    end if
-    
-    ! Allocate copy of field
-    call allocate(V_limit, V%mesh,trim(V%name)//"Limited")
-    call set(V_limit, V)
-    
-    call allocate(V_mean, V%mesh, trim(V%name)//"LimitMean")
+     if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
+        FLExit("The vertex based slope limiter only works for P1DG fields.")
+     end if
+     
+     !Get basis (1,:) cpts are normals, (2,:), (3,:) cpts are normals and 
+     !tangents
 
-    ! for each vertex in the mesh store the min and max values of the P1DG nodes directly surrounding it
-    do ele = 1, ele_count(V)
-       V_ele => ele_nodes(V,ele)
-       V_val = ele_val(V,ele)
-       Vbar = sum(V_val,2)/size(V_val,2)
-       call set(V_mean, ele_nodes(V_mean, ele), Vbar)
-    end do
+     Basis => extract_tensor_field(state,'InvariantBasis')
 
-    ! now for each edge make sure the edge max and mean is between the min
-    !and max on either side of the edge in the intrinsic sphere components
+     ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
+     call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
+     NEList => extract_nelist(vertex_mesh)
+     
+     ! Allocate copy of field
+     call allocate(V_limit, V%dim,V%mesh,trim(V%name)//"Limited")
+     call set(V_limit, V)
+     call allocate(V_mean, V%dim,V%mesh, trim(V%name)//"LimitMean")
+     
+     ! for each vertex in the mesh store the min and max values of the P1DG
+     ! nodes directly surrounding it
+     do ele = 1, ele_count(V)
+        V_ele => ele_nodes(V,ele)
+        V_val = ele_val(V,ele)
+        Vbar = sum(V_val,2)/size(V_val,2)
+        do node = 1, size(V_ele)
+           call set(V_mean, V_ele(node), Vbar)
+        end do
+     end do
 
-    FLExit('wont work yet')
-    ! this is done without changing the element average (Tbar)
-    do ele = 1, ele_count(T)
-       !Set slope factor to 1
-       alpha = 1.
-       !Get local node lists
-       T_ele=>ele_nodes(T,ele)
-       
-       T_val = ele_val(T,ele)
-       Tbar = sum(T_val)/size(T_val)
-       T_val_slope = T_val - Tbar
-       T_val_max = ele_val(T_max,ele)
-       T_val_min = ele_val(T_min,ele)
+     do ele = 1, ele_count(V)
+        V_ele => ele_nodes(V,ele)
+        do node = 1, size(V_ele)
+           neighs => row_m_ptr(NEList, node)
+           do neigh = 1, size(neighs)
+              ele2 = neighs(neigh)
 
-       !loop over nodes, adjust alpha
-       do node = 1, size(T_val)
-          if(T_val(node)>Tbar*(1.0+sign(1.0e-12,Tbar))) then
-             alpha = min(alpha,(T_val_max(node)-Tbar)/(T_val(node)-Tbar))
-          else if(T_val(node)<Tbar*(1.0-sign(1.0e-12,Tbar))) then
-             alpha = min(alpha,(T_val_min(node)-Tbar)/(T_val(node)-Tbar))
-          end if
-       end do
+              !rotate mean of ele2 into plane of ele1
+              FLAbort('not done')
 
-       call set(T_limit, T_ele, Tbar + alpha*T_val_slope)
-    end do
+              !Take 
+              FLAbort('not done')
+           end do
+        end do
 
-    !Deallocate copy of field
-    call set(T, T_limit)
-    call halo_update(T)
-    call deallocate(T_limit)
-    call deallocate(T_max)
-    call deallocate(T_min)
+        ! Actually apply limiter
 
-  end subroutine limit_vector_BJ
+        FLAbort('not done')
+
+     end do
+
+     !Deallocate copy of field
+     call set(V, V_limit)
+     call halo_update(V)
+     call deallocate(V_limit)
+     call deallocate(V_mean)
+
+   end subroutine limit_vector_vb
 
   subroutine limit_fpn(state, t)
 
