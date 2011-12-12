@@ -585,10 +585,10 @@ contains
           if (agent_list%biofield_type(i) /= BIOFIELD_NONE) then
              if (i == BIOVAR_SIZE) then
                 ! Don't multiply size by size
-                call addto(diagfields(i), agent%element, agent%biology(i)/ele_volume)
+                call addto(diagfields(i), agent%element, agent%biology(i))
              else
                 ! Any other quantity gets scales by size(plankters per agent) and element volume
-                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE)/ele_volume)
+                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
              end if
           end if
        end do
@@ -605,14 +605,19 @@ contains
     type(state_type), intent(inout) :: state
 
     type(scalar_field), pointer :: request_field, chemfield, depletion_field
+    type(vector_field), pointer :: xfield
     integer :: i, j, n, ele
     integer, dimension(:), pointer :: element_nodes
-    real :: chemval, reqval
+    real :: chemval, chem_integral, request, depletion
 
-    ! Now simply modify quantities on the chemical fields
+    xfield=>extract_vector_field(state, "Coordinate")
+
+    ! Modify quantities on the chemical fields
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovar_name)
+
+             ! Uptake
              if (agent_arrays(i)%biofield_type(j) == BIOFIELD_UPTAKE) then
                 request_field=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j))//"Request")
                 chemfield=>extract_scalar_field(state, trim(agent_arrays(i)%chemfield_name(j)))
@@ -620,21 +625,26 @@ contains
 
                 ! Loop over all elements in chemical fields
                 do ele=1,ele_count(chemfield)
+                   chem_integral = integral_element(chemfield, xfield, ele)
+                   request = node_val(request_field, ele)
+
+                   ! Derive depletion factor
+                   if (request > chem_integral) then 
+                      depletion = chem_integral / request
+                   else
+                      depletion = 1.0
+                   end if
+                   call set(depletion_field, ele, depletion)
+
+                   ! Set new chemical concentration
                    element_nodes=>ele_nodes(chemfield, ele)
                    do n=1, size(element_nodes)
                       chemval = node_val(chemfield, element_nodes(n))
-                      reqval = node_val(request_field, ele)
-
-                      if (reqval <= chemval) then
-                         ! If we have enough chemicals available the depletion factor is 1.0 
-                         ! and we subtract from the chemical directly
-                         call set(chemfield, element_nodes(n), chemval - reqval)
-                         call set(depletion_field, element_nodes(n), 1.0)
+                      ! Avoid div-by-zero error
+                      if (chem_integral /= 0.0) then 
+                         call set(chemfield, element_nodes(n), chemval * (1.0 - (request * depletion / chem_integral) ))
                       else
-                         ! If we don't have enough chemicals available 
-                         ! we calculate depletion factor and set chemical to 0.0
                          call set(chemfield, element_nodes(n), 0.0)
-                         call set(depletion_field, element_nodes(n), chemval / reqval)
                       end if
                    end do
                 end do
