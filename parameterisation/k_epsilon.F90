@@ -35,7 +35,7 @@ module k_epsilon
   use field_options
   use state_module
   use spud
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep
   use state_fields_module
   use boundary_conditions
   use fields_manipulation
@@ -44,6 +44,7 @@ module k_epsilon
   use vector_tools
   use sparsity_patterns_meshes
   use FLDebug
+  use vtk_interfaces
 
 implicit none
 
@@ -138,6 +139,9 @@ subroutine keps_tke(state)
     real, allocatable, dimension(:,:,:):: dshape_kk, dshape_s 
     logical                            :: prescribed_src, prescribed_abs
 
+    ! for vtu output of source terms
+    type(scalar_field), dimension(3)   :: source_terms
+
     ewrite(1,*) "In keps_tke"
 
     positions       => extract_vector_field(state, "Coordinate")
@@ -161,6 +165,12 @@ subroutine keps_tke(state)
     call allocate(src_rhs, kk%mesh, name="KKSRCRHS")
     call allocate(abs_rhs, kk%mesh, name="KKABSRHS")
     call zero(src_rhs); call zero(abs_rhs)
+
+    ! for vtu output of source terms
+    call allocate(source_terms(1), kk%mesh, name="KK_P_EV")
+    call allocate(source_terms(2), kk%mesh, name="KK_EPS_K")
+    call allocate(source_terms(3), kk%mesh, name="KK_BUOY")
+    call zero(source_terms(1)); call zero(source_terms(2)); call zero(source_terms(3))
     
     ! Assembly loop
     do ele = 1, ele_count(kk)
@@ -179,21 +189,32 @@ subroutine keps_tke(state)
         ! Source term:
         rhs_addto = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
         call addto(src_rhs, nodes_kk, rhs_addto)
+        call addto(source_terms(1), nodes_kk, rhs_addto)
 
         ! Absorption term:
         rhs_addto = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(kk,ele))
         call addto(abs_rhs, nodes_kk, rhs_addto)
+        call addto(source_terms(2), nodes_kk, rhs_addto)
 
         if (no_gravity == 0) then
            ! Buoyancy terms
            call calculate_buoyancy_term_kk()
-           call addto(src_rhs, nodes_kk, rhs_addto)
+           call addto(abs_rhs, nodes_kk, rhs_addto)
+           call addto(source_terms(3), nodes_kk, rhs_addto)
         end if
 
         deallocate(dshape_kk, detwei, strain_ngi, rhs_addto)
     end do
 
     lumped_mass => get_lumped_mass(state, kk%mesh)
+
+    ! for vtu output of source terms
+    do i = 1, node_count(kk)
+       call set(source_terms(1), i, node_val(source_terms(1),i)/node_val(lumped_mass,i))
+       call set(source_terms(2), i, node_val(source_terms(2),i)/node_val(lumped_mass,i))
+       call set(source_terms(3), i, node_val(source_terms(3),i)/node_val(lumped_mass,i))
+    end do
+    call vtk_write_fields("KK_source_terms", timestep, positions, kk%mesh, source_terms)
 
     ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
     prescribed_src = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
@@ -304,7 +325,8 @@ subroutine keps_tke(state)
          allocate(vector(u%dim, ele_ngi(u, ele)))
          vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(scalar_fields(i_field)%ptr,&
               & ele, dshape_s)
-         scalar = beta(i_field)*g_magnitude*ele_val_at_quad(EV, ele)/delta_t(i_field)
+         scalar = 1/ele_val_at_quad(kk,ele)*beta(i_field)*g_magnitude*ele_val_at_quad(EV,&
+              & ele)/delta_t(i_field)
 
          ! multiply vector component by scalar and sum across dimensions - note that the
          ! vector part has been multiplied by the gravitational direction so the it is
@@ -313,8 +335,8 @@ subroutine keps_tke(state)
             scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
          end do
        
-         ! multiply by determinate weights and integrate
-         rhs_addto = rhs_addto - shape_rhs(shape_kk, scalar * detwei)        
+         ! multiply by determinate weights, integrate and add to rhs
+         rhs_addto = rhs_addto + shape_rhs(shape_kk, scalar * detwei)        
          
          deallocate(scalar)
          deallocate(vector)
@@ -344,6 +366,9 @@ subroutine keps_eps(state)
     integer, pointer, dimension(:)     :: nodes_eps
     logical                            :: prescribed_src, prescribed_abs
 
+    ! for vtu output
+    type(scalar_field), dimension(3)   :: source_terms
+
     ewrite(1,*) "In keps_eps"
     eps             => extract_scalar_field(state, "TurbulentDissipation")
     src_eps         => extract_scalar_field(state, "TurbulentDissipationSource")
@@ -361,6 +386,12 @@ subroutine keps_eps(state)
     call allocate(abs_rhs, eps%mesh, name="EPSABSRHS")
     call zero(src_rhs); call zero(abs_rhs)
 
+    ! for vtu output of source terms
+    call allocate(source_terms(1), eps%mesh, name="EPS_P_EV")
+    call allocate(source_terms(2), eps%mesh, name="EPS_EPS_K")
+    call allocate(source_terms(3), eps%mesh, name="EPS_BUOY")
+    call zero(source_terms(1)); call zero(source_terms(2)); call zero(source_terms(3))
+
     ! Assembly loop
     do ele = 1, ele_count(eps)
         shape_eps => ele_shape(eps, ele)
@@ -374,22 +405,33 @@ subroutine keps_eps(state)
         rhs_addto = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
                               ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
         call addto(src_rhs, nodes_eps, rhs_addto)
+        call addto(source_terms(1), nodes_eps, rhs_addto)
 
         ! Absorption term:
         rhs_addto = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
                               ele_val_at_quad(tke_old,ele))
         call addto(abs_rhs, nodes_eps, rhs_addto)
+        call addto(source_terms(2), nodes_eps, rhs_addto)
 
         if (no_gravity == 0) then
            ! Buoyancy terms
            call calculate_buoyancy_term_eps()
-           call addto(src_rhs, nodes_eps, rhs_addto)
+           call addto(abs_rhs, nodes_eps, rhs_addto)
+           call addto(source_terms(3), nodes_eps, rhs_addto)
         end if
 
         deallocate(detwei, rhs_addto)
     end do
 
     lumped_mass => get_lumped_mass(state, eps%mesh)
+
+    ! for vtu output of source terms
+    do i = 1, node_count(eps)
+       call set(source_terms(1), i, node_val(source_terms(1),i)/node_val(lumped_mass,i))
+       call set(source_terms(2), i, node_val(source_terms(2),i)/node_val(lumped_mass,i))
+       call set(source_terms(3), i, node_val(source_terms(3),i)/node_val(lumped_mass,i))
+    end do
+    call vtk_write_fields("EPS_source_terms", timestep, positions, eps%mesh, source_terms)
 
     ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
     prescribed_src = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
@@ -494,8 +536,7 @@ subroutine keps_eps(state)
       allocate(c_eps_3(ele_ngi(u, ele)))
       do i_gi = 1, ele_ngi(u, ele)
          do i_dim = 1, u%dim
-            u_z(i_dim, i_gi) = max(u_z(i_dim, i_gi), u_min)
-            u_xy(i_dim, i_gi) = max(u_xy(i_dim, i_gi), u_min)
+            u_xy(i_dim, i_gi) = max(abs(u_xy(i_dim, i_gi)), u_min)
          end do
          c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
       end do
@@ -517,8 +558,8 @@ subroutine keps_eps(state)
          allocate(vector(u%dim, ele_ngi(u, ele)))
          vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(scalar_fields(i_field)%ptr,&
               & ele, dshape_s)
-         scalar = c_eps_1*c_eps_3*beta(i_field)*g_magnitude*ele_val_at_quad(EV, ele)&
-              &/delta_t(i_field)
+         scalar = c_eps_1*c_eps_3*1/ele_val_at_quad(tke_old,ele)&
+              &*beta(i_field)*g_magnitude*ele_val_at_quad(EV, ele)/delta_t(i_field)
          
          ! multiply vector component by scalar and sum across dimensions - note that the
          ! vector part has been multiplied by the gravitational direction so the it is
@@ -528,7 +569,7 @@ subroutine keps_eps(state)
          end do
        
          ! multiply by determinate weights and integrate
-         rhs_addto = rhs_addto - shape_rhs(shape_eps, scalar * detwei)
+         rhs_addto = rhs_addto + shape_rhs(shape_eps, scalar * detwei)
          
          deallocate(scalar)
          deallocate(vector)
