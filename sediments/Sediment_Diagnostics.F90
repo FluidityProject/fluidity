@@ -366,6 +366,8 @@ contains
     logical                                     :: sorted = .false.
     integer                                     :: i_field, n_fields, i_node, stat
 
+    ewrite(1,*) 'In calculate sediment_active_layer_d50'
+
     d50 => extract_scalar_field(state, "SedimentBedActiveLayerD50", stat)
     if (stat /= 0) return
 
@@ -445,6 +447,8 @@ contains
          & i_node, stat
     integer, dimension(2)                                 :: surface_id_count
     integer, dimension(:), allocatable                    :: surface_ids
+
+    ewrite(1,*) 'In calculate_sediment_active_layer_sigma'
     
     sigma => extract_scalar_field(state, "SedimentBedActiveLayerSigma", stat)
     if (stat /= 0) return
@@ -591,6 +595,8 @@ contains
          & i_node, stat
     integer, dimension(2)                                 :: surface_id_count
     integer, dimension(:), allocatable                    :: surface_ids
+
+    ewrite(1,*) 'In calculate_sediment_active_layer_volume_fractions'
     
     x => extract_vector_field(state, "Coordinate")
 
