@@ -56,7 +56,7 @@ implicit none
   real, save                          :: fields_min = 1.e-10
   character(len=FIELD_NAME_LEN), save :: src_abs
 
-  public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_bcs, keps_adapt_mesh, keps_check_options
+  public :: keps_init, keps_cleanup, keps_tke, keps_eps, keps_eddyvisc, keps_bcs, keps_adapt_mesh, k_epsilon_check_options
 
   ! Outline:
   !  - Init in populate_state.
@@ -845,7 +845,7 @@ end subroutine keps_adapt_mesh
 
 !---------------------------------------------------------------------------------
 
-subroutine keps_check_options
+subroutine k_epsilon_check_options
 
   ! THIS WILL ONLY WORK FOR SINGLE PHASE MODELS
   
@@ -871,10 +871,13 @@ subroutine keps_check_options
   if (.not.have_option(trim(option_path)//"/scalar_field::TurbulentDissipation")) then
      FLExit("You need TurbulentDissipation field for k-epsilon")
   end if
-  ! Check that TurbulentKineticEnergy and TurbulentDissipation fields are on the same mesh
-  call get_option(trim(option_path)//"/scalar_field::TurbulentKineticEnergy/prognostic/mesh", kmsh)
-  call get_option(trim(option_path)//"/scalar_field::TurbulentDissipation/prognostic/mesh", emsh)
-  call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh", vmsh)
+  ! Check that TurbulentKineticEnergy and TurbulentDissipation fields are on the same
+  !  mesh as the velocity
+  call get_option(trim(option_path)//&
+       &"/scalar_field::TurbulentKineticEnergy/prognostic/mesh/name", kmsh)
+  call get_option(trim(option_path)//&
+       &"/scalar_field::TurbulentDissipation/prognostic/mesh/name", emsh)
+  call get_option("/material_phase[0]/vector_field::Velocity/prognostic/mesh/name", vmsh)
   if(.not. kmsh==emsh .or. .not. kmsh==vmsh .or. .not. emsh==vmsh) then
      FLExit("You must use the Velocity mesh for TurbulentKineticEnergy and TurbulentDissipation fields")
   end if
@@ -907,7 +910,7 @@ subroutine keps_check_options
   if (.not. have_option(trim(option_path)//&
        &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
        &"/scalar_field::Source/diagnostic/algorithm::Internal")&
-       .or. .not. have_option(trim(option_path)//&
+       .and. .not. have_option(trim(option_path)//&
        &"/scalar_field::TurbulentKineticEnergy/prognostic"//&
        &"/scalar_field::Source/prescribed")) then
      FLExit("You need TurbulentKineticEnergy Source field set to diagnostic/internal or prescribed")
@@ -920,7 +923,7 @@ subroutine keps_check_options
   if (.not. have_option(trim(option_path)//&
        &"/scalar_field::TurbulentDissipation/prognostic"//&
        &"/scalar_field::Source/diagnostic/algorithm::Internal")&
-       .or. .not. have_option(trim(option_path)//&
+       .and. .not. have_option(trim(option_path)//&
        &"/scalar_field::TurbulentDissipation/prognostic"//&
        &"/scalar_field::Source/prescribed")) then
      FLExit("You need TurbulentDissipation Source field set to diagnostic/internal or prescribed")
@@ -957,7 +960,7 @@ subroutine keps_check_options
      FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
   end if
 
-end subroutine keps_check_options
+end subroutine k_epsilon_check_options
 
 !------------------------------------------------------------------!
 !                       Private subroutines                        !
