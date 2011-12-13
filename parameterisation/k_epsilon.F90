@@ -128,27 +128,28 @@ subroutine keps_tke(state)
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_kk, abs_kk, kk, eps, EV, lumped_mass
     type(scalar_field_pointer), allocatable, dimension(:) :: scalar_fields
-    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_kk, prescribed_abs_kk
+    type(scalar_field)                 :: prescribed_src_kk, prescribed_abs_kk
     type(vector_field), pointer        :: positions, nu, u, g
     type(tensor_field), pointer        :: kk_diff
     type(element_type), pointer        :: shape_kk, shape_s
-    integer                            :: i, ele, no_gravity
+    integer                            :: i, ele, no_gravity, i_term
     integer, pointer, dimension(:)     :: nodes_kk
     real                               :: residual, g_magnitude
-    real, allocatable, dimension(:)    :: beta, delta_t, detwei, strain_ngi, rhs_addto
+    real, allocatable, dimension(:)    :: beta, delta_t, detwei, strain_ngi 
+    real, allocatable, dimension(:,:)  :: rhs_addto, invmass
     real, allocatable, dimension(:,:,:):: dshape_kk, dshape_s 
     logical                            :: prescribed_src, prescribed_abs
 
     ! for vtu output of source terms
-    type(scalar_field), dimension(3)   :: source_terms
+    type(scalar_field), dimension(3)   :: src_abs_terms
 
     ewrite(1,*) "In keps_tke"
 
     positions       => extract_vector_field(state, "Coordinate")
     nu              => extract_vector_field(state, "NonlinearVelocity")
     u               => extract_vector_field(state, "Velocity")
-    src_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
-    abs_kk   => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
+    src_kk          => extract_scalar_field(state, "TurbulentKineticEnergySource")
+    abs_kk          => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
     kk_diff         => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
     kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
@@ -162,15 +163,10 @@ subroutine keps_tke(state)
 
     prescribed_src=.false.
     prescribed_abs=.false.
-    call allocate(src_rhs, kk%mesh, name="KKSRCRHS")
-    call allocate(abs_rhs, kk%mesh, name="KKABSRHS")
-    call zero(src_rhs); call zero(abs_rhs)
-
-    ! for vtu output of source terms
-    call allocate(source_terms(1), kk%mesh, name="KK_P_EV")
-    call allocate(source_terms(2), kk%mesh, name="KK_EPS_K")
-    call allocate(source_terms(3), kk%mesh, name="KK_BUOY")
-    call zero(source_terms(1)); call zero(source_terms(2)); call zero(source_terms(3))
+    call allocate(src_abs_terms(1), kk%mesh, name="KK_P_EV_SRC")
+    call allocate(src_abs_terms(2), kk%mesh, name="KK_EPS_ABS")
+    call allocate(src_abs_terms(3), kk%mesh, name="KK_BUOY_ABS")
+    call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
     
     ! Assembly loop
     do ele = 1, ele_count(kk)
@@ -180,41 +176,55 @@ subroutine keps_tke(state)
         allocate(dshape_kk (size(nodes_kk), ele_ngi(kk, ele), positions%dim))
         allocate(detwei (ele_ngi(kk, ele)))
         allocate(strain_ngi (ele_ngi(kk, ele)))
-        allocate(rhs_addto(ele_loc(kk, ele)))
+        allocate(rhs_addto (3,ele_loc(kk, ele)))
+        allocate(invmass (ele_loc(kk, ele), ele_loc(kk, ele)))
         call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
 
         ! Calculate TKE production at ngi using strain rate (double_dot_product) function
         strain_ngi = double_dot_product(dshape_kk, ele_val(u, ele) )
 
         ! Source term:
-        rhs_addto = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
-        call addto(src_rhs, nodes_kk, rhs_addto)
-        call addto(source_terms(1), nodes_kk, rhs_addto)
+        rhs_addto(1,:) = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
 
         ! Absorption term:
-        rhs_addto = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(kk,ele))
-        call addto(abs_rhs, nodes_kk, rhs_addto)
-        call addto(source_terms(2), nodes_kk, rhs_addto)
+        rhs_addto(2,:) = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)&
+             &/ele_val_at_quad(kk,ele))
 
-        if (no_gravity == 0) then
-           ! Buoyancy terms
-           call calculate_buoyancy_term_kk()
-           call addto(abs_rhs, nodes_kk, rhs_addto)
-           call addto(source_terms(3), nodes_kk, rhs_addto)
+        ! Buoyancy term - As absorbtion:
+        call calculate_buoyancy_term_kk()
+
+        ! In the DG case we will apply the inverse mass locally.
+        if(continuity(kk)<0) then
+           invmass = inverse(shape_shape(shape_kk, shape_kk, detwei))
+           do i_term = 1, 3
+              rhs_addto(i_term,:) = matmul(rhs_addto(i_term,:), invmass)
+           end do
         end if
 
-        deallocate(dshape_kk, detwei, strain_ngi, rhs_addto)
-    end do
+        do i_term = 1, 3
+           call addto(src_abs_terms(i_term), nodes_kk, rhs_addto(i_term,:))
+        end do
 
-    lumped_mass => get_lumped_mass(state, kk%mesh)
-
-    ! for vtu output of source terms
-    do i = 1, node_count(kk)
-       call set(source_terms(1), i, node_val(source_terms(1),i)/node_val(lumped_mass,i))
-       call set(source_terms(2), i, node_val(source_terms(2),i)/node_val(lumped_mass,i))
-       call set(source_terms(3), i, node_val(source_terms(3),i)/node_val(lumped_mass,i))
+        deallocate(dshape_kk, detwei, strain_ngi, rhs_addto, invmass)
     end do
-    call vtk_write_fields("KK_source_terms", timestep, positions, kk%mesh, source_terms)
+    
+    ! For non-DG we apply inverse mass globally
+    if(continuity(kk)>=0) then
+       lumped_mass => get_lumped_mass(state, kk%mesh)
+       do i = 1, node_count(kk)
+          do i_term = 1, 3
+             call set(src_abs_terms(1), i, node_val(src_abs_terms(1),i)&
+                  &/node_val(lumped_mass,i))
+          end do
+       end do
+    end if
+
+    ! produce debugging vtu's if required
+    if (have_option(trim(state%option_path)//&
+         &"/subgridscale_parameterisations/k-epsilon/debugging_mode")) then
+       call vtk_write_fields("KK_src_abs_terms", timestep, positions, kk%mesh,&
+            & src_abs_terms)
+    end if
 
     ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
     prescribed_src = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
@@ -244,19 +254,23 @@ subroutine keps_tke(state)
     end if
 
     ewrite(2,*) "Calculating k source and absorption"
-    do i = 1, node_count(kk)
-      select case (src_abs)
-      case ("explicit")
-        call set(src_kk, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
-        call set(abs_kk, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
-      case ("implicit")
-        residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
-        call set(src_kk, i, -min(0.0, residual) )
-        call set(abs_kk, i, max(0.0, residual) )
-      case default
-        FLAbort("Invalid implicitness option for k")
-      end select
-    end do
+    select case (src_abs)
+    case ("explicit")
+       call zero(src_kk)
+       call zero(abs_kk)
+       call addto(src_kk, src_abs_terms(1))
+       call addto(abs_kk, src_abs_terms(2))
+       call addto(abs_kk, src_abs_terms(3))
+    case ("implicit") ! does this work???
+       do i = 1, node_count(kk)
+          residual = (- node_val(src_abs_terms(1),i) + node_val(src_abs_terms(2),i) +&
+               & node_val(src_abs_terms(3),i))/node_val(lumped_mass,i)
+          call set(src_kk, i, -min(0.0, residual) )
+          call set(abs_kk, i, max(0.0, residual) )
+       end do
+    case default
+       FLAbort("Invalid implicitness option for k")
+    end select
 
     ! Set copy of old kk for eps solve
     call set(tke_src_old, src_kk)
@@ -275,7 +289,10 @@ subroutine keps_tke(state)
       call deallocate(prescribed_abs_kk)
     end if
 
-    call deallocate(src_rhs); call deallocate(abs_rhs)
+    ! deallocate source term fields
+    do i_term = 1, 3
+       call deallocate(src_abs_terms(i_term))
+    end do
 
     ! Set diffusivity for k equation.
     call zero(kk_diff)
@@ -303,11 +320,11 @@ subroutine keps_tke(state)
 
       ! zero addto array so that it can be added to in the field calculation loop
       do i_loc = 1, ele_loc(kk, ele)
-         rhs_addto(i_loc) = 0.0
+         rhs_addto(3,i_loc) = 0.0
       end do
 
       ! exit if there are no buoyant scalar fields
-      if (.not.allocated(scalar_fields)) then 
+      if (.not.allocated(scalar_fields) .or. (no_gravity == 1)) then 
          return
       end if
 
@@ -336,7 +353,7 @@ subroutine keps_tke(state)
          end do
        
          ! multiply by determinate weights, integrate and add to rhs
-         rhs_addto = rhs_addto + shape_rhs(shape_kk, scalar * detwei)        
+         rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_kk, scalar * detwei)        
          
          deallocate(scalar)
          deallocate(vector)
@@ -355,19 +372,20 @@ subroutine keps_eps(state)
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, EV, lumped_mass
     type(scalar_field_pointer), allocatable, dimension(:) :: scalar_fields
-    type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps 
+    type(scalar_field)                 :: prescribed_src_eps, prescribed_abs_eps 
     type(vector_field), pointer        :: positions, u, g
     type(tensor_field), pointer        :: eps_diff
     type(element_type), pointer        :: shape_eps, shape_s
-    integer                            :: i, ele, no_gravity
+    integer                            :: i, ele, no_gravity, i_term
     real                               :: residual, g_magnitude
-    real, allocatable, dimension(:)    :: beta, delta_t, detwei, rhs_addto
+    real, allocatable, dimension(:)    :: beta, delta_t, detwei
+    real, allocatable, dimension(:,:)  :: rhs_addto, invmass
     real, allocatable, dimension(:,:,:):: dshape_s 
     integer, pointer, dimension(:)     :: nodes_eps
     logical                            :: prescribed_src, prescribed_abs
 
     ! for vtu output
-    type(scalar_field), dimension(3)   :: source_terms
+    type(scalar_field), dimension(3)   :: src_abs_terms
 
     ewrite(1,*) "In keps_eps"
     eps             => extract_scalar_field(state, "TurbulentDissipation")
@@ -382,15 +400,10 @@ subroutine keps_eps(state)
     call get_option('physical_parameters/gravity/magnitude', g_magnitude, no_gravity)   
     call get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
 
-    call allocate(src_rhs, eps%mesh, name="EPSSRCRHS")
-    call allocate(abs_rhs, eps%mesh, name="EPSABSRHS")
-    call zero(src_rhs); call zero(abs_rhs)
-
-    ! for vtu output of source terms
-    call allocate(source_terms(1), eps%mesh, name="EPS_P_EV")
-    call allocate(source_terms(2), eps%mesh, name="EPS_EPS_K")
-    call allocate(source_terms(3), eps%mesh, name="EPS_BUOY")
-    call zero(source_terms(1)); call zero(source_terms(2)); call zero(source_terms(3))
+    call allocate(src_abs_terms(1), eps%mesh, name="EPS_P_EV_SRC")
+    call allocate(src_abs_terms(2), eps%mesh, name="EPS_EPS_ABS")
+    call allocate(src_abs_terms(3), eps%mesh, name="EPS_BUOY_ABS")
+    call zero(src_abs_terms(1)); call zero(src_abs_terms(2)); call zero(src_abs_terms(3))
 
     ! Assembly loop
     do ele = 1, ele_count(eps)
@@ -398,40 +411,53 @@ subroutine keps_eps(state)
         nodes_eps => ele_nodes(eps, ele)
 
         allocate(detwei (ele_ngi(eps, ele)))
-        allocate(rhs_addto(ele_loc(eps, ele)))
+        allocate(rhs_addto(3,ele_loc(eps, ele)))
+        allocate(invmass (ele_loc(eps, ele), ele_loc(eps, ele)))
         call transform_to_physical(positions, ele, detwei=detwei)
 
         ! Source term:
-        rhs_addto = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
-                              ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
-        call addto(src_rhs, nodes_eps, rhs_addto)
-        call addto(source_terms(1), nodes_eps, rhs_addto)
+        rhs_addto(1,:) = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
+             ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
 
         ! Absorption term:
-        rhs_addto = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
+        rhs_addto(2,:) = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
                               ele_val_at_quad(tke_old,ele))
-        call addto(abs_rhs, nodes_eps, rhs_addto)
-        call addto(source_terms(2), nodes_eps, rhs_addto)
 
-        if (no_gravity == 0) then
-           ! Buoyancy terms
-           call calculate_buoyancy_term_eps()
-           call addto(abs_rhs, nodes_eps, rhs_addto)
-           call addto(source_terms(3), nodes_eps, rhs_addto)
+        ! Buoyancy term - As absorbtion:
+        call calculate_buoyancy_term_eps()
+
+        ! In the DG case we will apply the inverse mass locally.
+        if(continuity(eps)<0) then
+           invmass = inverse(shape_shape(shape_eps, shape_eps, detwei))
+           do i_term = 1, 3
+              rhs_addto(i_term,:) = matmul(rhs_addto(i_term,:), invmass)
+           end do
         end if
 
-        deallocate(detwei, rhs_addto)
-    end do
+        do i_term = 1, 3
+           call addto(src_abs_terms(i_term), nodes_eps, rhs_addto(i_term,:))
+        end do
 
-    lumped_mass => get_lumped_mass(state, eps%mesh)
-
-    ! for vtu output of source terms
-    do i = 1, node_count(eps)
-       call set(source_terms(1), i, node_val(source_terms(1),i)/node_val(lumped_mass,i))
-       call set(source_terms(2), i, node_val(source_terms(2),i)/node_val(lumped_mass,i))
-       call set(source_terms(3), i, node_val(source_terms(3),i)/node_val(lumped_mass,i))
+        deallocate(detwei, rhs_addto, invmass)
     end do
-    call vtk_write_fields("EPS_source_terms", timestep, positions, eps%mesh, source_terms)
+    
+    ! For non-DG we apply inverse mass globally
+    if(continuity(eps)>=0) then
+       lumped_mass => get_lumped_mass(state, eps%mesh)
+       do i = 1, node_count(eps)
+          do i_term = 1, 3
+             call set(src_abs_terms(1), i, node_val(src_abs_terms(1),i)&
+                  &/node_val(lumped_mass,i))
+          end do
+       end do
+    end if
+
+    ! produce debugging vtu's if required
+    if (have_option(trim(state%option_path)//&
+         &"/subgridscale_parameterisations/k-epsilon/debugging_mode")) then
+       call vtk_write_fields("EPS_src_abs_terms", timestep, positions, eps%mesh,&
+            & src_abs_terms)
+    end if
 
     ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
     prescribed_src = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
@@ -459,20 +485,24 @@ subroutine keps_eps(state)
       call zero(abs_eps)
     end if
 
-    ewrite(2,*) "Calculating epsilon source and absorption"
-    do i = 1, node_count(eps)
-      select case (src_abs)
-      case ("explicit")
-        call set(src_eps, i, node_val(src_rhs,i)/node_val(lumped_mass,i))
-        call set(abs_eps, i, node_val(abs_rhs,i)/node_val(lumped_mass,i))
-      case ("implicit")
-        residual = (node_val(abs_rhs,i) - node_val(src_rhs,i))/node_val(lumped_mass,i)
-        call set(src_eps, i, -min(0.0, residual) )
-        call set(abs_eps, i, max(0.0, residual) )
-      case default
-        FLAbort("Invalid implicitness option for epsilon")
-      end select
-    end do
+    ewrite(2,*) "Calculating k source and absorption"
+    select case (src_abs)
+    case ("explicit")
+       call zero(src_eps)
+       call zero(abs_eps)
+       call addto(src_eps, src_abs_terms(1))
+       call addto(abs_eps, src_abs_terms(2))
+       call addto(abs_eps, src_abs_terms(3))
+    case ("implicit") ! does this work???
+       do i = 1, node_count(eps)
+          residual = (- node_val(src_abs_terms(1),i) + node_val(src_abs_terms(2),i) +&
+               & node_val(src_abs_terms(3),i))/node_val(lumped_mass,i)
+          call set(src_eps, i, -min(0.0, residual) )
+          call set(abs_eps, i, max(0.0, residual) )
+       end do
+    case default
+       FLAbort("Invalid implicitness option for epsilon")
+    end select
 
     if(prescribed_src) then
       ewrite_minmax(src_eps)
@@ -488,7 +518,10 @@ subroutine keps_eps(state)
         call deallocate(prescribed_abs_eps)
     end if
 
-    call deallocate(src_rhs); call deallocate(abs_rhs)
+    ! deallocate source term fields
+    do i_term = 1, 3
+       call deallocate(src_abs_terms(i_term))
+    end do 
 
     ! Set diffusivity for Eps
     call zero(eps_diff)
@@ -498,7 +531,6 @@ subroutine keps_eps(state)
 
     ewrite_minmax(eps_diff)
     ewrite_minmax(tke_old)
-    ewrite_minmax(src_kk)
     ewrite_minmax(eps)
     ewrite_minmax(src_eps)
     ewrite_minmax(abs_eps)
@@ -517,11 +549,11 @@ subroutine keps_eps(state)
       
       ! zero addto array so that it can be added to in the field calculation loop
       do i_loc = 1, ele_loc(eps, ele)
-         rhs_addto(i_loc) = 0.0
+         rhs_addto(3,i_loc) = 0.0
       end do
 
       ! exit if there are no buoyant scalar fields
-      if (.not.allocated(scalar_fields)) then 
+      if (.not.allocated(scalar_fields) .or. (no_gravity == 1)) then 
          return
       end if
 
@@ -569,7 +601,7 @@ subroutine keps_eps(state)
          end do
        
          ! multiply by determinate weights and integrate
-         rhs_addto = rhs_addto + shape_rhs(shape_eps, scalar * detwei)
+         rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_eps, scalar * detwei)
          
          deallocate(scalar)
          deallocate(vector)
@@ -599,6 +631,7 @@ subroutine keps_eddyvisc(state)
     integer                          :: i, ele
     integer, pointer, dimension(:)   :: nodes_ev
     real, allocatable, dimension(:)  :: detwei, rhs_addto
+    real, allocatable, dimension(:,:):: invmass
 
     ewrite(1,*) "In keps_eddyvisc"
     kk         => extract_scalar_field(state, "TurbulentKineticEnergy")
@@ -634,19 +667,27 @@ subroutine keps_eddyvisc(state)
       shape_ev =>  ele_shape(EV, ele)
       allocate(detwei (ele_ngi(EV, ele)))
       allocate(rhs_addto (ele_loc(EV, ele)))
+      allocate(invmass (ele_loc(EV, ele), ele_loc(EV, ele)))
       call transform_to_physical(positions, ele, detwei=detwei)
       rhs_addto = shape_rhs(shape_ev, detwei*C_mu*ele_val_at_quad(kk,ele)**0.5*ele_val_at_quad(ll,ele))
+      ! In the DG case we will apply the inverse mass locally.
+      if(continuity(EV)<0) then
+         invmass = inverse(shape_shape(shape_ev, shape_ev, detwei))
+         rhs_addto = matmul(rhs_addto, invmass)
+      end if
       call addto(ev_rhs, nodes_ev, rhs_addto)
-      deallocate(detwei, rhs_addto)
+      deallocate(detwei, rhs_addto, invmass)
     end do
+    
+    ! For non-DG we apply inverse mass globally
+    if(continuity(EV)>=0) then
+       lumped_mass => get_lumped_mass(state, EV%mesh)
+       do i = 1, node_count(EV)
+          call set(ev_rhs, i, node_val(ev_rhs,i)/node_val(lumped_mass,i))
+       end do
+    end if
 
-    lumped_mass => get_lumped_mass(state, EV%mesh)
-
-    ! Set eddy viscosity
-    do i = 1, node_count(EV)
-      call set(EV, i, node_val(ev_rhs,i)/node_val(lumped_mass,i))
-    end do
-
+    call set(EV, ev_rhs)
     call deallocate(ev_rhs)
 
     ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"

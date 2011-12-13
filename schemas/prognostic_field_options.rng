@@ -225,16 +225,14 @@ and epsilon equations. See the manual for more information.
           <attribute name="name">
             <value>k-epsilon</value>
           </attribute>
-          <optional>
-            <element name="prandtl_schmidt_number">
-              <a:documentation>Option to set the Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
+          <element name="prandtl_schmidt_number">
+            <a:documentation>Option to set the Schmidt number (ratio of viscous diffusion rate to momentum diffusion rate) for 
 massive scalar fields, or Prandtl number (ratio of viscous diffusion rate to thermal diffusion rate) 
 for thermal fields.
 
 For this field. Default = 1.0 if not specified.</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
+            <ref name="real"/>
+          </element>
           <optional>
             <element name="background_diffusivity">
               <a:documentation>Option to set a unique isotropic background diffusivity for this field.</a:documentation>
