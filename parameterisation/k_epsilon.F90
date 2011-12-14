@@ -213,7 +213,7 @@ subroutine keps_tke(state)
        lumped_mass => get_lumped_mass(state, kk%mesh)
        do i = 1, node_count(kk)
           do i_term = 1, 3
-             call set(src_abs_terms(1), i, node_val(src_abs_terms(1),i)&
+             call set(src_abs_terms(i_term), i, node_val(src_abs_terms(i_term),i)&
                   &/node_val(lumped_mass,i))
           end do
        end do
@@ -446,7 +446,7 @@ subroutine keps_eps(state)
        lumped_mass => get_lumped_mass(state, eps%mesh)
        do i = 1, node_count(eps)
           do i_term = 1, 3
-             call set(src_abs_terms(1), i, node_val(src_abs_terms(1),i)&
+             call set(src_abs_terms(i_term), i, node_val(src_abs_terms(i_term),i)&
                   &/node_val(lumped_mass,i))
           end do
        end do
