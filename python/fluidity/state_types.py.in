@@ -1,5 +1,5 @@
 import numpy,sys,copy,operator
-if ('yes' == 'no'):
+if ('yes' == '@HAVE_SCIPY@'):
     import scipy.sparse,scipy
 
 class State:
@@ -143,7 +143,7 @@ class TensorField(Field):
     self.dimension = numpy.array([dim0,dim1])
     self.node_count=self.val.shape[0]
 
-if ('yes' == 'no'):
+if ('yes' == '@HAVE_SCIPY@'):
     class CsrMatrix(scipy.sparse.csr_matrix):
       "A csr matrix"
       def __init__(self, *args, **kwargs):
