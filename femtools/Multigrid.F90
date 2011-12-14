@@ -469,8 +469,8 @@ logical, optional, intent(in) :: has_null_space
       
       ! prolongator between i+1 and i, is restriction between i and i+1
       call MatGetLocalSize(prolongators(i), m, n, ierr)
-      call MatPtAP(matrices(i), prolongators(i), MAT_INITIAL_MATRIX, real(1.0, kind = PetscReal_kind), &
-        matrices(i+1), ierr)
+
+      call MatPtAP_wrapper(matrices(i), prolongators(i), matrices(i+1))
       
       call allmin(n)
       if (n<coarsesize) exit
@@ -655,6 +655,8 @@ integer, intent(in):: iterations
   call PCSORSetSymmetric(pc, sortype, ierr)
   call PCSORSetOmega(pc, real(1.0, kind = PetscReal_kind), ierr)
   call PCSORSetIterations(pc, iterations, 1, ierr)
+  call KSPMonitorSet(ksp, KSPMonitorDefault, PETSC_NULL_INTEGER, &
+           PETSC_NULL_FUNCTION, ierr)
 
 end subroutine SetupSORSmoother
 
@@ -765,6 +767,32 @@ integer, intent(out):: nosmd, nosmu, clustersize
     
 end subroutine SetSmoothedAggregationOptions
 
+subroutine MatPTAP_wrapper(A, P, PTAP)
+  ! wrapper around ptap to deal with BAIJ case (currently simply copies in
+  ! AIJ form first
+  Mat, intent(in):: A, P
+  Mat, intent(out):: PTAP
+
+  Mat:: ourA
+  MatType:: mat_type
+  PetscErrorCode:: ierr
+
+  call MatGetType(A, mat_type, ierr)
+  if (mat_type==MATSEQBAIJ) then
+    call MatConvert(A, MATSEQAIJ, MAT_INITIAL_MATRIX, ourA, ierr)
+  else if (mat_type==MATMPIBAIJ) then
+    call MatConvert(A, MATMPIAIJ, MAT_INITIAL_MATRIX, ourA, ierr)
+  else
+    ourA=A
+  end if
+  call MatPtAP(ourA, P, MAT_INITIAL_MATRIX, real(1.0, kind = PetscReal_kind), &
+        PTAP, ierr)
+  if (ourA/=A) then
+    call MatDestroy(ourA, ierr)
+  end if
+
+end subroutine MatPTAP_wrapper
+
 function Prolongator(A, epsilon, omega, maxclustersize, cluster) result (P)
 !!< Constructs coarse grid and prolongator operator between coarse and fine
 !!< grid based on the matrix A.
@@ -787,10 +815,11 @@ integer, optional, dimension(:), intent(out):: cluster
   double precision, dimension(MAT_INFO_SIZE):: matrixinfo
   integer, dimension(:), allocatable:: findN, N, R
   integer:: nrows, nentries, ncols
-  integer:: jc, ccnt, base
+  integer:: jc, ccnt, base, bs
     
   ! find out basic dimensions of A
   call MatGetLocalSize(A, nrows, ncols, ierr)
+  call MatGetBlockSize(A, bs, ierr)
   ! use Petsc_Tools's MatGetInfo because of bug in earlier patch levels of petsc 3.0
   call myMatGetInfo(A, MAT_LOCAL, matrixinfo, ierr)
   nentries=matrixinfo(MAT_INFO_NZ_USED)
@@ -798,7 +827,7 @@ integer, optional, dimension(:), intent(out):: cluster
   ! we decrease by 1, so base+i gives 0-based petsc index if i is the local fortran index:
   base=base-1
   
-  allocate(findN(1:nrows+1), N(1:nentries), R(1:nrows))
+  allocate(findN(1:nrows/bs+1), N(1:nentries), R(1:nrows/bs))
      
   ! rescale the matrix: a_ij -> a_ij/sqrt(aii*ajj)
   call MatGetVecs(A, diag, sqrt_diag, ierr)
@@ -824,7 +853,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   ! construct the strongly coupled neighbourhoods N_i around each node
   ! and use R to register isolated nodes i with N_i={i}
-  call Prolongator_init(R, ccnt, findN, N, A, base, epsilon)
+  call Prolongator_init(R, ccnt, findN, N, A, base, bs, epsilon)
   
   if (ccnt==0 .and. nrows>0) then
     ! all nodes are isolated, strongly diagonal dominant matrix
@@ -834,9 +863,9 @@ integer, optional, dimension(:), intent(out):: cluster
     ! we return PETSC_NULL; callers of this function should check for this
     P=PETSC_NULL_OBJECT
     return
-  else if (100*ccnt<99*nrows .and. .not. IsParallel()) then
+  else if (100*ccnt<99*nrows/bs .and. .not. IsParallel()) then
     ! more than 1% isolated nodes, give a warning
-    ewrite(2,*) "Percentage of isolated nodes: ", (100.0*(nrows-ccnt))/nrows
+    ewrite(2,*) "Percentage of isolated nodes: ", (100.0*(nrows/bs-ccnt))/(nrows/bs)
     ewrite(2,*) "Warning: more than 1 perc. isolated nodes - this may mean mg is not the most suitable preconditioner"
     ewrite(2,*) "On small meshes with a lot of boundary nodes, this is typically fine though."
   end if
@@ -848,7 +877,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   ! Step 2 - Enlarging the decomposition sets (aggregates)
   ! add remaining COUPLED but yet uncovered nodes to one of the aggregates
-  call Prolongator_step2(R, findN, N, A, base)
+  call Prolongator_step2(R, findN, N, A, base, bs)
   
   ! Step 3 - Handling the remnants
   ! the remaining nodes, that are COUPLED but neither in the original covering
@@ -859,8 +888,8 @@ integer, optional, dimension(:), intent(out):: cluster
   ! R(i) is now either the coarse node, fine node i is assigned to
   !             or ==ISOLATED
   
-  ewrite(3,*) 'Fine nodes: ', nrows
-  ewrite(3,*) 'Isolated fine nodes: ', nrows-ccnt
+  ewrite(3,*) 'Fine nodes: ', nrows/bs
+  ewrite(3,*) 'Isolated fine nodes: ', nrows/bs-ccnt
   ewrite(3,*) 'Aggregates: ', jc
   
   ! now scale a_ij -> a_ii^-1/2 * a_ij * ajj^1/2, i.e. starting from the
@@ -868,7 +897,7 @@ integer, optional, dimension(:), intent(out):: cluster
   call MatDiagonalScale(A, inv_sqrt_diag, sqrt_diag, ierr)
   
   ! we now have all the stuff to create the prolongator
-  call create_prolongator(P, nrows, jc, findN, N, R, A, base, omega)
+  call create_prolongator(P, nrows, jc, findN, N, R, A, base, bs, omega)
   
   ! now restore the original matrix
   ! unfortunately MatDiagonalScale is broken for one-sided scaling, i.e.
@@ -887,7 +916,7 @@ integer, optional, dimension(:), intent(out):: cluster
     
 end function Prolongator
 
-subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
+subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, bs, omega)
   
   Mat, intent(out):: P
   integer, intent(in):: nrows ! number of fine nodes
@@ -895,40 +924,41 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
   integer, dimension(:), intent(in):: findN, N, R
   ! A needs to be left rescaled with the inverse diagonal: D^-1 A
   Mat, intent(in):: A
-  integer, intent(in):: base
+  integer, intent(in):: base, bs
   PetscReal, intent(in):: omega
   
   PetscObject:: myPETSC_NULL_OBJECT
   PetscErrorCode:: ierr
   Vec:: rowsum_vec
   PetscReal, dimension(:), allocatable:: Arowsum
-  PetscReal:: aij(1), rowsum
+  PetscReal, dimension(bs,bs):: aij, rowsum
+  PetscInt, dimension(bs):: idxm, idxn
   integer, dimension(:), allocatable:: dnnz, onnz
-  integer:: i, j, k, coarse_base
+  integer:: i, j, k, b, coarse_base, nnz
   
   allocate(dnnz(1:nrows), Arowsum(1:nrows))
   
   ! work out nnz in each row of the new prolongator
-  dnnz=0
-  do i=1, nrows
+  do i=1, nrows/bs
     ! this is an overestimate it should count the number
     ! of different R(j) values in each rows
+    nnz=0
     do k=findN(i), findN(i+1)-1
       j=N(k)
       if (R(j)>0) then
-        dnnz(i)=dnnz(i)+1
+        nnz=nnz+1
       end if
     end do
     ! since we overestimate, we don't want to get > ncols
-    dnnz(i)=min(dnnz(i), ncols)
-  end do      
+    dnnz((i-1)*bs+1:i*bs)=min(nnz, ncols)*bs
+  end do
 
   if (IsParallel()) then
     ! for the moment the prolongator is completely local:
     allocate(onnz(1:nrows))
     onnz=0
     
-    call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nrows, ncols, PETSC_DECIDE, PETSC_DECIDE, &
+    call MatCreateMPIAIJ(MPI_COMM_FEMTOOLS, nrows, ncols*bs, PETSC_DECIDE, PETSC_DECIDE, &
       PETSC_NULL_INTEGER, dnnz, PETSC_NULL_INTEGER, onnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
       
@@ -937,36 +967,40 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     ! subtract 1 to convert from 1-based fortran to 0 based petsc
     coarse_base=coarse_base-1
   else
-    call MatCreateSeqAIJ(MPI_COMM_SELF, nrows, ncols, &
+    call MatCreateSeqAIJ(MPI_COMM_SELF, nrows, ncols*bs, &
       PETSC_NULL_INTEGER, dnnz, P, ierr)
     call MatSetOption(P, MAT_USE_INODES, PETSC_FALSE, ierr)
     ! subtract 1 from each cluster no to get petsc 0-based numbering
     coarse_base=-1
   end if
   
-  myPETSC_NULL_OBJECT=PETSC_NULL_OBJECT
   call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
-  if (myPETSC_NULL_OBJECT/=PETSC_NULL_OBJECT) then
-    FLAbort("PETSC_NULL_OBJECT has changed please report to skramer")
-  end if
   call VecPlaceArray(rowsum_vec, Arowsum, ierr)
   call MatGetRowSum(A, rowsum_vec, ierr)
     
-  do i=1, nrows
+  do i=1, nrows/bs
     rowsum=0.0
+    idxm=(/ ( base+(i-1)*bs+b, b=1, bs) /)
     ! the filtered matrix only contains the entries in N_i:
     do k=findN(i), findN(i+1)-1
       j=N(k)
-      call MatGetValues(A, 1, (/ base+i /), 1, (/ base+j /),  aij, ierr)
-      rowsum=rowsum+aij(1)
+      idxn=(/ ( base+(j-1)*bs+b, b=1, bs ) /)
+      call MatGetValues(A, bs, idxm, bs, idxn, aij, ierr)
+      rowsum=rowsum+aij
       if (R(j)>0) then
-        call MatSetValue(P, base+i, coarse_base+R(j), -omega*aij(1), &
-          ADD_VALUES, ierr)
+        aij=-omega*aij
+        idxn=(/ ( coarse_base+(R(j)-1)*bs+b, b=1, bs ) /)
+        call MatSetValues(P, bs, idxm, bs, idxn, aij, ADD_VALUES, ierr)
       end if
     end do
     if (R(i)>0) then
-      call MatSetValue(P, base+i, coarse_base+R(i), &
-        1+omega*( rowsum-Arowsum(i) ), ADD_VALUES, ierr)
+      aij=0.0
+      do b=1, bs
+        aij(b,b)=1.0-omega*Arowsum((i-1)*bs+b)
+      end do
+      aij=aij+omega*rowsum
+      idxn=(/ ( coarse_base+(R(i)-1)*bs+b, b=1, bs ) /)
+      call MatSetValues(P, bs, idxm, bs, idxn, aij, ADD_VALUES, ierr)
     end if
   end do
     
@@ -977,20 +1011,21 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, omega)
     
 end subroutine create_prolongator
 
-subroutine Prolongator_init(R, ccnt, findN, N, A, base, epsilon)
+subroutine Prolongator_init(R, ccnt, findN, N, A, base, bs, epsilon)
 ! construct the strongly coupled neighbourhoods N_i around each node
 ! and use R to register isolated nodes i with N_i={i}
 integer, dimension(:), intent(out):: R, findN, N
 integer, intent(out):: ccnt
 Mat, intent(in):: A
 integer, intent(in):: base
+integer, intent(in):: bs
 PetscReal, intent(in):: epsilon
 
   PetscErrorCode:: ierr
   PetscReal, dimension(:), allocatable:: vals(:)
   integer, dimension(:), allocatable:: cols(:)
   PetscReal aij, eps_sqrt
-  integer i, j, k, p, ncols
+  integer i, j, k, b, p, ncols
   
   ! workspace for MatGetRow
   allocate( vals(1:size(N)), cols(1:size(n)) )
@@ -1001,12 +1036,15 @@ PetscReal, intent(in):: epsilon
   p=1
   do i=1, size(R)
     findN(i)=p
-    call MatGetRow(A, base+i, ncols, cols, vals, ierr)
-    do k=1, ncols
-      j=cols(k)-base
+    call MatGetRow(A, base+(i-1)*bs+1, ncols, cols, vals, ierr)
+    do k=1, ncols,bs
+      j=cols(k)/bs-base
       ! ignore non-local columns
       if (j<1 .or. j>size(R)) cycle
-      aij=vals(k)
+      aij=0.0
+      do b=0, bs-1
+        aij=aij+vals(k+b)
+      end do
       if (abs(aij)>eps_sqrt) then
         N(p)=j
         p=p+1
@@ -1019,7 +1057,7 @@ PetscReal, intent(in):: epsilon
     else
       R(i)=ISOLATED
     end if
-    call MatRestoreRow(A, base+i, ncols, cols, vals, ierr)
+    call MatRestoreRow(A, base+(i-1)*bs+1, ncols, cols, vals, ierr)
   end do
   findN(i)=p
   
@@ -1068,17 +1106,18 @@ integer, intent(in):: maxclustersize
   
 end subroutine Prolongator_step1
 
-subroutine Prolongator_step2(R, findN, N, A, base)
+subroutine Prolongator_step2(R, findN, N, A, base, bs)
 ! Step 2 - Enlarging he decomposition sets
 ! add remaining COUPLED but yet uncovered nodes to one of the aggregates
 integer, dimension(:), intent(inout):: R
 integer, dimension(:), intent(in):: findN, N
 Mat, intent(in):: A
-integer, intent(in):: base
+integer, intent(in):: base, bs
 
   PetscErrorCode:: ierr
-  PetscReal:: maxc, aij(1)
-  integer:: i, j, k, p
+  PetscReal:: maxc, aij(bs)
+  PetscInt:: idxn(bs)
+  integer:: i, j, k, b, p
   
   do i=1, size(R)
     if (R(i)==COUPLED) then
@@ -1090,9 +1129,10 @@ integer, intent(in):: base
         j=N(p)
         if (R(j)>0) then
           j=N(p)
-          call MatGetValues(A, 1, (/ base+i /), 1, (/ base+j /),  aij, ierr)
-          if (abs(aij(1))>maxc) then
-            maxc=abs(aij(1))
+          idxn=(/ ( base+(j-1)*bs+b, b=1, bs ) /)
+          call MatGetValues(A, 1, (/ base+(i-1)*bs+1 /), bs, idxn,  aij, ierr)
+          if (sum(abs(aij))>maxc) then
+            maxc=sum(abs(aij))
             k=R(j)
           end if
         end if
