@@ -640,6 +640,7 @@ OPENMP_CXXFLAGS
 LAPACK_LIBS
 BLAS_LIBS
 HAVE_CGAL
+HAVE_SCIPY
 HAVE_PYTHON
 PYTHON_EXTRA_LDFLAGS
 PYTHON_EXTRA_LIBS
@@ -724,6 +725,7 @@ enable_option_checking
 enable_gcov
 enable_debugging
 enable_python
+enable_scipy
 enable_cgal
 with_blas
 with_blas_dir
@@ -1397,6 +1399,7 @@ Optional Features:
   --enable-gcov           turns on GNUs coverage tool - gcov
   --enable-debugging      turns on debugging flags
   --enable-python         embed python in fluidity for generic functions.
+  --enable-scipy          import scipy into fluiditys python interface.
   --enable-cgal           turns on use of the CGAL library
   --enable-openmp         turns on OpenMP support
   --disable-openmp        do not use OpenMP
@@ -6720,6 +6723,28 @@ See \`config.log' for more details" "$LINENO" 5 ; }
     else
 	echo "Failed to locate Numpy"
     fi
+
+    # has the user specified scipy to be turned off
+    # Check whether --enable-scipy was given.
+if test "${enable_scipy+set}" = set; then :
+  enableval=$enable_scipy;
+fi
+
+    if test "$enable_scipy" != "no"; then
+        # Additionally check for scipy
+        SCIPY=$(python -c 'import scipy; print scipy.get_include()' 2>/dev/null)
+        if ! test -z "$SCIPY"; then
+        echo "Scipy is " $SCIPY
+        HAVE_SCIPY="yes"
+        else
+        echo "Failed to locate Scipy"
+        HAVE_SCIPY="no"
+        fi
+    else
+        HAVE_SCIPY="no"
+    fi
+
+
 fi
 
 
@@ -14867,7 +14892,7 @@ fi
 
 fi
 
-ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile python/setup.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile schemas/flml reduced_modelling/Makefile"
+ac_config_files="$ac_config_files Makefile debug/Makefile bathymetry/Makefile ocean_forcing/Makefile ocean_forcing/tests/Makefile sediments/Makefile hyperlight/Makefile femtools/Makefile femtools/tests/Makefile forward_interfaces/Makefile horizontal_adaptivity/Makefile horizontal_adaptivity/tests/Makefile preprocessor/Makefile error_measures/Makefile error_measures/tests/Makefile parameterisation/Makefile parameterisation/tests/Makefile fldecomp/Makefile assemble/Makefile assemble/tests/Makefile diagnostics/Makefile main/Makefile tools/Makefile python/setup.py python/fluidity/state_types.py adjoint/Makefile adjoint/tests/Makefile climatology/Makefile libmba2d/Makefile libmba3d/Makefile libjudy/Makefile libjudy/src/Makefile libjudy/src/JudyCommon/Makefile libjudy/src/Judy1/Makefile libjudy/src/JudyL/Makefile libjudy/src/JudySL/Makefile libjudy/src/JudyHS/Makefile libalgencan/Makefile libwm/Makefile libvtkfortran/Makefile schemas/flml reduced_modelling/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15584,6 +15609,7 @@ do
     "main/Makefile") CONFIG_FILES="$CONFIG_FILES main/Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
     "python/setup.py") CONFIG_FILES="$CONFIG_FILES python/setup.py" ;;
+    "python/fluidity/state_types.py") CONFIG_FILES="$CONFIG_FILES python/fluidity/state_types.py" ;;
     "adjoint/Makefile") CONFIG_FILES="$CONFIG_FILES adjoint/Makefile" ;;
     "adjoint/tests/Makefile") CONFIG_FILES="$CONFIG_FILES adjoint/tests/Makefile" ;;
     "climatology/Makefile") CONFIG_FILES="$CONFIG_FILES climatology/Makefile" ;;

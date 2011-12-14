@@ -1,5 +1,6 @@
-import numpy,sys,copy,operator,scipy
-import scipy.sparse
+import numpy,sys,copy,operator
+if ('yes' == 'no'):
+    import scipy.sparse,scipy
 
 class State:
   def __init__(self,n=""):
@@ -142,14 +143,16 @@ class TensorField(Field):
     self.dimension = numpy.array([dim0,dim1])
     self.node_count=self.val.shape[0]
 
-class CsrMatrix(scipy.sparse.csr_matrix):
-  "A csr matrix"
-  def __init__(self, *args, **kwargs):
-    try:
-      scipy.sparse.csr_matrix.__init__(self, *args, **kwargs)
-      self.format = 'csr'
-    except TypeError: # old version of scipy
-      pass
+if ('yes' == 'no'):
+    class CsrMatrix(scipy.sparse.csr_matrix):
+      "A csr matrix"
+      def __init__(self, *args, **kwargs):
+        try:
+          scipy.sparse.csr_matrix.__init__(self, *args, **kwargs)
+          self.format = 'csr'
+        except TypeError: # old version of scipy
+          pass
+
 
 
 class Mesh:
