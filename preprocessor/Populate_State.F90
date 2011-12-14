@@ -1425,7 +1425,7 @@ contains
 
       type(mesh_type) :: parent_mesh, biology_mesh
       character(len=OPTION_PATH_LEN) :: fg_path, fg_buffer, var_buffer, stage_buffer, field_buffer
-      character(len=FIELD_NAME_LEN) :: var_name, field_name, stage_name, fg_name
+      character(len=FIELD_NAME_LEN) :: var_name, field_name, stage_name, fg_name, chemfield_name
       integer :: i, j, k, var_count, fg_count, stage_count
 
       ! First we allocate a piecewise constant mesh for lagrangian biology diagostics (from topology mesh)
@@ -1535,6 +1535,7 @@ contains
                if (have_option(trim(var_buffer)//"/uptake/scalar_field::Request")) then
                   write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::Request"
                   call get_option(trim(field_buffer)//"/name", field_name)
+                  call get_option(trim(var_buffer)//"/chemical_field/name", chemfield_name)
 
                   ! Allocate primary chem request diagnostic fields, ie. <FG>Request<Chem><Stage>
                   stage_count = option_count(trim(fg_buffer)//"/stages/stage")
@@ -1559,7 +1560,7 @@ contains
                   ! Global request field
                   call allocate_and_insert_scalar_field(trim(field_buffer), &
                         state, parent_mesh="BiologyMesh", &
-                        field_name=trim(var_name)//trim(field_name), &
+                        field_name=trim(chemfield_name)//"Request", &
                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
                   FLExit("Chemical uptake requires a Request field")
@@ -1569,10 +1570,11 @@ contains
                if (have_option(trim(var_buffer)//"/uptake/scalar_field::Depletion")) then
                   write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/uptake/scalar_field::Depletion"
                   call get_option(trim(field_buffer)//"/name", field_name)
+                  call get_option(trim(var_buffer)//"/chemical_field/name", chemfield_name)
 
                   call allocate_and_insert_scalar_field(trim(field_buffer), &
                         state, parent_mesh="BiologyMesh", &
-                        field_name=trim(var_name)//trim(field_name), &
+                        field_name=trim(chemfield_name)//"Depletion", &
                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
                   FLExit("Chemical uptake requires a Depletion field")
@@ -1585,6 +1587,7 @@ contains
                if (have_option(trim(var_buffer)//"/release/scalar_field::Release")) then
                   write(field_buffer, "(a,i0,a)") trim(var_buffer)//"/release/scalar_field::Release"
                   call get_option(trim(field_buffer)//"/name", field_name)
+                  call get_option(trim(var_buffer)//"/chemical_field/name", chemfield_name)
 
                   ! Allocate primary chem release diagnostic fields, ie. <FG>Release<Chem><Stage>
                   stage_count = option_count(trim(fg_buffer)//"/stages/stage")
@@ -1607,7 +1610,7 @@ contains
 
                   call allocate_and_insert_scalar_field(trim(field_buffer), &
                         state, parent_mesh="BiologyMesh", &
-                        field_name=trim(var_name)//trim(field_name), &
+                        field_name=trim(chemfield_name)//"Release", &
                         dont_allocate_prognostic_value_spaces=dont_allocate_prognostic_value_spaces)
                else
                   FLExit("Chemical release requires a Release field")
