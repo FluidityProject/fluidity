@@ -1295,8 +1295,9 @@ start =
                   element sigma_k {real},
                   ## Turbulent Schmidt number (eddy-viscosity coefficient from epsilon equation).
                   ## Recommended value (default): 1.3.
-                  element sigma_eps {real}
-                  
+                  element sigma_eps {real},
+                  ## produce vtu output of individual kk and eps source terms for every timestep
+                  element debugging_mode{empty}?
                }?
             }?,
             ## Pressure
