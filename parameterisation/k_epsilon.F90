@@ -353,7 +353,7 @@ subroutine keps_tke(state)
          end do
        
          ! multiply by determinate weights, integrate and add to rhs
-         rhs_addto(3,:) = rhs_addto(3,:) - shape_rhs(shape_kk, scalar * detwei)        
+         rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_kk, scalar * detwei)        
          
          deallocate(scalar)
          deallocate(vector)
@@ -603,7 +603,7 @@ subroutine keps_eps(state)
          end do
        
          ! multiply by determinate weights and integrate
-         rhs_addto(3,:) = rhs_addto(3,:) - shape_rhs(shape_eps, scalar * detwei)
+         rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_eps, scalar * detwei)
          
          deallocate(scalar)
          deallocate(vector)

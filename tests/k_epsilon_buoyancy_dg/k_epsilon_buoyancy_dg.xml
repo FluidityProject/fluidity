@@ -46,7 +46,7 @@ EV = data.GetField("ScalarEddyViscosity")
 kk = data.GetField("TurbulentKineticEnergy")
 B_vect = -1.0
 B_scalar = 1.0/kk * 1.0 * 10.0 * EV / 1.0
-kk_B_expected = - B_vect * B_scalar
+kk_B_expected = B_vect * B_scalar
 
 data = vtu('KK_src_abs_terms_1.vtu')
 kk_B_actual = data.GetField("KK_BUOY_ABS")
@@ -103,7 +103,7 @@ for i in range(len(u_z)):
 
 c_eps_3 = tanh(u_z_norm/u_xy_norm)
 B_vect = -1.0
-B_scalar = - 1.0/kk * 1.44 * c_eps_3 * 1.0 * 10.0 * EV / 1.0
+B_scalar = 1.0/kk * 1.44 * c_eps_3 * 1.0 * 10.0 * EV / 1.0
 keps_B_expected = B_vect * B_scalar
 
 data = vtu('EPS_src_abs_terms_1.vtu')
