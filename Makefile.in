@@ -113,7 +113,7 @@ ifneq (@ALGENCAN@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e algencan
 endif
 ifneq (@MBA2D@,yes)
-  EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
 endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
