@@ -280,13 +280,13 @@ where $k=u'_i u'_j/2$ is the turbulent kinetic energy and $\nu(\bmx,t)$ is the e
 The equations are closed by solving transport equations for $k$ and the turbulent energy dissipation $\epsilon$:
 
 \begin{equation}\label{k}
-\ppt[t]{k} + u_i \ppx[x_i]{k} = \Pi - \epsilon + \ppx{} \left [ \frac{\nu_T}{\sigma_k} \ppx[x_i]{k} \right ],
+\ppt[t]{k} + u_i \ppx[x_i]{k} = \Pi - \epsilon + \ppx{} \left [ \frac{\nu_T}{\sigma_k} \ppx[x_i]{k} \right ] + \beta g_i \frac{\nu_T}{\sigma_T} \ppx[x_i]{c},
 \end{equation}
 
 \begin{equation}\label{eps}
-\ppt[t]{\epsilon} + u_i \ppx[x_i]{\epsilon} = C_{\epsilon1} \frac {\epsilon}{k} \Pi - C_{\epsilon2} \frac{\epsilon^2}{k} + \ppx{} \left [ \frac{\nu_T}{\sigma_\epsilon} \ppx[x_i]{\epsilon} \right ],
+\ppt[t]{\epsilon} + u_i \ppx[x_i]{\epsilon} = C_{\epsilon1} \frac {\epsilon}{k} \Pi - C_{\epsilon2} \frac{\epsilon^2}{k} + \ppx{} \left [ \frac{\nu_T}{\sigma_\epsilon} \ppx[x_i]{\epsilon} \right ] + C_{\epsilon1} C_{\epsilon3} \frac {\epsilon}{k} \beta g_i \frac{\nu_T}{\sigma_T} \ppx[x_i]{c},
 \end{equation}
-where $\nu_T$ is the isotropic tensor eddy viscosity $\nu_T$ and $\Pi$ is the turbulent kinetic energy production. The first terms in both equations are production (source), the second terms are absorption and the last terms are diffusion. $\nu_T$ and $\Pi$ are approximated by the eddy viscosity hypothesis as:
+where $\nu_T$ is the isotropic tensor eddy viscosity, $\Pi$ is the turbulent kinetic energy production, $\beta$ is a coefficient that transforms a scalar field gadient, $\ppx[x_i]{c}$, into a density gradient, $g_i$ is a gravity vector and $\sigma_T$ is the Prandtl or Schmidt number for the associated scalar field. The first terms in both equations are production (source), the second terms are absorption, the third is diffusion, and the last is a buoyancy term. A buoyancy term is added for each buoyant scalar field in the model. $\nu_T$ and $\Pi$ are approximated by the eddy viscosity hypothesis as:
 
 \begin{equation}\label{nut}
 \nu_T = C_\mu \frac{k^2}{\epsilon},
@@ -300,6 +300,13 @@ where $:$ denotes the double-dot product, defined for two tensors $t, s$ as:
 \begin{equation}\label{doubledot}
 t:s = \sum_{i,j=1}^{n} t_{ij} \times s_{ji}.
 \end{equation}
+
+$C_{\epsilon3}$ varies depending on the direction of the flow with respect to gravity. This is approximated to be:
+
+\begin{equation}\label{Cepsilon3}
+C_{\epsilon3} = tanh\left ( \frac{u_z}{u_{xy}}  \right ),
+\end{equation}
+where $u_z$ is the magnitude of the velocity in the same direction as gravity and $u_{xy}$ is the magnitude of the velocity in all other directions.
 
 A turbulence length scale is associated with the dissipation of turbulent kinetic energy by the subgrid scale motions:
 
@@ -354,11 +361,11 @@ simulates subgridscale eddies by increasing the diffusivity  of the scalar field
 that the diffusivity tensor, $\kaptens$, in the advection diffusion equation~\ref{eq:general_scalar_eqn} becomes:
 
 \begin{equation}\label{eq:keps_diff}
-\kaptens = D + v_T/C_T
+\kaptens = D + v_T/\sigma_T
 \end{equation}
 
 where $D$ is the background diffusivity tensor for the fluid or the scalar field, and
-$C_T$ is the Prandtl number, $Pr_T$, for temperature fields or the Schmidt number, $Sc_T$,
+$\sigma_T$ is the Prandtl number, $Pr_T$, for temperature fields or the Schmidt number, $Sc_T$,
 for massive fields.  
 
 The Prandtl number is the ratio of momentum diffusivity (eddy viscosity) to the eddy
