@@ -38,6 +38,7 @@ module detector_data_types
   
   public :: detector_type, detector_linked_list, &
             detector_list_ptr, stringlist, &
+            biovar, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2  
@@ -80,6 +81,14 @@ module detector_data_types
      TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type
 
+  type biovar
+    character(len=FIELD_NAME_LEN) :: name
+    character(len=FIELD_NAME_LEN) :: field_name
+    integer :: field_type = 0
+    logical :: stage_aggregate = .false.
+    character(len=FIELD_NAME_LEN) :: chemfield
+  end type biovar
+
   type detector_linked_list
      !! Doubly linked list implementation
      integer :: length=0
@@ -106,11 +115,7 @@ module detector_data_types
      real :: stage_id
      logical :: has_biology=.false.
      character(len=FIELD_NAME_LEN) :: fg_name, stage_name
-     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biovar_name
-     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: biofield_name
-     integer, dimension(:), allocatable :: biofield_type
-     logical, dimension(:), allocatable :: biofield_aggregate
-     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: chemfield_name
+     type(biovar), dimension(:), allocatable :: biovars
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: env_field_name
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
      logical :: do_particle_management=.false.
