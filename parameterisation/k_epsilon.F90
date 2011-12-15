@@ -353,7 +353,7 @@ subroutine keps_tke(state)
          end do
        
          ! multiply by determinate weights, integrate and add to rhs
-         rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_kk, scalar * detwei)        
+         rhs_addto(3,:) = rhs_addto(3,:) - shape_rhs(shape_kk, scalar * detwei)        
          
          deallocate(scalar)
          deallocate(vector)
@@ -561,7 +561,7 @@ subroutine keps_eps(state)
       allocate(u_xy(u%dim, ele_ngi(u, ele)))    
 
       ! get components of velocity in direction of gravity and in other directions
-      u_z = ele_val_at_quad(g, ele) * ele_val_at_quad(u, ele)
+      u_z = abs(ele_val_at_quad(g, ele)) * ele_val_at_quad(u, ele)
       u_xy = ele_val_at_quad(u, ele) - u_z
 
       ! calculate c_eps_3 = tanh(v/u)
@@ -601,7 +601,7 @@ subroutine keps_eps(state)
          end do
        
          ! multiply by determinate weights and integrate
-         rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_eps, scalar * detwei)
+         rhs_addto(3,:) = rhs_addto(3,:) - shape_rhs(shape_eps, scalar * detwei)
          
          deallocate(scalar)
          deallocate(vector)
