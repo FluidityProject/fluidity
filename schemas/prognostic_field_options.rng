@@ -257,9 +257,9 @@ For this field. Default = 1.0 if not specified.</a:documentation>
             <element name="buoyancy_effects">
               <a:documentation>Option to enable buoyancy source term for this field.</a:documentation>
               <element name="beta">
-                <a:documentation>The beta value given here is used to calculate the perturbation in density due to a unit increase in this 
-scalar field. This is only used within the k-epsilon function. For a temperature field this will be the 
-thermal expansion coefficient, for a sediment field it will be the submerged specific gravity.
+                <a:documentation>The beta value given transforms the scalar field gradient into a density gradient such that a unit increase in the scalar. 
+field increases the density by beta. For a temperature field this will be the thermal expansion coefficient and it will be 
+negative, for a sediment field it will be the submerged specific gravity and will be positive.
 
 \delta rho = S * \beta
 
