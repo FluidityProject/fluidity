@@ -294,6 +294,8 @@ subroutine keps_tke(state)
        call deallocate(src_abs_terms(i_term))
     end do
 
+    call deallocate_scalar_field_buoyancy_data(scalar_fields, beta, delta_t)
+
     ! Set diffusivity for k equation.
     call zero(kk_diff)
     do i = 1, kk_diff%dim(1)
@@ -522,6 +524,8 @@ subroutine keps_eps(state)
     do i_term = 1, 3
        call deallocate(src_abs_terms(i_term))
     end do 
+
+    call deallocate_scalar_field_buoyancy_data(scalar_fields, beta, delta_t)
 
     ! Set diffusivity for Eps
     call zero(eps_diff)
@@ -1199,6 +1203,23 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
   end do scalar_field_loop
   
 end subroutine get_scalar_field_buoyancy_data
+
+!----------------------------------------------------------------------------------------! 
+! Deallocates scalar buoyancy information                                                !
+!----------------------------------------------------------------------------------------!
+subroutine deallocate_scalar_field_buoyancy_data(scalar_fields, beta, delta_t)
+  
+  type(scalar_field_pointer), allocatable, dimension(:), intent(inout):: scalar_fields
+  real, allocatable, dimension(:), intent(inout)                      :: beta, delta_t
+
+  ! deallocate buoyancy data
+  if (allocated(scalar_fields)) then
+     deallocate(scalar_fields)
+     deallocate(beta)
+     deallocate(delta_t)
+  end if
+
+end subroutine deallocate_scalar_field_buoyancy_data
 
 !------------------------------------------------------------------------------------------!
 ! Computes the strain rate for the LES model. Double-dot product results in a scalar:      !
