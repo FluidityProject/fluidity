@@ -1182,6 +1182,10 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
                 &'/prognostic/subgridscale_parameterisation::k-epsilon/prandtl_schmidt_number', &
                 & delta_t(ubound(delta_t,1)), stat) 
 
+           deallocate(temp_scalar_fields)
+           deallocate(temp_beta)
+           deallocate(temp_delta_t)
+
         else
            
            allocate(scalar_fields(1))
