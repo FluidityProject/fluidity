@@ -231,29 +231,9 @@ then
     else
 	echo "Failed to locate Numpy"
     fi
-
-    # has the user specified scipy to be turned off
-    AC_ARG_ENABLE(scipy,
-    [AC_HELP_STRING([--enable-scipy],
-    [import scipy into fluiditys python interface.])])
-    if test "$enable_scipy" != "no"; then
-        # Additionally check for scipy
-        SCIPY=$(python -c 'import scipy; print scipy.get_include()' 2>/dev/null)
-        if ! test -z "$SCIPY"; then	
-        echo "Scipy is " $SCIPY	
-        HAVE_SCIPY="yes"
-        else
-        echo "Failed to locate Scipy"
-        HAVE_SCIPY="no"
-        fi
-    else
-        HAVE_SCIPY="no"
-    fi
-
-
 fi
 AC_SUBST(HAVE_PYTHON)
-AC_SUBST(HAVE_SCIPY)
+
 AC_ARG_ENABLE(cgal, [AC_HELP_STRING([--enable-cgal], [turns on use of the CGAL library])])
 if test "$enable_cgal" = "yes" ; then
   AC_CHECK_LIB(CGAL, cos, [HAVE_CGAL=yes], [HAVE_CGAL=no])
@@ -1544,7 +1524,6 @@ AC_OUTPUT(Makefile
           main/Makefile
           tools/Makefile
           python/setup.py
-          python/fluidity/state_types.py
           adjoint/Makefile
           adjoint/tests/Makefile
           climatology/Makefile
