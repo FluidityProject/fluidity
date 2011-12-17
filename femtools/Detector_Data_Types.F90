@@ -81,12 +81,20 @@ module detector_data_types
      TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type
 
+  ! Type holding meta-information about biology variables of LE agents
   type biovar
+    ! Variable name
     character(len=FIELD_NAME_LEN) :: name
+    ! Name of primary diagnostic field associated with variable
     character(len=FIELD_NAME_LEN) :: field_name
+    ! Type of variable, ie. diagnostic, uptake, release
     integer :: field_type = 0
+    ! Flag indicating whether to aggregate by stage
     logical :: stage_aggregate = .false.
+    ! Name of chemical field associated with uptake/release variables
     character(len=FIELD_NAME_LEN) :: chemfield
+    ! Variable index of the corresponding pool variable for uptake/release variables
+    integer :: pool_index
   end type biovar
 
   type detector_linked_list

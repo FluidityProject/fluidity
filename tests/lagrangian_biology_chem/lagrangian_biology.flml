@@ -130,7 +130,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value type="python" lines="20">def val(X,t):
   return (100. - abs(X[0])) / 10.</string_value>
           </python>
         </initial_condition>
@@ -241,6 +241,7 @@
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
+              <stage_aggregate/>
             </scalar_field>
             <chemical_field name="DissolvedNutrient"/>
             <uptake>
@@ -305,7 +306,7 @@
               <string_value lines="20" type="python">def val(t):
   from numpy import arange
   # 100 agents, evenly spaced in [0:100]m
-  positions = arange(-100.,0.,1.0).reshape(100,1)
+  positions = arange(-99.5,0.,1.0).reshape(100,1)
   return positions</string_value>
             </initial_position>
             <initial_state>
@@ -372,6 +373,7 @@
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
+              <stage_aggregate/>
             </scalar_field>
             <chemical_field name="DissolvedNutrient"/>
             <uptake>
@@ -436,7 +438,7 @@
               <string_value lines="20" type="python">def val(t):
   from numpy import arange
   # 100 agents, evenly spaced in [0:100]m
-  positions = arange(-100.,0.,1.0).reshape(100,1)
+  positions = arange(-99.5,0.,1.0).reshape(100,1)
   return positions</string_value>
             </initial_position>
             <initial_state>

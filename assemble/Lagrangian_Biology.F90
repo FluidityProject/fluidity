@@ -77,7 +77,7 @@ contains
     real:: current_time
     integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, column, &
                ierror, det_type, biovar, array, biovar_total, biovar_state, rnd_seed_int, &
-               biovar_chemical, biovar_uptake, biovar_release, rnd_dim, n_env_fields
+               biovar_chemical, biovar_uptake, biovar_release, rnd_dim, n_env_fields, chemvar_index
                
     integer, dimension(:), allocatable :: rnd_seed
 
@@ -236,6 +236,7 @@ contains
                 else
                    agent_arrays(array)%biovars(biovar)%field_type = BIOFIELD_NONE
                 end if
+                chemvar_index = biovar
                 biovar = biovar+1
 
                 ! Chemical uptake
@@ -255,6 +256,7 @@ contains
                    else
                       agent_arrays(array)%biovars(biovar)%stage_aggregate=.false.
                    end if
+                   agent_arrays(array)%biovars(biovar)%pool_index = chemvar_index
                    biovar = biovar+1
                 end if
 
@@ -275,6 +277,7 @@ contains
                    else
                       agent_arrays(array)%biovars(biovar)%stage_aggregate=.false.
                    end if
+                   agent_arrays(array)%biovars(biovar)%pool_index = chemvar_index
                    biovar = biovar+1
                 end if
 
@@ -588,9 +591,9 @@ contains
     ! Loop over all agents in this list and determine element volume
     agent => agent_list%first
     do while (associated(agent))
-       ele_volume = element_volume(xfield, agent%element)
 
        ! Increase agent density field
+       ele_volume = element_volume(xfield, agent%element)
        call addto(agent_count_field, agent%element, 1.0/ele_volume)
 
        ! Add diagnostic quantities to field for all variables
@@ -619,9 +622,10 @@ contains
 
     type(scalar_field), pointer :: request_field, chemfield, depletion_field
     type(vector_field), pointer :: xfield
-    integer :: i, j, n, ele
+    type(detector_type), pointer :: agent
+    integer :: i, j, n, ele, poolvar
     integer, dimension(:), pointer :: element_nodes
-    real :: chemval, chem_integral, request, depletion
+    real :: chemval, chem_integral, request, depletion, ingested_amount
 
     call profiler_tic("/chemical_exchange")
 
@@ -659,6 +663,30 @@ contains
              end if
           end do
        end do
+    end do
+
+    do i = 1, size(agent_arrays)
+       if (agent_arrays(i)%has_biology) then
+          do j=1, size(agent_arrays(i)%biovars)
+             ! Adjust agent pools
+             if (agent_arrays(i)%biovars(j)%field_type == BIOFIELD_UPTAKE) then
+
+                depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%chemfield)//"Depletion")
+                poolvar = agent_arrays(i)%biovars(j)%pool_index
+
+                agent => agent_arrays(i)%first
+                do while (associated(agent))
+                   ingested_amount = agent%biology(j) * node_val(depletion_field, agent%element) / agent%biology(BIOVAR_SIZE)
+                   agent%biology(poolvar) = agent%biology(poolvar) + ingested_amount
+
+                   agent => agent%next
+                end do
+             end if
+          end do
+
+          ! We need to re-do stage-aggregation as well...
+          call derive_per_stage_diagnostics(agent_arrays(i), state)
+       end if
     end do
 
     call profiler_toc("/chemical_exchange")
