@@ -244,7 +244,7 @@ contains
 
     type(state_type), intent(inout)           :: state
     ! Unfiltered velocity
-    type(vector_field), pointer, intent(in)   :: nu
+    type(vector_field), pointer, intent(inout):: nu
     type(vector_field), intent(in)            :: positions
     ! Filtered velocity
     type(vector_field), pointer, intent(inout):: tnu
