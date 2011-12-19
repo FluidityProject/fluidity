@@ -103,9 +103,17 @@ THREADS=1
 EXCLUDE_TAGS =
 ifneq (@ZOLTAN@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e zoltan
+else
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e nozoltan
 endif
 ifneq (@HAVE_ADJOINT@,yes)
 	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e adjoint
+endif
+ifneq (@ALGENCAN@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e algencan
+endif
+ifneq (@MBA2D@,yes)
+	EXCLUDE_TAGS := $(EXCLUDE_TAGS) -e 2dadapt
 endif
 
 .SUFFIXES: .f90 .F90 .c .cpp .o .a
@@ -503,29 +511,10 @@ distclean: clean
 test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
-ifeq (@MBA2D@,yes)
-        ifeq (@ZOLTAN@,yes)
-	        @cd tests; ../bin/testharness -l short -p serial -e nozoltan -n $(THREADS)
-        else
-	        @cd tests; ../bin/testharness -l short -p serial -e zoltan -n $(THREADS)
-        endif
-else
-        ifeq (@ZOLTAN@,yes)
-	        @cd tests; ../bin/testharness -l short -p serial -e "2dadapt nozoltan" -n $(THREADS)
-        else
-	        @cd tests; ../bin/testharness -l short -p serial -e "2dadapt zoltan" -n $(THREADS)
-        endif
-endif
+	@cd tests; ../bin/testharness -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
-
-mediumzoltantest:
-ifeq (@ZOLTAN@,yes)
-	@cd tests; ../bin/testharness -l medium -t zoltan -n $(THREADS)
-else
-	@echo "Warning: build did not have zoltan enabled, make mediumzoltantest will not run" -n $(THREADS)
-endif
 
 setuputs: 
 	@echo "SETUP tests"
@@ -634,3 +623,11 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/bin\///" '{}' \;
 	tar -czvf $(DESTDIR)$(docdir)/fluidity/examples.tar.gz $(DESTDIR)$(docdir)/fluidity/examples/
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
+
+install-diamond: 
+	cd libspud/diamond;     python setup.py install --prefix=$(DESTDIR)@prefix@; cd ../..
+
+install-user-schemata:
+	mkdir -p $(HOME)/.schemata/
+	echo "Fluidity Markup Language" > $(HOME)/.schemata/flml
+	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.schemata/flml
