@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>add_src_directly_1d_2grp_hom_zerobc_eig_p1cv</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_A.flml 
+
+cp add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_A.flml add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_B.flml
+sed -i 's/_A/_B/' add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_B.flml
+
+../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_B.flml 
+
+rm -f add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_B.flml
+
+cp add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_A.flml add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_C.flml
+sed -i 's/_A/_C/' add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_C.flml
+
+../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_C.flml 
+
+rm -f add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_C.flml
+
+cp add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_A.flml add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_D.flml
+sed -i 's/_A/_D/' add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_D.flml
+
+../../bin/fluidity add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_D.flml 
+
+rm -f add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_D.flml       
+    </command_line>
+    <!-- Two field diffusion eigenvalue problem with one material, two groups no upscatter with all zero BC using a 1d geometry compared to PANTHER reference solution for the Eigenvalue and also the fine mesh linear cv solution for different mesh resolutions. This tests adding the src directly to the rhs. -->
+  </problem_definition>
+  <variables>
+    <variable name="Eigenvalue_A" language="python">
+from fluidity_tools import stat_parser as stat
+Eigenvalue_A = stat("add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_A.stat")["One"]["Eigenvalue"]["max"][-1]
+    </variable>
+    <variable name="Eigenvalue_B" language="python">
+from fluidity_tools import stat_parser as stat
+Eigenvalue_B = stat("add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_B.stat")["One"]["Eigenvalue"]["max"][-1]
+    </variable>
+    <variable name="Eigenvalue_C" language="python">
+from fluidity_tools import stat_parser as stat
+Eigenvalue_C = stat("add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_C.stat")["One"]["Eigenvalue"]["max"][-1]
+    </variable>
+    <variable name="Eigenvalue_D" language="python">
+from fluidity_tools import stat_parser as stat
+Eigenvalue_D = stat("add_src_directly_1d_2grp_hom_zerobc_eig_p1cv_D.stat")["One"]["Eigenvalue"]["max"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Check Eigenvalue_A against PANTHER reference with tolerance 9.9e-03" language="python">
+reference_Eigenvalue = 1.0
+print 'Relative error compared to reference: ',abs((Eigenvalue_A - reference_Eigenvalue)/reference_Eigenvalue)
+assert abs((Eigenvalue_A - reference_Eigenvalue)/reference_Eigenvalue) &lt; 9.9e-03
+    </test>
+    <test name="Check Eigenvalue_B against PANTHER reference with tolerance 5.4e-03" language="python">
+reference_Eigenvalue = 1.0
+print 'Relative error compared to reference: ',abs((Eigenvalue_B - reference_Eigenvalue)/reference_Eigenvalue)
+assert abs((Eigenvalue_B - reference_Eigenvalue)/reference_Eigenvalue) &lt; 5.4e-03
+    </test>
+    <test name="Check Eigenvalue_C against PANTHER reference with tolerance 3.9e-04" language="python">
+reference_Eigenvalue = 1.0
+print 'Relative error compared to reference: ',abs((Eigenvalue_C - reference_Eigenvalue)/reference_Eigenvalue)
+assert abs((Eigenvalue_C - reference_Eigenvalue)/reference_Eigenvalue) &lt; 3.9e-04
+    </test>
+    <test name="Check Eigenvalue_D against PANTHER reference with tolerance 1.1e-04" language="python">
+reference_Eigenvalue = 1.0
+print 'Relative error compared to reference: ',abs((Eigenvalue_D - reference_Eigenvalue)/reference_Eigenvalue)
+assert abs((Eigenvalue_D - reference_Eigenvalue)/reference_Eigenvalue) &lt; 1.1e-04
+    </test>
+
+    <test name="Check Eigenvalue_A against fine mesh (mesh size 0.001, number of vele 44500) cg reference with tolerance 9.9e-03" language="python">
+reference_Eigenvalue = 0.999986731726
+print 'Relative error compared to reference: ',abs((Eigenvalue_A - reference_Eigenvalue)/reference_Eigenvalue)
+assert abs((Eigenvalue_A - reference_Eigenvalue)/reference_Eigenvalue) &lt; 9.9e-03
+    </test>
+    <test name="Check Eigenvalue_B against fine mesh (mesh size 0.001, number of vele 44500) cg reference with tolerance 5.4e-03" language="python">
+reference_Eigenvalue = 0.999986731726
+print 'Relative error compared to reference: ',abs((Eigenvalue_B - reference_Eigenvalue)/reference_Eigenvalue)
+assert abs((Eigenvalue_B - reference_Eigenvalue)/reference_Eigenvalue) &lt; 5.4e-03
+    </test>
+    <test name="Check Eigenvalue_C against fine mesh (mesh size 0.001, number of vele 44500) cg reference with tolerance 3.8e-04" language="python">
+reference_Eigenvalue = 0.999986731726
+print 'Relative error compared to reference: ',abs((Eigenvalue_C - reference_Eigenvalue)/reference_Eigenvalue)
+assert abs((Eigenvalue_C - reference_Eigenvalue)/reference_Eigenvalue) &lt; 3.8e-04
+    </test>
+    <test name="Check Eigenvalue_D against fine mesh (mesh size 0.001, number of vele 44500) cg reference with tolerance 1.0e-04" language="python">
+reference_Eigenvalue = 0.999986731726
+print 'Relative error compared to reference: ',abs((Eigenvalue_D - reference_Eigenvalue)/reference_Eigenvalue)
+assert abs((Eigenvalue_D - reference_Eigenvalue)/reference_Eigenvalue) &lt; 1.0e-04
+    </test>
+
+    <test name="Check Eigenvalue_C to Eigenvalue_D convergence with regard to the fine mesh cg linear solution with tolerance 1.0e-03" language="python">
+from math import log
+
+reference_Eigenvalue = 0.999986731726
+
+Eigenvalue_one = Eigenvalue_C
+Eigenvalue_two = Eigenvalue_D
+
+expected_convergence_ratio = 2.0
+
+Eigenvalue_one_error = abs(Eigenvalue_one - reference_Eigenvalue) 
+Eigenvalue_two_error = abs(Eigenvalue_two - reference_Eigenvalue) 
+
+convergence_ratio = abs(  log((Eigenvalue_one_error / Eigenvalue_two_error), 2) )
+
+print 'convergence_ratio',convergence_ratio
+
+relative_error = abs((convergence_ratio - expected_convergence_ratio) / expected_convergence_ratio)
+
+print 'Relative error of convergence_ratio to expected 2nd order:',relative_error
+
+assert relative_error &lt; 1.0e-03
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
