@@ -2,7 +2,7 @@
 <testproblem>
   <name>Multimaterial adaptivity and interpolation test. Tests adapt_at_first_timestep after checkpoint.</name>
   <owner userid="skramer"/>
-  <tags>flml</tags>
+  <tags>flml 2dadapt</tags>
   <problem_definition length ="medium" nprocs = "1">
     <command_line>fluidity -v1 -l mmat-interpolation.flml &amp;&amp; ./change_options.py &amp;&amp; fluidity -v1 -l mmat-interpolation_2_checkpoint.flml </command_line>
   </problem_definition>
