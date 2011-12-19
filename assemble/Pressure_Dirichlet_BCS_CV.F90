@@ -186,7 +186,7 @@ contains
   
       surface_element_loop: do sele = 1, surface_element_count(p)
   
-        ! cycle if this not a weak dirichlet pressure BC.
+        ! cycle if this not a dirichlet pressure BC.
         if (pressure_bc_type(sele) == 0) cycle
             
         ele         = face_ele(x, sele)
