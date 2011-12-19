@@ -8248,6 +8248,15 @@ Automatic when projecting a discontinuous field</a:documentation>
                   <empty/>
                 </element>
               </optional>
+              <optional>
+                <element name="test_divergence_with_cv_dual">
+                  <a:documentation>Test the divergence equation with the control volume dual mesh
+of the finite element lagrange multiplier mesh.
+This will make the lagrange multiplier matrix non symmetric which must be 
+considered when selecting the lagrange multiplier  solver options.</a:documentation>
+                  <ref name="comment"/>
+                </element>
+              </optional>
             </element>
             <element name="control_volumes">
               <empty/>
