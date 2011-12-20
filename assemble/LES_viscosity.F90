@@ -147,21 +147,30 @@ contains
 
   end subroutine les_init_fields
 
-  subroutine les_set_diagnostic_fields(state, nu, ele, detwei, &
+  subroutine les_set_diagnostic_fields(state, nu, density, ele, detwei, &
                  eddy_visc_gi, visc_gi, strain_gi, filtered_strain_gi, filter_width_gi, les_coef_gi)
 
     type(state_type), intent(inout)                             :: state
     type(vector_field), intent(in)                              :: nu
+    type(scalar_field), intent(in)                              :: density
     integer, intent(in)                                         :: ele
     real, dimension(ele_ngi(nu,ele)), intent(in)                :: detwei
     real, dimension(ele_ngi(nu,ele)), intent(in), optional      :: les_coef_gi
     real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(inout), optional &
     & :: eddy_visc_gi, visc_gi, strain_gi, filtered_strain_gi, filter_width_gi
+    real, dimension(ele_ngi(nu,ele))                            :: density_gi
     type(tensor_field), pointer                                 :: tensorfield
     type(scalar_field), pointer                                 :: scalarfield
     real, dimension(nu%dim,nu%dim,ele_loc(nu,ele))              :: tensor_loc
-    real, dimension(ele_loc(nu,ele))                            :: scalar_loc
-    integer                                                     :: stat
+    real, dimension(ele_loc(nu,ele))                            :: scalar_loc, lumped_mass
+    real, dimension(ele_loc(nu,ele),ele_loc(nu,ele))            :: mass_matrix
+    type(element_type)                                          :: nu_shape
+    integer                                                     :: stat, i
+
+    nu_shape = ele_shape(nu, ele)
+    density_gi = ele_val_at_quad(density, ele)
+    mass_matrix = shape_shape(nu_shape, nu_shape, detwei*density_gi)
+    lumped_mass = sum(mass_matrix, 2)
 
     ! Eddy viscosity field m_ij is available with all LES models
     if (present(eddy_visc_gi)) then
@@ -173,7 +182,11 @@ contains
         if(any(eddy_visc_gi(:,:,:)<0.)) then
           !ewrite(2,*) "warning: visc_gi+eddy_visc_gi < 0", eddy_visc_gi
         end if
-        tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), eddy_visc_gi, detwei)
+        tensor_loc=shape_tensor_rhs(nu_shape, eddy_visc_gi, detwei)
+        ! Divide by lumped mass
+        do i=1, ele_loc(nu,ele)
+          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
+        end do
         if(any(tensor_loc(:,:,:)<0.)) then
           !ewrite(2,*) "warning: tensor_loc < 0", tensor_loc
         end if
@@ -183,22 +196,15 @@ contains
       end if
     end if
 
-    ! Combined viscosity field
-    !if (present(visc_gi)) then
-    !  tensorfield => extract_tensor_field(state, "Viscosity", stat)
-    !  if(stat==0) then
-    !    tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), visc_gi+eddy_visc_gi, detwei)
-    !    call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
-    !  else
-        !FlExit("Error: field has disappeared.")
-    !  end if
-    !end if
-
     ! Strain rate field S1
     if (present(strain_gi)) then
       tensorfield => extract_tensor_field(state, "StrainRate", stat)
       if(stat==0) then
-        tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), strain_gi, detwei)
+        tensor_loc=shape_tensor_rhs(nu_shape, strain_gi, detwei)
+        ! Divide by lumped mass
+        do i=1, ele_loc(nu,ele)
+          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
+        end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
       else
         !FlExit("Error: StrainRate field has disappeared.")
@@ -209,7 +215,11 @@ contains
     if (present(filtered_strain_gi)) then
       tensorfield => extract_tensor_field(state, "FilteredStrainRate", stat)
       if(stat==0) then
-        tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), filtered_strain_gi, detwei)
+        tensor_loc=shape_tensor_rhs(nu_shape, filtered_strain_gi, detwei)
+        ! Divide by lumped mass
+        do i=1, ele_loc(nu,ele)
+          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
+        end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
       else
         !FlExit("Error: FilteredStrainRate field has disappeared.")
@@ -220,7 +230,11 @@ contains
     if (present(filter_width_gi)) then
       tensorfield => extract_tensor_field(state, "FilterWidth", stat)
       if(stat==0) then
-        tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), filter_width_gi, detwei)
+        tensor_loc=shape_tensor_rhs(nu_shape, filter_width_gi, detwei)
+        ! Divide by lumped mass
+        do i=1, ele_loc(nu,ele)
+          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
+        end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
       else
         !FlExit("Error: FilterWidth field has disappeared.")
@@ -231,7 +245,11 @@ contains
     if (present(les_coef_gi)) then
       scalarfield => extract_scalar_field(state, "SmagorinskyCoefficient",stat)
       if(stat==0) then
-        scalar_loc=shape_rhs(ele_shape(nu, ele), les_coef_gi*detwei)
+        scalar_loc=shape_rhs(nu_shape, les_coef_gi*detwei)
+        ! Divide by lumped mass
+        do i=1, ele_loc(nu,ele)
+          scalar_loc(i)=scalar_loc(i)/lumped_mass(i)
+        end do
         call addto(scalarfield, ele_nodes(nu, ele), scalar_loc)
       else
         !FlExit("Error: SmagorinskyCoefficient field has disappeared.")
@@ -270,7 +288,7 @@ contains
     ! Path to solver options
     lpath = (trim(les_option_path)//"/dynamic_les")
     ewrite(2,*) "filter factor alpha: ", alpha
-
+    ewrite(2,*) "path to solver options: ", trim(lpath)
     call anisotropic_smooth_vector(nu, positions, tnu, alpha, lpath)
 
     ewrite_minmax(nu)

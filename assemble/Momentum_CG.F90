@@ -1286,7 +1286,7 @@
 
       ! Viscous terms
       if(have_viscosity .or. have_les) then
-        call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
+        call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
            evi, str, fst, tnu, fw, lnd, stp, smg, alpha, &
            du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       end if
@@ -1901,7 +1901,7 @@
       
     end subroutine add_absorption_element_cg
       
-    subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
+    subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
         evi, str, fst, tnu, fw, lnd, stp, smg, alpha, &
          du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       type(state_type), intent(inout) :: state
@@ -1910,6 +1910,7 @@
       type(vector_field), intent(in) :: u, nu
       real, dimension(:,:), intent(in) :: oldu_val
       type(vector_field), intent(in) :: x
+      type(scalar_field), intent(in) :: density
       type(tensor_field), intent(in) :: viscosity
       type(tensor_field), intent(in) :: grad_u
 
@@ -1983,7 +1984,7 @@
             end do
             ! Eddy viscosity tensor field. Calling this subroutine works because
             ! you can't have 2 different types of LES model for the same material phase.
-            call les_set_diagnostic_fields(state, nu, ele, detwei, eddy_visc_gi=les_tensor_gi)
+            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi)
 
          ! 2nd order Smagorinsky model
          else if(les_second_order) then
@@ -1993,7 +1994,7 @@
                les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
                     smagorinsky_coefficient**2
             end do
-            call les_set_diagnostic_fields(state, nu, ele, detwei, eddy_visc_gi=les_tensor_gi)
+            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi)
 
          ! 4th order Smagorinsky model
          else if (les_fourth_order) then
@@ -2007,7 +2008,7 @@
                        sum(div_les_viscosity(:,:,iloc)*grad_u_nodes(:,dim,:))
                end do
             end do
-            call les_set_diagnostic_fields(state, nu, ele, detwei, eddy_visc_gi=les_tensor_gi)
+            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi)
 
          ! Germano dynamic model
          else if (dynamic_les) then
@@ -2116,7 +2117,7 @@
             end if
 
             ! Set diagnostic fields
-            call les_set_diagnostic_fields(state, nu, ele, detwei, eddy_visc_gi=les_tensor_gi, visc_gi=viscosity_gi,&
+            call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi, visc_gi=viscosity_gi,&
                  strain_gi=strain_gi, filtered_strain_gi=t_strain_gi, filter_width_gi=filter_gi, les_coef_gi=les_coef_gi)
 
          else
