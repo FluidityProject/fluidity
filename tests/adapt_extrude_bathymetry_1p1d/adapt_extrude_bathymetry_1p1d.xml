@@ -2,6 +2,7 @@
 <testproblem>
   <name>adapt_extrude_bathymetry_1p1d</name>
   <owner userid="cwilson"/>
+  <tags>flml 2dadapt</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l adapt_extrude_bathymetry_1p1d.flml</command_line>
   </problem_definition>
