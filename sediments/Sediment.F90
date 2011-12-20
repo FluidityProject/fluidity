@@ -36,7 +36,7 @@ module sediment
   use sparse_matrices_fields
   use state_module
   use spud
-  use global_parameters, only:   OPTION_PATH_LEN, dt
+  use global_parameters, only:   OPTION_PATH_LEN, dt, timestep
   use state_fields_module
   use boundary_conditions
   use FLDebug
@@ -357,7 +357,11 @@ contains
     call get_sediment_item(state, i_field, 'diameter', d)
     call get_option("/physical_parameters/gravity/magnitude", g)
     ! VISCOSITY ASSUMED TO BE ISOTROPIC - maybe should be in normal direction to surface
-    R_p = sqrt(R*g*d**3)/face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1)
+    where (face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1) > 0.0) 
+       R_p = sqrt(R*g*d**3)/face_val_at_quad(viscosity, surface_element_list(i_ele), 1, 1)
+    elsewhere 
+       R_p = 0.0
+    end where 
     
     ! calculate u_star (shear velocity)
     call get_option(trim(shear_stress%option_path)//"/diagnostic/density", density)
@@ -375,8 +379,12 @@ contains
     lambda_m = lambda_m - 0.288 * face_val_at_quad(sigma, surface_element_list(i_ele))
 
     ! calculate Z
-    Z = lambda_m * u_star/face_val_at_quad(sink_U, surface_element_list(i_ele)) * R_p&
-         &**0.6 * (d / face_val_at_quad(d50, surface_element_list(i_ele)))**0.2  
+    where (face_val_at_quad(d50, surface_element_list(i_ele)) > 0.0)
+       Z = lambda_m * u_star/face_val_at_quad(sink_U, surface_element_list(i_ele)) * R_p&
+            &**0.6 * (d / face_val_at_quad(d50, surface_element_list(i_ele)))**0.2  
+    elsewhere 
+       Z = 0.0
+    end where
 
     ! calculate reentrainment F*v_s*E
     E = shape_rhs(shape, face_val_at_quad(volume_fraction, surface_element_list(i_ele)) *&

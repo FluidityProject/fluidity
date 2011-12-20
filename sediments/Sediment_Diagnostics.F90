@@ -54,14 +54,18 @@ contains
     !!< Since we don't actually know what the advection scheme was, this is
     !!< only an estimate based on the value at the end of the timestep.
     type(state_type), intent(inout)                        :: state
-    type(mesh_type), pointer                               :: surface_mesh
+    type(mesh_type), dimension(:), allocatable             :: surface_mesh
+    type surface_nodes_array
+       integer, dimension(:), pointer                      :: nodes
+    end type surface_nodes_array
+    type(surface_nodes_array), dimension(:), allocatable   :: surface_nodes
     type(vector_field), pointer                            :: X, U, gravity
     type(scalar_field), dimension(:), allocatable          :: deposited_sediment, erosion
     type(scalar_field), pointer                            :: erosion_flux, bedload_field&
          &, sediment_field, sink_U
-    type(scalar_field)                                     :: masslump
+    type(scalar_field)                                     :: masslump, temp
     integer                                                :: n_sediment_fields,&
-         & i_field, i_bcs, node, ele, stat, n_bcs
+         & i_field, i_bcs, i_node, ele, stat, n_bcs
     integer, dimension(2)                                  :: surface_id_count
     integer, dimension(:), allocatable                     :: surface_ids
     integer, dimension(:), pointer                         :: to_nodes, surface_element_list
@@ -85,6 +89,8 @@ contains
     ! allocate space for erosion and deposit field arrays
     allocate(erosion(n_sediment_fields))
     allocate(deposited_sediment(n_sediment_fields))
+    allocate(surface_mesh(n_sediment_fields))
+    allocate(surface_nodes(n_sediment_fields))
 
     ! first loop obtains eroded sediment quantities from reentrainment bc's (calculated
     ! in sediment::set_sediment_reentrainment)
@@ -94,10 +100,13 @@ contains
        call get_sediment_item(state, i_field, sediment_field)
        call get_sediment_item(state, i_field, "Bedload", bedload_field)
 
+       ! generate a surface mesh for this field
+       call create_surface_mesh(surface_mesh(i_field), surface_nodes(i_field)%nodes, &
+            & mesh=bedload_field%mesh, name='SurfaceMesh')        
+
        ! allocate a field that will hold the quantity of sediment eroded from the bed in
        ! this timestep
-       surface_mesh => bedload_field%mesh%faces%surface_mesh
-       call allocate(erosion(i_field), surface_mesh, "ErosionAmount")
+       call allocate(erosion(i_field), surface_mesh(i_field), "ErosionAmount")
        call zero(erosion(i_field))
        
        ! get boundary condition path and number of boundary conditions
@@ -127,8 +136,8 @@ contains
              do ele=1,ele_count(erosion_flux)
                 to_nodes => ele_nodes(erosion(i_field), surface_element_list(ele))
                 values = ele_val(erosion_flux,ele)
-                do node=1,size(to_nodes)
-                   call set(erosion(i_field),to_nodes(node),values(node))
+                do i_node=1,size(to_nodes)
+                   call set(erosion(i_field),to_nodes(i_node),values(i_node))
                 end do
              end do
              call scale(erosion(i_field),dt)
@@ -144,13 +153,6 @@ contains
     ! timestep 
     deposit_fields_loop: do i_field=1, n_sediment_fields
 
-       ! For continuous fields we need a global lumped mass. For dg we'll
-       ! do the mass inversion on a per face basis inside the element loop.
-       if(continuity(surface_mesh)>=0) then
-          call allocate(masslump, surface_mesh, "SurfaceMassLump")
-          call zero(masslump)
-       end if
-
        ! obtain scalar fields for this sediment class
        call get_sediment_item(state, i_field, sediment_field)
        call get_sediment_item(state, i_field, "Bedload", bedload_field)
@@ -158,9 +160,15 @@ contains
        
        ! allocate surface field that will contain the calculated deposited sediment for
        ! this timestep
-       surface_mesh => bedload_field%mesh%faces%surface_mesh
-       call allocate(deposited_sediment(i_field), surface_mesh, "DepositedSediment")
+       call allocate(deposited_sediment(i_field), surface_mesh(i_field), "DepositedSediment")
        call zero(deposited_sediment(i_field))
+
+       ! For continuous fields we need a global lumped mass. For dg we'll
+       ! do the mass inversion on a per face basis inside the element loop.
+       if(continuity(surface_mesh(i_field))>=0) then
+          call allocate(masslump, surface_mesh(i_field), "SurfaceMassLump")
+          call zero(masslump)
+       end if
        
        ! obtain surface ids over which to record deposition
        surface_id_count=option_shape(trim(bedload_field%option_path)//"/diagnos&
@@ -180,15 +188,14 @@ contains
 
           ! assemble bedload element
           call assemble_sediment_flux_ele(ele, deposited_sediment,&
-               & sediment_field, X, U, sink_U, gravity, masslump, i_field,&
-               & surface_element_list)
+               & sediment_field, X, U, sink_U, gravity, masslump, i_field)
 
        end do elements
 
        deallocate(surface_ids)
        
        ! For continuous fields we divide by the inverse global lumped mass
-       if(continuity(surface_mesh)>=0) then
+       if(continuity(surface_mesh(i_field))>=0) then
           where (masslump%val/=0.0)
              masslump%val=1./masslump%val
           end where
@@ -204,15 +211,20 @@ contains
        ! obtain scalar fields for this sediment class
        call get_sediment_item(state, i_field, "Bedload", bedload_field)
 
-       nodes: do node=1,node_count(deposited_sediment(i_field))
-          
-          ! Add on sediment falling in and subtract sediment coming out
-          call addto(bedload_field, &
-               & bedload_field%mesh%faces%surface_node_list(node), &
-               & node_val(deposited_sediment(i_field), node) - node_val(erosion(i_field),&
-               & node))
-          
-       end do nodes
+       ! Add on sediment falling in and subtract sediment coming out
+       do i_node = 1, node_count(surface_mesh(i_field))
+          ! add deposited sediment
+          call addto(bedload_field, surface_nodes(i_field)%nodes(i_node), &
+               & node_val(deposited_sediment(i_field), i_node))
+          ! remove eroded sediment
+          call addto(bedload_field, surface_nodes(i_field)%nodes(i_node), &
+               & -1.0 * node_val(erosion(i_field), i_node))
+
+          ! make sure bedload is positive
+          if (node_val(bedload_field, i_node) < 0.0) then
+             call set(bedload_field, i_node, 0.0)
+          end if
+       end do
 
        ewrite_minmax(deposited_sediment(i_field)) 
        ewrite_minmax(erosion(i_field)) 
@@ -220,16 +232,19 @@ contains
 
        call deallocate(deposited_sediment(i_field))
        call deallocate(erosion(i_field))
+       call deallocate(surface_mesh(i_field))
 
     end do net_flux_loop
 
     deallocate(deposited_sediment)
     deallocate(erosion)
+    deallocate(surface_mesh)
+    deallocate(surface_nodes)
 
   end subroutine calculate_sediment_flux
 
   subroutine assemble_sediment_flux_ele(ele, deposited_sediment, sediment_field,&
-       & X, U, sink_U, gravity, masslump, i_field, surface_element_list)
+       & X, U, sink_U, gravity, masslump, i_field)
 
     integer, intent(in) :: ele, i_field
     type(scalar_field), dimension(:), intent(inout) :: deposited_sediment
@@ -245,7 +260,6 @@ contains
          & U_normal_detwei, G_normal_detwei, U_sink_detwei
     real, dimension(U%dim, ele_ngi(deposited_sediment(i_field), ele)) :: normal
     type(element_type), pointer :: s_shape
-    integer, dimension(:), pointer :: surface_element_list
 
     s_ele=>ele_nodes(deposited_sediment(i_field), ele)
     s_shape=>ele_shape(deposited_sediment(i_field), ele)
@@ -409,22 +423,22 @@ contains
  
     nodes: do i_node = 1, node_count(d50)
 
-       i_field = 0
-       cumulative_bedload = 0.0
-       do while (cumulative_bedload < 0.5*node_val(total_bedload, i_node))
-          i_field = i_field + 1
-          cumulative_bedload = cumulative_bedload + node_val(sorted_bedload(i_field)%ptr,&
-               & i_node)
-       end do
-
-       if (i_field == 0) then
-          call set(d50, i_node, INFINITY)
-          cycle nodes
+       if (node_val(total_bedload, i_node) > 0.0) then 
+          i_field = 0
+          cumulative_bedload = 0.0
+          do while (cumulative_bedload < 0.5*node_val(total_bedload, i_node))
+             i_field = i_field + 1
+             cumulative_bedload = cumulative_bedload + node_val(sorted_bedload(i_field)%ptr,&
+                  & i_node)
+          end do
+          call set(d50, i_node, sorted_diameter(i_field))
+       else 
+          call set(d50, i_node, 0.0)
        end if
 
-       call set(d50, i_node, sorted_diameter(i_field))
-
     end do nodes
+
+    ewrite_minmax(d50)
 
     deallocate(sorted_diameter)
     deallocate(sorted_bedload)
@@ -512,6 +526,8 @@ contains
        call set(sigma, surface_node_list(i_node), node_val(sigma_surface, i_node))
     end do
 
+    ewrite_minmax(sigma)
+
     deallocate(bedload)
     deallocate(diameter) 
     call deallocate(sigma_surface)
@@ -535,8 +551,10 @@ contains
     real, dimension(ele_loc(sigma_surface, i_ele), &
          & ele_loc(sigma_surface, i_ele))                    :: invmass
     real, dimension(ele_ngi(sigma_surface, i_ele))           :: detwei, total_bedload, &
-         & mean_diameter, sigma, diameter_temp
+         & mean_diameter, sigma_numerator, diameter_temp
+    real, dimension(ele_loc(sigma_surface, i_ele))           :: sigma
     integer                                                  :: i_field, i_gi
+    real                                                     :: min_bedload = 1.0e-20
 
     ele => ele_nodes(sigma_surface, i_ele)
     shape => ele_shape(sigma_surface, i_ele)
@@ -554,24 +572,32 @@ contains
     do i_gi = 1, ele_ngi(sigma_surface, i_ele)
        total_bedload(i_gi) = 0.0
        mean_diameter(i_gi) = 0.0
-       sigma(i_gi) = 0.0
+       sigma_numerator(i_gi) = 0.0
     end do
-
+   
     mean_calculation_loop: do i_field = 1, n_fields
        total_bedload = total_bedload + face_val_at_quad(bedload(i_field)%ptr, i_ele)
        mean_diameter = mean_diameter + face_val_at_quad(bedload(i_field)%ptr, i_ele) *&
             & diameter(i_field)
     end do mean_calculation_loop
-    mean_diameter = mean_diameter / total_bedload
+    where (total_bedload > min_bedload) 
+       mean_diameter = mean_diameter / total_bedload
+    elsewhere
+       mean_diameter = 0.0
+    end where
 
     sigma_calculation_loop: do i_field = 1, n_fields
        do i_gi = 1, ele_ngi(sigma_surface, i_ele)
           diameter_temp(i_gi) = diameter(i_field)
        end do
-       sigma = sigma + face_val_at_quad(bedload(i_field)%ptr, i_ele) * (diameter_temp -&
-            & mean_diameter)**2.0
+       sigma_numerator = sigma_numerator + face_val_at_quad(bedload(i_field)%ptr, i_ele) &
+            &* (diameter_temp - mean_diameter)**2.0
     end do sigma_calculation_loop
-    sigma = shape_rhs(shape, (sigma / total_bedload)**0.5 * detwei)
+    where (total_bedload > min_bedload) 
+       sigma = shape_rhs(shape, (sigma_numerator / total_bedload)**0.5 * detwei)
+    elsewhere
+       sigma = 0.0
+    end where
 
     if(continuity(sigma_surface)<0) then
        ! DG case.
@@ -616,11 +642,11 @@ contains
 
        ! get sediment bedload and volume fraction fields
        call get_sediment_item(state, i_field, 'Bedload', bedload) 
-       call get_sediment_item(state, i_field, 'BedloadVolumeFraction', volume_fraction)        
-       
+       call get_sediment_item(state, i_field, 'BedloadVolumeFraction', volume_fraction)  
+
        ! generate surface_mesh for calculation of volume fraction and create surface field
-       call create_surface_mesh(surface_mesh, surface_node_list, mesh=bedload%mesh,&
-            & name='SurfaceMesh')
+       call create_surface_mesh(surface_mesh, surface_node_list, & 
+            & mesh=bedload%mesh, name='SurfaceMesh')
        call allocate(volume_fraction_surface, surface_mesh, "VolumeFraction")
        call zero(volume_fraction_surface) 
        
@@ -647,6 +673,7 @@ contains
           ! calculate volume_fraction
           call calculate_sediment_active_layer_element_volume_fractions(i_ele,&
                & volume_fraction_surface, bedload, total_bedload, masslump, x)
+
        end do elements
 
        ! For continuous fields we divide by the inverse global lumped mass
@@ -663,6 +690,8 @@ contains
           call set(volume_fraction, surface_node_list(i_node),&
                & node_val(volume_fraction_surface, i_node))
        end do
+
+       ewrite_minmax(volume_fraction)
 
        call deallocate(volume_fraction_surface)
        call deallocate(surface_mesh)
@@ -682,7 +711,7 @@ contains
     type(scalar_field), intent(in)                           :: bedload, total_bedload
     type(scalar_field), intent(inout)                        :: masslump
     type(vector_field), pointer, intent(in)                  :: x
-    integer, dimension(:), pointer                           :: ele
+    integer, dimension(:), pointer                           :: ele, i_gi
     type(element_type), pointer                              :: shape
     real, dimension(ele_loc(volume_fraction_surface, i_ele), &
          & ele_loc(volume_fraction_surface, i_ele))          :: invmass
@@ -701,8 +730,12 @@ contains
        invmass=inverse(shape_shape(shape, shape, detwei))
     end if
 
-    volume_fraction = shape_rhs(shape, face_val_at_quad(bedload, i_ele) /&
-         & face_val_at_quad(total_bedload, i_ele) * detwei)
+    where (face_val_at_quad(total_bedload, i_ele) > 0.0) 
+       volume_fraction = shape_rhs(shape, face_val_at_quad(bedload, i_ele) /&
+            & face_val_at_quad(total_bedload, i_ele) * detwei)
+    elsewhere
+       volume_fraction = 0.0
+    end where
 
     if(continuity(volume_fraction_surface)<0) then
        ! DG case.
