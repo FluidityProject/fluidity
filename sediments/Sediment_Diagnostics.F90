@@ -221,8 +221,8 @@ contains
                & -1.0 * node_val(erosion(i_field), i_node))
 
           ! make sure bedload is positive
-          if (node_val(bedload_field, i_node) < 0.0) then
-             call set(bedload_field, i_node, 0.0)
+          if (node_val(bedload_field, surface_nodes(i_field)%nodes(i_node)) < 0.0) then
+             call set(bedload_field, surface_nodes(i_field)%nodes(i_node), 0.0)
           end if
        end do
 
@@ -379,6 +379,7 @@ contains
     real                                        :: cumulative_bedload
     logical                                     :: sorted = .false.
     integer                                     :: i_field, n_fields, i_node, stat
+    real                                        :: min_bedload = 1.0e-20
 
     ewrite(1,*) 'In calculate sediment_active_layer_d50'
 
@@ -423,7 +424,7 @@ contains
  
     nodes: do i_node = 1, node_count(d50)
 
-       if (node_val(total_bedload, i_node) > 0.0) then 
+       if (node_val(total_bedload, i_node) > min_bedload) then 
           i_field = 0
           cumulative_bedload = 0.0
           do while (cumulative_bedload < 0.5*node_val(total_bedload, i_node))
@@ -716,6 +717,7 @@ contains
     real, dimension(ele_loc(volume_fraction_surface, i_ele), &
          & ele_loc(volume_fraction_surface, i_ele))          :: invmass
     real, dimension(ele_ngi(volume_fraction_surface, i_ele)) :: detwei, volume_fraction
+    real                                                     :: min_bedload = 1.0e-20
 
     ele => ele_nodes(volume_fraction_surface, i_ele)
     shape => ele_shape(volume_fraction_surface, i_ele)
@@ -730,7 +732,7 @@ contains
        invmass=inverse(shape_shape(shape, shape, detwei))
     end if
 
-    where (face_val_at_quad(total_bedload, i_ele) > 0.0) 
+    where (face_val_at_quad(total_bedload, i_ele) > min_bedload) 
        volume_fraction = shape_rhs(shape, face_val_at_quad(bedload, i_ele) /&
             & face_val_at_quad(total_bedload, i_ele) * detwei)
     elsewhere
