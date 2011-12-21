@@ -47,14 +47,12 @@ module advection_diffusion_cg
   use upwind_stabilisation
   use sparsity_patterns_meshes
   use internal_energy_equation
-  use equation_of_state, only: compressible_eos ! used for shock_viscosity in internal energy eqn.
   
   implicit none
   
   private
   
   public :: solve_field_equation_cg, advection_diffusion_cg_check_options
-  public :: shock_viscosity_tensor, add_shock_viscosity_element_cg
   
   character(len = *), parameter, public :: advdif_cg_m_name = "AdvectionDiffusionCGMatrix"
   character(len = *), parameter, public :: advdif_cg_rhs_name = "AdvectionDiffusionCGRHS"
@@ -233,7 +231,8 @@ contains
     type(vector_field), pointer :: gravity_direction, velocity_ptr, grid_velocity
     type(vector_field), pointer :: positions, old_positions, new_positions
     type(scalar_field), target :: dummydensity
-    type(scalar_field), pointer :: density, olddensity, drhodp
+    type(scalar_field), pointer :: density, olddensity 
+    type(scalar_field), pointer :: sound_speed
     character(len = OPTION_PATH_LEN) :: shock_viscosity_path
     character(len = FIELD_NAME_LEN) :: density_name
     type(scalar_field), pointer :: pressure
@@ -484,14 +483,11 @@ contains
         & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
       call get_option(trim(shock_viscosity_path)// &
         & "/linear_shock_viscosity_coefficient", shock_viscosity_cl)
-      ! compute drhodp, used in the linear shock viscosity to work out the speed of sound
-      ! presumably t%mesh is the internal energy mesh:
-      allocate(drhodp)
-      call allocate(drhodp, t%mesh, "_shock_viscosity_drhodp")
-      call compressible_eos(state, drhodp=drhodp)
-      ewrite_minmax(drhodp)
+      ! compute sound_speed, used in the linear shock viscosity
+      allocate(sound_speed)
+      sound_speed=get_sound_speed(state)
     else
-      drhodp => dummydensity
+      sound_speed => dummydensity
     end if
     
     ! Step 3: Assembly
@@ -504,7 +500,7 @@ contains
                                         positions, old_positions, new_positions, &
                                         velocity, grid_velocity, &
                                         source, absorption, diffusivity, &
-                                        density, olddensity, pressure, drhodp)
+                                        density, olddensity, pressure, sound_speed)
     end do
 
     ! as part of assembly include the already discretised optional source
@@ -554,8 +550,8 @@ contains
     call deallocate(velocity)
     call deallocate(dummydensity)
     if (have_shock_viscosity) then
-      call deallocate(drhodp)
-      deallocate(drhodp)
+      call deallocate(sound_speed)
+      deallocate(sound_speed)
     end if
     
     ewrite(1, *) "Exiting assemble_advection_diffusion_cg"
@@ -607,7 +603,7 @@ contains
                                       positions, old_positions, new_positions, &
                                       velocity, grid_velocity, &
                                       source, absorption, diffusivity, &
-                                      density, olddensity, pressure, drhodp)
+                                      density, olddensity, pressure, sound_speed)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
@@ -622,7 +618,7 @@ contains
     type(scalar_field), intent(in) :: density
     type(scalar_field), intent(in) :: olddensity
     type(scalar_field), intent(in) :: pressure
-    type(scalar_field), intent(in) :: drhodp
+    type(scalar_field), intent(in) :: sound_speed
     
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(t, ele)) :: detwei, detwei_old, detwei_new
@@ -745,7 +741,7 @@ contains
         velocity, pressure, &
         du_t, detwei, rhs_addto)
       if (have_shock_viscosity) then
-        call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, density, drhodp, detwei, &
+        call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, density, sound_speed, detwei, &
           shock_viscosity_cl, shock_viscosity_cq)
       end if
     end if

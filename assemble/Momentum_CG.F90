@@ -62,7 +62,6 @@
     use multiphase_module
     use edge_length_module
     use internal_energy_equation
-    use equation_of_state, only: compressible_eos ! used for shock_viscosity in internal energy eqn.
 
     implicit none
 
@@ -209,7 +208,7 @@
 
       type(scalar_field), pointer :: buoyancy
       type(scalar_field), pointer :: gp
-      type(scalar_field), pointer :: drhodp, internal_energy
+      type(scalar_field), pointer :: sound_speed, internal_energy
       type(vector_field), pointer :: gravity
       type(vector_field), pointer :: oldu, nu, ug, source, absorption
       type(tensor_field), pointer :: viscosity
@@ -489,17 +488,11 @@
            & "/quadratic_shock_viscosity_coefficient", shock_viscosity_cq)
         call get_option(trim(shock_viscosity_path)// &
            & "/linear_shock_viscosity_coefficient", shock_viscosity_cl)
-        ! compute drhodp, used in the linear shock viscosity to work out the speed of sound
-        internal_energy => extract_scalar_field(state, "InternalEnergy", stat=stat)
-        if (stat/=0) then
-          internal_energy => extract_scalar_field(state, "InternalEnergyDensity")
-        end if
-        allocate(drhodp)
-        call allocate(drhodp, internal_energy%mesh, "_shock_viscosity_drhodp")
-        call compressible_eos(state, drhodp=drhodp)
-        ewrite_minmax(drhodp)
+        ! compute sound_speed, used in the linear shock viscosity
+        allocate(sound_speed)
+        sound_speed=get_sound_speed(state)
       else
-        drhodp => dummyscalar
+        sound_speed => dummyscalar
       end if
 
       have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic/&
@@ -699,7 +692,7 @@
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
               mnu, tnu, leonard, alpha, &
-              gp, surfacetension, drhodp, &
+              gp, surfacetension, sound_speed, &
               assemble_ct_matrix_here, on_sphere, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac)
       end do element_loop
@@ -874,8 +867,8 @@
       end if
 
       if (have_shock_viscosity) then
-        call deallocate(drhodp)
-        deallocate(drhodp)
+        call deallocate(sound_speed)
+        deallocate(sound_speed)
       end if
 
       call deallocate(dummytensor)
@@ -1147,7 +1140,7 @@
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
                                             mnu, tnu, leonard, alpha, &
-                                            gp, surfacetension, drhodp, &
+                                            gp, surfacetension, sound_speed, &
                                             assemble_ct_matrix_here, on_sphere, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac)
 
@@ -1184,7 +1177,7 @@
       type(tensor_field), intent(in) :: surfacetension
 
       ! used for linear shock viscosity
-      type(scalar_field), intent(in) :: drhodp
+      type(scalar_field), intent(in) :: sound_speed
 
       logical, intent(in) :: assemble_ct_matrix_here, on_sphere
 
@@ -1358,7 +1351,7 @@
       if(have_viscosity .or. have_les .or. have_shock_viscosity) then
         call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
            mnu, tnu, leonard, alpha, &
-           du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac, drhodp)
+           du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac, sound_speed)
       end if
       
       ! Get only the viscous terms
@@ -1969,7 +1962,7 @@
       
     subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
          mnu, tnu, leonard, alpha, &
-         du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac, drhodp)
+         du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac, sound_speed)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1995,7 +1988,7 @@
       ! Non-linear PhaseVolumeFraction
       type(scalar_field), intent(in) :: nvfrac
       ! used in linear shock viscosity
-      type(scalar_field), intent(in) :: drhodp
+      type(scalar_field), intent(in) :: sound_speed
 
       integer                                                                        :: dim, dimj, gi, iloc
       real, dimension(u%dim, ele_loc(u, ele))                                        :: nu_ele
@@ -2152,7 +2145,8 @@
       end if
 
       if (have_shock_viscosity) then
-        viscosity_gi = viscosity_gi + shock_viscosity_tensor(nu, ele, du_t, J_mat, density, drhodp, shock_viscosity_cl, shock_viscosity_cq)
+        viscosity_gi = viscosity_gi + shock_viscosity_tensor(nu, ele, du_t, &
+            J_mat, detwei, density, sound_speed, shock_viscosity_cl, shock_viscosity_cq)
       end if
 
       ! element viscosity matrix - tensor form

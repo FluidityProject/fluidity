@@ -1231,6 +1231,13 @@ contains
                           trim(mat_name)//"."
             FLExit("Selected equation type only compatible with control volume or continuous galerkin spatial_discretisation")
           end if
+        case(FIELD_EQUATION_INTERNALENERGYDENSITY)
+          if(cv_disc) then
+            ewrite(-1,*) "Options checking field "//&
+                          trim(field_name)//" in material_phase "//&
+                          trim(mat_name)//"."
+            FLExit("Selected equation type not compatible with control volume spatial_discretisation")
+          end if
         case(FIELD_EQUATION_HEATTRANSFER)
           if(.not.cv_disc) then
             ewrite(-1,*) "Options checking field "//&
@@ -1238,6 +1245,15 @@ contains
                           trim(mat_name)//"."
             FLExit("Selected equation type only compatible with control volume spatial_discretisation")
           end if
+        case(FIELD_EQUATION_UNKNOWN)
+          ! do nothing
+        case default
+          ! this indicates a bug: new equation type has been added but no
+          ! check has been added above
+          ewrite(-1,*) "Options checking field "//&
+                          trim(field_name)//" in material_phase "//&
+                          trim(mat_name)//"."
+          FLAbort("Unknown equation type in options check")
         end select
 
       end do
