@@ -130,7 +130,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
   return (100. - abs(X[0])) / 10.</string_value>
           </python>
         </initial_condition>
@@ -241,7 +241,6 @@
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <chemical_field name="DissolvedNutrient"/>
             <uptake>
@@ -300,18 +299,18 @@
               <real_value rank="0">1.0</real_value>
             </id>
             <number_of_agents>
-              <integer_value rank="0">100</integer_value>
+              <integer_value rank="0">200</integer_value>
             </number_of_agents>
             <initial_position>
               <string_value lines="20" type="python">def val(t):
   from numpy import arange
-  # 100 agents, evenly spaced in [0:100]m
-  positions = arange(-99.5,0.,1.0).reshape(100,1)
+  # 200 agents, evenly spaced in [0:100]m
+  positions = arange(-99.75,0.,0.5).reshape(200,1)
   return positions</string_value>
             </initial_position>
             <initial_state>
               <string_value lines="20" type="python">def val(variables):
-  variables['Size'] = 100.0
+  variables['Size'] = 50.0
   variables['Nutrient'] = 0.0
   variables['Detritus'] = 10.0
   return variables</string_value>
@@ -373,7 +372,6 @@
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
-              <stage_aggregate/>
             </scalar_field>
             <chemical_field name="DissolvedNutrient"/>
             <uptake>
@@ -432,18 +430,18 @@
               <real_value rank="0">1.0</real_value>
             </id>
             <number_of_agents>
-              <integer_value rank="0">100</integer_value>
+              <integer_value rank="0">200</integer_value>
             </number_of_agents>
             <initial_position>
               <string_value lines="20" type="python">def val(t):
   from numpy import arange
-  # 100 agents, evenly spaced in [0:100]m
-  positions = arange(-99.5,0.,1.0).reshape(100,1)
+  # 200 agents, evenly spaced in [0:100]m
+  positions = arange(-99.75,0.,0.5).reshape(200,1)
   return positions</string_value>
             </initial_position>
             <initial_state>
               <string_value lines="20" type="python">def val(variables):
-  variables['Size'] = 100.0
+  variables['Size'] = 50.0
   variables['Nutrient'] = 0.0
   variables['Detritus'] = 10.0
   return variables</string_value>

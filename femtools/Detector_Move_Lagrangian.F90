@@ -215,7 +215,6 @@ contains
     ewrite(1,*) "In move_lagrangian_detectors for detectors list: ", detector_list%name
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
-    call profiler_tic("/move_lagrangian_detectors")
 
     ! Pull some information from state
     xfield=>extract_vector_field(state(1), "Coordinate")
@@ -433,7 +432,6 @@ contains
     ewrite(2,*) "After moving and distributing we have", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
     ewrite(1,*) "Exiting move_lagrangian_detectors"
-    call profiler_toc("/move_lagrangian_detectors")
 
     call profiler_toc(trim(detector_list%name)//"::move_lagrangian_detectors")
 

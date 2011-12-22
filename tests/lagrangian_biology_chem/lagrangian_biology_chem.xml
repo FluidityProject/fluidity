@@ -11,8 +11,51 @@
     </command_line>
   </problem_definition>
   <variables>
+    <variable name="agent_count_a" language="python">
+from fluidity_tools import stat_parser
+agent_count_a = stat_parser("lagrangian_biology.stat")['Water']['AgentAAgentsStage1']['integral']
+    </variable>
+    <variable name="biomass_a" language="python">
+from fluidity_tools import stat_parser
+biomass_a = stat_parser("lagrangian_biology.stat")['Water']['AgentAEnsembleSizeStage1']['integral']
+    </variable>
+    <variable name="agent_count_b" language="python">
+from fluidity_tools import stat_parser
+agent_count_b = stat_parser("lagrangian_biology.stat")['Water']['AgentBAgentsStage1']['integral']
+    </variable>
+    <variable name="biomass_b" language="python">
+from fluidity_tools import stat_parser
+biomass_b = stat_parser("lagrangian_biology.stat")['Water']['AgentBEnsembleSizeStage1']['integral']
+    </variable>
+    <variable name="nutrients_dissolved" language="python">
+from fluidity_tools import stat_parser
+nutrients_dissolved = stat_parser("lagrangian_biology.stat")['Water']['DissolvedNutrient']['integral']
+    </variable>
+    <variable name="nutrients_agent_a" language="python">
+from fluidity_tools import stat_parser
+nutrients_agent_a = stat_parser("lagrangian_biology.stat")['Water']['AgentAParticulateNutrientStage1']['integral']
+    </variable>
+    <variable name="nutrients_agent_b" language="python">
+from fluidity_tools import stat_parser
+nutrients_agent_b = stat_parser("lagrangian_biology.stat")['Water']['AgentBParticulateNutrientStage1']['integral']
+    </variable>
   </variables>
   <pass_tests>
+    <test name="constant_agent_count_a" language="python">
+assert abs(agent_count_a - 200).all() &lt; 1.0e-6
+    </test>
+    <test name="constant_agent_count_b" language="python">
+assert abs(agent_count_b - 200).all() &lt; 1.0e-6
+    </test>
+    <test name="constant_biomass_a" language="python">
+assert abs(biomass_a - 10000.0).all() &lt; 1.0e-6
+    </test>
+    <test name="constant_biomass_b" language="python">
+assert abs(biomass_b - 10000.0).all() &lt; 1.0e-6
+    </test>
+    <test name="nutrient_conservation" language="python">
+assert abs(nutrients_dissolved + nutrients_agent_a + nutrients_agent_b - 500.0).all() &lt; 1.0e-6
+    </test>
   </pass_tests>
   <warn_tests>
   </warn_tests>

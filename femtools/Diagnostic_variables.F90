@@ -1447,7 +1447,7 @@ contains
  
     ! Register this I/O detector list with a global list of detector lists
     call register_detector_list(default_stat%detector_list)
-    default_stat%detector_list%name = trim("I/O")
+    default_stat%detector_list%name = trim("I/O-Detectors")
 
     allocate(default_stat%detector_group_names(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))
@@ -2565,6 +2565,8 @@ contains
     type(vector_field), pointer :: vfield
     type(detector_type), pointer :: detector
 
+    call profiler_tic(trim(detector_list%name)//"::write_detectors")
+
     ewrite(1,*) "In write_detectors"
 
     !Computing the global number of detectors. This is to prevent hanging
@@ -2692,6 +2694,8 @@ contains
     end if
 
     ewrite(1,*) "Exiting write_detectors"
+
+    call profiler_toc(trim(detector_list%name)//"::write_detectors")
 
   contains
 

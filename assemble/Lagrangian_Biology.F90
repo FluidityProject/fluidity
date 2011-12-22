@@ -401,7 +401,7 @@ contains
     type(vector_field), pointer :: xfield
     integer :: i, j
 
-    ewrite(1,*) "In calculate_lagrangian_biology"
+    ewrite(1,*) "In update_lagrangian_biology"
     call profiler_tic("/update_lagrangian_biology")
 
     xfield=>extract_vector_field(state(1), "Coordinate")
@@ -417,10 +417,11 @@ contains
        end if
 
        if (agent_arrays(i)%has_biology) then
+
+          ewrite(2,*) "Updating lagrangian biology agents in list: ", trim(agent_arrays(i)%name)
+
           ! Compile python function to set bio-variable, and store in the global dictionary
           call python_run_detector_string(trim(agent_arrays(i)%biovar_pycode), trim(agent_arrays(i)%name), trim("biology_update"))
-
-          ewrite(2,*) "Updating biology agents..."
 
           ! Update agent biology
           agent=>agent_arrays(i)%first
@@ -437,7 +438,7 @@ contains
        end if
     end do
 
-    ewrite(2,*) "Handling stage changes..."
+    ewrite(2,*) "Handling stage changes across all agent lists"
 
     ! Handle stage changes within FG
     agent=>stage_change_list%first
@@ -452,11 +453,16 @@ contains
        agent=>agent%next
     end do
 
+    ! Derive the full set af eulerian diagnostic fields
+    ! This includes per-stage and stage-aggregated, 
+    ! as well as request/release quantities 
     call calculate_agent_diagnostics(state(1))
 
+    ! Execute chemical uptake/release
     call chemical_exchange(state(1))
 
-    ewrite(2,*) "Particle Management..."
+    ! Re-derive the required agent diagnostic variables
+    call calculate_agent_diagnostics(state(1))
 
     ! Particle Management
     do i = 1, size(agent_arrays)
@@ -482,7 +488,6 @@ contains
     integer :: i, j, ele
 
     ewrite(1,*) "In calculate_agent_diagnostics"
-    call profiler_tic("/calculate_agent_diagnostics")
 
     ! First we derive the per-stage diagnostic quantities from the agent data
     do i = 1, size(agent_arrays)
@@ -493,6 +498,8 @@ contains
 
     ! Then we reset all aggregated diagnostics
     do i = 1, size(agent_arrays)
+       call profiler_tic(trim(agent_arrays(i)%name)//"::diagnostics")
+
        if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovars)
              ! Reset stage-aggregated diagnostics
@@ -500,24 +507,28 @@ contains
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%field_name))
                 call zero(diagfield_agg)
              end if
-
-             ! Reset request global aggregate fields
-             if (agent_arrays(i)%biovars(j)%field_type == BIOFIELD_UPTAKE) then
-                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%chemfield)//"Request")
-                call zero(diagfield_agg)
-             end if
-
-             ! Reset release global aggregate fields
-             if (agent_arrays(i)%biovars(j)%field_type == BIOFIELD_RELEASE) then
-                diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%chemfield)//"Release")
-                call zero(diagfield_agg)
-             end if
           end do
        end if
+
+       call profiler_toc(trim(agent_arrays(i)%name)//"::diagnostics")
+    end do
+
+    ! Reset global request fields
+    do i = 1, size(uptake_field_names)
+       diagfield_agg=>extract_scalar_field(state, trim(uptake_field_names(i))//"Request")
+       call zero(diagfield_agg)
+    end do
+
+    ! Reset global release fields
+    do i = 1, size(uptake_field_names)
+       diagfield_agg=>extract_scalar_field(state, trim(release_field_names(i))//"Release")
+       call zero(diagfield_agg)
     end do
 
     ! Now we derive all aggregated quantities
     do i = 1, size(agent_arrays)
+       call profiler_tic(trim(agent_arrays(i)%name)//"::diagnostics")
+
        if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovars)
 
@@ -552,9 +563,10 @@ contains
              end if
           end do
        end if
+
+       call profiler_toc(trim(agent_arrays(i)%name)//"::diagnostics")
     end do
 
-    call profiler_toc("/calculate_agent_diagnostics")
     ewrite(2,*) "Exiting calculate_agent_diagnostics"
 
   end subroutine calculate_agent_diagnostics
@@ -572,11 +584,11 @@ contains
     integer :: i
     real :: ele_volume
 
-    call profiler_tic(trim(agent_list%name)//"::derive_per_stage_diagnostics")
+    call profiler_tic(trim(agent_list%name)//"::diagnostics")
 
     xfield=>extract_vector_field(state, "Coordinate")
 
-    ! Pull and reset agent count field
+    ! Pull and reset agent density field
     agent_count_field=>extract_scalar_field(state, trim(agent_list%fg_name)//"Agents"//trim(agent_list%stage_name))
     call zero(agent_count_field)
 
@@ -588,31 +600,39 @@ contains
        end if
     end do
 
-    ! Loop over all agents in this list and determine element volume
     agent => agent_list%first
     do while (associated(agent))
+       ele_volume = element_volume(xfield, agent%element)
 
        ! Increase agent density field
-       ele_volume = element_volume(xfield, agent%element)
        call addto(agent_count_field, agent%element, 1.0/ele_volume)
 
-       ! Add diagnostic quantities to field for all variables
+       ! Add diagnostic quantities to the field for all variables
        do i=1, size(agent_list%biovars)
-          if (agent_list%biovars(i)%field_type /= BIOFIELD_NONE) then
+
+          ! All diagnostic agent quantities get divided by element volume
+          ! and multiplied by the number of individuals an agent represents
+          if (agent_list%biovars(i)%field_type == BIOFIELD_DIAG) then
+
+             ! Agent size (number of individuals represented) does not get multiplied by itself
              if (i == BIOVAR_SIZE) then
-                ! Don't multiply size by size
-                call addto(diagfields(i), agent%element, agent%biology(i))
+                call addto(diagfields(i), agent%element, agent%biology(i) / ele_volume)
              else
-                ! Any other quantity gets scales by size(plankters per agent) and element volume
-                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
+                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE) / ele_volume)
              end if
+
+          ! Uptake and release quantities are total amounts, so don't divide by element volume
+          elseif (agent_list%biovars(i)%field_type == BIOFIELD_UPTAKE) then 
+                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
+          elseif (agent_list%biovars(i)%field_type == BIOFIELD_RELEASE) then
+                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
           end if
        end do
 
        agent => agent%next
     end do
 
-    call profiler_toc(trim(agent_list%name)//"::derive_per_stage_diagnostics")
+    call profiler_toc(trim(agent_list%name)//"::diagnostics")
 
   end subroutine derive_per_stage_diagnostics
 
@@ -628,6 +648,8 @@ contains
     real :: chemval, chem_integral, request, depletion, ingested_amount
 
     call profiler_tic("/chemical_exchange")
+
+    ewrite(2,*) "In chemical_exchange"
 
     xfield=>extract_vector_field(state, "Coordinate")
 
@@ -665,10 +687,12 @@ contains
        end do
     end do
 
+    ! Adjust agent pool variables
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovars)
-             ! Adjust agent pools
+
+             ! Add ingested amount to pool variables
              if (agent_arrays(i)%biovars(j)%field_type == BIOFIELD_UPTAKE) then
 
                 depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%chemfield)//"Depletion")
@@ -676,7 +700,7 @@ contains
 
                 agent => agent_arrays(i)%first
                 do while (associated(agent))
-                   ingested_amount = agent%biology(j) * node_val(depletion_field, agent%element) / agent%biology(BIOVAR_SIZE)
+                   ingested_amount = agent%biology(j) * node_val(depletion_field, agent%element)
                    agent%biology(poolvar) = agent%biology(poolvar) + ingested_amount
 
                    agent => agent%next
@@ -684,8 +708,6 @@ contains
              end if
           end do
 
-          ! We need to re-do stage-aggregation as well...
-          call derive_per_stage_diagnostics(agent_arrays(i), state)
        end if
     end do
 
@@ -701,6 +723,8 @@ contains
     type(detector_type), pointer :: new_agent
     type(element_type), pointer :: shape
     integer :: i
+
+    ewrite(2,*) "Performing Particle Management for list: ", trim(agent_list%name)
 
     shape=>ele_shape(xfield,1)
 

@@ -220,9 +220,6 @@ void python_run_agent_biology_c(double *dt, char *dict, int dictlen, char *key, 
    * locally evaluated field values, and dt is the timestep.
    */
 
-  profiler_tic_c("/python_run_agent_biology");
-  profiler_tic_c("/python_run_agent_biology_setup");
-
   // Get a reference to the main module and global dictionary
   PyObject *pMain = PyImport_AddModule("__main__");
   PyObject *pGlobals = PyModule_GetDict(pMain);
@@ -268,9 +265,6 @@ void python_run_agent_biology_c(double *dt, char *dict, int dictlen, char *key, 
   pArgs[1] = pEnvironment;
   pArgs[2] = pDt;
 
-  profiler_toc_c("/python_run_agent_biology_setup");
-  profiler_tic_c("/python_run_agent_biology_execute");
-
   // Run val(biovars, envvars, dt)
   PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 3, NULL, 0, NULL, 0, NULL);
  
@@ -281,9 +275,6 @@ void python_run_agent_biology_c(double *dt, char *dict, int dictlen, char *key, 
     *stat=-1;
     return;
   }
-
-  profiler_toc_c("/python_run_agent_biology_execute");
-  profiler_tic_c("/python_run_agent_biology_teardown");
 
   // Convert the python result
   for(i=0; i<n_biovars; i++){
@@ -299,7 +290,5 @@ void python_run_agent_biology_c(double *dt, char *dict, int dictlen, char *key, 
   free(local_dict);
   free(local_key);
 
-  profiler_toc_c("/python_run_agent_biology_teardown");
-  profiler_toc_c("/python_run_agent_biology");
 #endif
 }

@@ -6,6 +6,7 @@ module detector_python
   use state_module 
   use iso_c_binding
   use detector_data_types
+  use Profiler
 
   implicit none
   
@@ -160,6 +161,8 @@ contains
     real, dimension(size(agent_list%env_field_name)) :: env_field_values
     type(scalar_field), pointer :: env_field
 
+    call profiler_tic(trim(agent_list%name)//"::biology_update")
+
     if(present(stat)) stat = 0
     
     do i=1, size(agent_list%env_field_name)
@@ -179,6 +182,8 @@ contains
         FLExit("Dying")
       end if
     end if
+
+    call profiler_toc(trim(agent_list%name)//"::biology_update")
     
   end subroutine python_calc_agent_biology
 
