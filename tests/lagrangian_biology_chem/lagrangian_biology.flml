@@ -312,7 +312,7 @@
               <string_value lines="20" type="python">def val(variables):
   variables['Size'] = 50.0
   variables['Nutrient'] = 0.0
-  variables['Detritus'] = 10.0
+  variables['Detritus'] = 0.05
   return variables</string_value>
             </initial_state>
             <biology_update>
@@ -443,7 +443,7 @@
               <string_value lines="20" type="python">def val(variables):
   variables['Size'] = 50.0
   variables['Nutrient'] = 0.0
-  variables['Detritus'] = 10.0
+  variables['Detritus'] = 0.05
   return variables</string_value>
             </initial_state>
             <biology_update>
@@ -452,7 +452,7 @@
   biovars['NutrientUptake'] = 0.005
   
   # Per-individual detritus release
-  biovars['DetritusRelease'] = 0.005
+  biovars['DetritusRelease'] = 0.01
   return biovars</string_value>
             </biology_update>
           </stage>

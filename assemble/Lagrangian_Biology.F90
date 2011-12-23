@@ -459,7 +459,8 @@ contains
     call calculate_agent_diagnostics(state(1))
 
     ! Execute chemical uptake/release
-    call chemical_exchange(state(1))
+    call chemical_uptake(state(1))
+    call chemical_release(state(1))
 
     ! Re-derive the required agent diagnostic variables
     call calculate_agent_diagnostics(state(1))
@@ -582,7 +583,7 @@ contains
     type(scalar_field), pointer :: agent_count_field
     type(detector_type), pointer :: agent
     integer :: i
-    real :: ele_volume
+    real :: ele_volume, release_amount
 
     call profiler_tic(trim(agent_list%name)//"::diagnostics")
 
@@ -621,11 +622,13 @@ contains
                 call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE) / ele_volume)
              end if
 
-          ! Uptake and release quantities are total amounts, so don't divide by element volume
+          ! Uptake request and release are total amounts, so don't divide by element volume
           elseif (agent_list%biovars(i)%field_type == BIOFIELD_UPTAKE) then 
                 call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
           elseif (agent_list%biovars(i)%field_type == BIOFIELD_RELEASE) then
-                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
+                ! Make sure we don't release more than we have
+                release_amount = min(agent%biology(i), agent%biology(agent_list%biovars(i)%pool_index))
+                call addto(diagfields(i), agent%element, release_amount*agent%biology(BIOVAR_SIZE))
           end if
        end do
 
@@ -636,7 +639,7 @@ contains
 
   end subroutine derive_per_stage_diagnostics
 
-  subroutine chemical_exchange(state)
+  subroutine chemical_uptake(state)
     ! Handle uptake and release of chemicals
     type(state_type), intent(inout) :: state
 
@@ -649,7 +652,7 @@ contains
 
     call profiler_tic("/chemical_exchange")
 
-    ewrite(2,*) "In chemical_exchange"
+    ewrite(2,*) "In chemical_uptake"
 
     xfield=>extract_vector_field(state, "Coordinate")
 
@@ -679,6 +682,7 @@ contains
              chemval = node_val(chemfield, element_nodes(n))
              ! Avoid div-by-zero error
              if (chem_integral /= 0.0) then 
+                ! C := C (1 - S/C_bar )
                 call set(chemfield, element_nodes(n), chemval * (1.0 - (request * depletion / chem_integral) ))
              else
                 call set(chemfield, element_nodes(n), 0.0)
@@ -707,13 +711,86 @@ contains
                 end do
              end if
           end do
-
        end if
     end do
 
     call profiler_toc("/chemical_exchange")
 
-  end subroutine chemical_exchange
+  end subroutine chemical_uptake
+
+  subroutine chemical_release(state)
+    ! Handle chemical release
+    type(state_type), intent(inout) :: state
+
+    type(scalar_field), pointer :: release_field, chemfield
+    type(vector_field), pointer :: xfield
+    type(detector_type), pointer :: agent
+    integer :: i, j, n, ele, poolvar
+    integer, dimension(:), pointer :: element_nodes
+    real :: chemval, chem_integral, release, ele_volume
+
+    call profiler_tic("/chemical_exchange")
+
+    ewrite(2,*) "In chemical_release"
+
+    xfield=>extract_vector_field(state, "Coordinate")
+
+    ! Modify quantities on the chemical fields
+    do i = 1, size(release_field_names)
+
+       release_field=>extract_scalar_field(state, trim(release_field_names(i))//"Release")
+       chemfield=>extract_scalar_field(state, trim(release_field_names(i)))
+
+       ! Loop over all elements in chemical fields
+       do ele=1,ele_count(chemfield)
+          chem_integral = integral_element(chemfield, xfield, ele)
+          release = node_val(release_field, ele)
+
+          ! Set new chemical concentration
+          element_nodes=>ele_nodes(chemfield, ele)
+          do n=1, size(element_nodes)
+             chemval = node_val(chemfield, element_nodes(n))
+             ! Avoid div-by-zero error
+             if (chem_integral /= 0.0) then 
+                ! C := C (1 + S/C_bar )
+                call set(chemfield, element_nodes(n), chemval * (1.0 + (release / chem_integral) ))
+             else
+                ! If there is zero chemical in this element 
+                ! we turn the total quantity into an evenly distributed concentration
+                ele_volume = element_volume(xfield, ele)
+                call set(chemfield, element_nodes(n), release / ele_volume)
+             end if
+          end do
+       end do
+    end do
+
+    ! Adjust agent pool variables
+    do i = 1, size(agent_arrays)
+       if (agent_arrays(i)%has_biology) then
+          do j=1, size(agent_arrays(i)%biovars)
+
+             ! Subtract excreted amount from pool variables
+             if (agent_arrays(i)%biovars(j)%field_type == BIOFIELD_RELEASE) then
+                poolvar = agent_arrays(i)%biovars(j)%pool_index
+
+                agent => agent_arrays(i)%first
+                do while (associated(agent))
+                   ! Don't release more than we have
+                   if (agent%biology(j) > agent%biology(poolvar)) then
+                      agent%biology(poolvar) = 0.0
+                   else
+                      agent%biology(poolvar) = agent%biology(poolvar) - agent%biology(j)
+                   end if
+                   agent => agent%next
+                end do
+             end if
+          end do
+       end if
+    end do
+
+    call profiler_toc("/chemical_exchange")
+
+  end subroutine chemical_release
 
   subroutine particle_management(agent_list, xfield)
     type(detector_linked_list), intent(inout) :: agent_list

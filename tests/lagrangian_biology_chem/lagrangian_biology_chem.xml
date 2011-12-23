@@ -39,6 +39,18 @@ nutrients_agent_a = stat_parser("lagrangian_biology.stat")['Water']['AgentAParti
 from fluidity_tools import stat_parser
 nutrients_agent_b = stat_parser("lagrangian_biology.stat")['Water']['AgentBParticulateNutrientStage1']['integral']
     </variable>
+    <variable name="detritus_dissolved" language="python">
+from fluidity_tools import stat_parser
+detritus_dissolved = stat_parser("lagrangian_biology.stat")['Water']['DissolvedDetritus']['integral']
+    </variable>
+    <variable name="detritus_agent_a" language="python">
+from fluidity_tools import stat_parser
+detritus_agent_a = stat_parser("lagrangian_biology.stat")['Water']['AgentAParticulateDetritusStage1']['integral']
+    </variable>
+    <variable name="detritus_agent_b" language="python">
+from fluidity_tools import stat_parser
+detritus_agent_b = stat_parser("lagrangian_biology.stat")['Water']['AgentBParticulateDetritusStage1']['integral']
+    </variable>
   </variables>
   <pass_tests>
     <test name="constant_agent_count_a" language="python">
@@ -55,6 +67,18 @@ assert abs(biomass_b - 10000.0).all() &lt; 1.0e-6
     </test>
     <test name="nutrient_conservation" language="python">
 assert abs(nutrients_dissolved + nutrients_agent_a + nutrients_agent_b - 500.0).all() &lt; 1.0e-6
+    </test>
+    <test name="all_nutrients_absorbed" language="python">
+assert abs(nutrients_dissolved[-1]) &lt; 1.0e-6
+    </test>
+    <test name="detritus_conservation" language="python">
+assert abs(detritus_dissolved + detritus_agent_a + detritus_agent_b - 1000.0).all() &lt; 1.0e-6
+    </test>
+    <test name="all_detritus_excreted_a" language="python">
+assert abs(detritus_agent_a[-1]) &lt; 1.0e-6
+    </test>
+    <test name="all_detritus_excreted_b" language="python">
+assert abs(detritus_agent_b[-1]) &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>
