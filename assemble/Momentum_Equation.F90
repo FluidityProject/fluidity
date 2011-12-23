@@ -74,6 +74,7 @@
       use slope_limiters_dg
       use implicit_solids
       use multiphase_module
+      use pressure_dirichlet_bcs_cv
 
       implicit none
 
@@ -587,6 +588,11 @@
                      state(istate), &
                      assemble_ct_matrix_here=reassemble_ct_m .and. .not. cv_pressure, &
                      include_pressure_and_continuity_bcs=.not. cv_pressure)
+            end if
+            
+            ! If CV pressure then add in any dirichlet pressure BC integrals to the mom_rhs.
+            if (cv_pressure) then
+               call add_pressure_dirichlet_bcs_cv(mom_rhs(istate), u, p, state(istate))
             end if
             
             ! Add in multiphase interactions (e.g. fluid-particle drag) if necessary
