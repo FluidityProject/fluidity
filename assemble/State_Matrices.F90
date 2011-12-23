@@ -248,17 +248,19 @@ contains
   
   end function get_pressure_stabilisation_matrix_multiple_states
   
-  function get_velocity_divergence_matrix_single_state(state, get_ct) result(ct_m)
+  function get_velocity_divergence_matrix_single_state(state, get_ct, ct_m_name) result(ct_m)
     !!< extracts the ct matrix from state, 
     !!< if it fails to find it it returns get_ct=.true. to indicate that it needs assembling
+    !!< if ct_m_name is present then that name is used else a default is used.
     type(block_csr_matrix), pointer :: ct_m
     type(state_type), intent(inout) :: state
     logical, intent(inout), optional :: get_ct
-  
+    character(len=*), intent(in), optional :: ct_m_name
+
     type(state_type), dimension(1) :: states
     
     states = (/state/)
-    ct_m => get_velocity_divergence_matrix(states, get_ct=get_ct)
+    ct_m => get_velocity_divergence_matrix(states, get_ct=get_ct, ct_m_name = ct_m_name)
     state = states(1)
 
     ! In multi-phase simulations, C^T depends on the phase volume fraction,
@@ -269,24 +271,33 @@ contains
 
   end function get_velocity_divergence_matrix_single_state
 
-  function get_velocity_divergence_matrix_multiple_states(states, get_ct) result(ct_m)
+  function get_velocity_divergence_matrix_multiple_states(states, get_ct, ct_m_name) result(ct_m)
     !!< extracts the ct matrix from states, 
     !!< if it fails to find it it returns get_ct=.true. to indicate that it needs assembling
+    !!< if ct_m_name is present then that name is used else a default is used.
     type(block_csr_matrix), pointer :: ct_m
     type(state_type), dimension(:), intent(inout) :: states
     logical, intent(inout), optional :: get_ct
-    
+    character(len=*), intent(in), optional :: ct_m_name
+
     integer :: stat, i
     type(mesh_type), pointer :: p_mesh, u_mesh
     type(vector_field), pointer :: velocity
     type(csr_sparsity), pointer :: ct_sparsity
     type(block_csr_matrix) :: temp_ct_m
-    
+    character(len=FIELD_NAME_LEN) :: l_ct_m_name
+
     integer, save :: last_mesh_movement = -1
     
+    ! Form the ct_m_name dependent on interface argument
+    if (present(ct_m_name)) then
+       l_ct_m_name = trim(ct_m_name)
+    else
+       l_ct_m_name = "VelocityDivergenceMatrix"
+    end if
     
     if(present(get_ct)) get_ct = .false.
-    ct_m => extract_block_csr_matrix(states, "VelocityDivergenceMatrix", stat)
+    ct_m => extract_block_csr_matrix(states, trim(l_ct_m_name), stat)
     
     if(stat/=0) then
       if(present(get_ct)) get_ct = .true.
@@ -300,11 +311,11 @@ contains
       
       ct_sparsity => get_csr_sparsity_firstorder(states, p_mesh, u_mesh)
       
-      call allocate(temp_ct_m, ct_sparsity, blocks=(/1,velocity%dim/), name="VelocityDivergenceMatrix")
-      call insert(states, temp_ct_m, name="VelocityDivergenceMatrix")
+      call allocate(temp_ct_m, ct_sparsity, blocks=(/1,velocity%dim/), name=trim(l_ct_m_name))
+      call insert(states, temp_ct_m, name=trim(l_ct_m_name))
       call deallocate(temp_ct_m)
       
-      ct_m => extract_block_csr_matrix(states, "VelocityDivergenceMatrix")
+      ct_m => extract_block_csr_matrix(states, trim(l_ct_m_name))
     else
       ! just check if we need to reassemble the matrix anyway
       if(present(get_ct)) get_ct = (eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement)

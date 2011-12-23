@@ -64,7 +64,7 @@ adaptivity meshes mesh_formats configuring_fluidity external_libraries trouble_s
 parallel mathematical_notation about visualisation_and_diagnostics examples \
 embedded_models paraviewman python dimensionless useful_numbers
 
-VERSION = $(shell svnversion .|tr -d M )
+VERSION = $(shell bzr version-info --custom --template='{branch_nick}.{revno}' | tr -d [:punct:]) 
 
 fluidity_manual.pdf: fluidity_manual.tex notation.tex\
 	$(addsuffix .tex, $(CHAPTERS)) \

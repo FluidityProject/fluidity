@@ -314,7 +314,7 @@ cd `\fluiditysourcepath'
 make
 \end{lstlisting}
 
-You may often only wish to perform this basic build, but sometimes you will
+You may often only wish to perform this basic build, but frequently you will
 want more fine-grained control over the configuration procedure or you will
 want to perform non-default compilation steps. The following section describes
 these procedures.
@@ -382,6 +382,21 @@ you to run:
 
 \begin{lstlisting}[language=Bash]
 ./configure --enable-2d-adaptivity
+\end{lstlisting}
+
+One additional consideration is worth making at this point; do you want to put
+any components of the \fluidity build outside the build directory for later
+use?  An automatic installation for \fluidity (and also for diamond) is
+available, and defaults to using a directory which can (normally) only be
+written to with superuser privileges. However, you can tell the install process
+to put files elsewhere with the use of the 'prefix' flag to configure. A
+typical use of this might be to tell the install process to put files in your
+home directory, using the 'HOME' environment variable which should be set by
+the system automatically. To do this in addition to enabling 2D adaptivity, you
+would type:
+
+\begin{lstlisting}[language=Bash]
+./configure --enable-2d-adaptivity --prefix=$HOME
 \end{lstlisting}
 
 We'll go on now to discussing enabling and disabling features.
@@ -528,6 +543,91 @@ Note that even on the most modern systems
 \lstinline[language=Bash]+make mediumtest+ may take on the order of an hour and
 on slower systems may take on the order of many hours to complete.
 
+\subsection{Installing \fluidity and diamond}
+\label{sec:installing_fluidity}
+
+It is perfectly possible to run \fluidity and diamond from inside the build
+tree, and many users do just that with appropriate setting of variables.
+However, you may want to install at least diamond if not the rest of the
+\fluidity package into the directory you had the option of specifying during
+the configure stage.
+
+There are three key commands to be aware of here.
+
+The first is:
+
+\begin{lstlisting}[language=Bash]
+make install
+\end{lstlisting}
+
+This will install \fluidity and a full set of \fluidity tools into the
+directory you specified with 'prefix' during configuration. If you didn't
+specify a directory there, it will try to install into the
+\lstinline[language=Bash]+/usr+ directory, which generally needs superuser
+privileges. If you get a lot of 'permission denied' messages, you probably
+forgot to specify a prefix (or specified an invalid prefix) at configure time,
+and the install is trying to write to a superuser-only or nonexistant
+directory. 
+
+Assuming you specified a prefix of \lstinline[language=Bash]+\$HOME+, \fluidity
+will install into directories such as \lstinline[language=Bash]+bin/+,
+\lstinline[language=Bash]+lib/+, and \lstinline[language=Bash]+share/+ in your
+home directory.
+
+\fluidity does not by default install diamond, the graphical configuration tool
+used to set up \fluidity. If you do not already have a central installation of
+diamond on your computer, you may want to install a copy of it into the
+directory you specified with 'prefix' at configure time. To do this, run:
+
+\begin{lstlisting}[language=Bash]
+make install-diamond
+\end{lstlisting}
+
+which will install diamond into a \lstinline[language=Bash]+bin/+ directory
+inside your 'prefix' directory. In the case we've been working through, this
+would be your home directory. It will also install supporting python files into
+a subdirectory of \lstinline[language=Bash]+lib/+.
+
+To set up your environment for automatic running of diamond, you probably need
+to do three things. For this process, we will assume you specified a prefix of
+\lstinline[language=Bash]+\$HOME+ to configure.
+
+First, set your path to automatically find the diamond program:
+
+\begin{lstlisting}[language=Bash]
+export PATH=$PATH:$HOME/bin
+\end{lstlisting}
+
+Next, run:
+
+\begin{lstlisting}[language=Bash]
+ls -d $HOME/lib/python*/site-packages/diamond
+\end{lstlisting}
+
+This should return something like:
+
+\begin{lstlisting}[language=Bash]
+/home/fred/lib/python2.6/site-packages/diamond
+\end{lstlisting}
+
+Copy all of the above apart from the trailing
+\lstinline[language=Bash]+/diamond+ into the following command, so that you
+type (for the above example):
+
+\begin{lstlisting}[language=Bash]
+export PYTHONPATH=$PYTHONPATH:/home/fred/lib/python2.6/site-packages
+\end{lstlisting}
+
+Finally, you should register \fluidity with diamond for your account by
+telling it where to find the \fluidity schema, by typing:
+
+\begin{lstlisting}[language=Bash]
+make install-user-schemata
+\end{lstlisting}
+
+Note that this points to the current build tree that you are in; if you change
+the name of this build tree, or move it, you will need to ŕun the above command
+again to register the new location.
 
 \section{Running \fluidity}
 \label{sec:running_fluidity}

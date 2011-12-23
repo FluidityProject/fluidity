@@ -18,6 +18,7 @@
 import os
 import os.path
 import re
+import time
 import sys
 import tempfile
 import cStringIO as StringIO
@@ -47,7 +48,9 @@ import commentwidget
 import descriptionwidget
 import databuttonswidget
 import datawidget
+import diffview
 import sliceview
+import useview
 
 from lxml import etree
 
@@ -140,6 +143,9 @@ class Diamond:
                     "on_copy": self.on_copy,
                     "on_paste": self.on_paste,
                     "on_slice": self.on_slice,
+                    "on_diff": self.on_diff,
+                    "on_diffsave": self.on_diffsave,
+                    "on_finduseage": self.on_finduseage,
                     "on_group": self.on_group,
                     "on_ungroup": self.on_ungroup}
 
@@ -279,49 +285,57 @@ class Diamond:
     
     return
 
+  def display_validation_errors(self, errors):
+    # Extract and display validation errors
+    saved = True
+    lost_eles, added_eles, lost_attrs, added_attrs = errors
+    if len(lost_eles) > 0 or len(added_eles) > 0 or len(lost_attrs) > 0 or len(added_attrs) > 0:
+      saved = False
+      msg = ""
+      if len(lost_eles) > 0:
+        msg += "Warning: lost xml elements:\n"
+        for ele in lost_eles:
+          msg += ele + "\n"
+      if len(added_eles) > 0:
+        msg += "Warning: added xml elements:\n"
+        for ele in added_eles:
+          msg += ele + "\n"
+      if len(lost_attrs) > 0:
+        msg += "Warning: lost xml attributes:\n"
+        for ele in lost_attrs:
+          msg += ele + "\n"
+      if len(added_attrs) > 0:
+        msg += "Warning: added xml attributes:\n"
+        for ele in added_attrs:
+          msg += ele + "\n"
+
+      dialogs.long_message(self.main_window, msg)
+    return saved
+
   def load_file(self, filename):
     # if we have a relative path, make it absolute
     filename = os.path.abspath(filename)
-  
+
     try:
       os.stat(filename)
     except OSError:
       self.filename = filename
       self.set_saved(False)
-      
-      self.remove_children(None)      
+
+      self.remove_children(None)
       self.init_datatree()
-      
+
       return
-      
+
     try:
       tree_read = self.s.read(filename)
-      
-      # Extract and display validation errors
-      saved = True
-      lost_eles, added_eles, lost_attrs, added_attrs = self.s.read_errors()
-      if len(lost_eles) > 0 or len(added_eles) > 0 or len(lost_attrs) > 0 or len(added_attrs) > 0:
-        saved = False
-        msg = ""
-        if len(lost_eles) > 0:
-          msg += "Warning: lost xml elements:\n"
-          for ele in lost_eles:
-            msg += ele + "\n"
-        if len(added_eles) > 0:
-          msg += "Warning: added xml elements:\n"
-          for ele in added_eles:
-            msg += ele + "\n"
-        if len(lost_attrs) > 0:
-          msg += "Warning: lost xml attributes:\n"
-          for ele in lost_attrs:
-            msg += ele + "\n"
-        if len(added_attrs) > 0:
-          msg += "Warning: added xml attributes:\n"
-          for ele in added_attrs:
-            msg += ele + "\n"
-      
-        dialogs.long_message(self.main_window, msg)
-        
+
+      if tree_read is None:
+        dialogs.error_tb(self.main_window, "Unable to open file \"" + filename + "\"")
+        return
+
+      saved = self.display_validation_errors(self.s.read_errors())
+
       self.tree = tree_read
       self.filename = filename
     except:
@@ -329,7 +343,7 @@ class Diamond:
       return
 
     self.set_saved(saved, filename)
-      
+
     return
 
   def open_file(self, schemafile = "", filename = ""):
@@ -356,7 +370,8 @@ class Diamond:
 
     self.set_geometry_dim_tree()
 
-    self.treeview.get_selection().unselect_all()
+    self.treeview.grab_focus()
+    self.treeview.get_selection().select_path(0)
 
     self.selected_node = None
     self.update_options_frame()
@@ -601,15 +616,16 @@ class Diamond:
                       "You should have received a copy of the GNU General Public License\n"+
                       "along with Diamond.  If not, see http://www.gnu.org/licenses/.")
 
-    logo = gtk.gdk.pixbuf_new_from_file(self.logofile)
-
+    if self.logofile is not None:
+      logo = gtk.gdk.pixbuf_new_from_file(self.logofile)
+      about.set_logo(logo)
+      
     try:
       image = about.get_children()[0].get_children()[0].get_children()[0]
       image.set_tooltip_text("Diamond: it's clearer than GEM")
     except:
       pass
-
-    about.set_logo(logo)
+    
     about.show()
 
     return
@@ -705,37 +721,62 @@ class Diamond:
         children.insert(children.index(node), newnode)
         children.remove(node)
  
+      self.treeview.freeze_child_notify()
       iter = self.set_treestore(self.selected_iter, [newnode], True, True)
       newnode.recompute_validity()
+      self.treeview.thaw_child_notify()
+
       self.treeview.get_selection().select_iter(iter)
 
-      # Extract and display validation errors
-      lost_eles, added_eles, lost_attrs, added_attrs = self.s.read_errors()
-      if len(lost_eles) > 0 or len(added_eles) > 0 or len(lost_attrs) > 0 or len(added_attrs) > 0:
-        saved = False
-        msg = ""
-        if len(lost_eles) > 0:
-          msg += "Warning: lost xml elements:\n"
-          for ele in lost_eles:
-            msg += ele + "\n"
-        if len(added_eles) > 0:
-          msg += "Warning: added xml elements:\n"
-          for ele in added_eles:
-            msg += ele + "\n"
-        if len(lost_attrs) > 0:
-          msg += "Warning: lost xml attributes:\n"
-          for ele in lost_attrs:
-            msg += ele + "\n"
-        if len(added_attrs) > 0:
-          msg += "Warning: added xml attributes:\n"
-          for ele in added_attrs:
-            msg += ele + "\n"
-      
-        dialogs.long_message(self.main_window, msg)
- 
-      self.set_saved(False)     
+      self.display_validation_errors(self.s.read_errors())
+
+      self.set_saved(False)
 
     return
+
+  def __diff(self, path):
+    def run_diff(self, path):
+      start = time.clock()
+      diffview.DiffView(path, self.tree)
+      seconds = time.clock() - start
+      self.statusbar.set_statusbar("Diff calculated (took " + str(seconds) + " seconds)")
+      return False
+
+    if path and os.path.isfile(path):
+      filename = path
+    else:
+      dialog = gtk.FileChooserDialog(
+                                     title = "Diff against",
+                                     action = gtk.FILE_CHOOSER_ACTION_OPEN,
+                                     buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+
+      if path:
+        dialog.set_current_folder(path)
+
+      response = dialog.run()
+      if response != gtk.RESPONSE_OK:
+        dialog.destroy()
+        return
+
+      filename = dialog.get_filename()
+      dialog.destroy()
+
+    self.statusbar.set_statusbar("Calculating diff... (this may take a while)")
+    gobject.idle_add(run_diff, self, filename)
+
+  def on_diff(self, widget = None, path = None):
+    if path is None:
+      path = os.path.dirname(self.filename) if self.filename else None
+    self.__diff(path)
+
+  def on_diffsave(self, widget = None):
+    if self.filename:
+      self.__diff(self.filename)
+    else:
+      dialogs.error(self.main_window, "No save to diff against.")
+
+  def on_finduseage(self, widget = None):
+    useview.UseView(self.s, self.suffix)
 
   def on_slice(self, widget = None):
     if not self.selected_node.is_sliceable():
@@ -1299,20 +1340,22 @@ class Diamond:
         self.show_popup(None, event.button, event.time)
         return True
 
-  def popup_location(self, widget, user_data):
+  def popup_location(self, widget):
     column = self.treeview.get_column(0)
-    path = self.treeview.get_selection().get_selected_rows()[0]
-    area = self.treeview.get_cell_area(path, column)
-    tx, ty = area.x, area.y
+    treemodel, treeiter = self.treeview.get_selection().get_selected()
+    treepath = treemodel.get_path(treeiter)
+    area = self.treeview.get_cell_area(treepath, column)
+    sx, sy = self.popup.size_request()
+    tx, ty = area.x, area.y + int(sy * 1.25)
     x, y = self.treeview.tree_to_widget_coords(tx, ty)
     return (x, y, True)
-    
+
   def on_treeview_popup(self, treeview):
-    self.show_popup(None, self.popup_location, gtk.get_current_event_time())
+    self.show_popup(self.popup_location, 0, gtk.get_current_event_time())
     return
 
   def show_popup(self, func, button, time):
-    self.popup.popup( None, None, func, button, time)  
+    self.popup.popup(None, None, func, button, time)
     return
 
   def on_select_row(self, selection=None):
@@ -1417,7 +1460,42 @@ class Diamond:
     f = StringIO.StringIO()
     self.tree.write(f)
     xml = f.getvalue()
-    plugin.execute(xml, self.current_xpath)
+    xml = plugin.execute(xml, self.current_xpath)
+    if xml:
+      ios = StringIO.StringIO(xml)
+
+      try:
+        tree_read = self.s.read(filename)
+
+        if tree_read is None:
+          self.statusbar.set_statusbar("Unable to read plugin result")
+          return
+
+        self.display_validation_errors(self.s.read_errors())
+        self.tree = tree_read
+      except:
+        dialogs.error_tb(self.main_window, "Unable to read plugin result")
+        return
+
+      path = self.treestore.get_path(self.selected_iter)
+
+      self.display_validation_errors(self.s.read_errors())
+
+      self.set_saved(False)
+ 
+      self.treeview.freeze_child_notify()
+      self.treeview.set_model(None)
+      self.signals = {}
+      self.set_treestore(None, [self.tree], True)
+      self.treeview.set_model(self.treestore)
+      self.treeview.thaw_child_notify()
+
+      self.set_geometry_dim_tree()
+  
+      self.treeview.get_selection().select_path(path)
+
+      self.scherror.destroy_error_list()
+
 
   def get_selected_row(self, selection=None):
     """
