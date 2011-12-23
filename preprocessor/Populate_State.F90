@@ -3752,11 +3752,12 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
 
     integer :: i
     character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path
-    character(len=FIELD_NAME_LEN) :: schur_preconditioner      
+    character(len=FIELD_NAME_LEN) :: schur_preconditioner, inner_matrix
     logical :: exclude_mass, exclude_advection
     real :: theta
 
     velocity_path="/material_phase[0]/vector_field::Velocity/prognostic"
+
     if (have_option(trim(velocity_path))) then
 
        ! Check that mass and advective terms are excluded:
@@ -3787,6 +3788,12 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
        if(theta /= 1.) then
           FLExit("For Stokes problems, theta (under velocity) must = 1")
        end if
+
+    end if
+
+    pressure_path="/material_phase[0]/scalar_field::Pressure/prognostic"
+
+    if (have_option(trim(pressure_path))) then  
 
        ! Check pressure_mass_matrix preconditioner is compatible with viscosity tensor:
         if(have_option("/material_phase["//int2str(i)//&
@@ -3824,9 +3831,21 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
 
        end if
 
-    end if
+       ! Check inner matrix is valid for Stokes - must have full viscous terms
+       ! included. Stokes does not have a mass matrix.
+       call get_option("/material_phase["//int2str(i)//&
+            &"]/scalar_field::Pressure/prognostic/scheme/use_projection_method&
+            &/full_schur_complement/inner_matrix[0]/name", inner_matrix)
+       
+       select case(inner_matrix)
+       case("FullMassMatrix")
+          ewrite(-1,*) "For Stokes problems, FullMomentumMatrix must be specified under:"
+          ewrite(-1,*) "scalar_field::Pressure/prognostic/scheme/use_projection_method& "
+          ewrite(-1,*) "&/full_schur_complement/inner_matrix"
+          FLExit("For Stokes problems, change FullMassMatrix --> FullMomentumMatrix")
+       end select
 
-    pressure_path="/material_phase[0]/scalar_field::Pressure/prognostic"
+    end if
 
   end subroutine check_stokes_options
 
