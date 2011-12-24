@@ -3779,8 +3779,7 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
               &/exclude_advection_terms").or.&
                              have_option(trim(velocity_path)//&
               "/spatial_discretisation&
-              &/discontinuous_galerkin/advection_scheme&
-              &/exclude_advection_terms") 
+              &/discontinuous_galerkin/advection_scheme/none") 
 
          if(.not.(exclude_mass) .OR. .not.(exclude_advection)) then
             FLExit("For Stokes problems you need to exclude the mass and advection terms.")
