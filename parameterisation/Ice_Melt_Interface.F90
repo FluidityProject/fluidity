@@ -330,8 +330,8 @@ contains
         P = node_val(re_pressure,the_node)
         speed = sqrt(sum(vel**2))
 
-        if (speed .lt. 0.001) then
-            speed = 0.001
+        if (speed .lt. 0.00001) then
+            speed = 0.00001
             !TODO: Use a maxval here instead
         endif
         ! constant = -7.53e-8 [C Pa^(-1)] comes from Holland and Jenkins Table 1
