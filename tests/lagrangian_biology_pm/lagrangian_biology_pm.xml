@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>lagrangian_biology_pm</name>
+  <owner userid="mlange"/>
+  <tags>flml lagrangian_biology</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>
+../../bin/fluidity -v2 -l -p lagrangian_biology.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="agent_count_split" language="python">
+from fluidity_tools import stat_parser
+agent_count_split = stat_parser("lagrangian_biology.stat")['Water']['AgentAAgentsSplit']['integral']
+    </variable>
+    <variable name="biomass_split" language="python">
+from fluidity_tools import stat_parser
+biomass_split = stat_parser("lagrangian_biology.stat")['Water']['AgentAEnsembleSizeSplit']['integral']
+    </variable>
+    <variable name="nutrients_split" language="python">
+from fluidity_tools import stat_parser
+nutrients_split = stat_parser("lagrangian_biology.stat")['Water']['AgentAParticulateNutrientSplit']['integral']
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="constant_biomass_split" language="python">
+assert abs(biomass_split - 5000.0).all() &lt; 1.0e-6
+    </test>
+    <test name="constant_nutrients_split" language="python">
+assert abs(nutrients_split - 5000.0).all() &lt; 1.0e-6
+    </test>
+    <test name="final_agent_count_split" language="python">
+assert abs(agent_count_split[-1] - 250.0) &lt; 1.0e-6
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

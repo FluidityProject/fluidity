@@ -92,9 +92,9 @@ module detector_tools
 contains 
 
   subroutine detector_allocate_from_params(new_detector, ndims, local_coord_count)
-    type(detector_type),  pointer, intent(out) :: new_detector
+    type(detector_type), pointer, intent(out) :: new_detector
     integer, intent(in) :: ndims, local_coord_count
-      
+    
     assert(.not. associated(new_detector))
       
     ! allocate the memory for the new detector
@@ -110,7 +110,7 @@ contains
     
   subroutine detector_allocate_from_detector(new_detector, old_detector)
     type(detector_type), pointer, intent(in) :: old_detector
-    type(detector_type),  pointer, intent(out) :: new_detector
+    type(detector_type), pointer, intent(out) :: new_detector
       
     integer :: ndims, local_coord_count
       

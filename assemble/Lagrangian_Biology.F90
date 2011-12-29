@@ -46,6 +46,7 @@ module lagrangian_biology
   use python_state
   use diagnostic_fields
   use Profiler
+  use integer_hash_table_module
 
 implicit none
 
@@ -386,8 +387,12 @@ contains
     biology_mesh = extract_mesh(state, "BiologyMesh")
     call deallocate(biology_mesh)
 
-    deallocate(uptake_field_names)
-    deallocate(release_field_names)
+    if (associated(uptake_field_names)) then
+       deallocate(uptake_field_names)
+    end if
+    if (associated(release_field_names)) then
+       deallocate(release_field_names)
+    end if
 
   end subroutine lagrangian_biology_cleanup
 
@@ -429,6 +434,7 @@ contains
              call python_calc_agent_biology(agent, agent_arrays(i), xfield, state(1), dt, trim(agent_arrays(i)%name), trim("biology_update"))
 
              ! Check for stage change
+             ! TODO: use of move is most likely wrong...
              if (agent%biology(1) /= agent_arrays(i)%stage_id) then
                 call move(agent, agent_arrays(i), stage_change_list)
              end if
@@ -441,6 +447,7 @@ contains
     ewrite(2,*) "Handling stage changes across all agent lists"
 
     ! Handle stage changes within FG
+    ! TODO: use of move is most likely wrong...
     agent=>stage_change_list%first
     do while (associated(agent))
        do j=1, size(agent_arrays)
@@ -468,7 +475,7 @@ contains
     ! Particle Management
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%do_particle_management) then
-          call particle_management(agent_arrays(i), xfield)
+          call particle_management(state(1), agent_arrays(i))
        end if
     end do
 
@@ -515,16 +522,20 @@ contains
     end do
 
     ! Reset global request fields
-    do i = 1, size(uptake_field_names)
-       diagfield_agg=>extract_scalar_field(state, trim(uptake_field_names(i))//"Request")
-       call zero(diagfield_agg)
-    end do
+    if (associated(uptake_field_names)) then
+       do i = 1, size(uptake_field_names)
+          diagfield_agg=>extract_scalar_field(state, trim(uptake_field_names(i))//"Request")
+          call zero(diagfield_agg)
+       end do
+    end if
 
     ! Reset global release fields
-    do i = 1, size(uptake_field_names)
-       diagfield_agg=>extract_scalar_field(state, trim(release_field_names(i))//"Release")
-       call zero(diagfield_agg)
-    end do
+    if (associated(release_field_names)) then
+       do i = 1, size(release_field_names)
+          diagfield_agg=>extract_scalar_field(state, trim(release_field_names(i))//"Release")
+          call zero(diagfield_agg)
+       end do
+    end if
 
     ! Now we derive all aggregated quantities
     do i = 1, size(agent_arrays)
@@ -650,6 +661,9 @@ contains
     integer, dimension(:), pointer :: element_nodes
     real :: chemval, chem_integral, request, depletion, ingested_amount
 
+    ! Exit if there are no uptake fields
+    if (.not.associated(uptake_field_names)) return
+
     call profiler_tic("/chemical_exchange")
 
     ewrite(2,*) "In chemical_uptake"
@@ -729,6 +743,9 @@ contains
     integer, dimension(:), pointer :: element_nodes
     real :: chemval, chem_integral, release, ele_volume
 
+    ! Exit if there are no release fields
+    if (.not.associated(release_field_names)) return
+
     call profiler_tic("/chemical_exchange")
 
     ewrite(2,*) "In chemical_release"
@@ -792,58 +809,161 @@ contains
 
   end subroutine chemical_release
 
-  subroutine particle_management(agent_list, xfield)
+  subroutine particle_management(state, agent_list)
+    type(state_type), intent(inout) :: state
     type(detector_linked_list), intent(inout) :: agent_list
-    type(vector_field), pointer, intent(inout) :: xfield
 
-    type(detector_type), pointer :: agent
-    type(detector_type), pointer :: new_agent
-    type(element_type), pointer :: shape
-    integer :: i
+    type(detector_type), pointer :: agent, agent_to_move
+    type(scalar_field), pointer :: agent_density_field
+    type(vector_field), pointer :: xfield
+    type(ilist) :: elements_split_list, elements_merge_list
+    type(integer_hash_table) :: split_index_mapping, merge_index_mapping
+    type(detector_linked_list), dimension(:), allocatable :: split_lists, merge_lists
+    integer, dimension(:), allocatable :: elements_split, elements_merge
+    integer :: i, ele, index
+    real :: agent_density, ele_volume
+
+    call profiler_tic(trim(agent_list%name)//"::particle_management")
 
     ewrite(2,*) "Performing Particle Management for list: ", trim(agent_list%name)
 
-    shape=>ele_shape(xfield,1)
+    xfield=>extract_vector_field(state, "Coordinate")
+    agent_density_field=>extract_scalar_field(state, trim(agent_list%fg_name)//"Agents"//trim(agent_list%stage_name))
 
-    agent => agent_list%first
-    do while (associated(agent))
-       if (agent%biology(2)>agent_list%pm_max) then
-          ewrite(2,*) "ml805 agent over PM limit detected. Splitting..."
+    ! First establish in which elements we need to split/merge
+    ! We skip elements with no agents...
+    do ele=1, ele_count(agent_density_field)
+       agent_density = node_val(agent_density_field, ele)
 
-          agent_list%total_num_det=agent_list%total_num_det + 1
-
-          ! Allocate and insert detector
-          new_agent=>null()
-          call allocate(new_agent, agent)
-          call insert(new_agent,agent_list)
-
-          ! Populate new agent
-          new_agent%id_number=agent_list%total_num_det
-          new_agent%name=trim(int2str(agent_list%total_num_det))
-          new_agent%position=agent%position
-          new_agent%element=agent%element
-          new_agent%local_coords=agent%local_coords
-          new_agent%type=agent%type
-          new_agent%list_id=agent%list_id
-
-          ! Populate new agent's biology
-          allocate(new_agent%biology(size(agent%biology)))
-          do i=1, size(agent%biology)
-             new_agent%biology(i)=agent%biology(i)
-          end do
-
-          agent%biology(2)=agent%biology(2) / 2.0
-          new_agent%biology(2)=new_agent%biology(2) / 2.0
+       if (agent_density < agent_list%pm_min .and. agent_density > 0) then
+          call insert(elements_split_list, ele)
        end if
 
-       if (agent%biology(2)<agent_list%pm_min) then
-          ewrite(2,*) "ml805 agent under PM limit detected"
+       if (agent_density > agent_list%pm_max .and. agent_density > 0) then
+          call insert(elements_merge_list, ele)
        end if
-
-       agent => agent%next
     end do
 
+    ! Convert linked lists of elements to split/merge to vectors
+    allocate(elements_split(elements_split_list%length))
+    elements_split = list2vector(elements_split_list)
+    allocate(elements_merge(elements_merge_list%length))
+    elements_merge = list2vector(elements_merge_list)
+
+    ! Create a hashtable from element -> index into split_lists
+    call allocate(split_index_mapping)
+    do i=1, size(elements_split)
+       call insert(split_index_mapping, elements_split(i), i)
+    end do
+
+    ! Create a hashtable from element -> index into merge_lists
+    call allocate(merge_index_mapping)
+    do i=1, size(elements_merge)
+       call insert(merge_index_mapping, elements_merge(i), i)
+    end do
+
+    ! Put agents into temporary agent lists for each element to split/merge
+    allocate(split_lists(elements_split_list%length))
+    allocate(merge_lists(elements_merge_list%length))
+    agent=>agent_list%first
+    do while(associated(agent))
+       ! 
+       if (has_key(split_index_mapping, agent%element)) then
+          index = fetch(split_index_mapping,agent%element)
+          agent_to_move=>agent
+          agent=>agent%next
+          call move(agent_to_move, agent_list, split_lists(index))
+       ! 
+       elseif (has_key(merge_index_mapping, agent%element)) then
+          index = fetch(merge_index_mapping,agent%element)
+          agent_to_move=>agent
+          agent=>agent%next
+          call move(agent_to_move, agent_list, merge_lists(index))
+
+       else
+          agent=>agent%next
+       end if
+    end do 
+
+    ! Perform splits over the temporary agent arrays
+    ! Each array now represents all agents in one element
+    ! the according element number is stored in elements_split(i)
+    do i=1, size(split_lists)
+       ewrite(2,*) "ml805 split_list ", i, "length", split_lists(i)%length
+       agent_density = node_val(agent_density_field, elements_split(i))
+
+       ele_volume = element_volume(xfield, elements_split(i))
+
+       do while(agent_density < agent_list%pm_min)
+          ! For simplicity lets start with splitting the first agent...
+          call pm_split(split_lists(i)%first, split_lists(i))
+
+          agent_density = split_lists(i)%length / ele_volume
+       end do
+    end do
+
+    ! Perform merges over the temporary agent arrays
+    do i=1, size(merge_lists)
+       ewrite(2,*) "ml805 merge_list ", i, "length", merge_lists(i)%length
+    end do
+
+    ! Copy all agents back to the original list
+    do i=1, size(split_lists)
+       call move_all(split_lists(i), agent_list)
+    end do
+    do i=1, size(merge_lists)
+       call move_all(merge_lists(i), agent_list)
+    end do
+
+    deallocate(split_lists)
+    deallocate(elements_split)
+    call flush_list(elements_split_list)
+    call deallocate(split_index_mapping)
+
+    deallocate(merge_lists)
+    deallocate(elements_merge)
+    call flush_list(elements_merge_list)
+    call deallocate(merge_index_mapping)
+
+    call profiler_toc(trim(agent_list%name)//"::particle_management")
+
   end subroutine particle_management
+
+  subroutine pm_split(agent, agent_list)
+    type(detector_type), pointer, intent(inout) :: agent
+    type(detector_linked_list), intent(inout) :: agent_list
+
+    type(detector_type), pointer :: new_agent
+    integer :: i
+
+    ! Allocate and insert agent
+    new_agent=>null()
+    call allocate(new_agent, agent)
+    call insert(new_agent,agent_list)
+
+    ! Populate new agent
+    new_agent%id_number=agent_list%total_num_det
+    new_agent%name=trim(int2str(agent_list%total_num_det))
+    new_agent%position=agent%position
+    new_agent%element=agent%element
+    new_agent%local_coords=agent%local_coords
+    new_agent%type=agent%type
+    new_agent%list_id=agent%list_id
+
+    ! Populate new agent's biology
+    allocate(new_agent%biology(size(agent%biology)))
+    do i=1, size(agent%biology)
+       new_agent%biology(i)=agent%biology(i)
+    end do
+
+    ! Distribute biomass
+    agent%biology(BIOVAR_SIZE)=agent%biology(BIOVAR_SIZE) / 2.0
+    new_agent%biology(BIOVAR_SIZE)=new_agent%biology(BIOVAR_SIZE) / 2.0
+
+    ! Update the list
+    agent_list%total_num_det=agent_list%total_num_det + 1
+
+  end subroutine pm_split
 
   subroutine insert_global_uptake_field(field_name)
     character(len=FIELD_NAME_LEN), intent(in) :: field_name
