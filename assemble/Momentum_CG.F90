@@ -233,10 +233,9 @@
       character(len=OPTION_PATH_LEN) :: les_option_path
       ! For 4th order:
       type(tensor_field):: grad_u
-      ! For Germano Dynamic LES (short names to keep variable lists manageable):
-      type(scalar_field), pointer :: smg
+      ! Filtered fields for Germano Dynamic LES (short names to keep variable lists manageable):
       type(vector_field), pointer :: tnu
-      type(tensor_field), pointer :: lnd, str, fst, fw, stp, evi
+      type(tensor_field), pointer :: lnd, stp
       real                        :: alpha
 
       ! for temperature dependent viscosity :
@@ -358,6 +357,7 @@
          &"/continuous_galerkin/les_model")
       have_lilly=.false.; backscatter=.false.; have_anisotropy=.false.
 
+      ! Large Eddy Simulation options
       if (have_les) then
          les_option_path=(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
                  &"/continuous_galerkin/les_model")
@@ -369,24 +369,16 @@
          if (les_second_order) then
             call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
-            ! Initialise the eddy viscosity field. Calling this subroutine works because
-            ! you can't have 2 different types of LES model for the same material phase.
-            ewrite(2,*) "Initialising LES diagnostic fields"
-            call les_init_fields(state, nu, eddy_visc=evi)
          end if
          if (les_fourth_order) then
             call get_option(trim(les_option_path)//"/fourth_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
             call allocate( grad_u, u%mesh, "VelocityGradient")
             call differentiate_field_lumped( nu, x, grad_u)
-            ewrite(2,*) "Initialising LES diagnostic fields"
-            call les_init_fields(state, nu, eddy_visc=evi)
          end if
          if (wale) then
             call get_option(trim(les_option_path)//"/wale/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
-            ewrite(2,*) "Initialising LES diagnostic fields"
-            call les_init_fields(state, nu, eddy_visc=evi)
          end if
          if(dynamic_les) then
            ! Are we using the Lilly (1991) modification? It's better
@@ -400,9 +392,7 @@
 
            ! Initialise optional diagnostic fields
            ewrite(2,*) "Initialising LES diagnostic fields"
-           call les_init_fields(state, nu, eddy_visc=evi, strain=str, &
-                                & filtered_strain=fst, filtered_velocity=tnu, &
-                                & filter_width=fw, leonard_tensor=lnd, strain_product=stp, smag_coeff=smg)
+           call les_init_fields(state, nu, tnu, lnd, stp)
 
            ! Get (test filter)/(mesh filter) size ratio alpha. Default value is 2.
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
@@ -413,8 +403,7 @@
          end if
       else
          les_second_order=.false.; les_fourth_order=.false.; wale=.false.; dynamic_les=.false.
-         nullify(tnu); nullify(stp); nullify(evi); nullify(smg)
-         nullify(fst); nullify(fw); nullify(lnd); nullify(stp)
+         nullify(tnu); nullify(stp); nullify(lnd)
       end if
       
       have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic"//&
@@ -613,7 +602,7 @@
               density, p, &
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
-              evi, str, fst, tnu, fw, lnd, stp, smg, alpha, &
+              tnu, lnd, stp, alpha, &
               gp, surfacetension, &
               assemble_ct_matrix_here, on_sphere, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac)
@@ -784,17 +773,15 @@
         call deallocate(grad_u)
       end if
 
-      if (dynamic_les) then
-        ewrite_minmax(evi)
-        ewrite_minmax(str)
-        ewrite_minmax(fst)
-        ewrite_minmax(fw)
+      if(dynamic_les) then
         ewrite_minmax(stp)
         ewrite_minmax(lnd)
         ewrite_minmax(tnu)
-        ewrite_minmax(smg)
-        call les_deallocate_fields(state, nu, eddy_visc=evi, strain=str, filtered_strain=fst, &
-             filtered_velocity=tnu, filter_width=fw, leonard_tensor=lnd, strain_product=stp, smag_coeff=smg)
+        call deallocate(lnd); deallocate(lnd)
+        call deallocate(stp); deallocate(stp)
+        if(.not. have_option(trim(les_option_path)//"/dynamic_les/vector_field::FilteredVelocity")) then
+          call deallocate(tnu); deallocate(tnu)
+        end if
       end if
 
       if(multiphase) then
@@ -1058,7 +1045,7 @@
                                             density, p, &
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
-                                            evi, str, fst, tnu, fw, lnd, stp, smg, alpha, &
+                                            tnu, lnd, stp, alpha, &
                                             gp, surfacetension, &
                                             assemble_ct_matrix_here, on_sphere, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac)
@@ -1088,9 +1075,8 @@
       type(tensor_field), intent(in) :: viscosity, grad_u
 
       ! Fields for Germano Dynamic LES Model
-      type(scalar_field), intent(in)    :: smg
       type(vector_field), intent(in)    :: tnu
-      type(tensor_field), intent(in)    :: evi, str, fst, fw, lnd, stp
+      type(tensor_field), intent(in)    :: lnd, stp
       real, intent(in)                  :: alpha
 
       type(scalar_field), intent(in) :: gp
@@ -1287,7 +1273,7 @@
       ! Viscous terms
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
-           evi, str, fst, tnu, fw, lnd, stp, smg, alpha, &
+           tnu, lnd, stp, alpha, &
            du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       end if
       
@@ -1902,7 +1888,7 @@
     end subroutine add_absorption_element_cg
       
     subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
-        evi, str, fst, tnu, fw, lnd, stp, smg, alpha, &
+        tnu, lnd, stp, alpha, &
          du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
@@ -1915,9 +1901,8 @@
       type(tensor_field), intent(in) :: grad_u
 
       ! Fields for Germano Dynamic LES Model
-      type(scalar_field), intent(in)    :: smg
       type(vector_field), intent(in)    :: tnu
-      type(tensor_field), intent(in)    :: evi, str, fst, fw, lnd, stp
+      type(tensor_field), intent(in)    :: lnd, stp
       real, intent(in)                  :: alpha
 
       ! Local quantities specific to Germano Dynamic LES Model

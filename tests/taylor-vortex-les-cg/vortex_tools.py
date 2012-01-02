@@ -70,7 +70,7 @@ vort_dynlesa48,time_dynlesa48):
   #pylab.plot(time_12, dissipation_taylor(time_12), linestyle="dashed")
   pylab.plot(time_12, dissipation_goldstein(time_12), linestyle="solid",color='black')
   pylab.legend(("12","24","48","LES-12","LES-24","LES-48","DYNLES-12","DYNLES-24","DYNLESA-24","DYNLES-48","DYNLESA-48","Goldstein"), loc="best")
-  pylab.axis([0.0,time_12[-1],0.0,max(dissipation_goldstein(time_12)[-1],vort_48[-1],vort_les48[-1],vort_dynles48[-1])])
+  #pylab.axis([0.0,time_12[-1],0.0,max(dissipation_goldstein(time_12)[-1],vort_48[-1],vort_les48[-1],vort_dynles48[-1])])
   pylab.savefig("vortex_dissipation.pdf")
   return
 

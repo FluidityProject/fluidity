@@ -42,108 +42,46 @@ module les_viscosity_module
 
   public les_viscosity_strength, wale_viscosity_strength
   public les_init_fields, les_set_diagnostic_fields, dynamic_les_filtered_fields
-  public les_deallocate_fields, les_strain_rate
+  public les_strain_rate
 
 contains
 
-  subroutine les_init_fields(state, nu, eddy_visc, strain, filtered_strain, &
-             filtered_velocity, filter_width, leonard_tensor, strain_product, smag_coeff)
+  subroutine les_init_fields(state, nu, filtered_velocity, leonard_tensor, strain_product)
 
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout)  :: nu
-    type(scalar_field), pointer, intent(inout), optional :: smag_coeff
-    type(vector_field), pointer, intent(inout), optional :: filtered_velocity
-    type(tensor_field), pointer, intent(inout), optional :: &
-    & eddy_visc, strain, filtered_strain, filter_width, leonard_tensor, strain_product
+    type(vector_field), pointer, intent(inout) :: filtered_velocity
+    type(tensor_field), pointer, intent(inout) :: leonard_tensor, strain_product
     integer :: stat
 
-    ! Eddy viscosity field m_ij is used in all LES models
-    if (present(eddy_visc)) then
-      eddy_visc => extract_tensor_field(state, "EddyViscosity", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Allocating EddyViscosity on VelocityMesh"
-        allocate(eddy_visc)
-        call allocate(eddy_visc, nu%mesh, "EddyViscosity")
-      end if
-      call zero(eddy_visc)
-    end if
-
-    ! Strain rate field S1
-    if (present(strain)) then
-      strain => extract_tensor_field(state, "StrainRate", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Allocating StrainRate on VelocityMesh"
-        allocate(strain)
-        call allocate(strain, nu%mesh, "StrainRate")
-      end if
-      call zero(strain)
-    end if
-
-    ! Filtered strain rate field S2
-    if (present(filtered_strain)) then
-      filtered_strain => extract_tensor_field(state, "FilteredStrainRate", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Allocating FilteredStrainRate on VelocityMesh"
-        allocate(filtered_strain)
-        call allocate(filtered_strain, nu%mesh, "FilteredStrainRate")
-      end if
-      call zero(filtered_strain)
-    end if
-
-    ! Filter width
-    if (present(filter_width)) then
-      filter_width => extract_tensor_field(state, "FilterWidth", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Allocating FilterWidth on VelocityMesh"
-        allocate(filter_width)
-        call allocate(filter_width, nu%mesh, "FilterWidth")
-      end if
-      call zero(filter_width)
-    end if
-
     ! Filtered velocity
-    if (present(filtered_velocity)) then
-      filtered_velocity => extract_vector_field(state, "FilteredVelocity", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Allocating FilteredVelocity on VelocityMesh"
-        allocate(filtered_velocity)
-        call allocate(filtered_velocity, nu%dim, nu%mesh, "FilteredVelocity")
-      end if
-      call zero(filtered_velocity)
+    filtered_velocity => extract_vector_field(state, "FilteredVelocity", stat)
+    if(stat/=0) then
+      ewrite(2,*) "Allocating FilteredVelocity on VelocityMesh"
+      allocate(filtered_velocity)
+      call allocate(filtered_velocity, nu%dim, nu%mesh, "FilteredVelocity")
+      ewrite(2,*) "FilteredVelocity refcount: ", filtered_velocity%refcount%count
     end if
+    call zero(filtered_velocity)
+    ewrite_minmax(filtered_velocity)
 
     ! Leonard tensor
-    if (present(leonard_tensor)) then
-      leonard_tensor => extract_tensor_field(state, "LeonardTensor", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Allocating LeonardTensor on VelocityMesh"
-        allocate(leonard_tensor)
-        call allocate(leonard_tensor, nu%mesh, "LeonardTensor")
-      end if
-      call zero(leonard_tensor)
+    leonard_tensor => extract_tensor_field(state, "LeonardTensor", stat)
+    if(stat/=0) then
+      ewrite(2,*) "Allocating LeonardTensor on VelocityMesh"
+      allocate(leonard_tensor)
+      call allocate(leonard_tensor, nu%mesh, "LeonardTensor")
     end if
+    call zero(leonard_tensor)
 
-     ! Filtered strain product
-    if (present(strain_product)) then
-      strain_product => extract_tensor_field(state, "StrainProduct", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Allocating StrainProduct on VelocityMesh"
-        allocate(strain_product)
-        call allocate(strain_product, nu%mesh, "StrainProduct")
-      end if
-      call zero(strain_product)
+    ! Filtered strain product
+    strain_product => extract_tensor_field(state, "StrainProduct", stat)
+    if(stat/=0) then
+      ewrite(2,*) "Allocating StrainProduct on VelocityMesh"
+      allocate(strain_product)
+      call allocate(strain_product, nu%mesh, "StrainProduct")
     end if
-
-    ! Smagorinsky coeff.
-    if (present(smag_coeff)) then
-      smag_coeff => extract_scalar_field(state, "SmagorinskyCoefficient", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Allocating SmagorinskyCoefficient on VelocityMesh"
-        allocate(smag_coeff)
-        call allocate(smag_coeff, nu%mesh, "SmagorinskyCoefficient")
-      end if
-      call zero(smag_coeff)
-    end if
+    call zero(strain_product)
 
   end subroutine les_init_fields
 
@@ -174,25 +112,20 @@ contains
 
     ! Eddy viscosity field m_ij is available with all LES models
     if (present(eddy_visc_gi)) then
-      !ewrite(2,*) "eddy visc: ", eddy_visc_gi
+      !ewrite(2,*) "eddy visc: ", eddy_visc_gi(:,:,1)
       !ewrite(2,*) "visc: ", visc_gi
       !eddy_visc_gi = eddy_visc_gi + visc_gi
       tensorfield => extract_tensor_field(state, "EddyViscosity",stat)
       if(stat==0) then
-        if(any(eddy_visc_gi(:,:,:)<0.)) then
+        !if(any(eddy_visc_gi(:,:,:)<0.)) then
           !ewrite(2,*) "warning: visc_gi+eddy_visc_gi < 0", eddy_visc_gi
-        end if
+        !end if
         tensor_loc=shape_tensor_rhs(nu_shape, eddy_visc_gi, detwei)
         ! Divide by lumped mass
-        do i=1, ele_loc(nu,ele)
+        do i=1, ele_loc(tensorfield,ele)
           tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
         end do
-        if(any(tensor_loc(:,:,:)<0.)) then
-          !ewrite(2,*) "warning: tensor_loc < 0", tensor_loc
-        end if
-        call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
-      else
-        !FlExit("Error: EddyViscosity field has disappeared.")
+        call addto(tensorfield, ele_nodes(tensorfield, ele), tensor_loc)
       end if
     end if
 
@@ -289,6 +222,7 @@ contains
     lpath = (trim(les_option_path)//"/dynamic_les")
     ewrite(2,*) "filter factor alpha: ", alpha
     ewrite(2,*) "path to solver options: ", trim(lpath)
+    ! Filter the nonlinear velocity
     call anisotropic_smooth_vector(nu, positions, tnu, alpha, lpath)
 
     ewrite_minmax(nu)
@@ -364,84 +298,6 @@ contains
     deallocate(tensorfield)
 
   end subroutine dynamic_les_filtered_fields
-
-  subroutine les_deallocate_fields(state, nu, eddy_visc, strain, filtered_strain, &
-             filtered_velocity, filter_width, leonard_tensor, strain_product, smag_coeff)
-
-    type(state_type), intent(inout) :: state
-    type(vector_field), intent(in)  :: nu
-    type(scalar_field), pointer, intent(inout), optional :: smag_coeff
-    type(vector_field), pointer, intent(inout), optional :: filtered_velocity
-    type(tensor_field), pointer, intent(inout), optional :: &
-    & eddy_visc, strain, filtered_strain, filter_width, leonard_tensor, strain_product
-    integer :: stat
-
-    if (present(eddy_visc)) then
-      eddy_visc => extract_tensor_field(state, "EddyViscosity", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Deallocating EddyViscosity"
-        call deallocate(eddy_visc); deallocate(eddy_visc)
-      end if
-    end if
-
-    ! Strain rate field S1
-    if (present(strain)) then
-      strain => extract_tensor_field(state, "StrainRate", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Deallocating StrainRate"
-        call deallocate(strain); deallocate(strain) 
-      end if
-    end if
-
-    ! Filtered strain rate field S2
-    if (present(filtered_strain)) then
-      filtered_strain => extract_tensor_field(state, "FilteredStrainRate", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Deallocating FilteredStrainRate"
-        call deallocate(filtered_strain); deallocate(filtered_strain)
-      end if
-    end if
-
-    ! Filter width
-    if (present(filter_width)) then
-      filter_width => extract_tensor_field(state, "FilterWidth", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Deallocating FilterWidth"
-        call deallocate(filter_width); deallocate(filter_width)
-      end if
-    end if
-
-    ! Filtered velocity
-    if (present(filtered_velocity)) then
-      filtered_velocity => extract_vector_field(state, "FilteredVelocity", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Deallocating FilteredVelocity"
-        call deallocate(filtered_velocity); deallocate(filtered_velocity)
-      end if
-    end if
-
-    ! Leonard tensor
-    if (present(leonard_tensor)) then
-      ewrite(2,*) "Deallocating LeonardTensor"
-      call deallocate(leonard_tensor); deallocate(leonard_tensor)
-    end if
-
-     ! Filtered strain product
-    if (present(strain_product)) then
-      ewrite(2,*) "Deallocating StrainProduct"
-      call deallocate(strain_product); deallocate(strain_product)
-    end if
-
-    ! Smagorinsky coeff.
-    if (present(smag_coeff)) then
-      smag_coeff => extract_scalar_field(state, "SmagorinskyCoefficient", stat)
-      if(stat/=0) then
-        ewrite(2,*) "Deallocating SmagorinskyCoefficient"
-        call deallocate(smag_coeff); deallocate(smag_coeff)
-      end if
-    end if
-
-  end subroutine les_deallocate_fields
 
   function les_strain_rate(du_t, nu)
     !! Computes the strain rate
