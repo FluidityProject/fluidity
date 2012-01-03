@@ -234,16 +234,16 @@ assert abs(material1minstart-material1minend) &lt; 1.E-5
 assert abs(material3minstart-material3minend) &lt; 1.E-5
     </test>
     <test name="check initial max divergence was zero" language="python">
-assert abs(divergencemaxstart) &lt; 1.E-8
+assert abs(divergencemaxstart) &lt; 1.E-7
     </test>
     <test name="check initial min divergence was zero" language="python">
-assert abs(divergenceminstart) &lt; 1.E-8
+assert abs(divergenceminstart) &lt; 1.E-7
     </test>
     <test name="check final max divergence was zero" language="python">
-assert abs(divergencemaxend) &lt; 1.E-8
+assert abs(divergencemaxend) &lt; 1.E-7
     </test>
     <test name="check final min divergence was zero" language="python">
-assert abs(divergenceminend) &lt; 1.E-8
+assert abs(divergenceminend) &lt; 1.E-7
     </test>
     <test name="check initial max cfl was 0.1" language="python">
 assert abs(cflmaxstart-0.1) &lt; 1.E-10
@@ -280,16 +280,16 @@ assert abs(material1minstart_checkpoint-material1minend_checkpoint) &lt; 1.E-5
 assert abs(material3minstart_checkpoint-material3minend_checkpoint) &lt; 1.E-5
     </test>
     <test name="check checkpointed initial max divergence was zero" language="python">
-assert abs(divergencemaxstart_checkpoint) &lt; 1.E-8
+assert abs(divergencemaxstart_checkpoint) &lt; 1.E-7
     </test>
     <test name="check checkpointed initial min divergence was zero" language="python">
-assert abs(divergenceminstart_checkpoint) &lt; 1.E-8
+assert abs(divergenceminstart_checkpoint) &lt; 1.E-7
     </test>
     <test name="check checkpointed final max divergence was zero" language="python">
-assert abs(divergencemaxend_checkpoint) &lt; 1.E-8
+assert abs(divergencemaxend_checkpoint) &lt; 1.E-7
     </test>
     <test name="check checkpointed final min divergence was zero" language="python">
-assert abs(divergenceminend_checkpoint) &lt; 1.E-8
+assert abs(divergenceminend_checkpoint) &lt; 1.E-7
     </test>
     <test name="check checkpointed initial max cfl was 0.1" language="python">
 assert abs(cflmaxstart_checkpoint-0.1) &lt; 1.E-10
