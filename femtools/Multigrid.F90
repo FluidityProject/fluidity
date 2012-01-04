@@ -9,6 +9,7 @@ use FLDebug
 use spud
 use futils
 use parallel_tools
+use vector_tools
 #include "petscversion.h"
 #ifdef HAVE_PETSC_MODULES
   use petsc
@@ -392,7 +393,7 @@ logical, optional, intent(in) :: has_null_space
   PetscReal, allocatable, dimension(:):: emin, emax
   PetscObject:: myPETSC_NULL_OBJECT
   integer, allocatable, dimension(:):: contexts
-  integer i, j, ri, nolevels, m, n, top_level
+  integer i, j, ri, nolevels, m, n, top_level, bs
   integer nosmd, nosmu, clustersize, no_external_prolongators
   logical forgetlastone
   logical lno_top_smoothing
@@ -427,6 +428,8 @@ logical, optional, intent(in) :: has_null_space
       no_external_prolongators=0
     end if
 
+    call MatGetBlockSize(matrix, bs, ierr)
+
     forgetlastone=.false.
     matrices(1)=matrix
     do i=1, maxlevels-1
@@ -438,7 +441,7 @@ logical, optional, intent(in) :: has_null_space
          ewrite(2,*) "Coarsening from", size(external_prolongators(i),1), &
            "to", size(external_prolongators(i),2), "nodes"
       else
-         prolongators(i)=Prolongator(matrices(i), epsilon, omega, clustersize)
+         prolongators(i)=Prolongator(matrices(i), epsilon, omega, clustersize, bs)
          epsilon=epsilon/epsilon_decay
       end if
 
@@ -793,7 +796,7 @@ subroutine MatPTAP_wrapper(A, P, PTAP)
 
 end subroutine MatPTAP_wrapper
 
-function Prolongator(A, epsilon, omega, maxclustersize, cluster) result (P)
+function Prolongator(A, epsilon, omega, maxclustersize, bs, cluster) result (P)
 !!< Constructs coarse grid and prolongator operator between coarse and fine
 !!< grid based on the matrix A.
 Mat:: P
@@ -807,19 +810,18 @@ integer, intent(in):: maxclustersize
 !! 0 means only clustering as in Vanek '96
 !! if supplied returns cluster number each node is assigned to:
 integer, optional, dimension(:), intent(out):: cluster
+integer, intent(in):: bs
 
   PetscErrorCode:: ierr
-  PetscInt:: diagminloc
-  PetscReal:: diagmin
-  Vec:: sqrt_diag, inv_sqrt_diag, diag, one
   double precision, dimension(MAT_INFO_SIZE):: matrixinfo
   integer, dimension(:), allocatable:: findN, N, R
+  real, dimension(:), allocatable:: Q
+  real, dimension(:,:,:), allocatable:: rowsum
   integer:: nrows, nentries, ncols
-  integer:: jc, ccnt, base, bs
+  integer:: jc, ccnt, base
     
   ! find out basic dimensions of A
   call MatGetLocalSize(A, nrows, ncols, ierr)
-  call MatGetBlockSize(A, bs, ierr)
   ! use Petsc_Tools's MatGetInfo because of bug in earlier patch levels of petsc 3.0
   call myMatGetInfo(A, MAT_LOCAL, matrixinfo, ierr)
   nentries=matrixinfo(MAT_INFO_NZ_USED)
@@ -827,33 +829,12 @@ integer, optional, dimension(:), intent(out):: cluster
   ! we decrease by 1, so base+i gives 0-based petsc index if i is the local fortran index:
   base=base-1
   
-  allocate(findN(1:nrows/bs+1), N(1:nentries), R(1:nrows/bs))
-     
-  ! rescale the matrix: a_ij -> a_ij/sqrt(aii*ajj)
-  call MatGetVecs(A, diag, sqrt_diag, ierr)
-  call MatGetDiagonal(A, diag, ierr)
-  call VecMin(diag, diagminloc, diagmin, ierr)
-  if (diagmin<=0.0) then
-    ewrite(0,*) 'Multigrid preconditioner "mg" requires strictly positive diagonal'
-    FLExit("Zero or negative value on the diagonal")
-  end if
-  
-  !
-  call VecCopy(diag, sqrt_diag, ierr)
-#if PETSC_VERSION_MINOR==2
-  call VecSqrtAbs(sqrt_diag, ierr)
-#else
-  call VecSqrt(sqrt_diag, ierr)
-#endif
-  !
-  call VecDuplicate(sqrt_diag, inv_sqrt_diag, ierr)
-  call VecCopy(sqrt_diag, inv_sqrt_diag, ierr)
-  call VecReciprocal(inv_sqrt_diag, ierr)
-  call MatDiagonalScale(A, inv_sqrt_diag, inv_sqrt_diag, ierr)
+  allocate(findN(1:nrows/bs+1), N(1:nentries), Q(1:nentries), R(1:nrows/bs))
+  allocate(rowsum(1:bs,1:bs,1:nrows/bs))
   
   ! construct the strongly coupled neighbourhoods N_i around each node
   ! and use R to register isolated nodes i with N_i={i}
-  call Prolongator_init(R, ccnt, findN, N, A, base, bs, epsilon)
+  call Prolongator_init(R, ccnt, findN, N, Q, rowsum, A, base, bs, epsilon)
   
   if (ccnt==0 .and. nrows>0) then
     ! all nodes are isolated, strongly diagonal dominant matrix
@@ -877,7 +858,7 @@ integer, optional, dimension(:), intent(out):: cluster
   
   ! Step 2 - Enlarging the decomposition sets (aggregates)
   ! add remaining COUPLED but yet uncovered nodes to one of the aggregates
-  call Prolongator_step2(R, findN, N, A, base, bs)
+  call Prolongator_step2(R, findN, N, Q)
   
   ! Step 3 - Handling the remnants
   ! the remaining nodes, that are COUPLED but neither in the original covering
@@ -892,51 +873,36 @@ integer, optional, dimension(:), intent(out):: cluster
   ewrite(3,*) 'Isolated fine nodes: ', nrows/bs-ccnt
   ewrite(3,*) 'Aggregates: ', jc
   
-  ! now scale a_ij -> a_ii^-1/2 * a_ij * ajj^1/2, i.e. starting from the
-  ! original matrix: a_ij -> a_ii^-1 * a_ij
-  call MatDiagonalScale(A, inv_sqrt_diag, sqrt_diag, ierr)
-  
   ! we now have all the stuff to create the prolongator
-  call create_prolongator(P, nrows, jc, findN, N, R, A, base, bs, omega)
+  call create_prolongator(P, nrows, jc, findN, N, R, rowsum, A, base, bs, omega)
   
-  ! now restore the original matrix
-  ! unfortunately MatDiagonalScale is broken for one-sided scaling, i.e.
-  ! supplying PETSC_NULL(_OBJECT) for one the vectors
-  call VecDuplicate(diag, one, ierr)
-  call VecSet(one, 1.0_PetscReal_kind, ierr)
-  call MatDiagonalScale(A, diag, one, ierr)
-   
   if (present(cluster)) cluster=R
-  deallocate(R, N, findN)
-  
-  call VecDestroy(diag, ierr)
-  call VecDestroy(sqrt_diag, ierr)
-  call VecDestroy(inv_sqrt_diag, ierr)
-  call VecDestroy(one, ierr)
+  deallocate(R, N, findN, Q)
     
 end function Prolongator
 
-subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, bs, omega)
+subroutine create_prolongator(P, nrows, ncols, findN, N, R, rowsum, A, base, bs, omega)
   
   Mat, intent(out):: P
   integer, intent(in):: nrows ! number of fine nodes
   integer, intent(in):: ncols ! number of clusters
   integer, dimension(:), intent(in):: findN, N, R
-  ! A needs to be left rescaled with the inverse diagonal: D^-1 A
+  PetscReal, dimension(:,:,:), intent(in):: rowsum
   Mat, intent(in):: A
   integer, intent(in):: base, bs
   PetscReal, intent(in):: omega
   
   PetscObject:: myPETSC_NULL_OBJECT
   PetscErrorCode:: ierr
-  Vec:: rowsum_vec
-  PetscReal, dimension(:), allocatable:: Arowsum
-  PetscReal, dimension(bs,bs):: aij, rowsum
+  PetscReal, dimension(:), allocatable:: vals
+  PetscInt, dimension(:), allocatable:: cols
+  PetscReal, dimension(bs,bs):: aii, aij, frowsum
   PetscInt, dimension(bs):: idxm, idxn
   integer, dimension(:), allocatable:: dnnz, onnz
-  integer:: i, j, k, b, coarse_base, nnz
+  integer:: i, j, k, b, coarse_base, nnz, rowlen
   
-  allocate(dnnz(1:nrows), Arowsum(1:nrows))
+  allocate(dnnz(1:nrows))
+  allocate(cols(1:nrows), vals(1:nrows))
   
   ! work out nnz in each row of the new prolongator
   do i=1, nrows/bs
@@ -974,21 +940,25 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, bs, omega)
     coarse_base=-1
   end if
   
-  call MatGetVecs(A, rowsum_vec, PETSC_NULL_OBJECT, ierr)
-  call VecPlaceArray(rowsum_vec, Arowsum, ierr)
-  call MatGetRowSum(A, rowsum_vec, ierr)
-    
   do i=1, nrows/bs
-    rowsum=0.0
     idxm=(/ ( base+(i-1)*bs+b, b=1, bs) /)
+
+    call MatGetValues(A, bs, idxm, bs, idxm, aii, ierr)
+    call invert(aii)
+
+    do b=1, bs
+      call MatGetRow(A, base+(i-1)*bs+b, rowlen, cols, vals, ierr)
+      frowsum(bs,:)=sum(reshape(vals,(/ bs,rowlen/bs /)),dim=2)
+      call MatRestoreRow(A, base+(i-1)*bs+b, rowlen, cols, vals, ierr)
+    end do
+
     ! the filtered matrix only contains the entries in N_i:
     do k=findN(i), findN(i+1)-1
       j=N(k)
       idxn=(/ ( base+(j-1)*bs+b, b=1, bs ) /)
       call MatGetValues(A, bs, idxm, bs, idxn, aij, ierr)
-      rowsum=rowsum+aij
       if (R(j)>0) then
-        aij=-omega*aij
+        aij=matmul(aii,-omega*aij)
         idxn=(/ ( coarse_base+(R(j)-1)*bs+b, b=1, bs ) /)
         call MatSetValues(P, bs, idxm, bs, idxn, aij, ADD_VALUES, ierr)
       end if
@@ -996,9 +966,9 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, bs, omega)
     if (R(i)>0) then
       aij=0.0
       do b=1, bs
-        aij(b,b)=1.0-omega*Arowsum((i-1)*bs+b)
+        aij(b,b)=1.0
       end do
-      aij=aij+omega*rowsum
+      aij=aij-omega*matmul(aii, (rowsum(:,:,i)-frowsum))
       idxn=(/ ( coarse_base+(R(i)-1)*bs+b, b=1, bs ) /)
       call MatSetValues(P, bs, idxm, bs, idxn, aij, ADD_VALUES, ierr)
     end if
@@ -1007,46 +977,103 @@ subroutine create_prolongator(P, nrows, ncols, findN, N, R, A, base, bs, omega)
   call MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY, ierr)
   call MatAssemblyEnd(P, MAT_FINAL_ASSEMBLY, ierr)
   
-  call VecDestroy(rowsum_vec, ierr)
-    
 end subroutine create_prolongator
 
-subroutine Prolongator_init(R, ccnt, findN, N, A, base, bs, epsilon)
+subroutine Prolongator_init(R, ccnt, findN, N, Q, rowsum, A, base, bs, epsilon)
 ! construct the strongly coupled neighbourhoods N_i around each node
 ! and use R to register isolated nodes i with N_i={i}
 integer, dimension(:), intent(out):: R, findN, N
+real, dimension(:), intent(out):: Q
+real, dimension(:,:,:), intent(out):: rowsum
 integer, intent(out):: ccnt
 Mat, intent(in):: A
 integer, intent(in):: base
 integer, intent(in):: bs
 PetscReal, intent(in):: epsilon
 
+  Vec:: diag_vec
   PetscErrorCode:: ierr
-  PetscReal, dimension(:), allocatable:: vals(:)
+  PetscReal, dimension(:), allocatable:: vals, diag
+  PetscReal, dimension(:,:,:), allocatable:: bdiag
+  PetscReal, dimension(1:bs,1:bs):: baij, eigenvecs
+  PetscReal, dimension(1:bs):: eigenvals
+  PetscInt, dimension(1:bs):: idxm
   integer, dimension(:), allocatable:: cols(:)
-  PetscReal aij, eps_sqrt
-  integer i, j, k, b, p, ncols
+  PetscReal qp, eps_sqrt
+  integer i, j, k, b, p, ncols, stat
   
   ! workspace for MatGetRow
   allocate( vals(1:size(N)), cols(1:size(n)) )
   
   eps_sqrt=sqrt(epsilon)
+
+  ! let's try to be efficient and only ask for each diagonal entry only once
+  if (bs==1) then
+    allocate( diag(1:size(R)) )
+    call MatGetVecs(A, diag_vec, PETSC_NULL_OBJECT, ierr)
+    call VecPlaceArray(diag_vec, diag, ierr)
+    call MatGetDiagonal(A, diag_vec, ierr)
+    if (minval(diag)<=0.0) then
+      ewrite(0,*) 'Multigrid preconditioner "mg" requires strictly positive diagonal'
+      FLExit("Zero or negative value on the diagonal")
+    end if
+    diag=1.0/sqrt(diag)
+  else
+    ! obtain the diagonal blocks A_ii, and compute (A_ii)^{-1/2}
+    allocate( bdiag(1:bs,1:bs,1:size(R)) )
+    ! row/col indices of first block
+    idxm=(/ ( b, b=0, bs-1 ) /)
+    do i=1, size(R)
+      call MatGetValues(A, bs, idxm, bs, idxm, bdiag(:,:,i), ierr)
+!      do b=1, bs
+!        if (bdiag(b,b,i)>1e100) then
+!          bdiag(b,:,i)=0.0
+!          bdiag(:,b,i)=0.0
+!          bdiag(b,b,i)=1.0
+!        end if
+!      end do
+      call eigendecomposition_symmetric(bdiag(:,:,i), eigenvecs, eigenvals, stat)
+      if (stat/=0 .or. minval(eigenvals)<0.0) then
+        ewrite(0,*) "stat, eigenvals =", stat, eigenvals
+        ewrite(0,*) "diagonal block =", bdiag(:,:,i)
+        FLAbort("For block mg multigrid: need symmetric positive definite diagonal blocks.")
+      end if
+      eigenvals=1.0/sqrt(eigenvals)
+      call eigenrecomposition(bdiag(:,:,i), eigenvecs, eigenvals)
+      idxm=idxm+bs ! move on to next block
+    end do
+  end if
+
+  rowsum=0.0
   
   ccnt=0 ! counts the coupled nodes, i.e. nodes that are not isolated
   p=1
   do i=1, size(R)
     findN(i)=p
     call MatGetRow(A, base+(i-1)*bs+1, ncols, cols, vals, ierr)
+    idxm=(/ ( base+(i-1)*bs+b, b=1, bs ) /) 
     do k=1, ncols,bs
       j=cols(k)/bs-base
       ! ignore non-local columns
       if (j<1 .or. j>size(R)) cycle
-      aij=0.0
-      do b=0, bs-1
-        aij=aij+vals(k+b)
-      end do
-      if (abs(aij)>eps_sqrt) then
+      if (bs==1) then
+        qp=abs(vals(k))*diag(i)*diag(j)
+        rowsum(1,1,i)=rowsum(1,1,i)+vals(k)
+      else
+        call MatGetValues(A, bs, idxm, bs, cols(k:k+bs-1), baij, ierr)
+        rowsum(:,:,i)=rowsum(:,:,i)+baij
+        if (i==j) then
+          qp=1.0
+        else
+          ! compute A_ii^(-1/2) A_ij A_jj^(-1/2)
+          baij=matmul(bdiag(:,:,i), matmul( baij, bdiag(:,:,j)))
+          call eigendecomposition(baij, eigenvecs, eigenvals)
+          qp=maxval(abs(eigenvals))
+        end if
+      end if
+      if (qp>eps_sqrt) then
         N(p)=j
+        Q(p)=qp
         p=p+1
       end if
     end do
@@ -1106,33 +1133,28 @@ integer, intent(in):: maxclustersize
   
 end subroutine Prolongator_step1
 
-subroutine Prolongator_step2(R, findN, N, A, base, bs)
+subroutine Prolongator_step2(R, findN, N, Q)
 ! Step 2 - Enlarging he decomposition sets
 ! add remaining COUPLED but yet uncovered nodes to one of the aggregates
 integer, dimension(:), intent(inout):: R
 integer, dimension(:), intent(in):: findN, N
-Mat, intent(in):: A
-integer, intent(in):: base, bs
+PetscReal, dimension(:), intent(in):: Q
 
-  PetscErrorCode:: ierr
-  PetscReal:: maxc, aij(bs)
-  PetscInt:: idxn(bs)
-  integer:: i, j, k, b, p
+  PetscReal:: maxq
+  integer:: i, j, k, p
   
   do i=1, size(R)
     if (R(i)==COUPLED) then
       ! find the strongest coupling in N_i that is assigned to one of the
       ! aggregates in step 1
-      maxc=0
+      maxq=0
       k=0
       do p=findN(i), findN(i+1)-1
         j=N(p)
         if (R(j)>0) then
           j=N(p)
-          idxn=(/ ( base+(j-1)*bs+b, b=1, bs ) /)
-          call MatGetValues(A, 1, (/ base+(i-1)*bs+1 /), bs, idxn,  aij, ierr)
-          if (sum(abs(aij))>maxc) then
-            maxc=sum(abs(aij))
+          if (Q(p)>maxq) then
+            maxq=Q(p)
             k=R(j)
           end if
         end if

@@ -10,6 +10,7 @@
 extern "C" {
   void iscopyindices_(IS *is, PetscInt *iarray,PetscErrorCode *ierr);
   void petscobjectreference_(PetscObject obj, int *__ierr );
+  void fortran_matgetrowmaxabs_(Mat *mat, Vec *vec);
 }
 
 // our own version of IsGetIndices, that just does a copy
@@ -56,3 +57,9 @@ void petscobjectreference_(PetscObject obj, int *__ierr ){
 *__ierr = PetscObjectReference(
    (PetscObject)PetscToPointer((obj) ));
 }
+
+void fortran_matgetrowmaxabs_(Mat *mat, Vec *vec){
+  MatGetRowMaxAbs(*mat,*vec, PETSC_NULL);
+}
+
+

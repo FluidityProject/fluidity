@@ -110,6 +110,8 @@
       KSP ksp ! Object type for outer solve (i.e. A * delta_p = rhs)
       Mat A ! PETSc Schur complement matrix (i.e. G^t*m^-1*G) 
       Vec y, b ! PETSc solution vector (y), PETSc RHS (b)
+      Vec scale_vec
+      PetscErrorCode:: ierr
       
       character(len=OPTION_PATH_LEN) solver_option_path, name
       integer literations
@@ -129,7 +131,7 @@
       ewrite(2,*) 'Entering PETSc setup for Full Projection Solve'
       call petsc_solve_setup_full_projection(y,A,b,ksp,petsc_numbering,name,solver_option_path, &
            lstartfromzero,inner_m,ctp_m,ct_m,x%option_path,pmat, &
-           rhs, state, inner_mesh, auxiliary_matrix)
+           rhs, state, inner_mesh, auxiliary_matrix, scale_vec)
 
       ewrite(2,*) 'Create RHS and solution Vectors in PETSc Format'
       ! create PETSc vec for rhs using above numbering:
@@ -146,6 +148,9 @@
       ! Solve Ay = b using KSP and PC. Also check convergence. We call this the inner solve.
       call petsc_solve_core(y, A, b, ksp, petsc_numbering, solver_option_path, lstartfromzero, &
            literations, sfield=x, x0=x%val, nomatrixdump=.true.)
+
+      call VecReciprocal(scale_vec, ierr)
+      call MatDiagonalScale(inner_M%M, scale_vec, scale_vec, ierr)
 
       ewrite(2,*) 'Copying PETSc solution vector into designated Fluidity array'
       ! Copy back the result into the fluidity solution array (x) using the PETSc numbering:
@@ -164,7 +169,7 @@
          lstartfromzero,inner_m,div_matrix_comp, &
          div_matrix_incomp,option_path,preconditioner_matrix,rhs, &
          state, inner_mesh, &
-         auxiliary_matrix)
+         auxiliary_matrix, scale_vec)
          
 !--------------------------------------------------------------------------------------------------------
 
@@ -184,6 +189,7 @@
       character(len=*), intent(out) :: name
       ! Solver option paths:
       character(len=*), intent(out) :: solver_option_path
+      Vec, intent(out):: scale_vec
 
       ! Stuff that comes in:
       !
@@ -343,6 +349,10 @@
       
       ! Need to assemble the petsc matrix before we use it:
       call assemble(inner_M)
+
+      call prescale_matrix_system(inner_M%M, scale_vec)
+      call MatDiagonalScale(G_t_comp, PETSC_NULL_OBJECT, scale_vec, ierr)
+      call MatDiagonalScale(G_t_incomp, PETSC_NULL_OBJECT, scale_vec, ierr)
 
       ! Build Schur complement:
       ewrite(2,*) 'Building Schur complement'                

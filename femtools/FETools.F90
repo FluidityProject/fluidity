@@ -14,7 +14,7 @@ module fetools
   integer, parameter :: U_=1,V_=2,W_=3
 
   !! Huge number useful for effectively zeroing out rows of a matrix.
-  real, parameter :: INFINITY=huge(0.0)*epsilon(0.0)
+  real, parameter :: INFINITY=sqrt(huge(0.0)*epsilon(0.0))
 
   interface norm2
      module procedure norm2_element
