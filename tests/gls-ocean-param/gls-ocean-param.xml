@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>gls-ocean-param</name>
+  <owner userid="jhill1"/>
+  <tags>flml gls</tags>
+  <problem_definition length="short" nprocs="1">
+      <command_line>mpiexec fluidity gls-StationPapa-orig.flml;
+                    mpiexec fluidity gls-StationPapa-param.flml;
+      </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="depths" language="python">
+import vtktools
+import sys
+sys.path.append("gls-ocean-param")
+from mld_util import get_1d_indices
+u=vtktools.vtu("gls-StationPapa-orig_1.vtu")
+pos = u.GetLocations()
+ind = get_1d_indices(pos)
+depths = vtktools.arr([-pos[i,2] for i in ind])
+    </variable>
+    <variable name="TKE_orig" language="python">
+import vtktools
+import sys
+sys.path.append("gls-ocean-param")
+from mld_util import get_1d_indices
+u=vtktools.vtu("gls-StationPapa-orig_1.vtu")
+pos = u.GetLocations()
+ind = get_1d_indices(pos)
+k = u.GetScalarField('GLSTurbulentKineticEnergy')
+TKE_orig = vtktools.arr( [k[i] for i in ind] )
+    </variable>
+    <variable name="TKE_param" language="python">
+import vtktools
+import sys
+sys.path.append("gls-ocean-param")
+from mld_util import get_1d_indices
+u=vtktools.vtu("gls-StationPapa-param_1.vtu")
+pos = u.GetLocations()
+ind = get_1d_indices(pos)
+k = u.GetScalarField('GLSTurbulentKineticEnergy')
+TKE_param = vtktools.arr( [k[i] for i in ind] )
+    </variable>
+  </variables>    
+
+  <pass_tests> 
+    <test name="Extra parameterisation increases TKE" language="python">
+# just below MLD
+assert TKE_param[36] &gt; TKE_orig[36]
+    </test>
+    <test name="total TKE increased" language="python">
+        assert(sum(TKE_param) &gt; sum(TKE_orig))
+    </test>
+  </pass_tests>
+</testproblem>
