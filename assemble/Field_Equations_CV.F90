@@ -75,6 +75,8 @@ module field_equations_cv
   logical :: include_density = .false.
   ! are we including a souce?
   logical :: include_source = .false.
+  ! Add source directly to the right hand side?
+  logical :: add_src_directly_to_rhs = .false.
   ! are we including an absorption?
   logical :: include_absorption = .false.
   ! are we including diffusion?
@@ -333,6 +335,13 @@ contains
       if(.not.include_source) then
         source=>dummyscalar
       else
+        add_src_directly_to_rhs = have_option(trim(source%option_path)//'/diagnostic/add_directly_to_rhs')
+      
+        if (add_src_directly_to_rhs) then 
+          ewrite(2, *) "Adding Source field directly to the right hand side"
+          assert(node_count(source) == node_count(tfield))
+        end if
+
         ewrite_minmax(source)
       end if
       
@@ -833,7 +842,7 @@ contains
 
       ! allocate some memory for assembly
       call allocate(MT_old, rhs%mesh, name="MT_oldProduct" )
-      if(include_source) then
+      if(include_source .and. (.not. add_src_directly_to_rhs)) then
         call allocate(masssource, rhs%mesh, name="MassSourceProduct" )
         call set(masssource, lumpedmass)
         call scale(masssource, source)
@@ -875,7 +884,7 @@ contains
         end if
 
 
-        if(include_source) call addto(rhs, masssource)
+        if(include_source .and. (.not. add_src_directly_to_rhs)) call addto(rhs, masssource)
 
         if(include_absorption) then
           ! massabsorption has already been added to the matrix so it can now be scaled
@@ -936,7 +945,7 @@ contains
           end if
         end if
         
-        if(include_source) call addto(rhs, masssource)
+        if(include_source .and. (.not. add_src_directly_to_rhs)) call addto(rhs, masssource)
 
         if(include_absorption) then
           ! massabsorption has already been added to the matrix so it can now be scaled
@@ -984,7 +993,7 @@ contains
           end if
         end if
 
-        if(include_source) call addto(rhs, masssource)
+        if(include_source .and. (.not. add_src_directly_to_rhs)) call addto(rhs, masssource)
 
         if(include_absorption) then
           ! massabsorption has already been added to the matrix so it can now be scaled
@@ -1032,7 +1041,7 @@ contains
           end if
         end if
 
-        if(include_source) call addto(rhs, masssource)
+        if(include_source .and. (.not. add_src_directly_to_rhs)) call addto(rhs, masssource)
 
         if(include_absorption) then
           ! massabsorption has already been added to the matrix so it can now be scaled
@@ -1102,7 +1111,7 @@ contains
           end if
         end if
 
-        if(include_source) call addto(rhs, masssource)
+        if(include_source .and. (.not. add_src_directly_to_rhs)) call addto(rhs, masssource)
 
         if(include_absorption) then
           ! massabsorption has already been added to the matrix so it can now be scaled
@@ -1127,7 +1136,11 @@ contains
 
       end select
 
-      if(include_source) call deallocate(masssource)
+      ! Add the source directly to the rhs if required 
+      ! which must be included before dirichlet BC's.
+      if (add_src_directly_to_rhs) call addto(rhs, source)
+
+      if(include_source .and. (.not. add_src_directly_to_rhs)) call deallocate(masssource)
       if(include_absorption) call deallocate(massabsorption)
       call deallocate(MT_old)
       if(move_mesh) call deallocate(massconservation)
@@ -2281,6 +2294,9 @@ contains
         source(f)%ptr=>extract_scalar_field(state(state_indices(f)), trim(field_name)//"Source", stat=stat)
         if(stat==0) then
           FLExit("Coupled CV broken with Sources")
+          ! If Coupled CV is ever fixed to work with Sources then the 
+          ! option source(f)%option_path//'/diagnostic/add_directly_to_rhs'
+          ! should be accounted for.
         end if
         if(stat/=0) source(f)%ptr=>dummyscalar
         absorption(f)%ptr=>extract_scalar_field(state(state_indices(f)), trim(field_name)//"Absorption", stat=stat)

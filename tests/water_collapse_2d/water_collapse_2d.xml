@@ -3,7 +3,7 @@
 <testproblem>
   <name>water collapse 2d</name>
   <owner userid="cwilson"/>
-  <tags>flml</tags>
+  <tags>flml 2dadapt</tags>
     <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l water_collapse.flml</command_line>
   </problem_definition>  
