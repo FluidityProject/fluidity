@@ -31,6 +31,9 @@ module cv_advection
   use fldebug
   
   use solvers_module
+  use state_module
+  use spud
+  use global_parameters, only: option_path_len
 
 contains
 
@@ -56,7 +59,8 @@ contains
        NDIM, GETCV_DISC, GETCT, &
        NCOLM, FINDM, COLM, MIDM, &
        XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
-       OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, T_FEMT, DEN_FEMT, &
+       OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, &
+       T_FEMT, DEN_FEMT, &
        IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
        THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
        SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
@@ -191,9 +195,6 @@ contains
          CV_SNLOC, U_SNLOC, STOTEL, CV_DISOPT, CV_DG_VEL_INT_OPT, NDIM, &
          NCOLM, XU_NLOC, NCOLELE, NOPT_VEL_UPWIND_COEFS, &
          IGOT_T2, IGOT_THETA_FLUX, SCVNGI_THETA, IN_ELE_UPWIND, DG_ELE_UPWIND
-
-    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: T_FEMT, DEN_FEMT
-
     INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
     INTEGER, DIMENSION( TOTELE * X_NLOC ), intent( in ) ::  X_NDGLN
     INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN 
@@ -219,7 +220,7 @@ contains
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: T, TOLD, DEN, DENOLD
     REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( in ) :: T2, T2OLD
     REAL, DIMENSION( CV_NONODS * NPHASE * IGOT_T2 ), intent( inout ) :: THETA_GDIFF
-    REAL, DIMENSION( TOTELE*IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), &
+    REAL, DIMENSION( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), &
          intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
     REAL, DIMENSION( MAT_NONODS, NDIM, NDIM, NPHASE ), intent( in ) :: TDIFFUSION
     REAL, intent( in ) :: DT, CV_THETA, CV_BETA
@@ -228,9 +229,9 @@ contains
     REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
     REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_T_BC_ROB1, SUF_T_BC_ROB2
     REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE * IGOT_T2 ), intent( in ) :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2
-    REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: DERIV
+    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DERIV
     REAL, DIMENSION( CV_NONODS ), intent( in ) :: CV_P
-    REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: SOURCT
+    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: SOURCT
     REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE ), intent( in ) :: ABSORBT
     REAL, DIMENSION( TOTELE ), intent( in ) :: VOLFRA_PORE 
     LOGICAL, intent( in ) :: GETCV_DISC, GETCT, GET_THETA_FLUX, USE_THETA_FLUX
@@ -239,48 +240,46 @@ contains
     INTEGER, DIMENSION( CV_NONODS ), intent( in ) :: MIDM
     INTEGER, DIMENSION( TOTELE + 1 ), intent( in ) :: FINELE
     INTEGER, DIMENSION( NCOLELE ), intent( in ) :: COLELE
+    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( inout ) :: T_FEMT, DEN_FEMT
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
     INTEGER, INTENT( IN ) :: NOIT_DIM
     REAL, DIMENSION( CV_NONODS ), intent( inout ) :: MEAN_PORE_CV
 
-    ! Local variables - Allocatable Arrays
+    ! Local variables 
+    LOGICAL, PARAMETER :: INCLUDE_PORE_VOL_IN_DERIV = .FALSE.
+    INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
+         WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
+         WIC_U_BC_DIRICHLET = 1
+    LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
+    LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE,U_ON_FACE
     INTEGER, DIMENSION( : ), allocatable :: FINDGPTS, &
          CV_OTHER_LOC, U_OTHER_LOC, MAT_OTHER_LOC, &
-         JCOUNT_KLOC, JCOUNT_KLOC2, COLGPTS, CV_SLOC2LOC, U_SLOC2LOC
+         JCOUNT_KLOC, JCOUNT_KLOC2, COLGPTS, CV_SLOC2LOC, U_SLOC2LOC, &
+         TMAX_NOD, TMIN_NOD, TOLDMAX_NOD, &
+         TOLDMIN_NOD, DENMAX_NOD, DENMIN_NOD, DENOLDMAX_NOD, DENOLDMIN_NOD, &
+         T2MAX_NOD, T2MIN_NOD, T2OLDMAX_NOD, T2OLDMIN_NOD
     INTEGER, DIMENSION( : , : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, &
          FACE_ELE, CV_NEILOC
-    REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
-         CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
-         UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
-         SCVFENLX, SCVFENLY, SCVFENLZ, &
-         SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY,SUFENLZ
-    REAL, DIMENSION( : , : ), allocatable :: SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
-         SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
-         SBUFENLX, SBUFENLY, SBUFENLZ
-    REAL, DIMENSION( : ), allocatable :: CVWEIGHT,CVWEIGHT_SHORT,SCVFEWEIGH,SBCVFEWEIGH
-    REAL, DIMENSION( : ), allocatable :: TMAX, TMIN, TOLDMAX, &
+    REAL, DIMENSION( : ), allocatable :: CVWEIGHT, CVWEIGHT_SHORT, SCVFEWEIGH, SBCVFEWEIGH, &
+         TMAX, TMIN, TOLDMAX, &
          TOLDMIN, DENMAX, DENMIN, DENOLDMAX, DENOLDMIN, CVNORMX, &
          CVNORMY, CVNORMZ, MASS_CV, MASS_ELE, SNDOTQ, SNDOTQOLD,  &
          FEMT, FEMTOLD, FEMT2, FEMT2OLD, FEMDEN, FEMDENOLD, XC_CV, YC_CV, ZC_CV, &
          SCVDETWEI, SRA, UGI_COEF_ELE, VGI_COEF_ELE, WGI_COEF_ELE, &
          UGI_COEF_ELE2, VGI_COEF_ELE2, WGI_COEF_ELE2,  &
          SUM_CV, ONE_PORE, SELE_OVERLAP_SCALE, T2MAX, T2MIN, T2OLDMAX, &
-         T2OLDMIN
-    INTEGER, DIMENSION( : ), allocatable :: TMAX_NOD, TMIN_NOD, TOLDMAX_NOD, &
-         TOLDMIN_NOD, DENMAX_NOD, DENMIN_NOD, DENOLDMAX_NOD, DENOLDMIN_NOD, &
-         T2MAX_NOD, T2MIN_NOD, T2OLDMAX_NOD, T2OLDMIN_NOD
+         T2OLDMIN, UP_WIND_NOD
+    REAL, DIMENSION( : , : ), allocatable :: CVN, CVN_SHORT, CVFEN, CVFENLX, CVFENLY, CVFENLZ, &
+         CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT,  &
+         UFEN, UFENLX, UFENLY, UFENLZ, SCVFEN, SCVFENSLX, SCVFENSLY, &
+         SCVFENLX, SCVFENLY, SCVFENLZ, &
+         SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, &
+         SBCVFEN, SBCVFENSLX, SBCVFENSLY, &
+         SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBUFEN, SBUFENSLX, SBUFENSLY, &
+         SBUFENLX, SBUFENLY, SBUFENLZ
     REAL, DIMENSION( : , :, : ), allocatable :: DTX_ELE,DTY_ELE,DTZ_ELE,  &
          DTOLDX_ELE,DTOLDY_ELE,DTOLDZ_ELE
-    REAL, DIMENSION( : ), allocatable :: UP_WIND_NOD
 
-    LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
-    LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE,U_ON_FACE
-    LOGICAL, PARAMETER :: INCLUDE_PORE_VOL_IN_DERIV = .FALSE.
-    ! Local variables - pointers, indeces, etc
-    ! This is for decifering WIC_T_BC,WIC_D_BC,WIC_U_BC
-    INTEGER, PARAMETER :: WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2, &
-         WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
-         WIC_U_BC_DIRICHLET = 1
     !          ===> INTEGERS <====
     INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, COUNT, JCOUNT, &
          ELE, ELE2, GI, GCOUNT, SELE,   &
@@ -315,8 +314,8 @@ contains
     ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA', &
          CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA
 
-    CALL RETRIEVE_NGI( CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI,NFACE, &
-         NDIM, CV_ELE_TYPE, CV_NLOC, U_NLOC) 
+    call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
+         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
 
     GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
@@ -457,9 +456,9 @@ contains
     NCOLGPTS = 0
     COLGPTS = 0
     FINDGPTS = 0
-    ewrite(3,*)'in ASSEMB_FORCE_CTY',NCOLGPTS 
-    ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS',size(COLGPTS), COLGPTS
-    ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS',size(FINDGPTS), FINDGPTS
+    !ewrite(3,*)'in ASSEMB_FORCE_CTY',NCOLGPTS 
+    !ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS',size(COLGPTS), COLGPTS
+    !ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS',size(FINDGPTS), FINDGPTS
 
 
     !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
@@ -484,7 +483,7 @@ contains
          CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
                                 ! Define the gauss points that lie on the surface of the CV...
          FINDGPTS, COLGPTS, NCOLGPTS, &
-         SELE_OVERLAP_SCALE)  
+         SELE_OVERLAP_SCALE )  
 
     ! Determine FEMT (finite element wise) etc from T (control volume wise)
     ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV. 
@@ -616,7 +615,7 @@ contains
 
     ewrite(3,*)'x,ftheta:'
     ewrite(3,*) 'cv_ndgln: ', cv_ndgln
-    
+
     Loop_Elements: DO ELE = 1, TOTELE
 
 
@@ -703,18 +702,18 @@ contains
                    DO U_KLOC = 1, U_NLOC
                       U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
                       JCOUNT = 0
-!                      ewrite(3,*) 'cv_nodi: ', cv_nodi
-!                      ewrite(3,*) 'findct: ', findct
-!                      ewrite(3,*) 'colct: ', colct
+                      !                      ewrite(3,*) 'cv_nodi: ', cv_nodi
+                      !                      ewrite(3,*) 'findct: ', findct
+                      !                      ewrite(3,*) 'colct: ', colct
                       DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
-!                         ewrite(3,*) 'u_nodk, count, colct(count): ', u_nodk, count, colct(count)
+                         !                         ewrite(3,*) 'u_nodk, count, colct(count): ', u_nodk, count, colct(count)
                          IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                       END DO
                       JCOUNT_KLOC( U_KLOC ) = JCOUNT
                    END DO
-!                   ewrite(3,*) 'jcount_kloc: ', jcount_kloc
+                   !                   ewrite(3,*) 'jcount_kloc: ', jcount_kloc
                    IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
-!                      ewrite(3,*)'CV_NODI,CV_NODJ,ELE,ELE2:',CV_NODI,CV_NODJ,ELE,ELE2
+                      !                      ewrite(3,*)'CV_NODI,CV_NODJ,ELE,ELE2:',CV_NODI,CV_NODJ,ELE,ELE2
                       DO U_KLOC = 1, U_NLOC
                          U_NODK = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC )
                          !             ewrite(3,*)'U_NODK:',U_NODK
@@ -730,7 +729,7 @@ contains
                    ENDIF
 
                 ENDIF Conditional_GETCT1
-                
+
                 ! Compute the distance HDC between the nodes either side of the CV face 
                 ! (this is needed to compute the local courant number and the non-linear
                 ! theta)
@@ -1039,7 +1038,7 @@ contains
 
     END DO Loop_Elements
 
-!    stop 123
+    !    stop 123
 
     IF(GET_GTHETA) THEN
        DO CV_NODI = 1, CV_NONODS
@@ -1170,9 +1169,9 @@ contains
              cv_nodi_IPHA=cv_nodi +(IPHASE-1)*CV_NONODS
 
              if(cv_nonods==x_nonods) then
-!                ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
+                !                ewrite(3,*)0.5*(x(cv_nodi)+x(cv_nodi+1)),UP_WIND_NOD(cv_nodi_IPHA)
                 ewrite(3,*)0.5*(x(x_ndgln((ele-1)*x_nloc+cv_iloc))+x(x_ndgln((ele-1)*x_nloc+cv_iloc+1))),  &
-                        UP_WIND_NOD(cv_nodi_IPHA)
+                     UP_WIND_NOD(cv_nodi_IPHA)
              else
                 if(cv_iloc==cv_nloc) then
                    ewrite(3,*)x(x_ndgln((ele-1)*x_nloc+cv_iloc)),  &
@@ -1294,6 +1293,8 @@ contains
 
     ewrite(3,*) 'Leaving CV_ASSEMB'
 
+    RETURN  
+
   END SUBROUTINE CV_ASSEMB
 
 
@@ -1339,7 +1340,6 @@ contains
     ELE3 = 0
     DO COUNT = FINELE( ELE ), FINELE( ELE + 1 ) - 1, 1
        ELE2 = COLELE( COUNT )
-       !       ewrite(3,*)'ele2',ele2
 
        ! See if we share the same nodes
        SUF_COUNT = 0
@@ -1354,33 +1354,31 @@ contains
 
     END DO
 
-    ELE2 = ELE3
     DO X_KLOC = 1, X_NLOC
        X_NODK = X_NDGLN(( ELE - 1 ) * X_NLOC + X_KLOC )
        X_SHARE( X_NODK ) = .FALSE.
     END DO
 
-    IF(ELE2 /= 0) THEN 
+    ELE2 = ELE3
+    IF( ELE2 /= 0 ) THEN 
        ! Is CV_NODI in element ELE2 if yes set ELE2=0 as we dont want to integrate in 
        ! the middle of a CV. 
        DO CV_KLOC = 1, CV_NLOC
           CV_NODK = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC )
-          IF(CV_NODK.EQ.CV_NODI) INTEGRAT_AT_GI = .FALSE.
+          IF( CV_NODK == CV_NODI ) INTEGRAT_AT_GI = .FALSE.
        END DO
     ENDIF
 
-    IF((ELE2 /= 0).AND.INTEGRAT_AT_GI) THEN ! Determine CV_OTHER_LOC(CV_KLOC)
+    IF( ( ELE2 /= 0) .AND. INTEGRAT_AT_GI ) THEN ! Determine CV_OTHER_LOC(CV_KLOC)
        CV_OTHER_LOC = 0
        DO CV_KLOC = 1, CV_NLOC
 
           IF( CV_ON_FACE( CV_KLOC, GI )) THEN ! Find opposite local node
              X_NODK = X_NDGLN(( ELE - 1 ) * X_NLOC + CV_KLOC )
-
              DO CV_KLOC2 = 1, CV_NLOC
                 X_NODK2 = X_NDGLN(( ELE2 - 1 ) * X_NLOC + CV_KLOC2 )
                 IF( X_NODK2 == X_NODK ) CV_OTHER_LOC( CV_KLOC ) = CV_KLOC2
              END DO
-
           ENDIF
 
        END DO
@@ -1393,11 +1391,12 @@ contains
              DO U_KLOC2 = 1, XU_NLOC
                 XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
                 ! XU_NLOC==1 is a special case...
-                IF(( XU_NODK2 ==XU_NODK ).OR.(XU_NLOC==1)) THEN
-                   DO ILEV=1,CV_NLOC
-                      JLEV=CV_OTHER_LOC( ILEV )
-                      IF(JLEV /= 0) THEN 
-                         U_OTHER_LOC( U_KLOC +(ILEV-1)*XU_NLOC) = U_KLOC2 +(JLEV-1)*XU_NLOC
+                IF( ( XU_NODK2 == XU_NODK ) .OR. ( XU_NLOC == 1 ) ) THEN
+                   DO ILEV = 1, CV_NLOC
+                      JLEV = CV_OTHER_LOC( ILEV )
+                      IF( JLEV /= 0 ) THEN 
+                         U_OTHER_LOC( U_KLOC + ( ILEV - 1 ) * XU_NLOC ) = U_KLOC2 + &
+                              ( JLEV - 1 ) * XU_NLOC
                       ENDIF
                    END DO
                 END IF
@@ -1413,16 +1412,17 @@ contains
 
              DO U_KLOC2 = 1, U_NLOC
                 XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
-                IF(( XU_NODK2 ==XU_NODK ).OR.(XU_NLOC==1)) U_OTHER_LOC( U_KLOC ) = U_KLOC2
+                IF( ( XU_NODK2 == XU_NODK ) .OR. ( XU_NLOC == 1 ) ) &
+                     U_OTHER_LOC( U_KLOC ) = U_KLOC2
              END DO
           END DO
        ENDIF
 
        MAT_OTHER_LOC = CV_OTHER_LOC
     ELSE
-       CV_OTHER_LOC =0
-       U_OTHER_LOC  =0
-       MAT_OTHER_LOC=0
+       CV_OTHER_LOC = 0
+       U_OTHER_LOC = 0
+       MAT_OTHER_LOC = 0
     ENDIF
     !!    ewrite(3,*)'CV_OTHER_LOC:',CV_OTHER_LOC
     !!    ewrite(3,*)'u_OTHER_LOC:',u_OTHER_LOC
@@ -1546,6 +1546,7 @@ contains
     ! Determine FEMT (finite element wise) etc from T (control volume wise)
     ! Also integrate PSI_INT over each CV and avergae PSI_AVE over each CV. 
     use shape_functions 
+    use shape_functions_Linear_Quadratic
     use solvers_module
     use spact
     IMPLICIT NONE
@@ -3419,8 +3420,16 @@ contains
     INTEGER, DIMENSION( TOTELE*MAT_NLOC ), intent( in ) :: MAT_NDGLN
     REAL, DIMENSION( CV_NONODS*NPHASE  ), intent( inout ) :: UP_WIND_NOD
     REAL, DIMENSION( CV_NONODS * NPHASE  ), intent( inout ) :: TMIN, TOLDMIN, TMAX, TOLDMAX
+    ! local variables
+    character( len = option_path_len ) :: overlapping_path 
+    logical :: is_overlapping   
 
-    IF(CV_ELE_TYPE == 2) THEN
+    is_overlapping = .false.
+    call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+         overlapping_path )
+    if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
+
+    IF( is_overlapping ) THEN
        ! For overlapping basis function approach.
        CALL GET_INT_VEL_OVERLAP( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
             HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
@@ -3435,7 +3444,7 @@ contains
             FACE_ITS, LIMT, LIMTOLD, FEMDGI, FEMTGI, FEMDOLDGI, FEMTOLDGI, UP_WIND_NOD, &
             TMIN, TMAX, TOLDMIN, TOLDMAX, TMIN_NOD, TMAX_NOD, TOLDMIN_NOD, TOLDMAX_NOD, &
             IN_ELE_UPWIND, DG_ELE_UPWIND )
-    ElSE
+    ELSE
        CALL GET_INT_VEL_ORIG( NPHASE, NDOTQ, INCOME, NDOTQOLD, INCOMEOLD, &
             HDC, GI, IPHASE, SUFEN, U_NLOC, SCVNGI, TOTELE, U_NONODS, CV_NONODS, U_NDGLN, &
             T, TOLD, FEMT, FEMTOLD, DEN, DENOLD, NU, NV, NW, NUOLD, NVOLD, NWOLD, &

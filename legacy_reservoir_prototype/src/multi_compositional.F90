@@ -222,7 +222,7 @@ contains
        X_NONODS, X, Y, Z, NU, NV, NW, U_NONODS, MAT_NDGLN, U_NDGLN, X_NDGLN, &
        U_ELE_TYPE, P_ELE_TYPE, &
        MAT_U ) 
-    ! Determine MAT_U from NU,NV,NW which are these variables mapped to material mesh. 
+    ! Determine MAT_U from NU,NV,NW which are variables mapped to material mesh. 
     use shape_functions
     use matrix_operations
 
@@ -261,9 +261,8 @@ contains
     REAL :: NN, NFEMU, VOLUME, MASELE
     LOGICAL :: D1, D3, DCYL
 
-
-    CALL RETRIEVE_NGI( CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE, &
-         NDIM, U_ELE_TYPE, CV_NLOC, U_NLOC ) 
+    call  retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
+         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
 
     ALLOCATE( DETWEI( CV_NGI ))
     ALLOCATE( RA( CV_NGI ))

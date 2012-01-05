@@ -788,47 +788,6 @@ contains
   END SUBROUTINE ULONG_2_UVW
 
 
-
-
-
-
-  SUBROUTINE INITIAL_INT_ARRAY(N, VEC, IVALUE )
-    implicit none
-
-    INTEGER, intent( in ) :: N
-    INTEGER, DIMENSION( N ), intent( inout ) :: VEC
-    INTEGER, intent( in ) :: IVALUE
-
-    ! Local
-    INTEGER :: I
-
-    DO I = 1, N
-       VEC( I ) = IVALUE
-    END DO
-
-    RETURN
-  END SUBROUTINE INITIAL_INT_ARRAY
-
-
-
-  SUBROUTINE INITIAL_REAL_ARRAY(N, VEC, RVALUE )
-    implicit none
-
-    INTEGER, intent( in ) :: N
-    REAL, DIMENSION( N ), intent( inout ) :: VEC
-    REAL, intent( in ) :: RVALUE
-
-    ! Local
-    INTEGER :: I
-
-    DO I = 1, N
-       VEC( I ) = RVALUE
-    END DO
-
-    RETURN
-  END SUBROUTINE INITIAL_REAL_ARRAY
-
-
 end module matrix_operations
 
 

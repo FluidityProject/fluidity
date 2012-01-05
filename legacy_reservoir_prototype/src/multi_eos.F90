@@ -402,9 +402,9 @@
 
       !    ewrite(3,*)'NUABS_COEFS,UABS_COEFS:',NUABS_COEFS,UABS_COEFS
       !    ewrite(3,*)'U_ABSORB:'
-      do mat_nod =1, -mat_nonods
-         do iphase=1,nphase
-            ewrite(3,*)mat_nod,iphase,(U_ABSORB( MAT_NOD, iphase, jphase ),jphase=1,2) 
+      do mat_nod = 1, mat_nonods
+         do iphase = 1, nphase
+            ewrite(3,*) mat_nod, iphase, (U_ABSORB( MAT_NOD, iphase, jphase ), jphase = 1, nphase ) 
          end do
       end do
       DEALLOCATE( INV_PERM )

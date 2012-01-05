@@ -45,7 +45,8 @@ LIB = ../lib/lib@FLUIDITY@.a
 
 VPATH = ./:./src
 
-OBJS = multi_eos.o multi_sparsity.o multi_matrix_operations.o multi_shape_fct.o cv-adv-dif.o \
+OBJS = multi_eos.o multi_sparsity.o multi_matrix_operations.o multi_shape_fct.o \
+multi_shape_fct_ND.o Multi_MakeCVTetrahedra.o cv-adv-dif.o \
 multi_dyncore_dg.o multi_solvers.o multi_compositional.o multi_IO.o  \
 Multiphase_Mom_Press_Volf.o Multiphase_Prototype.o Multiphase_Prototype_Wrapper.o \
 Copy_Outof_Into_State.o Mapping_OCVFEM_DG.o
@@ -74,12 +75,16 @@ default: $(LIB)
 %.o: %.mod
 
 multi_eos.o: multi_matrix_operations.o
-cv-adv-dif.o: multi_solvers.o multi_shape_fct.o multi_matrix_operations.o multi_IO.o
-Mapping_OCVFEM_DG.o: multi_solvers.o multi_shape_fct.o multi_matrix_operations.o multi_IO.o
+cv-adv-dif.o: multi_solvers.o multi_shape_fct.o multi_shape_fct_ND.o \
+multi_matrix_operations.o multi_IO.o
+Mapping_OCVFEM_DG.o: multi_solvers.o multi_shape_fct.o multi_shape_fct_ND.o \
+multi_matrix_operations.o multi_IO.o
 multi_dyncore_dg.o: multi_matrix_operations.o Mapping_OCVFEM_DG.o multi_shape_fct.o multi_solvers.o cv-adv-dif.o multi_IO.o
 multi_IO.o: multi_sparsity.o 
-multi_solvers.o: multi_shape_fct.o multi_matrix_operations.o
-multi_sparsity.o: multi_shape_fct.o
+multi_solvers.o: multi_shape_fct.o multi_shape_fct_ND.o multi_matrix_operations.o
+multi_sparsity.o: multi_shape_fct.o multi_shape_fct_ND.o
+multi_shape_fct.o: multi_shape_fct_ND.o
+multi_shape_fct_ND.o: Multi_MakeCVTetrahedra.o
 Multiphase_Mom_Press_Volf.o: multi_dyncore_dg.o multi_eos.o multi_IO.o Copy_Outof_Into_State.o
 Multiphase_Prototype.o: multi_IO.o multi_sparsity.o Multiphase_Mom_Press_Volf.o Copy_Outof_Into_State.o
 Multiphase_Prototype_Wrapper.o: Multiphase_Prototype.o

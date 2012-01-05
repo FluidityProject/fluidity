@@ -45,7 +45,7 @@ module mp_prototype
 
   contains
 
-    subroutine multiphase_prototype(state, &
+    subroutine multiphase_prototype(state, dt, &
          nonlinear_iterations, nonlinear_iteration_tolerance, &
          dump_no)
 
@@ -55,6 +55,7 @@ module mp_prototype
 
       integer :: dump_no, nonlinear_iterations  !! equal to nits in prototype code
 
+      real :: dt 
       real :: nonlinear_iteration_tolerance
 
 
@@ -67,7 +68,7 @@ module mp_prototype
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
            cv_sele_type, u_sele_type
 
-      integer :: nits, nits_internal, ndpset, noit_dim, &
+      integer :: ntime, ntime_dump, nits, nits_internal, ndpset, noit_dim, &
            nits_flux_lim_volfra, nits_flux_lim_comp, nits_flux_lim_t
 
       real :: patmos, p_ini, t_beta, v_beta, t_theta, v_theta, &
@@ -253,7 +254,7 @@ module mp_prototype
       allocate( nwold( u_pha_nonods ))
       allocate( denold( cv_pha_nonods ))
       allocate( uden( cv_pha_nonods ))
-      allocate( velocity_dg(totele*cv_nloc,nphase,ndim))
+      allocate( velocity_dg(cv_nonods,nphase,ndim))
       allocate( udenold( cv_pha_nonods ))
       allocate( deriv( cv_pha_nonods ))
       allocate( saturaold( cv_pha_nonods ))
@@ -326,19 +327,31 @@ module mp_prototype
       allocate( colcmc( mx_ncolcmc ))
       allocate( colm( mx_ncolm ))
 
+     
       call get_spars_pats( &
-           ndim, u_nonods * nphase, cv_nonods * nphase, &
-           u_nonods, cv_nonods, x_nonods, &
-           u_nloc, cv_nloc, x_nloc, u_snloc, cv_snloc, x_snloc, nphase, totele, &
-           u_ndgln, cv_ndgln, x_ndgln, &
-           mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
-           nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
-           mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
-           mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
-           mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
-           mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
-           mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
-           mx_ncolm, ncolm, findm, colm, midm, u_ele_type )
+         ndim, nphase, totele, u_nonods * nphase, cv_nonods * nphase, &
+         u_nonods, cv_nonods, x_nonods, &
+         cv_ele_type, u_ele_type, &
+         u_nloc, cv_nloc, x_nloc, &
+         u_snloc, cv_snloc, x_snloc, &
+         u_ndgln, cv_ndgln, x_ndgln, &
+                                ! CV multi-phase eqns (e.g. vol frac, temp)
+         mx_ncolacv, ncolacv, finacv, colacv, midacv, &
+                                ! Force balance plus cty multi-phase eqns
+         nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, &
+                                ! Element connectivity
+         mxnele, ncolele, midele, finele, colele, &
+                                ! Force balance sparsity
+         mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, &
+                                ! CT sparsity - global cty eqn
+         mx_nct, ncolct, findct, colct, &
+                                ! C sparsity operating on pressure in force balance
+         mx_nc, ncolc, findc, colc, &
+                                ! pressure matrix for projection method
+         mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, &
+                                ! CV-FEM matrix
+         mx_ncolm, ncolm, findm, colm, midm )
+
 
       call check_sparsity( &
            u_nonods * nphase, cv_nonods * nphase, &
@@ -352,8 +365,8 @@ module mp_prototype
            mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
            mx_ncolm, ncolm, findm, colm, midm ) ! CV-FEM matrix
       
-      ewrite(3,*) 'mat_nloc, mat_nonods: ', mat_nloc, mat_nonods
-      ewrite(3,*) 'mat_ndgln: ', mat_ndgln
+ !     ewrite(3,*) 'mat_nloc, mat_nonods: ', mat_nloc, mat_nonods
+ !     ewrite(3,*) 'mat_ndgln: ', mat_ndgln
 
       call solve_multiphase_mom_press_volf( state, nphase, ncomp, totele, ndim, &
                                 ! Nodes et misc
@@ -363,7 +376,7 @@ module mp_prototype
               u_ele_type, p_ele_type, cv_ele_type, &
               cv_sele_type, u_sele_type, &
                                 ! Total time loop and initialisation parameters
-              nits, nits_internal, dump_no, &
+              ntime_dump, nits, nits_internal, dump_no, &
               nits_flux_lim_volfra, nits_flux_lim_comp, & 
               ndpset, &
                                 ! Discretisation parameters

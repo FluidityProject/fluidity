@@ -183,7 +183,7 @@
             exclude_nonreprescribed=.true.)
 
        ! Call the multiphase_prototype code  
-       call multiphase_prototype(state, &
+       call multiphase_prototype(state, dt, &
                                  nonlinear_iterations, nonlinear_iteration_tolerance, &
                                  dump_no)
 

@@ -530,7 +530,7 @@ contains
     INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
     INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
     REAL, DIMENSION( U_NONODS * NPHASE ), intent( inout ) :: NU, NV, NW, NUOLD, NVOLD, NWOLD
-    REAL, DIMENSION(totele*cv_nloc, nphase, ndim), intent(inout) :: velocity_dg
+    REAL, DIMENSION(cv_nonods, nphase, ndim), intent(inout) :: velocity_dg
     REAL, intent( in ) :: V_THETA
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: V_SOURCE
     REAL, DIMENSION( CV_NONODS, NPHASE, NPHASE ), intent( in ) :: V_ABSORB
@@ -670,21 +670,20 @@ contains
                option_path = '/material_phase[0]/vector_field::Velocity')
 
        ENDIF
-       
-       
-	if(.true.) then 
-       call overlapping_to_quadratic_dg( &
-       cv_nonods, x_nonods,u_nonods,  totele, &
-       cv_ele_type,  &
-       nphase,  &
-       cv_nloc, u_nloc, x_nloc, &
-       cv_ndgln,  u_ndgln, x_ndgln,&
-       cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
-       x, y, z, &
-       u, v, w, uold, vold, wold,velocity_dg,ndim, p_ele_type)
-      end if
 
-      CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
+       if(.false.) then 
+          call overlapping_to_quadratic_dg( &
+               cv_nonods, x_nonods,u_nonods,  totele, &
+               cv_ele_type,  &
+               nphase,  &
+               cv_nloc, u_nloc, x_nloc, &
+               cv_ndgln,  u_ndgln, x_ndgln,&
+               cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
+               x, y, z, &
+               u, v, w, uold, vold, wold,velocity_dg,ndim )
+       end if
+
+       CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
 
        ! put on rhs the cty eqn;  put most recent pressure in RHS of momentum eqn
@@ -1187,7 +1186,7 @@ contains
     REAL, DIMENSION( CV_NONODS ), intent( in ) :: CV_P
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DEN, DENOLD, SATURA, SATURAOLD
     REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: DERIV
-    REAL, DIMENSION( TOTELE*IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), &
+    REAL, DIMENSION( TOTELE * IGOT_THETA_FLUX, CV_NLOC, SCVNGI_THETA, NPHASE ), &
          intent( inout ) :: THETA_FLUX, ONE_M_THETA_FLUX
     REAL, intent( in ) :: DT
     INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
@@ -1221,7 +1220,7 @@ contains
     REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( inout ) :: U_RHS 
     REAL, DIMENSION( U_NONODS * NDIM * NPHASE + CV_NONODS ), intent( inout ) :: MCY_RHS 
     REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( inout ) :: C
-    REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( inout ) :: CT
+    REAL, DIMENSION( NCOLCT * NDIM * NPHASE ), intent( inout ) :: CT
     REAL, DIMENSION( NCOLCMC ), intent( inout ) :: MASS_MN_PRES
     REAL, DIMENSION( CV_NONODS ), intent( inout ) :: CT_RHS
     REAL, DIMENSION( CV_NONODS ), intent( inout ) :: DIAG_SCALE_PRES
@@ -1234,15 +1233,15 @@ contains
     LOGICAL, intent( inout ) :: JUST_BL_DIAG_MAT
     REAL, DIMENSION( NOPT_VEL_UPWIND_COEFS ), intent( in ) :: OPT_VEL_UPWIND_COEFS
     INTEGER, INTENT( IN ) :: NOIT_DIM
-    REAL, DIMENSION( IPLIKE_GRAD_SOU*CV_NONODS*NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
+    REAL, DIMENSION( IPLIKE_GRAD_SOU * CV_NONODS * NPHASE ), intent( in ) :: PLIKE_GRAD_SOU_COEF, &
          PLIKE_GRAD_SOU_GRAD
 
     ! Local variables
     REAL, PARAMETER :: V_BETA = 1.0
     LOGICAL, PARAMETER :: GETCV_DISC = .FALSE., GETCT= .TRUE.
-    REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2
+    REAL, DIMENSION( : ), allocatable :: ACV, CV_RHS, SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2, &
+           SAT_FEMT, DEN_FEMT
     REAL, DIMENSION( :,:,:,: ), allocatable :: TDIFFUSION
-    real, dimension( NPHASE*CV_NONODS ) :: Sat_FEMT, DEN_FEMT
     REAL, DIMENSION( : ), allocatable :: SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, SUF_T2_BC
     INTEGER, DIMENSION( : ), allocatable :: WIC_T2_BC
     REAL, DIMENSION( : ), allocatable :: THETA_GDIFF, T2, T2OLD, MEAN_PORE_CV
@@ -1250,7 +1249,7 @@ contains
     INTEGER :: IGOT_T2
 
     GET_THETA_FLUX = .FALSE.
-    IGOT_T2=0
+    IGOT_T2 = 0
 
     ALLOCATE( T2( CV_NONODS * NPHASE * IGOT_T2 ))
     ALLOCATE( T2OLD( CV_NONODS * NPHASE * IGOT_T2 ))
@@ -1259,17 +1258,18 @@ contains
     ALLOCATE( SUF_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
     ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
     ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 ))
-
-
     ALLOCATE( ACV( NCOLACV )) 
     ALLOCATE( CV_RHS( CV_NONODS * NPHASE ))
     ALLOCATE( TDIFFUSION( MAT_NONODS, NDIM, NDIM, NPHASE ))
     ALLOCATE( SUF_VOL_BC_ROB1( STOTEL * CV_SNLOC * NPHASE ))
     ALLOCATE( SUF_VOL_BC_ROB2( STOTEL * CV_SNLOC * NPHASE ))
     ALLOCATE( MEAN_PORE_CV( CV_NONODS ))
+    ALLOCATE( SAT_FEMT( NPHASE * CV_NONODS ) )
+    ALLOCATE( DEN_FEMT( NPHASE * CV_NONODS ) )
+
     TDIFFUSION = 0.0
 
-    IF(GLOBAL_SOLVE) MCY = 0.0
+    IF( GLOBAL_SOLVE ) MCY = 0.0
 
     ! Obtain the momentum and C matricies
     CALL ASSEMB_FORCE_CTY( & 
@@ -1286,8 +1286,8 @@ contains
          SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
          WIC_U_BC, WIC_P_BC,  &
          U_RHS, &
-         C, NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
+         C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+         DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
          NCOLELE, FINELE, COLELE, & ! Element connectivity.
          XU_NLOC, XU_NDGLN, &
          FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, PIVIT_MAT, JUST_BL_DIAG_MAT, &
@@ -1305,34 +1305,38 @@ contains
     ENDIF
 
     ! Form CT matrix...
-    CALL CV_ASSEMB(CV_RHS, &
-         NCOLACV,ACV,FINACV,COLACV,MIDACV, &
-         NCOLCT,CT,DIAG_SCALE_PRES,CT_RHS,FINDCT,COLCT, &
-         CV_NONODS,U_NONODS,X_NONODS,TOTELE, &
+    CALL CV_ASSEMB( CV_RHS, &
+         NCOLACV, ACV, FINACV, COLACV, MIDACV, &
+         NCOLCT, CT, DIAG_SCALE_PRES, CT_RHS, FINDCT, COLCT, &
+         CV_NONODS, U_NONODS, X_NONODS, TOTELE, &
          CV_ELE_TYPE,  &
          NPHASE, &
-         CV_NLOC,U_NLOC,X_NLOC, &
-         CV_NDGLN,X_NDGLN,U_NDGLN, &
-         CV_SNLOC,U_SNLOC,STOTEL, CV_SNDGLN,U_SNDGLN, &
-         X,Y,Z, &
-         NU,NV,NW, NUOLD,NVOLD,NWOLD, SATURA, SATURAOLD,DEN,DENOLD, &
+         CV_NLOC, U_NLOC, X_NLOC, &
+         CV_NDGLN, X_NDGLN, U_NDGLN, &
+         CV_SNLOC, U_SNLOC, STOTEL, CV_SNDGLN, U_SNDGLN, &
+         X, Y, Z, &
+         NU, NV, NW, NUOLD, NVOLD, NWOLD, &
+         SATURA, SATURAOLD, DEN, DENOLD, &
          MAT_NLOC, MAT_NDGLN, MAT_NONODS, TDIFFUSION, &
-         V_DISOPT,V_DG_VEL_INT_OPT,DT,V_THETA, V_BETA, &
+         V_DISOPT, V_DG_VEL_INT_OPT, DT, V_THETA, V_BETA, &
          SUF_VOL_BC, SUF_D_BC, SUF_U_BC, SUF_V_BC, SUF_W_BC, &
          SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
          WIC_VOL_BC, WIC_D_BC, WIC_U_BC, &
          DERIV, CV_P,  &
-         V_SOURCE,V_ABSORB,VOLFRA_PORE, &
-         NDIM,GETCV_DISC,GETCT, &
-         NCOLM,FINDM,COLM,MIDM, &
-         XU_NLOC,XU_NDGLN,FINELE,COLELE,NCOLELE, &
+         V_SOURCE, V_ABSORB, VOLFRA_PORE, &
+         NDIM, GETCV_DISC, GETCT, &
+         NCOLM, FINDM, COLM, MIDM, &
+         XU_NLOC, XU_NDGLN, FINELE, COLELE, NCOLELE, &
          OPT_VEL_UPWIND_COEFS, NOPT_VEL_UPWIND_COEFS, & 
-         Sat_FEMT, DEN_FEMT, &
-         IGOT_T2,T2,T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
+         SAT_FEMT, DEN_FEMT, &
+         IGOT_T2, T2, T2OLD, IGOT_THETA_FLUX, SCVNGI_THETA, GET_THETA_FLUX, USE_THETA_FLUX, &
          THETA_FLUX, ONE_M_THETA_FLUX, THETA_GDIFF, &
          SUF_T2_BC, SUF_T2_BC_ROB1, SUF_T2_BC_ROB2, WIC_T2_BC, IN_ELE_UPWIND, DG_ELE_UPWIND, &
          NOIT_DIM, &
          MEAN_PORE_CV )
+
+    ewrite(3,*)'Back from cv_assemb'
+
 
     IF(GLOBAL_SOLVE) THEN
        ! Put CT into global matrix MCY...
@@ -1345,11 +1349,6 @@ contains
             FINDCMC, NCOLCMC, MASS_MN_PRES ) 
     ENDIF
 
-    DEALLOCATE( ACV )
-    DEALLOCATE( CV_RHS )
-    DEALLOCATE( TDIFFUSION )
-    DEALLOCATE( SUF_VOL_BC_ROB1 )
-    DEALLOCATE( SUF_VOL_BC_ROB2 )
     DEALLOCATE( T2 )
     DEALLOCATE( T2OLD )
     DEALLOCATE( SUF_T2_BC_ROB1 )
@@ -1357,6 +1356,14 @@ contains
     DEALLOCATE( SUF_T2_BC )
     DEALLOCATE( WIC_T2_BC )
     DEALLOCATE( THETA_GDIFF )
+    DEALLOCATE( ACV )
+    DEALLOCATE( CV_RHS )
+    DEALLOCATE( TDIFFUSION )
+    DEALLOCATE( SUF_VOL_BC_ROB1 )
+    DEALLOCATE( SUF_VOL_BC_ROB2 )
+    DEALLOCATE( MEAN_PORE_CV )
+    DEALLOCATE( SAT_FEMT )
+    DEALLOCATE( DEN_FEMT )
 
     ewrite(3,*) 'Leaving CV_ASSEMB_FORCE_CTY'
 
@@ -1507,8 +1514,8 @@ contains
        SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
        WIC_U_BC, WIC_P_BC,  &
        U_RHS, &
-       C, NCOLC, FINDC, COLC, & ! C sparcity - global cty eqn 
-       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparcity
+       C, NCOLC, FINDC, COLC, & ! C sparsity - global cty eqn 
+       DGM_PHA, NCOLDGM_PHA, FINDGM_PHA, COLDGM_PHA, &! Force balance sparsity
        NCOLELE, FINELE, COLELE, & ! Element connectivity.
        XU_NLOC, XU_NDGLN, &
        FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, PIVIT_MAT, JUST_BL_DIAG_MAT,  &
@@ -1541,7 +1548,7 @@ contains
     REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( in ) :: U_ABSORB
     REAL, DIMENSION( NDIM * U_NONODS * NPHASE ), intent( in ) :: U_SOURCE
     REAL, DIMENSION( U_NONODS * NPHASE ), intent( in ) :: U, V, W, UOLD, VOLD, WOLD
-    REAL, DIMENSION( CV_NONODS*NPHASE ), intent( in ) :: UDEN, UDENOLD
+    REAL, DIMENSION( CV_NONODS * NPHASE ), intent( in ) :: UDEN, UDENOLD
     REAL, intent( in ) :: DT
     REAL, DIMENSION( U_NONODS * NDIM * NPHASE ), intent( inout ) :: U_RHS 
     REAL, DIMENSION( NCOLC * NDIM * NPHASE ), intent( inout ) :: C 
@@ -1567,7 +1574,8 @@ contains
     REAL, PARAMETER :: WITH_NONLIN = 1.0
 
     INTEGER, DIMENSION( :, : ), allocatable :: CV_SLOCLIST, U_SLOCLIST, CV_NEILOC, FACE_ELE
-    INTEGER, DIMENSION( : ), allocatable :: CV_SLOC2LOC, U_SLOC2LOC, FINDGPTS, COLGPTS, U_ILOC_OTHER_SIDE, U_OTHER_LOC, MAT_OTHER_LOC
+    INTEGER, DIMENSION( : ), allocatable :: CV_SLOC2LOC, U_SLOC2LOC, FINDGPTS, COLGPTS, &
+         U_ILOC_OTHER_SIDE, U_OTHER_LOC, MAT_OTHER_LOC
     REAL, DIMENSION( : ),    ALLOCATABLE :: CVWEIGHT, CVWEIGHT_SHORT, DETWEI,RA,  &
          SNORMXN, SNORMYN, SNORMZN, SCVFEWEIGH, SBCVFEWEIGH, SDETWE, NXUDN, VLK, VLN,VLN_OLD, &
          XSL,YSL,ZSL, SELE_OVERLAP_SCALE, GRAD_SOU_GI_NMX, GRAD_SOU_GI_NMY, GRAD_SOU_GI_NMZ, &
@@ -1596,7 +1604,7 @@ contains
 
 
     LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES
-    INTEGER :: CV_NGI,CV_NGI_SHORT,SCVNGI,SBCVNGI,NFACE
+    INTEGER :: CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE
     INTEGER :: IPHASE, ELE, GI, ILOC, GLOBI, GLOBJ, U_NOD, IU_NOD, JCV_NOD, &
          COUNT, COUNT2, IPHA_IDIM, JPHA_JDIM, COUNT_PHA, IU_PHA_NOD, MAT_NOD, SGI, SELE, &
          U_INOD_IDIM_IPHA, U_JNOD_JDIM_JPHA, U_SILOC, P_SJLOC, SUF_P_SJ_IPHA, &
@@ -1613,14 +1621,31 @@ contains
     REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
          NN_SNDOTQOLD_IN,NN_SNDOTQOLD_OUT, NORMX, NORMY, NORMZ, RNN
     REAL    :: MASSE, MASSE2
-
     character( len = 100 ) :: name
 
-    ewrite(3,*) 'In ASSEMB_FORCE_CTY'
+    character( len = option_path_len ) :: overlapping_path 
+    logical :: is_overlapping   
 
-    ewrite(3,*)'---U_ELE_TYPE:',U_ELE_TYPE
-    CALL RETRIEVE_NGI( CV_NGI, CV_NGI_SHORT, SCVNGI, SBCVNGI, NFACE, &
-         NDIM, U_ELE_TYPE, CV_NLOC, U_NLOC ) 
+    ewrite(3,*) 'In ASSEMB_FORCE_CTY'
+    ewrite(3,*) 'Just double-checking sparsity patterns memory allocation:'
+    ewrite(3,*) 'FINDC with size,', size( FINDC ), ':', FINDC( 1 :  size( FINDC ) )
+    ewrite(3,*) 'COLC with size,', size( COLC ), ':', COLC( 1 :  size( COLC ) )
+    ewrite(3,*) 'FINDGM_PHA with size,', size( FINDGM_PHA ), ':', FINDGM_PHA( 1 :  size( FINDGM_PHA ) )
+    ewrite(3,*) 'COLDGM_PHA with size,', size( COLDGM_PHA ), ':', COLDGM_PHA( 1 :  size( COLDGM_PHA ) )
+    ewrite(3,*) 'FINELE with size,', size( FINELE ), ':', FINELE( 1 :  size( FINELE ) )
+    ewrite(3,*) 'COLELE with size,', size( COLELE ), ':', COLELE( 1 :  size( COLELE ) )
+    ewrite(3,*) 'FINDCMC with size,', size( FINDCMC ), ':', FINDCMC( 1 :  size( FINDCMC ) )
+    ewrite(3,*) 'COLCMC with size,', size( COLCMC ), ':', COLCMC( 1 :  size( COLCMC ) )
+
+
+    is_overlapping = .false.
+    call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+         overlapping_path )
+    if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
+
+    call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
+         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
+
 
     GOT_DIFFUS = .FALSE.
 
@@ -1767,7 +1792,7 @@ contains
     ALLOCATE( YSL(CV_SNLOC) )
     ALLOCATE( ZSL(CV_SNLOC) )
 
-    ALLOCATE( SELE_OVERLAP_SCALE(CV_NLOC) )
+    ALLOCATE( SELE_OVERLAP_SCALE( CV_NLOC ) )
 
     ALLOCATE( DUX_ELE( U_NLOC, NPHASE, TOTELE ))
     ALLOCATE( DVY_ELE( U_NLOC, NPHASE, TOTELE ))
@@ -1783,16 +1808,16 @@ contains
     ALLOCATE( MASS_ELE( TOTELE ))
     MASS_ELE=0.0
 
-    GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS*NDIM * NDIM * NPHASE ) /= 0.0 )
-    GOT_UDEN = ( R2NORM(UDEN, CV_NONODS*NPHASE) /= 0.0 )
+    GOT_DIFFUS = ( R2NORM( UDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0.0 )
+    GOT_UDEN = ( R2NORM( UDEN, CV_NONODS * NPHASE ) /= 0.0 )
 
-    JUST_BL_DIAG_MAT=((.NOT.GOT_DIFFUS).AND.(.NOT.GOT_UDEN))
+    JUST_BL_DIAG_MAT=( ( .NOT. GOT_DIFFUS ) .AND. ( .NOT. GOT_UDEN ) )
 
     D1   = ( NDIM == 1  )
     DCYL = ( NDIM == -2 )
     D3   = ( NDIM == 3  )
 
-    IF(.NOT.JUST_BL_DIAG_MAT) DGM_PHA = 0.0
+    IF( .NOT. JUST_BL_DIAG_MAT ) DGM_PHA = 0.0
     C = 0.0
     MASS_MN_PRES = 0.0
     U_RHS = 0.0
@@ -1804,13 +1829,14 @@ contains
     ! Shape functions associated with volume integration using both CV basis 
     ! functions CVN as well as FEM basis functions CVFEN (and its derivatives CVFENLX, CVFENLY, CVFENLZ)
 
+
     !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
     NCOLGPTS = 0
     COLGPTS = 0
     FINDGPTS = 0
     ewrite(3,*)'in ASSEMB_FORCE_CTY',NCOLGPTS 
-    ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS',size(COLGPTS), COLGPTS
-    ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS',size(FINDGPTS),FINDGPTS
+    ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS', size( COLGPTS ), COLGPTS( 1 : size( COLGPTS ) )
+    ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS', size( FINDGPTS ), FINDGPTS( 1 : size( FINDGPTS ) )
 
     CALL CV_FEM_SHAPE_FUNS( &
                                 ! Volume shape functions...
@@ -1839,6 +1865,8 @@ contains
     CALL CALC_FACE_ELE( FACE_ELE, TOTELE, STOTEL, NFACE, &
          NCOLELE, FINELE, COLELE, CV_NLOC, CV_SNLOC, CV_NONODS, CV_NDGLN, CV_SNDGLN, &
          CV_SLOCLIST, X_NLOC, X_NDGLN )
+
+    ewrite(3,*) 'got_diffus:', got_diffus
 
     IF( GOT_DIFFUS ) THEN
        ! Calculate all the 1st order derivatives for the diffusion term.
@@ -2283,12 +2311,16 @@ contains
                 U_ILOC = U_SLOC2LOC( U_SILOC )
                 U_NLOC2=max(1,U_NLOC/CV_NLOC)
                 ILEV=(U_ILOC-1)/U_NLOC2 + 1
-                IF(U_ELE_TYPE/=2) ILEV=1
+
+                !  IF(U_ELE_TYPE/=2) ILEV=1
+                if( .not. is_overlapping ) ilev = 1
+
                 IU_NOD = U_SNDGLN(( SELE - 1 ) * U_SNLOC + U_SILOC )
 
                 Loop_JLOC2: DO P_SJLOC = 1, P_SNLOC
                    P_JLOC = CV_SLOC2LOC( P_SJLOC )
-                   IF((U_ELE_TYPE/=2).OR.( P_JLOC == ILEV)) THEN 
+                   !   IF((U_ELE_TYPE/=2).OR.( P_JLOC == ILEV)) THEN 
+                   if( ( .not. is_overlapping ) .or. ( p_jloc == ilev ) ) then
                       JCV_NOD = P_SNDGLN(( SELE - 1 ) * P_SNLOC + P_SJLOC )
 
                       NMX = 0.0  
@@ -2337,7 +2369,8 @@ contains
 
 
           If_ele2_notzero_1: IF(ELE2 /= 0) THEN
-             IF(U_ELE_TYPE==2) THEN
+             ! IF(U_ELE_TYPE==2) THEN
+             if( is_overlapping ) then
                 U_OTHER_LOC=0
                 U_ILOC_OTHER_SIDE=0
                 DO U_SILOC = 1, U_SNLOC/CV_NLOC
@@ -2445,8 +2478,10 @@ contains
                       U_ILOC = U_SLOC2LOC( U_SILOC )
                       U_NLOC2=max(1,U_NLOC/CV_NLOC)
                       ILEV=(U_ILOC-1)/U_NLOC2 + 1
-                      IF(U_ELE_TYPE/=2) ILEV=1
-                      IF((U_ELE_TYPE/=2).OR.( MAT_OTHER_LOC(ILEV) /= 0)) THEN 
+                      ! IF(U_ELE_TYPE/=2) ILEV=1
+                      ! IF((U_ELE_TYPE/=2).OR.( MAT_OTHER_LOC(ILEV) /= 0)) THEN 
+                      if( .not. is_overlapping ) ilev = 1
+                      if( ( .not. is_overlapping ) .or. ( mat_other_loc( ilev ) /= 0 ) ) then
                          U_INOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
                          VNMX=0.0
                          VNMY=0.0
@@ -2865,26 +2900,34 @@ contains
              END DO
           ENDIF If_diffusion_or_momentum3
 
-
        END DO Between_Elements_And_Boundary
-
 
     END DO Loop_Elements2
 
 
-    EWRITE(3,*)'-STOTEL,U_SNLOC,P_SNLOC:',STOTEL,U_SNLOC,P_SNLOC
-    EWRITE(3,*)'-WIC_P_BC:',WIC_P_BC
-    EWRITE(3,*)'-SUF_P_BC:',SUF_P_BC
+    EWRITE(3,*)'-STOTEL, U_SNLOC, P_SNLOC:', STOTEL, U_SNLOC, P_SNLOC
+    EWRITE(3,*)'-WIC_P_BC:', WIC_P_BC( 1 : STOTEL * NPHASE )
+    EWRITE(3,*)'-SUF_P_BC:', SUF_P_BC( 1 : STOTEL * P_SNLOC * NPHASE )
+    ewrite(3,*)'pqp'
 
     DEALLOCATE( DETWEI )
     DEALLOCATE( RA )
     DEALLOCATE( UD )
     DEALLOCATE( VD )
     DEALLOCATE( WD )
+    DEALLOCATE( UDOLD )
+    DEALLOCATE( VDOLD )
+    DEALLOCATE( WDOLD )
+    DEALLOCATE( DENGI )
+    DEALLOCATE( DENGIOLD )
+    DEALLOCATE( GRAD_SOU_GI )
+
     DEALLOCATE( SIGMAGI )
     DEALLOCATE( NN_SIGMAGI )
     DEALLOCATE( SIGMAGI_STAB )
     DEALLOCATE( NN_SIGMAGI_STAB )
+    DEALLOCATE( NN_MASS )
+    DEALLOCATE( NN_MASSOLD )
     DEALLOCATE( MAT_M ) 
     DEALLOCATE( SNORMXN )
     DEALLOCATE( SNORMYN )
@@ -2926,6 +2969,8 @@ contains
     DEALLOCATE( SCVFENLZ )
     DEALLOCATE( SCVFEWEIGH )
 
+    DEALLOCATE( NXUDN )
+
     DEALLOCATE( SUFEN )
     DEALLOCATE( SUFENSLX )
     DEALLOCATE( SUFENSLY )
@@ -2955,22 +3000,84 @@ contains
 
     DEALLOCATE( COLGPTS )
     DEALLOCATE( FINDGPTS )
+    DEALLOCATE( U_ILOC_OTHER_SIDE )
 
     DEALLOCATE( CV_ON_FACE )
     DEALLOCATE( U_ON_FACE )
+    DEALLOCATE( U_OTHER_LOC )
+    DEALLOCATE( MAT_OTHER_LOC )
 
+    DEALLOCATE( TEN_XX )
+    DEALLOCATE( TEN_XY )
+    DEALLOCATE( TEN_XZ )
+    DEALLOCATE( TEN_YX )
+    DEALLOCATE( TEN_YY )
+    DEALLOCATE( TEN_YZ )
+    DEALLOCATE( TEN_ZX )
+    DEALLOCATE( TEN_ZY )
+    DEALLOCATE( TEN_ZZ )
+
+    DEALLOCATE( VLK )
+    DEALLOCATE( VLN )
+    DEALLOCATE( VLN_OLD )
+
+    DEALLOCATE( SUD )
+    DEALLOCATE( SVD )
+    DEALLOCATE( SWD )
+    DEALLOCATE( SUDOLD )
+    DEALLOCATE( SVDOLD )
+    DEALLOCATE( SWDOLD )
+    DEALLOCATE( SUD2 )
+    DEALLOCATE( SVD2 )
+    DEALLOCATE( SWD2 )
+    DEALLOCATE( SUDOLD2 )
+    DEALLOCATE( SVDOLD2 )
+    DEALLOCATE( SWDOLD2 )
+    DEALLOCATE( SNDOTQ )
+    DEALLOCATE( SNDOTQOLD )
+    DEALLOCATE( SINCOME )
+    DEALLOCATE( SINCOMEOLD )
+    DEALLOCATE( SDEN )
+    DEALLOCATE( SDENOLD )
+
+    DEALLOCATE( DIFF_COEF_DIVDX )
+    DEALLOCATE( DIFF_COEFOLD_DIVDX )
+    DEALLOCATE( FTHETA )
+    DEALLOCATE( SNDOTQ_IN )
+    DEALLOCATE( SNDOTQ_OUT )
+    DEALLOCATE( SNDOTQOLD_IN )
+    DEALLOCATE( SNDOTQOLD_OUT )
+
+    DEALLOCATE( XSL )
+    DEALLOCATE( YSL )
+    DEALLOCATE( ZSL )
+
+    ewrite(3,*)'pqp2-'
+    DEALLOCATE( SELE_OVERLAP_SCALE )
+    ewrite(3,*)'pqp2'
 
     DEALLOCATE( DUX_ELE )
     DEALLOCATE( DVY_ELE )
     DEALLOCATE( DWZ_ELE )
+    ewrite(3,*)'pqp1'
     DEALLOCATE( DUOLDX_ELE )
     DEALLOCATE( DVOLDY_ELE )
     DEALLOCATE( DWOLDZ_ELE )
+    ewrite(3,*)'pqp4'
 
     DEALLOCATE( GRAD_SOU_GI_NMX )
     DEALLOCATE( GRAD_SOU_GI_NMY )
     DEALLOCATE( GRAD_SOU_GI_NMZ )
+    ewrite(3,*)'pqp3'
+
+    DEALLOCATE( MASS_ELE )
+    DEALLOCATE( FACE_ELE )
     !      CALL MATMASSINV( MASINV, MMAT, U_NONODS, U_NLOC, TOTELE)
+
+    ewrite(3,*)'Leaving assemb_force_cty'
+    !    stop 98123
+
+    RETURN
 
   END SUBROUTINE ASSEMB_FORCE_CTY
 

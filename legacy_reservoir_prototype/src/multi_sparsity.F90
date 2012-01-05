@@ -27,307 +27,14 @@
   !    USA
 #include "fdebug.h"
   
-  module spact
 
+  module sparsity_1D
     use fldebug
-    use shape_functions
-    integer, parameter :: nface_p1 = 3, internal_faces = 1
+
+    use spud
+    use global_parameters, only: option_path_len
 
   contains
-
-
-    SUBROUTINE GET_SPARS_PATS(   &
-         NDIM, U_PHA_NONODS, CV_PHA_NONODS,   &
-         U_NONODS, CV_NONODS, X_NONODS, &
-         U_NLOC, CV_NLOC, X_NLOC, U_SNLOC, CV_SNLOC, X_SNLOC, NPHASE, TOTELE, &
-         U_NDGLN, CV_NDGLN, X_NDGLN, &
-                                ! CV multi-phase eqns (e.g. vol frac, temp)..***************
-         MX_NCOLACV, NCOLACV, FINACV, COLACV, MIDACV,  &
-                                ! Force balance plus cty multi-phase eqns....***************
-         NLENMCY, MX_NCOLMCY, NCOLMCY,FINMCY, COLMCY, MIDMCY, &
-                                ! Element connectivity...
-         MXNELE, NCOLELE, MIDELE, FINELE, COLELE, &
-                                ! Force balance sparsity...
-         MX_NCOLDGM_PHA, NCOLDGM_PHA, COLDGM_PHA, FINDGM_PHA, MIDDGM_PHA, &
-                                ! CT sparsity - global cty eqn...
-         MX_NCT, NCT, FINDCT, COLCT, &
-                                ! C sparsity operating on pressure in force balance...
-         MX_NC, NC, FINDC, COLC, &
-                                ! pressure matrix for projection method...
-         MX_NCOLCMC, NCOLCMC, FINDCMC, COLCMC, MIDCMC, &
-                                ! CV-FEM matrix...
-         MX_NCOLM, NCOLM, FINDM, COLM, MIDM, U_ELE_TYPE )
-      ! Obtain the sparsity patterns of the two types of 
-      ! matricies for (momentum + cty) and for energy
-
-      IMPLICIT NONE
-
-      INTEGER, intent( in ) :: NDIM, U_PHA_NONODS, CV_PHA_NONODS, U_NONODS, CV_NONODS, X_NONODS, U_NLOC, CV_NLOC, &
-           X_NLOC, U_SNLOC, CV_SNLOC, X_SNLOC, NPHASE, TOTELE, U_ELE_TYPE
-      INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in )     :: U_NDGLN
-      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in )    :: CV_NDGLN
-      INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in )    :: X_NDGLN
-
-      INTEGER, intent( in )                                   :: MX_NCOLACV 
-      INTEGER, intent( inout )                                :: NCOLACV
-
-      INTEGER, DIMENSION( CV_PHA_NONODS + 1), intent( inout ) :: FINACV ! CV multi-phase eqns (e.g. vol frac, temp)
-      INTEGER, DIMENSION( MX_NCOLACV ), intent( inout )       :: COLACV
-      INTEGER, DIMENSION( CV_PHA_NONODS ), intent( inout )    :: MIDACV
-
-      INTEGER, intent( in )                                   :: NLENMCY, MX_NCOLMCY
-      INTEGER, intent( inout )                                :: NCOLMCY
-
-      INTEGER, DIMENSION( NLENMCY + 1 ), intent( inout )      :: FINMCY ! Force balance plus cty multi-phase eqns
-      INTEGER, DIMENSION( MX_NCOLMCY ), intent( inout )       :: COLMCY
-      INTEGER, DIMENSION( NLENMCY ), intent( inout )          :: MIDMCY
-
-      INTEGER, intent( in )                                   :: MXNELE
-      INTEGER, intent( inout )                                :: NCOLELE
-
-      INTEGER, DIMENSION( TOTELE + 1), intent( inout )        :: FINELE ! Element connectivity...
-      INTEGER, DIMENSION( TOTELE ), intent( inout )           :: MIDELE
-      INTEGER, DIMENSION( MXNELE ), intent( inout )           :: COLELE
-
-      INTEGER, intent( in )                                   :: MX_NCOLDGM_PHA
-      INTEGER, intent( inout )                                :: NCOLDGM_PHA
-
-      INTEGER, DIMENSION( MX_NCOLDGM_PHA ), intent( inout )   :: COLDGM_PHA ! Force balance sparsity
-      INTEGER, DIMENSION( U_PHA_NONODS + 1 ), intent( inout ) :: FINDGM_PHA
-      INTEGER, DIMENSION( U_PHA_NONODS ), intent( inout )     :: MIDDGM_PHA
-
-      INTEGER, intent( in )                                    :: MX_NC, MX_NCT
-      INTEGER, intent( inout )                                 :: NC, NCT
-
-      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( inout )     :: FINDCT
-      INTEGER, DIMENSION( MX_NCT ), intent( inout )            :: COLCT !operating on pressure in force balance
-      INTEGER, DIMENSION( U_NONODS + 1 ), intent( inout )      :: FINDC
-      INTEGER, DIMENSION( MX_NC ), intent( inout )             :: COLC
-
-      INTEGER, intent( in )                                   :: MX_NCOLCMC
-      INTEGER, intent( inout )                                :: NCOLCMC
-      INTEGER, DIMENSION( CV_NONODS+1 ), intent( inout )      :: FINDCMC
-      INTEGER, DIMENSION( MX_NCOLCMC ), intent( inout )       :: COLCMC
-      INTEGER, DIMENSION( CV_NONODS ), intent( inout )        :: MIDCMC
-
-      INTEGER, intent( in )                                   :: MX_NCOLM
-      INTEGER, intent( inout )                                :: NCOLM
-      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( inout )    :: FINDM
-      INTEGER, DIMENSION( NCOLM ), intent( inout )            :: COLM
-      INTEGER, DIMENSION( CV_NONODS ), intent( inout )        :: MIDM
-
-      ! Local variables
-      INTEGER :: NPHA_TOTELE, MXNACV_LOC, NACV_LOC, MX_NCOLELE_PHA, II
-
-      INTEGER, ALLOCATABLE, DIMENSION( : ) :: MIDACV_LOC, FINACV_LOC, COLACV_LOC, COLELE_PHA, FINELE_PHA, &
-           MIDELE_PHA, CENTCT
-      LOGICAL, parameter :: OldSetUp = .true.
-      logical :: presym
-      integer, dimension( : ), allocatable :: tempvec1, tempvec2, tempvec3, dummyvec
-      integer :: tempnct
-
-      ewrite(3,*) 'In GET_SPARS_PATS'
-
-      ! Extend the element sparsity to an element multiphase sparsity
-
-      MX_NCOLELE_PHA = NPHASE * MXNELE + ( NPHASE - 1 ) * NPHASE * TOTELE
-      NPHA_TOTELE = TOTELE * NPHASE
-
-      ALLOCATE( COLELE_PHA( MX_NCOLELE_PHA ))
-      ALLOCATE( FINELE_PHA( NPHA_TOTELE + 1 ))
-      ALLOCATE( MIDELE_PHA( NPHA_TOTELE ))
-      ALLOCATE( CENTCT( CV_NONODS ))
-
-      if ( OldSetUp ) then
-         CALL DEF_SPAR( 1, TOTELE, MXNELE, NCOLELE, &
-              MIDELE, FINELE, COLELE )
-         !  ewrite(3,*) colele( 1 : ncolele )
-         !  ewrite(3,*) midele( 1 : totele )
-         !  ewrite(3,*) ' '
-         !  allocate( tempvec1( totele + 1 ))
-         !  allocate( tempvec2( totele ))
-         !  allocate( tempvec3( ncolele ))
-         !  tempvec1 = finele
-         !  tempvec2 = midele
-         !  tempvec3( 1: ncolele ) = colele( 1: ncolele )
-         !  finele = 0  
-         !  midele = 0
-         !  colele = 0
-      else
-         call getfinele( totele, cv_nloc, x_snloc, x_nonods, x_ndgln, nface_p1, &
-              finele, colele, midele )
-         ncolele = nface_p1 * totele
-         ! ewrite(3,*) colele( 1 : ncolele )
-         ! ewrite(3,*) midele( 1 : totele )
-         ! ewrite(3,*) ncolele, totele * nface_p1, mxnele
-         ! ewrite(3,*)'  -----  finele  -----  '
-         ! call comparematrices( totele + 1,        tempvec1, finele )
-         ! ewrite(3,*)' -----  midele -----  '
-         ! call comparematrices( totele,            tempvec2, midele )
-         ! ewrite(3,*)' -----  colele  -----  '
-         ! call comparematrices( ncolele, tempvec3, colele )
-      endif
-      ! stop 11
-
-      CALL EXTEN_SPARSE_MULTI_PHASE( TOTELE, MXNELE, FINELE, COLELE, &
-           NPHASE, NPHA_TOTELE, MX_NCOLELE_PHA, FINELE_PHA, COLELE_PHA, MIDELE_PHA ) 
-
-
-      CALL FORM_DGM_PHA_SPARSITY( U_PHA_NONODS, MX_NCOLDGM_PHA, NCOLDGM_PHA, COLDGM_PHA, FINDGM_PHA, MIDDGM_PHA, &
-           TOTELE, NPHASE, U_NLOC, MX_NCOLELE_PHA, FINELE_PHA, COLELE_PHA ) 
-
-
-      ! Now form the global matrix: FINMCY, COLMCY and MIDMCY for the 
-      ! momentum and continuity eqns: 
-
-      if ( OldSetUp .or. ( cv_nonods /= totele * cv_nloc )) then
-         CALL DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE, cv_ndgln)
-         NC = NCT
-         !   call swapprint( .true., cv_nonods, mx_nct, nct, findct, colct, centct )
-      else
-         call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct, u_ndgln, cv_ndgln, &
-              nct, findct, colct, centct )
-         nc = nct
-      endif
-      
-      ewrite(3,*) 'findct: ', findct( 1 : cv_nonods + 1 )
-      ewrite(3,*) 'colct: ', colct(1:totele*cv_nloc*u_nloc)
-!stop 34
-
-      ! Convert CT sparsity to C sparsity.
-      CALL CONV_CT2C( CV_NONODS, NCT, FINDCT, COLCT, U_NONODS, MX_NC, FINDC, COLC )
-
-      ewrite(3,*) 'NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC:',NCOLDGM_PHA,CV_NONODS, TOTELE*CV_NLOC
-
-      IF(CV_NONODS /= TOTELE*CV_NLOC) THEN ! Continuous pressure
-
-         if ( OldSetUp ) then
-            CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-                                !    CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-                 MIDCMC, FINDCMC, COLCMC )
-            ewrite(3,*)'findcmc: ', findcmc(1:cv_nonods+1)
-            ewrite(3,*)'colcmc: ', colcmc( 1:ncolcmc )
-            ewrite(3,*)'midcmc: ', midcmc( 1:cv_nonods)
-         else
-            allocate( dummyvec( u_nonods ))
-            dummyvec = 0
-            presym = .false.
-            call poscmc( cv_nonods, u_nonods, mx_ncolcmc, nct, &
-                 findct, colct, &
-                 ncolcmc, findcmc, colcmc, midcmc, dummyvec, presym )
-            deallocate( dummyvec )
-         end if
-
-      ELSE
-         if ( OldSetUp ) then
-            CALL DEF_SPAR( CV_NLOC+2, CV_NONODS, MX_NCOLCMC, NCOLCMC, &
-                 MIDCMC, FINDCMC, COLCMC )
-            ewrite(3,*)'findcmc: ', findcmc(1:cv_nonods+1)
-            ewrite(3,*)'colcmc: ', colcmc( 1:ncolcmc )
-            ewrite(3,*)'midcmc: ', midcmc( 1:cv_nonods)
-         else
-            allocate(tempvec1(cv_nonods+1))
-            allocate(tempvec2(mx_ncolcmc))
-            allocate(tempvec3(cv_nonods))
-            tempvec1 = findcmc
-            tempvec2 = colcmc
-            tempvec3 = midcmc
-            findcmc = 0 ; colcmc = 0 ; midcmc = 0
-            allocate( dummyvec( u_nonods ))
-            presym = .false.
-            call poscmc( cv_nonods, u_nonods, mx_ncolcmc, nct, &
-                 findct, colct, &
-                 ncolcmc, findcmc, colcmc, midcmc, dummyvec, presym )
-            ewrite(3,*)'findcmc: ', findcmc(1:cv_nonods+1)
-            ewrite(3,*)'colcmc: ', colcmc(1:mx_ncolcmc )
-            ewrite(3,*)'midcmc: ', midcmc(1:cv_nonods)
-            deallocate( dummyvec )
-            deallocate( tempvec1 )
-            deallocate( tempvec2 )
-            deallocate( tempvec3 )
-
-         end if
-         !stop 98
-      ENDIF
-      ewrite( 3, *)'CV_NONODS /= TOTELE*CV_NLOC: ', CV_NONODS /= TOTELE*CV_NLOC
-      !stop 98
-      if(MX_NCOLCMC < NCOLCMC) FLAbort(" Incorrect number of computed dimension of CMC sparcity matrix")
-
-      ewrite(3,*)'defining sparsity of matrix'
-
-      MIDMCY = 0
-      ! Extend momentum sparsity to include Continuity & Pressure: 
-      CALL EXTEN_SPARSE_MOM_CTY( NDIM, FINDGM_PHA, COLDGM_PHA, U_PHA_NONODS, NCOLDGM_PHA, NCT, &
-           CV_NONODS, FINDCT, COLCT, &
-           U_NONODS, NC, MX_NCOLMCY, &
-           FINDC, COLC, FINMCY, COLMCY, MIDMCY, NLENMCY, &
-           NCOLMCY, NPHASE, NCOLCMC, FINDCMC, COLCMC  )  
-      !
-      !        MX_NMCY
-      ! Sparsity for energy equation...   
-      ! NACV_LOC:                            
-      MXNACV_LOC = 3 * CV_NONODS
-      ALLOCATE( MIDACV_LOC( CV_NONODS ))
-      ALLOCATE( FINACV_LOC( CV_NONODS + 1 ))
-      ALLOCATE( COLACV_LOC( MXNACV_LOC ))
-
-   !!   if( .not. OldSetUp ) then
-         CALL DEF_SPAR( 1 , CV_NONODS, MXNACV_LOC, NACV_LOC, &
-              MIDACV_LOC, FINACV_LOC, COLACV_LOC )
-
-         NCOLACV = NPHASE * NACV_LOC + ( NPHASE - 1 ) * NPHASE * CV_NONODS
-         NACV_LOC = NCOLACV
-         ewrite(3,*)'totele,cv_nonods,cv_nloc:', totele,cv_nonods,cv_nloc
-         ewrite(3,*)'finacv_loc:', size( finacv_loc ), finacv_loc( 1 : cv_nonods + 1 )
-         ewrite(3,*)'colacv_loc:', size( colacv_loc ), colacv_loc( 1 : mxnacv_loc )
-         ewrite(3,*)'midacv_loc:', size( midacv_loc ), midacv_loc( 1 : cv_nonods )
-
- !        stop 98874
-    !!     allocate( tempvec1( cv_nonods + 1 ))
-     !!    allocate( tempvec2( mxnacv_loc ))
-     !!    allocate( tempvec3( cv_nonods ))
-     !!    tempvec1( 1 : cv_nonods + 1 ) = finacv_loc( 1 : cv_nonods + 1 )
-     !!    tempvec2( 1 : mxnacv_loc ) = colacv_loc( 1 : mxnacv_loc )
-     !!    tempvec3( 1 : cv_nonods ) = midacv_loc( 1 : cv_nonods )
-        !! call swapprint( .true., cv_nonods, mxnacv_loc, nacv_loc, finacv_loc, colacv_loc, midacv_loc )
-
-         ! else
-         !!nacv_loc = 0
-         !!nct = 0
-         !!call posinm_colour( totele, cv_nonods, cv_nloc, colacv_loc, nct, mxnacv_loc, finacv_loc, midacv_loc, &
-        !!                 u_nonods, u_nloc, u_ndgln, cv_ndgln )
-       !!  call pousinmc2( totele, cv_nonods, cv_nloc, u_nonods, u_nloc, mxnacv_loc, cv_ndgln, u_ndgln, &
-       !!       nct, finacv_loc, colacv_loc, midacv_loc )
-         !!nacv_loc = nct
-         !!call swapprint( .false., cv_nonods, mxnacv_loc, nacv_loc, finacv_loc, colacv_loc, midacv_loc )
-         !!call comparematrices( cv_nonods + 1, tempvec1, finacv_loc )
-         !!call comparematrices( nacv_loc,      tempvec2, colacv_loc )
-         !!call comparematrices( cv_nonods,     tempvec3, midacv_loc )
-  !!    end if
-  !!    stop 9887
-
-      ewrite(3,*) 'going into EXTEN_SPARSE_MULTI_PHASE sbrt 2nd time'
-      colacv=0
-      CALL EXTEN_SPARSE_MULTI_PHASE( CV_NONODS, MXNACV_LOC, FINACV_LOC, COLACV_LOC, &
-           NPHASE, CV_PHA_NONODS, MX_NCOLACV, FINACV, COLACV, MIDACV )
-
-      ! Sparsity of CV-FEM
-      ewrite(3,*)'going to find sparsity of colm MX_NCOLM:',MX_NCOLM
-      ewrite(3,*)'CV_NONODS,CV_NLOC:',CV_NONODS,CV_NLOC
-      CALL DEF_SPAR( CV_NLOC - 1 , CV_NONODS, MX_NCOLM, NCOLM, &
-           MIDM, FINDM, COLM )
-
-      ewrite(3,*) 'NCOLMCY, NCOLACV, NCOLCMC:', NCOLMCY, NCOLACV, NCOLCMC
-
-      ewrite(3,*) 'Leaving GET_SPARS_PATS'
-
-      RETURN
-
-    END SUBROUTINE GET_SPARS_PATS
-
-!!!
-!!! Def_Spar Subroutine
-!!!
 
     SUBROUTINE DEF_SPAR( SEMI_BAND_WID, NONODS, MX_NCOLC, NCOLC, &
          CENTC, FINDC, COLC)
@@ -374,126 +81,8 @@
       RETURN
     END SUBROUTINE DEF_SPAR
 
-
-    SUBROUTINE EXTEN_SPARSE_MULTI_PHASE( NONODS, MXNELE, FINM, COLM, &
-         NPHASE, NPHA_NONODS, NCOLM_PHA, FINM_PHA, COLM_PHA, MIDM_PHA ) 
-
-      ! Extend the sparsity to a multiphase sparsity
-
-      IMPLICIT NONE 
-      INTEGER, intent( in ) :: NONODS, MXNELE, NPHASE
-      INTEGER, DIMENSION( NONODS + 1), intent (in ) :: FINM
-      INTEGER, DIMENSION( MXNELE ), intent ( in ) :: COLM
-      INTEGER, intent( in ) :: NPHA_NONODS, NCOLM_PHA
-      INTEGER, DIMENSION( NPHA_NONODS + 1 ), intent( inout ) :: FINM_PHA
-      INTEGER, DIMENSION( NPHA_NONODS ), intent( inout ) :: MIDM_PHA
-      INTEGER, DIMENSION( NCOLM_PHA ), intent( inout ) :: COLM_PHA
-
-      INTEGER :: COUNT, COUNT2, IPHASE, JPHASE, NOD 
-
-      ewrite(3,*) 'In EXTEN_SPARSE_MULTI_PHASE'
-
-      COUNT2 = 0
-
-      ewrite(3,*) ' ########  In  EXTEN_SPARSE_MULTI_PHASE Subrt.  ####### '
-
-      loop_phase1: DO IPHASE = 1, NPHASE
-
-         loop_CVNODS: DO NOD = 1, NONODS
-
-            loop_phase2: DO JPHASE = 1, NPHASE
-
-               IF( JPHASE == 1) FINM_PHA(( IPHASE - 1 ) * NONODS + NOD ) = COUNT2 + 1
-
-               IF( IPHASE == JPHASE ) THEN
-                  DO COUNT = FINM( NOD ), FINM( NOD + 1 ) - 1, 1
-                     COUNT2 = COUNT2 + 1
-                     COLM_PHA( COUNT2 ) = COLM( COUNT ) + ( JPHASE - 1 ) * NONODS
-                     IF( COLM( COUNT ) ==  NOD ) MIDM_PHA( NOD + ( JPHASE - 1 ) * NONODS ) = COUNT2
-                  END DO
-               ELSE
-                  COUNT2 = COUNT2 + 1
-                  COLM_PHA( COUNT2 ) = NOD + ( JPHASE - 1 ) * NONODS
-               ENDIF
-
-            END DO loop_phase2
-
-         END DO loop_CVNODS
-
-      END DO loop_phase1
-
-      FINM_PHA( NPHASE * NONODS + 1 ) = COUNT2 + 1
-
-      ewrite(3,*) 'Leaving EXTEN_SPARSE_MULTI_PHASE'
-
-      RETURN
-    END SUBROUTINE EXTEN_SPARSE_MULTI_PHASE
-
-
-
-    SUBROUTINE FORM_DGM_PHA_SPARSITY( U_PHA_NONODS, MX_NCOLDGM_PHA, NCOLDGM_PHA, COLDGM_PHA, FINDGM_PHA, MIDDGM_PHA, &
-         TOTELE, NPHASE, U_NLOC, NELE_PHA, FINELE_PHA, COLELE_PHA ) 
-      ! Form the sparsity of the phase coupled DG discretised matrix 
-      ! from the element-wise multi-phase sparsity matrix. 
-      IMPLICIT NONE
-
-      INTEGER, intent( in ) :: U_PHA_NONODS, MX_NCOLDGM_PHA
-      INTEGER, intent( inout ) :: NCOLDGM_PHA
-      INTEGER, DIMENSION( MX_NCOLDGM_PHA ), intent ( inout ) :: COLDGM_PHA
-      INTEGER, DIMENSION( U_PHA_NONODS + 1 ), intent( inout ) :: FINDGM_PHA
-      INTEGER, DIMENSION( U_PHA_NONODS ), intent( inout ) :: MIDDGM_PHA
-      INTEGER, intent( in ) :: TOTELE, NPHASE, U_NLOC, NELE_PHA
-      INTEGER, DIMENSION( NELE_PHA ), intent( inout ) :: COLELE_PHA 
-      INTEGER, DIMENSION( TOTELE * NPHASE + 1), intent( in ) :: FINELE_PHA
-
-      ! Local variables...
-      INTEGER :: COUNT, COUNT2, ELE_PHA, ELE_PHA2, ILOC, JLOC, IROW, JROW
-
-      ewrite(3,*) 'In FORM_DGM_PHA_SPARSITY'
-
-      COUNT2 = 0
-
-      LOOP_ELEMENT_PHASE: DO ELE_PHA = 1, TOTELE * NPHASE
-
-         LOOP_ILOC: DO ILOC = 1, U_NLOC
-            IROW = ( ELE_PHA - 1 ) * U_NLOC + ILOC
-            FINDGM_PHA( IROW ) = COUNT2 + 1
-
-            DO COUNT = FINELE_PHA( ELE_PHA ) , FINELE_PHA( ELE_PHA + 1 ) - 1, 1
-               ELE_PHA2 = COLELE_PHA( COUNT ) 
-
-               LOOP_JLOC: DO JLOC = 1, U_NLOC
-                  JROW = ( ELE_PHA2 - 1 ) * U_NLOC + JLOC
-                  COUNT2 = COUNT2 + 1
-                  COLDGM_PHA( COUNT2 ) = JROW
-                  IF( IROW == JROW ) MIDDGM_PHA( IROW ) = COUNT2
-
-               END DO LOOP_JLOC
-
-            END DO
-
-         END DO LOOP_ILOC
-
-      END DO LOOP_ELEMENT_PHASE
-
-      FINDGM_PHA( U_PHA_NONODS + 1 ) = COUNT2 + 1
-      NCOLDGM_PHA = COUNT2
-
-      IF( NCOLDGM_PHA .GT. MX_NCOLDGM_PHA ) THEN
-         EWRITE(3,*) ' -------------   IN FORM_DGM_PHA_SPARSITY SUBRT.   ------------------'
-         EWRITE(3,*) 'these should be NCOLDGM_PHA .GT. MX_NCOLDGM_PHA',NCOLDGM_PHA,MX_NCOLDGM_PHA  
-         FLAbort(" Incorrect number of computed dimension of sparcity matrix - coupling terms for multiphase flow")
-      ENDIF
-
-      ewrite(3,*) 'Leaving FORM_DGM_PHA_SPARSITY'
-
-      RETURN
-    END SUBROUTINE FORM_DGM_PHA_SPARSITY
-
-
-
-
-    SUBROUTINE DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE, cv_ndgln)
+    SUBROUTINE DEF_SPAR_CT_DG( CV_NONODS, MX_NCT, NCT, FINDCT, COLCT, &
+         TOTELE, CV_NLOC, U_NLOC, U_NDGLN, U_ELE_TYPE, cv_ndgln)
       ! define sparsity...
       ! SEMI_BAND_WID is the semi band width.
       IMPLICIT NONE
@@ -508,8 +97,15 @@
       INTEGER :: CV_NOD, U_NOD, JLOC, COUNT, ELE, ELE1, ELE2, CV_NODI, CV_ILOC, ILEV, count2, rep
       integer, dimension(cv_nonods) :: cv_ndgln_small
       logical :: repeated, finished_colct
+      character( len = option_path_len ) :: overlapping_path 
+      logical :: is_overlapping   
 
       ewrite(3,*) 'In DEF_SPAR_CT_DG'
+
+      is_overlapping = .false.
+      call get_option( '/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           overlapping_path )
+      if( trim( overlapping_path ) == 'overlapping' ) is_overlapping = .true.
 
       COUNT = 2
       !! Get condensed form of cv_ndgln, ie without any repeats
@@ -518,58 +114,58 @@
       rep = 1
       cv_ndgln_small(1)=cv_ndgln(1)
       do cv_nod=2,size(cv_ndgln)
-        repeated = .false.
-        do cv_nodi=1,cv_nod-rep
-          if (cv_ndgln(cv_nod)==cv_ndgln_small(cv_nodi)) then
-            repeated=.true.
-            rep=rep+1
-          end if
-        end do
-        if (.not.repeated) then
-          cv_ndgln_small(count) = cv_ndgln(cv_nod)
-          count = count+1
-        end if
+         repeated = .false.
+         do cv_nodi=1,cv_nod-rep
+            if (cv_ndgln(cv_nod)==cv_ndgln_small(cv_nodi)) then
+               repeated=.true.
+               rep=rep+1
+            end if
+         end do
+         if (.not.repeated) then
+            cv_ndgln_small(count) = cv_ndgln(cv_nod)
+            count = count+1
+         end if
       end do
-      
+
       finished_colct=.false.
       COUNT = 0
       count2 = 1
       ewrite(3,*)'cv1:', size(cv_ndgln), cv_ndgln
       ewrite(3,*)'cv2:', size(cv_ndgln_small), cv_ndgln_small 
       ewrite(3,*)'cvnonods:', cv_nonods
-!stop 23
+      !stop 23
 
       IF(CV_NONODS /= CV_NLOC*TOTELE ) THEN
          ! Have a cty CV_NOD
-        do while (.not.finished_colct)
-          loop_cvnod: DO CV_NOD = 1, CV_NONODS
+         do while (.not.finished_colct)
+            loop_cvnod: DO CV_NOD = 1, CV_NONODS
 
-            cv_nodi = cv_ndgln_small(cv_nod)
-            if (cv_nodi==count2) then
+               cv_nodi = cv_ndgln_small(cv_nod)
+               if (cv_nodi==count2) then
 
-              FINDCT( cv_nodi ) = COUNT + 1
-              ELE1 = 1 + ( CV_NOD - 2 ) / ( CV_NLOC - 1 )
-              ELE2 = 1 + ( CV_NOD - 1 ) / ( CV_NLOC - 1 )
-              ewrite(3,*)'findct:', cv_nod, cv_nodi, findct( cv_nodi )
+                  FINDCT( cv_nodi ) = COUNT + 1
+                  ELE1 = 1 + ( CV_NOD - 2 ) / ( CV_NLOC - 1 )
+                  ELE2 = 1 + ( CV_NOD - 1 ) / ( CV_NLOC - 1 )
+                  ewrite(3,*)'findct:', cv_nod, cv_nodi, findct( cv_nodi )
 
-              loop_elements: DO ELE = MAX( 1 , ELE1 ), MIN( TOTELE , ELE2 ), 1
+                  loop_elements: DO ELE = MAX( 1 , ELE1 ), MIN( TOTELE , ELE2 ), 1
 
-                DO JLOC = 1 ,U_NLOC
-                  U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + JLOC )
-                  COUNT = COUNT + 1
-!                  ewrite(3,*) u_nod
-                  COLCT( COUNT ) = U_NOD
-              !    ewrite(3,*)'colct:', ele, count, colct(count)
-                END DO
+                     DO JLOC = 1 ,U_NLOC
+                        U_NOD = U_NDGLN(( ELE - 1 ) * U_NLOC + JLOC )
+                        COUNT = COUNT + 1
+                        !                  ewrite(3,*) u_nod
+                        COLCT( COUNT ) = U_NOD
+                        !    ewrite(3,*)'colct:', ele, count, colct(count)
+                     END DO
 
-              END DO loop_elements
-            
-            end if
+                  END DO loop_elements
 
-          END DO loop_cvnod
-          if (count2==cv_nonods) finished_colct = .true.
-          count2 = count2+1
-        end do
+               end if
+
+            END DO loop_cvnod
+            if (count2==cv_nonods) finished_colct = .true.
+            count2 = count2+1
+         end do
       ELSE
          ! Have a discontinuous CV_NOD
          loop_elements2: DO ELE = 1,TOTELE 
@@ -579,7 +175,8 @@
 
                FINDCT( CV_NOD ) = COUNT + 1
 
-               IF(U_ELE_TYPE==2) THEN
+               ! IF(U_ELE_TYPE==2) THEN
+               if ( is_overlapping ) then
                   IF((CV_ILOC==1).AND.(ELE /= 1)) THEN
                      ELE2=ELE-1
                      JLOC=U_NLOC/CV_NLOC
@@ -654,154 +251,17 @@
       RETURN
     END SUBROUTINE DEF_SPAR_CT_DG
 
+  end module sparsity_1D
 
+  module sparsity_ND
+    use fldebug
 
-
-    SUBROUTINE CONV_CT2C( CV_NONODS, NCT, FINDCT, COLCT, U_NONODS, MX_NC, FINDC, COLC )
-      IMPLICIT NONE
-      ! Convert CT sparsity to C sparsity.
-      INTEGER, intent( in ) :: CV_NONODS, NCT
-      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
-      INTEGER, DIMENSION( NCT ), intent( in ) ::  COLCT
-      INTEGER, intent( in ) :: U_NONODS, MX_NC
-      INTEGER, DIMENSION( U_NONODS + 1), intent( inout ) :: FINDC
-      INTEGER, DIMENSION( MX_NC ), intent( inout ) :: COLC
-
-      ! local variables...
-      INTEGER :: COL, U_NOD, CV_NOD, COUNT, COUNT2
-      INTEGER, DIMENSION( : ), ALLOCATABLE ::  IN_ROW_C
-
-      ewrite(3,*) 'In CONV_CT2C'
-
-      ! No. of non-zero's in row of C matrix. 
-      ALLOCATE( IN_ROW_C( U_NONODS ))
-      IN_ROW_C = 0
-
-      DO COUNT = 1, NCT
-         COL = COLCT( COUNT )
-         IN_ROW_C( COL ) = IN_ROW_C( COL ) + 1
-      END DO
-
-      COUNT = 0
-      DO U_NOD = 1, U_NONODS
-         FINDC( U_NOD ) = COUNT + 1
-         COUNT = COUNT + IN_ROW_C( U_NOD )
-      END DO
-      FINDC( U_NONODS + 1 ) = COUNT + 1
-
-      IN_ROW_C( 1 : U_NONODS )   = 0
-
-      DO CV_NOD = 1, CV_NONODS
-         DO COUNT = FINDCT( CV_NOD ), FINDCT( CV_NOD + 1 ) - 1, 1
-            COL = COLCT( COUNT )
-            IN_ROW_C( COL ) = IN_ROW_C( COL ) + 1
-            COUNT2 = FINDC( COL ) + IN_ROW_C( COL ) - 1
-            COLC( COUNT2 ) = CV_NOD
-
-         END DO
-      END DO
-
-
-      DEALLOCATE( IN_ROW_C )
-
-      ewrite(3,*) 'Leaving CONV_CT2C'
-
-      RETURN
-
-    END SUBROUTINE CONV_CT2C
-
-
-
-
-    SUBROUTINE EXTEN_SPARSE_MOM_CTY( NDIM, FINMCY2, COLMCY2, NLENMCY2, NMCY2, MXNCT, &
-         CV_NONODS, FINDCT, COLCT, &
-         U_NONODS, NCOLC, MX_NCOLMCY, &
-         FINDC, COLC, FINMCY, COLMCY, MIDMCY, NLENMCY, &
-         NCOLMCY, NPHASE, NCOLCMC, FINDCMC, COLCMC  )
-      IMPLICIT NONE 
-      ! Extend momentum sparsity to include CTY/pressure.
-      INTEGER, intent( in ) :: NDIM, NLENMCY2, NMCY2, MXNCT, CV_NONODS, U_NONODS, NCOLC, &
-           MX_NCOLMCY, NLENMCY, NCOLCMC
-      INTEGER, DIMENSION( NLENMCY2 + 1 ), intent( in ) :: FINMCY2
-      INTEGER, DIMENSION( NMCY2 ), intent( in  ) :: COLMCY2
-      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
-      INTEGER, DIMENSION( MXNCT ), intent( in ) :: COLCT
-      INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) :: FINDC
-      INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
-      INTEGER, DIMENSION( NLENMCY + 1), intent( inout ) :: FINMCY
-      INTEGER, DIMENSION( MX_NCOLMCY ), intent( inout ) :: COLMCY
-      INTEGER, DIMENSION( NLENMCY ), intent( inout ) :: MIDMCY
-      INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCMC
-      INTEGER, DIMENSION( NCOLCMC ), intent( in ) :: COLCMC
-      INTEGER, intent( inout ) :: NCOLMCY
-      INTEGER, intent( in ) :: NPHASE
-      ! Local variables...
-      INTEGER :: COUNT, COUNT2, IPHASE, JPHASE, U_NOD, U_PHA_NOD, CV_NOD, ICOL, JDIM
-
-      ewrite(3,*) 'In EXTEN_SPARSE_MOM_CTY'
-
-      COUNT2 = 0
-      COUNT  = 0
-      ! put the pressure part in...
-      LOOP_PHASE: DO IPHASE = 1, NPHASE
-         LOOP_NODES: DO U_NOD = 1, U_NONODS
-
-            U_PHA_NOD = U_NOD + ( IPHASE - 1 ) * U_NONODS 
-
-            FINMCY( U_PHA_NOD ) = COUNT2 + 1
-
-            DO COUNT = FINMCY2( U_PHA_NOD ), FINMCY2( U_PHA_NOD + 1 ) - 1, 1
-               COUNT2 = COUNT2 + 1
-               COLMCY( COUNT2 ) = COLMCY2( COUNT )
-
-            END DO
-
-            DO COUNT = FINDC( U_NOD ), FINDC( U_NOD + 1 ) - 1, 1
-               COUNT2 = COUNT2 + 1
-               COLMCY( COUNT2 ) = COLC( COUNT ) + U_NONODS * NPHASE
-
-            END DO
-
-         END DO LOOP_NODES
-      END DO LOOP_PHASE
-
-      ! put the continuity part in... 
-      Loop_CVNODS: DO CV_NOD = 1, CV_NONODS  
-         U_PHA_NOD = CV_NOD + U_NONODS * NPHASE
-         FINMCY( U_PHA_NOD ) = COUNT2 + 1    
-         Loop_Phases: DO JPHASE = 1, NPHASE 
-            Loop_Dimensions: DO JDIM = 1, NDIM
-               DO COUNT = FINDCT( CV_NOD ), FINDCT( CV_NOD + 1 ) - 1, 1
-                  COUNT2 = COUNT2 + 1
-                  ICOL = COLCT(COUNT) + (JDIM-1)*U_NONODS + (JPHASE-1)*U_NONODS*NDIM
-                  COLMCY( COUNT2 ) = ICOL
-               END DO
-            END DO Loop_Dimensions
-         END DO Loop_Phases
-
-
-         ! add a diagonal which will have zero values for incompressible, but non-zero for compressible
-         DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1, 1
-            COUNT2 = COUNT2 + 1
-            ICOL = COLCMC(COUNT) + U_NONODS*NDIM*NPHASE
-            COLMCY( COUNT2 ) = ICOL
-            IF(U_PHA_NOD.EQ.ICOL) MIDMCY( U_PHA_NOD ) = COUNT2
-
-         END DO
-      END DO Loop_CVNODS
-      NCOLMCY = COUNT2
-      FINMCY( U_NONODS *NPHASE + CV_NONODS + 1 ) = COUNT2 + 1
-
-      ewrite(3,*) 'Leaving EXTEN_SPARSE_MOM_CTY'
-
-      RETURN
-    END SUBROUTINE EXTEN_SPARSE_MOM_CTY
-
+  contains
 
     subroutine getfinele( totele, nloc, snloc, nonods, ndglno, nface_p1, &
          finele, colele, midele )
-      ! This sub caluculates COLELE the element
-      ! connectivitiy list in order of faces.
+      ! This sub caluculates COLELE the element connectivitiy list 
+      ! in order of faces.
       implicit none
       integer, intent( in ) :: totele, nloc, snloc, nonods
       integer, dimension( totele * nloc ), intent( in ) :: ndglno
@@ -934,6 +394,176 @@
       return
     end subroutine getfinele
 
+    subroutine exten_sparse_multi_phase( nonods, mxnele, finm, colm, &
+         nphase, npha_nonods, ncolm_pha, &
+         finm_pha, colm_pha, midm_pha )
+      ! Extend the sparsity to a multiphase sparsity
+      implicit none
+      integer, intent( in ) :: nonods, mxnele
+      integer, dimension( nonods + 1 ), intent( in ) :: finm
+      integer, dimension( mxnele ), intent( in ) :: colm
+      integer, intent( in ) :: nphase, npha_nonods, ncolm_pha
+      integer, dimension( npha_nonods + 1 ), intent( inout ) :: finm_pha
+      integer, dimension( ncolm_pha ), intent( inout ) :: colm_pha
+      integer, dimension( npha_nonods ), intent( inout ) :: midm_pha
+      ! Local variables
+      integer :: count, count2, iphase, jphase, nod
+
+      ewrite(3,*) 'In exten_sparse_multi_phase subrt.'
+
+      count2 = 0
+      Loop_Phase1: do iphase = 1, nphase
+         Loop_CVNODS: do nod = 1, nonods
+            Loop_Phase2: do jphase = 1, nphase
+               if( jphase == 1 ) &
+                    finm_pha( ( iphase - 1 ) * nonods + nod ) = count2 + 1
+               Conditional_Phases: if( iphase == jphase ) then
+                  do count = finm( nod ), finm( nod + 1 ) - 1
+                     count2 = count2 + 1
+                     colm_pha( count2 ) = colm( count ) + ( jphase - 1 ) * nonods
+                     if( colm( count ) == nod ) &
+                          midm_pha( nod + ( jphase - 1 ) * nonods ) = count2
+                  end do
+               else
+                  count2 = count2 + 1
+                  colm_pha( count2 ) = nod + ( jphase - 1 ) * nonods
+               end if Conditional_Phases
+            end do Loop_Phase2
+         end do Loop_CVNODS
+      end do Loop_Phase1
+
+      finm_pha( nphase * nonods + 1 ) = count2 + 1
+
+      ewrite(3,*) 'Leaving exten_sparse_multi_phase subrt.'
+      return
+    end subroutine exten_sparse_multi_phase
+
+    subroutine exten_sparse_mom_cty( ndim, finmcy2, colmcy2, nlenmcy2, nmcy2, mxnct, &
+         cv_nonods, findct, colct, &
+         u_nonods, ncolc, mx_ncolmcy, &
+         findc, colc, finmcy, colmcy, midmcy, nlenmcy, &
+         ncolmcy, nphase, ncolcmc, findcmc, colcmc )
+      ! Extend momentum sparsity to include Continuity / pressure.
+      implicit none
+      integer, intent( in ) :: ndim, nlenmcy2, nmcy2, mxnct
+      integer, dimension( nlenmcy2 + 1 ), intent( in ) :: finmcy2
+      integer, dimension( nmcy2 ), intent( in ) :: colmcy2
+      integer, intent( in ) :: cv_nonods
+      integer, dimension( cv_nonods + 1 ), intent( in ) :: findct
+      integer, dimension( mxnct ), intent( in ) :: colct
+      integer, intent( in ) :: u_nonods, ncolc, mx_ncolmcy
+      integer, dimension( u_nonods + 1 ), intent( in ) :: findc
+      integer, dimension( ncolc ), intent( in ) :: colc
+      integer, intent( in ) :: nlenmcy
+      integer, dimension( nlenmcy + 1 ), intent( inout ) :: finmcy
+      integer, dimension( mx_ncolmcy ), intent( inout ) :: colmcy
+      integer, dimension( nlenmcy ), intent( inout ) :: midmcy
+      integer, intent( inout ) :: ncolmcy
+      integer, intent( in ) :: nphase, ncolcmc
+      integer, dimension( cv_nonods + 1 ), intent( in ) :: findcmc
+      integer, dimension( ncolcmc ), intent( in ) :: colcmc
+      ! Local variables
+      integer :: count, count2, iphase, jphase, u_nod, u_pha_nod, cv_nod, icol, jdim
+
+      ewrite(3,*) 'In exten_sparse_mom_cty subrt.'
+
+      count2 = 0 ; count = 0
+      Loop_Phase1: do iphase = 1, nphase ! Add the pressure part in
+         Loop_Nod1: do u_nod = 1, u_nonods
+            u_pha_nod = u_nod + ( iphase - 1 ) * u_nonods
+            finmcy( u_pha_nod ) = count2 + 1
+            Loop_Count1a: do count = finmcy2( u_pha_nod ), finmcy2( u_pha_nod + 1 ) - 1
+               count2 = count2 + 1
+               colmcy( count2 ) = colmcy2( count )
+            end do Loop_Count1a
+            Loop_Count2: do count = findc( u_nod ), findc( u_nod + 1 ) - 1
+               count2 = count2 + 1
+               colmcy( count2 ) = colc( count ) + u_nonods * nphase
+            end do Loop_Count2
+         end do Loop_Nod1
+      end do Loop_Phase1
+
+      Loop_Nod2a: do cv_nod = 1, cv_nonods ! Add continuity part in
+         u_pha_nod = cv_nod + u_nonods * nphase
+         finmcy( u_pha_nod ) = count2 + 1
+
+         Loop_Phase2: do jphase = 1, nphase
+            Loop_Dim2: do jdim = 1, ndim
+               Loop_Nod2b: do count = findct( cv_nod ), findct( cv_nod + 1 ) - 1
+                  count2 = count2 + 1
+                  icol = colct( count ) + ( jdim - 1 ) * u_nonods + &
+                       ( jphase - 1 ) * u_nonods * ndim
+                  colmcy( count2 ) = icol
+               end do Loop_Nod2b
+            end do Loop_Dim2
+         end do Loop_Phase2
+
+         ! Now add a diagonal which will have zero values for incompressible, 
+         ! but non-zero for compressible
+         Loop_Nod2c: do count = findcmc( cv_nod ), findcmc( cv_nod + 1 ) - 1
+            count2 = count2 + 1
+            icol = colcmc( count ) + u_nonods * ndim * nphase
+            colmcy( count2 ) = icol
+            if( u_pha_nod == icol ) midmcy( u_pha_nod ) = count2
+         end do Loop_Nod2c
+
+      end do Loop_Nod2a
+      ncolmcy = count2
+      finmcy( u_nonods * nphase + cv_nonods + 1 ) = count2 + 1
+
+      ewrite(3,*) 'Leaving exten_sparse_mom_cty subrt.'
+
+      return
+    end subroutine exten_sparse_mom_cty
+
+    subroutine form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
+         mx_ncoldgm_pha, ncoldgm_pha, &
+         coldgm_pha, findgm_pha, middgm_pha, &
+         nele_pha, finele_pha, colele_pha )
+      ! Form the sparsity of the phase coupled DG discretised matrix 
+      ! from the element-wise multi-phase sparsity matrix. 
+      implicit none
+      integer, intent( in ) :: totele, nphase, u_nloc, u_pha_nonods, &
+           mx_ncoldgm_pha
+      integer, intent( inout ) :: ncoldgm_pha
+      integer, dimension( mx_ncoldgm_pha ), intent( inout ) :: coldgm_pha
+      integer, dimension( u_pha_nonods + 1 ), intent( inout ) :: findgm_pha
+      integer, dimension( u_pha_nonods ), intent( inout ) :: middgm_pha
+      integer, intent( in ) :: nele_pha
+      integer, dimension( nele_pha + 1 ), intent( in ) :: finele_pha
+      integer, dimension( nele_pha ), intent( in ) :: colele_pha
+      ! Local variables
+      integer :: count, count2, ele_pha, ele_pha2, iloc, jloc, irow, jrow
+
+      ewrite(3,*) 'In form_dgm_pha_sparsity subrt. '
+
+      count2 = 0
+      Loop_ElementPhase: do ele_pha = 1, totele * nphase
+         Loop_Loc1: do iloc = 1, u_nloc
+            irow = ( ele_pha - 1 ) * u_nloc + iloc
+            findgm_pha( irow ) = count2 + 1
+            Loop_Count: do count = finele_pha( ele_pha ), finele_pha( ele_pha + 1 ) - 1
+               ele_pha2 = colele_pha( count )
+               Loop_Loc2: do jloc = 1, u_nloc
+                  jrow = ( ele_pha2 - 1 ) * u_nloc + jloc
+                  count2 = count2 + 1
+                  coldgm_pha( count2 ) = jrow
+                  if( irow == jrow ) middgm_pha( irow ) = count2
+               end do Loop_Loc2
+            end do Loop_Count
+         end do Loop_Loc1
+      end do Loop_ElementPhase
+      findgm_pha( u_pha_nonods + 1 ) = count2 + 1
+      ncoldgm_pha = count2
+
+      if( ncoldgm_pha > mx_ncoldgm_pha ) &
+           FLAbort(" Incorrect number of dimension of sparsity matrix - ncoldgm_pha ")
+
+      ewrite(3,*) 'Leaving form_dgm_pha_sparsity subrt. '
+
+      return
+    end subroutine form_dgm_pha_sparsity
+
 
     subroutine pousinmc2( totele, nonods1, nloc1, nonods2, nloc2, nimem, ndglno1, ndglno2, &
          lencolm, findrm, colm, centrm )
@@ -987,10 +617,10 @@
                   cycle
                end if
 
-         !      if ( list % id == -1 ) then ! Check if the list is initalised
-         !         list % id = globj
-         !         cycle
-         !      end if
+               !      if ( list % id == -1 ) then ! Check if the list is initalised
+               !         list % id = globj
+               !         cycle
+               !      end if
 
                Conditional1: if ( globj < list % id ) then ! Insert at start of list
                   allocate( current )
@@ -1066,6 +696,55 @@
       return
     end subroutine pousinmc2
 
+
+    subroutine conv_ct2c( cv_nonods, nct, findct, colct, u_nonods, &
+         mx_nc, findc, colc )
+      implicit none
+      integer, intent( in ) :: cv_nonods, nct
+      integer, dimension( cv_nonods + 1 ), intent( in ) :: findct
+      integer, dimension( nct ), intent( in ) :: colct
+      integer, intent( in ) :: u_nonods, mx_nc
+      integer, dimension( u_nonods + 1 ), intent( inout ) :: findc
+      integer, dimension( mx_nc ), intent( inout ) :: colc
+      ! Local variables
+      integer :: col, u_nod, cv_nod, count, count2
+      integer, dimension( : ), allocatable :: in_row_c
+
+      ewrite(3,*) 'In conv_ct2c subrt.'
+
+      ! No. of non-zero's in row of C matrix. 
+      allocate( in_row_c( u_nonods ) )
+      in_row_c = 0
+      do count = 1, nct
+         col = colct( count )
+         in_row_c( col ) = in_row_c( col ) + 1
+      end do
+
+      count = 0
+      do u_nod = 1, u_nonods
+         findc( u_nod ) = count + 1
+         count = count + in_row_c( u_nod )
+      end do
+      findc( u_nonods + 1 ) = count + 1
+      in_row_c( 1 : u_nonods ) = 0
+
+      Loop_CVNOD: do cv_nod = 1, cv_nonods
+         Loop_Count: do count = findct( cv_nod ), findct( cv_nod + 1 ) - 1
+            col = colct( count )
+            in_row_c( col ) = in_row_c( col ) + 1
+            count2 = findc( col ) + in_row_c( col ) - 1
+            colc( count2 ) = cv_nod
+         end do Loop_Count
+      end do Loop_CVNOD
+
+      deallocate( in_row_c )
+
+      ewrite(3,*) 'Leaving conv_ct2c subrt.'
+
+      return
+    end subroutine conv_ct2c
+
+
     subroutine poscmc( totele, nonods, nimem, nct, &
          findct, colct, &
          ncmc, fincmc, colcmc, midcmc, noinod, presym )
@@ -1112,13 +791,13 @@
          Loop_Count1: do count = findct( irow ), findct( irow + 1 ) - 1, 1
             globi = colct( count )
             list => matrix( globi ) % row
-! ewrite(3,*)'list%id:',globj,globi,list % id
+            ! ewrite(3,*)'list%id:',globj,globi,list % id
 
             if ( list % id == -1 ) then ! Check if the list is initalised
                list % id = globj
                cycle
             end if
-! ewrite(3,*)'true?:', list % id == -1, globj, list % id 
+            ! ewrite(3,*)'true?:', list % id == -1, globj, list % id 
 
             Conditional1: if ( globj < list % id ) then ! Insert at start of list
                allocate( current )
@@ -1128,7 +807,7 @@
                list => matrix( globj ) % row
             else
                current => list
- !ewrite(3,*)'-->', globj, current % id, current % next % id
+               !ewrite(3,*)'-->', globj, current % id, current % next % id
                Loop_While1: do while( associated( current ))
                   if ( globj == current % id ) then ! Already have this node
                      exit
@@ -1256,10 +935,10 @@
             deallocate( current )
             current => next
             ptr = ptr + 1
-!ewrite(3,*)'ptr:', ptr
+            !ewrite(3,*)'ptr:', ptr
 
          end do Loop_While4
-!ewrite(3,*)'irow:', irow
+         !ewrite(3,*)'irow:', irow
       end do Loop_Row3
 
       ncmc =  ptr - 1
@@ -1268,552 +947,480 @@
       return
     end subroutine poscmc
 
-    subroutine comparematrices( n, vec1, vec2 )
-      implicit none
-      integer :: n
-      integer, dimension( n ) :: vec1, vec2
-      integer :: i 
-      real :: res1, res2, diff
-
-      res1 = 0.
-      res2 = 0.
-      diff = 0.
-      do i = 1, n
-         res1 = res1 + real( vec1( i ))**2 
-         res2 = res2 + real( vec2( i ))**2 
-         diff = diff + real( abs(vec1( i )) - abs(vec2( i )))**2
-         !    ewrite(3,*) i, vec1( i ), vec2( i ), diff
-      end do
-      res1 = sqrt( res1 )
-      res2 = sqrt( res2 )
-      diff = sqrt( diff )
-
-      ewrite(3,*) 'vec1, vec2, diff: ', res1, res2, diff
-
-      return
-    end subroutine comparematrices
-
-
-    SUBROUTINE POSINMAT( POSMAT, GLOBI, GLOBJ,& 
-         NONODS, FINDRM, COLM, NCOLM)
-      ! Find position in matrix POSMAT which has column GLOBJ
-      INTEGER, intent( in ) :: NONODS, NCOLM, GLOBI, GLOBJ
-      INTEGER, intent( inout ) :: POSMAT
-      INTEGER, DIMENSION( NONODS + 1), intent( in ) :: FINDRM
-      INTEGER, DIMENSION( NCOLM ), intent( in ) :: COLM
-      ! Local
-      INTEGER :: INUM, LOWER, UPPER, COUNT
-      INTEGER, PARAMETER :: NMAX = 100000
-
-      !ewrite(3,*) 'In POSINMAT'
-
-      LOWER = FINDRM( GLOBI ) 
-      UPPER = FINDRM( GLOBI + 1 ) - 1
-
-
-      COUNT = 1
-      Loop_While: DO WHILE  ( COUNT <= NMAX )
-
-         INUM = LOWER + ( UPPER - LOWER + 1 ) / 2
-
-         IF(GLOBJ >= COLM( INUM ) ) THEN 
-            LOWER = INUM
-         ELSE
-            UPPER = INUM
-         ENDIF
-
-         IF( ( UPPER - LOWER ) <= 1 ) THEN
-            IF( GLOBJ == COLM( LOWER )) THEN
-               POSMAT = LOWER
-            ELSE
-               POSMAT = UPPER
-            ENDIF
-
-            RETURN
-
-         ENDIF
-
-         COUNT = COUNT + 1
-
-      END DO Loop_While
-
-      !ewrite(3,*) 'Leaving POSINMAT'
-
-      RETURN 
-    END SUBROUTINE POSINMAT
-
-
-    subroutine checksparsity( option_mid, unit, ncol2, nonods, ncol, find, mid, col )
-      implicit none
-      logical, intent( in ) :: option_mid
-      integer, intent( in ) :: unit, ncol2, nonods, ncol
-      integer, dimension( nonods + 1 ), intent( in ) :: find
-      integer, dimension( nonods ), intent( in ) :: mid
-      integer, dimension( ncol ), intent( in ) :: col
-      ! Local variables
-      integer :: inod, icol
-
-      ewrite(3,*) 'In checksparsity'
-
-      write( unit, * )'find:', ( find( inod ), inod = 1, nonods + 1 )
-      if( option_mid )write( unit, * )'mid:', ( mid( inod ), inod = 1, nonods )
-      write( unit, * )'col:', ( col( icol ), icol = 1, ncol2  )
-
-      ewrite(3,*) 'Leaving checksparsity'
-
-      return
-    end subroutine checksparsity
-
-    subroutine swapprint( first, n, nc, nc2, fin, col, mid )
-      implicit none
-      logical, intent( in ) :: first
-      integer, intent( in ) :: n, nc
-      integer, intent( inout ) :: nc2
-      integer, dimension( n + 1 ), intent( inout ) :: fin
-      integer, dimension( nc ), intent( inout ) :: col
-      integer, dimension( n ), intent( inout ) :: mid
-
-      ewrite(3,*)'fin:', size( fin ), fin( 1 : n+1 )
-      ewrite(3,*)'col:', nc2, col( 1 : nc )
-      ewrite(3,*)'mid:', size( mid ), mid( 1 : n )
-
-      if( first ) then
-         fin = 0
-         col = 0
-         mid = 0
-      end if
-
-      return
-    end subroutine swapprint
-
-  end module spact
-
-
-  module spact2
-    use fldebug
+  subroutine CV_Neighboor_Sparsity( ndim, cv_ele_type, totele, cv_nloc, cv_nonods, &
+       cv_ndgln, ncolm, mxnacv_loc, findm, colm, &
+       ncolacv_loc, finacv_loc, colacv_loc, midacv_loc )
     use shape_functions
+    use shape_functions_Linear_Quadratic
     implicit none
+    integer, intent( in ) :: ndim, cv_ele_type, totele, cv_nloc, cv_nonods
+    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+    integer, intent( in ) :: ncolm, mxnacv_loc
+    integer, dimension( cv_nonods + 1 ), intent( in ) :: findm
+    integer, dimension( ncolm ), intent( in ) :: colm
+    integer, intent( inout ) :: ncolacv_loc
+    integer, dimension( cv_nonods + 1 ), intent( inout ) :: finacv_loc
+    integer, dimension( mxnacv_loc ), intent( inout ) :: colacv_loc
+    integer, dimension( cv_nonods ), intent( inout ) :: midacv_loc
+    ! Local variables
+    logical, dimension( : ), allocatable :: found
+    integer, dimension( :, : ), allocatable :: cv_neiloc
+    integer :: scvngi, cv_ngi, cv_ngi_short, sbcvngi, nface, u_nloc, &
+         ele, gi, cv_iloc, cv_jloc, cv_nodi, cv_nodj, cv_nodj2, gcount, gcount2
 
-    !! The data type below were copied from fluidity-legacy 
-    type refcount_type
-       !!< Type to hold reference count for an arbitrary object.
-       type(refcount_type), pointer :: prev=>null(), next=>null()
-       integer :: count=0
-       integer :: id
-       !!>character(len=FIELD_NAME_LEN) :: name
-       !!>character(len=FIELD_NAME_LEN) :: type
-       logical :: tagged=.false.
-    end type refcount_type
+    allocate( found( ncolm ) )
 
-    type polynomial
-       real, dimension(:), pointer :: coefs=>null()
-       integer :: degree=-1
-    end type polynomial
+    ! Computing Gauss points and array containing node points on neighboors elements
+    call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
+         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
 
-    type ele_numbering_type
-       ! Type to record element numbering details.
-       ! Differentiate tets from other elements.
-       integer :: faces, vertices, edges, boundaries
-       integer :: degree ! Degree of polynomials.
-       integer :: dimension ! 2D or 3D
-       integer :: nodes
-       !!>integer :: type=ELEMENT_LAGRANGIAN
-       integer :: family
-       ! Map local count coordinates to local number.
-       integer, dimension(:,:,:), pointer :: count2number
-       ! Map local number to local count coordinates.
-       integer, dimension(:,:), pointer :: number2count
-       ! Count coordinate which is held constant for each element boundary.
-       integer, dimension(:), pointer :: boundary_coord
-       ! Value of that count coordinate on the element boundary.
-       integer, dimension(:), pointer :: boundary_val
-    end type ele_numbering_type
+    allocate( cv_neiloc( cv_nloc, scvngi ) )
 
-    type quadrature_type
-       !!< A data type which describes quadrature information. For most
-       !!< developers, quadrature can be treated as an opaque data type which
-       !!< will only be encountered when creating element_type variables to
-       !!< represent shape functions.  
-       integer :: dimension !! Dimension of the elements for which quadrature
-       !!< is required.  
-       integer :: degree !! Degree of accuracy of quadrature. 
-       integer :: loc !! Number of vertices of the element.
-       integer :: ngi !! Number of quadrature points.
-       real, pointer :: weight(:)=>null() !! Quadrature weights.
-       real, pointer :: l(:,:)=>null() !! Locations of quadrature points.
-       character(len=0) :: name !! Fake name for reference counting.
-       !! Reference count to prevent memory leaks.
-       type(refcount_type), pointer :: refcount=>null()
-    end type quadrature_type
+    call volnei( cv_neiloc, cv_nloc, scvngi, cv_ele_type )
+
+    Loop_Elements_1: do ele = 1, totele
+       Loop_CVILOC_1: do cv_iloc = 1, cv_nloc
+         cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
+         Loop_GI_1: do gi = 1, scvngi
+             cv_jloc = cv_neiloc( cv_iloc, gi ) 
+             cv_nodj = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_jloc )
+             Loop_GCOUNT_1: do gcount = findm( cv_nodi ), findm( cv_nodi + 1 ) - 1
+                cv_nodj2 = colm( gcount )
+                if( cv_nodj == cv_nodj2 ) found( gcount ) = .true.
+             end do Loop_GCOUNT_1
+         end do Loop_GI_1
+       end do Loop_CVILOC_1
+    end do Loop_Elements_1
+
+    gcount2 = 0 ! Now reducing the size of the stencil
+    do cv_nodi = 1, cv_nonods
+        finacv_loc( cv_nodi ) = gcount2 + 1
+        do gcount = findm( cv_nodi ), findm( cv_nodi + 1 ) - 1
+          if( found( gcount ) ) then
+            gcount2 = gcount2 + 1
+            colacv_loc( gcount2 ) = colm( gcount2 )
+            if( colacv_loc( gcount2 ) == cv_nodi ) midacv_loc( cv_nodi ) = gcount2
+          end if
+        end do
+    end do
+    ncolacv_loc = gcount2
+    finacv_loc( cv_nonods + 1 ) = gcount2 + 1
+
+    
+    deallocate( found )
+    deallocate( cv_neiloc )
+
+    return
+  end subroutine CV_Neighboor_Sparsity
 
 
-    type element_type
-       !!< Type to encode shape and quadrature information for an element.
-       integer :: dim !! 2d or 3d?
-       integer :: loc !! Number of nodes.
-       integer :: ngi !! Number of gauss points.
-       integer :: degree !! Polynomial degree of element.
-       !! Shape functions: n is for the primitive function, dn is for partial derivatives, dn_s is for partial derivatives on surfaces. 
-       !! n is loc x ngi, dn is loc x ngi x dim
-       !! dn_s is loc x ngi x face x dim 
-       real, pointer :: n(:,:)=>null(), dn(:,:,:)=>null()
-       real, pointer :: n_s(:,:,:)=>null(), dn_s(:,:,:,:)=>null()
-       !! Polynomials defining shape functions and their derivatives.
-       type(polynomial), dimension(:,:), pointer :: spoly=>null(), dspoly=>null()
-       !! Link back to the node numbering used for this element.
-       type(ele_numbering_type), pointer :: numbering=>null()
-       !! Link back to the quadrature used for this element.
-       type(quadrature_type) :: quadrature
-       type(quadrature_type), pointer :: surface_quadrature=>null()
-       !! Pointer to the superconvergence data for this element.
-       !!>type(superconvergence_type), pointer :: superconvergence=>null()
-       !! Reference count to prevent memory leaks.
-       type(refcount_type), pointer :: refcount=>null()
-       !! Dummy name to satisfy reference counting
-       character(len=0) :: name
-    end type element_type
 
-    type cv_faces_type
-       ! loc = number of vertices, faces = number of faces
-       ! degree = degree of polynomial, dim = dimensions of parent element
-       integer :: loc, faces, coords, degree, dim
-       integer :: sloc, sfaces, scoords
-       ! corners = volume coordinates of corners of faces
-       ! faces x loc x face vertices
-       real, dimension(:,:,:), pointer :: corners, scorners
-       ! neiloc = relates faces to faces and vice versa
-       ! loc x faces
-       integer, dimension(:,:), pointer :: neiloc, sneiloc
-       ! shape = shape function used in quadrature of faces
-       ! 1 dimension lower than parent element
-       logical, dimension( : , : ), pointer :: onface
-       type(element_type) :: shape
-    end type cv_faces_type
+  end module sparsity_ND
 
-    ! Defining derived data types for the linked list
-    type node
-       integer :: id                 ! id number of node
-       type( node ), pointer :: next ! next node, recursive data type
-    end type node
 
-    type row
-       type( node ), pointer :: row
-    end type row
 
-    type( row ), dimension( : ), allocatable :: matrix, matrix2
-    type( node ), pointer :: list, current, current2, next
+  module spact
 
+    use fldebug
+    use sparsity_1D
+    use sparsity_ND
+    use shape_functions
+    integer, parameter :: nface_p1 = 3
 
   contains
 
-    subroutine sparse_cvdomain( ndim, totele, cv_nonods, cv_nloc, u_nonods, u_nloc,  &
-         cv_snloc, x_nonods, x_nloc, &
-         cv_ele_type, cv_ndgln, u_ndgln, x_ndgln, &
-         ncolele, finele, colele, &
-         ncolgpts, findgpts, colgpts )
+    subroutine get_spars_pats( &
+         ndim, nphase, totele, u_pha_nonods, cv_pha_nonods, &
+         u_nonods, cv_nonods, x_nonods, &
+         cv_ele_type, u_ele_type, &
+         u_nloc, cv_nloc, x_nloc, &
+         u_snloc, cv_snloc, x_snloc, &
+         u_ndgln, cv_ndgln, x_ndgln, &
+                                ! CV multi-phase eqns (e.g. vol frac, temp)
+         mx_ncolacv, ncolacv, finacv, colacv, midacv, &
+                                ! Force balance plus cty multi-phase eqns
+         nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, &
+                                ! Element connectivity
+         mxnele, ncolele, midele, finele, colele, &
+                                ! Force balance sparsity
+         mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, &
+                                ! CT sparsity - global cty eqn
+         mx_nct, nct, findct, colct, &
+                                ! C sparsity operating on pressure in force balance
+         mx_nc, nc, findc, colc, &
+                                ! pressure matrix for projection method
+         mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, &
+                                ! CV-FEM matrix
+         mx_ncolm, ncolm, findm, colm, midm )
+      ! Obtain the sparsity patterns of the two types of matricies for
+      ! (momentum + cty) and for energy
       implicit none
-      integer, intent( in ) :: ndim, totele, cv_nonods, cv_nloc, u_nonods, u_nloc, &
-           cv_snloc, x_nonods, x_nloc, cv_ele_type
-      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
-      integer, dimension( totele * u_nloc ), intent( in ) :: u_ndgln
-      integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln
-      integer, intent( in ) :: ncolele
-      integer, dimension( totele + 1 ), intent( in ) :: finele
-      integer, dimension( ncolele ), intent( in ) :: colele
-      integer, intent( inout ) :: ncolgpts
-      integer, dimension( cv_nloc + 1 ), intent( inout ) :: findgpts
-      integer, dimension( cv_nloc * totele ), intent( inout ) :: colgpts
-
-      ! Local variables: 
-      type( cv_faces_type ) :: cvfaces
-      type( element_type ) :: cvshape
-      !! integer, dimension( : , : ), allocatable :: cv_neiloc
-      !! integer, dimension( : ), allocatable :: 
-      integer :: cv_ele_type2, u_nloc2, cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface, &
-           ele, ele2, cv_iloc, cv_jloc, cv_kloc, cv_nodi, gcount, gi, iloc
-      logical :: integrat_at_gi
-      logical, dimension( : ), allocatable :: x_share
-      integer, dimension( : ), allocatable :: cv_other_loc
-
-      allocate( x_share( x_nonods ))
-
-      Conditional_CVELETYPE: if( cv_ele_type == 2 ) then
-         cv_ele_type2 = 1
-         u_nloc2 = u_nloc / cv_nloc
-         allocate( cv_other_loc( cv_nloc ) )
-
-
-         call retrieve_ngi2( ndim, cv_ele_type2, cv_nloc, u_nloc2, &
-              cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface ) ! obtain cv_ngi and scvngi
-
-         !!   allocate( cv_neiloc( cv_nloc, scvngi ))
-         !!   call volnei( cv_neiloc, cv_nloc, scvngi, cv_ele_type2 ) ! obtain cv_neiloc
-         cvfaces % loc = cv_nloc
-         cvfaces % shape % ngi = scvngi
-         call volnei( cvfaces % neiloc, cvfaces % loc, cvfaces % shape % ngi, cv_ele_type2 ) ! obtain cv_neiloc
-
-
-         !! call gaussiloc( findgpts, colgpts( 1 : cv_nloc * scvngi ), ncolgpts, &
-         !!      cv_neiloc, cv_nloc, scvngi ) 
-         call gaussiloc( findgpts, colgpts( 1 : cv_nloc * cvfaces % shape % ngi ), ncolgpts, &
-              cvfaces % neiloc, cv_nloc, cvfaces % shape % ngi ) 
-         !  findgpts and colgpts has the address of Gauss point around iloc
-
-         cvfaces % onface = .false.
-
-         Loop_Elements1: do ele = 1, totele
-
-            Loop_cviloc: do cv_iloc = 1, cv_nloc
-               cv_nodi = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-
-               ! Loop over quadrature (gauss) points in ele neighbouring iloc
-               Loop_GaussCount: do gcount = findgpts( cv_iloc ), findgpts( cv_iloc + 1 ), 1 
-                  gi = colgpts( gcount ) ! colgpts stores the local Gauss-point number in ele
-                  !!  cv_jloc = cv_neiloc( cv_iloc, gi ) ! get the neighbouring node for node iloc and Gauss point gi
-                  cv_jloc = cvfaces % neiloc( cv_iloc, gi ) ! get the neighbouring node for node iloc and Gauss point gi
-
-                  integrat_at_gi = .true.
-                  Case_OnFace: Select Case( ndim )
-                  case( 1 )
-                     do cv_kloc = 1, cvfaces % loc
-                        cvfaces % onface( cv_kloc, cv_kloc ) = .true.
-                        cvfaces % onface( cv_kloc, cv_kloc + 1 ) = .true.
-                     end do
-                  case default; call find_other_side2( totele, cv_nonods, cvfaces % loc, cv_snloc, x_nonods, x_nloc, &
-                       ele, cvfaces % shape % ngi, gi, cv_nodi, &
-                       cv_ndgln, x_ndgln, &
-                       ncolele, finele, colele, &
-                       cvfaces % onface, integrat_at_gi, cv_other_loc, &
-                       x_share, ele2 )
-                  end Select Case_OnFace
-
-                  !      call cv_sparse( &
-                  !           )
-
-               end do Loop_GaussCount
-
-            end do Loop_cviloc
-
-         end do Loop_Elements1
-
-      end if Conditional_CVELETYPE
-
-      return
-    end subroutine sparse_cvdomain
+      integer, intent( in ) :: ndim, nphase, totele, u_pha_nonods, &
+           cv_pha_nonods,u_nonods, cv_nonods, x_nonods, cv_ele_type, &
+           u_ele_type, u_nloc, cv_nloc, x_nloc, u_snloc, cv_snloc, x_snloc
+      integer, dimension( u_nloc * totele ), intent( in ) :: u_ndgln
+      integer, dimension( cv_nloc * totele ), intent( in ) :: cv_ndgln, x_ndgln
+      integer, intent( in ) :: mx_ncolacv
+      integer, intent( inout ) :: ncolacv ! CV multiphase eqns (e.g. vol frac, temp)
+      integer, dimension( cv_pha_nonods + 1 ), intent( inout ) :: finacv
+      integer, dimension( mx_ncolacv ), intent( inout ) :: colacv
+      integer, dimension( cv_pha_nonods ), intent( inout ) :: midacv
+      integer, intent( in ) :: nlenmcy, mx_ncolmcy 
+      integer, intent( inout ) :: ncolmcy ! Force balance plus cty multi-phase eqns
+      integer, dimension( nlenmcy + 1 ), intent( inout ) :: finmcy
+      integer, dimension( mx_ncolmcy ), intent( inout ) :: colmcy
+      integer, dimension( nlenmcy ), intent( inout ) :: midmcy
+      integer, intent( in ) :: mxnele
+      integer, intent( inout ) :: ncolele ! Element connectivity
+      integer, dimension( totele ), intent( inout ) :: midele
+      integer, dimension( totele + 1 ), intent( inout ) :: finele
+      integer, dimension( mxnele ), intent( inout ) :: colele
+      integer, intent( in ) :: mx_ncoldgm_pha
+      integer, intent( inout ) :: ncoldgm_pha ! Force balance sparsity
+      integer, dimension( mx_ncoldgm_pha ), intent( inout ) :: coldgm_pha
+      integer, dimension( u_pha_nonods + 1 ), intent( inout ) :: findgm_pha
+      integer, dimension( u_pha_nonods ), intent( inout ) :: middgm_pha
+      integer, intent( in ) :: mx_nct
+      integer, intent( inout ) :: nct ! CT-Sparsity - global cty eqn
+      integer, dimension( cv_nonods + 1 ), intent( inout ) :: findct
+      integer, dimension( mx_nct ), intent( inout ) :: colct
+      integer, intent( in ) :: mx_nc
+      integer, intent( inout ) :: nc ! C-Sparsity operating on pressure in force balance
+      integer, dimension( u_nonods + 1 ), intent( inout ) :: findc
+      integer, dimension( mx_nc ), intent( inout ) :: colc
+      integer, intent( in ) :: mx_ncolcmc
+      integer, intent( inout ) :: ncolcmc ! Pressure matrix for projection method
+      integer, dimension( cv_nonods + 1 ), intent( inout ) :: findcmc
+      integer, dimension( mx_ncolcmc ), intent( inout ) :: colcmc
+      integer, dimension( cv_nonods ), intent( inout ) :: midcmc
+      integer, intent( in ) :: mx_ncolm
+      integer, intent( inout ) :: ncolm ! CV-FEM matrix
+      integer, dimension( cv_nonods + 1 ), intent( inout ) :: findm
+      integer, dimension( mx_ncolm ), intent( inout ) :: colm
+      integer, dimension( cv_nonods ), intent( inout ) :: midm
+      ! Local variables 
+      integer :: mx_ncolele_pha, nacv_loc
+      logical :: presym
+      integer, dimension( : ), allocatable :: colele_pha, finele_pha, midele_pha, &
+           centct, dummyvec, midacv_loc, finacv_loc, colacv_loc
 
 
+      ewrite(3,*) 'In GET_SPARS_PATS'
 
-    subroutine retrieve_ngi2( ndim, cv_ele_type, cv_nloc, u_nloc, &
-         cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
-      implicit none
-      integer, intent( in ) :: ndim, cv_ele_type, cv_nloc, u_nloc
-      integer, intent( inout ) :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface
-      !! It is necessary to extend it 2/3-D
-
-      Conditional_NDIM: Select Case( ndim )
-      case( 1 )
-         Conditional_CV_NLOC1D: Select Case( cv_nloc )
-         case( 1 )
-            cv_ngi = 1
-            scvngi = 2
-         case( 2 )
-            cv_ngi = 12
-            scvngi = 3
-         case( 3 )
-            cv_ngi = 12
-            scvngi = 4
-            if( ( u_nloc == 4 ) .or. ( u_nloc == 5 )) cv_ngi = 18
-         case default; FLExit(" Invalid integer for cv_nloc ")
-         end Select Conditional_CV_NLOC1D
-         sbcvngi = 1
-         nface = 2
-         cv_ngi_short = cv_ngi
-         if( cv_ele_type == 2 ) cv_ngi = cv_ngi * cv_nloc
-
-      case( 2 ) ! Triangle
-         Conditional_CV_NLOC2D: Select Case( cv_nloc )
-         case( 3 ) ! Linear
-            cv_ngi = 13
-            !  cv_ngi = 12
-            !  scvngi = 3
-            scvngi = 4
-            !  sbcvngi = 2 !! Is this correct ??
-            sbcvngi = 3 !! Is this correct ??
-         case( 6 ) ! Quadratic
-            cv_ngi = 28
-            !   cv_ngi = 36
-            !   scvngi = 18
-            scvngi = 13
-            !   sbcvngi = 6 !! Is thia correct ??
-            sbcvngi = 4 !! Is thia correct ??
-         case default; FLExit(" Invalid integer for cv_nloc ")
-         end Select Conditional_CV_NLOC2D
-         nface = 3
-         cv_ngi_short = cv_ngi
-         if( cv_ele_type == 2 ) cv_ngi = cv_ngi * cv_nloc
-
-      case( 3 ) ! Tetrahedra (not ready !)
-         Conditional_CV_NLOC3D: Select Case( cv_nloc )
-         case( 12 ) ! Linear
-            cv_ngi = 32
-            scvngi = 6
-            sbcvngi = 12 !! Is this correct ??
-         case( 24 ) ! Quadratic
-            cv_ngi = 128
-            scvngi = 96
-            sbcvngi = 36 !! Is this correct ??
-         case default; FLExit(" Invalid integer for cv_nloc ")
-         end Select Conditional_CV_NLOC3D
-         nface = 4
-         cv_ngi_short = cv_ngi
-         if( cv_ele_type == 2 ) cv_ngi = cv_ngi * cv_nloc
-
-      case default ; FLExit("Invalid integer for problem dimension")
-
-      end Select Conditional_NDIM
-
-      return
-    end subroutine retrieve_ngi2
-
-    subroutine find_other_side2( totele, cv_nonods, cv_nloc, cv_snloc, x_nonods, x_nloc, &
-         ele, scvngi, gi, cv_nodi, &
-         cv_ndgln, x_ndgln, &
-         ncolele, finele, colele, &
-         cv_on_face, integrat_at_gi, cv_other_loc, &
-         x_share, ele2 )
-      implicit none
-      integer, intent( in ) :: totele, cv_nonods, cv_nloc, cv_snloc, x_nonods, x_nloc, &
-           ele, scvngi, gi, cv_nodi
-      integer, dimension ( totele * cv_nloc ), intent( in ) :: cv_ndgln
-      integer, dimension ( totele * x_nloc ), intent( in ) :: x_ndgln
-      integer, intent( in ) :: ncolele
-      integer, dimension( totele + 1 ), intent( in ) :: finele
-      integer, dimension( ncolele ), intent( in ) :: colele
-      logical, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_on_face
-      logical, intent( inout ) :: integrat_at_gi
-      integer, dimension( cv_nloc ), intent( inout ) :: cv_other_loc
-      logical, dimension( x_nonods ), intent( inout ) :: x_share
-      integer, intent( inout ) :: ele2
-
-      ! Local variables
-      integer :: x_iloc, x_inod, x_jnod, ele_temp, count, suf_count, cv_iloc, cv_jloc, &
-           cv_inod, cv_jnod, cv_face 
-
-
-      do x_iloc = 1, x_nloc
-         x_inod = x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )
-         x_share( x_inod ) = cv_on_face( x_iloc, gi )
-      end do
-
-      ele_temp = 0 ! Check if there nodes been shared
-      do count = finele( ele ), finele( ele + 1 ) - 1, 1
-         ele2 = colele( count )
-         suf_count = 0
-         if ( ele2 /= ele ) then
-            do x_iloc = 1, x_nloc
-               x_inod = x_ndgln( ( ele2 - 1 ) * x_nloc + x_iloc )
-               if( x_share( x_inod )) suf_count = suf_count + 1
-            end do
-         end if
-         if ( suf_count ==  cv_snloc ) ele_temp = ele2
-      end do
-
-      ele2 = ele_temp
-      do x_iloc = 1, x_nloc
-         x_inod = x_ndgln( ( ele - 1 ) * x_nloc + x_iloc )
-         x_share( x_inod ) = .false.
-      end do
-
-      do cv_iloc = 1, cv_nloc ! Searching for the face in the neightboor element
-         cv_inod = cv_ndgln( ( ele - 1 ) * cv_nloc + cv_iloc )
-         do ele_temp = 1, totele
-            do cv_jloc = 1, cv_nloc
-               cv_jnod = cv_ndgln( ( ele_temp - 1 ) * cv_nloc + cv_jloc )
-               if( cv_inod == cv_jnod ) cv_on_face( cv_iloc, gi ) = .true.
-            end do
-         end do
-      end do
-
-      if ( ele2 /= 0 ) then ! Checking if cv_nodi is at ele2
-         do cv_iloc = 1, cv_nloc
-            cv_inod = cv_ndgln( ( ele2 - 1 ) * cv_nloc + cv_jloc )
-            if ( cv_inod == cv_nodi ) integrat_at_gi = .false.
-         end do
-      end if
-
-      if ( ( ele2 /= 0 ) .and. integrat_at_gi ) then ! Compute cv_other_loc( cv_nloc )
-         cv_other_loc = 0
-         do cv_iloc = 1, cv_nloc
-            if ( cv_on_face( cv_iloc, gi )) then ! Find the opposite site
-               x_inod = x_ndgln( ( ele - 1 ) * x_nloc + cv_iloc ) !! IS THIS CORRECT
-               do cv_jloc = 1, cv_nloc
-                  x_jnod = x_ndgln( ( ele2 - 1 ) * x_nloc + cv_jloc )
-                  if( x_jnod == x_inod ) cv_other_loc( cv_iloc ) = cv_jloc 
-               end do
-            end if
-         end do
-
+      !-
+      !- Computing sparsity for element connectivity
+      !-
+      Conditional_Dimensional_1: if ( ndim == 1 ) then 
+         call def_spar( 1, totele, mxnele, ncolele, &
+              midele, finele, colele )
       else
-         cv_other_loc = 0
+         call getfinele( totele, cv_nloc, x_snloc, x_nonods, x_ndgln, nface_p1, &
+              finele, colele, midele )
+         ncolele = nface_p1 * totele
+      end if Conditional_Dimensional_1
+      ewrite(3,*)'finele: ', finele( 1 : totele + 1 )
+      ewrite(3,*)'colele: ', colele( 1 : ncolele )
+      ewrite(3,*)'midele: ', midele( 1 : totele )
 
-      end if
+      !-
+      !- Computing sparsity for force balance
+      !-
+      mx_ncolele_pha = nphase * mxnele + ( nphase - 1 ) * nphase * totele
+      allocate( colele_pha( mx_ncolele_pha ) )
+      allocate( finele_pha( totele * nphase + 1 ) )
+      allocate( midele_pha( totele * nphase ) )
+      call exten_sparse_multi_phase( totele, mxnele, finele, colele, &
+           nphase, totele * nphase, mx_ncolele_pha, &
+           finele_pha, colele_pha, midele_pha )
+      ewrite(3,*)'finele_pha: ', finele_pha( 1 : totele * nphase + 1 )
+      ewrite(3,*)'colele_pha: ', colele_pha( 1 : mx_ncolele_pha )
+      ewrite(3,*)'midele_pha: ', midele_pha( 1 : totele * nphase )
+
+      call form_dgm_pha_sparsity( totele, nphase, u_nloc, u_pha_nonods, &
+           mx_ncoldgm_pha, ncoldgm_pha, &
+           coldgm_pha, findgm_pha, middgm_pha, &
+           mx_ncolele_pha, finele_pha, colele_pha )
+      ewrite(3,*)'findgm_pha: ', findgm_pha( 1 : u_pha_nonods + 1 )
+      ewrite(3,*)'coldgm_pha: ', coldgm_pha( 1 : ncoldgm_pha )
+      ewrite(3,*)'middgm_pha: ', middgm_pha( 1 : u_pha_nonods )
+
+      !-
+      !- Now form the global matrix: FINMCY, COLMCY and MIDMCY for the 
+      !- momentum and continuity eqns
+      !-
+      allocate( centct( cv_nonods ) )
+      Conditional_Dimensional_2: if ( ndim == 1 ) then 
+         call def_spar_ct_dg( cv_nonods, mx_nct, nct, findct, colct, &
+              totele, cv_nloc, u_nloc, u_ndgln, u_ele_type, cv_ndgln )
+      else
+         call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, &
+              mx_nct, u_ndgln, cv_ndgln, &
+              nct, findct, colct, centct )
+      end if Conditional_Dimensional_2
+      nc = nct
+      ewrite(3,*) 'findct: ', findct( 1 : cv_nonods + 1 )
+      ewrite(3,*) 'colct: ', colct( 1 : nct )
+
+      !-
+      !- Convert CT sparsity to C sparsity
+      !-
+      call conv_ct2c( cv_nonods, nct, findct, colct, u_nonods, &
+           mx_nc, findc, colc )
+      ewrite(3,*) 'findc: ', findc( 1 : u_nonods + 1 )
+      ewrite(3,*) 'colc: ', colc( 1 : nc )
+
+      !-
+      !- Computing sparsity for pressure matrix of projection method
+      !-
+      Conditional_Dimensional_3: if ( ndim == 1 ) then 
+         Conditional_ContinuousPressure_3: if ( cv_nonods /= totele * cv_nloc ) then
+            call def_spar( cv_nloc - 1, cv_nonods, mx_ncolcmc, ncolcmc, &
+                 midcmc, findcmc, colcmc )
+         else ! Discontinuous pressure mesh
+            call def_spar( cv_nloc + 2, cv_nonods, mx_ncolcmc, ncolcmc, &
+                 midcmc, findcmc, colcmc )
+         end if Conditional_ContinuousPressure_3
+      else
+         allocate( dummyvec( u_nonods ))
+         dummyvec = 0
+         presym = .false.
+         call poscmc( cv_nonods, u_nonods, mx_ncolcmc, nct, &
+              findct, colct, &
+              ncolcmc, findcmc, colcmc, midcmc, dummyvec, presym )
+         deallocate( dummyvec )
+      end if Conditional_Dimensional_3
+      if( mx_ncolcmc < ncolcmc ) FLAbort("Incorrect number of dimension of CMC sparsity matrix")
+      ewrite(3,*)'findcmc: ', findcmc( 1 : cv_nonods + 1 )
+      ewrite(3,*)'colcmc: ', colcmc( 1 : ncolcmc )
+      ewrite(3,*)'midcmc: ', midcmc( 1 : cv_nonods )
+
+      !-
+      !- Computing the sparsity for the force balance plus cty multi-phase eqns
+      !- 
+      call exten_sparse_mom_cty( ndim, findgm_pha, coldgm_pha, u_pha_nonods, ncoldgm_pha, nct, &
+           cv_nonods, findct, colct, &
+           u_nonods, nc, mx_ncolmcy, &
+           findc, colc, finmcy, colmcy, midmcy, nlenmcy, &
+           ncolmcy, nphase, ncolcmc, findcmc, colcmc )
+      ewrite(3,*)'finmcy: ', finmcy( 1 : nlenmcy + 1 )
+      ewrite(3,*)'colmcy: ', colmcy( 1 : ncolmcy )
+      ewrite(3,*)'midmcy: ', midmcy( 1 : nlenmcy )
+
+      !-
+      !- Computing sparsity CV-FEM
+      !-
+      Conditional_Dimensional_4: if ( ndim == 1 ) then 
+         call def_spar( cv_nloc - 1, cv_nonods, mx_ncolm, ncolm, &
+              midm, findm, colm )
+      else
+         call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, mx_ncolm, u_ndgln, cv_ndgln, &
+              ncolm, findm, colm, midm )
+      end if Conditional_Dimensional_4
+      ewrite(3,*)'findm: ', findm( 1 : cv_nonods + 1 )
+      ewrite(3,*)'colm: ', colm( 1 : ncolm )
+      ewrite(3,*)'midm: ', midm( 1 : cv_nonods )
+
+      !-
+      !- Computing sparsity for CV multiphase eqns (e.g. vol frac, temp)
+      !-
+      allocate( midacv_loc( cv_nonods ) )
+      allocate( finacv_loc( cv_nonods + 1 ) )
+      allocate( colacv_loc( 3 * cv_nonods ) )
+      Conditional_Dimensional_5: if ( ndim == 1 ) then 
+         call def_spar( 1, cv_nonods, 3 * cv_nonods, nacv_loc, &
+              midacv_loc, finacv_loc, colacv_loc )
+      else
+         call CV_Neighboor_Sparsity( ndim, cv_ele_type, totele, cv_nloc, cv_nonods, &
+              cv_ndgln, ncolm, 3 * cv_nonods, findm, colm, &
+              nacv_loc, finacv_loc, colacv_loc, midacv_loc )
+      end if Conditional_Dimensional_5
+      ncolacv =  nphase * nacv_loc + ( nphase - 1 ) * nphase * cv_nonods
+      nacv_loc = ncolacv
+      ewrite(3,*)'finacv_loc: ', finacv_loc( 1 : cv_nonods + 1 )
+      ewrite(3,*)'colacv_loc: ', colacv_loc( 1 : 3 * cv_nonods )
+      ewrite(3,*)'midacv_loc: ', midacv_loc( 1 : cv_nonods )
+
+     ! call exten_sparse_multi_phase( cv_nonods, mx_ncolacv, finacv_loc, colacv_loc, &
+      call exten_sparse_multi_phase( cv_nonods, 3 * cv_nonods, finacv_loc, colacv_loc, &
+           nphase, cv_pha_nonods, mx_ncolacv, finacv, colacv, midacv )
+      ewrite(3,*)'finacv: ', finacv( 1 : cv_pha_nonods + 1 )
+      ewrite(3,*)'colacv: ', colacv( 1 : ncolacv )
+      ewrite(3,*)'midacv: ', midacv( 1 : cv_pha_nonods )
+
+      !-
+      !- Deallocating temporary arrays
+      !-
+      deallocate( colele_pha )
+      deallocate( finele_pha )
+      deallocate( midele_pha )
+      deallocate( centct )
+      deallocate( midacv_loc )
+      deallocate( finacv_loc )
+      deallocate( colacv_loc )
 
       return
-    end subroutine find_other_side2
+    end subroutine get_spars_pats
 
-    subroutine cv_sparse( ndim, totele, cv_nonods, cv_nloc, scvngi, &
-         ele, ele2, gi, &
-         cv_ndgln, &
-         cv_neiloc, cv_on_face, cv_other_loc, &
-         ncolele, finele, colele, midele, &
-         ncolacv, finacv, colacv, midacv )
+    
+    subroutine posinmat( posmat, globi, globj, &
+         nonods, findrm, colm, ncolm )
+      ! Find position in matrix POSMAT which has column GLOBJ
       implicit none
-      integer, intent( in ) :: ndim, totele, cv_nonods, cv_nloc, scvngi, ele, ele2, gi
-      integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
-      integer, dimension( cv_nloc, scvngi ), intent( in ) :: cv_neiloc
-      logical, dimension( cv_nloc, scvngi ), intent( in ) :: cv_on_face
-      integer, dimension( cv_nloc ), intent( in ) :: cv_other_loc
-      integer, intent( in ) :: ncolele
-      integer, dimension( totele + 1 ), intent( in ) :: finele
-      integer, dimension( ncolele ), intent( in ) :: colele
-      integer, dimension( totele ), intent( in ) :: midele
-      integer, intent( inout ) :: ncolacv
-      integer, dimension( cv_nonods + 1 ), intent( inout ) :: finacv
-      integer, dimension( ncolacv ), intent( inout ) :: colacv
-      integer, dimension( cv_nonods ), intent( inout ) :: midacv
+      integer, intent( inout ) :: posmat
+      integer, intent( in ) :: globi, globj, nonods, ncolm
+      integer, dimension( nonods + 1 ), intent( in ) :: findrm
+      integer, dimension( ncolm ), intent( in ) :: colm
       ! Local variables
-      integer :: elem, elem2, cv_iloc, cv_jloc, cv_inod, cv_jnod, counti, globi, globj
-      integer, dimension( : ), allocatable :: count_cv
+      integer, parameter :: nmax = 1000000
+      integer :: inum, lower, upper, count
 
-      allocate( count_cv( cv_nloc * totele ))
-      count_cv = 0
-      Loop_CVLoc1: do cv_iloc = 1, cv_nloc
-         cv_inod = cv_ndgln( ( ele - 1 )  * cv_nloc + cv_iloc )
-         Loop_Elements1: do elem = 1, totele
-            Loop_CVLoc2: do cv_jloc = 1, cv_nloc
-               cv_jnod = cv_ndgln( ( elem - 1 )  * cv_nloc + cv_jloc )
-               if( cv_on_face( cv_jloc, gi ) ) then
-                  ! cv of element elem that share faces/cv with element ele
-                  count_cv( ( elem - 1 ) * cv_nloc + cv_jloc ) = cv_jloc 
-               end if
-            end do Loop_CVLoc2
+      lower = findrm( globi )
+      upper = findrm( globi + 1 ) - 1
 
-         end do Loop_Elements1
-      end do Loop_CVLoc1
+      count = 1
+      Loop_While: do while ( count <= nmax )
+         inum = lower + ( upper - lower + 1 ) / 2
 
-      ! Loop_CVLoc3: do cv_iloc = 1, cv_nloc
-      !    if( cv_on_face( cv_iloc, gi ) ) then
+         if( globj >= colm( inum ) ) then
+            lower = inum
+         else
+            upper = inum
+         end if
 
-      !            cv_inod = cv_ndgln( ( ele - 1 )  * cv_nloc + cv_iloc )
+         if( ( upper - lower ) <= 1 ) then
+            if( globj == colm( lower ) ) then
+               posmat = lower
+            else  
+               posmat = upper
+            end if
+            return
+         end if
 
-      !        end do Loop_CVLoc1
+         count = count + 1
 
+      end do Loop_While
 
-      deallocate( count_cv )
       return
-    end subroutine cv_sparse
+    end subroutine posinmat
 
 
-  end module spact2
+
+  subroutine check_sparsity( &
+       u_pha_nonods, cv_pha_nonods, &
+       u_nonods, cv_nonods, totele, &
+       mx_ncolacv, ncolacv, finacv, colacv, midacv, & ! CV multi-phase eqns (e.g. vol frac, temp)
+       nlenmcy, mx_ncolmcy, ncolmcy, finmcy, colmcy, midmcy, & ! Force balance plus cty multi-phase eqns
+       mxnele, ncolele, midele, finele, colele, & ! Element connectivity 
+       mx_ncoldgm_pha, ncoldgm_pha, coldgm_pha, findgm_pha, middgm_pha, & ! Force balance sparsity  
+       mx_nct, ncolct, findct, colct, & ! CT sparsity - global cty eqn
+       mx_nc, ncolc, findc, colc, & ! C sparsity operating on pressure in force balance
+       mx_ncolcmc, ncolcmc, findcmc, colcmc, midcmc, & ! pressure matrix for projection method
+       mx_ncolm, ncolm, findm, colm, midm )
+
+    implicit none
+    integer, intent( in ) :: u_pha_nonods, cv_pha_nonods, u_nonods, cv_nonods, totele
+    integer, intent ( in ) :: mx_ncolacv, ncolacv
+    integer, dimension( cv_pha_nonods + 1 ), intent (in ) :: finacv
+    integer, dimension( mx_ncolacv ), intent (in ) :: colacv
+    integer, dimension( cv_pha_nonods ), intent (in ) :: midacv
+    integer, intent ( in ) :: nlenmcy, mx_ncolmcy, ncolmcy
+    integer, dimension( nlenmcy + 1 ), intent (in ) :: finmcy
+    integer, dimension( mx_ncolmcy ), intent (in ) :: colmcy
+    integer, dimension( nlenmcy ), intent (in ) :: midmcy
+    integer, intent ( in ) :: mxnele, ncolele
+    integer, dimension( totele ), intent (in ) :: midele
+    integer, dimension( totele + 1 ), intent (in ) :: finele
+    integer, dimension( mxnele ), intent (in ) :: colele
+    integer, intent ( in ) :: mx_ncoldgm_pha, ncoldgm_pha
+    integer, dimension( mx_ncoldgm_pha ), intent (in ) :: coldgm_pha
+    integer, dimension( u_pha_nonods + 1 ), intent (in ) :: findgm_pha
+    integer, dimension( u_pha_nonods ), intent (in ) :: middgm_pha
+    integer, intent ( in ) :: mx_nct, ncolct
+    integer, dimension( cv_nonods + 1 ), intent (in ) :: findct
+    integer, dimension( mx_nct ), intent (in ) :: colct
+    integer, intent ( in ) :: mx_nc, ncolc
+    integer, dimension( u_nonods + 1 ), intent (in ) :: findc
+    integer, dimension( mx_nc ), intent (in ) :: colc
+    integer, intent ( in ) :: mx_ncolcmc, ncolcmc
+    integer, dimension( cv_nonods + 1 ), intent (in ) :: findcmc
+    integer, dimension( mx_ncolcmc ), intent (in ) :: colcmc
+    integer, dimension( cv_nonods ), intent (in ) :: midcmc
+    integer, intent ( in ) :: mx_ncolm, ncolm
+    integer, dimension( cv_nonods + 1 ), intent (in ) :: findm
+    integer, dimension( ncolm ), intent (in ) :: colm
+    integer, dimension( cv_nonods ), intent (in ) :: midm
+
+    ! Local variables
+    integer, dimension( : ), allocatable :: dummy
+
+    ewrite(3,*) 'In check_sparsity'
+
+    open( 15, file = 'CheckSparsityMatrix.dat', status = 'unknown' )
+    write( 15, * )'########## FINMCY, MIDMCY, COLMCY ##################'
+    write(15, * )'NCOLMCY:', NCOLMCY
+    call checksparsity( .true., 15, NCOLMCY, NLENMCY, MX_NCOLMCY, FINMCY, MIDMCY, COLMCY )
+
+    write( 15, * )'########## FINACV, COLACV, MIDACV ##################'
+    write(15, * )'NCOLACV:', NCOLACV
+    call checksparsity( .true., 15, NCOLACV, CV_PHA_NONODS, MX_NCOLACV, FINACV, MIDACV, COLACV  )
+
+    write( 15, * )'########## FINELE, MIDELE, COLELE  ##################'
+    write(15, * )'NCOLELE:',NCOLELE 
+    call checksparsity( .true., 15, NCOLELE, TOTELE, MXNELE, FINELE, MIDELE, COLELE )
+
+    allocate( dummy( CV_NONODS ))
+    write( 15, * )'########## FINDCT, COLCT ##################'
+    write(15, * )'NCOLCT:', NCOLCT
+    call checksparsity( .false., 15, NCOLCT, CV_NONODS, MX_NCT, FINDCT, dummy, COLCT  )
+    deallocate( dummy )
+
+    allocate( dummy( U_NONODS ))
+    write( 15, * )'########## FINDC, COLC ##################'
+    write(15, * )'NCOLC:', NCOLC
+    call checksparsity( .false., 15, NCOLC, U_NONODS, MX_NC, FINDC, dummy, COLC )
+    deallocate( dummy )
+
+    write( 15, * )'########## FINDGM_PHA, MIDDGM_PHA, COLDGM_PHA ##################'
+    write(15, * )'NCOLDGM_PHA:',NCOLDGM_PHA 
+    call checksparsity( .true., 15, NCOLDGM_PHA, U_PHA_NONODS, MX_NCOLDGM_PHA, FINDGM_PHA, MIDDGM_PHA, COLDGM_PHA )
+
+    write( 15, * )'########## FINDCMC, MIDCMC, COLCMC ##################'
+    write(15, * )'NCOLCMC:',NCOLCMC 
+    call checksparsity( .true., 15, NCOLCMC, CV_NONODS, MX_NCOLCMC, FINDCMC, MIDCMC, COLCMC )
+
+    write( 15, * )'########## FINDM, MIDM, COLM ##################'
+    write(15, * )'NCOLM:',NCOLM 
+    call checksparsity( .true., 15, NCOLM, CV_NONODS, MX_NCOLM, FINDM, MIDM, COLM )
+
+    close( 15 )
+
+    ewrite(3,*) 'Leaving check_sparsity'
+
+    return
+
+  end subroutine check_sparsity
+
+  subroutine checksparsity( option_mid, unit, ncol2, nonods, ncol, find, mid, col )
+    implicit none
+    logical, intent( in ) :: option_mid
+    integer, intent( in ) :: unit, ncol2, nonods, ncol
+    integer, dimension( nonods + 1 ), intent( in ) :: find
+    integer, dimension( nonods ), intent( in ) :: mid
+    integer, dimension( ncol ), intent( in ) :: col
+    ! Local variables
+    integer :: inod, icol
+
+    ewrite(3,*) 'In checksparsity'
+
+    write( unit, * )'find:', ( find( inod ), inod = 1, nonods + 1 )
+    if( option_mid )write( unit, * )'mid:', ( mid( inod ), inod = 1, nonods )
+    write( unit, * )'col:', ( col( icol ), icol = 1, ncol2  )
+
+    ewrite(3,*) 'Leaving checksparsity'
+
+    return
+  end subroutine checksparsity
+
+  end module spact
 
 
