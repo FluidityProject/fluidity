@@ -65,18 +65,18 @@ implicit none
 contains
 
   subroutine initialise_lagrangian_biology(state)
-    type(state_type), intent(inout) :: state
+    type(state_type), dimension(:), intent(inout) :: state
 
     type(detector_type), pointer :: agent
     type(vector_field), pointer :: xfield
     type(element_type), pointer :: shape
     character(len=PYTHON_FUNC_LEN) :: func
-    character(len=OPTION_PATH_LEN) :: buffer, fg_buffer, stage_buffer, biovar_buffer, &
+    character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer, biovar_buffer, &
                                       env_field_buffer
     character(len=FIELD_NAME_LEN) :: field_name, fg_name, stage_name, biovar_name
     real, allocatable, dimension(:,:) :: coords
-    real:: current_time
-    integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, column, &
+    real:: current_time, dt
+    integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, &
                ierror, det_type, biovar, array, biovar_total, biovar_state, rnd_seed_int, &
                biovar_chemical, biovar_uptake, biovar_release, rnd_dim, n_env_fields, chemvar_index
                
@@ -99,7 +99,8 @@ contains
 
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
-    xfield=>extract_vector_field(state, "Coordinate")
+    call get_option("/timestepping/timestep", dt)
+    xfield=>extract_vector_field(state(1), "Coordinate")
     shape=>ele_shape(xfield,1)
 
     ! Determine how many arrays we need across all functional groups
@@ -159,7 +160,7 @@ contains
           call set_detector_coords_from_python(coords, n_agents, func, current_time)
 
           do j = 1, n_agents
-             call create_single_detector(agent_arrays(array), xfield, coords(:,j), j, det_type, trim(int2str(j)))
+             call create_single_detector(agent_arrays(array), xfield, coords(:,j), det_type, trim(int2str(j)))
           end do
           deallocate(coords)
 
@@ -323,43 +324,10 @@ contains
              end if
           end if
 
-          ! Create simple position-only agent I/O header 
-          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          if (getprocno() == 1) then
-             agent_arrays(array)%output_unit=free_unit()
-             open(unit=agent_arrays(array)%output_unit, file=trim(agent_arrays(array)%name)//'.detectors', action="write")
-             write(agent_arrays(array)%output_unit, '(a)') "<header>"
+          call write_agent_header(agent_arrays(array))
 
-             call initialise_constant_diagnostics(agent_arrays(array)%output_unit, binary_format = agent_arrays(array)%binary_output)
-
-             ! Initial columns are elapsed time and dt.
-             column=1
-             buffer=field_tag(name="ElapsedTime", column=column, statistic="value")
-             write(agent_arrays(array)%output_unit, '(a)') trim(buffer)
-             column=column+1
-             buffer=field_tag(name="dt", column=column, statistic="value")
-             write(agent_arrays(array)%output_unit, '(a)') trim(buffer)
-
-             ! Next columns contain the positions of all the detectors.
-             positionloop: do j=1, n_agents
-                buffer=field_tag(name=trim(int2str(j)), column=column+1, statistic="position",components=dim)
-                write(agent_arrays(array)%output_unit, '(a)') trim(buffer)
-                column=column+dim
-             end do positionloop
-
-             write(agent_arrays(array)%output_unit, '(a)') "</header>"
-             flush(agent_arrays(array)%output_unit)
-             close(agent_arrays(array)%output_unit)
-          end if
-
-          ! bit of hack to delete any existing .detectors.dat file
-          ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
-          ! gradually overwritten, mixing detector output from the current with that of a previous run
-          call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(array)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, agent_arrays(array)%mpi_fh, ierror)
-          call MPI_FILE_CLOSE(agent_arrays(array)%mpi_fh, ierror)    
-          call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(agent_arrays(array)%name)//'.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, agent_arrays(array)%mpi_fh, ierror)
-          assert(ierror == MPI_SUCCESS)
-          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          ! Write initial state of agents to file
+          call write_agents_mpi(state, agent_arrays(array), current_time, dt, 0)
 
           array = array + 1
        end do 
@@ -481,12 +449,154 @@ contains
 
     ! Output agent positions
     do i = 1, size(agent_arrays)
-       call write_detectors(state, agent_arrays(i), time, dt)
+       call write_agents_mpi(state, agent_arrays(i), time, dt, timestep)
     end do
 
     call profiler_toc("/update_lagrangian_biology")
 
   end subroutine update_lagrangian_biology
+
+  subroutine write_agent_header(detector_list)
+    ! Create simple position-only agent I/O header 
+    type(detector_linked_list), intent(inout) :: detector_list
+
+    character(len=OPTION_PATH_LEN) :: buffer
+    integer :: dim, column, ierror
+
+    call get_option("/geometry/dimension",dim)
+
+    ! Only processor 1 writes the header
+    if (getprocno() == 1) then
+       detector_list%output_unit=free_unit()
+       open(unit=detector_list%output_unit, file=trim(detector_list%name)//'.agents', action="write")
+       write(detector_list%output_unit, '(a)') "<header>"
+
+       call initialise_constant_diagnostics(detector_list%output_unit, binary_format = detector_list%binary_output)
+       column=1
+
+       ! First the detector ID...
+       buffer=field_tag(name="Detector", column=column, statistic="id_number")
+       write(detector_list%output_unit, '(a)') trim(buffer)
+       column=column+1
+
+       ! ...then the timestep
+       buffer=field_tag(name="Detector", column=column, statistic="timestep")
+       write(detector_list%output_unit, '(a)') trim(buffer)
+       column=column+1
+
+       ! Write ElapsedTime
+       buffer=field_tag(name="Detector", column=column, statistic="ElapsedTime")
+       write(detector_list%output_unit, '(a)') trim(buffer)
+       column=column+1
+
+       ! Write position field 
+       buffer=field_tag(name="Detector", column=column, statistic="position",components=dim)
+       write(detector_list%output_unit, '(a)') trim(buffer)
+       column=column+dim
+
+       write(detector_list%output_unit, '(a)') "</header>"
+       flush(detector_list%output_unit)
+       close(detector_list%output_unit)
+    end if
+
+    ! bit of hack to delete any existing .detectors.dat file
+    ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
+    ! gradually overwritten, mixing detector output from the current with that of a previous run
+    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.agents.dat', &
+            MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
+    call MPI_FILE_CLOSE(detector_list%mpi_fh, ierror)    
+    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.agents.dat', &
+            MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
+    assert(ierror == MPI_SUCCESS)
+  end subroutine write_agent_header
+
+  subroutine write_agents_mpi(state,detector_list,time,dt,timestep)
+    ! Writes detector information (position, value of scalar and vector fields at that position, etc.) into detectors file using MPI output 
+    ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.  
+    type(state_type), dimension(:), intent(in) :: state
+    type(detector_linked_list), intent(inout) :: detector_list
+    real, intent(in) :: time, dt
+    integer, intent(in) :: timestep
+
+    integer, dimension(:), allocatable :: ndets_owned
+    integer :: i, ncolumns, proc_offset, current_det, procno, realsize, ierror
+    integer(KIND = MPI_OFFSET_KIND) :: location_to_write
+    real :: id_number_real!value
+    !real, dimension(:), allocatable :: vvalue
+    !type(scalar_field), pointer :: sfield
+    type(vector_field), pointer :: vfield
+    type(detector_type), pointer :: detector
+
+    call profiler_tic(trim(detector_list%name)//"::write_agents")
+
+    ewrite(2,*) "In write_detectors_mpi for detector_list", detector_list%id
+
+    procno = getprocno()
+    call mpi_type_extent(getpreal(), realsize, ierror)
+    assert(ierror == MPI_SUCCESS)
+
+    vfield => extract_vector_field(state, "Coordinate")
+
+    ! Total number of columns = id_number(1) + time data(2) + position(dim)
+    ncolumns = 3 + vfield%dim 
+
+    ! Find out how many detectors each processor owns
+    allocate(ndets_owned(getnprocs()))
+    call mpi_allgather(detector_list%length, 1, getPINTEGER(), ndets_owned, 1 , &
+            getPINTEGER(), MPI_COMM_FEMTOOLS, ierror)
+    assert(ierror == MPI_SUCCESS)
+
+    ! Calculate the base offset for this proc
+    proc_offset = 0
+    do i=1, getprocno() - 1
+       proc_offset = proc_offset + ndets_owned(i)
+    end do
+    proc_offset = proc_offset * ncolumns * realsize
+
+    current_det = 0
+    detector => detector_list%first
+    do while(associated(detector))
+      location_to_write = detector_list%mpi_write_offset + proc_offset + current_det * ncolumns * realsize
+
+      ! First write detector id_number
+      call mpi_file_write_at(detector_list%mpi_fh, location_to_write, &
+              real(detector%id_number), 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+      assert(ierror == MPI_SUCCESS)
+      location_to_write = location_to_write + realsize
+
+      ! Output timestep
+      call mpi_file_write_at(detector_list%mpi_fh, location_to_write, &
+              real(timestep), 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+      assert(ierror == MPI_SUCCESS)
+      location_to_write = location_to_write + realsize
+
+      ! Output ElapsedTime
+      call mpi_file_write_at(detector_list%mpi_fh, location_to_write, &
+              time, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+      assert(ierror == MPI_SUCCESS)
+      location_to_write = location_to_write + realsize
+
+      ! Output detector coordinates
+      assert(size(detector%position) == vfield%dim)
+      call mpi_file_write_at(detector_list%mpi_fh, location_to_write, detector%position, &
+              size(detector%position), getpreal(), MPI_STATUS_IGNORE, ierror)
+      assert(ierror == MPI_SUCCESS)
+      location_to_write = location_to_write + size(detector%position) * realsize
+
+      detector => detector%next
+      current_det = current_det + 1
+    end do
+
+    ! Update the write index
+    proc_offset = 0
+    do i=1, size(ndets_owned)
+       proc_offset = proc_offset + ndets_owned(i)
+    end do
+    detector_list%mpi_write_offset = detector_list%mpi_write_offset + proc_offset * ncolumns * realsize
+
+    call profiler_toc(trim(detector_list%name)//"::write_agents")
+
+  end subroutine write_agents_mpi
 
   subroutine calculate_agent_diagnostics(state)
     type(state_type), intent(inout) :: state
@@ -942,7 +1052,7 @@ contains
     call insert(new_agent,agent_list)
 
     ! Populate new agent
-    new_agent%id_number=agent_list%total_num_det
+    new_agent%id_number=get_next_detector_id()
     new_agent%name=trim(int2str(agent_list%total_num_det))
     new_agent%position=agent%position
     new_agent%element=agent%element

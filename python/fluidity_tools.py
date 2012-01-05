@@ -415,29 +415,76 @@ for example:
           lineNo = lineNo + 1
         columns = numpy.array(columns)
               
-      for field in parsed.getElementsByTagName("field"):
-        material_phase=field.getAttribute("material_phase")
-        name=field.getAttribute("name")
-        column=field.getAttribute("column")
-        statistic=field.getAttribute("statistic")
-        components=field.getAttribute("components")
+      if filename.endswith('agents'):
+        # In .detector files each row encodes one detector
+        # Every detector row contains the timestep number and a unique ID
+        # We re-organise the output to be:
+        #   p=stat_parser(filename)
+        #   p[id]['position'][dim][t] = value
 
-        if material_phase:
-          if not self.has_key(material_phase):
-            self[material_phase]={}
-          current_dict=self[material_phase]
-        else:
-          current_dict=self
+        stat_column_map = {}
+        stat_component_map = {}
+        stats = []
+        for field in parsed.getElementsByTagName("field"):
+          name=field.getAttribute("name")
+          column=field.getAttribute("column")
+          statistic=field.getAttribute("statistic")
+          components=field.getAttribute("components")
 
-        if not current_dict.has_key(name):
-          current_dict[name]={}
+          if name=='Detector':
+            stat_column_map[statistic] = int(column) - 1
+            if statistic != 'timestep' and statistic != 'id_number':
+              stats.append(statistic)
 
-        if components:
-            column=int(column)
-            components=int(components)
-            current_dict[name][statistic]=columns[column-1:column-1+components]
-        else:
-            current_dict[name][statistic]=columns[int(column)-1]
+            if components:
+              stat_component_map[statistic] = int(components)
+            else:
+              stat_component_map[statistic] = 1
+
+        # find maximum timestep
+        max_t = int(columns[stat_column_map['timestep']].max()) + 1
+
+        # traverse the detector rows 
+        for row in columns.T:
+          id_number = int(row[stat_column_map['id_number']])
+
+          # initialise keys
+          if not self.has_key(id_number):
+            self[id_number]={}
+            for stat in stats:
+              self[id_number][stat] = numpy.empty((stat_component_map[stat],max_t))
+              self[id_number][stat].fill(float('NaN'))
+
+          # now copy the values over
+          t = int(row[stat_column_map['timestep']])
+          for stat in stats:
+            for c in range(0,stat_component_map[stat]):
+              self[id_number][stat][c][t] = row[stat_column_map[stat]]
+
+      else:
+        for field in parsed.getElementsByTagName("field"):
+          material_phase=field.getAttribute("material_phase")
+          name=field.getAttribute("name")
+          column=field.getAttribute("column")
+          statistic=field.getAttribute("statistic")
+          components=field.getAttribute("components")
+
+          if material_phase:
+            if not self.has_key(material_phase):
+              self[material_phase]={}
+            current_dict=self[material_phase]
+          else:
+            current_dict=self
+
+          if not current_dict.has_key(name):
+            current_dict[name]={}
+
+          if components:
+              column=int(column)
+              components=int(components)
+              current_dict[name][statistic]=columns[column-1:column-1+components]
+          else:
+              current_dict[name][statistic]=columns[int(column)-1]
 
 def test_steady(vals, error, test_count = 1):
   """

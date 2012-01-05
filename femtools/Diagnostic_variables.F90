@@ -1350,13 +1350,13 @@ contains
 
   end subroutine initialise_steady_state
 
-  subroutine create_single_detector(detector_list,xfield,position,id,type,name)
+  subroutine create_single_detector(detector_list,xfield,position,type,name)
     ! Allocate a single detector, populate and insert it into the given list
     ! In parallel, first check if the detector would be local and only allocate if it is
     type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer :: xfield
     real, dimension(xfield%dim), intent(in) :: position
-    integer, intent(in) :: id, type
+    integer, intent(in) :: type
     character(len=*), intent(in) :: name
 
     type(detector_type), pointer :: detector
@@ -1394,7 +1394,7 @@ contains
     detector%element=element
     detector%local_coords=lcoords
     detector%type=type
-    detector%id_number=id
+    detector%id_number=get_next_detector_id()
 
   end subroutine create_single_detector
   
@@ -1509,7 +1509,7 @@ contains
           default_stat%detector_list%detector_names(i)=detector_name
 
           call create_single_detector(default_stat%detector_list, xfield, &
-                detector_location, i, STATIC_DETECTOR, trim(detector_name))
+                detector_location, STATIC_DETECTOR, trim(detector_name))
        end do
 
        ! Read all single lagrangian detector from options
@@ -1526,7 +1526,7 @@ contains
           default_stat%detector_list%detector_names(static_dete+i)=detector_name
 
           call create_single_detector(default_stat%detector_list, xfield, &
-                detector_location, static_dete+1, LAGRANGIAN_DETECTOR, trim(detector_name))
+                detector_location, LAGRANGIAN_DETECTOR, trim(detector_name))
        end do
 
        k=static_dete+lagrangian_dete+1
@@ -1560,7 +1560,7 @@ contains
                 default_stat%detector_list%detector_names(k)=trim(detector_name)
 
                 call create_single_detector(default_stat%detector_list, xfield, &
-                       coords(:,j), k, type_det, trim(detector_name))
+                       coords(:,j), type_det, trim(detector_name))
                 k=k+1           
              end do
              deallocate(coords)
@@ -1584,7 +1584,7 @@ contains
                     default_stat%detector_list%detector_names(k)=trim(detector_name)
                     read(default_stat%detector_file_unit) detector_location
                     call create_single_detector(default_stat%detector_list, xfield, &
-                          detector_location, k, type_det, trim(detector_name))
+                          detector_location, type_det, trim(detector_name))
                     k=k+1          
                  end do
               end if                
@@ -1632,7 +1632,7 @@ contains
              if (default_stat%detector_group_names(j)==temp_name) then
                 read(default_stat%detector_checkpoint_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
-                      detector_location, i, STATIC_DETECTOR, trim(temp_name))                  
+                      detector_location, STATIC_DETECTOR, trim(temp_name))                  
              else
                 cycle
              end if
@@ -1647,7 +1647,7 @@ contains
              if (default_stat%detector_group_names(j)==temp_name) then
                 read(default_stat%detector_checkpoint_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
-                      detector_location, i+static_dete, LAGRANGIAN_DETECTOR, trim(temp_name)) 
+                      detector_location, LAGRANGIAN_DETECTOR, trim(temp_name)) 
              else
                 cycle
              end if
@@ -1676,7 +1676,7 @@ contains
                    write(detector_name, fmt) trim(temp_name)//"_", m
                    read(default_stat%detector_checkpoint_unit) detector_location
                    call create_single_detector(default_stat%detector_list, xfield, &
-                          detector_location, k, type_det, trim(detector_name)) 
+                          detector_location, type_det, trim(detector_name)) 
                    k=k+1           
                 end do
              else                     
