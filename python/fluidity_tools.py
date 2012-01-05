@@ -433,7 +433,7 @@ for example:
 
           if name=='Detector':
             stat_column_map[statistic] = int(column) - 1
-            if statistic != 'timestep' and statistic != 'id_number':
+            if statistic != 'Timestep' and statistic != 'ID_Number':
               stats.append(statistic)
 
             if components:
@@ -442,11 +442,11 @@ for example:
               stat_component_map[statistic] = 1
 
         # find maximum timestep
-        max_t = int(columns[stat_column_map['timestep']].max()) + 1
+        max_t = int(columns[stat_column_map['Timestep']].max()) + 1
 
         # traverse the detector rows 
         for row in columns.T:
-          id_number = int(row[stat_column_map['id_number']])
+          id_number = int(row[stat_column_map['ID_Number']])
 
           # initialise keys
           if not self.has_key(id_number):
@@ -456,7 +456,7 @@ for example:
               self[id_number][stat].fill(float('NaN'))
 
           # now copy the values over
-          t = int(row[stat_column_map['timestep']])
+          t = int(row[stat_column_map['Timestep']])
           for stat in stats:
             for c in range(0,stat_component_map[stat]):
               self[id_number][stat][c][t] = row[stat_column_map[stat]]
