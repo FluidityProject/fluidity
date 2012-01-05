@@ -171,8 +171,8 @@ contains
        end if
        
        ! obtain surface ids over which to record deposition
-       surface_id_count=option_shape(trim(bedload_field%option_path)//"/diagnos&
-            &tic/surface_ids") 
+       surface_id_count=option_shape(trim(bedload_field%option_path)//&
+            &"/diagnostic/surface_ids") 
        allocate(surface_ids(surface_id_count(1)))
        call get_option(trim(bedload_field%option_path)//"/diagnostic/surface_ids", &
             & surface_ids)
@@ -336,14 +336,13 @@ contains
        if (have_option(trim(sediment_concs(i_field)%ptr%option_path)// &
             &'/prognostic/scalar_field::SinkingVelocity/diagnostic')) then
 
-          ewrite(2,*) 'Calculating diagnostic sink velocity for sediment field: '//&
+          ewrite(2,*) 'Calculating diagnostic sink velocity for sediment field: ' //&
                & trim(sediment_concs(i_field)%ptr%name)
           
           ! check for presence of unhindered sinking velocity value
           if (.not. have_option(trim(sediment_concs(i_field)%ptr%option_path)// &
             &'/prognostic/scalar_field::UnhinderedSinkingVelocity')) then
-             FLExit("You must specify an unhindered sinking velocity field to be able &&
-                && to calculate diagnostic sinking velocity field values for sediments")
+             FLExit('You must specify an unhindered sinking velocity field to be able to calculate diagnostic sinking velocity field values for sediments')
           endif
 
           unhindered_sink_u => extract_scalar_field(state, &
@@ -383,7 +382,7 @@ contains
 
     ewrite(1,*) 'In calculate sediment_active_layer_d50'
 
-    d50 => extract_scalar_field(state, "SedimentBedActiveLayerD50", stat)
+    d50 => extract_scalar_field(state, 'SedimentBedActiveLayerD50', stat)
     if (stat /= 0) return
 
     n_fields = get_n_sediment_fields()
@@ -393,8 +392,7 @@ contains
 
     do i_field = 1, n_fields
        call get_sediment_item(state, i_field, 'diameter', sorted_diameter(i_field), stat)
-       if (stat /= 0) FLExit("All sediment fields must have a diameter to be able to calcu&
-            &late the SedimentBedActiveLayerD50")
+       if (stat /= 0) FLExit('All sediment fields must have a diameter to be able to calculate the SedimentBedActiveLayerD50')
        call get_sediment_item(state, i_field, 'Bedload', sorted_bedload(i_field)&
             &%ptr, stat)
     end do
@@ -414,7 +412,7 @@ contains
        end do
     end do
 
-    call allocate(total_bedload, sorted_bedload(1)%ptr%mesh, "TotalBedload")
+    call allocate(total_bedload, sorted_bedload(1)%ptr%mesh, 'TotalBedload')
     call zero(d50)
     call zero(total_bedload)
 
@@ -465,9 +463,9 @@ contains
 
     ewrite(1,*) 'In calculate_sediment_active_layer_sigma'
     
-    sigma => extract_scalar_field(state, "SedimentBedActiveLayerSigma", stat)
+    sigma => extract_scalar_field(state, 'SedimentBedActiveLayerSigma', stat)
     if (stat /= 0) return
-    x => extract_vector_field(state, "Coordinate")
+    x => extract_vector_field(state, 'Coordinate')
 
     n_fields = get_n_sediment_fields()
     allocate(bedload(n_fields))
@@ -476,28 +474,27 @@ contains
     ! collect information required to calculate standard deviation
     data_collection_loop: do i_field = 1, n_fields
        call get_sediment_item(state, i_field, 'diameter', diameter(i_field), stat)
-       if (stat /= 0) FLExit("All sediment fields must have a diameter to be able to calcu&
-            &late the SedimentBedActiveLayerSigma")
+       if (stat /= 0) FLExit('All sediment fields must have a diameter to be able to calculate the SedimentBedActiveLayerSigma')
        call get_sediment_item(state, i_field, 'Bedload', bedload(i_field)%ptr)      
     end do data_collection_loop
        
     ! allocate surface field that will contain the calculated sigma values
-    call create_surface_mesh(surface_mesh, surface_node_list, mesh=sigma%mesh, name='Surfa&
-         &ceMesh')
-    call allocate(sigma_surface, surface_mesh, "SigmaSurface")
+    call create_surface_mesh(surface_mesh, surface_node_list, mesh=sigma%mesh, &
+         &name='SurfaceMesh')
+    call allocate(sigma_surface, surface_mesh, 'SigmaSurface')
     call zero(sigma_surface)
 
     ! For continuous fields we need a global lumped mass. For dg we'll
     ! do the mass inversion on a per face basis inside the element loop.
     if(continuity(sigma_surface)>=0) then
-       call allocate(masslump, surface_mesh, "SurfaceMassLump")
+       call allocate(masslump, surface_mesh, 'SurfaceMassLump')
        call zero(masslump)
     end if
 
     ! obtain surface ids over which to calculate sigma
-    surface_id_count=option_shape(trim(sigma%option_path)//"/diagnostic/surface_ids") 
+    surface_id_count=option_shape(trim(sigma%option_path)//'/diagnostic/surface_ids') 
     allocate(surface_ids(surface_id_count(1)))
-    call get_option(trim(sigma%option_path)//"/diagnostic/surface_ids", surface_ids)
+    call get_option(trim(sigma%option_path)//'/diagnostic/surface_ids', surface_ids)
 
     ! loop through elements in surface field
     elements: do i_ele=1, element_count(sigma_surface)
@@ -625,7 +622,7 @@ contains
 
     ewrite(1,*) 'In calculate_sediment_active_layer_volume_fractions'
     
-    x => extract_vector_field(state, "Coordinate")
+    x => extract_vector_field(state, 'Coordinate')
 
     n_fields = get_n_sediment_fields()
     
@@ -633,7 +630,7 @@ contains
     data_collection_loop: do i_field = 1, n_fields
        call get_sediment_item(state, i_field, 'Bedload', bedload) 
        if (i_field == 1) then
-          call allocate(total_bedload, bedload%mesh, "TotalBedload")
+          call allocate(total_bedload, bedload%mesh, 'TotalBedload')
           call zero(total_bedload)
        end if
        call addto(total_bedload, bedload)
@@ -648,20 +645,20 @@ contains
        ! generate surface_mesh for calculation of volume fraction and create surface field
        call create_surface_mesh(surface_mesh, surface_node_list, & 
             & mesh=bedload%mesh, name='SurfaceMesh')
-       call allocate(volume_fraction_surface, surface_mesh, "VolumeFraction")
+       call allocate(volume_fraction_surface, surface_mesh, 'VolumeFraction')
        call zero(volume_fraction_surface) 
        
        ! For continuous fields we need a global lumped mass. For dg we'll
        ! do the mass inversion on a per face basis inside the element loop.
        if(continuity(volume_fraction_surface)>=0) then
-          call allocate(masslump, surface_mesh, "SurfaceMassLump")
+          call allocate(masslump, surface_mesh, 'SurfaceMassLump')
           call zero(masslump)
        end if
 
        ! obtain sediment bedload surface ids
-       surface_id_count=option_shape(trim(bedload%option_path)//"/diagnostic/surface_ids") 
+       surface_id_count=option_shape(trim(bedload%option_path)//'/diagnostic/surface_ids') 
        allocate(surface_ids(surface_id_count(1)))
-       call get_option(trim(bedload%option_path)//"/diagnostic/surface_ids", surface_ids)
+       call get_option(trim(bedload%option_path)//'/diagnostic/surface_ids', surface_ids)
        
        ! loop through elements in surface field
        elements: do i_ele=1, element_count(volume_fraction_surface)
