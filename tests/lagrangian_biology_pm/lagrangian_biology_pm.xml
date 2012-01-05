@@ -23,6 +23,12 @@ biomass_split = stat_parser("lagrangian_biology.stat")['Water']['AgentAEnsembleS
 from fluidity_tools import stat_parser
 nutrients_split = stat_parser("lagrangian_biology.stat")['Water']['AgentAParticulateNutrientSplit']['integral']
     </variable>
+    <variable name="final_agent_sizes_split" language="python">
+from fluidity_tools import stat_parser
+from numpy import array
+s = stat_parser("AgentASplit.agents")
+final_agent_sizes_split = array([ s[agent]['Size'][0][-1] for agent in s.keys() ])
+    </variable>
   </variables>
   <pass_tests>
     <test name="constant_biomass_split" language="python">
@@ -32,7 +38,10 @@ assert abs(biomass_split - 5000.0).all() &lt; 1.0e-6
 assert abs(nutrients_split - 5000.0).all() &lt; 1.0e-6
     </test>
     <test name="final_agent_count_split" language="python">
-assert abs(agent_count_split[-1] - 250.0) &lt; 1.0e-6
+assert abs(agent_count_split[-1] - 200.0) &lt; 1.0e-6
+    </test>
+    <test name="constant_agent_size_split" language="python">
+assert abs(final_agent_sizes_split - 25.0).all() &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

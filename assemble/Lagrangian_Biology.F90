@@ -437,15 +437,15 @@ contains
     call chemical_uptake(state(1))
     call chemical_release(state(1))
 
-    ! Re-derive the required agent diagnostic variables
-    call calculate_agent_diagnostics(state(1))
-
     ! Particle Management
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%do_particle_management) then
           call particle_management(state(1), agent_arrays(i))
        end if
     end do
+
+    ! Re-derive the required agent diagnostic variables
+    call calculate_agent_diagnostics(state(1))
 
     ! Output agent positions
     do i = 1, size(agent_arrays)
@@ -976,8 +976,9 @@ contains
     type(ilist) :: elements_split_list, elements_merge_list
     type(integer_hash_table) :: split_index_mapping, merge_index_mapping
     type(detector_linked_list), dimension(:), allocatable :: split_lists, merge_lists
-    integer, dimension(:), allocatable :: elements_split, elements_merge
-    integer :: i, ele, index
+    integer, dimension(:), allocatable :: elements_split, elements_merge, xbiggest_ids
+    real, dimension(:), allocatable :: xbiggest_sizes
+    integer :: i, ele, index, splits_wanted
     real :: agent_density, ele_volume
 
     call profiler_tic(trim(agent_list%name)//"::particle_management")
@@ -1046,17 +1047,55 @@ contains
     ! Each array now represents all agents in one element
     ! the according element number is stored in elements_split(i)
     do i=1, size(split_lists)
-       ewrite(2,*) "ml805 split_list ", i, "length", split_lists(i)%length
        agent_density = node_val(agent_density_field, elements_split(i))
-
        ele_volume = element_volume(xfield, elements_split(i))
 
+       !!!!!!!!!!!!!!!!!!!!!
+       ! Original VEW algorithm:
        do while(agent_density < agent_list%pm_min)
-          ! For simplicity lets start with splitting the first agent...
-          call pm_split(split_lists(i)%first, split_lists(i))
+          ! 1) we find the number of splits wanted x
+          splits_wanted = ceiling(agent_list%pm_min - agent_density)
+          splits_wanted = min(splits_wanted, split_lists(i)%length)
 
+          ! 2) get the x smallest agents
+          allocate(xbiggest_ids(splits_wanted))
+          allocate(xbiggest_sizes(splits_wanted))
+          xbiggest_sizes = 0.0
+
+          agent=>split_lists(i)%first
+          do while(associated(agent))
+             if (minval(xbiggest_sizes) < agent%biology(BIOVAR_SIZE)) then
+                index = minval(minloc(xbiggest_sizes))
+                xbiggest_ids(index) = agent%id_number 
+                xbiggest_sizes(index) = agent%biology(BIOVAR_SIZE)
+             end if
+
+             agent=>agent%next
+          end do
+
+          ! 3) split...
+          agent=>split_lists(i)%first
+          do while(associated(agent))
+             if (find(xbiggest_ids, agent%id_number) > 0) then
+                call pm_split(agent, split_lists(i))
+             end if
+             agent=>agent%next
+          end do
+
+          ! ...and recurse
           agent_density = split_lists(i)%length / ele_volume
+          deallocate(xbiggest_ids)
+          deallocate(xbiggest_sizes)
        end do
+       !!!!!!!!!!!!!!!!!!!!!
+
+       !!!!!!!!!!!!!!!!!!!!!
+       ! Simplest algorithm: always split first agent in the list
+       !do while(agent_density < agent_list%pm_min)
+       !   call pm_split(split_lists(i)%first, split_lists(i))
+       !   agent_density = split_lists(i)%length / ele_volume
+       !end do
+       !!!!!!!!!!!!!!!!!!!!!
     end do
 
     ! Perform merges over the temporary agent arrays
@@ -1083,6 +1122,23 @@ contains
     call deallocate(merge_index_mapping)
 
     call profiler_toc(trim(agent_list%name)//"::particle_management")
+
+  contains
+
+    function find(array, val) result(loc)
+      !!< Find the first instance of val in array.
+      integer, intent(in), dimension(:) :: array
+      integer, intent(in) :: val
+      integer :: i, loc
+
+      loc = -1
+      do i=1,size(array)
+        if (array(i) == val) then
+          loc = i
+          return
+        end if
+      end do
+    end function find
 
   end subroutine particle_management
 

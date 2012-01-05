@@ -63,7 +63,7 @@
       <real_value rank="0">1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">2</real_value>
+      <real_value rank="0">1</real_value>
       <comment>86400 - 1day</comment>
     </finish_time>
   </timestepping>
@@ -151,10 +151,10 @@
                 <integer_value rank="0">1</integer_value>
               </period_in_timesteps>
               <minimum>
-                <real_value rank="0">5</real_value>
+                <real_value rank="0">4</real_value>
               </minimum>
               <maximum>
-                <real_value rank="0">10</real_value>
+                <real_value rank="0">4</real_value>
               </maximum>
             </particle_management>
           </stage>
