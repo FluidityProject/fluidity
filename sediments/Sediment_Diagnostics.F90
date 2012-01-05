@@ -27,14 +27,20 @@
 
 #include "fdebug.h"
 
-module sediment_diagnostics
+module sediment_diagnostics 
+
+  ! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler
+  use quadrature
+  use elements
+  use sparse_tools
   use fields
   use state_module
-  use global_parameters, only:FIELD_NAME_LEN, OPTION_PATH_LEN, dt, timestep
+
+  use fetools
   use fields_base
   use vector_tools
+  use global_parameters, only:FIELD_NAME_LEN, OPTION_PATH_LEN, dt, timestep
   use spud
-  use fetools
   use sediment
   use boundary_conditions
 
