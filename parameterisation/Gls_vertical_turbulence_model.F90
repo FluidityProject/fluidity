@@ -562,6 +562,7 @@ subroutine gls_psi(state)
     psi => extract_scalar_field(state, "GLSGenericSecondQuantity")
     psi_diff => extract_tensor_field(state, "GLSGenericSecondQuantityDiffusivity")
     positions => extract_vector_field(state, "Coordinate")
+    vertical_normal => extract_vector_field(state, "GravityDirection")
     call allocate(vel_prod, psi%mesh, "_vel_prod_psi")
     call allocate(buoy_prod, psi%mesh, "_buoy_prod_psi")
     ewrite(2,*) "In gls_psi: setting up"

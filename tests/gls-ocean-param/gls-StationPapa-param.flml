@@ -157,28 +157,13 @@
           <string_value>Canuto-01-A</string_value>
         </stability_function>
         <calculate_boundaries>
+          <string_value>neumann</string_value>
           <top_surface_ids>
             <integer_value shape="1" rank="1">38</integer_value>
           </top_surface_ids>
           <bottom_surface_ids>
             <integer_value shape="1" rank="1">39</integer_value>
           </bottom_surface_ids>
-          <tke_boundary>
-            <top_boundary>
-              <string_value>dirichlet</string_value>
-            </top_boundary>
-            <bottom_boundary>
-              <string_value>dirichlet</string_value>
-            </bottom_boundary>
-          </tke_boundary>
-          <psi_boundary>
-            <top_boundary>
-              <string_value>neumann</string_value>
-            </top_boundary>
-            <bottom_boundary>
-              <string_value>neumann</string_value>
-            </bottom_boundary>
-          </psi_boundary>
         </calculate_boundaries>
         <ocean_parameterisation>
           <lengthscale>
