@@ -818,10 +818,9 @@
           </surface_ids>
           <type name="wind_forcing">
             <wind_stress>
-              <python>
-                <string_value lines="20" type="python">def val(X, t):
-   return [1.0e-4]</string_value>
-              </python>
+              <constant>
+                <real_value shape="1" dim1="dim-1" rank="1">1e-4</real_value>
+              </constant>
             </wind_stress>
           </type>
         </boundary_conditions>

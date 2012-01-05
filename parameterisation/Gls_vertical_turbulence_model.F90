@@ -371,6 +371,10 @@ subroutine gls_tke(state)
     ! Get N^2 and M^2 -> NN2 and MM2
     call gls_buoyancy(state)
 
+    do i=1,NNodes_sur
+        call set(NN2,top_surface_nodes(i),0.0)
+    end do
+
     ! calculate stability function
     call gls_stability_function(state)
 
@@ -399,7 +403,7 @@ subroutine gls_tke(state)
     call scale(B,inverse_lumped_mass)
     call deallocate(inverse_lumped_mass)
 
-   call zero(source)
+    call zero(source)
     call zero(absorption)
     do ele = 1, ele_count(tke)
         call assemble_kk_src_abs(ele,tke, mesh_dim(tke))
@@ -410,8 +414,13 @@ subroutine gls_tke(state)
     ! source and absorption terms are set, apart from the / by lumped mass
     call scale(source,inverse_lumped_mass)
     call scale(absorption,inverse_lumped_mass)
+    call scale(absorption, 1e-3)
     call deallocate(inverse_lumped_mass)
 
+    do i=1,NNodes_sur
+        call set(source,top_surface_nodes(i),0.0)
+        call set(absorption, top_surface_nodes(i),0.0)
+    end do
 
     ! set diffusivity for tke
     call zero(tke_diff)
@@ -500,12 +509,12 @@ subroutine gls_tke(state)
 
         ! if we can hide the absorption term in the source, then do. Done in
         ! ROMS and GOTM too
-        where (ele_val_at_quad(P,ele) + ele_val_at_quad(B,ele) .gt. 0)
-            rhs_addto_src = shape_rhs(shape_kk, detwei * (&
-                                    ele_val_at_quad(P,ele) + ele_val_at_quad(B,ele)))
-            rhs_addto_disip = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(tke,ele))
-
-        elsewhere
+        !where (ele_val_at_quad(P,ele) + ele_val_at_quad(B,ele) .gt. 0)
+        !    rhs_addto_src = shape_rhs(shape_kk, detwei * (&
+        !                            ele_val_at_quad(P,ele) + ele_val_at_quad(B,ele)))
+        !    rhs_addto_disip = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(tke,ele))
+        !
+        !elsewhere
             rhs_addto_src = shape_rhs(shape_kk, detwei * (&
                                  (ele_val_at_quad(P,ele))) &
                                  )
@@ -515,7 +524,7 @@ subroutine gls_tke(state)
                                  ele_val_at_quad(tke,ele)) &
                                  )
            
-        end where
+        !end where
         call addto(source, nodes_kk, rhs_addto_src)
         call addto(absorption, nodes_kk, rhs_addto_disip)
 
@@ -666,6 +675,7 @@ subroutine gls_psi(state)
     end do
     call scale(source,inverse_lumped_mass)
     call scale(absorption,inverse_lumped_mass)
+    call scale(absorption,1e-3)
     call deallocate(inverse_lumped_mass)
     
 
@@ -969,6 +979,15 @@ subroutine gls_diffusivity(state)
         ! tracer
         call set(K_H,i, relaxation*node_val(K_H,i) + (1-relaxation)*node_val(S_H,i)*x)
     end do
+
+    do i=1,NNodes_sur
+        call set(K_M,top_surface_nodes(i),0.0)
+        call set(K_H,top_surface_nodes(i),0.0)
+    end do
+    !do i=1,NNodes_bot
+    !    call set(K_M,bottom_surface_nodes(i),0.0)
+    !    call set(K_H,bottom_surface_nodes(i),0.0)
+    !end do
 
     ! put KM onto surface fields for Psi_bc
     if (calculate_bcs) then
