@@ -29,7 +29,10 @@
 
 module sediment_diagnostics 
 
-  ! these 2 need to be on top and in this order, so as not to confuse silly old intel compiler
+  ! these 5 need to be on top and in this order, so as not to confuse silly old intel compiler
+  use quadrature
+  use elements
+  use sparse_tools
   use fields
   use state_module
 
