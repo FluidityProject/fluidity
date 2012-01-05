@@ -636,16 +636,17 @@ subroutine gls_psi(state)
     end if
 
     ! re-construct psi at "old" timestep
-    call zero(psi)
-    do ele=1,ele_count(psi)
-        call reconstruct_psi(ele, psi, mesh_dim(psi))
-    end do
+    !call zero(psi)
+    !do ele=1,ele_count(psi)
+    !    call reconstruct_psi(ele, psi, mesh_dim(psi))
+    !end do
     call allocate(inverse_lumped_mass, psi%mesh, "InverseLumpedMass")
     lumped_mass => get_lumped_mass(state, psi%mesh)
     call invert(lumped_mass, inverse_lumped_mass)
     ! source and absorption terms are set, apart from the / by lumped mass
-    call scale(psi,inverse_lumped_mass)
+    !call scale(psi,inverse_lumped_mass)
     do i=1,nNodes
+        call set(psi,i, cm0**gls_p * node_val(tke_old,i)**gls_m * node_val(ll,i)**gls_n)
         call set(psi,i,max(node_val(psi,i),psi_min))
     end do
 
