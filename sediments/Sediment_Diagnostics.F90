@@ -29,9 +29,9 @@
 
 module sediment_diagnostics
   use global_parameters, only:FIELD_NAME_LEN, OPTION_PATH_LEN, dt, timestep
-  use state_module
-  use fields
   use fields_base
+  use fields
+  use state_module
   use vector_tools
   use spud
   use fetools
