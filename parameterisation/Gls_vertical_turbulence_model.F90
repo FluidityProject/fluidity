@@ -414,7 +414,7 @@ subroutine gls_tke(state)
     ! source and absorption terms are set, apart from the / by lumped mass
     call scale(source,inverse_lumped_mass)
     call scale(absorption,inverse_lumped_mass)
-    call scale(absorption, 1e-3)
+    !call scale(absorption, 1e-3)
     call deallocate(inverse_lumped_mass)
 
     do i=1,NNodes_sur
@@ -513,14 +513,14 @@ subroutine gls_tke(state)
         !    rhs_addto_src = shape_rhs(shape_kk, detwei * (&
         !                            ele_val_at_quad(P,ele) + ele_val_at_quad(B,ele)))
         !    rhs_addto_disip = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(tke,ele))
-        !
-        !elsewhere
+       ! 
+       ! elsewhere
             rhs_addto_src = shape_rhs(shape_kk, detwei * (&
                                  (ele_val_at_quad(P,ele))) &
                                  )
             rhs_addto_disip = shape_rhs(shape_kk, detwei * ( &
                                  (ele_val_at_quad(eps,ele) - &
-                                 (ele_val_at_quad(B,ele))) / &
+                                 ele_val_at_quad(B,ele)) / &
                                  ele_val_at_quad(tke,ele)) &
                                  )
            
@@ -675,9 +675,13 @@ subroutine gls_psi(state)
     end do
     call scale(source,inverse_lumped_mass)
     call scale(absorption,inverse_lumped_mass)
-    call scale(absorption,1e-3)
+    !call scale(absorption,1e-3)
     call deallocate(inverse_lumped_mass)
     
+    do i=1,NNodes_sur
+        call set(source,top_surface_nodes(i),0.0)
+        call set(absorption, top_surface_nodes(i),0.0)
+    end do
 
     ewrite(2,*) "In gls_psi: setting diffusivity"
     ! Set diffusivity for Psi
@@ -916,16 +920,16 @@ subroutine gls_diffusivity(state)
     end if
 
     ! call the bc code, but specify we want dirichlet
-    if (gls_n < 0) then
-        call gls_psi_bc(state, 'dirichlet')
-        ! copy the values onto the mesh using the global node id
-        do i=1,NNodes_sur
-            call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
-        end do
-        do i=1,NNodes_bot
-            call set(psi,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-        end do
-    end if
+    !if (gls_n < 0) then
+    !    call gls_psi_bc(state, 'dirichlet')
+    !    ! copy the values onto the mesh using the global node id
+    !    do i=1,NNodes_sur
+    !        call set(psi,top_surface_nodes(i),node_val(top_surface_values,i))
+    !    end do
+    !    do i=1,NNodes_bot
+    !        call set(psi,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
+    !    end do
+    !end if
 
     exp1 = 3.0 + gls_p/gls_n
     exp2 = 1.5 + gls_m/gls_n
@@ -1738,20 +1742,20 @@ subroutine gls_psi_bc(state, bc_type)
     case("neumann")
         do i=1,NNodes_sur
             ! GOTM Boundary
-            !value = -(gls_n*(cm0**(gls_p+1.))*(kappa**(gls_n+1.)))/sigma_psi     &
-            !         *node_val(top_surface_values,i)**(gls_m+0.5)*(z0s(i))**gls_n  
+            value = -(gls_n*(cm0**(gls_p+1.))*(kappa**(gls_n+1.)))/sigma_psi     &
+                     *node_val(top_surface_values,i)**(gls_m+0.5)*(z0s(i))**gls_n  
             ! Warner 2005
-            value = -gls_n*(cm0**(gls_p))*(node_val(top_surface_tke_values,i)**gls_m)* &
-                     (kappa**gls_n)*(z0s(i)**(gls_n-1))*((node_val(top_surface_km_values,i)/sigma_psi))
+            !value = -gls_n*(cm0**(gls_p))*(node_val(top_surface_tke_values,i)**gls_m)* &
+            !         (kappa**gls_n)*(z0s(i)**(gls_n-1))*((node_val(top_surface_km_values,i)/sigma_psi))
             call set(top_surface_values,i,value)
         end do
         do i=1,NNodes_bot
             ! GOTM Boundary
-            !value = - gls_n*cm0**(gls_p+1.)*(kappa**(gls_n+1.)/sigma_psi)      &
-            !           *node_val(bottom_surface_tke_values,i)**(gls_m+0.5)*(z0b(i))**gls_n
+            value = - gls_n*cm0**(gls_p+1.)*(kappa**(gls_n+1.)/sigma_psi)      &
+                       *node_val(bottom_surface_tke_values,i)**(gls_m+0.5)*(z0b(i))**gls_n
             ! Warner 2005
-            value = gls_n*cm0**(gls_p)*node_val(bottom_surface_tke_values,i)**(gls_m)* &
-                     kappa**gls_n*(z0b(i)**(gls_n-1))*(node_val(bottom_surface_km_values,i)/sigma_psi)
+            !value = gls_n*cm0**(gls_p)*node_val(bottom_surface_tke_values,i)**(gls_m)* &
+            !         kappa**gls_n*(z0b(i)**(gls_n-1))*(node_val(bottom_surface_km_values,i)/sigma_psi)
             call set(bottom_surface_values,i,value)
         end do
     case("dirichlet")
