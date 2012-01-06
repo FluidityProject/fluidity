@@ -29,6 +29,37 @@ from numpy import array
 s = stat_parser("AgentASplit.agents")
 final_agent_sizes_split = array([ s[agent]['Size'][0][-1] for agent in s.keys() ])
     </variable>
+    <variable name="agent_count_merge" language="python">
+from fluidity_tools import stat_parser
+agent_count_merge = stat_parser("lagrangian_biology.stat")['Water']['AgentAAgentsMerge']['integral']
+    </variable>
+    <variable name="biomass_merge" language="python">
+from fluidity_tools import stat_parser
+biomass_merge = stat_parser("lagrangian_biology.stat")['Water']['AgentAEnsembleSizeMerge']['integral']
+    </variable>
+    <variable name="nutrients_merge" language="python">
+from fluidity_tools import stat_parser
+nutrients_merge = stat_parser("lagrangian_biology.stat")['Water']['AgentAParticulateNutrientMerge']['integral']
+    </variable>
+    <variable name="final_agent_sizes_merge" language="python">
+from fluidity_tools import stat_parser
+from numpy import array, isnan
+s = stat_parser("AgentAMerge.agents")
+final_agent_sizes_merge = []
+for agent in s.keys():
+  if not isnan(s[agent]['Size'][0][-1]):
+    final_agent_sizes_merge.append(s[agent]['Size'][0][-1])
+final_agent_sizes_merge=array(final_agent_sizes_merge)  
+    </variable>
+    <variable name="final_nan_entries_merge" language="python">
+from fluidity_tools import stat_parser
+from numpy import array, isnan
+s = stat_parser("AgentAMerge.agents")
+final_nan_entries_merge = 0
+for agent in s.keys():
+  if isnan(s[agent]['Size'][0][-1]):
+    final_nan_entries_merge = final_nan_entries_merge + 1
+    </variable>
   </variables>
   <pass_tests>
     <test name="constant_biomass_split" language="python">
@@ -42,6 +73,21 @@ assert abs(agent_count_split[-1] - 200.0) &lt; 1.0e-6
     </test>
     <test name="constant_agent_size_split" language="python">
 assert abs(final_agent_sizes_split - 25.0).all() &lt; 1.0e-6
+    </test>
+    <test name="constant_biomass_merge" language="python">
+assert abs(biomass_merge - 5000.0).all() &lt; 1.0e-6
+    </test>
+    <test name="constant_nutrients_merge" language="python">
+assert abs(nutrients_merge - 5000.0).all() &lt; 1.0e-6
+    </test>
+    <test name="final_agent_count_merge" language="python">
+assert abs(agent_count_merge[-1] - 50.0) &lt; 1.0e-6
+    </test>
+    <test name="constant_agent_size_merge" language="python">
+assert abs(final_agent_sizes_merge - 100.0).all() &lt; 1.0e-6
+    </test>
+    <test name="nan_entries_merge" language="python">
+assert abs(final_nan_entries_merge - 150.0) &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

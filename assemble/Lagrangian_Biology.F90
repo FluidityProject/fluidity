@@ -970,15 +970,15 @@ contains
     type(state_type), intent(inout) :: state
     type(detector_linked_list), intent(inout) :: agent_list
 
-    type(detector_type), pointer :: agent, agent_to_move
+    type(detector_type), pointer :: agent, agent_to_move, merge_target, agent_to_merge
     type(scalar_field), pointer :: agent_density_field
     type(vector_field), pointer :: xfield
     type(ilist) :: elements_split_list, elements_merge_list
     type(integer_hash_table) :: split_index_mapping, merge_index_mapping
     type(detector_linked_list), dimension(:), allocatable :: split_lists, merge_lists
-    integer, dimension(:), allocatable :: elements_split, elements_merge, xbiggest_ids
-    real, dimension(:), allocatable :: xbiggest_sizes
-    integer :: i, ele, index, splits_wanted
+    integer, dimension(:), allocatable :: elements_split, elements_merge, xbiggest_ids, xsmallest_ids
+    real, dimension(:), allocatable :: xbiggest_sizes, xsmallest_sizes
+    integer :: i, ele, index, splits_wanted, merges_wanted, found_agent
     real :: agent_density, ele_volume
 
     call profiler_tic(trim(agent_list%name)//"::particle_management")
@@ -1051,13 +1051,13 @@ contains
        ele_volume = element_volume(xfield, elements_split(i))
 
        !!!!!!!!!!!!!!!!!!!!!
-       ! Original VEW algorithm:
+       ! Original VEW split algorithm:
        do while(agent_density < agent_list%pm_min)
-          ! 1) we find the number of splits wanted x
+          ! 1) Find x, the number of splits we want
           splits_wanted = ceiling(agent_list%pm_min - agent_density)
           splits_wanted = min(splits_wanted, split_lists(i)%length)
 
-          ! 2) get the x smallest agents
+          ! 2) Get the x biggest agents
           allocate(xbiggest_ids(splits_wanted))
           allocate(xbiggest_sizes(splits_wanted))
           xbiggest_sizes = 0.0
@@ -1073,7 +1073,7 @@ contains
              agent=>agent%next
           end do
 
-          ! 3) split...
+          ! 3) Split each of the x agents...
           agent=>split_lists(i)%first
           do while(associated(agent))
              if (find(xbiggest_ids, agent%id_number) > 0) then
@@ -1090,32 +1090,100 @@ contains
        !!!!!!!!!!!!!!!!!!!!!
 
        !!!!!!!!!!!!!!!!!!!!!
-       ! Simplest algorithm: always split first agent in the list
+       ! Simple algorithm: always split first agent in the list
        !do while(agent_density < agent_list%pm_min)
        !   call pm_split(split_lists(i)%first, split_lists(i))
        !   agent_density = split_lists(i)%length / ele_volume
        !end do
        !!!!!!!!!!!!!!!!!!!!!
-    end do
 
-    ! Perform merges over the temporary agent arrays
-    do i=1, size(merge_lists)
-       ewrite(2,*) "ml805 merge_list ", i, "length", merge_lists(i)%length
     end do
 
     ! Copy all agents back to the original list
     do i=1, size(split_lists)
        call move_all(split_lists(i), agent_list)
     end do
-    do i=1, size(merge_lists)
-       call move_all(merge_lists(i), agent_list)
-    end do
 
+    ! Deallocate everythin split related
     deallocate(split_lists)
     deallocate(elements_split)
     call flush_list(elements_split_list)
     call deallocate(split_index_mapping)
 
+    ! Perform merges over the temporary agent arrays
+    do i=1, size(merge_lists)
+
+       agent_density = node_val(agent_density_field, elements_merge(i))
+       ele_volume = element_volume(xfield, elements_merge(i))
+
+       !!!!!!!!!!!!!!!!!!!!!
+       ! Original VEW merge algorithm:
+       do while(agent_density > agent_list%pm_max)
+          ! 1) Find x, the number of merges we want
+          merges_wanted = floor(agent_density - agent_list%pm_max)
+          ! We need to make sure we don't have more merge requests than agent pairs
+          merges_wanted = floor(min(real(merges_wanted), real(merge_lists(i)%length) / 2.0))
+
+          ! 2) Get the 2*x smallest agents (x pairs)
+          allocate(xsmallest_ids(2*merges_wanted))
+          allocate(xsmallest_sizes(2*merges_wanted))
+          xsmallest_sizes = huge(1.0)
+
+          agent=>merge_lists(i)%first
+          do while(associated(agent))
+             if (maxval(xsmallest_sizes) > agent%biology(BIOVAR_SIZE)) then
+                index = minval(maxloc(xsmallest_sizes))
+                xsmallest_ids(index) = agent%id_number 
+                xsmallest_sizes(index) = agent%biology(BIOVAR_SIZE)
+             end if
+
+             agent=>agent%next
+          end do
+
+          ! 3) Merge pairwise...
+          ! Note: We don't sort, but select merge pairs as we find them
+          merge_target=>null()
+          agent=>merge_lists(i)%first
+          do while(associated(agent))
+             found_agent = find(xsmallest_ids, agent%id_number)
+             ! First hit is the target...
+             if (found_agent > 0 .and. .not.associated(merge_target)) then
+                merge_target=>agent
+                agent=>agent%next
+             ! ... second hit; we merge and reset the target
+             elseif (found_agent > 0 .and. associated(merge_target)) then
+                agent_to_merge=>agent
+                agent=>agent%next
+                call pm_merge(merge_target, agent_to_merge, merge_lists(i))
+                merge_target=>null()
+             else
+                agent=>agent%next
+             end if
+          end do
+
+          ! ...and recurse
+          agent_density = merge_lists(i)%length / ele_volume
+          deallocate(xsmallest_ids)
+          deallocate(xsmallest_sizes)
+       end do
+       !!!!!!!!!!!!!!!!!!!!!
+
+       !!!!!!!!!!!!!!!!!!!!!
+       ! Simple algorithm: always merge the first two agents in the list
+       !do while(agent_density > agent_list%pm_max)
+       !   call pm_merge(merge_lists(i)%first, merge_lists(i)%first%next, merge_lists(i))
+       !   agent_density = merge_lists(i)%length / ele_volume
+       !end do
+       !!!!!!!!!!!!!!!!!!!!!
+
+    end do
+
+    ! Copy all agents back to the original list
+    do i=1, size(merge_lists)
+       call move_all(merge_lists(i), agent_list)
+    end do
+
+    ! Deallocate eveything merge related
     deallocate(merge_lists)
     deallocate(elements_merge)
     call flush_list(elements_merge_list)
@@ -1177,6 +1245,40 @@ contains
     agent_list%total_num_det=agent_list%total_num_det + 1
 
   end subroutine pm_split
+
+  subroutine pm_merge(agent1, agent2, agent_list)
+    type(detector_type), pointer, intent(inout) :: agent1, agent2
+    type(detector_linked_list), intent(inout) :: agent_list
+
+    integer :: i
+
+    ! Problem: interpolate position? (we're in the same element...)
+    !agent1%position=
+    !agent1%local_coords=
+
+    ! Weight-average the biology variables
+    if (size(agent1%biology)>2) then
+       do i=3, size(agent1%biology)
+          agent1%biology(i) = wtavg(agent1%biology(i),agent1%biology(BIOVAR_SIZE),agent2%biology(i),agent2%biology(BIOVAR_SIZE))
+       end do
+    end if
+
+    ! Add the sizes
+    agent1%biology(BIOVAR_SIZE) = agent1%biology(BIOVAR_SIZE) + agent2%biology(BIOVAR_SIZE)
+
+    call delete(agent2, agent_list)
+    agent_list%total_num_det=agent_list%total_num_det - 1
+
+  contains
+
+    function wtavg(v1, w1, v2, w2) result(val)
+      real, intent(in) :: v1, w1, v2, w2
+      real :: val
+
+      val = ((v1*w1)+(v2*w2))/(w1+w2)
+    end function wtavg
+
+  end subroutine pm_merge
 
   subroutine insert_global_uptake_field(field_name)
     character(len=FIELD_NAME_LEN), intent(in) :: field_name
