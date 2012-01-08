@@ -414,13 +414,12 @@ subroutine gls_tke(state)
     ! source and absorption terms are set, apart from the / by lumped mass
     call scale(source,inverse_lumped_mass)
     call scale(absorption,inverse_lumped_mass)
-    !call scale(absorption, 1e-3)
     call deallocate(inverse_lumped_mass)
 
-    do i=1,NNodes_sur
-        call set(source,top_surface_nodes(i),0.0)
-        call set(absorption, top_surface_nodes(i),0.0)
-    end do
+    !do i=1,NNodes_sur
+    !    call set(source,top_surface_nodes(i),0.0)
+    !    call set(absorption, top_surface_nodes(i),0.0)
+    !end do
 
     ! set diffusivity for tke
     call zero(tke_diff)
@@ -583,16 +582,16 @@ subroutine gls_psi(state)
     ! other models which also play this trick, c.f. Warner et al 2005.
     call set(local_tke,tke)
     ! Call the bc code, but specify we want dirichlet
-    call gls_tke_bc(state, 'dirichlet')
+    !call gls_tke_bc(state, 'dirichlet')
     ! copy the values onto the mesh using the global node id
-    do i=1,NNodes_sur
-        call set(tke,top_surface_nodes(i),node_val(top_surface_values,i))
-        call set(tke_old,top_surface_nodes(i),node_val(top_surface_values,i))   
-    end do   
-    do i=1,NNodes_bot
-        call set(tke,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-        call set(tke_old,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
-    end do   
+    !do i=1,NNodes_sur
+    !    call set(tke,top_surface_nodes(i),node_val(top_surface_values,i))
+    !    call set(tke_old,top_surface_nodes(i),node_val(top_surface_values,i))   
+    !end do   
+    !do i=1,NNodes_bot
+    !    call set(tke,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
+    !    call set(tke_old,bottom_surface_nodes(i),node_val(bottom_surface_values,i))
+    !end do   
 
     ! clip at k_min
     do i=1,nNodes
@@ -675,13 +674,12 @@ subroutine gls_psi(state)
     end do
     call scale(source,inverse_lumped_mass)
     call scale(absorption,inverse_lumped_mass)
-    !call scale(absorption,1e-3)
     call deallocate(inverse_lumped_mass)
     
-    do i=1,NNodes_sur
-        call set(source,top_surface_nodes(i),0.0)
-        call set(absorption, top_surface_nodes(i),0.0)
-    end do
+    !do i=1,NNodes_sur
+    !    call set(source,top_surface_nodes(i),0.0)
+    !    call set(absorption, top_surface_nodes(i),0.0)
+    !end do
 
     ewrite(2,*) "In gls_psi: setting diffusivity"
     ! Set diffusivity for Psi
@@ -984,10 +982,10 @@ subroutine gls_diffusivity(state)
         call set(K_H,i, relaxation*node_val(K_H,i) + (1-relaxation)*node_val(S_H,i)*x)
     end do
 
-    do i=1,NNodes_sur
-        call set(K_M,top_surface_nodes(i),0.0)
-        call set(K_H,top_surface_nodes(i),0.0)
-    end do
+    !do i=1,NNodes_sur
+    !    call set(K_M,top_surface_nodes(i),0.0)
+    !    call set(K_H,top_surface_nodes(i),0.0)
+    !end do
     !do i=1,NNodes_bot
     !    call set(K_M,bottom_surface_nodes(i),0.0)
     !    call set(K_H,bottom_surface_nodes(i),0.0)
@@ -1743,19 +1741,23 @@ subroutine gls_psi_bc(state, bc_type)
         do i=1,NNodes_sur
             ! GOTM Boundary
             value = -(gls_n*(cm0**(gls_p+1.))*(kappa**(gls_n+1.)))/sigma_psi     &
-                     *node_val(top_surface_values,i)**(gls_m+0.5)*(z0s(i))**gls_n  
+                     *node_val(top_surface_tke_values,i)**(gls_m+0.5)*(z0s(i))**gls_n  
             ! Warner 2005
             !value = -gls_n*(cm0**(gls_p))*(node_val(top_surface_tke_values,i)**gls_m)* &
             !         (kappa**gls_n)*(z0s(i)**(gls_n-1))*((node_val(top_surface_km_values,i)/sigma_psi))
             call set(top_surface_values,i,value)
         end do
         do i=1,NNodes_bot
-            ! GOTM Boundary
-            value = - gls_n*cm0**(gls_p+1.)*(kappa**(gls_n+1.)/sigma_psi)      &
-                       *node_val(bottom_surface_tke_values,i)**(gls_m+0.5)*(z0b(i))**gls_n
-            ! Warner 2005
-            !value = gls_n*cm0**(gls_p)*node_val(bottom_surface_tke_values,i)**(gls_m)* &
-            !         kappa**gls_n*(z0b(i)**(gls_n-1))*(node_val(bottom_surface_km_values,i)/sigma_psi)
+            if (u_taub_squared(i) < 1e-16) then
+                value = 0.0
+            else
+                ! GOTM Boundary
+                value = - gls_n*cm0**(gls_p+1.)*(kappa**(gls_n+1.)/sigma_psi)      &
+                           *node_val(bottom_surface_tke_values,i)**(gls_m+0.5)*(z0b(i))**gls_n
+                ! Warner 2005
+                !value = gls_n*cm0**(gls_p)*node_val(bottom_surface_tke_values,i)**(gls_m)* &
+                !         kappa**gls_n*(z0b(i)**(gls_n-1))*(node_val(bottom_surface_km_values,i)/sigma_psi)
+            end if
             call set(bottom_surface_values,i,value)
         end do
     case("dirichlet")
@@ -1889,12 +1891,15 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
 
         do i=1,NNodes_bot
             temp_vector_3D = node_val(bottom_velocity,i)
-            u_taub = max(1e-12,sqrt(temp_vector_3D(1)**2+temp_vector_3D(2)**2+temp_vector_3D(3)**2))
+            u_taub = sqrt(temp_vector_3D(1)**2+temp_vector_3D(2)**2+temp_vector_3D(3)**2)
+            if (u_taub <= 1e-12) then
+                z0b(i) = z0s_min
+            else
 
 
             !  iterate bottom roughness length MaxIter times
             do ii=1,MaxIter
-                z0b(i)=1e-7/max(1e-6,u_taub)+0.03*0.1
+                    z0b(i)=(1e-7/max(1e-6,u_taub)+0.03*0.1)
 
                 ! compute the factor r
                 rr=kappa/log(z0b(i))
@@ -1903,6 +1908,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
                 u_taub = rr*sqrt(temp_vector_3D(1)**2+temp_vector_3D(2)**2+temp_vector_3D(3)**2)
 
             end do
+            end if
 
             u_taub_squared(i) = u_taub**2
         end do
@@ -1911,7 +1917,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
         if (surface_allocated) then
             do i=1,NNodes_sur
                 temp_vector_1D = node_val(surface_forcing,i)
-                u_taus_squared(i) = max(1e-12,temp_vector_1D(1))
+                u_taus_squared(i) = max(1e-12,abs(temp_vector_1D(1)))
                 !  use the Charnock formula to compute the surface roughness
                 z0s(i)=charnock_val*u_taus_squared(i)/gravity_magnitude
                 if (z0s(i).lt.z0s_min) z0s(i)=z0s_min
@@ -1924,11 +1930,11 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
 
         do i=1,NNodes_bot
             temp_vector_2D = node_val(bottom_velocity,i)
-            u_taub = max(1e-12,sqrt(temp_vector_2D(1)**2+temp_vector_2D(2)**2))
+            u_taub = sqrt(temp_vector_2D(1)**2+temp_vector_2D(2)**2)
 
             !  iterate bottom roughness length MaxIter times
             do ii=1,MaxIter
-                z0b(i)=1e-7/(max(1e-6,u_taub)+0.03*0.1)
+                z0b(i)=(1e-7/(max(1e-6,u_taub)+0.03*0.1))
                 rr=kappa/log(z0b(i))
 
                 ! compute the friction velocity at the bottom
