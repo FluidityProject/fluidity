@@ -3,7 +3,7 @@
 <testproblem>
   <name>Two-dimensional backward facing step.</name>
   <owner userid="piggott"/>
-  <tags>flml</tags>
+  <tags>flml 2dadapt</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v3 -l backward_facing_step_2d.flml</command_line>
   </problem_definition>

@@ -5,7 +5,7 @@
     <comment>This Benchmark case matches Case 1(a) from Blankenbach et al 1989.</comment>
   </simulation_name>
   <problem_type>
-    <string_value lines="1">fluids</string_value>
+    <string_value lines="1">stokes</string_value>
   </problem_type>
   <geometry>
     <dimension>

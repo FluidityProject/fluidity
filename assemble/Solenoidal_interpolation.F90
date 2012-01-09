@@ -118,6 +118,9 @@ module solenoidal_interpolation_module
     type(ilist) :: stiff_nodes_list
     logical :: stiff_nodes_repair
     
+    ! for a CG Lagrange multiplier are we testing the divergence with the CV dual
+    logical :: cg_lagrange_cv_test_divergence
+    
     call insert(local_state, coordinate, "Coordinate")
     
     l_option_path=trim(complete_field_path(v_field%option_path))//"/enforce_discrete_properties/solenoidal"
@@ -141,6 +144,9 @@ module solenoidal_interpolation_module
     div_cv = have_option(trim(l_option_path) //&
           &"/lagrange_multiplier/spatial_discretisation/control_volumes")
     div_cg = .not.div_cv
+    
+    cg_lagrange_cv_test_divergence = have_option(trim(l_option_path) //&
+          &"/lagrange_multiplier/spatial_discretisation/continuous_galerkin/test_divergence_with_cv_dual")
 
     stiff_nodes_repair = have_option(trim(l_option_path) //&
           &"/lagrange_multiplier/repair_stiff_nodes")
@@ -156,7 +162,16 @@ module solenoidal_interpolation_module
     ct_m_sparsity = make_sparsity(lagrange_mesh, v_field%mesh, "DivergenceSparsity")
     call allocate(ct_m, ct_m_sparsity, blocks=(/1, dim/), name="DivergenceMatrix")
     call zero(ct_m)
-    ctp_m => ct_m
+    
+    ! If CG with CV tested divergence then we need to allocate the 
+    ! left C matrix as it is formed via testing with CV so
+    if (cg_lagrange_cv_test_divergence) then    
+       allocate(ctp_m)
+       call allocate(ctp_m, ct_m_sparsity, blocks=(/1, dim/), name="CVTestedDivergenceMatrix")
+       call zero(ctp_m)
+    else
+       ctp_m => ct_m
+    end if
     
     call allocate(ct_rhs, lagrange_mesh, "DivergenceRHS")
     call zero(ct_rhs)
@@ -212,6 +227,16 @@ module solenoidal_interpolation_module
       else
         FLExit("Not possible to not lump the mass if not dg.")
       end if
+      
+      ! If CG lagrange with CV tested divergence then form the other C matrix.
+      ! This will overwrite the ct_rhs formed above.
+      if (cg_lagrange_cv_test_divergence) then
+          
+         call assemble_divergence_matrix_cv(ctp_m, local_state, ct_rhs=ct_rhs, &
+                                            test_mesh=lagrange_mesh, field=v_field)
+      
+      end if
+            
     elseif(div_cv) then
       if(lump_mass) then
         if(lump_on_submesh) then
@@ -253,7 +278,7 @@ module solenoidal_interpolation_module
       call repair_stiff_nodes(cmc_m, stiff_nodes_list)
     end if
     
-    call mult(projec_rhs, ct_m, v_field)
+    call mult(projec_rhs, ctp_m, v_field)
     
     if(apply_kmk) then
       ! a hack to make sure the appropriate meshes are available for the
@@ -311,6 +336,10 @@ module solenoidal_interpolation_module
     call deallocate(cmc_m)
     call deallocate(projec_rhs)
     call deallocate(lagrange)
+    if (cg_lagrange_cv_test_divergence) then
+      call deallocate(ctp_m)
+      deallocate(ctp_m)
+    end if
     if(apply_kmk) then
       call deallocate(kmk_rhs)
     end if
