@@ -3,7 +3,7 @@
   <name>test_source_absorption</name>
   <owner userid="avire"/>
   <tags>flml</tags>
-  <problem_definition length="short" nprocs="1">
+  <problem_definition length="medium" nprocs="1">
     <command_line>mpiexec -np 1 fluidity -v2 test_no_source_absorption.flml &gt; test_no_source_absorption.log &amp;&amp; mpiexec -np 1 fluidity -v2 test_source_absorption.flml &gt; test_source_absorption.log</command_line>
   </problem_definition>
   <variables>
