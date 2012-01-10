@@ -103,6 +103,9 @@ contains
     xfield=>extract_vector_field(state(1), "Coordinate")
     shape=>ele_shape(xfield,1)
 
+    ! Initialise the shared ID counter to generate agent IDs
+    call init_id_counter()
+
     ! Determine how many arrays we need across all functional groups
     n_agent_arrays = 0
     n_fgroups = option_count("/embedded_models/lagrangian_ensemble_biology/functional_group")
@@ -1223,7 +1226,7 @@ contains
     call insert(new_agent,agent_list)
 
     ! Populate new agent
-    new_agent%id_number=get_next_detector_id()
+    call get_next_detector_id(new_agent%id_number)
     new_agent%name=trim(int2str(agent_list%total_num_det))
     new_agent%position=agent%position
     new_agent%element=agent%element

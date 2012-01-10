@@ -46,13 +46,23 @@ module detector_parallel
   public :: distribute_detectors, exchange_detectors, register_detector_list, &
             get_num_detector_lists, get_registered_detector_lists, &
             deallocate_detector_list_array, sync_detector_coordinates, &
-            get_next_detector_id
+            init_id_counter, get_next_detector_id
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
 
-  ! Counter for global detector IDs
-  integer :: global_id_number = 0
+  interface
+
+    subroutine init_id_counter() bind(c, name='init_id_counter_c')
+      use :: iso_c_binding
+    end subroutine init_id_counter
+
+    subroutine get_next_detector_id(next_id) bind(c, name='get_next_detector_id_c')
+      use :: iso_c_binding
+      integer(c_int), intent(out) :: next_id
+    end subroutine get_next_detector_id
+
+  end interface
 
 contains
 
@@ -117,13 +127,6 @@ contains
     end if
 
   end subroutine deallocate_detector_list_array
-
-  function get_next_detector_id() result(id)
-    integer :: id
-
-    global_id_number = global_id_number + 1
-    id = global_id_number
-  end function get_next_detector_id
 
   subroutine distribute_detectors(state, detector_list)
     ! Loop over all the detectors in the list and check that I own the element they are in. 

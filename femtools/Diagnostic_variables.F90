@@ -1394,7 +1394,7 @@ contains
     detector%element=element
     detector%local_coords=lcoords
     detector%type=type
-    detector%id_number=get_next_detector_id()
+    call get_next_detector_id(detector%id_number)
 
   end subroutine create_single_detector
   
@@ -1460,6 +1460,9 @@ contains
     call get_option("/geometry/dimension",dim)
     call get_option("/timestepping/current_time", current_time)
     allocate(detector_location(dim))
+
+    ! Initialise the shared ID counter to generate detector IDs
+    call init_id_counter()
 
     ! Enable detectors to drift with the mesh
     if (have_option("/io/detectors/move_with_mesh")) then
