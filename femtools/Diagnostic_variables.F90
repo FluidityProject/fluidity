@@ -1349,54 +1349,6 @@ contains
     end if
 
   end subroutine initialise_steady_state
-
-  subroutine create_single_detector(detector_list,xfield,position,type,name)
-    ! Allocate a single detector, populate and insert it into the given list
-    ! In parallel, first check if the detector would be local and only allocate if it is
-    type(detector_linked_list), intent(inout) :: detector_list
-    type(vector_field), pointer :: xfield
-    real, dimension(xfield%dim), intent(in) :: position
-    integer, intent(in) :: type
-    character(len=*), intent(in) :: name
-
-    type(detector_type), pointer :: detector
-    type(element_type), pointer :: shape
-    real, dimension(xfield%dim+1) :: lcoords
-    integer :: element
-
-    shape=>ele_shape(xfield,1)
-    assert(xfield%dim+1==local_coord_count(shape))
-
-    ! Determine element and local_coords from position
-    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.false.)
-
-    ! If we're in parallel and don't own the element, skip this detector
-    if (isparallel()) then
-       if (element<0) return
-       if (.not.element_owned(xfield,element)) return
-    else
-       ! In serial make sure the detector is in the domain
-       ! unless we have the write_nan_outside override
-       if (element<0 .and. .not.detector_list%write_nan_outside) then
-          FLExit("Trying to initialise detector outside of computational domain")
-       end if
-    end if
-         
-    ! Otherwise, allocate and insert detector
-    allocate(detector)
-    allocate(detector%position(xfield%dim))
-    allocate(detector%local_coords(local_coord_count(shape)))
-    call insert(detector,detector_list)
-
-    ! Populate detector
-    detector%name=name
-    detector%position=position
-    detector%element=element
-    detector%local_coords=lcoords
-    detector%type=type
-    call get_next_detector_id(detector%id_number)
-
-  end subroutine create_single_detector
   
   subroutine initialise_detectors(filename, state)
     !!< Set up the detector file headers. This has the same syntax as the
@@ -1512,7 +1464,7 @@ contains
           default_stat%detector_list%detector_names(i)=detector_name
 
           call create_single_detector(default_stat%detector_list, xfield, &
-                detector_location, STATIC_DETECTOR, trim(detector_name))
+                detector_location, STATIC_DETECTOR, trim(detector_name), i)
        end do
 
        ! Read all single lagrangian detector from options
@@ -1529,7 +1481,7 @@ contains
           default_stat%detector_list%detector_names(static_dete+i)=detector_name
 
           call create_single_detector(default_stat%detector_list, xfield, &
-                detector_location, LAGRANGIAN_DETECTOR, trim(detector_name))
+                detector_location, LAGRANGIAN_DETECTOR, trim(detector_name), static_dete+1)
        end do
 
        k=static_dete+lagrangian_dete+1
@@ -1563,7 +1515,7 @@ contains
                 default_stat%detector_list%detector_names(k)=trim(detector_name)
 
                 call create_single_detector(default_stat%detector_list, xfield, &
-                       coords(:,j), type_det, trim(detector_name))
+                       coords(:,j), type_det, trim(detector_name), k)
                 k=k+1           
              end do
              deallocate(coords)
@@ -1587,7 +1539,7 @@ contains
                     default_stat%detector_list%detector_names(k)=trim(detector_name)
                     read(default_stat%detector_file_unit) detector_location
                     call create_single_detector(default_stat%detector_list, xfield, &
-                          detector_location, type_det, trim(detector_name))
+                          detector_location, type_det, trim(detector_name), k)
                     k=k+1          
                  end do
               end if                
@@ -1635,7 +1587,7 @@ contains
              if (default_stat%detector_group_names(j)==temp_name) then
                 read(default_stat%detector_checkpoint_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
-                      detector_location, STATIC_DETECTOR, trim(temp_name))                  
+                      detector_location, STATIC_DETECTOR, trim(temp_name), i)                  
              else
                 cycle
              end if
@@ -1650,7 +1602,7 @@ contains
              if (default_stat%detector_group_names(j)==temp_name) then
                 read(default_stat%detector_checkpoint_unit) detector_location
                 call create_single_detector(default_stat%detector_list, xfield, &
-                      detector_location, LAGRANGIAN_DETECTOR, trim(temp_name)) 
+                      detector_location, LAGRANGIAN_DETECTOR, trim(temp_name), static_dete+1) 
              else
                 cycle
              end if
@@ -1679,7 +1631,7 @@ contains
                    write(detector_name, fmt) trim(temp_name)//"_", m
                    read(default_stat%detector_checkpoint_unit) detector_location
                    call create_single_detector(default_stat%detector_list, xfield, &
-                          detector_location, type_det, trim(detector_name)) 
+                          detector_location, type_det, trim(detector_name), k) 
                    k=k+1           
                 end do
              else                     

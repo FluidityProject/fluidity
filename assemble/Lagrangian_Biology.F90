@@ -42,7 +42,7 @@ module lagrangian_biology
   use detector_parallel
   use detector_python
   use diagnostic_variables, only: initialise_constant_diagnostics, field_tag, &
-                                  write_detectors, create_single_detector
+                                  write_detectors
   use python_state
   use diagnostic_fields
   use Profiler
@@ -163,7 +163,7 @@ contains
           call set_detector_coords_from_python(coords, n_agents, func, current_time)
 
           do j = 1, n_agents
-             call create_single_detector(agent_arrays(array), xfield, coords(:,j), det_type, trim(int2str(j)))
+             call create_single_detector(agent_arrays(array), xfield, coords(:,j), det_type)
           end do
           deallocate(coords)
 
@@ -529,6 +529,7 @@ contains
     call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.agents.dat', &
             MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
     assert(ierror == MPI_SUCCESS)
+
   end subroutine write_agent_header
 
   subroutine write_agents_mpi(state,detector_list,time,dt,timestep)

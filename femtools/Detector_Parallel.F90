@@ -46,7 +46,7 @@ module detector_parallel
   public :: distribute_detectors, exchange_detectors, register_detector_list, &
             get_num_detector_lists, get_registered_detector_lists, &
             deallocate_detector_list_array, sync_detector_coordinates, &
-            init_id_counter, get_next_detector_id
+            init_id_counter, get_next_detector_id, create_single_detector
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
@@ -127,6 +127,67 @@ contains
     end if
 
   end subroutine deallocate_detector_list_array
+
+  subroutine create_single_detector(detector_list,xfield,position,type,name,id)
+    ! Allocate a single detector, populate and insert it into the given list
+    ! In parallel, first check if the detector would be local and only allocate if it is
+    type(detector_linked_list), intent(inout) :: detector_list
+    type(vector_field), pointer :: xfield
+    real, dimension(xfield%dim), intent(in) :: position
+    integer, intent(in) :: type
+    character(len=*), intent(in), optional :: name
+    integer, intent(in), optional :: id
+
+    type(detector_type), pointer :: detector
+    type(element_type), pointer :: shape
+    real, dimension(xfield%dim+1) :: lcoords
+    integer :: element
+
+    shape=>ele_shape(xfield,1)
+    assert(xfield%dim+1==local_coord_count(shape))
+
+    ! Determine element and local_coords from position
+    call picker_inquire(xfield,position,element,local_coord=lcoords,global=.false.)
+
+    ! If we're in parallel and don't own the element, skip this detector
+    if (isparallel()) then
+       if (element<0) return
+       if (.not.element_owned(xfield,element)) return
+    else
+       ! In serial make sure the detector is in the domain
+       ! unless we have the write_nan_outside override
+       if (element<0 .and. .not.detector_list%write_nan_outside) then
+          FLExit("Trying to initialise detector outside of computational domain")
+       end if
+    end if
+         
+    ! Otherwise, allocate and insert detector
+    allocate(detector)
+    allocate(detector%position(xfield%dim))
+    allocate(detector%local_coords(local_coord_count(shape)))
+    call insert(detector,detector_list)
+
+    ! Populate detector
+    detector%position=position
+    detector%element=element
+    detector%local_coords=lcoords
+    detector%type=type
+
+    ! Set ID if provided, otherwise generate new unique ID
+    if (present(id)) then
+       detector%id_number=id
+    else
+       call get_next_detector_id(detector%id_number)
+    end if
+
+    ! Set name if provided, otherwise use the ID
+    if (present(name)) then
+       detector%name=trim(name)
+    else
+       detector%name=trim(int2str(detector%id_number))
+    end if
+
+  end subroutine create_single_detector
 
   subroutine distribute_detectors(state, detector_list)
     ! Loop over all the detectors in the list and check that I own the element they are in. 
