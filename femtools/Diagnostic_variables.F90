@@ -1413,9 +1413,6 @@ contains
     call get_option("/timestepping/current_time", current_time)
     allocate(detector_location(dim))
 
-    ! Initialise the shared ID counter to generate detector IDs
-    call init_id_counter()
-
     ! Enable detectors to drift with the mesh
     if (have_option("/io/detectors/move_with_mesh")) then
        default_stat%detector_list%move_with_mesh=.true.

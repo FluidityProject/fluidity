@@ -89,6 +89,8 @@ module detector_data_types
     character(len=FIELD_NAME_LEN) :: field_name
     ! Type of variable, ie. diagnostic, uptake, release
     integer :: field_type = 0
+    ! Flag indicating whether this variables gets written to the output file
+    logical :: write_to_file = .false.
     ! Flag indicating whether to aggregate by stage
     logical :: stage_aggregate = .false.
     ! Name of chemical field associated with uptake/release variables

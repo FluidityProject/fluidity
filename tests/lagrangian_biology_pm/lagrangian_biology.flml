@@ -105,6 +105,7 @@
                 </detectors>
               </diagnostic>
             </scalar_field>
+            <include_in_io/>
           </state_variable>
           <chemical_variable name="Nutrient">
             <scalar_field name="Particulate">
@@ -118,6 +119,7 @@
               </diagnostic>
               <stage_aggregate/>
             </scalar_field>
+            <include_in_io/>
           </chemical_variable>
         </variables>
         <environment/>

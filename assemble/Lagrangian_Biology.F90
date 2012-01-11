@@ -205,6 +205,9 @@ contains
                 write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/state_variable[",j-1,"]"
                 call get_option(trim(biovar_buffer)//"/name", biovar_name)
                 agent_arrays(array)%biovars(biovar)%name=trim(biovar_name)
+                if (have_option(trim(biovar_buffer)//"/include_in_io")) then
+                   agent_arrays(array)%biovars(biovar)%write_to_file=.true.
+                end if
 
                 ! Record according diagnostic field
                 if (have_option(trim(biovar_buffer)//"/scalar_field")) then
@@ -226,6 +229,9 @@ contains
              do j=1, biovar_chemical
                 write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/chemical_variable[",j-1,"]"
                 call get_option(trim(biovar_buffer)//"/name", biovar_name)
+                if (have_option(trim(biovar_buffer)//"/include_in_io")) then
+                   agent_arrays(array)%biovars(biovar)%write_to_file=.true.
+                end if
 
                 ! Chemical pool variable and according diagnostic fields
                 agent_arrays(array)%biovars(biovar)%name = trim(biovar_name)
@@ -497,6 +503,7 @@ contains
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+dim
 
+       ! Write biology variables
        if (allocated(detector_list%biovars)) then
 
           ! Write stage
@@ -506,13 +513,12 @@ contains
 
           ! Write all diagnostic variables
           do i=1,size(detector_list%biovars)
-             if (detector_list%biovars(i)%field_type == BIOFIELD_DIAG) then
+             if (detector_list%biovars(i)%write_to_file) then
                 buffer=field_tag(name="Detector", column=column, statistic=trim(detector_list%biovars(i)%name))
                 write(detector_list%output_unit, '(a)') trim(buffer)
                 column=column+1
              end if
           end do
-
        end if
 
        write(detector_list%output_unit, '(a)') "</header>"
@@ -529,6 +535,19 @@ contains
     call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.agents.dat', &
             MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
     assert(ierror == MPI_SUCCESS)
+
+  contains
+
+    function mapping_tag(name, id)
+      !!< Create a tag for detector id->name mapping.
+      character(len=*), intent(in) :: name
+      integer, intent(in) :: id
+
+      character(len=254) :: mapping_tag
+
+      mapping_tag='<mapping name="'//trim(name)//'" id="'//trim(int2str(id))//'" />'
+
+    end function mapping_tag
 
   end subroutine write_agent_header
 
@@ -565,7 +584,7 @@ contains
     if (allocated(detector_list%biovars)) then
        ncolumns = ncolumns + 1
        do i=1, size(detector_list%biovars)
-          if (detector_list%biovars(i)%field_type == BIOFIELD_DIAG) then
+          if (detector_list%biovars(i)%write_to_file) then
              ncolumns = ncolumns + 1
           end if
        end do
@@ -624,7 +643,7 @@ contains
 
           ! Write all diagnostic variables
           do i=1,size(detector_list%biovars)
-             if (detector_list%biovars(i)%field_type == BIOFIELD_DIAG) then
+             if (detector_list%biovars(i)%write_to_file) then
                 call mpi_file_write_at(detector_list%mpi_fh, location_to_write, &
                        detector%biology(i), 1, getpreal(), MPI_STATUS_IGNORE, ierror)
                 assert(ierror == MPI_SUCCESS)

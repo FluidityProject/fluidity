@@ -18,7 +18,10 @@ lagrangian_biology =
             element variables {
                ## An agent's stage determines the update function to apply at each timestep.
                element state_variable {
-                  attribute name { 'Stage' }
+                  attribute name { 'Stage' },
+                  element include_in_io {
+                     empty
+                  }?
                },
                ## Dynamic size of the ensemble the agent represents. 
                ## All internal quantities that are exchanged with the environment get scaled by this factor.
@@ -35,7 +38,10 @@ lagrangian_biology =
                      element stage_aggregate {
                         empty
                      }?
-                  }
+                  },
+                  element include_in_io {
+                     empty
+                  }?
                },
                (
                   ## Internal state variable of a biology agent that defines an arbitrary internal property.
@@ -52,6 +58,9 @@ lagrangian_biology =
                         element stage_aggregate {
                            empty
                         }?
+                     }?,
+                     element include_in_io {
+                        empty
                      }?
                   }|
                   ## State variable representing the internal chemical pool of an agent. 
@@ -121,6 +130,9 @@ lagrangian_biology =
                               empty
                            }?
                         }
+                     }?,
+                     element include_in_io {
+                        empty
                      }?
                   }
                )*

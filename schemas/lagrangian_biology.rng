@@ -25,6 +25,11 @@ chemical_variable defines an internal pool of chemicals that can be exchanged wi
               <attribute name="name">
                 <value>Stage</value>
               </attribute>
+              <optional>
+                <element name="include_in_io">
+                  <empty/>
+                </element>
+              </optional>
             </element>
             <element name="state_variable">
               <a:documentation>Dynamic size of the ensemble the agent represents. 
@@ -48,6 +53,11 @@ All internal quantities that are exchanged with the environment get scaled by th
                   </element>
                 </optional>
               </element>
+              <optional>
+                <element name="include_in_io">
+                  <empty/>
+                </element>
+              </optional>
             </element>
             <zeroOrMore>
               <choice>
@@ -72,6 +82,11 @@ All internal quantities that are exchanged with the environment get scaled by th
                           <empty/>
                         </element>
                       </optional>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="include_in_io">
+                      <empty/>
                     </element>
                   </optional>
                 </element>
@@ -167,6 +182,11 @@ The scaled release quantity will then get added to the according source field of
                           </element>
                         </optional>
                       </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="include_in_io">
+                      <empty/>
                     </element>
                   </optional>
                 </element>
