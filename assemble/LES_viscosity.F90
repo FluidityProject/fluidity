@@ -41,12 +41,44 @@ module les_viscosity_module
   private
 
   public les_viscosity_strength, wale_viscosity_strength
-  public les_init_fields, les_set_diagnostic_fields, dynamic_les_filtered_fields
-  public les_strain_rate
+  public les_zero_diagnostic_fields, les_set_diagnostic_fields
+  public dynamic_les_init_fields, dynamic_les_filtered_fields, les_strain_rate
 
 contains
 
-  subroutine les_init_fields(state, nu, filtered_velocity, leonard_tensor, strain_product)
+  subroutine les_zero_diagnostic_fields(state)
+
+    type(state_type), intent(inout) :: state
+    type(tensor_field), pointer :: tfield
+    type(scalar_field), pointer :: sfield
+    integer :: stat
+
+    ! EddyViscosity is an option for all LES models.
+    tfield => extract_tensor_field(state, "EddyViscosity", stat)
+    if(stat==0) then
+       call zero(tfield)
+    end if
+    ! Following fields are optional for dynamic LES model.
+    tfield => extract_tensor_field(state, "StrainRate", stat)
+    if(stat==0) then
+       call zero(tfield)
+    end if
+    tfield => extract_tensor_field(state, "FilteredStrainRate", stat)
+    if(stat==0) then
+       call zero(tfield)
+    end if
+    tfield => extract_tensor_field(state, "FilterWidth", stat)
+    if(stat==0) then
+       call zero(tfield)
+    end if
+    sfield => extract_scalar_field(state, "SmagorinskyCoefficient", stat)
+    if(stat==0) then
+       call zero(sfield)
+    end if
+
+  end subroutine les_zero_diagnostic_fields
+
+  subroutine dynamic_les_init_fields(state, nu, filtered_velocity, leonard_tensor, strain_product)
 
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout)  :: nu
@@ -83,7 +115,7 @@ contains
     end if
     call zero(strain_product)
 
-  end subroutine les_init_fields
+  end subroutine dynamic_les_init_fields
 
   subroutine les_set_diagnostic_fields(state, nu, density, ele, detwei, &
                  eddy_visc_gi, visc_gi, strain_gi, filtered_strain_gi, filter_width_gi, les_coef_gi)

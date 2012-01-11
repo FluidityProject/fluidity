@@ -235,7 +235,7 @@
       type(tensor_field):: grad_u
       ! Filtered fields for Germano Dynamic LES (short names to keep variable lists manageable):
       type(vector_field), pointer :: tnu
-      type(tensor_field), pointer :: lnd, stp
+      type(tensor_field), pointer :: lnd, stp, tfield
       real                        :: alpha
 
       ! for temperature dependent viscosity :
@@ -366,6 +366,9 @@
          wale=have_option(trim(les_option_path)//"/wale")
          dynamic_les=have_option(trim(les_option_path)//"/dynamic_les")
 
+         ! zero the diagnostic fields.
+         call les_zero_diagnostic_fields(state)
+
          if (les_second_order) then
             call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
@@ -392,7 +395,7 @@
 
            ! Initialise optional diagnostic fields
            ewrite(2,*) "Initialising LES diagnostic fields"
-           call les_init_fields(state, nu, tnu, lnd, stp)
+           call dynamic_les_init_fields(state, nu, tnu, lnd, stp)
 
            ! Get (test filter)/(mesh filter) size ratio alpha. Default value is 2.
            call get_option(trim(les_option_path)//"/dynamic_les/alpha", alpha, default=2.0)
