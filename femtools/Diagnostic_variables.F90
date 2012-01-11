@@ -1399,7 +1399,7 @@ contains
  
     ! Register this I/O detector list with a global list of detector lists
     call register_detector_list(default_stat%detector_list)
-    default_stat%detector_list%name = trim("I/O-Detectors")
+    default_stat%detector_list%name = trim(filename)
 
     allocate(default_stat%detector_group_names(total_dete_groups))
     allocate(default_stat%number_det_in_each_group(total_dete_groups))
@@ -1644,6 +1644,9 @@ contains
     if (isparallel()) then
        default_stat%detector_list%binary_output=.true.
     end if
+
+    
+    call write_detector_header(default_stat%detector_list)
 
     ! Only the first process should write the header file
     if (getprocno() == 1) then
