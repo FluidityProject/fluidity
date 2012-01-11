@@ -188,13 +188,13 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
    assert abs(geopressure_p0p1cv_gpp2-2702.10500021) &lt; 10
     </test>    
     <test name="check maximum xspeed_p0p1cv_gpp2 is zero" language="python">
-   assert abs(velocityx_p0p1cv_gpp2) &lt; 1e-6
+   assert abs(velocityx_p0p1cv_gpp2) &lt; 2e-6
     </test>
     <test name="check maximum yspeed_p0p1cv_gpp2 is zero" language="python">
-   assert abs(velocityy_p0p1cv_gpp2) &lt; 1e-6
+   assert abs(velocityy_p0p1cv_gpp2) &lt; 2e-6
     </test>
     <test name="check maximum speed_p0p1cv_gpp2 is zero" language="python">
-   assert abs(velocity_p0p1cv_gpp2) &lt; 1e-6
+   assert abs(velocity_p0p1cv_gpp2) &lt; 2e-6
     </test>
     <test name="check volume fraction_p0p1cv_gpp2 conserved" language="python">
 print 'mass loss = ', abs(volfracend_p0p1cv_gpp2-volfrac0_p0p1cv_gpp2)
