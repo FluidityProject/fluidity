@@ -1797,7 +1797,7 @@ subroutine gls_friction(state,z0s,z0b,gravity_magnitude,u_taus_squared,u_taub_sq
     integer                              :: nobcs
     integer                              :: i,ii, MaxIter
     real                                 :: rr
-    real                                 :: charnock_val=1400.
+    real                                 :: charnock_val=18500.
     character(len=OPTION_PATH_LEN)       :: bctype
     type(vector_field), pointer          :: wind_surface_field, positions, velocity
     type(scalar_field), pointer          :: tke

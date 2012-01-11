@@ -78,7 +78,7 @@ for file in filelist:
            zzb = -values[1]
            break
 
-   mld = zzb
+   mld = zza
    if (last_mld == mld):
        continue
 
