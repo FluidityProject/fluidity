@@ -29,6 +29,8 @@
 
 module Compositional_Terms
   use fldebug
+  
+  use shape_functions
 
 
 contains
