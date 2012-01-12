@@ -415,7 +415,7 @@ for example:
           lineNo = lineNo + 1
         columns = numpy.array(columns)
               
-      if filename.endswith('agents'):
+      if filename.endswith('detectors'):
         # In .detector files each row encodes one detector
         # Every detector row contains the timestep number and a unique ID
         # We re-organise the output to be:
@@ -433,7 +433,7 @@ for example:
 
           if name=='Detector':
             stat_column_map[statistic] = int(column) - 1
-            if statistic != 'Timestep' and statistic != 'ID_Number':
+            if statistic != 'timestep' and statistic != 'id_number':
               stats.append(statistic)
 
             if components:
@@ -441,25 +441,36 @@ for example:
             else:
               stat_component_map[statistic] = 1
 
+        # Record ID->name mappings
+        detector_names = {}
+        for mapping in parsed.getElementsByTagName("mapping"):
+          name=mapping.getAttribute("name")
+          id_number=int(mapping.getAttribute("id_number"))
+          detector_names[id_number] = name
+
         # find maximum timestep
-        max_t = int(columns[stat_column_map['Timestep']].max()) + 1
+        max_t = int(columns[stat_column_map['timestep']].max()) + 1
 
         # traverse the detector rows 
         for row in columns.T:
-          id_number = int(row[stat_column_map['ID_Number']])
+          key = int(row[stat_column_map['id_number']])
+
+          # if we have explicit names use them as key
+          if detector_names.has_key(key):
+            key = detector_names[key]
 
           # initialise keys
-          if not self.has_key(id_number):
-            self[id_number]={}
+          if not self.has_key(key):
+            self[key]={}
             for stat in stats:
-              self[id_number][stat] = numpy.empty((stat_component_map[stat],max_t))
-              self[id_number][stat].fill(float('NaN'))
+              self[key][stat] = numpy.empty((stat_component_map[stat],max_t))
+              self[key][stat].fill(float('NaN'))
 
           # now copy the values over
-          t = int(row[stat_column_map['Timestep']])
+          t = int(row[stat_column_map['timestep']])
           for stat in stats:
             for c in range(0,stat_component_map[stat]):
-              self[id_number][stat][c][t] = row[stat_column_map[stat]]
+              self[key][stat][c][t] = row[stat_column_map[stat]+c]
 
       else:
         for field in parsed.getElementsByTagName("field"):

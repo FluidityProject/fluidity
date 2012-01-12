@@ -206,19 +206,19 @@ contains
     ! Only processor 1 writes the header
     if (getprocno() == 1) then
        detector_list%output_unit=free_unit()
-       open(unit=detector_list%output_unit, file=trim(detector_list%name)//'.agents', action="write")
+       open(unit=detector_list%output_unit, file=trim(detector_list%name)//'.detectors', action="write")
        write(detector_list%output_unit, '(a)') "<header>"
 
        call initialise_constant_diagnostics(detector_list%output_unit, binary_format = detector_list%binary_output)
        column=1
 
        ! First the detector ID...
-       buffer=field_tag(name="Detector", column=column, statistic="ID_Number")
+       buffer=field_tag(name="Detector", column=column, statistic="id_number")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
        ! ...then the timestep
-       buffer=field_tag(name="Detector", column=column, statistic="Timestep")
+       buffer=field_tag(name="Detector", column=column, statistic="timestep")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
@@ -228,7 +228,7 @@ contains
        column=column+1
 
        ! Write position field 
-       buffer=field_tag(name="Detector", column=column, statistic="Position",components=dim)
+       buffer=field_tag(name="Detector", column=column, statistic="position",components=dim)
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+dim
 
@@ -254,19 +254,28 @@ contains
 
        write(detector_list%output_unit, '(a)') "</header>"
        flush(detector_list%output_unit)
-       close(detector_list%output_unit)
 
-    ! bit of hack to delete any existing .detectors.dat file
-    ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
-    ! gradually overwritten, mixing detector output from the current with that of a previous run
-    !call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.agents.dat', &
-    !        MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
-    !call MPI_FILE_CLOSE(detector_list%mpi_fh, ierror)    
-    !call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.agents.dat', &
-    !        MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
-    !assert(ierror == MPI_SUCCESS)
+       ! If we're using binary output (MPI) we close the .detector file
+       if (detector_list%binary_output) then   
+          close(detector_list%output_unit)
+       end if 
 
     end if
+
+    ! If we're using binary output (MPI) we (re-)open .detectors.dat
+    ! In parallel this has to happen on all procs
+    if (detector_list%binary_output) then   
+
+       ! bit of hack to delete any existing .detectors.dat file
+       ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
+       ! gradually overwritten, mixing detector output from the current with that of a previous run
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.detectors.dat', &
+               MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
+       call MPI_FILE_CLOSE(detector_list%mpi_fh, ierror)    
+       call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.detectors.dat', &
+               MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
+       assert(ierror == MPI_SUCCESS)
+    end if 
 
   contains
 
@@ -277,7 +286,7 @@ contains
 
       character(len=254) :: mapping_tag
 
-      mapping_tag='<mapping name="'//trim(name)//'" id="'//trim(int2str(id))//'" />'
+      mapping_tag='<mapping name="'//trim(name)//'" id_number="'//trim(int2str(id))//'" />'
 
     end function mapping_tag
 

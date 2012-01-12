@@ -1422,6 +1422,11 @@ contains
     if (have_option("/io/detectors/write_nan_outside_domain")) then
        default_stat%detector_list%write_nan_outside=.true.
     end if
+
+    ! Always use binary format in parallel
+    if (have_option("/io/detectors/binary_output") .or. isparallel()) then
+       default_stat%detector_list%binary_output=.true.
+    end if
     
     ! Retrieve the position of each detector. If the option
     ! "from_checkpoint_file" exists, it means we are continuing the simulation
@@ -1639,40 +1644,6 @@ contains
 
     end if  ! from_checkpoint
 
-
-    default_stat%detector_list%binary_output = have_option("/io/detectors/binary_output")
-    if (isparallel()) then
-       default_stat%detector_list%binary_output=.true.
-    end if
-
-    
-    call write_detector_header(default_stat%detector_list)
-
-    ! Only the first process should write the header file
-    if (getprocno() == 1) then
-       default_stat%detector_list%output_unit=free_unit()
-       open(unit=default_stat%detector_list%output_unit, file=trim(filename)//'.detectors', action="write")
-
-       write(default_stat%detector_list%output_unit, '(a)') "<header>"
-       call initialise_constant_diagnostics(default_stat%detector_list%output_unit, &
-                binary_format = default_stat%detector_list%binary_output)
-
-       ! Initial columns are elapsed time and dt.
-       buffer=field_tag(name="ElapsedTime", column=1, statistic="value")
-       write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-       buffer=field_tag(name="dt", column=2, statistic="value")
-       write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-
-       ! Next columns contain the positions of all the detectors.
-       column=2
-       positionloop: do i=1, default_stat%detector_list%total_num_det
-          buffer=field_tag(name=default_stat%detector_list%detector_names(i), column=column+1,&
-              statistic="position", components=xfield%dim)
-          write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-          column=column+xfield%dim   ! xfield%dim == size(detector%position)
-       end do positionloop
-     end if
-
      ! Loop over all fields in state and record the ones we want to output
      allocate (default_stat%detector_list%sfield_list(size(state)))
      allocate (default_stat%detector_list%vfield_list(size(state)))
@@ -1695,17 +1666,6 @@ contains
            sfield => extract_scalar_field(state(phase),state(phase)%scalar_names(i))
            if(.not. detector_field(sfield)) then
               cycle
-           end if
-
-           ! Create header for included scalar field (first proc only)
-           if (getprocno() == 1) then
-             do j=1, default_stat%detector_list%total_num_det
-                column=column+1
-                buffer=field_tag(name=sfield%name, column=column, &
-                    statistic=default_stat%detector_list%detector_names(j), &
-                    material_phase_name=material_phase_name)
-                write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-             end do
            end if
 
            ! Store name of included scalar field
@@ -1731,18 +1691,6 @@ contains
               cycle
            end if
 
-           ! Create header for included vector field (first proc only)
-           if (getprocno() == 1) then
-             do j=1, default_stat%detector_list%total_num_det
-                buffer=field_tag(name=vfield%name, column=column+1, &
-                    statistic=default_stat%detector_list%detector_names(j), &
-                    material_phase_name=material_phase_name, &
-                    components=vfield%dim)
-                write(default_stat%detector_list%output_unit, '(a)') trim(buffer)
-                column=column+vfield%dim
-             end do
-           end if
-
            ! Store name of included vector field
            default_stat%detector_list%vfield_list(phase)%ptr(field_count)=state(phase)%vector_names(i)
            field_count = field_count + 1
@@ -1750,31 +1698,8 @@ contains
 
      end do phaseloop
 
-     if (getprocno() == 1) then
-       write(default_stat%detector_list%output_unit, '(a)') "</header>"
-       flush(default_stat%detector_list%output_unit)
-
-       ! when using mpi_subroutines to write into the detectors file we need to close the file since 
-       ! filename.detectors.dat needs to be open now with MPI_OPEN
-       if ((.not.isparallel()).and.(.not. default_stat%detector_list%binary_output)) then
-
-       else    
-          close(default_stat%detector_list%output_unit)
-       end if
-    end if  
-
-    if ((isparallel()).or.((.not.isparallel()).and.(default_stat%detector_list%binary_output))) then
-
-    ! bit of hack to delete any existing .detectors.dat file
-    ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
-    ! gradually overwritten, mixing detector output from the current with that of a previous run
-    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
-    call MPI_FILE_CLOSE(default_stat%detector_list%mpi_fh, IERROR)
-    
-    call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(filename) // '.detectors.dat', MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, default_stat%detector_list%mpi_fh, IERROR)
-    assert(ierror == MPI_SUCCESS)
-
-    end if 
+    ! Write the header information into the .detectors file
+    call write_detector_header(default_stat%detector_list)
 
     !Get options for lagrangian detector movement
     if (check_any_lagrangian(default_stat%detector_list)) then
@@ -2108,7 +2033,7 @@ contains
     end if
 
     ! Now output any detectors.    
-    call write_detectors(state, default_stat%detector_list, time, dt)
+    call write_detectors(state, default_stat%detector_list, time, dt, timestep)
 
     call profiler_toc("I/O")
   
@@ -2506,11 +2431,12 @@ contains
 
   end subroutine test_and_write_steady_state
 
-  subroutine write_detectors(state, detector_list, time, dt)
+  subroutine write_detectors(state, detector_list, time, dt, timestep)
     !!< Write the field values at detectors to the previously opened detectors file.
     type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
     real, intent(in) :: time, dt
+    integer, intent(in) :: timestep
 
     character(len=10) :: format_buffer
     integer :: i, j, k, phase, ele, check_no_det, totaldet_global
@@ -2635,7 +2561,7 @@ contains
 
     ! If isparallel() or binary output us this
     else
-       call write_mpi_out(state,detector_list,time,dt)
+       call write_detectors_mpi(state,detector_list,time,dt, timestep)
     end if
 
     totaldet_global=detector_list%length
