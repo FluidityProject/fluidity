@@ -68,7 +68,7 @@ module cv_faces
                         CV_TRI_MAX_DEGREE=2, CV_QUAD_MAX_DEGREE=1, CV_LINE_MAX_DEGREE=1
 
   type(corner_permutation_type), dimension(30), private, target, save :: cv_tet_face_permutations
-  type(corner_permutation_type), dimension(15), private, target, save :: cv_tet_bdy_permutations
+  type(corner_permutation_type), dimension(12), private, target, save :: cv_tet_bdy_permutations
   type(corner_permutation_type), dimension(12), private, target, save :: cv_hex_face_permutations
   type(corner_permutation_type), dimension(4), private, target, save :: cv_hex_bdy_permutations
   type(corner_permutation_type), dimension(12), private, target, save :: cv_tri_face_permutations
@@ -780,9 +780,9 @@ contains
     i=i+1
     ! One generator per face.
     ! (Multiple faces per node to allow non-quadrilateral shapes)
-    allocate(cv_tet_bdy_temp(i)%generator(12))
+    allocate(cv_tet_bdy_temp(i)%generator(9))
 
-    cv_tet_bdy_temp(i)%faces=12 ! should only be 6 but 6 are fictitious to account for non-quadrilateral shapes
+    cv_tet_bdy_temp(i)%faces=9 ! should only be 6 but 3 are fictitious to account for non-quadrilateral shapes
     cv_tet_bdy_temp(i)%degree=2
     cv_tet_bdy_temp(i)%nodes=6
     coords(1)=0.166666666666666666666666666666666
@@ -806,11 +806,11 @@ contains
          coords=coords)
     cv_tet_bdy_temp(i)%generator(4)=make_face_generator( &
          permutation=cv_tet_bdy_permutations(7), &
-         nodes=(/2,2/), &
+         nodes=(/3,3/), &
          coords=coords)
     cv_tet_bdy_temp(i)%generator(5)=make_face_generator( &
          permutation=cv_tet_bdy_permutations(8), &
-         nodes=(/3,3/), &
+         nodes=(/4,4/), &
          coords=coords)
     cv_tet_bdy_temp(i)%generator(6)=make_face_generator( &
          permutation=cv_tet_bdy_permutations(9), &
@@ -818,26 +818,14 @@ contains
          coords=coords)
     cv_tet_bdy_temp(i)%generator(7)=make_face_generator( &
          permutation=cv_tet_bdy_permutations(10), &
-         nodes=(/4,4/), &
+         nodes=(/5,5/), &
          coords=coords)
     cv_tet_bdy_temp(i)%generator(8)=make_face_generator( &
          permutation=cv_tet_bdy_permutations(11), &
-         nodes=(/4,4/), &
+         nodes=(/5,5/), &
          coords=coords)
     cv_tet_bdy_temp(i)%generator(9)=make_face_generator( &
          permutation=cv_tet_bdy_permutations(12), &
-         nodes=(/5,5/), &
-         coords=coords)
-    cv_tet_bdy_temp(i)%generator(10)=make_face_generator( &
-         permutation=cv_tet_bdy_permutations(13), &
-         nodes=(/5,5/), &
-         coords=coords)
-    cv_tet_bdy_temp(i)%generator(11)=make_face_generator( &
-         permutation=cv_tet_bdy_permutations(14), &
-         nodes=(/5,5/), &
-         coords=coords)
-    cv_tet_bdy_temp(i)%generator(12)=make_face_generator( &
-         permutation=cv_tet_bdy_permutations(15), &
          nodes=(/6,6/), &
          coords=coords)
 
@@ -1514,84 +1502,60 @@ contains
     cv_tet_bdy_permutations(5)%p=reshape((/&
          5, 1, 1, &
          6, 2, 0, &
-         4, 2, 2, &
+         3, 3, 3, &
          4, 4, 0/),(/3,4/))  !2
 
     allocate(cv_tet_bdy_permutations(6)%p(3,4))
 
     cv_tet_bdy_permutations(6)%p=reshape((/&
-         4, 2, 2, &
-         4, 4, 0, &
          3, 3, 3, &
-         2, 4, 2/),(/3,4/))  !2
-
-    allocate(cv_tet_bdy_permutations(7)%p(3,4))
-
-    cv_tet_bdy_permutations(7)%p=reshape((/&
-         2, 4, 2, &
          4, 4, 0, &
          1, 5, 1, &
          2, 6, 0/),(/3,4/))  !2
 
-    allocate(cv_tet_bdy_permutations(8)%p(3,4))
+    allocate(cv_tet_bdy_permutations(7)%p(3,4))
 
-    cv_tet_bdy_permutations(8)%p=reshape((/&
+    cv_tet_bdy_permutations(7)%p=reshape((/&
          0, 7, 0, &
          2, 6, 0, &
          0, 6, 2, &
          1, 5, 1/),(/3,4/))  !3
 
+    allocate(cv_tet_bdy_permutations(8)%p(3,4))
+
+    cv_tet_bdy_permutations(8)%p=reshape((/&
+         5, 1, 1, &
+         6, 0, 2, &
+         3, 3, 3, &
+         4, 0, 4/),(/3,4/))  !4
+
     allocate(cv_tet_bdy_permutations(9)%p(3,4))
 
     cv_tet_bdy_permutations(9)%p=reshape((/&
-         5, 1, 1, &
-         6, 0, 2, &
-         4, 2, 2, &
-         4, 0, 4/),(/3,4/))  !4
-
-    allocate(cv_tet_bdy_permutations(10)%p(3,4))
-
-    cv_tet_bdy_permutations(10)%p=reshape((/&
-         4, 2, 2, &
-         4, 0, 4, &
          3, 3, 3, &
-         2, 2, 4/),(/3,4/))  !4
-
-    allocate(cv_tet_bdy_permutations(11)%p(3,4))
-
-    cv_tet_bdy_permutations(11)%p=reshape((/&
-         2, 2, 4, &
          4, 0, 4, &
          1, 1, 5, &
          2, 0, 6/),(/3,4/))  !4
 
-    allocate(cv_tet_bdy_permutations(12)%p(3,4))
+    allocate(cv_tet_bdy_permutations(10)%p(3,4))
 
-    cv_tet_bdy_permutations(12)%p=reshape((/&
+    cv_tet_bdy_permutations(10)%p=reshape((/&
          1, 5, 1, &
          0, 6, 2, &
-         2, 4, 2, &
+         3, 3, 3, &
          0, 4, 4/),(/3,4/))  !5
 
-    allocate(cv_tet_bdy_permutations(13)%p(3,4))
+    allocate(cv_tet_bdy_permutations(11)%p(3,4))
 
-    cv_tet_bdy_permutations(13)%p=reshape((/&
-         2, 4, 2, &
-         0, 4, 4, &
+    cv_tet_bdy_permutations(11)%p=reshape((/&
          3, 3, 3, &
-         2, 2, 4/),(/3,4/))  !5
-
-    allocate(cv_tet_bdy_permutations(14)%p(3,4))
-
-    cv_tet_bdy_permutations(14)%p=reshape((/&
-         2, 2, 4, &
          0, 4, 4, &
          1, 1, 5, &
          0, 2, 6/),(/3,4/))  !5
 
-    allocate(cv_tet_bdy_permutations(15)%p(3,4))
+    allocate(cv_tet_bdy_permutations(12)%p(3,4))
 
-    cv_tet_bdy_permutations(15)%p=reshape((/&
+    cv_tet_bdy_permutations(12)%p=reshape((/&
          0, 0, 7, &
          2, 0, 6, &
          0, 2, 6, &
