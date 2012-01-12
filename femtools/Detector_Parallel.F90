@@ -41,6 +41,7 @@ module detector_parallel
   use pickers
   use Profiler
   use diagnostic_variables, only: initialise_constant_diagnostics, field_tag
+  use ieee_arithmetic, only: cget_nan
 
   implicit none
   
@@ -194,12 +195,15 @@ contains
 
   end subroutine create_single_detector
 
-  subroutine write_detector_header(detector_list)
-    ! Create simple position-only agent I/O header 
+  subroutine write_detector_header(state, detector_list)
+    ! Create detector I/O header 
+    type(state_type), dimension(:), intent(in) :: state
     type(detector_linked_list), intent(inout) :: detector_list
 
     character(len=OPTION_PATH_LEN) :: buffer
-    integer :: i, dim, column, ierror
+    integer :: i, dim, column, phase, ierror
+
+    ewrite(2,*) "Writing header file for detector list: ", trim(detector_list%name)
 
     call get_option("/geometry/dimension",dim)
 
@@ -213,30 +217,56 @@ contains
        column=1
 
        ! First the detector ID...
-       buffer=field_tag(name="Detector", column=column, statistic="id_number")
+       buffer=field_tag(name="ID_Number", column=column, statistic="Detector")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
        ! ...then the timestep
-       buffer=field_tag(name="Detector", column=column, statistic="timestep")
+       buffer=field_tag(name="Timestep", column=column, statistic="Detector")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
        ! Write ElapsedTime
-       buffer=field_tag(name="Detector", column=column, statistic="ElapsedTime")
+       buffer=field_tag(name="ElapsedTime", column=column, statistic="Detector")
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+1
 
        ! Write position field 
-       buffer=field_tag(name="Detector", column=column, statistic="position",components=dim)
+       buffer=field_tag(name="position", column=column, statistic="Detector",components=dim)
        write(detector_list%output_unit, '(a)') trim(buffer)
        column=column+dim
+
+       phaseloop: do phase=1,size(state)
+          ! Write detector scalar fields
+          if (allocated(detector_list%sfield_list)) then
+             if (size(detector_list%sfield_list(phase)%ptr)>0) then
+                do i=1, size(detector_list%sfield_list(phase)%ptr)
+                   buffer=field_tag(name=detector_list%sfield_list(phase)%ptr(i), column=column, &
+                       statistic="Detector", material_phase_name=state(phase)%name)
+                   write(detector_list%output_unit, '(a)') trim(buffer)
+                   column=column+1
+                end do
+             end if
+          end if
+
+          ! Write detector vector fields
+          if (allocated(detector_list%vfield_list)) then
+             if (size(detector_list%vfield_list(phase)%ptr)>0) then
+                do i=1, size(detector_list%vfield_list(phase)%ptr)
+                   buffer=field_tag(name=detector_list%vfield_list(phase)%ptr(i), column=column, &
+                       statistic="Detector", material_phase_name=state(phase)%name, components=dim)
+                   write(detector_list%output_unit, '(a)') trim(buffer)
+                   column=column+dim
+                end do
+             end if
+          end if
+       end do phaseloop
 
        ! Write biology variables
        if (allocated(detector_list%biovars)) then
           do i=1,size(detector_list%biovars)
              if (detector_list%biovars(i)%write_to_file) then
-                buffer=field_tag(name="Detector", column=column, statistic=trim(detector_list%biovars(i)%name))
+                buffer=field_tag(name=trim(detector_list%biovars(i)%name), column=column, statistic="Detector")
                 write(detector_list%output_unit, '(a)') trim(buffer)
                 column=column+1
              end if
@@ -263,7 +293,7 @@ contains
     end if
 
     ! If we're using binary output (MPI) we (re-)open .detectors.dat
-    ! In parallel this has to happen on all procs
+    ! In parallel this has to happen on all procs!
     if (detector_list%binary_output) then   
 
        ! bit of hack to delete any existing .detectors.dat file
@@ -301,26 +331,29 @@ contains
     integer, intent(in) :: timestep
 
     integer, dimension(:), allocatable :: ndets_owned
-    integer :: i, ncolumns, proc_offset, current_det, procno, realsize, ierror
+    integer :: i, ncolumns, phase, dim, proc_offset, current_det, procno, realsize, ierror
     integer(KIND = MPI_OFFSET_KIND) :: location_to_write
-    real :: id_number_real!value
-    !real, dimension(:), allocatable :: vvalue
-    !type(scalar_field), pointer :: sfield
+    real :: id_number_real, value
+    real, dimension(:), allocatable :: vvalue
+    type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(detector_type), pointer :: detector
 
-    call profiler_tic(trim(detector_list%name)//"::write_agents")
-
-    ewrite(2,*) "In write_detectors_mpi for detector_list", detector_list%id
+    ewrite(2,*) "In write_detectors_mpi for detector_list: ", trim(detector_list%name)
 
     procno = getprocno()
     call mpi_type_extent(getpreal(), realsize, ierror)
     assert(ierror == MPI_SUCCESS)
 
-    vfield => extract_vector_field(state, "Coordinate")
+    call get_option("/geometry/dimension",dim)
 
     ! Total number of columns = id_number(1) + time data(2) + position(dim)
-    ncolumns = 3 + vfield%dim
+    ncolumns = 3 + dim
+    ! Scalar detector fields
+    ncolumns = ncolumns + detector_list%num_sfields
+    ! Vector detector fields
+    ncolumns = ncolumns + detector_list%num_vfields * dim
+
     ! Biology columns: no. diagnostic vars
     if (allocated(detector_list%biovars)) then
        do i=1, size(detector_list%biovars)
@@ -373,6 +406,60 @@ contains
        assert(ierror == MPI_SUCCESS)
        location_to_write = location_to_write + size(detector%position) * realsize
 
+       allocate(vvalue(dim))
+       phaseloop: do phase=1,size(state)
+          ! Write detector scalar fields
+          if (allocated(detector_list%sfield_list)) then
+             if (size(detector_list%sfield_list(phase)%ptr)>0) then
+                do i=1, size(detector_list%sfield_list(phase)%ptr)
+                   sfield => extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
+
+                   if (detector%element<0) then
+                      if (detector_list%write_nan_outside) then
+                         call cget_nan(value)
+                      else
+                         FLExit("Trying to write detector that is outside of domain.")
+                      end if
+                   else
+                      value = detector_value(sfield, detector)
+                   end if
+
+                   call mpi_file_write_at(detector_list%mpi_fh, location_to_write, value, &
+                          1, getpreal(), MPI_STATUS_IGNORE, ierror)
+                   assert(ierror == MPI_SUCCESS)
+                   location_to_write = location_to_write + realsize
+                end do
+             end if
+          end if
+
+          ! Write detector vector fields
+          if (allocated(detector_list%vfield_list)) then
+             if (size(detector_list%vfield_list(phase)%ptr)>0) then
+                do i=1, size(detector_list%vfield_list(phase)%ptr)
+                   vfield => extract_vector_field(state(phase), detector_list%vfield_list(phase)%ptr(i))
+
+                   if (detector%element<0) then
+                      if (detector_list%write_nan_outside) then
+                         call cget_nan(value)
+                         vvalue(:) = value
+                      else
+                         FLExit("Trying to write detector that is outside of domain.")
+                      end if
+                   else
+                      vvalue = detector_value(vfield, detector)
+                   end if
+
+                   call mpi_file_write_at(detector_list%mpi_fh, location_to_write, vvalue, &
+                          vfield%dim, getpreal(), MPI_STATUS_IGNORE, ierror)
+                   assert(ierror == MPI_SUCCESS)
+                   location_to_write = location_to_write + realsize * vfield%dim
+                end do
+             end if
+          end if
+
+       end do phaseloop
+       deallocate(vvalue)
+
        ! Output biology variables
        if (allocated(detector_list%biovars)) then
           do i=1,size(detector_list%biovars)
@@ -395,8 +482,6 @@ contains
        proc_offset = proc_offset + ndets_owned(i)
     end do
     detector_list%mpi_write_offset = detector_list%mpi_write_offset + proc_offset * ncolumns * realsize
-
-    call profiler_toc(trim(detector_list%name)//"::write_agents")
 
   end subroutine write_detectors_mpi
 

@@ -331,7 +331,7 @@ contains
              end if
           end if
 
-          call write_detector_header(agent_arrays(array))
+          call write_detector_header(state, agent_arrays(array))
 
           ! Write initial state of agents to file
           call write_detectors_mpi(state, agent_arrays(array), current_time, dt, 0)

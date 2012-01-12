@@ -1698,13 +1698,13 @@ contains
 
      end do phaseloop
 
-    ! Write the header information into the .detectors file
-    call write_detector_header(default_stat%detector_list)
-
     !Get options for lagrangian detector movement
     if (check_any_lagrangian(default_stat%detector_list)) then
        call read_detector_move_options(default_stat%detector_list, "/io/detectors")
     end if
+
+    ! Write the header information into the .detectors file
+    call write_detector_header(state, default_stat%detector_list)
 
     ! And finally some sanity checks
     totaldet_global=default_stat%detector_list%length
@@ -2589,172 +2589,6 @@ contains
     end function reals_format
 
   end subroutine write_detectors
-
-  subroutine write_mpi_out(state,detector_list,time,dt)
-    !!< Writes detector information (position, value of scalar and vector fields at that position, etc.) into detectors file using MPI output 
-    ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.       
-
-    type(state_type), dimension(:), intent(in) :: state
-    type(detector_linked_list), intent(inout) :: detector_list
-    real, intent(in) :: time, dt
-
-    integer :: i, j, phase, ierror, number_of_scalar_det_fields, realsize, dim, procno
-    integer(KIND = MPI_OFFSET_KIND) :: location_to_write, offset
-    integer :: number_of_vector_det_fields, number_total_columns
-
-    real :: value
-    real, dimension(:), allocatable :: vvalue
-    type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
-    type(detector_type), pointer :: node
-
-    ewrite(2, *) "In write_mpi_out"
-
-    detector_list%mpi_write_count = detector_list%mpi_write_count + 1
-    ewrite(2, *) "Writing detector output ", detector_list%mpi_write_count
-    
-    procno = getprocno()
-
-    ewrite(2, *) "Number of detector scalar fields = ", detector_list%num_sfields
-    ewrite(2, *) "Number of detector vector fields = ", detector_list%num_vfields
-
-    call mpi_type_extent(getpreal(), realsize, ierror)
-    assert(ierror == MPI_SUCCESS)
-
-    vfield => extract_vector_field(state, "Coordinate")
-    dim = vfield%dim
-                           ! Time data
-    number_total_columns = 2 + &
-                           ! Detector coordinates
-                         & detector_list%total_num_det * dim + &
-                           ! Scalar detector data
-                         & detector_list%total_num_det * detector_list%num_sfields + &
-                           ! Vector detector data
-                         & detector_list%total_num_det * detector_list%num_vfields * dim
-
-    location_to_write = (detector_list%mpi_write_count - 1) * number_total_columns * realsize
-
-    if(procno == 1) then
-      ! Output time data
-      call mpi_file_write_at(detector_list%mpi_fh, location_to_write, time, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
-      assert(ierror == MPI_SUCCESS)
-        
-      call mpi_file_write_at(detector_list%mpi_fh, location_to_write + realsize, dt, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
-      assert(ierror == MPI_SUCCESS)
-    end if
-    location_to_write = location_to_write + 2 * realsize
-
-    node => detector_list%first
-    position_loop: do i = 1, detector_list%length
-      ! Output detector coordinates
-      assert(size(node%position) == dim)  
-    
-      offset = location_to_write + (node%id_number - 1) * dim * realsize
-
-      call mpi_file_write_at(detector_list%mpi_fh, offset, node%position, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
-      assert(ierror == MPI_SUCCESS)
-      node => node%next
-    end do position_loop
-    assert(.not. associated(node))
-    location_to_write = location_to_write + detector_list%total_num_det * dim * realsize
-
-    allocate(vvalue(dim))
-    state_loop: do phase = 1, size(state)
-
-      if (allocated(detector_list%sfield_list)) then
-        if (size(detector_list%sfield_list(phase)%ptr)>0) then
-        scalar_loop: do i = 1, size(detector_list%sfield_list(phase)%ptr)
-          ! Output statistics for each scalar field        
-          sfield => extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
-
-          node => detector_list%first
-          scalar_node_loop: do j = 1, detector_list%length
-            if (node%element<0) then
-               if (detector_list%write_nan_outside) then
-                  call cget_nan(value)
-               else
-                  FLExit("Trying to write detector that is outside of domain.")
-               end if
-            else
-               value = detector_value(sfield, node)
-            end if
-
-            offset = location_to_write + (detector_list%total_num_det * (i - 1) + (node%id_number - 1)) * realsize
-
-            call mpi_file_write_at(detector_list%mpi_fh, offset, value, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
-            assert(ierror == MPI_SUCCESS)
-            node => node%next
-          end do scalar_node_loop
-          assert(.not. associated(node))
-        end do scalar_loop
-        end if
-      end if
-      location_to_write = location_to_write + detector_list%total_num_det *detector_list%num_sfields * realsize
-      
-      if (allocated(detector_list%vfield_list)) then
-        if (size(detector_list%vfield_list(phase)%ptr)>0) then
-        vector_loop: do i = 1, size(detector_list%vfield_list(phase)%ptr)
-          ! Output statistics for each vector field     
-          vfield => extract_vector_field(state(phase), detector_list%vfield_list(phase)%ptr(i))
-
-          ! We currently don't have enough information for mixed dimension
-          ! vector fields (see below)
-          assert(vfield%dim == dim)
-
-          node => detector_list%first
-          vector_node_loop: do j = 1, detector_list%length
-            if (node%element<0) then
-               if (detector_list%write_nan_outside) then
-                  call cget_nan(value)
-                  vvalue(:) = value
-               else
-                  FLExit("Trying to write detector that is outside of domain.")
-               end if
-            else
-               vvalue = detector_value(vfield, node)
-            end if
-
-            ! Currently have to assume single dimension vector fields in
-            ! order to compute the offset
-            offset = location_to_write + (detector_list%total_num_det * (i - 1) + (node%id_number - 1)) * dim * realsize
-
-            call mpi_file_write_at(detector_list%mpi_fh, offset, vvalue, dim, getpreal(), MPI_STATUS_IGNORE, ierror)
-            assert(ierror == MPI_SUCCESS)
-            node => node%next
-          end do vector_node_loop
-          assert(.not. associated(node))
-        end do vector_loop
-        end if
-      end if
-      location_to_write = location_to_write + detector_list%total_num_det * detector_list%num_vfields * dim * realsize
-        
-    end do state_loop
-    deallocate(vvalue)
-
-    call mpi_file_sync(detector_list%mpi_fh, ierror)
-    assert(ierror == MPI_SUCCESS)
-
-!    ! The following was used when debugging to check some of the data written
-!    ! into the file
-!    ! Left here in case someone would like to use the mpi_file_read_at for
-!    ! debugging or checking
-!   
-!    number_total_columns = 2 + total_num_det * dim
-!    allocate(buffer(number_total_columns))
-!
-!    call mpi_file_read_at(fh, 0, buffer, size(buffer), getpreal(), status, ierror)
-!    call mpi_get_count(status, getpreal(), count,  ierror)
-!    assert(ierror == MPI_SUCCESS)
-!
-!    call mpi_barrier(MPI_COMM_FEMTOOLS, ierror)
-!    assert(ierror == MPI_SUCCESS)
-!    
-!    deallocate(buffer)
-!    ewrite(2, "(a,i0,a)") "Read ", count, " reals"
-
-    ewrite(2, *) "Exiting write_mpi_out"
-   
-  end subroutine write_mpi_out
 
   subroutine list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
 !! This subroutine creates a hash table called ihash_sparsity and a csr_sparsity matrix called element_detector_list that we use to find out 

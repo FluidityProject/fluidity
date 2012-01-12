@@ -26,7 +26,7 @@ nutrients_split = stat_parser("lagrangian_biology.stat")['Water']['AgentAParticu
     <variable name="final_agent_sizes_split" language="python">
 from fluidity_tools import stat_parser
 from numpy import array
-s = stat_parser("AgentASplit.agents")
+s = stat_parser("AgentASplit.detectors")
 final_agent_sizes_split = array([ s[agent]['Size'][0][-1] for agent in s.keys() ])
     </variable>
     <variable name="agent_count_merge" language="python">
@@ -44,7 +44,7 @@ nutrients_merge = stat_parser("lagrangian_biology.stat")['Water']['AgentAParticu
     <variable name="final_agent_sizes_merge" language="python">
 from fluidity_tools import stat_parser
 from numpy import array, isnan
-s = stat_parser("AgentAMerge.agents")
+s = stat_parser("AgentAMerge.detectors")
 final_agent_sizes_merge = []
 for agent in s.keys():
   if not isnan(s[agent]['Size'][0][-1]):
@@ -54,7 +54,7 @@ final_agent_sizes_merge=array(final_agent_sizes_merge)
     <variable name="final_nan_entries_merge" language="python">
 from fluidity_tools import stat_parser
 from numpy import array, isnan
-s = stat_parser("AgentAMerge.agents")
+s = stat_parser("AgentAMerge.detectors")
 final_nan_entries_merge = 0
 for agent in s.keys():
   if isnan(s[agent]['Size'][0][-1]):

@@ -416,30 +416,46 @@ for example:
         columns = numpy.array(columns)
               
       if filename.endswith('detectors'):
-        # In .detector files each row encodes one detector
-        # Every detector row contains the timestep number and a unique ID
-        # We re-organise the output to be:
-        #   p=stat_parser(filename)
-        #   p[id]['position'][dim][t] = value
+        """ In .detector files each row encodes one detector
+            Every detector row contains the timestep number and a unique ID
 
-        stat_column_map = {}
-        stat_component_map = {}
-        stats = []
+            We re-organise the output to be:
+              p=stat_parser(filename)
+              p[id]['position'][dim][t] = value
+
+            or, for classic detectors:
+              p['Name']['Material_Phase']['Field'][dim][t] = value
+
+            Note: dim now starts counting from 0, 
+                  to enable output of the initial agent state.
+                  Classic detectors don't output this at the moment, 
+                  so the first entry in every field will be NaN.
+        """ 
+
+        # First we record all header information in mapping dicts
+        field_column_map = {}
+        field_component_map = {}
+        field_mphase_map = {}
+        fields = []
         for field in parsed.getElementsByTagName("field"):
           name=field.getAttribute("name")
           column=field.getAttribute("column")
           statistic=field.getAttribute("statistic")
           components=field.getAttribute("components")
+          material_phase=field.getAttribute("material_phase")
 
-          if name=='Detector':
-            stat_column_map[statistic] = int(column) - 1
-            if statistic != 'timestep' and statistic != 'id_number':
-              stats.append(statistic)
+          if statistic=='Detector':
+            field_column_map[name] = int(column) - 1
+            if name != 'Timestep' and name != 'ID_Number':
+              fields.append(name)
 
             if components:
-              stat_component_map[statistic] = int(components)
+              field_component_map[name] = int(components)
             else:
-              stat_component_map[statistic] = 1
+              field_component_map[name] = 1
+
+            if material_phase:
+              field_mphase_map[name] = material_phase
 
         # Record ID->name mappings
         detector_names = {}
@@ -448,29 +464,40 @@ for example:
           id_number=int(mapping.getAttribute("id_number"))
           detector_names[id_number] = name
 
-        # find maximum timestep
-        max_t = int(columns[stat_column_map['timestep']].max()) + 1
+        # Find maximum timestep
+        max_t = int(columns[field_column_map['Timestep']].max()) + 1
 
-        # traverse the detector rows 
+        # Traverse the detector rows 
         for row in columns.T:
-          key = int(row[stat_column_map['id_number']])
+          det_id = int(row[field_column_map['ID_Number']])
 
-          # if we have explicit names use them as key
-          if detector_names.has_key(key):
-            key = detector_names[key]
+          # If we have explicit names use them as key
+          if detector_names.has_key(det_id):
+            det_id = detector_names[det_id]
 
-          # initialise keys
-          if not self.has_key(key):
-            self[key]={}
-            for stat in stats:
-              self[key][stat] = numpy.empty((stat_component_map[stat],max_t))
-              self[key][stat].fill(float('NaN'))
+          # Initialise detector entry
+          if not self.has_key(det_id):
+            self[det_id]={}
 
-          # now copy the values over
-          t = int(row[stat_column_map['timestep']])
-          for stat in stats:
-            for c in range(0,stat_component_map[stat]):
-              self[key][stat][c][t] = row[stat_column_map[stat]+c]
+          # Now loop over all entries in the row
+          t = int(row[field_column_map['Timestep']])
+          for field in fields:
+            current_dict = self[det_id]
+
+            # If we have a material_phase add it
+            if field_mphase_map.has_key(field):
+              if not current_dict.has_key(material_phase):
+                current_dict[material_phase]={}
+              current_dict=current_dict[material_phase]
+
+            # Initialise data arrays
+            if not current_dict.has_key(field):
+              current_dict[field] = numpy.empty((field_component_map[field],max_t))
+              current_dict[field].fill(float('NaN'))
+
+            # Copy the values over
+            for c in range(0,field_component_map[field]):
+              current_dict[field][c][t] = row[field_column_map[field]+c]
 
       else:
         for field in parsed.getElementsByTagName("field"):
