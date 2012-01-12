@@ -35,6 +35,7 @@ module mp_prototype
   
   ! Transition modules
   use copy_outof_into_state
+  use mapping_for_ocvfem
   
   ! New modules
   use fldebug
@@ -254,7 +255,7 @@ module mp_prototype
       allocate( nwold( u_pha_nonods ))
       allocate( denold( cv_pha_nonods ))
       allocate( uden( cv_pha_nonods ))
-      allocate( velocity_dg(cv_nonods,nphase,ndim))
+      allocate( velocity_dg(cv_nloc*totele,nphase,ndim))
       allocate( udenold( cv_pha_nonods ))
       allocate( deriv( cv_pha_nonods ))
       allocate( saturaold( cv_pha_nonods ))
@@ -402,7 +403,7 @@ module mp_prototype
               suf_w_bc_rob1, suf_w_bc_rob2, suf_comp_bc_rob1, suf_comp_bc_rob2, &
               suf_t_bc_rob1, suf_t_bc_rob2, suf_vol_bc_rob1, suf_vol_bc_rob2, &
                                 ! Positions and grid velocities
-              x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg,velocity_dg, &
+              x, y, z, xu, yu, zu, nu, nv, nw, ug, vg, wg, &
                                 ! Absorption and source terms and coefficients
               u_abs_stab, Mobility, &
               u_absorb, v_absorb, comp_absorb, &
@@ -432,6 +433,17 @@ module mp_prototype
               have_temperature_fields, cv_one, nits_flux_lim_t, t_use_theta_flux, t_get_theta_flux) 
 
       ewrite(3,*) 'Leaving multiphase_prototype'
+       if(.false.) then 
+          call overlapping_to_quadratic_dg( &
+               cv_nonods, x_nonods,u_nonods,  totele, &
+               cv_ele_type,  &
+               nphase,  &
+               cv_nloc, u_nloc, x_nloc, &
+               cv_ndgln,  u_ndgln, x_ndgln,&
+               cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
+               x, y, z, &
+               u, v, w, uold, vold, wold,velocity_dg,ndim,p_ele_type )
+       end if
 
     end subroutine multiphase_prototype
 

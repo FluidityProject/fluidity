@@ -34,7 +34,6 @@ module mapping_for_ocvfem
  use fldebug
  use shape_functions
  use vector_tools
- use shape_functions_Linear_Quadratic
 
 
 
@@ -58,7 +57,7 @@ module mapping_for_ocvfem
        cv_ndgln,  u_ndgln, x_ndgln,&
        cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
        x, y, z, &
-       u, v, w, uold, vold, wold,velocity_dg, ndim )
+       u, v, w, uold, vold, wold,velocity_dg, ndim, p_ele_type )
 
     use shape_functions
     use matrix_operations
@@ -69,7 +68,7 @@ module mapping_for_ocvfem
     ! inputs/outputs
     
     
-    integer, intent( in ) :: cv_nonods, u_nonods, &
+    integer :: cv_nonods, u_nonods, &
          totele, x_nonods,&
          cv_ele_type, x_nloc,&
          nphase, cv_nloc, u_nloc, &
@@ -82,7 +81,7 @@ module mapping_for_ocvfem
     integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln 
     real, dimension( x_nonods ), intent( in ) :: x, y, z
     real, dimension( u_nonods * nphase ), intent( in ) :: u, v, w, uold, vold, wold
-    real, dimension(cv_nonods,nphase,ndim), intent(inout) :: velocity_dg
+    real, dimension(totele*cv_nloc,nphase,ndim), intent(inout) :: velocity_dg
 
     ! local variables - allocatable arrays
     integer, dimension( : ), allocatable :: findgpts, &
@@ -94,7 +93,7 @@ module mapping_for_ocvfem
          cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short,  &
          ufen, ufenlx, ufenly, ufenlz, scvfen, scvfenslx, scvfensly, &
          scvfenlx, scvfenly, scvfenlz, matloc,n, wdold,wd,vdold,vd, ud, udold,&
-         sufen, sufenslx, sufensly, sufenlx, sufenly,sufenlz, nlx, nly, nlz, nx,ny,nz
+         sufen, sufenslx, sufensly, sufenlx, sufenly,sufenlz, nlx, nly, nlz, nx,ny,nz, matloc_cv
     real, dimension( : , : ), allocatable :: sbcvfen, sbcvfenslx, sbcvfensly, &
          sbcvfenlx, sbcvfenly, sbcvfenlz, sbufen, sbufenslx, sbufensly, &
          sbufenlx, sbufenly, sbufenlz
@@ -106,13 +105,14 @@ module mapping_for_ocvfem
          scvdetwei, sra, ugi_coef_ele, vgi_coef_ele, wgi_coef_ele, &
          ugi_coef_ele2, vgi_coef_ele2, wgi_coef_ele2,  &
          sum_cv, one_pore, sele_overlap_scale, t2max, t2min, t2oldmax, &
-         t2oldmin, rhsloc_u, rhsloc_v, rhsloc_w, rhsloc_uold, rhsloc_vold, rhsloc_wold, solloc
+         t2oldmin, rhsloc_u, rhsloc_v, rhsloc_w, rhsloc_uold, rhsloc_vold, rhsloc_wold, solloc, &
+         rhsloc_uu, rhsloc_uv, rhsloc_uw
     integer, dimension( : ), allocatable :: tmax_nod, tmin_nod, toldmax_nod, &
          toldmin_nod, denmax_nod, denmin_nod, denoldmax_nod, denoldmin_nod, &
          t2max_nod, t2min_nod, t2oldmax_nod, t2oldmin_nod
     real, dimension( : , :, : ), allocatable :: dtx_ele,dty_ele,dtz_ele,  &
          dtoldx_ele,dtoldy_ele,dtoldz_ele
-    real, dimension( : ), allocatable :: up_wind_nod, detwei, ra
+    real, dimension( : ), allocatable :: up_wind_nod, detwei, ra, x_quad
 
     logical, dimension( : ), allocatable :: x_share,log_on_bound
     logical, dimension( :, : ), allocatable :: cv_on_face,u_on_face
@@ -128,7 +128,7 @@ module mapping_for_ocvfem
          cv_nodi, cv_nodi_ipha, cv_nodi_jpha, u_nodk, timopt, &
          jcount_ipha, imid_ipha, &
          nface, x_nodi, u_iloc, u_nod, &
-         cv_inod, mat_nodi, face_its, nface_its, cv_gi, nloc
+         cv_inod, mat_nodi, face_its, nface_its, cv_gi, nloc, u_jloc
     !        ===>  reals  <===
     real :: ndotq, ndotqold, nn, volume, &
          income, incomeold, hdc, fvt, fvtold, fvt2, fvt2old, &
@@ -148,13 +148,16 @@ module mapping_for_ocvfem
          normalise, sum2one, get_gtheta
 
 
+    
     call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
          cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
          
          
+ !   cv_ngi = cv_ngi_short
     !cv_ngi_short = cv_ngi
-    ewrite(2,*) ' got FE info', cv_ngi, cv_ngi_short, cv_nloc, u_nloc
+    print*, ' got FE info', cv_ngi, cv_ngi_short, cv_nloc, u_nloc
     
+
 
     ! allocate memory for the control volume surface shape functions, etc.
     allocate( jcount_kloc(  u_nloc ))
@@ -204,7 +207,7 @@ module mapping_for_ocvfem
     allocate( sufensly( u_nloc, scvngi ))
     allocate( sufenlx( u_nloc, scvngi ))
     allocate( sufenly( u_nloc, scvngi ))
-    allocate( sufenlz( u_nloc, scvngi ))
+    allocate( sufenlz( u_nloc, scvngi ), x_quad(cv_nloc*totele))
 
     allocate( scvdetwei( scvngi ))
     allocate( sra( scvngi ))
@@ -252,7 +255,7 @@ module mapping_for_ocvfem
 ! get the shape functions...
     call cv_fem_shape_funs( &
                                 ! volume shape functions...
-         ndim, p_ele_type,  & 
+         ndim,p_ele_type,  & 
          cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn, cvn_short, &
          cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
          cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
@@ -272,7 +275,33 @@ module mapping_for_ocvfem
          findgpts, colgpts, ncolgpts, &
          sele_overlap_scale ) 
 
+    allocate(matloc(cv_nloc,u_nloc))
+    allocate(matloc_cv(cv_nloc,cv_nloc))
+    allocate(rhsloc_u(cv_nloc))
+    allocate(rhsloc_v(cv_nloc))
+    allocate(rhsloc_w(cv_nloc))
+    allocate(rhsloc_uu(u_nloc))
+    allocate(rhsloc_uv(u_nloc))
+    allocate(rhsloc_uw(u_nloc))
+    allocate(rhsloc_uold(cv_nloc))
+    allocate(rhsloc_vold(cv_nloc))
+    allocate(rhsloc_wold(cv_nloc))
 
+    allocate(ud(cv_ngi,nphase))
+    allocate(vd(cv_ngi,nphase))
+    allocate(wd(cv_ngi,nphase))
+    allocate(udold(cv_ngi,nphase))
+    allocate(vdold(cv_ngi,nphase))
+    allocate(wdold(cv_ngi,nphase))
+    
+    allocate(nx(cv_nloc, cv_ngi))
+    allocate(ny(cv_nloc, cv_ngi))
+    allocate(nz(cv_nloc, cv_ngi))
+    allocate(n(cv_nloc, cv_ngi))
+    allocate(detwei(cv_ngi))
+    allocate(ra(cv_ngi))
+
+    velocity_dg = 0.0
 
 
     loop_elements: do ele = 1, totele ! volume integral
@@ -286,11 +315,10 @@ module mapping_for_ocvfem
        rhsloc_wold=0.0
 ! taken from proj_cv_to_fem_4: 
        ! calculate detwei,ra,nx,ny,nz for element ele
+
        call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, cv_nloc, cv_ngi, &
-            n, nlx, nly, nlz, cvweight, detwei, ra, volume, d1, d3, dcyl, &
+            cvfen, cvfenlx, cvfenly, cvfenlz, cvweight, detwei, ra, volume, d1, d3, dcyl, &
             nx, ny, nz ) 
-
-
 ! taken from assemb_force_cty
        ud = 0.0
        vd = 0.0
@@ -298,6 +326,8 @@ module mapping_for_ocvfem
        udold = 0.0
        vdold = 0.0
        wdold = 0.0
+       
+       matloc = 0.0
        do u_iloc = 1, u_nloc
           !          write(357,*) 'ele, u_nonods, iloc:',ele, u_nonods, iloc
           u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
@@ -312,33 +342,43 @@ module mapping_for_ocvfem
                 wdold( gi, iphase ) = wdold( gi, iphase ) + ufen( u_iloc, gi ) * wold( u_nod_pha ) 
              end do
           end do
+
        end do
 
+!      print*, sum(ud), sum(ufen), sum(u)
 ! taken from proj_cv_to_fem_4: 
+
+       matloc_cv = 0.0
        loop_cv_iloc: do cv_iloc = 1, cv_nloc
-
-          cv_nodi = cv_ndgln(( ele - 1 ) * cv_nloc + cv_iloc )
-          !    write(357,*)'ele,cv_nodi,cv_iloc:',ele,cv_nodi,cv_iloc, x(cv_nodi)
-
           loop_cv_jloc: do cv_jloc = 1, cv_nloc
-
-             cv_nodj = cv_ndgln(( ele - 1 ) * cv_nloc + cv_jloc )
              nn = 0.0
              do cv_gi = 1, cv_ngi
-                nn = nn + n( cv_iloc, cv_gi )   * n(   cv_jloc, cv_gi ) * detwei( cv_gi )
+                nn = nn + cvfen( cv_iloc, cv_gi )   * cvfen(   cv_jloc, cv_gi ) * detwei( cv_gi )
              end do
-             matloc( cv_iloc,cv_jloc ) = matloc( cv_iloc,cv_jloc ) + nn
+             matloc_cv( cv_iloc,cv_jloc ) = matloc_cv( cv_iloc,cv_jloc ) + nn
 
           end do loop_cv_jloc
 
 
        end do loop_cv_iloc
-! solver here...
-        call invert(matloc)
+       
+       matloc = 0.0
 
-         u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
+       do cv_iloc = 1, cv_nloc
+          do cv_jloc = 1, u_nloc
+             nn = 0.0
+             do cv_gi = 1, cv_ngi
+                nn = nn + cvfen( cv_iloc, cv_gi )   * ufen(   cv_jloc, cv_gi ) * detwei( cv_gi )
+             end do
+             matloc( cv_iloc,cv_jloc ) = matloc( cv_iloc,cv_jloc ) + nn
+          end do 
+       end do 
+       
+
+! solver here...
+        call invert(matloc_cv)
+
          do iphase=1,nphase
-             u_nod_pha=u_nod +(iphase-1)*u_nonods
              rhsloc_u = 0.0
              rhsloc_v = 0.0
              rhsloc_w = 0.0
@@ -347,32 +387,61 @@ module mapping_for_ocvfem
              rhsloc_wold = 0.0
              do cv_iloc = 1, cv_nloc
               do cv_gi = 1, cv_ngi
-                 rhsloc_u(cv_iloc)=rhsloc_u(cv_iloc)+  n( cv_iloc, cv_gi )* ud( gi, iphase ) * detwei( cv_gi )
-                 rhsloc_v(cv_iloc)=rhsloc_v(cv_iloc)+  n( cv_iloc, cv_gi )* vd( gi, iphase ) * detwei( cv_gi )
-                 rhsloc_w(cv_iloc)=rhsloc_w(cv_iloc)+  n( cv_iloc, cv_gi )* wd( gi, iphase ) * detwei( cv_gi )
-                 rhsloc_uold(cv_iloc)=rhsloc_uold(cv_iloc)+  n( cv_iloc, cv_gi )* udold( gi, iphase ) * detwei( cv_gi )
-                 rhsloc_vold(cv_iloc)=rhsloc_vold(cv_iloc)+  n( cv_iloc, cv_gi )* vdold( gi, iphase ) * detwei( cv_gi )
-                 rhsloc_wold(cv_iloc)=rhsloc_wold(cv_iloc)+  n( cv_iloc, cv_gi )* wdold( gi, iphase ) * detwei( cv_gi )
+                 rhsloc_u(cv_iloc)=rhsloc_u(cv_iloc)+  cvfen( cv_iloc, cv_gi )* ud( cv_gi, iphase ) * detwei( cv_gi )
+                 rhsloc_v(cv_iloc)=rhsloc_v(cv_iloc)+  cvfen( cv_iloc, cv_gi )* vd( cv_gi, iphase ) * detwei( cv_gi )
+                 rhsloc_w(cv_iloc)=rhsloc_w(cv_iloc)+  cvfen( cv_iloc, cv_gi )* wd( cv_gi, iphase ) * detwei( cv_gi )
+                 rhsloc_uold(cv_iloc)=rhsloc_uold(cv_iloc)+  cvfen( cv_iloc, cv_gi )* udold( cv_gi, iphase ) * detwei( cv_gi )
+                 rhsloc_vold(cv_iloc)=rhsloc_vold(cv_iloc)+  cvfen( cv_iloc, cv_gi )* vdold( cv_gi, iphase ) * detwei( cv_gi )
+                 rhsloc_wold(cv_iloc)=rhsloc_wold(cv_iloc)+  cvfen( cv_iloc, cv_gi )* wdold( cv_gi, iphase ) * detwei( cv_gi )
               end do
              end do
-             velocity_dg(cv_nonods+(ele-1)*cv_nloc:cv_nonods+(ele-1)*cv_nloc+cv_nloc,iphase,1) = matmul(matloc,rhsloc_u)
-            if(ndim>=2) then
-             velocity_dg(cv_nonods+(ele-1)*cv_nloc:cv_nonods+(ele-1)*cv_nloc+cv_nloc,iphase,2) = matmul(matloc,rhsloc_v)
-            endif
-            if(ndim>=3) then
-             velocity_dg(cv_nonods+(ele-1)*cv_nloc:cv_nonods+(ele-1)*cv_nloc+cv_nloc,iphase,3)  = matmul(matloc,rhsloc_w)
-            endif
-            ! uold_dg( (iphase-1)*cv_nonods+ (ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc) = matmul(matloc,rhsloc_uold)
-            if(ndim>=2) then
-            ! vold_dg( (iphase-1)*cv_nonods+(ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc ) = matmul(matloc,rhsloc_vold)
-            endif
-            if(ndim>=3) then
-           !  wold_dg( (iphase-1)*cv_nonods+(ele-1)*cv_nloc:(iphase-1)*cv_nonods+(ele-1)*cv_nloc+cv_nloc ) = matmul(matloc,rhsloc_wold)
-            endif
+             
+             do u_iloc = 1, u_nloc
+              u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
+              u_nod_pha=u_nod +(iphase-1)*u_nonods
+              rhsloc_uu(u_iloc) = u( u_nod_pha ) 
+              rhsloc_uv(u_iloc) = v( u_nod_pha ) 
+              rhsloc_uw(u_iloc) = w( u_nod_pha ) 
+             end do
+
+             rhsloc_u = matmul(matloc_cv,rhsloc_u)
+             rhsloc_v = matmul(matloc_cv,rhsloc_w)
+             rhsloc_w = matmul(matloc_cv,rhsloc_v)
+             
+             rhsloc_u = matmul(matloc_cv,matmul(matloc,rhsloc_uu))
+             
+             do cv_iloc = 1, cv_nloc
+               cv_nodi = (ele - 1)*cv_nloc + cv_iloc
+               velocity_dg(cv_nodi, iphase, 1) = rhsloc_u(cv_iloc) + velocity_dg(cv_nodi, iphase, 1)
+               if(ndim > 1) velocity_dg(cv_nodi, iphase, 2) = rhsloc_v(cv_iloc)+ velocity_dg(cv_nodi, iphase, 2)
+               if(ndim > 2) velocity_dg(cv_nodi, iphase, 3) = rhsloc_w(cv_iloc)+ velocity_dg(cv_nodi, iphase, 3)
+             end do
         end do
 
     end do loop_elements
 
+   open(102,file="velocity_projected_x_1", action='write')
+   open(103,file="velocity_projected_x_2", action='write')
+
+   
+!   print *, u_iloc
+   u_iloc= 0
+   
+   do ele = 1, totele ! volume integral
+    
+    do cv_iloc = 1, cv_nloc
+      
+      cv_nodi = cv_ndgln(( ele - 1 ) * cv_nloc + cv_iloc )
+      u_iloc = u_iloc + 1
+      write(102,*) x(cv_nodi), velocity_dg((ele-1)*cv_nloc+cv_iloc,1,1)
+      write(103,*) x(cv_nodi), velocity_dg((ele-1)*cv_nloc+cv_iloc,2,1)
+   end do
+   end do
+   
+ 
+!   print*, cv_nloc, u_nloc,x_nloc, totele, x_nonods, u_nonods, cv_nonods, u_iloc, size(x); pause
+ 
+   close(102); close(103)
 
  end subroutine overlapping_to_quadratic_dg
 
