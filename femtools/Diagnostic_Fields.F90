@@ -2554,26 +2554,179 @@ contains
       type(vector_field), intent(inout) :: bed_shear_stress
       type(vector_field), pointer :: U
       integer, dimension(:), allocatable:: faceglobalnodes
-      integer :: j,snloc,ele,sele,globnod
+      integer :: i,j,snloc,ele,sele,globnod
       real :: speed,density,drag_coefficient
+
+      type(mesh_type)                     :: surface_mesh
+      integer, dimension(:), pointer      :: surface_node_list
+      type(vector_field), pointer         :: X
+      type(tensor_field), pointer         :: visc
+      type(vector_field)                  :: bed_shear_stress_surface, masslump
+      integer                             :: sgi, sloc, i_ele, gi
+      type(element_type), pointer         :: shape, s_shape
+      real, dimension(:), allocatable     :: detwei, s_detwei, invmass, s_invmass
+      real, dimension(:,:), allocatable   :: s_normal, s_bed_shear_gi, bed_shear_stress_ele
+      real, dimension(:,:,:), allocatable :: s_visc_gi, grad_u_gi, grad_u, s_grad_u,&
+           & s_grad_u_gi, s_shear_gi, dshape
 !
-      call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/density", density)
-      call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/drag_coefficient", drag_coefficient)
       
-      call zero(bed_shear_stress)      
-      U => extract_vector_field(state, "Velocity")
-      snloc = face_loc(U, 1)
-      allocate( faceglobalnodes(1:snloc) )
-      do sele=1,surface_element_count(U)
-        ele = face_ele(U, sele)
-        faceglobalnodes = face_global_nodes(U, sele)
-        do j = 1,snloc
-           globnod = faceglobalnodes(j)
-           speed = norm2(node_val(U, globnod))
-           call set(bed_shear_stress, globnod, density*drag_coefficient*speed * node_val(U, globnod))
-        end do
-      end do
-      deallocate( faceglobalnodes )
+      ! assumes constant density
+      call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/density", density)
+
+      ! calculate using drag coefficient
+      if (have_option(trim(bed_shear_stress%option_path)//&
+           &"/diagnostic/calculation_method/drag_coefficient")) then
+
+         call get_option(trim(bed_shear_stress%option_path)//&
+              & "/diagnostic/calculation_method/drag_coefficient",&
+              & drag_coefficient)
+
+         call zero(bed_shear_stress)   
+
+         U => extract_vector_field(state, "Velocity")
+         snloc = face_loc(U, 1)
+         allocate( faceglobalnodes(1:snloc) )
+         do sele=1,surface_element_count(U)
+            ele = face_ele(U, sele)
+            faceglobalnodes = face_global_nodes(U, sele)
+            do j = 1,snloc
+               globnod = faceglobalnodes(j)
+               speed = norm2(node_val(U, globnod))
+               call set(bed_shear_stress, globnod, density*drag_coefficient*speed * node_val(U, globnod))
+            end do
+         end do
+         deallocate( faceglobalnodes )
+
+      ! calculate using velocity gradient
+      else if (have_option(trim(bed_shear_stress%option_path)//&
+           &"/diagnostic/calculation_method/velocity_gradient")) then
+
+         visc => extract_tensor_field(state, "Viscosity")
+         U    => extract_vector_field(state, "Velocity")
+
+         ! generate surface_mesh
+         call create_surface_mesh(surface_mesh, surface_node_list, & 
+              & mesh=bed_shear_stress%mesh, name='SurfaceMesh')
+         call allocate(bed_shear_stress_surface, surface_mesh, 'BedShearStressSurface')
+         call zero(bed_shear_stress_surface) 
+
+         if(continuity(surface_mesh)>=0) then
+            ! For continuous fields we need a global lumped mass. For dg we'll
+            ! do the mass inversion on a per face basis inside the element loop.
+            call allocate(masslump, surface_mesh, "SurfaceMassLump")
+            call zero(masslump)
+         end if
+
+         do i_ele = 1, ele_count(surface_mesh)
+
+            s_ele = face_ele(bed_shear_stress, i_ele)
+
+            ! Get ids, lists and shape functions
+            s_ngi   =  face_ngi(bed_shear_stress, i_ele)    ! no. of gauss points in surface element
+            s_loc   =  face_loc(bed_shear_stress, i_ele)    ! no. of nodes on surface element
+            shape   => ele_shape(bed_shear_stress, i_ele)   ! scalar shape functions in volume element
+            s_shape => face_shape(bed_shear_stress, i_ele)  ! scalar shape functions in surface element
+
+            ! Get shape fn gradients, element/face quadrature weights, and surface normal
+            call transform_to_physical( X, i_ele, shape, dshape=dshape, detwei=detwei )
+            call transform_facet_to_physical( X, i_ele, detwei_f=s_detwei, &
+                 & normal=s_normal )
+
+            ! allocate space for arrays
+            allocate(detwei(ele_ngi(bed_shear_stress,i_ele)))
+            allocate(s_detwei(face_ngi(bed_shear_stress,i_ele)))
+            allocate(invmass(ele_loc(bed_shear_stress,i_ele),ele_loc(bed_shear_stress,i_ele)))
+            allocate(s_invmass(face_loc(bed_shear_stress,i_ele),face_loc(bed_shear_stress,i_ele)))
+            allocate(s_normal(X%dim,face_ngi(bed_shear_stress,sele)))
+            allocate(s_bed_shear_gi())
+            allocate(bed_shear_stress_ele())
+            allocate(s_visc_gi())
+            allocate(grad_u_gi())
+            allocate(grad_u())
+            allocate(s_grad_u())
+            allocate(s_grad_u_gi())
+            allocate(s_shear_gi())
+            allocate(dshape())            
+
+            ! volume inverse mass
+            invmass = shape_shape(shape, shape, detwei)
+            call invert(invmass)
+
+            ! surface inverse mass
+            s_invmass = shape_shape(s_shape, s_shape, s_detwei)
+            call invert(s_invmass)
+
+            s_visc_gi = face_val_at_quad(visc, i_ele)
+            grad_u_gi = ele_grad_at_quad(U, i_ele, dshape) 
+
+            ! grad(U) at ele_nodes (dim,dim,loc) in detwei space
+            grad_u = shape_tensor_rhs(shape, grad_u_gi, detwei)  
+
+            do i=1,U%dim
+               do j=1,U%dim
+                  ! Convert to real space
+                  grad_u(i,j,:) = matmul(invmass, grad_u(i,j,:))
+
+                  ! Pick surface nodes (dim,dim,sloc)
+                  s_grad_u(i,j,:) = grad_u(i,j,face_local_nodes(bed_shear_stress, i_ele))
+
+                  ! Get values at surface quadrature (dim,dim,sgi)
+                  s_grad_u_gi(i,j,:) = matmul(s_grad_u(i,j,:), s_shape%n)
+               end do
+            end do
+
+            do gi = 1, sgi
+               ! multiply by viscosity (dim,sgi)
+               s_shear_gi(:,:,gi) = s_grad_u_gi(:,:,gi) * s_visc_gi(:,:,gi)
+
+               ! dot with surface normal (dim,sgi)
+               s_bed_shear_gi(:,gi) = matmul(s_shear_gi(:,:,gi), s_normal(:,gi))
+
+               ! Subtract normal component of velocity, leaving tangent components:
+               s_bed_shear_gi(:,gi) = s_bed_shear_gi(:,gi) - s_normal(:,gi) * &
+                    & dot_product(s_bed_shear_gi(:,gi),s_normal(:,gi))
+            end do
+
+            allocate(bed_shear_stress_ele(s_loc, X%dim))
+            bed_shear_stress_ele = shape_vector_rhs(s_shape, s_shear_gi_t, density * s_detwei)
+
+            if(continuity(surface_field(1))>=0) then
+               ! In the CG case we generate a global lumped mass
+               call addto(masslump, s_ele, &
+                    sum(shape_shape(s_shape, s_shape, s_detwei), 1))
+            else
+               ! In the DG case we will apply the inverse mass locally.
+               bed_shear_stress_ele = matmul(s_invmass, bed_shear_stress_ele)
+            end if
+
+            ! Add element contribution to bed_shear_stress_surface field
+            call addto(bed_shear_stress_surface, s_ele, bed_shear_stress_ele)
+            
+            deallocate(bed_shear_stress_ele)
+
+         end do
+
+         ! In the CG case we globally apply inverse mass
+         if(continuity(surface_mesh)>=0) then
+            where (masslump%val/=0.0)
+               masslump%val=1./masslump%val
+            end where
+            call scale(bed_shear_stress_surface, masslump)
+         end if
+
+         ! remap surface node values on to sigma field
+         do i = 1, node_count(surface_mesh)
+            call set(bed_shear_stress, surface_node_list(i),&
+                 & node_val(bed_shear_stress_surface, i))
+         end do
+
+         call deallocate(masslump, bed_shear_stress_surface)
+
+      else
+         FLAbort("Unknown bed shear stress calculation method")
+      end if
+         
+
    end subroutine calculate_bed_shear_stress
 
    subroutine calculate_max_bed_shear_stress(state, max_bed_shear_stress)
