@@ -101,12 +101,12 @@ contains
     ! Note: For multimaterial-multiphase simulations we normally pass the submaterials array to 
     ! diagnostic algorithms in order to compute bulk properties correctly. However, for Python 
     ! diagnostic algorithms where the user may wish to use fields from other phases, we need to 
-    ! pass in the whole states array.
+    ! pass in the whole state array.
     vfield => extract_vector_field(submaterials(submaterials_istate), "VelocityAbsorption", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
         if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm/name/vector_python_diagnostic")) then
-          call calculate_diagnostic_variable(states, istate, vfield)
+          call calculate_diagnostic_variable(state, istate, vfield)
         else
           call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
         end if
@@ -117,7 +117,7 @@ contains
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
         if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm/name/vector_python_diagnostic")) then
-          call calculate_diagnostic_variable(states, istate, vfield)
+          call calculate_diagnostic_variable(state, istate, vfield)
         else
           call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
         end if
@@ -129,7 +129,7 @@ contains
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
         if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm/name/tensor_python_diagnostic")) then
-          call calculate_diagnostic_variable(states, istate, tfield)
+          call calculate_diagnostic_variable(state, istate, tfield)
         else
           call calculate_diagnostic_variable(submaterials, submaterials_istate, tfield)
         end if
