@@ -85,7 +85,7 @@ module diagnostic_variables
 
   public :: initialise_diagnostics, initialise_convergence, &
        & initialise_steady_state, field_tag, write_diagnostics, &
-       & test_and_write_convergence, initialise_detectors, write_detectors, &
+       & test_and_write_convergence, initialise_detectors, &
        & test_and_write_steady_state, steady_state_field, convergence_field, &
        & close_diagnostic_files, run_diagnostics, &
        & diagnostic_variables_check_options, list_det_into_csr_sparsity, &
@@ -2431,165 +2431,6 @@ contains
 
   end subroutine test_and_write_steady_state
 
-  subroutine write_detectors(state, detector_list, time, dt, timestep)
-    !!< Write the field values at detectors to the previously opened detectors file.
-    type(state_type), dimension(:), intent(in) :: state
-    type(detector_linked_list), intent(inout) :: detector_list
-    real, intent(in) :: time, dt
-    integer, intent(in) :: timestep
-
-    character(len=10) :: format_buffer
-    integer :: i, j, k, phase, ele, check_no_det, totaldet_global
-    real :: value
-    real, dimension(:), allocatable :: vvalue
-    type(scalar_field), pointer :: sfield
-    type(vector_field), pointer :: vfield
-    type(detector_type), pointer :: detector
-
-    call profiler_tic(trim(detector_list%name)//"::write_detectors")
-
-    ewrite(1,*) "In write_detectors"
-
-    !Computing the global number of detectors. This is to prevent hanging
-    !when there are no detectors on any processor
-    check_no_det=1
-    if (detector_list%length==0) then
-       check_no_det=0
-    end if
-    call allmax(check_no_det)
-    if (check_no_det==0) then
-       return
-    end if
-
-    ! This is only for single processor with non-binary output
-    if ((.not.isparallel()).and.(.not. detector_list%binary_output)) then
-
-       if(getprocno() == 1) then
-          if(detector_list%binary_output) then
-             write(detector_list%output_unit) time
-             write(detector_list%output_unit) dt
-          else
-             format_buffer=reals_format(1)
-             write(detector_list%output_unit, format_buffer, advance="no") time
-             write(detector_list%output_unit, format_buffer, advance="no") dt
-          end if
-       end if
-
-       ! Next columns contain the positions of all the detectors.
-       detector => detector_list%first
-       positionloop: do i=1, detector_list%length
-          if(detector_list%binary_output) then
-             write(detector_list%output_unit) detector%position
-          else
-             format_buffer=reals_format(size(detector%position))
-             write(detector_list%output_unit, format_buffer, advance="no") &
-                  detector%position
-          end if
-
-          detector => detector%next
-       end do positionloop
-
-       phaseloop: do phase=1,size(state)
-          if (size(detector_list%sfield_list(phase)%ptr)>0) then
-             do i=1, size(detector_list%sfield_list(phase)%ptr)
-                ! Output statistics for each scalar field.
-                sfield=>extract_scalar_field(state(phase), detector_list%sfield_list(phase)%ptr(i))
-
-                detector => detector_list%first
-                do j=1, detector_list%length
-                   if (detector%element<0) then
-                      if (detector_list%write_nan_outside) then
-                         call cget_nan(value)
-                      else
-                         FLExit("Trying to write detector that is outside of domain.")
-                      end if
-                   else
-                      value = detector_value(sfield, detector)
-                   end if
-
-                   if(detector_list%binary_output) then
-                      write(detector_list%output_unit) value
-                   else
-                      format_buffer=reals_format(1)
-                      write(detector_list%output_unit, format_buffer, advance="no") value
-                   end if
-                   detector => detector%next
-                end do
-             end do
-          end if
-
-          if (size(detector_list%vfield_list(phase)%ptr)>0) then
-             do i = 1, size(detector_list%vfield_list(phase)%ptr)
-                ! Output statistics for each vector field
-                vfield => extract_vector_field(state(phase), &
-                  & detector_list%vfield_list(phase)%ptr(i))
-                allocate(vvalue(vfield%dim))
-
-                detector => detector_list%first
-                do j=1, detector_list%length
-                   if (detector%element<0) then
-                      if (detector_list%write_nan_outside) then
-                         call cget_nan(value)
-                         vvalue(:) = value
-                      else
-                         FLExit("Trying to write detector that is outside of domain.")
-                      end if
-                   else
-                      vvalue = detector_value(vfield, detector)
-                   end if
-
-                   if(detector_list%binary_output) then
-                      write(detector_list%output_unit) vvalue
-                   else
-                      format_buffer=reals_format(vfield%dim)
-                      write(detector_list%output_unit, format_buffer, advance="no") vvalue
-                   end if
-                   detector => detector%next
-                end do
-                deallocate(vvalue)
-             end do
-          end if
-
-       end do phaseloop
-
-       ! Output end of line
-       if (.not. detector_list%binary_output) then
-          ! Output end of line
-          write(detector_list%output_unit,'(a)') ""
-       end if
-       flush(detector_list%output_unit)
-
-    ! If isparallel() or binary output us this
-    else
-       call write_detectors_mpi(state,detector_list,time,dt, timestep)
-    end if
-
-    totaldet_global=detector_list%length
-    call allsum(totaldet_global)
-    ewrite(2,*) "Found", detector_list%length, "local and", totaldet_global, "global detectors"
-
-    if (totaldet_global/=detector_list%total_num_det) then
-       ewrite(2,*) "We have either duplication or have lost some det"
-       ewrite(2,*) "totaldet_global", totaldet_global
-       ewrite(2,*) "total_num_det", detector_list%total_num_det
-    end if
-
-    ewrite(1,*) "Exiting write_detectors"
-
-    call profiler_toc(trim(detector_list%name)//"::write_detectors")
-
-  contains
-
-    function reals_format(reals)
-      character(len=10) :: reals_format
-      integer :: reals
-
-      write(reals_format, '(a,i0,a)') '(',reals,'e15.6e3)'
-
-    end function reals_format
-
-  end subroutine write_detectors
-
   subroutine list_det_into_csr_sparsity(detector_list,ihash_sparsity,list_into_array,element_detector_list,count)
 !! This subroutine creates a hash table called ihash_sparsity and a csr_sparsity matrix called element_detector_list that we use to find out 
 !! how many detectors a given element has and we also obtain the location (row index) of those detectors in an array called list_into_array. 
@@ -2710,16 +2551,16 @@ contains
     end if
 
     if (default_stat%detector_list%output_unit/=0) then
-       close(default_stat%detector_list%output_unit, iostat=stat)
-       if (stat/=0) then
-          ewrite(0,*) "Warning: failed to close .detector file"
-       end if
-    end if
-
-    if (default_stat%detector_list%mpi_fh/=0) then
-       call MPI_FILE_CLOSE(default_stat%detector_list%mpi_fh, IERROR) 
-       if(IERROR /= MPI_SUCCESS) then
-          ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
+       if (default_stat%detector_list%binary_output) then
+          call MPI_FILE_CLOSE(default_stat%detector_list%output_unit, IERROR) 
+          if (IERROR /= MPI_SUCCESS) then
+             ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
+          end if
+       else
+          close(default_stat%detector_list%output_unit, iostat=stat)
+          if (stat/=0) then
+             ewrite(0,*) "Warning: failed to close .detector file"
+          end if
        end if
     end if
 

@@ -465,7 +465,7 @@ for example:
           detector_names[id_number] = name
 
         # Find maximum timestep
-        max_t = int(columns[field_column_map['Timestep']].max()) + 1
+        max_t = int(columns[field_column_map['Timestep']].max())
 
         # Traverse the detector rows 
         for row in columns.T:
@@ -480,7 +480,7 @@ for example:
             self[det_id]={}
 
           # Now loop over all entries in the row
-          t = int(row[field_column_map['Timestep']])
+          t = int(row[field_column_map['Timestep']]) - 1
           for field in fields:
             current_dict = self[det_id]
 

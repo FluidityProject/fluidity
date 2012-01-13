@@ -2,7 +2,7 @@
 <testproblem>
   <name>Static detectors in a moving mesh in parallel</name>
   <owner userid="mlange"/>
-  <tags>flml parallel</tags>
+  <tags>flml detectors parallel</tags>
   <problem_definition length="short" nprocs="1">
     <command_line>mpiexec -n 2 ../../bin/fluidity -v2 -l detectors.flml</command_line>
   </problem_definition>
@@ -17,11 +17,11 @@ D2_position = stat_parser("detectors.detectors")['D2']['position']
     </variable>
     <variable name="D1_tracer" language="python">
 from fluidity_tools import stat_parser
-D1_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D1']
+D1_tracer = stat_parser("detectors.detectors")['D1']['Water']['Tracer']
     </variable>
     <variable name="D2_tracer" language="python">
 from fluidity_tools import stat_parser
-D2_tracer = stat_parser("detectors.detectors")['Water']['Tracer']['D2']
+D2_tracer = stat_parser("detectors.detectors")['D2']['Water']['Tracer']
     </variable>
   </variables>
   <pass_tests>

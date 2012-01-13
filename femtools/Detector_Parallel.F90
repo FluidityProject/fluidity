@@ -52,7 +52,7 @@ module detector_parallel
             get_registered_detector_lists, deallocate_detector_list_array, &
             create_single_detector, sync_detector_coordinates, &
             init_id_counter, get_next_detector_id, &
-            write_detector_header, write_detectors_mpi
+            write_detector_header, write_detectors
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
   integer :: num_detector_lists = 0
@@ -300,10 +300,10 @@ contains
        ! if we don't delete the existing .detectors.dat would simply be opened for random access and 
        ! gradually overwritten, mixing detector output from the current with that of a previous run
        call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.detectors.dat', &
-               MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
-       call MPI_FILE_CLOSE(detector_list%mpi_fh, ierror)    
+               MPI_MODE_CREATE + MPI_MODE_RDWR + MPI_MODE_DELETE_ON_CLOSE, MPI_INFO_NULL, detector_list%output_unit, ierror)
+       call MPI_FILE_CLOSE(detector_list%output_unit, ierror)    
        call MPI_FILE_OPEN(MPI_COMM_FEMTOOLS, trim(detector_list%name)//'.detectors.dat', &
-               MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, detector_list%mpi_fh, ierror)
+               MPI_MODE_CREATE + MPI_MODE_RDWR, MPI_INFO_NULL, detector_list%output_unit, ierror)
        assert(ierror == MPI_SUCCESS)
     end if 
 
@@ -322,7 +322,7 @@ contains
 
   end subroutine write_detector_header
 
-  subroutine write_detectors_mpi(state,detector_list,time,dt,timestep)
+  subroutine write_detectors(state,detector_list,time,dt,timestep)
     ! Writes detector information (position, value of scalar and vector fields at that position, etc.) into detectors file using MPI output 
     ! commands so that when running in parallel all processors can write at the same time information into the file at the right location.  
     type(state_type), dimension(:), intent(in) :: state
@@ -331,17 +331,17 @@ contains
     integer, intent(in) :: timestep
 
     integer, dimension(:), allocatable :: ndets_owned
-    integer :: i, ncolumns, phase, dim, proc_offset, current_det, procno, realsize, ierror
+    integer :: i, ncolumns, phase, dim, proc_offset, current_det, ndets_global, realsize, ierror
     integer(KIND = MPI_OFFSET_KIND) :: location_to_write
     real :: id_number_real, value
     real, dimension(:), allocatable :: vvalue
     type(scalar_field), pointer :: sfield
     type(vector_field), pointer :: vfield
     type(detector_type), pointer :: detector
+    character(len=10) :: format_buffer
 
     ewrite(2,*) "In write_detectors_mpi for detector_list: ", trim(detector_list%name)
 
-    procno = getprocno()
     call mpi_type_extent(getpreal(), realsize, ierror)
     assert(ierror == MPI_SUCCESS)
 
@@ -382,29 +382,17 @@ contains
        location_to_write = detector_list%mpi_write_offset + proc_offset + current_det * ncolumns * realsize
 
        ! Output detector ID
-       call mpi_file_write_at(detector_list%mpi_fh, location_to_write, &
-              real(detector%id_number), 1, getpreal(), MPI_STATUS_IGNORE, ierror)
-       assert(ierror == MPI_SUCCESS)
-       location_to_write = location_to_write + realsize
+       call write_scalar_to_file(real(detector%id_number))
 
        ! Output timestep
-       call mpi_file_write_at(detector_list%mpi_fh, location_to_write, &
-              real(timestep), 1, getpreal(), MPI_STATUS_IGNORE, ierror)
-       assert(ierror == MPI_SUCCESS)
-       location_to_write = location_to_write + realsize
+       call write_scalar_to_file(real(timestep))
 
        ! Output ElapsedTime
-       call mpi_file_write_at(detector_list%mpi_fh, location_to_write, &
-              time, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
-       assert(ierror == MPI_SUCCESS)
-       location_to_write = location_to_write + realsize
+       call write_scalar_to_file(time)
 
        ! Output detector coordinates
        assert(size(detector%position) == vfield%dim)
-       call mpi_file_write_at(detector_list%mpi_fh, location_to_write, detector%position, &
-              size(detector%position), getpreal(), MPI_STATUS_IGNORE, ierror)
-       assert(ierror == MPI_SUCCESS)
-       location_to_write = location_to_write + size(detector%position) * realsize
+       call write_vector_to_file(detector%position)
 
        allocate(vvalue(dim))
        phaseloop: do phase=1,size(state)
@@ -424,10 +412,7 @@ contains
                       value = detector_value(sfield, detector)
                    end if
 
-                   call mpi_file_write_at(detector_list%mpi_fh, location_to_write, value, &
-                          1, getpreal(), MPI_STATUS_IGNORE, ierror)
-                   assert(ierror == MPI_SUCCESS)
-                   location_to_write = location_to_write + realsize
+                   call write_scalar_to_file(value)
                 end do
              end if
           end if
@@ -449,10 +434,7 @@ contains
                       vvalue = detector_value(vfield, detector)
                    end if
 
-                   call mpi_file_write_at(detector_list%mpi_fh, location_to_write, vvalue, &
-                          vfield%dim, getpreal(), MPI_STATUS_IGNORE, ierror)
-                   assert(ierror == MPI_SUCCESS)
-                   location_to_write = location_to_write + realsize * vfield%dim
+                   call write_vector_to_file(vvalue)
                 end do
              end if
           end if
@@ -464,12 +446,15 @@ contains
        if (allocated(detector_list%biovars)) then
           do i=1,size(detector_list%biovars)
              if (detector_list%biovars(i)%write_to_file) then
-                call mpi_file_write_at(detector_list%mpi_fh, location_to_write, &
-                       detector%biology(i), 1, getpreal(), MPI_STATUS_IGNORE, ierror)
-                assert(ierror == MPI_SUCCESS)
-                location_to_write = location_to_write + realsize
+                call write_scalar_to_file(detector%biology(i))
              end if
           end do
+       end if
+
+       if (.not.detector_list%binary_output) then
+          ! Output end of line
+          write(detector_list%output_unit,'(a)') ""
+          flush(detector_list%output_unit)
        end if
 
        detector => detector%next
@@ -483,7 +468,58 @@ contains
     end do
     detector_list%mpi_write_offset = detector_list%mpi_write_offset + proc_offset * ncolumns * realsize
 
-  end subroutine write_detectors_mpi
+    ! Sanity checks
+    ndets_global=detector_list%length
+    call allsum(ndets_global)
+    ewrite(2,*) "Found", detector_list%length, "local and", ndets_global, "global detectors"
+
+    if (ndets_global/=detector_list%total_num_det) then
+       ewrite(-1,*) "We have either duplication or have lost some detectors"
+       ewrite(-1,*) "ndets_global", ndets_global
+       ewrite(-1,*) "detector_list%total_num_det", detector_list%total_num_det
+    end if
+
+  contains 
+
+    subroutine write_scalar_to_file(scalar_value)
+      real, intent(in) :: scalar_value
+
+      if (detector_list%binary_output) then
+         call mpi_file_write_at(detector_list%output_unit, location_to_write, &
+                 scalar_value, 1, getpreal(), MPI_STATUS_IGNORE, ierror)
+         assert(ierror == MPI_SUCCESS)
+         location_to_write = location_to_write + realsize
+      else
+         format_buffer=reals_format(1)
+         write(detector_list%output_unit, format_buffer, advance="no") scalar_value
+      end if
+
+    end subroutine write_scalar_to_file
+
+    subroutine write_vector_to_file(vector_value)
+      real, dimension(:), intent(in) :: vector_value
+
+      if (detector_list%binary_output) then
+         call mpi_file_write_at(detector_list%output_unit, location_to_write, vector_value, &
+                 size(vector_value), getpreal(), MPI_STATUS_IGNORE, ierror)
+         assert(ierror == MPI_SUCCESS)
+         location_to_write = location_to_write + size(vector_value) * realsize
+      else
+         format_buffer=reals_format(size(vector_value))
+         write(detector_list%output_unit, format_buffer, advance="no") vector_value
+      end if
+
+    end subroutine write_vector_to_file
+
+    function reals_format(reals)
+      character(len=10) :: reals_format
+      integer :: reals
+
+      write(reals_format, '(a,i0,a)') '(',reals,'e15.6e3)'
+
+    end function reals_format
+
+  end subroutine write_detectors
 
   subroutine distribute_detectors(state, detector_list)
     ! Loop over all the detectors in the list and check that I own the element they are in. 

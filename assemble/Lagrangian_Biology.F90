@@ -333,9 +333,6 @@ contains
 
           call write_detector_header(state, agent_arrays(array))
 
-          ! Write initial state of agents to file
-          call write_detectors_mpi(state, agent_arrays(array), current_time, dt, 0)
-
           array = array + 1
        end do 
 
@@ -351,8 +348,8 @@ contains
 
     do i = 1, size(agent_arrays)
        call delete_all(agent_arrays(i))
-       if (agent_arrays(i)%mpi_fh/=0) then
-          call MPI_FILE_CLOSE(agent_arrays(i)%mpi_fh, ierror) 
+       if (agent_arrays(i)%output_unit/=0) then
+          call MPI_FILE_CLOSE(agent_arrays(i)%output_unit, ierror) 
           if(ierror /= MPI_SUCCESS) then
              ewrite(0,*) "Warning: failed to close .detector file open with mpi_file_open"
           end if
@@ -456,7 +453,7 @@ contains
 
     ! Output agent positions
     do i = 1, size(agent_arrays)
-       call write_detectors_mpi(state, agent_arrays(i), time, dt, timestep)
+       call write_detectors(state, agent_arrays(i), time, dt, timestep)
     end do
 
     call profiler_toc("/update_lagrangian_biology")
