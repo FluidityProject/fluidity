@@ -888,8 +888,8 @@ contains
     ! BCTYPE_WEAKDIRICHLET=1)
     allocate( bc_type(1:surface_element_count(T)) )
     call get_entire_boundary_condition(T, &
-       & (/"weakdirichlet"/, &
-           "neumann"/), &
+       & (/"weakdirichlet", &
+           "neumann      "/), &
        & bc_value, bc_type)
 
     call zero(big_m)
