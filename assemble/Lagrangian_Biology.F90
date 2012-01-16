@@ -135,6 +135,7 @@ contains
           agent_arrays(array)%stage_name = trim(stage_name)
           agent_arrays(array)%fg_id = fg
           call get_option(trim(stage_buffer)//"/id", agent_arrays(array)%stage_id)
+          agent_arrays(array)%id=array
 
           ! Register the agent array, so Zoltan/Adaptivity will not forget about it
           call register_detector_list(agent_arrays(array))
@@ -172,7 +173,7 @@ contains
              agent=>agent%next
           end do
 
-          ewrite(2,*) "Found", agent_arrays(array)%length, "local agents in array", i
+          ewrite(2,*) "Found", agent_arrays(array)%length, "local agents in array", agent_arrays(array)%id
 
           !!! Biology setup !!!
 
@@ -373,7 +374,7 @@ contains
     real, intent(in) :: time, dt
     integer, intent(in) :: timestep
 
-    type(detector_type), pointer :: agent
+    type(detector_type), pointer :: agent, agent_to_move
     type(detector_linked_list) :: stage_change_list
     type(vector_field), pointer :: xfield
     integer :: i, j
@@ -406,11 +407,13 @@ contains
              call python_calc_agent_biology(agent, agent_arrays(i), xfield, state(1), dt, trim(agent_arrays(i)%name), trim("biology_update"))
 
              ! Check for stage change
-             ! TODO: use of move is most likely wrong...
-             if (agent%biology(1) /= agent_arrays(i)%stage_id) then
-                call move(agent, agent_arrays(i), stage_change_list)
+             if (agent%biology(BIOVAR_STAGE) /= agent_arrays(i)%stage_id) then
+                agent_to_move=>agent
+                agent=>agent%next
+                call move(agent_to_move, agent_arrays(i), stage_change_list)
+             else
+                agent=>agent%next
              end if
-             agent=>agent%next
           end do
 
        end if
@@ -419,17 +422,18 @@ contains
     ewrite(2,*) "Handling stage changes across all agent lists"
 
     ! Handle stage changes within FG
-    ! TODO: use of move is most likely wrong...
     agent=>stage_change_list%first
     do while (associated(agent))
        do j=1, size(agent_arrays)
           if (agent_arrays(j)%fg_id == agent_arrays(agent%list_id)%fg_id) then
-             if (agent_arrays(j)%stage_id==agent%biology(1)) then
-                call move(agent, stage_change_list, agent_arrays(j))
+             if (agent_arrays(j)%stage_id==agent%biology(BIOVAR_STAGE)) then
+                agent_to_move=>agent
+                agent=>agent%next
+                call move(agent_to_move, stage_change_list, agent_arrays(j))
+                cycle
              end if
           end if
        end do
-       agent=>agent%next
     end do
 
     ! Derive the full set af eulerian diagnostic fields

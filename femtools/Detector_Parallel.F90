@@ -474,9 +474,9 @@ contains
     ewrite(2,*) "Found", detector_list%length, "local and", ndets_global, "global detectors"
 
     if (ndets_global/=detector_list%total_num_det) then
-       ewrite(-1,*) "We have either duplication or have lost some detectors"
-       ewrite(-1,*) "ndets_global", ndets_global
-       ewrite(-1,*) "detector_list%total_num_det", detector_list%total_num_det
+       ewrite(2,*) "Warning: Duplicated or lost detectors in list: ", trim(detector_list%name)
+       ewrite(2,*) "ndets_global", ndets_global
+       ewrite(2,*) "detector_list%total_num_det", detector_list%total_num_det
     end if
 
   contains 

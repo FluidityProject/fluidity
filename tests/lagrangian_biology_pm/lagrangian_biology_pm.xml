@@ -51,14 +51,13 @@ for agent in s.keys():
     final_agent_sizes_merge.append(s[agent]['Size'][0][-1])
 final_agent_sizes_merge=array(final_agent_sizes_merge)  
     </variable>
-    <variable name="final_nan_entries_merge" language="python">
+    <variable name="agent_count_stage_change_start" language="python">
 from fluidity_tools import stat_parser
-from numpy import array, isnan
-s = stat_parser("AgentAMerge.detectors")
-final_nan_entries_merge = 0
-for agent in s.keys():
-  if isnan(s[agent]['Size'][0][-1]):
-    final_nan_entries_merge = final_nan_entries_merge + 1
+agent_count_stage_change_start = stat_parser("lagrangian_biology.stat")['Water']['StageChangeAgentsStart']['integral']
+    </variable>
+    <variable name="agent_count_stage_change_finish" language="python">
+from fluidity_tools import stat_parser
+agent_count_stage_change_finish = stat_parser("lagrangian_biology.stat")['Water']['StageChangeAgentsFinish']['integral']
     </variable>
   </variables>
   <pass_tests>
@@ -86,8 +85,11 @@ assert abs(agent_count_merge[-1] - 50.0) &lt; 1.0e-6
     <test name="constant_agent_size_merge" language="python">
 assert abs(final_agent_sizes_merge - 100.0).all() &lt; 1.0e-6
     </test>
-    <test name="nan_entries_merge" language="python">
-assert abs(final_nan_entries_merge - 150.0) &lt; 1.0e-6
+    <test name="final_agent_count_sc_start" language="python">
+assert abs(agent_count_stage_change_start[-1]) &lt; 1.0e-6
+    </test>
+    <test name="final_agent_count_sc_finish" language="python">
+assert abs(agent_count_stage_change_finish[-1] - 50.0) &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

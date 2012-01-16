@@ -221,6 +221,96 @@
           <reflect_on_boundary/>
         </lagrangian_timestepping>
       </functional_group>
+      <functional_group name="StageChange">
+        <variables>
+          <state_variable name="Stage"/>
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </state_variable>
+        </variables>
+        <environment/>
+        <stages>
+          <stage name="Start">
+            <id>
+              <real_value rank="0">3.0</real_value>
+            </id>
+            <number_of_agents>
+              <integer_value rank="0">50</integer_value>
+            </number_of_agents>
+            <initial_position>
+              <string_value type="python" lines="20">def val(t):
+  from numpy import arange
+  # 50 agents, evenly spaced every 2m
+  positions = arange(-99.5,0.,2.).reshape(50,1)
+  return positions</string_value>
+            </initial_position>
+            <initial_state>
+              <string_value type="python" lines="20">def val(variables):
+  variables['Size'] = 100.0
+  variables['ChangeControl'] = 0.0
+  return variables</string_value>
+            </initial_state>
+            <biology_update>
+              <string_value type="python" lines="20">from __builtin__ import str
+
+def val(biovars, env, dt):
+  biovars['Stage'] = 4.0
+  return biovars</string_value>
+            </biology_update>
+          </stage>
+          <stage name="Finish">
+            <id>
+              <real_value rank="0">4.0</real_value>
+            </id>
+            <number_of_agents>
+              <integer_value rank="0">0</integer_value>
+            </number_of_agents>
+            <initial_position>
+              <string_value type="python" lines="20">def val(t):
+  return []</string_value>
+            </initial_position>
+            <initial_state>
+              <string_value type="python" lines="20">def val(variables):
+  variables['Size'] = 100.0
+  variables['ChangeControl'] = 0.0
+  return variables</string_value>
+            </initial_state>
+            <biology_update>
+              <string_value type="python" lines="20">def val(biovars, env, dt):
+  return biovars</string_value>
+            </biology_update>
+          </stage>
+        </stages>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output/>
+            <stat/>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+          </diagnostic>
+        </scalar_field>
+        <lagrangian_timestepping>
+          <subcycles>
+            <integer_value rank="0">1</integer_value>
+          </subcycles>
+          <search_tolerance>
+            <real_value rank="0">1.0e-10</real_value>
+          </search_tolerance>
+          <forward_euler_guided_search/>
+          <reflect_on_boundary/>
+        </lagrangian_timestepping>
+      </functional_group>
     </lagrangian_ensemble_biology>
   </embedded_models>
 </fluidity_options>
