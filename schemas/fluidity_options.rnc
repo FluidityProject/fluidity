@@ -2280,16 +2280,19 @@ diagnostic_vector_field =
 
 diagnostic_vector_field_bed_shear_stress =
    (
+      element density {
+         real
+      }, 
       (
-          element density {
-             real
-          }
-      ),       
-      (
-          element drag_coefficient {
-             real
-          }
-      ),   
+         element calculation_method {
+            element drag_coefficient {
+               real
+            }|
+            element velocity_gradient {  
+               empty
+            }
+         }
+      ),
       diagnostic_output_options,
       diagnostic_vector_stat_options,
       diagnostic_detector_options,
