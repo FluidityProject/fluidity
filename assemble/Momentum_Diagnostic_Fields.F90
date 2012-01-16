@@ -105,7 +105,7 @@ contains
     vfield => extract_vector_field(submaterials(submaterials_istate), "VelocityAbsorption", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
-        if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm/name/vector_python_diagnostic")) then
+        if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm::vector_python_diagnostic")) then
           call calculate_diagnostic_variable(state, istate, vfield)
         else
           call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
@@ -116,7 +116,7 @@ contains
     vfield => extract_vector_field(submaterials(submaterials_istate), "VelocitySource", stat = stat)
     if(stat == 0) then
       if(have_option(trim(vfield%option_path) // "/diagnostic")) then
-        if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm/name/vector_python_diagnostic")) then
+        if(have_option(trim(vfield%option_path) // "/diagnostic/algorithm::vector_python_diagnostic")) then
           call calculate_diagnostic_variable(state, istate, vfield)
         else
           call calculate_diagnostic_variable(submaterials, submaterials_istate, vfield)
@@ -128,7 +128,7 @@ contains
     if (stat==0) then
       diagnostic = have_option(trim(tfield%option_path)//'/diagnostic')
       if(diagnostic) then
-        if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm/name/tensor_python_diagnostic")) then
+        if(have_option(trim(tfield%option_path) // "/diagnostic/algorithm::tensor_python_diagnostic")) then
           call calculate_diagnostic_variable(state, istate, tfield)
         else
           call calculate_diagnostic_variable(submaterials, submaterials_istate, tfield)
