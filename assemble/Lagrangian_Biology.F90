@@ -367,6 +367,8 @@ contains
        deallocate(release_field_names)
     end if
 
+    call delete_id_counter()
+
   end subroutine lagrangian_biology_cleanup
 
   subroutine update_lagrangian_biology(state, time, dt, timestep)
@@ -973,7 +975,7 @@ contains
              elseif (found_agent > 0 .and. associated(merge_target)) then
                 agent_to_merge=>agent
                 agent=>agent%next
-                call pm_merge(merge_target, agent_to_merge, merge_lists(i))
+                call pm_merge(xfield, merge_target, agent_to_merge, merge_lists(i))
                 merge_target=>null()
              else
                 agent=>agent%next
@@ -1065,15 +1067,20 @@ contains
 
   end subroutine pm_split
 
-  subroutine pm_merge(agent1, agent2, agent_list)
+  subroutine pm_merge(xfield, agent1, agent2, agent_list)
+    type(vector_field), pointer, intent(in) :: xfield
     type(detector_type), pointer, intent(inout) :: agent1, agent2
     type(detector_linked_list), intent(inout) :: agent_list
 
     integer :: i
 
-    ! Problem: interpolate position? (we're in the same element...)
-    !agent1%position=
-    !agent1%local_coords=
+    ! Both agents are in the same element, 
+    ! so we weight-average each physical coordinate
+    ! and re-set the local coordinates
+    do i=1, size(agent1%position)
+       agent1%position(i)=wtavg(agent1%position(i),agent1%biology(BIOVAR_SIZE),agent2%position(i),agent2%biology(BIOVAR_SIZE))
+    end do
+    agent1%local_coords=local_coords(xfield,agent1%element,agent1%position)
 
     ! Weight-average the biology variables
     if (size(agent1%biology)>2) then

@@ -51,7 +51,7 @@ module detector_parallel
             register_detector_list, get_num_detector_lists, &
             get_registered_detector_lists, deallocate_detector_list_array, &
             create_single_detector, sync_detector_coordinates, &
-            init_id_counter, get_next_detector_id, &
+            init_id_counter, get_next_detector_id, delete_id_counter, &
             write_detector_header, write_detectors
 
   type(detector_list_ptr), dimension(:), allocatable, target, save :: detector_list_array
@@ -67,6 +67,10 @@ module detector_parallel
       use :: iso_c_binding
       integer(c_int), intent(out) :: next_id
     end subroutine get_next_detector_id
+
+    subroutine delete_id_counter() bind(c, name='delete_id_counter_c')
+      use :: iso_c_binding
+    end subroutine delete_id_counter
 
   end interface
 

@@ -14,3 +14,6 @@ void init_id_counter_c();
 
 /* Get the next detector ID from the shared MPI counter */
 void get_next_detector_id_c();
+
+/* Delete the shared ID counter */
+void delete_id_counter_c();

@@ -53,3 +53,13 @@ void get_next_detector_id_c(int *next_id){
 
   free(vals);
 }
+
+/* Delete the shared ID counter */
+void delete_id_counter_c() {
+    // Rank 0 is always the data host
+    if(id_counter->rank == 0){
+        MPI_Free_mem(id_counter->data);
+    }
+    MPI_Win_free(&(id_counter->win));
+    free(id_counter);
+}
