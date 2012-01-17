@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>lagrangian_biology_vew_tm_1d</name>
+  <owner userid="mlange"/>
+  <tags>flml lagrangian_biology</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>
+../../bin/fluidity -v2 -l -p lagrangian_biology.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="agent_count_living" language="python">
+from fluidity_tools import stat_parser
+agent_count_living = stat_parser("vew_toymodel.stat")['Water']['DiatomAgentsLiving']['integral'][::48]
+    </variable>
+    <variable name="agent_count_dead" language="python">
+from fluidity_tools import stat_parser
+agent_count_dead = stat_parser("vew_toymodel.stat")['Water']['DiatomAgentsDead']['integral'][::48]
+    </variable>
+    <variable name="biomass_living" language="python">
+from fluidity_tools import stat_parser
+biomass_living = stat_parser("vew_toymodel.stat")['Water']['DiatomEnsembleSizeLiving']['integral'][::48]
+    </variable>
+    <variable name="biomass_dead" language="python">
+from fluidity_tools import stat_parser
+biomass_dead = stat_parser("vew_toymodel.stat")['Water']['DiatomEnsembleSizeDead']['integral'][::48]
+    </variable>
+  </variables>
+  <pass_tests>
+
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
