@@ -774,7 +774,10 @@ integer, optional, intent(in) :: internal_smoothing_option
   end if
   
   ewrite(1, *) 'Assembling matrix.'
-  
+ 
+  ! Note the explicitly-described options rcm, 1wd and natural are now not
+  ! listed explicitly in the schema (but can still be used by adding the
+  ! appropriate string in the solver reordering node)
   call PetscOptionsGetString("", "-ordering_type", ordering_type, &
         use_reordering, ierr)
   if (.not. use_reordering) then
