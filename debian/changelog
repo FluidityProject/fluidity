@@ -1,3 +1,9 @@
+fluidity (4.1.2maverick1) maverick; urgency=low
+
+  * Creating a milestone release to package 4.1.2 on launchpad
+
+ -- Tim Bond <timothy.bond@imperial.ac.uk>  Wed, 18 Jan 2012 08:21:00 +0000
+
 fluidity (4.1.1maverick1) maverick; urgency=low
 
   * Creating a milestone release to package 4.1.1 on launchpad

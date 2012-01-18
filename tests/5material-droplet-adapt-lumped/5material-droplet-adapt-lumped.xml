@@ -3,7 +3,7 @@
 <testproblem>
   <name>Control volume, multi-material flow test</name>
   <owner userid="cwilson"/>
-  <tags>flml solidity</tags>
+  <tags>flml solidity 2dadapt</tags>
     <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v2 -l 5material-droplet.flml </command_line>
   </problem_definition>  
