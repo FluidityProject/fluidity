@@ -11,8 +11,8 @@
 from fluidity_tools import stat_parser as stat
 from math import log
 
-a_error = stat("MMS_A_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
-b_error = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+a_error = stat("MMS_A_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
+b_error = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
 
 a_error_inf = stat("MMS_A_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 b_error_inf = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
@@ -31,8 +31,8 @@ ab_convergence_gal_stat = [log(ab_ratio, 2), log(ab_ratio_inf, 2)]
 from fluidity_tools import stat_parser as stat
 from math import log
 
-b_error = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
-c_error = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+b_error = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
+c_error = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
 
 b_error_inf = stat("MMS_B_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 c_error_inf = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
@@ -51,8 +51,8 @@ bc_convergence_gal_stat = [log(bc_ratio, 2), log(bc_ratio_inf, 2)]
 from fluidity_tools import stat_parser as stat
 from math import log
 
-c_error = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
-d_error = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["l2norm"][-1]
+c_error = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
+d_error = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["cv_l2norm"][-1]
 
 c_error_inf = stat("MMS_C_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]
 d_error_inf = stat("MMS_D_cv.stat")["Burgers"]["AbsoluteDifference"]["max"][-1]

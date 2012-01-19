@@ -192,18 +192,18 @@ implicit none
 
   end function norm2_scalar
 
-  function norm2_scalar_cv(field, lumpedmass) result (norm)
-    !!< Return the L2 norm of field:
+  function norm2_scalar_cv(field, cv_mass) result (norm)
+    !!< Return the L2 norm of CV field:
     !!<   /
     !!<   | |field|^2 dV
     !!<   /
     real :: norm
     type(scalar_field), intent(in) :: field
-    type(scalar_field), intent(in) :: lumpedmass
+    type(scalar_field), intent(in) :: cv_mass
     
-    assert(node_count(field)==node_count(lumpedmass))
+    assert(node_count(field)==node_count(cv_mass))
 
-    norm = dot_product(lumpedmass%val, field%val**2)
+    norm = dot_product(cv_mass%val, field%val**2)
 
     call allsum(norm)
 
@@ -261,15 +261,15 @@ implicit none
 
   end function integral_vector
 
-  function integral_scalar_cv(field, lumpedmass) result (integral)
-    !!< Integrate field over its mesh.
+  function integral_scalar_cv(field, cv_mass) result (integral)
+    !!< Integrate CV field over its mesh.
     real :: integral
     type(scalar_field), intent(in) :: field
-    type(scalar_field), intent(in) :: lumpedmass
+    type(scalar_field), intent(in) :: cv_mass
     
-    assert(node_count(field)==node_count(lumpedmass))
+    assert(node_count(field)==node_count(cv_mass))
     
-    integral = dot_product(lumpedmass%val, field%val)
+    integral = dot_product(cv_mass%val, field%val)
 
     call allsum(integral)
 
@@ -416,10 +416,10 @@ implicit none
 
   end subroutine field_stats_scalar
 
-  subroutine field_cv_stats_scalar(field, lumpedmass, norm2, integral)
+  subroutine field_cv_stats_scalar(field, cv_mass, norm2, integral)
     !!< Return scalar statistical informaion about field.
     type(scalar_field), intent(in) :: field
-    type(scalar_field), intent(in) :: lumpedmass
+    type(scalar_field), intent(in) :: cv_mass
     !! L2 norm of the field. This requires positions to be specified as
     !! well.
     real, intent(out), optional :: norm2
@@ -429,13 +429,13 @@ implicit none
     
     if (present(norm2)) then
 
-       norm2=norm2_scalar_cv(field, lumpedmass)
+       norm2=norm2_scalar_cv(field, cv_mass)
 
     end if
 
     if (present(integral)) then
 
-       integral=integral_scalar_cv(field, lumpedmass)
+       integral=integral_scalar_cv(field, cv_mass)
 
     end if
 
@@ -490,7 +490,7 @@ implicit none
   end subroutine field_stats_tensor
 
   subroutine field_con_stats_scalar(field, nlfield, error, &
-                                    norm, coordinates, lumpedmass)
+                                    norm, coordinates, cv_mass)
     !!< Return scalar convergence informaion about field.
     type(scalar_field), intent(inout) :: field, nlfield
     !! error in the field.
@@ -498,7 +498,7 @@ implicit none
     !! what norm are we working out
     integer, intent(in), optional :: norm
     type(vector_field), intent(in), optional :: coordinates
-    type(scalar_field), intent(in), optional :: lumpedmass
+    type(scalar_field), intent(in), optional :: cv_mass
     
     type(scalar_field) :: difference
     integer :: l_norm
@@ -523,10 +523,10 @@ implicit none
     case(CONVERGENCE_L2_NORM)
       call field_stats(difference, X=coordinates, norm2=error)
     case(CONVERGENCE_CV_L2_NORM)
-      if (present(lumpedmass)) then
-        call field_cv_stats(difference, lumpedmass=lumpedmass, norm2=error)
+      if (present(cv_mass)) then
+        call field_cv_stats(difference, cv_mass=cv_mass, norm2=error)
       else
-        FLAbort('Require lumpedmass to calculate field_cv_stats')
+        FLAbort('Require cv_mass to calculate field_cv_stats')
       end if
     case default
       FLAbort("Unknown norm for convergence statistics.")

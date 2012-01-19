@@ -3280,13 +3280,13 @@ contains
 
     end subroutine initialise_advection_convergence
 
-    subroutine test_and_write_advection_convergence(field, nlfield, coordinates, lumpedmass, filename, &
+    subroutine test_and_write_advection_convergence(field, nlfield, coordinates, cv_mass, filename, &
                                                     time, dt, it, subcyc, adv_it, &
                                                     error)
 
        type(scalar_field), intent(inout) :: field, nlfield
        type(vector_field), intent(in) :: coordinates
-       type(scalar_field), intent(in) :: lumpedmass
+       type(scalar_field), intent(in) :: cv_mass
        character(len=*), intent(in) :: filename
        real, intent(in) :: time, dt
        integer, intent(in) :: it, subcyc, adv_it
@@ -3304,7 +3304,7 @@ contains
 
        error = 0.0
        call field_con_stats(field, nlfield, error, &
-                            convergence_norm, coordinates, lumpedmass)
+                            convergence_norm, coordinates, cv_mass)
 
        format='(e15.6e3)'
        iformat='(i4)'
