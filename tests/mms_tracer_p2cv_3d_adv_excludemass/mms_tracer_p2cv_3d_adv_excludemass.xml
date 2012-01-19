@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <testproblem>
-  <name>p1cv advection equation spatial convergence test</name>
+  <name>p2cv advection equation spatial convergence test</name>
   <owner userid="cwilson"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
