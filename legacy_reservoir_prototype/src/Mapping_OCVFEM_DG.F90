@@ -89,11 +89,11 @@ module mapping_for_ocvfem
          jcount_kloc, jcount_kloc2, colgpts, cv_sloc2loc, u_sloc2loc
     integer, dimension( : , : ), allocatable :: cv_sloclist, u_sloclist, &
          face_ele, cv_neiloc
-    real, dimension( : , : ), allocatable :: cvn, cvn_short, cvfen, cvfenlx, cvfenly, cvfenlz, &
+    real, dimension( : , : ), allocatable :: cvn, cvn_short, cvfen, cvfenlx, cvfenly, cvfenlz, cvfenx, cvfeny, cvfenz,&
          cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short,  &
-         ufen, ufenlx, ufenly, ufenlz, scvfen, scvfenslx, scvfensly, &
+         ufen, ufenlx, ufenly, ufenlz, scvfen, scvfenslx, scvfensly, matloc_cv_inv, &
          scvfenlx, scvfenly, scvfenlz, matloc,n, wdold,wd,vdold,vd, ud, udold,&
-         sufen, sufenslx, sufensly, sufenlx, sufenly,sufenlz, nlx, nly, nlz, nx,ny,nz, matloc_cv
+         sufen, sufenslx, sufensly, sufenlx, sufenly,sufenlz, nlx, nly, nlz, nx,ny,nz, matloc_cv, ufenx, ufeny, ufenz
     real, dimension( : , : ), allocatable :: sbcvfen, sbcvfenslx, sbcvfensly, &
          sbcvfenlx, sbcvfenly, sbcvfenlz, sbufen, sbufenslx, sbufensly, &
          sbufenlx, sbufenly, sbufenlz
@@ -120,7 +120,7 @@ module mapping_for_ocvfem
 
     !          ===> integers <====
     integer :: cv_ngi, cv_ngi_short, scvngi, sbcvngi, count, jcount, &
-         ele, ele2, gi, gcount, sele,   &
+         ele, ele2, gcount, sele,   &
          ncolgpts, p_ele_type,&
          cv_siloc, u_kloc,u_nod_pha, &
          cv_iloc, cv_jloc, iphase, jphase, &
@@ -128,7 +128,7 @@ module mapping_for_ocvfem
          cv_nodi, cv_nodi_ipha, cv_nodi_jpha, u_nodk, timopt, &
          jcount_ipha, imid_ipha, &
          nface, x_nodi, u_iloc, u_nod, &
-         cv_inod, mat_nodi, face_its, nface_its, cv_gi, nloc, u_jloc
+         cv_inod, mat_nodi, face_its, nface_its, cv_gi, nloc, u_jloc, u_nodk_ipha,u_nloc_lev,n_nloc_lev
     !        ===>  reals  <===
     real :: ndotq, ndotqold, nn, volume, &
          income, incomeold, hdc, fvt, fvtold, fvt2, fvt2old, &
@@ -155,7 +155,7 @@ module mapping_for_ocvfem
          
  !   cv_ngi = cv_ngi_short
     !cv_ngi_short = cv_ngi
-    print*, ' got FE info', cv_ngi, cv_ngi_short, cv_nloc, u_nloc
+    print*, ' got FE info', cv_ngi, cv_ngi_short, cv_nloc, u_nloc, totele
     
 
 
@@ -181,6 +181,9 @@ module mapping_for_ocvfem
     allocate( cvfenlx( cv_nloc, cv_ngi ))
     allocate( cvfenly( cv_nloc, cv_ngi ))
     allocate( cvfenlz( cv_nloc, cv_ngi ))
+    allocate( cvfenx( cv_nloc, cv_ngi ))
+    allocate( cvfeny( cv_nloc, cv_ngi ))
+    allocate( cvfenz( cv_nloc, cv_ngi ))
 
     allocate( cvweight_short( cv_ngi_short ))
     allocate( cvn_short( cv_nloc, cv_ngi_short ))
@@ -192,6 +195,9 @@ module mapping_for_ocvfem
     allocate( ufen( u_nloc, cv_ngi)) 
     allocate( ufenlx( u_nloc, cv_ngi ))
     allocate( ufenly( u_nloc, cv_ngi ))
+    allocate( ufenx( u_nloc, cv_ngi ))
+    allocate( ufeny( u_nloc, cv_ngi ))
+    allocate( ufenz( u_nloc, cv_ngi ))
     allocate( ufenlz( u_nloc, cv_ngi ))
 
     allocate( scvfen( cv_nloc, scvngi ))
@@ -275,8 +281,11 @@ module mapping_for_ocvfem
          findgpts, colgpts, ncolgpts, &
          sele_overlap_scale ) 
 
+
+
     allocate(matloc(cv_nloc,u_nloc))
     allocate(matloc_cv(cv_nloc,cv_nloc))
+    allocate(matloc_cv_inv(cv_nloc,cv_nloc))
     allocate(rhsloc_u(cv_nloc))
     allocate(rhsloc_v(cv_nloc))
     allocate(rhsloc_w(cv_nloc))
@@ -302,6 +311,11 @@ module mapping_for_ocvfem
     allocate(ra(cv_ngi))
 
     velocity_dg = 0.0
+    nn = 0.0
+   open(202,file="ocvn", action='write')
+   
+    ! The number of overlapping CVFEM node to each CVFEM node
+    n_nloc_lev = u_nloc / cv_nloc
 
 
     loop_elements: do ele = 1, totele ! volume integral
@@ -319,6 +333,12 @@ module mapping_for_ocvfem
        call detnlxr( ele, x, y, z, x_ndgln, totele, x_nonods, cv_nloc, cv_ngi, &
             cvfen, cvfenlx, cvfenly, cvfenlz, cvweight, detwei, ra, volume, d1, d3, dcyl, &
             nx, ny, nz ) 
+
+!       call detnlxr_plus_u( ele, x, y, z, x_ndgln, totele, x_nonods, cv_nloc, cv_ngi, &
+!            cvfen, cvfenlx, cvfenly, cvfenlz, cvweight, detwei, ra, volume, d1, d3, dcyl, &
+!            cvfenx, cvfeny, cvfenz, &
+!            u_nloc, ufenlx, ufenly, ufenlz, ufenx, ufeny, ufenz ) 
+            
 ! taken from assemb_force_cty
        ud = 0.0
        vd = 0.0
@@ -327,74 +347,47 @@ module mapping_for_ocvfem
        vdold = 0.0
        wdold = 0.0
        
-       matloc = 0.0
-       do u_iloc = 1, u_nloc
-          !          write(357,*) 'ele, u_nonods, iloc:',ele, u_nonods, iloc
-          u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
-          do gi = 1, cv_ngi
-             do iphase=1,nphase
-                u_nod_pha=u_nod +(iphase-1)*u_nonods
-                ud( gi, iphase ) = ud( gi, iphase ) + ufen( u_iloc, gi ) * u( u_nod_pha ) 
-                vd( gi, iphase ) = vd( gi, iphase ) + ufen( u_iloc, gi ) * v( u_nod_pha ) 
-                wd( gi, iphase ) = wd( gi, iphase ) + ufen( u_iloc, gi ) * w( u_nod_pha ) 
-                udold( gi, iphase ) = udold( gi, iphase ) + ufen( u_iloc, gi ) * uold( u_nod_pha ) 
-                vdold( gi, iphase ) = vdold( gi, iphase ) + ufen( u_iloc, gi ) * vold( u_nod_pha ) 
-                wdold( gi, iphase ) = wdold( gi, iphase ) + ufen( u_iloc, gi ) * wold( u_nod_pha ) 
-             end do
-          end do
-
-       end do
-
-!      print*, sum(ud), sum(ufen), sum(u)
-! taken from proj_cv_to_fem_4: 
 
        matloc_cv = 0.0
        loop_cv_iloc: do cv_iloc = 1, cv_nloc
           loop_cv_jloc: do cv_jloc = 1, cv_nloc
-             nn = 0.0
-             do cv_gi = 1, cv_ngi
-                nn = nn + cvfen( cv_iloc, cv_gi )   * cvfen(   cv_jloc, cv_gi ) * detwei( cv_gi )
+             do cv_gi = 1, cv_ngi_short
+               matloc_cv( cv_iloc,cv_jloc ) = matloc_cv( cv_iloc,cv_jloc ) + cvfen_short( cv_iloc, cv_gi ) * cvfen_short(   cv_jloc, cv_gi ) * detwei( cv_gi )
              end do
-             matloc_cv( cv_iloc,cv_jloc ) = matloc_cv( cv_iloc,cv_jloc ) + nn
-
           end do loop_cv_jloc
-
-
+ !         print*, 'dg', matloc_cv(cv_iloc,:)
+!          print*, 'row sum', sum(matloc_cv(cv_iloc,:))
        end do loop_cv_iloc
        
        matloc = 0.0
 
        do cv_iloc = 1, cv_nloc
           do cv_jloc = 1, u_nloc
-             nn = 0.0
              do cv_gi = 1, cv_ngi
-                nn = nn + cvfen( cv_iloc, cv_gi )   * ufen(   cv_jloc, cv_gi ) * detwei( cv_gi )
+                matloc( cv_iloc,cv_jloc ) = matloc( cv_iloc,cv_jloc )  + cvfen( cv_iloc, cv_gi )   * ufen(cv_jloc, cv_gi ) * detwei( cv_gi )
              end do
-             matloc( cv_iloc,cv_jloc ) = matloc( cv_iloc,cv_jloc ) + nn
-          end do 
+          ! if(matloc(cv_iloc,cv_jloc) < 1.0E-8) print*, matloc(cv_iloc,cv_jloc), cv_iloc,cv_jloc
+          end do
+!          print*, 'dg-ocv', matloc(cv_iloc,:)
+!          print*, 'row sum', sum(matloc(cv_iloc,:)),sum(matloc)
        end do 
        
+       
+!       print*, sum(matloc), sum(matloc_cv)
 
 ! solver here...
-        call invert(matloc_cv)
+        matloc_cv_inv = matloc_cv
+        call invert(matloc_cv_inv)
 
-         do iphase=1,nphase
+         do iphase=1, nphase
              rhsloc_u = 0.0
              rhsloc_v = 0.0
              rhsloc_w = 0.0
              rhsloc_uold = 0.0
              rhsloc_vold = 0.0
              rhsloc_wold = 0.0
-             do cv_iloc = 1, cv_nloc
-              do cv_gi = 1, cv_ngi
-                 rhsloc_u(cv_iloc)=rhsloc_u(cv_iloc)+  cvfen( cv_iloc, cv_gi )* ud( cv_gi, iphase ) * detwei( cv_gi )
-                 rhsloc_v(cv_iloc)=rhsloc_v(cv_iloc)+  cvfen( cv_iloc, cv_gi )* vd( cv_gi, iphase ) * detwei( cv_gi )
-                 rhsloc_w(cv_iloc)=rhsloc_w(cv_iloc)+  cvfen( cv_iloc, cv_gi )* wd( cv_gi, iphase ) * detwei( cv_gi )
-                 rhsloc_uold(cv_iloc)=rhsloc_uold(cv_iloc)+  cvfen( cv_iloc, cv_gi )* udold( cv_gi, iphase ) * detwei( cv_gi )
-                 rhsloc_vold(cv_iloc)=rhsloc_vold(cv_iloc)+  cvfen( cv_iloc, cv_gi )* vdold( cv_gi, iphase ) * detwei( cv_gi )
-                 rhsloc_wold(cv_iloc)=rhsloc_wold(cv_iloc)+  cvfen( cv_iloc, cv_gi )* wdold( cv_gi, iphase ) * detwei( cv_gi )
-              end do
-             end do
+             
+             nn = 0.0
              
              do u_iloc = 1, u_nloc
               u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
@@ -402,19 +395,46 @@ module mapping_for_ocvfem
               rhsloc_uu(u_iloc) = u( u_nod_pha ) 
               rhsloc_uv(u_iloc) = v( u_nod_pha ) 
               rhsloc_uw(u_iloc) = w( u_nod_pha ) 
+              
+              if(.true.) then ! Test
+                             
+                if(u_iloc == 1 .or. u_iloc == 2) cv_iloc = 1
+                if(u_iloc == 3 .or. u_iloc == 4) cv_iloc = 2
+                if(u_iloc == 5 .or. u_iloc == 6) cv_iloc = 3
+                cv_nodi = cv_ndgln(( ele - 1 ) * cv_nloc + cv_iloc )
+              
+                u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
+                u_nod_pha=u_nod +(iphase-1)*u_nonods
+                rhsloc_uu(u_iloc) = x(cv_nodi) 
+                if(x(cv_nodi) > 2.0) rhsloc_uu(u_iloc) = 2.0
+                write(202,*) x(cv_nodi), rhsloc_uu(u_iloc)
+              end if
+              
              end do
-
-             rhsloc_u = matmul(matloc_cv,rhsloc_u)
-             rhsloc_v = matmul(matloc_cv,rhsloc_w)
-             rhsloc_w = matmul(matloc_cv,rhsloc_v)
-             
-             rhsloc_u = matmul(matloc_cv,matmul(matloc,rhsloc_uu))
              
              do cv_iloc = 1, cv_nloc
+              do u_nloc_lev = 1, n_nloc_lev
+               u_iloc =(cv_iloc-1)*n_nloc_lev + u_nloc_lev
+               do cv_gi = 1, cv_ngi
+                rhsloc_u(cv_iloc) = rhsloc_u(cv_iloc) + cvfen( cv_iloc, cv_gi ) * ufen(u_iloc, cv_gi )*rhsloc_uu(u_iloc)  *detwei(cv_gi)
+               end do
+              end do
+             end do
+             rhsloc_u = matmul(matloc_cv_inv,rhsloc_u)
+             
+!             rhsloc_u = matmul(matloc_cv_inv,matmul(matloc,rhsloc_uu))
+!             rhsloc_v = matmul(matloc_cv_inv,matmul(matloc,rhsloc_uv))
+!             rhsloc_w = matmul(matloc_cv_inv,matmul(matloc,rhsloc_uw))
+             
+!             print*, 'dg mat', matloc_cv
+!             print*, 'dg-ocv mat', matloc
+!             print*, 'rhs',matmul(matloc,rhsloc_uu)
+!             print*, 'rhslocuu', rhsloc_uu
+             do cv_iloc = 1, cv_nloc
                cv_nodi = (ele - 1)*cv_nloc + cv_iloc
-               velocity_dg(cv_nodi, iphase, 1) = rhsloc_u(cv_iloc) + velocity_dg(cv_nodi, iphase, 1)
-               if(ndim > 1) velocity_dg(cv_nodi, iphase, 2) = rhsloc_v(cv_iloc)+ velocity_dg(cv_nodi, iphase, 2)
-               if(ndim > 2) velocity_dg(cv_nodi, iphase, 3) = rhsloc_w(cv_iloc)+ velocity_dg(cv_nodi, iphase, 3)
+               velocity_dg(cv_nodi, iphase, 1) = rhsloc_u(cv_iloc) 
+               if(ndim > 1) velocity_dg(cv_nodi, iphase, 2) = rhsloc_v(cv_iloc)
+               if(ndim > 2) velocity_dg(cv_nodi, iphase, 3) = rhsloc_w(cv_iloc)
              end do
         end do
 
@@ -424,18 +444,16 @@ module mapping_for_ocvfem
    open(103,file="velocity_projected_x_2", action='write')
 
    
-!   print *, u_iloc
+!   print *, "output to file ... "
    u_iloc= 0
    
    do ele = 1, totele ! volume integral
-    
     do cv_iloc = 1, cv_nloc
-      
       cv_nodi = cv_ndgln(( ele - 1 ) * cv_nloc + cv_iloc )
       u_iloc = u_iloc + 1
       write(102,*) x(cv_nodi), velocity_dg((ele-1)*cv_nloc+cv_iloc,1,1)
-      write(103,*) x(cv_nodi), velocity_dg((ele-1)*cv_nloc+cv_iloc,2,1)
-   end do
+      if(nphase > 1) write(103,*) x(cv_nodi), velocity_dg((ele-1)*cv_nloc+cv_iloc,2,1)
+    end do
    end do
    
  
