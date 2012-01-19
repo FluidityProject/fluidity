@@ -95,7 +95,7 @@
       <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">10.0</real_value>
+      <real_value rank="0">1.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">3</integer_value>

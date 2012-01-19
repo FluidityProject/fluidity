@@ -396,7 +396,7 @@ module mapping_for_ocvfem
               rhsloc_uv(u_iloc) = v( u_nod_pha ) 
               rhsloc_uw(u_iloc) = w( u_nod_pha ) 
               
-              if(.true.) then ! Test
+              if(.false.) then ! Test
                              
                 if(u_iloc == 1 .or. u_iloc == 2) cv_iloc = 1
                 if(u_iloc == 3 .or. u_iloc == 4) cv_iloc = 2
@@ -405,7 +405,7 @@ module mapping_for_ocvfem
               
                 u_nod = u_ndgln(( ele - 1 ) * u_nloc + u_iloc )
                 u_nod_pha=u_nod +(iphase-1)*u_nonods
-                rhsloc_uu(u_iloc) = x(cv_nodi) 
+                rhsloc_uu(u_iloc) = x(cv_nodi) **2.0
                 if(x(cv_nodi) > 2.0) rhsloc_uu(u_iloc) = 2.0
                 write(202,*) x(cv_nodi), rhsloc_uu(u_iloc)
               end if

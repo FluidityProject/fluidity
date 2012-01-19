@@ -31,6 +31,7 @@ module Compositional_Terms
   use fldebug
   
   use shape_functions
+  use shape_functions_linear_quadratic
 
 
 contains

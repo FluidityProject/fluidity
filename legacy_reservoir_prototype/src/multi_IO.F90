@@ -311,6 +311,65 @@ contains
 
   end subroutine printing_field_array
 
+
+  ! -----------------------------------------------------------------------------------------
+
+  subroutine printing_field_array_veloc( unit, totele, &
+       cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
+       pos_x,  field)
+    implicit none
+    integer, intent( in ) :: unit, totele, x_nloc, cv_nonods, x_nonods, cv_nloc
+    integer, dimension( totele * x_nloc ), intent( in ) :: x_ndgln
+    integer, dimension( totele * cv_nloc ), intent( in ) :: cv_ndgln
+    real, dimension( x_nonods ), intent( in ) :: pos_x
+    real, dimension(cv_nloc*totele), intent( in ) :: field
+
+    ! Local variables
+    integer :: cv_iloc, ele, xi_nod, xi_nod_plus, xi_nod_minus, field_nod
+    real :: x_coord
+
+    ewrite(3,*) 'In printing_field_array'
+
+    Loop_Elements: do ele = 1, totele
+
+       cv_iloc = 1
+       xi_nod =      x_ndgln(( ele - 1 ) * x_nloc  + cv_iloc )
+       xi_nod_plus = x_ndgln(( ele - 1 ) * x_nloc  + cv_iloc + 1 )
+       field_nod = ( ele - 1 ) * cv_nloc + cv_iloc 
+       x_coord = pos_x( xi_nod ) + pos_x( xi_nod_plus )
+       x_coord =  0.5 * x_coord
+       write( unit, * ) pos_x( xi_nod ), field( field_nod )
+       write( unit, * ) x_coord, field( field_nod )
+
+       do cv_iloc = 2, cv_nloc - 1
+
+          xi_nod =       x_ndgln(( ele - 1 ) * x_nloc  + cv_iloc )
+          xi_nod_plus  = x_ndgln(( ele - 1 ) * x_nloc  + cv_iloc + 1 )
+          xi_nod_minus = x_ndgln(( ele - 1 ) * x_nloc  + cv_iloc - 1 )
+          x_coord = pos_x( xi_nod ) + pos_x( xi_nod_minus )
+          x_coord = 0.5 * x_coord
+          field_nod = ( ele - 1 ) * cv_nloc + cv_iloc
+          write( unit, * ) x_coord, field( field_nod )
+          x_coord = pos_x( xi_nod ) + pos_x( xi_nod_plus )
+          x_coord =  0.5 * x_coord
+          write( unit, * ) x_coord, field( field_nod )
+
+       end do
+
+       cv_iloc = cv_nloc
+       xi_nod =       x_ndgln(( ele - 1 ) * x_nloc  + cv_iloc )
+       xi_nod_minus = x_ndgln(( ele - 1 ) * x_nloc  + cv_iloc - 1 )
+       x_coord = pos_x( xi_nod ) + pos_x( xi_nod_minus )
+       x_coord = 0.5 * x_coord
+       field_nod = ( ele - 1 ) * cv_nloc + cv_iloc
+       write( unit, * ) x_coord, field( field_nod )
+       write( unit, * ) pos_x( xi_nod ), field( field_nod )
+
+    end do Loop_Elements
+
+    ewrite(3,*) 'Leaving printing_field_array'
+
+  end subroutine printing_field_array_veloc
   ! -----------------------------------------------------------------------------------------
 
   subroutine printing_veloc_field( unit, totele, &

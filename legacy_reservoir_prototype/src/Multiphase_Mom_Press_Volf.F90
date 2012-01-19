@@ -49,6 +49,7 @@ module multiphase_mom_press_volf
   use spud
   use signal_vars
   use populate_state_module
+  use mapping_for_ocvfem
 
   IMPLICIT NONE
 
@@ -253,8 +254,8 @@ contains
     real :: dx
     integer, parameter :: izero = 0, rzero = 0.
 
-    ! Absorption terms
-    real, dimension( :, :, : ), allocatable :: sigma
+    ! Absorption terms and dg velocity
+    real, dimension( :, :, : ), allocatable :: sigma, velocity_dg
 
     ! For assembling and solving
     real, dimension( : ), allocatable :: rhs, rhs_cv, diag_pres, femt_print, femt_dummy
@@ -284,6 +285,7 @@ contains
     allocate( sigma( mat_nonods, ndim * nphase, ndim * nphase ))
 
     allocate( rhs( cv_nonods ))
+    allocate( velocity_dg( cv_nloc*totele,nphase,ndim ))
     allocate( rhs_cv( cv_nonods ))
     allocate( diag_pres( cv_nonods ))
     allocate( femt_print( cv_nonods * nphase ))
@@ -671,6 +673,13 @@ contains
 
        Conditional_TIMDUMP: if( ( mod( itime, dump_period_in_timesteps ) == 0 ) .or. ( itime == 1 ) ) then
 
+        ! calculate the quadratic DG representation of the overlapping CVFEM velocity fields
+          call overlapping_to_quadratic_dg( &
+               cv_nonods, x_nonods,u_nonods,  totele, &
+               cv_ele_type,   nphase,  cv_nloc, u_nloc, x_nloc, &
+               cv_ndgln,  u_ndgln, x_ndgln, cv_snloc, u_snloc, stotel, cv_sndgln, u_sndgln, &
+               x, y, z,  u, v, w, uold, vold, wold,velocity_dg,ndim,p_ele_type )
+
           ! output the saturation, density and velocity for each phase
           Phase_output_loop: do iphase = 1,nphase
 
@@ -723,6 +732,23 @@ contains
              call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
                   xu, u_nonods, u_nonods * nphase, u, iphase )
 
+             ! close the file for velocity   
+             close(output_channel)
+
+             dump_name = 'velocity_phase_proj'//trim(dummy_string_phase)//'.d.'//trim(dummy_string_dump)
+
+             ! open the output file for velocity   
+             output_channel = 1
+             file_format = 'formatted'
+             call open_output_file(output_channel,dump_name,len(dump_name),file_format)
+
+             ! output the fem velocity
+             call printing_veloc_field( output_channel, totele, xu_nonods, xu_nloc, xu_ndgln, u_nloc, u_ndgln, &
+                  xu, u_nonods, u_nonods * nphase, u, iphase )
+
+
+             call printing_field_array_veloc(output_channel, totele,   cv_nonods, x_nonods, x_nloc, x_ndgln, cv_nloc, cv_ndgln, &
+                  x, velocity_dg(:,iphase,1))
              ! close the file for velocity   
              close(output_channel)
 
