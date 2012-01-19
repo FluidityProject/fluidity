@@ -671,7 +671,7 @@ contains
 
           call halo_update(tfield)  ! exchange the extended halos
 
-          call test_and_write_advection_convergence(tfield, advit_tfield, x, &
+          call test_and_write_advection_convergence(tfield, advit_tfield, x, t_lumpedmass, &
                                     filename=trim(state(1)%name)//"__"//trim(tfield%name), &
                                     time=time+sub_dt, dt=sub_dt, it=global_it, adv_it=adv_it, &
                                     subcyc=sub, error=error)
@@ -2564,7 +2564,7 @@ contains
 
             call halo_update(tfield(f)%ptr)  ! exchange the extended halos
 
-            call test_and_write_advection_convergence(tfield(f)%ptr, advit_tfield(f), x, &
+            call test_and_write_advection_convergence(tfield(f)%ptr, advit_tfield(f), x, t_lumpedmass, &
                                       filename=trim(state(state_indices(f))%name)//"__"//trim(tfield(f)%ptr%name), &
                                       time=time+sub_dt, dt=sub_dt, it=global_it, adv_it=adv_it, &
                                       subcyc=sub, error=error(f))
@@ -3280,12 +3280,13 @@ contains
 
     end subroutine initialise_advection_convergence
 
-    subroutine test_and_write_advection_convergence(field, nlfield, coordinates, filename, &
+    subroutine test_and_write_advection_convergence(field, nlfield, coordinates, lumpedmass, filename, &
                                                     time, dt, it, subcyc, adv_it, &
                                                     error)
 
        type(scalar_field), intent(inout) :: field, nlfield
        type(vector_field), intent(in) :: coordinates
+       type(scalar_field), intent(in) :: lumpedmass
        character(len=*), intent(in) :: filename
        real, intent(in) :: time, dt
        integer, intent(in) :: it, subcyc, adv_it
@@ -3303,7 +3304,7 @@ contains
 
        error = 0.0
        call field_con_stats(field, nlfield, error, &
-                            convergence_norm, coordinates)
+                            convergence_norm, coordinates, lumpedmass)
 
        format='(e15.6e3)'
        iformat='(i4)'
