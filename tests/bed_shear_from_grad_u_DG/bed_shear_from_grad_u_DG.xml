@@ -5,7 +5,7 @@
   <owner userid="sp911"/>
   <tags>flml bed_shear_stress test</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line>fluidity bed_shear_from_grad_u.flml</command_line>
+    <command_line>fluidity bed_shear_from_grad_u_DG.flml</command_line>
     <!-- check bed shear stress is as expected for very simple set up -->
 </problem_definition>
   <variables>   
@@ -13,7 +13,7 @@
 
 from vtktools import *
 from numpy import *
-data = vtu('bed_shear_from_grad_u_0.vtu')
+data = vtu('bed_shear_from_grad_u_DG_0.vtu')
 
 Shear = data.GetField('BedShearStress')
 SS_min = Shear.min()
@@ -23,7 +23,7 @@ SS_min = Shear.min()
 
 from vtktools import *
 from numpy import *
-data = vtu('bed_shear_from_grad_u_0.vtu')
+data = vtu('bed_shear_from_grad_u_DG_0.vtu')
 
 Shear = data.GetField('BedShearStress')
 SS_max = Shear.max()

@@ -2608,12 +2608,6 @@ contains
             call calculate_bed_shear_stress_ele(bed_shear_stress, masslump, face, X, U,&
                  & visc, density)
          end do
-         
-         do face = 1, surface_element_count(bed_shear_stress)
-            write(*,*) face_val(bed_shear_stress, face)
-            write(*,*) face_val(masslump, face)
-            write(*,*) face_global_nodes(bed_shear_stress, face)
-         end do
             
          ! In the CG case we globally apply inverse mass
          if(continuity(bed_shear_stress)>=0) then
@@ -2623,15 +2617,6 @@ contains
             call scale(bed_shear_stress, masslump)
             call deallocate(masslump)
          end if 
-         
-         ! ! remap surface node values on to sigma field
-         ! do i = 1, node_count(surface_mesh)
-         !    call set(bed_shear_stress, surface_node_list(i),&
-         !         & node_val(bed_shear_stress_surface, i))
-         ! end do
-
-         ! call deallocate(bed_shear_stress_surface)
-         ! call deallocate(surface_mesh)
          
       else
          FLAbort('Unknown bed shear stress calculation method')
@@ -2658,15 +2643,15 @@ contains
      real, dimension(X%dim, face_ngi(X, face)) :: normal, normal_shear_at_quad
      real, dimension(ele_loc(X, face_ele(X, face)), face_ngi(X, face), X%dim) :: ele_dshape_at_face_quad
      real, dimension(X%dim, X%dim, face_ngi(X, face)) :: grad_U_at_quad, visc_at_quad, shear_at_quad  
-     real, dimension(X%dim, face_loc(X, face)) :: normal_shear_at_loc
-     real, dimension(face_loc(X, face), face_loc(X, face)) :: mass
+     real, dimension(X%dim, face_loc(U, face)) :: normal_shear_at_loc
+     real, dimension(face_loc(X, face), face_loc(U, face)) :: mass
 
      ele    = face_ele(X, face) ! ele number for volume mesh
      dim    = mesh_dim(bed_shear_stress) ! field dimension 
 
      ! get shape functions
-     f_shape => face_shape(X, face)     
-     shape   => ele_shape(X, ele)     
+     f_shape => face_shape(U, face)     
+     shape   => ele_shape(U, ele)     
      
      ! generate shape functions that include quadrature points on the face required
      ! check that the shape does not already have these first
@@ -2681,7 +2666,7 @@ contains
     
      ! assumes that the jacobian is the same for all quadrature points
      ! this is not valid for spheres!
-     call compute_inverse_jacobian(ele_val(X, ele), shape, invj = invJ)
+     call compute_inverse_jacobian(ele_val(X, ele), ele_shape(X, ele), invj = invJ)
      assert(ele_numbering_family(shape) == FAMILY_SIMPLEX)
      f_invJ = spread(invJ(:, :, 1), 3, size(f_invJ, 3))
       
