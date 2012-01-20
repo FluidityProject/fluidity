@@ -716,7 +716,8 @@ contains
     type(element_type), pointer                              :: shape
     real, dimension(ele_loc(volume_fraction_surface, i_ele), &
          & ele_loc(volume_fraction_surface, i_ele))          :: invmass
-    real, dimension(ele_ngi(volume_fraction_surface, i_ele)) :: detwei, volume_fraction
+    real, dimension(ele_ngi(volume_fraction_surface, i_ele)) :: detwei
+    real, dimension(ele_loc(volume_fraction_surface, i_ele)) :: volume_fraction
     real                                                     :: min_bedload = 1.0e-20
 
     ele => ele_nodes(volume_fraction_surface, i_ele)
