@@ -5947,6 +5947,10 @@ forcing =
            element b {real},
            ## Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd. 
            element Cd {real},
+           ## Minimum speed assumed in the melt calculation.
+           ## Default value of 1.0E-3.
+           ## Have investigated smaller values of 1.0E-4, 1.0E-5.
+           element minimum_speed {real},
            ## Surface ID for the ice
            element melt_surfaceID {integer_vector}?,
            ## Distance for the far field
