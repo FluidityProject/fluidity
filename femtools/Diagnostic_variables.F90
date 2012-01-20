@@ -78,7 +78,7 @@ module diagnostic_variables
   use detector_parallel
   use detector_move_lagrangian
   use ieee_arithmetic, only: cget_nan
-  use state_fields_module, only: get_lumped_mass, get_lumped_mass_on_submesh
+  use state_fields_module, only: get_cv_mass
   
   implicit none
 
@@ -1969,12 +1969,8 @@ contains
           if(have_option(trim(complete_field_path(sfield%option_path,stat=stat)) //&
                & "/stat/include_cv_stats")) then
             
-            ! Get the CV mass matrix via lumping a fem matrix, which may be on a submesh
-            if(sfield%mesh%shape%degree>1) then
-               cv_mass => get_lumped_mass_on_submesh(state(phase), sfield%mesh)
-            else
-               cv_mass => get_lumped_mass(state(phase), sfield%mesh)
-            end if
+            ! Get the CV mass matrix 
+            cv_mass => get_cv_mass(state(phase), sfield%mesh)
 
             call field_cv_stats(sfield, cv_mass, fnorm2_cv, fintegral_cv)
 

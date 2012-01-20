@@ -5,8 +5,9 @@ module fefields
   use fields
   use field_options, only: get_coordinate_field
   use elements, only: element_type
+  use element_numbering
   use fetools, only: shape_shape
-  use transform_elements, only: transform_to_physical
+  use transform_elements, only: transform_to_physical, element_volume
   use sparse_tools
   use sparse_matrices_fields
   use state_module
@@ -22,10 +23,133 @@ module fefields
   
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
-            compute_lumped_mass_on_submesh, project_field
+            compute_lumped_mass_on_submesh, compute_cv_mass, project_field
 
 contains
+  
+  subroutine compute_cv_mass(positions, cv_mass)
+    
+    !!< Compute the cv mass matrix associated with the 
+    !!< input scalar fields mesh. This will use pre tabulated
+    !!< coefficients to calculate each sub control volumes  
+    !!< volume - which is only set up for linear elements and 
+    !!< selected quadratic elements. This assumes that all 
+    !!< elements have the same vertices, degree and dim. Also 
+    !!< the mesh element type must be Lagrangian. This WILL work
+    !!< for both continuous and discontinuous meshes.
+    
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(inout) :: cv_mass
+    
+    ! local variables
+    integer :: ele
+    integer :: vertices, polydegree, dim, type, family, loc
+    real, dimension(:), pointer :: subcv_ele_volf => null()
+    
+    ewrite(1,*) 'In compute_cv_mass'
+    
+    ! sanity check
+    assert(element_count(positions) == element_count(cv_mass))
+    
+    ! initialise
+    call zero(cv_mass)
+    
+    ! get element info (assume all the same for whole mesh)
+    vertices   = ele_vertices(cv_mass,1)    
+    polydegree = cv_mass%mesh%shape%degree
+    dim        = cv_mass%mesh%shape%dim
+    type       = cv_mass%mesh%shape%numbering%type
+    family     = cv_mass%mesh%shape%numbering%family
+    loc        = cv_mass%mesh%shape%loc
+        
+    ! The element type must be Lagrangian
+    if (type /= ELEMENT_LAGRANGIAN) then
+       FLExit('Can only find the CV mass if the element type is Lagrangian')
+    end if 
+    
+    ! The polydegree must be 1 or 2
+    if ((polydegree < 1) .or. (polydegree > 2)) then       
+       FLExit('Can only find the CV mass if the element polynomial degree is 1 or 2')
+    end if
+    
+    ! If the polydegree is 2 then the element family must be Simplex
+    if ((polydegree == 2) .and. (.not. family == FAMILY_SIMPLEX)) then
+       FLExit('Can only find the CV mass for a mesh with a 2nd degree element if the element familiy is Simplex')
+    end if
+    
+    ! Find the sub CV element volume fractions  
 
+    allocate(subcv_ele_volf(loc))
+    
+    if (polydegree == 1) then
+       
+       ! for linear poly the volume of each
+       ! subcontrol volume is ele_vol / loc
+              
+       subcv_ele_volf = 1.0/real(loc)
+              
+    else if (polydegree == 2) then
+       
+       ! for quadratic poly we only consider Simplex family
+       
+       if (vertices == 2) then
+          
+          ! ****** local node numbering needs checking ******
+          subcv_ele_volf(1) = 0.25
+          subcv_ele_volf(2) = 0.25
+          subcv_ele_volf(3) = 0.5
+          
+       else if (vertices == 3) then
+
+          ! ****** local node numbering needs checking ******
+          subcv_ele_volf(1) = 8.3333333333333333e-02
+          subcv_ele_volf(2) = 8.3333333333333333e-02
+          subcv_ele_volf(3) = 8.3333333333333333e-02
+          subcv_ele_volf(4) = 0.25
+          subcv_ele_volf(5) = 0.25
+          subcv_ele_volf(6) = 0.25          
+          
+       else if ((vertices == 4) .and. (dim == 3) ) then
+           
+          FLAbort('CV sub control volume fractions need coding for a p2 tet')
+
+          ! ****** local node numbering needs checking ******
+          subcv_ele_volf(1)  = 0.0
+          subcv_ele_volf(2)  = 0.0
+          subcv_ele_volf(3)  = 0.0     
+          subcv_ele_volf(4)  = 0.0
+          subcv_ele_volf(5)  = 0.0
+          subcv_ele_volf(6)  = 0.0          
+          subcv_ele_volf(7)  = 0.0     
+          subcv_ele_volf(8)  = 0.0
+          subcv_ele_volf(9)  = 0.0
+          subcv_ele_volf(10) = 0.0          
+       
+       else
+       
+          FLAbort('No code to form the sub control volume element volume fractions if not a Simplex')
+           
+       end if 
+    
+    else 
+    
+       FLAbort('No code to form the sub control volume element volume fractions if poly degree not 1 or 2')
+       
+    end if
+    
+    ! Form the CV mass matrix  
+    do ele = 1,element_count(cv_mass)
+                    
+       call addto(cv_mass, &
+                  ele_nodes(cv_mass, ele), &
+                  subcv_ele_volf * element_volume(positions, ele))
+          
+    end do
+
+    deallocate(subcv_ele_volf)
+    
+  end subroutine compute_cv_mass
+  
   subroutine compute_lumped_mass(positions, lumped_mass, density, vfrac)
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(inout) :: lumped_mass

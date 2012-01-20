@@ -38,7 +38,7 @@ module diagnostic_fields
   use state_module
   use futils
   use fetools
-  use fefields, only: compute_lumped_mass
+  use fefields, only: compute_lumped_mass, compute_cv_mass
   use MeshDiagnostics
   use spud
   use CV_Shape_Functions
@@ -1716,7 +1716,7 @@ contains
       type(element_type) :: x_cvshape, x_cvbdyshape
       type(element_type) :: u_cvshape, u_cvbdyshape
       type(element_type) :: ug_cvshape, ug_cvbdyshape
-      type(scalar_field), pointer :: lumpedmass
+      type(scalar_field), pointer :: cvmass
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
       real, dimension(:,:), allocatable :: x_f, u_f, ug_f, u_bdy_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
@@ -1756,11 +1756,7 @@ contains
 
       x_courant=get_coordinate_field(state, courant%mesh)
 
-      if(courant%mesh%shape%degree>1) then
-        lumpedmass => get_lumped_mass_on_submesh(state, courant%mesh)
-      else
-        lumpedmass => get_lumped_mass(state, courant%mesh)
-      end if
+      cvmass => get_cv_mass(state, courant%mesh)
 
       if(courant%mesh%shape%degree /= 0) then
 
@@ -1970,7 +1966,7 @@ contains
 
       end if
 
-      courant%val = courant%val*l_dt/lumpedmass%val
+      courant%val = courant%val*l_dt/cvmass%val
 
       call deallocate(x_courant)
 
@@ -1996,7 +1992,7 @@ contains
       type(element_type) :: ug_cvshape, ug_cvbdyshape
       type(element_type) :: t_cvshape, t_cvbdyshape
       type(element_type) :: x_cvshape, x_cvbdyshape
-      type(scalar_field) :: lumpedmass
+      type(scalar_field) :: cvmass
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
       real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f, ug_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
@@ -2128,9 +2124,9 @@ contains
         allocate(ug_f(ug%dim, ug_cvshape%ngi))
       end if
 
-      call allocate(lumpedmass, courant%mesh, "Lumped mass")
-      call compute_lumped_mass(x, lumpedmass)
-      lumpedmass%val = lumpedmass%val*(matdens_options%theta*matdens%val+(1.0-matdens_options%theta)*oldmatdens%val)
+      call allocate(cvmass, courant%mesh, "CV mass")
+      call compute_cv_mass(x, cvmass)
+      cvmass%val = cvmass%val*(matdens_options%theta*matdens%val+(1.0-matdens_options%theta)*oldmatdens%val)
 
       do ele=1, element_count(courant)
         x_ele=ele_val(x, ele)
@@ -2314,7 +2310,7 @@ contains
 
       end do
 
-      courant%val = courant%val*l_dt/lumpedmass%val
+      courant%val = courant%val*l_dt/cvmass%val
 
       deallocate(x_ele, x_f, u_f, detwei, normal, normgi)
       deallocate(x_ele_bdy, u_bdy_f, detwei_bdy, normal_bdy)
@@ -2327,7 +2323,7 @@ contains
       call deallocate(x_cvshape)
       call deallocate(t_cvshape)
       call deallocate(cvfaces)
-      call deallocate(lumpedmass)
+      call deallocate(cvmass)
       call deallocate(cfl_no)
       call deallocate(matdens_upwind)
       call deallocate(oldmatdens_upwind)
