@@ -92,38 +92,36 @@ contains
        
        ! for quadratic poly we only consider Simplex family
        
+       ! Note: the local node numbering is such that nodes 
+       !       that are also vertices come first.
+       
        if (vertices == 2) then
           
-          ! ****** local node numbering needs checking ******
-          subcv_ele_volf(1) = 0.25
-          subcv_ele_volf(2) = 0.25
-          subcv_ele_volf(3) = 0.5
+          subcv_ele_volf(1) = 0.25 ! 1/2 * 1/2 = 1/4
+          subcv_ele_volf(2) = 0.25 ! 1/2 * 1/2 = 1/4
+          subcv_ele_volf(3) = 0.5 ! (1 - 2 * 1/4) / 1
           
        else if (vertices == 3) then
 
-          ! ****** local node numbering needs checking ******
-          subcv_ele_volf(1) = 8.3333333333333333e-02
-          subcv_ele_volf(2) = 8.3333333333333333e-02
-          subcv_ele_volf(3) = 8.3333333333333333e-02
-          subcv_ele_volf(4) = 0.25
-          subcv_ele_volf(5) = 0.25
-          subcv_ele_volf(6) = 0.25          
+          subcv_ele_volf(1) = 8.3333333333333333e-02 ! 1/3 * 1/4 = 1/12
+          subcv_ele_volf(2) = 8.3333333333333333e-02 ! 1/3 * 1/4 = 1/12
+          subcv_ele_volf(3) = 8.3333333333333333e-02 ! 1/3 * 1/4 = 1/12
+          subcv_ele_volf(4) = 0.25 ! (1 - 3 * 1/12) / 3
+          subcv_ele_volf(5) = 0.25 ! (1 - 3 * 1/12) / 3
+          subcv_ele_volf(6) = 0.25 ! (1 - 3 * 1/12) / 3          
           
        else if ((vertices == 4) .and. (dim == 3) ) then
-           
-          FLAbort('CV sub control volume fractions need coding for a p2 tet')
-
-          ! ****** local node numbering needs checking ******
-          subcv_ele_volf(1)  = 0.0
-          subcv_ele_volf(2)  = 0.0
-          subcv_ele_volf(3)  = 0.0     
-          subcv_ele_volf(4)  = 0.0
-          subcv_ele_volf(5)  = 0.0
-          subcv_ele_volf(6)  = 0.0          
-          subcv_ele_volf(7)  = 0.0     
-          subcv_ele_volf(8)  = 0.0
-          subcv_ele_volf(9)  = 0.0
-          subcv_ele_volf(10) = 0.0          
+          
+          subcv_ele_volf(1)  = 0.03125 ! 1/8 * 1/4 = 1/32
+          subcv_ele_volf(2)  = 0.03125 ! 1/8 * 1/4 = 1/32
+          subcv_ele_volf(3)  = 0.03125 ! 1/8 * 1/4 = 1/32     
+          subcv_ele_volf(4)  = 0.03125 ! 1/8 * 1/4 = 1/32
+          subcv_ele_volf(5)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6
+          subcv_ele_volf(6)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6          
+          subcv_ele_volf(7)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6     
+          subcv_ele_volf(8)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6
+          subcv_ele_volf(9)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6
+          subcv_ele_volf(10) = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6         
        
        else
        
