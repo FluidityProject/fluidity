@@ -232,7 +232,7 @@ contains
     ! Some internal variables
     real                                :: speed, T,S,P,Aa,Bb,Cc,topo
     real :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance
-    real                                ::loc_Tb,loc_Sb,loc_meltrate,loc_heatflux,loc_saltflux
+    real                                ::loc_Tb,loc_Sb,loc_meltrate,loc_heatflux,loc_saltflux, minimum_speed
     ! Aa*Sb^2+Bv*Sb+Cc
     ! Sink mesh part
     integer                             :: ele,stat,the_node
@@ -243,7 +243,7 @@ contains
 
     ewrite(1,*) "Melt interface calculation begins"
 
-    call melt_interface_read_coefficients(c0=c0, cI=cI, L=L, TI=TI, a=a, b=b, gammaT=gammaT, gammaS=gammaS, farfield_distance=farfield_distance)
+    call melt_interface_read_coefficients(c0=c0, cI=cI, L=L, TI=TI, a=a, b=b, gammaT=gammaT, gammaS=gammaS, farfield_distance=farfield_distance, minimum_speed=minimum_speed)
 
     !! All the variable under /ocean_forcing/iceshelf_meltrate/Holland08 should be in coordinate mesh
     !! coordinate mesh = continous mesh
@@ -330,10 +330,8 @@ contains
         P = node_val(re_pressure,the_node)
         speed = sqrt(sum(vel**2))
 
-        if (speed .lt. 0.001) then
-            speed = 0.001
-            !TODO: Use a maxval here instead
-        endif
+        speed = max(speed, minimum_speed)
+
         ! constant = -7.53e-8 [C Pa^(-1)] comes from Holland and Jenkins Table 1
         ! TODO: Define as a constant explicitly, i.e. real, parameter :: topo = -7.53e-8
         topo = -7.53e-8*P
@@ -855,8 +853,8 @@ contains
     call create_surface_mesh(surface_mesh, surface_nodes, mesh, surface_element_list, name=trim(mesh%name)//"ToshisMesh")
   end subroutine melt_surf_mesh
 
-  subroutine melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady)
-    real, intent(out), optional :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady
+  subroutine melt_interface_read_coefficients(c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady, minimum_speed)
+    real, intent(out), optional :: c0, cI, L, TI, a, b, gammaT, gammaS, farfield_distance, T_steady, S_steady, minimum_speed
     real :: Cd
     character(len=*), parameter :: option_path = '/ocean_forcing/iceshelf_meltrate/Holland08'
 
@@ -877,6 +875,8 @@ contains
     ! When steady boundary options are enabled
     if (present(T_steady)) call get_option(trim(option_path)//'/calculate_boundaries/bc_value_temperature',T_steady, default = 0.0)
     if (present(S_steady)) call get_option(trim(option_path)//'/calculate_boundaries/bc_value_salinity',S_steady, default = 34.0)
+    
+    if (present(minimum_speed)) call get_option(trim(option_path)//'/minimum_speed',minimum_speed, default = 1.0E-3)
 
   end subroutine melt_interface_read_coefficients
 

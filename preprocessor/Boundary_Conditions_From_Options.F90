@@ -247,8 +247,7 @@ contains
        ! mesh of only the part of the surface where this b.c. applies
        call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
           surface_element_list=surface_element_list)
-       call allocate(bc_position, position%dim, surface_mesh)
-       call remap_field_to_surface(position, bc_position, surface_element_list)
+       bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
        ! Dirichlet and Neumann boundary conditions require one input
        ! while a Robin boundary condition requires two. This input can
@@ -528,8 +527,7 @@ contains
           ! map the coordinate field onto this mesh
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
-          call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           if (have_option(bc_type_path) .or. bc_type=="near_wall_treatment" &
               .or. bc_type=="log_law_of_wall") then
@@ -726,8 +724,6 @@ contains
        ! mesh of only the part of the surface where this b.c. applies
        call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
             surface_element_list=surface_element_list)
-       ! map the coordinate field onto this mesh
-       call allocate(bc_position, position%dim, surface_mesh, "BCPositions")
 
        if((surface_mesh%shape%degree==0).and.(bc_type=="dirichlet")) then
          ! if the boundary condition is on a 0th degree mesh and is of type strong dirichlet
@@ -737,12 +733,12 @@ contains
          ! first remap to body element centred positions
          call remap_field(position, temp_position)
          ! then remap these to the surface
-         call remap_field_to_surface(temp_position, bc_position, surface_element_list)
+         bc_position = get_coordinates_remapped_to_surface(temp_position, surface_mesh, surface_element_list) 
          call deallocate(temp_position)
 
        else
          ! in all other cases the positions are remapped to the actual surface
-         call remap_field_to_surface(position, bc_position, surface_element_list)
+         bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
        end if
 
        ! Dirichlet and Neumann boundary conditions require one input
@@ -923,8 +919,6 @@ contains
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
           surface_field => extract_surface_field(field, bc_name, name="value")
-          ! map the coordinate field onto this mesh
-          call allocate(bc_position, position%dim, surface_mesh)
           
           if((surface_mesh%shape%degree==0).and.(bc_type=="dirichlet")) then
             ! if the boundary condition is on a 0th degree mesh and is of type strong dirichlet
@@ -934,12 +928,11 @@ contains
             ! first remap to body element centred positions
             call remap_field(position, temp_position)
             ! then remap these to the surface
-            call remap_field_to_surface(temp_position, bc_position, surface_element_list)
+            bc_position = get_coordinates_remapped_to_surface(temp_position, surface_mesh, surface_element_list) 
             call deallocate(temp_position)
-    
          else
             ! in all other cases the positions are remapped to the actual surface
-            call remap_field_to_surface(position, bc_position, surface_element_list)
+            bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
          end if
 
          ! Synthetic Eddy Method for generating inflow turbulence
@@ -1024,8 +1017,7 @@ contains
           call get_boundary_condition(field, i+1, surface_mesh=surface_mesh, &
                surface_element_list=surface_element_list)
           ! map the coordinate field onto this mesh
-          call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           surface_field => extract_surface_field(field, bc_name, name="order_zero_coeffcient")
           surface_field2 => extract_surface_field(field, bc_name, name="order_one_coeffcient")
@@ -1051,8 +1043,7 @@ contains
                surface_element_list=surface_element_list)
           scalar_surface_field => extract_scalar_surface_field(field, bc_name, name="DragCoefficient")
           ! map the coordinate field onto this mesh
-          call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           call initialise_field(scalar_surface_field, bc_path_i, bc_position, &
             time=time)
@@ -1064,8 +1055,7 @@ contains
                surface_element_list=surface_element_list)
           surface_field => extract_surface_field(field, bc_name, name="WindSurfaceField")
           ! map the coordinate field onto this mesh
-          call allocate(bc_position, position%dim, surface_mesh)
-          call remap_field_to_surface(position, bc_position, surface_element_list)
+          bc_position = get_coordinates_remapped_to_surface(position, surface_mesh, surface_element_list) 
 
           if (have_option(trim(bc_path_i)//"/wind_stress")) then
              bc_type_path=trim(bc_path_i)//"/wind_stress"
@@ -1586,9 +1576,8 @@ contains
         scalar_surface => extract_surface_field(scalar_source_field, force_temperature,&
                                              "value")
         if (heat_flux%mesh%continuity .ne. scalar_surface%mesh%continuity) then 
-            call allocate(position_remapped, p_position%dim, scalar_surface%mesh, "Remapped_pos")
-            call remap_field_to_surface(p_position, position_remapped, &
-                                        surface_element_list)
+            position_remapped=get_coordinates_remapped_to_surface(p_position, &
+              scalar_surface%mesh, surface_element_list)
             call project_field(heat_flux, scalar_surface, position_remapped)
             call deallocate(position_remapped)
         else
@@ -2030,8 +2019,7 @@ contains
 
     ! dump normals when debugging
     if (debugging_mode) then
-      call allocate(bc_position, normal%dim, normal%mesh, "BoundaryPosition")
-      call remap_field_to_surface(x, bc_position, surface_element_list)
+      bc_position = get_coordinates_remapped_to_surface(x, normal%mesh, surface_element_list) 
       call vtk_write_fields( "normals", 0, bc_position, bc_position%mesh, &
                 vfields=(/ normal, tangent_1, tangent_2/))
       call deallocate(bc_position)
