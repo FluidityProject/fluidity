@@ -150,12 +150,18 @@ subroutine keps_tke(state)
     positions       => extract_vector_field(state, "Coordinate")
     nu              => extract_vector_field(state, "NonlinearVelocity")
     u               => extract_vector_field(state, "Velocity")
-    src_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
-    abs_kk   => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
+    src_kk          => extract_scalar_field(state, "TurbulentKineticEnergySource")
+    abs_kk          => extract_scalar_field(state, "TurbulentKineticEnergyAbsorption")
     kk_diff         => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
     kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
+
+    !Clip fields: can't allow negative/zero epsilon or k
+    do i = 1, node_count(EV)
+      call set(kk, i, max(node_val(kk,i), fields_min))
+      call set(eps, i, max(node_val(eps,i), fields_min))
+    end do
 
     ! Set copy of old kk for eps solve
     call set(tke_old, kk)
@@ -274,7 +280,7 @@ end subroutine keps_tke
 subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
-    type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, EV, lumped_mass
+    type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, kk, EV, lumped_mass
     type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps
     type(vector_field), pointer        :: positions
     type(tensor_field), pointer        :: eps_diff
@@ -286,13 +292,20 @@ subroutine keps_eps(state)
     logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_eps"
+    kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
-    src_eps      => extract_scalar_field(state, "TurbulentDissipationSource")
-    src_kk       => extract_scalar_field(state, "TurbulentKineticEnergySource")
-    abs_eps  => extract_scalar_field(state, "TurbulentDissipationAbsorption")
+    src_eps         => extract_scalar_field(state, "TurbulentDissipationSource")
+    src_kk          => extract_scalar_field(state, "TurbulentKineticEnergySource")
+    abs_eps         => extract_scalar_field(state, "TurbulentDissipationAbsorption")
     eps_diff        => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
     positions       => extract_vector_field(state, "Coordinate")
+
+    !Clip fields: can't allow negative/zero epsilon or k
+    do i = 1, node_count(EV)
+      call set(kk, i, max(node_val(kk,i), fields_min))
+      call set(eps, i, max(node_val(eps,i), fields_min))
+    end do
 
     call allocate(src_rhs, eps%mesh, name="EPSSRCRHS")
     call allocate(abs_rhs, eps%mesh, name="EPSABSRHS")
