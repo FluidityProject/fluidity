@@ -2552,29 +2552,168 @@ contains
 !
       type(state_type), intent(in) :: state
       type(vector_field), intent(inout) :: bed_shear_stress
-      type(vector_field), pointer :: U
-      integer, dimension(:), allocatable:: faceglobalnodes
-      integer :: j,snloc,ele,sele,globnod
+      type(scalar_field) :: masslump
+      type(vector_field), pointer :: U, X, bed_shear_stress_surface
+      type(tensor_field), pointer :: visc
+      integer, dimension(:), allocatable :: faceglobalnodes
+      integer :: i,j,snloc,ele,sele,globnod,face
       real :: speed,density,drag_coefficient
+      real, dimension(mesh_dim(bed_shear_stress)) :: invmass
+      type(mesh_type) :: surface_mesh
+      integer, dimension(:), pointer :: surface_node_list
 !
-      call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/density", density)
-      call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/drag_coefficient", drag_coefficient)
       
-      call zero(bed_shear_stress)      
-      U => extract_vector_field(state, "Velocity")
-      snloc = face_loc(U, 1)
-      allocate( faceglobalnodes(1:snloc) )
-      do sele=1,surface_element_count(U)
-        ele = face_ele(U, sele)
-        faceglobalnodes = face_global_nodes(U, sele)
-        do j = 1,snloc
-           globnod = faceglobalnodes(j)
-           speed = norm2(node_val(U, globnod))
-           call set(bed_shear_stress, globnod, density*drag_coefficient*speed * node_val(U, globnod))
-        end do
-      end do
-      deallocate( faceglobalnodes )
+      ! assumes constant density
+      call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/density", density)
+
+      call zero(bed_shear_stress) 
+
+      ! calculate using drag coefficient
+      if (have_option(trim(bed_shear_stress%option_path)//&
+           &"/diagnostic/calculation_method/drag_coefficient")) then
+
+         call get_option(trim(bed_shear_stress%option_path)//&
+              & "/diagnostic/calculation_method/drag_coefficient",&
+              & drag_coefficient)
+
+         U => extract_vector_field(state, "Velocity")
+         snloc = face_loc(U, 1)
+         allocate( faceglobalnodes(1:snloc) )
+         do sele=1,surface_element_count(U)
+            ele = face_ele(U, sele)
+            faceglobalnodes = face_global_nodes(U, sele)
+            do j = 1,snloc
+               globnod = faceglobalnodes(j)
+               speed = norm2(node_val(U, globnod))
+               call set(bed_shear_stress, globnod, density*drag_coefficient*speed * node_val(U, globnod))
+            end do
+         end do
+         deallocate( faceglobalnodes )
+
+      ! calculate using velocity gradient
+      else if (have_option(trim(bed_shear_stress%option_path)//&
+           &"/diagnostic/calculation_method/velocity_gradient")) then
+
+         visc => extract_tensor_field(state, "Viscosity")
+         U    => extract_vector_field(state, "Velocity")
+         X    => extract_vector_field(state, "Coordinate")
+         
+         ! In the CG case we need to calculate a global lumped mass
+         if(continuity(bed_shear_stress)>=0) then
+            call allocate(masslump, bed_shear_stress%mesh, 'Masslump')
+         end if
+
+         ! generate surface_mesh
+         do face = 1, surface_element_count(bed_shear_stress)
+            call calculate_bed_shear_stress_ele(bed_shear_stress, masslump, face, X, U,&
+                 & visc, density)
+         end do
+            
+         ! In the CG case we globally apply inverse mass
+         if(continuity(bed_shear_stress)>=0) then
+            where (masslump%val/=0.0)
+               masslump%val=1./masslump%val
+            end where
+            call scale(bed_shear_stress, masslump)
+            call deallocate(masslump)
+         end if 
+         
+      else
+         FLAbort('Unknown bed shear stress calculation method')
+      end if
+
    end subroutine calculate_bed_shear_stress
+
+   subroutine calculate_bed_shear_stress_ele(bed_shear_stress, masslump, face, X, U, visc&
+        &, density)
+
+     type(vector_field), intent(inout) :: bed_shear_stress
+     type(scalar_field), intent(inout) :: masslump
+     type(vector_field), intent(in), pointer :: X, U
+     type(tensor_field), intent(in), pointer :: visc
+     integer, intent(in) :: face
+     real, intent(in) :: density
+
+     integer :: i, j, i_gi, ele, dim
+     type(element_type) :: augmented_shape
+     type(element_type), pointer :: f_shape, shape, X_f_shape, X_shape
+     real, dimension(X%dim, X%dim, ele_ngi(X, face_ele(X, face))) :: invJ
+     real, dimension(X%dim, X%dim, face_ngi(X, face)) :: f_invJ  
+     real, dimension(face_ngi(X, face)) :: detwei
+     real, dimension(X%dim, face_ngi(X, face)) :: normal, normal_shear_at_quad
+     real, dimension(ele_loc(X, face_ele(X, face)), face_ngi(X, face), X%dim) :: ele_dshape_at_face_quad
+     real, dimension(X%dim, X%dim, face_ngi(X, face)) :: grad_U_at_quad, visc_at_quad, shear_at_quad  
+     real, dimension(X%dim, face_loc(U, face)) :: normal_shear_at_loc
+     real, dimension(face_loc(X, face), face_loc(U, face)) :: mass
+
+     ele    = face_ele(X, face) ! ele number for volume mesh
+     dim    = mesh_dim(bed_shear_stress) ! field dimension 
+
+     ! get shape functions
+     f_shape => face_shape(U, face)     
+     shape   => ele_shape(U, ele)     
+     
+     ! generate shape functions that include quadrature points on the face required
+     ! check that the shape does not already have these first
+     assert(shape%degree == 1)
+     if(associated(shape%dn_s)) then
+        augmented_shape = shape
+        call incref(augmented_shape)
+     else
+        augmented_shape = make_element_shape(shape%loc, shape%dim, shape%degree, &
+             & shape%quadrature, quad_s = f_shape%quadrature)
+     end if
+    
+     ! assumes that the jacobian is the same for all quadrature points
+     ! this is not valid for spheres!
+     call compute_inverse_jacobian(ele_val(X, ele), ele_shape(X, ele), invj = invJ)
+     assert(ele_numbering_family(shape) == FAMILY_SIMPLEX)
+     f_invJ = spread(invJ(:, :, 1), 3, size(f_invJ, 3))
+      
+     call transform_facet_to_physical(X, face, detwei_f = detwei, normal = normal)
+    
+     ! Evaluate the volume element shape function derivatives at the surface
+     ! element quadrature points
+     ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, &
+          & local_face_number(X, face), f_invJ)
+
+     ! Calculate grad of U at the surface element quadrature points
+     do i=1, dim
+        do j=1, dim
+           grad_U_at_quad(i, j, :) = &
+                & matmul(ele_val(U, j, ele), ele_dshape_at_face_quad(:,:,i))
+        end do
+     end do
+
+     visc_at_quad = face_val_at_quad(visc, face)
+     do i_gi = 1, face_ngi(X, face)
+        ! Multiply by visosity
+        shear_at_quad(:,:,i_gi) = matmul(grad_U_at_quad(:,:,i_gi), visc_at_quad(:,:,i_gi))
+
+        ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
+        ! to surface
+        normal_shear_at_quad(:,i_gi) = matmul(shear_at_quad(:,:,i_gi), normal(:,i_gi))
+     end do  
+
+     normal_shear_at_loc = shape_vector_rhs(f_shape, normal_shear_at_quad, density *&
+          & detwei)
+
+     mass = shape_shape(f_shape, f_shape, detwei)
+     ! In the CG case we need to calculate a global lumped mass
+     if(continuity(bed_shear_stress)>=0) then
+        call addto(masslump, face_global_nodes(bed_shear_stress,face), sum(mass,1))
+     else ! In the DG case we will apply the inverse mass locally.
+        do i = 1,dim
+           normal_shear_at_loc(i,:) = matmul(inverse(mass), normal_shear_at_loc(i,:))
+        end do
+     end if
+
+     ! add to bed_shear_stress field
+     call addto(bed_shear_stress, face_global_nodes(bed_shear_stress,face), normal_shear_at_loc)
+
+     call deallocate(augmented_shape)
+          
+   end subroutine calculate_bed_shear_stress_ele
 
    subroutine calculate_max_bed_shear_stress(state, max_bed_shear_stress)
 !

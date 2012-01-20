@@ -3132,8 +3132,15 @@ guided search particle tracking</a:documentation>
     <element name="density">
       <ref name="real"/>
     </element>
-    <element name="drag_coefficient">
-      <ref name="real"/>
+    <element name="calculation_method">
+      <choice>
+        <element name="drag_coefficient">
+          <ref name="real"/>
+        </element>
+        <element name="velocity_gradient">
+          <empty/>
+        </element>
+      </choice>
     </element>
     <ref name="diagnostic_output_options"/>
     <ref name="diagnostic_vector_stat_options"/>
