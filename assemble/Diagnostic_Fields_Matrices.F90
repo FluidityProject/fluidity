@@ -73,8 +73,8 @@ contains
 
       character(len=FIELD_NAME_LEN) :: field_name
 
-      type(scalar_field), pointer :: lumpedmass
-      type(scalar_field) :: inverse_lumpedmass
+      type(scalar_field), pointer :: cvmass
+      type(scalar_field) :: inverse_cvmass
       type(scalar_field) :: ctfield, ct_rhs
 
       call get_option(trim(div%option_path)//"/diagnostic/field_name", field_name)
@@ -85,23 +85,19 @@ contains
       call allocate(ctfield, div%mesh, name="CTField")
       call allocate(ct_rhs, div%mesh, name="CTRHS")
 
-      if(element_degree(div, 1)>1) then
-        lumpedmass => get_lumped_mass_on_submesh(state, div%mesh)
-      else
-        lumpedmass => get_lumped_mass(state, div%mesh)
-      end if
+      cvmass => get_cv_mass(state, div%mesh)
 
       CT_m => get_divergence_matrix_cv(state, test_mesh=div%mesh, field=field, div_rhs=ct_rhs)
 
       call mult(ctfield, CT_m, field)
       call addto(ctfield, ct_rhs, -1.0)
 
-      call allocate(inverse_lumpedmass, lumpedmass%mesh, "InverseLumpedMass")
-      call invert(lumpedmass, inverse_lumpedmass)
+      call allocate(inverse_cvmass, cvmass%mesh, "InverseCVMass")
+      call invert(cvmass, inverse_cvmass)
       call set(div, ctfield)
-      call scale(div, inverse_lumpedmass)
+      call scale(div, inverse_cvmass)
       
-      call deallocate(inverse_lumpedmass)
+      call deallocate(inverse_cvmass)
       call deallocate(ctfield)
       call deallocate(ct_rhs)
 

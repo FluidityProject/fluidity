@@ -4268,6 +4268,12 @@ scalar_field_choice =
             (element diagnostic {
                internal_algorithm,
                velocity_mesh_choice,
+               ## Include the density field in the Grid Reynolds number calculation.
+               ## A Density field must exist in the material_phase for this.
+               ## This assumes that the viscosity used is the dynamic viscosity.
+               element include_density_field {
+                  comment
+               }?,
                diagnostic_scalar_field
             }
             | element aliased { generic_aliased_field })

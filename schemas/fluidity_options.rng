@@ -5420,6 +5420,14 @@ for the equation of state of all materials.</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
+            <optional>
+              <element name="include_density_field">
+                <a:documentation>Include the density field in the Grid Reynolds number calculation.
+A Density field must exist in the material_phase for this.
+This assumes that the viscosity used is the dynamic viscosity.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">

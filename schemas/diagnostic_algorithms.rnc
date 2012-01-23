@@ -1260,6 +1260,25 @@ universal_column_id_algorithm =
       }
    )
 
+# Mass matrix
+   
+finite_element_lumped_mass_matrix =
+   (
+      ## The finite element lumped mass matrix.
+      element algorithm {
+        attribute name { "finite_element_lumped_mass_matrix" },
+        attribute material_phase_support { "single" }
+      }
+   )
+   
+control_volume_mass_matrix =
+   (
+      ## The control volume mass matrix.
+      element algorithm {
+        attribute name { "control_volume_mass_matrix" },
+        attribute material_phase_support { "single" }
+      }
+   )
 
 # Time averaged fields
 
@@ -1385,6 +1404,8 @@ scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= div_algorithm
 scalar_diagnostic_algorithms |= curl_2d_algorithm
 scalar_diagnostic_algorithms |= column_id_algorithm
+scalar_diagnostic_algorithms |= finite_element_lumped_mass_matrix
+scalar_diagnostic_algorithms |= control_volume_mass_matrix
 scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 
 vector_diagnostic_algorithms = vector_time_averaged_algorithm
