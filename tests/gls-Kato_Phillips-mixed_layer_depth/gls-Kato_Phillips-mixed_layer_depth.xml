@@ -83,24 +83,28 @@ assert FinalTimeKWCB &gt; 35900
     <test name="Final time equals 10 hours for k-kl KC" language="python">
 assert FinalTimeKKLKC &gt; 35900
     </test>
+    <test name="Some TKE generated" language="python">
+assert FinalTKEMax > 7.6e-6
+    </test>
 
-    <test name ="MLD for Gen Ca vs analytical" language="python">
+    <test name ="MLD for Gen GL vs analytical" language="python">
 from numpy import array, all
-assert (all( abs(array(GenGL_MLD[1]) - array(GenGL_MLD[2]) ) &lt; 1.5))
+assert (all( abs(array(GenGL_MLD[1]) - array(GenGL_MLD[2]) ) &lt; 2.0))
     </test>   
-    <test name ="MLD for K-E KC vs analytical" language="python">
+    <test name ="MLD for K-E CA vs analytical" language="python">
 from numpy import array, all
 print abs(array(KECA_MLD[1]) - array(KECA_MLD[2]) )
-assert (all( abs(array(KECA_MLD[1]) - array(KECA_MLD[2]) ) &lt; 1.5))
+assert (all( abs(array(KECA_MLD[1]) - array(KECA_MLD[2]) ) &lt; 2.0))
     </test>
-    <test name ="MLD for K-W GL vs analytical" language="python">
+    <test name ="MLD for K-W CB vs analytical" language="python">
 from numpy import array, all
-assert (all( abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) ) &lt; 1.5))
+print abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) )
+assert (all( abs(array(KWCB_MLD[1]) - array(KWCB_MLD[2]) ) &lt; 2.0))
     </test>
-    <test name ="MLD for K-KL vs analytical" language="python">
+    <test name ="MLD for K-KL KC vs analytical" language="python">
 from numpy import array, all
 print abs(array(KKLKC_MLD[1]) - array(KKLKC_MLD[2]) )
-assert (all( abs(array(KKLKC_MLD[1]) - array(KKLKC_MLD[2]) ) &lt; 1.5))
+assert (all( abs(array(KKLKC_MLD[1]) - array(KKLKC_MLD[2]) ) &lt; 2.0))
     </test>
 
   </pass_tests>
