@@ -111,30 +111,7 @@
       <real_value rank="0">1.0</real_value>
     </finish_time>
   </timestepping>
-  <physical_parameters>
-    <gravity>
-      <magnitude>
-        <real_value rank="0">9.81</real_value>
-      </magnitude>
-      <vector_field name="GravityDirection" rank="1">
-        <prescribed>
-          <mesh name="CoordinateMesh"/>
-          <value name="inertia">
-            <constant>
-              <real_value shape="1" dim1="dim" rank="1">1.0</real_value>
-            </constant>
-          </value>
-          <output/>
-          <stat>
-            <include_in_stat/>
-          </stat>
-          <detectors>
-            <exclude_from_detectors/>
-          </detectors>
-        </prescribed>
-      </vector_field>
-    </gravity>
-  </physical_parameters>
+  <physical_parameters/>
   <material_phase name="SinglePhase">
     <equation_of_state>
       <compressible>

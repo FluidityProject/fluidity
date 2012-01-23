@@ -310,6 +310,8 @@ contains
        igot_t2 = 1 
        igot_theta_flux = 1
     end if
+    
+    
    
     call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
          cv_ngi, cv_ngi_short, scvngi_theta, sbcvngi, nface )
@@ -450,6 +452,13 @@ contains
           else 
              VOLFRA_USE_THETA_FLUX = .true.
           END IF
+          
+          if(.not. have_options("/material_phase[0]/multiphase_properties/relperm_type")) then
+           
+            uden = den
+            udenold = denold
+          
+          end if
 
           CALL FORCE_BAL_CTY_ASSEM_SOLVE( &
                NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
