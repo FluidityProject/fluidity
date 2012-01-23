@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">divergence_free_velocity_press_cg_test_cty_cv_p0p1_3d</string_value>
+    <string_value lines="1">divergence_free_velocity_press_cg_test_cty_cv_p1dgp2_3d</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -23,7 +23,7 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">0</integer_value>
+            <integer_value rank="0">1</integer_value>
           </polynomial_degree>
         </mesh_shape>
         <mesh_continuity>
@@ -37,6 +37,27 @@
     <mesh name="PressureMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="OutputMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">2</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -44,8 +65,11 @@
     </mesh>
     <quadrature>
       <degree>
-        <integer_value rank="0">3</integer_value>
+        <integer_value rank="0">4</integer_value>
       </degree>
+      <surface_degree>
+        <integer_value rank="0">2</integer_value>
+      </surface_degree>
     </quadrature>
   </geometry>
   <io>
@@ -57,7 +81,7 @@
         <real_value rank="0">0.0</real_value>
       </constant>
     </dump_period>
-    <output_mesh name="VelocityMesh"/>
+    <output_mesh name="OutputMesh"/>
     <stat/>
     <detectors>
       <static_detector name="left">

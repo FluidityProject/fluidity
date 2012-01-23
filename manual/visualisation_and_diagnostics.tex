@@ -250,6 +250,8 @@ The available internal diagnostics are:
 \item[lumped\_mass\_smoothed\_scalar:]Smooth a scalar field by inverting the lumped mass: ML {S\_smooth}=M {S}.
 \item[particle\_reynolds\_number:]Diagnostic algorithm used in multiphase flow simulations. Calculates the particle Reynolds number, $(\alpha_f\rho_f|\vec{u}_f - \vec{u}_p|d)/\mu_f$, where the subscripts f and p denote the fluid (i.e. continuous) and particle (i.e. dispersed) phases respectively, and d is the particle diameter.
 \item[apparent\_density:]Diagnostic algorithm used in multiphase flow simulations. Calculates the apparent density of the material\_phase, i.e. Density multiplied by the PhaseVolumeFraction field.
+\item[control\_volume\_mass\_matrix:]Computes the control volume mass matrix on the mesh of the diagnostic field.
+\item[finite\_element\_lumped\_mass\_matrix:]Computes the lumped finite element mass matrix on the mesh of the diagnostic field.
 \end{description}        
 
 
