@@ -32,11 +32,12 @@ contains
     !!< Compute the cv mass matrix associated with the 
     !!< input scalar fields mesh. This will use pre tabulated
     !!< coefficients to calculate each sub control volumes  
-    !!< volume - which is only set up for linear elements and 
+    !!< volume - which is only set up for constant, linear elements and 
     !!< selected quadratic elements. This assumes that all 
     !!< elements have the same vertices, degree and dim. Also 
     !!< the mesh element type must be Lagrangian. This WILL work
-    !!< for both continuous and discontinuous meshes.
+    !!< for both continuous and discontinuous meshes. If the element
+    !!< order is zero then return the element volume.
     
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(inout) :: cv_mass
@@ -67,9 +68,9 @@ contains
        FLExit('Can only find the CV mass if the element type is Lagrangian')
     end if 
     
-    ! The polydegree must be 1 or 2
-    if ((polydegree < 1) .or. (polydegree > 2)) then       
-       FLExit('Can only find the CV mass if the element polynomial degree is 1 or 2')
+    ! The polydegree must be < 3
+    if (polydegree > 2) then       
+       FLExit('Can only find the CV mass if the element polynomial degree is 2 or less')
     end if
     
     ! If the polydegree is 2 then the element family must be Simplex
@@ -81,7 +82,12 @@ contains
 
     allocate(subcv_ele_volf(loc))
     
-    if (polydegree == 1) then
+    if (polydegree == 0) then
+       
+       ! dummy value for element wise
+       subcv_ele_volf = 1.0
+       
+    else if (polydegree == 1) then
        
        ! for linear poly the volume of each
        ! subcontrol volume is ele_vol / loc
@@ -128,7 +134,7 @@ contains
     
     else 
     
-       FLAbort('No code to form the sub control volume element volume fractions if poly degree not 1 or 2')
+       FLAbort('No code to form the sub control volume element volume fractions if poly degree is > 2')
        
     end if
     

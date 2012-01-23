@@ -117,17 +117,7 @@
     </scalar_field>
     <scalar_field name="ElementVolume" rank="0">
       <diagnostic>
-        <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value lines="20" type="python">coord = states["fluid"].vector_fields["Coordinate"]
-
-for ele in range(field.element_count):
-   
-   # form element transform object
-   tr_ele = Transform(ele, coord)
-   
-   # set volume via sum of detwei
-   field.set(ele, sum(tr_ele.detwei))</string_value>
-        </algorithm>
+        <algorithm name="control_volume_mass_matrix" material_phase_support="single"/>
         <mesh name="DGP0"/>
         <output/>
         <stat/>
