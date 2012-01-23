@@ -427,26 +427,17 @@ generic_solver_options =
       element cache_solver_context {
          empty
       }?,
-      (
-         ## Use Reverse Cuthill-McKee reordering to improve cache performance
-         element reordering {
-           attribute name { "rcm" }
-         }|
-         ## Use one way dissecting reordering to improve cache performance
-         element reordering {
-           attribute name { "1wd" }
-         }|
-         ## Use natural ordering as reordering, i.e. change nothing.
-         ## Only useful for debugging purposes.
-         element reordering {
-           attribute name { "natural" }
-         }|
-         ## Specify any other reordering mechanism supported by PETSc
-         ## see http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
-         element reordering {
-           attribute name { xsd:string }
-         }
-      )?,
+      ## Specify a reordering mechanism supported by PETSc
+      ## to improve cache performance, see
+      ## http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
+      ##
+      ## Note that the use of reordering mechanisms for solves is 
+      ## currently untested.  Possible schemes include:
+      ## Reverse Cuthill-McKee reordering (rcm), a one way dissecting (1wd)
+      ## algorithm, and also a natural ordering (natural) for debugging.
+      element reordering {
+         attribute name { xsd:string }
+      }?,
       ## Extra diagnostics to help debug solver problems
       element diagnostics {
          ## Print out the norm of vectors and matrices before the
