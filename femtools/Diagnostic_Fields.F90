@@ -467,14 +467,17 @@ contains
     type(scalar_field), intent(inout) :: grn
 
     type(vector_field), pointer :: U, X
-    integer :: ele, gi
+    integer :: ele, gi, stat
     ! Transformed quadrature weights.
     real, dimension(ele_ngi(GRN, 1)) :: detwei
     ! Inverse of the local coordinate change matrix.
     real, dimension(mesh_dim(GRN), mesh_dim(GRN), ele_ngi(GRN, 1)) :: J
     ! velocity/dx at each quad point.
     real, dimension(mesh_dim(GRN), ele_ngi(GRN, 1)) :: GRN_q
+    ! viscosity at each quad point
     real, dimension(mesh_dim(GRN), mesh_dim(GRN), ele_ngi(GRN,1)) :: vis_q
+    ! density at each quad point
+    real, dimension(ele_ngi(GRN,1)) :: den_q    
     ! current element global node numbers.
     integer, dimension(:), pointer :: ele_grn
     ! local grn matrix on the current element.
@@ -482,14 +485,25 @@ contains
     ! current GRN element shape
     type(element_type), pointer :: GRN_shape
     type(tensor_field), pointer :: viscosity
-
+    type(scalar_field), pointer :: density
+    logical :: include_density_field
+    
     U=>extract_vector_field(state, "Velocity")
     X=>extract_vector_field(state, "Coordinate")
 
     call zero(grn)
 
     viscosity => extract_tensor_field(state,'Viscosity')
-
+    
+    include_density_field = have_option(trim(GRN%option_path)//'/diagnostic/include_density_field')
+    
+    if (include_density_field) then
+       density => extract_scalar_field(state,'Density', stat = stat)
+       if (stat /= 0) then
+          FLExit('To include the Density field in the Grid Reynolds number calculation Density must exist in the material_phase state')
+       end if
+    end if
+    
     do ele=1, element_count(GRN)
        ele_GRN=>ele_nodes(GRN, ele)
        GRN_shape=>ele_shape(GRN, ele)
@@ -505,7 +519,15 @@ contains
           GRN_q(:,gi)=matmul(GRN_q(:,gi), J(:,:,gi))
           GRN_q(:,gi)=matmul(inverse(vis_q(:,:,gi)), GRN_q(:,gi))
        end do
-
+       
+       ! include the density field if required also at the quad point
+       if (include_density_field) then
+          den_q=ele_val_at_quad(density, ele)
+          do gi=1,size(detwei)
+              GRN_q(:,gi)=den_q(gi)*GRN_q(:,gi)
+          end do          
+       end if
+       
        ! Project onto the basis functions to recover GRN at each node.
        GRN_mat=matmul(inverse(shape_shape(GRN_shape, GRN_shape, detwei)), &
             shape_shape(GRN_shape, GRN_shape, &

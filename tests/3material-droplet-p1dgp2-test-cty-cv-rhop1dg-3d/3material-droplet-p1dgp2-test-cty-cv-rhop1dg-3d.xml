@@ -4,7 +4,7 @@
   <name>3d p1dgp2-test-cty-cv-rhop1dg-3d multi-material flow test</name>
   <owner userid="btollit"/>
   <tags>flml</tags>
-    <problem_definition length="special" nprocs="1">
+    <problem_definition length="medium" nprocs="1">
     <command_line>
 fluidity -v1 -l 3material-droplet-p1dgp2-test-cty-cv-rhop1dg-3d.flml 
     </command_line>
@@ -74,6 +74,10 @@ mxvfracsum = max(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-c
 import fluidity_tools
 mnvfracsum = min(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['SumMaterialVolumeFractions']['min'])
     </variable>
+     <variable name="max_reynolds" language="python">
+import fluidity_tools
+max_reynolds = max(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['GridReynoldsNumber']['max'])
+    </variable>    
   </variables>
     <pass_tests>  
     <test name="check end time" language="python">
@@ -90,9 +94,9 @@ assert abs(vfracintwater0-vfracintwater) &lt; max(maxdivergence, mindivergence)
 print 'conservation error = ', abs(vfracintdrop0-vfracintdrop)
 assert abs(vfracintdrop0-vfracintdrop) &lt; max(maxdivergence, mindivergence)
     </test>
-    <test name="check that reasonable tolerance is being used to test conservation" language="python">
+    <test name="check that reasonable tolerance (2.0e-09) is being used to test conservation" language="python">
 print 'divergence tolerance = ', max(maxdivergence, mindivergence)
-assert max(maxdivergence, mindivergence) &lt; 1.E-8
+assert max(maxdivergence, mindivergence) &lt; 2.0e-09
     </test>
     <test name="check minimum water volume fraction is 0.0" language="python">
 assert abs(mnvfracwater) &lt; 1e-10
@@ -118,6 +122,9 @@ assert abs(mnvfracsum) &lt; 1e-10
     <test name="check maximum sum volume fraction is 1.0" language="python">
 assert abs(mxvfracsum-1.0) &lt; 1e-10
     </test>
+    <test name="check maximum grid reynolds number is 9081.08013737 to tolerance 1.0e-08" language="python">
+assert abs(max_reynolds - 9081.08013737) &lt; 1.0e-08
+    </test>    
   </pass_tests>
   <warn_tests>
   </warn_tests>
