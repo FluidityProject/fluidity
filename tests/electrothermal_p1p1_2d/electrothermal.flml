@@ -149,6 +149,7 @@
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
+              <exclude_mass_terms/>
             </mass_terms>
             <advection_terms>
               <exclude_advection_terms/>

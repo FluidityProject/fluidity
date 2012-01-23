@@ -596,17 +596,13 @@ contains
           end if
           !end explicit ale ------------  jem 21/07/08
 
-          !-----------------------------------------------------
-          ! Call to porous_media module (leading to multiphase flow in porous media)
-          ! jhs - 16/01/09
+          ! Call to porous_media module for electrical properties
           if (have_option("/porous_media")) then
-             call porous_media_advection(state)
              ! compute spontaneous electrical potentials (myg - 28/10/09)
              do i=1,size(state)
                 option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/'
                 ! Option to search through a space of saturation distributions to find
                 ! best match to measured electrical data - for reservoir modelling.
-                ! Added 18 May 2010 jhs
                 if (have_option(trim(option_buffer)//'Saturation_Distribution_Search')) then
                    call search_saturations_hookejeeves(state, i)
                 elseif (have_option(trim(option_buffer)//'coupling_coefficients/scalar_field::Electrokinetic').or.&
@@ -616,7 +612,6 @@ contains
                 end if
              end do
           end if
-          ! End call to porous_media
 
           if (have_option("/ocean_biology")) then
              call calculate_biology_terms(state(1))
@@ -739,14 +734,6 @@ contains
           !
           ! Assemble and solve N.S equations.
           !
-
-          !-------------------------------------------------------------
-          ! Call to porous_media_momentum (leading to multiphase)
-          ! jhs - 16/01/09
-          ! moved to here 04/02/09
-          if (have_option("/porous_media")) then
-             call porous_media_momentum(state)
-          end if
 
           if (have_solids) then
              ewrite(2,*) 'into solid_drag_calculation'
