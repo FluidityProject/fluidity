@@ -200,7 +200,7 @@ Diagnostic_fields_wrapper.o ../include/diagnostic_fields_wrapper.mod: \
    ../include/geostrophic_pressure.mod ../include/global_parameters.mod \
    ../include/momentum_diagnostic_fields.mod \
    ../include/multimaterial_module.mod ../include/multiphase_module.mod \
-   ../include/parallel_tools.mod ../include/porous_media.mod \
+   ../include/parallel_tools.mod \
    ../include/sediment_diagnostics.mod ../include/sparse_matrices_fields.mod \
    ../include/spontaneous_potentials.mod ../include/spud.mod \
    ../include/state_module.mod ../include/tidal_module.mod \
@@ -639,13 +639,6 @@ Petsc_Solve_State.o ../include/petsc_solve_state_module.mod: \
    ../include/sparse_tools.mod ../include/sparse_tools_petsc.mod \
    ../include/spud.mod ../include/state_module.mod
 
-../include/porous_media.mod: Porous_Media.o
-	@true
-
-Porous_Media.o ../include/porous_media.mod: Porous_Media.F90 \
-   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
-   ../include/spud.mod ../include/state_module.mod
-
 ../include/pressure_dirichlet_bcs_cv.mod: Pressure_Dirichlet_BCS_CV.o
 	@true
 
@@ -763,7 +756,7 @@ Spontaneous_Potentials.o ../include/spontaneous_potentials.mod: \
    Spontaneous_Potentials.F90 ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/fdebug.h \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/porous_media.mod ../include/solvers.mod \
+   ../include/solvers.mod \
    ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
    ../include/state_module.mod
 

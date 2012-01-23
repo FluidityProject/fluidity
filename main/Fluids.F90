@@ -79,7 +79,6 @@ module fluids_module
   use free_surface_module
   use field_priority_lists
   use boundary_conditions
-  use porous_media
   use spontaneous_potentials, only: calculate_electrical_potential
   use saturation_distribution_search_hookejeeves
   use discrete_properties_module
@@ -596,9 +595,9 @@ contains
           end if
           !end explicit ale ------------  jem 21/07/08
 
-          ! Call to porous_media module for electrical properties
+          ! Call to electrical properties for porous_media module 
           if (have_option("/porous_media")) then
-             ! compute spontaneous electrical potentials (myg - 28/10/09)
+             ! compute spontaneous electrical potentials
              do i=1,size(state)
                 option_buffer = '/material_phase['//int2str(i-1)//']/electrical_properties/'
                 ! Option to search through a space of saturation distributions to find

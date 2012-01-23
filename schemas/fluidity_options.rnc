@@ -32,7 +32,7 @@ start =
                # Lines is a hint to the gui about the size of the text box.
                # It is not an enforced limit on string length.
                attribute lines { "1" },
-               ( "fluids" | "oceans" | "multimaterial" | "porous_media" | "stokes" | "large_scale_ocean_options" | "foams" | "multiphase" )
+               ( "fluids" | "oceans" | "multimaterial" | "stokes" | "large_scale_ocean_options" | "foams" | "multiphase" )
             },
             comment
          },
@@ -1678,7 +1678,7 @@ start =
          reduced_model?,
          ## Porous Media
          element porous_media {
-            ## Specify scalar field Porosity
+            ## Specify scalar field Porosity which is inserted into the first material_phase state.
             element scalar_field {
                attribute name { "Porosity" },
                (
@@ -1686,12 +1686,14 @@ start =
                      velocity_mesh_choice,
                      prescribed_scalar_field
                   }|
-                  element aliased {
-                     generic_aliased_field
+                  element diagnostic {
+                     velocity_mesh_choice,                     
+                     scalar_python_diagnostic_algorithm,                     
+                     diagnostic_scalar_field
                   }
                )
             },
-            ## Specify field Permeability
+            ## Specify field Permeability which is inserted into the first material_phase state.
             (
                element scalar_field {
                   attribute name { "Permeability" },
@@ -1700,26 +1702,42 @@ start =
                         velocity_mesh_choice,
                         prescribed_scalar_field
                      }|
-                     element aliased {
-                        generic_aliased_field
+                     element diagnostic {
+                        velocity_mesh_choice,
+                        scalar_python_diagnostic_algorithm,
+                        diagnostic_scalar_field
                      }
                   )
                }|
                element vector_field {
                   attribute name { "Permeability" },
-                  element prescribed {
-                     velocity_mesh_choice,
-                     prescribed_vector_field
-                  }
+                  (
+                     element prescribed {
+                        velocity_mesh_choice,
+                        prescribed_vector_field
+                     }|
+                     element diagnostic {
+                        velocity_mesh_choice,
+                        vector_python_diagnostic_algorithm,
+                        diagnostic_vector_field
+                     }
+                  )
                }|
                element tensor_field {
                   attribute name { "Permeability" },
-                  element prescribed { 
-                     velocity_mesh_choice,
-                     prescribed_tensor_field
-                  }
+                  (
+                     element prescribed { 
+                        velocity_mesh_choice,
+                        prescribed_tensor_field
+                     }|
+                     element diagnostic {
+                        velocity_mesh_choice,
+                        tensor_python_diagnostic_algorithm,
+                        diagnostic_tensor_field
+                     }
+                  )
                }
-            ),
+            )?,
             ## Specify scalar field Electrical Conductivity
             element scalar_field {
                attribute name { "ElectricalConductivity" },
@@ -1731,14 +1749,6 @@ start =
                   ),
                   diagnostic_scalar_field_no_adapt
                }
-            }?,
-            element multiphase_parameters {
-               ## Capillary pressure multiplier cp_A
-               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
-               element cp_A {real}?,
-               ## Capillary pressure exponent cp_expo
-               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
-               element cp_expo {real}?
             }?
          }?,
          embedded_models?,

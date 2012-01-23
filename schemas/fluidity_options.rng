@@ -39,7 +39,6 @@ characters in the simulation name should be avoided.</a:documentation>
             <value>fluids</value>
             <value>oceans</value>
             <value>multimaterial</value>
-            <value>porous_media</value>
             <value>stokes</value>
             <value>large_scale_ocean_options</value>
             <value>foams</value>
@@ -2301,7 +2300,7 @@ while a factor of 1 represents a connected domain.</a:documentation>
         <element name="porous_media">
           <a:documentation>Porous Media</a:documentation>
           <element name="scalar_field">
-            <a:documentation>Specify scalar field Porosity</a:documentation>
+            <a:documentation>Specify scalar field Porosity which is inserted into the first material_phase state.</a:documentation>
             <attribute name="name">
               <value>Porosity</value>
             </attribute>
@@ -2310,46 +2309,66 @@ while a factor of 1 represents a connected domain.</a:documentation>
                 <ref name="velocity_mesh_choice"/>
                 <ref name="prescribed_scalar_field"/>
               </element>
-              <element name="aliased">
-                <ref name="generic_aliased_field"/>
+              <element name="diagnostic">
+                <ref name="velocity_mesh_choice"/>
+                <ref name="scalar_python_diagnostic_algorithm"/>
+                <ref name="diagnostic_scalar_field"/>
               </element>
             </choice>
           </element>
-          <choice>
-            <a:documentation>Specify field Permeability</a:documentation>
-            <element name="scalar_field">
-              <attribute name="name">
-                <value>Permeability</value>
-              </attribute>
-              <choice>
-                <element name="prescribed">
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="prescribed_scalar_field"/>
-                </element>
-                <element name="aliased">
-                  <ref name="generic_aliased_field"/>
-                </element>
-              </choice>
-            </element>
-            <element name="vector_field">
-              <attribute name="name">
-                <value>Permeability</value>
-              </attribute>
-              <element name="prescribed">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prescribed_vector_field"/>
+          <optional>
+            <choice>
+              <a:documentation>Specify field Permeability which is inserted into the first material_phase state.</a:documentation>
+              <element name="scalar_field">
+                <attribute name="name">
+                  <value>Permeability</value>
+                </attribute>
+                <choice>
+                  <element name="prescribed">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="prescribed_scalar_field"/>
+                  </element>
+                  <element name="diagnostic">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="scalar_python_diagnostic_algorithm"/>
+                    <ref name="diagnostic_scalar_field"/>
+                  </element>
+                </choice>
               </element>
-            </element>
-            <element name="tensor_field">
-              <attribute name="name">
-                <value>Permeability</value>
-              </attribute>
-              <element name="prescribed">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prescribed_tensor_field"/>
+              <element name="vector_field">
+                <attribute name="name">
+                  <value>Permeability</value>
+                </attribute>
+                <choice>
+                  <element name="prescribed">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="prescribed_vector_field"/>
+                  </element>
+                  <element name="diagnostic">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="vector_python_diagnostic_algorithm"/>
+                    <ref name="diagnostic_vector_field"/>
+                  </element>
+                </choice>
               </element>
-            </element>
-          </choice>
+              <element name="tensor_field">
+                <attribute name="name">
+                  <value>Permeability</value>
+                </attribute>
+                <choice>
+                  <element name="prescribed">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="prescribed_tensor_field"/>
+                  </element>
+                  <element name="diagnostic">
+                    <ref name="velocity_mesh_choice"/>
+                    <ref name="tensor_python_diagnostic_algorithm"/>
+                    <ref name="diagnostic_tensor_field"/>
+                  </element>
+                </choice>
+              </element>
+            </choice>
+          </optional>
           <optional>
             <element name="scalar_field">
               <a:documentation>Specify scalar field Electrical Conductivity</a:documentation>
@@ -2364,24 +2383,6 @@ while a factor of 1 represents a connected domain.</a:documentation>
                 </choice>
                 <ref name="diagnostic_scalar_field_no_adapt"/>
               </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="multiphase_parameters">
-              <optional>
-                <element name="cp_A">
-                  <a:documentation>Capillary pressure multiplier cp_A
-in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-              <optional>
-                <element name="cp_expo">
-                  <a:documentation>Capillary pressure exponent cp_expo
-in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
             </element>
           </optional>
         </element>
