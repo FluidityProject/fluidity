@@ -1210,6 +1210,8 @@ contains
         
         equation_type=equation_type_index(trim("/material_phase["//int2str(m)//"]/scalar_field["//int2str(f)//"]"))
         select case(equation_type)
+        case(FIELD_EQUATION_ADVECTIONDIFFUSION)
+          ! anything goes
         case(FIELD_EQUATION_CONSERVATIONOFMASS)
           if(.not.cv_disc) then
             ewrite(-1,*) "Options checking field "//&

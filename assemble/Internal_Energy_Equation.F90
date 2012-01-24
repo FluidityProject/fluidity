@@ -29,14 +29,20 @@ module internal_energy_equation
 use elements
 use fields
 use state_module
+use state_fields_module
 use spud
 implicit none
 
   private
   public add_pressurediv_element_cg, add_shock_viscosity_element_cg
-  public shock_viscosity_tensor, get_sound_speed
+  public shock_viscosity_tensor
+  public get_sound_speed, get_divgradu
 
 contains
+
+  !
+  ! Terms in the internal energy equation (called from advection_diffusiong_cg/dg)
+  !
 
   subroutine add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, du_t, detwei, rhs_addto)
   
@@ -56,7 +62,8 @@ contains
     
   end subroutine add_pressurediv_element_cg
 
-  subroutine add_shock_viscosity_element_cg(rhs_addto, test_function, nu, ele, du_t, J_mat, density, sound_speed, detwei, &
+  subroutine add_shock_viscosity_element_cg(rhs_addto, test_function, nu, ele, du_t, J_mat, &
+      density, sound_speed, divgradu, detwei, &
       shock_viscosity_cl, shock_viscosity_cq)
     real, dimension(:), intent(inout) :: rhs_addto ! uloc
     type(element_type), intent(in) :: test_function
@@ -65,6 +72,7 @@ contains
     real, dimension(:,:,:):: du_t ! uloc x ngi x udim
     real, dimension(:,:,:):: J_mat ! xdim x xdim x ngi
     type(scalar_field), intent(in):: density, sound_speed
+    type(vector_field), intent(in):: divgradu
     real, dimension(:), intent(in):: detwei ! ngi
     real, intent(in):: shock_viscosity_cl, shock_viscosity_cq
 
@@ -74,7 +82,7 @@ contains
 
     gradu_gi=ele_grad_at_quad(nu, ele, du_t)
     shock_viscosity_gi=shock_viscosity_tensor(nu, ele, du_t, J_mat, detwei, &
-      density, sound_speed, shock_viscosity_cl, shock_viscosity_cq)
+      density, sound_speed, divgradu, shock_viscosity_cl, shock_viscosity_cq)
     integrand=0.0
     do i=1, nu%dim
       do j=1, nu%dim
@@ -89,20 +97,33 @@ contains
     
   end subroutine add_shock_viscosity_element_cg
 
-  function shock_viscosity_tensor(nu, ele, du_t, J_mat, detwei, density, sound_speed, shock_viscosity_cl, shock_viscosity_cq) result(viscosity_gi)
+  !
+  ! compute shock viscosity at gauss points, 
+  ! called from add_shock_viscosity_element_cg and momentum_cg
+  !
+
+  function shock_viscosity_tensor(nu, ele, du_t, J_mat, detwei, density, &
+    sound_speed, divgradu, &
+    shock_viscosity_cl, shock_viscosity_cq) result(viscosity_gi)
     type(vector_field), intent(in):: nu
     integer, intent(in):: ele
     real, dimension(:,:,:), intent(in):: du_t ! uloc x ngi x udim
     real, dimension(:,:,:), intent(in):: J_mat ! xdim x xdim x ngi
     real, dimension(:), intent(in):: detwei ! ngi
     type(scalar_field), intent(in):: density, sound_speed
+    type(vector_field), intent(in):: divgradu
     real, intent(in):: shock_viscosity_cl, shock_viscosity_cq
 
-    real, dimension(size(du_t,3), size(du_t,3), size(du_t,2)) :: viscosity_gi ! udim x udim x ngi
+    real, parameter:: alpha=0.005
+
+    real, dimension(size(du_t,3), size(du_t,3), size(du_t,2)) :: gradu_gi, viscosity_gi ! udim x udim x ngi
     ! scalars at the gausspoints:
-    real, dimension(size(du_t,2)):: contraction_gi, density_gi, scalar_gi
+    real, dimension(size(du_t,2)):: contraction_gi, density_gi, scalar_gi, switch_gi
+    real, dimension(size(du_t,2)):: smoothness_gi, divgradu_gi, sound_speed_gi
     real:: length_scale
     integer:: gi
+
+    gradu_gi=ele_grad_at_quad(nu, ele, du_t)
 
     density_gi=ele_val_at_quad(density, ele)
     select case (size(J_mat,1))
@@ -112,10 +133,20 @@ contains
       length_scale=sqrt(sum(detwei))
     case(3)
       length_scale=sum(detwei)**(1/3)
+    case default
+      FLAbort("Unknown dimension for J_mat")
     end select
     contraction_gi = max(-ele_div_at_quad(nu, ele, du_t), 0.0) ! switch to only apply viscosity in flow contraction
-    scalar_gi = density_gi * ( shock_viscosity_cl * sqrt(ele_val_at_quad(sound_speed, ele))/length_scale + &
-                               shock_viscosity_cq * contraction_gi)
+    divgradu_gi = sum(ele_val_at_quad(divgradu, ele)**2, dim=1)
+    sound_speed_gi = ele_val_at_quad(sound_speed, ele)
+    where (sound_speed_gi>divgradu_gi)
+      smoothness_gi = 1.0 - exp(-divgradu_gi/sound_speed_gi/alpha)
+    elsewhere
+      smoothness_gi = 1.0
+    end where
+    switch_gi = (sign( 1.0, -ele_div_at_quad(nu, ele, du_t)) + 1.0)/2.0
+    scalar_gi = density_gi * ( shock_viscosity_cl * switch_gi * sqrt(ele_val_at_quad(sound_speed, ele))/length_scale + &
+                               shock_viscosity_cq * contraction_gi) * smoothness_gi
     do gi=1, size(du_t,2)
       viscosity_gi(:,:,gi) = scalar_gi(gi) * matmul(transpose(J_mat(:,:,gi)), J_mat(:,:,gi))
     end do
@@ -155,5 +186,48 @@ contains
     ewrite_minmax(sound_speed)
 
   end function get_sound_speed
+
+  function get_divgradu(u, state) result (divgradu)
+    type(vector_field), intent(inout):: u
+    type(state_type), intent(inout):: state
+    type(vector_field):: divgradu
+
+    type(vector_field), pointer:: X
+    type(scalar_field), pointer:: lumped_mass
+    integer:: ele
+   
+    X => extract_vector_field(state, "Coordinate")
+    lumped_mass => get_lumped_mass(state, u%mesh)
+
+    call allocate(divgradu, u%dim, u%mesh, "DivGradU")
+    call zero(divgradu)
+
+    do ele=1, element_count(u)
+      call compute_divgradu_ele(divgradu, ele, u, X)
+    end do
+
+    call inverse_scale(divgradu, lumped_mass)
+
+    ewrite_minmax(divgradu)
+
+    contains
+
+    subroutine compute_divgradu_ele(divgradu, ele, u, X)
+      type(vector_field), intent(inout):: divgradu
+      integer, intent(in):: ele
+      type(vector_field), intent(in):: u, X
+
+      type(element_type), pointer:: shape
+      real, dimension(ele_ngi(u, ele)):: detwei
+      real, dimension(ele_loc(u, ele), ele_ngi(u, ele), X%dim):: du_t
+
+      shape => ele_shape(u, ele)
+      call transform_to_physical(X, ele, ele_shape(u, ele), du_t, detwei)
+      call addto(divgradu, ele_nodes(u, ele), &
+        matmul(ele_val(u, ele), dshape_dot_dshape(shape%dn, shape%dn, detwei)))
+
+    end subroutine compute_divgradu_ele
+
+  end function get_divgradu
 
 end module internal_energy_equation

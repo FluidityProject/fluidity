@@ -724,6 +724,7 @@ contains
     type(scalar_field), pointer :: pressure
     !! Density and sound_speed for shock viscosity term
     type(scalar_field), pointer :: density, sound_speed
+    type(vector_field), pointer :: divgradu
     real :: gravity_magnitude
     real :: mixing_diffusion_amplitude
 
@@ -878,11 +879,14 @@ contains
       ! compute sound_speed, used in the linear shock viscosity
       allocate(sound_speed)
       sound_speed=get_sound_speed(state)
+      allocate(divgradu)
+      divgradu=get_divgradu(U_nl, state)
       density => extract_scalar_field(state, "Density")
       ewrite_minmax(density)
     else
       nullify(density)
       nullify(sound_speed)
+      nullify(divgradu)
     end if
 
     ! Retrieve scalar options from the options dictionary.
@@ -981,7 +985,8 @@ contains
        
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
-            Absorption, Diffusivity, pressure, density, sound_speed, bc_value, bc_type, q_mesh, mass, &
+            & Absorption, Diffusivity, pressure, density, sound_speed, divgradu, &
+            & bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude) 
        
     end do element_loop
@@ -990,7 +995,9 @@ contains
     if (have_buoyancy_adjustment_by_vertical_diffusion) call deallocate(buoyancy)
     if (include_shock_viscosity) then
       call deallocate(sound_speed)
+      call deallocate(divgradu)
       deallocate(sound_speed)
+      deallocate(divgradu)
     end if
     call deallocate(Diffusivity)
     call deallocate(Source)
@@ -1092,7 +1099,8 @@ contains
 
   subroutine construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
        & rhs_diff, &
-       & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity, pressure, density, sound_speed, &
+       & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity, &
+       & pressure, density, sound_speed, divgradu, &
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude)
     !!< Construct the advection_diffusion equation for discontinuous elements in
@@ -1125,6 +1133,7 @@ contains
     type(scalar_field), pointer :: pressure
     !! Density and sound_speed - needed if (include_shock_viscosity) otherwise => null
     type(scalar_field), pointer :: density, sound_speed
+    type(vector_field), pointer :: divgradu
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -1595,7 +1604,8 @@ contains
 
     if (include_shock_viscosity) then
       call add_shock_viscosity_element_cg(l_T_rhs, T_shape, U_nl, ele, du_t, &
-        J_mat, density, sound_speed, detwei, shock_viscosity_cl, shock_viscosity_cq)
+        J_mat, density, sound_speed, divgradu, &
+        detwei, shock_viscosity_cl, shock_viscosity_cq)
     end if
 
     ! Right hand side field.

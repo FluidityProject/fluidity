@@ -209,6 +209,7 @@
       type(scalar_field), pointer :: buoyancy
       type(scalar_field), pointer :: gp
       type(scalar_field), pointer :: sound_speed, internal_energy
+      type(vector_field), pointer :: divgradu
       type(vector_field), pointer :: gravity
       type(vector_field), pointer :: oldu, nu, ug, source, absorption
       type(tensor_field), pointer :: viscosity
@@ -491,8 +492,11 @@
         ! compute sound_speed, used in the linear shock viscosity
         allocate(sound_speed)
         sound_speed=get_sound_speed(state)
+        allocate(divgradu)
+        divgradu=get_divgradu(nu, state)
       else
         sound_speed => dummyscalar
+        divgradu => dummyvector
       end if
 
       have_temperature_dependent_viscosity = have_option(trim(u%option_path)//"/prognostic/&
@@ -692,7 +696,7 @@
               source, absorption, buoyancy, gravity, &
               viscosity, grad_u, &
               mnu, tnu, leonard, alpha, &
-              gp, surfacetension, sound_speed, &
+              gp, surfacetension, sound_speed, divgradu, &
               assemble_ct_matrix_here, on_sphere, depth, &
               alpha_u_field, abs_wd, temperature, nvfrac)
       end do element_loop
@@ -868,7 +872,9 @@
 
       if (have_shock_viscosity) then
         call deallocate(sound_speed)
+        call deallocate(divgradu)
         deallocate(sound_speed)
+        deallocate(divgradu)
       end if
 
       call deallocate(dummytensor)
@@ -1140,7 +1146,7 @@
                                             source, absorption, buoyancy, gravity, &
                                             viscosity, grad_u, &
                                             mnu, tnu, leonard, alpha, &
-                                            gp, surfacetension, sound_speed, &
+                                            gp, surfacetension, sound_speed, divgradu, &
                                             assemble_ct_matrix_here, on_sphere, depth, &
                                             alpha_u_field, abs_wd, temperature, nvfrac)
 
@@ -1178,6 +1184,7 @@
 
       ! used for linear shock viscosity
       type(scalar_field), intent(in) :: sound_speed
+      type(vector_field), intent(in) :: divgradu
 
       logical, intent(in) :: assemble_ct_matrix_here, on_sphere
 
@@ -1351,7 +1358,8 @@
       if(have_viscosity .or. have_les .or. have_shock_viscosity) then
         call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
            mnu, tnu, leonard, alpha, &
-           du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac, sound_speed)
+           du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac, &
+           sound_speed, divgradu)
       end if
       
       ! Get only the viscous terms
@@ -1962,7 +1970,8 @@
       
     subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, density, viscosity, grad_u, &
          mnu, tnu, leonard, alpha, &
-         du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac, sound_speed)
+         du_t, detwei, J_mat, big_m_tensor_addto, rhs_addto, temperature, nvfrac, &
+         sound_speed, divgradu)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -1989,6 +1998,7 @@
       type(scalar_field), intent(in) :: nvfrac
       ! used in linear shock viscosity
       type(scalar_field), intent(in) :: sound_speed
+      type(vector_field), intent(in) :: divgradu
 
       integer                                                                        :: dim, dimj, gi, iloc
       real, dimension(u%dim, ele_loc(u, ele))                                        :: nu_ele
@@ -2146,7 +2156,8 @@
 
       if (have_shock_viscosity) then
         viscosity_gi = viscosity_gi + shock_viscosity_tensor(nu, ele, du_t, &
-            J_mat, detwei, density, sound_speed, shock_viscosity_cl, shock_viscosity_cq)
+            J_mat, detwei, density, sound_speed, divgradu, &
+            shock_viscosity_cl, shock_viscosity_cq)
       end if
 
       ! element viscosity matrix - tensor form

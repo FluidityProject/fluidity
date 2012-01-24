@@ -233,6 +233,7 @@ contains
     type(scalar_field), target :: dummydensity
     type(scalar_field), pointer :: density, olddensity 
     type(scalar_field), pointer :: sound_speed
+    type(vector_field), pointer :: divgradu
     character(len = OPTION_PATH_LEN) :: shock_viscosity_path
     character(len = FIELD_NAME_LEN) :: density_name
     type(scalar_field), pointer :: pressure
@@ -486,8 +487,11 @@ contains
       ! compute sound_speed, used in the linear shock viscosity
       allocate(sound_speed)
       sound_speed=get_sound_speed(state)
+      allocate(divgradu)
+      divgradu=get_divgradu(velocity, state)
     else
       sound_speed => dummydensity
+      divgradu => positions
     end if
     
     ! Step 3: Assembly
@@ -500,7 +504,8 @@ contains
                                         positions, old_positions, new_positions, &
                                         velocity, grid_velocity, &
                                         source, absorption, diffusivity, &
-                                        density, olddensity, pressure, sound_speed)
+                                        density, olddensity, pressure, &
+                                        sound_speed, divgradu)
     end do
 
     ! as part of assembly include the already discretised optional source
@@ -551,7 +556,9 @@ contains
     call deallocate(dummydensity)
     if (have_shock_viscosity) then
       call deallocate(sound_speed)
+      call deallocate(divgradu)
       deallocate(sound_speed)
+      deallocate(divgradu)
     end if
     
     ewrite(1, *) "Exiting assemble_advection_diffusion_cg"
@@ -603,7 +610,8 @@ contains
                                       positions, old_positions, new_positions, &
                                       velocity, grid_velocity, &
                                       source, absorption, diffusivity, &
-                                      density, olddensity, pressure, sound_speed)
+                                      density, olddensity, pressure, &
+                                      sound_speed, divgradu)
     integer, intent(in) :: ele
     type(scalar_field), intent(in) :: t
     type(csr_matrix), intent(inout) :: matrix
@@ -619,6 +627,7 @@ contains
     type(scalar_field), intent(in) :: olddensity
     type(scalar_field), intent(in) :: pressure
     type(scalar_field), intent(in) :: sound_speed
+    type(vector_field), intent(in) :: divgradu
     
     integer, dimension(:), pointer :: element_nodes
     real, dimension(ele_ngi(t, ele)) :: detwei, detwei_old, detwei_new
@@ -741,7 +750,8 @@ contains
         velocity, pressure, &
         du_t, detwei, rhs_addto)
       if (have_shock_viscosity) then
-        call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, density, sound_speed, detwei, &
+        call add_shock_viscosity_element_cg(rhs_addto, test_function, velocity, ele, du_t, J_mat, &
+          density, sound_speed, divgradu, detwei, &
           shock_viscosity_cl, shock_viscosity_cq)
       end if
     end if
