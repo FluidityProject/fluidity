@@ -673,7 +673,7 @@ contains
           do n=1, size(element_nodes)
              chemval = node_val(chemfield, element_nodes(n))
              ! Avoid div-by-zero error
-             if (chem_integral /= 0.0) then 
+             if (chem_integral > 0.0) then 
                 ! C := C (1 - S/C_bar )
                 call set(chemfield, element_nodes(n), chemval * (1.0 - (request * depletion / chem_integral) ))
              else
@@ -697,7 +697,7 @@ contains
                 agent => agent_arrays(i)%first
                 do while (associated(agent))
                    ingested_amount = agent%biology(j) * node_val(depletion_field, agent%element)
-                   agent%biology(poolvar) = agent%biology(poolvar) + ingested_amount
+                   !agent%biology(poolvar) = agent%biology(poolvar) + ingested_amount
 
                    agent => agent%next
                 end do
@@ -746,7 +746,7 @@ contains
           do n=1, size(element_nodes)
              chemval = node_val(chemfield, element_nodes(n))
              ! Avoid div-by-zero error
-             if (chem_integral /= 0.0) then 
+             if (chem_integral > 0.0) then 
                 ! C := C (1 + S/C_bar )
                 call set(chemfield, element_nodes(n), chemval * (1.0 + (release / chem_integral) ))
              else
@@ -768,16 +768,16 @@ contains
              if (agent_arrays(i)%biovars(j)%field_type == BIOFIELD_RELEASE) then
                 poolvar = agent_arrays(i)%biovars(j)%pool_index
 
-                agent => agent_arrays(i)%first
-                do while (associated(agent))
+                !agent => agent_arrays(i)%first
+                !do while (associated(agent))
                    ! Don't release more than we have
-                   if (agent%biology(j) > agent%biology(poolvar)) then
-                      agent%biology(poolvar) = 0.0
-                   else
-                      agent%biology(poolvar) = agent%biology(poolvar) - agent%biology(j)
-                   end if
-                   agent => agent%next
-                end do
+                !   if (agent%biology(j) > agent%biology(poolvar)) then
+                !      agent%biology(poolvar) = 0.0
+                !   else
+                !      agent%biology(poolvar) = agent%biology(poolvar) - agent%biology(j)
+                !   end if
+                !   agent => agent%next
+                !end do
              end if
           end do
        end if
