@@ -200,10 +200,9 @@ Diagnostic_fields_wrapper.o ../include/diagnostic_fields_wrapper.mod: \
    ../include/geostrophic_pressure.mod ../include/global_parameters.mod \
    ../include/momentum_diagnostic_fields.mod \
    ../include/multimaterial_module.mod ../include/multiphase_module.mod \
-   ../include/parallel_tools.mod \
-   ../include/sediment_diagnostics.mod ../include/sparse_matrices_fields.mod \
-   ../include/spontaneous_potentials.mod ../include/spud.mod \
-   ../include/state_module.mod ../include/tidal_module.mod \
+   ../include/parallel_tools.mod ../include/sediment_diagnostics.mod \
+   ../include/sparse_matrices_fields.mod ../include/spontaneous_potentials.mod \
+   ../include/spud.mod ../include/state_module.mod ../include/tidal_module.mod \
    ../include/vorticity_diagnostics.mod
 
 ../include/discrete_properties_module.mod: Discrete_Properties.o
@@ -756,9 +755,8 @@ Spontaneous_Potentials.o ../include/spontaneous_potentials.mod: \
    Spontaneous_Potentials.F90 ../include/boundary_conditions.mod \
    ../include/boundary_conditions_from_options.mod ../include/fdebug.h \
    ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
-   ../include/solvers.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/solvers.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/state_matrices_module.mod: State_Matrices.o
 	@true
