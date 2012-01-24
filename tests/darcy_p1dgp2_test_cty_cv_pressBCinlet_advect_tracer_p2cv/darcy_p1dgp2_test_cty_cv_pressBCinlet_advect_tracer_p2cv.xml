@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>darcy_p1dgp2_test_cty_cv_pressBCinlet_advect_tracer_p2cv_2d</name>
+  <owner userid="btollit"/>
+  <tags>flml darcy</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../bin/fluidity darcy_p1dgp2_test_cty_cv_pressBCinlet_2d.flml
+../../bin/fluidity advect_tracer_p2cv_2d.flml 
+    </command_line>
+    <!-- Two dimensional (actual physics is 1d) case for darcy flow with one region and one material using p1dgp2_test_cty_cv element type testing the pressure gradient against analytic and the darcy velocity. First vel-press is solved then a second run advects a tracer using the checkpointed velocity. -->
+  </problem_definition>
+  <variables>
+    <variable name="pressure_2d" language="python">
+import vtktools
+v = vtktools.vtu("darcy_p1dgp2_test_cty_cv_pressBCinlet_2d_1.vtu")
+pressure_2d = v.GetScalarRange("Pressure")
+    </variable>
+    <variable name="vel_2d" language="python">
+import vtktools
+v = vtktools.vtu("darcy_p1dgp2_test_cty_cv_pressBCinlet_2d_1.vtu")
+vel_2d = max(v.GetScalarRange("Velocity"))
+    </variable>
+    <variable name="integral_tracer_2d" language="python">    
+from fluidity_tools import stat_parser as stat
+integral_tracer_2d = stat("advect_tracer_p2cv_2d.stat")["fluid"]["Tracer"]["integral"][-1]
+    </variable>
+    <variable name="max_tracer_2d" language="python">    
+from fluidity_tools import stat_parser as stat
+max_tracer_2d = stat("advect_tracer_p2cv_2d.stat")["fluid"]["Tracer"]["max"][-1]
+    </variable>
+    <variable name="min_tracer_2d" language="python">    
+from fluidity_tools import stat_parser as stat
+min_tracer_2d = stat("advect_tracer_p2cv_2d.stat")["fluid"]["Tracer"]["min"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="change_P for 2D should equal domain_length*visc*phi*vel_BC/perm, check relative difference to be under tolerance 1.0e-09" language="python">
+change_P = abs(max(pressure_2d) - min(pressure_2d))
+visc = 1.0e-04
+vel_BC = 10.0
+phi = 0.5
+perm = 1.0e-10
+domain_length = 300.0
+print 'Analytic pressure difference: ',domain_length*visc*phi*vel_BC/perm
+print 'Solution relative error: ',abs((change_P - domain_length*visc*phi*vel_BC/perm)/(domain_length*visc*phi*vel_BC/perm))
+assert abs((change_P - domain_length*visc*phi*vel_BC/perm)/(domain_length*visc*phi*vel_BC/perm)) &lt; 1.0e-09
+    </test>
+    <test name="Darcy velocity for 2d should equal 5.0, check relative difference to be under tolerance 1.0e-08" language="python">
+analytic_vel = 5.0
+print 'Solution relative error: ',abs((vel_2d - analytic_vel)/analytic_vel)
+assert abs((vel_2d - analytic_vel)/analytic_vel) &lt; 1.0e-08
+    </test>
+    <test name="Integral of tracer for 2d at half way through domain, check with tolerance 1.0e-09" language="python">
+analytic_int = 45000
+print 'Solution relative error: ',abs((integral_tracer_2d - analytic_int)/analytic_int)
+assert abs((integral_tracer_2d - analytic_int)/analytic_int) &lt; 1.0e-09
+    </test>
+    <test name="Max of tracer for 2d should be 1.0, check with tolerance 1.0e-09" language="python">
+analytic_int = 1.0
+print 'Solution relative error: ',abs((max_tracer_2d - analytic_int)/analytic_int)
+assert abs((max_tracer_2d - analytic_int)/analytic_int) &lt; 1.0e-09
+    </test>
+    <test name="Min of tracer for 2d should be 0.0, check with tolerance 1.0e-08" language="python">
+analytic_int = 0.0
+print 'Solution absolute error: ',abs(min_tracer_2d - analytic_int)
+assert abs(min_tracer_2d - analytic_int) &lt; 1.0e-08
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

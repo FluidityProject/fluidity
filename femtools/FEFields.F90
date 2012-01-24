@@ -57,7 +57,7 @@ contains
     if (present(porosity)) then
        ewrite(1,*) 'In compute_cv_mass with porosity present'
 
-       if (.not. (porosity%mesh%shape%degree == cv_mass%mesh%shape%degree) .or. &
+       if (.not. (porosity%mesh%shape%degree == cv_mass%mesh%shape%degree) .and. &
            .not. (porosity%mesh%shape%degree == 0)) then
           FLAbort('The porosity must have the same order as cv_mass or be element wise (order zero)')
        end if 
