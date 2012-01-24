@@ -53,7 +53,7 @@ module diagnostic_fields
   use solvers
   use quicksort
   use unittest_tools
-  use boundary_conditions
+  use boundary_conditions, only: get_entire_boundary_condition
   use state_fields_module
   use interpolation_module
   use Vector_Tools
