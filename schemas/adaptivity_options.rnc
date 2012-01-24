@@ -514,7 +514,8 @@ hr_adaptivity =
             element spatial_discretisation {
               (
                   element control_volumes {
-                    standard_control_volume_options
+                    standard_control_volume_options,
+                    porosity_control_volume?
                   }
               ),
               ## Conservative discretisation of field advection equation

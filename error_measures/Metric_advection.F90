@@ -62,6 +62,7 @@ module metric_advection
   use field_options, only: get_coordinate_field
   use sparsity_patterns_meshes
   use futils, only: int2str
+  use fefields, only: compute_cv_mass
 
   implicit none
 
@@ -111,6 +112,10 @@ contains
     type(tensor_field) :: l_tfield, tmp_tfield
     type(scalar_field), pointer :: t_cvmass
     type(scalar_field) :: cvmass
+      
+    ! Porosity field old and field name
+    type(scalar_field), pointer :: porosity_old
+    character(len=OPTION_PATH_LEN) :: porosity_name
 
     ! local copy of option_path for solution field
     character(len=OPTION_PATH_LEN) :: option_path
@@ -270,11 +275,26 @@ contains
     end if
     
     sub_dt=adapt_dt/real(no_subcycles)
-    
-    ! find the cv mass
-    t_cvmass => get_cv_mass(state, tfield%mesh)
-    call allocate(cvmass, tfield%mesh, "LocalCVMass")
-    call set(cvmass, t_cvmass)
+
+    ! find the cv mass that is used for the time term derivative
+
+    ! are we including a porosity coefficient on the time term?
+    call get_option(trim(option_path)//'/spatial_discretisation/control_volumes/porosity/name', &
+                    porosity_name, &
+                    stat = stat)
+      
+    if (stat == 0) then         
+       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name))
+       ewrite_minmax(porosity_old)
+         
+       call allocate(cvmass, tfield%mesh, name="LocalCVMassWithPorosity")
+       call compute_cv_mass(x, cvmass, porosity_old)
+    else
+       call allocate(cvmass, tfield%mesh, "LocalCVMass")
+       t_cvmass => get_cv_mass(state, tfield%mesh)
+       call set(cvmass, t_cvmass)
+    end if
+    ewrite_minmax(cvmass)    
 
     ewrite(2,*) 'no_subcycles = ', no_subcycles
     ewrite(2,*) 'rk_iterations = ', rk_iterations
