@@ -29,13 +29,13 @@
 
 module diagnostic_fields
   !!< A module to calculate diagnostic fields.
-
-  use global_parameters, only:FIELD_NAME_LEN, current_time, OPTION_PATH_LEN
+  
   use fields
+  use state_module
+  use global_parameters, only:FIELD_NAME_LEN, current_time, OPTION_PATH_LEN
   use halos
   use field_derivatives
   use field_options
-  use state_module
   use futils
   use fetools
   use fefields, only: compute_lumped_mass
@@ -51,7 +51,6 @@ module diagnostic_fields
   use sparsity_patterns
   use sparsity_patterns_meshes
   use solvers
-  use boundary_conditions, only: get_entire_boundary_condition
   use quicksort
   use unittest_tools
   use boundary_conditions
@@ -2617,6 +2616,36 @@ contains
             call scale(bed_shear_stress, masslump)
             call deallocate(masslump)
          end if 
+
+      ! calculate using velocity gradient
+      else if (have_option(trim(bed_shear_stress%option_path)//&
+           &"/diagnostic/calculation_method/log_law")) then
+
+         
+
+         ! visc => extract_tensor_field(state, "Viscosity")
+         ! U    => extract_vector_field(state, "Velocity")
+         ! X    => extract_vector_field(state, "Coordinate")
+         
+         ! ! In the CG case we need to calculate a global lumped mass
+         ! if(continuity(bed_shear_stress)>=0) then
+         !    call allocate(masslump, bed_shear_stress%mesh, 'Masslump')
+         ! end if
+
+         ! ! generate surface_mesh
+         ! do face = 1, surface_element_count(bed_shear_stress)
+         !    call calculate_bed_shear_stress_ele(bed_shear_stress, masslump, face, X, U,&
+         !         & visc, density)
+         ! end do
+            
+         ! ! In the CG case we globally apply inverse mass
+         ! if(continuity(bed_shear_stress)>=0) then
+         !    where (masslump%val/=0.0)
+         !       masslump%val=1./masslump%val
+         !    end where
+         !    call scale(bed_shear_stress, masslump)
+         !    call deallocate(masslump)
+         ! end if 
          
       else
          FLAbort('Unknown bed shear stress calculation method')
