@@ -453,7 +453,7 @@ contains
              VOLFRA_USE_THETA_FLUX = .true.
           END IF
           
-          if(.not. have_options("/material_phase[0]/multiphase_properties/relperm_type")) then
+          if(.not. have_option("/material_phase[0]/multiphase_properties/relperm_type")) then
            
             uden = den
             udenold = denold
