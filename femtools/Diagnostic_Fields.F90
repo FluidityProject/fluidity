@@ -29,8 +29,8 @@
 
 module diagnostic_fields
   !!< A module to calculate diagnostic fields.
-  
   use fields
+  use CV_Shape_Functions
   use state_module
   use global_parameters, only:FIELD_NAME_LEN, current_time, OPTION_PATH_LEN
   use halos
@@ -41,7 +41,6 @@ module diagnostic_fields
   use fefields, only: compute_lumped_mass
   use MeshDiagnostics
   use spud
-  use CV_Shape_Functions
   use CV_Faces
   use CVTools
   use CV_Upwind_Values
