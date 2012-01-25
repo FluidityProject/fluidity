@@ -41,11 +41,11 @@ module diagnostic_fields
   use fefields, only: compute_lumped_mass
   use MeshDiagnostics
   use spud
-  use CV_Shape_Functions
+  use CV_Shape_Functions, only: make_cv_element_shape, make_cvbdy_element_shape
   use CV_Faces
   use CVTools
   use CV_Upwind_Values
-  use CV_Face_Values
+  use CV_Face_Values, only: evaluate_face_val, theta_val
   use cv_options
   use parallel_tools
   use sparsity_patterns
@@ -2672,19 +2672,19 @@ contains
       
      call transform_facet_to_physical(X, face, detwei_f = detwei, normal = normal)
     
-     ! ! Evaluate the volume element shape function derivatives at the surface
-     ! ! element quadrature points
-     ! ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, &
-     !      & local_face_number(X, face), f_invJ)
+     ! Evaluate the volume element shape function derivatives at the surface
+     ! element quadrature points
+     ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, &
+          & local_face_number(X, face), f_invJ)
 
-     ! Stolen straight from eval_volume_dshape_at_face_quad() - I've avoided calling the
-     ! function above as it causes this file to fail to build on intel compilers.
-     do i=1,augmented_shape%loc
-        do i_gi=1,augmented_shape%surface_quadrature%ngi
-           ele_dshape_at_face_quad(i, i_gi, :) = matmul(f_invJ(:, :, i_gi), &
-                & augmented_shape%dn_s(i, i_gi, local_face_number(X, face), :))
-        end do
-     end do
+     ! ! Stolen straight from eval_volume_dshape_at_face_quad() - I've avoided calling the
+     ! ! function above as it causes this file to fail to build on intel compilers.
+     ! do i=1,augmented_shape%loc
+     !    do i_gi=1,augmented_shape%surface_quadrature%ngi
+     !       ele_dshape_at_face_quad(i, i_gi, :) = matmul(f_invJ(:, :, i_gi), &
+     !            & augmented_shape%dn_s(i, i_gi, local_face_number(X, face), :))
+     !    end do
+     ! end do
 
      ! Calculate grad of U at the surface element quadrature points
      do i=1, dim
