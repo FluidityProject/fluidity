@@ -86,7 +86,7 @@ class AttributeWidget(gtk.Frame):
 
     self.node = node
 
-    if node is None or not node.attrs.keys():
+    if node is None or node.all_attrs_fixed():
       self.set_property("visible", False)
     else:
       self.set_property("visible", True)
