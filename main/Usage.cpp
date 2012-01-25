@@ -279,7 +279,7 @@ void ParseArguments(int argc, char** argv){
   // Version?
   if(fl_command_line_options.count("version")){
     print_version();
-    exit(-1);
+    exit(0);
   }
   
   // Verbose?
