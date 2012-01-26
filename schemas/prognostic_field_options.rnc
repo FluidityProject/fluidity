@@ -214,8 +214,8 @@ prognostic_scalar_field =
                 mesh_choice?,
                 prescribed_tensor_field_no_adapt
             }|
-            ## For electrical modelling only - holds electrical conductivity
             element diagnostic {
+               mesh_choice?,
                (
                   tensor_python_diagnostic_algorithm |
                   internal_algorithm
@@ -224,7 +224,10 @@ prognostic_scalar_field =
             }
          )
       }?,
-      ## source term
+      ## Source term. If the scalar field to be 
+      ## solved for is subcycled then variations 
+      ## in this source field across the subcycled 
+      ## time steps are not considered.
       element scalar_field {
          attribute name { "Source" },
          attribute rank { "0" },
@@ -232,12 +235,19 @@ prognostic_scalar_field =
             element prescribed {
                prescribed_scalar_field_no_adapt
             }|
-            ## This only works for traffic modelling
             element diagnostic {
                (
                   scalar_python_diagnostic_algorithm |
                   internal_algorithm
                ),
+               ## Add the source field directly to the 
+               ## matrix system right hand side. To be 
+               ## consistent this term should be tested 
+               ## using the function space that 
+               ## is used for the spatial discretisation.
+               element add_directly_to_rhs {
+                  comment
+               }?,
                diagnostic_scalar_field_no_adapt
             } 
          )
@@ -361,7 +371,7 @@ prognostic_velocity_field =
                      ## of full stress form when divergent elements can
                      ## be cancelled out.
                      ##
-                     ## Only diaonal components of viscosity
+                     ## Only diagonal components of viscosity
                      ## (i.e. either isotropic or
                      ## diagonal) are physical for isotropic materials.
                      ##
@@ -486,7 +496,7 @@ prognostic_velocity_field =
                     }
                   )
                },
-               ## large-eddy simulation models
+               ## large-eddy simulation models (currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless)
                element les_model {
                   ## similar to the original Smag model
                   element second_order {
@@ -556,29 +566,34 @@ prognostic_velocity_field =
                      element solver {
                         linear_solver_options_sym
                      },
-                     ## [EXPERIMENTAL] If 0, the smaller filter width G_m is simply the mesh.
-                     ## If > 0, G_m is larger than the mesh.
-                     ## To achieve this the velocity is Helmholtz-filtered with the specified value.
-                     ## This removes some subgrid information, and reduces the effect of the dynamic model.
-                     ## The filtering effect is proportional to the square of the value.
-                     ## Ensure that 0 <= stabilisation_parameter <= 1.0. Default value: 0.0.
-                     ##
-                     element stabilisation_parameter {
-                        real
-                     },
-                     ## Enable averaging of the velocity field to stabilise the model.
-                     element enable_averaging {
-                        empty
-                     }?,
                      ## Use the Lilly modification to the model (see Lilly 1991).
                      ## 
                      element enable_lilly {
                         empty
                      }?,
+                     ## Allow negative eddy viscosity (backscatter).
+                     ## WARNING: this may result in the simulation blowing up.
+                     ## 
+                     element enable_backscatter {
+                        empty
+                     }?,
+                     ## Filtered velocity (diagnostic). This is the Velocity field filtered
+                     ## with the test filter - see manual.
+                     element vector_field {
+                        attribute rank { "2" },
+                        attribute name { "FilteredVelocity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_vector_field
+                           }
+                        )
+                     }?,
                      ## Filter width tensor (diagnostic). This is the square of the mesh size.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicFilterWidth" },
+                        attribute name { "FilterWidth" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -590,7 +605,7 @@ prognostic_velocity_field =
                      ## Strain rate S1: the test filter applied to the strain rate of the mesh-filtered velocity.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicStrainRate" },
+                        attribute name { "StrainRate" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -602,7 +617,7 @@ prognostic_velocity_field =
                      ## Strain rate S2: the strain rate of the test-filtered velocity.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "DynamicFilteredStrainRate" },
+                        attribute name { "FilteredStrainRate" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -1150,6 +1165,14 @@ prognostic_pressure_field =
                ## ** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.
                element low_re_p_correction_fix {
                   empty
+               }?,
+               ## Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
+               ## Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
+               ## considered when selecting the pressure solver options. This will not work with the free surface and 
+               ## wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
+               ## element type (the default). This will not work with the implicit solids model using two way coupling. 
+               element test_continuity_with_cv_dual {
+                  comment
                }?
             }|
             ## Select this discretisation if Pressure is defined on a discontinous mesh.

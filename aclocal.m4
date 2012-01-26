@@ -500,7 +500,11 @@ implicit none
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
+#if PETSC_VERSION_MINOR==2
+      PetscBool flg
+#else
       PetscTruth  flg
+#endif
       PetscScalar v,one,neg_one
       Vec         x,b,u
       Mat         A 
@@ -990,7 +994,7 @@ if test $zoltan != no; then
     tmpLIBS="$tmpLIBS -L$zoltan_LIBS_PATH"
     tmpCPPFLAGS="$tmpCPPFLAGS  -I/$zoltan_INCLUDES_PATH"
   fi
-  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis $ZOLTAN_DEPS"
+  tmpLIBS="$tmpLIBS -L/usr/lib -L/usr/local/lib/ -lzoltan -lparmetis -lmetis $ZOLTAN_DEPS"
   tmpCPPFLAGS="$tmpCPPFLAGS -I/usr/include/ -I/usr/local/include/"
 fi
 LIBS=$tmpLIBS

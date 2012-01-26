@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>p1cv advection-diffusion equation spatial convergence test using element gradient diffusion</name>
   <owner userid="cwilson"/>

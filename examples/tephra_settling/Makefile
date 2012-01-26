@@ -1,7 +1,7 @@
 preprocess:
 	@echo **********Creating 2D mesh
 	gmsh -2 -o tephra_settling.msh src/tephra_settling.geo
-	../../scripts/gmsh2triangle --2d tephra_settling.msh
+	../../bin/gmsh2triangle --2d tephra_settling.msh
 
 run:
 	@echo **********Running simulation

@@ -104,6 +104,8 @@ module advection_diffusion_cg
   logical :: integrate_advection_by_parts
   ! Source?
   logical :: have_source
+  ! Add source directly to the right hand side?
+  logical :: add_src_directly_to_rhs
   ! Absorption?
   logical :: have_absorption
   ! Diffusivity?
@@ -117,8 +119,7 @@ module advection_diffusion_cg
 
 contains
 
-  subroutine solve_field_equation_cg(field_name, state, dt, velocity_name, &
-                                     extra_discretised_source, iterations_taken)
+  subroutine solve_field_equation_cg(field_name, state, dt, velocity_name, iterations_taken)
     !!< Construct and solve the advection-diffusion equation for the given
     !!< field using a continuous Galerkin discretisation. Based on
     !!< Advection_Diffusion_DG and Momentum_CG.
@@ -127,7 +128,6 @@ contains
     type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
-    type(scalar_field), intent(in), optional :: extra_discretised_source
     integer, intent(out), optional :: iterations_taken
     
     type(csr_matrix) :: matrix
@@ -142,8 +142,7 @@ contains
     call initialise_advection_diffusion_cg(field_name, t, delta_t, matrix, rhs, state)
     
     call profiler_tic(t, "assembly")
-    call assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name = velocity_name, &
-                                         extra_discretised_source = extra_discretised_source)    
+    call assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name = velocity_name)    
     call profiler_toc(t, "assembly")
 
     call profiler_tic(t, "solve_total")
@@ -213,15 +212,13 @@ contains
     
   end subroutine set_advection_diffusion_cg_initial_guess
   
-  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name, &
-                                             extra_discretised_source)
+  subroutine assemble_advection_diffusion_cg(t, matrix, rhs, state, dt, velocity_name)
     type(scalar_field), intent(inout) :: t
     type(csr_matrix), intent(inout) :: matrix
     type(scalar_field), intent(inout) :: rhs
     type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), optional, intent(in) :: velocity_name
-    type(scalar_field), intent(in), optional :: extra_discretised_source
 
     character(len = FIELD_NAME_LEN) :: lvelocity_name
     integer :: i, j, stat
@@ -309,10 +306,19 @@ contains
     if(have_source) then
       assert(mesh_dim(source) == mesh_dim(t))
       assert(ele_count(source) == ele_count(t))
-    
+      
+      add_src_directly_to_rhs = have_option(trim(source%option_path)//'/diagnostic/add_directly_to_rhs')
+      
+      if (add_src_directly_to_rhs) then 
+         ewrite(2, *) "Adding Source field directly to the right hand side"
+         assert(node_count(source) == node_count(t))
+      end if
+      
       ewrite_minmax(source)
     else
       ewrite(2, *) "No source"
+      
+      add_src_directly_to_rhs = .false.
     end if
     
     ! Absorption
@@ -565,10 +571,10 @@ contains
     end do
 #endif
 
-    ! as part of assembly include the already discretised optional source
-    ! needed before applying direchlet boundary conditions
-    call addto_rhs_extra_discretised_source(rhs, extra_discretised_source = extra_discretised_source)
-
+    ! Add the source directly to the rhs if required 
+    ! which must be included before dirichlet BC's.
+    if (add_src_directly_to_rhs) call addto(rhs, source)
+    
     ! Step 4: Boundary conditions
     
     if( &
@@ -796,7 +802,9 @@ contains
     if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
     
     ! Source
-    if(have_source) call add_source_element_cg(ele, test_function, t, source, detwei, rhs_addto)
+    if(have_source .and. (.not. add_src_directly_to_rhs)) then 
+       call add_source_element_cg(ele, test_function, t, source, detwei, rhs_addto)
+    end if
     
     ! Pressure
     if(equation_type==FIELD_EQUATION_INTERNALENERGY) call add_pressurediv_element_cg(ele, test_function, t, &
@@ -1229,22 +1237,6 @@ contains
     end if
 
   end subroutine add_diffusivity_face_cg
-
-  subroutine addto_rhs_extra_discretised_source(rhs, extra_discretised_source)
-     type(scalar_field), intent(inout) :: rhs
-     type(scalar_field), intent(in),optional :: extra_discretised_source
-     
-     ! include the already discretised source into rhs
-     add_extra_source: if (present(extra_discretised_source)) then 
-         
-        ! assert that the rhs and extra_discretised_source have the same mesh
-        assert(trim(rhs%mesh%name) == trim(extra_discretised_source%mesh%name))
-         
-        call addto(rhs, extra_discretised_source)
-      
-     end if add_extra_source
-  
-  end subroutine  addto_rhs_extra_discretised_source
      
   subroutine solve_advection_diffusion_cg(t, delta_t, matrix, rhs, state, iterations_taken)
     type(scalar_field), intent(in) :: t

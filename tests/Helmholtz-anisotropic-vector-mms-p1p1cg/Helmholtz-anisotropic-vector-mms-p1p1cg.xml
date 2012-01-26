@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+<testproblem>
+  <name>p1p1-cg inverse Helmholtz filter convergence test</name>
+  <owner userid="jbull"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml &amp;&amp; fluidity MMS_E.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ab_convergence_vel" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','w')
+
+a_error_x = stat("MMS_A.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_B.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_A.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_B.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+
+a_error_inf_x = stat("MMS_A.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_B.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_A.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_B.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+
+ab_ratio_x = a_error_x / b_error_x
+ab_ratio_y = a_error_y / b_error_y
+ab_ratio_inf_x = a_error_inf_x / b_error_inf_x
+ab_ratio_inf_y = a_error_inf_y / b_error_inf_y
+
+output.write('ab_convergence_vel '+str(log(ab_ratio_x, 2))+' '+str(log(ab_ratio_inf_x, 2))+' '+str(log(ab_ratio_y, 2))+' '+str(log(ab_ratio_inf_y, 2))+'\n')
+output.close()
+
+ab_convergence_vel = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
+    </variable>
+    <variable name="ab_convergence_vel_f" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+
+a_error_x = stat("MMS_A.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_B.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_A.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_B.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+
+a_error_inf_x = stat("MMS_A.stat")["NS"]["FilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_B.stat")["NS"]["FilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_A.stat")["NS"]["FilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_B.stat")["NS"]["FilterDifference%2"]["max"][-1]
+
+ab_ratio_x = a_error_x / b_error_x
+ab_ratio_y = a_error_y / b_error_y
+ab_ratio_inf_x = a_error_inf_x / b_error_inf_x
+ab_ratio_inf_y = a_error_inf_y / b_error_inf_y
+
+output.write('ab_convergence_vel_f '+str(log(ab_ratio_x, 2))+' '+str(log(ab_ratio_inf_x, 2))+' '+str(log(ab_ratio_y, 2))+' '+str(log(ab_ratio_inf_y, 2))+'\n')
+output.close()
+
+ab_convergence_vel_f = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
+    </variable>
+    <variable name="bc_convergence_vel" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+b_error_x = stat("MMS_B.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+c_error_x = stat("MMS_C.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+b_error_y = stat("MMS_B.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+c_error_y = stat("MMS_C.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+
+b_error_inf_x = stat("MMS_B.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+c_error_inf_x = stat("MMS_C.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+b_error_inf_y = stat("MMS_B.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+c_error_inf_y = stat("MMS_C.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+
+bc_ratio_x = b_error_x / c_error_x
+bc_ratio_y = b_error_y / c_error_y
+bc_ratio_inf_x = b_error_inf_x / c_error_inf_x
+bc_ratio_inf_y = b_error_inf_y / c_error_inf_y
+
+output.write('bc_convergence_vel '+str(log(bc_ratio_x, 2))+' '+str(log(bc_ratio_inf_x, 2))+' '+str(log(bc_ratio_y, 2))+' '+str(log(bc_ratio_inf_y, 2))+'\n')
+output.close()
+
+bc_convergence_vel = [[log(bc_ratio_x, 2), log(bc_ratio_inf_x, 2)], [log(bc_ratio_y, 2), log(bc_ratio_inf_y, 2)]]
+    </variable>
+    <variable name="bc_convergence_vel_f" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+
+a_error_x = stat("MMS_B.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_C.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_B.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_C.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+
+a_error_inf_x = stat("MMS_B.stat")["NS"]["FilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_C.stat")["NS"]["FilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_B.stat")["NS"]["FilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_C.stat")["NS"]["FilterDifference%2"]["max"][-1]
+
+ab_ratio_x = a_error_x / b_error_x
+ab_ratio_y = a_error_y / b_error_y
+ab_ratio_inf_x = a_error_inf_x / b_error_inf_x
+ab_ratio_inf_y = a_error_inf_y / b_error_inf_y
+
+output.write('bc_convergence_vel_f '+str(log(ab_ratio_x, 2))+' '+str(log(ab_ratio_inf_x, 2))+' '+str(log(ab_ratio_y, 2))+' '+str(log(ab_ratio_inf_y, 2))+'\n')
+output.close()
+
+bc_convergence_vel_f = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
+    </variable>
+    <variable name="cd_convergence_vel" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+c_error_x = stat("MMS_C.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+d_error_x = stat("MMS_D.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+c_error_y = stat("MMS_C.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+d_error_y = stat("MMS_D.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+
+c_error_inf_x = stat("MMS_C.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+d_error_inf_x = stat("MMS_D.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+c_error_inf_y = stat("MMS_C.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+d_error_inf_y = stat("MMS_D.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+
+cd_ratio_x = c_error_x / d_error_x
+cd_ratio_y = c_error_y / d_error_y
+cd_ratio_inf_x = c_error_inf_x / d_error_inf_x
+cd_ratio_inf_y = c_error_inf_y / d_error_inf_y
+
+output.write('cd_convergence_vel '+str(log(cd_ratio_x, 2))+' '+str(log(cd_ratio_inf_x, 2))+' '+str(log(cd_ratio_y, 2))+' '+str(log(cd_ratio_inf_y, 2))+'\n')
+output.close()
+
+cd_convergence_vel = [[log(cd_ratio_x, 2), log(cd_ratio_inf_x, 2)], [log(cd_ratio_y, 2), log(cd_ratio_inf_y, 2)]]
+    </variable>
+    <variable name="cd_convergence_vel_f" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+
+a_error_x = stat("MMS_C.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
+b_error_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
+a_error_y = stat("MMS_C.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+b_error_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+
+a_error_inf_x = stat("MMS_C.stat")["NS"]["FilterDifference%1"]["max"][-1]
+b_error_inf_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["max"][-1]
+a_error_inf_y = stat("MMS_C.stat")["NS"]["FilterDifference%2"]["max"][-1]
+b_error_inf_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["max"][-1]
+
+ab_ratio_x = a_error_x / b_error_x
+ab_ratio_y = a_error_y / b_error_y
+ab_ratio_inf_x = a_error_inf_x / b_error_inf_x
+ab_ratio_inf_y = a_error_inf_y / b_error_inf_y
+
+output.write('cd_convergence_vel_f '+str(log(ab_ratio_x, 2))+' '+str(log(ab_ratio_inf_x, 2))+' '+str(log(ab_ratio_y, 2))+' '+str(log(ab_ratio_inf_y, 2))+'\n')
+output.close()
+
+cd_convergence_vel_f = [[log(ab_ratio_x, 2), log(ab_ratio_inf_x, 2)], [log(ab_ratio_y, 2), log(ab_ratio_inf_y, 2)]]
+    </variable>
+    <variable name="de_convergence_vel" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+d_error_x = stat("MMS_D.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+e_error_x = stat("MMS_E.stat")["NS"]["AnalyticalDifference%1"]["l2norm"][-1]
+d_error_y = stat("MMS_D.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+e_error_y = stat("MMS_E.stat")["NS"]["AnalyticalDifference%2"]["l2norm"][-1]
+
+d_error_inf_x = stat("MMS_D.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+e_error_inf_x = stat("MMS_E.stat")["NS"]["AnalyticalDifference%1"]["max"][-1]
+d_error_inf_y = stat("MMS_D.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+e_error_inf_y = stat("MMS_E.stat")["NS"]["AnalyticalDifference%2"]["max"][-1]
+
+de_ratio_x = d_error_x / e_error_x
+de_ratio_y = d_error_y / e_error_y
+de_ratio_inf_x = d_error_inf_x / e_error_inf_x
+de_ratio_inf_y = d_error_inf_y / e_error_inf_y
+
+output.write('de_convergence_vel '+str(log(de_ratio_x, 2))+' '+str(log(de_ratio_inf_x, 2))+' '+str(log(de_ratio_y, 2))+' '+str(log(de_ratio_inf_y, 2))+'\n')
+output.close()
+
+de_convergence_vel = [[log(de_ratio_x, 2), log(de_ratio_inf_x, 2)], [log(de_ratio_y, 2), log(de_ratio_inf_y, 2)]]
+    </variable>
+    <variable name="de_convergence_vel_f" language="python">
+from fluidity_tools import stat_parser as stat
+from math import log
+output=open('output.log','a')
+
+d_error_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
+e_error_x = stat("MMS_E.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
+d_error_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+e_error_y = stat("MMS_E.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+
+d_error_inf_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["max"][-1]
+e_error_inf_x = stat("MMS_E.stat")["NS"]["FilterDifference%1"]["max"][-1]
+d_error_inf_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["max"][-1]
+e_error_inf_y = stat("MMS_E.stat")["NS"]["FilterDifference%2"]["max"][-1]
+
+de_ratio_x = d_error_x / e_error_x
+de_ratio_y = d_error_y / e_error_y
+de_ratio_inf_x = d_error_inf_x / e_error_inf_x
+de_ratio_inf_y = d_error_inf_y / e_error_inf_y
+
+output.write('de_convergence_vel_f '+str(log(de_ratio_x, 2))+' '+str(log(de_ratio_inf_x, 2))+' '+str(log(de_ratio_y, 2))+' '+str(log(de_ratio_inf_y, 2))+'\n')
+output.close()
+
+de_convergence_vel_f = [[log(de_ratio_x, 2), log(de_ratio_inf_x, 2)], [log(de_ratio_y, 2), log(de_ratio_inf_y, 2)]]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="ab_convergence_vel_f_x: L2 order > 1.7" language="python">
+assert(ab_convergence_vel_f[0][0] &gt; 1.7)
+    </test>
+    <test name="ab_convergence_vel_f_y: L2 order > 1.7" language="python">
+assert(ab_convergence_vel_f[1][0] &gt; 1.7)
+    </test>
+    <test name="bc_convergence_vel_f_x: L2 order > 1.7" language="python">
+assert(bc_convergence_vel_f[0][0] &gt; 1.7)
+    </test>
+    <test name="bc_convergence_vel_f_y: L2 order > 1.7" language="python">
+assert(bc_convergence_vel_f[1][0] &gt; 1.7)
+    </test>
+    <test name="cd_convergence_vel_f_x: L2 order > 1.7" language="python">
+assert(cd_convergence_vel_f[0][0] &gt; 1.7)
+    </test>
+    <test name="cd_convergence_vel_f_y: L2 order > 1.7" language="python">
+assert(cd_convergence_vel_f[1][0] &gt; 1.7)
+    </test>
+    <test name="de_convergence_vel_f_x: L2 order > 1.7" language="python">
+assert(de_convergence_vel_f[0][0] &gt; 1.7)
+    </test>
+    <test name="de_convergence_vel_f_y: L2 order > 1.7" language="python">
+assert(de_convergence_vel_f[1][0] &gt; 1.7)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

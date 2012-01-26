@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <!-- Drag calculation in 2D flow past circle -->
 <!-- Checks the serial run against parallel against parallel adaptivity which can only be done with Zoltan -->
 <testproblem>
   <name>circle-2d-drag-zoltan</name>
   <owner userid="jhill1"/>
-  <tags>flml zoltan parallel</tags>
+  <tags>flml zoltan parallel 2dadapt</tags>
   <problem_definition length="medium" nprocs="1">
       <command_line>fluidity circle-2d-drag-serial.flml;
           mpiexec -n 3 ../../bin/fluidity circle-2d-drag-parallel.flml;

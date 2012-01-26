@@ -13,7 +13,7 @@ z="math.sqrt(x*x+y*y+z*z)-6.37101e+06"
 
 ugrid.ApplyProjection(x, y, z)
 
-ugrid.Write(filename="tidesnorthsea-flat.vtu")
+ugrid.Write(filename="tidesmedsea-flat.vtu")
 
-u=vtktools.vtu("tidesnorthsea-flat.vtu")
+u=vtktools.vtu("tidesmedsea-flat.vtu")
 

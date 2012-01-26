@@ -1,6 +1,6 @@
 input: clean
 	gmsh -3 ./src/cube-1.geo
-	../../scripts/gmsh2triangle ./src/cube-1.msh
+	../../bin/gmsh2triangle ./src/cube-1.msh
 	../../bin/fldecomp -n 2 cube-1
 
 clean:

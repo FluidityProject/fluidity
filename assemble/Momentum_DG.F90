@@ -292,22 +292,22 @@ contains
     end if
     
     ! These names are based on the CGNS SIDS.
-    if (.not.have_option(trim(U%option_path)//"/prognostic&
-         &/spatial_discretisation/discontinuous_galerkin&
-         &/advection_scheme/none")) then
+    if (.not.have_option(trim(U%option_path)//"/prognostic"//&
+         &"/spatial_discretisation/discontinuous_galerkin"//&
+         &"/advection_scheme/none")) then
        U_nl=extract_vector_field(state, "NonlinearVelocity")
        call incref(U_nl)
 
-       if(have_option(trim(U%option_path)//"/prognostic/&
-            &spatial_discretisation/discontinuous_galerkin/&
-            &advection_scheme/project_velocity_to_continuous")) then
+       if(have_option(trim(U%option_path)//"/prognostic"//&
+            &"/spatial_discretisation/discontinuous_galerkin"//&
+            &"/advection_scheme/project_velocity_to_continuous")) then
           ewrite(3,*) 'CREATING PROJECTEDNONLINEARVELOCITY, cjc'
           if(.not.has_scalar_field(state, "ProjectedNonlinearVelocity")) then
           
-             call get_option(trim(U%option_path)//"/prognostic/&
-                  &spatial_discretisation/discontinuous_galerkin/&
-                  &advection_scheme/project_velocity_to_continuous&
-                  &/mesh/name",pmesh_name)
+             call get_option(trim(U%option_path)//"/prognostic"//&
+                  &"/spatial_discretisation/discontinuous_galerkin"//&
+                  &"/advection_scheme/project_velocity_to_continuous"//&
+                  &"/mesh/name",pmesh_name)
              pmesh = extract_mesh(state, pmesh_name)
              call allocate(pvelocity, U_nl%dim, pmesh, &
                   &"ProjectedNonlinearVelocity")
@@ -462,17 +462,17 @@ contains
     end if
 
     have_mass = .not. have_option(trim(u%option_path)//&
-        &"/prognostic/spatial_discretisation&
-        &/discontinuous_galerkin/mass_terms/exclude_mass_terms")
+        &"/prognostic/spatial_discretisation"//&
+        &"/discontinuous_galerkin/mass_terms/exclude_mass_terms")
     lump_mass=have_option(trim(U%option_path)//&
-         &"/prognostic/spatial_discretisation&
-         &/discontinuous_galerkin/mass_terms/lump_mass_matrix")
+         &"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/mass_terms/lump_mass_matrix")
     lump_abs=have_option(trim(U%option_path)//&
-         &"/prognostic/vector_field::Absorption&
-         &/lump_absorption")
+         &"/prognostic/vector_field::Absorption"//&
+         &"/lump_absorption")
     pressure_corrected_absorption=have_option(trim(u%option_path)//&
-        &"/prognostic/vector_field::Absorption&
-        &/include_pressure_correction") .or. (have_vertical_stabilization)
+        &"/prognostic/vector_field::Absorption"//&
+        &"/include_pressure_correction") .or. (have_vertical_stabilization)
         
     if (pressure_corrected_absorption) then
        ! as we add the absorption into the mass matrix
@@ -480,10 +480,10 @@ contains
        lump_abs = lump_mass
     end if
     lump_source=have_option(trim(u%option_path)//&
-         &"/prognostic/vector_field::Source&
-         &/lump_source")
-    call get_option(trim(U%option_path)//"/prognostic/spatial_discretisation/&
-         &conservative_advection", beta)
+         &"/prognostic/vector_field::Source"//&
+         &"/lump_source")
+    call get_option(trim(U%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/conservative_advection", beta)
 
     ! mesh movement here only matters for the mass terms
     ! other terms are evaluated using "Coordinate" which is evaluated at t+theta*dt
@@ -521,51 +521,52 @@ contains
        remove_penalty_fluxes = .true.
        interior_penalty_parameter = 0.0
        if(have_option(trim(U%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/viscosity_scheme&
-            &/compact_discontinuous_galerkin/penalty_parameter")) then
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/viscosity_scheme"//&
+            &"/compact_discontinuous_galerkin/penalty_parameter")) then
           remove_penalty_fluxes = .false.
           edge_length_power = 0.0
           call get_option(trim(U%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/viscosity_scheme&
-               &/compact_discontinuous_galerkin/penalty_parameter"&
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/viscosity_scheme"//&
+               &"/compact_discontinuous_galerkin/penalty_parameter"&
                &,Interior_Penalty_Parameter)
        end if
 
        CDG_penalty = .true.
        edge_length_option = USE_FACE_INTEGRALS
 
-    else if (have_option(trim(U%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/viscosity_scheme/arbitrary_upwind")) then
+    else if (have_option(trim(U%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/viscosity_scheme/arbitrary_upwind")) then
        viscosity_scheme=ARBITRARY_UPWIND
     else if (have_option(trim(U%option_path)//&
-         &"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/viscosity_scheme/interior_penalty")) then
+         &"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/viscosity_scheme/interior_penalty")) then
        remove_penalty_fluxes = .false.
        viscosity_scheme=IP
        CDG_penalty = .false.
        call get_option(trim(U%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/viscosity_scheme&
-            &/interior_penalty/penalty_parameter",Interior_Penalty_Parameter)
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/viscosity_scheme"//&
+            &"/interior_penalty/penalty_parameter",Interior_Penalty_Parameter)
        call get_option(trim(U%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/viscosity_scheme&
-            &/interior_penalty/edge_length_power",edge_length_power)
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/viscosity_scheme"//&
+            &"/interior_penalty/edge_length_power",edge_length_power)
        edge_length_option = USE_FACE_INTEGRALS
        if(have_option(trim(U%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/viscosity_scheme&
-            &/interior_penalty/edge_length_option/use_element_centres")) &
-            & edge_length_option = USE_ELEMENT_CENTRES
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/viscosity_scheme"//&
+            &"/interior_penalty/edge_length_option/use_element_centres")) then 
+          edge_length_option = USE_ELEMENT_CENTRES
+       end if
     else
        FLAbort("Unknown viscosity scheme - Options tree corrupted?")
     end if
 
     integrate_surfacetension_by_parts = have_option(trim(u%option_path)//&
-      &"/prognostic/tensor_field::SurfaceTension&
-      &/diagnostic/integrate_by_parts")
+      &"/prognostic/tensor_field::SurfaceTension"//&
+      &"/diagnostic/integrate_by_parts")
 
     local_assembly = have_option("/local_assembly")
     if (local_assembly) then
@@ -2988,8 +2989,8 @@ contains
     limit_slope = .true.
     
     call get_option(trim(u%option_path)//&
-        "/prognostic/temporal_discretisation/&
-        &discontinuous_galerkin/maximum_courant_number_per_subcycle",&
+        &"/prognostic/temporal_discretisation"//&
+        &"/discontinuous_galerkin/maximum_courant_number_per_subcycle",&
         &max_courant_number)
     courant_number_field => &
         extract_scalar_field(state, "DG_CourantNumber")
@@ -3129,20 +3130,20 @@ contains
     assert( continuity(u)<0 )
     
     compact_stencil = have_option(trim(u%option_path)//&
-                "/prognostic/spatial_discretisation&
-                &/discontinuous_galerkin/viscosity_scheme&
-                &/interior_penalty") .or. &
+                &"/prognostic/spatial_discretisation"//&
+                &"/discontinuous_galerkin/viscosity_scheme"//&
+                &"/interior_penalty") .or. &
                 &have_option(trim(u%option_path)//&
-                "/prognostic/spatial_discretisation&
-                &/discontinuous_galerkin/viscosity_scheme&
-                &/compact_discontinuous_galerkin")
+                &"/prognostic/spatial_discretisation"//&
+                &"/discontinuous_galerkin/viscosity_scheme"//&
+                &"/compact_discontinuous_galerkin")
                 
     ! NOTE: this only sets the local have_viscosity, have_advection and have_coriolis
     have_viscosity = have_option(trim(u%option_path)//&
           &"/prognostic/tensor_field::Viscosity")
-    have_advection = .not. have_option(trim(u%option_path)//"/prognostic&
-         &/spatial_discretisation/discontinuous_galerkin&
-         &/advection_scheme/none")
+    have_advection = .not. have_option(trim(u%option_path)//"/prognostic"//&
+         &"/spatial_discretisation/discontinuous_galerkin"//&
+         &"/advection_scheme/none")
     have_coriolis = have_option("/physical_parameters/coriolis")
 
     ! It would be enough to set this variable to true only if there is a flux turbine. 

@@ -26,8 +26,14 @@
 #    USA
 
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(assemble/Makefile.in)
+
+AC_INIT(fluidity, None)
+
 AC_CONFIG_HEADERS(include/config.h)
+
+# we ignore PACKAGE_VERSION as it is useless
+# instead we pass on FLUIDITY_VERSION from the env. if it is set
+AC_SUBST(FLUIDITY_VERSION)
 
 echo "Hostname: `hostname`"
 
@@ -81,7 +87,6 @@ if test "x$enable_gcov" == "xyes" ; then
     LDFLAGS="$LDFLAGS -fprofile-arcs -ftest-coverage"
 fi
  
-FLUIDITY="fluidity"
 FLFEMDEM="femdem"
 
 # Check system type
@@ -1113,14 +1118,13 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_SUBST(FORTRAN_REAL_8)
 AC_SUBST(OPTIMIZATION_FFLAGS)
 AC_SUBST(LINKER)
+AC_SUBST(FLLINKER)
 
 dnl Specific f90 options
 AC_SUBST(USE_CPP)
 
 dnl Specific -D options
 AC_SUBST(DEFINE_MPI)
-
-AC_SUBST(FLUIDITY)
 
 dnl Checks for library functions.
 if test "$smart_fortran" = "yes" ; then
@@ -1213,7 +1217,9 @@ if test -d libspud ; then
         AC_MSG_NOTICE([Building on hector xe6; disabling shared libraries])
         SHFLAG=--disable-shared
         SPUD_ONLY="yes"
+        FLLINKER=$CXX
     else
+        FLLINKER=$FC
         SHFLAG=--enable-shared
     fi
     AC_SUBST(SPUD_ONLY)
@@ -1526,10 +1532,9 @@ AC_OUTPUT(Makefile
           parameterisation/Makefile parameterisation/tests/Makefile
 	  fldecomp/Makefile
           assemble/Makefile assemble/tests/Makefile
-          radiation/Makefile radiation/tests/Makefile
           diagnostics/Makefile
           main/Makefile
-          scripts/Makefile tools/Makefile
+          tools/Makefile
           python/setup.py
           adjoint/Makefile
           adjoint/tests/Makefile
@@ -1545,8 +1550,6 @@ AC_OUTPUT(Makefile
           libjudy/src/JudyHS/Makefile
       	  libalgencan/Makefile
           libwm/Makefile
-          libvtkfortran/Makefile 
-          qg_strat/Makefile qg_strat/unittests/Makefile
-          tests/lauwerier/Makefile
-	  reduced_modelling/Makefile
-          legacy_reservoir_prototype/Makefile)
+          libvtkfortran/Makefile
+          schemas/flml
+	  reduced_modelling/Makefile)

@@ -779,7 +779,10 @@ logical, optional, intent(in) :: local_assembly
   end if
   
   ewrite(1, *) 'Assembling matrix.'
-  
+ 
+  ! Note the explicitly-described options rcm, 1wd and natural are now not
+  ! listed explicitly in the schema (but can still be used by adding the
+  ! appropriate string in the solver reordering node).
   call PetscOptionsGetString("", "-ordering_type", ordering_type, &
         use_reordering, ierr)
   if (.not. use_reordering) then
@@ -1778,13 +1781,13 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
        
        ! set the options for the ksp of this complete solve
        call PCKSPGetKSP(pc, subksp, ierr)
-       ewrite(1,*) "Going into setup_ksp_from_options again to set the options&
-          &for the complete ksp solve of the preconditioner"
+       ewrite(1,*) "Going into setup_ksp_from_options again to set the options "//&
+          &"for the complete ksp solve of the preconditioner"
        call KSPSetOperators(subksp, pmat, pmat, DIFFERENT_NONZERO_PATTERN, ierr)
        call setup_ksp_from_options(subksp, pmat, pmat, &
          trim(option_path)//'/solver')
-       ewrite(1,*) "Returned from setup_ksp_from_options for the preconditioner solve&
-          &, now setting options for the outer solve"
+       ewrite(1,*) "Returned from setup_ksp_from_options for the preconditioner solve, "//&
+          &"now setting options for the outer solve"
       
     else if (pctype==PCASM .or. pctype==PCBJACOBI) then
       
@@ -1848,7 +1851,11 @@ subroutine SetupKSP(ksp, mat, pmat, solver_option_path, parallel, &
     PCType:: pctype
     PetscReal:: rtol, atol, dtol
     PetscInt:: maxits
+#if PETSC_VERSION_MINOR==2
+    PetscBool:: flag
+#else
     PetscTruth:: flag
+#endif
     PetscErrorCode:: ierr
     
     ewrite(2, *) 'Using solver options from cache:'

@@ -65,6 +65,7 @@
           <real_value shape="2" dim1="dim" rank="1">0.0 0.5</real_value>
         </location>
       </static_detector>
+      <fail_outside_domain/>
       <binary_output/>
     </detectors>
   </io>

@@ -132,11 +132,11 @@ Assemble_CMC.o ../include/assemble_cmc.mod: Assemble_CMC.F90 \
 
 Biology.o ../include/biology.mod: Biology.F90 \
    ../include/boundary_conditions.mod ../include/fdebug.h \
-   ../include/fetools.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/python_state.mod \
-   ../include/solvers.mod ../include/sparse_tools.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/fefields.mod ../include/fetools.mod ../include/field_options.mod \
+   ../include/fields.mod ../include/global_parameters.mod \
+   ../include/python_state.mod ../include/solvers.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/burgers_assembly.mod: Burgers_Assembly.o
 	@true
@@ -239,9 +239,9 @@ Divergence_Matrix_CV.o ../include/divergence_matrix_cv.mod: \
    ../include/cvtools.mod ../include/diagnostic_fields.mod ../include/fdebug.h \
    ../include/fetools.mod ../include/field_derivatives.mod \
    ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
-   ../include/global_parameters.mod ../include/quadrature.mod \
-   ../include/sparsity_patterns_meshes.mod ../include/spud.mod \
-   ../include/state_module.mod
+   ../include/global_parameters.mod ../include/multiphase_module.mod \
+   ../include/quadrature.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/drag_module.mod: Drag.o
 	@true
@@ -582,7 +582,8 @@ Momentum_Equation.o ../include/momentum_equation.mod: Momentum_Equation.F90 \
    ../include/momentum_cg.mod ../include/momentum_dg.mod \
    ../include/momentum_diagnostic_fields.mod ../include/multiphase_module.mod \
    ../include/oceansurfaceforcing.mod ../include/parallel_tools.mod \
-   ../include/petsc_solve_state_module.mod ../include/profiler.mod \
+   ../include/petsc_solve_state_module.mod \
+   ../include/pressure_dirichlet_bcs_cv.mod ../include/profiler.mod \
    ../include/reduced_model_runtime.mod \
    ../include/rotated_boundary_conditions.mod ../include/slope_limiters_dg.mod \
    ../include/solvers.mod ../include/sparse_matrices_fields.mod \
@@ -646,6 +647,21 @@ Petsc_Solve_State.o ../include/petsc_solve_state_module.mod: \
 
 Porous_Media.o ../include/porous_media.mod: Porous_Media.F90 \
    ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/spud.mod ../include/state_module.mod
+
+../include/pressure_dirichlet_bcs_cv.mod: Pressure_Dirichlet_BCS_CV.o
+	@true
+
+Pressure_Dirichlet_BCS_CV.o ../include/pressure_dirichlet_bcs_cv.mod: \
+   Pressure_Dirichlet_BCS_CV.F90 ../include/boundary_conditions.mod \
+   ../include/cv_face_values.mod ../include/cv_faces.mod \
+   ../include/cv_fields.mod ../include/cv_options.mod \
+   ../include/cv_shape_functions.mod ../include/cv_upwind_values.mod \
+   ../include/cvtools.mod ../include/diagnostic_fields.mod ../include/fdebug.h \
+   ../include/fetools.mod ../include/field_derivatives.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/multiphase_module.mod \
+   ../include/quadrature.mod ../include/sparsity_patterns_meshes.mod \
    ../include/spud.mod ../include/state_module.mod
 
 ../include/pseudo_supermesh.mod: Pseudo_supermesh.o
@@ -893,15 +909,4 @@ qmesh.o ../include/qmesh_module.mod: qmesh.F90 \
    ../include/metric_assemble.mod ../include/spud.mod \
    ../include/state_module.mod ../include/tictoc.mod \
    ../include/vtk_interfaces.mod
-
-../include/traffic.mod: traffic.o
-	@true
-
-traffic.o ../include/traffic.mod: traffic.F90 \
-   ../include/boundary_conditions.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
-   ../include/fldebug.mod ../include/global_parameters.mod \
-   ../include/parallel_tools.mod ../include/pickers.mod \
-   ../include/qmesh_module.mod ../include/spud.mod ../include/state_module.mod \
-   ../include/vector_tools.mod
 
