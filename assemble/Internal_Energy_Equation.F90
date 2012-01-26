@@ -117,6 +117,7 @@ contains
     real, parameter:: alpha=0.005
 
     real, dimension(size(du_t,3), size(du_t,3), size(du_t,2)) :: gradu_gi, viscosity_gi ! udim x udim x ngi
+    real, dimension(size(du_t,3), size(du_t,3)) :: average_viscosity ! udim x udim
     ! scalars at the gausspoints:
     real, dimension(size(du_t,2)):: contraction_gi, density_gi, scalar_gi, switch_gi
     real, dimension(size(du_t,2)):: smoothness_gi, divgradu_gi, sound_speed_gi
@@ -147,8 +148,16 @@ contains
     switch_gi = (sign( 1.0, -ele_div_at_quad(nu, ele, du_t)) + 1.0)/2.0
     scalar_gi = density_gi * ( shock_viscosity_cl * switch_gi * sqrt(ele_val_at_quad(sound_speed, ele))/length_scale + &
                                shock_viscosity_cq * contraction_gi) * smoothness_gi
+
+    average_viscosity=0.0
     do gi=1, size(du_t,2)
-      viscosity_gi(:,:,gi) = scalar_gi(gi) * matmul(transpose(J_mat(:,:,gi)), J_mat(:,:,gi))
+      average_viscosity = average_viscosity + detwei(gi)* &
+        scalar_gi(gi) * matmul(transpose(J_mat(:,:,gi)), J_mat(:,:,gi)) / &
+        sum(detwei)
+    end do
+
+    do gi=1, size(du_t,2)
+      viscosity_gi(:,:,gi) = average_viscosity
     end do
 
   end function shock_viscosity_tensor

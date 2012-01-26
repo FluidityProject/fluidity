@@ -375,7 +375,7 @@ contains
     end if
 
     ! Vertical mixing by diffusion
-    have_buoyancy_adjustment_by_vertical_diffusion=have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/by_vertical_diffusion")    
+    have_buoyancy_adjustment_by_vertical_diffusion=have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/by_vertical_diffusion")
 
     if (have_option(trim(T%option_path)//&
          "/prognostic/temporal_discretisation/discontinuous_galerkin/&
