@@ -157,7 +157,6 @@ contains
     integer, optional, intent(out) :: stat
     
     integer :: lstat, i
-    real, dimension(size(agent%local_coords)) :: stage_local_coords
     real, dimension(size(agent_list%env_field_name)) :: env_field_values
     type(scalar_field), pointer :: env_field
 
@@ -170,7 +169,6 @@ contains
        env_field_values(i)=eval_field(agent%element,env_field,agent%local_coords)
     end do
 
-    stage_local_coords=local_coords(xfield,agent%element,agent%position)
     call python_run_agent_biology(dt, dict, len_trim(dict), key,len_trim(key), &
            agent%biology, size(agent%biology), env_field_values, size(env_field_values), lstat) 
 

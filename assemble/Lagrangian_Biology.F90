@@ -635,9 +635,9 @@ contains
     type(scalar_field), pointer :: request_field, chemfield, depletion_field
     type(vector_field), pointer :: xfield
     type(detector_type), pointer :: agent
-    integer :: i, j, n, ele, poolvar
+    integer :: i, j, n, ele
     integer, dimension(:), pointer :: element_nodes
-    real :: chemval, chem_integral, request, depletion, ingested_amount
+    real :: chemval, chem_integral, request, depletion
 
     ! Exit if there are no uptake fields
     if (.not.associated(uptake_field_names)) return
@@ -683,21 +683,18 @@ contains
        end do
     end do
 
-    ! Adjust agent pool variables
+    ! Apply depletion factor to uptake variables
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovars)
 
              ! Add ingested amount to pool variables
              if (agent_arrays(i)%biovars(j)%field_type == BIOFIELD_UPTAKE) then
-
                 depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%chemfield)//"Depletion")
-                poolvar = agent_arrays(i)%biovars(j)%pool_index
 
                 agent => agent_arrays(i)%first
                 do while (associated(agent))
-                   ingested_amount = agent%biology(j) * node_val(depletion_field, agent%element)
-                   !agent%biology(poolvar) = agent%biology(poolvar) + ingested_amount
+                   agent%biology(j) = agent%biology(j) * node_val(depletion_field, agent%element)
 
                    agent => agent%next
                 end do
@@ -757,30 +754,6 @@ contains
              end if
           end do
        end do
-    end do
-
-    ! Adjust agent pool variables
-    do i = 1, size(agent_arrays)
-       if (agent_arrays(i)%has_biology) then
-          do j=1, size(agent_arrays(i)%biovars)
-
-             ! Subtract excreted amount from pool variables
-             if (agent_arrays(i)%biovars(j)%field_type == BIOFIELD_RELEASE) then
-                poolvar = agent_arrays(i)%biovars(j)%pool_index
-
-                !agent => agent_arrays(i)%first
-                !do while (associated(agent))
-                   ! Don't release more than we have
-                !   if (agent%biology(j) > agent%biology(poolvar)) then
-                !      agent%biology(poolvar) = 0.0
-                !   else
-                !      agent%biology(poolvar) = agent%biology(poolvar) - agent%biology(j)
-                !   end if
-                !   agent => agent%next
-                !end do
-             end if
-          end do
-       end if
     end do
 
     call profiler_toc("/chemical_exchange")
