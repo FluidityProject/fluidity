@@ -1651,8 +1651,13 @@ Recommended value (default): 1.3.</a:documentation>
                   </element>
                   <optional>
                     <element name="debugging_mode">
-                      <a:documentation>produce vtu output of individual kk and eps source terms for every timestep</a:documentation>
-                      <empty/>
+                      <a:documentation>produce vtu output of individual kk and eps source terms</a:documentation>
+                      <optional>
+                        <element name="period">
+                          <a:documentation>output is created every timestep unless a period (in seconds) is provided here</a:documentation>
+                          <ref name="real"/>
+                        </element>
+                      </optional>
                     </element>
                   </optional>
                 </element>
