@@ -1190,9 +1190,9 @@ module copy_outof_into_state
                  pressure_bc => extract_surface_field( pressure, k, "value" )
               end do
           
-          
+          ewrite(3,*) 'p_snloc:', p_snloc, size(pressure_bc%val)
               do k = 1, p_snloc
-                if(size(pressure_bc%val) .eq. 1) then
+                if(size(pressure_bc%val) > 0) then
                    suf_p_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + k ) = pressure_bc%val( 1 )
                 else
                   FLExit("Pressure BC only implemented for a constant BC for each region ID")
