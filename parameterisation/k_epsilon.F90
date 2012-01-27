@@ -35,7 +35,7 @@ module k_epsilon
   use field_options
   use state_module
   use spud
-  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep
+  use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN, timestep, current_time
   use state_fields_module
   use boundary_conditions
   use fields_manipulation
@@ -52,7 +52,9 @@ implicit none
 
   ! locally allocatad fields
   type(scalar_field), save            :: tke_old, tke_src_old
-  real, save                          :: c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k, lmax
+  real, save                          :: c_mu, c_eps_1, c_eps_2, sigma_eps, sigma_k, lmax, dump_period
+  real, save                          :: last_dump_time_k = -INFINITY
+  real, save                          :: last_dump_time_eps = -INFINITY
   real, save                          :: fields_min = 1.e-10
   character(len=FIELD_NAME_LEN), save :: src_abs
 
@@ -79,6 +81,7 @@ subroutine keps_init(state)
     type(scalar_field), pointer     :: field
     character(len=OPTION_PATH_LEN)  :: keps_path
     real                            :: visc
+    integer                         :: stat
 
     ewrite(1,*)'Now in k_epsilon turbulence model - keps_init'
     keps_path = trim(state%option_path)//"/subgridscale_parameterisations/k-epsilon"
@@ -99,6 +102,11 @@ subroutine keps_init(state)
     call get_option(trim(keps_path)//'C_eps_2', c_eps_2, default = 1.92)
     call get_option(trim(keps_path)//'/sigma_k', sigma_k, default = 1.0)
     call get_option(trim(keps_path)//'sigma_eps', sigma_eps, default = 1.3)
+
+    ! Get dump period for debugging if enabled
+    call get_option(trim(state%option_path)//&
+        &"/subgridscale_parameterisations/k-epsilon/debugging_mode/period", &
+        & dump_period, default = 0.0)	
 
     ! initialise lengthscale
     field => extract_scalar_field(state, "LengthScale")
@@ -221,9 +229,11 @@ subroutine keps_tke(state)
 
     ! produce debugging vtu's if required
     if (have_option(trim(state%option_path)//&
-         &"/subgridscale_parameterisations/k-epsilon/debugging_mode")) then
+         &"/subgridscale_parameterisations/k-epsilon/debugging_mode") &
+         & .and. current_time > last_dump_time_k + dump_period) then
        call vtk_write_fields("KK_src_abs_terms", timestep, positions, kk%mesh,&
             & src_abs_terms)
+       last_dump_time_k = current_time
     end if
 
     ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
@@ -452,6 +462,15 @@ subroutine keps_eps(state)
                   &/node_val(lumped_mass,i))
           end do
        end do
+    end if
+
+    ! produce debugging vtu's if required
+    if (have_option(trim(state%option_path)//&
+         &"/subgridscale_parameterisations/k-epsilon/debugging_mode") &
+         & .and. current_time > last_dump_time_eps + dump_period) then
+       call vtk_write_fields("EPS_src_abs_terms", timestep, positions, eps%mesh,&
+            & src_abs_terms)
+       last_dump_time_eps = current_time
     end if
 
     ! produce debugging vtu's if required
