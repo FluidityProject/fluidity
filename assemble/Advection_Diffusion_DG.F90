@@ -96,7 +96,7 @@ module advection_diffusion_DG
   ! Boundary condition types:
   ! (the numbers should match up with the order in the 
   !  get_entire_boundary_condition call)
-  integer :: BCTYPE_WEAKDIRICHLET=1, BCTYPE_DIRICHLET=2
+  integer :: BCTYPE_WEAKDIRICHLET=1, BCTYPE_DIRICHLET=2, BCTYPE_NEUMANN=3
 
   logical :: include_mass
   ! are we moving the mesh?
@@ -888,7 +888,8 @@ contains
     ! BCTYPE_WEAKDIRICHLET=1)
     allocate( bc_type(1:surface_element_count(T)) )
     call get_entire_boundary_condition(T, &
-       & (/"weakdirichlet"/), &
+       & (/"weakdirichlet", &
+           "neumann      "/), &
        & bc_value, bc_type)
 
     call zero(big_m)
@@ -2300,7 +2301,7 @@ contains
     real, dimension(:,:,:), allocatable :: kappa_gi
 
     integer :: dim, start, finish
-    logical :: boundary, dirichlet
+    logical :: boundary, dirichlet, neumann
 
     logical :: do_primal_fluxes
 
@@ -2343,9 +2344,12 @@ contains
     ! Boundary nodes have both faces the same.
     boundary=(face==face_2)
     dirichlet=.false.
+    neumann=.false.
     if (boundary) then
        if (bc_type(face)==BCTYPE_WEAKDIRICHLET) then
          dirichlet=.true.
+       elseif (bc_type(face)==BCTYPE_NEUMANN) then
+         neumann=.true.
        end if
     end if
 
@@ -2557,6 +2561,11 @@ contains
                   -matmul(nnAdvection_out,face_val(T,face)))
           end if
 
+       end if
+     
+       ! Add non-zero contributions from Neumann boundary conditions (if present)
+       if (neumann) then
+          call addto(RHS, T_face, shape_rhs(T_shape, detwei * ele_val_at_quad(bc_value, face)))
        end if
        
     end if
