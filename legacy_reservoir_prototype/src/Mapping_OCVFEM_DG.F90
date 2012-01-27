@@ -155,7 +155,7 @@ module mapping_for_ocvfem
          
  !   cv_ngi = cv_ngi_short
     !cv_ngi_short = cv_ngi
-    print*, ' got FE info', cv_ngi, cv_ngi_short, cv_nloc, u_nloc, totele
+    ewrite(3,*) ' got FE info', cv_ngi, cv_ngi_short, cv_nloc, u_nloc, totele
     
 
 
