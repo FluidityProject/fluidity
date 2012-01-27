@@ -1548,7 +1548,7 @@ contains
     use shape_functions 
     use shape_functions_Linear_Quadratic
     use solvers_module
-    use spact
+    use matrix_operations
     IMPLICIT NONE
     INTEGER, intent( in ) :: NTSOL, NTSOL_AVE, NTSOL_INT, NDIM, CV_NONODS, TOTELE, &
          X_NLOC, CV_NGI, CV_NLOC, X_NONODS, NCOLM     

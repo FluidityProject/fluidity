@@ -67,6 +67,7 @@
       real :: posi
       logical :: getndp
 
+      ewrite(3,*)' In re2dn4 subrt. '
       ! Allocating memory
       allocate( lx( nl ) )
       allocate( ly( nl ) )
@@ -117,6 +118,7 @@
       else ! If ngi =/ 4
          ndgi = int( sqrt( ngi + 0.1 ) + 0.1 )
          getndp = .false.
+         allocate( weit( ndgi ) )
          call lagrot( weit, lx, ndgi, getndp )   
          ly( 1 : ndgi ) = lx( 1 : ndgi )
          Loop_Q3: do q = 1, ndgi
@@ -147,6 +149,8 @@
                end do Loop_Corn4
             end do Loop_P4
          end if
+
+         deallocate( weit )
 
       end if Conditional_NGI
 
@@ -701,7 +705,6 @@
       ! Local variables
       character( len = option_path_len ) :: overlapping_path
 
-
       Conditional_EleType: Select Case( cv_ele_type )
 
       case( 1, 2 ) ! 1D
@@ -788,7 +791,6 @@
            overlapping_path )
       if( trim( overlapping_path ) == 'overlapping' ) cv_ngi = cv_ngi * cv_nloc
 
-
       return
     end subroutine retrieve_ngi
 
@@ -804,7 +806,12 @@
       logical :: weight
       integer :: ig
 
+      weit = 0. ; quadpos = 0.
+
       ewrite(3,*) 'In LAGROT'
+      ewrite(3,*) 'ndgi, getndp:', ndgi, getndp
+      ewrite(3,*) 'weit:', weit( 1 : ndgi )
+      ewrite(3,*) 'quadpos:', quadpos( 1 : ndgi )
 
       Conditional_GETNDP: if( .not. getndp ) then
          weight = .true.
@@ -1047,6 +1054,8 @@
       INTEGER :: IG, ND
       LOGICAL :: WEIGHT
 
+      ewrite(3,*)'In RGPTWE', ig, nd, weight
+
       Loop_Weight: IF( WEIGHT ) THEN ! Gauss points weights
 
          SELECT CASE( ND )
@@ -1120,7 +1129,7 @@
          END SELECT
 
       ELSE
-
+         ewrite(3,*)'in rgptwe, nd:', nd
          SELECT CASE( ND ) ! Gauss points
 
          CASE( 1 ) ; RGPTWE = 0.0
@@ -1195,7 +1204,7 @@
 
       END IF Loop_Weight
 
-      RETURN
+    !  RETURN
 
     END FUNCTION RGPTWE
 
@@ -1526,7 +1535,8 @@
 
 
     subroutine vol_cv_tri_shape( cv_ele_type, ndim, cv_ngi, cv_nloc, u_nloc, cvn, cvweigh, &
-         n, nlx, nly, nlz, un, unlx, unly, unlz )
+         n, nlx, nly, nlz, &
+         un, unlx, unly, unlz )
       ! Compute shape functions N, UN etc for linear trianles. Shape functions 
       ! associated with volume integration using both CV basis functions CVN, as 
       ! well as FEM basis functions N (and its derivatives NLX, NLY, NLZ). Also 
@@ -1619,17 +1629,29 @@
       x_ndgln( ( ele - 1 ) * quad_cv_nloc + 3 ) = 7
       x_ndgln( ( ele - 1 ) * quad_cv_nloc + 4 ) = 6
 
+      ewrite(3,*)'x:', x
+      ewrite(3,*)'y:', y
+      ewrite(3,*)'lx:', lx
+      ewrite(3,*)'ly:', ly
+      ewrite(3,*)'totele, cv_nloc, cv_ngi>>>>>:', totele, cv_nloc, cv_ngi
 
       ! Compute the shape functions using these quadrilaterals/hexs:
       ! For pressure:
       call shape_tri_tet( cv_ele_type, ndim, totele, cv_nloc, cv_ngi, x_nonods, &
            quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
            n, nlx, nly, nlz, cvweigh )
+      ewrite(3,*)'n:', n
+      ewrite(3,*)'nlx:', nlx
+      ewrite(3,*)'nly:', nly
+      ewrite(3,*)'cvweight1:', cvweigh
+      ewrite(3,*)'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+      ewrite(3,*)'totele, cv_nloc, cv_ngi====:', totele, cv_nloc, cv_ngi
 
-      ! For velocities:
+      ! And for velocities:
       call shape_tri_tet( cv_ele_type, ndim, totele, u_nloc, cv_ngi, x_nonods, &
            quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
            un, unlx, unly, unlz, cvweigh )
+      ewrite(3,*)'====================================================='
 
       ! Compute CVN (i.e., CV basis function):
       quad_cv_ngi = cv_ngi / totele
@@ -2062,7 +2084,6 @@
            x, y, z, lx, ly, lz, fem_nod, &
            x_ndgln_big, x_ndgln2 )  
 
-
       ! Compute the shape functions using these quadrilaterals/hexs:
       ! For pressure:
       call shape_tri_tet( cv_ele_type, ndim, totele, cv_nloc, cv_ngi, x_nonods, &
@@ -2094,7 +2115,6 @@
     end subroutine vol_cv_qtet_shape
 
 
-
     subroutine shape_tri_tet( cv_ele_type, ndim, totele, cv_nloc, cv_ngi, x_nonods, &
          quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
          n, nlx, nly, nlz, cvweigh )
@@ -2117,6 +2137,8 @@
       real, dimension( :, : ), allocatable :: quad_n, quad_nlx, quad_nly, quad_nlz, &
            quad_nx, quad_ny, quad_nz
 
+      ewrite(3,*)'in shape_tri_tet'
+
       d3 = ( ndim == 3 )
       d1 = .false.
       dcyl = .false. 
@@ -2131,12 +2153,13 @@
       else
          quad_cv_ngi = 4
          nwicel = 1
-         if( cv_nloc == 6 ) then ! Quadratic quads
+         if ( cv_nloc == 6 ) then ! Quadratic quads
             quad_cv_ngi = 9
             nwicel = 2
          end if
       end if Conditional_Dimensionality1
 
+      if ( cv_ngi == 9 ) quad_cv_ngi = 3
       ! Consistency check:
       if( cv_ngi /= totele * quad_cv_ngi ) then
          FLExit( "Wrong number for CV_NGI" )
@@ -2183,7 +2206,8 @@
 
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
             cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
-            cvweigh( cv_ngi ) = detwei( quad_cv_gi )
+            ewrite(3,*)'ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi:', ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi
+            cvweigh( cv_gi ) = detwei( quad_cv_gi )
             xgi = 0.
             ygi = 0.
             zgi = 0.
@@ -2210,11 +2234,11 @@
 
       end do Loop_Elements
 
+
       ! Now determine the basis functions and derivatives at the 
       ! quadrature pts quad_L1, quad_L2, quad_L3, quad_L4, etc
       call shatri( quad_l1, quad_l2, quad_l3, quad_l4, rdummy, d3, &
            cv_nloc, cv_ngi, n, nlx, nly, nlz )
-
 
       deallocate( quad_l1 )
       deallocate( quad_l2 )
@@ -2250,8 +2274,7 @@
            unly_dummy, unlz_dummy
       real, dimension( : ), allocatable :: cvweigh_dummy
 
-
-      Conditional_Dimensionality: if( d3 ) then ! Assume a triangle
+      Conditional_Dimensionality: if( .not. d3 ) then ! Assume a triangle
 
          Conditional_NLOC: Select Case( nloc )
          case( 6, 7 )
@@ -2334,14 +2357,21 @@
                  n, nlx, nly, nlz, &
                  un_dummy, unlx_dummy, unly_dummy, unlz_dummy )
             !call quad_nd_shape( ndim, cv_ele_type_dummy, cv_ngi, cv_nloc, u_nloc_dummy, cvn_dummy, cvweigh_dummy, &
-!                 n, nlx, nly, nlz, &
-!                 un_dummy, unlx_dummy, unly_dummy, unlz_dummy )
+            !                 n, nlx, nly, nlz, &
+            !                 un_dummy, unlx_dummy, unly_dummy, unlz_dummy )
             if( nloc == 11 ) then ! Bubble function
                n( 11, : ) = l1 * l2 * l3 * l4
                nlx( 11, : ) = l2 * l3 * ( -l2 - l3 + 1. ) - 2. * l1 * l2 * l3
                nly( 11, : ) = l1 * l3 * ( -l1 - l3 + 1. ) - 2. * l1 * l2 * l3
                nlz( 11, : ) = l1 * l2 * ( -l1 - l2 + 1. ) - 2. * l1 * l2 * l3
             end if
+
+            deallocate( cvn_dummy )
+            deallocate( un_dummy )
+            deallocate( unlx_dummy )
+            deallocate( unly_dummy )
+            deallocate( unlz_dummy )
+            deallocate( cvweigh_dummy )
 
          case( 4, 5 )
             do gi = 1, ngi
@@ -2389,12 +2419,6 @@
 
       end if Conditional_Dimensionality
 
-      deallocate( cvn_dummy )
-      deallocate( un_dummy )
-      deallocate( unlx_dummy )
-      deallocate( unly_dummy )
-      deallocate( unlz_dummy )
-      deallocate( cvweigh_dummy )
       return
     end subroutine shatri
 
@@ -2408,7 +2432,8 @@
       integer, dimension( x_nonods ), intent( in ) :: fem_nod
       real, dimension( cv_nloc, cv_ngi ), intent( inout ) :: cvn
       ! Local variables
-      integer :: ele, nod, quad_cv_iloc, xnod, quad_cv_gi, cv_gi
+      integer :: ele, nod, quad_cv_iloc, xnod, quad_cv_gi, cv_gi, &
+         quad_cv_ngi
 
       cvn = 0.
       Loop_Elements: do ele = 1, totele
@@ -2420,8 +2445,9 @@
 
          if( nod == 0 ) FLExit(" Problem with CVN calculation " )
 
-         do quad_cv_gi = 1, cv_ngi
-            cv_gi = ( ele - 1 ) * cv_ngi + quad_cv_gi
+         quad_cv_ngi = cv_ngi / totele
+         do quad_cv_gi = 1, quad_cv_ngi
+            cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
             cvn( nod, cv_gi ) = 1.
          end do
 

@@ -1721,18 +1721,17 @@
       end if Conditional_OverlappingMethod1
       ewrite(3,*) 'out of shape_cv_n - CVWEIGHT', CVWEIGHT
 
-
-      ! SCVFEN(CV_NLOC,SCVNGI)         - the shape function evaluated 
-      !                                  for each node at each surface gauss point
-      ! SCVFENSLX[X/Y](CV_NLOC,SCVNGI) - the surface derivatives of the shape 
-      !                                  function for each node at those same points, and
-      ! SCVFENLX[X/Y](CV_NLOC,SCVNGI)  - the derivatives of the shape 
-      !                                  function for each node at those same points, and
-      ! SCVFEWEIGH(SCVNGI)             - the Gauss weights to use when integrating around 
-      !                                  the control volume surface
-      ! CV_NEILOC(CV_NLOC,SCVNGI)      - neighbour node for a given node/gauss-point pair 
       !
-      ! This also include quadature points around the element. 
+      !(a) scvfen( cv_nloc, scvngi ): the shape function evaluated for each node 
+      !          at each surface gauss point
+      !(b) scvfenslx[y/z]( cv_nloc, scvngi ): the surface derivatives of the shape 
+      !          function for each node at those same points, and the derivatives 
+      !          of the shape
+      !(c) scvfeweigh( scvngi ): the Gauss weights to use when integrating around 
+      !          the control volume surface
+      !(d) cv_neiloc( cv_nloc, scvngi ): neighbour node for a given node/gauss-point
+      !          pair. This also include quadature points around the element. 
+      !
 
       Conditional_OverlappingMethod2: if( is_overlapping ) then
          u_ele_type2 = 1
@@ -1746,6 +1745,7 @@
          allocate( sufenlz2( u_nloc2, scvngi ) )
          ewrite(3,*)'u_on_face: ', u_on_face
          ewrite(3,*)'u_on_face2, after allocated: ', u_on_face2
+         ewrite(3,*)'cv_nloc, cv_ngi, scvngi:', cv_nloc, cv_ngi, scvngi
 
          call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
@@ -1757,6 +1757,7 @@
          call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
               cv_neiloc,   &
               u_on_face )
+
          do ilev = 1, u_nloc
             ewrite(3,*)'**u_on_face**:', ( u_on_face( ilev, gi ), gi = 1, scvngi )
          end do
@@ -1904,8 +1905,8 @@
          deallocate( u_sloclist2 )
       end if
 
-      RETURN
-    END SUBROUTINE CV_FEM_SHAPE_FUNS
+      return
+    end subroutine cv_fem_shape_funs
 
 
 
@@ -2176,7 +2177,7 @@
          ndim )  
       implicit none
       !-     
-      !- this subroutine generates the FE basis functions, weights and the
+      !- This subroutine generates the FE basis functions, weights and the
       !- derivatives of the shape functions for a variety of elements on the 
       !- control volume boundaries.  
       !- The routine also generates the shape functions and derivatives 
@@ -2206,7 +2207,7 @@
       allocate( cvn_dummy( cv_nloc, scvngi ) )
       allocate( cvweigh_dummy( scvngi ) )
 
-      Cond_ShapeType: Select Case( CV_ELE_TYPE )
+      Cond_ShapeType: Select Case( cv_ele_type )
       case( 1, 2 ) ! 1D
          call fv_1d_quad( scvngi, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz ) ! For scalar fields
@@ -2220,9 +2221,18 @@
          call fvtri( scvngi, u_nloc, scvngi, &
               mu, sufen, sufenslx, & 
               scvfeweigh )
+         ewrite(3,*)'pqp3,ndim, scvngi, cv_nloc, u_nloc: ', ndim, scvngi, cv_nloc, u_nloc
+         ewrite(3,*)'m:', m( 1 : cv_nloc, 1: scvngi )
+         ewrite(3,*)'mu:', mu( 1 : cv_nloc, 1: scvngi )
+         ewrite(3,*)'scvfen:', scvfen( 1 : cv_nloc, 1: scvngi )
+         ewrite(3,*)'sufen:', sufen( 1 : u_nloc, 1: scvngi )
+         ewrite(3,*)'scvfenslx:', scvfenslx( 1 : cv_nloc, 1: scvngi )
+         ewrite(3,*)'sufenslx:', sufenslx( 1 : u_nloc, 1: scvngi )
+         ewrite(3,*)'scvfeweigh:', scvfeweigh( 1: scvngi )
          call vol_cv_tri_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, cvn_dummy, cvweigh_dummy, &
               scvfen, scvfenlx, scvfenly, scvfenlz, &
               sufen, sufenlx, sufenly, sufenlz )
+         ewrite(3,*)'pqp4' 
 
       case( 4 ) ! Quadratic Triangle 
          call fvqtri( scvngi, cv_nloc, scvngi, &
@@ -2329,7 +2339,7 @@
       end if
 
       do iloc = 1, cv_nloc
-        ewrite(3,*)'iloc, cv_on_face:', iloc, ( cv_on_face( iloc, gi ), gi = 1, scvngi )
+         ewrite(3,*)'iloc, cv_on_face:', iloc, ( cv_on_face( iloc, gi ), gi = 1, scvngi )
       end do
 
       deallocate( m )
@@ -2337,10 +2347,8 @@
       deallocate( cvn_dummy )
       deallocate( cvweigh_dummy )
 
-      RETURN
-    END SUBROUTINE SHAPESV_FEM_PLUS
-
-
+      return
+    end subroutine shapesv_fem_plus
 
 
     SUBROUTINE FV_1D_QUAD( SCVNGI, CV_NLOC, SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
@@ -2890,12 +2898,12 @@
                   do JLOC = 1, FNLOC! Was loop 
                      !     
                      POS(ICOORD) = POS(ICOORD)&
-                          &                    + CORN(IFACE,ICOORD,JLOC)&
-                          &                    *0.5*(1.+XI(JLOC)*XIGP(GJ))
+                          + CORN(IFACE,ICOORD,JLOC)&
+                          *0.5*(1.+XI(JLOC)*XIGP(GJ))
                      !     
                      DPDXI(ICOORD) = DPDXI(ICOORD)&
-                          &                    + CORN(IFACE,ICOORD,JLOC)&
-                          &                    *0.5*XI(JLOC)
+                          + CORN(IFACE,ICOORD,JLOC)&
+                          *0.5*XI(JLOC)
                      !     
                   END DO
                   !     
@@ -7759,7 +7767,7 @@
 
          END DO Loop_GI14
       ENDIF Conditional_D3
-      
+
       RETURN
     END SUBROUTINE DETNLXR_PLUS_U
 
