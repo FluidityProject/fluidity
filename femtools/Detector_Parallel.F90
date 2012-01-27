@@ -40,7 +40,7 @@ module detector_parallel
   use mpi_interfaces
   use pickers
   use Profiler
-  use diagnostic_variables, only: initialise_constant_diagnostics, field_tag
+  use diagnostic_tools
   use ieee_arithmetic, only: cget_nan
 
   implicit none
