@@ -312,7 +312,7 @@ module mp_prototype
 
       mx_ncoldgm_pha = mxnele * ( u_nloc * ndim )**2 * nphase + totele * ( u_nloc * ndim * nphase )**2
       mx_ncolmcy = mx_ncoldgm_pha + mx_nct + mx_nc + mx_ncolcmc
-      mx_ncolacv = ( 2 * ndim + 1 ) * cv_nonods * nphase + cv_nonods * ( nphase - 1 ) * nphase
+      mx_ncolacv = ( 2 * ndim + 1 ) * cv_nonods * cv_nonods * nphase + cv_nonods * ( nphase - 1 ) * nphase
       mx_ncolm = mxnele * cv_nloc * cv_nloc
 
       allocate( colmcy( mx_ncolmcy ))
@@ -329,9 +329,9 @@ module mp_prototype
          ndim, nphase, totele, u_nonods * nphase, cv_nonods * nphase, &
          u_nonods, cv_nonods, x_nonods, &
          cv_ele_type, u_ele_type, &
-         u_nloc, cv_nloc, x_nloc, &
+         u_nloc, cv_nloc, x_nloc, xu_nloc, mat_nloc, &
          u_snloc, cv_snloc, x_snloc, &
-         u_ndgln, cv_ndgln, x_ndgln, &
+         u_ndgln, cv_ndgln, x_ndgln, xu_ndgln, &
                                 ! CV multi-phase eqns (e.g. vol frac, temp)
          mx_ncolacv, ncolacv, finacv, colacv, midacv, &
                                 ! Force balance plus cty multi-phase eqns
