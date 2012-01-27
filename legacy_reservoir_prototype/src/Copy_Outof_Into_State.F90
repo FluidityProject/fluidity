@@ -1193,7 +1193,7 @@ module copy_outof_into_state
           
               do k = 1, p_snloc
                 if(size(pressure_bc%val) .eq. 1) then
-                   suf_p_bc( ( i - 1 ) * stotel + (j-1)*p_snloc + k ) = pressure_bc%val( 1 )
+                   suf_p_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + k ) = pressure_bc%val( 1 )
                 else
                   FLExit("Pressure BC only implemented for a constant BC for each region ID")
                  end if  
@@ -1209,7 +1209,7 @@ module copy_outof_into_state
         ! Copy this to the other phases.
         if(nphases > 1) then
          do i = 2, nphases
-          wic_p_bc( pressure_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = wic_p_bc( pressure_sufid_bc( 1 ) + ( 1 - 1 ) * nphases )
+          wic_p_bc( pressure_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = wic_p_bc( pressure_sufid_bc( 1 ) + (  - 1 ) * nphases )
           do j = 1, stotel
            do k = 1, p_snloc
              suf_p_bc( ( i - 1 ) * stotel + (j-1)*p_snloc + k ) =  suf_p_bc( ( 1 - 1 ) * stotel + (j-1)*p_snloc + k )
@@ -1673,7 +1673,7 @@ module copy_outof_into_state
          proto_pressure, &
          proto_velocity_u, &
          proto_velocity_v, &
-         proto_velocity_w, velocity_dg, &                               
+         proto_velocity_w, &                               
          proto_densities, &
          proto_components, &
          ncomp, &
