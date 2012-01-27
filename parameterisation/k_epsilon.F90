@@ -99,14 +99,13 @@ subroutine keps_init(state)
     ! Get the 5 model constants
     call get_option(trim(keps_path)//'/C_mu', C_mu, default = 0.09)
     call get_option(trim(keps_path)//'/C_eps_1', c_eps_1, default = 1.44)
-    call get_option(trim(keps_path)//'C_eps_2', c_eps_2, default = 1.92)
+    call get_option(trim(keps_path)//'/C_eps_2', c_eps_2, default = 1.92)
     call get_option(trim(keps_path)//'/sigma_k', sigma_k, default = 1.0)
-    call get_option(trim(keps_path)//'sigma_eps', sigma_eps, default = 1.3)
+    call get_option(trim(keps_path)//'/sigma_eps', sigma_eps, default = 1.3)
 
     ! Get dump period for debugging if enabled
-    call get_option(trim(state%option_path)//&
-        &"/subgridscale_parameterisations/k-epsilon/debugging_mode/period", &
-        & dump_period, default = 0.0)	
+    call get_option(trim(keps_path)//'/debugging_mode/period', dump_period, &
+         & default = 0.0)
 
     ! initialise lengthscale
     field => extract_scalar_field(state, "LengthScale")
@@ -471,13 +470,6 @@ subroutine keps_eps(state)
        call vtk_write_fields("EPS_src_abs_terms", timestep, positions, eps%mesh,&
             & src_abs_terms)
        last_dump_time_eps = current_time
-    end if
-
-    ! produce debugging vtu's if required
-    if (have_option(trim(state%option_path)//&
-         &"/subgridscale_parameterisations/k-epsilon/debugging_mode")) then
-       call vtk_write_fields("EPS_src_abs_terms", timestep, positions, eps%mesh,&
-            & src_abs_terms)
     end if
 
     ! This allows user-specified source and absorption terms, so that an MMS test can be set up.
