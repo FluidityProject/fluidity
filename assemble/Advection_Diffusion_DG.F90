@@ -2562,13 +2562,13 @@ contains
           end if
 
        end if
-     
-       ! Add non-zero contributions from Neumann boundary conditions (if present)
-       if (neumann) then
-          call addto(RHS, T_face, shape_rhs(T_shape, detwei * ele_val_at_quad(bc_value, face)))
-       end if
-       
+      
     end if
+
+   ! Add non-zero contributions from Neumann boundary conditions (if present)
+   if (neumann) then
+      call addto(RHS, T_face, shape_rhs(T_shape, detwei * ele_val_at_quad(bc_value, face)))
+   end if
 
   contains
 
