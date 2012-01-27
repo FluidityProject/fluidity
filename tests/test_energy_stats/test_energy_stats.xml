@@ -2,7 +2,7 @@
 <testproblem>
   <name>test energy stats and compare parallel and serial</name>
   <owner userid="hhiester"/>
-  <tags> parallel </tags>
+  <tags> parallel 2dadapt </tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>
     mpiexec  -np 1 ../../bin/fluidity -v3 -l lock_exchange_2d.flml &amp;&amp;

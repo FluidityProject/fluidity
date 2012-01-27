@@ -30,7 +30,7 @@ class MixedTree:
 
     self.name = parent.name
     self.schemaname = parent.schemaname
-    self.attrs = self.parent.attrs
+    self.attrs = dict(self.parent.attrs.items() + self.child.attrs.items())
     self.children = parent.children
     self.datatype = child.datatype
     self.data = child.data
@@ -40,12 +40,22 @@ class MixedTree:
     return
 
   def set_attr(self, attr, val):
-    self.parent.set_attr(attr, val)
+    if attr in self.parent.attrs:
+      self.parent.set_attr(attr, val)
+    elif attr in self.child.attrs:
+      self.child.set_attr(attr, val)
+    else:
+      raise Exception, "Attribute not present in either parent or child!"
 
     return
 
   def get_attr(self, attr):
-    return self.parent.get_attr(attr)
+    if attr in self.parent.attrs:
+      self.parent.get_attr(attr)
+    elif attr in self.child.attrs:
+      self.child.get_attr(attr)
+    else:
+      raise Exception, "Attribute not present in either parent or child!"
 
   def set_data(self, data):
     self.child.set_data(data)
@@ -196,4 +206,11 @@ class MixedTree:
     return self.parent.get_name_path(leaf)
 
   def is_sliceable(self):
+    return True
+
+  def all_attrs_fixed(self):
+    for attr in self.attrs:
+      if self.attrs[attr][0] != "fixed":
+        return False
+
     return True

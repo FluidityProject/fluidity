@@ -2,7 +2,7 @@
 <fluidity_options>
   <comment>temp and sal: spatial disc: continuous galerkin test</comment>
   <simulation_name>
-    <string_value lines="1">saltfinger2d_quad</string_value>
+    <string_value lines="1">saltfinger2d_tri</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>

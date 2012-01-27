@@ -22,7 +22,7 @@ conservation2=s["Water"]["Tracer"]["integral"][1]
     </variables>
     <pass_tests>
     <test name="Tracer is conserved." language="python">
-assert abs(conservation1-conservation2) &lt; 1e-6
+assert abs(conservation1-conservation2) &lt; 5e-6
     </test>
   </pass_tests>
   <warn_tests>
