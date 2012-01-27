@@ -231,7 +231,7 @@ module copy_outof_into_state
       real :: gravity_magnitude, delta_den, grm
       type(vector_field) :: gravity_direction
 
-      integer :: nobcs    
+      integer :: nobcs, nodi
 
       character(len=option_path_len) :: vel_element_type
       integer, dimension( : ), allocatable :: index
@@ -1058,50 +1058,68 @@ module copy_outof_into_state
       allocate( cv_p( node_count( pressure )))
       cv_p = p
 
-      Loop_Pressure: do i = 1, nphases
+      
 
-         if( .not. ( allocated( wic_p_bc ) .and. allocated( suf_p_bc ))) then
-            allocate( wic_p_bc( stotel * nphases ))
-            allocate( suf_p_bc( stotel * 1 * nphases ))
-            wic_p_bc = 0
-            suf_p_bc = 0.
-         end if
+      if( .not. ( allocated( wic_p_bc ) .and. allocated( suf_p_bc ))) then
+          allocate( wic_p_bc( stotel * nphases ))
+          allocate( suf_p_bc( stotel * p_snloc * nphases ))
+          wic_p_bc = 0
+          suf_p_bc = 0.
+      end if
 
-         Conditional_Pressure_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
-              ']/scalar_field::Pressure/prognostic/' // &
-              'boundary_conditions[0]/type::dirichlet' )) then
+      i = 1 ! The first phase is set, and the others alias to this phase for pressure.   
+      
+           
 
-            shape_option=option_shape('/material_phase[' // int2str(i-1) // &
-                 ']/scalar_field::Pressure/' // &
-                 'prognostic/boundary_conditions[0]/surface_ids')
+      Conditional_Pressure_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
+            ']/scalar_field::Pressure/prognostic/' // &
+            'boundary_conditions[0]/type::dirichlet' )) then
 
-            allocate( pressure_sufid_bc( 1 : shape_option( 1 )))
+           shape_option=option_shape('/material_phase[' // int2str(i-1) // &
+               ']/scalar_field::Pressure/' // &
+               'prognostic/boundary_conditions[0]/surface_ids')
 
-            Pressure_BC_Type = 1
-            call get_option( '/material_phase[' // int2str(i-1) // &
-                 ']/scalar_field::Pressure/prognostic/' // &
-                 'boundary_conditions[0]/surface_ids', Pressure_SufID_BC )
+           allocate( pressure_sufid_bc( 1 : shape_option( 1 )))
 
-            do j = 1, shape_option( 1 )
+           do j = 1, stotel
+            
+             Pressure_BC_Type = 1
+             call get_option( '/material_phase[' // int2str(i-1) // &
+               ']/scalar_field::Pressure/prognostic/' // &
+               'boundary_conditions[0]/surface_ids', Pressure_SufID_BC )
+
+             ! Specify the boundary condition type.
+             do k = 1, shape_option( 1 )
                wic_p_bc( pressure_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = pressure_bc_type
-               ! The bellow is done as pressure for phase 2 is aliased therefore the same info for nodes
-               ! for the phase 1 should be copied for phase 2. This need to be changed later.
-               if( nphases > 1 ) &
-                    wic_p_bc( pressure_sufid_bc( 1 ) + i * nphases ) = pressure_bc_type
-            enddo
-
-            nobcs = get_boundary_condition_count( pressure )
-            do j = 1, nobcs
-               pressure_bc => extract_surface_field( pressure, j, "value" )
-            end do
-            do j = 1, node_count( pressure_bc )
-               suf_p_bc( ( i - 1 ) * stotel + j ) = pressure_bc%val( j )
-            end do
-
+             enddo
+             
+             if(pmesh%faces%boundary_ids(j) .eq. pressure_sufid_bc(1)) then
+              
+              nobcs = get_boundary_condition_count( pressure )
+              do k = 1, nobcs
+                 pressure_bc => extract_surface_field( pressure, k, "value" )
+              end do
+          
+          
+              do k = 1, p_snloc
+                if(size(pressure_bc%val) .eq. 1) then
+                   suf_p_bc( ( i - 1 ) * stotel + (j-1)*p_snloc + k ) = pressure_bc%val( 1 )
+                else
+                  FLExit("Pressure BC only implemented for a constant BC for each region ID")
+                 end if  
+              end do
+              
+             end if 
+          
+           end do
+             
          end if Conditional_Pressure_BC
 
-      end do Loop_Pressure
 
+      Loop_Pressure: do i = 1, nphases
+
+      end do Loop_Pressure
+      
 !!!
 !!! Volume Fraction (or Saturation) and associated boundary conditions:
 !!!
