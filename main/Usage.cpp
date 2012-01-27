@@ -273,13 +273,13 @@ void ParseArguments(int argc, char** argv){
   // Help?
   if(fl_command_line_options.count("help")){
     usage(argv[0]);
-    exit(-1);
+    exit(0);
   }
   
   // Version?
   if(fl_command_line_options.count("version")){
     print_version();
-    exit(-1);
+    exit(0);
   }
   
   // Verbose?
