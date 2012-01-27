@@ -35,6 +35,7 @@ module copy_outof_into_state
   use fldebug
   use state_module
   use fields
+  use fields_base
   use field_options
   use spud
   use populate_state_module
@@ -254,11 +255,9 @@ module copy_outof_into_state
          end if
       end do
 
-      nphases=nstates-ncomps
-
+      nphases = nstates - ncomps
       assert(nphases > 0)
-
-      ewrite(3,*) 'nphases, ncomps:',nphases, ncomps
+      ewrite(3,*)'nstates, ncomps, nphases:', nstates, ncomps, nphases
 
       ! Get the coordinate, velocity and pressure mesh (which must exist)
       cmesh => extract_mesh(state, "CoordinateMesh", stat=stat)
@@ -279,28 +278,30 @@ module copy_outof_into_state
          FLExit('Require mesh with name PressureMesh')
       end if
 
-      positions => extract_vector_field(state, "Coordinate")
+      positions => extract_vector_field( state, "Coordinate" )
+      cv_positions = get_coordinate_field( state(1), pmesh )
+      totele = ele_count( cmesh )
+      stotel = surface_element_count( cmesh )
 
-      cv_positions = get_coordinate_field(state(1), pmesh)
-
-      ! This is a strictly 1d property, so will have a suitably 1d method for finding it in state!
-      coord_min=1.0e9
-      coord_max=-1.0e-9
-      do i=1,node_count(positions)
-         coord_min=min(coord_min,positions%val(X_,i))
-         coord_max=max(coord_max,positions%val(X_,i))
-      end do
-
-      domain_length = coord_max - coord_min
-      totele = ele_count(cmesh)
-
-      ! Still need dx for the old way of setting up x (and y, z)
-      dx = domain_length/real(totele)
 
       call get_option("/geometry/dimension",ndim)
 
+      if( ndim == 1 ) then
+         ! This is a strictly 1d property, so will have a suitably 1d method for finding it in state!
+         coord_min=1.0e9
+         coord_max=-1.0e-9
+         do i=1,node_count(positions)
+            coord_min=min(coord_min,positions%val(X_,i))
+            coord_max=max(coord_max,positions%val(X_,i))
+         end do
+         domain_length = coord_max - coord_min
+         ! Still need dx for the old way of setting up x (and y, z)
+         dx = domain_length/real(totele)
+      end if
+
       ! get the vel element type.
-      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type',vel_element_type)
+      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           vel_element_type)
 
       select case(ndim)
       case(1)
@@ -329,12 +330,13 @@ module copy_outof_into_state
       x_nloc = cv_nloc
       p_nloc = cv_nloc
       mat_nloc = cv_nloc
-      u_nloc = xu_nloc      
+      u_nloc = xu_nloc    
 
       is_overlapping = .false.
       if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true. 
 
       if( is_overlapping ) u_nloc = cv_nloc * xu_nloc
+      ewrite(3,*)'ndim, cv_nloc, x_nloc, xu_nloc, u_nloc:', ndim, cv_nloc, x_nloc, xu_nloc, u_nloc 
 
       if (pmesh%continuity>=0) then
          ! Continuous pressure mesh
@@ -344,7 +346,6 @@ module copy_outof_into_state
          cv_nonods = cv_nloc * totele
       endif
 
-      cv_snloc = 1
       ! u_snloc is 1 for the single phase advection case:
       if (nstates==1) then
          u_snloc = 1
@@ -354,18 +355,20 @@ module copy_outof_into_state
          u_snloc = 3
          p_nonods = cv_nonods
       endif
+
+      Select Case( ndim )
+      case( 1 )
+         cv_snloc = 1
+      case( 2 )
+         u_snloc = face_loc( vmesh, 1 )
+         cv_snloc = face_loc( pmesh, 1 )
+         ! cv_snloc = 3 ! quadratic triangle
+      case default; FLAbort("Incorrect number of dimension - ndim")
+      end Select
       p_snloc = 1
       ! x_snloc = 1
-      stotel = surface_element_count(cmesh)
-
-      mat_nonods = mat_nloc*totele
-
-      x_nonods = max(( x_nloc - 1 ) * totele + 1, totele )
-      allocate(x(x_nonods))
-      allocate(y(x_nonods))
-      allocate(z(x_nonods))
-      y=0.
-      z=0.
+      mat_nonods = mat_nloc * totele
+      ewrite(3,*)'cv_nonods, u_snloc, cv_snloc:', cv_nonods, u_snloc, cv_snloc
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!
@@ -381,24 +384,24 @@ module copy_outof_into_state
       !!  This seems to be consistent with other places in the code (cv-adv-dif, etc)
 !!!!!!
       !! Switch on (true) or off (false) using Fluidity node numbering
-      ndgln_switch = .false.
-      ! ndgln_switch = .true.
+      ndgln_switch = .true.
+      if( ndim == 1 ) ndgln_switch = .false.
 
-      xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
+      xu_nonods = max( ( xu_nloc - 1 ) * totele + 1, totele )
 
-      allocate(cv_ndgln(totele*cv_nloc))
-      allocate(p_ndgln(totele*p_nloc))
-      allocate(u_ndgln(totele*u_nloc))
-      allocate(xu_ndgln(totele*xu_nloc))
-      allocate(x_ndgln(totele*cv_nloc))
-      allocate(mat_ndgln(totele*mat_nloc))
+      allocate( cv_ndgln( totele * cv_nloc ) )
+      allocate( p_ndgln( totele * p_nloc ) )
+      allocate( u_ndgln( totele * u_nloc ) )
+      allocate( xu_ndgln( totele * xu_nloc ) )
+      allocate( x_ndgln( totele * cv_nloc ) )
+      allocate( mat_ndgln( totele * mat_nloc ) )
 
-      allocate(xu(xu_nonods))
-      allocate(yu(xu_nonods))
-      allocate(zu(xu_nonods))
-      xu=0.
-      yu=0.
-      zu=0.
+      allocate( xu( xu_nonods ) )
+      allocate( yu( xu_nonods ) )
+      allocate( zu( xu_nonods ) )
+      xu = 0.
+      yu = 0.
+      zu = 0.
 
       u_nonods = u_nloc * totele
 
@@ -408,14 +411,14 @@ module copy_outof_into_state
       allocate( ug( u_nonods * nphases ))
       allocate( vg( u_nonods * nphases ))
       allocate( wg( u_nonods * nphases ))
-      nu=1.
-      nv=0.
-      nw=0.
-      if (ndim>1) nv=1.
-      if (ndim>2) nw=1.
-      ug=0.
-      vg=0.
-      wg=0.
+      nu = 1.
+      nv = 0.
+      nw = 0.
+      if ( ndim > 1 ) nv = 1.
+      if ( ndim > 2 ) nw = 1.
+      ug = 0.
+      vg = 0.
+      wg = 0.
 
 
       !! global numbering to allow proper copying of fields
@@ -424,14 +427,15 @@ module copy_outof_into_state
       xu_nod = 0
       x_nod = 0
       mat_nod = 0
-      pressure => extract_scalar_field(state(1), "Pressure")
-      velocity => extract_vector_field(state(1), "Velocity")
-      do k = 1,totele
+      pressure => extract_scalar_field( state(1), "Pressure")
+      velocity => extract_vector_field( state(1), "Velocity")
+      Loop_OverElements1: do k = 1,totele
          if ( ndgln_switch ) then
-            element_nodes => ele_nodes(pressure,k)
-            do j = 1,size(element_nodes)
-               cv_ndgln((k-1)*size(element_nodes)+j) = element_nodes(j)  
-               ewrite(3,*)'ele, nod, cv_ndglno:', k, j, cv_ndgln((k-1)*size(element_nodes)+j)          
+            element_nodes => ele_nodes( pressure, k )
+            do j = 1, size( element_nodes )
+               cv_ndgln( ( k - 1 ) * size( element_nodes ) + j ) = element_nodes( j )  
+               !ewrite(3,*)'ele, nod, cv_ndgln:', &
+               !     k, j, cv_ndgln( ( k - 1 ) * size( element_nodes ) + j )          
             end do
          else
             do j = 1, cv_nloc
@@ -440,16 +444,35 @@ module copy_outof_into_state
             end do
             if( cv_nonods /= totele * cv_nloc ) cv_nod = cv_nod - 1
          end if
+
          !! mat_ndgln on the cv mesh but always discontinuous
-         do j = 1, mat_nloc
-            mat_nod = mat_nod + 1
-            mat_ndgln( ( k - 1 ) * mat_nloc + j ) = mat_nod
-         end do
+         if ( ndgln_switch ) then
+            element_nodes => ele_nodes( pressure, k )
+            do j = 1, size( element_nodes )
+               mat_ndgln( ( k - 1 ) * size( element_nodes ) + j ) = element_nodes( j )  
+            end do
+         else
+            do j = 1, mat_nloc
+               mat_nod = mat_nod + 1
+               mat_ndgln( ( k - 1 ) * mat_nloc + j ) = mat_nod
+               !ewrite(3,*)'ele, nod, mat_ndgln:', k, j, mat_nod
+            end do
+         end if
+
+         !! This need to be improved ... stil not right
+         !if( ndgln_switch ) then
+         !   element_nodes => ele_nodes( velocity, k )
+         !   do j = 1, size( element_nodes )
+         !      u_ndgln( ( k - 1 ) * size( element_nodes ) + j ) = element_nodes( j )  
+         !      ewrite(3,*)'ele, nod, u_ndgln:', k, j, u_ndgln( ( k - 1 ) * size( element_nodes ) + j )
+         !   end do
+         !else
          do j = 1, u_nloc
             u_nod = u_nod + 1
             u_ndgln(( k - 1 ) * u_nloc + j ) = u_nod
+            ewrite(3,*)'ele, nod, u_ndgln:', k, j, u_nod
          end do
-
+         !end if
          if( ndgln_switch )then
             element_nodes => ele_nodes( positions, k )
             !    do j = 1, size( element_nodes )
@@ -457,13 +480,21 @@ module copy_outof_into_state
                xu_nod = xu_nod + 1
                xu_ndgln( ( k - 1 ) * xu_nloc + j ) = element_nodes( j )
                !       xu( xu_nod ) = positions % val( 1, xu_nod )
-               xu( xu_nod ) = positions % val( 1, element_nodes( j ) )
-               if ( ndim > 1 ) yu( xu_nod ) = positions %val( 2, element_nodes( j ) )
-               if ( ndim > 2 ) zu( xu_nod ) = positions %val( 3, element_nodes( j ) )
-               !   ewrite(3, *) 'ele, xu_loc, xu_nod, xu_ndgln:', k, j, xu_nod, xu_ndgln( ( k - 1 ) * xu_nloc + j ) 
-               !   ewrite(3,*)xu_nod, xu( xu_nod) ,yu( xu_nod )
+               if( .true. ) then
+                  xu( element_nodes( j ) ) = positions % val( 1, element_nodes( j ) )
+                  if( ndim > 1 ) yu( element_nodes( j ) ) = positions % val( 2, element_nodes( j ) )
+                  if( ndim > 2 ) zu( element_nodes( j ) ) = positions % val( 3, element_nodes( j ) )
+               else
+                  xu( xu_nod ) = positions % val( 1, element_nodes( j ) )
+                  if ( ndim > 1 ) yu( xu_nod ) = positions %val( 2, element_nodes( j ) )
+                  if ( ndim > 2 ) zu( xu_nod ) = positions %val( 3, element_nodes( j ) ) 
+               end if
+               !ewrite(3,*) 'ele, xu_iloc, xu_ndgln :', k, j, xu_ndgln( ( k - 1 ) * xu_nloc + j )
+               !ewrite(3,*) 'xu_nod, xu, yu:', element_nodes( j ), xu( element_nodes( j ) ), yu( element_nodes( j ) )
             end do
-            if( xu_nloc /= 1 ) xu_nod = xu_nod - 1
+            if( .not. .true. )then
+               if( xu_nloc /= 1 ) xu_nod = xu_nod - 1
+            end if
          else
             do j = 1, xu_nloc
                xu_nod = xu_nod + 1
@@ -474,75 +505,118 @@ module copy_outof_into_state
             end do
             if( xu_nloc /= 1 ) xu_nod = xu_nod - 1
          end if
-      end do
-      ewrite(3,*) 'cv_ndgln: ', cv_ndgln
-
-      ewrite(3,*) 'xu_ndgln: ', xu_ndgln
-      ewrite(3,*) 'xu: ', xu
+      end do Loop_OverElements1
 
       p_ndgln = cv_ndgln
-      x_ndgln = cv_ndgln
 
-      allocate( index( 1 : x_nonods ) )
-      allocate( x_temp( 1 : x_nonods ))
       if ( ndgln_switch) then
-         x = cv_positions % val( 1, : )
-         x_temp = x
-         index = 0
-         call qsort( x_temp, index )
-         x_nod = 0
-         do j = 1, x_nonods 
-            x_nod = x_nod + 1
-            x( x_nod ) = x_temp( index( j ))
-         end do
-         if ( ndim > 1 ) then
-            y = cv_positions % val( 2, : )
-            x_temp = y
-            index = 0
-            call qsort( x_temp, index )
-            x_nod = 0
-            do j = 1, x_nonods 
-               x_nod = x_nod + 1
-               y( x_nod ) = x_temp( index( j ))
-            end do
-         endif
-         if ( ndim > 2 ) then
-            z = cv_positions % val( 3, : )
-            x_temp = z
-            index = 0
-            call qsort( x_temp, index )
-            x_nod = 0
-            do j = 1, x_nonods 
-               x_nod = x_nod + 1
-               z( x_nod ) = x_temp( index( j ))
-            end do
-         end if
-         x_nod=0
+         x_ndgln = cv_ndgln
+
+         ewrite(3,*)' '
          do k = 1, totele
             do j = 1, x_nloc
-               x_nod = x_nod + 1
-               x_ndgln( ( k - 1 ) * x_nloc + j ) = x_nod
+               ewrite(3,*)'ele, loc, x_ndgln:', k, j, x_ndgln( ( k - 1 ) * x_nloc + j )
             end do
-            if( x_nloc /= 1 ) x_nod = x_nod - 1
          end do
-      else
-         ! Do it the old way
-         x_nod=0
-         x = 0
-         do i=1,totele
-            do j = 1, x_nloc
-               x_nod = x_nod + 1
-               x_ndgln( ( i - 1 ) * x_nloc + j ) = x_nod
-               if ( x_nloc == 1 ) then
-                  x( x_nod ) = ( real( i - 1 ) + 0.5 ) * dx 
-               else
-                  x( x_nod ) = real( i - 1 ) * dx + real( j - 1 ) * dx / real ( x_nloc - 1 )
-               end if
+      end if
+
+      !x_nonods = max( ( x_nloc - 1 ) * totele + 1, totele )
+      !allocate( x( x_nonods ) )
+      !allocate( y( x_nonods ) )
+      !allocate( z( x_nonods ) )
+      !x = 0.
+      !y = 0.
+      !z = 0.
+
+      if ( ndgln_switch) then
+         x_nonods = size( positions % val( 1, : ) )
+         allocate( x( x_nonods ) )
+         allocate( y( x_nonods ) )
+         allocate( z( x_nonods ) )
+         x = 0.
+         y = 0.
+         z = 0.
+         allocate( index( 1 : x_nonods ) )
+         allocate( x_temp( 1 : x_nonods ))
+
+         x = positions % val( 1, : )
+         if( ndim > 1 ) y = positions % val( 2, : )
+         if( ndim > 2 ) z = positions % val( 3, : )
+         do k = 1, totele
+            element_nodes => ele_nodes( pressure, k )
+            do j = 1, size( element_nodes )
+               x_ndgln( ( k - 1 ) * size( element_nodes ) + j ) = element_nodes( j )
+               ewrite(3,*)'ele, loc, x_ndgln2:', k, j, element_nodes( j )
             end do
-            if( x_nloc /= 1 ) x_nod = x_nod - 1
          end do
-         ewrite(3,*) 'x:', size( x ), x
-         ewrite(3,*) 'x_ndgln2: ', size( x_ndgln ), x_ndgln
+
+         if ( .false. ) then
+            x = cv_positions % val( 1, : )
+            x_temp = x
+            index = 0
+            call qsort( x_temp, index )
+            x_nod = 0
+            do j = 1, x_nonods 
+               x_nod = x_nod + 1
+               x( x_nod ) = x_temp( index( j ))
+            end do
+            if ( ndim > 1 ) then
+               y = cv_positions % val( 2, : )
+               x_temp = y
+               index = 0
+               call qsort( x_temp, index )
+               x_nod = 0
+               do j = 1, x_nonods 
+                  x_nod = x_nod + 1
+                  y( x_nod ) = x_temp( index( j ))
+               end do
+            endif
+            if ( ndim > 2 ) then
+               z = cv_positions % val( 3, : )
+               x_temp = z
+               index = 0
+               call qsort( x_temp, index )
+               x_nod = 0
+               do j = 1, x_nonods 
+                  x_nod = x_nod + 1
+                  z( x_nod ) = x_temp( index( j ))
+               end do
+            end if
+            x_nod=0
+            do k = 1, totele
+               do j = 1, x_nloc
+                  x_nod = x_nod + 1
+                  x_ndgln( ( k - 1 ) * x_nloc + j ) = x_nod
+               end do
+               if( x_nloc /= 1 ) x_nod = x_nod - 1
+            end do
+         end if
+      else ! Do it the old way (just for 1D)
+         x_nonods = max( ( x_nloc - 1 ) * totele + 1, totele )
+         allocate( x( x_nonods ) )
+         allocate( y( x_nonods ) )
+         allocate( z( x_nonods ) )
+         x = 0.
+         y = 0.
+         z = 0.
+         if( ndim == 1 ) then
+            x_nod=0
+            x = 0
+            do i=1,totele
+               do j = 1, x_nloc
+                  x_nod = x_nod + 1
+                  x_ndgln( ( i - 1 ) * x_nloc + j ) = x_nod
+                  if ( x_nloc == 1 ) then
+                     x( x_nod ) = ( real( i - 1 ) + 0.5 ) * dx 
+                  else
+                     x( x_nod ) = real( i - 1 ) * dx + real( j - 1 ) * dx / real ( x_nloc - 1 )
+                  end if
+               end do
+               if( x_nloc /= 1 ) x_nod = x_nod - 1
+            end do
+            ewrite(3,*) 'x:', size( x ), x
+            ewrite(3,*) 'x_ndgln2: ', size( x_ndgln ), x_ndgln
+         end if
       end if
 
       !-
@@ -562,35 +636,43 @@ module copy_outof_into_state
       !- We need a mechanism to flag this throughout the code, for testing
       !- the current 1D cases. For now:
       !-
-      if( .true. ) then
+      Select Case( ndim )
+      case( 1 )
          p_ele_type = 2
          cv_ele_type = 2
          u_ele_type = 2
-      else
-         p_ele_type = 1
-         cv_ele_type = 1
-         u_ele_type = 1
-      end if
-    
+      case( 2 ) ! Hack ... just linear triangle
+         p_ele_type = 3
+         cv_ele_type = 3
+         u_ele_type = 3
+      case default; FLAbort("Incorrect number of dimension - ndim")
+      end Select
+      !   if( .true. ) then
+      !      p_ele_type = 2
+      !      cv_ele_type = 2
+      !      u_ele_type = 2
+      !   else
+      !      p_ele_type = 1
+      !      cv_ele_type = 1
+      !      u_ele_type = 1
+      !   end if
+
       !- 
       !- The follow will disapear soon as they are never used:
       !- mat_ele_type, u_sele_type, cv_sele_type
-         mat_ele_type = 1 ; u_sele_type = 1 ; cv_sele_type = 1
+      mat_ele_type = 1 ; u_sele_type = 1 ; cv_sele_type = 1
 
+      allocate( cv_sndgln( stotel * cv_snloc ) )
+      allocate( p_sndgln( stotel * p_snloc ) )
+      allocate( u_sndgln( stotel * u_snloc ) )
 
-      allocate(cv_sndgln(stotel*cv_snloc))
-      allocate(p_sndgln(stotel*p_snloc))
-      allocate(u_sndgln(stotel*u_snloc))
-
-      ewrite(3,*) 'u_ele_type, cv_nloc: ', u_ele_type, cv_nloc
-
-      select case(ndim)
-      case(1)
+      Mapping_Surfaces: Select Case( ndim ) ! THIS NEED TO BE CHANGED
+      case( 1 )
          cv_sndgln( 1 ) = 1
-         cv_sndgln( 2 ) = cv_ndgln(size(cv_ndgln))
+         cv_sndgln( 2 ) = cv_ndgln( size( cv_ndgln ) )
          p_sndgln( 1 ) = 1
-         p_sndgln( 2 ) = p_ndgln(size(p_ndgln))
-        ! if( u_ele_type == 2 ) then
+         p_sndgln( 2 ) = p_ndgln( size( p_ndgln ) )
+         ! if( u_ele_type == 2 ) then
          if( is_overlapping ) then
             u_nloc2 = u_nloc / cv_nloc
             do j = 1, cv_nloc
@@ -601,11 +683,21 @@ module copy_outof_into_state
             u_sndgln( 1 ) = 1
             u_sndgln( 2 ) = u_nonods
          end if
-      case default
-         FLAbort("Don't have surface global node numbers for this dimension yet")
-      end select
+      case( 2 : 3 )
+         ewrite(3,*)'stotel, cv_snloc:', stotel, cv_snloc
+         call getsndgln( pmesh, cv_sndgln )
+         do j = 1, stotel
+            ewrite(3,*)'cv_sndgln:', j, ( cv_sndgln( ( j - 1 ) * cv_snloc + k ), k = 1, cv_snloc )
+         end do
 
-      ewrite(3,*) 'u_sndgln: ', u_sndgln
+         ewrite(3,*)'stotel, u_snloc:', stotel, u_snloc
+         call getsndgln( vmesh, u_sndgln )
+         do j = 1, stotel
+            ewrite(3,*)'u_sndgln:', j, ( u_sndgln( ( j - 1 ) * u_snloc + k ), k = 1, u_snloc )
+         end do
+      case default
+         FLAbort("Don't have surface global node numbers for this dimension, i.e., > 3")
+      end select Mapping_Surfaces
 
       !! EoS things are going to be done very differently
       !! Currently the default value of ncoef is 10 so I'm going
@@ -728,12 +820,12 @@ module copy_outof_into_state
       lump_eqns = have_option('/material_phase[0]/scalar_field::PhaseVolumeFraction/prognostic/' // &
            'spatial_discretisation/continuous_galerkin/mass_terms/lump_mass_matrix')
 
-      volfra_use_theta_flux = .FALSE.
-      volfra_get_theta_flux = .TRUE.
-      comp_use_theta_flux = .FALSE.
-      comp_get_theta_flux = .TRUE.
-      t_use_theta_flux = .FALSE.
-      t_get_theta_flux = .TRUE.
+      volfra_use_theta_flux = .false.
+      volfra_get_theta_flux = .true.
+      comp_use_theta_flux = .false.
+      comp_get_theta_flux = .true.
+      t_use_theta_flux = .false.
+      t_get_theta_flux = .true.
 
       ewrite(3,*) 'Finished stuff from read_scalar'
 
@@ -784,11 +876,11 @@ module copy_outof_into_state
       porosity => extract_scalar_field(state, "Porosity")
 
       allocate(volfra_pore(totele))
-      por_ele_loop: do k = 1,element_count(porosity)
-         element_nodes => ele_nodes(porosity,k)
+      pore_ele_loop: do k = 1,element_count(porosity)
+         element_nodes => ele_nodes( porosity, k )
 
-         volfra_pore(k)=porosity%val(element_nodes(1))
-      end do por_ele_loop
+         volfra_pore(k) = porosity%val( element_nodes( 1 ))
+      end do pore_ele_loop
 
       ! Assuming for now that permeability is constant across an element
       if (have_option("/porous_media/scalar_field::Permeability")) then
@@ -1576,23 +1668,23 @@ module copy_outof_into_state
     end subroutine copy_outof_state
 
     subroutine copy_into_state(state, &
-                               proto_saturations, &
-                               proto_temperatures, &
-                               proto_pressure, &
-                               proto_velocity_u, &
-                               proto_velocity_v, &
-                               proto_velocity_w, &                               
-                               proto_densities, &
-                               proto_components, &
-                               ncomp, &
-                               nphase, &
-                               cv_ndgln, &
-                               p_ndgln, &
-                               u_ndgln, &
-                               ndim)
-      
+         proto_saturations, &
+         proto_temperatures, &
+         proto_pressure, &
+         proto_velocity_u, &
+         proto_velocity_v, &
+         proto_velocity_w, velocity_dg, &                               
+         proto_densities, &
+         proto_components, &
+         ncomp, &
+         nphase, &
+         cv_ndgln, &
+         p_ndgln, &
+         u_ndgln, &
+         ndim)
+
       !!< Copy prototype solution arrays into fluidity state array for output
-      
+
       type(state_type), dimension(:), intent(inout) :: state
       real, dimension(:), intent(in) :: proto_saturations
       real, dimension(:), intent(in) :: proto_temperatures      
@@ -1609,7 +1701,7 @@ module copy_outof_into_state
       integer, dimension(:), intent(in) :: p_ndgln
       integer, dimension(:), intent(in) :: u_ndgln
       integer, intent(in) :: ndim
-      
+
       ! local variables        
       integer :: stat
       integer :: i,j,k,p,ele,jloc
@@ -1626,137 +1718,137 @@ module copy_outof_into_state
       character(len=option_path_len) :: material_phase_name
 
       ewrite(3,*) "In copy_into_state"
-            
+
       assert(size(state) >= nphase)
-      
+
       phase_loop: do p = 1,nphase
-         
+
          phasevolumefraction => extract_scalar_field(state(p), "PhaseVolumeFraction", stat=stat)
-         
+
          if (stat /= 0) then 
-            
+
             ewrite(1,*) 'Issue in prototype interface for phase ',p
-            
+
             FLAbort('Failed to extract phase volume fraction from state in copy_into_state')
-         
+
          end if
-         
+
          number_nodes = node_count(phasevolumefraction)
-         
+
          volf_ele_loop: do i = 1,element_count(phasevolumefraction)
-            
+
             element_nodes => ele_nodes(phasevolumefraction,i)
-            
+
             nloc = size(element_nodes)
-            
+
             volf_node_loop: do j = 1,nloc
-               
+
                call set(phasevolumefraction, &
-                        element_nodes(j), &
-                        proto_saturations((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
-            
+                    element_nodes(j), &
+                    proto_saturations((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+
             end do volf_node_loop
-            
+
          end do volf_ele_loop
 
          phasetemperature => extract_scalar_field(state(p), "Temperature", stat=stat)
-         
+
          found_temp: if (stat == 0) then 
-            
+
             ewrite(1,*) 'In copy in to state and found temperature for phase ',p
-                     
+
             number_nodes = node_count(phasetemperature)
-         
+
             temp_ele_loop: do i = 1,element_count(phasetemperature)
-            
+
                element_nodes => ele_nodes(phasetemperature,i)
-            
+
                nloc = size(element_nodes)
-            
+
                temp_node_loop: do j = 1,nloc
-               
+
                   call set(phasetemperature, &
-                           element_nodes(j), &
-                           proto_temperatures((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
-            
+                       element_nodes(j), &
+                       proto_temperatures((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+
                end do temp_node_loop
-            
+
             end do temp_ele_loop
-         
+
          end if found_temp
-         
+
          density => extract_scalar_field(state(p), "Density", stat=stat)
-         
+
          if (stat /= 0) then 
-            
+
             ewrite(1,*) 'Issue in prototype interface for phase ',p
-            
+
             FLAbort('Failed to extract phase density from state in copy_into_state')
-         
+
          end if
 
          number_nodes = node_count(density)
-         
+
          den_ele_loop: do i = 1,element_count(density)
-            
+
             element_nodes => ele_nodes(density,i)
-            
+
             nloc = size(element_nodes)
-            
+
             den_node_loop: do j = 1,nloc
-               
+
                call set(density, &
-                        element_nodes(j), &
-                        proto_densities((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
-            
+                    element_nodes(j), &
+                    proto_densities((cv_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+
             end do den_node_loop
-            
+
          end do den_ele_loop
-         
+
          velocity => extract_vector_field(state(p), "Velocity", stat=stat)
-         
+
          if (stat /= 0) then 
-            
+
             ewrite(1,*) 'Issue in prototype interface for phase ',p
-            
+
             FLAbort('Failed to extract phase velocity from state in copy_into_state')
-         
+
          end if
 
          number_nodes = node_count(velocity)
-         
+
          vel_ele_loop: do i = 1,element_count(velocity)
-            
+
             element_nodes => ele_nodes(velocity,i)
-            
+
             nloc = size(element_nodes)
-            
+
             vel_node_loop: do j = 1,nloc
-               
+
                ! set u
                call set(velocity, &
-                        1, &
-                        element_nodes(j), &
-                        proto_velocity_u((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
-               
+                    1, &
+                    element_nodes(j), &
+                    proto_velocity_u((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+
                ! set v
                if (ndim > 1) call set(velocity, &
-                                      2, &
-                                      element_nodes(j), &
-                                      proto_velocity_v((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
-               
+                    2, &
+                    element_nodes(j), &
+                    proto_velocity_v((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+
                ! set w
                if (ndim > 2) call set(velocity, &
-                                      3, &
-                                      element_nodes(j), &
-                                      proto_velocity_w((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
-            
+                    3, &
+                    element_nodes(j), &
+                    proto_velocity_w((u_ndgln((i-1)*nloc+j)) + (p-1)*number_nodes))
+
             end do vel_node_loop
-            
+
          end do vel_ele_loop
-             
+
       end do phase_loop
-         
+
       ! comp is stored in the order
       !   comp1 phase1
       !   comp1 phase2
@@ -1764,83 +1856,85 @@ module copy_outof_into_state
       !   comp2 phase2
       !   etc
       have_comp: if (ncomp > 0) then
-         
+
          ! there is a state for each phase and each component
          nstates = size(state)
-         
+
          ! Assume for now that components have been inserted in state AFTER all the phases
          comp_loop: do i = nstates-ncomp+1,nstates
-            
+
             ! inspect each scalar field of this state   
             sfield_loop: do j = 1,option_count("/material_phase[" // int2str(i-1) //"]/scalar_field")
-               
+
                ! extract each scalar field of this state
                componentmassfraction => extract_scalar_field(state(i), j)
-               
+
                ! determine if this scalar field has the magic name for components   
                is_compfrac: if (componentmassfraction%name(1:21) == "ComponentMassFraction") then
-                  
+
                   ! find the phase this component fraction is associated with   
                   call get_option("/material_phase[" // int2str(i-1) //"]/scalar_field[" // int2str(j-1) //&
-                                 &"]/material_phase_name", material_phase_name)
-                  
+                       &"]/material_phase_name", material_phase_name)
+
                   ! find the phase index   
                   phase_index_loop: do k = 1,nphase
-                     
+
                      phase_name_check: if (trim(material_phase_name) == state(k)%name) then
 
                         number_nodes = node_count(componentmassfraction)
-         
+
                         comp_ele_loop: do ele = 1,element_count(componentmassfraction)
-            
+
                            element_nodes => ele_nodes(componentmassfraction,ele)
-                           
+
                            nloc = size(element_nodes)
-                           
+
                            comp_node_loop: do jloc= 1,nloc
-               
+
                               call set(componentmassfraction, &
-                                       element_nodes(jloc), &
-                                       proto_components((cv_ndgln((ele-1)*nloc+jloc)) + ((i-(1+nphase))*nphase+(k-1))*number_nodes))
-            
+                                   element_nodes(jloc), &
+                                   proto_components((cv_ndgln((ele-1)*nloc+jloc)) + ((i-(1+nphase))*nphase+(k-1))*number_nodes))
+
                            end do comp_node_loop
-            
+
                         end do comp_ele_loop
-                        
+
                         cycle sfield_loop
-                        
+
                      end if phase_name_check
-                  
+
                   end do phase_index_loop
-               
+
                end if is_compfrac
-            
+
             end do sfield_loop
-         
+
          end do comp_loop
-      
+
       end if have_comp
-         
+
       pressure => extract_scalar_field(state(1), "Pressure")    
-      
+
       press_ele_loop: do i = 1,ele_count(pressure)
-        
-        element_nodes => ele_nodes(pressure,i)
-        
-        nloc = size(element_nodes)
-        
-        press_node_loop: do j = 1,nloc
-          
-          call set(pressure, &
-                   element_nodes(j), &
-                   proto_pressure(p_ndgln((i-1)*nloc+j)))
-        
-        end do press_node_loop
-      
+
+         element_nodes => ele_nodes(pressure,i)
+
+         nloc = size(element_nodes)
+
+         press_node_loop: do j = 1,nloc
+
+            call set(pressure, &
+                 element_nodes(j), &
+                 proto_pressure(p_ndgln((i-1)*nloc+j)))
+
+         end do press_node_loop
+
       end do press_ele_loop
-    
+
       ewrite(3,*) "Leaving copy_into_state"
-  
+
+      return
+
     end subroutine copy_into_state
 
-end module copy_outof_into_state
+  end module copy_outof_into_state
