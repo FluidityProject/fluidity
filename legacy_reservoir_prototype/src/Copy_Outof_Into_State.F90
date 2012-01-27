@@ -1069,8 +1069,6 @@ module copy_outof_into_state
 
       i = 1 ! The first phase is set, and the others alias to this phase for pressure.   
       
-           
-
       Conditional_Pressure_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
             ']/scalar_field::Pressure/prognostic/' // &
             'boundary_conditions[0]/type::dirichlet' )) then
@@ -1114,6 +1112,17 @@ module copy_outof_into_state
            end do
              
          end if Conditional_Pressure_BC
+         
+         
+        ! Copy this to the other phases.
+        
+        do i = 2, nphases
+         do j = 1, stotel
+          do k = 1, p_snloc
+            suf_p_bc( ( i - 1 ) * stotel + (j-1)*p_snloc + k ) =  suf_p_bc( ( 1 - 1 ) * stotel + (j-1)*p_snloc + k )
+          end do
+         end do    
+        end do 
 
 
       Loop_Pressure: do i = 1, nphases
