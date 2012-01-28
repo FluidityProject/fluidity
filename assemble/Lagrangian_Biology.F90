@@ -128,7 +128,7 @@ contains
 
        do i = 1, n_fg_arrays
           write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",i-1,"]"
-          call get_option(trim(stage_buffer)//"/number_of_agents", n_agents)
+          call get_option(trim(stage_buffer)//"/initial_state/number_of_agents", n_agents)
           call get_option(trim(stage_buffer)//"/name", stage_name)
           agent_arrays(array)%name = trim(fg_name)//trim(stage_name)
           agent_arrays(array)%fg_name = trim(fg_name)
@@ -157,7 +157,7 @@ contains
           end if
 
           ! Create agent and insert into list
-          call get_option(trim(stage_buffer)//"/initial_position", func)
+          call get_option(trim(stage_buffer)//"/initial_state/position", func)
           allocate(coords(dim,n_agents))
           call set_detector_coords_from_python(coords, n_agents, func, current_time)
 
@@ -294,8 +294,8 @@ contains
              end do
 
              ! Store the python update code
-             if (have_option(trim(stage_buffer)//"/biology_update")) then
-                call get_option(trim(stage_buffer)//"/biology_update", agent_arrays(array)%biovar_pycode)
+             if (have_option(trim(stage_buffer)//"/biology/python")) then
+                call get_option(trim(stage_buffer)//"/biology/python", agent_arrays(array)%biovar_pycode)
                 agent_arrays(array)%has_biology=.true.
              end if
 
@@ -306,7 +306,7 @@ contains
              end do
 
              ! Initialise agent variables
-             call get_option(trim(stage_buffer)//"/initial_state", func)
+             call get_option(trim(stage_buffer)//"/initial_state/biology", func)
              agent => agent_arrays(array)%first
              do while (associated(agent))
                 allocate(agent%biology(biovar_total))
