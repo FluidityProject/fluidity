@@ -1749,7 +1749,13 @@ contains
       real :: udotn, income
       ! logical array indicating if a face has already been visited by the opposing node
       logical, dimension(:), allocatable :: notvisited
-
+      
+      ! variables associated with including the porosity
+      integer :: stat
+      logical :: include_porosity
+      character(len=FIELD_NAME_LEN) :: porosity_name
+      type(scalar_field), pointer :: porosity
+      
       integer, dimension(:), allocatable :: courant_bc_type
       type(scalar_field) :: courant_bc
 
@@ -1777,9 +1783,36 @@ contains
       call zero(courant)
 
       x_courant=get_coordinate_field(state, courant%mesh)
-
-      cvmass => get_cv_mass(state, courant%mesh)
-
+      
+      ! determine the cv mass matrix to use for the length scale
+      ! which may have included the porosity field
+      
+      call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/name', &
+                      porosity_name, &
+                      stat = stat)
+      
+      if (stat == 0) then
+         
+         include_porosity = .true.
+         
+         porosity => extract_scalar_field(state, trim(porosity_name))
+         ewrite_minmax(porosity)
+         
+         allocate(cvmass)
+         
+         call allocate(cvmass, courant%mesh, name="CVMassWithPorosity")
+         call compute_cv_mass(x, cvmass, porosity)
+         
+      else
+         
+         include_porosity = .false.
+         
+         cvmass => get_cv_mass(state, courant%mesh)
+      
+      end if
+      
+      ewrite_minmax(cvmass)         
+      
       if(courant%mesh%shape%degree /= 0) then
 
         call get_option("/geometry/quadrature/controlvolume_surface_degree", &
@@ -1991,7 +2024,12 @@ contains
       courant%val = courant%val*l_dt/cvmass%val
 
       call deallocate(x_courant)
-
+      
+      if (include_porosity) then
+         call deallocate(cvmass)
+         deallocate(cvmass)
+      end if
+      
       call halo_update(courant)
 
    end subroutine calculate_courant_number_cv

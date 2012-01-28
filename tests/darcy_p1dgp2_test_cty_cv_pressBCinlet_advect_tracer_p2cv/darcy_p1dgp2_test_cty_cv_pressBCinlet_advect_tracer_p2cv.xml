@@ -23,9 +23,9 @@ import vtktools
 v = vtktools.vtu("darcy_p1dgp2_test_cty_cv_pressBCinlet_2d_1.vtu")
 vel_2d = max(v.GetScalarRange("Velocity"))
     </variable>
-    <variable name="integral_tracer_2d" language="python">    
+    <variable name="cv_integral_tracer_2d" language="python">    
 from fluidity_tools import stat_parser as stat
-integral_tracer_2d = stat("advect_tracer_p2cv_2d.stat")["fluid"]["Tracer"]["integral"][-1]
+cv_integral_tracer_2d = stat("advect_tracer_p2cv_2d.stat")["fluid"]["Tracer"]["cv_integral"][-1]
     </variable>
     <variable name="max_tracer_2d" language="python">    
 from fluidity_tools import stat_parser as stat
@@ -53,10 +53,10 @@ analytic_vel = 5.0
 print 'Solution relative error: ',abs((vel_2d - analytic_vel)/analytic_vel)
 assert abs((vel_2d - analytic_vel)/analytic_vel) &lt; 1.0e-08
     </test>
-    <test name="Integral of tracer for 2d at half way through domain, check with tolerance 1.0e-09" language="python">
+    <test name="CV Integral of tracer for 2d at half way through domain, check with tolerance 1.0e-09" language="python">
 analytic_int = 45000
-print 'Solution relative error: ',abs((integral_tracer_2d - analytic_int)/analytic_int)
-assert abs((integral_tracer_2d - analytic_int)/analytic_int) &lt; 1.0e-09
+print 'Solution relative error: ',abs((cv_integral_tracer_2d - analytic_int)/analytic_int)
+assert abs((cv_integral_tracer_2d - analytic_int)/analytic_int) &lt; 1.0e-09
     </test>
     <test name="Max of tracer for 2d should be 1.0, check with tolerance 1.0e-09" language="python">
 analytic_int = 1.0

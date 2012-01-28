@@ -2297,95 +2297,7 @@ while a factor of 1 represents a connected domain.</a:documentation>
         <ref name="reduced_model"/>
       </optional>
       <optional>
-        <element name="porous_media">
-          <a:documentation>Porous Media</a:documentation>
-          <element name="scalar_field">
-            <a:documentation>Specify scalar field Porosity which is inserted into the first material_phase state.</a:documentation>
-            <attribute name="name">
-              <value>Porosity</value>
-            </attribute>
-            <choice>
-              <element name="prescribed">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prescribed_scalar_field"/>
-              </element>
-              <element name="diagnostic">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="scalar_python_diagnostic_algorithm"/>
-                <ref name="diagnostic_scalar_field"/>
-              </element>
-            </choice>
-          </element>
-          <optional>
-            <choice>
-              <a:documentation>Specify field Permeability which is inserted into the first material_phase state.</a:documentation>
-              <element name="scalar_field">
-                <attribute name="name">
-                  <value>Permeability</value>
-                </attribute>
-                <choice>
-                  <element name="prescribed">
-                    <ref name="velocity_mesh_choice"/>
-                    <ref name="prescribed_scalar_field"/>
-                  </element>
-                  <element name="diagnostic">
-                    <ref name="velocity_mesh_choice"/>
-                    <ref name="scalar_python_diagnostic_algorithm"/>
-                    <ref name="diagnostic_scalar_field"/>
-                  </element>
-                </choice>
-              </element>
-              <element name="vector_field">
-                <attribute name="name">
-                  <value>Permeability</value>
-                </attribute>
-                <choice>
-                  <element name="prescribed">
-                    <ref name="velocity_mesh_choice"/>
-                    <ref name="prescribed_vector_field"/>
-                  </element>
-                  <element name="diagnostic">
-                    <ref name="velocity_mesh_choice"/>
-                    <ref name="vector_python_diagnostic_algorithm"/>
-                    <ref name="diagnostic_vector_field"/>
-                  </element>
-                </choice>
-              </element>
-              <element name="tensor_field">
-                <attribute name="name">
-                  <value>Permeability</value>
-                </attribute>
-                <choice>
-                  <element name="prescribed">
-                    <ref name="velocity_mesh_choice"/>
-                    <ref name="prescribed_tensor_field"/>
-                  </element>
-                  <element name="diagnostic">
-                    <ref name="velocity_mesh_choice"/>
-                    <ref name="tensor_python_diagnostic_algorithm"/>
-                    <ref name="diagnostic_tensor_field"/>
-                  </element>
-                </choice>
-              </element>
-            </choice>
-          </optional>
-          <optional>
-            <element name="scalar_field">
-              <a:documentation>Specify scalar field Electrical Conductivity</a:documentation>
-              <attribute name="name">
-                <value>ElectricalConductivity</value>
-              </attribute>
-              <element name="diagnostic">
-                <ref name="velocity_mesh_choice"/>
-                <choice>
-                  <ref name="internal_algorithm"/>
-                  <ref name="scalar_python_diagnostic_algorithm"/>
-                </choice>
-                <ref name="diagnostic_scalar_field_no_adapt"/>
-              </element>
-            </element>
-          </optional>
-        </element>
+        <ref name="porous_media_model"/>
       </optional>
       <optional>
         <ref name="embedded_models"/>
@@ -2395,6 +2307,99 @@ while a factor of 1 represents a connected domain.</a:documentation>
       </optional>
     </element>
   </start>
+  <define name="porous_media_model">
+    <optional>
+      <element name="porous_media">
+        <a:documentation>Porous Media</a:documentation>
+        <element name="scalar_field">
+          <a:documentation>Specify scalar field Porosity which is inserted into the first material_phase state.</a:documentation>
+          <attribute name="name">
+            <value>Porosity</value>
+          </attribute>
+          <choice>
+            <element name="prescribed">
+              <ref name="velocity_mesh_choice"/>
+              <ref name="prescribed_scalar_field"/>
+            </element>
+            <element name="diagnostic">
+              <ref name="velocity_mesh_choice"/>
+              <ref name="scalar_python_diagnostic_algorithm"/>
+              <ref name="diagnostic_scalar_field"/>
+            </element>
+          </choice>
+        </element>
+        <optional>
+          <choice>
+            <a:documentation>Specify field Permeability which is inserted into the first material_phase state.</a:documentation>
+            <element name="scalar_field">
+              <attribute name="name">
+                <value>Permeability</value>
+              </attribute>
+              <choice>
+                <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prescribed_scalar_field"/>
+                </element>
+                <element name="diagnostic">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="scalar_python_diagnostic_algorithm"/>
+                  <ref name="diagnostic_scalar_field"/>
+                </element>
+              </choice>
+            </element>
+            <element name="vector_field">
+              <attribute name="name">
+                <value>Permeability</value>
+              </attribute>
+              <choice>
+                <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prescribed_vector_field"/>
+                </element>
+                <element name="diagnostic">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="vector_python_diagnostic_algorithm"/>
+                  <ref name="diagnostic_vector_field"/>
+                </element>
+              </choice>
+            </element>
+            <element name="tensor_field">
+              <attribute name="name">
+                <value>Permeability</value>
+              </attribute>
+              <choice>
+                <element name="prescribed">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="prescribed_tensor_field"/>
+                </element>
+                <element name="diagnostic">
+                  <ref name="velocity_mesh_choice"/>
+                  <ref name="tensor_python_diagnostic_algorithm"/>
+                  <ref name="diagnostic_tensor_field"/>
+                </element>
+              </choice>
+            </element>
+          </choice>
+        </optional>
+        <optional>
+          <element name="scalar_field">
+            <a:documentation>Specify scalar field Electrical Conductivity</a:documentation>
+            <attribute name="name">
+              <value>ElectricalConductivity</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="velocity_mesh_choice"/>
+              <choice>
+                <ref name="internal_algorithm"/>
+                <ref name="scalar_python_diagnostic_algorithm"/>
+              </choice>
+              <ref name="diagnostic_scalar_field_no_adapt"/>
+            </element>
+          </element>
+        </optional>
+      </element>
+    </optional>
+  </define>
   <define name="sediment">
     <element name="sediment">
       <a:documentation>A simple sediment model in which different classes of sediment fall 
@@ -5054,6 +5059,56 @@ Adapting to this field is not recommended</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
+            <optional>
+              <choice>
+                <element name="porosity">
+                  <a:documentation>Include the porosity in the calculation of 
+the Courant number. This is required if 
+the Velocity field has embedded in it the 
+porosity and the CFL number is used to 
+determine the CV face value in an 
+advection scheme (such as HyperC).
+
+The porosity is evaluated at the end
+of time step.
+
+The porosity must be associated 
+with a mesh that has shape functions that 
+are order zero (element wise) or the 
+same order as the parent field which is 
+to be solved for. If the latter then 
+the porosity is assumed to be represented 
+with the control volumes or the sub 
+control volumes for a discontinuous mesh.
+
+Specify the name of the field 
+to use for porosity. This field must 
+exist in the state of the associated 
+material_phase.</a:documentation>
+                  <ref name="comment"/>
+                  <attribute name="name">
+                    <value>Porosity</value>
+                  </attribute>
+                </element>
+                <element name="porosity">
+                  <a:documentation>Include the porosity in the calculation of 
+the Courant number. This is required if 
+the Velocity field has embedded in it the 
+porosity and the CFL number is used to 
+determine the CV face value in an 
+advection scheme (such as HyperC).
+
+Specify the name of the field 
+to use for porosity. This field must 
+exist in the state of the associated 
+material_phase.</a:documentation>
+                  <ref name="comment"/>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                </element>
+              </choice>
+            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">

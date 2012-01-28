@@ -113,7 +113,8 @@ contains
     type(scalar_field), pointer :: t_cvmass
     type(scalar_field) :: cvmass
       
-    ! Porosity field old and field name
+    ! Porosity field old and field name and flag
+    logical :: include_porosity
     type(scalar_field), pointer :: porosity_old
     character(len=OPTION_PATH_LEN) :: porosity_name
 
@@ -282,18 +283,23 @@ contains
     call get_option(trim(option_path)//'/spatial_discretisation/control_volumes/porosity/name', &
                     porosity_name, &
                     stat = stat)
-      
+
     if (stat == 0) then         
+       include_porosity = .true.
+       
        porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name))
        ewrite_minmax(porosity_old)
-         
-       call allocate(cvmass, tfield%mesh, name="LocalCVMassWithPorosity")
-       call compute_cv_mass(x, cvmass, porosity_old)
+       
+       allocate(t_cvmass)  
+       call allocate(t_cvmass, tfield%mesh, name="LocalCVMassWithPorosity")
+       call compute_cv_mass(x, t_cvmass, porosity_old)
     else
-       call allocate(cvmass, tfield%mesh, "LocalCVMass")
+       include_porosity = .false.
        t_cvmass => get_cv_mass(state, tfield%mesh)
-       call set(cvmass, t_cvmass)
     end if
+    
+    call allocate(cvmass, tfield%mesh, "LocalCVMass")
+    call set(cvmass, t_cvmass)
     ewrite_minmax(cvmass)    
 
     ewrite(2,*) 'no_subcycles = ', no_subcycles
@@ -413,6 +419,10 @@ contains
     call deallocate(relu)
     call deallocate(x_tfield)
     call deallocate(cvmass)
+    if (include_porosity) then
+       call deallocate(t_cvmass)
+       deallocate(t_cvmass)
+    end if
 
   end subroutine form_advection_metric
   ! end of solution wrapping subroutines

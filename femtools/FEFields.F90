@@ -41,7 +41,7 @@ contains
     !!< If porosity is present this is included in the cv mass. This is 
     !!< only possible if the porosity is element wise (order zero) or 
     !!< the same order as the cv_mass. For the latter case the porosity 
-    !!< is assumed represented by a control volu.me expansion and by 
+    !!< is assumed represented by a control volume expansion and by 
     !!< a sub control volume expansion if discontinous 
     
     type(vector_field), intent(in) :: positions
