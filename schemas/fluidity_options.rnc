@@ -4838,6 +4838,12 @@ scalar_field_choice =
                   element integrate_divergence_by_parts {
                      empty
                   }?,
+                  ## Test the divergence operator with the CV dual function space. 
+                  ## This is useful if the pressure is solved with a CV discretisation 
+                  ## or with a CG but with the continuity tested with the CV dual. 
+                  element test_with_cv_dual {
+                     comment
+                  }?,
                   diagnostic_scalar_field_no_adapt,
                   element solver {
                      linear_solver_options_sym
