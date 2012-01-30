@@ -626,6 +626,7 @@ install: default fltools bin/shallow_water bin/burgers_equation
 
 install-diamond: 
 	cd libspud/diamond;     python setup.py install --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud/dxdiff;     python setup.py install --prefix=$(DESTDIR)@prefix@; cd ../..
 
 install-user-schemata:
 	mkdir -p $(HOME)/.schemata/
