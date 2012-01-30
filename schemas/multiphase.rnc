@@ -671,8 +671,12 @@ start =
                      ##
                      ## Default value 2.0
                      element relperm_exponent {real}?,
-                     ## Option to boost the absorption at zero saturation
-                     element boost_at_zero_saturation { comment }?
+                     ## Option to for Land ?
+                     element S_GI {real}?,
+                     ## Option to for Land ?
+                     element CS_GI {real}?,
+                     ## Option to for Land ?
+                     element C {real}?,
                   }
                },
                ## Option for capillary pressure

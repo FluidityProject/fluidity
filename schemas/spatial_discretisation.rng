@@ -465,21 +465,21 @@ Not for production runs.</a:documentation>
           </attribute>
           <optional>
             <!--
-                         element limit_from_previous_time_step {
-                            empty
-                         }?,
-                         element exclude_current_node {
-                            empty
-                         }?,
-                         element max_upper_bound {
-                            real
-                         }?,
-                         element min_lower_bound {
-                            real
-                         }?,
-                         element monotomic {
-                            empty
-                         }?,
+              element limit_from_previous_time_step {
+                 empty
+              }?,
+              element exclude_current_node {
+                 empty
+              }?,
+              element max_upper_bound {
+                 real
+              }?,
+              element min_lower_bound {
+                 real
+              }?,
+              element monotomic {
+                 empty
+              }?,
             -->
             <element name="mid-point_scheme">
               <a:documentation>Option allowing the user to include the neighbouring

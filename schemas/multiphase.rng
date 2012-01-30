@@ -4159,7 +4159,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
       <empty/>
     </element>
   </define>
-  <!-- Options for inclusion of calculations of surface integrals in the .stat file   -->
+  <!-- Options for inclusion of calculations of surface integrals in the .stat file -->
   <define name="surface_integral_stats_base.surface_integral">
     <attribute name="name">
       <data type="string"/>
