@@ -1642,7 +1642,7 @@ contains
 
     !Get options for lagrangian detector movement
     if (check_any_lagrangian(default_stat%detector_list)) then
-       call read_detector_move_options(default_stat%detector_list, "/io/detectors")
+       call read_detector_move_options(default_stat%detector_list, "/io/detectors/lagrangian_timestepping")
     end if
 
     ! Write the header information into the .detectors file

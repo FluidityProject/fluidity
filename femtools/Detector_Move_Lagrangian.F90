@@ -52,7 +52,7 @@ module detector_move_lagrangian
   public :: move_lagrangian_detectors, read_detector_move_options, check_any_lagrangian, &
             read_random_walk_options
 
-  character(len=OPTION_PATH_LEN), parameter :: rk_gs_path="/lagrangian_timestepping/explicit_runge_kutta_guided_search"
+  character(len=OPTION_PATH_LEN), parameter :: rk_gs_path="/explicit_runge_kutta_guided_search"
 
 contains
 
@@ -66,24 +66,21 @@ contains
     real, allocatable, dimension(:) :: stage_weights
     integer, dimension(2) :: option_rank
 
-    if (have_option(trim(options_path)//trim("/lagrangian_timestepping/reflect_on_boundary"))) then
-       detector_list%reflect_on_boundary=.true.
-    end if
+    if (have_option(trim(options_path))) then
 
-    if(have_option(trim(options_path)//"/lagrangian_timestepping")) then
-
-       call get_option(trim(options_path)//"/lagrangian_timestepping/subcycles",detector_list%n_subcycles)
-       call get_option(trim(options_path)//"/lagrangian_timestepping/search_tolerance",detector_list%search_tolerance)
+       call get_option(trim(options_path)//"/subcycles",detector_list%n_subcycles)
+       call get_option(trim(options_path)//"/search_tolerance",detector_list%search_tolerance)
 
        ! Forward Euler options
-       if (have_option(trim(options_path)//"/lagrangian_timestepping/forward_euler_guided_search")) then
+       if (have_option(trim(options_path)//"/forward_euler_guided_search")) then
           detector_list%n_stages = 1
           allocate(detector_list%timestep_weights(detector_list%n_stages))
           detector_list%timestep_weights = 1.0
+          detector_list%velocity_advection = .true.
        end if
 
        ! Parameters for classical Runge-Kutta
-       if (have_option(trim(options_path)//"/lagrangian_timestepping/rk4_guided_search")) then
+       if (have_option(trim(options_path)//"/rk4_guided_search")) then
           detector_list%n_stages = 4
           allocate(stage_weights(detector_list%n_stages*(detector_list%n_stages-1)/2))
           stage_weights = (/0.5, 0., 0.5, 0., 0., 1./)
@@ -100,6 +97,7 @@ contains
           end do
           allocate(detector_list%timestep_weights(detector_list%n_stages))
           detector_list%timestep_weights = (/ 1./6., 1./3., 1./3., 1./6. /)
+          detector_list%velocity_advection = .true.
        end if
 
        ! Generic Runge-Kutta options
@@ -140,6 +138,12 @@ contains
              FLExit('Timestep Array wrong size')
           end if
           call get_option(trim(options_path)//trim(rk_gs_path)//"/timestep_weights",detector_list%timestep_weights)
+          detector_list%velocity_advection = .true.
+       end if
+
+       ! Boundary reflection
+       if (have_option(trim(options_path)//trim("/reflect_on_boundary"))) then
+          detector_list%reflect_on_boundary=.true.
        end if
 
     else
@@ -156,36 +160,45 @@ contains
     type(detector_linked_list), intent(inout) :: detector_list
     character(len=*), intent(in) :: options_path
 
-    if (have_option(trim(options_path)//"/random_walk")) then
+    character(len=OPTION_PATH_LEN) :: options_buffer
+    integer :: i, n_random_walks
 
-       if (have_option(trim(options_path)//"/random_walk/python")) then 
-          detector_list%python_rw=.true.
-          call get_option(trim(options_path)//"/random_walk/python", detector_list%rw_pycode)
+    n_random_walks = option_count(trim(options_path)//"/random_walk")
+    allocate(detector_list%random_walks(n_random_walks))
+
+    do i=1, n_random_walks
+       write(options_buffer, "(a,i0,a)") trim(options_path)//"/random_walk[",i-1,"]"
+       call get_option(trim(options_buffer)//"/name", detector_list%random_walks(i)%name)
+
+       ! Python Random Walk
+       if (have_option(trim(options_buffer)//"/python")) then 
+          detector_list%random_walks(i)%python_random_walk = .true.
+          call get_option(trim(options_buffer)//"/python", detector_list%random_walks(i)%python_code)
        end if
 
-       if (have_option(trim(options_path)//"/random_walk/diffusive_random_walk")) then 
-          detector_list%internal_diffusive_rw=.true.
-          call get_option(trim(options_path)//"/random_walk/diffusive_random_walk/diffusivity_field", &
-                    detector_list%diffusivity_field)
-          call get_option(trim(options_path)//"/random_walk/diffusive_random_walk/diffusivity_gradient", &
-                    detector_list%diffusivity_grad)
+       ! Internal Naive Random Walk
+       if (trim(detector_list%random_walks(i)%name) == "Naive") then 
+          detector_list%random_walks(i)%naive_random_walk = .true.
+          call get_option(trim(options_buffer)//"/diffusivity_field", detector_list%random_walks(i)%diffusivity_field)
+       end if
 
-          ! Flag if we want automatic subcycling for internal Diffusive Random Walk
-          if (have_option(trim(options_path)//"/random_walk/diffusive_random_walk/auto_subcycle")) then 
-             detector_list%auto_subcycle=.true.
-             call get_option(trim(options_path)//"/random_walk/diffusive_random_walk/auto_subcycle/diffusivity_2nd_gradient", &
-                    detector_list%diffusivity_2nd_grad)
-             call get_option(trim(options_path)//"/random_walk/diffusive_random_walk/auto_subcycle/scale_factor", &
-                    detector_list%subcycle_scale_factor)
+       ! Internal Diffusive Random Walk
+       if (trim(detector_list%random_walks(i)%name) == "Diffusive") then 
+          detector_list%random_walks(i)%diffusive_random_walk = .true.
+          call get_option(trim(options_buffer)//"/diffusivity_field", detector_list%random_walks(i)%diffusivity_field)
+          call get_option(trim(options_buffer)//"/diffusivity_gradient", detector_list%random_walks(i)%diffusivity_grad)
+
+          ! Flag if we want automatic subcycling
+          if (have_option(trim(options_buffer)//"/auto_subcycle")) then 
+             detector_list%random_walks(i)%auto_subcycle = .true.
+             call get_option(trim(options_buffer)//"/auto_subcycle/diffusivity_2nd_gradient", &
+                      detector_list%random_walks(i)%diffusivity_2nd_grad)
+             call get_option(trim(options_buffer)//"/auto_subcycle/scale_factor", &
+                      detector_list%random_walks(i)%subcycle_scale_factor)
           end if
        end if
+    end do
 
-       if (have_option(trim(options_path)//"/random_walk/naive_random_walk")) then 
-          detector_list%internal_naive_rw=.true.
-          call get_option(trim(options_path)//"/random_walk/naive_random_walk/diffusivity_field", &
-                    detector_list%diffusivity_field)
-       end if
-    end if
   end subroutine read_random_walk_options
 
   subroutine move_lagrangian_detectors(state, detector_list, dt, timestep)
@@ -198,7 +211,7 @@ contains
     type(detector_type), pointer :: detector, move_detector
     type(detector_linked_list) :: subcycle_detector_list
     type(halo_type), pointer :: ele_halo
-    integer :: i, j, num_proc, dim, stage, cycle, subsubcycle, ele
+    integer :: num_proc, dim, stage, cycle, subsubcycle, ele, rw
     logical :: any_lagrangian
     real :: sub_dt, total_subsubcycle
     integer :: max_subsubcycle
@@ -221,25 +234,30 @@ contains
     vfield=>extract_vector_field(state(1), "Velocity")
     allocate(rw_displacement(xfield%dim))
 
-    ! For Python Random Walk first run the user code, so we can pull fields from state
-    if (detector_list%python_rw) then
-       ! Run the user's code and store val object in "random_walk" dict
-       call python_run_detector_string(trim(detector_list%rw_pycode),&
-              trim(detector_list%name),trim("random_walk"))
-    end if
+    ! Setup for Random Walk schemes
+    if (allocated(detector_list%random_walks)) then
+       do rw=1, size(detector_list%random_walks)
 
-    ! For hardcoded Random Walks pull the relevant fields from state
-    if (detector_list%internal_diffusive_rw) then
-       diffusivity_field=>extract_scalar_field(state(1), trim(detector_list%diffusivity_field))
-       diffusivity_grad=>extract_vector_field(state(1), trim(detector_list%diffusivity_grad))
+          ! For Python Random Walk run the user code that pulls fields from state
+          if (detector_list%random_walks(rw)%python_random_walk) then
+             call python_run_detector_string(trim(detector_list%random_walks(rw)%python_code), &
+                      trim(detector_list%name), trim(detector_list%random_walks(rw)%name))
+          end if
 
-       if (detector_list%auto_subcycle) then
-          diffusivity_2nd_grad=>extract_vector_field(state(1), trim(detector_list%diffusivity_2nd_grad))
-       end if
-    end if
+          ! For hardcoded Random Walks pull the relevant fields from state
+          if (detector_list%random_walks(rw)%naive_random_walk) then
+             diffusivity_field=>extract_scalar_field(state(1), trim(detector_list%random_walks(rw)%diffusivity_field))
+          end if
 
-    if(detector_list%internal_naive_rw) then
-       diffusivity_field=>extract_scalar_field(state(1), trim(detector_list%diffusivity_field))
+          if (detector_list%random_walks(rw)%diffusive_random_walk) then
+             diffusivity_field=>extract_scalar_field(state(1), trim(detector_list%random_walks(rw)%diffusivity_field))
+             diffusivity_grad=>extract_vector_field(state(1), trim(detector_list%random_walks(rw)%diffusivity_grad))
+
+             if (detector_list%random_walks(rw)%auto_subcycle) then
+                diffusivity_2nd_grad=>extract_vector_field(state(1), trim(detector_list%random_walks(rw)%diffusivity_2nd_grad))
+             end if
+          end if
+       end do
     end if
 
     ! Allocate det%k and det%update_vector for RK advection
@@ -259,7 +277,7 @@ contains
        end do
 
        ! Explicit Runge-Kutta iterations
-       if (detector_list%do_velocity_advect) then
+       if (detector_list%velocity_advection) then
           RKstages_loop: do stage = 1, detector_list%n_stages
 
              ! Compute the update vector for the current stage
@@ -273,140 +291,127 @@ contains
           end do RKstages_loop
        end if
 
-       ! Internal Diffusive Random Walk
-       if (detector_list%internal_diffusive_rw .and. .not. detector_list%auto_subcycle) then
-          detector => detector_list%first
-          do while (associated(detector))
-             if (detector%type==LAGRANGIAN_DETECTOR) then
-                call profiler_tic(trim(detector_list%name)//"::diffusive_random_walk")
-                call diffusive_random_walk(detector, sub_dt, xfield, diffusivity_field, &
-                          diffusivity_grad, rw_displacement)
-                call profiler_toc(trim(detector_list%name)//"::diffusive_random_walk")
-                detector%update_vector=detector%update_vector + rw_displacement
-             end if
-             detector => detector%next
-          end do
-          call move_detectors_guided_search(detector_list,xfield)
-       end if
+       if (allocated(detector_list%random_walks)) then
+          do rw=1, size(detector_list%random_walks)
+             call profiler_tic(trim(detector_list%name)//trim(detector_list%random_walks(rw)%name))
 
-       ! Internal Naive Random Walk
-       if (detector_list%internal_naive_rw) then
-          detector => detector_list%first
-          do while (associated(detector))
-             if (detector%type==LAGRANGIAN_DETECTOR) then
-                call profiler_tic(trim(detector_list%name)//"::naive_random_walk")
-                call naive_random_walk(detector, sub_dt, xfield, diffusivity_field, rw_displacement)
-                call profiler_toc(trim(detector_list%name)//"::naive_random_walk")
-                detector%update_vector=detector%update_vector + rw_displacement
-             end if
-             detector => detector%next
-          end do
-          call move_detectors_guided_search(detector_list,xfield)
-       end if
+             ! Apply single-cycle Random Walks
+             if (.not. detector_list%random_walks(rw)%auto_subcycle) then
+                detector => detector_list%first
+                do while (associated(detector))
+                   if (detector%type==LAGRANGIAN_DETECTOR) then
 
-       ! Apply user-defined Python function as a Random Walk
-       if (detector_list%python_rw) then
-          detector => detector_list%first
-          do while (associated(detector))
-             if (detector%type==LAGRANGIAN_DETECTOR) then
-                call profiler_tic(trim(detector_list%name)//"::python_random_walk")
-                call python_run_random_walk(detector,xfield,sub_dt, &
-                          trim(detector_list%name),trim("random_walk"),rw_displacement)
-                call profiler_toc(trim(detector_list%name)//"::python_random_walk")
-                detector%update_vector=detector%update_vector + rw_displacement
-             end if
-             detector => detector%next
-          end do
-          call move_detectors_guided_search(detector_list,xfield)
-       end if
+                      ! Internal Naive
+                      if (detector_list%random_walks(rw)%naive_random_walk) then
+                         call naive_random_walk(detector, sub_dt, xfield, diffusivity_field, rw_displacement)
 
-       ! Internal Diffusive Random Walk with automated sub-cycling
-       if (detector_list%internal_diffusive_rw .and. detector_list%auto_subcycle) then
-          subcycle_detector_list%search_tolerance = detector_list%search_tolerance
-          subcycle_detector_list%reflect_on_boundary = detector_list%reflect_on_boundary
-          subcycle_detector_list%name = detector_list%name
-          max_subsubcycle = 1
-          total_subsubcycle = 0
+                      ! Internal Diffusive
+                      elseif (detector_list%random_walks(rw)%diffusive_random_walk) then
+                         call diffusive_random_walk(detector, sub_dt, xfield, diffusivity_field, &
+                                  diffusivity_grad, rw_displacement)
 
-          ! Create a list of auto-subcycle numbers per element
-          call profiler_tic(trim(detector_list%name)//"::element_rw_subcycling")
-          allocate(auto_subcycle_per_ele(element_count(xfield)))
-          do ele=1, element_count(xfield)
-             call element_rw_subcycling(ele, sub_dt, xfield, diffusivity_field, &
-                          diffusivity_grad, diffusivity_2nd_grad, detector_list%search_tolerance, &
-                          detector_list%subcycle_scale_factor, auto_subcycle_per_ele(ele))
-          end do
-          call profiler_toc(trim(detector_list%name)//"::element_rw_subcycling")
+                      ! Python
+                      elseif (detector_list%random_walks(rw)%python_random_walk) then
+                         call python_run_random_walk(detector,xfield,sub_dt, trim(detector_list%name), &
+                                  trim(detector_list%random_walks(rw)%name),rw_displacement)
+                      end if
 
-          ! First pass establishes how many sub-sub-cycles are required
-          detector => detector_list%first
-          do while (associated(detector))
-             if (detector%type==LAGRANGIAN_DETECTOR) then
+                      detector%update_vector=detector%update_vector + rw_displacement
+                   end if
+                   detector => detector%next
+                end do
+                call move_detectors_guided_search(detector_list,xfield)
 
-                ! Establish how many subcycles are needed
-                detector%rw_subsubcycles = auto_subcycle_per_ele(detector%element)
-                total_subsubcycle = total_subsubcycle + detector%rw_subsubcycles
-                if (detector%rw_subsubcycles > max_subsubcycle) then
-                   max_subsubcycle = detector%rw_subsubcycles
+             ! Internal Diffusive Random Walk with automated sub-cycling
+             elseif (detector_list%random_walks(rw)%diffusive_random_walk &
+                         .and. detector_list%random_walks(rw)%auto_subcycle) then
+                subcycle_detector_list%search_tolerance = detector_list%search_tolerance
+                subcycle_detector_list%reflect_on_boundary = detector_list%reflect_on_boundary
+                subcycle_detector_list%name = detector_list%name
+                max_subsubcycle = 1
+                total_subsubcycle = 0
+
+                ! Create a list of auto-subcycle numbers per element
+                allocate(auto_subcycle_per_ele(element_count(xfield)))
+                do ele=1, element_count(xfield)
+                   call element_rw_subcycling(ele, sub_dt, xfield, diffusivity_field, &
+                                diffusivity_grad, diffusivity_2nd_grad, detector_list%search_tolerance, &
+                                detector_list%random_walks(rw)%subcycle_scale_factor, auto_subcycle_per_ele(ele))
+                end do
+
+                ! First pass establishes how many sub-sub-cycles are required
+                detector => detector_list%first
+                do while (associated(detector))
+                   if (detector%type==LAGRANGIAN_DETECTOR) then
+
+                      ! Establish how many subcycles are needed
+                      detector%rw_subsubcycles = auto_subcycle_per_ele(detector%element)
+                      total_subsubcycle = total_subsubcycle + detector%rw_subsubcycles
+                      if (detector%rw_subsubcycles > max_subsubcycle) then
+                         max_subsubcycle = detector%rw_subsubcycles
+                      end if
+
+                      call profiler_tic(trim(detector_list%name)//"::diffusive_random_walk")
+                      call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, &
+                                diffusivity_field, diffusivity_grad, rw_displacement)
+                      call profiler_toc(trim(detector_list%name)//"::diffusive_random_walk")
+                      detector%update_vector=detector%update_vector + rw_displacement
+
+                      ! Separate the ones that have more to do...
+                      if (detector%rw_subsubcycles > 1) then
+                         move_detector=>detector
+                         detector => detector%next
+                         call move(move_detector, detector_list, subcycle_detector_list)
+                      else
+                         detector => detector%next
+                      end if
+                   else
+                      detector => detector%next
+                   end if
+                end do
+
+                deallocate(auto_subcycle_per_ele)
+
+                ! Update elements in the subcycle list
+                if (subcycle_detector_list%length > 0) then
+                   call move_detectors_guided_search(subcycle_detector_list,xfield)
                 end if
 
-                call profiler_tic(trim(detector_list%name)//"::diffusive_random_walk")
-                call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, &
-                          diffusivity_field, diffusivity_grad, rw_displacement)
-                call profiler_toc(trim(detector_list%name)//"::diffusive_random_walk")
-                detector%update_vector=detector%update_vector + rw_displacement
+                ! Remaining subcycle passes until subcycle list is empty
+                subsubcycle = 2
+                do while (subcycle_detector_list%length > 0)
+                   detector => subcycle_detector_list%first
+                   do while (associated(detector))
+                      call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, &
+                                diffusivity_field, diffusivity_grad, rw_displacement)
+                      detector%update_vector=detector%update_vector + rw_displacement
 
-                ! Separate the ones that have more to do...
-                if (detector%rw_subsubcycles > 1) then
-                   move_detector=>detector
-                   detector => detector%next
-                   call move(move_detector, detector_list, subcycle_detector_list)
-                else
-                   detector => detector%next
-                end if
+                      ! Separate the ones that have more to do...
+                      if (detector%rw_subsubcycles <= subsubcycle) then
+                         move_detector=>detector
+                         detector => detector%next
+                         call move(move_detector, subcycle_detector_list, detector_list)
+                      else
+                         detector => detector%next
+                      end if
+                   end do
+                   call move_detectors_guided_search(subcycle_detector_list,xfield)
+                   subsubcycle = subsubcycle + 1
+                end do
+
+                ! Update elements after the final move
+                call move_detectors_guided_search(detector_list,xfield)
+
+                ewrite(2,*) "Auto-subcycling: max. subcycles:", max_subsubcycle
+                ewrite(2,*) "Auto-subcycling: avg. subcycles:", total_subsubcycle / detector_list%length
+
              else
-                detector => detector%next
+                FLExit("Auto-subcycling can only be used with internal diffusive Random Walk.")
              end if
+
+             call profiler_toc(trim(detector_list%name)//trim(detector_list%random_walks(rw)%name))
           end do
-
-          deallocate(auto_subcycle_per_ele)
-
-          ! Update elements in the subcycle list
-          if (subcycle_detector_list%length > 0) then
-             call move_detectors_guided_search(subcycle_detector_list,xfield)
-          end if
-
-          ! Remaining subcycle passes until subcycle list is empty
-          subsubcycle = 2
-          do while (subcycle_detector_list%length > 0)
-             detector => subcycle_detector_list%first
-             do while (associated(detector))
-
-                call profiler_tic(trim(detector_list%name)//"::diffusive_random_walk")
-                call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, diffusivity_field, &
-                          diffusivity_grad, rw_displacement)
-                call profiler_toc(trim(detector_list%name)//"::diffusive_random_walk")
-                detector%update_vector=detector%update_vector + rw_displacement
-
-                ! Separate the ones that have more to do...
-                if (detector%rw_subsubcycles <= subsubcycle) then
-                   move_detector=>detector
-                   detector => detector%next
-                   call move(move_detector, subcycle_detector_list, detector_list)
-                else
-                   detector => detector%next
-                end if
-             end do
-             call move_detectors_guided_search(subcycle_detector_list,xfield)
-             subsubcycle = subsubcycle + 1
-          end do
-
-          ! Update elements after the final move
-          call move_detectors_guided_search(detector_list,xfield)
-
-          ewrite(2,*) "Auto-subcycling: max. subcycles:", max_subsubcycle
-          ewrite(2,*) "Auto-subcycling: avg. subcycles:", total_subsubcycle / detector_list%length
-       end if
+       end if !allocated(detector_list%random_walks)
 
        ! After everything is done, we update detector%position
        detector => detector_list%first
@@ -455,7 +460,7 @@ contains
        if(detector%type==LAGRANGIAN_DETECTOR) then
 
           ! Evaluate velocity at update_vector and set k
-          if (detector_list%do_velocity_advect) then
+          if (detector_list%velocity_advection) then
              ! stage vector is computed by evaluating velocity at current position
              stage_local_coords=local_coords(xfield,detector%element,detector%update_vector)
              detector%k(stage,:)=eval_field(detector%element, vfield, stage_local_coords)

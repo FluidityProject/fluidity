@@ -38,7 +38,7 @@ module detector_data_types
   
   public :: detector_type, detector_linked_list, &
             detector_list_ptr, stringlist, &
-            biovar, &
+            random_walk, biovar, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2  
@@ -81,6 +81,29 @@ module detector_data_types
      TYPE (detector_type), POINTER :: previous=> null() 
   end type detector_type
 
+  !! Type for holding the parameters of random walk schemes, 
+  !! so that we may combine multiple random walks.
+  type random_walk
+    !! Name for logging
+    character(len=FIELD_NAME_LEN) :: name
+
+    !! Internal Random Walk schemes
+    logical :: naive_random_walk = .false.
+    logical :: diffusive_random_walk = .false.
+
+    !! Field names for internal Diffusive Random Walk scheme
+    character(len=FIELD_NAME_LEN) :: diffusivity_field, diffusivity_grad
+    character(len=FIELD_NAME_LEN) :: diffusivity_2nd_grad
+
+    !! Auto-subcycling (for internal Diffusive Random Walk)
+    logical :: auto_subcycle = .false.
+    real :: subcycle_scale_factor = 0.0
+
+    !! Python Random Walk function
+    logical :: python_random_walk = .false.
+    character(len=PYTHON_FUNC_LEN) :: python_code
+  end type random_walk
+
   ! Type holding meta-information about biology variables of LE agents
   type biovar
     ! Variable name
@@ -110,16 +133,6 @@ module detector_data_types
      !! Name as specified in options (Lagrangian agents only)
      character(len=FIELD_NAME_LEN) :: name
 
-     !!!!!!!!!!!!!!!!!!!!!!!!!
-     !!! Detector movement !!!
-     !!!!!!!!!!!!!!!!!!!!!!!!!
-     ! Flag indicating whether to apply lagrangian advection
-     logical :: do_velocity_advect=.true.
-     ! Flag indicating whether we reflect detectors at the domain boundary
-     logical :: reflect_on_boundary=.false.
-     ! Flag indicating whether we update physical coordinates when the mesh moves
-     logical :: move_with_mesh = .false.
-
      !! Biology options
      integer :: fg_id
      real :: stage_id
@@ -131,27 +144,26 @@ module detector_data_types
      logical :: do_particle_management=.false.
      real :: pm_max, pm_min
 
+
+     !!!!!!!!!!!!!!!!!!!!!!!!!
+     !!! Detector movement !!!
+     !!!!!!!!!!!!!!!!!!!!!!!!!
+     ! Flag indicating whether to apply lagrangian advection
+     logical :: velocity_advection = .true.
+     ! Flag indicating whether we reflect detectors at the domain boundary
+     logical :: reflect_on_boundary = .false.
+     ! Flag indicating whether we update physical coordinates when the mesh moves
+     logical :: move_with_mesh = .false.
+
      ! Runk-Kutta Guided Search parameters
      integer :: n_stages, n_subcycles
      real, allocatable, dimension(:) :: timestep_weights
      real, allocatable, dimension(:,:) :: stage_matrix
      real :: search_tolerance
 
-     ! Python code to execute for Random Walk
-     logical :: python_rw=.false.
-     character(len=PYTHON_FUNC_LEN) :: rw_pycode
+     ! List of random walk schemes to apply
+     type(random_walk), dimension(:), allocatable :: random_walks
 
-     ! Internal Diffusive Random Walk with automatic sub-cycling
-     logical :: internal_diffusive_rw=.false.
-     logical :: auto_subcycle=.false.
-     real :: subcycle_scale_factor = 0.0
-
-     ! Internal Naive Random Walk
-     logical :: internal_naive_rw=.false.
-
-     ! Field names for internal Diffusive Random Walk scheme
-     character(len=FIELD_NAME_LEN) :: diffusivity_field, diffusivity_grad
-     character(len=FIELD_NAME_LEN) :: diffusivity_2nd_grad
 
      !!!!!!!!!!!!!!!!!!!!!!!!!
      !!! Detector I/O      !!!

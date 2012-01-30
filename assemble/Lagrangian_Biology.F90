@@ -142,19 +142,14 @@ contains
           agent_arrays(array)%total_num_det=n_agents
 
           ! Get options for lagrangian detector movement
-          call read_detector_move_options(agent_arrays(array),trim(fg_buffer))
+          call read_detector_move_options(agent_arrays(array), trim(stage_buffer)//"/movement")
 
           ! Get options for Random Walk
-          call read_random_walk_options(agent_arrays(array), trim(stage_buffer))
+          call read_random_walk_options(agent_arrays(array), trim(stage_buffer)//"/movement")
 
           ! Set other meta-information
           agent_arrays(array)%binary_output=.true.
           det_type=LAGRANGIAN_DETECTOR
-          if (have_option(trim(stage_buffer)//"/debug/exclude_from_advection")) then
-             agent_arrays(array)%do_velocity_advect=.false.
-          else
-             agent_arrays(array)%do_velocity_advect=.true.
-          end if
 
           ! Create agent and insert into list
           call get_option(trim(stage_buffer)//"/initial_state/position", func)
