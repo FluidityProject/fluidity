@@ -2,6 +2,7 @@ SHELL = sh
 
 input: clean
 	gmsh -2 square.geo -o square.msh
+	gmsh -3 cube.geo -o cube.msh
 
 clean:
 	rm -f *.ele
