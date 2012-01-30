@@ -1401,6 +1401,7 @@ contains
 
     character(len=OPTION_PATH_LEN) :: path
     character(len=OPTION_PATH_LEN) :: state_name, aliased_field_name, field_name
+    integer :: stat
     integer :: i, j, k ! counters
     integer :: nstates ! number of states
     integer :: nfields ! number of fields
@@ -1558,6 +1559,37 @@ contains
 
     ! Deal with subgridscale parameterisations.
     call alias_diffusivity(states)
+    
+    ! Porous media fields
+    have_porous_media: if (have_option('/porous_media')) then
+       
+       ! alias the Porosity field
+       sfield=extract_scalar_field(states(1), 'Porosity')
+       sfield%aliased = .true.
+       do i = 1,nstates-1
+          call insert(states(i+1), sfield, 'Porosity')
+       end do
+       
+       ! alias the Permeability field which may be 
+       ! either scalar or vector (if present)
+       
+       sfield=extract_scalar_field(states(1), 'Permeability', stat = stat)
+       if (stat == 0) then       
+          sfield%aliased = .true.
+          do i = 1,nstates-1
+             call insert(states(i+1), sfield, 'Permeability')
+          end do       
+       end if
+       
+       vfield=extract_vector_field(states(1), 'Permeability', stat = stat)
+       if (stat == 0) then       
+          vfield%aliased = .true.
+          do i = 1,nstates-1
+             call insert(states(i+1), vfield, 'Permeability')
+          end do       
+       end if
+    
+    end if have_porous_media
 
   end subroutine alias_fields
 
@@ -2870,7 +2902,70 @@ contains
     aux_sfield%option_path = ""
     call insert(states, aux_sfield, trim(aux_sfield%name))
     call deallocate(aux_sfield)
+    
+    ! Porous media fields
+    have_porous_media: if (have_option('/porous_media')) then
+       
+       ! alias the OldPorosity field
+       aux_sfield=extract_scalar_field(states(1), 'OldPorosity')
+       aux_sfield%aliased = .true.
+       aux_sfield%option_path = ""
+       do p = 1,size(states)-1
+          call insert(states(p+1), aux_sfield, 'OldPorosity')
+       end do
+       
+       ! alias the OldPermeability field which may be 
+       ! either scalar or vector (if present)
+       
+       aux_sfield=extract_scalar_field(states(1), 'OldPermeability', stat = stat)
+       if (stat == 0) then       
+          aux_sfield%aliased = .true.
+          aux_sfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_sfield, 'OldPermeability')
+          end do       
+       end if
+       
+       aux_vfield=extract_vector_field(states(1), 'OldPermeability', stat = stat)
+       if (stat == 0) then       
+          aux_vfield%aliased = .true.
+          aux_vfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_vfield, 'OldPermeability')
+          end do       
+       end if
 
+       ! alias the IteratedPorosity field
+       aux_sfield=extract_scalar_field(states(1), 'IteratedPorosity')
+       aux_sfield%aliased = .true.
+       aux_sfield%option_path = ""
+       do p = 1,size(states)-1
+          call insert(states(p+1), aux_sfield, 'IteratedPorosity')
+       end do
+       
+       ! alias the IteratedPermeability field which may be 
+       ! either scalar or vector (if present)
+       
+       aux_sfield=extract_scalar_field(states(1), 'IteratedPermeability', stat = stat)
+       if (stat == 0) then       
+          aux_sfield%aliased = .true.
+          aux_sfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_sfield, 'IteratedPermeability')
+          end do       
+       end if
+       
+       aux_vfield=extract_vector_field(states(1), 'IteratedPermeability', stat = stat)
+       if (stat == 0) then       
+          aux_vfield%aliased = .true.
+          aux_vfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_vfield, 'IteratedPermeability')
+          end do       
+       end if
+    
+    end if have_porous_media
+    
   end subroutine allocate_and_insert_auxilliary_fields
 
   function mesh_name(field_path)

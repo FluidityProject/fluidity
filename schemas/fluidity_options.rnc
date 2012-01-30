@@ -1730,20 +1730,6 @@ porous_media_model =
                      diagnostic_vector_field
                   }
                )
-            }|
-            element tensor_field {
-               attribute name { "Permeability" },
-               (
-                  element prescribed { 
-                     velocity_mesh_choice,
-                     prescribed_tensor_field
-                  }|
-                  element diagnostic {
-                     velocity_mesh_choice,
-                     tensor_python_diagnostic_algorithm,
-                     diagnostic_tensor_field
-                  }
-               )
             }
          )?,
          ## Specify scalar field Electrical Conductivity

@@ -2363,22 +2363,6 @@ while a factor of 1 represents a connected domain.</a:documentation>
                 </element>
               </choice>
             </element>
-            <element name="tensor_field">
-              <attribute name="name">
-                <value>Permeability</value>
-              </attribute>
-              <choice>
-                <element name="prescribed">
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="prescribed_tensor_field"/>
-                </element>
-                <element name="diagnostic">
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="tensor_python_diagnostic_algorithm"/>
-                  <ref name="diagnostic_tensor_field"/>
-                </element>
-              </choice>
-            </element>
           </choice>
         </optional>
         <optional>
