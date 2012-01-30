@@ -364,6 +364,14 @@
                         else
                            FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
                         endif
+
+                     elseif (have_option("/material_phase["// int2str(iphase-1) //"]/multiphase_properties/relperm_type/Land")) then
+                        if (nphase==2) then
+                           CALL relperm_land( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
+                                INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE)
+                        else
+                           FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
+                        endif
                      else
                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
 
@@ -491,6 +499,80 @@
     END SUBROUTINE relperm_corey
 
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! CHRIS BAKER EDIT
+    SUBROUTINE relperm_land( ABSP, MOBILITY, INV_PERM, SAT, IPHASE )
+      IMPLICIT NONE
+      REAL, intent( inout ) :: ABSP
+      REAL, intent( in ) :: MOBILITY, SAT, INV_PERM
+      INTEGER, intent( in ) :: IPHASE
+      ! Local variables...
+      REAL :: S_GC, S_OR, &
+           KR1, KR2, KR, VISC, SATURATION, ABS_SUM, SAT2, &
+           kr1_max, kr2_max, kr1_exp, kr2_exp
+
+      !    S_GC = 0.1
+      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", s_gc, default=0.1)
+      !    S_OR = 0.3
+      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", s_or, default=0.3)
+      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_max", kr1_max, default=1.0)
+      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_max", kr2_max, default=1.0)
+      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_exponent", kr1_exp, default=2.0)
+      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", kr2_exp, default=2.0)
+
+      SATURATION = SAT
+      IF( IPHASE == 2 ) SATURATION = 1. - SAT
+
+      IF( SAT < S_GC ) THEN
+         KR1 = 0.0
+      ELSE IF( SAT > 1. -S_OR ) THEN
+         kr1 = kr1_max
+      ELSE
+         KR1 = ( ( SAT - S_GC) / ( 1. - S_GC - S_OR ))**kr1_exp
+      ENDIF
+
+      SAT2 = 1.0 - SAT
+      IF( SAT2 < S_OR ) THEN
+         KR2 = 0.0
+      ELSEIF( SAT2 > 1. - S_GC ) THEN
+         KR2 = kr2_max
+      ELSE
+         KR2 = ( ( SAT2 - S_OR ) / ( 1. - S_GC - S_OR ))**kr2_exp
+      ENDIF
+
+      IF( IPHASE == 1 ) THEN
+         KR = KR1
+         VISC = 1.0
+      ELSE
+         KR = KR2
+         VISC = MOBILITY
+      ENDIF
+
+      ABS_SUM = KR / MAX( 1.e-6, VISC * max( 0.01, SATURATION ))
+
+      ABSP = INV_PERM / MAX( 1.e-6, ABS_SUM )
+
+      if( iphase == 1 ) then
+         ABSP =  min( 1.e+4, ABSP )
+         if( saturation < s_gc ) then
+            ABSP = ( 1. + max( 100. * ( s_gc - saturation ), 0.0 )) * ABSP
+         endif
+      else
+         if (have_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/boost_at_zero_saturation")) then
+            ABSP = min( 4.0e+5, ABSP)
+            if(saturation < s_or) then
+               ABSP = (1. + max( 100. * ( s_or - saturation ), 0.0 )) * ABSP
+               ABSP=ABSP+100000.*exp(30.0*(sat-(1-s_or)))
+            endif
+         else
+            ABSP = min( 1.e+5, ABSP )
+            if( saturation < s_or ) then
+               ABSP = ( 1. + max( 100. * ( s_or - saturation ), 0.0 )) * ABSP
+            endif
+         endif
+      endif
+
+      RETURN
+    END SUBROUTINE relperm_land
 
     SUBROUTINE calculate_capillary_pressure( state, CV_NONODS, NPHASE, capillary_pressure, SATURA )
 

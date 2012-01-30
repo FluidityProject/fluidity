@@ -680,12 +680,17 @@ contains
 
        P_RHS = -P_RHS + CT_RHS
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! CHRIS BAKER 
+
+
        ! Matrix vector involving the mass diagonal term
        DO CV_NOD = 1, CV_NONODS
           DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
              CV_JNOD = COLCMC( COUNT )
              P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
                   - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
+                  
+             print*, cv_nod,  count, P_RHS( CV_NOD ), DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ) * P( CV_JNOD )    
           END DO
        END DO
 
