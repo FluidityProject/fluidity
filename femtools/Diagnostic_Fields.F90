@@ -2700,9 +2700,6 @@ contains
         ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
         ! to surface
         normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal)
-
-        write(*,*) normal_shear_at_quad(:,i_gi), ',', shear_at_quad(:,:,i_gi), ',',&
-             & normal(:,i_gi), ',', abs_normal, ',', X_ele(:,i_gi)
      end do  
 
      normal_shear_at_loc = shape_vector_rhs(f_shape, normal_shear_at_quad, density *&
