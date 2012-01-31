@@ -1366,6 +1366,7 @@ module copy_outof_into_state
             allocate( suf_w_bc( stotel * 3 * nphases ))
             suf_w_bc = 0.
          endif
+  
 
          Conditional_Velocity_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
               ']/vector_field::Velocity/prognostic/' // &
@@ -1392,7 +1393,7 @@ module copy_outof_into_state
                  enddo
       
              do j = 1, stotel
-              if(pmesh%faces%boundary_ids(j) .eq. pvf_sufid_bc(k)) then
+              if(pmesh%faces%boundary_ids(j) .eq. velocity_sufid_bc(k)) then
                nobcs = get_boundary_condition_count( pressure )
                do kk = 1, p_snloc
                 if(size(phasevolumefraction_bc%val) .eq. 1) then
