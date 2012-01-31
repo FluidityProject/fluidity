@@ -2640,7 +2640,8 @@ contains
      real, dimension(X%dim, X%dim, ele_ngi(X, face_ele(X, face))) :: invJ
      real, dimension(X%dim, X%dim, face_ngi(X, face)) :: f_invJ  
      real, dimension(face_ngi(X, face)) :: detwei
-     real, dimension(X%dim, face_ngi(X, face)) :: normal, normal_shear_at_quad
+     real, dimension(X%dim, face_ngi(X, face)) :: normal, normal_shear_at_quad, X_ele
+     real, dimension(X%dim) :: abs_normal
      real, dimension(ele_loc(X, face_ele(X, face)), face_ngi(X, face), X%dim) :: ele_dshape_at_face_quad
      real, dimension(X%dim, X%dim, face_ngi(X, face)) :: grad_U_at_quad, visc_at_quad, shear_at_quad  
      real, dimension(X%dim, face_loc(U, face)) :: normal_shear_at_loc
@@ -2677,15 +2678,6 @@ contains
      ele_dshape_at_face_quad = eval_volume_dshape_at_face_quad(augmented_shape, &
           & local_face_number(X, face), f_invJ)
 
-     ! ! Stolen straight from eval_volume_dshape_at_face_quad() - I've avoided calling the
-     ! ! function above as it causes this file to fail to build on intel compilers.
-     ! do i=1,augmented_shape%loc
-     !    do i_gi=1,augmented_shape%surface_quadrature%ngi
-     !       ele_dshape_at_face_quad(i, i_gi, :) = matmul(f_invJ(:, :, i_gi), &
-     !            & augmented_shape%dn_s(i, i_gi, local_face_number(X, face), :))
-     !    end do
-     ! end do
-
      ! Calculate grad of U at the surface element quadrature points
      do i=1, dim
         do j=1, dim
@@ -2695,13 +2687,22 @@ contains
      end do
 
      visc_at_quad = face_val_at_quad(visc, face)
+     X_ele = face_val_at_quad(X, face)
      do i_gi = 1, face_ngi(X, face)
         ! Multiply by visosity
         shear_at_quad(:,:,i_gi) = matmul(grad_U_at_quad(:,:,i_gi), visc_at_quad(:,:,i_gi))
 
+        ! Get absolute of normal vector
+        do i = 1,dim
+           abs_normal(i) = abs(normal(i,i_gi))
+        end do
+
         ! Multiply by surface normal (dim,sgi) to obtain shear in direction normal
         ! to surface
-        normal_shear_at_quad(:,i_gi) = matmul(shear_at_quad(:,:,i_gi), normal(:,i_gi))
+        normal_shear_at_quad(:,i_gi) = matmul(transpose(shear_at_quad(:,:,i_gi)), abs_normal)
+
+        write(*,*) normal_shear_at_quad(:,i_gi), ',', shear_at_quad(:,:,i_gi), ',',&
+             & normal(:,i_gi), ',', abs_normal, ',', X_ele(:,i_gi)
      end do  
 
      normal_shear_at_loc = shape_vector_rhs(f_shape, normal_shear_at_quad, density *&
