@@ -76,25 +76,25 @@ analytic_vel = 12.5
 print 'Solution relative error: ',abs((min_inter_vel_2d - analytic_vel)/analytic_vel)
 assert abs((min_inter_vel_2d - analytic_vel)/analytic_vel) &lt; 5.0e-08
     </test>
-    <test name="CV Integral of tracer_cons_exp_weakbc_upwind for 2d such that both channel tracer 75% way through domain with tolerance 5.1e-04" language="python">
+    <test name="CV Integral of tracer_cons_exp_weakbc_upwind for 2d such that both channel tracer 75% way through domain with tolerance 5.4e-04" language="python">
 analytic_int = 67500
 print 'Solution relative error: ',abs((cv_integral_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int)
-assert abs((cv_integral_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int) &lt; 5.1e-04
+assert abs((cv_integral_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int) &lt; 5.4e-04
     </test>
     <test name="Max of tracer_cons_exp_weakbc_upwind for 2d should be 1.0, check with tolerance 5.0e-08" language="python">
 analytic_int = 1.0
 print 'Solution relative error: ',abs((max_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int)
 assert abs((max_tracer_cons_exp_weakbc_upwind_2d - analytic_int)/analytic_int) &lt; 5.0e-08
     </test>
-    <test name="Min of tracer_cons_exp_weakbc_upwind for 2d should be 0.0, check with tolerance 8.5e-03" language="python">
+    <test name="Min of tracer_cons_exp_weakbc_upwind for 2d should be 0.0, check with tolerance 8.7e-03" language="python">
 analytic_int = 0.0
 print 'Solution absolute error: ',abs(min_tracer_cons_exp_weakbc_upwind_2d - analytic_int)
-assert abs(min_tracer_cons_exp_weakbc_upwind_2d - analytic_int) &lt; 8.5e-03
+assert abs(min_tracer_cons_exp_weakbc_upwind_2d - analytic_int) &lt; 8.7e-03
     </test>
-    <test name="CV Integral of tracer_cons_exp_weakbc_hyperc for 2d such that both channel tracer 75% way through domain with tolerance 5.0e-06" language="python">
+    <test name="CV Integral of tracer_cons_exp_weakbc_hyperc for 2d such that both channel tracer 75% way through domain with tolerance 1.4e-04" language="python">
 analytic_int = 67500
 print 'Solution relative error: ',abs((cv_integral_tracer_cons_exp_weakbc_hyperc_2d - analytic_int)/analytic_int)
-assert abs((cv_integral_tracer_cons_exp_weakbc_hyperc_2d - analytic_int)/analytic_int) &lt; 5.0e-06
+assert abs((cv_integral_tracer_cons_exp_weakbc_hyperc_2d - analytic_int)/analytic_int) &lt; 1.4e-04
     </test>
     <test name="Max of tracer_cons_exp_weakbc_hyperc for 2d should be 1.0, check with tolerance 1.5e-07" language="python">
 analytic_int = 1.0
