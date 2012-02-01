@@ -1355,15 +1355,15 @@ module copy_outof_into_state
             wic_u_bc = 0
          endif
          if (.not.allocated(suf_u_bc)) then
-            allocate( suf_u_bc( stotel * 3 * nphases ))
+            allocate( suf_u_bc( stotel * u_snloc * nphases ))
             suf_u_bc = 0.
          endif
          if (.not.allocated(suf_v_bc)) then
-            allocate( suf_v_bc( stotel * 3 * nphases ))
+            allocate( suf_v_bc( stotel * u_snloc * nphases ))
             suf_v_bc = 0.
          endif
          if (.not.allocated(suf_w_bc)) then
-            allocate( suf_w_bc( stotel * 3 * nphases ))
+            allocate( suf_w_bc( stotel * u_snloc * nphases ))
             suf_w_bc = 0.
          endif
   
@@ -1401,7 +1401,7 @@ module copy_outof_into_state
                   if (velocity%dim>1) suf_v_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = velocity_bc%val( 2, 1 )
                   if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = velocity_bc%val( 3, 1 )
                 else
-                  FLExit("Volume Fraction BC only implemented for a constant BC for each region ID")
+                  FLExit("Velocity BC only implemented for a constant BC for each region ID")
                  end if  
                end do
               end if 
