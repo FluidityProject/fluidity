@@ -204,11 +204,8 @@ def update_dead_diatom(vars, env, dt):
   vars['NitrateUptake'] = 0.0
   vars['SilicateUptake'] = 0.0
 
-  # ml805: Disabling release to get around a bug, for now.
-  vars['AmmoniumRelease'] = 0.0
-  vars['SilicateRelease'] = 0.0
-  #vars['AmmoniumRelease'] = ammonium_release_rate
-  #vars['SilicateRelease'] = silicate_release_rate
+  vars['AmmoniumRelease'] = ammonium_release_rate
+  vars['SilicateRelease'] = silicate_release_rate
 
 
 

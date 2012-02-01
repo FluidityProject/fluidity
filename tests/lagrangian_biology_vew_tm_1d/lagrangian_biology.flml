@@ -138,36 +138,9 @@ def val(X,t):
       <prescribed>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="python">global layerheight, read_physics_file
-
-layer=None
-time=0.0
-
-# store a filehandle in persistent dict
-if not persistent.has_key('velocity_mld_fh'):
-  persistent['velocity_mld_fh'] = open("vew_tm_mld.csv" , 'r')
-
-def layerheight(t):
-  # read physics
-  data = persistent['velocity_mld_fh'].readline().split(",")
-  if not t==float(data[0]):
-    raise RuntimeError('Velocity: Wrong t in read_physics: ' + data[0])
-  return float(data[1])
-  
-def val(X,t):
-  global layer, time
-  if t &gt; time or layer==None:
-    time = t
-    layer=layerheight(t)
-  
-  if abs(X[0])&lt;=layer:
-    vel_Z=0.0
-  else:
-    # sinking velocity of 4cm per hour
-    vel_Z=-0.000011111
-  return [vel_Z]</string_value>
-          </python>
+          <constant>
+            <real_value shape="1" dim1="dim" rank="1">0.0</real_value>
+          </constant>
         </value>
         <output/>
         <stat>
@@ -814,6 +787,18 @@ def val(X,t):
                   </scale_factor>
                 </auto_subcycle>
               </random_walk>
+              <random_walk name="Sinking">
+                <python>
+                  <string_value lines="20" type="python">diffusivity = state.scalar_fields['ScalarDiffusivity']
+
+def val(ele, local_coord, dt):
+  K = diffusivity.eval_field(ele, local_coord)
+  v = [0.0]
+  if K &lt;= 1e-5:
+    v = [-0.000011111 * dt]
+  return v</string_value>
+                </python>
+              </random_walk>
             </movement>
             <biology>
               <python>
@@ -869,6 +854,18 @@ def val(biovars, env, dt):
                     <real_value rank="0">2.0</real_value>
                   </scale_factor>
                 </auto_subcycle>
+              </random_walk>
+              <random_walk name="Sinking">
+                <python>
+                  <string_value lines="20" type="python">diffusivity = state.scalar_fields['ScalarDiffusivity']
+
+def val(ele, local_coord, dt):
+  K = diffusivity.eval_field(ele, local_coord)
+  v = [0.0]
+  if K &lt;= 1e-5:
+    v = [-0.000011111 * dt]
+  return v</string_value>
+                </python>
               </random_walk>
             </movement>
             <biology>
