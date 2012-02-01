@@ -7451,12 +7451,14 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
                 <a:documentation>Drag coefficient, 1.5e-3, see Holland and Jenkins's(1999) Cd. </a:documentation>
                 <ref name="real"/>
               </element>
-              <element name="minimum_speed">
-                <a:documentation>Minimum speed assumed in the melt calculation.
+              <optional>
+                <element name="minimum_speed">
+                  <a:documentation>Minimum speed assumed in the melt calculation.
 Default value of 1.0E-3.
 Have investigated smaller values of 1.0E-4, 1.0E-5.</a:documentation>
-                <ref name="real"/>
-              </element>
+                  <ref name="real"/>
+                </element>
+              </optional>
               <optional>
                 <element name="melt_surfaceID">
                   <a:documentation>Surface ID for the ice</a:documentation>
