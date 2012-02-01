@@ -5950,7 +5950,7 @@ forcing =
            ## Minimum speed assumed in the melt calculation.
            ## Default value of 1.0E-3.
            ## Have investigated smaller values of 1.0E-4, 1.0E-5.
-           element minimum_speed {real},
+           element minimum_speed {real}?,
            ## Surface ID for the ice
            element melt_surfaceID {integer_vector}?,
            ## Distance for the far field
