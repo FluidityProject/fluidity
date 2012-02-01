@@ -625,8 +625,12 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
 install-diamond: 
-	cd libspud/diamond;     python setup.py install --prefix=$(DESTDIR)@prefix@; cd ../..
-	cd libspud/dxdiff;     python setup.py install --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud; ./configure --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud; $(MAKE) clean; cd ../..
+	cd libspud; $(MAKE) install-diamond; cd ../..
+	cd libspud; $(MAKE) install-dxdiff; cd ../..
+	cd libspud; $(MAKE) install-spudtools; cd ../..
+	cd libspud; ./configure --prefix=$(PWD); cd ../..
 
 install-user-schemata:
 	mkdir -p $(HOME)/.schemata/
