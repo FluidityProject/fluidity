@@ -999,7 +999,7 @@ module copy_outof_into_state
 !!! Components Boundary Conditions
 
       allocate( wic_comp_bc( stotel * nphases ))
-      allocate( suf_comp_bc( stotel * 1 * nphases * ncomps ))
+      allocate( suf_comp_bc( stotel * cv_snloc * nphases * ncomps ))
       wic_comp_bc = 0
       suf_comp_bc = 0.
 
@@ -1032,7 +1032,7 @@ module copy_outof_into_state
 
       end do Loop_Component_BC
 
-      allocate( suf_cpd_bc( stotel * 1 * nphases ))
+      allocate( suf_cpd_bc( stotel * cv_snloc * nphases ))
       suf_cpd_bc = 0.      
 
       ! Extra allocation to stop the code dying when also running everything through the old io
@@ -1044,12 +1044,12 @@ module copy_outof_into_state
 !!!
 !!! Robin Boundary conditions need to be added at a later stage
 !!!
-      allocate( suf_u_bc_rob1( stotel * 3 * nphases ))
-      allocate( suf_v_bc_rob1( stotel * 3 * nphases ))
-      allocate( suf_w_bc_rob1( stotel * 3 * nphases ))
-      allocate( suf_u_bc_rob2( stotel * 3 * nphases ))
-      allocate( suf_v_bc_rob2( stotel * 3 * nphases ))
-      allocate( suf_w_bc_rob2( stotel * 3 * nphases ))
+      allocate( suf_u_bc_rob1( stotel * u_snloc * nphases ))
+      allocate( suf_v_bc_rob1( stotel * u_snloc * nphases ))
+      allocate( suf_w_bc_rob1( stotel * u_snloc * nphases ))
+      allocate( suf_u_bc_rob2( stotel * u_snloc * nphases ))
+      allocate( suf_v_bc_rob2( stotel * u_snloc * nphases ))
+      allocate( suf_w_bc_rob2( stotel * u_snloc * nphases ))
       allocate( suf_t_bc_rob1( stotel * nphases ))
       allocate( suf_t_bc_rob2( stotel * nphases ))
       allocate( suf_vol_bc_rob1( stotel * nphases ))
