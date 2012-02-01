@@ -448,34 +448,19 @@ balance pressure.</a:documentation>
       </element>
     </optional>
     <optional>
-      <choice>
-        <element name="reordering">
-          <a:documentation>Use Reverse Cuthill-McKee reordering to improve cache performance</a:documentation>
-          <attribute name="name">
-            <value>rcm</value>
-          </attribute>
-        </element>
-        <element name="reordering">
-          <a:documentation>Use one way dissecting reordering to improve cache performance</a:documentation>
-          <attribute name="name">
-            <value>1wd</value>
-          </attribute>
-        </element>
-        <element name="reordering">
-          <a:documentation>Use natural ordering as reordering, i.e. change nothing.
-Only useful for debugging purposes.</a:documentation>
-          <attribute name="name">
-            <value>natural</value>
-          </attribute>
-        </element>
-        <element name="reordering">
-          <a:documentation>Specify any other reordering mechanism supported by PETSc
-see http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html</a:documentation>
-          <attribute name="name">
-            <data type="string"/>
-          </attribute>
-        </element>
-      </choice>
+      <element name="reordering">
+        <a:documentation>Specify a reordering mechanism supported by PETSc
+to improve cache performance, see
+http://www-unix.mcs.anl.gov/petsc/petsc-as/snapshots/petsc-current/docs/manualpages/MatOrderings/MatGetOrdering.html
+
+Note that the use of reordering mechanisms for solves is 
+currently untested.  Possible schemes include:
+Reverse Cuthill-McKee reordering (rcm), a one way dissecting (1wd)
+algorithm, and also a natural ordering (natural) for debugging.</a:documentation>
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+      </element>
     </optional>
     <element name="diagnostics">
       <a:documentation>Extra diagnostics to help debug solver problems</a:documentation>

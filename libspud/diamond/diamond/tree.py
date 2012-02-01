@@ -540,6 +540,13 @@ class Tree(gobject.GObject):
   
   def __repr__(self):
     return self.get_name_path()
+
+  def all_attrs_fixed(self):
+    for attr in self.attrs:
+      if self.attrs[attr][0] != "fixed":
+        return False
+
+    return True
  
 gobject.type_register(Tree)
 
