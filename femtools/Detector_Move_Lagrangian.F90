@@ -73,14 +73,15 @@ contains
 
        ! Forward Euler options
        if (have_option(trim(options_path)//"/forward_euler_guided_search")) then
+          detector_list%velocity_advection = .true.
           detector_list%n_stages = 1
           allocate(detector_list%timestep_weights(detector_list%n_stages))
           detector_list%timestep_weights = 1.0
-          detector_list%velocity_advection = .true.
        end if
 
        ! Parameters for classical Runge-Kutta
        if (have_option(trim(options_path)//"/rk4_guided_search")) then
+          detector_list%velocity_advection = .true.
           detector_list%n_stages = 4
           allocate(stage_weights(detector_list%n_stages*(detector_list%n_stages-1)/2))
           stage_weights = (/0.5, 0., 0.5, 0., 0., 1./)
@@ -97,11 +98,11 @@ contains
           end do
           allocate(detector_list%timestep_weights(detector_list%n_stages))
           detector_list%timestep_weights = (/ 1./6., 1./3., 1./3., 1./6. /)
-          detector_list%velocity_advection = .true.
        end if
 
        ! Generic Runge-Kutta options
        if (have_option(trim(options_path)//trim(rk_gs_path))) then
+          detector_list%velocity_advection = .true.
           call get_option(trim(options_path)//trim(rk_gs_path)//"/n_stages",detector_list%n_stages)
 
           ! Allocate and read stage_matrix from options
@@ -138,7 +139,6 @@ contains
              FLExit('Timestep Array wrong size')
           end if
           call get_option(trim(options_path)//trim(rk_gs_path)//"/timestep_weights",detector_list%timestep_weights)
-          detector_list%velocity_advection = .true.
        end if
 
        ! Boundary reflection
@@ -211,8 +211,7 @@ contains
     type(detector_type), pointer :: detector, move_detector
     type(detector_linked_list) :: subcycle_detector_list
     type(halo_type), pointer :: ele_halo
-    integer :: num_proc, dim, stage, cycle, subsubcycle, ele, rw
-    logical :: any_lagrangian
+    integer :: dim, stage, cycle, subsubcycle, ele, rw
     real :: sub_dt, total_subsubcycle
     integer :: max_subsubcycle
 
@@ -223,7 +222,7 @@ contains
     integer :: auto_subcycles = 0
     integer, dimension(:), allocatable :: auto_subcycle_per_ele
 
-    call profiler_tic(trim(detector_list%name)//"::move_lagrangian_detectors")
+    call profiler_tic(trim(detector_list%name)//"::movement")
 
     ewrite(1,*) "In move_lagrangian_detectors for detectors list: ", detector_list%name
     ewrite(2,*) "Detector list", detector_list%id, "has", detector_list%length, &
@@ -260,11 +259,32 @@ contains
        end do
     end if
 
-    ! Allocate det%k and det%update_vector for RK advection
-    call allocate_rk_guided_search(detector_list, xfield%dim, detector_list%n_stages)
-    sub_dt = dt/detector_list%n_subcycles
+    ! Allocate the update_vector for each detector
+    ! and det%k if RK velocity advection is switched on
+    detector => detector_list%first
+    do while (associated(detector))
+       if(detector%type==LAGRANGIAN_DETECTOR) then
+
+          if(allocated(detector%update_vector)) then
+             deallocate(detector%update_vector)
+          end if
+          allocate(detector%update_vector(xfield%dim))
+          detector%update_vector = 0.
+
+          if (detector_list%velocity_advection) then
+             if (allocated(detector%k)) then
+                deallocate(detector%k)
+             end if
+             allocate(detector%k(detector_list%n_stages,xfield%dim))
+             detector%k = 0.
+          end if
+
+       end if
+       detector => detector%next
+    end do
 
     ! This is the outer, user-defined subcycling loop
+    sub_dt = dt / detector_list%n_subcycles
     subcycling_loop: do cycle = 1, detector_list%n_subcycles
 
        ! Reset update_vector to position
@@ -278,6 +298,7 @@ contains
 
        ! Explicit Runge-Kutta iterations
        if (detector_list%velocity_advection) then
+          call profiler_tic(trim(detector_list%name)//"::movement::Runge-Kutta-"//trim(int2str(detector_list%n_stages)))
           RKstages_loop: do stage = 1, detector_list%n_stages
 
              ! Compute the update vector for the current stage
@@ -289,14 +310,16 @@ contains
              call move_detectors_guided_search(detector_list,xfield)
 
           end do RKstages_loop
+          call profiler_toc(trim(detector_list%name)//"::movement::Runge-Kutta-"//trim(int2str(detector_list%n_stages)))
        end if
 
        if (allocated(detector_list%random_walks)) then
           do rw=1, size(detector_list%random_walks)
-             call profiler_tic(trim(detector_list%name)//trim(detector_list%random_walks(rw)%name))
+             call profiler_tic(trim(detector_list%name)//"::movement::"//trim(detector_list%random_walks(rw)%name))
 
              ! Apply single-cycle Random Walks
              if (.not. detector_list%random_walks(rw)%auto_subcycle) then
+
                 detector => detector_list%first
                 do while (associated(detector))
                    if (detector%type==LAGRANGIAN_DETECTOR) then
@@ -351,10 +374,8 @@ contains
                          max_subsubcycle = detector%rw_subsubcycles
                       end if
 
-                      call profiler_tic(trim(detector_list%name)//"::diffusive_random_walk")
                       call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, &
                                 diffusivity_field, diffusivity_grad, rw_displacement)
-                      call profiler_toc(trim(detector_list%name)//"::diffusive_random_walk")
                       detector%update_vector=detector%update_vector + rw_displacement
 
                       ! Separate the ones that have more to do...
@@ -409,7 +430,7 @@ contains
                 FLExit("Auto-subcycling can only be used with internal diffusive Random Walk.")
              end if
 
-             call profiler_toc(trim(detector_list%name)//trim(detector_list%random_walks(rw)%name))
+             call profiler_toc(trim(detector_list%name)//"::movement::"//trim(detector_list%random_walks(rw)%name))
           end do
        end if !allocated(detector_list%random_walks)
 
@@ -430,15 +451,26 @@ contains
     ! stoppped moving in a halo element
     call distribute_detectors(state(1), detector_list)
 
-    ! This needs to be called after distribute_detectors because the exchange  
-    ! routine serialises det%k and det%update_vector if it finds the RK-GS option
-    call deallocate_rk_guided_search(detector_list)
+    ! Deallocate update_vector and det%k after distribute_detectors 
+    ! because the exchange routine serialises them if it finds the RK-GS option
+    detector => detector_list%first
+    do while (associated(detector))
+       if(detector%type==LAGRANGIAN_DETECTOR) then
+          if(allocated(detector%k)) then
+             deallocate(detector%k)
+          end if
+          if(allocated(detector%update_vector)) then
+             deallocate(detector%update_vector)
+          end if
+       end if
+       detector => detector%next
+    end do
 
     ewrite(2,*) "After moving and distributing we have", detector_list%length, &
          "local and", detector_list%total_num_det, "global detectors"
     ewrite(1,*) "Exiting move_lagrangian_detectors"
 
-    call profiler_toc(trim(detector_list%name)//"::move_lagrangian_detectors")
+    call profiler_toc(trim(detector_list%name)//"::movement")
 
   end subroutine move_lagrangian_detectors
 
@@ -507,8 +539,6 @@ contains
     real :: search_tolerance
     integer :: k, nprocs, new_owner, all_send_lists_empty
     logical :: outside_domain, any_lagrangian
-
-    call profiler_tic(trim(detector_list%name)//"::move_detectors_guided_search")
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -586,8 +616,6 @@ contains
     end do detector_timestepping_loop
 
     deallocate(send_list_array)
-
-    call profiler_toc(trim(detector_list%name)//"::move_detectors_guided_search")
 
   end subroutine move_detectors_guided_search
 
@@ -884,51 +912,5 @@ contains
     if(checkint>0) check_any_lagrangian = .true.
 
   end function check_any_lagrangian
-
-  subroutine allocate_rk_guided_search(detector_list, dim, n_stages)
-    ! Allocate the RK stages and update vector
-    type(detector_linked_list), intent(inout) :: detector_list
-    integer, intent(in) :: n_stages, dim
-
-    type(detector_type), pointer :: detector
-
-    detector => detector_list%first
-    do while (associated(detector))
-       if(detector%type==LAGRANGIAN_DETECTOR) then
-          if(allocated(detector%k)) then
-             deallocate(detector%k)
-          end if
-          if(allocated(detector%update_vector)) then
-             deallocate(detector%update_vector)
-          end if
-          allocate(detector%k(n_stages,dim))
-          detector%k = 0.
-          allocate(detector%update_vector(dim))
-          detector%update_vector=0.
-       end if
-       detector => detector%next
-    end do
-
-  end subroutine allocate_rk_guided_search
-
-  subroutine deallocate_rk_guided_search(detector_list)
-    ! Deallocate the RK stages and update vector
-    type(detector_linked_list), intent(inout) :: detector_list
-      
-    type(detector_type), pointer :: detector
-      
-    detector => detector_list%first
-    do while (associated(detector))
-       if(detector%type==LAGRANGIAN_DETECTOR) then
-          if(allocated(detector%k)) then
-             deallocate(detector%k)
-          end if
-          if(allocated(detector%update_vector)) then
-             deallocate(detector%update_vector)
-          end if
-       end if
-       detector => detector%next
-    end do
-  end subroutine deallocate_rk_guided_search
 
 end module detector_move_lagrangian

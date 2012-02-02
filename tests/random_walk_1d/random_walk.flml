@@ -95,7 +95,7 @@ def val(X, t):
         </detectors>
       </prescribed>
     </scalar_field>
-    <vector_field name="Diffusivity_grad" rank="1">
+    <vector_field name="DiffusivityGradient" rank="1">
       <diagnostic>
         <algorithm source_field_type="scalar" material_phase_support="single" name="grad" source_field_name="Diffusivity"/>
         <mesh name="VelocityMesh"/>
@@ -117,21 +117,58 @@ def val(X, t):
   </material_phase>
   <embedded_models>
     <lagrangian_ensemble_biology>
-      <functional_group>
-        <agent_array name="Naive_RW">
-          <number_of_agents>
-            <integer_value rank="0">1000</integer_value>
-          </number_of_agents>
-          <initial_position>
-            <string_value lines="20" type="python">def val(t):
+      <random_seed>
+        <integer_value rank="0">113165</integer_value>
+      </random_seed>
+      <functional_group name="RandomWalk">
+        <variables>
+          <state_variable name="Stage"/>
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </state_variable>
+        </variables>
+        <environment/>
+        <stages>
+          <stage name="NaivePython">
+            <id>
+              <real_value rank="0">1.0</real_value>
+            </id>
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">1000</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value type="python" lines="20">def val(t):
   from numpy import arange
   # 4000 agents, evenly spaced in [0:40]
   positions = arange(-40.,0.,0.04).reshape(1000,1)
   return positions</string_value>
-          </initial_position>
-          <random_walk>
-            <python>
-              <string_value lines="20" type="python">from numpy import random, array
+              </position>
+              <biology>
+                <string_value type="python" lines="20">def val(biovars):
+  return biovars</string_value>
+              </biology>
+            </initial_state>
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+              <random_walk name="NaivePython">
+                <python>
+                  <string_value type="python" lines="20">from numpy import random, array
 from math import sqrt
 
 diff_eval = state.scalar_fields['Diffusivity'].eval_field
@@ -142,27 +179,46 @@ def val(ele, local_coord, dt):
   rnd = random.uniform(-1.,1.,1)
   K = diff_eval(ele, array(local_coord))
   return [rnd * sqrt(6*K*dt)]</string_value>
-            </python>
-          </random_walk>
-        </agent_array>
-        <agent_array name="Diffusive_RW">
-          <number_of_agents>
-            <integer_value rank="0">1000</integer_value>
-          </number_of_agents>
-          <initial_position>
-            <string_value lines="20" type="python">def val(t):
+                </python>
+              </random_walk>
+            </movement>
+            <disable_biology/>
+          </stage>
+          <stage name="DiffusivePython">
+            <id>
+              <real_value rank="0">2.0</real_value>
+            </id>
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">1000</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value lines="20" type="python">def val(t):
   from numpy import arange
   # 4000 agents, evenly spaced in [0:40]
   positions = arange(-40.,0.,0.04).reshape(1000,1)
   return positions</string_value>
-          </initial_position>
-          <random_walk>
-            <python>
-              <string_value lines="20" type="python">from numpy import random, array
+              </position>
+              <biology>
+                <string_value lines="20" type="python">def val(biovars):
+  return biovars</string_value>
+              </biology>
+            </initial_state>
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+              <random_walk name="DiffusivePython">
+                <python>
+                  <string_value lines="20" type="python">from numpy import random, array
 from math import sqrt
 
 diff_eval = state.scalar_fields['Diffusivity'].eval_field
-diff_grad_eval = state.vector_fields['Diffusivity_grad'].eval_field
+diff_grad_eval = state.vector_fields['DiffusivityGradient'].eval_field
 coord_eval = state.vector_fields['Coordinate'].eval_field
 coord_lcoord = state.vector_fields['Coordinate'].local_coords
 
@@ -180,53 +236,87 @@ def val(ele, local_coord, dt):
   K = diff_eval(ele, lcoord)
 
   return [K_grad*dt + (rnd * sqrt(6*K*dt))]</string_value>
-            </python>
-          </random_walk>
-        </agent_array>
-        <agent_array name="Diffusive_RW_internal">
-          <number_of_agents>
-            <integer_value rank="0">1000</integer_value>
-          </number_of_agents>
-          <initial_position>
-            <string_value lines="20" type="python">def val(t):
+                </python>
+              </random_walk>
+            </movement>
+            <disable_biology/>
+          </stage>
+          <stage name="Naive">
+            <id>
+              <real_value rank="0">3.0</real_value>
+            </id>
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">1000</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value lines="20" type="python">def val(t):
   from numpy import arange
   # 4000 agents, evenly spaced in [0:40]
   positions = arange(-40.,0.,0.04).reshape(1000,1)
   return positions</string_value>
-          </initial_position>
-          <random_walk>
-            <diffusive_random_walk diffusivity_gradient="Diffusivity_grad" diffusivity_field="Diffusivity"/>
-          </random_walk>
-        </agent_array>
-        <agent_array name="Naive_RW_internal">
-          <number_of_agents>
-            <integer_value rank="0">1000</integer_value>
-          </number_of_agents>
-          <initial_position>
-            <string_value lines="20" type="python">def val(t):
+              </position>
+              <biology>
+                <string_value lines="20" type="python">def val(biovars):
+  return biovars</string_value>
+              </biology>
+            </initial_state>
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+              <random_walk diffusivity_field="Diffusivity" name="Naive"/>
+            </movement>
+            <disable_biology/>
+          </stage>
+          <stage name="Diffusive">
+            <id>
+              <real_value rank="0">4.0</real_value>
+            </id>
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">1000</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value lines="20" type="python">def val(t):
   from numpy import arange
   # 4000 agents, evenly spaced in [0:40]
   positions = arange(-40.,0.,0.04).reshape(1000,1)
   return positions</string_value>
-          </initial_position>
-          <random_walk>
-            <naive_random_walk diffusivity_field="Diffusivity"/>
-          </random_walk>
-        </agent_array>
-        <lagrangian_timestepping>
-          <subcycles>
-            <integer_value rank="0">1</integer_value>
-          </subcycles>
-          <search_tolerance>
-            <real_value rank="0">1.0e-10</real_value>
-          </search_tolerance>
-          <forward_euler_guided_search/>
-          <reflect_on_boundary/>
-        </lagrangian_timestepping>
+              </position>
+              <biology>
+                <string_value lines="20" type="python">def val(biovars):
+  return biovars</string_value>
+              </biology>
+            </initial_state>
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+              <random_walk diffusivity_gradient="DiffusivityGradient" diffusivity_field="Diffusivity" name="Diffusive"/>
+            </movement>
+            <disable_biology/>
+          </stage>
+        </stages>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output/>
+            <stat/>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+          </diagnostic>
+        </scalar_field>
       </functional_group>
-      <random_seed>
-        <integer_value rank="0">113165</integer_value>
-      </random_seed>
     </lagrangian_ensemble_biology>
   </embedded_models>
 </fluidity_options>

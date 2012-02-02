@@ -11,32 +11,32 @@
     </command_line>
   </problem_definition>
   <variables>
-    <variable name="final_distribution_naive" language="python">
+    <variable name="final_distribution_naive_python" language="python">
 from detector_distribution import get_distribution
-final_distribution_naive = get_distribution("Naive_RW.detectors", 600, 40, 1000)[:,-1]
+final_distribution_naive_python = get_distribution("RandomWalkNaivePython.detectors", 600, 40, 1000)[:,-1]
+    </variable>
+    <variable name="final_distribution_diffusive_python" language="python">
+from detector_distribution import get_distribution
+final_distribution_diffusive_python = get_distribution("RandomWalkDiffusivePython.detectors", 600, 40, 1000)[:,-1]
     </variable>
     <variable name="final_distribution_naive_internal" language="python">
 from detector_distribution import get_distribution
-final_distribution_naive_internal = get_distribution("Naive_RW_internal.detectors", 600, 40, 1000)[:,-1]
-    </variable>
-    <variable name="final_distribution_diffusive" language="python">
-from detector_distribution import get_distribution
-final_distribution_diffusive = get_distribution("Diffusive_RW.detectors", 600, 40, 1000)[:,-1]
+final_distribution_naive_internal = get_distribution("RandomWalkNaive.detectors", 600, 40, 1000)[:,-1]
     </variable>
     <variable name="final_distribution_diffusive_internal" language="python">
 from detector_distribution import get_distribution
-final_distribution_diffusive_internal = get_distribution("Diffusive_RW_internal.detectors", 600, 40, 1000)[:,-1]
+final_distribution_diffusive_internal = get_distribution("RandomWalkDiffusive.detectors", 600, 40, 1000)[:,-1]
     </variable>
   </variables>
   <pass_tests>
-    <test name="naive_distribution_outside_bounds" language="python">
-assert abs(final_distribution_naive).max() &gt; 50
+    <test name="naive_python_distribution_outside_bounds" language="python">
+assert abs(final_distribution_naive_python).max() &gt; 50
+    </test>
+    <test name="diffusive_python_distribution_within_bounds" language="python">
+assert abs(final_distribution_diffusive_python-25).all() &lt; 10
     </test>
     <test name="naive_internal_distribution_outside_bounds" language="python">
 assert abs(final_distribution_naive_internal).max() &gt; 50
-    </test>
-    <test name="diffusive_distribution_within_bounds" language="python">
-assert abs(final_distribution_diffusive-25).all() &lt; 10
     </test>
     <test name="diffusive_internal_distribution_within_bounds" language="python">
 assert abs(final_distribution_diffusive_internal-25).all() &lt; 10

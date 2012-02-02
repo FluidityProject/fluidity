@@ -97,7 +97,7 @@ module detector_data_types
 
     !! Auto-subcycling (for internal Diffusive Random Walk)
     logical :: auto_subcycle = .false.
-    real :: subcycle_scale_factor = 0.0
+    real :: subcycle_scale_factor = 1.0
 
     !! Python Random Walk function
     logical :: python_random_walk = .false.
@@ -148,18 +148,20 @@ module detector_data_types
      !!!!!!!!!!!!!!!!!!!!!!!!!
      !!! Detector movement !!!
      !!!!!!!!!!!!!!!!!!!!!!!!!
+     ! Number of user-defined sub-cycles per timestep
+     integer :: n_subcycles = 1
      ! Flag indicating whether to apply lagrangian advection
-     logical :: velocity_advection = .true.
+     logical :: velocity_advection = .false.
      ! Flag indicating whether we reflect detectors at the domain boundary
      logical :: reflect_on_boundary = .false.
      ! Flag indicating whether we update physical coordinates when the mesh moves
      logical :: move_with_mesh = .false.
 
      ! Runk-Kutta Guided Search parameters
-     integer :: n_stages, n_subcycles
+     integer :: n_stages = 0
      real, allocatable, dimension(:) :: timestep_weights
      real, allocatable, dimension(:,:) :: stage_matrix
-     real :: search_tolerance
+     real :: search_tolerance = 1.0e-10
 
      ! List of random walk schemes to apply
      type(random_walk), dimension(:), allocatable :: random_walks
