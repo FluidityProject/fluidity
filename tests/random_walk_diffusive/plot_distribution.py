@@ -84,7 +84,7 @@ def get_1d_indices(pos, x0=0, y0=0, tolerance=1.0e-5):
 
 plot_diffusivity("random_walk_diffusive_0.vtu")
 
-det_count_diffusive = get_distribution("Diffusive_RW.detectors", 667, 60, 1200)
+det_count_diffusive = get_distribution("RandomWalkDiffusive.detectors", 667, 60, 1200)
 plot_detector_distribution(det_count_diffusive, "AgentRW", 667, 60, 1800)
 
 show()
