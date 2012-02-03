@@ -3069,11 +3069,23 @@ guided search particle tracking</a:documentation>
       <ref name="real"/>
     </element>
     <element name="calculation_method">
+      <a:documentation>Three options for calculation of bed shear stress are available:</a:documentation>
       <choice>
         <element name="drag_coefficient">
+          <a:documentation>density*drag_coeff*|u|*u 
+This is calculated at all boundaries</a:documentation>
           <ref name="real"/>
         </element>
         <element name="velocity_gradient">
+          <a:documentation>velocity_gradient - nu * grad(u)
+This uses the velocity gradient at the boundarieds to calculate the 
+bed shear stress. Valid for non parameterised velocity boundaries</a:documentation>
+          <empty/>
+        </element>
+        <element name="wall_treatment">
+          <a:documentation>This diagnostic can only be used in conjunction with a near-wall treatment
+velocity boundary condition. It is calculated at the same time as that boundary condition.
+The shear stress depends upon parameters set for the near-wall treatment algorithm.</a:documentation>
           <empty/>
         </element>
       </choice>
