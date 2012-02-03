@@ -103,8 +103,8 @@ def get_spline(t):
   return tck
     
 def calc_mu(z, layer):
-  interfacewidth=30.0
-  mu_MLD=0.3  #0.05
+  interfacewidth=5.0  #30.0
+  mu_MLD=0.1  #0.3
   if abs(z)&lt;=layer-interfacewidth:
     mu_Z=mu_MLD
   elif abs(z)&lt;=layer:
@@ -588,6 +588,7 @@ def val(X,t):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
+              <stage_aggregate/>
             </scalar_field>
             <chemical_field name="DissolvedAmmonium"/>
             <uptake>
@@ -635,6 +636,7 @@ def val(X,t):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
+              <stage_aggregate/>
             </scalar_field>
             <chemical_field name="DissolvedNitrate"/>
             <uptake>
@@ -670,6 +672,7 @@ def val(X,t):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
+              <stage_aggregate/>
             </scalar_field>
             <chemical_field name="DissolvedSilicate"/>
             <uptake>

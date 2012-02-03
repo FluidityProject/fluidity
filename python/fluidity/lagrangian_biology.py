@@ -142,7 +142,7 @@ def update_living_diatom(vars, env, dt):
     if Theta_N <= param_Theta_max_N:
       chlorophyll_pool_new = vars['Chlorophyll'] + Rho_Chl * (vars['AmmoniumUptake'] + vars['NitrateUptake'])
     else:
-      chlorophyll_pool_new = param_Theta_max_N * (ammonium_pool + nitrate_pool)
+      chlorophyll_pool_new = param_Theta_max_N * (vars['Ammonium'] + vars['Nitrate'])
     chlorophyll_pool_new = chlorophyll_pool_new - (vars['Chlorophyll'] * param_R_Chl * stepInHours * T_function)
     chlorophyll_pool_new = max(chlorophyll_pool_new / C_d, 0.0)
 
