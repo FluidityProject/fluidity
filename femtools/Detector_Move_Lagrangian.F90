@@ -209,18 +209,14 @@ contains
 
     type(vector_field), pointer :: vfield, xfield
     type(detector_type), pointer :: detector, move_detector
-    type(detector_linked_list) :: subcycle_detector_list
     type(halo_type), pointer :: ele_halo
-    integer :: dim, stage, cycle, subsubcycle, ele, rw
-    real :: sub_dt, total_subsubcycle
-    integer :: max_subsubcycle
+    integer :: dim, stage, cycle, rw
+    real :: sub_dt
 
     ! Random Walk velocity source
     real, dimension(:), allocatable :: rw_displacement
     type(scalar_field), pointer :: diffusivity_field
     type(vector_field), pointer :: diffusivity_grad, diffusivity_2nd_grad
-    integer :: auto_subcycles = 0
-    integer, dimension(:), allocatable :: auto_subcycle_per_ele
 
     call profiler_tic(trim(detector_list%name)//"::movement")
 
@@ -348,83 +344,9 @@ contains
              ! Internal Diffusive Random Walk with automated sub-cycling
              elseif (detector_list%random_walks(rw)%diffusive_random_walk &
                          .and. detector_list%random_walks(rw)%auto_subcycle) then
-                subcycle_detector_list%search_tolerance = detector_list%search_tolerance
-                subcycle_detector_list%reflect_on_boundary = detector_list%reflect_on_boundary
-                subcycle_detector_list%name = detector_list%name
-                max_subsubcycle = 1
-                total_subsubcycle = 0
 
-                ! Create a list of auto-subcycle numbers per element
-                allocate(auto_subcycle_per_ele(element_count(xfield)))
-                do ele=1, element_count(xfield)
-                   call element_rw_subcycling(ele, sub_dt, xfield, diffusivity_field, &
-                                diffusivity_grad, diffusivity_2nd_grad, detector_list%search_tolerance, &
-                                detector_list%random_walks(rw)%subcycle_scale_factor, auto_subcycle_per_ele(ele))
-                end do
-
-                ! First pass establishes how many sub-sub-cycles are required
-                detector => detector_list%first
-                do while (associated(detector))
-                   if (detector%type==LAGRANGIAN_DETECTOR) then
-
-                      ! Establish how many subcycles are needed
-                      detector%rw_subsubcycles = auto_subcycle_per_ele(detector%element)
-                      total_subsubcycle = total_subsubcycle + detector%rw_subsubcycles
-                      if (detector%rw_subsubcycles > max_subsubcycle) then
-                         max_subsubcycle = detector%rw_subsubcycles
-                      end if
-
-                      call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, &
-                                diffusivity_field, diffusivity_grad, rw_displacement)
-                      detector%update_vector=detector%update_vector + rw_displacement
-
-                      ! Separate the ones that have more to do...
-                      if (detector%rw_subsubcycles > 1) then
-                         move_detector=>detector
-                         detector => detector%next
-                         call move(move_detector, detector_list, subcycle_detector_list)
-                      else
-                         detector => detector%next
-                      end if
-                   else
-                      detector => detector%next
-                   end if
-                end do
-
-                deallocate(auto_subcycle_per_ele)
-
-                ! Update elements in the subcycle list
-                if (subcycle_detector_list%length > 0) then
-                   call move_detectors_guided_search(subcycle_detector_list,xfield)
-                end if
-
-                ! Remaining subcycle passes until subcycle list is empty
-                subsubcycle = 2
-                do while (subcycle_detector_list%length > 0)
-                   detector => subcycle_detector_list%first
-                   do while (associated(detector))
-                      call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, xfield, &
-                                diffusivity_field, diffusivity_grad, rw_displacement)
-                      detector%update_vector=detector%update_vector + rw_displacement
-
-                      ! Separate the ones that have more to do...
-                      if (detector%rw_subsubcycles <= subsubcycle) then
-                         move_detector=>detector
-                         detector => detector%next
-                         call move(move_detector, subcycle_detector_list, detector_list)
-                      else
-                         detector => detector%next
-                      end if
-                   end do
-                   call move_detectors_guided_search(subcycle_detector_list,xfield)
-                   subsubcycle = subsubcycle + 1
-                end do
-
-                ! Update elements after the final move
-                call move_detectors_guided_search(detector_list,xfield)
-
-                ewrite(2,*) "Auto-subcycling: max. subcycles:", max_subsubcycle
-                ewrite(2,*) "Auto-subcycling: avg. subcycles:", total_subsubcycle / detector_list%length
+                call auto_subcycle_random_walk(detector_list,sub_dt,detector_list%random_walks(rw)%subcycle_scale_factor,&
+                          xfield,diffusivity_field,diffusivity_grad,diffusivity_2nd_grad)
 
              else
                 FLExit("Auto-subcycling can only be used with internal diffusive Random Walk.")
@@ -432,7 +354,7 @@ contains
 
              call profiler_toc(trim(detector_list%name)//"::movement::"//trim(detector_list%random_walks(rw)%name))
           end do
-       end if !allocated(detector_list%random_walks)
+       end if 
 
        ! After everything is done, we update detector%position
        detector => detector_list%first
@@ -746,6 +668,103 @@ contains
 
   end subroutine reflect_on_boundary
 
+  subroutine auto_subcycle_random_walk(detector_list,sub_dt,scale_factor,xfield,diff_field,grad_field,grad2_field)
+    type(detector_linked_list), intent(inout) :: detector_list
+    real, intent(in) :: sub_dt, scale_factor
+    type(scalar_field), pointer, intent(in) :: diff_field
+    type(vector_field), pointer, intent(in) :: xfield, grad_field, grad2_field
+
+    type(detector_linked_list) :: subcycle_detector_list
+    type(detector_type), pointer :: detector, move_detector
+    real, dimension(:), allocatable :: rw_displacement
+    integer, dimension(:), allocatable :: auto_subcycle_per_ele
+    real :: total_subsubcycle
+    integer :: ele, subsubcycle, max_subsubcycle
+
+    max_subsubcycle = 1
+    total_subsubcycle = 0
+    allocate(rw_displacement(xfield%dim))
+
+    ! Setup our detector work list
+    subcycle_detector_list%search_tolerance = detector_list%search_tolerance
+    subcycle_detector_list%reflect_on_boundary = detector_list%reflect_on_boundary
+    subcycle_detector_list%name = detector_list%name
+
+    ! Create a list of auto-subcycle numbers per element
+    allocate(auto_subcycle_per_ele(element_count(xfield)))
+    do ele=1, element_count(xfield)
+       call element_rw_subcycling(ele, sub_dt, xfield, diff_field, grad_field, grad2_field, &
+               detector_list%search_tolerance, scale_factor, auto_subcycle_per_ele(ele))
+       end do
+
+    ! First pass establishes how many sub-sub-cycles are required
+    detector => detector_list%first
+    do while (associated(detector))
+       if (detector%type==LAGRANGIAN_DETECTOR) then
+
+          ! Establish how many subcycles are needed
+          detector%rw_subsubcycles = auto_subcycle_per_ele(detector%element)
+          total_subsubcycle = total_subsubcycle + detector%rw_subsubcycles
+          if (detector%rw_subsubcycles > max_subsubcycle) then
+             max_subsubcycle = detector%rw_subsubcycles
+          end if
+
+          call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, &
+                   xfield, diff_field, grad_field, rw_displacement)
+          detector%update_vector=detector%update_vector + rw_displacement
+
+          ! Separate the ones that have more to do...
+          if (detector%rw_subsubcycles > 1) then
+             move_detector=>detector
+             detector => detector%next
+             call move(move_detector, detector_list, subcycle_detector_list)
+          else
+             detector => detector%next
+          end if
+       else
+          detector => detector%next
+       end if
+    end do
+
+    deallocate(auto_subcycle_per_ele)
+
+    ! Update elements in the subcycle list
+    if (subcycle_detector_list%length > 0) then
+       call move_detectors_guided_search(subcycle_detector_list,xfield)
+    end if
+
+    ! Remaining subcycle passes until subcycle list is empty
+    subsubcycle = 2
+    do while (subcycle_detector_list%length > 0)
+       detector => subcycle_detector_list%first
+       do while (associated(detector))
+          call diffusive_random_walk(detector, sub_dt/detector%rw_subsubcycles, &
+                   xfield, diff_field, grad_field, rw_displacement)
+          detector%update_vector=detector%update_vector + rw_displacement
+
+          ! Separate the ones that have more to do...
+          if (detector%rw_subsubcycles <= subsubcycle) then
+             move_detector=>detector
+             detector => detector%next
+             call move(move_detector, subcycle_detector_list, detector_list)
+          else
+             detector => detector%next
+          end if
+       end do
+       call move_detectors_guided_search(subcycle_detector_list,xfield)
+       subsubcycle = subsubcycle + 1
+    end do
+
+    ! Update detectors after the final move
+    call move_detectors_guided_search(detector_list,xfield)
+
+    ewrite(2,*) "Auto-subcycling: max. subcycles:", max_subsubcycle
+    ewrite(2,*) "Auto-subcycling: avg. subcycles:", total_subsubcycle / detector_list%length
+
+    deallocate(rw_displacement)
+
+  end subroutine auto_subcycle_random_walk
+
   subroutine element_rw_subcycling(element,dt,xfield,diff_field,grad_field,grad2_field,search_tolerance,scale_factor,subcycles)
     integer, intent(in) :: element
     type(scalar_field), pointer, intent(in) :: diff_field
@@ -766,7 +785,7 @@ contains
     subcycles = 1
     k0 = maxval(abs(ele_val(diff_field, element)))
     k_grad = ele_val(grad_field, grad_field%dim, element)
-    d_z = sqrt(6 * K0 * dt) + maxval(abs(K_grad)) * dt
+    d_z = sqrt(6 * K0 * dt) + maxval(abs(k_grad)) * dt
 
     coords = ele_val(xfield, xfield%dim, element)
     min_z = minval(coords) - d_z
