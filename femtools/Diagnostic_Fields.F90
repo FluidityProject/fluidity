@@ -2566,11 +2566,11 @@ contains
       ! assumes constant density
       call get_option(trim(bed_shear_stress%option_path)//"/diagnostic/density", density)
 
-      call zero(bed_shear_stress) 
-
       ! calculate using drag coefficient
       if (have_option(trim(bed_shear_stress%option_path)//&
            &"/diagnostic/calculation_method/drag_coefficient")) then
+
+         call zero(bed_shear_stress) 
 
          call get_option(trim(bed_shear_stress%option_path)//&
               & "/diagnostic/calculation_method/drag_coefficient",&
@@ -2592,7 +2592,15 @@ contains
 
       ! calculate using velocity gradient
       else if (have_option(trim(bed_shear_stress%option_path)//&
+           &"/diagnostic/calculation_method/wall_treatment")) then
+
+         ! not handled here - handled in Weak_BCs
+
+      ! calculate using velocity gradient
+      else if (have_option(trim(bed_shear_stress%option_path)//&
            &"/diagnostic/calculation_method/velocity_gradient")) then
+
+         call zero(bed_shear_stress) 
 
          visc => extract_tensor_field(state, "Viscosity")
          U    => extract_vector_field(state, "Velocity")

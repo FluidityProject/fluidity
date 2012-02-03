@@ -59,7 +59,7 @@
       type(state_type), intent(in)         :: state
 
       type(vector_field), pointer:: velocity, old_velocity, nl_velocity
-      type(vector_field), pointer:: position, normal_nodes
+      type(vector_field), pointer:: position, normal_nodes, bed_shear
       type(scalar_field), pointer:: density, dummydensity
       type(tensor_field), pointer:: viscosity
 
@@ -70,7 +70,7 @@
       character(len=FIELD_NAME_LEN) :: equation_type
       real:: tolerance, Cb, Cf, theta
 
-      logical:: have_Cb
+      logical:: have_Cb, have_BS
       logical:: rm_out=.false.
 
       ! implements a penalty function for the near-wall region
@@ -86,6 +86,14 @@
 
       position     => extract_vector_field(state, "Coordinate")
       viscosity    => extract_tensor_field(state, "Viscosity")
+
+      ! for bed shear stress diagnostic field
+      bed_shear    => extract_vector_field(state, "BedShearStress", stat = stat)
+      have_BS = (stat == 0 .and. have_option(trim(bed_shear%option_path)//&
+           &"/diagnostic/calculation_method/wall_treatment"))
+      if (have_BS) then
+         call zero(bed_shear)
+      end if
 
       allocate(dummydensity)
       call allocate(dummydensity, position%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
@@ -185,11 +193,16 @@
 
                call wall_treatment(ele, sele, position, old_velocity, nl_velocity, density, &
                     viscosity, rhs, bigm, bc_type, tolerance, Cb, Cf, theta, have_Cb, &
-                    normal_nodes, surface_node_list)
+                    normal_nodes, surface_node_list, bed_shear, have_BS)
 
             end do
          end if
       end do
+
+      ! for bed shear stress diagnostic field
+      if (have_BS) then
+         call scale(bed_shear, nl_velocity)
+      end if
 
       if (rm_out) deallocate(out_ele)
       call deallocate(dummydensity); deallocate(dummydensity)
@@ -201,11 +214,11 @@
     
     subroutine wall_treatment(ele, sele, x, u, nu, density, &
          viscosity, rhs, bigm, bc_type, tolerance, Cb, Cf, theta, have_Cb, &
-         normal_nodes, surface_node_list)
+         normal_nodes, surface_node_list, bed_shear, have_BS)
 
       integer, intent(in)                       :: ele, sele
       character(len=OPTION_PATH_LEN), intent(in):: bc_type
-      type(vector_field), intent(inout)         :: rhs
+      type(vector_field), intent(inout)         :: rhs, bed_shear
       type(petsc_csr_matrix), intent(inout)     :: bigm
       type(vector_field), intent(in)            :: x, u, nu, normal_nodes
       type(scalar_field), intent(in)            :: density
@@ -213,7 +226,7 @@
       real, dimension(face_ngi(u, sele))        :: detwei_bdy
       real, dimension(x%dim, face_ngi(u, sele)) :: normal_bdy
       real, intent(in)                          :: tolerance, Cf, theta
-      logical, intent(in)                       :: have_Cb
+      logical, intent(in)                       :: have_Cb, have_BS
       integer, dimension(:), intent(in)         :: surface_node_list
 
       ! local variables
@@ -363,19 +376,27 @@
 
          end do ! snloc
 
-          ! get absorption factor at quad
-          T_at_quad = matmul(T, u_f_shape%n)
+         ! set bed shear stress diagnostic field node values (must scale by velocity
+         ! field later)
+         if (have_BS) then
+            do dim = 1, ndim
+               call addto(bed_shear, dim, u_nodes_bdy, T)
+            end do
+         end if
 
-          ! snloc x snloc
-          mat3 = shape_shape( u_f_shape, u_f_shape, &
-                 detwei_bdy * T_at_quad )
+         ! get absorption factor at quad
+         T_at_quad = matmul(T, u_f_shape%n)
 
-          do dim = 1, ndim
+         ! snloc x snloc
+         mat3 = shape_shape( u_f_shape, u_f_shape, &
+              detwei_bdy * T_at_quad )
+
+         do dim = 1, ndim
             call addto( rhs, dim, u_nodes_bdy, &
                  -sum(mat3, 2) * face_val(u, dim, sele) )
             call addto_diag( bigm, dim, dim, u_nodes_bdy, &
                  dt * theta * sum(mat3, 2) )
-          end do
+         end do
 
          l_face_number = local_face_number(u, sele)
          invJ_face = spread(invJ(:, :, 1), 3, size(invJ_face, 3))

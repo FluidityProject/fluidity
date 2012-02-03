@@ -2345,18 +2345,29 @@ diagnostic_vector_field =
       interpolation_algorithm_vector?
    )
 
-
 diagnostic_vector_field_bed_shear_stress =
    (
       element density {
          real
       }, 
       (
+         ## Three options for calculation of bed shear stress are available:
          element calculation_method {
+            ## density*drag_coeff*|u|*u 
+            ## This is calculated at all boundaries
             element drag_coefficient {
                real
             }|
+            ## velocity_gradient - nu * grad(u)
+            ## This uses the velocity gradient at the boundarieds to calculate the 
+            ## bed shear stress. Valid for non parameterised velocity boundaries
             element velocity_gradient {  
+               empty
+            }|
+            ## This diagnostic can only be used in conjunction with a near-wall treatment
+            ## velocity boundary condition. It is calculated at the same time as that boundary condition.
+            ## The shear stress depends upon parameters set for the near-wall treatment algorithm.
+            element wall_treatment {  
                empty
             }
          }
