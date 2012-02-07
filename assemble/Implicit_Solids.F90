@@ -1298,7 +1298,7 @@ contains
                 node1 => node1%next  
              end do
           end do
-    
+
           do i = 1, number_of_solids
              call allsum(particle_force(i, :))
           end do

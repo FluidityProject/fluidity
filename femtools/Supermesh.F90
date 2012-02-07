@@ -158,12 +158,14 @@ module supermesh_construction
   end subroutine intersector_set_exactness
 
   ! A higher-level interface to supermesh construction.
-  subroutine construct_supermesh(new_positions, ele_B, old_positions, map_BA, supermesh_shape, supermesh)
+  subroutine construct_supermesh(new_positions, ele_B, old_positions, map_BA, supermesh_shape, supermesh, stat)
     type(vector_field), intent(in) :: new_positions, old_positions
     integer, intent(in) :: ele_B
     type(ilist) :: map_BA
     type(element_type), intent(in) :: supermesh_shape
     type(vector_field), intent(out) :: supermesh
+    integer, intent(out), optional :: stat
+    
     integer :: ele_A
     type(inode), pointer :: llnode
     type(vector_field), dimension(map_BA%length) :: intersection
@@ -171,6 +173,10 @@ module supermesh_construction
     type(plane_type), dimension(4) :: planes_B
     type(tet_type) :: tet_A, tet_B
     integer :: lstat, dim, j, i
+
+    if (present(stat)) then
+      stat = 0
+    end if
 
     dim = new_positions%dim
 
@@ -211,8 +217,16 @@ module supermesh_construction
       llnode => llnode%next
     end do
 
-    supermesh = unify_meshes(intersection(1:j-1))
-    supermesh%name = "Coordinate"
+    if (j == 1) then
+      if (present(stat)) then
+        stat = 1
+      else
+        FLAbort("Got no intersections ... ")
+      end if
+    else
+      supermesh = unify_meshes(intersection(1:j-1))
+      supermesh%name = "Coordinate"
+    end if
 
     do i=1,j-1
       deallocate(intersection(i)%mesh%region_ids)

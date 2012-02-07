@@ -36,6 +36,7 @@ module supermesh_force
   use spud
   use vtk_interfaces
   use global_parameters, only: OPTION_PATH_LEN
+  use linked_lists
   use bound_field_module
   use fefields, only: compute_lumped_mass
 
@@ -51,11 +52,11 @@ contains
     !! positionsF and positionsS are the coordinate fields of the fluid and solid mesh respectively
 
     ! F stands for fluid, S for solid, C for the supermesh in this case:
-    type(vector_field), intent(inout) :: fieldF !, fieldS
+    type(vector_field), intent(inout) :: fieldF
     type(vector_field), intent(inout) :: positionsF, positionsS
     type(scalar_field), intent(inout) :: alpha_sf
 
-    type(ilist), dimension(ele_count(positionsS)) :: map_SF
+    !type(ilist), dimension(ele_count(positionsS)) :: map_SF ! this is for using the advancing front algorithm
     integer :: ele_F, ele_S
 
     type(quadrature_type) :: supermesh_quad
@@ -76,6 +77,10 @@ contains
     real, dimension(ele_loc(positionsS, 1), ele_loc(positionsS, 1), ele_count(positionsF)) :: inversion_matrices_F
     integer :: dim, max_degree
     
+    ! Variables for ilist when using rtree intersection finder:
+    type(ilist) :: map_SF_rtree
+    integer :: nele_fs, j, maplen
+    
     integer :: stat
 
     ! As the projections are bounded, we need to define lumped versions of the mass matrices:
@@ -94,7 +99,14 @@ contains
     supermesh_positions_shape = make_element_shape(vertices=ele_loc(positionsS, 1), dim=dim, degree=1, quad=supermesh_quad)
     supermesh_field_shape = make_element_shape(vertices=ele_loc(positionsS, 1), dim=dim, degree=max_degree, quad=supermesh_quad)
     ! For each element in S get the list of intersecting elements in F
-    map_SF = intersection_finder(positionsS, positionsF)
+    ! Replace advancing_front_intersection_finder for now
+    ! (more work needs to be done to make this work in parallel for fsi-modelling)
+    ! with the more robust rtree_intersection_finder:
+    ! advancing_front:
+    !map_SF = intersection_finder(positionsS, positionsF)
+    ! rtree:
+    call rtree_intersection_finder_set_input(positionsF)
+
 
     sparsity_fluid = make_sparsity(fieldF%mesh, fieldF%mesh, "FluidMassMatrixSparsity")
     call allocate(mass_matrix_fluid, sparsity_fluid, name="FluidMassMatrix")
@@ -124,46 +136,81 @@ contains
     ! Looping over all the elements of (solid) mesh S:
     do ele_S=1,ele_count(positionsS)
 
+      ! =====================================================================================================
+      ! The following is obviously only required when using the rtree intersection finder:
+      ! This will be replaced by code using the advancing front algorithm, once this has been modified to
+      ! work in parallel for fluid-solid interaction modelling
+      ! Via RTREE, find intersection of solid element 'ele_S' with the
+      ! input mesh (=fluid mesh 'positionsF'):
+      call rtree_intersection_finder_find(positionsS, ele_S)
+      ! Fetch output, the number of intersections of this solid element
+      ! with the fluid mesh (= positionsF):
+      call rtree_intersection_finder_query_output(nele_fs)
+      ! Generate an ilist of elements in positionsF that intersect with ele_S:
+      do j=1, nele_fs
+        ! Get the donor (fluid) element which intersects with ele_S
+        call rtree_intersection_finder_get_output(ele_F, j)
+        call insert_ascending(map_SF_rtree, ele_F)
+      end do
+      ! =====================================================================================================
+
       ! get the matrix for the coordinates of (solid) mesh S:
       call local_coords_matrix(positionsS, ele_S, inversion_matrix_S)
-      ! Construct the supermesh associated with ele_S.
-      call construct_supermesh(positionsS, ele_S, positionsF, map_SF(ele_S), supermesh_positions_shape, supermesh)
-      ! At this point, a portion of the supermesh is constructed, which refines the dimensional space
-      ! of the intersection of ele_S with mesh F.
-      ! This portion of the supermesh is stored in 'supermesh'
+      ! Construct the supermesh associated with ele_S. (For advancing front algorithm, uncomment the following line:)
+      !call construct_supermesh(positionsS, ele_S, positionsF, map_SF(ele_S), supermesh_positions_shape, supermesh)
+      ! =====================================================================================================
+      ! When using the rtree intersection finder:
+      if (map_SF_rtree%length > 0) then
+        stat = 0
+        call construct_supermesh(positionsS, ele_S, positionsF, map_SF_rtree, supermesh_positions_shape, supermesh, stat=stat)
+        ! if no intersection for proc x was found, no supermesh was created, then stat/=0
+        if (stat /= 0) then
+          cycle
+        end if
+        ! =====================================================================================================
 
-      ! 1st step: Compute the project unity from the solid mesh to the supermesh:
+        ! At this point, a portion of the supermesh is constructed, which refines the dimensional space
+        ! of the intersection of ele_S with mesh F.
+        ! This portion of the supermesh is stored in 'supermesh'
 
-      ! Allocate field for alpha on the supermesh:
-      supermesh_field_mesh = make_mesh(supermesh%mesh, supermesh_field_shape, -1, "SupermeshFieldMesh")
-      call allocate(alpha_sf_on_supermesh, supermesh_field_mesh, "AlphaSFOnSupermesh")
-      call zero(alpha_sf_on_supermesh)
+        ! 1st step: Compute the project unity from the solid mesh to the supermesh:
 
-      ! Get alpha for this portion of the supermesh:
-      call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
-                                      supermesh, inversion_matrix_S, alpha_sf_on_supermesh)
+        ! Allocate field for alpha on the supermesh:
+        supermesh_field_mesh = make_mesh(supermesh%mesh, supermesh_field_shape, -1, "SupermeshFieldMesh")
+        call allocate(alpha_sf_on_supermesh, supermesh_field_mesh, "AlphaSFOnSupermesh")
+        call zero(alpha_sf_on_supermesh)
 
-      ! 2nd step: Compute the RHS of the Galerkin projection:
-      ! Elemental Values of alpha of this part of the supermesh are now computed.
-      ! Compute the RHS of 
-      ! M_f * alpha_f = M_{f,sup} * alpha_{sup}
-      ! and afterwards, the supermesh can be deleted as it is no longer needed,
-      ! remember, (M_{f,sup} * alpha_{sup}) lives on the fluid mesh, not the supermesh.
-      call compute_rhs_galerkin_projection_oneway_fsi(ele_S, rhs_alpha_sf, positionsF, positionsS, alpha_sf_on_supermesh, &
+        ! Get alpha for this portion of the supermesh:
+        call compute_alpha_on_supermesh(supermesh_field_shape, positionsS, ele_S, ele_val(alpha_sf_on_solid, ele_S), &
+                                        supermesh, inversion_matrix_S, alpha_sf_on_supermesh)
+
+        ! 2nd step: Compute the RHS of the Galerkin projection:
+        ! Elemental Values of alpha of this part of the supermesh are now computed.
+        ! Compute the RHS of 
+        ! M_f * alpha_f = M_{f,sup} * alpha_{sup}
+        ! and afterwards, the supermesh can be deleted as it is no longer needed,
+        ! remember, (M_{f,sup} * alpha_{sup}) lives on the fluid mesh, not the supermesh.
+        call compute_rhs_galerkin_projection_oneway_fsi(ele_S, rhs_alpha_sf, positionsF, positionsS, alpha_sf_on_supermesh, &
                                                       supermesh, inversion_matrices_F)
 
-      ! Portion of supermesh no longer needed
-      call deallocate(supermesh)
-      call deallocate(supermesh_field_mesh)
-      call deallocate(alpha_sf_on_supermesh)
+        ! Portion of supermesh no longer needed
+        call deallocate(supermesh)
+        call deallocate(supermesh_field_mesh)
+        call deallocate(alpha_sf_on_supermesh)
+      end if
+      ! Flust ilist of intersecting elements (when using the rtree intersection finder):
+      call flush_list(map_SF_rtree)
     end do
 
     call deallocate(supermesh_quad)
     call deallocate(supermesh_positions_shape)
     call deallocate(supermesh_field_shape)
-    do ele_S=1,ele_count(positionsS)
-      call deallocate(map_SF(ele_S))
-    end do
+    ! =====================================================================================================
+    ! the following is commented because of using rtree instead of the advancing front algorithm:
+    !do ele_S=1,ele_count(positionsS)
+    !  call deallocate(map_SF(ele_S))
+    !end do
+    ! =====================================================================================================
 
     ! 3rd step: Project alpha from the supermesh to the fluid and solid mesh:
     ! loop over fluid and solid elements and solve the last equation, which will
