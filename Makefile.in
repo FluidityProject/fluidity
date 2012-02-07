@@ -633,6 +633,6 @@ install-diamond:
 	cd libspud; ./configure --prefix=$(PWD); cd ../..
 
 install-user-schemata:
-	mkdir -p $(HOME)/.schemata/
-	echo "Fluidity Markup Language" > $(HOME)/.schemata/flml
-	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.schemata/flml
+	mkdir -p $(HOME)/.diamond/schemata/
+	echo "Fluidity Markup Language" > $(HOME)/.diamond/schemata/flml
+	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.diamond/schemata/flml
