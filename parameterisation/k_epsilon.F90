@@ -420,7 +420,7 @@ subroutine keps_eddyvisc(state)
     type(scalar_field), pointer      :: kk, eps, EV, ll, lumped_mass
     type(scalar_field)               :: ev_rhs
     type(element_type), pointer      :: shape_ev
-    integer                          :: i, ele
+    integer                          :: i, j, ele
     integer, pointer, dimension(:)   :: nodes_ev
     real, allocatable, dimension(:)  :: detwei, rhs_addto
 
@@ -476,9 +476,13 @@ subroutine keps_eddyvisc(state)
     ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"
     call zero(eddy_visc)
 
-    ! eddy viscosity tensor is isotropic
+    ! eddy viscosity tensor is isotropic/DEVIATORIC?
     do i = 1, eddy_visc%dim(1)
-      call set(eddy_visc, i, i, EV)
+      do j = 1, eddy_visc%dim(2)
+        !if (i/=j) then
+          call set(eddy_visc, i, j, EV)
+        !end if
+      end do
     end do
 
     ! Add turbulence model contribution to viscosity field
@@ -739,11 +743,6 @@ subroutine keps_check_options(state)
     if (.not.have_option(trim(state%option_path)//"/vector_field::Velocity/prognostic"//&
                           &"/tensor_field::Viscosity/diagnostic/")) then
         FLExit("You need to switch the viscosity field under Velocity to diagnostic/internal")
-    end if
-    ! check that the background viscosity is an isotropic constant
-    if (.not.have_option(trim(option_path)//"/tensor_field::BackgroundViscosity/prescribed"//&
-                          &"/value::WholeMesh/isotropic/constant")) then
-        FLExit("You need to switch the BackgroundViscosity field to isotropic/constant")
     end if
 
 end subroutine keps_check_options

@@ -254,9 +254,10 @@ helmholtz_smoothed_scalar_algorithm =
          attribute name { "helmholtz_smoothed_scalar" },
          attribute material_phase_support { "single" },
          component_source_field,
-         ## The characteristic length scale used by the smoother.
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element width (a scalar)
          element smoothing_length_scale {
-             real_dim_symmetric_tensor
+             real
          },
          ## Solver options.
          element solver {
@@ -271,9 +272,28 @@ helmholtz_smoothed_vector_algorithm =
          attribute name { "helmholtz_smoothed_vector" },
          attribute material_phase_support { "single" },
          vector_source_field,
-         ## The characteristic length scale used by the smoother.
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element width (a scalar)
          element smoothing_length_scale {
-             real_dim_symmetric_tensor
+             real
+         },
+         ## Solver options.
+         element solver {
+            linear_solver_options_sym
+         }
+      }
+   )
+helmholtz_smoothed_tensor_algorithm =
+   (
+      ## Smooth a tensor field by inverting a Helmholtz operator.
+      element algorithm {
+         attribute name { "helmholtz_smoothed_tensor" },
+         attribute material_phase_support { "single" },
+         tensor_source_field,
+         ## The characteristic scale factor alpha used by the smoother.
+         ## The length scale is alpha*local element width (a scalar)
+         element smoothing_length_scale {
+             real
          },
          ## Solver options.
          element solver {
@@ -1410,6 +1430,7 @@ tensor_diagnostic_algorithms = tensor_copy_algorithm
 tensor_diagnostic_algorithms |= grad_vector_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
 tensor_diagnostic_algorithms |= hessian_algorithm
+tensor_diagnostic_algorithms |= helmholtz_smoothed_tensor_algorithm
 tensor_diagnostic_algorithms |= helmholtz_anisotropic_smoothed_tensor_algorithm
 tensor_diagnostic_algorithms |= field_tolerance_algorithm
 tensor_diagnostic_algorithms |= tensor_python_diagnostic_algorithm

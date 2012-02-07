@@ -15,16 +15,16 @@ module smoothing_module
 
   private
   
-  public :: smooth_scalar, smooth_vector
+  public :: smooth_scalar, smooth_vector, smooth_tensor
   public :: anisotropic_smooth_scalar, anisotropic_smooth_vector
-  public :: anisotropic_smooth_tensor, length_scale_tensor
+  public :: anisotropic_smooth_tensor, length_scale, length_scale_tensor
 
 contains
 
   subroutine smooth_scalar(field_in,positions,field_out,alpha, path)
 
     !smoothing length tensor
-    real, dimension(:,:), intent(in) :: alpha
+    real, intent(in) :: alpha
     !input field
     type(scalar_field), intent(inout) :: field_in
     !coordinates field
@@ -55,6 +55,10 @@ contains
        call assemble_smooth_scalar(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
+    ! Boundary conditions
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
+    call apply_dirichlet_conditions(M, rhsfield, field_in)
+
     call zero(field_out)
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
@@ -66,7 +70,7 @@ contains
   subroutine smooth_vector(field_in,positions,field_out,alpha, path)
 
     !smoothing length tensor
-    real, dimension(:,:), intent(in) :: alpha
+    real, intent(in) :: alpha
     !input field
     type(vector_field), intent(inout) :: field_in
     !coordinates field
@@ -79,7 +83,7 @@ contains
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
     type(vector_field) :: RHSFIELD
-    integer :: ele
+    integer :: ele, dim
 
     !allocate smoothing matrix
     M_sparsity=make_sparsity(field_in%mesh, &
@@ -97,6 +101,12 @@ contains
        call assemble_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
+    ! Boundary conditions
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
+    do dim=1, field_in%dim
+      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
+    end do
+
     call zero(field_out)
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
@@ -104,6 +114,48 @@ contains
     call deallocate(M)
 
   end subroutine smooth_vector
+
+  subroutine smooth_tensor(field_in,positions,field_out,alpha, path)
+
+    !smoothing length tensor
+    real, intent(in) :: alpha
+    !input field
+    type(tensor_field), intent(inout) :: field_in
+    !coordinates field
+    type(vector_field), intent(in) :: positions
+    !output field, should have same mesh as input field
+    type(tensor_field), intent(inout) :: field_out
+    character(len=*), intent(in) :: path
+    
+    !local variables
+    type(csr_matrix) :: M
+    type(csr_sparsity) :: M_sparsity
+    type(tensor_field) :: rhsfield
+    integer :: ele
+
+    !allocate smoothing matrix
+    M_sparsity=make_sparsity(field_in%mesh, &
+         & field_in%mesh, name='HelmholtzTensorSparsity')
+    call allocate(M, M_sparsity, name="HelmholtzTensorSmoothingMatrix")   
+    call deallocate(M_sparsity) 
+    call zero(M)
+    
+    !allocate RHSFIELD
+    call allocate(rhsfield, field_in%mesh, "HelmholtzTensorSmoothingRHS")
+    call zero(rhsfield)
+
+    ! Assemble M element by element.
+    do ele=1, element_count(field_in)
+       call assemble_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
+    end do
+
+    call zero(field_out)
+    call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
+
+    call deallocate(rhsfield)
+    call deallocate(M)
+
+  end subroutine smooth_tensor
 
   subroutine anisotropic_smooth_scalar(field_in,positions,velocity,field_out,alpha,path)
 
@@ -233,7 +285,7 @@ contains
     type(scalar_field), intent(inout) :: RHSFIELD
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(in) :: field_in
-    real, dimension(:,:), intent(in) :: alpha
+    real, intent(in) :: alpha
     integer, intent(in) :: ele
 
     ! value of field_in at quad points
@@ -257,24 +309,30 @@ contains
          & :: field_in_mat
     ! Local right hand side.
     real, dimension(ele_loc(field_in, ele)) :: lrhsfield
-    integer :: i
+    real :: w
+    integer :: i,j
 
     ele_field_in=>ele_nodes(field_in, ele)
     shape_field_in=>ele_shape(field_in, ele)
 
     ! Locations of quadrature points.
     X_quad=ele_val_at_quad(positions, ele)
-
-    !value of tensor at quads
-    forall(i=1:ele_ngi(positions,ele))
-       alpha_quad(:,:,i) = alpha
-    end forall
-
     field_in_quad = ele_val_at_quad(field_in, ele)
 
     ! Transform derivatives and weights into physical space.
     call transform_to_physical(positions, ele, shape_field_in, dshape&
          &=dshape_field_in, detwei=detwei)
+
+    ! Calculate filter width (using Deardorff's proposal?)
+    ! width = (volume)^(1/3)
+    w = length_scale(positions, ele)
+    alpha_quad=0.
+    !value of tensor at quads
+    forall(i=1:ele_ngi(positions,ele))
+       forall(j=1:positions%dim)
+          alpha_quad(j,j,i) = alpha**2*w/24.
+       end forall
+    end forall
 
     ! Local assembly:
     field_in_mat=dshape_tensor_dshape(dshape_field_in, alpha_quad, &
@@ -296,7 +354,7 @@ contains
     type(vector_field), intent(inout) :: RHSFIELD
     type(vector_field), intent(in) :: positions
     type(vector_field), intent(in) :: field_in
-    real, dimension(:,:), intent(in) :: alpha
+    real, intent(in) :: alpha
     integer, intent(in) :: ele
 
     ! value of field_in at quad points
@@ -320,24 +378,30 @@ contains
          & :: field_in_mat
     ! Local right hand side.
     real, dimension(positions%dim, ele_loc(field_in, ele)) :: lrhsfield
-    integer :: i
+    real :: w
+    integer :: i,j
 
     ele_field_in=>ele_nodes(field_in, ele)
     shape_field_in=>ele_shape(field_in, ele)
 
     ! Locations of quadrature points.
     X_quad=ele_val_at_quad(positions, ele)
-
-    !value of tensor at quads
-    forall(i=1:ele_ngi(positions,ele))
-       alpha_quad(:,:,i) = alpha
-    end forall
-
     field_in_quad = ele_val_at_quad(field_in, ele)
 
     ! Transform derivatives and weights into physical space.
     call transform_to_physical(positions, ele, shape_field_in, dshape&
          &=dshape_field_in, detwei=detwei)
+
+    ! Calculate filter width (using Deardorff's proposal?)
+    ! width = (volume)^(1/3)
+    w = length_scale(positions, ele)
+    !value of tensor at quads
+    alpha_quad=0.
+    forall(i=1:ele_ngi(positions,ele))
+       forall(j=1:positions%dim)
+          alpha_quad(j,j,i) = alpha**2*w/24.
+       end forall
+    end forall
 
     ! Local assembly:    assert(field_in%mesh==field_out%mesh))
     field_in_mat=dshape_tensor_dshape(dshape_field_in, alpha_quad, &
@@ -352,6 +416,76 @@ contains
     call addto(rhsfield, ele_field_in, lrhsfield)
 
   end subroutine assemble_smooth_vector
+
+  subroutine assemble_smooth_tensor(M, rhsfield, positions, field_in, alpha, ele)
+
+    type(csr_matrix), intent(inout) :: M
+    type(tensor_field), intent(inout) :: RHSFIELD
+    type(vector_field), intent(in) :: positions
+    type(tensor_field), intent(in) :: field_in
+    real, intent(in) :: alpha
+    integer, intent(in) :: ele
+
+    ! value of field_in at quad points
+    real, dimension(positions%dim,positions%dim,ele_ngi(positions,ele)) :: field_in_quad
+    ! Locations of quadrature points
+    real, dimension(positions%dim,ele_ngi(positions,ele)) :: X_quad
+    ! smoothing tensor at quadrature points real,
+    real,dimension(positions%dim,positions%dim,ele_ngi(positions,ele)) &
+         &:: alpha_quad
+    ! Derivatives of shape function:
+    real, dimension(ele_loc(field_in,ele), &
+         ele_ngi(field_in,ele), positions%dim) :: dshape_field_in
+    ! Coordinate transform * quadrature weights.
+    real, dimension(ele_ngi(positions,ele)) :: detwei    
+    ! Node numbers of field_in element.
+    integer, dimension(:), pointer :: ele_field_in
+    ! Shape functions.
+    type(element_type), pointer :: shape_field_in
+    ! Local Helmholtz matrix 
+    real, dimension(ele_loc(field_in, ele), ele_loc(field_in, ele)) &
+         & :: field_in_mat
+    ! Local right hand side.
+    real, dimension(positions%dim,positions%dim,ele_loc(field_in, ele)) :: lrhsfield
+    real :: w
+    integer :: i,j
+
+    ele_field_in=>ele_nodes(field_in, ele)
+    shape_field_in=>ele_shape(field_in, ele)
+
+    ! Locations of quadrature points.
+    X_quad=ele_val_at_quad(positions, ele)
+    field_in_quad = ele_val_at_quad(field_in, ele)
+
+    ! Transform derivatives and weights into physical space.
+    call transform_to_physical(positions, ele, shape_field_in, dshape&
+         &=dshape_field_in, detwei=detwei)
+
+    ! Calculate filter width (using Deardorff's proposal?)
+    ! width = (volume)^(1/3)
+    w = length_scale(positions, ele)
+
+    !value of tensor at quads
+    alpha_quad=0.
+    forall(i=1:ele_ngi(positions,ele))
+       forall(j=1:positions%dim)
+          alpha_quad(j,j,i) = alpha**2*w/24.
+       end forall
+    end forall
+
+    ! Local assembly:    assert(field_in%mesh==field_out%mesh))
+    field_in_mat=dshape_tensor_dshape(dshape_field_in, alpha_quad, &
+         dshape_field_in, detwei) + shape_shape(shape_field_in&
+         &,shape_field_in, detwei)
+
+    lrhsfield=shape_tensor_rhs(shape_field_in, field_in_quad, detwei)
+
+    ! Global assembly:
+    call addto(M, ele_field_in, ele_field_in, field_in_mat)
+
+    call addto(rhsfield, ele_field_in, lrhsfield)
+
+  end subroutine assemble_smooth_tensor
 
   subroutine assemble_anisotropic_smooth_scalar(M, rhsfield, positions, field_in, path, alpha, ele)
     type(csr_matrix), intent(inout) :: M
@@ -512,6 +646,23 @@ contains
     call addto(rhsfield, ele_field_in, lrhsfield)
 
   end subroutine assemble_anisotropic_smooth_tensor
+
+  function length_scale(positions, ele) result(s)
+    ! Computes a length scale scalar for LES models
+    ! Preserves element volume. (units are in length^2)
+    type(vector_field), intent(in) :: positions
+    real :: s
+    integer, intent(in) :: ele
+    integer :: dim
+    dim=positions%dim
+
+    s=element_volume(positions, ele)
+    ! filter is a square/cube (width=side length) a la Deardorff:
+    s=s**(1./dim)
+    ! square it:
+    s=s**2.
+
+  end function length_scale
 
   function length_scale_tensor(du_t, shape) result(t)
     !! Computes a length scale tensor to be used in LES (units are in length^2)

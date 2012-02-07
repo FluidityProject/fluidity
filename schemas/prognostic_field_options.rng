@@ -74,8 +74,7 @@ sediment grain</a:documentation>
           <empty/>
         </element>
         <element name="type">
-          <a:documentation>[UNDER DEVELOPMENT - DOES NOT WORK YET]
-Special type of Dirichlet boundary condition for the k-epsilon
+          <a:documentation>Special type of Dirichlet boundary condition for the k-epsilon
 turbulence model. Can be used on TurbulentKineticEnergy (k)
 and/or TurbulentDissipation (epsilon) fields.
 e.g. use a Dirichlet BC on inlets and k_epsilon on walls.</a:documentation>
@@ -682,13 +681,20 @@ carries the influence of turbulence onto the velocity field.</a:documentation>
                   <a:documentation>[UNDER DEVELOPMENT] The Germano dynamic method (See Germano 1991, Lilly 1991, Pope)
 accounts for turbulent flow anisotropy by implementing the Smagorinsky model
 with a spatially varying coefficient. At its heart is the difference between turbulent
- stress tensors calculated from the velocity field filtered at 2 filter widths, G_t and G_m.
+stress tensors calculated from the velocity field filtered at 2 filter widths, G_1 and G_2.
+Options for filtering with different filter widths are available.
 See the manual for further details.</a:documentation>
                   <element name="alpha">
-                    <a:documentation>Filtering scale factor alpha: the ratio between the filter widths.
-The test filter G_t = G_m*alpha, where G_m is the filter
-width associated with the local mesh size. Filtering is achieved by applying
-the inverse Helmholtz operator: u_filter_2 = (1-alpha*M)^-1 * u_filter_1.
+                    <a:documentation>Filtering scale factor alpha: the ratio between the first filter width and mesh size.
+The first filter G_1 = G_m*alpha, where G_m is the
+width associated with the local mesh size (either isotropic or tensorial anisotropic).
+
+default/recommended value: 2.0</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="gamma">
+                    <a:documentation>Filtering scale factor gamma: the ratio between the second filter and first filter widths.
+The test filter G_2 = G_1*gamma, where G_1 is the first filter width.
 
 default/recommended value: 2.0</a:documentation>
                     <ref name="real"/>
@@ -698,24 +704,12 @@ default/recommended value: 2.0</a:documentation>
                     <ref name="linear_solver_options_sym"/>
                   </element>
                   <optional>
-                    <element name="enable_lilly">
-                      <a:documentation>Use the Lilly modification to the model (see Lilly 1991).
-</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                  <optional>
                     <element name="anisotropic_viscosity">
-                      <a:documentation>Use Bentham's anisotropic SGS model,
-a variation on Smagorinsky that is related to mesh anisotropy.
-</a:documentation>
-                      <empty/>
-                    </element>
-                  </optional>
-                  <optional>
-                    <element name="enable_backscatter">
-                      <a:documentation>Allow negative eddy viscosity (backscatter).
-WARNING: this may result in the simulation blowing up.
+                      <a:documentation>Use Bentham's anisotropic viscosity SGS model in the dynamic framework (see manual).
+The anisotropy is derived from using a tensorial filter width definition.
+If isotropic, a scalar filter width definition is used
+and the original scalar Smagorinsky model is used in the dynamic framework.
+Both definitions preserve the volume of the tetrahedral element.
 </a:documentation>
                       <empty/>
                     </element>
@@ -737,14 +731,63 @@ WARNING: this may result in the simulation blowing up.
                     </element>
                   </optional>
                   <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Spatially varying scalar first filter width</a:documentation>
+                      <attribute name="name">
+                        <value>ScalarFirstFilterWidth</value>
+                      </attribute>
+                      <attribute name="rank">
+                        <value>1</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Spatially varying scalar second filter width</a:documentation>
+                      <attribute name="name">
+                        <value>ScalarSecondFilterWidth</value>
+                      </attribute>
+                      <attribute name="rank">
+                        <value>1</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
                     <element name="vector_field">
-                      <a:documentation>Filtered velocity (diagnostic). This is the Velocity field filtered
-with the test filter - see manual.</a:documentation>
+                      <a:documentation>First Filtered velocity (diagnostic). This is the Velocity field filtered
+with the first filter - see manual.</a:documentation>
                       <attribute name="rank">
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>FilteredVelocity</value>
+                        <value>FirstFilteredVelocity</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_vector_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="vector_field">
+                      <a:documentation>Second Filtered velocity (diagnostic). This is the Velocity field filtered
+with the first and then the second filter - see manual.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>SecondFilteredVelocity</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -755,12 +798,28 @@ with the test filter - see manual.</a:documentation>
                   </optional>
                   <optional>
                     <element name="tensor_field">
-                      <a:documentation>Filter width tensor (diagnostic). This is the square of the mesh size.</a:documentation>
+                      <a:documentation>First filter width tensor (diagnostic).</a:documentation>
                       <attribute name="rank">
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>FilterWidth</value>
+                        <value>TensorFirstFilterWidth</value>
+                      </attribute>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>Second filter width tensor (diagnostic).</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>TensorSecondFilterWidth</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -776,7 +835,7 @@ with the test filter - see manual.</a:documentation>
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>StrainRate</value>
+                        <value>FirstFilteredStrainRate</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>
@@ -792,7 +851,7 @@ with the test filter - see manual.</a:documentation>
                         <value>2</value>
                       </attribute>
                       <attribute name="name">
-                        <value>FilteredStrainRate</value>
+                        <value>SecondFilteredStrainRate</value>
                       </attribute>
                       <element name="diagnostic">
                         <ref name="internal_algorithm"/>

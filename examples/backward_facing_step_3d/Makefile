@@ -1,6 +1,6 @@
 BIN=../../../bin
 RE=5100
-JOB=dynles-lilly-iso-periodic
+JOB=dynles-lilly-iso-sem-periodic
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
 	@$(foreach NN,coarse , \
@@ -20,7 +20,7 @@ preprocess:
 
 preprocess-periodic:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
-	@$(foreach NN,med, \
+	@$(foreach NN,coarse, \
 		install -d $(RE)-$(JOB)-$(NN); \
 		cd $(RE)-$(JOB)-$(NN); \
 		pwd; \

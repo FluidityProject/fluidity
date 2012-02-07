@@ -42,7 +42,7 @@ module field_preprocessing_module
       type(scalar_field), intent(inout) :: field_in
       type(vector_field), intent(in) :: positions
       type(scalar_field), intent(out) :: field_out
-      real, dimension(positions%dim, positions%dim) :: alpha
+      real :: alpha
       character(len=OPTION_PATH_LEN) :: path
 
       call get_option(trim(complete_field_path(trim(field_in%option_path))) &

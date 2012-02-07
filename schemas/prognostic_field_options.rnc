@@ -577,37 +577,36 @@ prognostic_velocity_field =
                   ## [UNDER DEVELOPMENT] The Germano dynamic method (See Germano 1991, Lilly 1991, Pope)
                   ## accounts for turbulent flow anisotropy by implementing the Smagorinsky model
                   ## with a spatially varying coefficient. At its heart is the difference between turbulent
-                  ##  stress tensors calculated from the velocity field filtered at 2 filter widths, G_t and G_m.
+                  ## stress tensors calculated from the velocity field filtered at 2 filter widths, G_1 and G_2.
+                  ## Options for filtering with different filter widths are available.
                   ## See the manual for further details.
                   element dynamic_les {
-                     ## Filtering scale factor alpha: the ratio between the filter widths.
-                     ## The test filter G_t = G_m*alpha, where G_m is the filter
-                     ## width associated with the local mesh size. Filtering is achieved by applying
-                     ## the inverse Helmholtz operator: u_filter_2 = (1-alpha*M)^-1 * u_filter_1.
+                     ## Filtering scale factor alpha: the ratio between the first filter width and mesh size.
+                     ## The first filter G_1 = G_m*alpha, where G_m is the
+                     ## width associated with the local mesh size (either isotropic or tensorial anisotropic).
                      ##
                      ## default/recommended value: 2.0
                      element alpha {
+                        real
+                     },
+                     ## Filtering scale factor gamma: the ratio between the second filter and first filter widths.
+                     ## The test filter G_2 = G_1*gamma, where G_1 is the first filter width.
+                     ##
+                     ## default/recommended value: 2.0
+                     element gamma {
                         real
                      },
                      ## Solver options are required for calculation of Helmholtz-smoothed velocity.
                      element solver {
                         linear_solver_options_sym
                      },
-                     ## Use the Lilly modification to the model (see Lilly 1991).
-                     ## 
-                     element enable_lilly {
-                        empty
-                     }?,
-                     ## Use Bentham's anisotropic SGS model,
-                     ## a variation on Smagorinsky that is related to mesh anisotropy.
+                     ## Use Bentham's anisotropic viscosity SGS model in the dynamic framework (see manual).
+                     ## The anisotropy is derived from using a tensorial filter width definition.
+                     ## If isotropic, a scalar filter width definition is used
+                     ## and the original scalar Smagorinsky model is used in the dynamic framework.
+                     ## Both definitions preserve the volume of the tetrahedral element.
                      ##
                      element anisotropic_viscosity {
-                        empty
-                     }?,
-                     ## Allow negative eddy viscosity (backscatter).
-                     ## WARNING: this may result in the simulation blowing up.
-                     ## 
-                     element enable_backscatter {
                         empty
                      }?,
                      ## Spatially varying Smagorinsky coefficient
@@ -622,11 +621,35 @@ prognostic_velocity_field =
                            }
                         )
                      }?,
-                     ## Filtered velocity (diagnostic). This is the Velocity field filtered
-                     ## with the test filter - see manual.
+                     ## Spatially varying scalar first filter width
+                     element scalar_field {
+                        attribute name { "ScalarFirstFilterWidth" },
+                        attribute rank { "1" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field
+                           }
+                        )
+                     }?,
+                     ## Spatially varying scalar second filter width
+                     element scalar_field {
+                        attribute name { "ScalarSecondFilterWidth" },
+                        attribute rank { "1" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field
+                           }
+                        )
+                     }?,
+                     ## First Filtered velocity (diagnostic). This is the Velocity field filtered
+                     ## with the first filter - see manual.
                      element vector_field {
                         attribute rank { "2" },
-                        attribute name { "FilteredVelocity" },
+                        attribute name { "FirstFilteredVelocity" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -635,10 +658,35 @@ prognostic_velocity_field =
                            }
                         )
                      }?,
-                     ## Filter width tensor (diagnostic). This is the square of the mesh size.
+                     ## Second Filtered velocity (diagnostic). This is the Velocity field filtered
+                     ## with the first and then the second filter - see manual.
+                     element vector_field {
+                        attribute rank { "2" },
+                        attribute name { "SecondFilteredVelocity" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_vector_field
+                           }
+                        )
+                     }?,
+                     ## First filter width tensor (diagnostic).
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "FilterWidth" },
+                        attribute name { "TensorFirstFilterWidth" },
+                        (
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_tensor_field
+                           }
+                        )
+                     }?,
+                     ## Second filter width tensor (diagnostic).
+                     element tensor_field {
+                        attribute rank { "2" },
+                        attribute name { "TensorSecondFilterWidth" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -650,7 +698,7 @@ prognostic_velocity_field =
                      ## Strain rate S1: the test filter applied to the strain rate of the mesh-filtered velocity.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "StrainRate" },
+                        attribute name { "FirstFilteredStrainRate" },
                         (
                            element diagnostic {
                               internal_algorithm,
@@ -662,7 +710,7 @@ prognostic_velocity_field =
                      ## Strain rate S2: the strain rate of the test-filtered velocity.
                      element tensor_field {
                         attribute rank { "2" },
-                        attribute name { "FilteredStrainRate" },
+                        attribute name { "SecondFilteredStrainRate" },
                         (
                            element diagnostic {
                               internal_algorithm,

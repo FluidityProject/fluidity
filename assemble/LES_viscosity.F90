@@ -67,7 +67,11 @@ contains
     if(stat==0) then
        call zero(tfield)
     end if
-    tfield => extract_tensor_field(state, "FilterWidth", stat)
+    tfield => extract_tensor_field(state, "TensorFirstFilterWidth", stat)
+    if(stat==0) then
+       call zero(tfield)
+    end if
+    tfield => extract_tensor_field(state, "TensorSecondFilterWidth", stat)
     if(stat==0) then
        call zero(tfield)
     end if
@@ -75,27 +79,44 @@ contains
     if(stat==0) then
        call zero(sfield)
     end if
+    sfield => extract_scalar_field(state, "ScalarFirstFilterWidth", stat)
+    if(stat==0) then
+       call zero(sfield)
+    end if
+    sfield => extract_scalar_field(state, "ScalarSecondFilterWidth", stat)
+    if(stat==0) then
+       call zero(sfield)
+    end if
 
   end subroutine les_zero_diagnostic_fields
 
-  subroutine dynamic_les_init_fields(state, nu, filtered_velocity, leonard_tensor, strain_product)
+  subroutine dynamic_les_init_fields(state, nu, nu_f1, nu_f2, leonard_tensor, strain_product)
 
     type(state_type), intent(inout) :: state
     type(vector_field), intent(inout)  :: nu
-    type(vector_field), pointer, intent(inout) :: filtered_velocity
+    type(vector_field), pointer, intent(inout) :: nu_f1, nu_f2
     type(tensor_field), pointer, intent(inout) :: leonard_tensor, strain_product
     integer :: stat
 
-    ! Filtered velocity
-    filtered_velocity => extract_vector_field(state, "FilteredVelocity", stat)
+    ! First Filtered velocity
+    nu_f1 => extract_vector_field(state, "FirstFilteredVelocity", stat)
     if(stat/=0) then
-      ewrite(2,*) "Allocating FilteredVelocity on VelocityMesh"
-      allocate(filtered_velocity)
-      call allocate(filtered_velocity, nu%dim, nu%mesh, "FilteredVelocity")
-      ewrite(2,*) "FilteredVelocity refcount: ", filtered_velocity%refcount%count
+      ewrite(2,*) "Allocating FirstFilteredVelocity on VelocityMesh"
+      allocate(nu_f1)
+      call allocate(nu_f1, nu%dim, nu%mesh, "FirstFilteredVelocity")
     end if
-    call zero(filtered_velocity)
-    ewrite_minmax(filtered_velocity)
+    call zero(nu_f1)
+    ewrite_minmax(nu_f1)
+
+    ! Second Filtered velocity
+    nu_f2 => extract_vector_field(state, "SecondFilteredVelocity", stat)
+    if(stat/=0) then
+      ewrite(2,*) "Allocating SecondFilteredVelocity on VelocityMesh"
+      allocate(nu_f2)
+      call allocate(nu_f2, nu%dim, nu%mesh, "SecondFilteredVelocity")
+    end if
+    call zero(nu_f2)
+    ewrite_minmax(nu_f2)
 
     ! Leonard tensor
     leonard_tensor => extract_tensor_field(state, "LeonardTensor", stat)
@@ -118,16 +139,17 @@ contains
   end subroutine dynamic_les_init_fields
 
   subroutine les_set_diagnostic_fields(state, nu, density, ele, detwei, &
-                 eddy_visc_gi, visc_gi, strain_gi, filtered_strain_gi, filter_width_gi, les_coef_gi)
+             & eddy_visc_gi, visc_gi, strain1_gi, strain2_gi, les_coef_gi, &
+             & t1_width_gi, s1_width_gi, t2_width_gi, s2_width_gi)
 
     type(state_type), intent(inout)                             :: state
-    type(vector_field), intent(in)                              :: nu
+    type(vector_field), intent(inout)                           :: nu
     type(scalar_field), intent(in)                              :: density
     integer, intent(in)                                         :: ele
     real, dimension(ele_ngi(nu,ele)), intent(in)                :: detwei
-    real, dimension(ele_ngi(nu,ele)), intent(in), optional      :: les_coef_gi
+    real, dimension(ele_ngi(nu,ele)), intent(in), optional      :: les_coef_gi, s1_width_gi, s2_width_gi
     real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(inout), optional &
-    & :: eddy_visc_gi, visc_gi, strain_gi, filtered_strain_gi, filter_width_gi
+    & :: eddy_visc_gi, visc_gi, strain1_gi, strain2_gi, t1_width_gi, t2_width_gi
     real, dimension(ele_ngi(nu,ele))                            :: density_gi
     type(tensor_field), pointer                                 :: tensorfield
     type(scalar_field), pointer                                 :: scalarfield
@@ -135,7 +157,9 @@ contains
     real, dimension(ele_loc(nu,ele))                            :: scalar_loc, lumped_mass
     real, dimension(ele_loc(nu,ele),ele_loc(nu,ele))            :: mass_matrix
     type(element_type)                                          :: nu_shape
-    integer                                                     :: stat, i
+    type(patch_type)                                            :: patch, patch2
+    real, dimension(ele_loc(nu,ele))                            :: lnodes
+    integer                                                     :: stat, i, j, n, n2
 
     nu_shape = ele_shape(nu, ele)
     density_gi = ele_val_at_quad(density, ele)
@@ -144,9 +168,6 @@ contains
 
     ! Eddy viscosity field m_ij is available with all LES models
     if (present(eddy_visc_gi)) then
-      !ewrite(2,*) "eddy visc: ", eddy_visc_gi(:,:,1)
-      !ewrite(2,*) "visc: ", visc_gi
-      !eddy_visc_gi = eddy_visc_gi + visc_gi
       tensorfield => extract_tensor_field(state, "EddyViscosity",stat)
       if(stat==0) then
         !if(any(eddy_visc_gi(:,:,:)<0.)) then
@@ -161,48 +182,99 @@ contains
       end if
     end if
 
-    ! Strain rate field S1
-    if (present(strain_gi)) then
-      tensorfield => extract_tensor_field(state, "StrainRate", stat)
+    ! First-filtered strain rate field S1
+    if (present(strain1_gi)) then
+      tensorfield => extract_tensor_field(state, "FirstFilteredStrainRate", stat)
       if(stat==0) then
-        tensor_loc=shape_tensor_rhs(nu_shape, strain_gi, detwei)
+        tensor_loc=shape_tensor_rhs(nu_shape, strain1_gi, detwei)
         ! Divide by lumped mass
         do i=1, ele_loc(nu,ele)
           tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
         end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
-      else
-        !FlExit("Error: StrainRate field has disappeared.")
       end if
     end if
 
-    ! Filtered strain rate field S2
-    if (present(filtered_strain_gi)) then
-      tensorfield => extract_tensor_field(state, "FilteredStrainRate", stat)
+    ! Second-filtered strain rate field S2
+    if (present(strain2_gi)) then
+      tensorfield => extract_tensor_field(state, "SecondFilteredStrainRate", stat)
       if(stat==0) then
-        tensor_loc=shape_tensor_rhs(nu_shape, filtered_strain_gi, detwei)
+        tensor_loc=shape_tensor_rhs(nu_shape, strain2_gi, detwei)
         ! Divide by lumped mass
         do i=1, ele_loc(nu,ele)
           tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
         end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
-      else
-        !FlExit("Error: FilteredStrainRate field has disappeared.")
       end if
     end if
 
-    ! Filter width
-    if (present(filter_width_gi)) then
-      tensorfield => extract_tensor_field(state, "FilterWidth", stat)
+    ! Tensor first filter width
+    if (present(t1_width_gi)) then
+      tensorfield => extract_tensor_field(state, "TensorFirstFilterWidth", stat)
       if(stat==0) then
-        tensor_loc=shape_tensor_rhs(nu_shape, filter_width_gi, detwei)
-        ! Divide by lumped mass
-        do i=1, ele_loc(nu,ele)
-          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
+        !ewrite(2,*) "tensor first width ", t1_width_gi
+        tensor_loc=shape_tensor_rhs(nu_shape, t1_width_gi, detwei)
+        lnodes = ele_nodes(nu,ele)
+        do i=1, size(lnodes)
+          j=lnodes(i)
+          patch = get_patch_ele(nu%mesh, j)
+          n = patch%count
+          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
         end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
-      else
-        !FlExit("Error: FilterWidth field has disappeared.")
+      end if
+    end if
+
+    ! Scalar first filter width
+    ! This should be an average of the widths of elements adjacent to node.
+    if (present(s1_width_gi)) then
+      scalarfield => extract_scalar_field(state, "ScalarFirstFilterWidth",stat)
+      if(stat==0) then
+        !ewrite(2,*) "scalar first width ", s1_width_gi
+        scalar_loc=shape_rhs(nu_shape, s1_width_gi*detwei)
+        ! Divide by lumped mass and no. of elements around node
+        lnodes = ele_nodes(nu,ele)
+        do i=1, size(lnodes)
+          j=lnodes(i)
+          patch = get_patch_ele(nu%mesh, j)
+          n = patch%count
+          scalar_loc(i)=scalar_loc(i)/lumped_mass(i)/n
+        end do
+        call addto(scalarfield, ele_nodes(nu, ele), scalar_loc)
+      end if
+    end if
+
+    ! Tensor second filter width
+    if (present(t2_width_gi)) then
+      tensorfield => extract_tensor_field(state, "TensorSecondFilterWidth", stat)
+      if(stat==0) then
+        !ewrite(2,*) "tensor second width ", t2_width_gi
+        tensor_loc=shape_tensor_rhs(nu_shape, t2_width_gi, detwei)
+        lnodes = ele_nodes(nu,ele)
+        do i=1, size(lnodes)
+          j=lnodes(i)
+          patch = get_patch_ele(nu%mesh, j)
+          n = patch%count
+          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
+        end do
+        call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
+      end if
+    end if
+
+    ! Scalar second filter width
+    if (present(s2_width_gi)) then
+      scalarfield => extract_scalar_field(state, "ScalarSecondFilterWidth",stat)
+      if(stat==0) then
+        !ewrite(2,*) "scalar second width ", s2_width_gi
+        scalar_loc=shape_rhs(nu_shape, s2_width_gi*detwei)
+        lnodes = ele_nodes(nu,ele)
+        do i=1, size(lnodes)
+          j=lnodes(i)
+          patch = get_patch_ele(nu%mesh, j)
+          n = patch%count
+          scalar_loc(i)=scalar_loc(i)/lumped_mass(i)/n
+        end do
+        call addto(scalarfield, ele_nodes(nu, ele), scalar_loc)
       end if
     end if
 
@@ -216,26 +288,27 @@ contains
           scalar_loc(i)=scalar_loc(i)/lumped_mass(i)
         end do
         call addto(scalarfield, ele_nodes(nu, ele), scalar_loc)
-      else
-        !FlExit("Error: SmagorinskyCoefficient field has disappeared.")
       end if
     end if
 
   end subroutine les_set_diagnostic_fields
 
-  subroutine dynamic_les_filtered_fields(state, nu, positions, tnu, leonard, strain_prod, alpha, les_option_path)
+  subroutine dynamic_les_filtered_fields(state, u, nu, positions, nu_f1, nu_f2, leonard, &
+             &strain_prod, alpha, gamma, les_option_path, have_anisotropy)
 
     type(state_type), intent(inout)           :: state
     ! Unfiltered velocity
+    type(vector_field), intent(inout):: u
     type(vector_field), pointer, intent(inout):: nu
     type(vector_field), intent(in)            :: positions
-    ! Filtered velocity
-    type(vector_field), pointer, intent(inout):: tnu
+    ! First and second filtered velocities
+    type(vector_field), pointer, intent(inout):: nu_f1, nu_f2
     ! Leonard tensor and strain product fields
     type(tensor_field), pointer, intent(inout):: leonard, strain_prod
-    ! Scale factor: test filter/mesh size
-    real, intent(in)                          :: alpha
+    ! Scale factors
+    real, intent(in)                          :: alpha, gamma
     character(len=OPTION_PATH_LEN), intent(in):: les_option_path
+    logical, intent(in)                       :: have_anisotropy
     ! Local quantities
     type(tensor_field), pointer               :: tensorfield
     character(len=OPTION_PATH_LEN)            :: lpath
@@ -245,20 +318,32 @@ contains
 
     real, dimension(ele_loc(nu,1), ele_ngi(nu,1), nu%dim) :: du_t
     real, dimension(ele_ngi(nu,1))                 :: detwei
-    real, dimension(nu%dim, nu%dim, ele_ngi(nu,1)) :: strain_gi, t_strain_gi, strain_prod_gi, filter_width_gi
+    real, dimension(nu%dim, nu%dim, ele_ngi(nu,1)) :: strain_gi, t_strain_gi, strain_prod_gi, t1_width_gi, t2_width_gi
     real, dimension(ele_ngi(nu,1))                 :: strain_mod, t_strain_mod
     type(element_type)                             :: shape_nu
     integer, dimension(:), pointer                 :: nodes_nu
 
     ! Path to solver options
     lpath = (trim(les_option_path)//"/dynamic_les")
-    ewrite(2,*) "filter factor alpha: ", alpha
+    ewrite(2,*) "filter width ratio alpha: ", alpha
+    ewrite(2,*) "filter width ratio gamma: ", gamma
     ewrite(2,*) "path to solver options: ", trim(lpath)
-    ! Filter the nonlinear velocity
-    call anisotropic_smooth_vector(nu, positions, tnu, alpha, lpath)
+    ewrite(2,*) "anisotropic filtering and viscosity: ", have_anisotropy
+
+    ! Filter the nonlinear velocity at both filter levels sequentially
+    if(have_anisotropy) then
+      call set(nu_f1, u)
+      !call anisotropic_smooth_vector(nu, positions, nu_f1, alpha, lpath)
+      call anisotropic_smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
+    else
+      call set(nu_f1, u)
+      !call smooth_vector(nu, positions, nu_f1, alpha, lpath)
+      call smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
+    end if
 
     ewrite_minmax(nu)
-    ewrite_minmax(tnu)
+    ewrite_minmax(nu_f1)
+    ewrite_minmax(nu_f2)
 
     ! Local variables
     allocate(tensorfield)
@@ -267,25 +352,29 @@ contains
     allocate(u_loc(nu%dim)); allocate(t_loc(nu%dim, nu%dim))
     u_loc=0.0; t_loc=0.0
 
-    ! Get mesh-filtered velocity cross-product
+    ! Get first-filtered velocity cross-product ui^f1*uj^f1
     do i=1, node_count(nu)
-      u_loc = node_val(nu,i)
+      u_loc = node_val(nu_f1,i)
       t_loc = outer_product(u_loc, u_loc)
       call set( tensorfield, i, t_loc )
     end do
 
-    ! Calculate test-filtered (velocity cross-product): (ui^r*uj^r)^t
-    call anisotropic_smooth_tensor(tensorfield, positions, leonard, alpha, lpath)
+    ! Calculate second-filtered (first-filtered velocity cross-product): (ui^f1*uj^f1)^f2
+    if(have_anisotropy) then
+      call anisotropic_smooth_tensor(tensorfield, positions, leonard, alpha, lpath)
+    else
+      call smooth_tensor(tensorfield, positions, leonard, alpha, lpath)
+    end if
     call zero(tensorfield)
 
-    ! Calculate (test-filtered velocity) cross-product: (ui^rt*uj^rt)
+    ! Calculate (second-filtered velocity) cross-product: (ui^f1f2*uj^f1f2)
     do i=1, node_count(nu)
-      u_loc = node_val(tnu,i)
+      u_loc = node_val(nu_f2,i)
       t_loc = outer_product(u_loc, u_loc)
       call set( tensorfield, i, t_loc )
     end do
 
-    ! Leonard tensor field: (ui^r*uj^r)^t - (ui^rt*uj^rt)
+    ! Leonard tensor field: (ui^f1*uj^f1)^f2 - (ui^f1f2*uj^f1f2)
     call addto( leonard, tensorfield, -1.0 )
     call zero(tensorfield)
     ewrite_minmax(leonard)
@@ -297,34 +386,33 @@ contains
       ! Assuming no stabilisation scheme is used with LES so I can use velocity shape. (Tejada-Martinez thinks otherwise)
       call transform_to_physical(positions, i, shape_nu, dshape=du_t, detwei=detwei)
 
-      ! Get strain S1 for unfiltered velocity (dim,dim,ngi)
-      strain_gi = les_strain_rate(du_t, ele_val(nu, i))
-      ! Get strain S2 for test-filtered velocity (dim,dim,ngi)
-      t_strain_gi = les_strain_rate(du_t, ele_val(tnu, i))
-      ! Get strain modulus |S1| for unfiltered velocity (ngi)
-      strain_mod = les_viscosity_strength(du_t, ele_val(nu, i))
-      ! Get strain modulus |S2| for test-filtered velocity (ngi)
-      t_strain_mod = les_viscosity_strength(du_t, ele_val(tnu, i))
+      ! Get strain S1 for first-filtered velocity (dim,dim,ngi)
+      strain_gi = les_strain_rate(du_t, ele_val(nu_f1, i))
+      ! Get strain S2 for second-filtered velocity (dim,dim,ngi)
+      t_strain_gi = les_strain_rate(du_t, ele_val(nu_f2, i))
+      ! Get strain modulus |S1| for first-filtered velocity (ngi)
+      strain_mod = les_viscosity_strength(du_t, ele_val(nu_f1, i))
+      ! Get strain modulus |S2| for second-filtered velocity (ngi)
+      t_strain_mod = les_viscosity_strength(du_t, ele_val(nu_f2, i))
 
       ! Strain product |S1|S1
       do gi=1, ele_ngi(nu, i)
         strain_prod_gi(:,:,gi) = strain_gi(:,:,gi)*strain_mod(gi)
       end do
-
-      ! Set some diagnostic fields
-      !call les_set_diagnostic_fields(state, nu, i, detwei, &
-      !     strain_gi=strain_gi, filtered_strain_gi=t_strain_gi, filter_width_gi=filter_width_gi)
-
-      ! Strain product field |S1|S1
       call addto(tensorfield, ele_nodes(nu,i), shape_tensor_rhs(ele_shape(nu,i), strain_prod_gi, detwei))
     end do
     ewrite_minmax(tensorfield)
-    ! Filter the strain product: (|S1|S1)^t (not a diagnostic field yet)
-    call anisotropic_smooth_tensor(tensorfield, positions, strain_prod, alpha, lpath)
+
+    ! Filter the strain product with second filter: (|S1|S1)^f2 (not a diagnostic field yet)
+    if(have_anisotropy) then
+      call anisotropic_smooth_tensor(tensorfield, positions, strain_prod, alpha, lpath)
+    else
+      call smooth_tensor(tensorfield, positions, strain_prod, alpha, lpath)
+    end if
     ewrite_minmax(strain_prod)
 
     ewrite(2,*) "Finished setting LES filtered fields"
-    ! Deallocates
+
     deallocate(u_loc, t_loc)
     call deallocate(tensorfield)
     deallocate(tensorfield)

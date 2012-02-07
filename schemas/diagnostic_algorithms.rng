@@ -357,8 +357,9 @@ this option to these these internal algorithms.</a:documentation>
       </attribute>
       <ref name="component_source_field"/>
       <element name="smoothing_length_scale">
-        <a:documentation>The characteristic length scale used by the smoother.</a:documentation>
-        <ref name="real_dim_symmetric_tensor"/>
+        <a:documentation>The characteristic scale factor alpha used by the smoother.
+The length scale is alpha*local element width (a scalar)</a:documentation>
+        <ref name="real"/>
       </element>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
@@ -377,8 +378,30 @@ this option to these these internal algorithms.</a:documentation>
       </attribute>
       <ref name="vector_source_field"/>
       <element name="smoothing_length_scale">
-        <a:documentation>The characteristic length scale used by the smoother.</a:documentation>
-        <ref name="real_dim_symmetric_tensor"/>
+        <a:documentation>The characteristic scale factor alpha used by the smoother.
+The length scale is alpha*local element width (a scalar)</a:documentation>
+        <ref name="real"/>
+      </element>
+      <element name="solver">
+        <a:documentation>Solver options.</a:documentation>
+        <ref name="linear_solver_options_sym"/>
+      </element>
+    </element>
+  </define>
+  <define name="helmholtz_smoothed_tensor_algorithm">
+    <element name="algorithm">
+      <a:documentation>Smooth a tensor field by inverting a Helmholtz operator.</a:documentation>
+      <attribute name="name">
+        <value>helmholtz_smoothed_tensor</value>
+      </attribute>
+      <attribute name="material_phase_support">
+        <value>single</value>
+      </attribute>
+      <ref name="tensor_source_field"/>
+      <element name="smoothing_length_scale">
+        <a:documentation>The characteristic scale factor alpha used by the smoother.
+The length scale is alpha*local element width (a scalar)</a:documentation>
+        <ref name="real"/>
       </element>
       <element name="solver">
         <a:documentation>Solver options.</a:documentation>
@@ -1984,6 +2007,9 @@ This field needs to be interpolated between adapts.</a:documentation>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="hessian_algorithm"/>
+  </define>
+  <define name="tensor_diagnostic_algorithms" combine="choice">
+    <ref name="helmholtz_smoothed_tensor_algorithm"/>
   </define>
   <define name="tensor_diagnostic_algorithms" combine="choice">
     <ref name="helmholtz_anisotropic_smoothed_tensor_algorithm"/>
