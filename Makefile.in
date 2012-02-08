@@ -516,6 +516,8 @@ serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
 
+.PHONY: spudtools
+
 spudtools:
 	@cd libspud ; $(MAKE) install-spudtools
 	@echo "    INSTALL spudtools"
