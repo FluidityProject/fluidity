@@ -513,8 +513,12 @@ test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@cd tests; ../bin/testharness -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
+
+spudtools:
+	@cd libspud ; $(MAKE) install-spudtools
+	@echo "    INSTALL spudtools"
 
 setuputs: 
 	@echo "SETUP tests"
@@ -523,7 +527,6 @@ setuputs:
 	@echo "    MKDIR bin/tests"
 	@mkdir -p bin/tests
 	@ln -sf ../../tests/data bin/tests/data
-
 
 build_unittest: fluidity_library libfemtools setuputs
 	@echo "    UNITTEST libspud"
