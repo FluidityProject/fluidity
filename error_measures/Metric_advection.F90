@@ -53,7 +53,7 @@ module metric_advection
   use diagnostic_variables, only: field_tag
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only: OPTION_PATH_LEN
-  use state_fields_module, only: get_lumped_mass
+  use state_fields_module, only: get_cv_mass
   use parallel_tools, only: getprocno
   use form_metric_field
   use populate_state_module
@@ -104,13 +104,13 @@ contains
     type(csr_sparsity), pointer :: mesh_sparsity
 
     ! Change in tfield over one timestep.
-    ! Right hand side vector, lumped mass matrix, 
+    ! Right hand side vector, cv mass matrix, 
     ! locally iterated field (for advection iterations) 
     ! and local old field (for subcycling)
     type(tensor_field) :: rhs, advit_tfield, delta_tfield, accum_tfield
     type(tensor_field) :: l_tfield, tmp_tfield
-    type(scalar_field), pointer :: t_lumpedmass
-    type(scalar_field) :: lumpedmass
+    type(scalar_field), pointer :: t_cvmass
+    type(scalar_field) :: cvmass
 
     ! local copy of option_path for solution field
     character(len=OPTION_PATH_LEN) :: option_path
@@ -271,11 +271,10 @@ contains
     
     sub_dt=adapt_dt/real(no_subcycles)
     
-    ! find the lumped mass
-    ! (this replaces hart2/3d etc. in old code!!)
-    t_lumpedmass => get_lumped_mass(state, tfield%mesh)
-    call allocate(lumpedmass, tfield%mesh, "LocalLumpedMass")
-    call set(lumpedmass, t_lumpedmass)
+    ! find the cv mass
+    t_cvmass => get_cv_mass(state, tfield%mesh)
+    call allocate(cvmass, tfield%mesh, "LocalCVMass")
+    call set(cvmass, t_cvmass)
 
     ewrite(2,*) 'no_subcycles = ', no_subcycles
     ewrite(2,*) 'rk_iterations = ', rk_iterations
@@ -292,10 +291,10 @@ contains
           ! record the value of tfield since the previous iteration
   
           if(explicit) then
-            call set(lumpedmass, t_lumpedmass)
+            call set(cvmass, t_cvmass)
           else
             call zero(M)
-            call addto_diag(M, t_lumpedmass)
+            call addto_diag(M, t_cvmass)
           end if
           call zero(rhs)
   
@@ -319,14 +318,14 @@ contains
           end if
   
           ! assemble it all into a coherent equation
-          call assemble_field_eqn_cv(M, A_m, lumpedmass, rhs, &
+          call assemble_field_eqn_cv(M, A_m, cvmass, rhs, &
                                     advit_tfield, l_tfield, &
                                     sub_dt, explicit, tfield_options)
   
           if(explicit) then
             do i = 1, delta_tfield%dim(1)
               do j = 1, delta_tfield%dim(2)
-                delta_tfield%val(i,j,:) = rhs%val(i,j,:)/lumpedmass%val(:)
+                delta_tfield%val(i,j,:) = rhs%val(i,j,:)/cvmass%val(:)
               end do
             end do
           else
@@ -393,14 +392,14 @@ contains
     call deallocate(cvfaces)
     call deallocate(relu)
     call deallocate(x_tfield)
-    call deallocate(lumpedmass)
+    call deallocate(cvmass)
 
   end subroutine form_advection_metric
   ! end of solution wrapping subroutines
   !************************************************************************
   !************************************************************************
   ! equation wrapping subroutines
-  subroutine assemble_field_eqn_cv(M, A_m, lumpedmass, rhs, &
+  subroutine assemble_field_eqn_cv(M, A_m, cvmass, rhs, &
                                   tfield, oldtfield, &
                                   dt, explicit, tfield_options)
 
@@ -417,7 +416,7 @@ contains
     ! matrix containing advective terms - to be incorporated
     ! into M during this subroutine
     type(csr_matrix), intent(inout) :: A_m
-    type(scalar_field), intent(inout) :: lumpedmass
+    type(scalar_field), intent(inout) :: cvmass
     ! rhs of equation
     type(tensor_field), intent(inout) :: rhs
     ! the field we are solving for
