@@ -184,6 +184,9 @@ input_choice_initial_condition_real =
       ## (either cartesian or longitude-latitude) and z is the value of the intial
       ## condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
       ## Note: This option currently only supports 'single layer' data sets.
+      ##
+      ## Current format options are: raw
+      ## Simulations using the format 'other' should be updated to use 'raw'.
       element from_netcdf {
           attribute file_name { xsd:string },
           element format {
@@ -253,6 +256,9 @@ input_choice_initial_condition_pressure =
       ## (either cartesian or longitude-latitude) and z is the value of the intial
       ## condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
       ## Note: This option currently only supports 'single layer' data sets.
+      ##
+      ## Current format options are: raw
+      ## Simulations using the format 'other' should be updated to use 'raw'.
       element from_netcdf {
           attribute file_name { xsd:string },
           element format {

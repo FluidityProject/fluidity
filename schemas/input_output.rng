@@ -232,7 +232,10 @@ be set to use this option.</a:documentation>
 Data should be in the form x,y,z(y,x) where where x and y are the coordinates
 (either cartesian or longitude-latitude) and z is the value of the intial
 condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
-Note: This option currently only supports 'single layer' data sets.</a:documentation>
+Note: This option currently only supports 'single layer' data sets.
+
+Current format options are: raw
+Simulations using the format 'other' should be updated to use 'raw'.</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
@@ -309,7 +312,10 @@ be set to use this option.</a:documentation>
 Data should be in the form x,y,z(y,x) where where x and y are the coordinates
 (either cartesian or longitude-latitude) and z is the value of the intial
 condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
-Note: This option currently only supports 'single layer' data sets.</a:documentation>
+Note: This option currently only supports 'single layer' data sets.
+
+Current format options are: raw
+Simulations using the format 'other' should be updated to use 'raw'.</a:documentation>
         <attribute name="file_name">
           <data type="string"/>
         </attribute>
