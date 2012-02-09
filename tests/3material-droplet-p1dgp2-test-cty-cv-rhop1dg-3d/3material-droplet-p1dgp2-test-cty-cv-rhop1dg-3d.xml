@@ -122,8 +122,8 @@ assert abs(mnvfracsum) &lt; 1e-10
     <test name="check maximum sum volume fraction is 1.0" language="python">
 assert abs(mxvfracsum-1.0) &lt; 1e-10
     </test>
-    <test name="check maximum grid reynolds number is 9099.27145435 to tolerance 1.0e-02" language="python">
-assert abs(max_reynolds - 9099.27145435)/9099.27145435 &lt; 1.0e-02
+    <test name="check maximum grid reynolds number is 9099.27145435 to tolerance 2.0e-02" language="python">
+assert abs(max_reynolds - 9099.27145435)/9099.27145435 &lt; 2.0e-02
     </test>    
   </pass_tests>
   <warn_tests>
