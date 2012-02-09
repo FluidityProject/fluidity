@@ -2023,10 +2023,8 @@
             ! strain modulus |S2| for second-filtered velocity (ngi)
             strain2_mod = les_viscosity_strength(du_t, nu_f2_ele)
             ! If sum of strain components = 0, don't use dynamic LES model
-            ewrite(2,*) 's1sum: ', sum(strain1_gi(:,:,:))
-            ewrite(2,*) 's2sum: ', sum(strain2_gi(:,:,:))
+
             if(abs(sum(strain1_gi(:,:,:))) < epsilon(0.0)) then
-              ewrite(2,*) 'skipping LES', epsilon(0.0)
               les_tensor_gi = 0.0
             else
               ! Isotropic filter/viscosity case
@@ -2051,18 +2049,18 @@
                   ! Isotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
                   les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_mod(gi)
                   if(les_coef_gi(gi)>0.) then
-                    ewrite(2,*) 'WARNING:'
-                    ewrite(2,*) 'Lij ', leonard_gi(:,:,gi)
-                    ewrite(2,*) 'Mij ', tensor_gi(:,:,gi)
-                    ewrite(2,*) 'Mij_1 ', strain2_mod(gi)*strain2_gi(:,:,gi)*f2_mod(gi)
-                    ewrite(2,*) 'Mij_2 ', strain_prod_gi(:,:,gi)*f1_mod(gi)
-                    ewrite(2,*) 'S2 ', strain2_gi(:,:,gi)
-                    ewrite(2,*) '|S2| ', strain2_mod(gi)
-                    ewrite(2,*) 'S1|S1| ', strain_prod_gi(:,:,gi)
-                    ewrite(2,*) 'G1, G2 ', f1_mod(gi), f2_mod(gi)
-                    ewrite(2,*) 'LijMij, MijMij', sum(leonard_gi(:,:,gi)*tensor_gi(:,:,gi)), sum(tensor_gi(:,:,gi)*tensor_gi(:,:,gi))
-                    ewrite(2,*) 'C ', les_coef_gi(gi)
-                    ewrite(2,*) 'nut ', les_tensor_gi(:,:,gi)
+                    !ewrite(2,*) 'WARNING:'
+                    !ewrite(2,*) 'Lij ', leonard_gi(:,:,gi)
+                    !ewrite(2,*) 'Mij ', tensor_gi(:,:,gi)
+                    !ewrite(2,*) 'Mij_1 ', strain2_mod(gi)*strain2_gi(:,:,gi)*f2_mod(gi)
+                    !ewrite(2,*) 'Mij_2 ', strain_prod_gi(:,:,gi)*f1_mod(gi)
+                    !ewrite(2,*) 'S2 ', strain2_gi(:,:,gi)
+                    !ewrite(2,*) '|S2| ', strain2_mod(gi)
+                    !ewrite(2,*) 'S1|S1| ', strain_prod_gi(:,:,gi)
+                    !ewrite(2,*) 'G1, G2 ', f1_mod(gi), f2_mod(gi)
+                    !ewrite(2,*) 'LijMij, MijMij', sum(leonard_gi(:,:,gi)*tensor_gi(:,:,gi)), sum(tensor_gi(:,:,gi)*tensor_gi(:,:,gi))
+                    !ewrite(2,*) 'C ', les_coef_gi(gi)
+                    !ewrite(2,*) 'nut ', les_tensor_gi(:,:,gi)
 
                   ! Clip at 1?
                   !les_coef_gi(gi) = min(les_coef_gi(gi),1.0)
