@@ -240,9 +240,6 @@ contains
       if(present(rhs)) then
          ewrite_minmax(rhs)
       end if
-      if (have_wd) then
-         call deallocate(original_bottomdist_remap)
-      end if
       
     contains 
     
@@ -1085,7 +1082,7 @@ contains
      end if
   end subroutine calculate_diagnostic_free_surface
 
- subroutine update_wettingdrying_alpha(state)
+  subroutine update_wettingdrying_alpha(state)
   !!< calculates and updates the alpha coefficients for wetting and drying.
   type(state_type), intent(in):: state
   type(scalar_field), pointer:: scalar_surface_field
@@ -1105,48 +1102,52 @@ contains
   allocate(alpha(face_loc(p, 1)))
 
   do i=1, get_boundary_condition_count(u)
-       call get_boundary_condition(u, i, type=bctype, &
-          surface_element_list=surface_element_list, option_path=fs_option_path)
-       if (bctype=="free_surface" .and. has_scalar_surface_field(u, i, "WettingDryingAlpha")) then
-             scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
-             ! Update WettingDryingAlpha
-             call get_reference_density_from_options(rho0, state%option_path)
-             original_bottomdist_remap => extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh") 
-             call get_option('/physical_parameters/gravity/magnitude', g)
-             call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
+    call get_boundary_condition(u, i, type=bctype, &
+    surface_element_list=surface_element_list, option_path=fs_option_path)
+    if (bctype=="free_surface" .and. has_scalar_surface_field(u, i, "WettingDryingAlpha")) then
+      scalar_surface_field => extract_scalar_surface_field(u, i, "WettingDryingAlpha")
+      ! Update WettingDryingAlpha
+      call get_reference_density_from_options(rho0, state%option_path)
+      original_bottomdist_remap => extract_scalar_field(state, "OriginalDistanceToBottomPressureMesh") 
+      call get_option('/physical_parameters/gravity/magnitude', g)
+      call get_option("/mesh_adaptivity/mesh_movement/free_surface/wetting_and_drying/d0", d0)
 
-             ! Calculate alpha for each surface element
-             face_loop: do j=1, size(surface_element_list)
-                sele=surface_element_list(j)
-                call calculate_alpha(sele, alpha)
-                call set(scalar_surface_field, &
-                     ele_nodes(scalar_surface_field, j), &
-                     alpha)
-             end do face_loop
-       end if
-   end do
-   deallocate(alpha)
+      ! Calculate alpha for each surface element
+      face_loop: do j=1, size(surface_element_list)
+        sele=surface_element_list(j)
+        call calculate_alpha(sele, alpha)
+        call set(scalar_surface_field, &
+        ele_nodes(scalar_surface_field, j), &
+        alpha)
+      end do face_loop
+    end if
+  end do
+  deallocate(alpha)
 
   contains
-   subroutine calculate_alpha(sele, alpha)
-        integer, intent(in) :: sele
-        real, dimension(face_loc(p, sele)), intent(inout) :: alpha
-        integer :: i
-        
-        alpha = g * face_val(original_bottomdist_remap, sele) -g * d0 + face_val(p, sele)
-        alpha = alpha/g * (-d0)
-        do i=1, size(alpha)
-          if (alpha(i)<=0.0) then
-              alpha(i)=0.0
-          else
-              alpha(i)=1.0
-          end if
-        end do
+
+    subroutine calculate_alpha(sele, alpha)
+      integer, intent(in) :: sele
+      real, dimension(face_loc(p, sele)), intent(inout) :: alpha
+
+      integer :: i
+
+      alpha = g * face_val(original_bottomdist_remap, sele) -g * d0 + face_val(p, sele)
+      alpha = alpha/g * (-d0)
+      do i=1, size(alpha)
+        if (alpha(i)<=0.0) then
+          alpha(i)=0.0
+        else
+          alpha(i)=1.0
+        end if
+      end do
+
     end subroutine calculate_alpha
- end subroutine update_wettingdrying_alpha
+
+  end subroutine update_wettingdrying_alpha
 
 
-  subroutine calculate_diagnostic_wettingdrying_alpha(state, wettingdrying_alpha)
+ subroutine calculate_diagnostic_wettingdrying_alpha(state, wettingdrying_alpha)
     !!< calculates the alpha coefficient of the wetting and drying algorithm.
     !!< This can be added as a diagnostic field in the flml.
     type(state_type), intent(in) :: state
