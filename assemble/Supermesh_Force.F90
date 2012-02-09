@@ -56,7 +56,8 @@ contains
     type(vector_field), intent(inout) :: positionsF, positionsS
     type(scalar_field), intent(inout) :: alpha_sf
 
-    !type(ilist), dimension(ele_count(positionsS)) :: map_SF ! this is for using the advancing front algorithm
+    ! this is for using the advancing front algorithm, therefore commented for now:
+    !type(ilist), dimension(ele_count(positionsS)) :: map_SF 
     integer :: ele_F, ele_S
 
     type(quadrature_type) :: supermesh_quad
@@ -79,13 +80,16 @@ contains
     
     ! Variables for ilist when using rtree intersection finder:
     type(ilist) :: map_SF_rtree
-    integer :: nele_fs, j, maplen
+    integer :: nele_fs, j, maplen, ntests
     
     integer :: stat
 
     ! As the projections are bounded, we need to define lumped versions of the mass matrices:
-    type(scalar_field) :: lumped_mass_matrix_solid, lumped_mass_matrix_fluid
-    type(scalar_field) :: lumped_inverse_mass_matrix_solid, lumped_inverse_mass_matrix_fluid
+    !type(scalar_field) :: lumped_mass_matrix_solid, lumped_mass_matrix_fluid
+    !type(scalar_field) :: lumped_inverse_mass_matrix_solid, lumped_inverse_mass_matrix_fluid
+    type(scalar_field) :: lumped_mass_matrix_fluid
+    type(scalar_field) :: lumped_inverse_mass_matrix_fluid
+
 
     ewrite(2,*) "inside one_way_unity_projection"
 
@@ -150,7 +154,9 @@ contains
       do j=1, nele_fs
         ! Get the donor (fluid) element which intersects with ele_S
         call rtree_intersection_finder_get_output(ele_F, j)
-        call insert_ascending(map_SF_rtree, ele_F)
+        ! insert_ascending works, but maybe is not necessary
+        !call insert_ascending(map_SF_rtree, ele_F)
+        call insert(map_SF_rtree, ele_F)
       end do
       ! =====================================================================================================
 
@@ -199,18 +205,23 @@ contains
         call deallocate(alpha_sf_on_supermesh)
       end if
       ! Flust ilist of intersecting elements (when using the rtree intersection finder):
-      call flush_list(map_SF_rtree)
+      !call flush_list(map_SF_rtree)
+      call deallocate(map_SF_rtree)
     end do
 
     call deallocate(supermesh_quad)
     call deallocate(supermesh_positions_shape)
     call deallocate(supermesh_field_shape)
+    ! Because of using the rtree intersection finder:
+    call rtree_intersection_finder_reset(ntests)
+    !call deallocate(map_SF_rtree)
     ! =====================================================================================================
     ! the following is commented because of using rtree instead of the advancing front algorithm:
     !do ele_S=1,ele_count(positionsS)
     !  call deallocate(map_SF(ele_S))
     !end do
     ! =====================================================================================================
+
 
     ! 3rd step: Project alpha from the supermesh to the fluid and solid mesh:
     ! loop over fluid and solid elements and solve the last equation, which will
@@ -228,6 +239,8 @@ contains
 
     call deallocate(mass_matrix_fluid)
     call deallocate(rhs_alpha_sf)
+    call deallocate(lumped_mass_matrix_fluid)
+    call deallocate(lumped_inverse_mass_matrix_fluid)
 
     ewrite(2,*) "leaving one_way_unity_projection"
 

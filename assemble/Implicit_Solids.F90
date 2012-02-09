@@ -257,7 +257,6 @@ contains
           else if (have_supermesh_projection) then
              ! Computing /alpha_s^f:
              call one_way_unity_projection(velocity, fluid_positions, external_positions, alpha_sf)
-
           end if
 
        end if ! end if do_calculate_volume_fraction
@@ -271,7 +270,6 @@ contains
        ! solid being /alpha^f_s before an adapt,
        ! alpha_sf being the new /alpha^f_s, after an adapt
        call set(solid, alpha_sf)
-       ewrite_minmax(solid)
 
        ! Set absorption term /sigma
        call set_absorption_coefficient(state, velocity%mesh)
@@ -787,16 +785,17 @@ contains
     have_supermesh_projection = have_option("/implicit_solids/one_way_coupling/galerkin_projection")
 
     ! In case of multiple immersed bodies, translate their coordinates:
-    allocate(translation_coordinates(positions%dim, number_of_solids))
-    if (multiple_solids) then
+    ! This is broken, but not used anyway, but left in here for the original author of this code
+    !if (multiple_solids) then
+       !allocate(translation_coordinates(positions%dim, number_of_solids))
        !call get_option(&
        !     "/implicit_solids/one_way_coupling/multiple_solids/python", &
        !     python_function)
        !call set_detector_coords_from_python(translation_coordinates, &
        !     number_of_solids, python_function, current_time)
-    else
-       translation_coordinates = 0.
-    end if
+    !else
+       !translation_coordinates = 0.
+    !end if
 
     ! get external mesh and compare meshes dimensions
     call get_option("/implicit_solids/one_way_coupling/mesh/file_name", &
@@ -1242,7 +1241,7 @@ contains
   subroutine implicit_solids_force_computation(state, force, particle_force)
 
     type(state_type), intent(inout) :: state
-    real, dimension(:), allocatable, intent(out), optional :: force
+    real, dimension(:), intent(inout), optional :: force
     real, dimension(:, :), allocatable, intent(out), optional :: particle_force
 
     type(vector_field), pointer :: velocity, positions, absorption
@@ -1270,7 +1269,6 @@ contains
        ! Get lumped mass on velocity mesh:
        call allocate(lumped_mass_velocity_mesh, velocity%mesh, "LumpedMassVelocityMesh")
        call remap_field(lumped_mass, lumped_mass_velocity_mesh)
-       allocate(force(velocity%dim)); force = 0.0
 
        if (have_supermesh_projection) then
           ! Copmuting the drag force:
@@ -1459,10 +1457,14 @@ contains
 
     ewrite(2, *) "inside implicit_solids_update"
     
+    positions => extract_vector_field(state, "Coordinate")
+
     ! Update the computation of the diagnostics
     ! Only one-way coupling for now
     if (one_way_coupling .and. do_print_diagnostics) then
 
+       allocate(force(positions%dim)); force = 0.0
+    
        call implicit_solids_force_computation(state, force=force, particle_force=particle_force)
 
        str_size=len_trim(int2str(number_of_solids))
