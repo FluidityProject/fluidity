@@ -93,7 +93,7 @@ def reatt_length(filelist, zarray):
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
     print file, ', elapsed time = ', t
-    if(t<100.):
+    if(t<20.):
       continue
     else:
       print "extracting data..."

@@ -12,3 +12,10 @@ input:	clean
 
 clean:
 	rm -rf *.vtu *.stat *.node *.ele *.edge output.log
+
+flmls:
+	@$(foreach M,B C D E, \
+		cp MMS_A.flml MMS_$(M).flml; \
+		sed 's/MMS_A/MMS_'$(M)'/' MMS_$(M).flml > tempfile; \
+		mv tempfile MMS_$(M).flml; \
+	)

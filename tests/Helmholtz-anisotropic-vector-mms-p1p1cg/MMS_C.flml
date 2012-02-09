@@ -311,37 +311,6 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="FiniteElementDivergence" rank="0">
-      <diagnostic field_name="FilteredVelocity">
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="EdgeLengths" rank="0">
       <diagnostic>
         <algorithm name="scalar_edge_lengths" material_phase_support="single"/>
@@ -491,9 +460,9 @@
     </vector_field>
     <vector_field name="IsoFilteredVelocity" rank="1">
       <diagnostic>
-        <algorithm material_phase_support="single" source_field_type="vector" source_field_name="Velocity" name="helmholtz_smoothed_vector">
+        <algorithm source_field_type="vector" material_phase_support="single" name="helmholtz_smoothed_vector" source_field_name="Velocity">
           <smoothing_length_scale>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">2. 0. 0. 2.</real_value>
+            <real_value rank="0">2.</real_value>
           </smoothing_length_scale>
           <solver>
             <iterative_method name="cg"/>
@@ -528,7 +497,7 @@
     </vector_field>
     <vector_field name="IsoFilterDifference" rank="1">
       <diagnostic>
-        <algorithm name="vector_difference" source_field_1_name="Velocity" source_field_2_name="IsoFilteredVelocity" source_field_2_type="vector" material_phase_support="single" source_field_1_type="vector"/>
+        <algorithm source_field_2_type="vector" name="vector_difference" source_field_1_name="Velocity" source_field_2_name="IsoFilteredVelocity" material_phase_support="single" source_field_1_type="vector"/>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat>
@@ -545,15 +514,5 @@
         </steady_state>
       </diagnostic>
     </vector_field>
-    <tensor_field name="PressureHessian" rank="2">
-      <diagnostic>
-        <algorithm material_phase_support="single " source_field_type="scalar" source_field_name="Pressure" name="hessian"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat>
-          <include_in_stat/>
-        </stat>
-      </diagnostic>
-    </tensor_field>
   </material_phase>
 </fluidity_options>
