@@ -699,6 +699,16 @@ The test filter G_2 = G_1*gamma, where G_1 is the first filter width.
 default/recommended value: 2.0</a:documentation>
                     <ref name="real"/>
                   </element>
+                  <optional>
+                    <element name="limit_coefficient">
+                      <a:documentation>Option to set an upper limit on the Smagorinsky coefficient.
+The dynamic model is known to give unbounded values which may
+affect model stability. C&lt;0.1 is consistent with empirical data from
+turbulent channel flow.
+</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                  </optional>
                   <element name="solver">
                     <a:documentation>Solver options are required for calculation of Helmholtz-smoothed velocity.</a:documentation>
                     <ref name="linear_solver_options_sym"/>

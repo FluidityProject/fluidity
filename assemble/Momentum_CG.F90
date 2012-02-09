@@ -387,6 +387,13 @@
            ! Do we want anisotropic eddy viscosity?
            have_anisotropy = have_option(trim(les_option_path)//"/dynamic_les/anisotropic_viscosity")
 
+           ! Option to cap the Smagorinsky coefficient.
+           if(have_option(trim(les_option_path)//"/dynamic_les/limit_coefficient")) then
+             call get_option(trim(les_option_path)//"/dynamic_les/limit_coefficient", smagorinsky_coefficient)
+           else
+             smagorinsky_coefficient = infinity
+           end if 
+           
            ! Initialise optional diagnostic fields
            ewrite(2,*) "Initialising LES diagnostic fields"
            call dynamic_les_init_fields(state, nu, nu_f1, nu_f2, lnd, stp)
@@ -2043,8 +2050,8 @@
                   ! Model coeff C = -(L_ij M_ij) / 2(M_ij M_ij)
                   les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*tensor_gi(:,:,gi)) / sum(tensor_gi(:,:,gi)*tensor_gi(:,:,gi))
 
-                  ! Clip at zero? Seems to be crucial to keeping viscosity matrix positive definite
-                  les_coef_gi(gi) = max(les_coef_gi(gi),0.0)
+                  ! Clip at zero and (optional) maxval.
+                  les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), smagorinsky_coefficient)
 
                   ! Isotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
                   les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_mod(gi)

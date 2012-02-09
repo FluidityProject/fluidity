@@ -596,6 +596,14 @@ prognostic_velocity_field =
                      element gamma {
                         real
                      },
+                     ## Option to set an upper limit on the Smagorinsky coefficient.
+                     ## The dynamic model is known to give unbounded values which may
+                     ## affect model stability. C<0.1 is consistent with empirical data from
+                     ## turbulent channel flow.
+                     ##
+                     element limit_coefficient {
+                        real
+                     }?,
                      ## Solver options are required for calculation of Helmholtz-smoothed velocity.
                      element solver {
                         linear_solver_options_sym
@@ -609,7 +617,9 @@ prognostic_velocity_field =
                      element anisotropic_viscosity {
                         empty
                      }?,
-                     ## Spatially varying Smagorinsky coefficient
+                     ## Spatially varying Smagorinsky coefficient.
+                     ## As diagnostic quantities are computed elementwise,
+                     ## nodal values are averages of the surrounding elements.
                      element scalar_field {
                         attribute name { "SmagorinskyCoefficient" },
                         attribute rank { "1" },
