@@ -553,7 +553,11 @@ unittest: build_unittest
 	@echo "RUN bin/tests"
 	@bin/unittestharness bin/tests
 
-schema:
+bin/spud-preprocess:
+	@echo "Installing spudtools"
+	@$(MAKE) -C libspud install-spudtools
+
+schema: bin/spud-preprocess
 	@echo "Rebuilding schema fluidity_options.rng"
 	@./bin/spud-preprocess schemas/fluidity_options.rnc
 
