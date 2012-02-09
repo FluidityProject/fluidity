@@ -384,14 +384,6 @@
 
          end do ! snloc
 
-         ! ! set bed shear stress diagnostic field node values (must scale by velocity
-         ! ! field later)
-         ! if (have_BS) then
-         !    do dim = 1, ndim
-         !       call addto(bed_shear, dim, u_nodes_bdy, T)
-         !    end do
-         ! end if
-
          ! get absorption factor at quad
          T_at_quad = matmul(T, u_f_shape%n)
 
