@@ -75,6 +75,7 @@ module implicit_solids
   use boundary_conditions
   use data_structures
   use edge_length_module
+  use detector_tools, only: set_detector_coords_from_python
 
   implicit none
 

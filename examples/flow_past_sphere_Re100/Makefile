@@ -2,7 +2,7 @@
 NPROCS=1
 # directory locations:
 BIN=../../bin/
-SCRIPTS=../../scripts/
+SCRIPTS=../../bin/
 
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi
@@ -35,7 +35,8 @@ else
 endif
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling the data extraction and plotting script
+	python ./plot_data.py
 
 input: clean
 	$(MAKE) preprocess NPROCS=8
@@ -43,4 +44,5 @@ input: clean
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
 	rm -f *.ele *.edge *.face *.node *.halo *.poly *vtu *.stat *.log-? *.err-? matrixdump* 
-	rm -rf flow_past_sphere_Re100_? flow_past_sphere_Re100_??
+	rm -rf flow_past_sphere_Re100_? flow_past_sphere_Re100_?? 
+	rm -f Sphere_drag.pdf

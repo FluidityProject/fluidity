@@ -26,6 +26,9 @@
 #    USA
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
 FCFLAGS = -I../../include @FCFLAGS@ \
   @MODINC_FLAG@../
@@ -40,7 +43,7 @@ LDFLAGS  = @LDFLAGS@
 
 LIBS = ./lib/libadaptivity.a ./lib/libvtkfortran.a ./lib/libspatialindex.a ./lib/libspud.a ./lib/libjudy.a @LIBS@
 FLIBS = @FLIBS@
-LIBFLUIDITY=../../lib/lib@FLUIDITY@.a
+LIBFLUIDITY=../../lib/lib$(FLUIDITY).a
 
 # the test binaries NOT to be built
 DISABLED_TESTS=test_mba_supermesh test_legacy_cv_faces test_lagrangian_remap test_adapt_mesh_mba3d test_pressure_solve test_matrix_free \
@@ -55,9 +58,9 @@ unittest: $(TEST_BINARIES) data
 data:
 	cd ../../tests/data; \
 	gmsh -3 cube_prismatic.geo; \
-	../../scripts/gmsh2triangle cube_prismatic.msh; \
+	../../bin/gmsh2triangle cube_prismatic.msh; \
 	gmsh -3 cube_unstructured.geo; \
-	../../scripts/gmsh2triangle cube_unstructured.msh; \
+	../../bin/gmsh2triangle cube_unstructured.msh; \
 	cd -
 
 

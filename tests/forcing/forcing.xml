@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 
 <testproblem>
     <name>forcing</name>
@@ -9,6 +8,7 @@
         <command_line>fluidity -v2 -l forcing-coare.flml;
                       fluidity -v2 -l forcing-kara.flml;
                       fluidity -v2 -l forcing-ncar.flml;
+                      fluidity -v2 -l forcing-ncar_p1dgp2.flml;
         </command_line>
   </problem_definition>  
   <variables>  
@@ -75,6 +75,23 @@ FinalSalinityMinNcar = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid'][
 import fluidity_tools
 FinalVelocityMagnitudeMaxNcar = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Velocity%magnitude']['max'][-1]
     </variable>
+<!-- P1DG_P2 test -->
+     <variable name="FinalTimep1dg" language="python">
+import fluidity_tools
+FinalTimep1dg = fluidity_tools.stat_parser("forcing-ncar.stat")['ElapsedTime']['value'][-1]
+    </variable>
+    <variable name="FinalTemperatureIntegralp1dg" language="python">
+import fluidity_tools
+FinalTemperatureIntegralp1dg = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Temperature']['integral'][-1]
+    </variable>
+    <variable name="FirstTemperatureIntegralp1dg" language="python">
+import fluidity_tools
+FirstTemperatureIntegralp1dg = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Temperature']['integral'][0]
+    </variable>
+    <variable name="FinalSalinityMinp1dg" language="python">
+import fluidity_tools
+FinalSalinityMinp1dg = fluidity_tools.stat_parser("forcing-ncar.stat")['Fluid']['Salinity']['min'][-1]
+    </variable>
   </variables>    
 
   <pass_tests> 
@@ -115,6 +132,16 @@ assert(FinalVelocityMagnitudeMaxKara &gt; 0.0)
     </test>
     <test name="Kara: Final Salinity min less than 35" language="python">
 assert FinalSalinityMinKara &lt; 35
+    </test>
+
+    <test name="P1dg_p2: Final time is 1440 seconds" language="python">
+assert FinalTimep1dg ==1440 
+    </test>
+    <test name="P1dg_p2: Final temperature integral has decreased" language="python">
+        assert((FinalTemperatureIntegralp1dg - FirstTemperatureIntegralp1dg) &gt; 10)
+    </test>
+    <test name="P1dg_p2: Final Salinity min less than 35" language="python">
+assert FinalSalinityMinp1dg &lt; 35
     </test>
   </pass_tests>
 </testproblem>

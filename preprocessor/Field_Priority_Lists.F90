@@ -225,19 +225,6 @@ contains
           end if
        end do
 
-       if(have_option('/traffic_model/scalar_field::TrafficTracerTemplate'))then
-          call get_option('/traffic_model/number_of_vehicles', ncars)
-          do i=1, ncars
-             nsol=nsol+1
-             temp_field_name_list(nsol) = "TrafficTracer"//int2str(i)
-             temp_field_optionpath_list(nsol) = "/traffic_model/scalar_field::TrafficTracerTemplate"
-             temp_field_state_list(nsol)=1
-             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
-                  tmpint, default=0)
-             priority(nsol)=tmpint
-          end do
-       end if
-
        ! make sure we have found all ntsol scalar fields:
        assert(nsol==ntsol)
 
@@ -335,14 +322,6 @@ contains
        end if
 
     end do
-
-    ! tracers for traffic modelling
-    if(have_option('traffic_model'))then
-       if(have_option('traffic_model/scalar_field::TrafficTracerTemplate'))then
-          call get_option('/traffic_model/number_of_vehicles',ncars)
-          ntsol=ntsol+ncars
-       endif
-    endif
 
   end subroutine get_ntsol
 

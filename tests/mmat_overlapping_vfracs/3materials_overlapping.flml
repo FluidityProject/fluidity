@@ -53,6 +53,7 @@
           <real_value shape="2" dim1="dim" rank="1">0.05 0.25</real_value>
         </location>
       </static_detector>
+      <fail_outside_domain/>
     </detectors>
   </io>
   <timestepping>

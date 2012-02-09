@@ -5,14 +5,17 @@ import os
 import os.path
 import glob
 import time
-import regressiontest
+import fluidity.regressiontest as regressiontest
 import traceback
 import threading
 import xml.parsers.expat
 
 
 sys.path.insert(0, os.path.join(os.getcwd(), os.path.dirname(sys.argv[0]), os.pardir, "python"))
-import elementtree.ElementTree as etree
+try:
+  import xml.etree.ElementTree as etree
+except ImportError:
+  import elementtree.ElementTree as etree
 
 class TestHarness:
     def __init__(self, length="any", parallel=False, exclude_tags=None, tags=None, file="", verbose=True, justtest=False,
@@ -58,7 +61,7 @@ class TestHarness:
             for xml_file in g:
               try:
                 p = etree.parse(os.path.join(subdir, xml_file))
-                x = p.findall("/")[0]
+                x = p.getroot()
                 if x.tag == "testproblem":
                   xml_files.append(os.path.join(subdir, xml_file))
               except xml.parsers.expat.ExpatError:

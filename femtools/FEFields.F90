@@ -5,9 +5,11 @@ module fefields
   use fields
   use field_options, only: get_coordinate_field
   use elements, only: element_type
+  use element_numbering
   use fetools, only: shape_shape
-  use transform_elements, only: transform_to_physical
+  use transform_elements, only: transform_to_physical, element_volume
   use sparse_tools
+  use sparse_matrices_fields
   use state_module
   implicit none
 
@@ -21,10 +23,134 @@ module fefields
   
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
-            compute_lumped_mass_on_submesh, project_field
+            compute_lumped_mass_on_submesh, compute_cv_mass, project_field
 
 contains
+  
+  subroutine compute_cv_mass(positions, cv_mass)
+    
+    !!< Compute the cv mass matrix associated with the 
+    !!< input scalar fields mesh. This will use pre tabulated
+    !!< coefficients to calculate each sub control volumes  
+    !!< volume - which is only set up for constant, linear elements and 
+    !!< selected quadratic elements. This assumes that all 
+    !!< elements have the same vertices, degree and dim. Also 
+    !!< the mesh element type must be Lagrangian. This WILL work
+    !!< for both continuous and discontinuous meshes. If the element
+    !!< order is zero then return the element volume.
+    
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(inout) :: cv_mass
+    
+    ! local variables
+    integer :: ele
+    integer :: vertices, polydegree, dim, type, family, loc
+    real, dimension(:), pointer :: subcv_ele_volf => null()
+    
+    ewrite(1,*) 'In compute_cv_mass'
+    
+    ! sanity check
+    assert(element_count(positions) == element_count(cv_mass))
+    
+    ! initialise
+    call zero(cv_mass)
+    
+    ! get element info (assume all the same for whole mesh)
+    vertices   = ele_vertices(cv_mass,1)    
+    polydegree = cv_mass%mesh%shape%degree
+    dim        = cv_mass%mesh%shape%dim
+    type       = cv_mass%mesh%shape%numbering%type
+    family     = cv_mass%mesh%shape%numbering%family
+    loc        = cv_mass%mesh%shape%loc
+        
+    ! The element type must be Lagrangian
+    if (type /= ELEMENT_LAGRANGIAN) then
+       FLExit('Can only find the CV mass if the element type is Lagrangian')
+    end if 
+    
+    ! The polydegree must be < 3
+    if (polydegree > 2) then       
+       FLExit('Can only find the CV mass if the element polynomial degree is 2 or less')
+    end if
+    
+    ! If the polydegree is 2 then the element family must be Simplex
+    if ((polydegree == 2) .and. (.not. family == FAMILY_SIMPLEX)) then
+       FLExit('Can only find the CV mass for a mesh with a 2nd degree element if the element familiy is Simplex')
+    end if
+    
+    ! Find the sub CV element volume fractions  
 
+    allocate(subcv_ele_volf(loc))
+    
+    if (polydegree == 0) then
+       
+       ! dummy value for element wise
+       subcv_ele_volf = 1.0
+       
+    else if (polydegree == 1) then
+       
+       ! for linear poly the volume of each
+       ! subcontrol volume is ele_vol / loc
+              
+       subcv_ele_volf = 1.0/real(loc)
+              
+    else if (polydegree == 2) then
+       
+       ! for quadratic poly we only consider Simplex family
+       
+       if (vertices == 2) then
+          
+          subcv_ele_volf(1) = 0.25 ! 1/2 * 1/2 = 1/4  Vertex CV
+          subcv_ele_volf(2) = 0.5 ! (1 - 2 * 1/4) / 1 Centre CV
+          subcv_ele_volf(3) = 0.25 ! 1/2 * 1/2 = 1/4  Vertex CV
+          
+       else if (vertices == 3) then
+
+          subcv_ele_volf(1) = 8.3333333333333333e-02 ! 1/3 * 1/4 = 1/12   Vertex CV
+          subcv_ele_volf(2) = 0.25                   ! (1 - 3 * 1/12) / 3 Edge CV
+          subcv_ele_volf(3) = 8.3333333333333333e-02 ! 1/3 * 1/4 = 1/12   Vertex CV
+          subcv_ele_volf(4) = 0.25                   ! (1 - 3 * 1/12) / 3 Edge CV
+          subcv_ele_volf(5) = 0.25                   ! (1 - 3 * 1/12) / 3 Edge CV
+          subcv_ele_volf(6) = 8.3333333333333333e-02 ! 1/3 * 1/4 = 1/12   Vertex CV
+          
+       else if ((vertices == 4) .and. (dim == 3)) then
+          
+          subcv_ele_volf(1)  = 0.03125                ! 1/8 * 1/4 = 1/32   Vertex CV
+          subcv_ele_volf(2)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV
+          subcv_ele_volf(3)  = 0.03125                ! 1/8 * 1/4 = 1/32   Vertex CV
+          subcv_ele_volf(4)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV
+          subcv_ele_volf(5)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV 
+          subcv_ele_volf(6)  = 0.03125                ! 1/8 * 1/4 = 1/32   Vertex CV    
+          subcv_ele_volf(7)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV
+          subcv_ele_volf(8)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV
+          subcv_ele_volf(9)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV        
+          subcv_ele_volf(10) = 0.03125                ! 1/8 * 1/4 = 1/32   Vertex CV
+       
+       else
+       
+          FLAbort('No code to form the sub control volume element volume fractions if not a Simplex')
+           
+       end if 
+    
+    else 
+    
+       FLAbort('No code to form the sub control volume element volume fractions if poly degree is > 2')
+       
+    end if
+    
+    ! Form the CV mass matrix  
+    do ele = 1,element_count(cv_mass)
+                    
+       call addto(cv_mass, &
+                  ele_nodes(cv_mass, ele), &
+                  subcv_ele_volf * element_volume(positions, ele))
+          
+    end do
+
+    deallocate(subcv_ele_volf)
+    
+  end subroutine compute_cv_mass
+  
   subroutine compute_lumped_mass(positions, lumped_mass, density, vfrac)
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(inout) :: lumped_mass
@@ -279,6 +405,8 @@ contains
 
     type(scalar_field) ::  masslump
     integer :: ele
+    type(csr_matrix)   :: P
+    type(mesh_type)    :: dg_mesh, cg_mesh
 
 
     if(from_field%mesh==to_field%mesh) then
@@ -295,23 +423,28 @@ contains
           end do
 
        else
-          ! CG case
+          ! DG to CG case
+        
+          cg_mesh=to_field%mesh
 
-          call zero(to_field)
-          
-          call allocate(masslump, to_field%mesh, "MassLump")
-
-          call zero(masslump)
-
-          do ele=1,element_count(to_field)
-             call cg_projection_ele(ele, from_field, to_field, masslump, X)
-          end do
-
+          call allocate(masslump, cg_mesh, "LumpedMass")
+      
+          call compute_lumped_mass(X, masslump)
+          ! Invert lumped mass.
           masslump%val=1./masslump%val
 
+          dg_mesh=from_field%mesh
+      
+          P=compute_projection_matrix(cg_mesh, dg_mesh , X)
+      
+          call zero(to_field) 
+          ! Perform projection.
+          call mult(to_field, P, from_field)
+          ! Apply inverted lumped mass to projected quantity.
           call scale(to_field, masslump)
-          
+
           call deallocate(masslump)
+          call deallocate(P)
           
        end if
 
@@ -343,27 +476,6 @@ contains
 
     end subroutine dg_projection_ele
 
-    subroutine cg_projection_ele(ele, from_field, to_field, masslump, X)
-      integer :: ele
-      type(scalar_field), intent(in) :: from_field
-      type(scalar_field), intent(inout) :: to_field, masslump
-      type(vector_field), intent(in) :: X
-      
-      real, dimension(ele_ngi(to_field,ele)) :: detwei
-      type(element_type), pointer :: to_shape
-
-      to_shape=>ele_shape(to_field, ele)
-
-      call transform_to_physical(X, ele, detwei)
-
-      call addto(masslump, ele_nodes(to_field, ele), &
-           shape_rhs(to_shape, detwei))
-
-      call addto(to_field, ele_nodes(to_field, ele), &
-           shape_rhs(to_shape, ele_val(from_field, ele)*detwei))
-
-    end subroutine cg_projection_ele
-
   end subroutine project_scalar_field
   
   subroutine project_vector_field(from_field, to_field, X)
@@ -374,8 +486,11 @@ contains
     type(vector_field), intent(inout) :: to_field    
     type(vector_field), intent(in) :: X
 
-    type(scalar_field) ::  masslump
+    type(scalar_field) ::  masslump, dg_scalar, cg_scalar
     integer :: ele
+    type(csr_matrix)   :: P
+    type(mesh_type)    :: dg_mesh, cg_mesh
+    integer            :: j
 
     
     if(from_field%mesh==to_field%mesh) then
@@ -394,21 +509,32 @@ contains
        else
           ! CG case
 
-          call zero(to_field)
-          
-          call allocate(masslump, to_field%mesh, "MassLump")
+          cg_mesh=to_field%mesh
 
-          call zero(masslump)
-
-          do ele=1,element_count(to_field)
-             call cg_projection_ele(ele, from_field, to_field, masslump, X)
-          end do
-
+          call allocate(masslump, cg_mesh, "LumpedMass")
+      
+          call compute_lumped_mass(X, masslump)
+          ! Invert lumped mass.
           masslump%val=1./masslump%val
 
+          dg_mesh=from_field%mesh
+      
+          P=compute_projection_matrix(cg_mesh, dg_mesh, X)
+      
+          call zero(to_field) 
+          ! Perform projection.     
+          do j=1,to_field%dim
+              cg_scalar=extract_scalar_field_from_vector_field(to_field, j)
+              dg_scalar=extract_scalar_field_from_vector_field(from_field, j)
+              call mult(cg_scalar, P, dg_scalar)
+              call set(to_field, j, cg_scalar)
+          end do
+
+          ! Apply inverted lumped mass to projected quantity.
           call scale(to_field, masslump)
-          
+
           call deallocate(masslump)
+          call deallocate(P)
           
        end if
 
@@ -524,5 +650,5 @@ contains
     end do
       
   end subroutine add_source_to_rhs_vector
-    
+
 end module fefields
