@@ -59,11 +59,11 @@ contains
        call zero(tfield)
     end if
     ! Following fields are optional for dynamic LES model.
-    tfield => extract_tensor_field(state, "StrainRate", stat)
+    tfield => extract_tensor_field(state, "FirstFilteredStrainRate", stat)
     if(stat==0) then
        call zero(tfield)
     end if
-    tfield => extract_tensor_field(state, "FilteredStrainRate", stat)
+    tfield => extract_tensor_field(state, "SecondFilteredStrainRate", stat)
     if(stat==0) then
        call zero(tfield)
     end if
@@ -174,9 +174,12 @@ contains
           !ewrite(2,*) "warning: visc_gi+eddy_visc_gi < 0", eddy_visc_gi
         !end if
         tensor_loc=shape_tensor_rhs(nu_shape, eddy_visc_gi, detwei)
-        ! Divide by lumped mass
-        do i=1, ele_loc(tensorfield,ele)
-          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
+        lnodes = ele_nodes(nu,ele)
+        do i=1, size(lnodes)
+          j=lnodes(i)
+          patch = get_patch_ele(nu%mesh, j)
+          n = patch%count
+          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
         end do
         call addto(tensorfield, ele_nodes(tensorfield, ele), tensor_loc)
       end if
@@ -187,11 +190,15 @@ contains
       tensorfield => extract_tensor_field(state, "FirstFilteredStrainRate", stat)
       if(stat==0) then
         tensor_loc=shape_tensor_rhs(nu_shape, strain1_gi, detwei)
-        ! Divide by lumped mass
-        do i=1, ele_loc(nu,ele)
-          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
+        lnodes = ele_nodes(nu,ele)
+        do i=1, size(lnodes)
+          j=lnodes(i)
+          patch = get_patch_ele(nu%mesh, j)
+          n = patch%count
+          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
         end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
+        !ewrite(2,*) 'ffstrainrate_field%val ', tensorfield%val(1,1,ele_nodes(nu,ele))
       end if
     end if
 
@@ -200,11 +207,15 @@ contains
       tensorfield => extract_tensor_field(state, "SecondFilteredStrainRate", stat)
       if(stat==0) then
         tensor_loc=shape_tensor_rhs(nu_shape, strain2_gi, detwei)
-        ! Divide by lumped mass
-        do i=1, ele_loc(nu,ele)
-          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)
+        lnodes = ele_nodes(nu,ele)
+        do i=1, size(lnodes)
+          j=lnodes(i)
+          patch = get_patch_ele(nu%mesh, j)
+          n = patch%count
+          tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
         end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
+        !ewrite(2,*) 'sfstrainrate_field%val ', tensorfield%val(1,1,ele_nodes(nu,ele))
       end if
     end if
 
@@ -212,7 +223,6 @@ contains
     if (present(t1_width_gi)) then
       tensorfield => extract_tensor_field(state, "TensorFirstFilterWidth", stat)
       if(stat==0) then
-        !ewrite(2,*) "tensor first width ", t1_width_gi
         tensor_loc=shape_tensor_rhs(nu_shape, t1_width_gi, detwei)
         lnodes = ele_nodes(nu,ele)
         do i=1, size(lnodes)
@@ -230,7 +240,6 @@ contains
     if (present(s1_width_gi)) then
       scalarfield => extract_scalar_field(state, "ScalarFirstFilterWidth",stat)
       if(stat==0) then
-        !ewrite(2,*) "scalar first width ", s1_width_gi
         scalar_loc=shape_rhs(nu_shape, s1_width_gi*detwei)
         ! Divide by lumped mass and no. of elements around node
         lnodes = ele_nodes(nu,ele)
@@ -248,7 +257,6 @@ contains
     if (present(t2_width_gi)) then
       tensorfield => extract_tensor_field(state, "TensorSecondFilterWidth", stat)
       if(stat==0) then
-        !ewrite(2,*) "tensor second width ", t2_width_gi
         tensor_loc=shape_tensor_rhs(nu_shape, t2_width_gi, detwei)
         lnodes = ele_nodes(nu,ele)
         do i=1, size(lnodes)
@@ -265,7 +273,6 @@ contains
     if (present(s2_width_gi)) then
       scalarfield => extract_scalar_field(state, "ScalarSecondFilterWidth",stat)
       if(stat==0) then
-        !ewrite(2,*) "scalar second width ", s2_width_gi
         scalar_loc=shape_rhs(nu_shape, s2_width_gi*detwei)
         lnodes = ele_nodes(nu,ele)
         do i=1, size(lnodes)
@@ -283,11 +290,17 @@ contains
       scalarfield => extract_scalar_field(state, "SmagorinskyCoefficient",stat)
       if(stat==0) then
         scalar_loc=shape_rhs(nu_shape, les_coef_gi*detwei)
-        ! Divide by lumped mass
-        do i=1, ele_loc(nu,ele)
-          scalar_loc(i)=scalar_loc(i)/lumped_mass(i)
+        lnodes = ele_nodes(nu,ele)
+        do i=1, size(lnodes)
+          j=lnodes(i)
+          patch = get_patch_ele(nu%mesh, j)
+          n = patch%count
+          scalar_loc(i)=scalar_loc(i)/lumped_mass(i)/n
         end do
         call addto(scalarfield, ele_nodes(nu, ele), scalar_loc)
+        !ewrite(2,*) 'Cs_gi ', les_coef_gi(1)
+        !ewrite(2,*) 'Cs_loc ', scalar_loc(1)
+        !ewrite(2,*) 'Cs_field%val ', scalarfield%val(ele_nodes(nu,ele))
       end if
     end if
 
@@ -318,8 +331,8 @@ contains
 
     real, dimension(ele_loc(nu,1), ele_ngi(nu,1), nu%dim) :: du_t
     real, dimension(ele_ngi(nu,1))                 :: detwei
-    real, dimension(nu%dim, nu%dim, ele_ngi(nu,1)) :: strain_gi, t_strain_gi, strain_prod_gi, t1_width_gi, t2_width_gi
-    real, dimension(ele_ngi(nu,1))                 :: strain_mod, t_strain_mod
+    real, dimension(nu%dim, nu%dim, ele_ngi(nu,1)) :: strain1_gi, strain2_gi, strain_prod_gi, t1_width_gi, t2_width_gi
+    real, dimension(ele_ngi(nu,1))                 :: strain1_mod, strain2_mod
     type(element_type)                             :: shape_nu
     integer, dimension(:), pointer                 :: nodes_nu
 
@@ -330,15 +343,17 @@ contains
     ewrite(2,*) "path to solver options: ", trim(lpath)
     ewrite(2,*) "anisotropic filtering and viscosity: ", have_anisotropy
 
+    ! Apply Velocity BCs to filtered field
+
     ! Filter the nonlinear velocity at both filter levels sequentially
     if(have_anisotropy) then
-      call set(nu_f1, u)
+      call set(nu_f1, nu)
       !call anisotropic_smooth_vector(nu, positions, nu_f1, alpha, lpath)
-      call anisotropic_smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
+      call anisotropic_smooth_vector(nu_f1, positions, nu_f2, gamma, lpath, u)
     else
-      call set(nu_f1, u)
+      call set(nu_f1, nu)
       !call smooth_vector(nu, positions, nu_f1, alpha, lpath)
-      call smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
+      call smooth_vector(nu_f1, positions, nu_f2, gamma, lpath, u)
     end if
 
     ewrite_minmax(nu)
@@ -361,9 +376,9 @@ contains
 
     ! Calculate second-filtered (first-filtered velocity cross-product): (ui^f1*uj^f1)^f2
     if(have_anisotropy) then
-      call anisotropic_smooth_tensor(tensorfield, positions, leonard, alpha, lpath)
+      call anisotropic_smooth_tensor(tensorfield, positions, leonard, gamma, lpath)
     else
-      call smooth_tensor(tensorfield, positions, leonard, alpha, lpath)
+      call smooth_tensor(tensorfield, positions, leonard, gamma, lpath)
     end if
     call zero(tensorfield)
 
@@ -387,17 +402,17 @@ contains
       call transform_to_physical(positions, i, shape_nu, dshape=du_t, detwei=detwei)
 
       ! Get strain S1 for first-filtered velocity (dim,dim,ngi)
-      strain_gi = les_strain_rate(du_t, ele_val(nu_f1, i))
+      strain1_gi = les_strain_rate(du_t, ele_val(nu_f1, i))
       ! Get strain S2 for second-filtered velocity (dim,dim,ngi)
-      t_strain_gi = les_strain_rate(du_t, ele_val(nu_f2, i))
+      strain2_gi = les_strain_rate(du_t, ele_val(nu_f2, i))
       ! Get strain modulus |S1| for first-filtered velocity (ngi)
-      strain_mod = les_viscosity_strength(du_t, ele_val(nu_f1, i))
+      strain1_mod = les_viscosity_strength(du_t, ele_val(nu_f1, i))
       ! Get strain modulus |S2| for second-filtered velocity (ngi)
-      t_strain_mod = les_viscosity_strength(du_t, ele_val(nu_f2, i))
+      strain2_mod = les_viscosity_strength(du_t, ele_val(nu_f2, i))
 
       ! Strain product |S1|S1
       do gi=1, ele_ngi(nu, i)
-        strain_prod_gi(:,:,gi) = strain_gi(:,:,gi)*strain_mod(gi)
+        strain_prod_gi(:,:,gi) = strain1_gi(:,:,gi)*strain1_mod(gi)
       end do
       call addto(tensorfield, ele_nodes(nu,i), shape_tensor_rhs(ele_shape(nu,i), strain_prod_gi, detwei))
     end do
@@ -405,9 +420,9 @@ contains
 
     ! Filter the strain product with second filter: (|S1|S1)^f2 (not a diagnostic field yet)
     if(have_anisotropy) then
-      call anisotropic_smooth_tensor(tensorfield, positions, strain_prod, alpha, lpath)
+      call anisotropic_smooth_tensor(tensorfield, positions, strain_prod, gamma, lpath)
     else
-      call smooth_tensor(tensorfield, positions, strain_prod, alpha, lpath)
+      call smooth_tensor(tensorfield, positions, strain_prod, gamma, lpath)
     end if
     ewrite_minmax(strain_prod)
 
@@ -433,7 +448,6 @@ contains
     dim=size(du_t,3)
 
     do gi=1, ngi
-
        s=0.5*matmul( nu, du_t(:,gi,:) )
        les_strain_rate(:,:,gi)=s+transpose(s)
 

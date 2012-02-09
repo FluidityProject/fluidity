@@ -67,7 +67,7 @@ contains
 
   end subroutine smooth_scalar
 
-  subroutine smooth_vector(field_in,positions,field_out,alpha, path)
+  subroutine smooth_vector(field_in,positions,field_out,alpha,path,bc_field)
 
     !smoothing length tensor
     real, intent(in) :: alpha
@@ -78,6 +78,8 @@ contains
     !output field, should have same mesh as input field
     type(vector_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
+    ! For dynamic LES, need to specify the velocity field from which BCs are taken
+    type(vector_field), intent(inout), optional :: bc_field
     
     !local variables
     type(csr_matrix) :: M
@@ -103,9 +105,17 @@ contains
 
     ! Boundary conditions
     ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
-    do dim=1, field_in%dim
-      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
-    end do
+    if(present(bc_field)) then
+      ewrite(2,*) trim(bc_field%name)
+      do dim=1, bc_field%dim
+        call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=bc_field, dim=dim)
+      end do
+    else
+      ewrite(2,*) trim(field_in%name)
+      do dim=1, field_in%dim
+        call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
+      end do
+    end if
 
     call zero(field_out)
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
@@ -196,7 +206,7 @@ contains
 
   end subroutine anisotropic_smooth_scalar
 
-  subroutine anisotropic_smooth_vector(field_in,positions,field_out,alpha,path)
+  subroutine anisotropic_smooth_vector(field_in,positions,field_out,alpha,path,bc_field)
 
     !smoothing length tensor
     real, intent(in) :: alpha
@@ -207,7 +217,9 @@ contains
     !output field, should have same mesh as input field
     type(vector_field), intent(inout) :: field_out
     character(len=*), intent(in) :: path
-    
+    ! For dynamic LES, need to specify the velocity field from which BCs are taken
+    type(vector_field), intent(inout), optional :: bc_field
+
     !local variables
     type(csr_matrix) :: M
     type(csr_sparsity) :: M_sparsity
@@ -226,11 +238,19 @@ contains
        call assemble_anisotropic_smooth_vector(M, rhsfield, positions, field_in, alpha, ele)
     end do
 
-    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field"
-    
-    do dim=1, field_in%dim
-      call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
-    end do
+    ! Boundary conditions
+    ewrite(2,*) "Applying strong Dirichlet boundary conditions to filtered field:"
+    if(present(bc_field)) then
+      ewrite(2,*) trim(bc_field%name)
+      do dim=1, bc_field%dim
+        call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=bc_field, dim=dim)
+      end do
+    else
+      ewrite(2,*) trim(field_in%name)
+      do dim=1, field_in%dim
+        call apply_dirichlet_conditions(matrix=M, rhs=rhsfield, field=field_in, dim=dim)
+      end do
+    end if
 
     call petsc_solve(field_out, M, rhsfield, option_path=trim(path))
 
@@ -656,11 +676,9 @@ contains
     integer :: dim
     dim=positions%dim
 
-    s=element_volume(positions, ele)
     ! filter is a square/cube (width=side length) a la Deardorff:
-    s=s**(1./dim)
-    ! square it:
-    s=s**2.
+    s=element_volume(positions, ele)
+    s=s**(2./dim)
 
   end function length_scale
 
