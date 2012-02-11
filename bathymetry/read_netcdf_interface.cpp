@@ -58,7 +58,7 @@ void get_field_values_fc(const char* filename, const double *X, const double *Y,
           if(map.HasPoint(x[i], y[i])){
                 Z[i]=map.GetValue(x[i], y[i]);
           }else{
-                cerr<<"Point not found in netcdf file\n";
+                cerr << "Point [" << x[i] << ", " << y[i] << "] not found in netCDF file, " << file << ".\n";
                 Z[i]=0.0;
           }
         }
