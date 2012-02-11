@@ -2,7 +2,6 @@
 
 from Scientific.IO.NetCDF import NetCDFFile
 from numpy import arange, zeros
-import height
 
 def create(missingdata = False, missingdimension = False, missingvariable = False):
 
@@ -34,7 +33,7 @@ def create(missingdata = False, missingdimension = False, missingvariable = Fals
   for i in range(len(x)):
     for j in range(len(y)):
       # Nice ordering netCDF API - y,x !
-      h[j,i] = height.function([x[i], y[j]])
+      h[j,i] = x[i] * y[j]
 
   # dimensions
   f.createDimension('x', len(x))
