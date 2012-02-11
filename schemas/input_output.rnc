@@ -180,8 +180,8 @@ input_choice_initial_condition_real =
           }
       }|
       ## Initialize a single field from data contained within a NetCDF file.
-      ## Data should be in the form x,y,z(y,x) where where x and y are the coordinates
-      ## (either cartesian or longitude-latitude) and z is the value of the intial
+      ## Data should be in the form x, y, z(y,x) where x and y are the coordinates
+      ## (either cartesian or longitude-latitude) and z is the value of the initial
       ## condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
       ## Note: This option currently only supports 'single layer' data sets.
       ##
@@ -252,8 +252,8 @@ input_choice_initial_condition_pressure =
           }
       }|
       ## Initialize a single field from data contained within a NetCDF file.
-      ## Data should be in the form x,y,z(y,x) where where x and y are the coordinates
-      ## (either cartesian or longitude-latitude) and z is the value of the intial
+      ## Data should be in the form x, y, z(y,x) where x and y are the coordinates
+      ## (either cartesian or longitude-latitude) and z is the value of the initial
       ## condition to be imposed (or in the GEBCO, COARDS or CF-1.0 formats). 
       ## Note: This option currently only supports 'single layer' data sets.
       ##
