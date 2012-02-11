@@ -5,7 +5,7 @@ from numpy import arange, zeros
 import height
 
 f = NetCDFFile('height.nc', 'w')
-f.description = 'Example free surface height'
+f.description = 'Example free surface height.'
 
 x = arange(-1.2, 1.21, 0.2)
 y = arange(-1.2, 1.21, 0.2)
