@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-
 <testproblem>
   <name>netcdf_read_free_surface</name>
   <owner userid="asc"/>

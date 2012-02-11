@@ -3,7 +3,7 @@
 from Scientific.IO.NetCDF import NetCDFFile
 from numpy import arange, zeros
 
-def create(missingdata = False, missingdimension = False, missingvariable = False):
+def create(missingdata = False, missingdimension = False, missingvariable = False, incorrectdimension = False, incorrectvariable = False):
 
   if (missingdata):
     filename = 'missingdata.nc'
@@ -14,9 +14,17 @@ def create(missingdata = False, missingdimension = False, missingvariable = Fals
   elif (missingvariable):
     filename = 'missingvariable.nc'
     description = ', with a missing variable.'
+  elif (incorrectdimension):
+    filename = 'incorrectdimension.nc'
+    description = ', with an incorrect dimension label.'
+  elif (incorrectvariable):
+    filename = 'incorrectvariable.nc'
+    description = ', with an incorrect variable label.'
   else:
     filename = 'valid.nc'
     description = '.'
+
+  print "Creating " + filename + description
 
   f = NetCDFFile(filename, 'w')
   f.description = 'Example free surface height' + description
@@ -35,22 +43,34 @@ def create(missingdata = False, missingdimension = False, missingvariable = Fals
       # Nice ordering netCDF API - y,x !
       h[j,i] = x[i] * y[j]
 
+  if (not incorrectdimension):
+    xdimlabel = 'x'
+  else:
+    xdimlabel = 'lat'
+  ydimlabel = 'y'
+  if (not incorrectvariable):
+    zdimlabel = 'z'
+  else:
+    zdimlabel = 'height'
+
+  print xdimlabel, ydimlabel, zdimlabel
+
   # dimensions
-  f.createDimension('x', len(x))
+  f.createDimension(xdimlabel, len(x))
   if (not missingdimension):
-    f.createDimension('y', len(y))
+    f.createDimension(ydimlabel, len(y))
 
   # variables
-  fx = f.createVariable('x', 'd', ('x',))
+  fx = f.createVariable(xdimlabel, 'd', (xdimlabel,))
   fx[:] = x
   if (not missingdimension):
-    fy = f.createVariable('y', 'd', ('y',))
+    fy = f.createVariable(ydimlabel, 'd', (ydimlabel,))
     fy[:] = y
     if (not missingvariable):
-      fh = f.createVariable('z', 'd', ('x', 'y',))
+      fh = f.createVariable(zdimlabel, 'd', (xdimlabel, ydimlabel,))
       fh[:] = h
   else:
-    fh = f.createVariable('z', 'd', ('x',))
+    fh = f.createVariable(zdimlabel, 'd', (xdimlabel,))
     fh[:] = x
 
   f.close()
@@ -59,6 +79,8 @@ create()
 create(missingdata=True)
 create(missingdimension=True)
 create(missingvariable=True)
+create(incorrectdimension=True)
+create(incorrectvariable=True)
 
 
 
