@@ -75,36 +75,31 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <python>
-                  <string_value lines="20" type="python">global calc_mu, get_spline, get_layer, read_physics_file
-
-time = 0.0
-spline = None
-layer = None
+                  <string_value lines="20" type="python">global calc_mu, get_layer, read_physics_file, visser_curve
 
 if not persistent.has_key('diffusivity_mld_fh'):
   persistent['diffusivity_mld_fh'] = open("vew_tm_mld.csv", 'r')
+  persistent['diffusivity_mld_time'] = -1.0
   
-def get_layer(t):
-  # read physics
+def get_layer():
   data = persistent['diffusivity_mld_fh'].readline().split(",")
-  if not t==float(data[0]):
-    raise RuntimeError('PrescribedDiffusivity: Wrong t in read_physics: ' + data[0])
-  return float(data[1])  
-
-def get_spline(t):
-  from numpy import arange
-  from scipy import interpolate
-  layer = get_layer(t)
-
-  # create spline
-  height = arange(0.0, 300.0, 10.0)
-  mu = [calc_mu(z, layer) for z in height]
-  tck = interpolate.splrep(height,mu)
-  return tck
+  time = float(data[0])
+  layer = float(data[1])
+  return layer, time
+  
+def visser_curve(z):
+  ## Recreate Fig. 1 in Visser, 1997, by using Fig. 3 in Ross and Sharples, 2004
+  z = abs(z)
+  if z &lt;= 40.:
+    z = 40. - z
+    K_z = 0.001 + 0.0136245 * z - 0.00263245 * pow(z,2) + 0.000211875 * pow(z,3) - 0.00000865898 * pow(z,4) + 0.00000017623 * pow(z,5) - 0.00000000140918 * pow(z,6)
+  else:
+    K_z=1e-6
+  return K_z
     
 def calc_mu(z, layer):
-  interfacewidth=5.0  #30.0
-  mu_MLD=0.1  #0.3
+  interfacewidth=0.0  #30.0
+  mu_MLD=0.3  #0.3
   if abs(z)&lt;=layer-interfacewidth:
     mu_Z=mu_MLD
   elif abs(z)&lt;=layer:
@@ -115,16 +110,16 @@ def calc_mu(z, layer):
   return mu_Z
   
 def val(X,t):
-  from scipy import interpolate
-  global time, spline, layer
-  #if t &gt; time or spline==None:
-  if t &gt; time or layer == None:
-    time = t
-    #spline = get_spline(t)
-    layer = get_layer(t)
-  
-  mu = calc_mu(abs(X[0]), layer)
-  #mu = interpolate.splev(abs(X[0]), spline)
+  if t &gt; persistent['diffusivity_mld_time']:
+    layer, time = get_layer()
+    persistent['diffusivity_mld_time'] = time
+    persistent['diffusivity_mld_data'] = layer
+
+  mu=1e-5
+  layer = persistent['diffusivity_mld_data']
+  if abs(X[0]) &lt;= layer:
+    mu = calc_mu(abs(X[0]), layer)
+    #mu = visser_curve(abs(X[0]) * 40. / layer) * 8.
   return [[mu]]</string_value>
                 </python>
               </anisotropic_symmetric>
@@ -198,7 +193,11 @@ for n in range(field.node_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">global read_physics_file, depth_irrad, time
+            <string_value lines="20" type="python">global read_physics_file
+
+if not persistent.has_key('irradiance_fh'):
+  persistent['irradiance_fh'] = open("vew_tm_temp_irrad.csv" , 'r')
+  persistent['irradiance_time'] = -1.0
 
 def read_physics_file(f):  
   depth_irrad = {}
@@ -211,19 +210,17 @@ def read_physics_file(f):
     depth_irrad[float(data[2])] = float(data[4]) # irradiance in column 4
   return depth_irrad, time
 
-if not persistent.has_key('irradiance_fh'):
-  persistent['irradiance_fh'] = open("vew_tm_temp_irrad.csv" , 'r')
-depth_irrad, time = read_physics_file(persistent['irradiance_fh'])
-
 def val(X,t):
-  if not t==time:
-    raise RuntimeError('Irradiance: Wrong t in read_physics: ' + str(time) + ' expected: ' + str(t))
+  if t &gt; persistent['irradiance_time']:
+    depth_irrad, time = read_physics_file(persistent['irradiance_fh'])
+    persistent['irradiance_time'] = time
+    persistent['irradiance_data'] = depth_irrad
   
   if abs(X[0]) &lt;= 499:
     z = abs(X[0])
   else:
     z = 499
-  return depth_irrad[z]</string_value>
+  return persistent['irradiance_data'][z]</string_value>
           </python>
         </value>
         <output/>
@@ -238,8 +235,12 @@ def val(X,t):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">global read_physics_file, depth_temp, time
+            <string_value lines="20" type="python">global read_physics_file
 
+if not persistent.has_key('temperature_fh'):
+  persistent['temperature_fh'] = open("vew_tm_temp_irrad.csv" , 'r')
+  persistent['temperature_time'] = -1.0
+  
 def read_physics_file(f):
   depth_temp = {}
   data = f.readline().split(",")
@@ -251,19 +252,17 @@ def read_physics_file(f):
     depth_temp[float(data[2])] = float(data[3]) # temperature in column 3
   return depth_temp, time
 
-if not persistent.has_key('temperature_fh'):
-  persistent['temperature_fh'] = open("vew_tm_temp_irrad.csv" , 'r')
-depth_temp, time = read_physics_file(persistent['temperature_fh'])
-
 def val(X,t):
-  if not t==time:
-    raise RuntimeError('Temperature: Wrong t in read_physics: ' + str(time) + ' expected: ' + str(t))
+  if t &gt; persistent['temperature_time']:
+    depth_temp, time = read_physics_file(persistent['temperature_fh'])
+    persistent['temperature_time'] = time
+    persistent['temperature_data'] = depth_temp
   
   if abs(X[0]) &lt;= 499:
     z = abs(X[0])
   else:
     z = 499
-  return depth_temp[z]</string_value>
+  return persistent['temperature_data'][z]</string_value>
           </python>
         </value>
         <output/>
@@ -576,6 +575,7 @@ def val(X,t):
                   <include_in_detectors/>
                 </detectors>
               </diagnostic>
+              <stage_aggregate/>
             </scalar_field>
           </state_variable>
           <chemical_variable name="Ammonium">
@@ -786,7 +786,7 @@ def val(X,t):
               <random_walk diffusivity_gradient="DiffusivityGradient" diffusivity_field="ScalarDiffusivity" name="Diffusive">
                 <auto_subcycle diffusivity_2nd_gradient="DiffusivitySecondGradient">
                   <scale_factor>
-                    <real_value rank="0">2.0</real_value>
+                    <real_value rank="0">8.0</real_value>
                   </scale_factor>
                 </auto_subcycle>
               </random_walk>
@@ -817,10 +817,10 @@ def val(biovars, env, dt):
                 <integer_value rank="0">1</integer_value>
               </period_in_timesteps>
               <minimum>
-                <real_value rank="0">10</real_value>
+                <real_value rank="0">2</real_value>
               </minimum>
               <maximum>
-                <real_value rank="0">40</real_value>
+                <real_value rank="0">4</real_value>
               </maximum>
             </particle_management>
           </stage>
@@ -854,7 +854,7 @@ def val(biovars, env, dt):
               <random_walk diffusivity_gradient="DiffusivityGradient" diffusivity_field="ScalarDiffusivity" name="Diffusive">
                 <auto_subcycle diffusivity_2nd_gradient="DiffusivitySecondGradient">
                   <scale_factor>
-                    <real_value rank="0">2.0</real_value>
+                    <real_value rank="0">8.0</real_value>
                   </scale_factor>
                 </auto_subcycle>
               </random_walk>
