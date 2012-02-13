@@ -111,7 +111,9 @@ contains
     else if(have_option(trim(path)//"/free_surface")) then
        call initialise_field(field, trim(path)//"/free_surface", position, time=time, phase_path=trim(phase_path))
        ! Scale the entered freesurface height by the magnitude of gravity to give the pressure initial condition
+       ewrite(3, *) "Free-surface to pressure minmax pre-conversion ", minval(field), maxval(field)
        call convert_free_surface_to_pressure(field, phase_path)
+       ewrite(3, *) "Free-surface to pressure minmax post-conversion ", minval(field), maxval(field)
 
     else if(have_option(trim(path) // "/from_file")) then
        
