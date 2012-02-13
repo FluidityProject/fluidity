@@ -785,42 +785,13 @@ via a compressible equation of state.</a:documentation>
               <a:documentation>Parameters required to model multiphase flow</a:documentation>
               <element name="relperm_type">
                 <a:documentation>Option for relperm type in prototype code</a:documentation>
-                <optional>
-                  <element name="Corey">
-                    <a:documentation>Corey relperm:
-
-relperm = relperm_max * saturation**-relperm_exponent</a:documentation>
-                    <optional>
-                      <element name="relperm_max">
-                        <a:documentation>Relative permeability end point
-
-Value between 0 and 1. Default value 1.0</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="relperm_exponent">
-                        <a:documentation>Relative permeability exponent
-
-Default value 2.0</a:documentation>
-                        <ref name="real"/>
-                      </element>
-                    </optional>
-                    <optional>
-                      <element name="boost_at_zero_saturation">
-                        <a:documentation>Option to boost the absorption at zero saturation</a:documentation>
-                        <ref name="comment"/>
-                      </element>
-                    </optional>
-                  </element>
-                </optional>
-                <element name="Land">
-                  <a:documentation>Land relperm:
+                <element name="Corey">
+                  <a:documentation>Corey relperm:
 
 relperm = relperm_max * saturation**-relperm_exponent</a:documentation>
                   <optional>
                     <element name="relperm_max">
-                      <a:documentation>Relative permeability end point for the CO2 / Brine model
+                      <a:documentation>Relative permeability end point
 
 Value between 0 and 1. Default value 1.0</a:documentation>
                       <ref name="real"/>
@@ -4159,7 +4130,7 @@ Defaults to zero at machine tolerance (epsilon(0.0)) if not selected.</a:documen
       <empty/>
     </element>
   </define>
-  <!-- Options for inclusion of calculations of surface integrals in the .stat file -->
+  <!-- Options for inclusion of calculations of surface integrals in the .stat file   -->
   <define name="surface_integral_stats_base.surface_integral">
     <attribute name="name">
       <data type="string"/>

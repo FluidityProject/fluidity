@@ -658,27 +658,8 @@ start =
                      element relperm_exponent {real}?,
                      ## Option to boost the absorption at zero saturation
                      element boost_at_zero_saturation { comment }?
-                  }, 
-                  ## Land relperm:
-                  ##
-                  ## relperm = relperm_max * saturation**-relperm_exponent
-                  element Land {
-                     ## Relative permeability end point for the CO2 / Brine model
-                     ##
-                     ## Value between 0 and 1. Default value 1.0
-                     element relperm_max {real}?,
-                     ## Relative permeability exponent
-                     ##
-                     ## Default value 2.0
-                     element relperm_exponent {real}?,
-                     ## Option to for Land ?
-                     element S_GI {real}?,
-                     ## Option to for Land ?
-                     element CS_GI {real}?,
-                     ## Option to for Land ?
-                     element C {real}?,
                   }
-               },
+                },
                ## Option for capillary pressure
                element capillary_pressure {
                   ## Brookes-Corey equation
