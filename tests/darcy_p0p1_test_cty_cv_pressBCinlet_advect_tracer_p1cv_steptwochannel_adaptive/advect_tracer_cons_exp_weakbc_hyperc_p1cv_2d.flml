@@ -166,7 +166,6 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
               <courant_number name="ControlVolumeCFLNumber"/>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
-            <porosity name="Porosity"/>
           </control_volumes>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -214,6 +213,14 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
             </constant>
           </type>
         </boundary_conditions>
+        <porosity>
+          <porosity_field_name>Porosity</porosity_field_name>
+          <temporal_discretisation>
+            <theta>
+              <real_value rank="0">0.5</real_value>
+            </theta>
+          </temporal_discretisation>
+        </porosity>
         <output/>
         <stat>
           <include_cv_stats/>
@@ -290,7 +297,14 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
-        <porosity name="Porosity"/>
+        <porosity>
+          <porosity_field_name>Porosity</porosity_field_name>
+          <temporal_discretisation>
+            <theta>
+              <real_value rank="0">1.0</real_value>
+            </theta>
+          </temporal_discretisation>
+        </porosity>
         <output/>
         <stat/>
         <convergence>
@@ -318,7 +332,6 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         <spatial_discretisation>
           <control_volumes>
             <face_value name="FirstOrderUpwind"/>
-            <porosity name="Porosity"/>
           </control_volumes>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -335,6 +348,14 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <control_volumes/>
         </temporal_discretisation>
         <explicit/>
+        <porosity>
+          <porosity_field_name>Porosity</porosity_field_name>
+          <temporal_discretisation>
+            <theta>
+              <real_value rank="0">0.0</real_value>
+            </theta>
+          </temporal_discretisation>
+        </porosity>
         <output/>
       </metric_advection>
       <tensor_field name="MinimumEdgeLengths">

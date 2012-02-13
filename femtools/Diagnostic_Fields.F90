@@ -1750,11 +1750,12 @@ contains
       ! logical array indicating if a face has already been visited by the opposing node
       logical, dimension(:), allocatable :: notvisited
       
-      ! variables associated with including the porosity
-      integer :: stat
+      ! Porosity fields, field name, theta value and include flag
+      type(scalar_field), pointer :: porosity_old, porosity_new
+      type(scalar_field) :: porosity_theta 
+      character(len=OPTION_PATH_LEN) :: porosity_name
+      real :: porosity_theta_value
       logical :: include_porosity
-      character(len=FIELD_NAME_LEN) :: porosity_name
-      type(scalar_field), pointer :: porosity
       
       integer, dimension(:), allocatable :: courant_bc_type
       type(scalar_field) :: courant_bc
@@ -1786,32 +1787,38 @@ contains
       
       ! determine the cv mass matrix to use for the length scale
       ! which may have included the porosity field
-      
-      call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/name', &
-                      porosity_name, &
-                      stat = stat)
-      
-      if (stat == 0) then
-         
+      if (have_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity')) then
          include_porosity = .true.
+     
+         ! get the name of the field to use as porosity
+         call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/porosity_field_name', &
+                         porosity_name, &
+                         default = 'Porosity')
          
-         porosity => extract_scalar_field(state, trim(porosity_name))
-         ewrite_minmax(porosity)
+         ! get the porosity theta value
+         call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/temporal_discretisation/theta', &
+                         porosity_theta_value, &
+                         default = 0.0)
          
-         allocate(cvmass)
+         porosity_new => extract_scalar_field(state, trim(porosity_name))                  
+         porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name))
          
-         call allocate(cvmass, courant%mesh, name="CVMassWithPorosity")
-         call compute_cv_mass(x, cvmass, porosity)
+         call allocate(porosity_theta, porosity_new%mesh)
          
+         call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
+         
+         ewrite_minmax(porosity_theta)
+       
+         allocate(cvmass)  
+         call allocate(cvmass, courant%mesh, name="LocalCVMassWithPorosity")
+         call compute_cv_mass(x, cvmass, porosity_theta)
+       
+         call deallocate(porosity_theta)
       else
-         
          include_porosity = .false.
-         
          cvmass => get_cv_mass(state, courant%mesh)
-      
       end if
-      
-      ewrite_minmax(cvmass)         
+      ewrite_minmax(cvmass)    
       
       if(courant%mesh%shape%degree /= 0) then
 

@@ -151,7 +151,6 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <control_volumes>
             <face_value name="FirstOrderUpwind"/>
             <diffusion_scheme name="ElementGradient"/>
-            <porosity name="Porosity"/>
           </control_volumes>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -188,6 +187,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
             </constant>
           </type>
         </boundary_conditions>
+        <porosity/>
         <output/>
         <stat>
           <include_cv_stats/>
@@ -208,7 +208,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
-        <porosity name="Porosity"/>
+        <porosity/>
         <output/>
         <stat/>
         <convergence>

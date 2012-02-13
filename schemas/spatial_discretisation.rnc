@@ -513,8 +513,7 @@ pure_cv_options =
             element diffusion_scheme {
               attribute name{"BassiRebay"}
             }
-         ),
-         porosity_control_volume?
+         )
       }
    )
 
@@ -537,101 +536,8 @@ coupled_cv_options =
             element target_minimum {
               real
             }
-         }, 
-         porosity_control_volume?
+         }
       }
-   )
-
-porosity_control_volume =
-   (
-      ## Include Porosity as a coefficient field 
-      ## of the time derivative. 
-      ## 
-      ## The porosity is evaluated at the start
-      ## of time step.
-      ## 
-      ## The porosity must be associated 
-      ## with a mesh that has shape functions that 
-      ## are order zero (element wise) or the 
-      ## same order as the parent field which is 
-      ## to be solved for. If the latter then 
-      ## the porosity is assumed to be represented 
-      ## with the control volumes or the sub 
-      ## control volumes for a discontinuous mesh.
-      ## 
-      ## This currently assumes that the 
-      ## advecting Velocity field has embedded 
-      ## within it the Porosity. 
-      ## 
-      ## The porosity is not included in the 
-      ## diffusivity term (this could however 
-      ## be included via a python diagnostic field).
-      ## 
-      ## The rate of change of porosity is 
-      ## assumed to be sufficiently small such 
-      ## that it is not included as a source term 
-      ## (this could however be included via 
-      ## a python diagnostic field).
-      ## 
-      ## This is not set up to work with
-      ## a moving mesh.
-      ## 
-      ## For fields solved with coupled_cv
-      ## all must include the porosity if required.
-      ##
-      ## Specify the name of the field 
-      ## to use for porosity. This field must 
-      ## exist in the state of the associated 
-      ## material_phase.
-      element porosity {
-         comment,
-         
-         attribute name { "Porosity" }
-      }|
-      ## Include Porosity as a coefficient field 
-      ## of the time derivative. 
-      ## 
-      ## The porosity is evaluated at the start
-      ## of time step.
-      ## 
-      ## The porosity must be associated 
-      ## with a mesh that has shape functions that 
-      ## are order zero (element wise) or the 
-      ## same order as the parent field which is 
-      ## to be solved for. If the latter then 
-      ## the porosity is assumed to be represented 
-      ## with the control volumes or the sub 
-      ## control volumes for a discontinuous mesh.
-      ## 
-      ## This currently assumes that the 
-      ## advecting Velocity field has embedded 
-      ## within it the Porosity. 
-      ## 
-      ## The porosity is not included in the 
-      ## diffusivity term (this could however 
-      ## be included via a python diagnostic field).
-      ## 
-      ## The rate of change of porosity is 
-      ## assumed to be sufficiently small such 
-      ## that it is not included as a source term 
-      ## (this could however be included via 
-      ## a python diagnostic field).
-      ## 
-      ## This is not set up to work with
-      ## a moving mesh.
-      ## 
-      ## For fields solved with coupled_cv
-      ## all must include the porosity if required.
-      ##
-      ## Specify the name of the field 
-      ## to use for porosity. This field must 
-      ## exist in the state of the associated 
-      ## material_phase.
-      element porosity {
-         comment,
-         
-         attribute name { xsd:string }
-      }      
    )
 
 spatial_control_volume_options_excluding_none = compressive_control_volume_options

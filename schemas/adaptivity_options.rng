@@ -592,9 +592,6 @@ rather than always lagging behind.</a:documentation>
             <a:documentation>Spatial discretisation options</a:documentation>
             <element name="control_volumes">
               <ref name="standard_control_volume_options"/>
-              <optional>
-                <ref name="porosity_control_volume"/>
-              </optional>
             </element>
             <element name="conservative_advection">
               <a:documentation>Conservative discretisation of field advection equation
@@ -680,6 +677,9 @@ and divides the rhs by this.</a:documentation>
               <empty/>
             </element>
           </choice>
+          <optional>
+            <ref name="porosity_include"/>
+          </optional>
           <element name="output">
             <a:documentation>Debugging output options</a:documentation>
             <optional>

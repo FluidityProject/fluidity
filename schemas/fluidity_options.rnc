@@ -14,6 +14,7 @@ include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "flredecomp.rnc"
+include "porous_media.rnc"
 
 start =
    (
@@ -1681,71 +1682,6 @@ start =
          flredecomp?
       }
    )      
-
-porous_media_model =
-   (
-      ## Porous Media
-      element porous_media {
-         ## Specify scalar field Porosity which is inserted into the first material_phase state.
-         element scalar_field {
-            attribute name { "Porosity" },
-            (
-               element prescribed {
-                  velocity_mesh_choice,
-                  prescribed_scalar_field
-               }|
-               element diagnostic {
-                  velocity_mesh_choice,                     
-                  scalar_python_diagnostic_algorithm,                     
-                  diagnostic_scalar_field
-               }
-            )
-         },
-         ## Specify field Permeability which is inserted into the first material_phase state.
-         (
-            element scalar_field {
-               attribute name { "Permeability" },
-               (
-                  element prescribed {
-                     velocity_mesh_choice,
-                     prescribed_scalar_field
-                  }|
-                  element diagnostic {
-                     velocity_mesh_choice,
-                     scalar_python_diagnostic_algorithm,
-                     diagnostic_scalar_field
-                  }
-               )
-            }|
-            element vector_field {
-               attribute name { "Permeability" },
-               (
-                  element prescribed {
-                     velocity_mesh_choice,
-                     prescribed_vector_field
-                  }|
-                  element diagnostic {
-                     velocity_mesh_choice,
-                     vector_python_diagnostic_algorithm,
-                     diagnostic_vector_field
-                  }
-               )
-            }
-         )?,
-         ## Specify scalar field Electrical Conductivity
-         element scalar_field {
-            attribute name { "ElectricalConductivity" },
-            element diagnostic {
-               velocity_mesh_choice,
-               (
-                  internal_algorithm |
-                  scalar_python_diagnostic_algorithm
-               ),
-               diagnostic_scalar_field_no_adapt
-            }
-         }?
-      }?   
-   )
 
 sediment = 
    (
@@ -3971,54 +3907,7 @@ scalar_field_choice =
                element diagnostic {
                   internal_algorithm,
                   velocity_mesh_choice,
-                  
-                  (
-                     ## Include the porosity in the calculation of 
-                     ## the Courant number. This is required if 
-                     ## the Velocity field has embedded in it the 
-                     ## porosity and the CFL number is used to 
-                     ## determine the CV face value in an 
-                     ## advection scheme (such as HyperC).
-                     ##
-                     ## The porosity is evaluated at the end
-                     ## of time step.
-                     ## 
-                     ## The porosity must be associated 
-                     ## with a mesh that has shape functions that 
-                     ## are order zero (element wise) or the 
-                     ## same order as the parent field which is 
-                     ## to be solved for. If the latter then 
-                     ## the porosity is assumed to be represented 
-                     ## with the control volumes or the sub 
-                     ## control volumes for a discontinuous mesh.
-                     ## 
-                     ## Specify the name of the field 
-                     ## to use for porosity. This field must 
-                     ## exist in the state of the associated 
-                     ## material_phase.
-                     element porosity {
-                        comment,
-                     
-                        attribute name { "Porosity" }
-                     }|
-                     ## Include the porosity in the calculation of 
-                     ## the Courant number. This is required if 
-                     ## the Velocity field has embedded in it the 
-                     ## porosity and the CFL number is used to 
-                     ## determine the CV face value in an 
-                     ## advection scheme (such as HyperC).
-                     ## 
-                     ## Specify the name of the field 
-                     ## to use for porosity. This field must 
-                     ## exist in the state of the associated 
-                     ## material_phase.
-                     element porosity {
-                        comment,
-                     
-                        attribute name { xsd:string }
-                     }
-                  )?,
-                                    
+                  porosity_include_cv_cfl?,                                    
                   diagnostic_scalar_field
                }|
                element aliased {

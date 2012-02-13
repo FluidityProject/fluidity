@@ -334,7 +334,6 @@ for ele in range(field.element_count):
               </limit_face_value>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
-            <porosity name="Porosity"/>
           </control_volumes>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
@@ -391,6 +390,14 @@ for ele in range(field.element_count):
           </surface_ids>
           <type name="zero_flux"/>
         </boundary_conditions>
+        <porosity>
+          <porosity_field_name>Porosity</porosity_field_name>
+          <temporal_discretisation>
+            <theta>
+              <real_value rank="0">1.0</real_value>
+            </theta>
+          </temporal_discretisation>
+        </porosity>
         <output/>
         <stat/>
         <convergence>
@@ -462,6 +469,14 @@ for n in range(field.node_count):
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>
+        <porosity>
+          <porosity_field_name>Porosity</porosity_field_name>
+          <temporal_discretisation>
+            <theta>
+              <real_value rank="0">1.0</real_value>
+            </theta>
+          </temporal_discretisation>
+        </porosity>
         <output/>
         <stat/>
         <convergence>

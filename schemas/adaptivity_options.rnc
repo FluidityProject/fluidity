@@ -514,8 +514,7 @@ hr_adaptivity =
             element spatial_discretisation {
               (
                   element control_volumes {
-                    standard_control_volume_options,
-                    porosity_control_volume?
+                    standard_control_volume_options
                   }
               ),
               ## Conservative discretisation of field advection equation
@@ -594,6 +593,7 @@ hr_adaptivity =
                   empty
               }
             ),
+            porosity_include?,
             ## Debugging output options
             element output {
               ## Output vtus of the advected metric and edge lengths at every subcycle

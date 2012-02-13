@@ -162,7 +162,8 @@ contains
        do ele = 1,element_count(cv_mass)
           
           if (porosity%mesh%shape%degree == 0) then
-             subcv_ele_porosity = node_val(porosity, ele)
+             subcv_ele_porosity(1:1) = ele_val(porosity, ele)
+             if (loc > 1) subcv_ele_porosity(2:) = subcv_ele_porosity(1)
           else
              subcv_ele_porosity = ele_val(porosity, ele)
           end if

@@ -341,7 +341,7 @@ contains
       type(csr_sparsity) :: mass_sparsity
       type(csr_matrix) :: mass
       type(scalar_field) :: ctfield, ct_rhs, temp
-      type(scalar_field), pointer :: cv_mass => null()
+      type(scalar_field), pointer :: cv_mass
       
       logical :: test_with_cv_dual
 
