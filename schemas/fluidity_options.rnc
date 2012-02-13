@@ -3927,6 +3927,7 @@ scalar_field_choice =
                element diagnostic {
                   internal_algorithm,
                   velocity_mesh_choice,
+                  porosity_include_dg_cfl?,
                   diagnostic_scalar_field
                }|
                element aliased {

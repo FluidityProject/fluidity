@@ -123,7 +123,9 @@ porosity_include_cv_cfl =
       ## the Velocity field has embedded in it the 
       ## porosity and the CFL number is used to 
       ## determine the CV face value in an 
-      ## advection scheme (such as HyperC).
+      ## advection scheme (such as HyperC) or 
+      ## the a sub cycled advection scheme is used 
+      ## that dependends on this Courant number.
       ## 
       ## The porosity must be associated 
       ## with a mesh that has shape functions that 
@@ -148,6 +150,31 @@ porosity_include_cv_cfl =
          porosity_include_temporal_discretisation?
       }
    )
+
+
+porosity_include_dg_cfl = 
+   (
+      ## Include the porosity in the calculation of 
+      ## the DG Courant number. This is required if 
+      ## the Velocity field has embedded in it the 
+      ## porosity and a sub cycled advection scheme 
+      ## is used that dependends on this Courant number.
+      element porosity {
+         comment,
+
+         ## Specify the name of the field 
+         ## to use for porosity. This field must 
+         ## exist in the state of the associated 
+         ## material_phase.
+         ## 
+         ## If not specified the field name 
+         ## Porosity is used by default.
+         element porosity_field_name { xsd:string }?,
+         
+         porosity_include_temporal_discretisation?
+      }
+   )
+
 
 porosity_include_temporal_discretisation =
    (
