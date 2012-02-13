@@ -138,7 +138,7 @@ the Velocity field has embedded in it the
 porosity and the CFL number is used to 
 determine the CV face value in an 
 advection scheme (such as HyperC) or 
-the a sub cycled advection scheme is used 
+a sub cycled advection scheme is used 
 that dependends on this Courant number.
 
 The porosity must be associated 
