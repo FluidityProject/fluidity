@@ -13,38 +13,38 @@
   <variables>
     <variable name="agent_count_split" language="python">
 from fluidity_tools import stat_parser
-agent_count_split = stat_parser("lagrangian_biology.stat")['Water']['AgentAAgentsSplit']['integral']
+agent_count_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredAgentsSplit']['integral']
     </variable>
     <variable name="biomass_split" language="python">
 from fluidity_tools import stat_parser
-biomass_split = stat_parser("lagrangian_biology.stat")['Water']['AgentAEnsembleSizeSplit']['integral']
+biomass_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredEnsembleSizeSplit']['integral']
     </variable>
     <variable name="nutrients_split" language="python">
 from fluidity_tools import stat_parser
-nutrients_split = stat_parser("lagrangian_biology.stat")['Water']['AgentAParticulateNutrientSplit']['integral']
+nutrients_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredParticulateNutrientSplit']['integral']
     </variable>
     <variable name="final_agent_sizes_split" language="python">
 from fluidity_tools import stat_parser
 from numpy import array
-s = stat_parser("AgentASplit.detectors")
+s = stat_parser("LayeredSplit.detectors")
 final_agent_sizes_split = array([ s[agent]['Size'][0][-1] for agent in s.keys() ])
     </variable>
     <variable name="agent_count_merge" language="python">
 from fluidity_tools import stat_parser
-agent_count_merge = stat_parser("lagrangian_biology.stat")['Water']['AgentAAgentsMerge']['integral']
+agent_count_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredAgentsMerge']['integral']
     </variable>
     <variable name="biomass_merge" language="python">
 from fluidity_tools import stat_parser
-biomass_merge = stat_parser("lagrangian_biology.stat")['Water']['AgentAEnsembleSizeMerge']['integral']
+biomass_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredEnsembleSizeMerge']['integral']
     </variable>
     <variable name="nutrients_merge" language="python">
 from fluidity_tools import stat_parser
-nutrients_merge = stat_parser("lagrangian_biology.stat")['Water']['AgentAParticulateNutrientMerge']['integral']
+nutrients_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredParticulateNutrientMerge']['integral']
     </variable>
     <variable name="final_agent_sizes_merge" language="python">
 from fluidity_tools import stat_parser
 from numpy import array, isnan
-s = stat_parser("AgentAMerge.detectors")
+s = stat_parser("LayeredMerge.detectors")
 final_agent_sizes_merge = []
 for agent in s.keys():
   if not isnan(s[agent]['Size'][0][-1]):
@@ -58,6 +58,10 @@ agent_count_stage_change_start = stat_parser("lagrangian_biology.stat")['Water']
     <variable name="agent_count_stage_change_finish" language="python">
 from fluidity_tools import stat_parser
 agent_count_stage_change_finish = stat_parser("lagrangian_biology.stat")['Water']['StageChangeAgentsFinish']['integral']
+    </variable>
+    <variable name="agent_count_delayed" language="python">
+from fluidity_tools import stat_parser
+agent_count_delayed = stat_parser("lagrangian_biology.stat")['Water']['DelayedAgentsTarget']['integral']
     </variable>
   </variables>
   <pass_tests>
@@ -90,6 +94,12 @@ assert abs(agent_count_stage_change_start[-1]) &lt; 1.0e-6
     </test>
     <test name="final_agent_count_sc_finish" language="python">
 assert abs(agent_count_stage_change_finish[-1] - 50.0) &lt; 1.0e-6
+    </test>
+    <test name="delayed_final_agent_count" language="python">
+assert abs(agent_count_delayed[-1] - 50.0) &lt; 1.0e-6
+    </test>
+    <test name="delayed_middle_agent_count" language="python">
+assert abs(agent_count_delayed[-2] - 250.0) &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

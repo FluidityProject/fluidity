@@ -322,6 +322,7 @@ contains
              ! Add Particle Management options
              if (have_option(trim(stage_buffer)//"/particle_management")) then
                 agent_arrays(array)%do_particle_management = .true.
+                call get_option(trim(stage_buffer)//"/particle_management/period_in_timesteps", agent_arrays(array)%pm_period)
                 call get_option(trim(stage_buffer)//"/particle_management/minimum", agent_arrays(array)%pm_min)
                 call get_option(trim(stage_buffer)//"/particle_management/maximum", agent_arrays(array)%pm_max)
              end if
@@ -420,18 +421,18 @@ contains
 
     ! Handle stage changes within FG
     agent=>stage_change_list%first
-    do while (associated(agent))
+    stage_change_loop: do while (associated(agent))
        do j=1, size(agent_arrays)
           if (agent_arrays(j)%fg_id == agent_arrays(agent%list_id)%fg_id) then
              if (agent_arrays(j)%stage_id==agent%biology(BIOVAR_STAGE)) then
                 agent_to_move=>agent
                 agent=>agent%next
                 call move(agent_to_move, stage_change_list, agent_arrays(j))
-                cycle
+                cycle stage_change_loop
              end if
           end if
        end do
-    end do
+    end do stage_change_loop
 
     ! Derive the full set af eulerian diagnostic fields
     ! This includes per-stage and stage-aggregated, 
@@ -445,7 +446,9 @@ contains
     ! Particle Management
     do i = 1, size(agent_arrays)
        if (agent_arrays(i)%do_particle_management) then
-          call particle_management(state(1), agent_arrays(i))
+          if (timestep == 0 .or. mod(timestep, agent_arrays(i)%pm_period) == 0) then
+             call particle_management(state(1), agent_arrays(i))
+          end if
        end if
     end do
 

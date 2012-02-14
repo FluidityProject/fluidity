@@ -63,8 +63,7 @@
       <real_value rank="0">1</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">1</real_value>
-      <comment>86400 - 1day</comment>
+      <real_value rank="0">3</real_value>
     </finish_time>
   </timestepping>
   <material_phase name="Water">
@@ -91,7 +90,7 @@
       <random_seed>
         <integer_value rank="0">123456789</integer_value>
       </random_seed>
-      <functional_group name="AgentA">
+      <functional_group name="Layered">
         <variables>
           <state_variable name="Stage"/>
           <state_variable name="Size">
@@ -128,26 +127,39 @@
             <id>
               <real_value rank="0">1.0</real_value>
             </id>
-            <number_of_agents>
-              <integer_value rank="0">50</integer_value>
-            </number_of_agents>
-            <initial_position>
-              <string_value lines="20" type="python">def val(t):
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">50</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value type="python" lines="20">def val(t):
   from numpy import arange
   # 50 agents, evenly spaced every 2m
   positions = arange(-99.5,0.,2.).reshape(50,1)
   return positions</string_value>
-            </initial_position>
-            <initial_state>
-              <string_value lines="20" type="python">def val(variables):
+              </position>
+              <biology>
+                <string_value type="python" lines="20">def val(variables):
   variables['Size'] = 100.0
   variables['Nutrient'] = 1.0
   return variables</string_value>
+              </biology>
             </initial_state>
-            <biology_update>
-              <string_value lines="20" type="python">def val(biovars, env, dt):
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+            </movement>
+            <biology>
+              <python>
+                <string_value type="python" lines="20">def val(biovars, env, dt):
   return biovars</string_value>
-            </biology_update>
+              </python>
+            </biology>
             <particle_management>
               <period_in_timesteps>
                 <integer_value rank="0">1</integer_value>
@@ -164,11 +176,12 @@
             <id>
               <real_value rank="0">2.0</real_value>
             </id>
-            <number_of_agents>
-              <integer_value rank="0">200</integer_value>
-            </number_of_agents>
-            <initial_position>
-              <string_value lines="20" type="python">def val(t):
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">200</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value type="python" lines="20">def val(t):
   from numpy import arange, concatenate
   # 200 agents, 4 per element, evenly spaced every 2m
   positions = arange(-99.5,0.,2.)#.reshape(50,1)
@@ -176,17 +189,29 @@
   positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
   positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
   return positions.reshape(200,1)</string_value>
-            </initial_position>
-            <initial_state>
-              <string_value lines="20" type="python">def val(variables):
+              </position>
+              <biology>
+                <string_value type="python" lines="20">def val(variables):
   variables['Size'] = 25.0
   variables['Nutrient'] = 1.0
   return variables</string_value>
+              </biology>
             </initial_state>
-            <biology_update>
-              <string_value lines="20" type="python">def val(biovars, env, dt):
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+            </movement>
+            <biology>
+              <python>
+                <string_value type="python" lines="20">def val(biovars, env, dt):
   return biovars</string_value>
-            </biology_update>
+              </python>
+            </biology>
             <particle_management>
               <period_in_timesteps>
                 <integer_value rank="0">1</integer_value>
@@ -210,16 +235,6 @@
             </detectors>
           </diagnostic>
         </scalar_field>
-        <lagrangian_timestepping>
-          <subcycles>
-            <integer_value rank="0">1</integer_value>
-          </subcycles>
-          <search_tolerance>
-            <real_value rank="0">1.0e-10</real_value>
-          </search_tolerance>
-          <forward_euler_guided_search/>
-          <reflect_on_boundary/>
-        </lagrangian_timestepping>
       </functional_group>
       <functional_group name="StageChange">
         <variables>
@@ -243,51 +258,73 @@
             <id>
               <real_value rank="0">3.0</real_value>
             </id>
-            <number_of_agents>
-              <integer_value rank="0">50</integer_value>
-            </number_of_agents>
-            <initial_position>
-              <string_value type="python" lines="20">def val(t):
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">50</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value type="python" lines="20">def val(t):
   from numpy import arange
   # 50 agents, evenly spaced every 2m
   positions = arange(-99.5,0.,2.).reshape(50,1)
   return positions</string_value>
-            </initial_position>
-            <initial_state>
-              <string_value type="python" lines="20">def val(variables):
+              </position>
+              <biology>
+                <string_value type="python" lines="20">def val(variables):
   variables['Size'] = 100.0
-  variables['ChangeControl'] = 0.0
   return variables</string_value>
+              </biology>
             </initial_state>
-            <biology_update>
-              <string_value type="python" lines="20">from __builtin__ import str
-
-def val(biovars, env, dt):
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+            </movement>
+            <biology>
+              <python>
+                <string_value type="python" lines="20">def val(biovars, env, dt):
   biovars['Stage'] = 4.0
   return biovars</string_value>
-            </biology_update>
+              </python>
+            </biology>
           </stage>
           <stage name="Finish">
             <id>
               <real_value rank="0">4.0</real_value>
             </id>
-            <number_of_agents>
-              <integer_value rank="0">0</integer_value>
-            </number_of_agents>
-            <initial_position>
-              <string_value type="python" lines="20">def val(t):
-  return []</string_value>
-            </initial_position>
             <initial_state>
-              <string_value type="python" lines="20">def val(variables):
+              <number_of_agents>
+                <integer_value rank="0">0</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value type="python" lines="20">def val(t):
+  return []</string_value>
+              </position>
+              <biology>
+                <string_value type="python" lines="20">def val(variables):
   variables['Size'] = 100.0
-  variables['ChangeControl'] = 0.0
   return variables</string_value>
+              </biology>
             </initial_state>
-            <biology_update>
-              <string_value type="python" lines="20">def val(biovars, env, dt):
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+            </movement>
+            <biology>
+              <python>
+                <string_value type="python" lines="20">def val(biovars, env, dt):
   return biovars</string_value>
-            </biology_update>
+              </python>
+            </biology>
           </stage>
         </stages>
         <scalar_field name="Agents">
@@ -300,16 +337,132 @@ def val(biovars, env, dt):
             </detectors>
           </diagnostic>
         </scalar_field>
-        <lagrangian_timestepping>
-          <subcycles>
-            <integer_value rank="0">1</integer_value>
-          </subcycles>
-          <search_tolerance>
-            <real_value rank="0">1.0e-10</real_value>
-          </search_tolerance>
-          <forward_euler_guided_search/>
-          <reflect_on_boundary/>
-        </lagrangian_timestepping>
+      </functional_group>
+      <functional_group name="Delayed">
+        <variables>
+          <state_variable name="Stage"/>
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </state_variable>
+          <state_variable name="ChangeControl"/>
+        </variables>
+        <environment/>
+        <stages>
+          <stage name="Source">
+            <id>
+              <real_value rank="0">5.0</real_value>
+            </id>
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">200</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value lines="20" type="python">def val(t):
+  from numpy import arange, concatenate
+  # 200 agents, 4 per element, evenly spaced every 2m
+  positions = arange(-99.5,0.,2.)#.reshape(50,1)
+  positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
+  positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
+  positions = concatenate((positions, arange(-99.5,0.,2.)), axis=0)
+  return positions.reshape(200,1)</string_value>
+              </position>
+              <biology>
+                <string_value lines="20" type="python">def val(variables):
+  variables['Size'] = 100.0
+  variables['ChangeControl'] = 0.0
+  return variables</string_value>
+              </biology>
+            </initial_state>
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+            </movement>
+            <biology>
+              <python>
+                <string_value lines="20" type="python">def val(variables, env, dt):
+  variables['Size'] = 100.0
+  variables['ChangeControl'] = variables['ChangeControl'] + 1.0
+  # during the second timestep, switch to stage 'Target'
+  if variables['ChangeControl'] == 2.0:
+    variables['Stage'] = 6.0 
+  return variables</string_value>
+              </python>
+            </biology>
+          </stage>
+          <stage name="Target">
+            <id>
+              <real_value rank="0">6.0</real_value>
+            </id>
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">50</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value lines="20" type="python">def val(t):
+  from numpy import arange
+  # 50 agents, evenly spaced every 2m
+  positions = arange(-99.5,0.,2.).reshape(50,1)
+  return positions</string_value>
+              </position>
+              <biology>
+                <string_value lines="20" type="python">def val(variables):
+  variables['Size'] = 100.0
+  variables['ChangeControl'] = 0.0
+  return variables</string_value>
+              </biology>
+            </initial_state>
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+            </movement>
+            <biology>
+              <python>
+                <string_value lines="20" type="python">def val(variables, env, dt):
+  return variables</string_value>
+              </python>
+            </biology>
+            <particle_management>
+              <period_in_timesteps>
+                <integer_value rank="0">3</integer_value>
+              </period_in_timesteps>
+              <minimum>
+                <real_value rank="0">1</real_value>
+              </minimum>
+              <maximum>
+                <real_value rank="0">1</real_value>
+              </maximum>
+            </particle_management>
+          </stage>
+        </stages>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output/>
+            <stat/>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+          </diagnostic>
+        </scalar_field>
       </functional_group>
     </lagrangian_ensemble_biology>
   </embedded_models>
