@@ -240,8 +240,8 @@
        call set_boundary_conditions_values(state, shift_time=.true.)
 
        ! evaluate prescribed fields at time = current_time+dt
-       !call set_prescribed_field_values(state, exclude_interpolated=.true., &
-       !     exclude_nonreprescribed=.true., time=current_time + (theta * dt))
+       call set_prescribed_field_values(state, exclude_interpolated=.true., &
+            exclude_nonreprescribed=.true., time=current_time + (theta * dt))
        ! Read in any control variables
        call adjoint_load_controls(timestep, dt, state)
 
@@ -252,8 +252,8 @@
 
        call execute_timestep(state(1), dt)
 
-       !call set_prescribed_field_values(state, exclude_interpolated=.true., &
-       !     exclude_nonreprescribed=.true., time=current_time + dt)
+       call set_prescribed_field_values(state, exclude_interpolated=.true., &
+            exclude_nonreprescribed=.true., time=current_time + dt)
 
        if(.not. prescribed_velocity) then
           call project_local_to_cartesian(state(1))
@@ -817,11 +817,13 @@
 
       if (has_scalar_field(state, "LayerThicknessSource")) then
          d_src => extract_scalar_field(state, "LayerThicknessSource")
+         allocate(md_src)
          call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
          call zero(md_src)
          call mult(md_src, h_mass_mat, d_src)
          call addto(d_rhs, md_src, scale=ldt)
          call deallocate(md_src)
+         deallocate(md_src)
       endif
 
       !Solve wave equation for D update
