@@ -180,6 +180,7 @@ contains
           patch = get_patch_ele(nu%mesh, j)
           n = patch%count
           tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
+          deallocate(patch%elements)
         end do
         call addto(tensorfield, ele_nodes(tensorfield, ele), tensor_loc)
       end if
@@ -196,9 +197,9 @@ contains
           patch = get_patch_ele(nu%mesh, j)
           n = patch%count
           tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
+          deallocate(patch%elements)
         end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
-        !ewrite(2,*) 'ffstrainrate_field%val ', tensorfield%val(1,1,ele_nodes(nu,ele))
       end if
     end if
 
@@ -213,9 +214,9 @@ contains
           patch = get_patch_ele(nu%mesh, j)
           n = patch%count
           tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
+          deallocate(patch%elements)
         end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
-        !ewrite(2,*) 'sfstrainrate_field%val ', tensorfield%val(1,1,ele_nodes(nu,ele))
       end if
     end if
 
@@ -230,6 +231,7 @@ contains
           patch = get_patch_ele(nu%mesh, j)
           n = patch%count
           tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
+          deallocate(patch%elements)
         end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
       end if
@@ -248,6 +250,7 @@ contains
           patch = get_patch_ele(nu%mesh, j)
           n = patch%count
           scalar_loc(i)=scalar_loc(i)/lumped_mass(i)/n
+          deallocate(patch%elements)
         end do
         call addto(scalarfield, ele_nodes(nu, ele), scalar_loc)
       end if
@@ -264,6 +267,7 @@ contains
           patch = get_patch_ele(nu%mesh, j)
           n = patch%count
           tensor_loc(:,:,i)=tensor_loc(:,:,i)/lumped_mass(i)/n
+          deallocate(patch%elements)
         end do
         call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
       end if
@@ -280,6 +284,7 @@ contains
           patch = get_patch_ele(nu%mesh, j)
           n = patch%count
           scalar_loc(i)=scalar_loc(i)/lumped_mass(i)/n
+          deallocate(patch%elements)
         end do
         call addto(scalarfield, ele_nodes(nu, ele), scalar_loc)
       end if
@@ -296,11 +301,9 @@ contains
           patch = get_patch_ele(nu%mesh, j)
           n = patch%count
           scalar_loc(i)=scalar_loc(i)/lumped_mass(i)/n
+          deallocate(patch%elements)
         end do
         call addto(scalarfield, ele_nodes(nu, ele), scalar_loc)
-        !ewrite(2,*) 'Cs_gi ', les_coef_gi(1)
-        !ewrite(2,*) 'Cs_loc ', scalar_loc(1)
-        !ewrite(2,*) 'Cs_field%val ', scalarfield%val(ele_nodes(nu,ele))
       end if
     end if
 
@@ -349,11 +352,11 @@ contains
     if(have_anisotropy) then
       call set(nu_f1, nu)
       !call anisotropic_smooth_vector(nu, positions, nu_f1, alpha, lpath)
-      call anisotropic_smooth_vector(nu_f1, positions, nu_f2, gamma, lpath, u)
+      call anisotropic_smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
     else
       call set(nu_f1, nu)
       !call smooth_vector(nu, positions, nu_f1, alpha, lpath)
-      call smooth_vector(nu_f1, positions, nu_f2, gamma, lpath, u)
+      call smooth_vector(nu_f1, positions, nu_f2, gamma, lpath)
     end if
 
     ewrite_minmax(nu)

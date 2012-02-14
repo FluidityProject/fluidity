@@ -598,7 +598,7 @@ prognostic_velocity_field =
                      },
                      ## Option to set an upper limit on the Smagorinsky coefficient.
                      ## The dynamic model is known to give unbounded values which may
-                     ## affect model stability. C<0.1 is consistent with empirical data from
+                     ## affect model stability. C<0.04 is consistent with empirical data from
                      ## turbulent channel flow.
                      ##
                      element limit_coefficient {

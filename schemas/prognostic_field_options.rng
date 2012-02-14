@@ -703,7 +703,7 @@ default/recommended value: 2.0</a:documentation>
                     <element name="limit_coefficient">
                       <a:documentation>Option to set an upper limit on the Smagorinsky coefficient.
 The dynamic model is known to give unbounded values which may
-affect model stability. C&lt;0.1 is consistent with empirical data from
+affect model stability. C&lt;0.04 is consistent with empirical data from
 turbulent channel flow.
 </a:documentation>
                       <ref name="real"/>
@@ -726,7 +726,9 @@ Both definitions preserve the volume of the tetrahedral element.
                   </optional>
                   <optional>
                     <element name="scalar_field">
-                      <a:documentation>Spatially varying Smagorinsky coefficient</a:documentation>
+                      <a:documentation>Spatially varying Smagorinsky coefficient.
+As diagnostic quantities are computed elementwise,
+nodal values are averages of the surrounding elements.</a:documentation>
                       <attribute name="name">
                         <value>SmagorinskyCoefficient</value>
                       </attribute>
