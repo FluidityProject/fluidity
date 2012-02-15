@@ -295,8 +295,17 @@ contains
                        porosity_theta_value, &
                        default = 0.0)
          
-       porosity_new => extract_scalar_field(state, trim(porosity_name))                  
-       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name))
+       porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
+
+       if (stat /=0) then
+         FLExit('Including porosity in Metric_Advection but failed to extract Porosity from state')
+       end if
+
+       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
+
+       if (stat /=0) then
+         FLExit('Including porosity in Metric_Advection but failed to extract OldPorosity from state')
+       end if
          
        call allocate(porosity_theta, porosity_new%mesh)
          

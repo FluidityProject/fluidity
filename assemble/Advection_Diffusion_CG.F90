@@ -364,12 +364,16 @@ contains
          
        porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
 
-       if (stat /=0) FLExit('Including porosity in Advection_Diffusion_CG but failed to extract Porosity from state')
-
+       if (stat /=0) then
+          FLExit('Including porosity in Advection_Diffusion_CG but failed to extract Porosity from state')
+       end if
+       
        porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
 
-       if (stat /=0) FLExit('Including porosity in Advection_Diffusion_CG but failed to extract Porosity from state')
-         
+       if (stat /=0) then
+          FLExit('Including porosity in Advection_Diffusion_CG but failed to extract Porosity from state')
+       end if
+       
        call allocate(porosity_theta, porosity_new%mesh)
          
        call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
@@ -422,7 +426,9 @@ contains
     ! are we moving the mesh?
     move_mesh = (have_option("/mesh_adaptivity/mesh_movement") .and. have_mass)
     if(move_mesh) then
-      if (include_porosity) FLExit('Cannot include porosity in CG advection diffusion of a field with a moving mesh')
+      if (include_porosity) then
+         FLExit('Cannot include porosity in CG advection diffusion of a field with a moving mesh')
+      end if
       ewrite(2,*) "Moving the mesh"
       old_positions => extract_vector_field(state, "OldCoordinate")
       ewrite_minmax(old_positions)
