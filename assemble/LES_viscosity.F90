@@ -28,6 +28,7 @@
 
 module les_viscosity_module
   !!< This module contains several subroutines and functions used to implement LES models
+  use elements
   use state_module
   use fields
   use field_options
