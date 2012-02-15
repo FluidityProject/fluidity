@@ -663,6 +663,9 @@
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(x)
     assert(cache_valid)
+    if (have_coriolis) then
+       call set_coriolis_parameters
+    end if
 #endif
 
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(clr, len, nnid, ele, thread_num)

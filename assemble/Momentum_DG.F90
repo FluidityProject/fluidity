@@ -655,6 +655,9 @@ contains
 #ifdef _OPENMP
     cache_valid = prepopulate_transform_cache(X)
     assert(cache_valid)
+    if (have_coriolis) then
+       call set_coriolis_parameters
+    end if
 #endif
     call profiler_toc(u, "element_loop-omp_overhead")
 
