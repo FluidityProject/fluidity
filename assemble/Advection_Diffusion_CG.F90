@@ -668,7 +668,7 @@ contains
       assert(ele_ngi(grid_velocity, ele) == ele_ngi(velocity, ele))
     end if
     if (include_porosity) then
-      assert(ele_ngi(porosity_theta_at_quad, ele) == ele_ngi(t, ele))    
+      assert(ele_ngi(porosity_theta, ele) == ele_ngi(t, ele))    
     end if
 #endif
 
