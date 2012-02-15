@@ -5,7 +5,7 @@
   <owner userid="slm06"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity radial_scale_tool.flml; ../../tools/radial_scale.py radial_0.vtu </command_line>
+    <command_line>fluidity radial_scale_tool.flml; ../../tools/radial_scale.py -s 10 radial_0.vtu </command_line>
     <!-- Test for radial scale tool. -->
   </problem_definition>
   <variables>
@@ -13,7 +13,7 @@
 import vtktools
 import math
 
-u=vtktools.vtu('radial_0.vtu')
+u=vtktools.vtu('scaled_radial_0.vtu')
 dist_to_top=u.GetScalarField('DistanceToTop')
 dist=0.0
 index=0

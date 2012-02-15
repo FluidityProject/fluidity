@@ -7,10 +7,10 @@ import vtktools
 parser = argparse.ArgumentParser(description='Radially scale a .vtu file.')
 parser.add_argument('input_vtu', nargs='+',
                    help='The .vtu file(s) to be scaled.')
-parser.add_argument('-o', dest='output_prefix',default='',
-                   help='The prefix of the output vtu (default behaviour replaces the input vtu)')
+parser.add_argument('-p', dest='output_prefix',default='scaled_',
+                   help='The prefix of the output vtu (default: scaled_)')
 parser.add_argument('-s', dest='scale_factor', default='10',type=float,
-                   help='The scale factor (default: 50)')
+                   help='The scale factor (default: 10)')
 
 args = parser.parse_args()
 
