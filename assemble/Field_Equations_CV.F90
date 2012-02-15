@@ -132,12 +132,20 @@ contains
       ! Right hand side vector, cv mass matrix, 
       ! locally iterated field (for advection iterations) 
       ! and local old field (for subcycling)
-      type(scalar_field), pointer :: t_cvmass, q_cvmass
+      type(scalar_field), pointer :: t_cvmass, q_cvmass, t_abs_src_cvmass
       type(scalar_field) :: t_cvmass_old, t_cvmass_new
       type(scalar_field) :: rhs, cvmass, advit_tfield, l_old_tfield
       ! Diffusion contribution to rhs
       type(scalar_field) :: diff_rhs
-
+      
+      ! Porosity fields, cv mass with porosity included, field name, theta value and include flag
+      type(scalar_field), pointer :: porosity_old, porosity_new
+      type(scalar_field) :: porosity_theta 
+      type(scalar_field), target :: t_cvmass_with_porosity
+      character(len=OPTION_PATH_LEN) :: porosity_name
+      real :: porosity_theta_value
+      logical :: include_porosity
+              
       ! local copy of option_path for solution field
       character(len=OPTION_PATH_LEN) :: option_path, tdensity_option_path
 
@@ -353,7 +361,7 @@ contains
       else
         ewrite_minmax(absorption)
       end if
-
+      
       ! create control volume shape functions
       call get_option("/geometry/quadrature/controlvolume_surface_degree", &
                      quaddegree, default=1)
@@ -494,16 +502,67 @@ contains
 
       ! allocate the rhs of the equation
       call allocate(rhs, tfield%mesh, name=trim(field_name)//"RHS")
+      
+      ! are we including a porosity coefficient on the time term?
+      if (have_option(trim(complete_field_path(tfield%option_path))//'/porosity')) then
+         include_porosity = .true.
+         
+         ! get the name of the field to use as porosity
+         call get_option(trim(complete_field_path(tfield%option_path))//'/porosity/porosity_field_name', &
+                         porosity_name, &
+                         default = 'Porosity')
+         
+         ! get the porosity theta value
+         call get_option(trim(complete_field_path(tfield%option_path))//'/porosity/temporal_discretisation/theta', &
+                         porosity_theta_value, &
+                         default = 0.0)
+         
+         porosity_new => extract_scalar_field(state(1), trim(porosity_name), stat=stat)                  
 
-      ! find the cv mass
-      t_cvmass => get_cv_mass(state, tfield%mesh)
+         if (stat /=0) then
+            FLExit('Including porosity in Field_Equations_CV but failed to extract Porosity from state')
+         end if
+         
+         porosity_old => extract_scalar_field(state(1), "Old"//trim(porosity_name), stat=stat)
+         
+         if (stat /=0) then
+            FLExit('Including porosity in Field_Equations_CV but failed to extract OldPorosity from state')
+         end if
+         
+         call allocate(porosity_theta, porosity_new%mesh)
+         
+         call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
+         
+         ewrite_minmax(porosity_theta)
+         
+         call allocate(t_cvmass_with_porosity, tfield%mesh, name="CVMassWithPorosity")
+         call compute_cv_mass(x, t_cvmass_with_porosity, porosity_theta)
+         ewrite_minmax(t_cvmass_with_porosity)
+         
+         call deallocate(porosity_theta)
+      else
+         include_porosity = .false.
+      end if
 
+      ! find the cv mass that is used for the absorption and source terms
+      t_abs_src_cvmass => get_cv_mass(state, tfield%mesh)
+      ewrite_minmax(t_abs_src_cvmass)
+      
+      ! find the cv mass that is used for the time term derivative
+      if (include_porosity) then
+         t_cvmass => t_cvmass_with_porosity
+      else
+         t_cvmass => t_abs_src_cvmass      
+      end if
       ewrite_minmax(t_cvmass)
 
       move_mesh = have_option("/mesh_adaptivity/mesh_movement")
       if(move_mesh) then
         if(.not.include_advection) then
           FLExit("Moving the mesh but not including advection is not possible yet.")
+        end if
+        if (include_porosity) then
+           FLExit("Moving mesh not set up to work when including porosity")
         end if
         ewrite(2,*) "Moving mesh."
         x_old=>extract_vector_field(state(1), "OldCoordinate")
@@ -637,7 +696,7 @@ contains
                                     tdensity, oldtdensity, tdensity_options, &
                                     source, absorption, tfield_options%theta, &
                                     state, advu, sub_dt, explicit, &
-                                    t_cvmass, t_cvmass_old, t_cvmass_new, & 
+                                    t_cvmass, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new, & 
                                     D_m, diff_rhs)
 
 
@@ -718,6 +777,9 @@ contains
       end if
       call deallocate(ug_cvshape)
       call deallocate(ug_cvbdyshape)
+      if (include_porosity) then
+        call deallocate(t_cvmass_with_porosity)
+      end if
 
     end subroutine solve_field_eqn_cv
     ! end of solution wrapping subroutines
@@ -729,7 +791,7 @@ contains
                                     tdensity, oldtdensity, tdensity_options, &
                                     source, absorption, theta, &
                                     state, advu, dt, explicit, &
-                                    cvmass, cvmass_old, cvmass_new, &
+                                    cvmass, abs_src_cvmass, cvmass_old, cvmass_new, &
                                     D_m, diff_rhs)
 
       ! This subroutine assembles the equation
@@ -745,7 +807,7 @@ contains
       ! matrix containing advective terms - to be incorporated
       ! into M during this subroutine
       type(csr_matrix), intent(inout) :: A_m
-      ! rhs of equation
+      ! explicit lhs and rhs of equation
       type(scalar_field), intent(inout) :: m_cvmass, rhs
       ! the field we are solving for
       type(scalar_field), intent(inout) :: tfield
@@ -763,10 +825,14 @@ contains
       real, intent(in) :: dt
       ! are we assuming this is a fully explicit equation?
       logical, intent(in) :: explicit
-      ! moving mesh stuff
+      ! cv mass to use for time derivative term
       type(scalar_field), intent(in) :: cvmass
+      ! moving mesh stuff
       type(scalar_field), intent(in) :: cvmass_old
       type(scalar_field), intent(in) :: cvmass_new
+      ! cv mass to use for absorption and source
+      type(scalar_field), intent(in) :: abs_src_cvmass      
+      
       ! diffusion:
       type(csr_matrix), intent(inout), optional :: D_m
       type(scalar_field), intent(inout), optional :: diff_rhs
@@ -836,12 +902,12 @@ contains
       call allocate(MT_old, rhs%mesh, name="MT_oldProduct" )
       if(include_source .and. (.not. add_src_directly_to_rhs)) then
         call allocate(masssource, rhs%mesh, name="MassSourceProduct" )
-        call set(masssource, cvmass)
+        call set(masssource, abs_src_cvmass)
         call scale(masssource, source)
       end if
       if(include_absorption) then
         call allocate(massabsorption, rhs%mesh, name="MassAbsorptionProduct" )
-        call set(massabsorption, cvmass)
+        call set(massabsorption, abs_src_cvmass)
         call scale(massabsorption, absorption)
       end if
       
@@ -2126,8 +2192,17 @@ contains
       type(scalar_field), dimension(nfields) :: rhs, advit_tfield
       type(scalar_field_pointer), dimension(nfields) :: l_old_tfield
       type(scalar_field), dimension(nfields) :: cvmass
-      type(scalar_field), pointer :: t_cvmass
+      type(scalar_field), pointer :: t_abs_src_cvmass
+      type(scalar_field_pointer), dimension(nfields) :: t_cvmass
       type(scalar_field) :: t_cvmass_old, t_cvmass_new
+      
+      ! Porosity fields, cv mass with porosity included, field name, theta value and include flag
+      type(scalar_field), pointer :: porosity_old, porosity_new
+      type(scalar_field) :: porosity_theta 
+      type(scalar_field), dimension(nfields), target :: t_cvmass_with_porosity
+      character(len=OPTION_PATH_LEN) :: porosity_name, check_porosity_name
+      real :: porosity_theta_value
+      logical, dimension(nfields) :: include_porosity
 
       ! local copy of option_path for solution field
       character(len=OPTION_PATH_LEN), dimension(nfields) :: option_path
@@ -2374,15 +2449,65 @@ contains
         call allocate(rhs(f), tfield(f)%ptr%mesh, name=trim(field_name)//int2str(f)//"RHS")
       end do
 
-      ! find the cv mass
-      t_cvmass => get_cv_mass(state, tfield(1)%ptr%mesh)
-      ewrite_minmax(t_cvmass)
+      ! find the cv mass that is used for the absorption and source terms
+      t_abs_src_cvmass => get_cv_mass(state, tfield(1)%ptr%mesh)
+      ewrite_minmax(t_abs_src_cvmass)
+      
+      ! find the cv mass that is used for the time term derivative - which may include the porosity
+      do f = 1,nfields                  
+         if (have_option(trim(complete_field_path(tfield(f)%ptr%option_path))//'/porosity')) then            
+            include_porosity(f) = .true.
+            
+            ! get the name of the field to use as porosity
+            call get_option(trim(complete_field_path(tfield(f)%ptr%option_path))//'/porosity/porosity_field_name', &
+                            porosity_name, &
+                            default = 'Porosity')
+         
+            ! get the porosity theta value
+            call get_option(trim(complete_field_path(tfield(f)%ptr%option_path))//'/porosity/temporal_discretisation/theta', &
+                            porosity_theta_value, &
+                            default = 0.0)
+         
+            porosity_new => extract_scalar_field(state(state_indices(f)), trim(porosity_name), stat=stat)                  
+       
+            if (stat /=0) then
+               FLExit('Including porosity in Coupled CV but failed to extract Porosity from state')
+            end if
+
+            porosity_old => extract_scalar_field(state(state_indices(f)), "Old"//trim(porosity_name), stat=stat)
+       
+            if (stat /=0) then
+               FLExit('Including porosity in Coupled CV but failed to extract OldPorosity from state')
+            end if
+         
+            call allocate(porosity_theta, porosity_new%mesh)
+         
+            call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
+         
+            ewrite_minmax(porosity_theta)
+         
+            call allocate(t_cvmass_with_porosity(f), tfield(f)%ptr%mesh, name="CVMassWithPorosity")
+            call compute_cv_mass(x, t_cvmass_with_porosity(f), porosity_theta)
+            
+            call deallocate(porosity_theta)
+            
+            t_cvmass(f)%ptr => t_cvmass_with_porosity(f)                    
+         else 
+            include_porosity(f) = .false.
+
+            t_cvmass(f)%ptr => t_abs_src_cvmass
+         end if
+         ewrite_minmax(t_cvmass(f)%ptr)
+      end do
 
       move_mesh = have_option("/mesh_adaptivity/mesh_movement")
       if(move_mesh) then
         FLExit("Moving meshes not fully set-up with coupled cv.")
         if(.not.include_advection) then
           FLExit("Moving the mesh but not including advection is not possible yet.")
+        end if
+        if (any(include_porosity)) then
+           FLExit("Moving mesh not set up to work when including porosity")
         end if
         ewrite(2,*) "Moving mesh."
         x_old=>extract_vector_field(state(1), "OldCoordinate")
@@ -2521,7 +2646,7 @@ contains
                                       tdensity(f)%ptr, oldtdensity(f)%ptr, tdensity_options(f), &
                                       source(f)%ptr, absorption(f)%ptr, tfield_options(f)%theta, &
                                       state(state_indices(f):state_indices(f)), advu, sub_dt, explicit(f), &
-                                      t_cvmass, t_cvmass_old, t_cvmass_new)
+                                      t_cvmass(f)%ptr, t_abs_src_cvmass, t_cvmass_old, t_cvmass_new)
 
             ! Solve for the change in tfield.
             if(explicit(f)) then
@@ -2547,7 +2672,7 @@ contains
 
             call halo_update(tfield(f)%ptr)  ! exchange the extended halos
 
-            call test_and_write_advection_convergence(tfield(f)%ptr, advit_tfield(f), x, t_cvmass, &
+            call test_and_write_advection_convergence(tfield(f)%ptr, advit_tfield(f), x, t_cvmass(f)%ptr, &
                                       filename=trim(state(state_indices(f))%name)//"__"//trim(tfield(f)%ptr%name), &
                                       time=time+sub_dt, dt=sub_dt, it=global_it, adv_it=adv_it, &
                                       subcyc=sub, error=error(f))
@@ -2595,7 +2720,10 @@ contains
       end if
       call deallocate(ug_cvshape)
       call deallocate(ug_cvbdyshape)
-
+      do f = 1,nfields
+         if (include_porosity(f)) call deallocate(t_cvmass_with_porosity(f))
+      end do
+      
     end subroutine solve_coupled_cv
 
     ! coupled assembly:

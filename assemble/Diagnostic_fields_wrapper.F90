@@ -52,7 +52,6 @@ module diagnostic_fields_wrapper
   use diagnostic_fields_matrices
   use equation_of_state
   use momentum_diagnostic_fields
-  use porous_media, only: calculate_porous_media_absorption
   use spontaneous_potentials, only: calculate_formation_conductivity
   use sediment_diagnostics
   use geostrophic_pressure
@@ -518,17 +517,6 @@ contains
          end if
        end if
        ! End of vorticity diagnostics
-
-       ! Start of porous media diagnostics
-       if (have_option("/porous_media")) then
-         v_field => extract_vector_field(state(i), "VelocityAbsorption", stat)
-         if(stat == 0) then
-           if(recalculate(trim(v_field%option_path))) then
-             call calculate_porous_media_absorption(state, i, v_field, stat)
-           end if
-         end if
-       end if
-       ! End of porous media diagnostics
 
        ! Start of spontaneous potentials diagnostics
        if(i == 1) then

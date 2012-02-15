@@ -1638,6 +1638,12 @@ contains
     type(vector_field), pointer :: u, x
     real :: l_dt
     integer :: ele, stat
+    ! Porosity fields, field name, theta value and include flag
+    type(scalar_field), pointer :: porosity_old, porosity_new
+    type(scalar_field) :: porosity_theta 
+    character(len=OPTION_PATH_LEN) :: porosity_name
+    real :: porosity_theta_value
+    logical :: include_porosity
 
     u=>extract_vector_field(state, "NonlinearVelocity",stat)
     if(stat.ne.0) then    
@@ -1654,12 +1660,51 @@ contains
        call get_option("/timestepping/timestep",l_dt)
     end if
     
+    ! determine the porosity value to include
+    if (have_option(trim(state%option_path)//'/scalar_field::DG_CourantNumber/diagnostic/porosity')) then
+       include_porosity = .true.
+     
+       ! get the name of the field to use as porosity
+       call get_option(trim(state%option_path)//'/scalar_field::DG_CourantNumber/diagnostic/porosity/porosity_field_name', &
+                       porosity_name, &
+                       default = 'Porosity')
+         
+       ! get the porosity theta value
+       call get_option(trim(state%option_path)//'/scalar_field::DG_CourantNumber/diagnostic/porosity/temporal_discretisation/theta', &
+                       porosity_theta_value, &
+                       default = 0.0)
+         
+       porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
+
+       if (stat /=0) then 
+          FLExit('Including porosity in DG_CourantNumber but failed to extract Porosity from state')
+       end if
+       
+       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
+
+       if (stat /=0) then 
+          FLExit('Including porosity in DG_CourantNumber but failed to extract OldPorosity from state')
+       end if
+       
+       call allocate(porosity_theta, porosity_new%mesh)
+         
+       call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
+         
+       ewrite_minmax(porosity_theta)
+    else
+       include_porosity = .false.
+       call allocate(porosity_theta, courant%mesh, field_type=FIELD_TYPE_CONSTANT)
+       call set(porosity_theta, 1.0)
+    end if
+    
     call zero(courant)
     
     do ele = 1, element_count(courant)
-
-       call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt)
+       assert(ele_ngi(courant, ele)==ele_ngi(porosity_theta, ele))
+       call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt, ele_val_at_quad(porosity_theta,ele))
     end do
+    
+    call deallocate(porosity_theta)
     
     ! the courant values at the edge of the halo are going to be incorrect
     ! this matters when computing the max courant number
@@ -1667,11 +1712,12 @@ contains
 
   end subroutine calculate_courant_number_dg
 
-  subroutine calculate_courant_number_dg_ele(courant,x,u,ele,dt)
+  subroutine calculate_courant_number_dg_ele(courant,x,u,ele,dt,porosity_theta_at_quad)
     type(vector_field), intent(in) :: x, u
     type(scalar_field), intent(inout) :: courant
     real, intent(in) :: dt
     integer, intent(in) :: ele
+    real, dimension(:) :: porosity_theta_at_quad
     !
     real :: Vol
     real :: Flux
@@ -1688,7 +1734,7 @@ contains
     !
     !Get element volume
     call transform_to_physical(X, ele, detwei=detwei)
-    Vol = sum(detwei)
+    Vol = sum(detwei*porosity_theta_at_quad)
     
     !Get fluxes
     Flux = 0.0
@@ -1749,7 +1795,16 @@ contains
       real :: udotn, income
       ! logical array indicating if a face has already been visited by the opposing node
       logical, dimension(:), allocatable :: notvisited
-
+      
+      ! Porosity fields, field name, theta value and include flag
+      type(scalar_field), pointer :: porosity_old, porosity_new
+      type(scalar_field) :: porosity_theta 
+      character(len=OPTION_PATH_LEN) :: porosity_name
+      real :: porosity_theta_value
+      logical :: include_porosity
+      
+      integer :: stat
+      
       integer, dimension(:), allocatable :: courant_bc_type
       type(scalar_field) :: courant_bc
 
@@ -1777,9 +1832,51 @@ contains
       call zero(courant)
 
       x_courant=get_coordinate_field(state, courant%mesh)
+      
+      ! determine the cv mass matrix to use for the length scale
+      ! which may have included the porosity field
+      if (have_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity')) then
+         include_porosity = .true.
+     
+         ! get the name of the field to use as porosity
+         call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/porosity_field_name', &
+                         porosity_name, &
+                         default = 'Porosity')
+         
+         ! get the porosity theta value
+         call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/temporal_discretisation/theta', &
+                         porosity_theta_value, &
+                         default = 0.0)
+         
+         porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
+  
+         if (stat /=0) then 
+            FLExit('Including porosity in ControlVolumeCFLNumber but failed to extract Porosity from state')
+         end if
+         
+         porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
 
-      cvmass => get_cv_mass(state, courant%mesh)
-
+         if (stat /=0) then 
+            FLExit('Including porosity in ControlVolumeCFLNumber but failed to extract OldPorosity from state')
+         end if
+         
+         call allocate(porosity_theta, porosity_new%mesh)
+         
+         call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
+         
+         ewrite_minmax(porosity_theta)
+       
+         allocate(cvmass)  
+         call allocate(cvmass, courant%mesh, name="LocalCVMassWithPorosity")
+         call compute_cv_mass(x, cvmass, porosity_theta)
+       
+         call deallocate(porosity_theta)
+      else
+         include_porosity = .false.
+         cvmass => get_cv_mass(state, courant%mesh)
+      end if
+      ewrite_minmax(cvmass)    
+      
       if(courant%mesh%shape%degree /= 0) then
 
         call get_option("/geometry/quadrature/controlvolume_surface_degree", &
@@ -1991,7 +2088,12 @@ contains
       courant%val = courant%val*l_dt/cvmass%val
 
       call deallocate(x_courant)
-
+      
+      if (include_porosity) then
+         call deallocate(cvmass)
+         deallocate(cvmass)
+      end if
+      
       call halo_update(courant)
 
    end subroutine calculate_courant_number_cv
