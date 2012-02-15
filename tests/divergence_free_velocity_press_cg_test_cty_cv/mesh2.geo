@@ -8,8 +8,8 @@ Line(3) = {3,4};
 Line(4) = {4,1};
 Line Loop(5) = {3,4,1,2};
 Plane Surface(6) = {5};
-Extrude {0,0.01,0} {
-  Surface{6}; Layers{1};
+Extrude {0,0.03,0} {
+  Surface{6}; Layers{3};
 }
 Physical Surface(29) = {15};
 Physical Surface(30) = {23};

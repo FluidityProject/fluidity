@@ -753,3 +753,46 @@ To enable the mixing and inter-penetration of phases, a separate velocity field 
 \mathbf{F}_i,
 \end{equation}
 where $\mathbf{u}_i$, $\rho_i$, $\mu_i$ and $\alpha_i$ are the velocity, density, isotropic viscosity and volume fraction of phase $i$ respectively, and $\mathbf{F}_i$ represents the forces imposed on phase $i$ by the other $N-1$ phases. Details of momentum transfer terms are given in Chapter \ref{chap:configuration}.
+
+\subsection{Porous Media Darcy Flow}
+\label{sec:porous_media_darcy_flow_equations}
+\index{porous media darcy flow}
+
+\subsubsection{Single Phase}
+
+In this section the single phase porous media Darcy flow equations that \fluidity can model are described.
+
+The force balance for single phase Darcy flow in a porous media is given by:
+\begin{equation}
+   \label{eq:mom_press_single_phase_darcy}
+   \tensor{\sigma} \vec{u}_{\phi} = 
+   - \nabla P + \rho \vec{g},
+\end{equation}
+where $\tensor{\sigma}$ is the velocity absorption coefficient tensor, $\vec{u}_{\phi}$ is the is the single phase Darcy velocity, $P$ is the pressure, $\rho$ the density and $\vec{g}$ the gravity vector. The single phase Darcy velocity $\vec{u}_{\phi}$ is given by:
+\begin{equation}
+   \vec{u}_{\phi} = \vec{u} \phi,
+\end{equation}
+where $\vec{u}$ is the interstitial velocity and $\phi$ the porosity. The absorption coefficient tensor $\tensor{\sigma}$, assuming that it is diagonal, is given by:
+\begin{equation}
+   \label{eq:single_phase_darcy_velocity_abs}
+   \tensor{\sigma}_{ii} = \frac{ \mu } { \tensor{K}_{ii} },
+\end{equation}
+where $i$ is a spatial dimension, $\mu$ is the viscosity (assumed isotropic) and $\tensor{K}$ is the porous media permeability tensor (assumed to be diagonal).
+
+For single phase incompressible flow the global continuity equation is given by:
+\begin{equation} 
+   \label{eq:cty_single_phase_darcy}
+   \nabla\cdot \vec{u}_{\phi} = - \ppt{\phi},
+\end{equation}
+which is reduced to $\nabla\cdot \vec{u}_{\phi} = 0$ for a temporally constant porosity (which is what is currently permitted).
+
+The general form of the transport equation (ignoring the diffusion, absorption and source terms) for a scalar field \eqref{eq:general_scalar_eqn} is modified such as to be given by:
+\begin{equation}
+   \label{eq:general_scalar_eqn_single_phase_darcy}
+   \ppt{\phi c} + \nabla\cdot(\vec{u}_{\phi} c) = 0,
+\end{equation}
+which is reduced to
+\begin{equation}
+   \phi \ppt{c} + \nabla\cdot(\vec{u}_{\phi} c) = 0
+\end{equation}
+for a temporally constant porosity.

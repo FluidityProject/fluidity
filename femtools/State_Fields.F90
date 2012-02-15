@@ -36,6 +36,10 @@ module state_fields_module
   use dgtools, only: get_dg_inverse_mass_matrix
   use eventcounter
   implicit none
+  
+  interface get_cv_mass
+    module procedure get_cv_mass_single_state, get_cv_mass_multiple_states
+  end interface get_cv_mass
 
   interface get_lumped_mass
     module procedure get_lumped_mass_single_state, get_lumped_mass_multiple_states
@@ -54,9 +58,53 @@ module state_fields_module
   end interface get_lumped_mass_on_submesh
   
   private
-  public :: get_lumped_mass, get_lumped_mass_on_submesh, get_mass_matrix, get_dg_inverse_mass
+  public :: get_cv_mass, get_lumped_mass, get_lumped_mass_on_submesh, get_mass_matrix, get_dg_inverse_mass
 
 contains
+
+  function get_cv_mass_single_state(state, mesh) result(cv_mass)
+    !!< extracts the cv mass from states or creates it if it doesn't find it
+    type(scalar_field), pointer :: cv_mass
+    type(state_type), intent(inout) :: state
+    type(mesh_type), intent(inout) :: mesh
+    
+    type(state_type), dimension(1) :: states
+    
+    states = (/state/)
+    cv_mass => get_cv_mass(states, mesh)
+    state = states(1)
+  
+  end function get_cv_mass_single_state
+
+  function get_cv_mass_multiple_states(states, mesh) result(cv_mass)
+    !!< extracts the cv mass from states or creates it if it doesn't find it
+    type(scalar_field), pointer :: cv_mass
+    type(state_type), dimension(:), intent(inout) :: states
+    type(mesh_type), intent(inout) :: mesh
+    
+    integer :: stat
+    character(len=FIELD_NAME_LEN) :: name
+    type(scalar_field) :: temp_cv_mass
+    type(vector_field), pointer :: positions
+    integer, save :: last_mesh_movement = -1
+    
+    name = trim(mesh%name)//"CVMass"
+    
+    cv_mass => extract_scalar_field(states, trim(name), stat)
+    
+    if((stat/=0).or.(eventcount(EVENT_MESH_MOVEMENT)/=last_mesh_movement)) then
+    
+      positions => extract_vector_field(states(1), "Coordinate")
+      call allocate(temp_cv_mass, mesh, name=trim(name))
+      call compute_cv_mass(positions, temp_cv_mass)
+      call insert(states, temp_cv_mass, trim(name))
+      call deallocate(temp_cv_mass)
+      
+      cv_mass => extract_scalar_field(states, trim(name))
+      last_mesh_movement = eventcount(EVENT_MESH_MOVEMENT)
+    end if
+  
+  end function get_cv_mass_multiple_states
 
   function get_lumped_mass_single_state(state, mesh) result(lumped_mass)
     !!< extracts the lumped mass from states or creates it if it doesn't find it

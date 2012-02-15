@@ -15,6 +15,7 @@
   <include href="temporal_discretisation.rng"/>
   <include href="embedded_models.rng"/>
   <include href="flredecomp.rng"/>
+  <include href="porous_media.rng"/>
   <start>
     <element name="fluidity_options">
       <a:documentation>The root node of the options dictionary.</a:documentation>
@@ -39,7 +40,6 @@ characters in the simulation name should be avoided.</a:documentation>
             <value>fluids</value>
             <value>oceans</value>
             <value>multimaterial</value>
-            <value>porous_media</value>
             <value>stokes</value>
             <value>large_scale_ocean_options</value>
             <value>foams</value>
@@ -2339,93 +2339,7 @@ while a factor of 1 represents a connected domain.</a:documentation>
         <ref name="reduced_model"/>
       </optional>
       <optional>
-        <element name="porous_media">
-          <a:documentation>Porous Media</a:documentation>
-          <element name="scalar_field">
-            <a:documentation>Specify scalar field Porosity</a:documentation>
-            <attribute name="name">
-              <value>Porosity</value>
-            </attribute>
-            <choice>
-              <element name="prescribed">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prescribed_scalar_field"/>
-              </element>
-              <element name="aliased">
-                <ref name="generic_aliased_field"/>
-              </element>
-            </choice>
-          </element>
-          <choice>
-            <a:documentation>Specify field Permeability</a:documentation>
-            <element name="scalar_field">
-              <attribute name="name">
-                <value>Permeability</value>
-              </attribute>
-              <choice>
-                <element name="prescribed">
-                  <ref name="velocity_mesh_choice"/>
-                  <ref name="prescribed_scalar_field"/>
-                </element>
-                <element name="aliased">
-                  <ref name="generic_aliased_field"/>
-                </element>
-              </choice>
-            </element>
-            <element name="vector_field">
-              <attribute name="name">
-                <value>Permeability</value>
-              </attribute>
-              <element name="prescribed">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prescribed_vector_field"/>
-              </element>
-            </element>
-            <element name="tensor_field">
-              <attribute name="name">
-                <value>Permeability</value>
-              </attribute>
-              <element name="prescribed">
-                <ref name="velocity_mesh_choice"/>
-                <ref name="prescribed_tensor_field"/>
-              </element>
-            </element>
-          </choice>
-          <optional>
-            <element name="scalar_field">
-              <a:documentation>Specify scalar field Electrical Conductivity</a:documentation>
-              <attribute name="name">
-                <value>ElectricalConductivity</value>
-              </attribute>
-              <element name="diagnostic">
-                <ref name="velocity_mesh_choice"/>
-                <choice>
-                  <ref name="internal_algorithm"/>
-                  <ref name="scalar_python_diagnostic_algorithm"/>
-                </choice>
-                <ref name="diagnostic_scalar_field_no_adapt"/>
-              </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="multiphase_parameters">
-              <optional>
-                <element name="cp_A">
-                  <a:documentation>Capillary pressure multiplier cp_A
-in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-              <optional>
-                <element name="cp_expo">
-                  <a:documentation>Capillary pressure exponent cp_expo
-in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-            </element>
-          </optional>
-        </element>
+        <ref name="porous_media_model"/>
       </optional>
       <optional>
         <ref name="embedded_models"/>
@@ -5141,6 +5055,9 @@ Adapting to this field is not recommended</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
+            <optional>
+              <ref name="porosity_include_cv_cfl"/>
+            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -5164,6 +5081,9 @@ Adapting to this field is not recommended</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
+            <optional>
+              <ref name="porosity_include_dg_cfl"/>
+            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -5508,6 +5428,14 @@ for the equation of state of all materials.</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
+            <optional>
+              <element name="include_density_field">
+                <a:documentation>Include the density field in the Grid Reynolds number calculation.
+A Density field must exist in the material_phase for this.
+This assumes that the viscosity used is the dynamic viscosity.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -6128,6 +6056,14 @@ Sums up the divergence of each phase's apparent velocity, i.e. \sum{ div(vfrac*u
           <optional>
             <element name="integrate_divergence_by_parts">
               <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="test_with_cv_dual">
+              <a:documentation>Test the divergence operator with the CV dual function space. 
+This is useful if the pressure is solved with a CV discretisation 
+or with a CG but with the continuity tested with the CV dual. </a:documentation>
+              <ref name="comment"/>
             </element>
           </optional>
           <ref name="diagnostic_scalar_field_no_adapt"/>
