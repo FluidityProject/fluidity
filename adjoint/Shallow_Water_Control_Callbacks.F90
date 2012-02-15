@@ -154,7 +154,7 @@ module shallow_water_adjoint_controls
                 adj_vfield => extract_vector_field(states(state_id), "AdjointLocalVelocityDelta") 
                 ! We need the AdjointVelocity for the option path only
                 adj_sfield2 => extract_scalar_field(states(state_id), "AdjointLayerThickness")
-                call get_option(trim(adj_sfield2%option_path) // "/prognostic/temporal_discretisation/theta", theta)
+                call get_option("/timestepping/theta", theta)
                 call get_option(trim(adj_sfield2%option_path) // "/prognostic/mean_layer_thickness", d0)
                 
                 big_mat => extract_block_csr_matrix(matrices, "InverseBigMatrix")
