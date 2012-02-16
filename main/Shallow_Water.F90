@@ -756,7 +756,8 @@
       type(state_type), intent(inout) :: state
       real, intent(in), optional :: dt_in, theta_in
 
-      type(scalar_field), pointer :: D, delta_d, d_rhs, d_src, md_src
+      type(scalar_field), pointer :: D, delta_d, d_rhs, d_src
+      type(scalar_field) :: md_src
       type(vector_field), pointer :: U, delta_U, u_rhs, source, old_u
       type(block_csr_matrix), pointer :: u_mass_mat, div_mat, coriolis_mat, &
            &inverse_coriolis_mat
@@ -817,13 +818,11 @@
 
       if (has_scalar_field(state, "LayerThicknessSource")) then
          d_src => extract_scalar_field(state, "LayerThicknessSource")
-         allocate(md_src)
          call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
          call zero(md_src)
          call mult(md_src, h_mass_mat, d_src)
          call addto(d_rhs, md_src, scale=ldt)
          call deallocate(md_src)
-         deallocate(md_src)
       endif
 
       !Solve wave equation for D update
