@@ -33,7 +33,7 @@ module multimaterial_module
   use state_module
   use fields
   use spud
-  use fefields, only: compute_lumped_mass
+  use fefields, only: compute_cv_mass
   use global_parameters, only: OPTION_PATH_LEN
   use field_priority_lists
   use field_options
@@ -578,22 +578,22 @@ contains
     type(scalar_field), intent(inout) :: materialvolume
   
     ! local
-    type(scalar_field) :: lumpedmass
+    type(scalar_field) :: cvmass
     type(scalar_field), pointer :: volumefraction
     type(vector_field), pointer :: coordinates
   
     coordinates=>extract_vector_field(state, "Coordinate")
   
-    call allocate(lumpedmass, materialvolume%mesh, "Lumped mass")
-    call zero(lumpedmass)
+    call allocate(cvmass, materialvolume%mesh, "CV mass")
+    call zero(cvmass)
   
-    call compute_lumped_mass(coordinates, lumpedmass)
+    call compute_cv_mass(coordinates, cvmass)
   
     volumefraction=>extract_scalar_field(state,"MaterialVolumeFraction")
   
-    materialvolume%val=volumefraction%val*lumpedmass%val
+    materialvolume%val=volumefraction%val*cvmass%val
   
-    call deallocate(lumpedmass)
+    call deallocate(cvmass)
 
   end subroutine calculate_material_volume
 
@@ -604,21 +604,21 @@ contains
   
     ! local
     integer :: stat
-    type(scalar_field) :: lumpedmass
+    type(scalar_field) :: cvmass
     type(scalar_field), pointer :: volumefraction, materialdensity
     type(vector_field), pointer :: coordinates
     real :: rho_0
   
     coordinates=>extract_vector_field(state, "Coordinate")
   
-    call allocate(lumpedmass, materialmass%mesh, "Lumped mass")
-    call zero(lumpedmass)
+    call allocate(cvmass, materialmass%mesh, "CV mass")
+    call zero(cvmass)
   
-    call compute_lumped_mass(coordinates, lumpedmass)
+    call compute_cv_mass(coordinates, cvmass)
 
     volumefraction=>extract_scalar_field(state,"MaterialVolumeFraction")
     call set(materialmass, volumefraction)
-    call scale(materialmass, lumpedmass)
+    call scale(materialmass, cvmass)
   
     materialdensity=>extract_scalar_field(state,"MaterialDensity", stat=stat)
     if(stat==0) then
@@ -629,7 +629,7 @@ contains
       call scale(materialmass, rho_0)
     end if
   
-    call deallocate(lumpedmass)
+    call deallocate(cvmass)
 
   end subroutine calculate_material_mass
 

@@ -31,14 +31,20 @@ subroutine set_scalar_field_from_netcdf(field,path,position)
   call get_option(trim(path)//"/from_netcdf/format", format)
 
   select case (format)
-    ! This is currently the only 'special' case, but may change as people need to initialize
-    ! different fields
-    case ("Free-surface height")
-      call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude, stat=stat)
-      if (stat/=0) then
-        FLAbort("Trying to initialize an initial condition for the free surface without a gravitational field")
-      endif
-      call scale(field, gravity_magnitude)
+    ! It is possible to manipulate imported netCDF data here.
+    ! Note that the 'Free-surface height' format option is no longer supported.
+    ! In this case the 'free_surface' node under pressure initial conditions should be used.
+    
+    case ("raw")
+      ewrite(3,*) "The data used to initialise field " // trim(field%name) // &
+        ", has been treated as the raw values and not post-processed after import."
+
+    case default
+      ewrite(-1,*) "The format " // trim(format) // ", is not a recognised method to handle netCDF files."
+      ewrite(-1,*) "Please specify a valid format for initialiasing the field " // trim(field%name) // &
+        ", at " // trim(path) // "/from_netcdf/format"
+      FLAbort("Fatal error initialising a field from a netCDF file.")
+    
   end select
 
 end subroutine
@@ -51,14 +57,16 @@ subroutine load_netcdf_values(field,path,position)
   real, dimension(position%dim,node_count(position)) :: temp_pos
   character(len=FIELD_NAME_LEN) :: filename
   real, dimension(:), allocatable :: X, Y, Z
-  
   integer :: NNodes, i
-
-  call get_option(trim(path)//"/from_netcdf/file_name", filename)
 
   assert(node_count(field)==node_count(position))
 
-  NNodes=node_count(field)
+  call get_option(trim(path)//"/from_netcdf/file_name", filename)
+
+  ewrite(1,*) "Populating field " // trim(field%name) // &
+    ", with data from the netCDF file: " // trim(filename)
+
+  NNodes = node_count(field)
 
   allocate(X(NNodes), Y(NNodes), Z(NNodes))
 

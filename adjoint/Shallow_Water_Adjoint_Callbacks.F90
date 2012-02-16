@@ -858,7 +858,7 @@ module shallow_water_adjoint_callbacks
 
         ierr = adj_dict_find(adj_path_lookup, "Fluid::LayerThickness", path)
         call adj_chkierr(ierr)
-        call get_option(trim(path) // "/prognostic/temporal_discretisation/theta", theta)
+        call get_option("/timestepping/theta",theta)
         call get_option(trim(path) // "/prognostic/mean_layer_thickness", d0)
 
         eta_mesh => extract_mesh(matrices, "LayerThicknessMesh")

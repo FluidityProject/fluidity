@@ -5420,6 +5420,14 @@ for the equation of state of all materials.</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
+            <optional>
+              <element name="include_density_field">
+                <a:documentation>Include the density field in the Grid Reynolds number calculation.
+A Density field must exist in the material_phase for this.
+This assumes that the viscosity used is the dynamic viscosity.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -8246,6 +8254,15 @@ Automatic when not using P1P1.</a:documentation>
 
 Automatic when projecting a discontinuous field</a:documentation>
                   <empty/>
+                </element>
+              </optional>
+              <optional>
+                <element name="test_divergence_with_cv_dual">
+                  <a:documentation>Test the divergence equation with the control volume dual mesh
+of the finite element lagrange multiplier mesh.
+This will make the lagrange multiplier matrix non symmetric which must be 
+considered when selecting the lagrange multiplier  solver options.</a:documentation>
+                  <ref name="comment"/>
                 </element>
               </optional>
             </element>

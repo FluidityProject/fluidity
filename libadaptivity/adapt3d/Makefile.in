@@ -79,9 +79,9 @@ OBJS = Debug.o AdaptProgress.o write_log.o adapt1.o  addedg.o  addele.o  addfac.
 $(LIB): $(OBJS)
 	@$(AR) $(ARFLAGS) $(LIB) $(OBJS)
 
-include/fdebug.h: include/confdefs.h include/ewrite.h
+include/fdebug_adapt.h: include/confdefs.h include/ewrite.h
 
-Debug.o: include/fdebug.h write_log.o
+Debug.o: include/fdebug_adapt.h write_log.o
 
 adapt1.o :	adapt1.F write_log.o include/blknew.i include/blkbig.i include/blkorg.i include/blknxt.i include/blkerr.i include/blktim.i
 

@@ -1157,7 +1157,6 @@ module advection_local_DG
     
     !Unambiguously calculate the normal using the face with the higher
     !face number. This is so that the normal is identical on both sides.
-    ! Jemma: need to be more careful here - actually have to calculate normal for face2
 
     call get_local_normal(n1_l, w1, U, local_face_number(U%mesh,face))
     call get_local_normal(n2_l, w2, U, local_face_number(U%mesh,face_2))

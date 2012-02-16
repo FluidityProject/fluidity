@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>3d p1dgp2-test-cty-cv-rhop1dg-3d, multi-material surface integral balance pressure check</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+    <problem_definition length="short" nprocs="1">
+    <command_line>
+fluidity  mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.flml
+    </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="maxpressure_p1dgp2_test_cty_cv_rhop1dg_3d" language="python">
+import fluidity_tools
+maxpressure_p1dgp2_test_cty_cv_rhop1dg_3d = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['Pressure']['max'])
+    </variable>    
+    <variable name="minpressure_p1dgp2_test_cty_cv_rhop1dg_3d" language="python">
+import fluidity_tools
+minpressure_p1dgp2_test_cty_cv_rhop1dg_3d = min(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['Pressure']['min'])
+    </variable>    
+    <variable name="velocityx_p1dgp2_test_cty_cv_rhop1dg_3d" language="python">
+import fluidity_tools
+velocityx_p1dgp2_test_cty_cv_rhop1dg_3d = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['Velocity%1']['max'])
+    </variable>    
+    <variable name="velocityy_p1dgp2_test_cty_cv_rhop1dg_3d" language="python">
+import fluidity_tools
+velocityy_p1dgp2_test_cty_cv_rhop1dg_3d = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['Velocity%2']['max'])
+    </variable>    
+    <variable name="velocity_p1dgp2_test_cty_cv_rhop1dg_3d" language="python">
+import fluidity_tools
+velocity_p1dgp2_test_cty_cv_rhop1dg_3d = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['Velocity%magnitude']['max'])
+    </variable>    
+    <variable name="volfrac0_p1dgp2_test_cty_cv_rhop1dg_3d" language="python">
+import fluidity_tools
+volfrac0_p1dgp2_test_cty_cv_rhop1dg_3d = fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['MaterialVolumeFraction']['integral'][0]
+    </variable>    
+    <variable name="volfracend_p1dgp2_test_cty_cv_rhop1dg_3d" language="python">
+import fluidity_tools
+volfracend_p1dgp2_test_cty_cv_rhop1dg_3d = fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['MaterialVolumeFraction']['integral'][-1]
+    </variable>    
+    <variable name="maxdivergence_p1dgp2_test_cty_cv_rhop1dg_3d" language="python">
+import fluidity_tools
+maxdivergence_p1dgp2_test_cty_cv_rhop1dg_3d = max(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['ControlVolumeDivergence']['max'])
+    </variable>    
+    <variable name="mindivergence_p1dgp2_test_cty_cv_rhop1dg_3d" language="python">
+import fluidity_tools
+mindivergence_p1dgp2_test_cty_cv_rhop1dg_3d = min(fluidity_tools.stat_parser("mmat-balancepressure-p1dgp2-test-cty-cv-rhop1dg-3d.stat")['Water']['ControlVolumeDivergence']['min'])
+    </variable>    
+    <variable name= "solvers_converged" language = "python">
+import os
+files = os.listdir("./")
+solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
+    </variable>
+   </variables>
+    <pass_tests>  
+    <test name="check maximum pressure_p1dgp2_test_cty_cv_rhop1dg_3d is 2457.35 (analytic) with tolerance 1.0e-08" language="python">
+assert abs(maxpressure_p1dgp2_test_cty_cv_rhop1dg_3d - 2457.35) &lt; 1.0e-08
+    </test>    
+    <test name="check minimum pressure_p1dgp2_test_cty_cv_rhop1dg_3d 0.0 with tolerance 1.0e-06" language="python">
+assert abs(minpressure_p1dgp2_test_cty_cv_rhop1dg_3d) &lt; 1.0e-06
+    </test>    
+    <test name="check maximum xspeed_p1dgp2_test_cty_cv_rhop1dg_3d is 0.0 with tolerance 1.0e-06" language="python">
+assert abs(velocityx_p1dgp2_test_cty_cv_rhop1dg_3d) &lt; 1.0e-06
+    </test>
+    <test name="check maximum yspeed_p1dgp2_test_cty_cv_rhop1dg_3d is 0.0 with tolerance 1.0e-06" language="python">
+assert abs(velocityy_p1dgp2_test_cty_cv_rhop1dg_3d) &lt; 1.0e-06
+    </test>
+    <test name="check maximum speed_p1dgp2_test_cty_cv_rhop1dg_3d is 0.0 with tolerance 1.0e-06" language="python">
+assert abs(velocity_p1dgp2_test_cty_cv_rhop1dg_3d) &lt; 1.0e-06
+    </test>
+    <test name="check volume fraction_p1dgp2_test_cty_cv_rhop1dg_3d almost conserved with tolerance 1.0e-08" language="python">
+print 'mass loss = ', abs(volfracend_p1dgp2_test_cty_cv_rhop1dg_3d - volfrac0_p1dgp2_test_cty_cv_rhop1dg_3d)
+assert abs(volfracend_p1dgp2_test_cty_cv_rhop1dg_3d - volfrac0_p1dgp2_test_cty_cv_rhop1dg_3d) &lt; 1.0e-08
+    </test>
+    <test name="check divergence_p1dgp2_test_cty_cv_rhop1dg_3d with tolerance 1.0e-08" language="python">
+assert max(abs(maxdivergence_p1dgp2_test_cty_cv_rhop1dg_3d), abs(mindivergence_p1dgp2_test_cty_cv_rhop1dg_3d)) &lt; 1.0e-08
+    </test>
+    <test name= "Solvers converged" language= "python">
+assert(solvers_converged)
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

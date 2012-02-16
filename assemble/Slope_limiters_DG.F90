@@ -1475,90 +1475,95 @@ contains
 
   end subroutine limit_vb
 
-   subroutine limit_vector_vb(state, V)
-     !Vector valued limiter on manifolds
-     !Based on VB limiter of Kuzmin
-     type(state_type), intent(inout) :: state
-     type(vector_field), intent(inout) :: V
-     !
-     ! This is the limited version of the field, we have to make a copy
-     type(vector_field) :: V_limit, V_mean
-     type(mesh_type), pointer :: vertex_mesh
-     ! counters
-     integer :: ele, node, ele2, neigh
-     ! local numbers
-     integer, dimension(:), pointer :: V_ele, neighs
-     ! gradient scaling factor
-     real, dimension(V%dim) :: alpha
-     ! local field values
-     real, dimension(V%dim,ele_loc(V,1)) :: V_val!,V_val_slope,V_mean
-     real, dimension(V%dim) :: Vbar
-     type(csr_sparsity), pointer :: NEList
-     type(tensor_field), pointer :: Basis
+  subroutine limit_vector_bj(state, V)
+    !Vector valued limiter on manifolds
+    !Based on Barth-Jespersen limiter
+    !
+    !Main issue is how to decompose vector into two scalar components
+    !to apply the limiting
+    !Idea: push vector forward onto the sphere, then pull it back to the 
+    !other side
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: V
+    !
+    ! This is the limited version of the field, we have to make a copy
+    type(vector_field) :: V_limit, V_mean
+    type(mesh_type), pointer :: vertex_mesh
+    ! counters
+    integer :: ele, node, ele2, neigh
+    ! local numbers
+    integer, dimension(:), pointer :: V_ele, neighs
+    ! gradient scaling factor
+    real, dimension(V%dim) :: alpha
+    ! local field values
+    real, dimension(V%dim,ele_loc(V,1)) :: V_val!,V_val_slope,V_mean
+    real, dimension(V%dim) :: Vbar
+    type(csr_sparsity), pointer :: NEList
+    type(tensor_field), pointer :: Basis
 
-     if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
-        FLExit("The vertex based slope limiter only works for P1DG fields.")
-     end if
-     
-     !Get basis (1,:) cpts are normals, (2,:), (3,:) cpts are normals and 
-     !tangents
+    if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
+       FLExit("The vertex based slope limiter only works for P1DG fields.")
+    end if
 
-     Basis => extract_tensor_field(state,'InvariantBasis')
+    !Get basis (1,:) cpts are normals, (2,:), (3,:) cpts are normals and 
+    !tangents
 
-     ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
-     call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
-     NEList => extract_nelist(vertex_mesh)
-     
-     ! Allocate copy of field
-     call allocate(V_limit, V%dim,V%mesh,trim(V%name)//"Limited")
-     call set(V_limit, V)
-     call allocate(V_mean, V%dim,V%mesh, trim(V%name)//"LimitMean")
-     
-     ! for each vertex in the mesh store the min and max values of the P1DG
-     ! nodes directly surrounding it
-     do ele = 1, ele_count(V)
-        V_ele => ele_nodes(V,ele)
-        V_val = ele_val(V,ele)
-        Vbar = sum(V_val,2)/size(V_val,2)
-        do node = 1, size(V_ele)
-           call set(V_mean, V_ele(node), Vbar)
-        end do
-     end do
+    Basis => extract_tensor_field(state,'InvariantBasis')
 
-     do ele = 1, ele_count(V)
-        V_ele => ele_nodes(V,ele)
-        do node = 1, size(V_ele)
-           neighs => row_m_ptr(NEList, node)
-           do neigh = 1, size(neighs)
-              ele2 = neighs(neigh)
+    ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
+    call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
+    NEList => extract_nelist(vertex_mesh)
 
-              !rotate mean of ele2 into plane of ele1
-              FLAbort('not done')
+    ! Allocate copy of field
+    call allocate(V_limit, V%dim,V%mesh,trim(V%name)//"Limited")
+    call set(V_limit, V)
+    call allocate(V_mean, V%dim,V%mesh, trim(V%name)//"LimitMean")
 
-              !Take 
-              FLAbort('not done')
-           end do
-        end do
+    ! for each vertex in the mesh store the min and max values of the P1DG
+    ! nodes directly surrounding it
+    do ele = 1, ele_count(V)
+       V_ele => ele_nodes(V,ele)
+       V_val = ele_val(V,ele)
+       Vbar = sum(V_val,2)/size(V_val,2)
+       do node = 1, size(V_ele)
+          call set(V_mean, V_ele(node), Vbar)
+       end do
+    end do
 
-        ! Actually apply limiter
+    do ele = 1, ele_count(V)
+       V_ele => ele_nodes(V,ele)
+       do node = 1, size(V_ele)
+          neighs => row_m_ptr(NEList, node)
+          do neigh = 1, size(neighs)
+             ele2 = neighs(neigh)
 
-        FLAbort('not done')
+             !rotate mean of ele2 into plane of ele1
+             FLAbort('not done')
 
-     end do
+             !Take 
+             FLAbort('not done')
+          end do
+       end do
 
-     !Deallocate copy of field
-     call set(V, V_limit)
-     call halo_update(V)
-     call deallocate(V_limit)
-     call deallocate(V_mean)
+       ! Actually apply limiter
 
-   end subroutine limit_vector_vb
+       FLAbort('not done')
+
+    end do
+
+    !Deallocate copy of field
+    call set(V, V_limit)
+    call halo_update(V)
+    call deallocate(V_limit)
+    call deallocate(V_mean)
+
+  end subroutine limit_vector_bj
 
   subroutine limit_fpn(state, t)
 
     type(state_type), intent(inout) :: state
     type(scalar_field), intent(inout) :: t
-    
+
     type(scalar_field), pointer :: limiting_t, lumped_mass
     type(scalar_field) :: lowerbound, upperbound, inverse_lumped_mass
     type(csr_matrix), pointer :: mass
@@ -1587,8 +1592,8 @@ contains
     real :: nodeval, nodemin, nodemax, adjust
 
     integer, dimension(:,:,:), allocatable, save :: nodes_array
-!     real, dimension(2,4) :: local_values
-!     real, dimension(2) :: line_max, line_min
+    !     real, dimension(2,4) :: local_values
+    !     real, dimension(2) :: line_max, line_min
     real, dimension(:,:), allocatable :: local_values
     real, dimension(:), allocatable :: line_max, line_min
     integer :: node, adjacent_node, local_face
@@ -1607,9 +1612,9 @@ contains
     rows=problem_dimension ! The number of 'lines' to look along
     columns=3 ! The number of nodes on each line. Should always be three
     if (upwind) then
-      values=columns+1
+       values=columns+1
     else
-      values=columns
+       values=columns
     end if
     tol=0.25
 
@@ -1618,14 +1623,14 @@ contains
     midpoint=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme")
     if (midpoint) then
-      call get_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme/beta", beta, default=1.0)
-      extrapolate=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
-           &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme/extrapolate")
+       call get_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+            &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme/beta", beta, default=1.0)
+       extrapolate=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+            &discontinuous_galerkin/slope_limiter::FPN/mid-point_scheme/extrapolate")
     end if
 
-!     pre_dist_mass=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
-!          &discontinuous_galerkin/slope_limiter::FPN/pre_distribute_mass")
+    !     pre_dist_mass=have_option(trim(t%option_path)//"/prognostic/spatial_discretisation/&
+    !          &discontinuous_galerkin/slope_limiter::FPN/pre_distribute_mass")
 
     mass => get_mass_matrix(state, t%mesh)
     lumped_mass => get_lumped_mass(state, t%mesh)
@@ -1634,7 +1639,7 @@ contains
 
     limiting_t => extract_scalar_field(state, trim(t%name))
 
-!     eelist => extract_eelist(t%mesh)
+    !     eelist => extract_eelist(t%mesh)
 
     call allocate(lowerbound, t%mesh, "LowerBound")
     call allocate(upperbound, t%mesh, "UpperBound")
@@ -1642,64 +1647,64 @@ contains
 
     allocate (neighbouring_nodes(ele_loc(limiting_t,1)))
 
-!     allocate (face_nodes(face_loc(limiting_t,1)), neighbouring_nodes(face_loc(limiting_t,1)))
+    !     allocate (face_nodes(face_loc(limiting_t,1)), neighbouring_nodes(face_loc(limiting_t,1)))
 
     if (extrapolate) then
-      position => extract_vector_field(state, "Coordinate")
-      call allocate(dg_position, position%dim, t%mesh, name="DG_Coordinate")
-      call remap_field(position, dg_position)
-      allocate (e_vec_1(position%dim),dt_t(ele_loc(limiting_t, 1), ele_ngi(limiting_t, 1), mesh_dim(limiting_t)))
-      allocate (grad_t(mesh_dim(limiting_t), limiting_t%mesh%shape%ngi))
+       position => extract_vector_field(state, "Coordinate")
+       call allocate(dg_position, position%dim, t%mesh, name="DG_Coordinate")
+       call remap_field(position, dg_position)
+       allocate (e_vec_1(position%dim),dt_t(ele_loc(limiting_t, 1), ele_ngi(limiting_t, 1), mesh_dim(limiting_t)))
+       allocate (grad_t(mesh_dim(limiting_t), limiting_t%mesh%shape%ngi))
     end if
 
     if (upwind) then
-      u => extract_vector_field(state, "Velocity")
+       u => extract_vector_field(state, "Velocity")
     end if
 
     ! Loop to construct an array containing the global node numbers required to compute the limiting values
     ! at a node i. Only evaluated on the first timestep (and after every adapt for adaptive runs).
     if (first) then
-      allocate (nodes_array(node_count(t),rows,columns))
-      first=.false.
-      do node=1,node_count(limiting_t)
-        ele=node_ele(limiting_t, node)
-        nodelist => ele_nodes(limiting_t, ele)
-        faces => ele_faces(limiting_t, ele)
-        row=0
-        do i=1,size(nodelist)
-          if (nodelist(i)==node) cycle
-          row=row+1
-          fnodes=face_global_nodes(limiting_t,faces(i))
-          do j=1,size(fnodes)
-            if (fnodes(j)==node) adjacent_node=j
+       allocate (nodes_array(node_count(t),rows,columns))
+       first=.false.
+       do node=1,node_count(limiting_t)
+          ele=node_ele(limiting_t, node)
+          nodelist => ele_nodes(limiting_t, ele)
+          faces => ele_faces(limiting_t, ele)
+          row=0
+          do i=1,size(nodelist)
+             if (nodelist(i)==node) cycle
+             row=row+1
+             fnodes=face_global_nodes(limiting_t,faces(i))
+             do j=1,size(fnodes)
+                if (fnodes(j)==node) adjacent_node=j
+             end do
+             neighbouring_face = face_neigh(limiting_t, faces(i))
+             neighbouring_face_nodes = face_global_nodes(limiting_t,neighbouring_face)
+             !           secnd_val=neighbouring_face_nodes(adjacent_node) ! 2nd node we want
+             local_face=local_face_number(limiting_t,neighbouring_face)
+             neighbouring_ele = face_ele(limiting_t, neighbouring_face)
+             neighbouring_nodes = ele_nodes(limiting_t, neighbouring_ele)
+             !           thrid_val=neighbouring_nodes(local_face)
+             nodes_array(node,row,1)=nodelist(i)
+             nodes_array(node,row,2)=neighbouring_face_nodes(adjacent_node)
+             nodes_array(node,row,3)=neighbouring_nodes(local_face)
           end do
-          neighbouring_face = face_neigh(limiting_t, faces(i))
-          neighbouring_face_nodes = face_global_nodes(limiting_t,neighbouring_face)
-!           secnd_val=neighbouring_face_nodes(adjacent_node) ! 2nd node we want
-          local_face=local_face_number(limiting_t,neighbouring_face)
-          neighbouring_ele = face_ele(limiting_t, neighbouring_face)
-          neighbouring_nodes = ele_nodes(limiting_t, neighbouring_ele)
-!           thrid_val=neighbouring_nodes(local_face)
-          nodes_array(node,row,1)=nodelist(i)
-          nodes_array(node,row,2)=neighbouring_face_nodes(adjacent_node)
-          nodes_array(node,row,3)=neighbouring_nodes(local_face)
-        end do
-      end do
+       end do
     end if
 
     ! Loop through the nodes and calculate the bounds for each node
     do node=1,node_count(limiting_t)
-      ! Calculate the av. value of the tracer within the element
-      ele=node_ele(limiting_t, node)
-      nodelist => ele_nodes(limiting_t, ele)
-      do i=1, size(nodelist)
-        tracer_val(i)=node_val(limiting_t,nodelist(i))
-      end do
-      mean_val=sum(tracer_val)/float(size(nodelist))
-      ! Get the values needed for calculating the bounds
-      do row=1,rows
-        do column=1,columns
-          local_values(row,column)=node_val(limiting_t, nodes_array(node,row,column))
+       ! Calculate the av. value of the tracer within the element
+       ele=node_ele(limiting_t, node)
+       nodelist => ele_nodes(limiting_t, ele)
+       do i=1, size(nodelist)
+          tracer_val(i)=node_val(limiting_t,nodelist(i))
+       end do
+       mean_val=sum(tracer_val)/float(size(nodelist))
+       ! Get the values needed for calculating the bounds
+       do row=1,rows
+          do column=1,columns
+             local_values(row,column)=node_val(limiting_t, nodes_array(node,row,column))
         end do
         ! Adjust values depending on options
         if (midpoint.and.(.not.extrapolate)) then

@@ -98,7 +98,7 @@ contains
     real :: tolerance, total_volume, current_time
     real, dimension(:), pointer :: mixing_bin_bounds
     character(len = OPTION_PATH_LEN) :: func
-    type(scalar_field) :: lumped_mass
+    type(scalar_field) :: cv_mass
     integer, dimension(2) :: shape_option
 
     call get_option(trim(complete_field_path(sfield%option_path)) &
@@ -125,9 +125,9 @@ contains
         FLAbort("Unable to determine mixing bin bounds type")  
     end if   
 
-    call allocate(lumped_mass, sfield%mesh, name="MixingLumpedMass")
-    call zero(lumped_mass)
-    call compute_lumped_mass(Xfield, lumped_mass)
+    call allocate(cv_mass, sfield%mesh, name="MixingCVMass")
+    call zero(cv_mass)
+    call compute_cv_mass(Xfield, cv_mass)
 
     f_mix_fraction = 0.0
     total_volume = 0.0
@@ -135,10 +135,10 @@ contains
        if(node_owned(sfield, j)) then
           do i=1,size(f_mix_fraction)
              if(node_val(sfield, j) >= (mixing_bin_bounds(i)-tolerance)) then
-                f_mix_fraction(i) = f_mix_fraction(i) + node_val(lumped_mass, j)
+                f_mix_fraction(i) = f_mix_fraction(i) + node_val(cv_mass, j)
              end if
           end do
-          total_volume = total_volume + node_val(lumped_mass, j)
+          total_volume = total_volume + node_val(cv_mass, j)
        end if
     end do
 
@@ -165,7 +165,7 @@ contains
        call allsum(f_mix_fraction(i))
     end do
 
-    call deallocate(lumped_mass)
+    call deallocate(cv_mass)
     deallocate(mixing_bin_bounds)
 
   end subroutine control_volume_mixing
