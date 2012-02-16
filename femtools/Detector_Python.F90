@@ -102,7 +102,7 @@ module detector_python
       real(c_double), dimension(dim), intent(in) :: coords_centre
       character(kind=c_char), dimension(dictlen), intent(in) :: dict
       character(kind=c_char), dimension(keylen), intent(in) :: key
-      real, intent(out) :: result
+      real(c_double), intent(out) :: result
       integer(c_int), intent(out) :: stat
     end subroutine python_get_element_integer
 
