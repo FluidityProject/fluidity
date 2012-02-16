@@ -39,10 +39,11 @@ module detector_python
     !!   local_coords: vector of size dim
     !!   dt: timestep of the subcycle; val function needs to scale by this
     !! Wrapped by python_run_random_walk
-    subroutine python_run_random_walk_from_locals(ele, dim, lcoords, dt, dict, dictlen, key, keylen, &
+    subroutine python_run_random_walk_from_locals(position, ele, dim, lcoords, dt, dict, dictlen, key, keylen, &
            value, stat) bind(c, name='python_run_random_walk_from_locals_c')
       use :: iso_c_binding
       implicit none
+      real(c_double), dimension(dim), intent(in) :: position
       integer(c_int), intent(in), value :: ele, dim
       real(c_double), dimension(dim+1), intent(in) :: lcoords
       real(c_double), intent(in) :: dt
@@ -101,7 +102,8 @@ module detector_python
       real(c_double), dimension(dim), intent(in) :: coords_centre
       character(kind=c_char), dimension(dictlen), intent(in) :: dict
       character(kind=c_char), dimension(keylen), intent(in) :: key
-      integer(c_int), intent(out) :: result, stat
+      real, intent(out) :: result
+      integer(c_int), intent(out) :: stat
     end subroutine python_get_element_integer
 
   end interface
@@ -145,8 +147,9 @@ contains
     if(present(stat)) stat = 0
 
     stage_local_coords=local_coords(xfield,detector%element,detector%update_vector)
-    call python_run_random_walk_from_locals(detector%element, size(detector%position), &
-            stage_local_coords, dt, dict, len_trim(dict), key,len_trim(key), value, lstat) 
+    call python_run_random_walk_from_locals(detector%update_vector, detector%element, &
+            xfield%dim, stage_local_coords, dt, dict, len_trim(dict), &
+            key, len_trim(key), value, lstat) 
 
     if(lstat /= 0) then
       if(present(stat)) then
@@ -228,7 +231,7 @@ contains
     integer, intent(in) :: element
     type(vector_field), pointer, intent(in) :: xfield
     character(len = *), intent(in) :: dict, key
-    integer, intent(out) :: result
+    real, intent(out) :: result
     integer, optional, intent(out) :: stat
 
     real, dimension(xfield%dim) :: coords_centre

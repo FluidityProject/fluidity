@@ -64,7 +64,7 @@ void python_run_string_store_locals_c(char *str, int strlen,
 }
 
 
-void python_run_random_walk_from_locals_c(int ele, int dim, 
+void python_run_random_walk_from_locals_c(double position[], int ele, int dim, 
                                            double lcoords[], double *dt,
                                            char *dict, int dictlen, 
                                            char *key, int keylen,
@@ -88,27 +88,34 @@ void python_run_random_walk_from_locals_c(int ele, int dim,
   PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
   PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
 
+  // Create local_coords argument
+  int i;
+  PyObject *pPosition = PyList_New(dim);
+  for(i=0; i<dim; i++){
+    PyList_SET_ITEM(pPosition, i, PyFloat_FromDouble(position[i]));
+  }
+
   // Create ele argument
   PyObject *pEle = PyInt_FromLong( (long)ele );
 
   // Create local_coords argument
-  int i;
-  PyObject *pLCoords = PyTuple_New(dim+1);
+  PyObject *pLCoords = PyList_New(dim+1);
   for(i=0; i<dim+1; i++){
-    PyTuple_SET_ITEM(pLCoords, i, PyFloat_FromDouble(lcoords[i]));
+    PyList_SET_ITEM(pLCoords, i, PyFloat_FromDouble(lcoords[i]));
   }
 
   // Create dt argument
   PyObject *pDt = PyFloat_FromDouble(*dt);
 
   // Create argument array
-  PyObject **pArgs= malloc(sizeof(PyObject*)*3);
-  pArgs[0] = pEle;
-  pArgs[1] = pLCoords;
-  pArgs[2] = pDt;
+  PyObject **pArgs= malloc(sizeof(PyObject*)*4);
+  pArgs[0] = pPosition;
+  pArgs[1] = pEle;
+  pArgs[2] = pLCoords;
+  pArgs[3] = pDt;
 
   // Run val(ele, local_coords)
-  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 3, NULL, 0, NULL, 0, NULL);
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 4, NULL, 0, NULL, 0, NULL);
  
   // Check for Python errors
   *stat=0;
@@ -130,6 +137,7 @@ void python_run_random_walk_from_locals_c(int ele, int dim,
   Py_DECREF(pEle);
   Py_DECREF(pDt);
   Py_DECREF(pLCoords);
+  Py_DECREF(pPosition);
   Py_DECREF(pFuncCode);
   Py_DECREF(pResult);
   free(pArgs);
@@ -296,7 +304,7 @@ void python_run_agent_biology_c(double *dt, char *dict, int dictlen, char *key, 
 void python_get_element_integer_c(int dim, double coords_centre[], 
                                   char *dict, int dictlen, 
                                   char *key, int keylen,
-                                  int *result, int *stat){
+                                  double *result, int *stat){
 #ifdef HAVE_PYTHON
   /* 
    * 
@@ -339,7 +347,7 @@ void python_get_element_integer_c(int dim, double coords_centre[],
   }
 
   // Convert the python result
-  *result = (int) PyInt_AsLong(pResult);
+  *result = (int) PyFloat_AsDouble(pResult);
 
   Py_DECREF(pCoords);
   Py_DECREF(pFuncCode);

@@ -339,6 +339,7 @@ contains
                    end if
                    detector => detector%next
                 end do
+
                 call move_detectors_guided_search(detector_list,xfield)
 
              ! Internal Diffusive Random Walk with automated sub-cycling
@@ -462,6 +463,8 @@ contains
     integer :: k, nprocs, new_owner, all_send_lists_empty
     logical :: outside_domain, any_lagrangian
 
+    call profiler_tic(trim(detector_list%name)//"::movement::guided_search")
+
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
     allocate(send_list_array(nprocs))
@@ -539,6 +542,8 @@ contains
 
     deallocate(send_list_array)
 
+    call profiler_toc(trim(detector_list%name)//"::movement::guided_search")
+
   end subroutine move_detectors_guided_search
 
   subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner,l_coords,ele_path)
@@ -558,13 +563,18 @@ contains
     integer :: neigh, face
     logical :: outside_domain
 
+    call profiler_tic("/local_guided_search::search_loop")
+
     search_loop: do
        ! Compute the local coordinates of the arrival point with respect to this element
+       call profiler_tic("/local_guided_search::local_coords")
        l_coords=local_coords(xfield,element,coordinate)
+       call profiler_toc("/local_guided_search::local_coords")
+
        if (minval(l_coords)>-search_tolerance) then
           !The arrival point is in this element, we're done
           new_owner=getprocno()
-          return
+          exit search_loop
        end if
 
        ! The arrival point is not in this element, try to get closer to it by 
@@ -604,15 +614,17 @@ contains
 
              if (outside_domain) then
                 new_owner=-1
-                return
+                exit search_loop
              end if
           else
              ! The current element is on a Halo, we need to send it to the owner.
              new_owner=element_owner(xfield%mesh,element)
-             return
+             exit search_loop
           end if
        end if
     end do search_loop
+
+    call profiler_toc("/local_guided_search::search_loop")
 
   end subroutine local_guided_search
 

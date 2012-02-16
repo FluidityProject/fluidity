@@ -174,11 +174,11 @@ from math import sqrt
 
 diffusivity = state.scalar_fields['Diffusivity']
 
-def val(ele, local_coord, dt):
+def val(position, element, local_coords, dt):
   # Eq. 2 from Visser, 1997:
   # z(n+1) = z(n) + R(2 r^-1 K dt)^-1/2, where r = 1/3
   rnd = random.uniform(-1.,1.,1)
-  K = diffusivity.eval_field(ele, local_coord)
+  K = diffusivity.eval_field(element, local_coords)
   return [0.0, 0.0, rnd * sqrt(6*K*dt)]</string_value>
                 </python>
               </random_walk>
@@ -224,17 +224,16 @@ diffusivity = state.scalar_fields['Diffusivity']
 diffusivity_grad = state.vector_fields['DiffusivityGradient']
 coordinate = state.vector_fields['Coordinate']
 
-def val(ele, local_coord, dt):
+def val(position, element, local_coords, dt):
   rnd = random.uniform(-1.,1.,1)
   
   # evaluate diffusivity gradient
-  K_grad = diffusivity_grad.eval_field(ele, local_coord)
+  K_grad = diffusivity_grad.eval_field(element, local_coords)
   
   # evaluate diffusivity at an offset (lcoord) to the original position
-  position = coordinate.eval_field(ele, local_coord)
   position[2] = position[2]  + 0.5*dt*K_grad[2]
-  lcoord = coordinate.local_coords(ele, position)
-  K = diffusivity.eval_field(ele, lcoord)
+  lcoord = coordinate.local_coords(element, position)
+  K = diffusivity.eval_field(element, lcoord)
 
   return [0.0, 0.0, K_grad[2]*dt + (rnd * sqrt(6*K*dt))]</string_value>
                 </python>
