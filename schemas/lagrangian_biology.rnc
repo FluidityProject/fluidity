@@ -310,10 +310,24 @@ lagrangian_biology =
                         integer
                      },
                      element minimum {
-                        real
+                        (
+                           element constant {
+                              real
+                           }|
+                           element python {
+                              python_code
+                           }
+                        )
                      },
                      element maximum {
-                        real
+                        (
+                           element constant {
+                              real
+                           }|
+                           element python {
+                              python_code
+                           }
+                        )
                      }
                   }?
                }*

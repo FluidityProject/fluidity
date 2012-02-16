@@ -292,3 +292,62 @@ void python_run_agent_biology_c(double *dt, char *dict, int dictlen, char *key, 
 
 #endif
 }
+
+void python_get_element_integer_c(int dim, double coords_centre[], 
+                                  char *dict, int dictlen, 
+                                  char *key, int keylen,
+                                  int *result, int *stat){
+#ifdef HAVE_PYTHON
+  /* 
+   * 
+   */
+
+  // Get a reference to the main module and global dictionary
+  PyObject *pMain = PyImport_AddModule("__main__");
+  PyObject *pGlobals = PyModule_GetDict(pMain);
+
+  // Get the local context from the global dictionary
+  char *local_dict = fix_string(dict, dictlen);
+  PyObject *pLocalDict= PyDict_GetItemString(pGlobals, local_dict);
+  char *local_key = fix_string(key, keylen);
+  PyObject *pLocals = PyDict_GetItemString(pLocalDict, local_key);
+
+  // Extract val function from the local dict and its code object
+  PyObject *pFunc = PyDict_GetItemString(pLocals, "val");
+  PyObject *pFuncCode = PyObject_GetAttrString(pFunc, "func_code");
+
+  // Create coords argument
+  int i;
+  PyObject *pCoords = PyTuple_New(dim);
+  for(i=0; i<dim; i++){
+    PyTuple_SET_ITEM(pCoords, i, PyFloat_FromDouble(coords_centre[i]));
+  }
+
+  // Create argument array
+  PyObject **pArgs= malloc(sizeof(PyObject*));
+  pArgs[0] = pCoords;
+
+  // Run val(ele, local_coords)
+  PyObject *pResult = PyEval_EvalCodeEx((PyCodeObject *)pFuncCode, pLocals, NULL, pArgs, 1, NULL, 0, NULL, 0, NULL);
+
+  // Check for Python errors
+  *stat=0;
+  if(!pResult){
+    PyErr_Print();
+    *stat=-1;
+    return;
+  }
+
+  // Convert the python result
+  *result = (int) PyInt_AsLong(pResult);
+
+  Py_DECREF(pCoords);
+  Py_DECREF(pFuncCode);
+  Py_DECREF(pResult);
+  free(pArgs);
+  free(local_dict);
+  free(local_key);
+
+#endif
+}
+

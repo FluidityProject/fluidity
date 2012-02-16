@@ -323,8 +323,22 @@ contains
              if (have_option(trim(stage_buffer)//"/particle_management")) then
                 agent_arrays(array)%do_particle_management = .true.
                 call get_option(trim(stage_buffer)//"/particle_management/period_in_timesteps", agent_arrays(array)%pm_period)
-                call get_option(trim(stage_buffer)//"/particle_management/minimum", agent_arrays(array)%pm_min)
-                call get_option(trim(stage_buffer)//"/particle_management/maximum", agent_arrays(array)%pm_max)
+
+                if (have_option(trim(stage_buffer)//"/particle_management/minimum/python")) then
+                   agent_arrays(array)%get_pm_min_python = .true.
+                   call get_option(trim(stage_buffer)//"/particle_management/minimum/python", agent_arrays(array)%pm_min_pycode)
+                else
+                   agent_arrays(array)%get_pm_min_python = .false.
+                   call get_option(trim(stage_buffer)//"/particle_management/minimum/constant", agent_arrays(array)%pm_min)
+                end if
+
+                if (have_option(trim(stage_buffer)//"/particle_management/maximum/python")) then
+                   agent_arrays(array)%get_pm_max_python = .true.
+                   call get_option(trim(stage_buffer)//"/particle_management/maximum/python", agent_arrays(array)%pm_max_pycode)
+                else
+                   agent_arrays(array)%get_pm_max_python = .false.
+                   call get_option(trim(stage_buffer)//"/particle_management/maximum/constant", agent_arrays(array)%pm_max)
+                end if
              end if
           end if
 
@@ -782,11 +796,11 @@ contains
     type(scalar_field), pointer :: agent_density_field
     type(vector_field), pointer :: xfield
     type(ilist) :: elements_split_list, elements_merge_list
-    type(integer_hash_table) :: split_index_mapping, merge_index_mapping
+    type(integer_hash_table) :: split_index_mapping, merge_index_mapping, element_minima, element_maxima
     type(detector_linked_list), dimension(:), allocatable :: split_lists, merge_lists
     integer, dimension(:), allocatable :: elements_split, elements_merge, xbiggest_ids, xsmallest_ids
     real, dimension(:), allocatable :: xbiggest_sizes, xsmallest_sizes
-    integer :: i, ele, index, splits_wanted, merges_wanted, found_agent
+    integer :: i, ele, index, splits_wanted, merges_wanted, found_agent, element_minimum, element_maximum
     real :: agent_density, ele_volume
 
     call profiler_tic(trim(agent_list%name)//"::particle_management")
@@ -796,17 +810,44 @@ contains
     xfield=>extract_vector_field(state, "Coordinate")
     agent_density_field=>extract_scalar_field(state, trim(agent_list%fg_name)//"Agents"//trim(agent_list%stage_name))
 
+    ! Initialise the Python functions to determine PM limits
+    if (agent_list%get_pm_min_python) then
+       call python_run_detector_string(trim(agent_list%pm_min_pycode), trim(agent_list%name), trim("pm_minimum"))
+    end if
+    if (agent_list%get_pm_max_python) then
+       call python_run_detector_string(trim(agent_list%pm_max_pycode), trim(agent_list%name), trim("pm_maximum"))
+    end if
+
     ! First establish in which elements we need to split/merge
     ! We skip elements with no agents...
+    call allocate(element_minima)
+    call allocate(element_maxima)
     do ele=1, ele_count(agent_density_field)
        agent_density = node_val(agent_density_field, ele)
 
-       if (agent_density < agent_list%pm_min .and. agent_density > 0) then
-          call insert(elements_split_list, ele)
+       ! Here we either use the global minima/maxima from the options,
+       ! or run Python code to determine the minimum/maximum for each element
+       if (agent_list%get_pm_min_python) then
+          call python_get_element_limit(ele, xfield, trim(agent_list%name), trim("pm_minimum"), element_minimum)
+       else
+          element_minimum = agent_list%pm_min
        end if
 
-       if (agent_density > agent_list%pm_max .and. agent_density > 0) then
+       if (agent_list%get_pm_max_python) then
+          call python_get_element_limit(ele, xfield, trim(agent_list%name), trim("pm_maximum"), element_maximum)
+       else
+          element_maximum = agent_list%pm_max
+       end if
+
+       ! Store element numbers and minima/maxima for split and merge
+       if (agent_density < element_minimum .and. agent_density > 0) then
+          call insert(elements_split_list, ele)
+          call insert(element_minima, ele, element_minimum)
+       end if
+
+       if (agent_density > element_maximum .and. agent_density > 0) then
           call insert(elements_merge_list, ele)
+          call insert(element_maxima, ele, element_maximum)
        end if
     end do
 
@@ -857,12 +898,13 @@ contains
     do i=1, size(split_lists)
        agent_density = node_val(agent_density_field, elements_split(i))
        ele_volume = element_volume(xfield, elements_split(i))
+       element_minimum = fetch(element_minima, elements_split(i))
 
        !!!!!!!!!!!!!!!!!!!!!
        ! Original VEW split algorithm:
-       do while(agent_density < agent_list%pm_min)
+       do while(agent_density < element_minimum)
           ! 1) Find x, the number of splits we want
-          splits_wanted = ceiling(agent_list%pm_min - agent_density)
+          splits_wanted = ceiling(element_minimum - agent_density)
           splits_wanted = min(splits_wanted, split_lists(i)%length)
 
           ! 2) Get the x biggest agents
@@ -899,7 +941,7 @@ contains
 
        !!!!!!!!!!!!!!!!!!!!!
        ! Simple algorithm: always split first agent in the list
-       !do while(agent_density < agent_list%pm_min)
+       !do while(agent_density < element_minimum)
        !   call pm_split(split_lists(i)%first, split_lists(i))
        !   agent_density = split_lists(i)%length / ele_volume
        !end do
@@ -917,18 +959,19 @@ contains
     deallocate(elements_split)
     call flush_list(elements_split_list)
     call deallocate(split_index_mapping)
+    call deallocate(element_minima)
 
     ! Perform merges over the temporary agent arrays
     do i=1, size(merge_lists)
-
        agent_density = node_val(agent_density_field, elements_merge(i))
        ele_volume = element_volume(xfield, elements_merge(i))
+       element_maximum = fetch(element_maxima, elements_merge(i))
 
        !!!!!!!!!!!!!!!!!!!!!
        ! Original VEW merge algorithm:
-       do while(agent_density > agent_list%pm_max)
+       do while(agent_density > element_maximum)
           ! 1) Find x, the number of merges we want
-          merges_wanted = floor(agent_density - agent_list%pm_max)
+          merges_wanted = floor(agent_density - element_maximum)
           ! We need to make sure we don't have more merge requests than agent pairs
           merges_wanted = floor(min(real(merges_wanted), real(merge_lists(i)%length) / 2.0))
 
@@ -996,6 +1039,7 @@ contains
     deallocate(elements_merge)
     call flush_list(elements_merge_list)
     call deallocate(merge_index_mapping)
+    call deallocate(element_maxima)
 
     call profiler_toc(trim(agent_list%name)//"::particle_management")
 

@@ -63,6 +63,14 @@ agent_count_stage_change_finish = stat_parser("lagrangian_biology.stat")['Water'
 from fluidity_tools import stat_parser
 agent_count_delayed = stat_parser("lagrangian_biology.stat")['Water']['DelayedAgentsTarget']['integral']
     </variable>
+    <variable name="agent_count_python_split" language="python">
+from fluidity_tools import stat_parser
+agent_count_python_split = stat_parser("lagrangian_biology.stat")['Water']['LayeredPythonAgentsSplit']['integral']
+    </variable>
+    <variable name="agent_count_python_merge" language="python">
+from fluidity_tools import stat_parser
+agent_count_python_merge = stat_parser("lagrangian_biology.stat")['Water']['LayeredPythonAgentsMerge']['integral']
+    </variable>
   </variables>
   <pass_tests>
     <test name="constant_biomass_split" language="python">
@@ -100,6 +108,12 @@ assert abs(agent_count_delayed[-1] - 50.0) &lt; 1.0e-6
     </test>
     <test name="delayed_middle_agent_count" language="python">
 assert abs(agent_count_delayed[-2] - 250.0) &lt; 1.0e-6
+    </test>
+    <test name="final_agent_count_python_split" language="python">
+assert abs(agent_count_python_split[-1] - 75.0).all() &lt; 1.0e-6
+    </test>
+    <test name="final_agent_count_python_merge" language="python">
+assert abs(agent_count_python_merge[-1] - 125.0).all() &lt; 1.0e-6
     </test>
   </pass_tests>
   <warn_tests>

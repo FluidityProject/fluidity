@@ -396,10 +396,24 @@ This option is generally only useful for testing. </a:documentation>
                       <ref name="integer"/>
                     </element>
                     <element name="minimum">
-                      <ref name="real"/>
+                      <choice>
+                        <element name="constant">
+                          <ref name="real"/>
+                        </element>
+                        <element name="python">
+                          <ref name="python_code"/>
+                        </element>
+                      </choice>
                     </element>
                     <element name="maximum">
-                      <ref name="real"/>
+                      <choice>
+                        <element name="constant">
+                          <ref name="real"/>
+                        </element>
+                        <element name="python">
+                          <ref name="python_code"/>
+                        </element>
+                      </choice>
                     </element>
                   </element>
                 </optional>
