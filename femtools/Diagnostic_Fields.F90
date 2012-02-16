@@ -1839,12 +1839,14 @@ contains
          include_porosity = .true.
      
          ! get the name of the field to use as porosity
-         call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/porosity_field_name', &
+         call get_option(trim(state%option_path)//&
+            '/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/porosity_field_name', &
                          porosity_name, &
                          default = 'Porosity')
          
          ! get the porosity theta value
-         call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/temporal_discretisation/theta', &
+         call get_option(trim(state%option_path)//&
+            '/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/temporal_discretisation/theta', &
                          porosity_theta_value, &
                          default = 0.0)
          
