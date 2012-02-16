@@ -1370,6 +1370,40 @@ vector_scalar_time_averaged_algorithm =
       }
    )
 
+# Porous media diagnostics
+
+interstitial_velocity_dg_courant_number = 
+   (
+      ## Algorithm for calulating the interstitial
+      ## velocity DG Courant number for porous media flow.
+      ## This is useful for determining the sub cycled time
+      ## step size of a DG transported scalar field. This is  
+      ## only appropriate if the Velocity field solved for   
+      ## has the porosity embedded within in.
+      element algorithm {
+         attribute name { "interstitial_velocity_dg_courant_number" },
+         attribute material_phase_support { "single" },         
+         porosity_include_dg_cfl
+      }
+   )
+
+interstitial_velocity_cv_courant_number = 
+   (
+      ## Algorithm for calulating the interstitial
+      ## velocity CV Courant number for porous media flow.
+      ## This is useful for determining the sub cycled time
+      ## step size of a CV discretised scalar field, as well as if  
+      ## a CV face value schema that depends on a Courant number   
+      ## is used for the advection (such as HyperC). This is  
+      ## only appropriate if the Velocity field solved for   
+      ## has the porosity embedded within in.
+      element algorithm {
+         attribute name { "interstitial_velocity_cv_courant_number" },
+         attribute material_phase_support { "single" },         
+         porosity_include_cv_cfl
+      }
+   )
+
 scalar_diagnostic_algorithms = universal_numbering_diagnostic_algorithm
 scalar_diagnostic_algorithms |= universal_column_id_algorithm
 scalar_diagnostic_algorithms |= tidal_harmonic_algorithm
@@ -1406,6 +1440,8 @@ scalar_diagnostic_algorithms |= curl_2d_algorithm
 scalar_diagnostic_algorithms |= column_id_algorithm
 scalar_diagnostic_algorithms |= finite_element_lumped_mass_matrix
 scalar_diagnostic_algorithms |= control_volume_mass_matrix
+scalar_diagnostic_algorithms |= interstitial_velocity_dg_courant_number
+scalar_diagnostic_algorithms |= interstitial_velocity_cv_courant_number 
 scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 
 vector_diagnostic_algorithms = vector_time_averaged_algorithm

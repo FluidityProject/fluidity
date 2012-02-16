@@ -4967,9 +4967,6 @@ Adapting to this field is not recommended</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
-            <optional>
-              <ref name="porosity_include_cv_cfl"/>
-            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -4993,9 +4990,6 @@ Adapting to this field is not recommended</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
-            <optional>
-              <ref name="porosity_include_dg_cfl"/>
-            </optional>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
