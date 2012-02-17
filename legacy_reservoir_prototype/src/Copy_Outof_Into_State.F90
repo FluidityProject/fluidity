@@ -998,6 +998,7 @@ module copy_outof_into_state
 !!!
 !!! Components Boundary Conditions
 
+
       allocate( wic_comp_bc( stotel * nphases ))
       allocate( suf_comp_bc( stotel * cv_snloc * nphases * ncomps ))
       wic_comp_bc = 0
@@ -1014,6 +1015,7 @@ module copy_outof_into_state
 
                allocate(component_sufid_bc(1:shape_option(1)))
                Component_BC_Type = 1
+!               nobcs = get_boundary_condition_count(  )
 
                call get_option( "/material_phase[" // int2str(i) // "]/scalar_field::ComponentMassFractionPhase" // & 
                     int2str(j) //"/prognostic/" // "boundary_conditions[0]/surface_ids", component_sufid_bc )
@@ -1022,8 +1024,8 @@ module copy_outof_into_state
                     int2str(j) //"/prognostic/" // "boundary_conditions[0]/type::dirichlet/constant", Component_Suf_BC )
 
                do k=1,shape_option(1)
-                  wic_comp_bc( component_sufid_bc(1) + nphases*(j-1) ) = Component_BC_Type
-                  suf_comp_bc( component_sufid_bc(1) + nphases*(j-1) + nphases*ncomps*(i-nphases) ) = Component_Suf_BC
+                  wic_comp_bc( component_sufid_bc(k) + nphases*(j-1) ) = Component_BC_Type
+                  suf_comp_bc( component_sufid_bc(k) + nphases*(j-1) + nphases*ncomps*(i-nphases) ) = Component_Suf_BC
                enddo
                deallocate(Component_sufid_bc)
             endif
@@ -1093,39 +1095,52 @@ module copy_outof_into_state
 
          if( .not. ( allocated( wic_d_bc ) .and. allocated( suf_d_bc ))) then 
             allocate( wic_d_bc( stotel * nphases ))
-            allocate( suf_d_bc( stotel * 1 * nphases ))
+            allocate( suf_d_bc( stotel * p_snloc * nphases ))
             wic_d_bc = 0
             suf_d_bc = 0.
          end if
 
-         Conditional_Density_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
-              ']/scalar_field::Density/prognostic/' // &
-              'boundary_conditions[0]/type::dirichlet' )) then
 
-            shape_option=option_shape('/material_phase[' // int2str(i-1) // &
-                 ']/scalar_field::Density/prognostic/boundary_conditions[0]/' // &
-                 'surface_ids' )
-            allocate( density_sufid_bc( 1 : shape_option( 1 )))
 
-            Density_BC_Type = 1
+      Conditional_Density_BC: if( have_option( "/material_phase[" // int2str(i-1) // &
+              "]/scalar_field::Density/" // &
+              "prognostic/boundary_conditions[0]/type::dirichlet" )) then
 
-            call get_option( '/material_phase[' // int2str(i-1) // &
+            shape_option = option_shape( "/material_phase[" // int2str(i-1) // "]/scalar_field::" // &
+                 "Density/prognostic/boundary_conditions[0]/surface_ids" )
+            allocate(  density_sufid_bc( 1 : shape_option( 1 )))
+
+            pvf_bc_type = 1
+            nobcs = get_boundary_condition_count( density )
+
+
+           do k = 1, nobcs
+             density_bc => extract_surface_field( density, k, "value" )
+              
+             Density_BC_Type = 1
+
+             call get_option( '/material_phase[' // int2str(i-1) // &
                  ']/scalar_field::Density/prognostic/' // &
                  'boundary_conditions[0]/surface_ids', Density_SufID_BC )
 
-            do j=1,shape_option(1)
-               wic_d_bc( density_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = density_bc_type
-            enddo
 
-            nobcs = get_boundary_condition_count( density )
-            do j = 1, nobcs
-               density_bc => extract_surface_field( density, j, "value" )
-            end do
-            do j = 1, node_count( density_bc )
-               suf_d_bc( ( i - 1 ) * stotel + j ) = density_bc%val( j )
-            end do
+             ! Specify the boundary condition type.
+             do j=1,shape_option(1)
+               wic_d_bc( density_sufid_bc( j ) + ( i - 1 ) * nphases ) = density_bc_type
+             enddo
+      
+             do j = 1, stotel
+              if(pmesh%faces%boundary_ids(j) .eq. density_sufid_bc(k)) then
+               do kk = 1, p_snloc
+                  suf_d_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = density_bc%val( k )
+               end do
+              end if 
+             end do
+      
+           end do ! End of BC loop
 
-            deallocate(density_sufid_bc)
+
+          deallocate(density_sufid_bc)
 
          endif Conditional_Density_BC
 
@@ -1183,18 +1198,13 @@ module copy_outof_into_state
 
              ! Specify the boundary condition type.
              do j = 1, shape_option( 1 )
-               wic_p_bc( pressure_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = pressure_bc_type
+               wic_p_bc( pressure_sufid_bc( j ) + ( i - 1 ) * nphases ) = pressure_bc_type
              enddo
       
              do j = 1, stotel
               if(pmesh%faces%boundary_ids(j) .eq. pressure_sufid_bc(k)) then
-               nobcs = get_boundary_condition_count( pressure )
                do kk = 1, p_snloc
-                if(size(pressure_bc%val) .eq. 1) then
-                   suf_p_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = pressure_bc%val( 1 )
-                else
-                  FLExit("Pressure BC only implemented for a constant BC for each region ID")
-                 end if  
+                  suf_p_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = pressure_bc%val( k )
                end do
               end if 
              end do
@@ -1270,19 +1280,14 @@ module copy_outof_into_state
 
              ! Specify the boundary condition type.
              do j = 1, shape_option( 1 )
-               wic_vol_bc( pvf_sufid_bc(1) + ( i - 1 ) * nphases ) = pvf_bc_type
+               wic_vol_bc( pvf_sufid_bc(j) + ( i - 1 ) * nphases ) = pvf_bc_type
              enddo
          
       
              do j = 1, stotel
               if(pmesh%faces%boundary_ids(j) .eq. pvf_sufid_bc(k)) then
-               nobcs = get_boundary_condition_count( pressure )
                do kk = 1, p_snloc
-                if(size(phasevolumefraction_bc%val) .eq. 1) then
-                  suf_vol_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = phasevolumefraction_bc%val( 1 )
-                else
-                  FLExit("Volume Fraction BC only implemented for a constant BC for each region ID")
-                 end if  
+                  suf_vol_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = phasevolumefraction_bc%val( k )
                end do
               end if 
              end do
@@ -1386,30 +1391,30 @@ module copy_outof_into_state
                 call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
                  "prognostic/boundary_conditions[0]/surface_ids", Velocity_SufID_BC )
            
-
+!
                  ! Specify the boundary condition type.
                  do j = 1, shape_option( 1 )
-                   wic_u_bc( velocity_sufid_bc(1) + ( i - 1 ) * nphases ) = Velocity_BC_Type
+                   wic_u_bc( velocity_sufid_bc(j) + ( i - 1 ) * nphases ) = Velocity_BC_Type
                  enddo
       
              do j = 1, stotel
-              if(pmesh%faces%boundary_ids(j) .eq. velocity_sufid_bc(k)) then
-               nobcs = get_boundary_condition_count( pressure )
+!              print*, vmesh%faces%boundary_ids(j) , velocity_sufid_bc(k)
+              if(vmesh%faces%boundary_ids(j) .eq. velocity_sufid_bc(k)) then
                do kk = 1, p_snloc
-                if(size(phasevolumefraction_bc%val) .eq. 1) then
-                  suf_u_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = velocity_bc%val( 1, 1 )
-                  if (velocity%dim>1) suf_v_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = velocity_bc%val( 2, 1 )
-                  if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = velocity_bc%val( 3, 1 )
-                else
-                  FLExit("Velocity BC only implemented for a constant BC for each region ID")
-                 end if  
+                  suf_u_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 1, k )
+                  if (velocity%dim>1) suf_v_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 2, k )
+                  if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 3, k )
+!                  print*, suf_u_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ), j
                end do
               end if 
-             end do
            
             end do
             
+           end do ! End of BC Loop 
+            
          endif Conditional_Velocity_BC
+         
+!         print*, suf_u_bc, wic_u_bc
 
 
       enddo Loop_Velocity
@@ -1582,10 +1587,12 @@ module copy_outof_into_state
 
             if( ( .not. allocated( wic_t_bc )) .and. ( .not. allocated( suf_t_bc ))) then
                allocate( wic_t_bc( stotel * nphases ))
-               allocate( suf_t_bc( stotel * 1 * nphases ))
+               allocate( suf_t_bc( stotel * cv_nloc * nphases ))
                wic_t_bc = 0.
                suf_t_bc = 0.
             endif
+
+
 
             Conditional_Temperature_BC: if( have_option( "/material_phase[" // int2str(i-1) // &
                  "]/scalar_field::Temperature/prognostic/boundary_conditions[0]/" // &
@@ -1604,18 +1611,32 @@ module copy_outof_into_state
                     "boundary_conditions[0]/surface_ids", Temperature_sufid_bc )
 
                do j=1,shape_option(1)
-                  wic_t_bc( Temperature_sufid_bc(1) + (i-1)*nphases ) = Temperature_bc_type
+                  wic_t_bc( Temperature_sufid_bc(j) + (i-1)*nphases ) = Temperature_bc_type
                enddo
 
                nobcs = get_boundary_condition_count( scalarfield )
-               do j = 1, nobcs
-                  scalarfield_bc => extract_surface_field( scalarfield, j, "value" )
-               end do
-               do j = 1, node_count( scalarfield_bc )
-                  suf_t_bc( ( i - 1 ) * stotel + j ) = scalarfield_bc%val( j )
-               end do
 
-               deallocate(Temperature_sufid_bc)
+
+               do k = 1, nobcs
+                
+                scalarfield_bc => extract_surface_field( scalarfield, k, "value" )
+              
+                 ! Specify the boundary condition type.
+                do j=1,shape_option(1)
+                 wic_t_bc( Temperature_sufid_bc( j ) + ( i - 1 ) * nphases ) = Temperature_bc_type
+                enddo
+       
+                do j = 1, stotel
+                 if(vmesh%faces%boundary_ids(j) .eq. density_sufid_bc(k)) then
+                  do kk = 1, p_snloc
+                   suf_t_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = scalarfield_bc%val( k )
+                  end do
+                 end if 
+               end do
+      
+              end do ! End of BC loop
+
+              deallocate(Temperature_sufid_bc)
 
             endif Conditional_Temperature_BC
 
@@ -1695,6 +1716,8 @@ module copy_outof_into_state
       cv_one = 1.0
 
       ewrite(3,*) "Leaving copy_outof_state"
+      
+!      stop 999
 
     end subroutine copy_outof_state
 
