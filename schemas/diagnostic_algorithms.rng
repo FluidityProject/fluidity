@@ -1837,43 +1837,6 @@ This field needs to be interpolated between adapts.</a:documentation>
       </optional>
     </element>
   </define>
-  <!-- Porous media diagnostics -->
-  <define name="interstitial_velocity_dg_courant_number">
-    <element name="algorithm">
-      <a:documentation>Algorithm for calulating the interstitial
-velocity DG Courant number for porous media flow.
-This is useful for determining the sub cycled time
-step size of a DG transported scalar field. This is  
-only appropriate if the Velocity field solved for   
-has the porosity embedded within in.</a:documentation>
-      <attribute name="name">
-        <value>interstitial_velocity_dg_courant_number</value>
-      </attribute>
-      <attribute name="material_phase_support">
-        <value>single</value>
-      </attribute>
-      <ref name="porosity_include_dg_cfl"/>
-    </element>
-  </define>
-  <define name="interstitial_velocity_cv_courant_number">
-    <element name="algorithm">
-      <a:documentation>Algorithm for calulating the interstitial
-velocity CV Courant number for porous media flow.
-This is useful for determining the sub cycled time
-step size of a CV discretised scalar field, as well as if  
-a CV face value schema that depends on a Courant number   
-is used for the advection (such as HyperC). This is  
-only appropriate if the Velocity field solved for   
-has the porosity embedded within in.</a:documentation>
-      <attribute name="name">
-        <value>interstitial_velocity_cv_courant_number</value>
-      </attribute>
-      <attribute name="material_phase_support">
-        <value>single</value>
-      </attribute>
-      <ref name="porosity_include_cv_cfl"/>
-    </element>
-  </define>
   <define name="scalar_diagnostic_algorithms">
     <ref name="universal_numbering_diagnostic_algorithm"/>
   </define>
@@ -1981,12 +1944,6 @@ has the porosity embedded within in.</a:documentation>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="control_volume_mass_matrix"/>
-  </define>
-  <define name="scalar_diagnostic_algorithms" combine="choice">
-    <ref name="interstitial_velocity_dg_courant_number"/>
-  </define>
-  <define name="scalar_diagnostic_algorithms" combine="choice">
-    <ref name="interstitial_velocity_cv_courant_number"/>
   </define>
   <define name="scalar_diagnostic_algorithms" combine="choice">
     <ref name="scalar_python_diagnostic_algorithm"/>

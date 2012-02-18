@@ -486,6 +486,9 @@ contains
 
     character(len=FIELD_NAME_LEN) :: limiter_name
     integer :: i
+    
+    !! Courant number field name used for temporal subcycling
+    character(len=FIELD_NAME_LEN) :: Courant_number_name
 
     T=>extract_scalar_field(state, field_name)
     T_old=>extract_scalar_field(state, "Old"//field_name)
@@ -546,9 +549,17 @@ contains
             &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
             &"/maximum_courant_number_per_subcycle", Max_Courant_number)
        
-       s_field => extract_scalar_field(state, "DG_CourantNumber")
-       call calculate_diagnostic_variable(state, "DG_CourantNumber", &
-            & s_field)
+       ! Determine the courant field to use to find the max
+       call get_option(trim(T%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/maximum_courant_number_per_subcycle/courant_number/name", &
+            &Courant_number_name, default="DG_CourantNumber")
+       
+       s_field => extract_scalar_field(state, trim(Courant_number_name))
+       call calculate_diagnostic_variable(state, trim(Courant_number_name), &
+            & s_field, option_path=trim(T%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/courant_number")
        
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
        call allmax(subcycles)

@@ -140,7 +140,7 @@ porosity_include_cv_cfl =
    )
 
 
-porosity_include_dg_cfl = 
+porosity_include_dg_and_cg_cfl = 
    (
       ## Specify the name of the field 
       ## to use for porosity. This field must 
@@ -162,9 +162,7 @@ porosity_include_temporal_discretisation =
       ## 
       ## If not included then a theta value of 
       ## 0.0 is used by default.
-      element temporal_discretisation {
-         element theta {
+      element porosity_temporal_theta {
             real
-         }
       }
    )

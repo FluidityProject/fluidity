@@ -163,7 +163,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
                   <store_upwind_quadrature/>
                 </store_upwind_elements>
               </project_upwind_value_from_point>
-              <courant_number name="ControlVolumeCFLNumber"/>
+              <courant_number name="InterstitialVelocity_CVCourantNumber"/>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
@@ -178,7 +178,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <control_volumes>
             <maximum_courant_number_per_subcycle>
               <real_value rank="0">0.5</real_value>
-              <courant_number name="ControlVolumeCFLNumber"/>
+              <courant_number name="InterstitialVelocity_CVCourantNumber"/>
             </maximum_courant_number_per_subcycle>
             <pivot_theta>
               <real_value rank="0">0.0</real_value>
@@ -215,11 +215,6 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         </boundary_conditions>
         <porosity>
           <porosity_field_name>Porosity</porosity_field_name>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">0.5</real_value>
-            </theta>
-          </temporal_discretisation>
         </porosity>
         <output/>
         <stat>
@@ -293,18 +288,10 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field name="InterstitialVelocity_CVCourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <porosity>
-          <porosity_field_name>Porosity</porosity_field_name>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">1.0</real_value>
-            </theta>
-          </temporal_discretisation>
-        </porosity>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>
@@ -343,18 +330,22 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           </theta>
           <maximum_courant_number_per_subcycle>
             <real_value rank="0">0.5</real_value>
-            <courant_number name="ControlVolumeCFLNumber"/>
+            <courant_number name="InterstitialVelocity_CVCourantNumber">
+              <porosity_field_name>Porosity</porosity_field_name>
+              <porosity_temporal_theta>
+                <real_value rank="0">0.0</real_value>
+              </porosity_temporal_theta>
+            </courant_number>
           </maximum_courant_number_per_subcycle>
-          <control_volumes/>
+          <control_volumes>
+            <pivot_theta>
+              <real_value rank="0">0.0</real_value>
+            </pivot_theta>
+          </control_volumes>
         </temporal_discretisation>
         <explicit/>
         <porosity>
           <porosity_field_name>Porosity</porosity_field_name>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">0.0</real_value>
-            </theta>
-          </temporal_discretisation>
         </porosity>
         <output/>
       </metric_advection>

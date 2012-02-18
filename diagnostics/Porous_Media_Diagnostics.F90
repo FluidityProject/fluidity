@@ -57,10 +57,86 @@ module porous_media_diagnostics
    
    private
 
-   public :: calculate_interstitial_velocity_dg_courant_number, &
+   public :: calculate_interstitial_velocity_cg_courant_number, &
+             calculate_interstitial_velocity_dg_courant_number, &
              calculate_interstitial_velocity_cv_courant_number
   
 contains
+
+! ----------------------------------------------------------------------------------
+  
+   subroutine calculate_interstitial_velocity_cg_courant_number(state, s_field)
+     
+      !!< Calculate the interstitial velocity DG courant number field
+   
+      type(state_type), intent(in) :: state
+      type(scalar_field), intent(inout) :: s_field
+      
+      ! local variables
+      type(vector_field), pointer :: U, X
+      real :: dt
+      integer :: ele, gi
+      ! Transformed quadrature weights.
+      real, dimension(ele_ngi(s_field, 1)) :: detwei
+      ! Inverse of the local coordinate change matrix.
+      real, dimension(mesh_dim(s_field), mesh_dim(s_field), ele_ngi(s_field, 1)) :: invJ
+      ! velocity/dx at each quad point.
+      real, dimension(mesh_dim(s_field), ele_ngi(s_field, 1)) :: CFL_q
+      ! current element global node numbers.
+      integer, dimension(:), pointer :: ele_cfl
+      ! local cfl matrix on the current element.
+      real, dimension(ele_loc(s_field, 1),ele_loc(s_field, 1)) :: CFL_mat
+      ! current CFL element shape
+      type(element_type), pointer :: CFL_shape
+      
+      type(scalar_field) :: porosity_theta 
+
+      ewrite(1,*) 'Entering calculate_interstitial_velocity_cg_courant_number'
+
+      U => extract_vector_field(state, "Velocity")
+      X => extract_vector_field(state, "Coordinate")
+
+      call get_option("/timestepping/timestep",dt)
+
+      ! form the porosity value to include - this will allocate porosity_theta
+      call form_porosity_theta(porosity_theta, state, trim(s_field%option_path)//'/diagnostic/algorithm')
+
+      call zero(s_field)
+
+      do ele=1, element_count(s_field)
+         ele_CFL=>ele_nodes(s_field, ele)
+         CFL_shape=>ele_shape(s_field, ele)
+
+         call compute_inverse_jacobian(ele_val(X,ele), ele_shape(X,ele), &
+                                       detwei=detwei, invJ=invJ)
+
+         ! Calculate the CFL number at each quadrature point.
+         ! The matmul is the transpose of what I originally thought it should
+         ! be. I don't understand why it's this way round but the results
+         ! appear correct. -dham
+         CFL_q=ele_val_at_quad(U, ele)
+         do gi=1, size(detwei)
+            CFL_q(:,gi)=dt*matmul(CFL_q(:,gi), invJ(:,:,gi))
+         end do
+         
+         assert(ele_ngi(s_field, ele)==ele_ngi(porosity_theta, ele))
+         
+         ! Project onto the basis functions to recover CFL at each node.
+         CFL_mat=matmul(inverse(shape_shape(CFL_shape, CFL_shape, detwei*ele_val_at_quad(porosity_theta,ele))), &
+                        shape_shape(CFL_shape, CFL_shape, detwei*maxval(abs(CFL_q),1)))
+
+         ! CFL is inherently discontinuous. In the case where a continuous
+         ! mesh is provided for CFL, the following takes the safest option
+         ! of taking the maximum value at a node.
+         s_field%val(ele_CFL)=max(s_field%val(ele_CFL), sum(CFL_mat,2))
+
+      end do
+      
+      call deallocate(porosity_theta)
+
+      ewrite(1,*) 'Exiting calculate_interstitial_velocity_cg_courant_number'
+
+   end subroutine calculate_interstitial_velocity_cg_courant_number
 
 ! ----------------------------------------------------------------------------------
 
@@ -75,11 +151,7 @@ contains
       type(vector_field), pointer :: u, x
       real :: dt
       integer :: ele, stat
-      ! Porosity fields, field name, theta value and include flag
-      type(scalar_field), pointer :: porosity_old, porosity_new
       type(scalar_field) :: porosity_theta 
-      character(len=OPTION_PATH_LEN) :: porosity_name
-      real :: porosity_theta_value
 
       ewrite(1,*) 'Entering calculate_interstitial_velocity_dg_courant_number'
 
@@ -97,35 +169,8 @@ contains
       
       call get_option("/timestepping/timestep", dt)
     
-      ! determine the porosity value to include
-     
-      ! get the name of the field to use as porosity
-      call get_option(trim(s_field%option_path)//'/diagnostic/algorithm/porosity_field_name', &
-                      porosity_name, &
-                      default = 'Porosity')
-         
-      ! get the porosity theta value
-      call get_option(trim(s_field%option_path)//'/diagnostic/algorithm/temporal_discretisation/theta', &
-                      porosity_theta_value, &
-                      default = 0.0)
-         
-      porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
-
-      if (stat /=0) then 
-         FLExit('Failed to extract Porosity from state for calculating interstitial_velocity_dg_courant_number')
-      end if
-       
-      porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
-
-      if (stat /=0) then 
-         FLExit('Failed to extract OldPorosity from state for calculating interstitial_velocity_dg_courant_number')
-      end if
-       
-      call allocate(porosity_theta, porosity_new%mesh)
-         
-      call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
-         
-      ewrite_minmax(porosity_theta)
+      ! form the porosity value to include - this will allocate porosity_theta
+      call form_porosity_theta(porosity_theta, state, trim(s_field%option_path)//'/diagnostic/algorithm')
     
       call zero(s_field)
     
@@ -156,8 +201,7 @@ contains
       integer, intent(in) :: ele
       real, dimension(:) :: porosity_theta_at_quad
       
-      real :: Vol
-      real :: Flux
+      real :: Vol, Flux, val
       integer :: ni, ele_2, face, face_2
       integer, dimension(:), pointer :: neigh
       real, dimension(ele_ngi(u,ele)) :: detwei
@@ -165,8 +209,6 @@ contains
       real, dimension(U%dim, face_ngi(U, 1)) :: normal, U_f_quad
       real, dimension(face_ngi(U,1)) :: flux_quad
       integer, dimension(:), pointer :: u_ele
-      real, dimension(ele_loc(u,ele)) :: Vols
-      real :: val
       real, dimension(ele_loc(u,ele)) :: Vals
       
       !Get element volume
@@ -202,7 +244,7 @@ contains
 
       Val = Flux/Vol*dt
       Vals = Val
-      call set(Courant,U_ele,Vals)
+      call set(courant,U_ele,Vals)
 
   end subroutine dg_courant_number_ele
 
@@ -218,7 +260,7 @@ contains
       ! local variables      
       type(vector_field), pointer :: u, x
       real :: dt
-      integer :: i, ele, iloc, oloc, gi, ggi, sele, face, ni, face_2
+      integer :: ele, iloc, oloc, gi, ggi, sele, face, ni, face_2
 
       integer :: quaddegree
       type(cv_faces_type) :: cvfaces
@@ -236,15 +278,8 @@ contains
       ! logical array indicating if a face has already been visited by the opposing node
       logical, dimension(:), allocatable :: notvisited
       
-      ! Porosity fields, field name, theta value and include flag
-      type(scalar_field), pointer :: porosity_old, porosity_new
       type(scalar_field) :: porosity_theta 
-      character(len=OPTION_PATH_LEN) :: porosity_name
-      real :: porosity_theta_value
-      logical :: include_porosity
-      
-      integer :: stat
-      
+            
       integer, dimension(:), allocatable :: courant_bc_type
       type(scalar_field) :: courant_bc
 
@@ -265,34 +300,9 @@ contains
       
       ! determine the cv mass matrix to use for the length scale
       ! which will have included the porosity field
-     
-      ! get the name of the field to use as porosity
-      call get_option(trim(s_field%option_path)//'/diagnostic/algorithm/porosity_field_name', &
-                      porosity_name, &
-                      default = 'Porosity')
-         
-      ! get the porosity theta value
-      call get_option(trim(s_field%option_path)//'/diagnostic/algorithm/temporal_discretisation/theta', &
-                      porosity_theta_value, &
-                      default = 0.0)
-         
-      porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
-  
-      if (stat /=0) then 
-         FLExit('Failed to extract Porosity from state from state for calculating interstitial_velocity_cv_courant_number')
-      end if
-         
-      porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
-
-      if (stat /=0) then 
-         FLExit('Failed to extract OldPorosity from state from state for calculating interstitial_velocity_cv_courant_number')
-      end if
-         
-      call allocate(porosity_theta, porosity_new%mesh)
-         
-      call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
-         
-      ewrite_minmax(porosity_theta)
+      
+      ! form the porosity value to include - this will allocate porosity_theta
+      call form_porosity_theta(porosity_theta, state, trim(s_field%option_path)//'/diagnostic/algorithm')
        
       allocate(cvmass)  
       call allocate(cvmass, s_field%mesh, name="LocalCVMassWithPorosity")
@@ -494,6 +504,51 @@ contains
 
    end subroutine calculate_interstitial_velocity_cv_courant_number
 
+! ----------------------------------------------------------------------------------
+
+   subroutine form_porosity_theta(porosity_theta, state, option_path)
+      
+      !!< Form the porosity theta averaged field determined by the input option path
+      
+      type(scalar_field), intent(inout) :: porosity_theta
+      type(state_type), intent(in) :: state
+      character(len=*) :: option_path
+
+      ! local variables
+      type(scalar_field), pointer :: porosity_old, porosity_new
+      character(len=OPTION_PATH_LEN) :: porosity_name
+      real :: porosity_theta_value
+      integer :: stat
+      
+      call get_option(trim(option_path)//'/porosity_field_name', &
+                      porosity_name, &
+                      default = 'Porosity')
+         
+      ! get the porosity theta value
+      call get_option(trim(option_path)//'/temporal_discretisation/theta', &
+                      porosity_theta_value, &
+                      default = 0.0)
+         
+      porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
+  
+      if (stat /=0) then 
+         FLExit('Failed to extract Porosity from state from state to be used for forming the theta averaged porosity field')
+      end if
+         
+      porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
+
+      if (stat /=0) then 
+         FLExit('Failed to extract OldPorosity from state from state to be used for forming the theta averaged porosity field')
+      end if
+         
+      call allocate(porosity_theta, porosity_new%mesh)
+         
+      call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
+         
+      ewrite_minmax(porosity_theta)
+      
+   end subroutine form_porosity_theta
+      
 ! ----------------------------------------------------------------------------------
 
 end module porous_media_diagnostics

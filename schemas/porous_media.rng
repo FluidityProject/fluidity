@@ -156,7 +156,7 @@ control volumes for a discontinuous mesh.</a:documentation>
       <ref name="porosity_include_temporal_discretisation"/>
     </optional>
   </define>
-  <define name="porosity_include_dg_cfl">
+  <define name="porosity_include_dg_and_cg_cfl">
     <optional>
       <element name="porosity_field_name">
         <a:documentation>Specify the name of the field 
@@ -174,15 +174,13 @@ Porosity is used by default.</a:documentation>
     </optional>
   </define>
   <define name="porosity_include_temporal_discretisation">
-    <element name="temporal_discretisation">
+    <element name="porosity_temporal_theta">
       <a:documentation>Temporal discretisation of Porosity 
 to use in the parent field equation.
 
 If not included then a theta value of 
 0.0 is used by default.</a:documentation>
-      <element name="theta">
-        <ref name="real"/>
-      </element>
+      <ref name="real"/>
     </element>
   </define>
 </grammar>

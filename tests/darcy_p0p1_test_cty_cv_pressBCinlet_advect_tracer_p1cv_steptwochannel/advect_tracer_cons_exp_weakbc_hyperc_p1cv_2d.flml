@@ -160,7 +160,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
                   <store_upwind_quadrature/>
                 </store_upwind_elements>
               </project_upwind_value_from_point>
-              <courant_number name="ControlVolumeCFLNumber"/>
+              <courant_number name="InterstitialVelocity_CVCourantNumber"/>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
@@ -175,7 +175,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <control_volumes>
             <maximum_courant_number_per_subcycle>
               <real_value rank="0">0.25</real_value>
-              <courant_number name="ControlVolumeCFLNumber"/>
+              <courant_number name="InterstitialVelocity_CVCourantNumber"/>
             </maximum_courant_number_per_subcycle>
             <pivot_theta>
               <real_value rank="0">0.0</real_value>
@@ -227,17 +227,10 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
+    <scalar_field name="InterstitialVelocity_CVCourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <porosity>
-          <temporal_discretisation>
-            <theta>
-              <real_value rank="0">0.0</real_value>
-            </theta>
-          </temporal_discretisation>
-        </porosity>
+        <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
         <convergence>
