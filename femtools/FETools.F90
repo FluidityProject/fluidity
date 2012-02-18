@@ -823,38 +823,6 @@ contains
 
   end function norm2_element
 
-  function norm2_cv(field, X, ele) result (norm)
-    !!< Return the cv l2 norm of field on the given parent element.
-    real :: norm
-    ! Element values at the nodes.
-    type(scalar_field), intent(in) :: field
-    ! The positions of the nodes in this element.
-    type(vector_field), intent(in) :: X
-    ! The number of the current element
-    integer, intent(in) :: ele
-
-    ! the mass matrix
-    real, dimension(ele_loc(field, ele),ele_loc(field, ele)) :: mass
-    real, dimension(ele_loc(field, ele)) :: lumped_mass
-
-    real, dimension(ele_loc(field, ele)) ::  field_val
-    
-    real, dimension(ele_ngi(field, ele)) :: detwei
-
-    integer :: i
-    
-    call transform_to_physical(X, ele, detwei=detwei)
-    field_val=ele_val(field, ele)
-
-    mass = shape_shape(field%mesh%shape, field%mesh%shape, detwei)
-    do i = 1, ele_loc(field, ele)
-      lumped_mass(i) = sum(mass(i,:))
-    end do
-
-    norm = dot_product(field_val, lumped_mass*field_val)
-
-  end function norm2_cv
-
   function integral_element_scalar(field, X, ele) result&
        & (integral)
     !!< Return the integral of field over the given element.
@@ -893,36 +861,6 @@ contains
     integral=matmul(matmul(ele_val(field, ele), field%mesh%shape%n), detwei)
 
   end function integral_element_vector
-
-  function integral_cv(field, X, ele) result&
-       & (integral)
-    !!< Return the integral of field over the given element.
-    real :: integral
-    ! Element values at the nodes.
-    type(scalar_field), intent(in) :: field
-    ! The positions of the nodes in this element.
-    type(vector_field), intent(in) :: X
-    ! The number of the current element
-    integer, intent(in) :: ele
-
-    ! the mass matrix
-    real, dimension(ele_loc(field, ele),ele_loc(field, ele)) :: mass
-    real, dimension(ele_loc(field, ele)) :: lumped_mass
-    
-    real, dimension(ele_ngi(field, ele)) :: detwei
-    
-    integer :: i
-    
-    call transform_to_physical(X, ele, detwei=detwei)
-    
-    mass = shape_shape(field%mesh%shape, field%mesh%shape, detwei)
-    do i = 1, ele_loc(field, ele)
-      lumped_mass(i) = sum(mass(i,:))
-    end do
-
-    integral=dot_product(lumped_mass, ele_val(field, ele))
-
-  end function integral_cv
 
   function integral_element_scalars(fields, X, ele) result&
        & (integral)

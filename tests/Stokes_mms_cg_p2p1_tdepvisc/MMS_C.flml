@@ -4,7 +4,7 @@
     <string_value lines="1">MMS_C</string_value>
   </simulation_name>
   <problem_type>
-    <string_value lines="1">fluids</string_value>
+    <string_value lines="1">stokes</string_value>
   </problem_type>
   <geometry>
     <dimension>

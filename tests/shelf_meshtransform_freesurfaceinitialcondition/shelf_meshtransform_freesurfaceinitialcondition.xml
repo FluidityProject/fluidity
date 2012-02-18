@@ -94,7 +94,7 @@ for i in range(ilen):
         raise Exception("Failure: Surface node out of bounds in the region where the free-surface initial condition is applied.") 
     </test>
     <test name="surface_node_number_check_within_bound" language="python">import math
-assert ( ( abs(surface_node_number) % 3 == 0 ) and ( abs(102 - surface_node_number) / 3 &lt;= 1 ) )
+assert ( ( abs(surface_node_number) % 3 == 0 ) and ( abs(102 - surface_node_number) / 3 &lt;= 2 ) )
       <comment>Surface node number should be 102, but is allowed to deviate by three nodes either way (and nothing less - i.e. it can only be a modulo three change)</comment>
     </test>
   </pass_tests>

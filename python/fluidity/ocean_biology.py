@@ -10,7 +10,9 @@ def pznd(state, parameters):
     Z=state.scalar_fields["Zooplankton"]
     N=state.scalar_fields["Nutrient"]
     D=state.scalar_fields["Detritus"]
-    I=state.scalar_fields["PhotosyntheticRadiation"]
+    I=state.scalar_fields["_PAR"] # Note: *NOT* PhotosyntheticRadation field, but the internal _PAR field, which 
+                                  # has been projected onto the same mesh as phytoplankton and has been converted from
+                                  # incident radiation to just the active part.
     Pnew=state.scalar_fields["IteratedPhytoplankton"]
     Znew=state.scalar_fields["IteratedZooplankton"]
     Nnew=state.scalar_fields["IteratedNutrient"]
@@ -53,6 +55,9 @@ def pznd(state, parameters):
         N_n=max(.5*(N.node_val(n)+Nnew.node_val(n)), 0.0)
         D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
         I_n=max(I.node_val(n), 0.0)
+
+        if (I_n < 0.0001):
+            I_n = 0.0
 
         # Light limited phytoplankton growth rate.
         J=(v*alpha*I_n)/(v**2+alpha**2*I_n**2)**0.5
@@ -234,7 +239,9 @@ def six_component(state, parameters):
     N=state.scalar_fields["Nutrient"]
     A=state.scalar_fields["Ammonium"]
     D=state.scalar_fields["Detritus"]
-    I=state.scalar_fields["PhotosyntheticRadiation"]
+    I=state.scalar_fields["_PAR"] # Note: *NOT* PhotosyntheticRadation field, but the internal _PAR field, which 
+                                  # has been projected onto the same mesh as phytoplankton and has been converted from
+                                  # incident radiation to just the active part.
     Pnew=state.scalar_fields["IteratedPhytoplankton"]
     Cnew=state.scalar_fields["IteratedChlorophyll"]
     Znew=state.scalar_fields["IteratedZooplankton"]
@@ -294,7 +301,10 @@ def six_component(state, parameters):
         D_n=max(.5*(D.node_val(n)+Dnew.node_val(n)), 0.0)
         I_n=max(I.node_val(n), 0.0)
         depth=abs(coords.node_val(n)[2])
- 
+
+        if (I_n < 0.0001):
+            I_n =0
+
         # In the continuous model we start calculating Chl-a related 
         # properties at light levels close to zero with a potential /0. 
         # It seems that assuming theta = zeta at very low P and Chl takes
@@ -307,7 +317,7 @@ def six_component(state, parameters):
 
         # Light limited phytoplankton growth rate.
         J=(v*alpha*I_n)/(v**2+alpha**2*I_n**2)**0.5	    
-
+        
         # Nitrate limiting factor.
         Q_N=(N_n*math.exp(-psi * A_n))/(k_N+N_n)
 
