@@ -135,18 +135,14 @@ subroutine keps_tke(state)
 
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_kk, abs_kk, kk, eps, EV, lumped_mass
-    type(scalar_field_pointer), allocatable, dimension(:) :: scalar_fields
+    type(scalar_field_pointer), allocatable, dimension(:) :: buoyant_fields
     type(scalar_field)                 :: prescribed_src_kk, prescribed_abs_kk
     type(vector_field), pointer        :: positions, nu, u, g
     type(tensor_field), pointer        :: kk_diff
-    type(element_type), pointer        :: shape_kk, shape_s
-    integer                            :: i, ele, no_gravity, i_term
-    integer, pointer, dimension(:)     :: nodes_kk
+    real, allocatable, dimension(:)    :: beta, delta_t
+    integer                            :: i, ele, stat, i_term
     real                               :: residual, g_magnitude
-    real, allocatable, dimension(:)    :: beta, delta_t, detwei, strain_ngi 
-    real, allocatable, dimension(:,:)  :: rhs_addto, invmass
-    real, allocatable, dimension(:,:,:):: dshape_kk, dshape_s 
-    logical                            :: prescribed_src, prescribed_abs
+    logical :: prescribed_src, prescribed_abs, gravity = .true., have_buoyant_fields = .false.
 
     ! for vtu output of source terms
     type(scalar_field), dimension(3)   :: src_abs_terms
@@ -162,9 +158,15 @@ subroutine keps_tke(state)
     kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
     eps             => extract_scalar_field(state, "TurbulentDissipation")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
-    g               => extract_vector_field(state, "GravityDirection", no_gravity)
-    call get_option('physical_parameters/gravity/magnitude', g_magnitude, no_gravity)   
-    call get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
+    g               => extract_vector_field(state, "GravityDirection", stat)
+    call get_option('physical_parameters/gravity/magnitude', g_magnitude, stat)
+    if (stat /= 0) then
+       gravity = .false.
+    end if
+    call get_scalar_field_buoyancy_data(state, buoyant_fields, beta, delta_t)
+    if (allocated(buoyant_fields)) then
+       have_buoyant_fields = .true.
+    end if
 
     ! Set copy of old kk for eps solve
     call set(tke_old, kk)
@@ -178,42 +180,8 @@ subroutine keps_tke(state)
     
     ! Assembly loop
     do ele = 1, ele_count(kk)
-        shape_kk => ele_shape(kk, ele)
-        nodes_kk => ele_nodes(kk, ele)
-
-        allocate(dshape_kk (size(nodes_kk), ele_ngi(kk, ele), positions%dim))
-        allocate(detwei (ele_ngi(kk, ele)))
-        allocate(strain_ngi (ele_ngi(kk, ele)))
-        allocate(rhs_addto (3,ele_loc(kk, ele)))
-        allocate(invmass (ele_loc(kk, ele), ele_loc(kk, ele)))
-        call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
-
-        ! Calculate TKE production at ngi using strain rate (double_dot_product) function
-        strain_ngi = double_dot_product(dshape_kk, ele_val(u, ele) )
-
-        ! Source term:
-        rhs_addto(1,:) = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
-
-        ! Absorption term:
-        rhs_addto(2,:) = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)&
-             &/ele_val_at_quad(kk,ele))
-
-        ! Buoyancy term - As absorbtion:
-        call calculate_buoyancy_term_kk()
-
-        ! In the DG case we will apply the inverse mass locally.
-        if(continuity(kk)<0) then
-           invmass = inverse(shape_shape(shape_kk, shape_kk, detwei))
-           do i_term = 1, 3
-              rhs_addto(i_term,:) = matmul(rhs_addto(i_term,:), invmass)
-           end do
-        end if
-
-        do i_term = 1, 3
-           call addto(src_abs_terms(i_term), nodes_kk, rhs_addto(i_term,:))
-        end do
-
-        deallocate(dshape_kk, detwei, strain_ngi, rhs_addto, invmass)
+       call assemble_keps_tke_ele(src_abs_terms, kk, eps, EV, u, buoyant_fields, &
+            & have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, positions, ele)
     end do
     
     ! For non-DG we apply inverse mass globally
@@ -242,12 +210,12 @@ subroutine keps_tke(state)
                     &scalar_field::Source/prescribed"))
 
     if(prescribed_src) then
-      ewrite(2,*) "Prescribed k source"
-      call allocate(prescribed_src_kk, kk%mesh, name="PRSKKSRC")
-      call zero(prescribed_src_kk)
-      call set(prescribed_src_kk, src_kk)
-      ewrite_minmax(prescribed_src_kk)
-      call zero(src_kk)
+       ewrite(2,*) "Prescribed k source"
+       call allocate(prescribed_src_kk, kk%mesh, name="PRSKKSRC")
+       call zero(prescribed_src_kk)
+       call set(prescribed_src_kk, src_kk)
+       ewrite_minmax(prescribed_src_kk)
+       call zero(src_kk)
     end if
 
     prescribed_abs = (have_option("/material_phase[0]/subgridscale_parameterisations/k-epsilon/&
@@ -255,12 +223,12 @@ subroutine keps_tke(state)
                     &scalar_field::Absorption/prescribed"))
 
     if(prescribed_abs) then
-      ewrite(2,*) "Prescribed k absorption"
-      call allocate(prescribed_abs_kk, kk%mesh, name="PRSKKABS")
-      call zero(prescribed_abs_kk)
-      call set(prescribed_abs_kk, abs_kk)
-      ewrite_minmax(prescribed_abs_kk)
-      call zero(abs_kk)
+       ewrite(2,*) "Prescribed k absorption"
+       call allocate(prescribed_abs_kk, kk%mesh, name="PRSKKABS")
+       call zero(prescribed_abs_kk)
+       call set(prescribed_abs_kk, abs_kk)
+       ewrite_minmax(prescribed_abs_kk)
+       call zero(abs_kk)
     end if
 
     ewrite(2,*) "Calculating k source and absorption"
@@ -284,19 +252,19 @@ subroutine keps_tke(state)
 
     ! Set copy of old kk for eps solve
     call set(tke_src_old, src_kk)
-
+    
     if(prescribed_src) then
-      ewrite_minmax(src_kk)
-      ! Set copy of old kk for eps solve
-      call set(tke_src_old, src_kk)
-      call addto(src_kk, prescribed_src_kk)
-      ewrite_minmax(src_kk)
-      call deallocate(prescribed_src_kk)
+       ewrite_minmax(src_kk)
+       ! Set copy of old kk for eps solve
+       call set(tke_src_old, src_kk)
+       call addto(src_kk, prescribed_src_kk)
+       ewrite_minmax(src_kk)
+       call deallocate(prescribed_src_kk)
     end if
 
     if(prescribed_abs) then
-      call set(abs_kk, prescribed_abs_kk)
-      call deallocate(prescribed_abs_kk)
+       call set(abs_kk, prescribed_abs_kk)
+       call deallocate(prescribed_abs_kk)
     end if
 
     ! deallocate source term fields
@@ -304,12 +272,12 @@ subroutine keps_tke(state)
        call deallocate(src_abs_terms(i_term))
     end do
 
-    call deallocate_scalar_field_buoyancy_data(scalar_fields, beta, delta_t)
+    call deallocate_scalar_field_buoyancy_data(buoyant_fields, beta, delta_t)
 
     ! Set diffusivity for k equation.
     call zero(kk_diff)
     do i = 1, kk_diff%dim(1)
-        call set(kk_diff, i, i, EV, scale=1. / sigma_k)
+       call set(kk_diff, i, i, EV, scale=1. / sigma_k)
     end do
 
     ewrite_minmax(kk_diff)
@@ -318,64 +286,118 @@ subroutine keps_tke(state)
     ewrite_minmax(src_kk)
     ewrite_minmax(tke_src_old)
     ewrite_minmax(abs_kk)
-
-  contains 
     
-    !------------------------------------------------------------------------------!
-    ! calculate the buoyancy source term for each buoyant scalar field             !
-    !------------------------------------------------------------------------------!
-    subroutine calculate_buoyancy_term_kk()
-
-      integer                            :: i_gi, i_loc, i_field
-      real, allocatable, dimension(:,:)  :: vector
-      real, allocatable, dimension(:)    :: scalar 
-
-      ! zero addto array so that it can be added to in the field calculation loop
-      do i_loc = 1, ele_loc(kk, ele)
-         rhs_addto(3,i_loc) = 0.0
-      end do
-
-      ! exit if there are no buoyant scalar fields
-      if (.not.allocated(scalar_fields) .or. (no_gravity == 1)) then 
-         return
-      end if
-
-      ! loop through buoyant fields, calculate source term and add to addto array
-      do i_field = 1, size(scalar_fields, 1)
-
-         ! get dshape for scalar field so that we can obtain gradients 
-         shape_s => ele_shape(scalar_fields(i_field)%ptr, ele)
-         allocate(dshape_s (ele_loc(scalar_fields(i_field)%ptr, ele),&
-              & ele_ngi(scalar_fields(i_field)%ptr, ele), positions%dim))
-         call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )        
-
-         ! calculate scalar and vector components of the source term
-         allocate(scalar(ele_ngi(u, ele)))
-         allocate(vector(u%dim, ele_ngi(u, ele)))
-         vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(scalar_fields(i_field)%ptr,&
-              & ele, dshape_s)
-         scalar = 1/ele_val_at_quad(kk,ele)*beta(i_field)*g_magnitude*ele_val_at_quad(EV,&
-              & ele)/delta_t(i_field)
-
-         ! multiply vector component by scalar and sum across dimensions - note that the
-         ! vector part has been multiplied by the gravitational direction so the it is
-         ! zero everywhere apart from in this direction
-         do i_gi = 1, ele_ngi(u, ele)
-            scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
-         end do
-       
-         ! multiply by determinate weights, integrate and add to rhs
-         rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_kk, scalar * detwei)        
-         
-         deallocate(scalar)
-         deallocate(vector)
-         deallocate(dshape_s)
-
-      end do
-
-    end subroutine calculate_buoyancy_term_kk
-
 end subroutine keps_tke
+    
+!------------------------------------------------------------------------------!
+! calculate the source term fand absorbtion terms                              !
+!------------------------------------------------------------------------------!
+subroutine assemble_keps_tke_ele(src_abs_terms, kk, eps, EV, u, buoyant_fields, &
+     & have_buoyant_fields, beta, delta_t, g, g_magnitude, gravity, positions, ele)
+
+  type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
+  type(scalar_field), intent(in) :: kk, eps, EV
+  type(scalar_field_pointer), dimension(:) :: buoyant_fields
+  type(vector_field), intent(in) :: positions, u, g
+  real, dimension(:) :: beta, delta_t
+  real, intent(in) :: g_magnitude
+  logical, intent(in) :: gravity, have_buoyant_fields
+  integer, intent(in) :: ele
+
+  real, dimension(ele_loc(kk, ele), ele_ngi(kk, ele), positions%dim) :: dshape_kk
+  real, dimension(ele_ngi(kk, ele)) :: detwei, strain_ngi
+  real, dimension(3, ele_loc(kk, ele)) :: rhs_addto
+  integer, dimension(ele_loc(kk, ele)) :: nodes_kk
+  real, dimension(ele_loc(kk, ele), ele_loc(kk, ele)) :: invmass
+  type(element_type), pointer :: shape_kk
+  integer :: i_loc, i_field, i_term
+
+  shape_kk => ele_shape(kk, ele)
+  nodes_kk = ele_nodes(kk, ele)
+
+  call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
+
+  ! Calculate TKE production at ngi using strain rate (double_dot_product) function
+  strain_ngi = double_dot_product(dshape_kk, ele_val(u, ele) )
+
+  ! Source term:
+  rhs_addto(1,:) = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
+
+  ! Absorption term:
+  rhs_addto(2,:) = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/&
+       &ele_val_at_quad(kk,ele))
+
+  ! Buoyancy term - As absorbtion:
+  ! zero buoyancy addto array
+  do i_loc = 1, ele_loc(kk, ele)
+     rhs_addto(3,i_loc) = 0.0
+  end do
+  ! check buoyant fields are possible and present
+  if (have_buoyant_fields .and. gravity) then 
+     ! loop through buoyant fields, calculate source term and add to addto array
+     do i_field = 1, size(buoyant_fields, 1)
+        call calculate_buoyancy_term_kk(rhs_addto, kk, EV, u, buoyant_fields(i_field)%ptr, &
+             & beta(i_field), delta_t(i_field), g, g_magnitude, positions, ele, detwei,&
+             & shape_kk)
+     end do
+  end if
+
+  ! In the DG case we apply the inverse mass locally.
+  if(continuity(kk)<0) then
+     invmass = inverse(shape_shape(shape_kk, shape_kk, detwei))
+     do i_term = 1, 3
+        rhs_addto(i_term,:) = matmul(rhs_addto(i_term,:), invmass)
+     end do
+  end if
+
+  do i_term = 1, 3
+     call addto(src_abs_terms(i_term), nodes_kk, rhs_addto(i_term,:))
+  end do
+
+end subroutine
+    
+!------------------------------------------------------------------------------!
+! calculate the buoyancy source term for each buoyant scalar field             !
+!------------------------------------------------------------------------------!
+subroutine calculate_buoyancy_term_kk(rhs_addto, kk, EV, u, buoyant_field, beta,&
+     & delta_t, g, g_magnitude, positions, ele, detwei, shape_kk)
+
+  real, intent(inout), dimension(:,:) :: rhs_addto
+  type(scalar_field), intent(in) :: kk, EV,buoyant_field 
+  type(vector_field), intent(in) :: positions, u, g
+  real, intent(in), dimension(:) :: detwei
+  real, intent(in) :: g_magnitude, beta, delta_t
+  type(element_type), intent(in), pointer :: shape_kk
+  integer, intent(in) :: ele
+
+  real, dimension(u%dim, ele_ngi(u, ele))  :: vector
+  real, dimension(ele_ngi(u, ele)) :: scalar 
+  real, dimension(ele_loc(buoyant_field, ele),ele_ngi(buoyant_field, ele),positions%dim) :: dshape_s
+  type(element_type), pointer :: shape_s
+
+  integer :: i_gi, i_loc, i_field
+
+  ! get dshape for scalar field so that we can obtain gradients 
+  shape_s => ele_shape(buoyant_field, ele)
+  call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )        
+
+  ! calculate scalar and vector components of the source term
+  vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field,&
+       & ele, dshape_s)
+  scalar = 1/ele_val_at_quad(kk,ele)*beta*g_magnitude*ele_val_at_quad(EV,&
+       & ele)/delta_t
+
+  ! multiply vector component by scalar and sum across dimensions - note that the
+  ! vector part has been multiplied by the gravitational direction so the it is
+  ! zero everywhere apart from in this direction
+  do i_gi = 1, ele_ngi(u, ele)
+     scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
+  end do
+
+  ! multiply by determinate weights, integrate and add to rhs
+  rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_kk, scalar * detwei)     
+
+end subroutine calculate_buoyancy_term_kk
 
 !----------------------------------------------------------------------------------
 
@@ -383,18 +405,18 @@ subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
     type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, EV, lumped_mass
-    type(scalar_field_pointer), allocatable, dimension(:) :: scalar_fields
+    type(scalar_field_pointer), allocatable, dimension(:) :: buoyant_fields
     type(scalar_field)                 :: prescribed_src_eps, prescribed_abs_eps 
     type(vector_field), pointer        :: positions, u, g
     type(tensor_field), pointer        :: eps_diff
     type(element_type), pointer        :: shape_eps, shape_s
-    integer                            :: i, ele, no_gravity, i_term
+    integer                            :: i, ele, i_term, stat
     real                               :: residual, g_magnitude
     real, allocatable, dimension(:)    :: beta, delta_t, detwei
     real, allocatable, dimension(:,:)  :: rhs_addto, invmass
     real, allocatable, dimension(:,:,:):: dshape_s 
     integer, pointer, dimension(:)     :: nodes_eps
-    logical                            :: prescribed_src, prescribed_abs
+    logical :: prescribed_src, prescribed_abs, gravity = .true., have_buoyant_fields = .false.
 
     ! for vtu output
     type(scalar_field), dimension(3)   :: src_abs_terms
@@ -407,10 +429,16 @@ subroutine keps_eps(state)
     eps_diff        => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
     positions       => extract_vector_field(state, "Coordinate")
-    g               => extract_vector_field(state, "GravityDirection", no_gravity)
+    g               => extract_vector_field(state, "GravityDirection", stat)
     u               => extract_vector_field(state, "Velocity")
-    call get_option('physical_parameters/gravity/magnitude', g_magnitude, no_gravity)   
-    call get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
+    call get_option('physical_parameters/gravity/magnitude', g_magnitude, stat)
+    if (stat /= 0) then
+       gravity = .false.
+    end if
+    call get_scalar_field_buoyancy_data(state, buoyant_fields, beta, delta_t)
+    if (allocated(buoyant_fields)) then
+       have_buoyant_fields = .true.
+    end if
 
     call allocate(src_abs_terms(1), eps%mesh, name="EPS_P_EV_SRC")
     call allocate(src_abs_terms(2), eps%mesh, name="EPS_EPS_ABS")
@@ -419,38 +447,9 @@ subroutine keps_eps(state)
 
     ! Assembly loop
     do ele = 1, ele_count(eps)
-        shape_eps => ele_shape(eps, ele)
-        nodes_eps => ele_nodes(eps, ele)
-
-        allocate(detwei (ele_ngi(eps, ele)))
-        allocate(rhs_addto(3,ele_loc(eps, ele)))
-        allocate(invmass (ele_loc(eps, ele), ele_loc(eps, ele)))
-        call transform_to_physical(positions, ele, detwei=detwei)
-
-        ! Source term:
-        rhs_addto(1,:) = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
-             ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
-
-        ! Absorption term:
-        rhs_addto(2,:) = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
-                              ele_val_at_quad(tke_old,ele))
-
-        ! Buoyancy term - As absorbtion:
-        call calculate_buoyancy_term_eps()
-
-        ! In the DG case we will apply the inverse mass locally.
-        if(continuity(eps)<0) then
-           invmass = inverse(shape_shape(shape_eps, shape_eps, detwei))
-           do i_term = 1, 3
-              rhs_addto(i_term,:) = matmul(rhs_addto(i_term,:), invmass)
-           end do
-        end if
-
-        do i_term = 1, 3
-           call addto(src_abs_terms(i_term), nodes_eps, rhs_addto(i_term,:))
-        end do
-
-        deallocate(detwei, rhs_addto, invmass)
+       call assemble_keps_eps_ele(src_abs_terms, tke_old, tke_src_old, eps, EV, u, & 
+            & buoyant_fields, have_buoyant_fields, beta, delta_t, g, g_magnitude, &
+            & gravity, positions, ele)
     end do
     
     ! For non-DG we apply inverse mass globally
@@ -544,7 +543,7 @@ subroutine keps_eps(state)
        call deallocate(src_abs_terms(i_term))
     end do 
 
-    call deallocate_scalar_field_buoyancy_data(scalar_fields, beta, delta_t)
+    call deallocate_scalar_field_buoyancy_data(buoyant_fields, beta, delta_t)
 
     ! Set diffusivity for Eps
     call zero(eps_diff)
@@ -558,87 +557,127 @@ subroutine keps_eps(state)
     ewrite_minmax(src_eps)
     ewrite_minmax(abs_eps)
 
-  contains 
-    
-    !------------------------------------------------------------------------------!
-    ! calculate the buoyancy source term for each buoyant scalar field             !
-    !------------------------------------------------------------------------------!    
-    subroutine calculate_buoyancy_term_eps()
-
-      integer                            :: i_dim, i_gi, i_loc, i_field
-      real, allocatable, dimension(:,:)  :: u_z, u_xy, vector
-      real, allocatable, dimension(:)    :: c_eps_3, scalar 
-      real                               :: u_min = 1e-10
-      
-      ! zero addto array so that it can be added to in the field calculation loop
-      do i_loc = 1, ele_loc(eps, ele)
-         rhs_addto(3,i_loc) = 0.0
-      end do
-
-      ! exit if there are no buoyant scalar fields
-      if (.not.allocated(scalar_fields) .or. (no_gravity == 1)) then 
-         return
-      end if
-
-      allocate(u_z(u%dim, ele_ngi(u, ele)))
-      allocate(u_xy(u%dim, ele_ngi(u, ele)))    
-
-      ! get components of velocity in direction of gravity and in other directions
-      u_z = abs(ele_val_at_quad(g, ele)) * ele_val_at_quad(u, ele)
-      u_xy = ele_val_at_quad(u, ele) - u_z
-
-      ewrite(1,*) u_z
-
-      ! calculate c_eps_3 = tanh(v/u)
-      allocate(c_eps_3(ele_ngi(u, ele)))
-      do i_gi = 1, ele_ngi(u, ele)
-         do i_dim = 1, u%dim
-            u_xy(i_dim, i_gi) = max(abs(u_xy(i_dim, i_gi)), u_min)
-         end do
-         c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
-      end do
-
-      deallocate(u_z)
-      deallocate(u_xy)
-
-      ! loop through buoyant fields, calculate source term and add to addto array
-      do i_field = 1, size(scalar_fields, 1)
-
-         ! get dshape for scalar field so that we can obtain gradients 
-         shape_s => ele_shape(scalar_fields(i_field)%ptr, ele)
-         allocate(dshape_s (ele_loc(scalar_fields(i_field)%ptr, ele),&
-              & ele_ngi(scalar_fields(i_field)%ptr, ele), positions%dim))
-         call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )       
-
-         ! calculate scalar and vector components of the source term
-         allocate(scalar(ele_ngi(u, ele)))
-         allocate(vector(u%dim, ele_ngi(u, ele)))
-         vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(scalar_fields(i_field)%ptr,&
-              & ele, dshape_s)
-         scalar = c_eps_1*c_eps_3*1/ele_val_at_quad(tke_old,ele)&
-              &*beta(i_field)*g_magnitude*ele_val_at_quad(EV, ele)/delta_t(i_field)
-         
-         ! multiply vector component by scalar and sum across dimensions - note that the
-         ! vector part has been multiplied by the gravitational direction so the it is
-         ! zero everywhere apart from in this direction
-         do i_gi = 1, ele_ngi(u, ele)
-            scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
-         end do
-       
-         ! multiply by determinate weights and integrate
-         rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_eps, scalar * detwei)
-         
-         deallocate(scalar)
-         deallocate(vector)
-         deallocate(dshape_s)
-
-      end do
-      
-      deallocate(c_eps_3)
-
-    end subroutine calculate_buoyancy_term_eps
-
 end subroutine keps_eps
+    
+!------------------------------------------------------------------------------!
+! calculate the source term fand absorbtion terms                              !
+!------------------------------------------------------------------------------!
+subroutine assemble_keps_eps_ele(src_abs_terms, tke_old, tke_src_old, eps, EV, u, & 
+     & buoyant_fields, have_buoyant_fields, beta, delta_t, g, g_magnitude, &
+     & gravity, positions, ele)
+
+  type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
+  type(scalar_field), intent(in) :: tke_old, tke_src_old, eps, EV
+  type(scalar_field_pointer), dimension(:) :: buoyant_fields
+  type(vector_field), intent(in) :: positions, u, g
+  real, dimension(:) :: beta, delta_t
+  real, intent(in) :: g_magnitude
+  logical, intent(in) :: gravity, have_buoyant_fields
+  integer, intent(in) :: ele
+
+  real, dimension(ele_ngi(eps, ele)) :: detwei
+  real, dimension(3, ele_loc(eps, ele)) :: rhs_addto
+  integer, dimension(ele_loc(eps, ele)) :: nodes_eps
+  real, dimension(ele_loc(eps, ele), ele_loc(eps, ele)) :: invmass
+  real, dimension(u%dim, ele_ngi(u, ele)) :: u_z, u_xy
+  real, dimension(ele_ngi(u, ele)) :: c_eps_3
+  type(element_type), pointer :: shape_eps
+  real :: u_min = 1e-10
+  integer :: i_loc, i_field, i_term, i_gi, i_dim
+
+  shape_eps => ele_shape(eps, ele)
+  nodes_eps = ele_nodes(eps, ele)
+  call transform_to_physical(positions, ele, detwei=detwei)
+
+  ! Source term:
+  rhs_addto(1,:) = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
+       ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
+
+  ! Absorption term:
+  rhs_addto(2,:) = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
+       ele_val_at_quad(tke_old,ele))
+
+  ! Buoyancy term - As absorbtion:
+  ! zero buoyancy addto array
+  do i_loc = 1, ele_loc(eps, ele)
+     rhs_addto(3,i_loc) = 0.0
+  end do
+  ! check buoyant fields are possible and present
+  if (have_buoyant_fields .and. gravity) then 
+     ! get components of velocity in direction of gravity and in other directions
+     u_z = abs(ele_val_at_quad(g, ele)) * ele_val_at_quad(u, ele)
+     u_xy = ele_val_at_quad(u, ele) - u_z
+     ! calculate c_eps_3 = tanh(v/u)
+     do i_gi = 1, ele_ngi(u, ele)
+        do i_dim = 1, u%dim
+           u_xy(i_dim, i_gi) = max(abs(u_xy(i_dim, i_gi)), u_min)
+        end do
+        c_eps_3(i_gi) = tanh(norm2(u_z(:, i_gi))/norm2(u_xy(:, i_gi))) 
+     end do
+     ! loop through buoyant fields, calculate source term and add to addto array
+     do i_field = 1, size(buoyant_fields, 1)
+        call calculate_buoyancy_term_eps(rhs_addto, tke_old, EV, u, buoyant_fields(i_field)%ptr, &
+             & beta(i_field), delta_t(i_field), g, g_magnitude, positions, ele, detwei,&
+             & shape_eps, c_eps_3)
+     end do
+  end if
+
+  ! In the DG case we apply the inverse mass locally.
+  if(continuity(eps)<0) then
+     invmass = inverse(shape_shape(shape_eps, shape_eps, detwei))
+     do i_term = 1, 3
+        rhs_addto(i_term,:) = matmul(rhs_addto(i_term,:), invmass)
+     end do
+  end if
+
+  do i_term = 1, 3
+     call addto(src_abs_terms(i_term), nodes_eps, rhs_addto(i_term,:))
+  end do
+
+end subroutine
+    
+!------------------------------------------------------------------------------!
+! calculate the buoyancy source term for each buoyant scalar field             !
+!------------------------------------------------------------------------------!
+subroutine calculate_buoyancy_term_eps(rhs_addto, tke_old, EV, u, buoyant_field, beta,&
+     & delta_t, g, g_magnitude, positions, ele, detwei, shape_eps, c_eps_3)
+
+  real, intent(inout), dimension(:,:) :: rhs_addto
+  type(scalar_field), intent(in) :: tke_old, EV,buoyant_field 
+  type(vector_field), intent(in) :: positions, u, g
+  real, intent(in), dimension(:) :: detwei, c_eps_3
+  real, intent(in) :: g_magnitude, beta, delta_t
+  type(element_type), intent(in), pointer :: shape_eps
+  integer, intent(in) :: ele
+
+  real, dimension(u%dim, ele_ngi(u, ele))  :: vector
+  real, dimension(ele_ngi(u, ele)) :: scalar 
+  real, dimension(ele_loc(buoyant_field, ele),ele_ngi(buoyant_field, ele),positions%dim) :: dshape_s
+  type(element_type), pointer :: shape_s
+
+  integer :: i_gi, i_loc, i_field
+
+  ! get dshape for scalar field so that we can obtain gradients 
+  shape_s => ele_shape(buoyant_field, ele)
+  call transform_to_physical( positions, ele, shape_s, dshape=dshape_s )       
+
+  ! calculate scalar and vector components of the source term
+  vector = ele_val_at_quad(g, ele)*ele_grad_at_quad(buoyant_field, &
+       & ele, dshape_s)
+  scalar = c_eps_1*c_eps_3*1/ele_val_at_quad(tke_old,ele)&
+       &*beta*g_magnitude*ele_val_at_quad(EV, ele)/delta_t
+
+  ! multiply vector component by scalar and sum across dimensions - note that the
+  ! vector part has been multiplied by the gravitational direction so the it is
+  ! zero everywhere apart from in this direction
+  do i_gi = 1, ele_ngi(u, ele)
+     scalar(i_gi) = sum(scalar(i_gi) * vector(:, i_gi))
+  end do
+
+  ! multiply by determinate weights, integrate and add to rhs
+  rhs_addto(3,:) = rhs_addto(3,:) + shape_rhs(shape_eps, scalar * detwei)     
+
+end subroutine calculate_buoyancy_term_eps
 
 !----------
 ! eddyvisc calculates the lengthscale, and then the eddy viscosity.!
@@ -1148,12 +1187,12 @@ end subroutine keps_wall_function
 ! Collect information required from scalar fields in order to calculate buoyancy source  !
 ! terms                                                                                  !
 !----------------------------------------------------------------------------------------!
-subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
+subroutine get_scalar_field_buoyancy_data(state, buoyant_fields, beta, delta_t)
   
   type(state_type), intent(in)                                      :: state
-  type(scalar_field_pointer), allocatable, dimension(:), intent(out):: scalar_fields
+  type(scalar_field_pointer), allocatable, dimension(:), intent(out):: buoyant_fields
   real, allocatable, dimension(:), intent(out)                      :: beta, delta_t
-  type(scalar_field_pointer), allocatable, dimension(:)             :: temp_scalar_fields
+  type(scalar_field_pointer), allocatable, dimension(:)             :: temp_buoyant_fields
   real, allocatable, dimension(:)                                   :: temp_beta, temp_delta_t
   type(scalar_field), pointer                                       :: field
   integer                                                           :: n_fields, i_field, stat
@@ -1171,29 +1210,29 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
           &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects')) then
         
         ! determine allocation requirements, resize array and store required values
-        if (allocated(scalar_fields)) then
+        if (allocated(buoyant_fields)) then
 
-           allocate(temp_scalar_fields(size(scalar_fields, 1)))
+           allocate(temp_buoyant_fields(size(buoyant_fields, 1)))
            allocate(temp_beta(size(beta, 1)))
            allocate(temp_delta_t(size(delta_t, 1)))
 
-           temp_scalar_fields = scalar_fields
+           temp_buoyant_fields = buoyant_fields
            temp_beta = beta
            temp_delta_t = delta_t
 
-           deallocate(scalar_fields)
+           deallocate(buoyant_fields)
            deallocate(beta)
            deallocate(delta_t)
 
-           allocate(scalar_fields(size(temp_scalar_fields, 1) + 1))
+           allocate(buoyant_fields(size(temp_buoyant_fields, 1) + 1))
            allocate(beta(size(temp_beta, 1) + 1))
            allocate(delta_t(size(temp_delta_t, 1) + 1))
            
-           scalar_fields(1:size(temp_scalar_fields,1)) = temp_scalar_fields
+           buoyant_fields(1:size(temp_buoyant_fields,1)) = temp_buoyant_fields
            beta(1:size(temp_beta, 1)) = temp_beta
            delta_t(1:size(temp_delta_t, 1)) = temp_delta_t
 
-           scalar_fields(ubound(scalar_fields,1))%ptr => extract_scalar_field(state, i_field)
+           buoyant_fields(ubound(buoyant_fields,1))%ptr => extract_scalar_field(state, i_field)
            call get_option(trim(field%option_path)//&
                 &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects/beta', &
                 & beta(ubound(beta,1))) 
@@ -1201,17 +1240,17 @@ subroutine get_scalar_field_buoyancy_data(state, scalar_fields, beta, delta_t)
                 &'/prognostic/subgridscale_parameterisation::k-epsilon/prandtl_schmidt_number', &
                 & delta_t(ubound(delta_t,1)), stat) 
 
-           deallocate(temp_scalar_fields)
+           deallocate(temp_buoyant_fields)
            deallocate(temp_beta)
            deallocate(temp_delta_t)
 
         else
            
-           allocate(scalar_fields(1))
+           allocate(buoyant_fields(1))
            allocate(beta(1))
            allocate(delta_t(1))
 
-           scalar_fields(1)%ptr => extract_scalar_field(state, i_field)
+           buoyant_fields(1)%ptr => extract_scalar_field(state, i_field)
            call get_option(trim(field%option_path)//&
                 &'/prognostic/subgridscale_parameterisation::k-epsilon/buoyancy_effects/beta', &
                 & beta(1)) 
@@ -1230,14 +1269,14 @@ end subroutine get_scalar_field_buoyancy_data
 !----------------------------------------------------------------------------------------! 
 ! Deallocates scalar buoyancy information                                                !
 !----------------------------------------------------------------------------------------!
-subroutine deallocate_scalar_field_buoyancy_data(scalar_fields, beta, delta_t)
+subroutine deallocate_scalar_field_buoyancy_data(buoyant_fields, beta, delta_t)
   
-  type(scalar_field_pointer), allocatable, dimension(:), intent(inout):: scalar_fields
+  type(scalar_field_pointer), allocatable, dimension(:), intent(inout):: buoyant_fields
   real, allocatable, dimension(:), intent(inout)                      :: beta, delta_t
 
   ! deallocate buoyancy data
-  if (allocated(scalar_fields)) then
-     deallocate(scalar_fields)
+  if (allocated(buoyant_fields)) then
+     deallocate(buoyant_fields)
      deallocate(beta)
      deallocate(delta_t)
   end if
