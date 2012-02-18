@@ -66,7 +66,7 @@ contains
                       default = 'Porosity')
          
       ! get the porosity theta value
-      call get_option(trim(option_path)//'/temporal_discretisation/theta', &
+      call get_option(trim(option_path)//'/porosity_temporal_theta', &
                       porosity_theta_value, &
                       default = 0.0)
          

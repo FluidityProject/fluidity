@@ -732,7 +732,6 @@ contains
     
     ! Porosity field
     type(scalar_field) :: porosity_theta
-    logical :: include_porosity
     
     !! Add the Source directly to the right hand side?
     logical :: add_src_directly_to_rhs

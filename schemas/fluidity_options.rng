@@ -7206,7 +7206,7 @@ This uses the finite element approximation of the CFL Number.</a:documentation>
 This uses the control volume approximation of the CFL Number 
 and the interstitial velocity for porous media flow.</a:documentation>
         <attribute name="name">
-          <value>InterstitialVelocity_CVCourantNumber</value>
+          <value>InterstitialVelocityCVCourantNumber</value>
         </attribute>
         <ref name="porosity_include_cv_cfl"/>
       </element>
@@ -7216,7 +7216,7 @@ and the interstitial velocity for porous media flow.</a:documentation>
 This uses the CG finite element approximation of the CFL Number 
 and the interstitial velocity for porous media flow.</a:documentation>
         <attribute name="name">
-          <value>InterstitialVelocity_CGCourantNumber</value>
+          <value>InterstitialVelocityCGCourantNumber</value>
         </attribute>
         <ref name="porosity_include_cv_cfl"/>
       </element>
@@ -7251,7 +7251,7 @@ Select the Courant Number definition to be used.
 This uses the DG finite element approximation of the CFL Number 
 and the interstitial velocity for porous media flow.</a:documentation>
           <attribute name="name">
-            <value>InterstitialVelocity_DGCourantNumber</value>
+            <value>InterstitialVelocityDGCourantNumber</value>
           </attribute>
           <ref name="porosity_include_cv_cfl"/>
         </element>
@@ -7308,7 +7308,7 @@ the NVD diagram upper bound.
 This uses a control volume definition of the CFL Number
 and the interstitial velocity for porous media flow.</a:documentation>
         <attribute name="name">
-          <value>InterstitialVelocity_CVCourantNumber</value>
+          <value>InterstitialVelocityCVCourantNumber</value>
         </attribute>
         <ref name="porosity_include_cv_cfl"/>
       </element>
@@ -7351,7 +7351,7 @@ This uses the control volume definition of the CFL Number.</a:documentation>
 This uses the CG finite element approximation of the CFL Number 
 and the interstitial velocity for porous media flow.</a:documentation>
         <attribute name="name">
-          <value>InterstitialVelocity_CGCourantNumber</value>
+          <value>InterstitialVelocityCGCourantNumber</value>
         </attribute>
         <ref name="velocity_mesh_choice"/>
         <ref name="porosity_include_dg_and_cg_cfl"/>
@@ -7361,7 +7361,7 @@ and the interstitial velocity for porous media flow.</a:documentation>
 This uses the control volume approximation of the CFL Number 
 and the interstitial velocity for porous media flow.         </a:documentation>
         <attribute name="name">
-          <value>InterstitialVelocity_CVCourantNumber</value>
+          <value>InterstitialVelocityCVCourantNumber</value>
         </attribute>
         <ref name="velocity_mesh_choice"/>
         <ref name="porosity_include_cv_cfl"/>
