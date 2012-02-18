@@ -170,13 +170,13 @@ contains
       case("CVMaterialDensityCFLNumber")
         call calculate_matdens_courant_number_cv(state, d_field, dt=dt)
 
-      case("InterstitialVelocity_CGCourantNumber")
+      case("InterstitialVelocityCGCourantNumber")
         call calculate_interstitial_velocity_cg_courant_number(state, d_field, dt=dt, option_path=option_path)
 
-      case("InterstitialVelocity_CVCourantNumber")
+      case("InterstitialVelocityCVCourantNumber")
         call calculate_interstitial_velocity_cv_courant_number(state, d_field, dt=dt, option_path=option_path)
 
-      case("InterstitialVelocity_DGCourantNumber")
+      case("InterstitialVelocityDGCourantNumber")
         call calculate_interstitial_velocity_dg_courant_number(state, d_field, dt=dt, option_path=option_path)
         
       case("GridReynoldsNumber")

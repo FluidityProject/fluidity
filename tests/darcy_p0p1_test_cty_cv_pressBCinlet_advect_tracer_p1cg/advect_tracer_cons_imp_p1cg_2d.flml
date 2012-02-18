@@ -281,7 +281,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="InterstitialVelocity_CGCourantNumber" rank="0">
+    <scalar_field name="InterstitialVelocityCGCourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>

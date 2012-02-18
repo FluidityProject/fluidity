@@ -128,7 +128,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
       <requested_cfl>
         <real_value rank="0">0.981639</real_value>
       </requested_cfl>
-      <courant_number name="InterstitialVelocity_CGCourantNumber">
+      <courant_number name="InterstitialVelocityCGCourantNumber">
         <mesh name="CoordinateMesh"/>
         <porosity_field_name>Porosity</porosity_field_name>
         <porosity_temporal_theta>
@@ -182,7 +182,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <discontinuous_galerkin>
             <maximum_courant_number_per_subcycle>
               <real_value rank="0">0.25</real_value>
-              <courant_number name="InterstitialVelocity_DGCourantNumber">
+              <courant_number name="InterstitialVelocityDGCourantNumber">
                 <porosity_field_name>Porosity</porosity_field_name>
                 <porosity_temporal_theta>
                   <real_value rank="0">1.0</real_value>
@@ -249,7 +249,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="InterstitialVelocity_DGCourantNumber" rank="0">
+    <scalar_field name="InterstitialVelocityDGCourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>

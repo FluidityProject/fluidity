@@ -58,7 +58,7 @@ max_darcy_cv_courant_cons_imp_2d = stat("darcy_p0p1_test_cty_cv_pressBCinlet_2ph
     </variable>
     <variable name="max_interstitial_cv_courant_cons_imp_2d" language="python">    
 from fluidity_tools import stat_parser as stat
-max_interstitial_cv_courant_cons_imp_2d = stat("darcy_p0p1_test_cty_cv_pressBCinlet_2phase_constant_volf_and_abs_2d.stat")["phase1"]["InterstitialVelocity_CVCourantNumber"]["max"][-1]
+max_interstitial_cv_courant_cons_imp_2d = stat("darcy_p0p1_test_cty_cv_pressBCinlet_2phase_constant_volf_and_abs_2d.stat")["phase1"]["InterstitialVelocityCVCourantNumber"]["max"][-1]
     </variable>
 
     <variable name="pressure_3d" language="python">
@@ -106,7 +106,7 @@ max_darcy_cv_courant_cons_imp_3d = stat("darcy_p0p1_test_cty_cv_pressBCinlet_2ph
     </variable>
     <variable name="max_interstitial_cv_courant_cons_imp_3d" language="python">    
 from fluidity_tools import stat_parser as stat
-max_interstitial_cv_courant_cons_imp_3d = stat("darcy_p0p1_test_cty_cv_pressBCinlet_2phase_constant_volf_and_abs_3d.stat")["phase1"]["InterstitialVelocity_CVCourantNumber"]["max"][-1]
+max_interstitial_cv_courant_cons_imp_3d = stat("darcy_p0p1_test_cty_cv_pressBCinlet_2phase_constant_volf_and_abs_3d.stat")["phase1"]["InterstitialVelocityCVCourantNumber"]["max"][-1]
     </variable>
   </variables>
   <pass_tests>

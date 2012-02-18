@@ -163,7 +163,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
                   <store_upwind_quadrature/>
                 </store_upwind_elements>
               </project_upwind_value_from_point>
-              <courant_number name="InterstitialVelocity_CVCourantNumber"/>
+              <courant_number name="InterstitialVelocityCVCourantNumber"/>
             </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
@@ -178,7 +178,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <control_volumes>
             <maximum_courant_number_per_subcycle>
               <real_value rank="0">0.5</real_value>
-              <courant_number name="InterstitialVelocity_CVCourantNumber"/>
+              <courant_number name="InterstitialVelocityCVCourantNumber"/>
             </maximum_courant_number_per_subcycle>
             <pivot_theta>
               <real_value rank="0">0.0</real_value>
@@ -288,7 +288,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         </galerkin_projection>
       </prognostic>
     </scalar_field>
-    <scalar_field name="InterstitialVelocity_CVCourantNumber" rank="0">
+    <scalar_field name="InterstitialVelocityCVCourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
@@ -330,7 +330,7 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           </theta>
           <maximum_courant_number_per_subcycle>
             <real_value rank="0">0.5</real_value>
-            <courant_number name="InterstitialVelocity_CVCourantNumber">
+            <courant_number name="InterstitialVelocityCVCourantNumber">
               <porosity_field_name>Porosity</porosity_field_name>
               <porosity_temporal_theta>
                 <real_value rank="0">0.0</real_value>

@@ -4998,7 +4998,7 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>InterstitialVelocity_CGCourantNumber
+        <a:documentation>InterstitialVelocityCGCourantNumber
 
 Courant Number as defined on a CG mesh 
 using the interstitial velocity for 
@@ -5009,7 +5009,7 @@ Adapting to this field is not recommended</a:documentation>
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>InterstitialVelocity_CGCourantNumber</value>
+          <value>InterstitialVelocityCGCourantNumber</value>
         </attribute>
         <choice>
           <element name="diagnostic">
@@ -5024,7 +5024,7 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>InterstitialVelocity_CVCourantNumber
+        <a:documentation>InterstitialVelocityCVCourantNumber
 
 Courant Number as defined on a CV mesh 
 using the interstitial velocity for 
@@ -5035,7 +5035,7 @@ Adapting to this field is not recommended</a:documentation>
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>InterstitialVelocity_CVCourantNumber</value>
+          <value>InterstitialVelocityCVCourantNumber</value>
         </attribute>
         <choice>
           <element name="diagnostic">
@@ -5050,7 +5050,7 @@ Adapting to this field is not recommended</a:documentation>
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>InterstitialVelocity_DGCourantNumber
+        <a:documentation>InterstitialVelocityDGCourantNumber
 
 Courant Number as defined on a DG mesh 
 using the interstitial velocity for 
@@ -5061,7 +5061,7 @@ Adapting to this field is not recommended</a:documentation>
           <value>0</value>
         </attribute>
         <attribute name="name">
-          <value>InterstitialVelocity_DGCourantNumber</value>
+          <value>InterstitialVelocityDGCourantNumber</value>
         </attribute>
         <choice>
           <element name="diagnostic">

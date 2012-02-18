@@ -477,7 +477,7 @@ for n in range(field.node_count):
         </steady_state>
       </diagnostic>
     </scalar_field>
-    <scalar_field name="InterstitialVelocity_CVCourantNumber" rank="0">
+    <scalar_field name="InterstitialVelocityCVCourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="PressureMesh"/>

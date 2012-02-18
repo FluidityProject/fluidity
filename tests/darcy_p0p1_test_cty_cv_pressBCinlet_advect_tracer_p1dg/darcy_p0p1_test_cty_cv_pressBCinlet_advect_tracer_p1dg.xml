@@ -44,7 +44,7 @@ max_darcy_dg_courant_cons_imp_2d = stat("advect_tracer_cons_imp_p1dg_2d.stat")["
     </variable>
     <variable name="max_interstitial_dg_courant_cons_imp_2d" language="python">    
 from fluidity_tools import stat_parser as stat
-max_interstitial_dg_courant_cons_imp_2d = stat("advect_tracer_cons_imp_p1dg_2d.stat")["fluid"]["InterstitialVelocity_DGCourantNumber"]["max"][-1]
+max_interstitial_dg_courant_cons_imp_2d = stat("advect_tracer_cons_imp_p1dg_2d.stat")["fluid"]["InterstitialVelocityDGCourantNumber"]["max"][-1]
     </variable>
 
     <variable name="pressure_3d" language="python">
@@ -75,7 +75,7 @@ max_darcy_dg_courant_cons_imp_3d = stat("advect_tracer_cons_imp_p1dg_3d.stat")["
     </variable>
     <variable name="max_interstitial_dg_courant_cons_imp_3d" language="python">    
 from fluidity_tools import stat_parser as stat
-max_interstitial_dg_courant_cons_imp_3d = stat("advect_tracer_cons_imp_p1dg_3d.stat")["fluid"]["InterstitialVelocity_DGCourantNumber"]["max"][-1]
+max_interstitial_dg_courant_cons_imp_3d = stat("advect_tracer_cons_imp_p1dg_3d.stat")["fluid"]["InterstitialVelocityDGCourantNumber"]["max"][-1]
     </variable>
   </variables>
   <pass_tests>

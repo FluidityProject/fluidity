@@ -3933,7 +3933,7 @@ scalar_field_choice =
                }
             )
          }|
-         ## InterstitialVelocity_CGCourantNumber
+         ## InterstitialVelocityCGCourantNumber
          ##
          ## Courant Number as defined on a CG mesh 
          ## using the interstitial velocity for 
@@ -3942,7 +3942,7 @@ scalar_field_choice =
          ## Adapting to this field is not recommended
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "InterstitialVelocity_CGCourantNumber" },
+            attribute name { "InterstitialVelocityCGCourantNumber" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -3955,7 +3955,7 @@ scalar_field_choice =
                }
             )
          }|
-         ## InterstitialVelocity_CVCourantNumber
+         ## InterstitialVelocityCVCourantNumber
          ##
          ## Courant Number as defined on a CV mesh 
          ## using the interstitial velocity for 
@@ -3964,7 +3964,7 @@ scalar_field_choice =
          ## Adapting to this field is not recommended
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "InterstitialVelocity_CVCourantNumber" },
+            attribute name { "InterstitialVelocityCVCourantNumber" },
             (
                element diagnostic {
                   internal_algorithm,
@@ -3977,7 +3977,7 @@ scalar_field_choice =
                }
             )
          }|
-         ## InterstitialVelocity_DGCourantNumber
+         ## InterstitialVelocityDGCourantNumber
          ##
          ## Courant Number as defined on a DG mesh 
          ## using the interstitial velocity for 
@@ -3986,7 +3986,7 @@ scalar_field_choice =
          ## Adapting to this field is not recommended
          element scalar_field {
             attribute rank { "0" },
-            attribute name { "InterstitialVelocity_DGCourantNumber" },
+            attribute name { "InterstitialVelocityDGCourantNumber" },
             (
                element diagnostic {
                   internal_algorithm,
