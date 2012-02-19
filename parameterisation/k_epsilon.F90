@@ -476,13 +476,9 @@ subroutine keps_eddyvisc(state)
     ewrite(2,*) "Setting k-epsilon eddy-viscosity tensor"
     call zero(eddy_visc)
 
-    ! eddy viscosity tensor is isotropic/DEVIATORIC?
+    ! eddy viscosity tensor is isotropic
     do i = 1, eddy_visc%dim(1)
-      do j = 1, eddy_visc%dim(2)
-        !if (i/=j) then
-          call set(eddy_visc, i, j, EV)
-        !end if
-      end do
+      call set(eddy_visc, i, i, EV)
     end do
 
     ! Add turbulence model contribution to viscosity field
