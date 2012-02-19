@@ -598,10 +598,6 @@
         call allocate( visc_inverse_masslump, u%dim, u%mesh, "ViscousInverseLumpedMass")
         call zero(visc_inverse_masslump)
       end if
-
-      ! If using an eddy viscosity model, it may be necessary to modify the pressure.
-      !if (keps_p_correction_fix) then
-      !end if
       
       ! ----- Volume integrals over elements -------------
       
