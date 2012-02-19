@@ -540,7 +540,7 @@ contains
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%field_name))
 
                 do ele=1, ele_count(diagfield_agg)
-                   call addto(diagfield_agg, ele, node_val(diagfield_stage, ele))
+                   call addto(diagfield_agg, ele_nodes(diagfield_stage, ele), ele_val(diagfield_stage, ele))
                 end do
              end if
 
@@ -550,7 +550,7 @@ contains
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%chemfield)//"Request")
 
                 do ele=1, ele_count(diagfield_agg)
-                   call addto(diagfield_agg, ele, node_val(diagfield_stage, ele))
+                   call addto(diagfield_agg, ele_nodes(diagfield_stage, ele), ele_val(diagfield_stage, ele))
                 end do
              end if
 
@@ -560,7 +560,7 @@ contains
                 diagfield_agg=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%chemfield)//"Release")
 
                 do ele=1, ele_count(diagfield_agg)
-                   call addto(diagfield_agg, ele, node_val(diagfield_stage, ele))
+                   call addto(diagfield_agg, ele_nodes(diagfield_stage, ele), ele_val(diagfield_stage, ele))
                 end do
              end if
           end do
@@ -649,7 +649,8 @@ contains
     type(detector_type), pointer :: agent
     integer :: i, j, n, ele
     integer, dimension(:), pointer :: element_nodes
-    real :: chemval, chemval_new, chem_integral, request, depletion
+    real :: chemval, chemval_new, chem_integral
+    real, dimension(1) :: request, depletion
 
     ! Exit if there are no uptake fields
     if (.not.associated(uptake_field_names)) return
@@ -670,15 +671,15 @@ contains
        ! Loop over all elements in chemical fields
        do ele=1,ele_count(chemfield)
           chem_integral = integral_element(chemfield, xfield, ele)
-          request = node_val(request_field, ele)
+          request = ele_val(request_field, ele)
 
           ! Derive depletion factor
-          if (request > chem_integral) then 
-             depletion = chem_integral / request
+          if (request(1) > chem_integral .and. request(1) > 0.0) then 
+             depletion(1) = chem_integral / request(1)
           else
-             depletion = 1.0
+             depletion(1) = 1.0
           end if
-          call set(depletion_field, ele, depletion)
+          call set(depletion_field, ele, depletion(1))
 
           ! Set new chemical concentration
           element_nodes=>ele_nodes(chemfield, ele)
@@ -688,7 +689,7 @@ contains
              ! since it will cause NaNs in the solvers. Instead use tiny()
              if (chem_integral > 0.0) then 
                 ! C := C (1 - S/C_bar )
-                chemval_new = chemval * (1.0 - (request * depletion / chem_integral))
+                chemval_new = chemval * (1.0 - (request(1) * depletion(1) / chem_integral))
                 if (chemval_new > 0.0) then
                    call set(chemfield, element_nodes(n), chemval_new)
                 else
@@ -706,13 +707,13 @@ contains
        if (agent_arrays(i)%has_biology) then
           do j=1, size(agent_arrays(i)%biovars)
 
-             ! Add ingested amount to pool variables
              if (agent_arrays(i)%biovars(j)%field_type == BIOFIELD_UPTAKE) then
                 depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%biovars(j)%chemfield)//"Depletion")
 
                 agent => agent_arrays(i)%first
                 do while (associated(agent))
-                   agent%biology(j) = agent%biology(j) * node_val(depletion_field, agent%element)
+                   depletion = ele_val(depletion_field, agent%element)
+                   agent%biology(j) = agent%biology(j) * depletion(1)
 
                    agent => agent%next
                 end do
@@ -734,7 +735,8 @@ contains
     type(detector_type), pointer :: agent
     integer :: i, j, n, ele, poolvar
     integer, dimension(:), pointer :: element_nodes
-    real :: chemval, chemval_new, chem_integral, release, ele_volume
+    real :: chemval, chemval_new, chem_integral, ele_volume
+    real, dimension(1) :: release
 
     ! Exit if there are no release fields
     if (.not.associated(release_field_names)) return
@@ -754,7 +756,7 @@ contains
        ! Loop over all elements in chemical fields
        do ele=1,ele_count(chemfield)
           chem_integral = integral_element(chemfield, xfield, ele)
-          release = node_val(release_field, ele)
+          release = ele_val(release_field, ele)
 
           ! Set new chemical concentration
           element_nodes=>ele_nodes(chemfield, ele)
@@ -764,7 +766,7 @@ contains
              ! since it will cause NaNs in the solvers. Instead use tiny()
              if (chem_integral > 0.0) then 
                 ! C := C (1 + S/C_bar )
-                chemval_new = chemval * (1.0 + (release / chem_integral))
+                chemval_new = chemval * (1.0 + (release(1) / chem_integral))
                 if (chemval_new > 0.0) then
                    call set(chemfield, element_nodes(n), chemval_new)
                 else
@@ -774,8 +776,8 @@ contains
                 ! If there is zero chemical in this element 
                 ! we turn the total quantity into an evenly distributed concentration
                 ele_volume = element_volume(xfield, ele)
-                if (release > 0.0) then
-                   call set(chemfield, element_nodes(n), release / ele_volume)
+                if (release(1) > 0.0) then
+                   call set(chemfield, element_nodes(n), release(1) / ele_volume)
                 else
                    call set(chemfield, element_nodes(n), tiny(1.0))
                 end if 
