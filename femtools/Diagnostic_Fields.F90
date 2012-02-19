@@ -1785,16 +1785,7 @@ contains
       type(element_type) :: u_cvshape, u_cvbdyshape
       type(element_type) :: ug_cvshape, ug_cvbdyshape
       type(scalar_field), pointer :: cvmass
-      real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
-      real, dimension(:,:), allocatable :: x_f, u_f, ug_f, u_bdy_f, ug_bdy_f
-      real, dimension(:,:), allocatable :: normal, normal_bdy
-      real, dimension(:), allocatable :: detwei, detwei_bdy
-      real, dimension(:), allocatable :: normgi
-      integer, dimension(:), pointer :: nodes, x_nodes, neigh
-      integer, dimension(:), allocatable :: nodes_bdy
       real :: udotn, income
-      ! logical array indicating if a face has already been visited by the opposing node
-      logical, dimension(:), allocatable :: notvisited
       
       ! Porosity fields, field name, theta value and include flag
       type(scalar_field), pointer :: porosity_old, porosity_new
@@ -1839,12 +1830,14 @@ contains
          include_porosity = .true.
      
          ! get the name of the field to use as porosity
-         call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/porosity_field_name', &
+         call get_option(trim(state%option_path)//&
+            '/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/porosity_field_name', &
                          porosity_name, &
                          default = 'Porosity')
          
          ! get the porosity theta value
-         call get_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/temporal_discretisation/theta', &
+         call get_option(trim(state%option_path)//&
+            '/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/temporal_discretisation/theta', &
                          porosity_theta_value, &
                          default = 0.0)
          
@@ -1890,144 +1883,30 @@ contains
         u_cvshape=make_cv_element_shape(cvfaces, u%mesh%shape)
         x_cvshape=make_cv_element_shape(cvfaces, x%mesh%shape)
 
-        allocate(x_ele(x%dim,ele_loc(x,1)), &
-                x_f(x%dim, x_cvshape%ngi), &
-                u_f(u%dim, u_cvshape%ngi), &
-                detwei(x_cvshape%ngi), &
-                normal(x%dim, x_cvshape%ngi), &
-                normgi(x%dim))
-        allocate(notvisited(x_cvshape%ngi))
-
         if(move_mesh) then
           ug_cvshape=make_cv_element_shape(cvfaces, ug%mesh%shape)
-          allocate(ug_f(ug%dim, ug_cvshape%ngi))
         end if
 
         do ele=1, element_count(courant)
-          x_ele=ele_val(x, ele)
-          x_f=ele_val_at_quad(x, ele, x_cvshape)
-          u_f=ele_val_at_quad(u, ele, u_cvshape)
-          if(move_mesh) ug_f = ele_val_at_quad(ug, ele, ug_cvshape)
-          nodes=>ele_nodes(courant, ele)
-          x_nodes=>ele_nodes(x_courant, ele)
-
-          call transform_cvsurf_to_physical(x_ele, x_cvshape, &
-                                            detwei, normal, cvfaces)
-
-          notvisited=.true.
-
-          do iloc = 1, courant%mesh%shape%loc
-
-            do face = 1, cvfaces%faces
-
-              if(cvfaces%neiloc(iloc, face) /= 0) then
-                oloc = cvfaces%neiloc(iloc, face)
-
-                do gi = 1, cvfaces%shape%ngi
-
-                  ggi = (face-1)*cvfaces%shape%ngi + gi
-
-                  ! have we been here before?
-                  if(notvisited(ggi)) then
-                    notvisited(ggi)=.false.
-
-                    normgi=orientate_cvsurf_normgi(node_val(x_courant, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
-
-                    if(move_mesh) then
-                      udotn=dot_product((u_f(:,ggi)-ug_f(:,ggi)), normgi)
-                    else
-                      udotn=dot_product(u_f(:,ggi), normgi)
-                    end if
-
-                    if(udotn>0.0) then
-                      income=0.0
-                    else
-                      income=1.0
-                    end if
-
-                    call addto(courant, nodes(iloc), abs(udotn)*(1.-income)*detwei(ggi))
-                    call addto(courant, nodes(oloc), abs(udotn)*income*detwei(ggi)) ! notvisited
-
-                  end if ! notvisited
-
-                end do
-
-              end if
-            end do
-          end do
+           call calculate_courant_number_cv_volume_ele_loop(x, x_cvshape, u, u_cvshape, ug,&
+                & ug_cvshape, courant, x_courant, move_mesh, cvfaces, ele)
         end do
 
         u_cvbdyshape=make_cvbdy_element_shape(cvfaces, u%mesh%faces%shape)
         x_cvbdyshape=make_cvbdy_element_shape(cvfaces, x%mesh%faces%shape)
-
-        allocate(x_ele_bdy(x%dim,face_loc(x,1)), &
-                u_bdy_f(u%dim, u_cvbdyshape%ngi), &
-                detwei_bdy(x_cvbdyshape%ngi), &
-                normal_bdy(x%dim, x_cvbdyshape%ngi))
-        allocate(nodes_bdy(face_loc(courant, 1)))
-        allocate(courant_bc_type(surface_element_count(courant)))
         
         if(move_mesh) then
           ug_cvbdyshape=make_cvbdy_element_shape(cvfaces, ug%mesh%faces%shape)
-          allocate(ug_bdy_f(ug%dim, ug_cvbdyshape%ngi))
         end if
 
         ! get the fields over the surface containing the bcs
         call get_entire_boundary_condition(courant, (/"internal"/), courant_bc, courant_bc_type)
         
         do sele=1,surface_element_count(courant)
-        
-          if(courant_bc_type(sele)==1) cycle
-
-          ele = face_ele(x, sele)
-          x_ele = ele_val(x, ele)
-          x_ele_bdy = face_val(x, sele)
-          nodes_bdy=face_global_nodes(courant, sele)
-
-          call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
-                                x_cvbdyshape, normal_bdy, detwei_bdy)
-
-          u_bdy_f=face_val_at_quad(u, sele, u_cvbdyshape)
-          if(move_mesh) ug_bdy_f=face_val_at_quad(ug, sele, ug_cvbdyshape)
-
-          do iloc = 1, courant%mesh%faces%shape%loc
-
-            do face = 1, cvfaces%sfaces
-
-              if(cvfaces%sneiloc(iloc,face)/=0) then
-
-                do gi = 1, cvfaces%shape%ngi
-
-                  ggi = (face-1)*cvfaces%shape%ngi + gi
-                  
-                    if(move_mesh) then
-                      udotn=dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
-                    else
-                      udotn=dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
-                    end if
-
-                    if(udotn>0.0) then
-                      income=0.0
-                    else
-                      income=1.0
-                    end if
-
-                    call addto(courant, nodes_bdy(iloc), abs(udotn)*(1.0-income)*detwei_bdy(ggi))
-
-                end do
-
-              end if
-
-            end do
-
-          end do
-
+           call calculate_courant_number_cv_surface_ele_loop(x, x_cvbdyshape, u,&
+                & u_cvbdyshape, ug, ug_cvbdyshape, courant, move_mesh, cvfaces, sele)
         end do
 
-        deallocate(x_ele, x_f, u_f, detwei, normal, normgi)
-        deallocate(x_ele_bdy, u_bdy_f, detwei_bdy, normal_bdy)
-        deallocate(nodes_bdy)
-        deallocate(notvisited)
         call deallocate(x_cvbdyshape)
         call deallocate(u_cvbdyshape)
         call deallocate(x_cvshape)
@@ -2038,51 +1917,13 @@ contains
         if(move_mesh) then
           call deallocate(ug_cvshape)
           call deallocate(ug_cvbdyshape)
-          deallocate(ug_f, ug_bdy_f)
         end if
 
       else
-
-        allocate(detwei(face_ngi(courant, 1)), &
-                 u_f(u%dim, face_ngi(u, 1)), &
-                 normal(x%dim, face_ngi(courant, 1)))
-
         do ele = 1, element_count(courant)
-
-          nodes=>ele_nodes(courant, ele)
-          assert(size(nodes)==1)
-
-          neigh=>ele_neigh(courant, ele)
-
-          do ni= 1, size(neigh)
-
-            face = ele_face(courant, ele, neigh(ni))
-
-            if(neigh(ni)>0) then
-              ! internal face
-              face_2=ele_face(courant, neigh(ni), ele)
-            else
-              ! external face
-              face_2 = face
-            end if
-
-            call transform_facet_to_physical(x, face, detwei_f=detwei, normal=normal)
-
-            ! if velocity is dg then use a trapezoidal rule (otherwise this will
-            ! all cancel out to give the face value)
-            u_f = 0.5*(face_val_at_quad(u, face) + face_val_at_quad(u, face_2))
-            if(move_mesh) then
-              u_f = u_f - face_val_at_quad(ug, face)
-            end if
-
-            call addto(courant, nodes(1), &
-                 sum(sum(u_f*normal,1)*merge(1.0,0.0,.not.(sum(u_f*normal,1)<0.0))*detwei))
-
-          end do
-
-
+           call calculate_courant_number_cv_zero_degree_ele_loop(x, u, ug, courant,&
+                & move_mesh, ele)
         end do
-
       end if
 
       courant%val = courant%val*l_dt/cvmass%val
@@ -2097,6 +1938,191 @@ contains
       call halo_update(courant)
 
    end subroutine calculate_courant_number_cv
+
+   subroutine calculate_courant_number_cv_volume_ele_loop(x, x_cvshape, u, u_cvshape, ug,&
+        & ug_cvshape, courant, x_courant, move_mesh, cvfaces, ele)
+
+     type(scalar_field), intent(inout) :: courant
+     type(vector_field), intent(in) :: x, u, ug, x_courant
+     type(element_type), intent(in) :: x_cvshape, u_cvshape, ug_cvshape    
+     logical, intent(in) :: move_mesh
+     type(cv_faces_type), intent(in) :: cvfaces
+     integer, intent(in) :: ele
+
+     real, dimension(x%dim,ele_loc(x,1)) :: x_ele
+     real, dimension(x%dim, x_cvshape%ngi) :: x_f
+     real, dimension(u%dim, u_cvshape%ngi) :: u_f
+     real, dimension(x_cvshape%ngi) :: detwei
+     real, dimension(x%dim, x_cvshape%ngi) :: normal
+     real, dimension(x%dim) :: normgi
+     real, dimension(ug%dim, ug_cvshape%ngi) :: ug_f
+     logical, dimension(x_cvshape%ngi) :: notvisited
+     integer, dimension(ele_loc(courant, ele)) :: nodes
+     integer, dimension(ele_loc(x_courant, ele)) :: x_nodes
+
+     real :: udotn, income
+     integer :: iloc, oloc, face, gi, ggi
+     
+     x_ele=ele_val(x, ele)
+     x_f=ele_val_at_quad(x, ele, x_cvshape)
+     u_f=ele_val_at_quad(u, ele, u_cvshape)
+     if(move_mesh) ug_f = ele_val_at_quad(ug, ele, ug_cvshape)
+     nodes = ele_nodes(courant, ele)
+     x_nodes = ele_nodes(x_courant, ele)
+
+     call transform_cvsurf_to_physical(x_ele, x_cvshape, &
+          detwei, normal, cvfaces)
+
+     notvisited=.true.
+
+     do iloc = 1, courant%mesh%shape%loc
+        do face = 1, cvfaces%faces
+           if(cvfaces%neiloc(iloc, face) /= 0) then
+              oloc = cvfaces%neiloc(iloc, face)
+
+              do gi = 1, cvfaces%shape%ngi
+                 ggi = (face-1)*cvfaces%shape%ngi + gi
+
+                 ! have we been here before?
+                 if(notvisited(ggi)) then
+                    notvisited(ggi)=.false.
+
+                    normgi=orientate_cvsurf_normgi( &
+                         & node_val(x_courant, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
+
+                    if(move_mesh) then
+                       udotn=dot_product((u_f(:,ggi)-ug_f(:,ggi)), normgi)
+                    else
+                       udotn=dot_product(u_f(:,ggi), normgi)
+                    end if
+
+                    if(udotn>0.0) then
+                       income=0.0
+                    else
+                       income=1.0
+                    end if
+
+                    call addto(courant, nodes(iloc), abs(udotn)*(1.-income)*detwei(ggi))
+                    call addto(courant, nodes(oloc), abs(udotn)*income*detwei(ggi)) ! notvisited
+
+                 end if ! notvisited
+              end do
+           end if
+        end do
+     end do
+
+   end subroutine calculate_courant_number_cv_volume_ele_loop
+
+   subroutine calculate_courant_number_cv_surface_ele_loop(x, x_cvbdyshape, u,&
+        & u_cvbdyshape, ug, ug_cvbdyshape, courant, move_mesh, cvfaces, sele)
+
+     type(scalar_field), intent(inout) :: courant
+     type(vector_field), intent(in) :: x, u, ug
+     type(element_type), intent(in) :: x_cvbdyshape, u_cvbdyshape, ug_cvbdyshape    
+     logical, intent(in) :: move_mesh
+     type(cv_faces_type), intent(in) :: cvfaces
+     integer, intent(in) :: sele     
+
+     real, dimension(x%dim,ele_loc(x,1)) :: x_ele
+     real, dimension(x%dim,face_loc(x,1)) :: x_ele_bdy
+     real, dimension(u%dim, u_cvbdyshape%ngi) :: u_bdy_f
+     real, dimension(x_cvbdyshape%ngi) :: detwei_bdy
+     real, dimension(x%dim, x_cvbdyshape%ngi) :: normal_bdy
+     real, dimension(ug%dim, ug_cvbdyshape%ngi) :: ug_bdy_f
+     integer, dimension(face_loc(courant, 1)) :: nodes_bdy
+     integer, dimension(surface_element_count(courant)) :: courant_bc_type
+
+     real :: udotn, income
+     integer :: iloc, face, gi, ggi, ele
+        
+     if(courant_bc_type(sele)==1) return
+
+     ele = face_ele(x, sele)
+     x_ele = ele_val(x, ele)
+     x_ele_bdy = face_val(x, sele)
+     nodes_bdy = face_global_nodes(courant, sele)
+
+     call transform_cvsurf_facet_to_physical(x_ele, x_ele_bdy, &
+          x_cvbdyshape, normal_bdy, detwei_bdy)
+
+     u_bdy_f=face_val_at_quad(u, sele, u_cvbdyshape)
+     if(move_mesh) ug_bdy_f=face_val_at_quad(ug, sele, ug_cvbdyshape)
+
+     do iloc = 1, courant%mesh%faces%shape%loc
+        do face = 1, cvfaces%sfaces
+           if(cvfaces%sneiloc(iloc,face)/=0) then
+              do gi = 1, cvfaces%shape%ngi
+                 ggi = (face-1)*cvfaces%shape%ngi + gi
+
+                 if(move_mesh) then
+                    udotn=dot_product((u_bdy_f(:,ggi)-ug_bdy_f(:,ggi)), normal_bdy(:,ggi))
+                 else
+                    udotn=dot_product(u_bdy_f(:,ggi), normal_bdy(:,ggi))
+                 end if
+
+                 if(udotn>0.0) then
+                    income=0.0
+                 else
+                    income=1.0
+                 end if
+
+                 call addto(courant, nodes_bdy(iloc), abs(udotn)*(1.0-income)*detwei_bdy(ggi))
+
+              end do
+           end if
+        end do
+     end do
+
+   end subroutine calculate_courant_number_cv_surface_ele_loop
+
+   subroutine calculate_courant_number_cv_zero_degree_ele_loop(x, u, ug, courant,&
+        & move_mesh, ele)
+
+     type(scalar_field), intent(inout) :: courant
+     type(vector_field), intent(in) :: x, u, ug   
+     logical, intent(in) :: move_mesh
+     integer, intent(in) :: ele          
+
+     real, dimension(face_ngi(courant, 1)) :: detwei
+     real, dimension(u%dim, face_ngi(u, 1)) :: u_f
+     real, dimension(x%dim, face_ngi(courant, 1)) :: normal
+     integer, dimension(ele_loc(courant, ele)) :: nodes
+     integer, dimension(:), pointer :: neigh
+
+     integer :: face, face_2, ni
+
+     nodes = ele_nodes(courant, ele)
+     assert(size(nodes)==1)
+
+     neigh => ele_neigh(courant, ele)
+
+     do ni= 1, size(neigh)
+
+        face = ele_face(courant, ele, neigh(ni))
+
+        if(neigh(ni)>0) then
+           ! internal face
+           face_2=ele_face(courant, neigh(ni), ele)
+        else
+           ! external face
+           face_2 = face
+        end if
+
+        call transform_facet_to_physical(x, face, detwei_f=detwei, normal=normal)
+
+        ! if velocity is dg then use a trapezoidal rule (otherwise this will
+        ! all cancel out to give the face value)
+        u_f = 0.5*(face_val_at_quad(u, face) + face_val_at_quad(u, face_2))
+        if(move_mesh) then
+           u_f = u_f - face_val_at_quad(ug, face)
+        end if
+
+        call addto(courant, nodes(1), &
+             sum(sum(u_f*normal,1)*merge(1.0,0.0,.not.(sum(u_f*normal,1)<0.0))*detwei))
+
+     end do
+
+   end subroutine calculate_courant_number_cv_zero_degree_ele_loop
 
    subroutine calculate_matdens_courant_number_cv(state, courant, dt)
 
