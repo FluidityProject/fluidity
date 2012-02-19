@@ -102,6 +102,9 @@ module advection_diffusion_DG
   ! are we moving the mesh?
   logical :: move_mesh
 
+  ! Include porosity?
+  logical :: include_porosity
+
   ! Stabilisation schemes.
   integer :: stabilisation_scheme
   integer, parameter :: NONE=0
@@ -715,6 +718,12 @@ contains
 
     type(mesh_type), pointer :: mesh_cg
     
+    ! Porosity fields, field name, theta value
+    type(scalar_field), pointer :: porosity_old, porosity_new
+    type(scalar_field) :: porosity_theta 
+    character(len=FIELD_NAME_LEN) :: porosity_name
+    real :: porosity_theta_value
+    
     !! Add the Source directly to the right hand side?
     logical :: add_src_directly_to_rhs
 
@@ -838,6 +847,43 @@ contains
        include_advection=.true.
     end if
 
+    ! Porosity
+    if (have_option(trim(T%option_path)//'/prognostic/porosity')) then
+       include_porosity = .true.
+         
+       ! get the name of the field to use as porosity
+       call get_option(trim(T%option_path)//'/prognostic/porosity/porosity_field_name', &
+                       porosity_name, &
+                       default = 'Porosity')
+         
+       ! get the porosity theta value
+       call get_option(trim(T%option_path)//'/prognostic/porosity/temporal_discretisation/theta', &
+                       porosity_theta_value, &
+                       default = 0.0)
+         
+       porosity_new => extract_scalar_field(state, trim(porosity_name), stat=stat)
+       
+       if (stat /=0) then
+          FLExit('Including porosity in Advection_Diffusion_DG but failed to extract Porosity from state')
+       end if
+                      
+       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat=stat)
+
+       if (stat /=0) then
+          FLExit('Including porosity in Advection_Diffusion_DG but failed to extract OldPorosity from state')
+       end if
+       
+       call allocate(porosity_theta, porosity_new%mesh)
+         
+       call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
+         
+       ewrite_minmax(porosity_theta)         
+    else
+       include_porosity = .false.
+       call allocate(porosity_theta, T%mesh, field_type=FIELD_TYPE_CONSTANT)
+       call set(porosity_theta, 1.0)
+    end if
+
     ! Retrieve scalar options from the options dictionary.
     if (.not.semi_discrete) then
        call get_option(trim(T%option_path)//&
@@ -855,6 +901,9 @@ contains
            
     move_mesh = (have_option("/mesh_adaptivity/mesh_movement").and.include_mass)
     if(move_mesh) then
+      if (include_porosity) then
+         FLExit('Cannot include porosity in DG advection diffusion of a field with a moving mesh')
+      end if
       ewrite(2,*) 'Moving mesh'
       X_old => extract_vector_field(state, "OldCoordinate")
       X_new => extract_vector_field(state, "IteratedCoordinate")
@@ -936,7 +985,7 @@ contains
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
             & Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
-            & add_src_directly_to_rhs) 
+            & add_src_directly_to_rhs, porosity_theta) 
        
     end do element_loop
 
@@ -952,7 +1001,8 @@ contains
     call deallocate(U_nl)
     call deallocate(U_nl_backup)
     call deallocate(bc_value)
-
+    call deallocate(porosity_theta)
+    
   end subroutine construct_advection_diffusion_dg
 
   subroutine lumped_mass_galerkin_projection_scalar(state, field, projected_field)
@@ -1049,7 +1099,7 @@ contains
        & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
-       & add_src_directly_to_rhs)
+       & add_src_directly_to_rhs, porosity_theta)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -1080,6 +1130,9 @@ contains
     !! If adding Source directly to rhs then
     !! do nothing with it here
     logical, intent(in) :: add_src_directly_to_rhs
+    
+    !! Porosity theta averaged field
+    type(scalar_field), intent(in) :: porosity_theta
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -1226,7 +1279,7 @@ contains
       assert(ele_loc(U_mesh, ele)==ele_loc(X, ele))
       assert(ele_ngi(U_mesh, ele)==ele_ngi(U_nl, ele))
     end if
-
+    
     dg=continuity(T)<0
     primal = .not.dg
     if(diffusion_scheme == CDG) primal = .true.
@@ -1375,7 +1428,12 @@ contains
     if(move_mesh) then
       mass_mat = shape_shape(T_shape, T_shape, detwei_new)
     else
-      mass_mat = shape_shape(T_shape, T_shape, detwei)
+      if (include_porosity) then
+        assert(ele_ngi(T, ele)==ele_ngi(porosity_theta, ele))
+        mass_mat = shape_shape(T_shape, T_shape, detwei*ele_val_at_quad(porosity_theta, ele))      
+      else
+        mass_mat = shape_shape(T_shape, T_shape, detwei)
+      end if
     end if
 
     if (include_advection) then

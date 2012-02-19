@@ -288,6 +288,7 @@ prognostic_scalar_field =
             }
          )
       }?,
+      porosity_include?,
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
       scalar_convergence_options,

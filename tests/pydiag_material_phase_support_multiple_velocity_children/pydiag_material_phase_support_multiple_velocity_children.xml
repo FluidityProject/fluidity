@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
+
+<testproblem>
+  <name>pydiag_material_phase_support_multiple_velocity_children</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+../../bin/fluidity pydiag_material_phase_support_multiple_velocity_children.flml
+    </command_line>
+    <!-- A dummy fluids test case to check that for velocity children fields set with python diagnostics with material_phase_support set to multiple there is access to all states. -->
+  </problem_definition>
+  <variables>
+    <variable name="vel_abs_phase1" language="python">    
+from fluidity_tools import stat_parser as stat
+vel_abs_phase1 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase1"]["VelocityAbsorption%1"]["max"][-1]
+    </variable>
+    <variable name="vel_abs_phase2" language="python">    
+from fluidity_tools import stat_parser as stat
+vel_abs_phase2 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase2"]["VelocityAbsorption%2"]["max"][-1]
+    </variable>
+    <variable name="vel_src_phase1" language="python">    
+from fluidity_tools import stat_parser as stat
+vel_src_phase1 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase1"]["VelocitySource%1"]["max"][-1]
+    </variable>
+    <variable name="vel_src_phase2" language="python">    
+from fluidity_tools import stat_parser as stat
+vel_src_phase2 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase2"]["VelocitySource%2"]["max"][-1]
+    </variable>
+    <variable name="vel_visc_phase1" language="python">    
+from fluidity_tools import stat_parser as stat
+vel_visc_phase1 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase1"]["Viscosity%11"]["max"][-1]
+    </variable>
+    <variable name="vel_visc_phase2" language="python">    
+from fluidity_tools import stat_parser as stat
+vel_visc_phase2 = stat("pydiag_material_phase_support_multiple_velocity_children.stat")["phase2"]["Viscosity%22"]["max"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Check vel_abs_phase1 with tolerance 1.0e-10" language="python">
+print "error vel_abs_phase1",abs(vel_abs_phase1 - 12345.0)
+assert abs(vel_abs_phase1 - 12345.0) &lt; 1.0e-10
+    </test>
+    <test name="Check vel_abs_phase2 with tolerance 1.0e-10" language="python">
+print "error vel_abs_phase2",abs(vel_abs_phase2 - 54321.0)
+assert abs(vel_abs_phase2 - 54321.0) &lt; 1.0e-10
+    </test>
+    <test name="Check vel_src_phase1 with tolerance 1.0e-10" language="python">
+print "error vel_src_phase1",abs(vel_src_phase1 - 101.0)
+assert abs(vel_src_phase1 - 101.0) &lt; 1.0e-10
+    </test>
+    <test name="Check vel_src_phase2 with tolerance 1.0e-10" language="python">
+print "error vel_src_phase2",abs(vel_src_phase2 - 202.0)
+assert abs(vel_src_phase2 - 202.0) &lt; 1.0e-10
+    </test>
+    <test name="Check vel_visc_phase1 with tolerance 1.0e-10" language="python">
+print "error vel_visc_phase1",abs(vel_visc_phase1 - 666.0)
+assert abs(vel_visc_phase1 - 666.0) &lt; 1.0e-10
+    </test>
+    <test name="Check vel_visc_phase2 with tolerance 1.0e-10" language="python">
+print "error vel_visc_phase2",abs(vel_visc_phase2 - 999.0)
+assert abs(vel_visc_phase2 - 999.0) &lt; 1.0e-10
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

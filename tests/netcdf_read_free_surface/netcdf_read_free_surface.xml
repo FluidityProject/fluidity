@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testproblem>
+  <name>netcdf_read_free_surface</name>
+  <owner userid="asc"/>
+  <tags>flml netcdf</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v3 -l netcdf_read_free_surface.flml</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="max_freesurface_error" language="python">
+import vtktools
+
+# Read output file
+u = vtktools.vtu("netcdf_read_free_surface_0.vtu")
+xyz = u.GetLocations()
+f  = u.GetField("FreeSurface")
+af = u.GetField("AnalyticFreeSurface")
+err = f - af
+
+#xmin = min(xyz[:,0])
+#xmax = max(xyz[:,0])
+#ymin = min(xyz[:,1])
+#ymax = max(xyz[:,1])
+#ztop = max(xyz[:,2])
+#
+## Focus on top surface interior
+#for i in range(len(err)):
+#  # Free surface not currently initialised correctly on bottom - investigate
+#  if (xyz[i,1] != ztop):
+#    err[i] = 0.0
+#  # Free surface not currently initialised correctly on the boundary - investigate
+#  if ((xyz[i,0] == xmin) or (xyz[i,0] == xmax) or (xyz[i,1] == ymin) or (xyz[i,1] == ymax)):
+#    err[i] = 0.0
+
+# Write out error field for debugging
+u.AddScalarField('Error', err)
+u.Write('error.vtu')
+
+max_freesurface_error = max(abs(err))
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Checking difference is smaller than 1e-10" language="python">
+assert ( max_freesurface_error &lt; 1e-10 )
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

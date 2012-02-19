@@ -368,6 +368,9 @@ floats or swims upwards, this field should be negative.</a:documentation>
         </choice>
       </element>
     </optional>
+    <optional>
+      <ref name="porosity_include"/>
+    </optional>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
     <ref name="scalar_convergence_options"/>

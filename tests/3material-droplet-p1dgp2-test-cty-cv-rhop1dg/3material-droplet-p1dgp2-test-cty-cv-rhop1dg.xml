@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>p1dgp2-test-cty-cv-rhop1dg multi-material flow test</name>
+  <owner userid="btollit"/>
+  <tags>flml</tags>
+    <problem_definition length="medium" nprocs="1">
+    <command_line>fluidity -v1 -l 3material-droplet-p1dgp2-test-cty-cv-rhop1dg.flml </command_line>
+  </problem_definition>  
+  <variables>  
+    <variable name="endtime" language="python">
+from fluidity_tools import stat_parser as stat
+endtime=stat("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="endtimestep" language="python">
+from fluidity_tools import stat_parser as stat
+endtimestep=stat("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")["dt"]["value"][-1]
+    </variable>
+    <variable name="mindivergence" language="python">
+from fluidity_tools import stat_parser as stat
+mindivergence=max(abs(stat("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")["Water"]["ControlVolumeDivergence"]["min"]))
+    </variable>
+    <variable name="maxdivergence" language="python">
+from fluidity_tools import stat_parser as stat
+maxdivergence=max(stat("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")["Water"]["ControlVolumeDivergence"]["max"])
+    </variable>
+     <variable name="vfracintwater0" language="python"> 
+import fluidity_tools
+vfracintwater0 = fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Water']['MaterialVolumeFraction']['cv_integral'][0]
+    </variable>    
+     <variable name="vfracintwater" language="python"> 
+import fluidity_tools
+vfracintwater = fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Water']['MaterialVolumeFraction']['cv_integral'][-1]
+    </variable>    
+     <variable name="vfracintdrop0" language="python"> 
+import fluidity_tools
+vfracintdrop0 = fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Droplet']['MaterialVolumeFraction']['cv_integral'][0]
+    </variable>    
+     <variable name="vfracintdrop" language="python"> 
+import fluidity_tools
+vfracintdrop = fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Droplet']['MaterialVolumeFraction']['cv_integral'][-1]
+    </variable>    
+     <variable name="mxvfracwater" language="python"> 
+import fluidity_tools
+mxvfracwater = min(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Water']['MaterialVolumeFraction']['max'])
+    </variable>    
+     <variable name="mnvfracwater" language="python"> 
+import fluidity_tools
+mnvfracwater = min(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Water']['MaterialVolumeFraction']['min'])
+    </variable>    
+    <variable name="mxvfracdrop" language="python">
+import fluidity_tools
+mxvfracdrop = max(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Droplet']['MaterialVolumeFraction']['max'])
+    </variable>
+     <variable name="mnvfracdrop" language="python">
+import fluidity_tools
+mnvfracdrop = min(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Droplet']['MaterialVolumeFraction']['min'])
+    </variable>
+     <variable name="mxvfracair" language="python"> 
+import fluidity_tools
+mxvfracair = max(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Air']['MaterialVolumeFraction']['max'])
+    </variable>    
+     <variable name="mnvfracair" language="python"> 
+import fluidity_tools
+mnvfracair = min(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Air']['MaterialVolumeFraction']['min'])
+    </variable>    
+    <variable name="mxvfracsum" language="python">
+import fluidity_tools
+mxvfracsum = max(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Water']['SumMaterialVolumeFractions']['max'])
+    </variable>
+     <variable name="mnvfracsum" language="python">
+import fluidity_tools
+mnvfracsum = min(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Water']['SumMaterialVolumeFractions']['min'])
+    </variable>
+     <variable name="max_reynolds" language="python">
+import fluidity_tools
+max_reynolds = max(fluidity_tools.stat_parser("3material-droplet-p1dgp2-test-cty-cv-rhop1dg.stat")['Water']['GridReynoldsNumber']['max'][1:])
+    </variable>    
+  </variables>
+    <pass_tests>  
+    <test name="check end time" language="python">
+assert endtime &gt; 0.35
+    </test>
+    <test name="check end timestep" language="python">
+assert endtimestep &gt; 0.001
+    </test>
+    <test name="check water volume fraction was conserved" language="python">
+print 'conservation error = ', abs(vfracintwater0-vfracintwater)
+assert abs(vfracintwater0-vfracintwater) &lt; max(maxdivergence, mindivergence)
+    </test>
+    <test name="check droplet volume fraction was conserved" language="python">
+print 'conservation error = ', abs(vfracintdrop0-vfracintdrop)
+assert abs(vfracintdrop0-vfracintdrop) &lt; max(maxdivergence, mindivergence)
+    </test>
+    <test name="check that reasonable tolerance (1.0e-08) is being used to test conservation" language="python">
+print 'divergence tolerance = ', max(maxdivergence, mindivergence)
+assert max(maxdivergence, mindivergence) &lt; 1.0e-08
+    </test>
+    <test name="check minimum water volume fraction is 0.0" language="python">
+assert abs(mnvfracwater) &lt; 1e-10
+    </test>
+    <test name="check maximum water volume fraction is 1.0" language="python">
+assert abs(mxvfracwater-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum droplet volume fraction is 0.0" language="python">
+assert abs(mnvfracdrop) &lt; 1e-10
+    </test>
+    <test name="check maximum droplet volume fraction is 1.0" language="python">
+assert abs(mxvfracdrop-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum air volume fraction is 0.0" language="python">
+assert abs(mnvfracair) &lt; 1e-10
+    </test>
+    <test name="check maximum air volume fraction is 1.0" language="python">
+assert abs(mxvfracair-1.0) &lt; 1e-10
+    </test>
+    <test name="check minimum sum volume fraction is 0.0" language="python">
+assert abs(mnvfracsum) &lt; 1e-10
+    </test>
+    <test name="check maximum sum volume fraction is 1.0" language="python">
+assert abs(mxvfracsum-1.0) &lt; 1e-10
+    </test>
+    <test name="check maximum grid reynolds number is 4599.44185868 to tolerance 2.5e-02" language="python">
+assert abs(max_reynolds - 4599.44185868)/4599.44185868 &lt; 2.5e-02
+    </test>    
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
