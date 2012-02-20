@@ -547,6 +547,8 @@ contains
               supg_element(thread_num+1))
       end do element_loop
       !$OMP END DO
+      !!we do need all the threads to finish before moving to the next colour
+      !$OMP BARRIER
 
 #ifdef HAVE_LIBNUMA
     call profiler_minorpagefaults(minfaults_toc)

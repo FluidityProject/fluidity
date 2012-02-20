@@ -702,6 +702,7 @@ contains
             & mass=mass, subcycle_m=subcycle_m)
       end do element_loop
       !$OMP END DO
+      !!we do need all the threads to finish before moving to the next colour
       !$OMP BARRIER
 
 #ifdef HAVE_LIBNUMA
