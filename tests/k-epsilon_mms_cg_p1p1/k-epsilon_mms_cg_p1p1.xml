@@ -434,7 +434,7 @@ assert(ab_convergence_vel[0][0] &gt; 1.7)
 assert(ab_convergence_vel[1][0] &gt; 1.7)
     </test>
     <test name="ab_convergence_p: L2 order > 1.1" language="python">
-assert(ab_convergence_p[0] &gt; 1.1)
+assert(ab_convergence_p[0] &gt; 1.3)
     </test>
     <test name="ab_convergence_k: L2 order > 1.7" language="python">
 assert(ab_convergence_k[0] &gt; 1.7)
@@ -443,7 +443,7 @@ assert(ab_convergence_k[0] &gt; 1.7)
 assert(ab_convergence_eps[0] &gt; 1.7)
     </test>
     <test name="ab_convergence_vt: L2 order > 1.1" language="python">
-assert(ab_convergence_vt[0] &gt; 1.1)
+assert(ab_convergence_vt[0] &gt; 1.3)
     </test>
     <test name="bc_convergence_vel_x: L2 order > 1.7" language="python">
 assert(bc_convergence_vel[0][0] &gt; 1.7)
@@ -452,7 +452,7 @@ assert(bc_convergence_vel[0][0] &gt; 1.7)
 assert(bc_convergence_vel[1][0] &gt; 1.7)
     </test>
     <test name="bc_convergence_p: L2 order > 1.1" language="python">
-assert(bc_convergence_p[0] &gt; 1.1)
+assert(bc_convergence_p[0] &gt; 1.3)
     </test>
     <test name="bc_convergence_k: L2 order > 1.7" language="python">
 assert(bc_convergence_k[0] &gt; 1.7)
@@ -461,7 +461,7 @@ assert(bc_convergence_k[0] &gt; 1.7)
 assert(bc_convergence_eps[0] &gt; 1.7)
     </test>
     <test name="bc_convergence_vt: L2 order > 1.1" language="python">
-assert(bc_convergence_vt[0] &gt; 1.1)
+assert(bc_convergence_vt[0] &gt; 1.3)
     </test>
     <test name="cd_convergence_vel_x: L2 order > 1.7" language="python">
 assert(cd_convergence_vel[0][0] &gt; 1.7)
@@ -470,7 +470,7 @@ assert(cd_convergence_vel[0][0] &gt; 1.7)
 assert(cd_convergence_vel[1][0] &gt; 1.7)
     </test>
     <test name="cd_convergence_p: L2 order > 1.1" language="python">
-assert(cd_convergence_p[0] &gt; 1.1)
+assert(cd_convergence_p[0] &gt; 1.3)
     </test>
     <test name="cd_convergence_k: L2 order > 1.7" language="python">
 assert(cd_convergence_k[0] &gt; 1.7)
