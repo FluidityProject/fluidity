@@ -3,7 +3,7 @@
 <testproblem>
   <name>Periodic adaptivity tracer advection</name>
   <owner userid="piggt01"/>
-  <tags>flml</tags>
+  <tags>flml 2dadapt</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>../../bin/periodise periodic_adaptivity_tracer.flml; fluidity -v3 -l periodic_adaptivity_tracer_periodised.flml</command_line>
   </problem_definition>

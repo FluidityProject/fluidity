@@ -38,7 +38,7 @@ module diagnostic_fields
   use state_module
   use futils
   use fetools
-  use fefields, only: compute_lumped_mass
+  use fefields, only: compute_lumped_mass, compute_cv_mass
   use MeshDiagnostics
   use spud
   use CV_Shape_Functions
@@ -467,14 +467,17 @@ contains
     type(scalar_field), intent(inout) :: grn
 
     type(vector_field), pointer :: U, X
-    integer :: ele, gi
+    integer :: ele, gi, stat
     ! Transformed quadrature weights.
     real, dimension(ele_ngi(GRN, 1)) :: detwei
     ! Inverse of the local coordinate change matrix.
     real, dimension(mesh_dim(GRN), mesh_dim(GRN), ele_ngi(GRN, 1)) :: J
     ! velocity/dx at each quad point.
     real, dimension(mesh_dim(GRN), ele_ngi(GRN, 1)) :: GRN_q
+    ! viscosity at each quad point
     real, dimension(mesh_dim(GRN), mesh_dim(GRN), ele_ngi(GRN,1)) :: vis_q
+    ! density at each quad point
+    real, dimension(ele_ngi(GRN,1)) :: den_q    
     ! current element global node numbers.
     integer, dimension(:), pointer :: ele_grn
     ! local grn matrix on the current element.
@@ -482,14 +485,25 @@ contains
     ! current GRN element shape
     type(element_type), pointer :: GRN_shape
     type(tensor_field), pointer :: viscosity
-
+    type(scalar_field), pointer :: density
+    logical :: include_density_field
+    
     U=>extract_vector_field(state, "Velocity")
     X=>extract_vector_field(state, "Coordinate")
 
     call zero(grn)
 
     viscosity => extract_tensor_field(state,'Viscosity')
-
+    
+    include_density_field = have_option(trim(GRN%option_path)//'/diagnostic/include_density_field')
+    
+    if (include_density_field) then
+       density => extract_scalar_field(state,'Density', stat = stat)
+       if (stat /= 0) then
+          FLExit('To include the Density field in the Grid Reynolds number calculation Density must exist in the material_phase state')
+       end if
+    end if
+    
     do ele=1, element_count(GRN)
        ele_GRN=>ele_nodes(GRN, ele)
        GRN_shape=>ele_shape(GRN, ele)
@@ -505,7 +519,15 @@ contains
           GRN_q(:,gi)=matmul(GRN_q(:,gi), J(:,:,gi))
           GRN_q(:,gi)=matmul(inverse(vis_q(:,:,gi)), GRN_q(:,gi))
        end do
-
+       
+       ! include the density field if required also at the quad point
+       if (include_density_field) then
+          den_q=ele_val_at_quad(density, ele)
+          do gi=1,size(detwei)
+              GRN_q(:,gi)=den_q(gi)*GRN_q(:,gi)
+          end do          
+       end if
+       
        ! Project onto the basis functions to recover GRN at each node.
        GRN_mat=matmul(inverse(shape_shape(GRN_shape, GRN_shape, detwei)), &
             shape_shape(GRN_shape, GRN_shape, &
@@ -1616,6 +1638,12 @@ contains
     type(vector_field), pointer :: u, x
     real :: l_dt
     integer :: ele, stat
+    ! Porosity fields, field name, theta value and include flag
+    type(scalar_field), pointer :: porosity_old, porosity_new
+    type(scalar_field) :: porosity_theta 
+    character(len=OPTION_PATH_LEN) :: porosity_name
+    real :: porosity_theta_value
+    logical :: include_porosity
 
     u=>extract_vector_field(state, "NonlinearVelocity",stat)
     if(stat.ne.0) then    
@@ -1632,12 +1660,51 @@ contains
        call get_option("/timestepping/timestep",l_dt)
     end if
     
+    ! determine the porosity value to include
+    if (have_option(trim(state%option_path)//'/scalar_field::DG_CourantNumber/diagnostic/porosity')) then
+       include_porosity = .true.
+     
+       ! get the name of the field to use as porosity
+       call get_option(trim(state%option_path)//'/scalar_field::DG_CourantNumber/diagnostic/porosity/porosity_field_name', &
+                       porosity_name, &
+                       default = 'Porosity')
+         
+       ! get the porosity theta value
+       call get_option(trim(state%option_path)//'/scalar_field::DG_CourantNumber/diagnostic/porosity/temporal_discretisation/theta', &
+                       porosity_theta_value, &
+                       default = 0.0)
+         
+       porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
+
+       if (stat /=0) then 
+          FLExit('Including porosity in DG_CourantNumber but failed to extract Porosity from state')
+       end if
+       
+       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
+
+       if (stat /=0) then 
+          FLExit('Including porosity in DG_CourantNumber but failed to extract OldPorosity from state')
+       end if
+       
+       call allocate(porosity_theta, porosity_new%mesh)
+         
+       call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
+         
+       ewrite_minmax(porosity_theta)
+    else
+       include_porosity = .false.
+       call allocate(porosity_theta, courant%mesh, field_type=FIELD_TYPE_CONSTANT)
+       call set(porosity_theta, 1.0)
+    end if
+    
     call zero(courant)
     
     do ele = 1, element_count(courant)
-
-       call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt)
+       assert(ele_ngi(courant, ele)==ele_ngi(porosity_theta, ele))
+       call calculate_courant_number_dg_ele(courant,x,u,ele,l_dt, ele_val_at_quad(porosity_theta,ele))
     end do
+    
+    call deallocate(porosity_theta)
     
     ! the courant values at the edge of the halo are going to be incorrect
     ! this matters when computing the max courant number
@@ -1645,11 +1712,12 @@ contains
 
   end subroutine calculate_courant_number_dg
 
-  subroutine calculate_courant_number_dg_ele(courant,x,u,ele,dt)
+  subroutine calculate_courant_number_dg_ele(courant,x,u,ele,dt,porosity_theta_at_quad)
     type(vector_field), intent(in) :: x, u
     type(scalar_field), intent(inout) :: courant
     real, intent(in) :: dt
     integer, intent(in) :: ele
+    real, dimension(:) :: porosity_theta_at_quad
     !
     real :: Vol
     real :: Flux
@@ -1666,7 +1734,7 @@ contains
     !
     !Get element volume
     call transform_to_physical(X, ele, detwei=detwei)
-    Vol = sum(detwei)
+    Vol = sum(detwei*porosity_theta_at_quad)
     
     !Get fluxes
     Flux = 0.0
@@ -1716,7 +1784,7 @@ contains
       type(element_type) :: x_cvshape, x_cvbdyshape
       type(element_type) :: u_cvshape, u_cvbdyshape
       type(element_type) :: ug_cvshape, ug_cvbdyshape
-      type(scalar_field), pointer :: lumpedmass
+      type(scalar_field), pointer :: cvmass
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
       real, dimension(:,:), allocatable :: x_f, u_f, ug_f, u_bdy_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
@@ -1727,7 +1795,16 @@ contains
       real :: udotn, income
       ! logical array indicating if a face has already been visited by the opposing node
       logical, dimension(:), allocatable :: notvisited
-
+      
+      ! Porosity fields, field name, theta value and include flag
+      type(scalar_field), pointer :: porosity_old, porosity_new
+      type(scalar_field) :: porosity_theta 
+      character(len=OPTION_PATH_LEN) :: porosity_name
+      real :: porosity_theta_value
+      logical :: include_porosity
+      
+      integer :: stat
+      
       integer, dimension(:), allocatable :: courant_bc_type
       type(scalar_field) :: courant_bc
 
@@ -1755,13 +1832,53 @@ contains
       call zero(courant)
 
       x_courant=get_coordinate_field(state, courant%mesh)
+      
+      ! determine the cv mass matrix to use for the length scale
+      ! which may have included the porosity field
+      if (have_option(trim(state%option_path)//'/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity')) then
+         include_porosity = .true.
+     
+         ! get the name of the field to use as porosity
+         call get_option(trim(state%option_path)//&
+            '/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/porosity_field_name', &
+                         porosity_name, &
+                         default = 'Porosity')
+         
+         ! get the porosity theta value
+         call get_option(trim(state%option_path)//&
+            '/scalar_field::ControlVolumeCFLNumber/diagnostic/porosity/temporal_discretisation/theta', &
+                         porosity_theta_value, &
+                         default = 0.0)
+         
+         porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
+  
+         if (stat /=0) then 
+            FLExit('Including porosity in ControlVolumeCFLNumber but failed to extract Porosity from state')
+         end if
+         
+         porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
 
-      if(courant%mesh%shape%degree>1) then
-        lumpedmass => get_lumped_mass_on_submesh(state, courant%mesh)
+         if (stat /=0) then 
+            FLExit('Including porosity in ControlVolumeCFLNumber but failed to extract OldPorosity from state')
+         end if
+         
+         call allocate(porosity_theta, porosity_new%mesh)
+         
+         call set(porosity_theta, porosity_new, porosity_old, porosity_theta_value)
+         
+         ewrite_minmax(porosity_theta)
+       
+         allocate(cvmass)  
+         call allocate(cvmass, courant%mesh, name="LocalCVMassWithPorosity")
+         call compute_cv_mass(x, cvmass, porosity_theta)
+       
+         call deallocate(porosity_theta)
       else
-        lumpedmass => get_lumped_mass(state, courant%mesh)
+         include_porosity = .false.
+         cvmass => get_cv_mass(state, courant%mesh)
       end if
-
+      ewrite_minmax(cvmass)    
+      
       if(courant%mesh%shape%degree /= 0) then
 
         call get_option("/geometry/quadrature/controlvolume_surface_degree", &
@@ -1970,10 +2087,15 @@ contains
 
       end if
 
-      courant%val = courant%val*l_dt/lumpedmass%val
+      courant%val = courant%val*l_dt/cvmass%val
 
       call deallocate(x_courant)
-
+      
+      if (include_porosity) then
+         call deallocate(cvmass)
+         deallocate(cvmass)
+      end if
+      
       call halo_update(courant)
 
    end subroutine calculate_courant_number_cv
@@ -1996,7 +2118,7 @@ contains
       type(element_type) :: ug_cvshape, ug_cvbdyshape
       type(element_type) :: t_cvshape, t_cvbdyshape
       type(element_type) :: x_cvshape, x_cvbdyshape
-      type(scalar_field) :: lumpedmass
+      type(scalar_field) :: cvmass
       real, dimension(:,:), allocatable :: x_ele, x_ele_bdy
       real, dimension(:,:), allocatable :: x_f, u_f, u_bdy_f, ug_f, ug_bdy_f
       real, dimension(:,:), allocatable :: normal, normal_bdy
@@ -2128,9 +2250,9 @@ contains
         allocate(ug_f(ug%dim, ug_cvshape%ngi))
       end if
 
-      call allocate(lumpedmass, courant%mesh, "Lumped mass")
-      call compute_lumped_mass(x, lumpedmass)
-      lumpedmass%val = lumpedmass%val*(matdens_options%theta*matdens%val+(1.0-matdens_options%theta)*oldmatdens%val)
+      call allocate(cvmass, courant%mesh, "CV mass")
+      call compute_cv_mass(x, cvmass)
+      cvmass%val = cvmass%val*(matdens_options%theta*matdens%val+(1.0-matdens_options%theta)*oldmatdens%val)
 
       do ele=1, element_count(courant)
         x_ele=ele_val(x, ele)
@@ -2314,7 +2436,7 @@ contains
 
       end do
 
-      courant%val = courant%val*l_dt/lumpedmass%val
+      courant%val = courant%val*l_dt/cvmass%val
 
       deallocate(x_ele, x_f, u_f, detwei, normal, normgi)
       deallocate(x_ele_bdy, u_bdy_f, detwei_bdy, normal_bdy)
@@ -2327,7 +2449,7 @@ contains
       call deallocate(x_cvshape)
       call deallocate(t_cvshape)
       call deallocate(cvfaces)
-      call deallocate(lumpedmass)
+      call deallocate(cvmass)
       call deallocate(cfl_no)
       call deallocate(matdens_upwind)
       call deallocate(oldmatdens_upwind)

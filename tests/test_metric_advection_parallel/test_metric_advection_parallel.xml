@@ -2,7 +2,7 @@
 <testproblem>
   <name>Metric advection test, parallel</name>
   <owner userid="hhiester"/>
-  <tags>flml parallel</tags>
+  <tags>flml parallel 2dadapt</tags>
   <problem_definition length = "medium" nprocs = "1">
     <command_line>mpiexec -n 2 ../../bin/fluidity -v3 -l test_metric_advection_parallel.flml
     </command_line>

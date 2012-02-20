@@ -3,7 +3,7 @@
 <testproblem>
   <name>lock exchange 2d</name>
   <owner userid="hhiester"/>
-  <tags>flml</tags>
+  <tags>flml 2dadapt</tags>
     <problem_definition length="medium" nprocs="1">
     <command_line>fluidity -v3 -l  lock_exchange_2d_cg.flml </command_line>
   </problem_definition>  

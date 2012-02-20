@@ -42,7 +42,6 @@ module spontaneous_potentials
   use boundary_conditions
   use boundary_conditions_from_options
   use sparsity_patterns_meshes
-  use porous_media, only: brine_salinity, normalised_saturation
 
   implicit none
   
@@ -549,6 +548,21 @@ module spontaneous_potentials
 
     stat = 0
   end subroutine calculate_coupling_term
+
+  function brine_salinity(sigma_w)
+    !!< calculate brine salinity from specified electrical conductivity
+    !!< see Worthington et al. (1990)
+    real, intent(in) :: sigma_w
+    real :: brine_salinity, logsw
+    real, dimension(5) :: c
+    c(1) = -1.03024
+    c(2) = 1.06627
+    c(3) = 2.41239e-2
+    c(4) = 3.68102e-3
+    c(5) = 1.46369e-4
+    logsw = log10(sigma_w)
+    brine_salinity = 10**(c(1)+c(2)*logsw+c(3)*logsw**2+c(4)*logsw**3+c(5)*logsw**4)
+  end function brine_salinity
 
 end module spontaneous_potentials
 

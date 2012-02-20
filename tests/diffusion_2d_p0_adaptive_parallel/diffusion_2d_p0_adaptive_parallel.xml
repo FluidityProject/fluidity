@@ -3,7 +3,7 @@
 <testproblem>
   <name>heat_2d_dg</name>
   <owner userid="cwilson"/>
-  <tags>flml zoltan parallel</tags>
+  <tags>flml zoltan parallel 2dadapt</tags>
   <problem_definition length="medium" nprocs="1">
     <command_line>mpiexec -np 3 fluidity -v2 -l heat.flml </command_line>
     <!-- Two dimensional diffusion only problem. -->
