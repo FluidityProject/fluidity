@@ -1217,7 +1217,7 @@ module copy_outof_into_state
         ! Copy this to the other phases.
         if(nphases > 1) then
          do i = 2, nphases
-          wic_p_bc( pressure_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = wic_p_bc( pressure_sufid_bc( 1 ) + (  - 1 ) * nphases )
+          wic_p_bc( pressure_sufid_bc( 1 ) + ( i - 1 ) * nphases ) = Pressure_BC_Type
           do j = 1, stotel
            do k = 1, p_snloc
              suf_p_bc( ( i - 1 ) * stotel + (j-1)*p_snloc + k ) =  suf_p_bc( ( 1 - 1 ) * stotel + (j-1)*p_snloc + k )
