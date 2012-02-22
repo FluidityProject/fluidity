@@ -2109,7 +2109,7 @@
                end if
                
                ! Check that implicit solids two way coupling is not being used
-               if (have_option("/implicit_solids/two_way_coupling")) then
+               if (have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")) then
                   FLExit("For CG Pressure cannot test the continuity equation with CV when using implicit solids two way coupling model")
                end if
                
