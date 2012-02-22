@@ -1,0 +1,64 @@
+<header>
+<constant name="FluidityVersion" type="string" value="fluidity.3931" />
+<constant name="CompileTime" type="string" value="Feb 22 2012 15:47:10" />
+<constant name="StartTime" type="string" value="20120222 161555.083+0000" />
+<constant name="HostName" type="string" value="Unknown" />
+<constant name="format" type="string" value="plain_text" />
+<field column="1" name="ElapsedTime" statistic="value"/>
+<field column="2" name="dt" statistic="value"/>
+<field column="3" name="ElapsedWallTime" statistic="value"/>
+<field column="4" name="PeriodicMesh" statistic="nodes"/>
+<field column="5" name="PeriodicMesh" statistic="elements"/>
+<field column="6" name="PeriodicMesh" statistic="surface_elements"/>
+<field column="7" name="CoordinateMesh" statistic="nodes"/>
+<field column="8" name="CoordinateMesh" statistic="elements"/>
+<field column="9" name="CoordinateMesh" statistic="surface_elements"/>
+<field column="10" name="TotalMemory" statistic="current" material_phase="Memory"/>
+<field column="11" name="TotalMemory" statistic="min" material_phase="Memory"/>
+<field column="12" name="TotalMemory" statistic="max" material_phase="Memory"/>
+<field column="13" name="MeshMemory" statistic="current" material_phase="Memory"/>
+<field column="14" name="MeshMemory" statistic="min" material_phase="Memory"/>
+<field column="15" name="MeshMemory" statistic="max" material_phase="Memory"/>
+<field column="16" name="ScalarFieldMemory" statistic="current" material_phase="Memory"/>
+<field column="17" name="ScalarFieldMemory" statistic="min" material_phase="Memory"/>
+<field column="18" name="ScalarFieldMemory" statistic="max" material_phase="Memory"/>
+<field column="19" name="VectorFieldMemory" statistic="current" material_phase="Memory"/>
+<field column="20" name="VectorFieldMemory" statistic="min" material_phase="Memory"/>
+<field column="21" name="VectorFieldMemory" statistic="max" material_phase="Memory"/>
+<field column="22" name="TensorFieldMemory" statistic="current" material_phase="Memory"/>
+<field column="23" name="TensorFieldMemory" statistic="min" material_phase="Memory"/>
+<field column="24" name="TensorFieldMemory" statistic="max" material_phase="Memory"/>
+<field column="25" name="MatrixSparsityMemory" statistic="current" material_phase="Memory"/>
+<field column="26" name="MatrixSparsityMemory" statistic="min" material_phase="Memory"/>
+<field column="27" name="MatrixSparsityMemory" statistic="max" material_phase="Memory"/>
+<field column="28" name="MatrixMemory" statistic="current" material_phase="Memory"/>
+<field column="29" name="MatrixMemory" statistic="min" material_phase="Memory"/>
+<field column="30" name="MatrixMemory" statistic="max" material_phase="Memory"/>
+<field column="31" name="TransformCacheMemory" statistic="current" material_phase="Memory"/>
+<field column="32" name="TransformCacheMemory" statistic="min" material_phase="Memory"/>
+<field column="33" name="TransformCacheMemory" statistic="max" material_phase="Memory"/>
+<field column="34" name="Unity" statistic="min" material_phase="Main"/>
+<field column="35" name="Unity" statistic="max" material_phase="Main"/>
+<field column="36" name="Unity" statistic="l2norm" material_phase="Main"/>
+<field column="37" name="Unity" statistic="integral" material_phase="Main"/>
+<field column="38" name="UnityInterpolationErrorBound" statistic="min" material_phase="Main"/>
+<field column="39" name="UnityInterpolationErrorBound" statistic="max" material_phase="Main"/>
+<field column="40" name="UnityInterpolationErrorBound" statistic="l2norm" material_phase="Main"/>
+<field column="41" name="UnityInterpolationErrorBound" statistic="integral" material_phase="Main"/>
+<field column="42" name="PrognosticFieldConsistent" statistic="min" material_phase="Main"/>
+<field column="43" name="PrognosticFieldConsistent" statistic="max" material_phase="Main"/>
+<field column="44" name="PrognosticFieldConsistent" statistic="l2norm" material_phase="Main"/>
+<field column="45" name="PrognosticFieldConsistent" statistic="integral" material_phase="Main"/>
+<field column="46" name="Velocity%magnitude" statistic="min" material_phase="Main"/>
+<field column="47" name="Velocity%magnitude" statistic="max" material_phase="Main"/>
+<field column="48" name="Velocity%magnitude" statistic="l2norm" material_phase="Main"/>
+<field column="49" name="Velocity%1" statistic="min" material_phase="Main"/>
+<field column="50" name="Velocity%1" statistic="max" material_phase="Main"/>
+<field column="51" name="Velocity%1" statistic="l2norm" material_phase="Main"/>
+<field column="52" name="Velocity%1" statistic="integral" material_phase="Main"/>
+<field column="53" name="Velocity%2" statistic="min" material_phase="Main"/>
+<field column="54" name="Velocity%2" statistic="max" material_phase="Main"/>
+<field column="55" name="Velocity%2" statistic="l2norm" material_phase="Main"/>
+<field column="56" name="Velocity%2" statistic="integral" material_phase="Main"/>
+</header>
+  0.00000000000000000E+000  0.10000000000000000E+001  0.61199999999999999E+000 78 144 24 85 144 24  0.50480000000000000E+005  0.00000000000000000E+000  0.92448000000000000E+005  0.14564000000000000E+005  0.00000000000000000E+000  0.36784000000000000E+005  0.18800000000000000E+004  0.00000000000000000E+000  0.24960000000000000E+004  0.26400000000000000E+004  0.00000000000000000E+000  0.66720000000000000E+004  0.25600000000000000E+004  0.00000000000000000E+000  0.10624000000000000E+005  0.78120000000000000E+004  0.00000000000000000E+000  0.21256000000000000E+005  0.34560000000000000E+004  0.00000000000000000E+000  0.86400000000000000E+004  0.17568000000000000E+005  0.00000000000000000E+000  0.17568000000000000E+005  0.10000000000000000E+001  0.10000000000000000E+001  0.99999999999999889E+000  0.99999999999999789E+000  0.10000000000000000E-001  0.10000000000000000E-001  0.99999999999999933E-002  0.10000000000000011E-001  0.10000000000000000E+001  0.10000000000000000E+001  0.99999999999999889E+000  0.99999999999999789E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000  0.00000000000000000E+000
