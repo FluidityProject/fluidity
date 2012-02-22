@@ -5,7 +5,7 @@
   <owner userid="jbull"/>
   <tags>flml</tags>
   <problem_definition length="short" nprocs="1">
-    <command_line>fluidity -v2 -l MMS_A.flml &amp;&amp; fluidity MMS_B.flml &amp;&amp; fluidity MMS_C.flml &amp;&amp; fluidity MMS_D.flml &amp;&amp; fluidity MMS_E.flml</command_line>
+    <command_line>fluidity -v2 -l MMS_A_Helmiso.flml &amp;&amp; fluidity MMS_B_Helmiso.flml &amp;&amp; fluidity MMS_C_Helmiso.flml &amp;&amp; fluidity MMS_D_Helmiso.flml &amp;&amp; fluidity MMS_E_Helmiso.flml</command_line>
   </problem_definition>
   <variables>
     <variable name="ab_convergence_vel_f" language="python">
@@ -13,15 +13,15 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','w')
 
-a_error_x = stat("MMS_A.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_B.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_A.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_B.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+a_error_x = stat("MMS_A_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["l2norm"][-1]
+b_error_x = stat("MMS_B_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["l2norm"][-1]
+a_error_y = stat("MMS_A_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["l2norm"][-1]
+b_error_y = stat("MMS_B_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_A.stat")["NS"]["FilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_B.stat")["NS"]["FilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_A.stat")["NS"]["FilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_B.stat")["NS"]["FilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_A_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["max"][-1]
+b_error_inf_x = stat("MMS_B_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["max"][-1]
+a_error_inf_y = stat("MMS_A_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["max"][-1]
+b_error_inf_y = stat("MMS_B_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -38,15 +38,15 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error_x = stat("MMS_A.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_B.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_A.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_B.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+a_error_x = stat("MMS_A_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["l2norm"][-1]
+b_error_x = stat("MMS_B_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["l2norm"][-1]
+a_error_y = stat("MMS_A_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["l2norm"][-1]
+b_error_y = stat("MMS_B_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_A.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_B.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_A.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_B.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_A_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["max"][-1]
+b_error_inf_x = stat("MMS_B_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["max"][-1]
+a_error_inf_y = stat("MMS_A_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["max"][-1]
+b_error_inf_y = stat("MMS_B_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -63,11 +63,11 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error = stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["l2norm"][-1]
-b_error = stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["l2norm"][-1]
+a_error = stat("MMS_A_Helmiso.stat")["NS"]["CVDivAvg"]["l2norm"][-1]
+b_error = stat("MMS_B_Helmiso.stat")["NS"]["CVDivAvg"]["l2norm"][-1]
 
-a_error_inf = stat("MMS_A.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]
-b_error_inf = stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]
+a_error_inf = stat("MMS_A_Helmiso.stat")["NS"]["CVDivAvg"]["max"][-1]
+b_error_inf = stat("MMS_B_Helmiso.stat")["NS"]["CVDivAvg"]["max"][-1]
 
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -82,15 +82,15 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error_x = stat("MMS_B.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_C.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_B.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_C.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+a_error_x = stat("MMS_B_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["l2norm"][-1]
+b_error_x = stat("MMS_C_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["l2norm"][-1]
+a_error_y = stat("MMS_B_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["l2norm"][-1]
+b_error_y = stat("MMS_C_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_B.stat")["NS"]["FilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_C.stat")["NS"]["FilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_B.stat")["NS"]["FilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_C.stat")["NS"]["FilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_B_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["max"][-1]
+b_error_inf_x = stat("MMS_C_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["max"][-1]
+a_error_inf_y = stat("MMS_B_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["max"][-1]
+b_error_inf_y = stat("MMS_C_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -107,15 +107,15 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error_x = stat("MMS_B.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_C.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_B.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_C.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+a_error_x = stat("MMS_B_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["l2norm"][-1]
+b_error_x = stat("MMS_C_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["l2norm"][-1]
+a_error_y = stat("MMS_B_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["l2norm"][-1]
+b_error_y = stat("MMS_C_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_B.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_C.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_B.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_C.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_B_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["max"][-1]
+b_error_inf_x = stat("MMS_C_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["max"][-1]
+a_error_inf_y = stat("MMS_B_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["max"][-1]
+b_error_inf_y = stat("MMS_C_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -132,11 +132,11 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error = stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["l2norm"][-1]
-b_error = stat("MMS_C.stat")["NS"]["ControlVolumeDivergence"]["l2norm"][-1]
+a_error = stat("MMS_B_Helmiso.stat")["NS"]["CVDivAvg"]["l2norm"][-1]
+b_error = stat("MMS_C_Helmiso.stat")["NS"]["CVDivAvg"]["l2norm"][-1]
 
-a_error_inf = stat("MMS_B.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]
-b_error_inf = stat("MMS_C.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]
+a_error_inf = stat("MMS_B_Helmiso.stat")["NS"]["CVDivAvg"]["max"][-1]
+b_error_inf = stat("MMS_C_Helmiso.stat")["NS"]["CVDivAvg"]["max"][-1]
 
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -151,15 +151,15 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error_x = stat("MMS_C.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_C.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+a_error_x = stat("MMS_C_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["l2norm"][-1]
+b_error_x = stat("MMS_D_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["l2norm"][-1]
+a_error_y = stat("MMS_C_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["l2norm"][-1]
+b_error_y = stat("MMS_D_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_C.stat")["NS"]["FilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_C.stat")["NS"]["FilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_C_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["max"][-1]
+b_error_inf_x = stat("MMS_D_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["max"][-1]
+a_error_inf_y = stat("MMS_C_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["max"][-1]
+b_error_inf_y = stat("MMS_D_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -176,15 +176,15 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error_x = stat("MMS_C.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_D.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_C.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_D.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+a_error_x = stat("MMS_C_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["l2norm"][-1]
+b_error_x = stat("MMS_D_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["l2norm"][-1]
+a_error_y = stat("MMS_C_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["l2norm"][-1]
+b_error_y = stat("MMS_D_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_C.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_D.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_C.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_D.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_C_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["max"][-1]
+b_error_inf_x = stat("MMS_D_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["max"][-1]
+a_error_inf_y = stat("MMS_C_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["max"][-1]
+b_error_inf_y = stat("MMS_D_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -201,11 +201,11 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error = stat("MMS_C.stat")["NS"]["ControlVolumeDivergence"]["l2norm"][-1]
-b_error = stat("MMS_D.stat")["NS"]["ControlVolumeDivergence"]["l2norm"][-1]
+a_error = stat("MMS_C_Helmiso.stat")["NS"]["CVDivAvg"]["l2norm"][-1]
+b_error = stat("MMS_D_Helmiso.stat")["NS"]["CVDivAvg"]["l2norm"][-1]
 
-a_error_inf = stat("MMS_C.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]
-b_error_inf = stat("MMS_D.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]
+a_error_inf = stat("MMS_C_Helmiso.stat")["NS"]["CVDivAvg"]["max"][-1]
+b_error_inf = stat("MMS_D_Helmiso.stat")["NS"]["CVDivAvg"]["max"][-1]
 
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -220,15 +220,15 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_E.stat")["NS"]["FilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_E.stat")["NS"]["FilterDifference%2"]["l2norm"][-1]
+a_error_x = stat("MMS_D_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["l2norm"][-1]
+b_error_x = stat("MMS_E_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["l2norm"][-1]
+a_error_y = stat("MMS_D_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["l2norm"][-1]
+b_error_y = stat("MMS_E_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_D.stat")["NS"]["FilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_E.stat")["NS"]["FilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_D.stat")["NS"]["FilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_E.stat")["NS"]["FilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_D_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["max"][-1]
+b_error_inf_x = stat("MMS_E_Helmiso.stat")["NS"]["FilterDiffAvg%1"]["max"][-1]
+a_error_inf_y = stat("MMS_D_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["max"][-1]
+b_error_inf_y = stat("MMS_E_Helmiso.stat")["NS"]["FilterDiffAvg%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -245,15 +245,15 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error_x = stat("MMS_D.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-b_error_x = stat("MMS_E.stat")["NS"]["IsoFilterDifference%1"]["l2norm"][-1]
-a_error_y = stat("MMS_D.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
-b_error_y = stat("MMS_E.stat")["NS"]["IsoFilterDifference%2"]["l2norm"][-1]
+a_error_x = stat("MMS_D_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["l2norm"][-1]
+b_error_x = stat("MMS_E_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["l2norm"][-1]
+a_error_y = stat("MMS_D_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["l2norm"][-1]
+b_error_y = stat("MMS_E_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["l2norm"][-1]
 
-a_error_inf_x = stat("MMS_D.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-b_error_inf_x = stat("MMS_E.stat")["NS"]["IsoFilterDifference%1"]["max"][-1]
-a_error_inf_y = stat("MMS_D.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
-b_error_inf_y = stat("MMS_E.stat")["NS"]["IsoFilterDifference%2"]["max"][-1]
+a_error_inf_x = stat("MMS_D_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["max"][-1]
+b_error_inf_x = stat("MMS_E_Helmiso.stat")["NS"]["IsoFilterDiffAvg%1"]["max"][-1]
+a_error_inf_y = stat("MMS_D_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["max"][-1]
+b_error_inf_y = stat("MMS_E_Helmiso.stat")["NS"]["IsoFilterDiffAvg%2"]["max"][-1]
 
 ab_ratio_x = a_error_x / b_error_x
 ab_ratio_y = a_error_y / b_error_y
@@ -270,11 +270,11 @@ from fluidity_tools import stat_parser as stat
 from math import log
 output=open('output.log','a')
 
-a_error = stat("MMS_D.stat")["NS"]["ControlVolumeDivergence"]["l2norm"][-1]
-b_error = stat("MMS_E.stat")["NS"]["ControlVolumeDivergence"]["l2norm"][-1]
+a_error = stat("MMS_D_Helmiso.stat")["NS"]["CVDivAvg"]["l2norm"][-1]
+b_error = stat("MMS_E_Helmiso.stat")["NS"]["CVDivAvg"]["l2norm"][-1]
 
-a_error_inf = stat("MMS_D.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]
-b_error_inf = stat("MMS_E.stat")["NS"]["ControlVolumeDivergence"]["max"][-1]
+a_error_inf = stat("MMS_D_Helmiso.stat")["NS"]["CVDivAvg"]["max"][-1]
+b_error_inf = stat("MMS_E_Helmiso.stat")["NS"]["CVDivAvg"]["max"][-1]
 
 ab_ratio = a_error / b_error
 ab_ratio_inf = a_error_inf / b_error_inf
@@ -310,29 +310,29 @@ assert(de_convergence_vel_f[0][0] &gt; 1.0)
     <test name="de_convergence_vel_f_y: L2 order > 1.0" language="python">
 assert(de_convergence_vel_f[1][0] &gt; 1.0)
     </test>
-    <test name="ab_convergence_vel_if_x: L2 order > 0.0" language="python">
-assert(ab_convergence_vel_if[0][0] &gt; 0.0)
+    <test name="ab_convergence_vel_if_x: L2 order > 1.0" language="python">
+assert(ab_convergence_vel_if[0][0] &gt; 1.0)
     </test>
-    <test name="ab_convergence_vel_if_y: L2 order > 0.0" language="python">
-assert(ab_convergence_vel_if[1][0] &gt; 0.0)
+    <test name="ab_convergence_vel_if_y: L2 order > 1.0" language="python">
+assert(ab_convergence_vel_if[1][0] &gt; 1.0)
     </test>
-    <test name="bc_convergence_vel_if_x: L2 order > 0.0" language="python">
-assert(bc_convergence_vel_if[0][0] &gt; 0.0)
+    <test name="bc_convergence_vel_if_x: L2 order > 1.0" language="python">
+assert(bc_convergence_vel_if[0][0] &gt; 1.0)
     </test>
-    <test name="bc_convergence_vel_if_y: L2 order > 0.0" language="python">
-assert(bc_convergence_vel_if[1][0] &gt; 0.0)
+    <test name="bc_convergence_vel_if_y: L2 order > 1.0" language="python">
+assert(bc_convergence_vel_if[1][0] &gt; 1.0)
     </test>
-    <test name="cd_convergence_vel_if_x: L2 order > 0.0" language="python">
-assert(cd_convergence_vel_if[0][0] &gt; 0.0)
+    <test name="cd_convergence_vel_if_x: L2 order > 1.0" language="python">
+assert(cd_convergence_vel_if[0][0] &gt; 1.0)
     </test>
-    <test name="cd_convergence_vel_if_y: L2 order > 0.0" language="python">
-assert(cd_convergence_vel_if[1][0] &gt; 0.0)
+    <test name="cd_convergence_vel_if_y: L2 order > 1.0" language="python">
+assert(cd_convergence_vel_if[1][0] &gt; 1.0)
     </test>
-    <test name="de_convergence_vel_if_x: L2 order > 0.0" language="python">
-assert(de_convergence_vel_if[0][0] &gt; 0.0)
+    <test name="de_convergence_vel_if_x: L2 order > 1.0" language="python">
+assert(de_convergence_vel_if[0][0] &gt; 1.0)
     </test>
-    <test name="de_convergence_vel_if_y: L2 order > 0.0" language="python">
-assert(de_convergence_vel_if[1][0] &gt; 0.0)
+    <test name="de_convergence_vel_if_y: L2 order > 1.0" language="python">
+assert(de_convergence_vel_if[1][0] &gt; 1.0)
     </test>
     <test name="ab_convergence_div: L2 order > 0" language="python">
 assert(ab_convergence_div[0] &gt; 0.)

@@ -30,7 +30,6 @@
 module k_epsilon
   use quadrature
   use elements
-  use field_derivatives
   use fields
   use field_options
   use state_module
@@ -38,7 +37,6 @@ module k_epsilon
   use global_parameters, only: FIELD_NAME_LEN, OPTION_PATH_LEN
   use state_fields_module
   use boundary_conditions
-  use fields_manipulation
   use surface_integrals
   use fetools
   use vector_tools
@@ -99,19 +97,12 @@ subroutine keps_init(state)
     call get_option(trim(keps_path)//'/sigma_k', sigma_k, default = 1.0)
     call get_option(trim(keps_path)//'sigma_eps', sigma_eps, default = 1.3)
 
-    ! Get background viscosity
-    call get_option(trim(keps_path)//"/tensor_field::BackgroundViscosity/prescribed/&
-                          &value::WholeMesh/isotropic/constant", visc)
-    
-    ! initialise eddy viscosity
-    if (have_option(trim(keps_path)//"/scalar_field::ScalarEddyViscosity/diagnostic")) then
-       Field => extract_scalar_field(state, "ScalarEddyViscosity")
-       call set(Field, visc)
-    end if
-
     ! initialise lengthscale
     Field => extract_scalar_field(state, "LengthScale")
     call zero(Field)
+
+    ! initialise scalar eddy viscosity
+    call keps_eddyvisc(state)
 
     ewrite(2,*) "k-epsilon parameters"
     ewrite(2,*) "--------------------------------------------"
@@ -121,7 +112,6 @@ subroutine keps_init(state)
     ewrite(2,*) "sigma_k: ",  sigma_k
     ewrite(2,*) "sigma_eps: ",sigma_eps
     ewrite(2,*) "fields_min: ",fields_min
-    ewrite(2,*) "background visc: ",   visc
     ewrite(2,*) "implicit/explicit source/absorption terms: ",   trim(src_abs)
     ewrite(2,*) "max turbulence lengthscale: ",     lmax
     ewrite(2,*) "--------------------------------------------"
@@ -280,7 +270,7 @@ end subroutine keps_tke
 subroutine keps_eps(state)
 
     type(state_type), intent(inout)    :: state
-    type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, kk, EV, lumped_mass
+    type(scalar_field), pointer        :: src_eps, src_kk, abs_eps, eps, EV, lumped_mass
     type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps
     type(vector_field), pointer        :: positions
     type(tensor_field), pointer        :: eps_diff
@@ -292,7 +282,7 @@ subroutine keps_eps(state)
     logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_eps"
-    kk              => extract_scalar_field(state, "TurbulentKineticEnergy")
+
     eps             => extract_scalar_field(state, "TurbulentDissipation")
     src_eps         => extract_scalar_field(state, "TurbulentDissipationSource")
     src_kk          => extract_scalar_field(state, "TurbulentKineticEnergySource")
@@ -301,9 +291,8 @@ subroutine keps_eps(state)
     EV              => extract_scalar_field(state, "ScalarEddyViscosity")
     positions       => extract_vector_field(state, "Coordinate")
 
-    !Clip fields: can't allow negative/zero epsilon or k
+    !Clip fields: can't allow negative/zero epsilon
     do i = 1, node_count(EV)
-      call set(kk, i, max(node_val(kk,i), fields_min))
       call set(eps, i, max(node_val(eps,i), fields_min))
     end do
 
@@ -420,7 +409,7 @@ subroutine keps_eddyvisc(state)
     type(scalar_field), pointer      :: kk, eps, EV, ll, lumped_mass
     type(scalar_field)               :: ev_rhs
     type(element_type), pointer      :: shape_ev
-    integer                          :: i, j, ele
+    integer                          :: i, ele
     integer, pointer, dimension(:)   :: nodes_ev
     real, allocatable, dimension(:)  :: detwei, rhs_addto
 

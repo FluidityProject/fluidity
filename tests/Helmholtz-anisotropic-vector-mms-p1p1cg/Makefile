@@ -18,7 +18,7 @@ clean:
 
 flmls:
 	@$(foreach M,B C D E, \
-		cp MMS_A.flml MMS_$(M).flml; \
-		sed 's/MMS_A/MMS_'$(M)'/' MMS_$(M).flml > tempfile; \
-		mv tempfile MMS_$(M).flml; \
+		cp MMS_A_Helmiso.flml MMS_$(M)_Helmiso.flml; \
+		sed 's/MMS_A/MMS_'$(M)'/' MMS_$(M)_Helmiso.flml > tempfile; \
+		mv tempfile MMS_$(M)_Helmiso.flml; \
 	)

@@ -68,7 +68,7 @@
       <real_value rank="0">0.01</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">20.0</real_value>
+      <real_value rank="0">15.0</real_value>
     </finish_time>
     <nonlinear_iterations>
       <integer_value rank="0">1</integer_value>
@@ -109,7 +109,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">0.5</real_value>
+                <real_value rank="0">.75</real_value>
               </theta>
             </temporal_discretisation>
             <solver>
@@ -217,7 +217,7 @@
             </spatial_discretisation>
             <temporal_discretisation>
               <theta>
-                <real_value rank="0">0.5</real_value>
+                <real_value rank="0">.75</real_value>
               </theta>
             </temporal_discretisation>
             <solver>
@@ -364,7 +364,7 @@
               <include_in_detectors/>
             </detectors>
             <steady_state>
-              <include_in_steady_state/>
+              <exclude_from_steady_state/>
             </steady_state>
           </diagnostic>
         </scalar_field>
@@ -582,7 +582,7 @@
           <include_in_detectors/>
         </detectors>
         <steady_state>
-          <include_in_steady_state/>
+          <exclude_from_steady_state/>
         </steady_state>
       </diagnostic>
     </scalar_field>
