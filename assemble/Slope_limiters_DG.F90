@@ -1575,6 +1575,53 @@ contains
 
   ! end subroutine limit_vector_bj
 
+  function limit_hull(Ubar,dU,hull) result (alpha)
+    real :: alpha
+    real, dimension(:), intent(in) :: Ubar, dU
+    real, dimension(:,:), intent(in) :: hull
+    !
+    integer :: Udim, nhull,i, homehull, ihull, jhull
+    real, dimension(size(hull,2)) :: norms
+    real, dimension(size(Ubar)) :: vec1,vec2
+
+    !Check dimensions of arrays
+    Udim = size(Ubar)
+    assert(size(dU)==Udim)
+    assert(size(hull,1) == Udim)
+    nhull = size(hull,2)
+    
+    do i = 1, nhull
+       norms(i) = norm2(hull(:,i)-dU)
+    end do
+    homehull = minarg(norms)
+    assert(minval(norms)<1.0e-10)
+
+    alpha = 1.0
+    if(outside_hull(Ubar + dU)) then
+       !Need to limit the vector
+       !First check that line segment Ubar + alpha*dU 
+       !intersects hull
+       ihull = mod(homehull,nhull)+1
+       jhull = mod(homehull-2,nhull)+1
+       if(isleft(hull
+
+       !First find point of intersection
+       do i = 1, nhull
+          ihull = mod(i-1,nhull)+1
+          
+       end do
+    end if
+
+    contains 
+      function isleft(seg1,seg2,point)
+        real, intent(in), dimension(:) :: seg1, seg2, point
+        logical :: isleft
+        
+        isleft = cross_product2(seg2-seg1,point-seg1)>0.
+      end function isleft
+
+  end function limit_hull
+
   subroutine limit_fpn(state, t)
 
     type(state_type), intent(inout) :: state
