@@ -1475,89 +1475,105 @@ contains
 
   end subroutine limit_vb
 
-  subroutine limit_vector_bj(state, V)
-    !Vector valued limiter on manifolds
-    !Based on Barth-Jespersen limiter
-    !
-    !Main issue is how to decompose vector into two scalar components
-    !to apply the limiting
-    !Idea: push vector forward onto the sphere, then pull it back to the 
-    !other side
-    type(state_type), intent(inout) :: state
-    type(vector_field), intent(inout) :: V
-    !
-    ! This is the limited version of the field, we have to make a copy
-    type(vector_field) :: V_limit, V_mean
-    type(mesh_type), pointer :: vertex_mesh
-    ! counters
-    integer :: ele, node, ele2, neigh
-    ! local numbers
-    integer, dimension(:), pointer :: V_ele, neighs
-    ! gradient scaling factor
-    real, dimension(V%dim) :: alpha
-    ! local field values
-    real, dimension(V%dim,ele_loc(V,1)) :: V_val!,V_val_slope,V_mean
-    real, dimension(V%dim) :: Vbar
-    type(csr_sparsity), pointer :: NEList
-    type(tensor_field), pointer :: Basis
+  ! subroutine limit_vector_vb(state, V)
+  !   !Vector valued limiter on manifolds
+  !   !Based on vertex-based limiter
+  !   !
+  !   !Idea: instead of creating vertex mins and maxes, we 
+  !   !create vertex convex hulls.
+  !   !STEPS:
+  !   !First compute the limits on the vector.
+  !   !1) Compute the mean velocities in each element.
+  !   !2) For each element and each vertex, we define 
+  !   ! a method to rotate the mean velocity into the 2D plane.
+  !   ! Here we use quite a crude method that doesn't use the pullback
+  !   ! if it leads to grid imprinting then it will need to be improved.
+  !   !3) At each vertex, we obtain a set of 2D vectors coming from the 
+  !   ! elements neighbouring that vertex.
+  !   !4) At each vertex, We compute the convex hull of that set.
+  !   !Now the limiting steps.
 
-    if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
-       FLExit("The vertex based slope limiter only works for P1DG fields.")
-    end if
+  !   !5) For each element E write V = V_0 + \Delta V where V_0 is the cell
+  !   ! average. For each vertex v in element E, find 0=>a_{Ev}>=1 such that
+  !   ! V' = V_0 + a_{Ev}\Delta V is inside the convex hull of vertex v.
 
-    !Get basis (1,:) cpts are normals, (2,:), (3,:) cpts are normals and 
-    !tangents
+  !   type(state_type), intent(inout) :: state
+  !   type(vector_field), intent(inout) :: V
+  !   !
+  !   ! This is the limited version of the field, we have to make a copy
+  !   type(vector_field) :: V_limit, V_mean
+  !   type(mesh_type), pointer :: vertex_mesh
+  !   ! counters
+  !   integer :: ele, node, ele2, neigh
+  !   ! local numbers
+  !   integer, dimension(:), pointer :: V_ele, neighs
+  !   ! gradient scaling factor
+  !   real, dimension(V%dim) :: alpha
+  !   ! local field values
+  !   real, dimension(V%dim,ele_loc(V,1)) :: V_val!,V_val_slope,V_mean
+  !   real, dimension(V%dim) :: Vbar
+  !   type(csr_sparsity), pointer :: NEList
+  !   type(tensor_field), pointer :: Basis
 
-    Basis => extract_tensor_field(state,'InvariantBasis')
+  !   if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
+  !      FLExit("The vertex based vector slope limiter only works for P1DG fields.")
+  !   end if
+  !   if (.not. V%dim==2) then
+  !      FLExit("Vertex based vector slope limiter only works in 2D.")
+  !   end if
+  !   !Get basis (1,:) cpts are normals, (2,:), (3,:) cpts are normals and 
+  !   !tangents
 
-    ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
-    call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
-    NEList => extract_nelist(vertex_mesh)
+  !   Basis => extract_tensor_field(state,'InvariantBasis')
 
-    ! Allocate copy of field
-    call allocate(V_limit, V%dim,V%mesh,trim(V%name)//"Limited")
-    call set(V_limit, V)
-    call allocate(V_mean, V%dim,V%mesh, trim(V%name)//"LimitMean")
+  !   ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
+  !   call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
+  !   NEList => extract_nelist(vertex_mesh)
 
-    ! for each vertex in the mesh store the min and max values of the P1DG
-    ! nodes directly surrounding it
-    do ele = 1, ele_count(V)
-       V_ele => ele_nodes(V,ele)
-       V_val = ele_val(V,ele)
-       Vbar = sum(V_val,2)/size(V_val,2)
-       do node = 1, size(V_ele)
-          call set(V_mean, V_ele(node), Vbar)
-       end do
-    end do
+  !   ! Allocate copy of field
+  !   call allocate(V_limit, V%dim,V%mesh,trim(V%name)//"Limited")
+  !   call set(V_limit, V)
+  !   call allocate(V_mean, V%dim,V%mesh, trim(V%name)//"LimitMean")
 
-    do ele = 1, ele_count(V)
-       V_ele => ele_nodes(V,ele)
-       do node = 1, size(V_ele)
-          neighs => row_m_ptr(NEList, node)
-          do neigh = 1, size(neighs)
-             ele2 = neighs(neigh)
+  !   ! for each vertex in the mesh store the min and max values of the P1DG
+  !   ! nodes directly surrounding it
+  !   do ele = 1, ele_count(V)
+  !      V_ele => ele_nodes(V,ele)
+  !      V_val = ele_val(V,ele)
+  !      Vbar = sum(V_val,2)/size(V_val,2)
+  !      do node = 1, size(V_ele)
+  !         call set(V_mean, V_ele(node), Vbar)
+  !      end do
+  !   end do
 
-             !rotate mean of ele2 into plane of ele1
-             FLAbort('not done')
+  !   do ele = 1, ele_count(V)
+  !      V_ele => ele_nodes(V,ele)
+  !      do node = 1, size(V_ele)
+  !         neighs => row_m_ptr(NEList, node)
+  !         do neigh = 1, size(neighs)
+  !            ele2 = neighs(neigh)
 
-             !Take 
-             FLAbort('not done')
-          end do
-       end do
+  !            !rotate mean of ele2 into plane of ele1
+  !            FLAbort('not done')
 
-       ! Actually apply limiter
+  !            !Take 
+  !            FLAbort('not done')
+  !         end do
+  !      end do
 
-       FLAbort('not done')
+  !      ! Actually apply limiter
 
-    end do
+  !      FLAbort('not done')
 
-    !Deallocate copy of field
-    call set(V, V_limit)
-    call halo_update(V)
-    call deallocate(V_limit)
-    call deallocate(V_mean)
+  !   end do
 
-  end subroutine limit_vector_bj
+  !   !Deallocate copy of field
+  !   call set(V, V_limit)
+  !   call halo_update(V)
+  !   call deallocate(V_limit)
+  !   call deallocate(V_mean)
+
+  ! end subroutine limit_vector_bj
 
   subroutine limit_fpn(state, t)
 
