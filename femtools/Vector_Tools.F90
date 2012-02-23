@@ -760,7 +760,7 @@ contains
 
   function outside_hull(vector,hull,tol)
     real, dimension(:), intent(in) :: vector
-    real, dimension(:,:), intent(inout) :: hull
+    real, dimension(:,:), intent(in) :: hull
     real, intent(in), optional :: tol
     logical :: outside_hull
     !

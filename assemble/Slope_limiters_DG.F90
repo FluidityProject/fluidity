@@ -38,6 +38,7 @@ use state_fields_module
 use bound_field_module
 use vtk_interfaces
 use transform_elements
+use vector_tools
 implicit none
 
 private
@@ -1580,9 +1581,10 @@ contains
     real, dimension(:), intent(in) :: Ubar, dU
     real, dimension(:,:), intent(in) :: hull
     !
-    integer :: Udim, nhull,i, homehull, ihull, jhull
+    integer :: Udim, nhull,i, homehull, ihull, jhull, info
     real, dimension(size(hull,2)) :: norms
     real, dimension(size(Ubar)) :: vec1,vec2
+    real, dimension(size(Ubar),size(Ubar)) :: A
 
     !Check dimensions of arrays
     Udim = size(Ubar)
@@ -1593,23 +1595,42 @@ contains
     do i = 1, nhull
        norms(i) = norm2(hull(:,i)-dU)
     end do
-    homehull = minarg(norms)
+    homehull = minloc(norms,dim=1)
     assert(minval(norms)<1.0e-10)
 
     alpha = 1.0
-    if(outside_hull(Ubar + dU)) then
+    if(outside_hull(Ubar + dU,hull)) then
        !Need to limit the vector
        !First check that line segment Ubar + alpha*dU 
        !intersects hull
        ihull = mod(homehull,nhull)+1
        jhull = mod(homehull-2,nhull)+1
-       if(isleft(hull
-
-       !First find point of intersection
-       do i = 1, nhull
-          ihull = mod(i-1,nhull)+1
-          
-       end do
+       if(isleft(hull(:,homehull),hull(:,ihull),Ubar + dU).or.&
+            isleft(hull(:,jhull),hull(:,homehull),Ubar + dU)) then
+          !Line segment does not intersect hull
+          alpha = 0.0
+       else
+          !Line Segment does intersect hull
+          !Find intersected edge
+          intersection_search: do i = 1, nhull
+             jhull = mod(i,nhull)+1
+             if(cross_product2(hull(:,jhull)-hull(:,homehull),dU)>0.0) then
+                ihull = mod(i-1,nhull)+1
+                exit intersection_search
+             end if
+          end do intersection_search
+          !Solve for intersection
+          ! solve Ubar + alpha*dU = Pi + beta*(P_{i+1}-Pi)
+          vec1 = Ubar - hull(:,ihull)
+          A(:,1) = dU
+          A(:,2) = hull(:,jhull)-hull(:,ihull)
+          call solve(A,vec1,info)
+          assert((vec1(2).le.1.0))
+          assert((vec1(2).ge.0.0))
+          alpha = vec1(1)
+          assert(alpha.le.1.0)
+          assert(alpha.ge.0.0)
+       end if
     end if
 
     contains 
