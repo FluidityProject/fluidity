@@ -281,6 +281,27 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <scalar_field name="InterstitialVelocityCGCourantNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="PressureMesh"/>
+        <porosity_field_name>Porosity</porosity_field_name>
+        <porosity_temporal_theta>
+          <real_value rank="0">1.0</real_value>
+        </porosity_temporal_theta>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
   </material_phase>
   <porous_media>
     <scalar_field name="Porosity">

@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">advect_tracer_cons_exp_weakbc_hyperc_p1cv_2d</string_value>
+    <string_value lines="1">advect_tracer_cons_exp_weakbc_upwind_p0_2d</string_value>
     <comment>a simple short test case for darcy flow using the element type p0p1_test_cty_cv for velocity-pressure
 
-the darcy velocity is solved for then the tracer is advected using a CV scheme on a continuous mesh.
+the darcy velocity is solved for then the tracer is advected using DG.
 
 it compares the pressure gradient against the analytic, as well as checking that the interstitial velocity is correct 
 
@@ -122,9 +122,18 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
     <finish_time>
       <real_value rank="0">9.0</real_value>
     </finish_time>
-    <final_timestep>
-      <integer_value rank="0">90</integer_value>
-    </final_timestep>
+    <adaptive_timestep>
+      <requested_cfl>
+        <real_value rank="0">0.981639</real_value>
+      </requested_cfl>
+      <courant_number name="InterstitialVelocityCGCourantNumber">
+        <mesh name="CoordinateMesh"/>
+        <porosity_field_name>Porosity</porosity_field_name>
+        <porosity_temporal_theta>
+          <real_value rank="0">0.0</real_value>
+        </porosity_temporal_theta>
+      </courant_number>
+    </adaptive_timestep>
   </timestepping>
   <material_phase name="fluid">
     <vector_field name="Velocity" rank="1">
@@ -146,22 +155,20 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
     </vector_field>
     <scalar_field name="Tracer" rank="0">
       <prognostic>
-        <mesh name="PressureMesh"/>
+        <mesh name="VelocityMesh"/>
         <equation name="AdvectionDiffusion"/>
         <spatial_discretisation>
-          <control_volumes>
-            <face_value name="HyperC">
-              <project_upwind_value_from_point>
-                <reflect_off_domain_boundaries/>
-                <bound_projected_value_locally/>
-                <store_upwind_elements>
-                  <store_upwind_quadrature/>
-                </store_upwind_elements>
-              </project_upwind_value_from_point>
-              <courant_number name="InterstitialVelocityCVCourantNumber"/>
-            </face_value>
-            <diffusion_scheme name="ElementGradient"/>
-          </control_volumes>
+          <discontinuous_galerkin>
+            <advection_scheme>
+              <upwind/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
+            </advection_scheme>
+            <diffusion_scheme>
+              <compact_discontinuous_galerkin/>
+            </diffusion_scheme>
+          </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">1.0</real_value>
           </conservative_advection>
@@ -170,17 +177,32 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
           <theta>
             <real_value rank="0">0.0</real_value>
           </theta>
-          <control_volumes>
+          <discontinuous_galerkin>
             <maximum_courant_number_per_subcycle>
               <real_value rank="0">0.25</real_value>
-              <courant_number name="InterstitialVelocityCVCourantNumber"/>
+              <courant_number name="InterstitialVelocityDGCourantNumber">
+                <porosity_field_name>Porosity</porosity_field_name>
+                <porosity_temporal_theta>
+                  <real_value rank="0">1.0</real_value>
+                </porosity_temporal_theta>
+              </courant_number>
             </maximum_courant_number_per_subcycle>
-            <pivot_theta>
-              <real_value rank="0">0.0</real_value>
-            </pivot_theta>
-          </control_volumes>
+          </discontinuous_galerkin>
         </temporal_discretisation>
-        <explicit/>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-10</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
         <initial_condition name="WholeMesh">
           <constant>
             <real_value rank="0">0.0</real_value>
@@ -225,10 +247,14 @@ NOTE: Because the velocity and pressure are time independent the simulation is b
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="InterstitialVelocityCVCourantNumber" rank="0">
+    <scalar_field name="InterstitialVelocityDGCourantNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="VelocityMesh"/>
+        <porosity_field_name>Porosity</porosity_field_name>
+        <porosity_temporal_theta>
+          <real_value rank="0">0.0</real_value>
+        </porosity_temporal_theta>
         <output/>
         <stat/>
         <convergence>

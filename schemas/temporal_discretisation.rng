@@ -106,6 +106,7 @@ explicit advection subcycling. </a:documentation>
             <a:documentation>Use timestep subcycling to solve this equation.
 Specify the maximum courant number per subcycle.</a:documentation>
             <ref name="real"/>
+            <ref name="dg_field_based_cfl_number_options"/>
           </element>
           <element name="number_advection_subcycles">
             <a:documentation>Use timestep subcycling to solve this equation.
