@@ -31,7 +31,7 @@ module porous_media
    
    !!< Module containing porous media related procedures.
 
-   use global_parameters, only:FIELD_NAME_LEN, current_time, OPTION_PATH_LEN
+   use global_parameters, only: OPTION_PATH_LEN
    use fields
    use state_module
    use futils
@@ -73,13 +73,13 @@ contains
       porosity_new => extract_scalar_field(state, trim(porosity_name), stat = stat)                  
   
       if (stat /=0) then 
-         FLExit('Failed to extract Porosity from state from state to be used for forming the theta averaged porosity field')
+         FLExit('Failed to extract Porosity from state to be used for forming the theta averaged porosity field')
       end if
          
       porosity_old => extract_scalar_field(state, "Old"//trim(porosity_name), stat = stat)
 
       if (stat /=0) then 
-         FLExit('Failed to extract OldPorosity from state from state to be used for forming the theta averaged porosity field')
+         FLExit('Failed to extract OldPorosity from state to be used for forming the theta averaged porosity field')
       end if
          
       call allocate(porosity_theta, porosity_new%mesh)
