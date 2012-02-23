@@ -933,14 +933,14 @@ subroutine gls_diffusivity(state)
     exp2 = 1.5 + gls_m/gls_n
     exp3 =       - 1.0/gls_n
 
-    if (gls_n > 0) then
+    !if (gls_n > 0) then
         do i=1,nNodes
             tke_cur = node_val(tke,i)
             psi_limit = (sqrt(0.56) * tke_cur**(exp2) * (1./sqrt(max(node_val(NN2,i)+1e-10,0.))) &
                         & * cm0**(gls_p / gls_n))**(-gls_n)
             call set(psi,i,max(psi_min,min(node_val(psi,i),psi_limit)))
         end do
-    end if
+    !end if
    
     do i=1,nNodes
 
@@ -1476,6 +1476,15 @@ subroutine gls_buoyancy(state)
         call deallocate(NN2_av)
         call deallocate(inverse_lumpedmass)
     end if
+
+    do i=1,NNodes_sur
+        call set(MM2,top_surface_nodes(i),0.0)
+        call set(NN2, top_surface_nodes(i),0.0)
+    end do
+    do i=1,NNodes_bot
+        call set(MM2,bottom_surface_nodes(i),0.0)
+        call set(NN2, bottom_surface_nodes(i),0.0)
+    end do
 
     call deallocate(NU)
     call deallocate(NV)
