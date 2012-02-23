@@ -39,3 +39,5 @@ clean:
 	rm -f Cubic_Interp.pyc
 	rm -rf $(SIM)_*output
 	rm -f CheckSparsityMatrix.dat
+	rm -rf velocity_projected_*
+	rm -rf ocvn

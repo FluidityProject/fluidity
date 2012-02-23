@@ -51,6 +51,76 @@ regression_difference_max_A = stat("BL_1d_A.stat")["phase1"]["RegressionDifferen
 from fluidity_tools import stat_parser as stat
 regression_difference_max_B = stat("BL_1d_B.stat")["phase1"]["RegressionDifference"]["max"][-1]
     </variable>
+    <variable name="p1_vfrac_max_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_A.stat")
+p1_vfrac_max_A = s["phase1"]["PhaseVolumeFraction"]["max"][-1]
+    </variable>    
+    <variable name="p1_vfrac_min_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_A.stat")
+p1_vfrac_min_A = s["phase1"]["PhaseVolumeFraction"]["min"][-1]
+    </variable>    
+    <variable name="p2_vfrac_max_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_A.stat")
+p2_vfrac_max_A = s["phase2"]["PhaseVolumeFraction"]["max"][-1]
+    </variable>    
+    <variable name="p2_vfrac_min_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_A.stat")
+p2_vfrac_min_A = s["phase2"]["PhaseVolumeFraction"]["min"][-1]
+    </variable>    
+    <variable name="sum_vfrac_max_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_A.stat")
+sum_vfrac_max_A = s["phase2"]["SumPhaseVolumeFraction"]["max"][-1]
+    </variable>    
+    <variable name="sum_vfrac_min_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_A.stat")
+sum_vfrac_min_A = s["phase2"]["SumPhaseVolumeFraction"]["min"][-1]
+    </variable>
+    <variable name="sum_vfrac_integral_A" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_A.stat")
+sum_vfrac_integral_A = s["phase2"]["SumPhaseVolumeFraction"]["integral"][-1]
+    </variable>
+    <variable name="p1_vfrac_max_B" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_B.stat")
+p1_vfrac_max_B = s["phase1"]["PhaseVolumeFraction"]["max"][-1]
+    </variable>    
+    <variable name="p1_vfrac_min_B" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_B.stat")
+p1_vfrac_min_B = s["phase1"]["PhaseVolumeFraction"]["min"][-1]
+    </variable>    
+    <variable name="p2_vfrac_max_B" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_B.stat")
+p2_vfrac_max_B = s["phase2"]["PhaseVolumeFraction"]["max"][-1]
+    </variable>    
+    <variable name="p2_vfrac_min_B" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_B.stat")
+p2_vfrac_min_B = s["phase2"]["PhaseVolumeFraction"]["min"][-1]
+    </variable>    
+    <variable name="sum_vfrac_max_B" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_B.stat")
+sum_vfrac_max_B = s["phase2"]["SumPhaseVolumeFraction"]["max"][-1]
+    </variable>    
+    <variable name="sum_vfrac_min_B" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_B.stat")
+sum_vfrac_min_B = s["phase2"]["SumPhaseVolumeFraction"]["min"][-1]
+    </variable>
+    <variable name="sum_vfrac_integral_B" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("BL_1d_B.stat")
+sum_vfrac_integral_B = s["phase2"]["SumPhaseVolumeFraction"]["integral"][-1]
+    </variable>
   </variables>
   <pass_tests>
     <test name="Assert max absolute analytic_error for mesh A is less than 1.0e-01" language="python">
@@ -70,6 +140,54 @@ assert(abs(regression_difference_max_A) &lt; 1.0e-10)
     </test>
     <test name="Assert max absolute regression difference for mesh B is less than 1.0e-10" language="python">
 assert(abs(regression_difference_max_B) &lt; 1.0e-10)
+    </test>
+    <test name="phase 1 for mesh A has max(vfrac) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
+assert abs(p1_vfrac_max_A - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="phase 1 for mesh A has min(vfrac) in [0.0, 0.0] with tolerance 1.0e-08" language="python">
+assert abs(p1_vfrac_min_A - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="phase 2 for mesh A has max(vfrac) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
+assert abs(p2_vfrac_max_A - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="phase 2 for mesh A has min(vfrac) in [0.0, 0.0] with tolerance 1.0e-08" language="python">
+assert abs(p2_vfrac_min_A - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="Check sum_vfrac_max for mesh A is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_vfrac_max_A - 1.0)
+assert abs(sum_vfrac_max_A - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_vfrac_min for mesh A is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_vfrac_min_A - 1.0)
+assert abs(sum_vfrac_min_A - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_vfrac_integral for mesh A is 4.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_vfrac_integral_A - 4.0)
+assert abs(sum_vfrac_integral_A - 4.0) &lt; 1.0e-08
+    </test>
+    <test name="phase 1 for mesh B has max(vfrac) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
+assert abs(p1_vfrac_max_B - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="phase 1 for mesh B has min(vfrac) in [0.0, 0.0] with tolerance 1.0e-08" language="python">
+assert abs(p1_vfrac_min_B - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="phase 2 for mesh B has max(vfrac) in [0.0, 1.0] with tolerance 1.0e-08" language="python">
+assert abs(p2_vfrac_max_B - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="phase 2 for mesh B has min(vfrac) in [0.0, 0.0] with tolerance 1.0e-08" language="python">
+assert abs(p2_vfrac_min_B - 0.5) &lt; (0.5 + 1.0e-08)
+    </test>
+    <test name="Check sum_vfrac_max for mesh B is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_vfrac_max_B - 1.0)
+assert abs(sum_vfrac_max_B - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_vfrac_min for mesh B is 1.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_vfrac_min_B - 1.0)
+assert abs(sum_vfrac_min_B - 1.0) &lt; 1.0e-08
+    </test>
+    <test name="Check sum_vfrac_integral for mesh B is 4.0 with tolerance 1.0e-08" language="python">
+print 'difference: ',abs(sum_vfrac_integral_B - 4.0)
+assert abs(sum_vfrac_integral_B - 4.0) &lt; 1.0e-08
     </test>
   </pass_tests>
   <warn_tests>
