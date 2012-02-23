@@ -129,61 +129,24 @@
   </physical_parameters>
   <material_phase name="Fluid">
     <vector_field name="Velocity" rank="1">
-      <prognostic>
+      <prescribed>
         <mesh name="VelocityMesh"/>
-        <equation name="ShallowWater"/>
-        <spatial_discretisation>
-          <discontinuous_galerkin>
-            <advection_scheme>
-              <upwind/>
-            </advection_scheme>
-          </discontinuous_galerkin>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <relaxation>
-            <real_value rank="0">1</real_value>
-          </relaxation>
-          <discontinuous_galerkin>
-            <maximum_courant_number_per_subcycle>
-              <real_value rank="0">0.8</real_value>
-            </maximum_courant_number_per_subcycle>
-          </discontinuous_galerkin>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-7</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">2000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
+        <value name="WholeMesh">
           <constant>
             <real_value shape="3" dim1="dim" rank="1">1.0 0.0 0.0</real_value>
           </constant>
-        </initial_condition>
+        </value>
         <output/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
+        <stat>
+          <include_in_stat/>
+        </stat>
         <detectors>
-          <include_in_detectors/>
+          <exclude_from_detectors/>
         </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
+        <adjoint_storage>
+          <exists_in_forward/>
+        </adjoint_storage>
+      </prescribed>
     </vector_field>
     <scalar_field name="LayerThickness" rank="0">
       <prognostic>
@@ -241,6 +204,7 @@
             <diffusion_scheme>
               <compact_discontinuous_galerkin/>
             </diffusion_scheme>
+            <slope_limiter name="Vertex_Based"/>
           </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0</real_value>

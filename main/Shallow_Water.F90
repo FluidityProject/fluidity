@@ -113,6 +113,7 @@
     integer :: ierr
 
     type(vector_field), pointer :: v_field
+    type(scalar_field), pointer :: s_field
     type(mesh_type), pointer :: v_mesh
     type(scalar_field), pointer :: D,D_initial
     !! Mass matrices
@@ -230,6 +231,9 @@
     ! get theta
     call get_option("/timestepping/theta",theta)
 
+    v_field => extract_vector_field(state(1),"Velocity")
+    s_field => extract_scalar_field(state(1),"LayerThickness")
+
     timestep_loop: do
        timestep=timestep+1
        if (simulation_completed(current_time, timestep)) exit timestep_loop
@@ -304,7 +308,6 @@
 #ifdef HAVE_ADJOINT
     call calculate_functional_values(timestep-1)
 #endif
-    call write_diagnostics(state,current_time,dt,timestep)
 
     call deallocate(state)
     call deallocate_transform_cache
@@ -610,7 +613,8 @@
       type(vector_field) :: u_rhs, delta_u, old_u
       type(scalar_field), pointer ::h_projected, passive_tracer, old_passive_tracer
       integer :: nit, d1
-      real :: itheta, energy, sphere_radius
+      real :: itheta, energy, sphere_radius, ltheta
+
       logical :: have_source
       logical, save :: advecting_velocity_set = .false.
       character(len=PYTHON_FUNC_LEN) :: Python_Function
@@ -679,9 +683,10 @@
               &_equation/no_wave_equation_step')) then
             if(hybridized) then
                call solve_linear_timestep_hybridized(&
-                    &state,dt_in=0.5*dt,theta_in=0.0)
+                    &state,dt_in=(1-theta)*dt,theta_in=0.0)
             else
-               call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=0.0)
+               call solve_linear_timestep(state, dt_in=(1-theta)*dt,&
+                    & theta_in=0.0)
             end if
          end if
 
@@ -720,9 +725,9 @@
               &_equation/no_wave_equation_step')) then
             if(hybridized) then
                call solve_linear_timestep_hybridized(&
-                    &state,dt_in=0.5*dt,theta_in=1.0)
+                    &state,dt_in=theta*dt,theta_in=1.0)
             else
-               call solve_linear_timestep(state, dt_in=0.5*dt, theta_in=1.0)
+               call solve_linear_timestep(state, dt_in=theta*dt, theta_in=1.0)
             end if
          end if
          ! advecting velocity in local coordinates
@@ -808,7 +813,8 @@
       type(state_type), intent(inout) :: state
       real, intent(in), optional :: dt_in, theta_in
 
-      type(scalar_field), pointer :: D, delta_d, d_rhs, d_src, md_src
+      type(scalar_field), pointer :: D, delta_d, d_rhs, d_src
+      type(scalar_field) :: md_src
       type(vector_field), pointer :: U, delta_U, u_rhs, source, old_u
       type(block_csr_matrix), pointer :: u_mass_mat, div_mat, coriolis_mat, &
            &inverse_coriolis_mat
@@ -864,24 +870,24 @@
               coriolis_mat,div_mat)
       end if
 
+      ewrite_minmax(u_rhs)      
+
       !Construct explicit parts of h rhs in wave equation
       call get_d_rhs(d_rhs,u_rhs,D,U,div_mat,inverse_big_mat,ldt,ltheta)
 
       if (has_scalar_field(state, "LayerThicknessSource")) then
          d_src => extract_scalar_field(state, "LayerThicknessSource")
-         allocate(md_src)
          call allocate(md_src, d_src%mesh, "MassMatrixTimesLayerThicknessSource")
          call zero(md_src)
          call mult(md_src, h_mass_mat, d_src)
          call addto(d_rhs, md_src, scale=ldt)
          call deallocate(md_src)
-         deallocate(md_src)
       endif
 
       !Solve wave equation for D update
       delta_d%option_path = d%option_path
       call petsc_solve(delta_d, wave_mat, d_rhs)
-      
+
       if(.not. prescribed_velocity) then
 
          !Add the new D contributions into the RHS for u
