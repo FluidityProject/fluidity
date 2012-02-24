@@ -933,14 +933,22 @@ subroutine gls_diffusivity(state)
     exp2 = 1.5 + gls_m/gls_n
     exp3 =       - 1.0/gls_n
 
-    !if (gls_n > 0) then
+    if (gls_n > 0) then
         do i=1,nNodes
             tke_cur = node_val(tke,i)
-            psi_limit = (sqrt(0.56) * tke_cur**(exp2) * (1./sqrt(max(node_val(NN2,i)+1e-10,0.))) &
+            psi_limit = (sqrt(0.56) * tke_cur**(exp2) * (1./sqrt(max(node_val(NN2,i),1e-10))) &
                         & * cm0**(gls_p / gls_n))**(-gls_n)
             call set(psi,i,max(psi_min,min(node_val(psi,i),psi_limit)))
         end do
-    !end if
+    else
+        do i=1,nNodes
+            tke_cur = node_val(tke,i)
+            psi_limit = (sqrt(0.56) * tke_cur**(exp2) * (1./sqrt(max(node_val(NN2,i),1e-10))) &
+                        & * cm0**(gls_p / gls_n))**(-gls_n)
+            call set(psi,i,max(psi_min,max(node_val(psi,i),psi_limit)))
+        end do
+
+    end if
    
     do i=1,nNodes
 
@@ -963,6 +971,7 @@ subroutine gls_diffusivity(state)
         if (gls_n > 0) then
             if (node_val(NN2,i) > 0) then
                 limit = sqrt(0.56 * tke_cur / node_val(NN2,i))
+                write(*,*) limit, node_val(ll,i), node_val(NN2,i)
                 call set(ll,i,min(limit,node_val(ll,i)))
             end if
         end if
@@ -982,14 +991,14 @@ subroutine gls_diffusivity(state)
         call set(K_H,i, relaxation*node_val(K_H,i) + (1-relaxation)*node_val(S_H,i)*x)
     end do
 
-    !do i=1,NNodes_sur
-    !    call set(K_M,top_surface_nodes(i),0.0)
-    !    call set(K_H,top_surface_nodes(i),0.0)
-    !end do
-    !do i=1,NNodes_bot
-    !    call set(K_M,bottom_surface_nodes(i),0.0)
-    !    call set(K_H,bottom_surface_nodes(i),0.0)
-    !end do
+    do i=1,NNodes_sur
+        call set(K_M,top_surface_nodes(i),0.0)
+        call set(K_H,top_surface_nodes(i),0.0)
+    end do
+    do i=1,NNodes_bot
+        call set(K_M,bottom_surface_nodes(i),0.0)
+        call set(K_H,bottom_surface_nodes(i),0.0)
+    end do
 
     ! put KM onto surface fields for Psi_bc
     if (calculate_bcs) then
