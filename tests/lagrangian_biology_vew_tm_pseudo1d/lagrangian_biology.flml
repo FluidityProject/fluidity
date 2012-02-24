@@ -1,0 +1,903 @@
+<?xml version='1.0' encoding='utf-8'?>
+<fluidity_options>
+  <simulation_name>
+    <string_value lines="1">vew_toymodel</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">oceans</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">3</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_mesh>
+        <mesh name="2DMesh"/>
+        <extrude>
+          <regions name="WholeMesh">
+            <bottom_depth>
+              <constant>
+                <real_value rank="0">500</real_value>
+              </constant>
+            </bottom_depth>
+            <sizing_function>
+              <constant>
+                <real_value rank="0">1.0</real_value>
+              </constant>
+            </sizing_function>
+            <top_surface_id>
+              <integer_value rank="0">1</integer_value>
+            </top_surface_id>
+            <bottom_surface_id>
+              <integer_value rank="0">2</integer_value>
+            </bottom_surface_id>
+          </regions>
+        </extrude>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="2DMesh">
+      <from_file file_name="surface">
+        <format name="gmsh"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+      </from_file>
+    </mesh>
+    <mesh name="DGMesh">
+      <from_mesh>
+        <mesh name="VelocityMesh"/>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant>
+        <real_value rank="0">21600</real_value>
+      </constant>
+    </dump_period>
+    <output_mesh name="VelocityMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">1800</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">31536000</real_value>
+    </finish_time>
+  </timestepping>
+  <material_phase name="Water">
+    <subgridscale_parameterisations>
+      <prescribed_diffusivity>
+        <tensor_field name="PrescribedDiffusivity" rank="2">
+          <prescribed>
+            <mesh name="VelocityMesh"/>
+            <value name="WholeMesh">
+              <anisotropic_symmetric>
+                <python>
+                  <string_value lines="20" type="python">global calc_mu, get_layer, read_physics_file, visser_curve
+
+if not persistent.has_key('diffusivity_mld_fh'):
+  persistent['diffusivity_mld_fh'] = open("vew_tm_mld.csv", 'r')
+  persistent['diffusivity_mld_time'] = -1.0
+  
+def get_layer():
+  data = persistent['diffusivity_mld_fh'].readline().split(",")
+  time = float(data[0])
+  layer = float(data[1])
+  return layer, time
+  
+def visser_curve(z):
+  ## Recreate Fig. 1 in Visser, 1997, by using Fig. 3 in Ross and Sharples, 2004
+  z = abs(z)
+  if z &lt;= 40.:
+    z = 40. - z
+    K_z = 0.001 + 0.0136245 * z - 0.00263245 * pow(z,2) + 0.000211875 * pow(z,3) - 0.00000865898 * pow(z,4) + 0.00000017623 * pow(z,5) - 0.00000000140918 * pow(z,6)
+  else:
+    K_z=1e-6
+  return K_z
+    
+def calc_mu(z, layer):
+  interfacewidth=0.0  #30.0
+  mu_MLD=0.3  #0.3
+  if abs(z)&lt;=layer-interfacewidth:
+    mu_Z=mu_MLD
+  elif abs(z)&lt;=layer:
+    beta=(abs(z)-(layer-interfacewidth))/interfacewidth
+    mu_Z=(1-beta)*mu_MLD
+  else:
+    mu_Z=1e-5
+  return mu_Z
+  
+def val(X,t):
+  if t &gt; persistent['diffusivity_mld_time']:
+    layer, time = get_layer()
+    persistent['diffusivity_mld_time'] = time
+    persistent['diffusivity_mld_data'] = layer
+
+  mu=1e-5
+  layer = persistent['diffusivity_mld_data']
+  if abs(X[2]) &lt;= layer:
+    mu = calc_mu(abs(X[2]), layer)
+    #mu = visser_curve(abs(X[0]) * 40. / layer) * 12.
+  return  [[0, 0, 0],[0, 0, 0],[0, 0, mu]]</string_value>
+                </python>
+              </anisotropic_symmetric>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+      </prescribed_diffusivity>
+    </subgridscale_parameterisations>
+    <vector_field name="Velocity" rank="1">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </vector_field>
+    <scalar_field name="Irradiance" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">global read_physics_file
+
+if not persistent.has_key('irradiance_fh'):
+  persistent['irradiance_fh'] = open("vew_tm_temp_irrad.csv" , 'r')
+  persistent['irradiance_time'] = -1.0
+
+def read_physics_file(f):  
+  depth_irrad = {}
+  data = f.readline().split(",")
+  time = float(data[0])
+  nLayers = int(data[1])
+  depth_irrad[float(data[2])] = float(data[4]) # irradiance in column 4
+  for i in range(nLayers-1):
+    data = f.readline().split(",")
+    depth_irrad[float(data[2])] = float(data[4]) # irradiance in column 4
+  return depth_irrad, time
+
+def val(X,t):
+  if t &gt; persistent['irradiance_time']:
+    depth_irrad, time = read_physics_file(persistent['irradiance_fh'])
+    persistent['irradiance_time'] = time
+    persistent['irradiance_data'] = depth_irrad
+  
+  if abs(X[2]) &lt;= 499:
+    z = abs(X[2])
+  else:
+    z = 499
+  return persistent['irradiance_data'][z]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="Temperature" rank="0">
+      <prescribed>
+        <mesh name="VelocityMesh"/>
+        <value name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">global read_physics_file
+
+if not persistent.has_key('temperature_fh'):
+  persistent['temperature_fh'] = open("vew_tm_temp_irrad.csv" , 'r')
+  persistent['temperature_time'] = -1.0
+  
+def read_physics_file(f):
+  depth_temp = {}
+  data = f.readline().split(",")
+  time = float(data[0])
+  nLayers = int(data[1])
+  depth_temp[float(data[2])] = float(data[3]) # temperature in column 3
+  for i in range(nLayers-1):
+    data = f.readline().split(",")
+    depth_temp[float(data[2])] = float(data[3]) # temperature in column 3
+  return depth_temp, time
+
+def val(X,t):
+  if t &gt; persistent['temperature_time']:
+    depth_temp, time = read_physics_file(persistent['temperature_fh'])
+    persistent['temperature_time'] = time
+    persistent['temperature_data'] = depth_temp
+  
+  if abs(X[2]) &lt;= 499:
+    z = abs(X[2])
+  else:
+    z = 499
+  return persistent['temperature_data'][z]</string_value>
+          </python>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
+    <scalar_field name="DissolvedAmmonium" rank="0">
+      <prognostic>
+        <mesh name="DGMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <discontinuous_galerkin>
+            <advection_scheme>
+              <upwind/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
+            </advection_scheme>
+            <diffusion_scheme>
+              <compact_discontinuous_galerkin/>
+            </diffusion_scheme>
+          </discontinuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">1.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">2000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">global z, c_amm
+
+def read_chem_file(filename):  
+  f = open(filename , 'r')
+  ammonium = []
+  depth = []
+  for line in f:
+    data = line.split(",")
+    depth.append(float(data[0]))
+    ammonium.append(float(data[1]))
+  f.close()
+  return depth, ammonium
+
+z, c_amm = read_chem_file("vew_tm_chem_init.csv")
+  
+def val(X,t):
+  from numpy import interp
+  # interpolate to correct t
+  conc = interp(abs(X[2]), z, c_amm)
+  return conc</string_value>
+          </python>
+        </initial_condition>
+        <subgridscale_parameterisation name="prescribed_diffusivity"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="DissolvedNitrate" rank="0">
+      <prognostic>
+        <mesh name="DGMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <discontinuous_galerkin>
+            <advection_scheme>
+              <upwind/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
+            </advection_scheme>
+            <diffusion_scheme>
+              <compact_discontinuous_galerkin/>
+            </diffusion_scheme>
+          </discontinuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">1.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">2000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">global z, c_nit
+
+def read_chem_file(filename):  
+  f = open(filename , 'r')
+  nitrate = []
+  depth = []
+  for line in f:
+    data = line.split(",")
+    depth.append(float(data[0]))
+    nitrate.append(float(data[2])) #Nitrate
+  f.close()
+  return depth, nitrate
+
+z, c_nit = read_chem_file("vew_tm_chem_init.csv")
+  
+def val(X,t):
+  from numpy import interp
+  # interpolate to correct t
+  conc = interp(abs(X[2]), z, c_nit)
+  return conc</string_value>
+          </python>
+        </initial_condition>
+        <subgridscale_parameterisation name="prescribed_diffusivity"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="DissolvedSilicate" rank="0">
+      <prognostic>
+        <mesh name="DGMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <discontinuous_galerkin>
+            <advection_scheme>
+              <upwind/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
+            </advection_scheme>
+            <diffusion_scheme>
+              <compact_discontinuous_galerkin/>
+            </diffusion_scheme>
+          </discontinuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">1.0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1.0e-7</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">2000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">global z, c_sil
+
+def read_chem_file(filename):  
+  f = open(filename , 'r')
+  silicate = []
+  depth = []
+  for line in f:
+    data = line.split(",")
+    depth.append(float(data[0]))
+    silicate.append(float(data[3])) #Silicate
+  f.close()
+  return depth, silicate
+
+z, c_sil = read_chem_file("vew_tm_chem_init.csv")
+  
+def val(X,t):
+  from numpy import interp
+  # interpolate to correct t
+  conc = interp(abs(X[2]), z, c_sil)
+  return conc</string_value>
+          </python>
+        </initial_condition>
+        <subgridscale_parameterisation name="prescribed_diffusivity"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="ScalarDiffusivity" rank="0">
+      <diagnostic>
+        <algorithm name="scalar_python_diagnostic" material_phase_support="single">
+          <string_value lines="20" type="python">K_tensor = state.tensor_fields['PrescribedDiffusivity']
+for n in range(field.node_count):
+  field.set(n, K_tensor[n][-1][-1])</string_value>
+        </algorithm>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+  </material_phase>
+  <embedded_models>
+    <lagrangian_ensemble_biology>
+      <random_seed>
+        <integer_value rank="0">123456789</integer_value>
+      </random_seed>
+      <functional_group name="Diatom">
+        <variables>
+          <state_variable name="Stage"/>
+          <state_variable name="Size">
+            <scalar_field name="Ensemble">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+              <stage_aggregate/>
+            </scalar_field>
+          </state_variable>
+          <chemical_variable name="Ammonium">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+              <stage_aggregate/>
+            </scalar_field>
+            <chemical_field name="DissolvedAmmonium"/>
+            <uptake>
+              <scalar_field name="Request">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+              </scalar_field>
+              <scalar_field name="Depletion">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+              </scalar_field>
+            </uptake>
+            <release>
+              <scalar_field name="Release">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+              </scalar_field>
+            </release>
+          </chemical_variable>
+          <chemical_variable name="Nitrate">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+              <stage_aggregate/>
+            </scalar_field>
+            <chemical_field name="DissolvedNitrate"/>
+            <uptake>
+              <scalar_field name="Request">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+              </scalar_field>
+              <scalar_field name="Depletion">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+              </scalar_field>
+            </uptake>
+          </chemical_variable>
+          <chemical_variable name="Silicate">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+              <stage_aggregate/>
+            </scalar_field>
+            <chemical_field name="DissolvedSilicate"/>
+            <uptake>
+              <scalar_field name="Request">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+              </scalar_field>
+              <scalar_field name="Depletion">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+              </scalar_field>
+            </uptake>
+            <release>
+              <scalar_field name="Release">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+              </scalar_field>
+            </release>
+          </chemical_variable>
+          <chemical_variable name="Carbon">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </chemical_variable>
+          <chemical_variable name="Chlorophyll">
+            <scalar_field name="Particulate">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+          </chemical_variable>
+        </variables>
+        <environment>
+          <field name="Temperature"/>
+          <field name="Irradiance"/>
+          <field name="DissolvedAmmonium"/>
+          <field name="DissolvedNitrate"/>
+          <field name="DissolvedSilicate"/>
+        </environment>
+        <stages>
+          <stage name="Living">
+            <id>
+              <real_value rank="0">1.0</real_value>
+            </id>
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">4000</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value lines="20" type="python">def val(t):
+  from numpy import random, arange, concatenate, reshape
+  # 4000 agents, evenly spaced in [0:200]m
+  x = random.uniform(0., 10., 4000)
+  y = random.uniform(0., 10., 4000)
+  z = arange(-199.975,0.,0.05)
+  return reshape(concatenate((x,y,z)),(3,4000)).T</string_value>
+              </position>
+              <biology>
+                <string_value lines="20" type="python">def val(variables):
+  variables['Size'] = 50000.0
+  variables['Ammonium'] = 2.2e-9
+  variables['Carbon'] = 1.5e-8
+  variables['Chlorophyll'] = 2.7e-9
+  variables['Nitrate'] = 0.0
+  variables['Silicate'] = 1.05E-9
+  variables['AmmoniumUptake'] = 0.0
+  variables['NitrateUptake'] = 0.0
+  variables['SilicateUptake'] = 0.0
+  variables['AmmoniumRelease'] = 0.0
+  variables['SilicateRelease'] = 0.0
+  return variables</string_value>
+              </biology>
+            </initial_state>
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+              <random_walk name="RandomDisplacement">
+                <python>
+                  <string_value lines="20" type="python">from __builtin__ import abs
+from numpy import random
+
+mld = abs(persistent['diffusivity_mld_data'])
+
+def val(position, element, local_coords, dt):
+  v = [random.uniform(0.,10.,1), random.uniform(0.,10.,1), 0.0]
+  
+  z = abs(position[2])
+  if z &lt;= mld:
+    rnd = random.uniform(0.,mld, 1)
+    v[2] = -1. * (rnd - z)
+  return v</string_value>
+                </python>
+              </random_walk>
+              <random_walk name="Sinking">
+                <python>
+                  <string_value lines="20" type="python">def val(position, element, local_coords, dt):
+  return [-0.000011111 * dt]</string_value>
+                </python>
+              </random_walk>
+            </movement>
+            <biology>
+              <python>
+                <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
+
+def val(biovars, env, dt):      
+  bio.update_living_diatom(biovars, env, dt)
+  return biovars</string_value>
+              </python>
+            </biology>
+            <particle_management>
+              <period_in_timesteps>
+                <integer_value rank="0">1</integer_value>
+              </period_in_timesteps>
+              <minimum>
+                <python>
+                  <string_value lines="20" type="python">from __builtin__ import abs
+mld = persistent['diffusivity_mld_data']
+
+def val(X):
+  minimum = 0.2
+  
+  # Outside the prescribed "MLD" we merge down to 1
+  if abs(X[2]) &gt; mld:
+    minimum = 0.02
+  return minimum</string_value>
+                </python>
+              </minimum>
+              <maximum>
+                <constant>
+                  <real_value rank="0">0.4</real_value>
+                </constant>
+              </maximum>
+            </particle_management>
+          </stage>
+          <stage name="Dead">
+            <id>
+              <real_value rank="0">2.0</real_value>
+            </id>
+            <initial_state>
+              <number_of_agents>
+                <integer_value rank="0">0</integer_value>
+              </number_of_agents>
+              <position>
+                <string_value lines="20" type="python">def val(t):
+  return []</string_value>
+              </position>
+              <biology>
+                <string_value lines="20" type="python">def val(variables):
+  variables['Size'] = 50000.0
+  return variables</string_value>
+              </biology>
+            </initial_state>
+            <movement>
+              <subcycles>
+                <integer_value rank="0">1</integer_value>
+              </subcycles>
+              <search_tolerance>
+                <real_value rank="0">1.0e-10</real_value>
+              </search_tolerance>
+              <reflect_on_boundary/>
+              <random_walk name="RandomDisplacement">
+                <python>
+                  <string_value lines="20" type="python">from __builtin__ import abs
+from numpy import random
+
+mld = abs(persistent['diffusivity_mld_data'])
+
+def val(position, element, local_coords, dt):
+  v = [random.uniform(0.,10.,1), random.uniform(0.,10.,1), 0.0]
+  
+  z = abs(position[2])
+  if z &lt;= mld:
+    rnd = random.uniform(0.,mld, 1)
+    v[2] = -1. * (rnd - z)
+  return v</string_value>
+                </python>
+              </random_walk>
+              <random_walk name="Sinking">
+                <python>
+                  <string_value lines="20" type="python">def val(position, element, local_coords, dt):
+  return [-0.000011111 * dt]</string_value>
+                </python>
+              </random_walk>
+            </movement>
+            <biology>
+              <python>
+                <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
+
+def val(biovars, env, dt):
+  bio.update_dead_diatom(biovars, env, dt)
+  return biovars</string_value>
+              </python>
+            </biology>
+            <particle_management>
+              <period_in_timesteps>
+                <integer_value rank="0">1</integer_value>
+              </period_in_timesteps>
+              <minimum>
+                <constant>
+                  <real_value rank="0">0.02</real_value>
+                </constant>
+              </minimum>
+              <maximum>
+                <constant>
+                  <real_value rank="0">0.02</real_value>
+                </constant>
+              </maximum>
+            </particle_management>
+          </stage>
+        </stages>
+        <scalar_field name="Agents">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output/>
+            <stat/>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+          </diagnostic>
+        </scalar_field>
+      </functional_group>
+    </lagrangian_ensemble_biology>
+  </embedded_models>
+</fluidity_options>
