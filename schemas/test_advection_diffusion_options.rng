@@ -5057,29 +5057,6 @@ div velocity
         </choice>
       </element>
       <element name="scalar_field">
-        <a:documentation>Vorticity for a 2D field:
-
- du   dv
- -- - --
- dy   dx</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>Vorticity2D</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
         <a:documentation>Kinetic energy density:
 
  1/2 rho_0*|u|^2
@@ -5243,29 +5220,6 @@ Limitations:
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Local average mesh edge lengths</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>MeshEdgeLengths</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="mesh">
-              <attribute name="name">
-                <value>CoordinateMesh</value>
-              </attribute>
-            </element>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -5524,42 +5478,6 @@ ocean biology is being simulated.</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field_tidal_range"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>MaxFreeSurface</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>MinFreeSurface</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>
@@ -5994,27 +5912,6 @@ ocean biology is being simulated.</a:documentation>
           <element name="diagnostic">
             <ref name="internal_algorithm"/>
             <ref name="mesh_choice"/>
-            <ref name="diagnostic_scalar_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="scalar_field">
-        <a:documentation>Primary production of Phytoplankton. This is calculated by
-the ocean biology module and will not be calculated unless
-ocean biology is being simulated.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>HarmonicPhaseSSa</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
             <ref name="diagnostic_scalar_field"/>
           </element>
           <element name="aliased">
@@ -6513,67 +6410,6 @@ FEMDEM or DEM to the fluid mesh. </a:documentation>
         </choice>
       </element>
       <element name="vector_field">
-        <a:documentation>Calculate the control volume auxiliary gradient for a particular field.
-The related field must be a scalar field in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>ControlVolumeAuxiliaryGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <attribute name="gradient_of_field">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field.
-The related field must be a scalar field in this material_phase.</a:documentation>
-        <attribute name="rank">
-          <value>0</value>
-        </attribute>
-        <attribute name="name">
-          <value>DGAuxiliaryGradient</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <attribute name="gradient_of_field">
-              <data type="string" datatypeLibrary=""/>
-            </attribute>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Experimental geostrophic source field to be used in combination with
-a free surface. Does not solve a vertical balance yet.</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>GeostrophicSource</value>
-        </attribute>
-        <element name="diagnostic">
-          <ref name="internal_algorithm"/>
-          <ref name="mesh_choice"/>
-          <ref name="diagnostic_vector_field"/>
-        </element>
-      </element>
-      <element name="vector_field">
         <a:documentation>Absolute Difference between two vector fields.
 
 Both fields must be in this material_phase.
@@ -6679,25 +6515,6 @@ Note that you need BedShearStress turned on for this to work.</a:documentation>
 applied to the bed shear stress.</a:documentation>
           <ref name="real"/>
         </element>
-      </element>
-      <element name="vector_field">
-        <a:documentation>Displacement</a:documentation>
-        <attribute name="rank">
-          <value>1</value>
-        </attribute>
-        <attribute name="name">
-          <value>Displacement</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_vector_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
       </element>
       <element name="vector_field">
         <a:documentation>Galerkin projection of one field onto another mesh.
@@ -6919,31 +6736,6 @@ in a multimaterial simulation.</a:documentation>
       <element name="___Diagnostic_Fields_Below___">
         <a:documentation>Diagnostic tensor fields below this</a:documentation>
         <empty/>
-      </element>
-      <element name="tensor_field">
-        <a:documentation>From a field on a mesh, diagnose the anisotropic
-interpolation weight that would give the mesh back.
-It is computed as:
-\Eps = M^-1 |H|</a:documentation>
-        <attribute name="rank">
-          <value>2</value>
-        </attribute>
-        <attribute name="name">
-          <value>FieldTolerance</value>
-        </attribute>
-        <choice>
-          <element name="diagnostic">
-            <ref name="internal_algorithm"/>
-            <element name="source_field_name">
-              <data type="string" datatypeLibrary=""/>
-            </element>
-            <ref name="velocity_mesh_choice"/>
-            <ref name="diagnostic_tensor_field"/>
-          </element>
-          <element name="aliased">
-            <ref name="generic_aliased_field"/>
-          </element>
-        </choice>
       </element>
     </choice>
     <!--

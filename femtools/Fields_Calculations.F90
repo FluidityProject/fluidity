@@ -192,25 +192,18 @@ implicit none
 
   end function norm2_scalar
 
-  function norm2_scalar_cv(field, X) result (norm)
-    !!< Return the L2 norm of field:
+  function norm2_scalar_cv(field, cv_mass) result (norm)
+    !!< Return the L2 norm of CV field:
     !!<   /
     !!<   | |field|^2 dV
     !!<   /
     real :: norm
     type(scalar_field), intent(in) :: field
-    !! The positions field associated with field.
-    type(vector_field), intent(in) :: X
+    type(scalar_field), intent(in) :: cv_mass
+    
+    assert(node_count(field)==node_count(cv_mass))
 
-    integer :: ele
-
-    norm=0
-
-    do ele=1, element_count(field)
-       if(element_owned(field, ele)) then
-         norm=norm+norm2_cv(field, X, ele)
-       end if
-    end do
+    norm = dot_product(cv_mass%val, field%val**2)
 
     call allsum(norm)
 
@@ -268,23 +261,15 @@ implicit none
 
   end function integral_vector
 
-  function integral_scalar_cv(field, X) result (integral)
-    !!< Integrate field over its mesh.
+  function integral_scalar_cv(field, cv_mass) result (integral)
+    !!< Integrate CV field over its mesh.
     real :: integral
     type(scalar_field), intent(in) :: field
-    !! The positions field associated with field.
-    type(vector_field), intent(in) :: X
-
-    integer :: ele
-
-    integral=0
-
-    do ele=1, element_count(field)
-       if (element_owned(field, ele)) then
-         integral=integral &
-              +integral_cv(field, X, ele)
-       end if
-    end do
+    type(scalar_field), intent(in) :: cv_mass
+    
+    assert(node_count(field)==node_count(cv_mass))
+    
+    integral = dot_product(cv_mass%val, field%val)
 
     call allsum(integral)
 
@@ -431,11 +416,10 @@ implicit none
 
   end subroutine field_stats_scalar
 
-  subroutine field_cv_stats_scalar(field, X, norm2, integral)
+  subroutine field_cv_stats_scalar(field, cv_mass, norm2, integral)
     !!< Return scalar statistical informaion about field.
-    type(scalar_field) :: field
-    !! Positions field associated with field
-    type(vector_field), optional :: X
+    type(scalar_field), intent(in) :: field
+    type(scalar_field), intent(in) :: cv_mass
     !! L2 norm of the field. This requires positions to be specified as
     !! well.
     real, intent(out), optional :: norm2
@@ -443,20 +427,16 @@ implicit none
     !! well.
     real, intent(out), optional :: integral
     
-    if (present(X).and.present(norm2)) then
+    if (present(norm2)) then
 
-       norm2=norm2_scalar_cv(field, X)
-       
-    elseif (present(norm2)) then
-       FLAbort("Cannot evaluate L2 norm without providing positions field")
+       norm2=norm2_scalar_cv(field, cv_mass)
+
     end if
 
-    if (present(X).and.present(integral)) then
+    if (present(integral)) then
 
-       integral=integral_scalar_cv(field, X)
-       
-    elseif (present(integral)) then
-       FLAbort("Cannot evaluate integral without providing positions field")
+       integral=integral_scalar_cv(field, cv_mass)
+
     end if
 
   end subroutine field_cv_stats_scalar
@@ -510,7 +490,7 @@ implicit none
   end subroutine field_stats_tensor
 
   subroutine field_con_stats_scalar(field, nlfield, error, &
-                                    norm, coordinates)
+                                    norm, coordinates, cv_mass)
     !!< Return scalar convergence informaion about field.
     type(scalar_field), intent(inout) :: field, nlfield
     !! error in the field.
@@ -518,6 +498,7 @@ implicit none
     !! what norm are we working out
     integer, intent(in), optional :: norm
     type(vector_field), intent(in), optional :: coordinates
+    type(scalar_field), intent(in), optional :: cv_mass
     
     type(scalar_field) :: difference
     integer :: l_norm
@@ -542,7 +523,11 @@ implicit none
     case(CONVERGENCE_L2_NORM)
       call field_stats(difference, X=coordinates, norm2=error)
     case(CONVERGENCE_CV_L2_NORM)
-      call field_cv_stats(difference, X=coordinates, norm2=error)
+      if (present(cv_mass)) then
+        call field_cv_stats(difference, cv_mass=cv_mass, norm2=error)
+      else
+        FLAbort('Require cv_mass to calculate field_cv_stats')
+      end if
     case default
       FLAbort("Unknown norm for convergence statistics.")
     end select

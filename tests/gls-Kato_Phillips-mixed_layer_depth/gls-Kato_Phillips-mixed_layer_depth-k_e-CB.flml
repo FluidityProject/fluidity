@@ -1,1014 +1,1017 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
-    <simulation_name>
-        <string_value lines="1">Kato_Phillips-mld-k_e-CB</string_value>
-    </simulation_name>
-    <problem_type>
-        <string_value lines="1">oceans</string_value>
-    </problem_type>
-    <geometry>
-        <dimension>
+  <simulation_name>
+    <string_value lines="1">Kato_Phillips-mld-k_e-CB</string_value>
+  </simulation_name>
+  <problem_type>
+    <string_value lines="1">oceans</string_value>
+  </problem_type>
+  <geometry>
+    <dimension>
+      <integer_value rank="0">2</integer_value>
+    </dimension>
+    <mesh name="CoordinateMesh">
+      <from_file file_name="KatoPhillips-2D-periodic">
+        <format name="triangle"/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <comment>This is a 2D periodic problem</comment>
+      </from_file>
+    </mesh>
+    <mesh name="VelocityMesh">
+      <from_mesh>
+        <mesh name="PeriodicMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PressureMesh">
+      <from_mesh>
+        <mesh name="PeriodicMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="PeriodicMesh">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <periodic_boundary_conditions name="SidesPeriodic">
+          <physical_boundary_ids>
+            <integer_value shape="1" rank="1">10</integer_value>
+          </physical_boundary_ids>
+          <aliased_boundary_ids>
+            <integer_value shape="1" rank="1">9</integer_value>
+          </aliased_boundary_ids>
+          <coordinate_map>
+            <string_value lines="20" type="python">def val(x,t):
+	return [x[0]-250.0,x[1]]</string_value>
+          </coordinate_map>
+        </periodic_boundary_conditions>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="GeostrophicPressureMesh">
+      <from_mesh>
+        <mesh name="PeriodicMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
             <integer_value rank="0">2</integer_value>
-        </dimension>
-        <mesh name="CoordinateMesh">
-            <from_file file_name="KatoPhillips-2D-periodic">
-                <format name="triangle"></format>
-                <stat>
-                    <include_in_stat></include_in_stat>
-                </stat>
-                <comment>This is a 2D periodic problem</comment>
-            </from_file>
-        </mesh>
-        <mesh name="VelocityMesh">
-            <from_mesh>
-                <mesh name="PeriodicMesh"></mesh>
-                <stat>
-                    <exclude_from_stat></exclude_from_stat>
-                </stat>
-            </from_mesh>
-        </mesh>
-        <mesh name="PressureMesh">
-            <from_mesh>
-                <mesh name="PeriodicMesh"></mesh>
-                <stat>
-                    <exclude_from_stat></exclude_from_stat>
-                </stat>
-            </from_mesh>
-        </mesh>
-        <mesh name="PeriodicMesh">
-            <from_mesh>
-                <mesh name="CoordinateMesh"></mesh>
-                <periodic_boundary_conditions name="SidesPeriodic">
-                    <physical_boundary_ids>
-                        <integer_value rank="1" shape="1">10</integer_value>
-                    </physical_boundary_ids>
-                    <aliased_boundary_ids>
-                        <integer_value rank="1" shape="1">9</integer_value>
-                    </aliased_boundary_ids>
-                    <coordinate_map>
-                        <string_value lines="20" type="python">def val(x,t):&#x0A;&#x09;return [x[0]-250.0,x[1]]</string_value>
-                    </coordinate_map>
-                </periodic_boundary_conditions>
-                <stat>
-                    <exclude_from_stat></exclude_from_stat>
-                </stat>
-            </from_mesh>
-        </mesh>
-        <mesh name="GeostrophicPressureMesh">
-            <from_mesh>
-                <mesh name="PeriodicMesh"></mesh>
-                <mesh_shape>
-                    <polynomial_degree>
-                        <integer_value rank="0">2</integer_value>
-                    </polynomial_degree>
-                </mesh_shape>
-                <stat>
-                    <exclude_from_stat></exclude_from_stat>
-                </stat>
-            </from_mesh>
-        </mesh>
-        <quadrature>
-            <degree>
-                <integer_value rank="0">4</integer_value>
-            </degree>
-        </quadrature>
-        <ocean_boundaries>
-            <top_surface_ids>
-                <integer_value rank="1" shape="1">8</integer_value>
-            </top_surface_ids>
-            <bottom_surface_ids>
-                <integer_value rank="1" shape="1">11</integer_value>
-            </bottom_surface_ids>
-            <scalar_field name="DistanceToTop" rank="0">
-                <diagnostic>
-                    <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                    <mesh name="CoordinateMesh"></mesh>
-                    <output></output>
-                    <stat></stat>
-                    <convergence>
-                        <include_in_convergence></include_in_convergence>
-                    </convergence>
-                    <detectors>
-                        <include_in_detectors></include_in_detectors>
-                    </detectors>
-                    <steady_state>
-                        <include_in_steady_state></include_in_steady_state>
-                    </steady_state>
-                </diagnostic>
-            </scalar_field>
-            <scalar_field name="DistanceToBottom" rank="0">
-                <diagnostic>
-                    <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                    <mesh name="CoordinateMesh"></mesh>
-                    <output></output>
-                    <stat></stat>
-                    <convergence>
-                        <include_in_convergence></include_in_convergence>
-                    </convergence>
-                    <detectors>
-                        <include_in_detectors></include_in_detectors>
-                    </detectors>
-                    <steady_state>
-                        <include_in_steady_state></include_in_steady_state>
-                    </steady_state>
-                </diagnostic>
-            </scalar_field>
-        </ocean_boundaries>
-    </geometry>
-    <io>
-        <dump_format>
-            <string_value>vtk</string_value>
-        </dump_format>
-        <dump_period>
+          </polynomial_degree>
+        </mesh_shape>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <quadrature>
+      <degree>
+        <integer_value rank="0">4</integer_value>
+      </degree>
+    </quadrature>
+    <ocean_boundaries>
+      <top_surface_ids>
+        <integer_value shape="1" rank="1">8</integer_value>
+      </top_surface_ids>
+      <bottom_surface_ids>
+        <integer_value shape="1" rank="1">11</integer_value>
+      </bottom_surface_ids>
+      <scalar_field name="DistanceToTop" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+      <scalar_field name="DistanceToBottom" rank="0">
+        <diagnostic>
+          <algorithm name="Internal" material_phase_support="multiple"/>
+          <mesh name="CoordinateMesh"/>
+          <output/>
+          <stat/>
+          <convergence>
+            <include_in_convergence/>
+          </convergence>
+          <detectors>
+            <include_in_detectors/>
+          </detectors>
+          <steady_state>
+            <include_in_steady_state/>
+          </steady_state>
+        </diagnostic>
+      </scalar_field>
+    </ocean_boundaries>
+  </geometry>
+  <io>
+    <dump_format>
+      <string_value>vtk</string_value>
+    </dump_format>
+    <dump_period>
+      <constant>
+        <real_value rank="0">360</real_value>
+        <comment>1 hour</comment>
+      </constant>
+    </dump_period>
+    <output_mesh name="CoordinateMesh"/>
+    <stat/>
+  </io>
+  <timestepping>
+    <current_time>
+      <real_value rank="0">0</real_value>
+    </current_time>
+    <timestep>
+      <real_value rank="0">1</real_value>
+    </timestep>
+    <finish_time>
+      <real_value rank="0">36000</real_value>
+      <comment>36000</comment>
+    </finish_time>
+    <nonlinear_iterations>
+      <integer_value rank="0">2</integer_value>
+    </nonlinear_iterations>
+    <adaptive_timestep>
+      <requested_cfl>
+        <real_value rank="0">1000</real_value>
+      </requested_cfl>
+      <courant_number name="CFLNumber">
+        <mesh name="VelocityMesh"/>
+      </courant_number>
+      <maximum_timestep>
+        <real_value rank="0">30</real_value>
+      </maximum_timestep>
+      <increase_tolerance>
+        <real_value rank="0">1.1</real_value>
+      </increase_tolerance>
+    </adaptive_timestep>
+  </timestepping>
+  <physical_parameters>
+    <gravity>
+      <magnitude>
+        <real_value rank="0">10</real_value>
+      </magnitude>
+      <vector_field name="GravityDirection" rank="1">
+        <prescribed>
+          <mesh name="CoordinateMesh"/>
+          <value name="WholeMesh">
             <constant>
-                <real_value rank="0">360</real_value>
-                <comment>1 hour</comment>
+              <real_value shape="2" dim1="dim" rank="1">0 -1</real_value>
             </constant>
-        </dump_period>
-        <output_mesh name="CoordinateMesh"></output_mesh>
-        <stat></stat>
-    </io>
-    <timestepping>
-        <current_time>
-            <real_value rank="0">0</real_value>
-        </current_time>
-        <timestep>
+          </value>
+          <output/>
+          <stat>
+            <include_in_stat/>
+          </stat>
+          <detectors>
+            <exclude_from_detectors/>
+          </detectors>
+        </prescribed>
+      </vector_field>
+    </gravity>
+  </physical_parameters>
+  <material_phase name="BoussinesqFluid">
+    <equation_of_state>
+      <fluids>
+        <linear>
+          <reference_density>
             <real_value rank="0">1</real_value>
-        </timestep>
-        <finish_time>
-            <real_value rank="0">36000</real_value>
-            <comment>36000</comment>
-        </finish_time>
-        <nonlinear_iterations>
-            <integer_value rank="0">2</integer_value>
-        </nonlinear_iterations>
-        <adaptive_timestep>
-            <requested_cfl>
-                <real_value rank="0">1000</real_value>
-            </requested_cfl>
-            <courant_number name="CFLNumber">
-                <mesh name="VelocityMesh"></mesh>
-            </courant_number>
-            <maximum_timestep>
-                <real_value rank="0">30</real_value>
-            </maximum_timestep>
-            <increase_tolerance>
-                <real_value rank="0">1.1</real_value>
-            </increase_tolerance>
-        </adaptive_timestep>
-    </timestepping>
-    <physical_parameters>
-        <gravity>
-            <magnitude>
-                <real_value rank="0">10</real_value>
-            </magnitude>
-            <vector_field name="GravityDirection" rank="1">
-                <prescribed>
-                    <mesh name="CoordinateMesh"></mesh>
-                    <value name="WholeMesh">
-                        <constant>
-                            <real_value rank="1" shape="2" dim1="dim">0 -1</real_value>
-                        </constant>
-                    </value>
-                    <output></output>
-                    <stat>
-                        <include_in_stat></include_in_stat>
-                    </stat>
-                    <detectors>
-                        <exclude_from_detectors></exclude_from_detectors>
-                    </detectors>
-                </prescribed>
-            </vector_field>
-        </gravity>
-    </physical_parameters>
-    <material_phase name="BoussinesqFluid">
-        <equation_of_state>
-            <fluids>
-                <linear>
-                    <reference_density>
-                        <real_value rank="0">1</real_value>
-                    </reference_density>
-                    <temperature_dependency>
-                        <reference_temperature>
-                            <real_value rank="0">0</real_value>
-                        </reference_temperature>
-                        <thermal_expansion_coefficient>
-                            <real_value rank="0">0.000172</real_value>
-                        </thermal_expansion_coefficient>
-                    </temperature_dependency>
-                    <subtract_out_hydrostatic_level></subtract_out_hydrostatic_level>
-                </linear>
-            </fluids>
-        </equation_of_state>
-        <subgridscale_parameterisations>
-            <GLS>
-                <option>
-                    <string_value>k-epsilon</string_value>
-                </option>
-                <stability_function>
-                    <string_value>Canuto-01-B</string_value>
-                </stability_function>
-                <calculate_boundaries>
-                    <string_value>neumann</string_value>
-                    <top_surface_ids>
-                        <integer_value rank="1" shape="1">8</integer_value>
-                    </top_surface_ids>
-                    <bottom_surface_ids>
-                        <integer_value rank="1" shape="1">11</integer_value>
-                    </bottom_surface_ids>
-                </calculate_boundaries>
-                <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
-                    <prognostic>
-                        <mesh name="VelocityMesh"></mesh>
-                        <equation name="AdvectionDiffusion"></equation>
-                        <spatial_discretisation>
-                            <control_volumes>
-                                <face_value name="FiniteElement">
-                                    <limit_face_value>
-                                        <limiter name="Sweby"></limiter>
-                                    </limit_face_value>
-                                </face_value>
-                                <diffusion_scheme name="ElementGradient"></diffusion_scheme>
-                            </control_volumes>
-                            <conservative_advection>
-                                <real_value rank="0">0</real_value>
-                            </conservative_advection>
-                        </spatial_discretisation>
-                        <temporal_discretisation>
-                            <theta>
-                                <real_value rank="0">0.5</real_value>
-                            </theta>
-                            <control_volumes>
-                                <number_advection_iterations>
-                                    <integer_value rank="0">3</integer_value>
-                                </number_advection_iterations>
-                            </control_volumes>
-                        </temporal_discretisation>
-                        <solver>
-                            <iterative_method name="gmres">
-                                <restart>
-                                    <integer_value rank="0">30</integer_value>
-                                </restart>
-                            </iterative_method>
-                            <preconditioner name="sor"></preconditioner>
-                            <relative_error>
-                                <real_value rank="0">1e-07</real_value>
-                            </relative_error>
-                            <max_iterations>
-                                <integer_value rank="0">1000</integer_value>
-                            </max_iterations>
-                            <never_ignore_solver_failures></never_ignore_solver_failures>
-                            <diagnostics>
-                                <monitors></monitors>
-                            </diagnostics>
-                        </solver>
-                        <initial_condition name="WholeMesh">
-                            <constant>
-                                <real_value rank="0">1e-07</real_value>
-                            </constant>
-                        </initial_condition>
-                        <tensor_field name="Diffusivity" rank="2">
-                            <diagnostic>
-                                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                                <output></output>
-                                <stat>
-                                    <include_in_stat></include_in_stat>
-                                </stat>
-                            </diagnostic>
-                        </tensor_field>
-                        <scalar_field name="Source" rank="0">
-                            <diagnostic>
-                                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                                <output></output>
-                                <stat></stat>
-                                <detectors>
-                                    <include_in_detectors></include_in_detectors>
-                                </detectors>
-                            </diagnostic>
-                        </scalar_field>
-                        <scalar_field name="Absorption" rank="0">
-                            <diagnostic>
-                                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                                <output></output>
-                                <stat></stat>
-                                <detectors>
-                                    <include_in_detectors></include_in_detectors>
-                                </detectors>
-                            </diagnostic>
-                        </scalar_field>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                        <consistent_interpolation></consistent_interpolation>
-                        <minimum_value>
-                            <real_value rank="0">1e-06</real_value>
-                        </minimum_value>
-                    </prognostic>
-                </scalar_field>
-                <scalar_field name="GLSGenericSecondQuantity" rank="0">
-                    <prognostic>
-                        <mesh name="VelocityMesh"></mesh>
-                        <equation name="AdvectionDiffusion"></equation>
-                        <spatial_discretisation>
-                            <control_volumes>
-                                <face_value name="FiniteElement">
-                                    <limit_face_value>
-                                        <limiter name="Sweby"></limiter>
-                                    </limit_face_value>
-                                </face_value>
-                                <diffusion_scheme name="ElementGradient"></diffusion_scheme>
-                            </control_volumes>
-                            <conservative_advection>
-                                <real_value rank="0">0</real_value>
-                            </conservative_advection>
-                        </spatial_discretisation>
-                        <temporal_discretisation>
-                            <theta>
-                                <real_value rank="0">0.5</real_value>
-                            </theta>
-                            <control_volumes>
-                                <number_advection_iterations>
-                                    <integer_value rank="0">3</integer_value>
-                                </number_advection_iterations>
-                            </control_volumes>
-                        </temporal_discretisation>
-                        <solver>
-                            <iterative_method name="gmres">
-                                <restart>
-                                    <integer_value rank="0">30</integer_value>
-                                </restart>
-                            </iterative_method>
-                            <preconditioner name="sor"></preconditioner>
-                            <relative_error>
-                                <real_value rank="0">1e-07</real_value>
-                            </relative_error>
-                            <max_iterations>
-                                <integer_value rank="0">1000</integer_value>
-                            </max_iterations>
-                            <never_ignore_solver_failures></never_ignore_solver_failures>
-                            <diagnostics>
-                                <monitors></monitors>
-                            </diagnostics>
-                        </solver>
-                        <initial_condition name="WholeMesh">
-                            <constant>
-                                <real_value rank="0">1e-08</real_value>
-                            </constant>
-                        </initial_condition>
-                        <tensor_field name="Diffusivity" rank="2">
-                            <diagnostic>
-                                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                                <output></output>
-                                <stat>
-                                    <include_in_stat></include_in_stat>
-                                </stat>
-                            </diagnostic>
-                        </tensor_field>
-                        <scalar_field name="Source" rank="0">
-                            <diagnostic>
-                                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                                <output></output>
-                                <stat></stat>
-                                <detectors>
-                                    <include_in_detectors></include_in_detectors>
-                                </detectors>
-                            </diagnostic>
-                        </scalar_field>
-                        <scalar_field name="Absorption" rank="0">
-                            <diagnostic>
-                                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                                <output></output>
-                                <stat></stat>
-                                <detectors>
-                                    <include_in_detectors></include_in_detectors>
-                                </detectors>
-                            </diagnostic>
-                        </scalar_field>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                        <consistent_interpolation></consistent_interpolation>
-                    </prognostic>
-                </scalar_field>
-                <tensor_field name="GLSBackgroundViscosity" rank="2">
-                    <prescribed>
-                        <mesh name="VelocityMesh"></mesh>
-                        <value name="WholeMesh">
-                            <anisotropic_symmetric>
-                                <constant>
-                                    <real_value rank="2" shape="2 2" symmetric="true" dim2="dim" dim1="dim">100 0 0 1e-06</real_value>
-                                </constant>
-                            </anisotropic_symmetric>
-                        </value>
-                        <output></output>
-                    </prescribed>
-                </tensor_field>
-                <tensor_field name="GLSBackgroundDiffusivity" rank="2">
-                    <prescribed>
-                        <mesh name="VelocityMesh"></mesh>
-                        <value name="WholeMesh">
-                            <anisotropic_symmetric>
-                                <constant>
-                                    <real_value rank="2" shape="2 2" symmetric="true" dim2="dim" dim1="dim">100 0 0 1e-06</real_value>
-                                </constant>
-                            </anisotropic_symmetric>
-                        </value>
-                        <output></output>
-                    </prescribed>
-                </tensor_field>
-                <tensor_field name="GLSEddyViscosityKM" rank="2">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </tensor_field>
-                <tensor_field name="GLSEddyDiffusivityKH" rank="2">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </tensor_field>
-                <scalar_field name="GLSLengthScale" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSBuoyancyFrequency" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSVelocityShear" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSShearProduction" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSBuoyancyProduction" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSDissipationEpsilon" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSStabilityFunctionSM" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSStabilityFunctionSH" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSSource1" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSSource2" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSAbsorption1" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSAbsorption2" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSWallFunction" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSVerticalViscosity" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-                <scalar_field name="GLSVerticalDiffusivity" rank="0">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <mesh name="VelocityMesh"></mesh>
-                        <output></output>
-                        <stat></stat>
-                        <convergence>
-                            <include_in_convergence></include_in_convergence>
-                        </convergence>
-                        <detectors>
-                            <include_in_detectors></include_in_detectors>
-                        </detectors>
-                        <steady_state>
-                            <include_in_steady_state></include_in_steady_state>
-                        </steady_state>
-                    </diagnostic>
-                </scalar_field>
-            </GLS>
-        </subgridscale_parameterisations>
-        <scalar_field name="Density" rank="0">
-            <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                <mesh name="VelocityMesh"></mesh>
-                <output></output>
-                <stat></stat>
-                <convergence>
-                    <include_in_convergence></include_in_convergence>
-                </convergence>
-                <detectors>
-                    <include_in_detectors></include_in_detectors>
-                </detectors>
-                <steady_state>
-                    <include_in_steady_state></include_in_steady_state>
-                </steady_state>
-            </diagnostic>
-        </scalar_field>
-        <vector_field name="Velocity" rank="1">
-            <prognostic>
-                <mesh name="VelocityMesh"></mesh>
-                <equation name="Boussinesq"></equation>
-                <spatial_discretisation>
-                    <continuous_galerkin>
-                        <stabilisation>
-                            <streamline_upwind_petrov_galerkin>
-                                <nu_bar_optimal></nu_bar_optimal>
-                                <nu_scale name="0.5">
-                                    <real_value rank="0" shape="1">0.5</real_value>
-                                </nu_scale>
-                            </streamline_upwind_petrov_galerkin>
-                        </stabilisation>
-                        <mass_terms>
-                            <lump_mass_matrix></lump_mass_matrix>
-                        </mass_terms>
-                        <advection_terms></advection_terms>
-                        <stress_terms>
-                            <tensor_form></tensor_form>
-                        </stress_terms>
-                    </continuous_galerkin>
-                    <conservative_advection>
-                        <real_value rank="0">0</real_value>
-                    </conservative_advection>
-                </spatial_discretisation>
-                <temporal_discretisation>
-                    <theta>
-                        <real_value rank="0">0.5</real_value>
-                    </theta>
-                    <relaxation>
-                        <real_value rank="0">0.5</real_value>
-                    </relaxation>
-                </temporal_discretisation>
-                <solver>
-                    <iterative_method name="gmres">
-                        <restart>
-                            <integer_value rank="0">30</integer_value>
-                        </restart>
-                    </iterative_method>
-                    <preconditioner name="sor"></preconditioner>
-                    <relative_error>
-                        <real_value rank="0">1e-07</real_value>
-                    </relative_error>
-                    <max_iterations>
-                        <integer_value rank="0">1000</integer_value>
-                    </max_iterations>
-                    <never_ignore_solver_failures></never_ignore_solver_failures>
-                    <diagnostics>
-                        <monitors></monitors>
-                    </diagnostics>
-                </solver>
-                <initial_condition name="WholeMesh">
-                    <constant>
-                        <real_value rank="1" shape="2" dim1="dim">0 0</real_value>
-                    </constant>
-                </initial_condition>
-                <boundary_conditions name="topbottom">
-                    <surface_ids>
-                        <integer_value rank="1" shape="2">8 11</integer_value>
-                    </surface_ids>
-                    <type name="dirichlet">
-                        <align_bc_with_cartesian>
-                            <y_component>
-                                <constant>
-                                    <real_value rank="0">0</real_value>
-                                </constant>
-                            </y_component>
-                        </align_bc_with_cartesian>
-                    </type>
-                </boundary_conditions>
-                <boundary_conditions name="wind">
-                    <surface_ids>
-                        <integer_value rank="1" shape="1">11</integer_value>
-                    </surface_ids>
-                    <type name="wind_forcing">
-                        <wind_stress>
-                            <python>
-                                <string_value lines="20" type="python">def val(X, t):&#x0A;   return [1.0e-4,0.0]</string_value>
-                            </python>
-                        </wind_stress>
-                    </type>
-                </boundary_conditions>
-                <tensor_field name="Viscosity" rank="2">
-                    <diagnostic>
-                        <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                        <output></output>
-                        <stat>
-                            <include_in_stat></include_in_stat>
-                        </stat>
-                    </diagnostic>
-                </tensor_field>
-                <output></output>
+          </reference_density>
+          <temperature_dependency>
+            <reference_temperature>
+              <real_value rank="0">0</real_value>
+            </reference_temperature>
+            <thermal_expansion_coefficient>
+              <real_value rank="0">0.000172</real_value>
+            </thermal_expansion_coefficient>
+          </temperature_dependency>
+          <subtract_out_hydrostatic_level/>
+        </linear>
+      </fluids>
+    </equation_of_state>
+    <subgridscale_parameterisations>
+      <GLS>
+        <option>
+          <string_value>k-epsilon</string_value>
+        </option>
+        <stability_function>
+          <string_value>Canuto-01-B</string_value>
+        </stability_function>
+        <calculate_boundaries>
+          <string_value>neumann</string_value>
+          <top_surface_ids>
+            <integer_value shape="1" rank="1">8</integer_value>
+          </top_surface_ids>
+          <bottom_surface_ids>
+            <integer_value shape="1" rank="1">11</integer_value>
+          </bottom_surface_ids>
+        </calculate_boundaries>
+        <scalar_field name="GLSTurbulentKineticEnergy" rank="0">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="AdvectionDiffusion"/>
+            <spatial_discretisation>
+              <control_volumes>
+                <face_value name="FiniteElement">
+                  <limit_face_value>
+                    <limiter name="Sweby"/>
+                  </limit_face_value>
+                </face_value>
+                <diffusion_scheme name="ElementGradient"/>
+              </control_volumes>
+              <conservative_advection>
+                <real_value rank="0">0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+              <control_volumes>
+                <number_advection_iterations>
+                  <integer_value rank="0">3</integer_value>
+                </number_advection_iterations>
+              </control_volumes>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-07</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1e-07</real_value>
+              </constant>
+            </initial_condition>
+            <tensor_field name="Diffusivity" rank="2">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
                 <stat>
-                    <include_in_stat></include_in_stat>
-                    <previous_time_step>
-                        <exclude_from_stat></exclude_from_stat>
-                    </previous_time_step>
-                    <nonlinear_field>
-                        <exclude_from_stat></exclude_from_stat>
-                    </nonlinear_field>
+                  <include_in_stat/>
                 </stat>
-                <convergence>
-                    <include_in_convergence></include_in_convergence>
-                </convergence>
+              </diagnostic>
+            </tensor_field>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
                 <detectors>
-                    <include_in_detectors></include_in_detectors>
+                  <include_in_detectors/>
                 </detectors>
-                <steady_state>
-                    <include_in_steady_state></include_in_steady_state>
-                </steady_state>
-                <consistent_interpolation></consistent_interpolation>
-            </prognostic>
-        </vector_field>
-        <scalar_field name="Temperature" rank="0">
-            <prognostic>
-                <mesh name="VelocityMesh"></mesh>
-                <equation name="AdvectionDiffusion"></equation>
-                <spatial_discretisation>
-                    <continuous_galerkin>
-                        <stabilisation>
-                            <streamline_upwind_petrov_galerkin>
-                                <nu_bar_optimal></nu_bar_optimal>
-                                <nu_scale name="0.5">
-                                    <real_value rank="0" shape="1">0.5</real_value>
-                                </nu_scale>
-                            </streamline_upwind_petrov_galerkin>
-                        </stabilisation>
-                        <advection_terms></advection_terms>
-                        <mass_terms></mass_terms>
-                    </continuous_galerkin>
-                    <conservative_advection>
-                        <real_value rank="0">0</real_value>
-                    </conservative_advection>
-                </spatial_discretisation>
-                <temporal_discretisation>
-                    <theta>
-                        <real_value rank="0">0.5</real_value>
-                    </theta>
-                </temporal_discretisation>
-                <solver>
-                    <iterative_method name="gmres">
-                        <restart>
-                            <integer_value rank="0">30</integer_value>
-                        </restart>
-                    </iterative_method>
-                    <preconditioner name="eisenstat"></preconditioner>
-                    <relative_error>
-                        <real_value rank="0">1e-06</real_value>
-                    </relative_error>
-                    <max_iterations>
-                        <integer_value rank="0">10000</integer_value>
-                    </max_iterations>
-                    <never_ignore_solver_failures></never_ignore_solver_failures>
-                    <diagnostics>
-                        <monitors></monitors>
-                    </diagnostics>
-                </solver>
-                <initial_condition name="WholeMesh">
-                    <python>
-                        <string_value lines="20" type="python">def val(x, t):&#x0A;&#x09;return 13+0.06*x[1]</string_value>
-                    </python>
-                </initial_condition>
-                <subgridscale_parameterisation name="GLS"></subgridscale_parameterisation>
-                <output></output>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Absorption" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
+                <detectors>
+                  <include_in_detectors/>
+                </detectors>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+            <minimum_value>
+              <real_value rank="0">1e-06</real_value>
+            </minimum_value>
+          </prognostic>
+        </scalar_field>
+        <scalar_field name="GLSGenericSecondQuantity" rank="0">
+          <prognostic>
+            <mesh name="VelocityMesh"/>
+            <equation name="AdvectionDiffusion"/>
+            <spatial_discretisation>
+              <control_volumes>
+                <face_value name="FiniteElement">
+                  <limit_face_value>
+                    <limiter name="Sweby"/>
+                  </limit_face_value>
+                </face_value>
+                <diffusion_scheme name="ElementGradient"/>
+              </control_volumes>
+              <conservative_advection>
+                <real_value rank="0">0</real_value>
+              </conservative_advection>
+            </spatial_discretisation>
+            <temporal_discretisation>
+              <theta>
+                <real_value rank="0">0.5</real_value>
+              </theta>
+              <control_volumes>
+                <number_advection_iterations>
+                  <integer_value rank="0">3</integer_value>
+                </number_advection_iterations>
+              </control_volumes>
+            </temporal_discretisation>
+            <solver>
+              <iterative_method name="gmres">
+                <restart>
+                  <integer_value rank="0">30</integer_value>
+                </restart>
+              </iterative_method>
+              <preconditioner name="sor"/>
+              <relative_error>
+                <real_value rank="0">1e-07</real_value>
+              </relative_error>
+              <max_iterations>
+                <integer_value rank="0">1000</integer_value>
+              </max_iterations>
+              <never_ignore_solver_failures/>
+              <diagnostics>
+                <monitors/>
+              </diagnostics>
+            </solver>
+            <initial_condition name="WholeMesh">
+              <constant>
+                <real_value rank="0">1e-8</real_value>
+              </constant>
+            </initial_condition>
+            <tensor_field name="Diffusivity" rank="2">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
                 <stat>
-                    <surface_integral name="NusseltNoT1" type="gradient_normal">
-                        <surface_ids>
-                            <integer_value rank="1" shape="1">30</integer_value>
-                        </surface_ids>
-                    </surface_integral>
-                    <surface_integral name="NusseltNoT0" type="gradient_normal">
-                        <surface_ids>
-                            <integer_value rank="1" shape="1">32</integer_value>
-                        </surface_ids>
-                        <normalise></normalise>
-                    </surface_integral>
-                    <surface_integral name="GradientNormalWholeMesh" type="gradient_normal"></surface_integral>
-                    <include_mixing_stats name="stats">
-                        <control_volumes></control_volumes>
-                        <mixing_bin_bounds>
-                            <constant>
-                                <real_value rank="1" shape="6">0 0.2 0.4 0.6 0.8 1</real_value>
-                            </constant>
-                        </mixing_bin_bounds>
-                    </include_mixing_stats>
+                  <include_in_stat/>
                 </stat>
-                <convergence>
-                    <include_in_convergence></include_in_convergence>
-                </convergence>
+              </diagnostic>
+            </tensor_field>
+            <scalar_field name="Source" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
                 <detectors>
-                    <include_in_detectors></include_in_detectors>
+                  <include_in_detectors/>
                 </detectors>
-                <steady_state>
-                    <include_in_steady_state></include_in_steady_state>
-                </steady_state>
-                <consistent_interpolation></consistent_interpolation>
-            </prognostic>
-        </scalar_field>
-        <scalar_field name="PerturbationDensity" rank="0">
-            <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                <mesh name="VelocityMesh"></mesh>
-                <output></output>
-                <stat></stat>
-                <convergence>
-                    <include_in_convergence></include_in_convergence>
-                </convergence>
+              </diagnostic>
+            </scalar_field>
+            <scalar_field name="Absorption" rank="0">
+              <diagnostic>
+                <algorithm name="Internal" material_phase_support="multiple"/>
+                <output/>
+                <stat/>
                 <detectors>
-                    <include_in_detectors></include_in_detectors>
+                  <include_in_detectors/>
                 </detectors>
-                <steady_state>
-                    <include_in_steady_state></include_in_steady_state>
-                </steady_state>
-            </diagnostic>
+              </diagnostic>
+            </scalar_field>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+            <consistent_interpolation/>
+          </prognostic>
         </scalar_field>
-        <scalar_field name="GeostrophicPressure" rank="0">
-            <prognostic>
-                <mesh name="GeostrophicPressureMesh"></mesh>
-                <spatial_discretisation>
-                    <geostrophic_pressure_option>
-                        <string_value>include_buoyancy</string_value>
-                    </geostrophic_pressure_option>
-                </spatial_discretisation>
-                <solver>
-                    <iterative_method name="cg"></iterative_method>
-                    <preconditioner name="sor"></preconditioner>
-                    <relative_error>
-                        <real_value rank="0">1e-07</real_value>
-                    </relative_error>
-                    <max_iterations>
-                        <integer_value rank="0">5000</integer_value>
-                    </max_iterations>
-                    <remove_null_space></remove_null_space>
-                    <never_ignore_solver_failures></never_ignore_solver_failures>
-                    <diagnostics>
-                        <monitors></monitors>
-                    </diagnostics>
-                </solver>
-                <output></output>
-                <stat></stat>
-                <convergence>
-                    <include_in_convergence></include_in_convergence>
-                </convergence>
-                <detectors>
-                    <include_in_detectors></include_in_detectors>
-                </detectors>
-                <steady_state>
-                    <include_in_steady_state></include_in_steady_state>
-                </steady_state>
-                <consistent_interpolation></consistent_interpolation>
-            </prognostic>
+        <tensor_field name="GLSBackgroundViscosity" rank="2">
+          <prescribed>
+            <mesh name="VelocityMesh"/>
+            <value name="WholeMesh">
+              <anisotropic_symmetric>
+                <constant>
+                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">100 0 0 1e-6</real_value>
+                </constant>
+              </anisotropic_symmetric>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <tensor_field name="GLSBackgroundDiffusivity" rank="2">
+          <prescribed>
+            <mesh name="VelocityMesh"/>
+            <value name="WholeMesh">
+              <anisotropic_symmetric>
+                <constant>
+                  <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">100 0 0 1e-6</real_value>
+                </constant>
+              </anisotropic_symmetric>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
+        <tensor_field name="GLSEddyViscosityKM" rank="2">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </tensor_field>
+        <tensor_field name="GLSEddyDiffusivityKH" rank="2">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </tensor_field>
+        <scalar_field name="GLSLengthScale" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
         </scalar_field>
-        <scalar_field name="CFLNumber" rank="0">
-            <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"></algorithm>
-                <mesh name="VelocityMesh"></mesh>
-                <output></output>
-                <stat></stat>
-                <convergence>
-                    <include_in_convergence></include_in_convergence>
-                </convergence>
-                <detectors>
-                    <include_in_detectors></include_in_detectors>
-                </detectors>
-                <steady_state>
-                    <include_in_steady_state></include_in_steady_state>
-                </steady_state>
-            </diagnostic>
+        <scalar_field name="GLSBuoyancyFrequency" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
         </scalar_field>
-    </material_phase>
+        <scalar_field name="GLSVelocityShear" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSShearProduction" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSBuoyancyProduction" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSDissipationEpsilon" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSStabilityFunctionSM" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSStabilityFunctionSH" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSSource1" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSSource2" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSAbsorption1" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSAbsorption2" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSWallFunction" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSVerticalViscosity" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+        <scalar_field name="GLSVerticalDiffusivity" rank="0">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="VelocityMesh"/>
+            <output/>
+            <stat/>
+            <convergence>
+              <include_in_convergence/>
+            </convergence>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+            <steady_state>
+              <include_in_steady_state/>
+            </steady_state>
+          </diagnostic>
+        </scalar_field>
+      </GLS>
+    </subgridscale_parameterisations>
+    <scalar_field name="Density" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <vector_field name="Velocity" rank="1">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="Boussinesq"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <streamline_upwind_petrov_galerkin>
+                <nu_bar_optimal/>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
+                </nu_scale>
+              </streamline_upwind_petrov_galerkin>
+            </stabilisation>
+            <mass_terms>
+              <lump_mass_matrix/>
+            </mass_terms>
+            <advection_terms/>
+            <stress_terms>
+              <tensor_form/>
+            </stress_terms>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+          <relaxation>
+            <real_value rank="0">0.5</real_value>
+          </relaxation>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1e-07</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">1000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <constant>
+            <real_value shape="2" dim1="dim" rank="1">0 0</real_value>
+          </constant>
+        </initial_condition>
+        <boundary_conditions name="topbottom">
+          <surface_ids>
+            <integer_value shape="2" rank="1">8 11</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <y_component>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </y_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
+        <boundary_conditions name="wind">
+          <surface_ids>
+            <integer_value shape="1" rank="1">11</integer_value>
+          </surface_ids>
+          <type name="wind_forcing">
+            <wind_stress>
+              <python>
+                <string_value lines="20" type="python">def val(X, t):
+   return [1.0e-4]</string_value>
+              </python>
+            </wind_stress>
+          </type>
+        </boundary_conditions>
+        <tensor_field name="Viscosity" rank="2">
+          <diagnostic>
+            <algorithm name="Internal" material_phase_support="multiple"/>
+            <output/>
+            <stat>
+              <include_in_stat/>
+            </stat>
+          </diagnostic>
+        </tensor_field>
+        <output/>
+        <stat>
+          <include_in_stat/>
+          <previous_time_step>
+            <exclude_from_stat/>
+          </previous_time_step>
+          <nonlinear_field>
+            <exclude_from_stat/>
+          </nonlinear_field>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </vector_field>
+    <scalar_field name="Temperature" rank="0">
+      <prognostic>
+        <mesh name="VelocityMesh"/>
+        <equation name="AdvectionDiffusion"/>
+        <spatial_discretisation>
+          <continuous_galerkin>
+            <stabilisation>
+              <streamline_upwind_petrov_galerkin>
+                <nu_bar_optimal/>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
+                </nu_scale>
+              </streamline_upwind_petrov_galerkin>
+            </stabilisation>
+            <advection_terms/>
+            <mass_terms/>
+          </continuous_galerkin>
+          <conservative_advection>
+            <real_value rank="0">0</real_value>
+          </conservative_advection>
+        </spatial_discretisation>
+        <temporal_discretisation>
+          <theta>
+            <real_value rank="0">0.5</real_value>
+          </theta>
+        </temporal_discretisation>
+        <solver>
+          <iterative_method name="gmres">
+            <restart>
+              <integer_value rank="0">30</integer_value>
+            </restart>
+          </iterative_method>
+          <preconditioner name="eisenstat"/>
+          <relative_error>
+            <real_value rank="0">1e-06</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">10000</integer_value>
+          </max_iterations>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="python">def val(x, t):
+	return 13+0.06*x[1]</string_value>
+          </python>
+        </initial_condition>
+        <subgridscale_parameterisation name="GLS"/>
+        <output/>
+        <stat>
+          <surface_integral type="gradient_normal" name="NusseltNoT1">
+            <surface_ids>
+              <integer_value shape="1" rank="1">30</integer_value>
+            </surface_ids>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="NusseltNoT0">
+            <surface_ids>
+              <integer_value shape="1" rank="1">32</integer_value>
+            </surface_ids>
+            <normalise/>
+          </surface_integral>
+          <surface_integral type="gradient_normal" name="GradientNormalWholeMesh"/>
+          <include_mixing_stats name="stats">
+            <control_volumes/>
+            <mixing_bin_bounds>
+              <constant>
+                <real_value shape="6" rank="1">0 0.2 0.4 0.6 0.8 1</real_value>
+              </constant>
+            </mixing_bin_bounds>
+          </include_mixing_stats>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="PerturbationDensity" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="GeostrophicPressure" rank="0">
+      <prognostic>
+        <mesh name="GeostrophicPressureMesh"/>
+        <spatial_discretisation>
+          <geostrophic_pressure_option>
+            <string_value>include_buoyancy</string_value>
+          </geostrophic_pressure_option>
+        </spatial_discretisation>
+        <solver>
+          <iterative_method name="cg"/>
+          <preconditioner name="sor"/>
+          <relative_error>
+            <real_value rank="0">1e-07</real_value>
+          </relative_error>
+          <max_iterations>
+            <integer_value rank="0">5000</integer_value>
+          </max_iterations>
+          <remove_null_space/>
+          <never_ignore_solver_failures/>
+          <diagnostics>
+            <monitors/>
+          </diagnostics>
+        </solver>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+        <consistent_interpolation/>
+      </prognostic>
+    </scalar_field>
+    <scalar_field name="CFLNumber" rank="0">
+      <diagnostic>
+        <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+  </material_phase>
 </fluidity_options>

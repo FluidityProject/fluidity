@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+  <name>2D salt finger triangles</name>
+  <owner userid="fmactavish"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>../../bin/fluidity -v3 -l saltfinger2d_tri.flml </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="final_time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("saltfinger2d_tri.stat")
+final_time = s["ElapsedTime"]["value"][-1]
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="assert no crash" language="python">
+assert abs(final_time-0.04) &lt; 0.0001
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>

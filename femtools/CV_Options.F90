@@ -271,24 +271,24 @@ contains
      character(len=*) :: option_path
 
      if((have_option(trim(complete_cv_field_path(option_path))//&
-                    "/face_value[0]/limit_face_value/limiter[0]&
-                    &/project_upwind_value_from_gradient&
-                    &/project_from_downwind_value")).or.&
+                    &"/face_value[0]/limit_face_value/limiter[0]"//&
+                    &"/project_upwind_value_from_gradient"//&
+                    &"/project_from_downwind_value")).or.&
         (have_option(trim(complete_cv_field_path(option_path))//&
-                    "/face_value[0]&
-                    &/project_upwind_value_from_gradient&
-                    &/project_from_downwind_value"))) then
+                    &"/face_value[0]"//&
+                    &"/project_upwind_value_from_gradient"//&
+                    &"/project_from_downwind_value"))) then
 
        cv_projection_node = CV_DOWNWIND_PROJECTION_NODE
 
      else if((have_option(trim(complete_cv_field_path(option_path))//&
-                    "/face_value[0]/limit_face_value/limiter[0]&
-                    &/project_upwind_value_from_gradient&
-                    &/project_from_donor_value")).or.&
+                    &"/face_value[0]/limit_face_value/limiter[0]"//&
+                    &"/project_upwind_value_from_gradient"//&
+                    &"/project_from_donor_value")).or.&
              (have_option(trim(complete_cv_field_path(option_path))//&
-                    "/face_value[0]&
-                    &/project_upwind_value_from_gradient&
-                    &/project_from_donor_value"))) then
+                    &"/face_value[0]"//&
+                    &"/project_upwind_value_from_gradient"//&
+                    &"/project_from_donor_value"))) then
 
        cv_projection_node = CV_DONOR_PROJECTION_NODE
 

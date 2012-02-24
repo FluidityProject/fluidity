@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE testproblem SYSTEM "regressiontest.dtd">
 <testproblem>
   <name>Shallow Water Equation MMS</name>
   <owner userid="pef"/>
   <tags>swml adjoint optimisation</tags>
   <problem_definition length="medium" nprocs="1">
-    <command_line> time ../../scripts/optimality.py optimiser.oml</command_line>
+    <command_line> time ../../bin/optimality optimiser.oml</command_line>
   </problem_definition>
   <variables>
     <variable name="control_h_error" language="python">

@@ -27,6 +27,9 @@
 
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 FC      = @FC@
 FCFLAGS = -I../include @MOD_FLAG@../include @CPPFLAGS@ @FCFLAGS@ -I/usr/local/include -I./
 
@@ -42,7 +45,7 @@ MAKE    = @MAKE@
 AR  = @AR@
 ARFLAGS = @ARFLAGS@
 
-LIB = ../lib/lib@FLUIDITY@.a
+LIB = ../lib/lib$(FLUIDITY).a
 
 AUTO_WRAPPER = Diagnostic_Fields_New
 DISABLED_DIAGS = $(AUTO_WRAPPER) Diagnostic_Source_Fields Diagnostic_Fields_Interfaces
@@ -72,8 +75,8 @@ default: $(LIB)
 $(addsuffix .o, $(filter-out Diagnostic_Source_Fields, $(basename $(wildcard *.F90)))): Diagnostic_Source_Fields.o
 
 $(AUTO_WRAPPER).F90: $(DIAGOBJS) $(AUTO_WRAPPER).F90.in \
-  ../scripts/make_diagnostic_fields 
-	../scripts/make_diagnostic_fields
+  ../bin/make_diagnostic_fields
+	../bin/make_diagnostic_fields
 
 Diagnostic_Fields_New.o: $(DIAGOBJS) $(AUTO_WRAPPER).F90
 Diagnostic_Fields_Interfaces.o: Diagnostic_Fields_New.o

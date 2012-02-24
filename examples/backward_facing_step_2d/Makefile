@@ -1,48 +1,31 @@
 BIN=../../../bin
-SCRIPTS=../../../scripts
-RE=1290
-JOB=high
-preprocess: 
-	@echo **********Generating a 2D mesh:
-	@$(foreach NN,coarse med fine, \
-		echo **********Installing directory for $(NN) simulation.; \
-		install -d $(RE)-$(JOB)-$(NN); \
-		cd $(RE)-$(JOB)-$(NN); \
-		ln -s ../backward_facing_step_2d-$(RE)-$(JOB)-$(NN).flml .; \
-		echo **********Generating mesh for $(NN) simulation.; \
-		gmsh -2 -optimize -o step2d-$(NN).msh ../src/step2d-$(NN).geo; \
-		$(SCRIPTS)/gmsh2triangle -2 step2d-$(NN).msh ; \
-		cd ..; \
-	)
+preprocess:
+	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make preprocess TYPE=type, where type is reference or kepsilon"; false; fi;
+	echo **********Installing directory for $(TYPE) run:
+	install -d $(TYPE); \
+	cd $(TYPE); \
+	ln -s ../backward_facing_step_2d_kim_$(TYPE).flml .; \
+	echo **********Generating mesh for $(TYPE) simulation.; \
+	gmsh -2 -o step2d-kim-med.msh ../src/step2d-kim-med.geo; \
+	$(BIN)/gmsh2triangle -2 step2d-kim-med.msh; \
+	cd ..
 
 run:
-	@echo **********Running the test on different meshes:
-	@$(foreach NN,coarse med fine, \
-		echo Running $(NN) case; \
-		cd $(RE)-$(JOB)-$(NN); \
-		echo **********Running simulation for $(NN) mesh.; \
-		$(BIN)/fluidity -v2 -l backward_facing_step_2d-$(RE)-$(JOB)-$(NN).flml; \
-		cd ..; \
-	)
+	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make run TYPE=type, where type is reference or kepsilon"; false; fi;
+	@echo **********Running the $(TYPE) simulation:
+	cd $(TYPE) &&  $(BIN)/fluidity -v2 -l backward_facing_step_2d_kim_$(TYPE).flml &&  cd ..
 
 postprocess:
+	@if [ "x" == "x${TYPE}" ]; then echo "**********ERROR: Commandline should be make postprocess TYPE=type, where type is reference or kepsilon"; false; fi;
 	@echo **********Calling the velocity data extraction and reattachment length calculation python script:
-	@$(foreach NN,coarse med fine, \
-		cd $(RE)-$(JOB)-$(NN); \
-		ln -s ../postprocessor_2d.py .; \
-		./postprocessor_2d.py $(RE) $(JOB) $(NN); \
-		cd ..; \
-	)
-
-post-postprocess:
-	./post_postprocessor_2d.py
+	cd $(TYPE); \
+	ln -s ../postprocessor_2d.py .; \
+	./postprocessor_2d.py $(TYPE); \
+	cd ..
 
 input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs
-	@$(foreach NN,coarse med fine, \
-		cd $(RE)-$(JOB)-$(NN); \
-		rm -rf *; \
-		cd ..; \
-	)
+	rm -r kepsilon reference *.pdf
+

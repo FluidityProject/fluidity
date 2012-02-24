@@ -27,6 +27,9 @@
 
 SHELL = @SHELL@
 
+PACKAGE_NAME = @PACKAGE_NAME@
+FLUIDITY = $(PACKAGE_NAME)
+
 MPIF90  = @MPIF90@
 
 CC      = @CC@
@@ -34,7 +37,7 @@ CFLAGS  = @CPPFLAGS@ @CFLAGS@ @JUDY_CFLAGS@ -I../include -I/usr/local/include -I
 
 MAKE    = @MAKE@
 
-LIBS    = -L../lib -l@FLUIDITY@ @LIBS@ @BLAS_LIBS@
+LIBS    = -L../lib -l$(FLUIDITY) @LIBS@ @BLAS_LIBS@
 
 OBJS = JudyHS.o
 

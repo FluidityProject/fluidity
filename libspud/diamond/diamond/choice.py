@@ -58,6 +58,10 @@ class Choice(gobject.GObject):
   def _on_set_attr(self, node, attr, value):
     self.emit("on-set-attr", attr, value)
 
+  def get_attrs(self):
+    """Get all attributes"""
+    return self.get_current_tree().get_attrs()
+
   def set_default_active(self):
     self.active = True
     if self.cardinality == '?' or self.cardinality == '*':

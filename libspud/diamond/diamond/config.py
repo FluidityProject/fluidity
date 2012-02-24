@@ -18,20 +18,41 @@
 import os
 import os.path
 import sys
+import ConfigParser
 
 import debug
 
-homedir = os.path.expanduser('~')
-
-dirs = [os.path.join(homedir, ".diamond", "schemata")]
+dirs = []
 if sys.platform != "win32" and sys.platform != "win64":
-  dirs.append("/etc/diamond/schemata")
+  dirs.append("/usr/share/diamond")
+  dirs.append("/etc/diamond")
+dirs.append(os.path.join(os.path.expanduser('~'), ".diamond"))
+
+config = ConfigParser.SafeConfigParser()
+config.read([os.path.join(path, "settings") for path in reversed(dirs)]) #reversed to load usr last
+
+try:
+  config.add_section("colour")
+except ConfigParser.DuplicateSectionError:
+  pass
+
+def __set_default(option, value):
+  if not config.has_option("colour", option):
+    config.set("colour", option, value)
+
+__set_default("normal", "black")
+__set_default("insert", "green")
+__set_default("delete", "red")
+__set_default("update", "blue")
+__set_default("subupdate", "cornflowerblue")
+__set_default("diffadd", "lightgreen")
+__set_default("diffsub", "indianred")
 
 # Here we hard-code a default for flml
 # so that users don't have to tweak this to run it.
-schemata = {'flml': ('Fluidity markup language', 'http://bazaar.launchpad.net/~fluidity-core/fluidity/4.0-release/download/head:/fluidity_options.rng-20110415014759-hdavpx17hi2vz53z-811/fluidity_options.rng')}
+schemata = {'flml': ('Fluidity markup language', { None: 'http://bazaar.launchpad.net/~fluidity-core/fluidity/4.0-release/download/head:/fluidity_options.rng-20110415014759-hdavpx17hi2vz53z-811/fluidity_options.rng'})}
 
-for dir in dirs:
+for dir in [os.path.join(path, "schemata") for path in dirs]:
   try:
     for file in os.listdir(dir):
       if file[-1] == "~" or file[0] == ".": #skip files like .nfs0000 
@@ -44,29 +65,32 @@ for dir in dirs:
       except:
         debug.deprint("Failure to examine entry " + file + " in folder " + dir + ".")
         continue
-      newSchemata = [x.strip() for x in handle]
-      if len(newSchemata) < 2:
+      lines = [x.strip() for x in handle if x.strip()]
+      if len(lines) < 2:
         debug.deprint("Warning: Found schema registration file \"" + file + "\", but file is improperly formatted - schema type not registered", 0)
         continue
+
       # Expand environment variables in the schema path
-      newSchemata[1] = os.path.expandvars(newSchemata[1])
-      if not os.path.exists(newSchemata[1]) and 'http' not in newSchemata[1]:
-        debug.deprint("Warning: not a valid path: %s" % newSchemata[1], 0)
-        debug.deprint("schema type not registered")
-        continue
-      schemata[file] = tuple(newSchemata)
+      alias = {}
+      for i in range(1, len(lines)):
+        line = lines[i]
+
+        keyvalue = [x.strip() for x in line.split("=")]
+        key, value = ("default", keyvalue[0]) if len(keyvalue) == 1 else keyvalue
+
+        value = os.path.expandvars(value)
+
+        if key in alias:
+          debug.deprint("""alias "%s" already registered, ignoring""" % key)
+        else:
+          alias[key] = value
+          if key == "default":
+            alias[None] = value
+
+      schemata[file] = (lines[0], alias)
       debug.dprint("Registered schema type: " + file)
   except OSError:
     pass
-
-if len(schemata) == 0 and "-s" not in sys.argv:
-  debug.deprint("Error: could not find any registered schemata.", 0)
-  debug.deprint("Have you registered any in one of the directores %s?" % dirs, 0)
-  debug.deprint("To register a schema, place a file in one of those directories, and let its name be the suffix of your language.", 0)
-  debug.deprint("The file should have two lines in it:", 0)
-  debug.deprint(" A Verbal Description Of The Language Purpose", 0)
-  debug.deprint(" /path/to/the/schema/file.rng", 0)
-  sys.exit(1)
 
 if __name__ == "__main__":
   for key in schemata:

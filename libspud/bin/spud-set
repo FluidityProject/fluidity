@@ -40,4 +40,4 @@ child = filter(not_comment, node.getchildren())[0]
 child.text = newval
 
 newfile = open(sys.argv[1], "w")
-tree.write(newfile, encoding="utf8", xml_declaration=True)
+tree.write(newfile, encoding="utf-8", xml_declaration=True)

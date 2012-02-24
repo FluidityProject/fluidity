@@ -215,6 +215,7 @@ module supermesh_construction
     supermesh%name = "Coordinate"
 
     do i=1,j-1
+      deallocate(intersection(i)%mesh%region_ids)
       call deallocate(intersection(i))
     end do
     call finalise_tet_intersector

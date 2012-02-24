@@ -322,7 +322,6 @@ contains
     integer, intent(in) :: ndims
     integer, intent(in), optional :: nstages
 
-    assert(detector%element>0)
     assert(size(detector%position)==ndims)
     assert(size(buff)>=ndims+3)
 
@@ -367,8 +366,6 @@ contains
     detector%element = buff(ndims+1)
     detector%id_number = buff(ndims+2)
     detector%type = buff(ndims+3)
-
-    assert(detector%element>0)
 
     ! Reconstruct element number if global-to-local mapping is given
     if (present(global_to_local)) then

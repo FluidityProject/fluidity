@@ -500,7 +500,11 @@ implicit none
       PetscInt  i,j,II,JJ,m,n,its
       PetscInt  Istart,Iend,ione
       PetscErrorCode ierr
+#if PETSC_VERSION_MINOR==2
+      PetscBool flg
+#else
       PetscTruth  flg
+#endif
       PetscScalar v,one,neg_one
       Vec         x,b,u
       Mat         A 

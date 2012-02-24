@@ -53,6 +53,7 @@ module advection_diffusion_DG
   use sparsity_patterns_meshes
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
+  use porous_media
 
   implicit none
 
@@ -101,6 +102,9 @@ module advection_diffusion_DG
   logical :: include_mass
   ! are we moving the mesh?
   logical :: move_mesh
+
+  ! Include porosity?
+  logical :: include_porosity
 
   ! Stabilisation schemes.
   integer :: stabilisation_scheme
@@ -171,17 +175,17 @@ contains
        lvelocity_name="NonlinearVelocity"
     end if
 
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation&
-         &/discontinuous_galerkin/advection_scheme&
-         &/project_velocity_to_continuous")) then
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/advection_scheme"//&
+         &"/project_velocity_to_continuous")) then
 
        if(.not.has_scalar_field(state, "Projected"//trim(lvelocity_name))) &
             &then
           
           call get_option(trim(T%option_path)&
-               //"/prognostic/spatial_discretisation&
-               &/discontinuous_galerkin/advection_scheme&
-               &/project_velocity_to_continuous/mesh/name",pmesh_name) 
+               //"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/advection_scheme"//&
+               &"/project_velocity_to_continuous/mesh/name",pmesh_name) 
 
           U_nl=>extract_vector_field(state, lvelocity_name)
           pmesh=>extract_mesh(state, pmesh_name)
@@ -204,26 +208,26 @@ contains
     end if
 
 
-    call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &conservative_advection", beta)
+    call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"conservative_advection", beta)
 
     ! by default we assume we're integrating by parts twice
-    integrate_by_parts_once = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/advection_scheme/integrate_advection_by_parts/once")
+    integrate_by_parts_once = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/advection_scheme/integrate_advection_by_parts/once")
 
-    integrate_conservation_term_by_parts = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/advection_scheme/integrate_conservation_term_by_parts")
+    integrate_conservation_term_by_parts = have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/advection_scheme/integrate_conservation_term_by_parts")
 
     ! Determine the scheme to use to discretise diffusivity.
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme/bassi_rebay")) then
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/diffusion_scheme/bassi_rebay")) then
        diffusion_scheme=BASSI_REBAY
-    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme/arbitrary_upwind")) then
+    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/diffusion_scheme/arbitrary_upwind")) then
        diffusion_scheme=ARBITRARY_UPWIND
-    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme&
-         &/compact_discontinuous_galerkin")) then
+    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/"//&
+         &"discontinuous_galerkin/diffusion_scheme"//&
+         &"/compact_discontinuous_galerkin")) then
        !=================Compact Discontinuous Galerkin
        diffusion_scheme=CDG
        !Set the switch vector
@@ -237,111 +241,112 @@ contains
        remove_penalty_fluxes = .true.
        interior_penalty_parameter = 0.0
        if(have_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/compact_discontinuous_galerkin/penalty_parameter")) then
+            &"/prognostic/spatial_discretisation/"//&
+            &"discontinuous_galerkin/diffusion_scheme"//&
+            &"/compact_discontinuous_galerkin/penalty_parameter")) then
           remove_penalty_fluxes = .false.
           edge_length_power = 0.0
           call get_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/penalty_parameter"&
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/penalty_parameter"&
                &,Interior_Penalty_Parameter)
        end if
 
        debugging = have_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/compact_discontinuous_galerkin/debug")
+            &"/prognostic/spatial_discretisation/"//&
+            &"discontinuous_galerkin/diffusion_scheme"//&
+            &"/compact_discontinuous_galerkin/debug")
        CDG_penalty = .true.
        if(debugging) then
           call get_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug/gradient_test_bound",&
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug/gradient_test_bound",&
                &gradient_test_bound)
           remove_element_integral = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug/remove_element_integral")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug/remove_element_integral")
           remove_primal_fluxes = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug/remove_primal_fluxes")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug/remove_primal_fluxes")
           remove_cdg_fluxes = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug/remove_cdg_fluxes")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug/remove_cdg_fluxes")
           
           if (have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/compact_discontinuous_galerkin/debug&
-               &/edge_length_power")) then
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/compact_discontinuous_galerkin/debug"//&
+               &"/edge_length_power")) then
              call get_option(trim(T%option_path)//&
-                  &"/prognostic/spatial_discretisation/&
-                  &discontinuous_galerkin/diffusion_scheme&
-                  &/compact_discontinuous_galerkin/debug&
-                  &/edge_length_power",edge_length_power)
+                  &"/prognostic/spatial_discretisation"//&
+                  &"/discontinuous_galerkin/diffusion_scheme"//&
+                  &"/compact_discontinuous_galerkin/debug"//&
+                  &"/edge_length_power",edge_length_power)
              cdg_penalty = .false.
           end if
        end if
        edge_length_option = USE_FACE_INTEGRALS
 
-    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme&
-         &/interior_penalty")) then
+    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/diffusion_scheme"//&
+         &"/interior_penalty")) then
        remove_penalty_fluxes = .false.
        diffusion_scheme=IP
        CDG_penalty = .false.
-       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/interior_penalty/penalty_parameter",Interior_Penalty_Parameter)
+       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/diffusion_scheme"//&
+            &"/interior_penalty/penalty_parameter",Interior_Penalty_Parameter)
        call get_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/interior_penalty/edge_length_power",edge_length_power)
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/diffusion_scheme"//&
+            &"/interior_penalty/edge_length_power",edge_length_power)
        edge_length_option = USE_FACE_INTEGRALS
        if(have_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/interior_penalty/edge_length_option/use_element_centres")) &
-            & edge_length_option = USE_ELEMENT_CENTRES
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/diffusion_scheme"//&
+            &"/interior_penalty/edge_length_option/use_element_centres")) then
+            edge_length_option = USE_ELEMENT_CENTRES
+       end if
        debugging = have_option(trim(T%option_path)//&
-            &"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/diffusion_scheme&
-            &/interior_penalty/debug")
+            &"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/diffusion_scheme"//&
+            &"/interior_penalty/debug")
        remove_element_integral = .false.
        remove_primal_fluxes = .false.
        if(debugging) then
           call get_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/interior_penalty/debug/gradient_test_bound",gradient_test_bound)
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/interior_penalty/debug/gradient_test_bound",gradient_test_bound)
           remove_element_integral = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/interior_penalty/debug/remove_element_integral")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/interior_penalty/debug/remove_element_integral")
           remove_primal_fluxes = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/interior_penalty/debug/remove_primal_fluxes")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/interior_penalty/debug/remove_primal_fluxes")
           remove_penalty_fluxes = have_option(trim(T%option_path)//&
-               &"/prognostic/spatial_discretisation/&
-               &discontinuous_galerkin/diffusion_scheme&
-               &/interior_penalty/debug/remove_penalty_fluxes")
+               &"/prognostic/spatial_discretisation"//&
+               &"/discontinuous_galerkin/diffusion_scheme"//&
+               &"/interior_penalty/debug/remove_penalty_fluxes")
        end if
-    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme&
-         &/masslumped_rt0")) then
+    else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/diffusion_scheme"//&
+         &"/masslumped_rt0")) then
        diffusion_scheme=MASSLUMPED_RT0
        if (have_option(trim(T%option_path)//&
          &"/prognostic/spatial_discretisation/discontinuous_galerkin/diffusion_scheme/masslumped_rt0/arbogast"&
          &)) then
          rt0_masslumping_scheme=RT0_MASSLUMPING_ARBOGAST
-       else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/diffusion_scheme&
-         &/masslumped_rt0/circumcentred")) then
+       else if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/diffusion_scheme"//&
+         &"/masslumped_rt0/circumcentred")) then
          rt0_masslumping_scheme=RT0_MASSLUMPING_CIRCUMCENTRED
        else
          FLAbort("Unknown rt0 masslumping for P0 diffusion.")
@@ -351,15 +356,15 @@ contains
     end if
 
     ! Vertical mixing by diffusion
-    have_buoyancy_adjustment_by_vertical_diffusion=have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/by_vertical_diffusion")    
+    have_buoyancy_adjustment_by_vertical_diffusion=have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/by_vertical_diffusion")
 
     if (have_option(trim(T%option_path)//&
-         "/prognostic/temporal_discretisation/discontinuous_galerkin/&
-         &/number_advection_subcycles")) then
+         &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+         &"/number_advection_subcycles")) then
        call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
     else if (have_option(trim(T%option_path)//&
-         "/prognostic/temporal_discretisation/discontinuous_galerkin/&
-         &/maximum_courant_number_per_subcycle")) then
+         &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+         &"/maximum_courant_number_per_subcycle")) then
        call solve_advection_diffusion_dg_subcycle(field_name, state, lvelocity_name)
     else
        call solve_advection_diffusion_dg_theta(field_name, state, lvelocity_name)
@@ -482,6 +487,9 @@ contains
 
     character(len=FIELD_NAME_LEN) :: limiter_name
     integer :: i
+    
+    !! Courant number field name used for temporal subcycling
+    character(len=FIELD_NAME_LEN) :: Courant_number_name
 
     T=>extract_scalar_field(state, field_name)
     T_old=>extract_scalar_field(state, "Old"//field_name)
@@ -532,19 +540,27 @@ contains
     call get_option("/timestepping/timestep", dt)
     
     if(have_option(trim(T%option_path)//&
-         &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-         &/number_advection_subcycles")) then
+         &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+         &"/number_advection_subcycles")) then
        call get_option(trim(T%option_path)//&
-            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-            &/number_advection_subcycles", subcycles)
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/number_advection_subcycles", subcycles)
     else
        call get_option(trim(T%option_path)//&
-            &"/prognostic/temporal_discretisation/discontinuous_galerkin/&
-            &/maximum_courant_number_per_subcycle", Max_Courant_number)
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/maximum_courant_number_per_subcycle", Max_Courant_number)
        
-       s_field => extract_scalar_field(state, "DG_CourantNumber")
-       call calculate_diagnostic_variable(state, "DG_CourantNumber", &
-            & s_field)
+       ! Determine the courant field to use to find the max
+       call get_option(trim(T%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/maximum_courant_number_per_subcycle/courant_number/name", &
+            &Courant_number_name, default="DG_CourantNumber")
+       
+       s_field => extract_scalar_field(state, trim(Courant_number_name))
+       call calculate_diagnostic_variable(state, trim(Courant_number_name), &
+            & s_field, option_path=trim(T%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/courant_number")
        
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
        call allmax(subcycles)
@@ -552,8 +568,8 @@ contains
     end if
 
     limit_slope=.false.
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/slope_limiter")) then
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+         &"/discontinuous_galerkin/slope_limiter")) then
        limit_slope=.true.
        
        ! Note unsafe for mixed element meshes
@@ -561,8 +577,8 @@ contains
           FLExit("Slope limiters make no sense for degree 0 fields")
        end if
 
-       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-            &discontinuous_galerkin/slope_limiter/name",limiter_name)
+       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation"//&
+            &"/discontinuous_galerkin/slope_limiter/name",limiter_name)
 
        select case(trim(limiter_name))
        case("Cockburn_Shu")
@@ -713,6 +729,12 @@ contains
     integer, dimension(:), allocatable :: bc_type
 
     type(mesh_type), pointer :: mesh_cg
+    
+    ! Porosity field
+    type(scalar_field) :: porosity_theta
+    
+    !! Add the Source directly to the right hand side?
+    logical :: add_src_directly_to_rhs
 
     ewrite(1,*) "Writing advection-diffusion equation for "&
          &//trim(field_name)
@@ -748,9 +770,9 @@ contains
 
     on_sphere = have_option('/geometry/spherical_earth/')
 
-    if (.not.have_option(trim(T%option_path)//"/prognostic&
-         &/spatial_discretisation/discontinuous_galerkin&
-         &/advection_scheme/none")) then
+    if (.not.have_option(trim(T%option_path)//"/prognostic"//&
+         &"/spatial_discretisation/discontinuous_galerkin"//&
+         &"/advection_scheme/none")) then
        U_nl_backup=extract_vector_field(state, lvelocity_name)
        call incref(U_nl_backup)
        include_advection=.true.
@@ -767,9 +789,9 @@ contains
     end if
 
     flux_scheme=UPWIND_FLUX
-    if (have_option(trim(T%option_path)//"/prognostic&
-         &/spatial_discretisation/discontinuous_galerkin&
-         &/advection_scheme/lax_friedrichs")) then
+    if (have_option(trim(T%option_path)//"/prognostic"//&
+         &"/spatial_discretisation/discontinuous_galerkin"//&
+         &"/advection_scheme/lax_friedrichs")) then
        flux_scheme=LAX_FRIEDRICHS_FLUX
     end if
 
@@ -796,9 +818,19 @@ contains
        call allocate(Source, T%mesh, trim(field_name)//"Source",&
             FIELD_TYPE_CONSTANT)
        call zero(Source)
+       
+       add_src_directly_to_rhs = .false.
     else
        ! Grab an extra reference to cause the deallocate below to be safe.
        call incref(Source)
+      
+       add_src_directly_to_rhs = have_option(trim(Source%option_path)//'/diagnostic/add_directly_to_rhs')
+      
+       if (add_src_directly_to_rhs) then 
+          ewrite(2, *) "Adding Source field directly to the right hand side"
+          assert(node_count(Source) == node_count(T))
+       end if
+
     end if
 
     Absorption=extract_scalar_field(state, trim(field_name)//"Absorption"&
@@ -824,6 +856,18 @@ contains
        include_advection=.true.
     end if
 
+    ! Porosity
+    if (have_option(trim(T%option_path)//'/prognostic/porosity')) then
+       include_porosity = .true.
+
+       ! get the porosity theta averaged field - this will allocate it
+       call form_porosity_theta(porosity_theta, state, option_path = trim(T%option_path)//'/prognostic/porosity')       
+    else
+       include_porosity = .false.
+       call allocate(porosity_theta, T%mesh, field_type=FIELD_TYPE_CONSTANT)
+       call set(porosity_theta, 1.0)
+    end if
+
     ! Retrieve scalar options from the options dictionary.
     if (.not.semi_discrete) then
        call get_option(trim(T%option_path)//&
@@ -841,6 +885,9 @@ contains
            
     move_mesh = (have_option("/mesh_adaptivity/mesh_movement").and.include_mass)
     if(move_mesh) then
+      if (include_porosity) then
+         FLExit('Cannot include porosity in DG advection diffusion of a field with a moving mesh')
+      end if
       ewrite(2,*) 'Moving mesh'
       X_old => extract_vector_field(state, "OldCoordinate")
       X_new => extract_vector_field(state, "IteratedCoordinate")
@@ -853,8 +900,8 @@ contains
     end if
     
     ! Switch on upwind stabilisation if requested.
-    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
-         &discontinuous_galerkin/upwind_stabilisation")) then
+    if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation"&
+         &"/discontinuous_galerkin/upwind_stabilisation")) then
        stabilisation_scheme=UPWIND
        if(move_mesh) then
           FLExit("Haven't thought about how mesh movement works with stabilisation yet.")
@@ -883,8 +930,8 @@ contains
     if (present(diffusion_m)) call zero(diffusion_m)
     if (present(diffusion_RHS)) call zero(diffusion_RHS)
     if (have_buoyancy_adjustment_by_vertical_diffusion) then
-      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment/&
-          &by_vertical_diffusion/project_buoyancy_to_continuous_space")) then    
+      if (have_option(trim(T%option_path)//"/prognostic/buoyancy_adjustment"&
+          &"/by_vertical_diffusion/project_buoyancy_to_continuous_space")) then    
         buoyancy_from_state = extract_scalar_field(state, "VelocityBuoyancyDensity", stat)
         if (stat/=0) FLAbort('Error extracting buoyancy field.')
 
@@ -905,7 +952,7 @@ contains
       call get_option("/physical_parameters/gravity/magnitude", gravity_magnitude)
     
       if (have_option(trim(T%option_path)//&
-          &"/prognostic/buoyancy_adjustment/by_vertical_diffusion/amplitude")) then    
+          &"/prognostic/buoyancy_adjustment/by_vertical_diffusion/amplitude")) then
         call get_option(trim(T%option_path)//&
           &"/prognostic/buoyancy_adjustment/by_vertical_diffusion/amplitude", &
           &mixing_diffusion_amplitude) 
@@ -920,10 +967,15 @@ contains
        
        call construct_adv_diff_element_dg(ele, big_m, rhs, big_m_diff,&
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
-            Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
-            & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude) 
+            & Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
+            & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
+            & add_src_directly_to_rhs, porosity_theta) 
        
     end do element_loop
+
+    ! Add the source directly to the rhs if required 
+    ! which must be included before dirichlet BC's.
+    if (add_src_directly_to_rhs) call addto(rhs, Source)
     
     ! Drop any extra field references.
     if (have_buoyancy_adjustment_by_vertical_diffusion) call deallocate(buoyancy)
@@ -933,7 +985,8 @@ contains
     call deallocate(U_nl)
     call deallocate(U_nl_backup)
     call deallocate(bc_value)
-
+    call deallocate(porosity_theta)
+    
   end subroutine construct_advection_diffusion_dg
 
   subroutine lumped_mass_galerkin_projection_scalar(state, field, projected_field)
@@ -1029,7 +1082,8 @@ contains
        & rhs_diff, &
        & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
        & bc_value, bc_type, &
-       & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude)
+       & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
+       & add_src_directly_to_rhs, porosity_theta)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -1056,6 +1110,13 @@ contains
     type(scalar_field), intent(in) :: T, Source, Absorption
     !! Diffusivity
     type(tensor_field), intent(in) :: Diffusivity
+    
+    !! If adding Source directly to rhs then
+    !! do nothing with it here
+    logical, intent(in) :: add_src_directly_to_rhs
+    
+    !! Porosity theta averaged field
+    type(scalar_field), intent(in) :: porosity_theta
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -1202,7 +1263,7 @@ contains
       assert(ele_loc(U_mesh, ele)==ele_loc(X, ele))
       assert(ele_ngi(U_mesh, ele)==ele_ngi(U_nl, ele))
     end if
-
+    
     dg=continuity(T)<0
     primal = .not.dg
     if(diffusion_scheme == CDG) primal = .true.
@@ -1351,7 +1412,12 @@ contains
     if(move_mesh) then
       mass_mat = shape_shape(T_shape, T_shape, detwei_new)
     else
-      mass_mat = shape_shape(T_shape, T_shape, detwei)
+      if (include_porosity) then
+        assert(ele_ngi(T, ele)==ele_ngi(porosity_theta, ele))
+        mass_mat = shape_shape(T_shape, T_shape, detwei*ele_val_at_quad(porosity_theta, ele))      
+      else
+        mass_mat = shape_shape(T_shape, T_shape, detwei)
+      end if
     end if
 
     if (include_advection) then
@@ -1512,9 +1578,11 @@ contains
     end if
 
     ! Source term
-    l_T_rhs=l_T_rhs &
-         + shape_rhs(T_shape, detwei*ele_val_at_quad(Source, ele))
-         
+    if (.not. add_src_directly_to_rhs) then
+       l_T_rhs=l_T_rhs &
+              + shape_rhs(T_shape, detwei*ele_val_at_quad(Source, ele))
+    end if
+        
     if(move_mesh) then
       l_T_rhs=l_T_rhs &
          -shape_rhs(T_shape, ele_val_at_quad(t, ele)*(detwei_new-detwei_old)/dt)

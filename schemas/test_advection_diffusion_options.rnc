@@ -4258,26 +4258,6 @@ scalar_field_choice =
                }
             )
          }|
-
-         ## Vorticity for a 2D field:
-         ##
-         ##  du   dv
-         ##  -- - --
-         ##  dy   dx
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "Vorticity2D" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
          
          ## Kinetic energy density:
          ##
@@ -4415,23 +4395,6 @@ scalar_field_choice =
               element diagnostic {
                   internal_algorithm,
                   velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|         
-         ## Local average mesh edge lengths
-         element scalar_field {
-          attribute rank { "0" },
-            attribute name { "MeshEdgeLengths" },
-            (
-              element diagnostic {
-                  internal_algorithm,
-                  element mesh {
-                     attribute name { "CoordinateMesh" }
-                  },
                   diagnostic_scalar_field
                }|
                element aliased {
@@ -4631,34 +4594,6 @@ scalar_field_choice =
                   internal_algorithm,
                   velocity_mesh_choice,
                   diagnostic_scalar_field_tidal_range
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "MaxFreeSurface" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "MinFreeSurface" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  diagnostic_scalar_field
                }|
                element aliased {
                   generic_aliased_field
@@ -4997,23 +4932,6 @@ scalar_field_choice =
                element diagnostic {
                   internal_algorithm,
                   mesh_choice,
-                  diagnostic_scalar_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Primary production of Phytoplankton. This is calculated by
-         ## the ocean biology module and will not be calculated unless
-         ## ocean biology is being simulated.
-         element scalar_field {
-            attribute rank { "0" },
-            attribute name { "HarmonicPhaseSSa" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
                   diagnostic_scalar_field
                }|
                element aliased {
@@ -5420,53 +5338,6 @@ vector_field_choice =
                 }
              )
          }|
-         ## Calculate the control volume auxiliary gradient for a particular field.
-         ## The related field must be a scalar field in this material_phase.
-         element vector_field {
-            attribute rank { "0" },
-            attribute name { "ControlVolumeAuxiliaryGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  attribute gradient_of_field { string },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Calculate the dg (Bassi Rebay) auxiliary gradient for a particular field.
-         ## The related field must be a scalar field in this material_phase.
-         element vector_field {
-            attribute rank { "0" },
-            attribute name { "DGAuxiliaryGradient" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  velocity_mesh_choice,
-                  attribute gradient_of_field { string },
-                  diagnostic_vector_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
-         }|
-         ## Experimental geostrophic source field to be used in combination with
-         ## a free surface. Does not solve a vertical balance yet.
-         element vector_field {
-            attribute rank { "1" },
-            attribute name { "GeostrophicSource" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  mesh_choice,
-                  diagnostic_vector_field
-               }
-            )
-         }|
 
          ## Absolute Difference between two vector fields.
          ##
@@ -5550,22 +5421,6 @@ vector_field_choice =
             element spin_up_time {
                real
             }
-         }|
-
-         ## Displacement
-         element vector_field {
-             attribute rank { "1" },
-             attribute name { "Displacement" },
-             (
-                element diagnostic {
-                   internal_algorithm,
-                   velocity_mesh_choice,
-                   diagnostic_vector_field
-                }|
-                element aliased {
-                   generic_aliased_field
-                }
-             )
          }|
          ## Galerkin projection of one field onto another mesh.
          ##
@@ -5751,25 +5606,6 @@ tensor_field_choice =
          ## Diagnostic tensor fields below this
          element ___Diagnostic_Fields_Below___ {
             empty
-         }|
-         ## From a field on a mesh, diagnose the anisotropic
-         ## interpolation weight that would give the mesh back.
-         ## It is computed as:
-         ## \Eps = M^-1 |H|
-         element tensor_field {
-            attribute rank { "2" },
-            attribute name { "FieldTolerance" },
-            (
-               element diagnostic {
-                  internal_algorithm,
-                  element source_field_name { string },
-                  velocity_mesh_choice,
-                  diagnostic_tensor_field
-               }|
-               element aliased {
-                  generic_aliased_field
-               }
-            )
          }
 
 # Insert new diagnostic tensor field here using the template:

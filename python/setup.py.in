@@ -15,8 +15,9 @@ setup(
       author = "The ICOM team",
       author_email = "patrick.farrell06@imperial.ac.uk",
       url = "http://amcg.ese.ic.ac.uk",
-      packages = ['fluidity'],
-      package_dir = {'fluidity': 'fluidity'}
+      packages = ['fluidity', 'fluidity.diagnostics'],
+      package_dir = {'fluidity': 'fluidity'},
+      py_modules = ['fluidity_tools', 'vtktools']
      )
 
 

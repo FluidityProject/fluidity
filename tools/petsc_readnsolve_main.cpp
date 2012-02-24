@@ -40,7 +40,11 @@ void usage(int argc, char **argv){
   char flml_extension[]=".flml";
   char *flml_file=NULL;
   PetscErrorCode ierr;
+#if PETSC_VERSION_MINOR==2
+  PetscBool      flg;
+#else
   PetscTruth     flg;
+#endif
   
   // if it's already specified as a PETSc option, we do nothing:
   ierr = PetscOptionsHasName("prns_","-flml",&flg);

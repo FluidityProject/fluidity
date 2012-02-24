@@ -479,4 +479,4 @@
 478 241 62 242 28
 479 242 62 7 28
 480 242 7 63 28
-# Produced by: ../../scripts/gmsh2triangle src/square-cavity.msh
+# Produced by: ../../bin/gmsh2triangle src/square-cavity.msh

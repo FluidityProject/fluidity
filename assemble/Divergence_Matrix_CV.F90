@@ -403,7 +403,7 @@ contains
   
             if((present(ct_rhs)).and.(field_bc_type(dim, sele)==BC_TYPE_WEAKDIRICHLET)) then
   
-              call addto(ct_rhs, test_nodes_bdy, ct_rhs_local)
+              call addto(ct_rhs, test_nodes_bdy, ct_rhs_local(:))
   
             elseif(l_get_ct) then
   

@@ -448,18 +448,19 @@ contains
     ! NOT a tensor here. Alpha is a scaling constant for the mesh size tensor.
     real :: alpha
     type(scalar_field), pointer :: source_field
-    type(vector_field), pointer :: positions
+    type(vector_field), pointer :: positions, velocity
 
     ewrite(1, *) "In calculate_helmholtz_anisotropic_smoothed_scalar"
 
-    positions       => extract_vector_field(state, "Coordinate")
+    positions => extract_vector_field(state, "Coordinate")
+    velocity  => extract_vector_field(state, "Velocity")
     source_field => scalar_source_field(state, s_field, allocated = allocated)
 
     path = trim(complete_field_path(s_field%option_path)) // "/algorithm"
     call get_option(trim(path) // "/smoothing_length_scale", alpha)
-    call anisotropic_smooth_scalar(source_field, positions, s_field, alpha, path)
-
     ewrite(2, *) "alpha = ", alpha
+    call anisotropic_smooth_scalar(source_field, positions, velocity, s_field, alpha, path)
+
     ewrite_minmax(source_field)
     ewrite_minmax(s_field)
 
@@ -485,9 +486,9 @@ contains
 
     path = trim(complete_field_path(v_field%option_path)) // "/algorithm"
     call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    ewrite(2, *) "alpha = ", alpha
     call anisotropic_smooth_vector(source_field, positions, v_field, alpha, path)
 
-    ewrite(2, *) "alpha = ", alpha
     ewrite_minmax(source_field)
     ewrite_minmax(v_field)
     
@@ -512,9 +513,9 @@ contains
 
     path = trim(complete_field_path(t_field%option_path)) // "/algorithm"
     call get_option(trim(path) // "/smoothing_length_scale", alpha)
+    ewrite(2, *) "alpha = ", alpha
     call anisotropic_smooth_tensor(source_field, positions, t_field, alpha, path)
 
-    ewrite(2, *) "alpha = ", alpha
     ewrite_minmax(source_field)
     ewrite_minmax(t_field)
     

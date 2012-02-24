@@ -3,7 +3,7 @@ import vtktools
 import math
 from numpy import array 
 
-u=vtktools.vtu("tidesnorthsea-flat.vtu")
+u=vtktools.vtu("tidesmedsea-flat.vtu")
 g = open("Med-GEBCO-5m-gauges-fes2004-O1-102", "w")
 
 pts=vtktools.arr([

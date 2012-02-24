@@ -229,7 +229,7 @@ contains
 
     ! Make sure all local detectors are owned and distribute the ones that 
     ! stoppped moving in a halo element
-    call distribute_detectors(state, detector_list)
+    call distribute_detectors(state(1), detector_list)
 
     ! This needs to be called after distribute_detectors because the exchange  
     ! routine serialises det%k and det%update_vector if it finds the RK-GS option

@@ -1,16 +1,18 @@
 preprocess:
 	@echo **********Converting the gmsh mesh to triangle format:
-	../../scripts/gmsh2triangle unit_sphere.msh
+	../../bin/gmsh2triangle unit_sphere.msh
 
 run:
 	@echo **********Calling fluidity with verbose log output enabled:
 	../../bin/fluidity -v2 -l flow_past_sphere_Re10.flml
 
 postprocess:
-	@echo **********No postprocessing needed
+	@echo **********Calling the data extraction and plotting script
+	python ./plot_data.py
 
 input: clean preprocess
 
 clean:
 	@echo **********Cleaning the output from previous fluidity runs:
-	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.stat *.log-0 *.err-0 matrixdump*
+	rm -f *.ele *.edge *.face *.node *.halo *.poly *.vtu *.stat *.log-0 *.err-0 matrixdump* 
+	rm -f Sphere_drag.pdf
