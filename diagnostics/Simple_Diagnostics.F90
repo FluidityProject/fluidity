@@ -52,7 +52,7 @@ module simple_diagnostics
 
   public :: calculate_temporalmax, calculate_temporalmin, calculate_l2norm, &
             calculate_time_averaged_scalar, calculate_time_averaged_vector, &
-            calculate_time_averaged_scalar_squared, calculate_time_averaged_vector_squared, &
+            calculate_time_averaged_scalar_squared, &
             calculate_time_averaged_vector_times_scalar, calculate_period_averaged_scalar
 
   ! for the period_averaged_scalar routine
@@ -294,49 +294,6 @@ contains
     end if
     call deallocate(l_field)
   end subroutine calculate_time_averaged_scalar_squared
-
-  subroutine calculate_time_averaged_vector_squared(state, t_field)
-    type(state_type), intent(in) :: state
-    type(tensor_field), intent(inout) :: t_field
-
-    type(vector_field), pointer :: source_field
-    type(tensor_field) :: l_field
-    real :: a, b, spin_up_time, current_time, dt
-    integer :: i, j, stat
-
-    if (timestep==0) then 
-      call initialise_diagnostic_from_checkpoint(t_field)
-      return
-    end if
-
-    call get_option("/timestepping/current_time", current_time)
-    call get_option("/timestepping/timestep", dt)
-
-    call get_option(trim(t_field%option_path)//"/diagnostic/algorithm/spin_up_time", spin_up_time, stat)
-    if (stat /=0) spin_up_time=0.
-    source_field => vector_source_field(state, t_field)
-
-    call allocate(l_field, source_field%mesh, "LocalField")
-    call zero(l_field)
-
-    do i=1, source_field%dim
-      do j=1, source_field%dim
-        if (i<=j) then
-          call set_all(l_field, i, j, source_field%val(i,:)*source_field%val(j,:))
-        end if
-      end do
-    end do
-
-    if (current_time>spin_up_time) then
-      a = (current_time-spin_up_time-dt)/(current_time-spin_up_time); b = dt/(current_time-spin_up_time)
-      ! t_field = a*t_field + b*source_field**2
-      call scale(t_field, a)
-      call addto(t_field, l_field, b)
-    else
-      call set(t_field, l_field)
-    end if
-    call deallocate(l_field)
-  end subroutine calculate_time_averaged_vector_squared
 
   subroutine calculate_time_averaged_vector_times_scalar(state, v_field)
     type(state_type), intent(in) :: state

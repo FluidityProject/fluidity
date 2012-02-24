@@ -2159,7 +2159,8 @@
             ! Check options for case with CG pressure and
             ! testing continuity with CV dual mesh. 
             ! Will not work with compressible, free surface or 
-            ! wetting and drying and implicit solids two way coupling. 
+            ! wetting and drying and implicit solids two way coupling 
+            ! (when solves for the fluid velocity). 
             ! Also will not work if the pressure is on a mesh that has 
             ! bubble or trace shape functions.
             if (have_option("/material_phase["//int2str(i)//&
@@ -2202,7 +2203,7 @@
                end if
                
                ! Check that implicit solids two way coupling is not being used
-               if (have_option("/implicit_solids/two_way_coupling")) then
+               if (have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")) then
                   FLExit("For CG Pressure cannot test the continuity equation with CV when using implicit solids two way coupling model")
                end if
                
@@ -2231,7 +2232,7 @@
             ! which is not possible yet for the two way coupling terms.
             ! Note the check of CG pressure with CV tested continuity 
             ! and implicit solids two way coupling has been done above.
-            if (have_option("/implicit_solids/two_way_coupling")) then
+            if (have_option("/implicit_solids/two_way_coupling/fluids_scheme/use_fluid_velocity")) then
                
                if (have_option("/material_phase["//int2str(i)//&
                                  &"]/scalar_field::Pressure/prognostic&

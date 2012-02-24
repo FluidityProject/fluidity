@@ -295,10 +295,10 @@ Diagnostic_variables.o ../include/diagnostic_variables.mod: \
    ../include/parallel_tools.mod ../include/pickers.mod \
    ../include/profiler.mod ../include/quadrature.mod ../include/solvers.mod \
    ../include/sparse_tools.mod ../include/sparsity_patterns.mod \
-   ../include/spud.mod ../include/state_module.mod \
-   ../include/surface_integrals.mod ../include/unittest_tools.mod \
-   ../include/version.h ../include/vtk_interfaces.mod \
-   ../include/write_state_module.mod
+   ../include/spud.mod ../include/state_fields_module.mod \
+   ../include/state_module.mod ../include/surface_integrals.mod \
+   ../include/unittest_tools.mod ../include/version.h \
+   ../include/vtk_interfaces.mod ../include/write_state_module.mod
 
 ../include/dynamic_bin_sort_module.mod: Dynamic_Bin_Sort.o
 	@true
@@ -341,7 +341,8 @@ EventCounter.o ../include/eventcounter.mod: EventCounter.F90 \
 ../include/fefields.mod: FEFields.o
 	@true
 
-FEFields.o ../include/fefields.mod: FEFields.F90 ../include/elements.mod \
+FEFields.o ../include/fefields.mod: FEFields.F90 \
+   ../include/element_numbering.mod ../include/elements.mod \
    ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
    ../include/fields.mod ../include/sparse_matrices_fields.mod \
    ../include/sparse_tools.mod ../include/state_module.mod \

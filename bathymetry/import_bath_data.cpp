@@ -80,7 +80,7 @@ void set_from_map_fc(const char* filename, const double *X, const double *Y, con
           if(map.HasPoint(longitude, latitude)){
                 height[i]=map.GetValue(longitude, latitude);
           }else{
-                cerr<<"Point not found in netcdf file\n";
+                cerr << "Point [" << x[i] << ", " << y[i] << ", " << z[i] << "] with longitude and latitude [" << longitude << ", " << latitude <<  "] not found in netCDF file, " << file << ".\n";
                 height[i]=0.0;
           }
         }
@@ -112,7 +112,7 @@ void set_from_map_beta_fc(const char* filename, const double *X, const double *Y
           if(map.HasPoint(x[i], y[i])){
                 height[i]=map.GetValue(x[i], y[i]);
           }else{
-                cerr<<"Point not found in netcdf file\n";
+                cerr << "Point [" << x[i] << ", " << y[i] << "] not found in netCDF file, " << file << ".\n";
                 height[i]=0.0;
           }
         }

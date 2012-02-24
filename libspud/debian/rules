@@ -81,7 +81,7 @@ install-python%:
 	fi
 
 install-pyspud:
-	$(MAKE) install-pyspud DESTDIR=$(CURDIR)/debian/python-spud
+	$(MAKE) install-pyspud DESTDIR=$(CURDIR)/debian/python-spud BUILDING_DEBIAN=yes
 
 install-dxdiff:
 	$(MAKE) install-dxdiff DESTDIR=$(CURDIR)/debian/python-dxdiff
