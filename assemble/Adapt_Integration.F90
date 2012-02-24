@@ -42,6 +42,7 @@ module adapt_integration
   use surface_id_interleaving
   use tictoc
   use vtk_interfaces
+  use fields_halos
 
   implicit none
   
@@ -613,13 +614,12 @@ contains
       
       ! Adaptivity is not guaranteed to return halo elements in the same
       ! order in which they went in. We therefore need to fix this order.
-      call reorder_element_numbering(output_positions)
-          canonical_numbering=universal_number_field(mesh)
-          ! Temporarily point the uid until this is done properly below.
-          canonical_numbering%mesh%uid=>canonical_numbering
-          call order_elements(canonical_numbering)
-          mesh=canonical_numbering%mesh
-          position%mesh=mesh
+!      call reorder_element_numbering(output_positions)
+      ! Temporarily point the uid until this is done properly below.
+      allocate(output_positions%mesh%uid)
+      output_positions%mesh%uid=universal_number_field(output_positions%mesh)
+      call order_elements(output_positions%mesh%uid)
+      output_positions%mesh=output_positions%mesh%uid%mesh
 
               
 #ifdef DDEBUG

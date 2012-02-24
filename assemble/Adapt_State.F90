@@ -1076,6 +1076,14 @@ contains
         call set(new_positions,old_positions)
       end if
 
+      ! Insert canonical numbering, then ensure that all uid pointers are
+      !  correct.
+      assert(associated(new_positions%mesh%uid))
+      call insert(states, new_positions%mesh%uid, name="CanonicalNumbering")
+      call deallocate(new_positions%mesh%uid)
+      deallocate(new_positions%mesh%uid)
+      new_positions%mesh%uid=>extract_scalar_field(states(1), "CanonicalNumbering")
+
       ! Insert the new mesh field and linear mesh into all states
       call insert(states, new_positions%mesh, name = new_positions%mesh%name)
       call insert(states, new_positions, name = new_positions%name)

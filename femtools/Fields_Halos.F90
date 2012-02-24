@@ -264,7 +264,7 @@ contains
     !!< non-periodic (or possibly periodic on fewer sides) alternatives. 
     type(scalar_field), intent(in), target :: numbering
     
-    type(mesh_type), dimension(:), intent(in), target, optional :: meshes
+    type(mesh_type), dimension(:), intent(inout), target, optional :: meshes
 
     integer :: ele, m, i, face, ndof, facet_ndof, new_ele
     integer, dimension(:), pointer :: nodes, facet_row, neigh_row
