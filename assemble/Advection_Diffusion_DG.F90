@@ -53,6 +53,7 @@ module advection_diffusion_DG
   use sparsity_patterns_meshes
   use diagnostic_fields, only: calculate_diagnostic_variable
   use global_parameters, only : FIELD_NAME_LEN
+  use porous_media
 
   implicit none
 
@@ -101,6 +102,9 @@ module advection_diffusion_DG
   logical :: include_mass
   ! are we moving the mesh?
   logical :: move_mesh
+
+  ! Include porosity?
+  logical :: include_porosity
 
   ! Stabilisation schemes.
   integer :: stabilisation_scheme
@@ -483,6 +487,9 @@ contains
 
     character(len=FIELD_NAME_LEN) :: limiter_name
     integer :: i
+    
+    !! Courant number field name used for temporal subcycling
+    character(len=FIELD_NAME_LEN) :: Courant_number_name
 
     T=>extract_scalar_field(state, field_name)
     T_old=>extract_scalar_field(state, "Old"//field_name)
@@ -543,9 +550,17 @@ contains
             &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
             &"/maximum_courant_number_per_subcycle", Max_Courant_number)
        
-       s_field => extract_scalar_field(state, "DG_CourantNumber")
-       call calculate_diagnostic_variable(state, "DG_CourantNumber", &
-            & s_field)
+       ! Determine the courant field to use to find the max
+       call get_option(trim(T%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/maximum_courant_number_per_subcycle/courant_number/name", &
+            &Courant_number_name, default="DG_CourantNumber")
+       
+       s_field => extract_scalar_field(state, trim(Courant_number_name))
+       call calculate_diagnostic_variable(state, trim(Courant_number_name), &
+            & s_field, option_path=trim(T%option_path)//&
+            &"/prognostic/temporal_discretisation/discontinuous_galerkin"//&
+            &"/courant_number")
        
        subcycles = ceiling( maxval(s_field%val)/Max_Courant_number)
        call allmax(subcycles)
@@ -715,6 +730,9 @@ contains
 
     type(mesh_type), pointer :: mesh_cg
     
+    ! Porosity field
+    type(scalar_field) :: porosity_theta
+    
     !! Add the Source directly to the right hand side?
     logical :: add_src_directly_to_rhs
 
@@ -838,6 +856,18 @@ contains
        include_advection=.true.
     end if
 
+    ! Porosity
+    if (have_option(trim(T%option_path)//'/prognostic/porosity')) then
+       include_porosity = .true.
+
+       ! get the porosity theta averaged field - this will allocate it
+       call form_porosity_theta(porosity_theta, state, option_path = trim(T%option_path)//'/prognostic/porosity')       
+    else
+       include_porosity = .false.
+       call allocate(porosity_theta, T%mesh, field_type=FIELD_TYPE_CONSTANT)
+       call set(porosity_theta, 1.0)
+    end if
+
     ! Retrieve scalar options from the options dictionary.
     if (.not.semi_discrete) then
        call get_option(trim(T%option_path)//&
@@ -855,6 +885,9 @@ contains
            
     move_mesh = (have_option("/mesh_adaptivity/mesh_movement").and.include_mass)
     if(move_mesh) then
+      if (include_porosity) then
+         FLExit('Cannot include porosity in DG advection diffusion of a field with a moving mesh')
+      end if
       ewrite(2,*) 'Moving mesh'
       X_old => extract_vector_field(state, "OldCoordinate")
       X_new => extract_vector_field(state, "IteratedCoordinate")
@@ -936,7 +969,7 @@ contains
             & rhs_diff, X, X_old, X_new, T, U_nl, U_mesh, Source, &
             & Absorption, Diffusivity, bc_value, bc_type, q_mesh, mass, &
             & buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
-            & add_src_directly_to_rhs) 
+            & add_src_directly_to_rhs, porosity_theta) 
        
     end do element_loop
 
@@ -952,7 +985,8 @@ contains
     call deallocate(U_nl)
     call deallocate(U_nl_backup)
     call deallocate(bc_value)
-
+    call deallocate(porosity_theta)
+    
   end subroutine construct_advection_diffusion_dg
 
   subroutine lumped_mass_galerkin_projection_scalar(state, field, projected_field)
@@ -1049,7 +1083,7 @@ contains
        & X, X_old, X_new, T, U_nl, U_mesh, Source, Absorption, Diffusivity,&
        & bc_value, bc_type, &
        & q_mesh, mass, buoyancy, gravity, gravity_magnitude, mixing_diffusion_amplitude, &
-       & add_src_directly_to_rhs)
+       & add_src_directly_to_rhs, porosity_theta)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -1080,6 +1114,9 @@ contains
     !! If adding Source directly to rhs then
     !! do nothing with it here
     logical, intent(in) :: add_src_directly_to_rhs
+    
+    !! Porosity theta averaged field
+    type(scalar_field), intent(in) :: porosity_theta
 
     !! Flag for a periodic boundary
     logical :: Periodic_neigh 
@@ -1226,7 +1263,7 @@ contains
       assert(ele_loc(U_mesh, ele)==ele_loc(X, ele))
       assert(ele_ngi(U_mesh, ele)==ele_ngi(U_nl, ele))
     end if
-
+    
     dg=continuity(T)<0
     primal = .not.dg
     if(diffusion_scheme == CDG) primal = .true.
@@ -1375,7 +1412,12 @@ contains
     if(move_mesh) then
       mass_mat = shape_shape(T_shape, T_shape, detwei_new)
     else
-      mass_mat = shape_shape(T_shape, T_shape, detwei)
+      if (include_porosity) then
+        assert(ele_ngi(T, ele)==ele_ngi(porosity_theta, ele))
+        mass_mat = shape_shape(T_shape, T_shape, detwei*ele_val_at_quad(porosity_theta, ele))      
+      else
+        mass_mat = shape_shape(T_shape, T_shape, detwei)
+      end if
     end if
 
     if (include_advection) then

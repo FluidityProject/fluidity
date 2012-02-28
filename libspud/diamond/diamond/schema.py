@@ -22,7 +22,6 @@ import sys
 
 import cStringIO
 
-import gtk.gdk
 from lxml import etree
 
 import debug

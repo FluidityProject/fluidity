@@ -73,8 +73,8 @@ contains
 
       character(len=FIELD_NAME_LEN) :: field_name
 
-      type(scalar_field), pointer :: lumpedmass
-      type(scalar_field) :: inverse_lumpedmass
+      type(scalar_field), pointer :: cvmass
+      type(scalar_field) :: inverse_cvmass
       type(scalar_field) :: ctfield, ct_rhs
 
       call get_option(trim(div%option_path)//"/diagnostic/field_name", field_name)
@@ -85,23 +85,19 @@ contains
       call allocate(ctfield, div%mesh, name="CTField")
       call allocate(ct_rhs, div%mesh, name="CTRHS")
 
-      if(element_degree(div, 1)>1) then
-        lumpedmass => get_lumped_mass_on_submesh(state, div%mesh)
-      else
-        lumpedmass => get_lumped_mass(state, div%mesh)
-      end if
+      cvmass => get_cv_mass(state, div%mesh)
 
       CT_m => get_divergence_matrix_cv(state, test_mesh=div%mesh, field=field, div_rhs=ct_rhs)
 
       call mult(ctfield, CT_m, field)
       call addto(ctfield, ct_rhs, -1.0)
 
-      call allocate(inverse_lumpedmass, lumpedmass%mesh, "InverseLumpedMass")
-      call invert(lumpedmass, inverse_lumpedmass)
+      call allocate(inverse_cvmass, cvmass%mesh, "InverseCVMass")
+      call invert(cvmass, inverse_cvmass)
       call set(div, ctfield)
-      call scale(div, inverse_lumpedmass)
+      call scale(div, inverse_cvmass)
       
-      call deallocate(inverse_lumpedmass)
+      call deallocate(inverse_cvmass)
       call deallocate(ctfield)
       call deallocate(ct_rhs)
 
@@ -345,18 +341,27 @@ contains
       type(csr_sparsity) :: mass_sparsity
       type(csr_matrix) :: mass
       type(scalar_field) :: ctfield, ct_rhs, temp
+      type(scalar_field), pointer :: cv_mass
+      
+      logical :: test_with_cv_dual
 
       ewrite(1,*) 'Entering calculate_sum_velocity_divergence'
+         
+      ! Are we testing the divergence with the CV dual mesh
+      test_with_cv_dual = have_option(trim(sum_velocity_divergence%option_path)//'/diagnostic/test_with_cv_dual')   
 
       ! Allocate memory for matrices and sparsity patterns
       call allocate(ctfield, sum_velocity_divergence%mesh, name="CTField")
       call zero (ctfield)
       call allocate(temp, sum_velocity_divergence%mesh, name="Temp")
-
-      mass_sparsity=make_sparsity(sum_velocity_divergence%mesh, sum_velocity_divergence%mesh, "MassSparsity")
-      call allocate(mass, mass_sparsity, name="MassMatrix")
-      call zero(mass)
-
+      
+      ! Require a mass matrix type if not CV tested equation.
+      if (.not. test_with_cv_dual) then
+         mass_sparsity=make_sparsity(sum_velocity_divergence%mesh, sum_velocity_divergence%mesh, "MassSparsity")
+         call allocate(mass, mass_sparsity, name="MassMatrix")
+         call zero(mass)      
+      end if 
+      
       ! Sum up over the div's
       do i = 1, size(state)
          u => extract_vector_field(state(i), "Velocity", stat)
@@ -375,16 +380,21 @@ contains
          divergence_sparsity=make_sparsity(sum_velocity_divergence%mesh, u%mesh, "DivergenceSparsity")
          call allocate(ct_m, divergence_sparsity, (/1, u%dim/), name="DivergenceMatrix" )
          call allocate(ct_rhs, sum_velocity_divergence%mesh, name="CTRHS")
-
+         
          ! Reassemble C^T matrix here
-         if(i==1) then ! Construct the mass matrix (just do this once)          
-            call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
-                              test_mesh=sum_velocity_divergence%mesh, field=u, &
-                              option_path=sum_velocity_divergence%option_path, div_mass=mass)
+         if (test_with_cv_dual) then
+            call assemble_divergence_matrix_cv(ct_m, state(i), ct_rhs=ct_rhs, &
+                              test_mesh=sum_velocity_divergence%mesh, field=u)
          else
-            call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
-                              test_mesh=sum_velocity_divergence%mesh, field=u, &
-                              option_path=sum_velocity_divergence%option_path)
+            if(i==1) then ! Construct the mass matrix (just do this once)                      
+               call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
+                                 test_mesh=sum_velocity_divergence%mesh, field=u, &
+                                 option_path=sum_velocity_divergence%option_path, div_mass=mass)
+            else
+               call assemble_divergence_matrix_cg(ct_m, state(i), ct_rhs=ct_rhs, &
+                                 test_mesh=sum_velocity_divergence%mesh, field=u, &
+                                 option_path=sum_velocity_divergence%option_path)
+            end if            
          end if
 
          ! Construct the linear system of equations to solve for \sum{div(vfrac*u)}
@@ -401,15 +411,26 @@ contains
 
       end do
 
-      ! Solve for sum_velocity_divergence ( = \sum{div(vfrac*u)} )
-      call zero(sum_velocity_divergence)
-      call petsc_solve(sum_velocity_divergence, mass, ctfield)
-
+      ! Solve for sum_velocity_divergence ( = \sum{div(vfrac*u)} )            
+      if (test_with_cv_dual) then
+         ! get the cv mass matrix
+         cv_mass => get_cv_mass(state(1), sum_velocity_divergence%mesh)
+         call set(sum_velocity_divergence, cv_mass)
+         call invert(sum_velocity_divergence)
+         call scale(sum_velocity_divergence, ctfield)
+      else
+         call zero(sum_velocity_divergence)
+         call petsc_solve(sum_velocity_divergence, mass, ctfield)
+      end if 
+      
       ! Deallocate memory
-      call deallocate(mass_sparsity)
-      call deallocate(mass)
       call deallocate(ctfield)
       call deallocate(temp)
+      
+      if (.not. test_with_cv_dual) then
+         call deallocate(mass_sparsity)
+         call deallocate(mass)      
+      end if 
 
       ewrite(1,*) 'Exiting calculate_sum_velocity_divergence'
          

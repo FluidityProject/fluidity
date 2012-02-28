@@ -5,8 +5,9 @@ module fefields
   use fields
   use field_options, only: get_coordinate_field
   use elements, only: element_type
+  use element_numbering
   use fetools, only: shape_shape
-  use transform_elements, only: transform_to_physical
+  use transform_elements, only: transform_to_physical, element_volume
   use sparse_tools
   use sparse_matrices_fields
   use state_module
@@ -22,10 +23,175 @@ module fefields
   
   private
   public :: compute_lumped_mass, compute_mass, compute_projection_matrix, add_source_to_rhs, &
-            compute_lumped_mass_on_submesh, project_field
+            compute_lumped_mass_on_submesh, compute_cv_mass, project_field
 
 contains
+  
+  subroutine compute_cv_mass(positions, cv_mass, porosity)
+    
+    !!< Compute the cv mass matrix associated with the 
+    !!< input scalar fields mesh. This will use pre tabulated
+    !!< coefficients to calculate each sub control volumes  
+    !!< volume - which is only set up for constant, linear elements and 
+    !!< selected quadratic elements. This assumes that all 
+    !!< elements have the same vertices, degree and dim. Also 
+    !!< the mesh element type must be Lagrangian. This WILL work
+    !!< for both continuous and discontinuous meshes. If the element
+    !!< order is zero then return the element volume.
+    !!< If porosity is present this is included in the cv mass. This is 
+    !!< only possible if the porosity is element wise (order zero) or 
+    !!< the same order as the cv_mass. For the latter case the porosity 
+    !!< is assumed represented by a control volume expansion and by 
+    !!< a sub control volume expansion if discontinous 
+    
+    type(vector_field), intent(in) :: positions
+    type(scalar_field), intent(inout) :: cv_mass
+    type(scalar_field), intent(in), optional :: porosity
+    
+    ! local variables
+    integer :: ele
+    integer :: vertices, polydegree, dim, type, family, loc
+    real, dimension(:), pointer :: subcv_ele_volf => null()
+    real, dimension(:), pointer :: subcv_ele_porosity => null()
+    
+    if (present(porosity)) then
+       ewrite(1,*) 'In compute_cv_mass with porosity present'
 
+       if (.not. (porosity%mesh%shape%degree == cv_mass%mesh%shape%degree) .and. &
+           .not. (porosity%mesh%shape%degree == 0)) then
+          FLAbort('The porosity must have the same order as cv_mass or be element wise (order zero)')
+       end if 
+    else
+       ewrite(1,*) 'In compute_cv_mass'
+    end if
+    
+    ! sanity check
+    assert(element_count(positions) == element_count(cv_mass))
+    
+    ! initialise
+    call zero(cv_mass)
+    
+    ! get element info (assume all the same for whole mesh)
+    vertices   = ele_vertices(cv_mass,1)    
+    polydegree = cv_mass%mesh%shape%degree
+    dim        = cv_mass%mesh%shape%dim
+    type       = cv_mass%mesh%shape%numbering%type
+    family     = cv_mass%mesh%shape%numbering%family
+    loc        = cv_mass%mesh%shape%loc
+        
+    ! The element type must be Lagrangian
+    if (type /= ELEMENT_LAGRANGIAN) then
+       FLAbort('Can only find the CV mass if the element type is Lagrangian')
+    end if 
+    
+    ! The polydegree must be < 3
+    if (polydegree > 2) then       
+       FLAbort('Can only find the CV mass if the element polynomial degree is 2 or less')
+    end if
+    
+    ! If the polydegree is 2 then the element family must be Simplex
+    if ((polydegree == 2) .and. (.not. family == FAMILY_SIMPLEX)) then
+       FLAbort('Can only find the CV mass for a mesh with a 2nd degree element if the element familiy is Simplex')
+    end if
+    
+    ! Find the sub CV element volume fractions  
+
+    allocate(subcv_ele_volf(loc))
+    
+    if (polydegree == 0) then
+       
+       ! dummy value for element wise
+       subcv_ele_volf = 1.0
+       
+    else if (polydegree == 1) then
+       
+       ! for linear poly the volume of each
+       ! subcontrol volume is ele_vol / loc
+              
+       subcv_ele_volf = 1.0/real(loc)
+              
+    else if (polydegree == 2) then
+       
+       ! for quadratic poly we only consider Simplex family
+       
+       if (vertices == 2) then
+          
+          subcv_ele_volf(1) = 0.25 ! 1/2 * 1/2 = 1/4  Vertex CV
+          subcv_ele_volf(2) = 0.5 ! (1 - 2 * 1/4) / 1 Centre CV
+          subcv_ele_volf(3) = 0.25 ! 1/2 * 1/2 = 1/4  Vertex CV
+          
+       else if (vertices == 3) then
+
+          subcv_ele_volf(1) = 8.3333333333333333e-02 ! 1/3 * 1/4 = 1/12   Vertex CV
+          subcv_ele_volf(2) = 0.25                   ! (1 - 3 * 1/12) / 3 Edge CV
+          subcv_ele_volf(3) = 8.3333333333333333e-02 ! 1/3 * 1/4 = 1/12   Vertex CV
+          subcv_ele_volf(4) = 0.25                   ! (1 - 3 * 1/12) / 3 Edge CV
+          subcv_ele_volf(5) = 0.25                   ! (1 - 3 * 1/12) / 3 Edge CV
+          subcv_ele_volf(6) = 8.3333333333333333e-02 ! 1/3 * 1/4 = 1/12   Vertex CV
+          
+       else if ((vertices == 4) .and. (dim == 3)) then
+          
+          subcv_ele_volf(1)  = 0.03125                ! 1/8 * 1/4 = 1/32   Vertex CV
+          subcv_ele_volf(2)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV
+          subcv_ele_volf(3)  = 0.03125                ! 1/8 * 1/4 = 1/32   Vertex CV
+          subcv_ele_volf(4)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV
+          subcv_ele_volf(5)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV 
+          subcv_ele_volf(6)  = 0.03125                ! 1/8 * 1/4 = 1/32   Vertex CV    
+          subcv_ele_volf(7)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV
+          subcv_ele_volf(8)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV
+          subcv_ele_volf(9)  = 1.4583333333333333e-01 ! (1 - 4 * 1/32) / 6 Edge CV        
+          subcv_ele_volf(10) = 0.03125                ! 1/8 * 1/4 = 1/32   Vertex CV
+       
+       else
+       
+          FLAbort('No code to form the sub control volume element volume fractions if not a Simplex')
+           
+       end if 
+    
+    else 
+    
+       FLAbort('No code to form the sub control volume element volume fractions if poly degree is > 2')
+       
+    end if
+            
+    ! Form the CV mass matrix - include porosity if required
+    if (present(porosity)) then
+    
+       allocate(subcv_ele_porosity(loc))
+
+       do ele = 1,element_count(cv_mass)
+          
+          if (porosity%mesh%shape%degree == 0) then
+             subcv_ele_porosity(1:1) = ele_val(porosity, ele)
+             if (loc > 1) subcv_ele_porosity(2:) = subcv_ele_porosity(1)
+          else
+             subcv_ele_porosity = ele_val(porosity, ele)
+          end if
+          
+          call addto(cv_mass, &
+                     ele_nodes(cv_mass, ele), &
+                     subcv_ele_volf * element_volume(positions, ele) * subcv_ele_porosity)
+          
+       end do
+
+       deallocate(subcv_ele_porosity)
+    
+    else
+    
+       do ele = 1,element_count(cv_mass)
+          
+          call addto(cv_mass, &
+                     ele_nodes(cv_mass, ele), &
+                     subcv_ele_volf * element_volume(positions, ele))
+          
+       end do
+    
+    end if 
+    
+    deallocate(subcv_ele_volf)
+    
+  end subroutine compute_cv_mass
+  
   subroutine compute_lumped_mass(positions, lumped_mass, density, vfrac)
     type(vector_field), intent(in) :: positions
     type(scalar_field), intent(inout) :: lumped_mass

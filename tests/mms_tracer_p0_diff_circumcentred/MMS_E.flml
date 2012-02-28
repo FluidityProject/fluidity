@@ -270,9 +270,7 @@ S = T_t + adv*(u*T_x + v*T_y + beta*(T*(u_x + v_y))) - nu*(T_xx + T_yy)
         <algorithm name="Internal" material_phase_support="multiple"/>
         <mesh name="TracerMesh"/>
         <output/>
-        <stat>
-          <include_cv_stats/>
-        </stat>
+        <stat/>
         <convergence>
           <include_in_convergence/>
         </convergence>
