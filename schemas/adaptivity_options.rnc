@@ -593,6 +593,7 @@ hr_adaptivity =
                   empty
               }
             ),
+            porosity_include?,
             ## Debugging output options
             element output {
               ## Output vtus of the advected metric and edge lengths at every subcycle

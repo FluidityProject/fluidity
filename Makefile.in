@@ -513,8 +513,14 @@ test: fltools bin/$(FLUIDITY) bin/shallow_water serialtest bin/burgers_equation
 serialtest: fltools bin/$(FLUIDITY) bin/shallow_water
 	@cd tests; ../bin/testharness -l short -p serial $(EXCLUDE_TAGS) -n $(THREADS)
 
-mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water
+mediumtest: fltools bin/$(FLUIDITY) manual bin/burgers_equation bin/shallow_water spudtools
 	@cd tests; ../bin/testharness -l medium $(EXCLUDE_TAGS) -n $(THREADS)
+
+.PHONY: spudtools
+
+spudtools:
+	@cd libspud ; $(MAKE) install-spudtools
+	@echo "    INSTALL spudtools"
 
 setuputs: 
 	@echo "SETUP tests"
@@ -523,7 +529,6 @@ setuputs:
 	@echo "    MKDIR bin/tests"
 	@mkdir -p bin/tests
 	@ln -sf ../../tests/data bin/tests/data
-
 
 build_unittest: fluidity_library libfemtools setuputs
 	@echo "    UNITTEST libspud"
@@ -548,7 +553,11 @@ unittest: build_unittest
 	@echo "RUN bin/tests"
 	@bin/unittestharness bin/tests
 
-schema:
+bin/spud-preprocess:
+	@echo "Installing spudtools"
+	@$(MAKE) -C libspud install-spudtools
+
+schema: bin/spud-preprocess
 	@echo "Rebuilding schema fluidity_options.rng"
 	@./bin/spud-preprocess schemas/fluidity_options.rnc
 
@@ -610,7 +619,7 @@ endif
 
 install: default fltools bin/shallow_water bin/burgers_equation
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
-	cp bin/* $(DESTDIR)$(bindir)
+	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
 	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
@@ -625,9 +634,14 @@ install: default fltools bin/shallow_water bin/burgers_equation
 	rm -rf $(DESTDIR)$(docdir)/fluidity/examples/
 
 install-diamond: 
-	cd libspud/diamond;     python setup.py install --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud; ./configure --prefix=$(DESTDIR)@prefix@; cd ../..
+	cd libspud; $(MAKE) clean; cd ../..
+	cd libspud; $(MAKE) install-diamond; cd ../..
+	cd libspud; $(MAKE) install-dxdiff; cd ../..
+	cd libspud; $(MAKE) install-spudtools; cd ../..
+	cd libspud; ./configure --prefix=$(PWD); cd ../..
 
 install-user-schemata:
-	mkdir -p $(HOME)/.schemata/
-	echo "Fluidity Markup Language" > $(HOME)/.schemata/flml
-	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.schemata/flml
+	mkdir -p $(HOME)/.diamond/schemata/
+	echo "Fluidity Markup Language" > $(HOME)/.diamond/schemata/flml
+	echo "$(PWD)/schemas/fluidity_options.rng" >> $(HOME)/.diamond/schemata/flml

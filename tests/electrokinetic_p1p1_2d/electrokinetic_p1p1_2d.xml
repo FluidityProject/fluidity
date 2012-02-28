@@ -21,9 +21,8 @@ elec = e.GetScalarRange("ElectricalPotential")
     </variable>
   </variables>
     <pass_tests>
-    <test name="pressure range check" language="python">
-assert abs(pressure[0]) &lt; 1e-5
-assert abs(pressure[1] - 1.0e9) &lt; 1.0
+    <test name="pressure range check with tolerance 1.1e-06" language="python">
+assert abs(pressure[1] - 1.0e9) &lt; 1.1e-06
     </test>
     <test name="electrical range check" language="python">
 assert abs(elec[0] + 10.0) &lt; 0.1
