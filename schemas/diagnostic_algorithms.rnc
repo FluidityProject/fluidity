@@ -114,7 +114,7 @@ legacy_internal_algorithm =
    )
 internal_velocity_source_algorithm =
    (
-      ## Some code paths (e.g. porous media)
+      ## Some code paths
       ## use their own internal diagnostic source field. Select
       ## this option to these these internal algorithms.
       element algorithm {
@@ -124,7 +124,7 @@ internal_velocity_source_algorithm =
    )
 internal_velocity_absorption_algorithm =
    (
-      ## Some code paths (e.g. porous media)
+      ## Some code paths
       ## use their own internal diagnostic absorption field. Select
       ## this option to these these internal algorithms.
       element algorithm {
@@ -1260,6 +1260,25 @@ universal_column_id_algorithm =
       }
    )
 
+# Mass matrix
+   
+finite_element_lumped_mass_matrix =
+   (
+      ## The finite element lumped mass matrix.
+      element algorithm {
+        attribute name { "finite_element_lumped_mass_matrix" },
+        attribute material_phase_support { "single" }
+      }
+   )
+   
+control_volume_mass_matrix =
+   (
+      ## The control volume mass matrix.
+      element algorithm {
+        attribute name { "control_volume_mass_matrix" },
+        attribute material_phase_support { "single" }
+      }
+   )
 
 # Time averaged fields
 
@@ -1335,22 +1354,6 @@ vector_time_averaged_algorithm =
       }
    )
 
-vector_squared_time_averaged_algorithm =
-   (
-      ## Algorithm for time averaging vector fields.
-      ## This includes cross-products.
-      ## This field needs to be interpolated between adapts.
-      element algorithm {
-         attribute name { "time_averaged_vector_squared" },
-         attribute material_phase_support { "single" },
-         vector_source_field,
-         ## When to start sampling?  Defaults to simulation start time.
-         element spin_up_time {
-            real
-         }?
-      }
-   )
-
 vector_scalar_time_averaged_algorithm =
    (
       ## Algorithm for time averaging vector times scalar fields.
@@ -1401,6 +1404,8 @@ scalar_diagnostic_algorithms |= element_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= div_algorithm
 scalar_diagnostic_algorithms |= curl_2d_algorithm
 scalar_diagnostic_algorithms |= column_id_algorithm
+scalar_diagnostic_algorithms |= finite_element_lumped_mass_matrix
+scalar_diagnostic_algorithms |= control_volume_mass_matrix
 scalar_diagnostic_algorithms |= scalar_python_diagnostic_algorithm
 
 vector_diagnostic_algorithms = vector_time_averaged_algorithm
@@ -1422,8 +1427,7 @@ vector_diagnostic_algorithms |= eigenvalues_symmetric_algorithm
 vector_diagnostic_algorithms |= curl_algorithm
 vector_diagnostic_algorithms |= vector_python_diagnostic_algorithm
 
-tensor_diagnostic_algorithms = vector_squared_time_averaged_algorithm
-tensor_diagnostic_algorithms |= tensor_copy_algorithm
+tensor_diagnostic_algorithms = tensor_copy_algorithm
 tensor_diagnostic_algorithms |= grad_vector_algorithm
 tensor_diagnostic_algorithms |= strain_rate_algorithm
 tensor_diagnostic_algorithms |= hessian_algorithm

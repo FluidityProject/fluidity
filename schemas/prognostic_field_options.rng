@@ -272,6 +272,9 @@ elements when buoyancy is a discontinuous field.</a:documentation>
             <ref name="prescribed_tensor_field_no_adapt"/>
           </element>
           <element name="diagnostic">
+            <optional>
+              <ref name="mesh_choice"/>
+            </optional>
             <choice>
               <ref name="tensor_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
@@ -283,7 +286,10 @@ elements when buoyancy is a discontinuous field.</a:documentation>
     </optional>
     <optional>
       <element name="scalar_field">
-        <a:documentation>source term</a:documentation>
+        <a:documentation>Source term. If the scalar field to be 
+solved for is subcycled then variations 
+in this source field across the subcycled 
+time steps are not considered.</a:documentation>
         <attribute name="name">
           <value>Source</value>
         </attribute>
@@ -299,6 +305,16 @@ elements when buoyancy is a discontinuous field.</a:documentation>
               <ref name="scalar_python_diagnostic_algorithm"/>
               <ref name="internal_algorithm"/>
             </choice>
+            <optional>
+              <element name="add_directly_to_rhs">
+                <a:documentation>Add the source field directly to the 
+matrix system right hand side. To be 
+consistent this term should be tested 
+using the function space that 
+is used for the spatial discretisation.</a:documentation>
+                <ref name="comment"/>
+              </element>
+            </optional>
             <ref name="diagnostic_scalar_field_no_adapt"/>
           </element>
         </choice>
@@ -352,6 +368,9 @@ floats or swims upwards, this field should be negative.</a:documentation>
           </element>
         </choice>
       </element>
+    </optional>
+    <optional>
+      <ref name="porosity_include"/>
     </optional>
     <ref name="prognostic_scalar_output_options"/>
     <ref name="prognostic_scalar_stat_options"/>
@@ -574,7 +593,7 @@ where N_a and N_b are shape functions of the ath and bth node respectively and m
           </element>
           <optional>
             <element name="les_model">
-              <a:documentation>large-eddy simulation models</a:documentation>
+              <a:documentation>large-eddy simulation models (currently restricted to use in incompressible flow cases, where the discrete velocity is divergence-free and the eddy viscosity tensor is traceless)</a:documentation>
               <choice>
                 <element name="second_order">
                   <a:documentation>similar to the original Smag model</a:documentation>
@@ -1393,6 +1412,16 @@ Fix for low reynolds numbers by adding the viscous terms to the inversed lumped 
 
 ** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.</a:documentation>
               <empty/>
+            </element>
+          </optional>
+          <optional>
+            <element name="test_continuity_with_cv_dual">
+              <a:documentation>Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
+Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
+considered when selecting the pressure solver options. This will not work with the free surface and 
+wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
+element type (the default). This will not work with the implicit solids model using two way coupling. </a:documentation>
+              <ref name="comment"/>
             </element>
           </optional>
         </element>

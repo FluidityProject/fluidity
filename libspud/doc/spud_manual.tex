@@ -70,7 +70,7 @@ be able to install all the needed dependencies by adding the repository listed b
 
 \begin{verbatim}
 sudo apt-get update
-sudo apt-get build-depend spud
+sudo apt-get build-dep spud
 \end{verbatim}
 
 \section{Obtaining the source}
@@ -211,7 +211,7 @@ Similar extensions can be made for an integer based \lstinline*integer_value* el
 \lstinline*comment* & A string value that allows users to annotate their input throughout the XML tree structure.  Included in all Spud base language patterns. \\
 \lstinline*anystring* & A string value for the input of any generic character string required in the options tree.  Suggests a display of 1 line within Spud based tools such as Diamond. \\
 \lstinline*filename* & A string value for the input of filenames in the options tree.  Allows the use of a file selector and suggests a display of 1 line within Spud based tools such as Diamond. \\
-\lstinline*python_code* & A string value for the input of python code into the options tree.  Suggests a display of 20 lines within Spud based tools such as Diamond. \\
+\lstinline*Python_code* & A string value for the input of Python code into the options tree.  Suggests a display of 20 lines within Spud based tools such as Diamond. \\
 \lstinline*integer* & An integer value of rank 0 and length 1. \\
 \lstinline*integer_vector* & A rank 1 vector of integers of arbitrary length.  Spud tools record the shape of the input. \\
 \lstinline*integer_tensor* & A tensor of integers of arbitrary dimensions.  Spud tools record the shape of the input. \\
@@ -270,7 +270,7 @@ if \lstinline+rank+ is 2 while the \lstinline+dim1+ and \lstinline+shape+
 attributes are only present where \lstinline+rank+ is at least 1. If
 \lstinline+rank+ is equal to 1 then \lstinline+shape+ will be a single
 \lstinline+xsd:integer+ rather than a list of 2. The \lstinline+dim1+ and
-\lstinline+dim2+ attributes are python expressions of the variable
+\lstinline+dim2+ attributes are Python expressions of the variable
 \lstinline+dim+.
 
 
@@ -1145,104 +1145,232 @@ void Spud::print_options()
 
 Prints the entire options tree to standard output. Useful for debugging.
 
-\chapter{Diamond}
+\section{Python binding for libspud}
 
-\section{Installation}
-Diamond depends on Python (version 2.3 or greater), PyGTK,
-the 4Suite XML library, and the lxml library. All of these dependencies
-are available in the Debian/Ubuntu repositories with the following command:
-\begin{verbatim}
-apt-get install python-gtk2 python-lxml python-4suite-xml
-\end{verbatim}
+libspud also offers bindings for the Python programming language.  Users can use Python for accessing the options specified in a Spud XML file.  (This is done by the libspud.c module.  The module is written in C using the header file Python.h and spud.h.  It provides a Python interface to libspud; so that users could use Python codes to access the C codes in libspud.  The module takes in Python arguments, converts them into C arguments and then call the corresponding C functions with the converted C arguments.) 
 
-Windows versions of these packages are available for download on their respective websites.
+\subsection{Errors}
 
-\section{Configuration files}
+Python binding converts spud errors into exceptions, and that these exceptions match those listed in 3.5.2:  \\* 
+SpudError; \\* 
+SpudTypeError; \\* 
+SpudKeyError; \\* 
+SpudFileError; \\* 
+SpudNewKeyWarning; \\* 
+SpudAttrSetFailedWarning; \\* 
+SpudShapeError; \\* 
+SpudRankError; 
 
-In accordance with normal Unix practice, system wide configuration for
-diamond is stored in the \verb+/etc/diamond+ directory while per-user
-configuration is stored in a \verb+.diamond+ directory in the user's home
-directory.
+\subsection{Data type parameters}\label{sec:types}
 
-\subsection{Schemas}
+The option\_type routine returns the following values. In Fortran these are
+named constants in the \lstinline+spud+ module while in C and C++ these are
+the enum types \lstinline+SpudOptionType+ and \lstinline+Spud::OptionType+
+respectively.
 
-Diamond needs to know which Spud schemas are installed and available on the
-current system. This is specified in the \verb+schemata+ subdirectory of the
-\verb+/etc/diamond+ and \verb+~/.diamond+ directories. The file names in the
-\verb+schemata+ directory give the filename extension associated with a
-particular problem description language. The content of the file is two
-lines. The first line is the name of the problem description language while
-the second line contains the path of the XML syntax (\verb+.rng+) version of
-the corresponding schema.
+\begin{tabular}{lll}
+  \textbf{Fortran} & \textbf{C/C++} & \textbf{Python} \\
+  \lstinline+SPUD_REAL+ & \lstinline+SPUD_DOUBLE+ & \lstinline+float+ \\
+  \lstinline+SPUD_INTEGER+ & \lstinline+SPUD_INT+ & \lstinline+int+ \\
+  \lstinline+SPUD_NONE+ & \lstinline+SPUD_NONE+ & \lstinline+None+ \\
+  \lstinline+SPUD_CHARACTER+ & \lstinline+SPUD_STRING+ & \lstinline+str+
+\end{tabular}
 
-For example, the Fluidity package has a problem description language called
-the Fluidity Markup Language which uses the file extension
-\verb+.flml+. When installed on a system by the sysadmin, Fluidity might
-create the file \verb+/etc/diamond/flml+ with the following contents:
-\begin{verbatim}
-Fluidity Markup Language
-/usr/share/fluidity/fluidity_options.rng
-\end{verbatim}
-An individual user \verb+jrluser+ might have the current version of the
-Fluidity svn tree checked out in their home directory and would need to
-point diamond at the (posssibly updated) schema in their source
-tree. \verb+jrluser+ would then create the file
-\verb+/home/jrluser/.diamond/schemata/flml+ which would contain:
-\begin{verbatim}
-Fluidity Markup Language
-/home/jrluser/fluidity/tools/fluidity_options.rng
-\end{verbatim}
-Now Diamond will pick up the version of the schema in \verb+jrluser+'s svn
-tree rather than the version the sysadmin installed.
+\subsection{clear\_options}
 
-It is also possible to specify a URL over HTTP for the location of the
-schema. For example:
-\begin{verbatim}
-Fluidity Markup Language
-http://amcg.ese.ic.ac.uk/svn/fluidity/trunk/tools/fluidity_options.rng
-\end{verbatim}
-This is to facilitate centralised deployments.
+\begin{lstlisting}[language=Python]
+def clear_options()
+return None
+\end{lstlisting}
 
-\subsection{Running Diamond}
+This function takes no arguments and returns None.
+Clears the entire options tree.
 
-Diamond can be started in several ways.
+\subsection{load\_options}
 
-When executed as
-\begin{verbatim}
-diamond
-\end{verbatim}
-Diamond will offer the user the choice of which registered schema to use.
-If only one schema is registered, then it will use that by default.
-Diamond will open a blank document of the language specified by the schema to be edited.
+\begin{lstlisting}[language=Python]
+def load_options(string filename)
+return None
+\end{lstlisting}
 
-When executed as
-\begin{verbatim}
-diamond -s /path/to/schema.rng
-\end{verbatim}
-Diamond will open a blank document using the schema specified on the command line.
+This function takes the XML filename in the form of a Python string and raises SpudFileError if file cannot be read or does not exist.
+Otherwise, it reads the file into the options tree, and then returns None.
 
-When executed as
-\begin{verbatim}
-diamond filename.suffix
-\end{verbatim}
-Diamond will inspect the registered schemas for the suffix specified
-and use that schema.
+\subsection{write\_options}
 
-\subsection{Dynamic validation}
-Diamond uses the schema to guide the editing of valid documents that the schema
-permits. When a blank document is opened, information necessary to make a valid
-document is missing and the document is thus invalid\footnote{This is true for all
-but a trivial schema which permits only one document.}. The invalidity of the document
-is reflected in the colouration of the root node: valid nodes are coloured in black,
-while invalid nodes are coloured in blue. As invalid nodes have their attributes
-and data specified, their validity is dynamically updated and they are coloured appropriately.
-The document as a whole is valid if and only if the root node is coloured black.
+\begin{lstlisting}[language=Python]
+def write_options(string filename)
+return None
+\end{lstlisting}
+
+This function takes the XML filename in the form of a Python string and raises SpudFileError if file cannot be written or does not exist.
+Otherwise, it writes the options tree to the file, and then returns None.
+
+\subsection{get\_child\_name}
+
+\begin{lstlisting}[language=Python]
+def get_child_name(string key, int index)
+return string
+\end{lstlisting}
+
+This function takes the key in the form of a Python string, and an integer index. 
+It raises SpudKeyError if supplied key does not exist in the options tree.
+Otherwise, it retrieves the childname of the indexth of key , and then returns the childname as Python string.
+
+\subsection{get\_number\_of\_children}
+
+\begin{lstlisting}[language=Python]
+def get_number_of_children(string key)
+return int
+\end{lstlisting}
+
+This function takes the key in the form of a Python string. 
+It raises SpudKeyError if supplied key does not exist in the options tree.
+Otherwise, it returns the number of children of the key as Python integer.
+
+\subsection{option\_count}
+
+\begin{lstlisting}[language=Python]
+def option_count(string key)
+return int
+\end{lstlisting}
+
+This function takes the key in the form of a Python string. 
+It returns the number of options which match the key as Python integer.
+It returns 0 if key is not present in the dictionary.
+
+\subsection{have\_option}
+
+\begin{lstlisting}[language=Python]
+def have_option(string key)
+return True or False
+\end{lstlisting}
+
+This function takes the key in the form of a Python string. 
+It returns True if the key is present in the options dictionary, False otherwise.
+
+\subsection{get\_option\_type}
+
+\begin{lstlisting}[language=Python]
+def get_option_type(string key)
+return PyObject_Type
+\end{lstlisting}
+
+This function takes the key in the form of a Python string. 
+It raises SpudKeyError if the supplied key does not exist in the options tree.
+It returns the type of the key as one of the Python object types in 3.6.2.
+
+\subsection{get\_option\_rank}
+
+\begin{lstlisting}[language=Python]
+def get_option_rank(string key)
+return int
+\end{lstlisting}
+
+This function takes the key in the form of a Python string. 
+It raises SpudKeyError if the supplied key does not exist in the options tree.
+It returns the rank of the key as Python ints.
+0 for scalar, 1 for vector, 2 for tensor or matrix.
+
+\subsection{get\_option\_shape}
+
+\begin{lstlisting}[language=Python]
+def get_option_shape(string key)
+return (int, int)
+\end{lstlisting}
+
+This function takes the key in the form of a Python string. 
+It raises SpudKeyError if the supplied key does not exist in the options tree.
+It returns the shape of the key as Python two-tuple.
+If the option in question is rank 1 then the second component will be -1, if the option is rank 0 (a scalar) then both entries will be -1.
+
+\subsection{get\_option}
+
+\begin{lstlisting}[language=Python]
+def get_option(string key)
+return optionvalue
+\end{lstlisting}
+
+This function takes the key in the form of a Python string. 
+If key matches an option but the shape, rank or type fails to match, appropriate error code will
+be set (see 3.6.1).
+If key fails to match but default is present, option is set to the value of default.
+If key fails to match and default is not present, the error code will be set to SpudKeyError.
+It returns the value of the option, the value could be of any type.
+
+\subsection{add\_option}
+
+\begin{lstlisting}[language=Python]
+def add_option(string key)
+return None
+\end{lstlisting}
+
+This function takes the key in the form of a Python string. 
+It creates a new option at the supplied key.
+If the option does not currently exist, creates the option
+(with data type SPUD\_NONE) and returns error code SpudNewKeyWarning.
+
+\subsection{set\_option}
+
+\begin{lstlisting}[language=Python]
+def set_option(string key, valuetype value)
+return None
+\end{lstlisting}
+
+This function takes the key in the form of a Python string, and the value to be set. 
+Value could be of any type listed in 3.6.2.
+If key matches an option but the shape, rank or type fails to match currently existing option,
+returns an appropriate error code (see 3.6.1).
+If key fails to match, creates a new option at the supplied key, sets the option to value and returns
+error code SpudNewKeyWarning.
+This function is for setting options in the options tree.
+
+\subsection{set\_option\_attribute}
+
+\begin{lstlisting}[language=Python]
+def set_option_attribute(string key, valuetype value)
+return None
+\end{lstlisting}
+
+This function takes the key in the form of a Python string, and the value to be set. 
+Value could be of any type listed in 3.6.2.
+If key matches an option but the shape, rank or type fails to match currently existing option,
+returns an appropriate error code (see 3.6.1).
+If key fails to match, creates a new option at the supplied key, sets the option to value and returns
+error code SpudNewKeyWarning.
+If key matches an option, but the existing option has children, sets the option to val and
+returns error code SpudAttrSetFailedWarning.
+This function is for setting options in the options tree, but additionally attempts to mark the option at the key as an attribute.
+
+\subsection{delete\_option}
+
+\begin{lstlisting}[language=Python]
+def delete_option(string key)
+return None
+\end{lstlisting}
+
+This function takes the key in the form of a Python string. 
+It raises SpudKeyError if the supplied key does not exist in the options tree.
+This function deletes the option in the options tree.
+
+\subsection{print\_options}
+
+\begin{lstlisting}[language=Python]
+def print_options()
+return None
+\end{lstlisting}
+
+This function takes no arguments.
+It prints the entire options tree to standard output.
+
+
+\include{diamond_manual}
 
 \chapter{Miscellaneous tools}
 
 \section{Spud-set}
 
-Spud-set is a short python script which enables users to make small
+Spud-set is a short Python script which enables users to make small
 modifications to the values of options in Spud options files on the command
 line. This is particularly useful where users wish to script a number of
 model runs exploring different values of one or more parameters.

@@ -137,7 +137,7 @@ $(TEST_LAPLACIAN_VECTOR): test_laplacian_vector.o
 	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(VISUALISE_ELEMENTS): visualise_elements.o
-	$(FLINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
+	$(FLLINKER) $(CXXFLAGS) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)
 
 $(TIME_AVERAGE_PARALLEL): time_average_parallel.o
 	$(FLLINKER) -o $@ $(filter %.o,$^) -l$(FLUIDITY) $(LIBS)

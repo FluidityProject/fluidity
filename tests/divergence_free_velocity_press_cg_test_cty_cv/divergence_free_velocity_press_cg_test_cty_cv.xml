@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>Checks that velocity is divergence free with CG pressure and the continuity tested with the CV dual functions</name>
+  <owner userid="btollit"/>
+  <tags>flml cg_press_test_cty_cv</tags>
+  <problem_definition length="short" nprocs="1">
+    <command_line>
+fluidity divergence_free_velocity_press_cg_test_cty_cv_p0p1_3d.flml
+fluidity divergence_free_velocity_press_cg_test_cty_cv_p1dgp2_3d.flml
+    </command_line>
+  </problem_definition>
+  <variables>
+    <variable name="MaxControlVolumeDivergence_p0p1_3d" language="python">
+from fluidity_tools import stat_parser as stat
+MaxControlVolumeDivergence_p0p1_3d = max(abs(stat("divergence_free_velocity_press_cg_test_cty_cv_p0p1_3d.stat")['water']['ControlVolumeDivergence']['max'][-1]),
+                                         abs(stat("divergence_free_velocity_press_cg_test_cty_cv_p0p1_3d.stat")['water']['ControlVolumeDivergence']['min'][-1]))
+   </variable>
+    <variable name="MaxControlVolumeDivergence_p1dgp2_3d" language="python">
+from fluidity_tools import stat_parser as stat
+MaxControlVolumeDivergence_p1dgp2_3d = max(abs(stat("divergence_free_velocity_press_cg_test_cty_cv_p1dgp2_3d.stat")['water']['ControlVolumeDivergence']['max'][-1]),
+                                           abs(stat("divergence_free_velocity_press_cg_test_cty_cv_p1dgp2_3d.stat")['water']['ControlVolumeDivergence']['min'][-1]))
+   </variable>
+  </variables>
+  <pass_tests>
+    <test name="MaxControlVolumeDivergence_p0p1_3d lower than tolerance 1.0e-10" language="python">
+assert(MaxControlVolumeDivergence_p0p1_3d &lt; 1.0e-10)
+   </test>
+    <test name="MaxControlVolumeDivergence_p1dgp2_3d lower than tolerance 2.0e-9" language="python">
+assert(MaxControlVolumeDivergence_p1dgp2_3d &lt; 2.0e-9)
+   </test>
+  </pass_tests>
+</testproblem>
