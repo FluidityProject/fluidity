@@ -42,7 +42,7 @@ use vector_tools
 implicit none
 
 private
-public limit_slope_dg, limit_fpn, limit_vb
+public limit_slope_dg, limit_fpn, limit_vb, limit_hull
 
 interface limit_slope_dg
    module procedure limit_slope_dg_scalar, limit_slope_dg_vector
@@ -1576,69 +1576,113 @@ contains
 
   ! end subroutine limit_vector_bj
 
-  function limit_hull(Ubar,dU,hull) result (alpha)
+  function limit_hull(Ubar,dU,hull,tol) result (alpha)
     real :: alpha
     real, dimension(:), intent(in) :: Ubar, dU
     real, dimension(:,:), intent(in) :: hull
+    real, intent(in), optional :: tol
     !
     integer :: Udim, nhull,i, homehull, ihull, jhull, info
     real, dimension(size(hull,2)) :: norms
     real, dimension(size(Ubar)) :: vec1,vec2
     real, dimension(size(Ubar),size(Ubar)) :: A
+    real :: ltol
+    
+    if(present(tol)) then
+       ltol = tol
+    else
+       ltol = 1.0e-10
+    end if
 
     !Check dimensions of arrays
     Udim = size(Ubar)
     assert(size(dU)==Udim)
     assert(size(hull,1) == Udim)
     nhull = size(hull,2)
+
+    if(.not.outside_hull(Ubar + dU,hull)) then
+       alpha = 1.0
+       return
+    end if
     
     do i = 1, nhull
-       norms(i) = norm2(hull(:,i)-dU)
+       norms(i) = norm2(hull(:,i)-Ubar)
     end do
     homehull = minloc(norms,dim=1)
-    assert(minval(norms)<1.0e-10)
+    assert(minval(norms)<ltol)
 
-    alpha = 1.0
-    if(outside_hull(Ubar + dU,hull)) then
-       !Need to limit the vector
-       !First check that line segment Ubar + alpha*dU 
-       !intersects hull
-       ihull = mod(homehull,nhull)+1
-       jhull = mod(homehull-2,nhull)+1
-       if(isleft(hull(:,homehull),hull(:,ihull),Ubar + dU).or.&
-            isleft(hull(:,jhull),hull(:,homehull),Ubar + dU)) then
-          !Line segment does not intersect hull
+    if(nhull.eq.1) then
+       !Hull is a point.
+       !Can only get into hull by completely removing slope.
+       alpha = 0.0
+       return
+    end if
+
+    if(nhull.eq.2) then
+       !Hull is a line segment
+       !Check if point lies on extension of line segment
+       if(abs(cross_product2(hull(:,2)-hull(:,1),Ubar+dU-hull(:,1)))>ltol)&
+            & then
+          !Point does not lie on extension of line segment
+          !Can only get into hull by completely removing slope
           alpha = 0.0
+          return
        else
-          !Line Segment does intersect hull
-          !Find intersected edge
-          intersection_search: do i = 1, nhull
-             jhull = mod(i,nhull)+1
-             if(cross_product2(hull(:,jhull)-hull(:,homehull),dU)>0.0) then
-                ihull = mod(i-1,nhull)+1
-                exit intersection_search
-             end if
-          end do intersection_search
-          !Solve for intersection
-          ! solve Ubar + alpha*dU = Pi + beta*(P_{i+1}-Pi)
-          vec1 = Ubar - hull(:,ihull)
-          A(:,1) = dU
-          A(:,2) = hull(:,jhull)-hull(:,ihull)
-          call solve(A,vec1,info)
-          assert((vec1(2).le.1.0))
-          assert((vec1(2).ge.0.0))
-          alpha = vec1(1)
-          assert(alpha.le.1.0)
-          assert(alpha.ge.0.0)
+          !Point lies on extension of line segment
+          alpha = min(1.,max(0.,dot_product(hull(:,2)-hull(:,1),Ubar+dU&
+               &-hull(:,1))/norm2(hull(:,2)-hull(:,1))))
+          return
        end if
     end if
 
+    !If we haven't returned by this point, hull is a convex polygon 
+    !enclosing finite area.
+    !First check that line segment Ubar + alpha*dU 
+    !intersects hull
+    ihull = mod(homehull,nhull)+1
+    jhull = mod(homehull+nhull-2,nhull)+1
+    if(isleft(hull(:,homehull),hull(:,ihull),Ubar + dU).or.&
+         isleft(hull(:,jhull),hull(:,homehull),Ubar + dU)) then
+       !Line segment does not intersect hull
+       alpha = 0.0
+    else
+       !Line Segment does intersect hull
+       !Find intersected edge
+       intersection_search: do i = 1, nhull
+          jhull = mod(i,nhull)+1
+          if(cross_product2(hull(:,jhull)-hull(:,homehull),dU)<0.0) then
+             ihull = mod(i+nhull-1,nhull)+1
+             exit intersection_search
+          end if
+       end do intersection_search
+       !Solve for intersection
+       ! solve Ubar + alpha*dU = Pi + beta*(P_{i+1}-Pi)
+       ! i.e.
+       ! (-dU_1 (P_{i+1}-P_i)_1 )(alpha) = (Ubar_1 - (P_i)_1)
+       ! (-dU_2 (P_{i+1}-P_i)_2 )(beta)    (Ubar_2 - (P_i)_2)
+       vec1 = Ubar - hull(:,ihull)
+       A(:,1) = -dU
+       A(:,2) = hull(:,jhull)-hull(:,ihull)
+       call solve(A,vec1,info)
+       assert((vec1(2).le.1.0))
+       assert((vec1(2).ge.0.0))
+       alpha = vec1(1)
+       assert(alpha.le.1.0)
+       assert(alpha.ge.0.0)
+    end if
+
     contains 
-      function isleft(seg1,seg2,point)
+      function isleft(seg1,seg2,point,tol)
         real, intent(in), dimension(:) :: seg1, seg2, point
+        real, intent(in), optional :: tol
         logical :: isleft
-        
-        isleft = cross_product2(seg2-seg1,point-seg1)>0.
+        real :: ltol
+        if(present(tol)) then
+           ltol = tol
+        else
+           ltol = 1.0e-10
+        end if
+        isleft = cross_product2(seg2-seg1,point-seg1)<ltol
       end function isleft
 
   end function limit_hull
