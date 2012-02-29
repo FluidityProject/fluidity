@@ -73,10 +73,16 @@ subroutine test_limit_hull
   fail = alpha<0.0.or.alpha>=1.0
   call report_test('[RandomHullOutside3]', fail, .false., &
        & "Point is outside hull.")
-  dU = (/0.55999695-Hull_p(:,1),0.10077083-Hull_p(:,2)/)
+  dU = (/0.55999695-Hull_p(1,1),0.10077083-Hull_p(2,1)/)
   alpha = limit_hull(Ubar,dU,hull_p)
   fail = abs(alpha-1.0)>1.0e-8
   call report_test('[RandomHullInside]', fail, .false., &
-       & "Point is outside hull.")
+       & "Point is inside hull.")
+  dU = (/0.5*(Hull_p(1,5)+Hull_p(1,6))-Hull_p(1,1),&
+       0.5*(Hull_p(2,5)+Hull_p(2,6))-Hull_p(2,1)/)/0.9
+  alpha = limit_hull(Ubar,dU,hull_p)
+  fail = abs(alpha-0.9)>1.0e-8
+  call report_test('[RandomHull_0.9]', fail, .false., &
+       & "Point is outside hull, alpha = 0.9.")
   deallocate(hull_p,vec)
 end subroutine test_limit_hull
