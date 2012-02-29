@@ -1648,9 +1648,10 @@ contains
     else
        !Line Segment does intersect hull
        !Find intersected edge
+       ! (0,1) x (1,0) = -1
        intersection_search: do i = 1, nhull
           jhull = mod(i,nhull)+1
-          if(cross_product2(hull(:,jhull)-hull(:,homehull),dU)<0.0) then
+          if(cross_product2(hull(:,jhull)-hull(:,homehull),dU)>0.0) then
              ihull = mod(i+nhull-1,nhull)+1
              exit intersection_search
           end if
@@ -1660,20 +1661,14 @@ contains
        ! i.e.
        ! (-dU_1 (P_{i+1}-P_i)_1 )(alpha) = (Ubar_1 - (P_i)_1)
        ! (-dU_2 (P_{i+1}-P_i)_2 )(beta)    (Ubar_2 - (P_i)_2)
-       print *, hull(:,ihull)
-       print *, hull(:,jhull)
        
        vec1 = Ubar - hull(:,ihull)
        A(:,1) = -dU
        A(:,2) = hull(:,jhull)-hull(:,ihull)
-       print *, A(:,1)
-       print *, A(:,2)
-       print *,'vec1',vec1
        call solve(A,vec1,info)
        assert((vec1(2).le.1.0))
        assert((vec1(2).ge.0.0))
        alpha = vec1(1)
-       print *, 'asdf',alpha
        assert(alpha.le.1.0)
        assert(alpha.ge.0.0)
     end if
