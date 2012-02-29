@@ -44,10 +44,10 @@ KKLKC_MLD = mld_calc.MLD(filelist)
 
   <pass_tests> 
     <test name="Final time equals 10 hours for k-e CA" language="python">
-assert FinalTimeKECA &gt; 35900
+assert FinalTimeKECA &gt; 17900
     </test>
     <test name="Final time equals 10 hours for k-kl KC" language="python">
-assert FinalTimeKKLKC &gt; 35900
+assert FinalTimeKKLKC &gt; 17900
     </test>
 
     <test name ="MLD for K-E KC vs analytical" language="python">
