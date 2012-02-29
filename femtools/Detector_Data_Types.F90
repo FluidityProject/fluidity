@@ -39,9 +39,11 @@ module detector_data_types
   public :: detector_type, detector_linked_list, &
             detector_list_ptr, stringlist, &
             random_walk, biovar, &
-            STATIC_DETECTOR, LAGRANGIAN_DETECTOR
+            STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
+            GUIDED_SEARCH_TRACKING, RTREE_TRACKING
 
-  integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2  
+  integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2
+  integer, parameter :: GUIDED_SEARCH_TRACKING=1, RTREE_TRACKING=2  
 
   type stringlist
      !!< Container type for a list of strings.
@@ -166,6 +168,8 @@ module detector_data_types
      integer :: n_stages = 0
      real, allocatable, dimension(:) :: timestep_weights
      real, allocatable, dimension(:,:) :: stage_matrix
+
+     integer :: tracking_method
      real :: search_tolerance = 1.0e-10
 
      ! List of random walk schemes to apply

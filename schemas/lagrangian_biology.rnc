@@ -203,6 +203,14 @@ lagrangian_biology =
                         }
                      ),
                      (
+                        element parametric_guided_search{
+                           empty
+                        }|
+                        element rtree_tracking{
+                           empty
+                        }
+                     ),
+                     (
                         ## Use explicit Forward Euler method with
                         ## guided search particle tracking
                         element forward_euler_guided_search {

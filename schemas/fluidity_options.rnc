@@ -2177,6 +2177,14 @@ lagrangian_timestepping =
             real
          },
          (
+            element parametric_guided_search{
+               empty
+            }|
+            element rtree_tracking{
+               empty
+            }
+         ),
+         (
             ## Use explicit runge kutta method with
             ## guided search particle tracking
             element explicit_runge_kutta_guided_search {

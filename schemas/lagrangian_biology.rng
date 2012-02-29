@@ -267,6 +267,14 @@ element. Recommended value 1.0e-10</a:documentation>
                       <empty/>
                     </element>
                   </choice>
+                  <choice>
+                    <element name="parametric_guided_search">
+                      <empty/>
+                    </element>
+                    <element name="rtree_tracking">
+                      <empty/>
+                    </element>
+                  </choice>
                   <optional>
                     <choice>
                       <element name="forward_euler_guided_search">

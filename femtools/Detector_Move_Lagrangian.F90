@@ -44,6 +44,8 @@ module detector_move_lagrangian
   use Profiler
   use linked_lists
   use integer_hash_table_module
+  use pickers
+  use parallel_fields, only: element_owner
 
   implicit none
   
@@ -144,6 +146,17 @@ contains
        ! Boundary reflection
        if (have_option(trim(options_path)//trim("/reflect_on_boundary"))) then
           detector_list%reflect_on_boundary=.true.
+       end if
+
+       if (have_option(trim(options_path)//trim("/parametric_guided_search"))) then
+          detector_list%tracking_method = GUIDED_SEARCH_TRACKING
+       elseif (have_option(trim(options_path)//trim("/rtree_tracking"))) then
+          detector_list%tracking_method = RTREE_TRACKING
+       else
+          if (check_any_lagrangian(detector_list)) then
+             ewrite(-1,*) "Found lagrangian detectors, but no tracking options"
+             FLExit('No lagrangian particle tracking method specified')
+          end if
        end if
 
     else
@@ -303,7 +316,7 @@ contains
              ! Move update parametric detector coordinates according to update_vector
              ! If this takes a detector across parallel domain boundaries
              ! the routine will also send the detector
-             call move_detectors_guided_search(detector_list,xfield)
+             call track_detectors(detector_list,xfield)
 
           end do RKstages_loop
           call profiler_toc(trim(detector_list%name)//"::movement::Runge-Kutta-"//trim(int2str(detector_list%n_stages)))
@@ -340,7 +353,7 @@ contains
                    detector => detector%next
                 end do
 
-                call move_detectors_guided_search(detector_list,xfield)
+                call track_detectors(detector_list,xfield)
 
              ! Internal Diffusive Random Walk with automated sub-cycling
              elseif (detector_list%random_walks(rw)%diffusive_random_walk &
@@ -444,7 +457,7 @@ contains
     end do
   end subroutine set_stage
 
-  subroutine move_detectors_guided_search(detector_list,xfield)
+  subroutine track_detectors(detector_list,xfield)
     !Subroutine to find the element containing the update vector:
     ! - Detectors leaving the computational domain are set to STATIC
     ! - Detectors leaving the processor domain are added to the list 
@@ -463,7 +476,7 @@ contains
     integer :: k, nprocs, new_owner, all_send_lists_empty
     logical :: outside_domain, any_lagrangian
 
-    call profiler_tic(trim(detector_list%name)//"::movement::guided_search")
+    call profiler_tic(trim(detector_list%name)//"::movement::tracking")
 
     ! We allocate a sendlist for every processor
     nprocs=getnprocs()
@@ -490,8 +503,20 @@ contains
                 cycle
              end if
 
-             call local_guided_search(xfield,detector%update_vector,detector%element, &
+             if (detector_list%tracking_method == GUIDED_SEARCH_TRACKING) then
+                call profiler_tic(trim(detector_list%name)//"::movement::tracking::guided_search")
+                call local_guided_search(xfield,detector%update_vector,detector%element, &
                         search_tolerance,new_owner,detector%local_coords)
+                call profiler_toc(trim(detector_list%name)//"::movement::tracking::guided_search")
+
+             elseif (detector_list%tracking_method == RTREE_TRACKING) then
+                call profiler_tic(trim(detector_list%name)//"::movement::tracking::rtree_tracking")
+                call picker_inquire(xfield, detector%update_vector, detector%element, detector%local_coords, global=.false.)
+                new_owner = element_owner(xfield, detector%element)
+                call profiler_toc(trim(detector_list%name)//"::movement::tracking::rtree_tracking")
+             else
+                FLExit('No lagrangian particle tracking method specified')
+             end if
 
              if (new_owner==-1) then
                 if (detector_list%reflect_on_boundary) then
@@ -542,9 +567,9 @@ contains
 
     deallocate(send_list_array)
 
-    call profiler_toc(trim(detector_list%name)//"::movement::guided_search")
+    call profiler_toc(trim(detector_list%name)//"::movement::tracking")
 
-  end subroutine move_detectors_guided_search
+  end subroutine track_detectors
 
   subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner,l_coords,ele_path)
     ! Do a local guided search until we either hit the new element 
@@ -563,13 +588,9 @@ contains
     integer :: neigh, face
     logical :: outside_domain
 
-    call profiler_tic("/local_guided_search::search_loop")
-
     search_loop: do
        ! Compute the local coordinates of the arrival point with respect to this element
-       call profiler_tic("/local_guided_search::local_coords")
        l_coords=local_coords(xfield,element,coordinate)
-       call profiler_toc("/local_guided_search::local_coords")
 
        if (minval(l_coords)>-search_tolerance) then
           !The arrival point is in this element, we're done
@@ -623,8 +644,6 @@ contains
           end if
        end if
     end do search_loop
-
-    call profiler_toc("/local_guided_search::search_loop")
 
   end subroutine local_guided_search
 
@@ -742,7 +761,7 @@ contains
 
     ! Update elements in the subcycle list
     if (subcycle_detector_list%length > 0) then
-       call move_detectors_guided_search(subcycle_detector_list,xfield)
+       call track_detectors(subcycle_detector_list,xfield)
     end if
 
     ! Remaining subcycle passes until subcycle list is empty
@@ -763,12 +782,12 @@ contains
              detector => detector%next
           end if
        end do
-       call move_detectors_guided_search(subcycle_detector_list,xfield)
+       call track_detectors(subcycle_detector_list,xfield)
        subsubcycle = subsubcycle + 1
     end do
 
     ! Update detectors after the final move
-    call move_detectors_guided_search(detector_list,xfield)
+    call track_detectors(detector_list,xfield)
 
     ewrite(2,*) "Auto-subcycling: max. subcycles:", max_subsubcycle
     ewrite(2,*) "Auto-subcycling: avg. subcycles:", total_subsubcycle / detector_list%length
