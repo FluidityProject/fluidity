@@ -59,6 +59,7 @@ subroutine test_convex_hull2d
   call report_test("[InsideHull]", fail, .false., "Point is inside hull.")  
 
   deallocate(Hull)
+  deallocate(Vec)
 
   allocate(Hull(2,1))
   Hull = 0.
@@ -95,10 +96,12 @@ subroutine test_convex_hull2d
 
   deallocate(Hull)
 
-  allocate(Hull(2,4))
-  hull(1,:) = (/0.0,1.0,1.0,0.0/)
-  hull(2,:) = (/0.0,0.0,1.0,1.0/)
-  fail = outside_hull((/0.8,0.8/),hull)
+  allocate(Vec(2,4))
+  vec(1,:) = (/0.0,1.0,1.0,0.0/)
+  vec(2,:) = (/0.0,0.0,1.0,1.0/)
+  call convex_hull(Vec,Hull)
+  fail = outside_hull((/1.0,1.0/)/1.8,hull)
   call report_test("[InsideSquareHull]", fail, .false., "Point is inside hull.")
+  deallocate(vec)
   deallocate(hull)
 end subroutine test_convex_hull2d

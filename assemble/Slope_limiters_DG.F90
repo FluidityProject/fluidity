@@ -1660,13 +1660,20 @@ contains
        ! i.e.
        ! (-dU_1 (P_{i+1}-P_i)_1 )(alpha) = (Ubar_1 - (P_i)_1)
        ! (-dU_2 (P_{i+1}-P_i)_2 )(beta)    (Ubar_2 - (P_i)_2)
+       print *, hull(:,ihull)
+       print *, hull(:,jhull)
+       
        vec1 = Ubar - hull(:,ihull)
        A(:,1) = -dU
        A(:,2) = hull(:,jhull)-hull(:,ihull)
+       print *, A(:,1)
+       print *, A(:,2)
+       print *,'vec1',vec1
        call solve(A,vec1,info)
        assert((vec1(2).le.1.0))
        assert((vec1(2).ge.0.0))
        alpha = vec1(1)
+       print *, 'asdf',alpha
        assert(alpha.le.1.0)
        assert(alpha.ge.0.0)
     end if
@@ -1682,7 +1689,7 @@ contains
         else
            ltol = 1.0e-10
         end if
-        isleft = cross_product2(seg2-seg1,point-seg1)<ltol
+        isleft = cross_product2(seg2-seg1,point-seg1)>0.0
       end function isleft
 
   end function limit_hull
