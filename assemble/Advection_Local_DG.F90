@@ -727,7 +727,7 @@ module advection_local_DG
          "/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter")) then
        limit_slope=.true.
-       limiter=LIMITER_VB
+       limiter=VECTOR_LIMITER_VB
        
        ! Note unsafe for mixed element meshes
        if (element_degree(U,1)==0) then
@@ -764,14 +764,7 @@ module advection_local_DG
           call mult_t(U_cartesian_tmp, L, U)
           call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
 
-          ! Filter wiggles from U
-          do j=1,U_cartesian%dim
-             U_component=extract_scalar_field(U_cartesian,j)
-             !-----------------------------------------
-             !Will need to make a vector limiter
-             call limit_slope_dg(U_component, U_nl, X, state, limiter)
-             !-----------------------------------------
-          end do
+          call limit_slope_dg(U_cartesian, state, limiter)
 
           call mult(U_tmp, L, U_cartesian)
           call mult(U, inv_mass_local, U_tmp)

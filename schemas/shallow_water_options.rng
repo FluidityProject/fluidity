@@ -423,6 +423,9 @@ if isn't present as a field in state.</a:documentation>
           <zeroOrMore>
             <ref name="vector_field_choice"/>
           </zeroOrMore>
+          <zeroOrMore>
+            <ref name="tensor_field_choice"/>
+          </zeroOrMore>
         </group>
       </element>
       <optional>
@@ -2723,6 +2726,66 @@ that set by /geometry/dimension</a:documentation>
         </element>
       </element>
       <element name="vector_field">
+        <a:documentation>Normal used for vector valued limiter at vertices
+Element vector values are rotated using the orthogonal matrix
+R that maps the element normal to this normal
+before being limited to a convex hull</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>VertexNormal</value>
+        </attribute>
+        <element name="prescribed">
+          <element name="mesh">
+            <attribute name="name">
+              <value>CoordinateMesh</value>
+            </attribute>
+          </element>
+          <ref name="prescribed_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Tangent used for vector valued limiter at vertices
+Together with VertexTangent2, this spans the tangent space
+at the vertex where the convex hull limiting takes place
+Must be orthonormal with VertexTangent2</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>VertexTangent1</value>
+        </attribute>
+        <element name="prescribed">
+          <element name="mesh">
+            <attribute name="name">
+              <value>CoordinateMesh</value>
+            </attribute>
+          </element>
+          <ref name="prescribed_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
+        <a:documentation>Tangent used for vector valued limiter at vertices
+Together with VertexTangent1, this spans the tangent space
+at the vertex where the convex hull limiting takes place
+Must be orthonormal with VertexTangent1</a:documentation>
+        <attribute name="rank">
+          <value>1</value>
+        </attribute>
+        <attribute name="name">
+          <value>VertexTangent2</value>
+        </attribute>
+        <element name="prescribed">
+          <element name="mesh">
+            <attribute name="name">
+              <value>CoordinateMesh</value>
+            </attribute>
+          </element>
+          <ref name="prescribed_vector_field"/>
+        </element>
+      </element>
+      <element name="vector_field">
         <a:documentation>Prescribed vector field from commuting projection</a:documentation>
         <attribute name="rank">
           <value>1</value>
@@ -2902,7 +2965,7 @@ less accurate but faster and might give smoother result.                  </a:do
         
       -->
       <element name="___Prescribed_fields_below___">
-        <a:documentation>Prescribed scalar fields below this</a:documentation>
+        <a:documentation>Prescribed tensor fields below this</a:documentation>
         <empty/>
       </element>
       <!--

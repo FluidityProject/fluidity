@@ -335,7 +335,8 @@ start =
                  }
                }?,
                scalar_field_choice*,
-               vector_field_choice*
+               vector_field_choice*,
+               tensor_field_choice*
             )
          },
         element mesh_adaptivity {
@@ -2319,6 +2320,54 @@ vector_field_choice =
               }
            )
         }|
+         ## Normal used for vector valued limiter at vertices
+         ## Element vector values are rotated using the orthogonal matrix
+         ## R that maps the element normal to this normal
+         ## before being limited to a convex hull
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "VertexNormal" },
+            (
+               element prescribed {
+                  element mesh {
+                     attribute name { "CoordinateMesh" }
+                  },
+                  prescribed_vector_field
+               }
+            )
+         }|
+         ## Tangent used for vector valued limiter at vertices
+         ## Together with VertexTangent2, this spans the tangent space
+         ## at the vertex where the convex hull limiting takes place
+         ## Must be orthonormal with VertexTangent2
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "VertexTangent1" },
+            (
+               element prescribed {
+                  element mesh {
+                     attribute name { "CoordinateMesh" }
+                  },
+                  prescribed_vector_field
+               }
+            )
+         }|
+         ## Tangent used for vector valued limiter at vertices
+         ## Together with VertexTangent1, this spans the tangent space
+         ## at the vertex where the convex hull limiting takes place
+         ## Must be orthonormal with VertexTangent1
+         element vector_field {
+            attribute rank { "1" },
+            attribute name { "VertexTangent2" },
+            (
+               element prescribed {
+                  element mesh {
+                     attribute name { "CoordinateMesh" }
+                  },
+                  prescribed_vector_field
+               }
+            )
+         }|
          ## Prescribed vector field from commuting projection
          element vector_field {
             attribute rank { "1" },
@@ -2465,11 +2514,10 @@ tensor_field_choice =
 #    but can be aliased.
 # -- The list is in order of most frequently used.
 #
-         ## Prescribed scalar fields below this
+         ## Prescribed tensor fields below this
          element ___Prescribed_fields_below___ {
             empty
          }|
-
 #
 # Insert new prescribed tensor fields here using the template:
 #        element tensor_field {

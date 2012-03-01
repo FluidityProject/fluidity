@@ -39,6 +39,7 @@ use bound_field_module
 use vtk_interfaces
 use transform_elements
 use vector_tools
+use hybridized_helmholtz, only : get_up_gi
 implicit none
 
 private
@@ -241,8 +242,8 @@ contains
     ewrite(2,*) 'subroutine limit_slope_dg_vector'
 
     select case (limiter)
-    !case (VECTOR_LIMITER_vb)
-    !   call limit_vector_vb(state, V)
+    case (VECTOR_LIMITER_vb)
+       call limit_vector_vb(state, V)
        
     case default
        ewrite(-1,*) 'limiter = ', limiter
@@ -1508,25 +1509,23 @@ contains
     type(vector_field) :: V_limit, V_mean
     type(mesh_type), pointer :: vertex_mesh
     ! counters
-    integer :: ele, node, ele2, neigh
+    integer :: ele, node, ele2, neigh,stat
     ! local numbers
     integer, dimension(:), pointer :: V_ele, neighs
     ! local field values
     real, dimension(V%dim,ele_loc(V,1)) :: V_val, E_normal_val, V_val_slope
-    real, dimension(V%dim,V%dim,ele_loc(V,1)) :: v_basis_val
+    real, dimension(V%dim,ele_loc(V,1)) :: v_normal_val, v_tangent1_val, &
+         & v_tangent2_val
     real, dimension(V%dim) :: Vbar, ENbar
+    real, dimension(2) :: V_val_slope2d, Vbar_2d
     type(csr_sparsity), pointer :: NEList
-    type(vector_field), pointer :: ElementNormals
-    type(tensor_field), pointer :: VertexBasis
-    
+    type(vector_field), pointer :: ElementNormals, VertexNormals, &
+         VertexTangent1, VertexTangent2
     type(real_matrix), dimension(:), allocatable :: Hulls
     real, dimension(:,:), allocatable :: Vectors
     real, dimension(:), allocatable :: HullFlags
-    real, dimension(V%dim) :: t1, t2_nod, t2_ele
     integer, dimension(:), pointer :: E_nodes
-    real :: theta, alpha
-    real, dimension(2,2) :: A
-    real, dimension(2) :: RHS
+    real :: alpha
     
     if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
        FLExit("The vertex based vector slope limiter only works for P1DG fields.")
@@ -1539,11 +1538,15 @@ contains
     end if
 
     !Get normals to rotate into 2D plane
-    !Normals on each vertex (set from Diamond)
-    VertexBasis => extract_tensor_field(state,'VertexBasis')
+    !Normals and tangents on each vertex (set from Diamond)
+    VertexNormals => extract_vector_field(state,'VertexNormal')
+    VertexTangent1 => extract_vector_field(state,'VertexTangent1')
+    VertexTangent2 => extract_vector_field(state,'VertexTangent2')
     !Normals on each element (set from Advection_Local.F90)
-    ElementNormals => extract_vector_field(state,'ElementNormals')
-
+    ElementNormals => extract_vector_field(state,'ElementNormals',stat)
+    if(stat /= 0) then
+       call get_element_normals(ElementNormals,state)
+    end if
     ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
     call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
     NEList => extract_nelist(vertex_mesh)
@@ -1557,9 +1560,11 @@ contains
     allocate(HullFlags(node_count(V)))
     !loop over all elements
     convex_ele: do ele = 1, ele_count(V)
-       E_nodes => ele_nodes(V,ele)
+       E_nodes => ele_nodes(vertex_mesh,ele)
        !Get vertex normals
-       v_basis_val = ele_val(VertexBasis,ele)
+       v_normal_val = ele_val(VertexNormals,ele)
+       v_tangent1_val = ele_val(VertexTangent1,ele)       
+       v_tangent2_val = ele_val(VertexTangent2,ele)
        !loop over nodes in element
        convex_node: do node = 1, ele_loc(V,ele)
           !Get elements surrounding vertex
@@ -1573,23 +1578,11 @@ contains
              E_normal_val = ele_val(ElementNormals,ele2)
              ENbar = sum(E_normal_val,2)/size(E_normal_val,2)
              !Get mean vector value in ele2
-             V_val = ele_val(V_mean,ele2)
+             V_val = ele_val(V,ele2)
              Vbar = sum(V_val,2)/size(V_val,2)
-             !Rotate Vbar onto 2D plane
-             t1 = cross_product(ENbar,v_basis_val(1,:,node))
-             t1 = t1/norm2(t1)
-             t2_nod = cross_product(v_basis_val(1,:,node),t1)
-             t2_ele = cross_product(ENbar,t1)
-             !Need to solve
-             ! Vbar_ele.t1 = Vbar_nod.t1
-             ! Vbar_ele.t2_ele = Vbar_nod.t2_nod
-             A(1,:) = t1
-             A(2,:) = t2_nod
-             RHS(1) = dot_product(Vbar,t1)
-             RHS(2) = dot_product(Vbar,t2_ele)
-             call solve(A,RHS)
-             Vectors(1,neigh) = dot_product(RHS,v_basis_val(2,:,node))
-             Vectors(2,neigh) = dot_product(RHS,v_basis_val(3,:,node))
+             Vectors(:,neigh) = rotate_ele2vertex(&
+                  &V_normal_val(:,node),ENbar,&
+                  &V_tangent1_val(:,node),V_tangent2_val(:,node),Vbar)
           end do convex_ele2
           call convex_hull(Vectors,Hulls(E_nodes(node))%ptr)
           deallocate(Vectors)
@@ -1599,7 +1592,7 @@ contains
     !Compute limiting alpha
     limiting_ele: do ele = 1, ele_count(V)
        V_ele => ele_nodes(V,ele)
-       E_nodes => ele_nodes(V,ele)
+       E_nodes => ele_nodes(vertex_mesh,ele)
        V_val = ele_val(V,ele)
        Vbar = sum(V_val,2)/size(V_val,2)
        call set(V_limit,V_ele,V_val)
@@ -1607,13 +1600,19 @@ contains
           V_val_slope(:,node) = V_val(:,node) - Vbar       
           V_val(:,node) = Vbar
        end do    
-       call set(V_limit,V_ele,V_val)
        alpha = 1.0
+       Vbar_2d = rotate_ele2vertex(&
+            &V_normal_val(:,node),ENbar,&
+            &V_tangent1_val(:,node),V_tangent2_val(:,node),Vbar)
        limiting_node: do node = 1, ele_loc(V,ele)
-          alpha = min(alpha,limit_hull(Vbar,V_val_slope(:,node),&
+          V_val_slope2d = rotate_ele2vertex(&
+                  &V_normal_val(:,node),ENbar,&
+                  &V_tangent1_val(:,node),V_tangent2_val(:,node),&
+                  &V_val_slope(:,node))
+          alpha = min(alpha,limit_hull(Vbar_2d,V_val_slope2d,&
                &hulls(E_nodes(node))%ptr))
+          call set(V_limit, V_ele(node), Vbar_2d + alpha*V_val_slope2d)
        end do limiting_node
-       call addto(V_limit, V_ele, alpha*V_val_slope)
     end do limiting_ele
 
     !Deallocate copy of field
@@ -1625,7 +1624,79 @@ contains
        deallocate(Hulls(node)%ptr)
     end do
     deallocate(Hulls)
+
+    contains
+
+      subroutine get_element_normals(ElementNormals,state)
+        type(vector_field), pointer, intent(inout) :: ElementNormals
+        type(state_type), intent(inout) :: state
+        !
+        integer :: ele
+        type(vector_field), pointer :: down, X
+
+        down=>extract_vector_field(state, "GravityDirection")
+        X=>extract_vector_field(state, "Coordinate")        
+        call allocate(ElementNormals,X%dim,X%mesh,name='ElementNormals')
+
+        do ele = 1, ele_count(ElementNormals)
+           call get_element_normals_ele(ElementNormals,down,X,ele)
+        end do
+      end subroutine get_element_normals
+
+      subroutine get_element_normals_ele(ElementNormals,down,X,ele)
+        type(vector_field), pointer, intent(inout) :: ElementNormals
+        type(vector_field), intent(in) :: down, X
+        integer, intent(in) :: ele
+        !
+        integer, dimension(:), pointer :: EN_nodes
+        real, dimension(X%dim, ele_ngi(X,ele)) :: up_gi        
+        integer :: nod
+
+        EN_nodes => ele_nodes(ElementNormals,ele)
+
+        !Get element normal
+        up_gi = -ele_val_at_quad(down,ele)
+        call get_up_gi(X,ele,up_gi)
+        
+        do nod = 1, size(EN_nodes)
+           call set(ElementNormals,EN_nodes(nod),sum(up_gi,2)/size(up_gi,2))
+        end do
+
+      end subroutine get_element_normals_ele
   end subroutine limit_vector_vb
+
+  function rotate_ele2vertex(V_normal,E_normal,V_tangent1,V_tangent2,Vbar)
+    real, dimension(3), intent(in) :: V_normal, E_normal, V_tangent1&
+         &,V_tangent2, Vbar
+    real, dimension(2) :: rotate_ele2vertex
+    real, dimension(3,3) :: A
+    real, dimension(3) :: RHS
+    real, dimension(3) :: t1, t2_nod, t2_ele
+
+    if(maxval(&
+         &abs(cross_product(E_normal,v_normal)))>1.0e-8) then
+       !Rotate Vbar onto 2D plane
+       t1 = cross_product(E_normal,v_normal)
+       t1 = t1/norm2(t1)
+       t2_nod = cross_product(v_normal,t1)
+       t2_ele = cross_product(E_normal,t1)
+       !Need to solve
+       ! Vbar_ele.t1 = Vbar_nod.t1
+       ! Vbar_ele.t2_ele = Vbar_nod.t2_nod
+       ! Vbar_nod.n_nod = 0
+       A(1,:) = t1
+       A(2,:) = t2_nod
+       A(3,:) = V_normal
+       RHS(1) = dot_product(Vbar,t1)
+       RHS(2) = dot_product(Vbar,t2_ele)
+       RHS(3) = 0
+       call solve(A,RHS)
+    else
+       RHS = Vbar
+    end if
+    rotate_ele2vertex(1) = dot_product(RHS,v_tangent1)
+    rotate_ele2vertex(2) = dot_product(RHS,v_tangent2)
+  end function rotate_ele2vertex
 
   function limit_hull(Ubar,dU,hull,tol) result (alpha)
     real :: alpha
@@ -1647,6 +1718,7 @@ contains
     !Check dimensions of arrays
     Udim = size(Ubar)
     assert(size(dU)==Udim)
+    ewrite(2,*) Udim, size(hull,1)
     assert(size(hull,1) == Udim)
     nhull = size(hull,2)
 
