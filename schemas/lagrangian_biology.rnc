@@ -11,45 +11,27 @@ lagrangian_biology =
          ## The concrete behaviour of an agent, however, is defined by the stage the agent is in. Stage changes are only permitted within Functional Groups. 
          element functional_group {
             attribute name { xsd:string },
-            ## The variables of an agent define its individual internal state. 
-            ## Several types of variables are available: 
-            ## state_variable defines an arbitrary internal property; 
-            ## chemical_variable defines an internal pool of chemicals that can be exchanged with the environment. 
-            element variables {
-               ## An agent's stage determines the update function to apply at each timestep.
-               element state_variable {
-                  attribute name { 'Stage' },
-                  element include_in_io {
-                     empty
-                  }?
-               },
-               ## Dynamic size of the ensemble the agent represents. 
-               ## All internal quantities that are exchanged with the environment get scaled by this factor.
-               element state_variable {
-                  attribute name { 'Size' },
-                  ## Biology agent field
-                  element scalar_field {
-                     attribute name { 'Ensemble' },
-                     element diagnostic {
-                        internal_algorithm,
-                        diagnostic_scalar_field_no_adapt
-                     },
-                     ## Add diagnostic field that represents the total quantity across all stages of the FG.
-                     element stage_aggregate {
+            (
+               ## The variables of an agent define its individual internal state. 
+               ## Several types of variables are available: 
+               ## state_variable defines an arbitrary internal property; 
+               ## chemical_variable defines an internal pool of chemicals that can be exchanged with the environment. 
+               element variables {
+
+                  ## An agent's stage determines the update function to apply at each timestep.
+                  element state_variable {
+                     attribute name { 'Stage' },
+                     element include_in_io {
                         empty
                      }?
                   },
-                  element include_in_io {
-                     empty
-                  }?
-               },
-               (
-                  ## Internal state variable of a biology agent that defines an arbitrary internal property.
+                  ## Dynamic size of the ensemble the agent represents. 
+                  ## All internal quantities that are exchanged with the environment get scaled by this factor.
                   element state_variable {
-                     attribute name { xsd:string },
-                     # Agent diagnostic field
+                     attribute name { 'Size' },
+                     ## Biology agent field
                      element scalar_field {
-                        attribute name { xsd:string },
+                        attribute name { 'Ensemble' },
                         element diagnostic {
                            internal_algorithm,
                            diagnostic_scalar_field_no_adapt
@@ -58,85 +40,17 @@ lagrangian_biology =
                         element stage_aggregate {
                            empty
                         }?
-                     }?,
+                     },
                      element include_in_io {
                         empty
                      }?
-                  }|
-                  ## State variable representing the internal chemical pool of an agent. 
-                  ## Chemicals can be exchanged with the environment via the 'release' and 'uptake' options. 
-                  ## This requires a dissolved chemical field from the main material_phase to be bound to this agent variable. 
-                  ## The associated source and absorption fields will then get set from the accumulated particulate quantities.
-                  element chemical_variable {
-                     attribute name { xsd:string },
-                     ## Eulerian diagnostic field representing the particulate amount of this chemical. 
-                     ## This field must be on a discontinuous mesh
-                     element scalar_field {
-                        attribute name { 'Particulate' },
-                        element diagnostic {
-                           internal_algorithm,
-                           diagnostic_scalar_field_no_adapt
-                        },
-                        ## Add diagnostic field that represents the total quantity across all stages of the FG.
-                        element stage_aggregate {
-                           empty
-                        }?
-                     }?,
-                     ## Name of the field representing the dissolved chemical in the environment.
-                     ## This option is required if 'uptake' or 'release' are specified.
-                     element chemical_field {
-                        attribute name { xsd:string }
-                     }?,
-                     ## Option to define chemical uptake from the environment. 
-                     ## This will create internal fields to represent the accumulated requested quantity 
-                     ## and the depletion factor, which scales the amount actually ingested by the agent 
-                     ## according to availability in the environment. 
-                     ## The scaled request quantity will then get added to the according absorption field of the dissolved chemical.
-                     element uptake {
-                        ## Request field on a discontinuous mesh mesh
-                        element scalar_field {
-                           attribute name { "Request" },
-                           element diagnostic {
-                              internal_algorithm,
-                              diagnostic_scalar_field_no_adapt
-                           },
-                           ## Add diagnostic field that represents the total quantity across all stages of the FG.
-                           element stage_aggregate {
-                              empty
-                           }?
-                        },
-                        ## Depletion factor
-                        element scalar_field {
-                           attribute name { "Depletion" },
-                           element diagnostic {
-                              internal_algorithm,
-                              diagnostic_scalar_field_no_adapt
-                           }
-                        }
-                     }?,
-                     ## Option to define chemical release into the environment. 
-                     ## This will create internal fields to represent the accumulated release quantity.
-                     ## The scaled release quantity will then get added to the according source field of the dissolved chemical.
-                     element release {
-                        ## Release field on a discontinuous mesh mesh
-                        element scalar_field {
-                           attribute name { "Release" },
-                           element diagnostic {
-                              internal_algorithm,
-                              diagnostic_scalar_field_no_adapt
-                           },
-                           ## Add diagnostic field that represents the total quantity across all stages of the FG.
-                           element stage_aggregate {
-                              empty
-                           }?
-                        }
-                     }?,
-                     element include_in_io {
-                        empty
-                     }?
-                  }
-               )*
-            },
+                  },
+                  (
+                     state_variable |
+                     chemical_variable
+                  )*
+               }
+            ),
             ## This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
             ## The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.
             element environment {
@@ -349,6 +263,105 @@ lagrangian_biology =
                }
             }
          }*
+      }
+   )
+
+state_variable = 
+   (
+      ## Internal state variable of a biology agent that defines an arbitrary internal property.
+      element state_variable {
+         attribute name { xsd:string },
+         # Agent diagnostic field
+         element scalar_field {
+            attribute name { xsd:string },
+            element diagnostic {
+               internal_algorithm,
+               diagnostic_scalar_field_no_adapt
+            },
+            ## Add diagnostic field that represents the total quantity across all stages of the FG.
+            element stage_aggregate {
+               empty
+            }?
+         }?,
+         element include_in_io {
+            empty
+         }?
+      }
+   )
+
+chemical_variable = 
+   (
+      ## State variable representing the internal chemical pool of an agent. 
+      ## Chemicals can be exchanged with the environment via the 'release' and 'uptake' options. 
+      ## This requires a dissolved chemical field from the main material_phase to be bound to this agent variable. 
+      ## The associated source and absorption fields will then get set from the accumulated particulate quantities.
+      element chemical_variable {
+         attribute name { xsd:string },
+         ## Eulerian diagnostic field representing the particulate amount of this chemical. 
+         ## This field must be on a discontinuous mesh
+         element scalar_field {
+            attribute name { 'Particulate' },
+            element diagnostic {
+               internal_algorithm,
+               diagnostic_scalar_field_no_adapt
+            },
+            ## Add diagnostic field that represents the total quantity across all stages of the FG.
+            element stage_aggregate {
+               empty
+            }?
+         }?,
+         ## Name of the field representing the dissolved chemical in the environment.
+         ## This option is required if 'uptake' or 'release' are specified.
+         element chemical_field {
+            attribute name { xsd:string }
+         }?,
+         ## Option to define chemical uptake from the environment. 
+         ## This will create internal fields to represent the accumulated requested quantity 
+         ## and the depletion factor, which scales the amount actually ingested by the agent 
+         ## according to availability in the environment. 
+         ## The scaled request quantity will then get added to the according absorption field of the dissolved chemical.
+         element uptake {
+            ## Request field on a discontinuous mesh mesh
+            element scalar_field {
+               attribute name { "Request" },
+               element diagnostic {
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt
+               },
+               ## Add diagnostic field that represents the total quantity across all stages of the FG.
+               element stage_aggregate {
+                  empty
+               }?
+            },
+            ## Depletion factor
+            element scalar_field {
+               attribute name { "Depletion" },
+               element diagnostic {
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt
+               }
+            }
+         }?,
+         ## Option to define chemical release into the environment. 
+         ## This will create internal fields to represent the accumulated release quantity.
+         ## The scaled release quantity will then get added to the according source field of the dissolved chemical.
+         element release {
+            ## Release field on a discontinuous mesh mesh
+            element scalar_field {
+               attribute name { "Release" },
+               element diagnostic {
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt
+               },
+               ## Add diagnostic field that represents the total quantity across all stages of the FG.
+               element stage_aggregate {
+                  empty
+               }?
+            }
+         }?,
+         element include_in_io {
+            empty
+         }?
       }
    )
 

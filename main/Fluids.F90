@@ -217,6 +217,11 @@ contains
     end if
 #endif
 
+    ! Initialise lagrangian biology meta-model
+    if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
+       call initialise_lagrangian_biology_metamodel()
+    end if
+
     if (have_option("/geometry/disable_geometric_data_cache")) then
        ewrite(1,*) "Disabling geometric data cache"
        cache_transform_elements=.false.
@@ -406,7 +411,7 @@ contains
 
     ! Initialise lagrangian biology agents
     if (have_option("/embedded_models/lagrangian_ensemble_biology")) then
-       call initialise_lagrangian_biology(state)
+       call initialise_lagrangian_biology_agents(state)
        call calculate_agent_diagnostics(state(1))
     end if
 

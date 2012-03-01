@@ -50,8 +50,8 @@ implicit none
 
   private
 
-  public :: initialise_lagrangian_biology, lagrangian_biology_cleanup, &
-            update_lagrangian_biology, calculate_agent_diagnostics
+  public :: initialise_lagrangian_biology_metamodel, initialise_lagrangian_biology_agents, &
+            lagrangian_biology_cleanup, update_lagrangian_biology, calculate_agent_diagnostics
 
   type(detector_linked_list), dimension(:), allocatable, target, save :: agent_arrays
 
@@ -62,27 +62,16 @@ implicit none
 
 contains
 
-  subroutine initialise_lagrangian_biology(state)
-    type(state_type), dimension(:), intent(inout) :: state
-
-    type(detector_type), pointer :: agent
-    type(vector_field), pointer :: xfield
-    type(element_type), pointer :: shape
-    character(len=PYTHON_FUNC_LEN) :: func
-    character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer, biovar_buffer, &
-                                      env_field_buffer
-    character(len=FIELD_NAME_LEN) :: field_name, fg_name, stage_name, biovar_name
-    real, allocatable, dimension(:,:) :: coords
-    real:: current_time, dt
-    integer :: i, j, fg, dim, n_fgroups, n_agents, n_agent_arrays, n_fg_arrays, &
-               ierror, det_type, biovar, array, biovar_total, biovar_state, rnd_seed_int, &
-               biovar_chemical, biovar_uptake, biovar_release, rnd_dim, n_env_fields, chemvar_index
-               
+  subroutine initialise_lagrangian_biology_metamodel()
+    character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer, env_field_buffer
+    character(len=FIELD_NAME_LEN) :: fg_name, stage_name
     integer, dimension(:), allocatable :: rnd_seed
+    integer :: i, rnd_seed_int, rnd_dim
+    integer :: j, array, fg, stage, n_agent_arrays, n_fgroups, n_stages, n_env_fields
 
     if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
 
-    ewrite(1,*) "In initialise_lagrangian_biology"
+    ewrite(1,*) "Lagrangian biology: Initialising metamodel..."
 
     ! Initialise random number generator
     call random_seed(size=rnd_dim)
@@ -94,26 +83,20 @@ contains
     call random_seed(put=rnd_seed(1:rnd_dim))
     call python_run_string("numpy.random.seed("//trim(int2str(rnd_seed_int))//")")
     deallocate(rnd_seed)
-
-    call get_option("/geometry/dimension",dim)
-    call get_option("/timestepping/current_time", current_time)
-    call get_option("/timestepping/timestep", dt)
-    xfield=>extract_vector_field(state(1), "Coordinate")
-    shape=>ele_shape(xfield,1)
-
-    ! Initialise the shared ID counter to generate agent IDs
-    call init_id_counter()
+    ewrite(2,*) "Lagrangian biology: Initialised RNG"
 
     ! Determine how many arrays we need across all functional groups
     n_agent_arrays = 0
     n_fgroups = option_count("/embedded_models/lagrangian_ensemble_biology/functional_group")
+    ewrite(2,*) "Lagrangian biology: Found ", n_fgroups, " functional groups"
+
     do fg=1, n_fgroups
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
        n_agent_arrays = n_agent_arrays + option_count(trim(fg_buffer)//"/stages/stage")
     end do
 
     allocate(agent_arrays(n_agent_arrays))
-    ewrite(2,*) "Found a total of ", n_agent_arrays, " agent arrays in ", n_fgroups, " functional groups"
+    ewrite(2,*) "Lagrangian biology: Allocated ", n_agent_arrays, " agent arrays"
 
     ! Create a persistent dictionary of FG variable and environment name mappings
     call python_run_string("persistent['fg_var_names'] = dict()")
@@ -124,12 +107,13 @@ contains
     do fg=1, n_fgroups
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
        call get_option(trim(fg_buffer)//"/name", fg_name)
-       n_fg_arrays = option_count(trim(fg_buffer)//"/stages/stage")
+       n_stages = option_count(trim(fg_buffer)//"/stages/stage")
 
-       do i = 1, n_fg_arrays
-          write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",i-1,"]"
-          call get_option(trim(stage_buffer)//"/initial_state/number_of_agents", n_agents)
+       do stage = 1, n_stages
+          write(stage_buffer, "(a,i0,a)") trim(fg_buffer)//"/stages/stage[",stage-1,"]"
+          agent_arrays(array)%stage_options = trim(stage_buffer)
           call get_option(trim(stage_buffer)//"/name", stage_name)
+
           agent_arrays(array)%name = trim(fg_name)//trim(stage_name)
           agent_arrays(array)%fg_name = trim(fg_name)
           agent_arrays(array)%stage_name = trim(stage_name)
@@ -139,7 +123,6 @@ contains
 
           ! Register the agent array, so Zoltan/Adaptivity will not forget about it
           call register_detector_list(agent_arrays(array))
-          agent_arrays(array)%total_num_det=n_agents
 
           ! Get options for lagrangian detector movement
           call read_detector_move_options(agent_arrays(array), trim(stage_buffer)//"/movement")
@@ -147,169 +130,19 @@ contains
           ! Get options for Random Walk
           call read_random_walk_options(agent_arrays(array), trim(stage_buffer)//"/movement")
 
-          ! Set other meta-information
-          agent_arrays(array)%binary_output=.true.
-          det_type=LAGRANGIAN_DETECTOR
+          ! Get biology variable meta-data
+          if (have_option(trim(fg_buffer)//"/variables")) then
+             call read_biovars(agent_arrays(array), trim(fg_buffer)//"/variables")
+          end if
 
-          ! Create agent and insert into list
-          call get_option(trim(stage_buffer)//"/initial_state/position", func)
-          allocate(coords(dim,n_agents))
-          call set_detector_coords_from_python(coords, n_agents, func, current_time)
-
-          do j = 1, n_agents
-             call create_single_detector(agent_arrays(array), xfield, coords(:,j), det_type)
-          end do
-          deallocate(coords)
-
-          ! Set agent%list_id, because we need it to detect stage changes
-          agent=>agent_arrays(array)%first
-          do while (associated(agent))
-             agent%list_id=agent_arrays(array)%id
-             agent=>agent%next
+          ! Now we know the variable names for the FG, so we record them in Python
+          call python_run_string("persistent['fg_var_names']['"//trim(agent_arrays(array)%name)//"'] = []")
+          do j=1, size(agent_arrays(array)%biovars)
+             call python_run_string("persistent['fg_var_names']['"//trim(agent_arrays(array)%name)//"'].append('"//trim(agent_arrays(array)%biovars(j)%name)//"')")
           end do
 
-          ewrite(2,*) "Found", agent_arrays(array)%length, "local agents in array", agent_arrays(array)%id
-
-          !!! Biology setup !!!
-
-          ! First determine number of biovars
-          biovar_state = option_count(trim(fg_buffer)//"/variables/state_variable") 
-          biovar_chemical = option_count(trim(fg_buffer)//"/variables/chemical_variable")
-          biovar_uptake = 0
-          biovar_release = 0
-          do j=1, biovar_chemical
-             write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/chemical_variable[",j-1,"]"
-             if (have_option(trim(biovar_buffer)//"/uptake")) then
-                biovar_uptake = biovar_uptake + 1
-             end if
-             if (have_option(trim(biovar_buffer)//"/release")) then
-                biovar_release = biovar_release + 1
-             end if
-          end do
-          biovar_total = biovar_state + biovar_chemical + biovar_uptake + biovar_release
-
-          if (biovar_total > 0) then
-
-             ! Allocate variable arrays
-             allocate(agent_arrays(array)%biovars(biovar_total))
-
-             ! Add internal state variables
-             biovar = 1
-             do j=1, biovar_state
-                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/state_variable[",j-1,"]"
-                call get_option(trim(biovar_buffer)//"/name", biovar_name)
-                agent_arrays(array)%biovars(biovar)%name=trim(biovar_name)
-                if (have_option(trim(biovar_buffer)//"/include_in_io")) then
-                   agent_arrays(array)%biovars(biovar)%write_to_file=.true.
-                end if
-
-                ! Record according diagnostic field
-                if (have_option(trim(biovar_buffer)//"/scalar_field")) then
-                   agent_arrays(array)%biovars(biovar)%field_type = BIOFIELD_DIAG
-                   call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)                   
-                   agent_arrays(array)%biovars(biovar)%field_name = trim(fg_name)//trim(field_name)//trim(biovar_name)
-                   if (have_option(trim(biovar_buffer)//"/scalar_field/stage_aggregate")) then
-                      agent_arrays(array)%biovars(biovar)%stage_aggregate=.true.
-                   else
-                      agent_arrays(array)%biovars(biovar)%stage_aggregate=.false.
-                   end if
-                else
-                   agent_arrays(array)%biovars(biovar)%field_type = BIOFIELD_NONE
-                end if
-                biovar = biovar+1
-             end do
-
-             ! Add chemical variables
-             do j=1, biovar_chemical
-                write(biovar_buffer, "(a,i0,a)") trim(fg_buffer)//"/variables/chemical_variable[",j-1,"]"
-                call get_option(trim(biovar_buffer)//"/name", biovar_name)
-                if (have_option(trim(biovar_buffer)//"/include_in_io")) then
-                   agent_arrays(array)%biovars(biovar)%write_to_file=.true.
-                end if
-
-                ! Chemical pool variable and according diagnostic fields
-                agent_arrays(array)%biovars(biovar)%name = trim(biovar_name)
-                if (have_option(trim(biovar_buffer)//"/scalar_field")) then
-                   agent_arrays(array)%biovars(biovar)%field_type = BIOFIELD_DIAG
-                   call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)
-                   agent_arrays(array)%biovars(biovar)%field_name = trim(fg_name)//trim(field_name)//trim(biovar_name)
-                   if (have_option(trim(biovar_buffer)//"/scalar_field/stage_aggregate")) then
-                      agent_arrays(array)%biovars(biovar)%stage_aggregate=.true.
-                   else
-                      agent_arrays(array)%biovars(biovar)%stage_aggregate=.false.
-                   end if
-                else
-                   agent_arrays(array)%biovars(biovar)%field_type = BIOFIELD_NONE
-                end if
-                chemvar_index = biovar
-                biovar = biovar+1
-
-                ! Chemical uptake
-                if (have_option(trim(biovar_buffer)//"/uptake")) then
-                   if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
-                      FLExit("No chemical field specified for "//trim(biovar_name)//" uptake in functional group "//trim(fg_name))
-                   end if
-
-                   agent_arrays(array)%biovars(biovar)%name = trim(biovar_name)//"Uptake"
-                   agent_arrays(array)%biovars(biovar)%field_type = BIOFIELD_UPTAKE
-                   agent_arrays(array)%biovars(biovar)%field_name = trim(fg_name)//"Request"//trim(biovar_name)
-                   call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(array)%biovars(biovar)%chemfield)
-                   call insert_global_uptake_field(agent_arrays(array)%biovars(biovar)%chemfield)
-
-                   if (have_option(trim(biovar_buffer)//"/uptake/scalar_field::Request/stage_aggregate")) then
-                      agent_arrays(array)%biovars(biovar)%stage_aggregate=.true.
-                   else
-                      agent_arrays(array)%biovars(biovar)%stage_aggregate=.false.
-                   end if
-                   agent_arrays(array)%biovars(biovar)%pool_index = chemvar_index
-                   biovar = biovar+1
-                end if
-
-                ! Chemical release
-                if (have_option(trim(biovar_buffer)//"/release")) then
-                   if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
-                      FLExit("No chemical field specified for "//trim(biovar_name)//" release in functional group "//trim(fg_name))
-                   end if
-
-                   agent_arrays(array)%biovars(biovar)%name = trim(biovar_name)//"Release"
-                   agent_arrays(array)%biovars(biovar)%field_type = BIOFIELD_RELEASE
-                   agent_arrays(array)%biovars(biovar)%field_name = trim(fg_name)//"Release"//trim(biovar_name)
-                   call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_arrays(array)%biovars(biovar)%chemfield)
-                   call insert_global_release_field(agent_arrays(array)%biovars(biovar)%chemfield)
-
-                   if (have_option(trim(biovar_buffer)//"/release/scalar_field::Release/stage_aggregate")) then
-                      agent_arrays(array)%biovars(biovar)%stage_aggregate=.true.
-                   else
-                      agent_arrays(array)%biovars(biovar)%stage_aggregate=.false.
-                   end if
-                   agent_arrays(array)%biovars(biovar)%pool_index = chemvar_index
-                   biovar = biovar+1
-                end if
-
-             end do
-
-             ! Store the python update code
-             if (have_option(trim(stage_buffer)//"/biology/python")) then
-                call get_option(trim(stage_buffer)//"/biology/python", agent_arrays(array)%biovar_pycode)
-                agent_arrays(array)%has_biology=.true.
-             end if
-
-             ! Now we know the variable names for the FG, so we populate the mapping dict
-             call python_run_string("persistent['fg_var_names']['"//trim(agent_arrays(array)%name)//"'] = []")
-             do j=1, biovar_total
-                call python_run_string("persistent['fg_var_names']['"//trim(agent_arrays(array)%name)//"'].append('"//trim(agent_arrays(array)%biovars(j)%name)//"')")
-             end do
-
-             ! Initialise agent variables
-             call get_option(trim(stage_buffer)//"/initial_state/biology", func)
-             agent => agent_arrays(array)%first
-             do while (associated(agent))
-                allocate(agent%biology(biovar_total))
-                call python_init_agent_biology(agent, agent_arrays(array), trim(func))
-                agent => agent%next
-             end do
-
-             ! Record which environment fields to evaluate and pass to the update function
+          ! Record which environment fields to evaluate and pass to the update function
+          if (have_option(trim(fg_buffer)//"/environment")) then
              n_env_fields = option_count(trim(fg_buffer)//"/environment/field")
              call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(array)%name)//"'] = []")
              allocate(agent_arrays(array)%env_field_name(n_env_fields))
@@ -318,38 +151,222 @@ contains
                 call get_option(trim(env_field_buffer)//"/name", agent_arrays(array)%env_field_name(j))
                 call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(array)%name)//"'].append('"//trim(agent_arrays(array)%env_field_name(j))//"')")
              end do
-
-             ! Add Particle Management options
-             if (have_option(trim(stage_buffer)//"/particle_management")) then
-                agent_arrays(array)%do_particle_management = .true.
-                call get_option(trim(stage_buffer)//"/particle_management/period_in_timesteps", agent_arrays(array)%pm_period)
-
-                if (have_option(trim(stage_buffer)//"/particle_management/minimum/python")) then
-                   agent_arrays(array)%get_pm_min_python = .true.
-                   call get_option(trim(stage_buffer)//"/particle_management/minimum/python", agent_arrays(array)%pm_min_pycode)
-                else
-                   agent_arrays(array)%get_pm_min_python = .false.
-                   call get_option(trim(stage_buffer)//"/particle_management/minimum/constant", agent_arrays(array)%pm_min)
-                end if
-
-                if (have_option(trim(stage_buffer)//"/particle_management/maximum/python")) then
-                   agent_arrays(array)%get_pm_max_python = .true.
-                   call get_option(trim(stage_buffer)//"/particle_management/maximum/python", agent_arrays(array)%pm_max_pycode)
-                else
-                   agent_arrays(array)%get_pm_max_python = .false.
-                   call get_option(trim(stage_buffer)//"/particle_management/maximum/constant", agent_arrays(array)%pm_max)
-                end if
-             end if
           end if
 
-          call write_detector_header(state, agent_arrays(array))
+          ! Store the python update code
+          if (have_option(trim(stage_buffer)//"/biology/python")) then
+             call get_option(trim(stage_buffer)//"/biology/python", agent_arrays(array)%biovar_pycode)
+             agent_arrays(array)%has_biology=.true.
+          end if
 
           array = array + 1
        end do 
+    end do
+
+    ewrite(1,*) "Lagrangian biology: Initialised metamodel"
+
+  end subroutine initialise_lagrangian_biology_metamodel
+
+  subroutine initialise_lagrangian_biology_agents(state)
+    type(state_type), dimension(:), intent(inout) :: state
+
+    type(detector_type), pointer :: agent
+    type(vector_field), pointer :: xfield
+    character(len=PYTHON_FUNC_LEN) :: func
+    character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer
+    character(len=FIELD_NAME_LEN) :: field_name, fg_name, stage_name
+    real, allocatable, dimension(:,:) :: coords
+    real:: current_time
+    integer :: j, dim, n_fgroups, n_agents, n_fg_arrays, &
+               ierror, det_type, array
+
+    if (.not.have_option("/embedded_models/lagrangian_ensemble_biology")) return
+
+    ewrite(1,*) "Lagrangian biology: Initialising agents..."
+
+    call get_option("/geometry/dimension",dim)
+    call get_option("/timestepping/current_time", current_time)
+    xfield=>extract_vector_field(state(1), "Coordinate")
+
+    ! Initialise the shared ID counter to generate agent IDs
+    call init_id_counter()
+    ewrite(2,*) "Lagrangian biology: Initialised ID counter"
+
+    ! We create an agent array for each stage of each Functional Group
+    do array=1, size(agent_arrays)
+       stage_buffer = trim(agent_arrays(array)%stage_options)
+
+       call get_option(trim(stage_buffer)//"/initial_state/number_of_agents", n_agents)
+       agent_arrays(array)%total_num_det=n_agents
+
+       ! Set other meta-information
+       agent_arrays(array)%binary_output=.true.
+       det_type=LAGRANGIAN_DETECTOR
+
+       ! Create agent and insert into list
+       call get_option(trim(stage_buffer)//"/initial_state/position", func)
+       allocate(coords(dim,n_agents))
+       call set_detector_coords_from_python(coords, n_agents, func, current_time)
+
+       do j = 1, n_agents
+          call create_single_detector(agent_arrays(array), xfield, coords(:,j), det_type)
+       end do
+       deallocate(coords)
+
+       ! Set agent%list_id, because we need it to detect stage changes
+       agent=>agent_arrays(array)%first
+       do while (associated(agent))
+          agent%list_id=agent_arrays(array)%id
+          agent=>agent%next
+       end do
+
+       ewrite(2,*) "Lagrangian biology: Initialised ", agent_arrays(array)%length, "agents locally for ", trim(agent_arrays(array)%name)
+
+       ! Initialise agent biology varaibles
+       if (allocated(agent_arrays(array)%biovars)) then
+          call get_option(trim(stage_buffer)//"/initial_state/biology", func)
+          agent => agent_arrays(array)%first
+          do while (associated(agent))
+             allocate(agent%biology(size(agent_arrays(array)%biovars)))
+             call python_init_agent_biology(agent, agent_arrays(array), trim(func))
+             agent => agent%next
+          end do
+       end if
+
+       call write_detector_header(state, agent_arrays(array))
 
     end do
 
-  end subroutine initialise_lagrangian_biology
+    ewrite(1,*) "Lagrangian biology: Initialised agents"
+
+  end subroutine initialise_lagrangian_biology_agents
+
+  subroutine read_biovars(agent_list, variable_path) 
+    type(detector_linked_list), intent(inout) :: agent_list
+    character(len=*), intent(in) :: variable_path
+    character(len=OPTION_PATH_LEN) :: biovar_buffer
+    character(len=FIELD_NAME_LEN) :: biovar_name, field_name
+    integer :: j, biovar, biovar_total, biovar_state, biovar_chemical, &
+               biovar_uptake, biovar_release, chemvar_index
+
+    ! Determine number of biovars
+    biovar_state = option_count(trim(variable_path)//"/state_variable") 
+    biovar_chemical = option_count(trim(variable_path)//"/chemical_variable")
+    biovar_uptake = 0
+    biovar_release = 0
+    do j=1, biovar_chemical
+       write(biovar_buffer, "(a,i0,a)") trim(variable_path)//"/chemical_variable[",j-1,"]"
+       if (have_option(trim(biovar_buffer)//"/uptake")) then
+          biovar_uptake = biovar_uptake + 1
+       end if
+       if (have_option(trim(biovar_buffer)//"/release")) then
+          biovar_release = biovar_release + 1
+       end if
+    end do
+    biovar_total = biovar_state + biovar_chemical + biovar_uptake + biovar_release
+
+    if (biovar_total > 0) then
+
+       ! Allocate variable arrays
+       allocate(agent_list%biovars(biovar_total))
+
+       ! Add internal state variables
+       biovar = 1
+       do j=1, biovar_state
+          write(biovar_buffer, "(a,i0,a)") trim(variable_path)//"/state_variable[",j-1,"]"
+          call get_option(trim(biovar_buffer)//"/name", biovar_name)
+          agent_list%biovars(biovar)%name=trim(biovar_name)
+          if (have_option(trim(biovar_buffer)//"/include_in_io")) then
+             agent_list%biovars(biovar)%write_to_file=.true.
+          end if
+
+          ! Record according diagnostic field
+          if (have_option(trim(biovar_buffer)//"/scalar_field")) then
+             agent_list%biovars(biovar)%field_type = BIOFIELD_DIAG
+             call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)                   
+             agent_list%biovars(biovar)%field_name = trim(agent_list%fg_name)//trim(field_name)//trim(biovar_name)
+             if (have_option(trim(biovar_buffer)//"/scalar_field/stage_aggregate")) then
+                agent_list%biovars(biovar)%stage_aggregate=.true.
+             else
+                agent_list%biovars(biovar)%stage_aggregate=.false.
+             end if
+          else
+             agent_list%biovars(biovar)%field_type = BIOFIELD_NONE
+          end if
+          biovar = biovar+1
+       end do
+
+       ! Add chemical variables
+       do j=1, biovar_chemical
+          write(biovar_buffer, "(a,i0,a)") trim(variable_path)//"/chemical_variable[",j-1,"]"
+          call get_option(trim(biovar_buffer)//"/name", biovar_name)
+          if (have_option(trim(biovar_buffer)//"/include_in_io")) then
+             agent_list%biovars(biovar)%write_to_file=.true.
+          end if
+
+          ! Chemical pool variable and according diagnostic fields
+          agent_list%biovars(biovar)%name = trim(biovar_name)
+          if (have_option(trim(biovar_buffer)//"/scalar_field")) then
+             agent_list%biovars(biovar)%field_type = BIOFIELD_DIAG
+             call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)
+             agent_list%biovars(biovar)%field_name = trim(agent_list%fg_name)//trim(field_name)//trim(biovar_name)
+             if (have_option(trim(biovar_buffer)//"/scalar_field/stage_aggregate")) then
+                agent_list%biovars(biovar)%stage_aggregate=.true.
+             else
+                agent_list%biovars(biovar)%stage_aggregate=.false.
+             end if
+          else
+             agent_list%biovars(biovar)%field_type = BIOFIELD_NONE
+          end if
+          chemvar_index = biovar
+          biovar = biovar+1
+
+          ! Chemical uptake
+          if (have_option(trim(biovar_buffer)//"/uptake")) then
+             if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
+                FLExit("No chemical field specified for "//trim(biovar_name)//" uptake in functional group "//trim(agent_list%fg_name))
+             end if
+
+             agent_list%biovars(biovar)%name = trim(biovar_name)//"Uptake"
+             agent_list%biovars(biovar)%field_type = BIOFIELD_UPTAKE
+             agent_list%biovars(biovar)%field_name = trim(agent_list%fg_name)//"Request"//trim(biovar_name)
+             call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_list%biovars(biovar)%chemfield)
+             call insert_global_uptake_field(agent_list%biovars(biovar)%chemfield)
+
+             if (have_option(trim(biovar_buffer)//"/uptake/scalar_field::Request/stage_aggregate")) then
+                agent_list%biovars(biovar)%stage_aggregate=.true.
+             else
+                agent_list%biovars(biovar)%stage_aggregate=.false.
+             end if
+             agent_list%biovars(biovar)%pool_index = chemvar_index
+             biovar = biovar+1
+          end if
+
+          ! Chemical release
+          if (have_option(trim(biovar_buffer)//"/release")) then
+             if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
+                FLExit("No chemical field specified for "//trim(biovar_name)//" release in functional group "//trim(agent_list%fg_name))
+             end if
+
+             agent_list%biovars(biovar)%name = trim(biovar_name)//"Release"
+             agent_list%biovars(biovar)%field_type = BIOFIELD_RELEASE
+             agent_list%biovars(biovar)%field_name = trim(agent_list%fg_name)//"Release"//trim(biovar_name)
+             call get_option(trim(biovar_buffer)//"/chemical_field/name", agent_list%biovars(biovar)%chemfield)
+             call insert_global_release_field(agent_list%biovars(biovar)%chemfield)
+
+             if (have_option(trim(biovar_buffer)//"/release/scalar_field::Release/stage_aggregate")) then
+                agent_list%biovars(biovar)%stage_aggregate=.true.
+             else
+                agent_list%biovars(biovar)%stage_aggregate=.false.
+             end if
+             agent_list%biovars(biovar)%pool_index = chemvar_index
+             biovar = biovar+1
+          end if
+
+       end do
+    end if
+
+  end subroutine read_biovars
 
   subroutine lagrangian_biology_cleanup(state)
     type(state_type), intent(inout) :: state
@@ -389,9 +406,9 @@ contains
     type(detector_type), pointer :: agent, agent_to_move
     type(detector_linked_list) :: stage_change_list
     type(vector_field), pointer :: xfield
-    integer :: i, j
+    integer :: i, j, pm_period
 
-    ewrite(1,*) "In update_lagrangian_biology"
+    ewrite(1,*) "Lagrangian biology: Updating agents..."
     call profiler_tic("/update_lagrangian_biology")
 
     xfield=>extract_vector_field(state(1), "Coordinate")
@@ -408,7 +425,7 @@ contains
 
        if (agent_arrays(i)%has_biology) then
 
-          ewrite(2,*) "Updating lagrangian biology agents in list: ", trim(agent_arrays(i)%name)
+          ewrite(2,*) "Lagrangian biology: Updating ", trim(agent_arrays(i)%name)
 
           ! Compile python function to set bio-variable, and store in the global dictionary
           call python_run_detector_string(trim(agent_arrays(i)%biovar_pycode), trim(agent_arrays(i)%name), trim("biology_update"))
@@ -459,8 +476,9 @@ contains
 
     ! Particle Management
     do i = 1, size(agent_arrays)
-       if (agent_arrays(i)%do_particle_management) then
-          if (timestep == 1 .or. mod(timestep, agent_arrays(i)%pm_period) == 0) then
+       if (have_option(trim(agent_arrays(i)%stage_options)//"/particle_management")) then
+          call get_option(trim(agent_arrays(i)%stage_options)//"/particle_management/period_in_timesteps", pm_period)
+          if (timestep == 1 .or. mod(timestep, pm_period) == 0) then
              call particle_management(state(1), agent_arrays(i))
           end if
        end if
@@ -797,6 +815,7 @@ contains
     type(detector_type), pointer :: agent, agent_to_move, merge_target, agent_to_merge
     type(scalar_field), pointer :: agent_density_field
     type(vector_field), pointer :: xfield
+    character(len=PYTHON_FUNC_LEN) :: pm_pycode
     type(ilist) :: elements_split_list, elements_merge_list
     type(integer_hash_table) :: split_index_mapping, merge_index_mapping, element_minima, element_maxima
     type(detector_linked_list), dimension(:), allocatable :: split_lists, merge_lists
@@ -813,11 +832,13 @@ contains
     agent_density_field=>extract_scalar_field(state, trim(agent_list%fg_name)//"Agents"//trim(agent_list%stage_name))
 
     ! Initialise the Python functions to determine PM limits
-    if (agent_list%get_pm_min_python) then
-       call python_run_detector_string(trim(agent_list%pm_min_pycode), trim(agent_list%name), trim("pm_minimum"))
+    if (have_option(trim(agent_list%stage_options)//"/particle_management/minimum/python")) then
+       call get_option(trim(agent_list%stage_options)//"/particle_management/minimum/python", pm_pycode)
+       call python_run_detector_string(trim(pm_pycode), trim(agent_list%name), trim("pm_minimum"))
     end if
-    if (agent_list%get_pm_max_python) then
-       call python_run_detector_string(trim(agent_list%pm_max_pycode), trim(agent_list%name), trim("pm_maximum"))
+    if (have_option(trim(agent_list%stage_options)//"/particle_management/maximum/python")) then
+       call get_option(trim(agent_list%stage_options)//"/particle_management/maximum/python", pm_pycode)
+       call python_run_detector_string(trim(pm_pycode), trim(agent_list%name), trim("pm_maximum"))
     end if
 
     ! First establish in which elements we need to split/merge
@@ -831,16 +852,16 @@ contains
 
        ! Here we either use the global minima/maxima from the options,
        ! or run Python code to determine the minimum/maximum for each element
-       if (agent_list%get_pm_min_python) then
+       if (have_option(trim(agent_list%stage_options)//"/particle_management/minimum/python")) then
           call python_get_element_limit(ele, xfield, trim(agent_list%name), trim("pm_minimum"), minimum_density)
        else
-          minimum_density = agent_list%pm_min
+          call get_option(trim(agent_list%stage_options)//"/particle_management/minimum/constant", minimum_density)
        end if
 
-       if (agent_list%get_pm_max_python) then
+       if (have_option(trim(agent_list%stage_options)//"/particle_management/maximum/python")) then
           call python_get_element_limit(ele, xfield, trim(agent_list%name), trim("pm_maximum"), maximum_density)
        else
-          maximum_density = agent_list%pm_max
+          call get_option(trim(agent_list%stage_options)//"/particle_management/maximum/constant", maximum_density)
        end if
 
        ! Store element numbers and minima/maxima for split and merge

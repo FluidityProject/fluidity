@@ -702,6 +702,7 @@ def val(X,t):
                 <real_value rank="0">1.0e-10</real_value>
               </search_tolerance>
               <reflect_on_boundary/>
+              <parametric_guided_search/>
               <random_walk name="RandomDisplacement">
                 <python>
                   <string_value lines="20" type="python">from __builtin__ import abs
@@ -780,6 +781,7 @@ def val(X):
                 <real_value rank="0">1.0e-10</real_value>
               </search_tolerance>
               <reflect_on_boundary/>
+              <parametric_guided_search/>
               <random_walk name="RandomDisplacement">
                 <python>
                   <string_value lines="20" type="python">from __builtin__ import abs

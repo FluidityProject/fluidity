@@ -30,7 +30,7 @@
 module detector_data_types
 
   use fldebug
-  use global_parameters, only : FIELD_NAME_LEN, PYTHON_FUNC_LEN
+  use global_parameters, only : FIELD_NAME_LEN, OPTION_PATH_LEN, PYTHON_FUNC_LEN
   
   implicit none
   
@@ -140,17 +140,10 @@ module detector_data_types
      real :: stage_id
      logical :: has_biology=.false.
      character(len=FIELD_NAME_LEN) :: fg_name, stage_name
+     character(len=OPTION_PATH_LEN) :: stage_options
      type(biovar), dimension(:), allocatable :: biovars
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: env_field_name
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
-
-     !! PM options
-     logical :: do_particle_management=.false.
-     logical :: get_pm_min_python, get_pm_max_python
-     real :: pm_max, pm_min
-     character(len=PYTHON_FUNC_LEN) :: pm_max_pycode, pm_min_pycode
-     integer :: pm_period
-
 
      !!!!!!!!!!!!!!!!!!!!!!!!!
      !!! Detector movement !!!

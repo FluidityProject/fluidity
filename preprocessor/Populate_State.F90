@@ -1191,7 +1191,7 @@ contains
 
     ! agent-based lagrangian biology model
     if (have_option("/embedded_models/lagrangian_ensemble_biology/functional_group")) then 
-       call allocate_and_insert_biology_agents(states(1))
+       call allocate_and_insert_lagrangian_biology_fields(states(1))
     end if
 
     ! insert porous media fields
@@ -1418,7 +1418,7 @@ contains
       end if
     end subroutine allocate_and_insert_irradiance
 
-    subroutine allocate_and_insert_biology_agents(state)
+    subroutine allocate_and_insert_lagrangian_biology_fields(state)
       ! Allocate diagnostic fields to represent agent variables
       type(state_type), intent(inout) :: state
 
@@ -1619,7 +1619,7 @@ contains
          end do
       end do
 
-    end subroutine allocate_and_insert_biology_agents
+    end subroutine allocate_and_insert_lagrangian_biology_fields
 
   end subroutine allocate_and_insert_fields
 
