@@ -13,6 +13,7 @@ subroutine test_limit_hull
   real, dimension(:,:), pointer :: hull_p
   real, dimension(2) :: Ubar, dU
   real :: alpha
+  integer :: i, ip
 
   !Set up a square hull
   allocate(hull(2,4))
@@ -85,11 +86,26 @@ subroutine test_limit_hull
   call report_test('[RandomHull_0.9]', fail, .false., &
        & "Point is outside hull, alpha = 0.9.")
 
-  Ubar = sum(Hull_p,2)/size(Hull_p,2)
-  dU = (0.5*(Hull_p(:,5)+Hull_p(:,6))-Ubar)/0.9
-  alpha = limit_hull(Ubar,dU,hull_p)
-  fail = abs(alpha-0.9)>1.0e-8
+  fail = .false.
+  do i = 1, size(Hull_p,2)
+     ip = mod(i+size(Hull_p,2)-2,size(Hull_p,2))+1
+     Ubar = sum(Hull_p,2)/size(Hull_p,2)
+     dU = (0.5*(Hull_p(:,i)+Hull_p(:,ip))-Ubar)/0.9
+     alpha = limit_hull(Ubar,dU,hull_p)
+     fail = fail.or.(abs(alpha-0.9)>1.0e-8)
+  end do
   call report_test('[RandomMiddleHull_0.9]', fail, .false., &
        & "Point is outside hull, alpha = 0.9.")
+
+  fail = .false.
+  do i = 1, size(Hull_p,2)
+     Ubar = Hull_p(:,i)
+     dU = 2*(Ubar - sum(Hull_p,2)/size(Hull_p,2))
+     alpha = limit_hull(Ubar,dU,hull_p)
+     fail = fail.or.(abs(alpha)>1.0e-8)
+  end do
+  call report_test('[RandomAwayHull]', fail, .false., &
+       & "Point is outside hull, alpha = 0.0.")
   deallocate(hull_p,vec)
+  
 end subroutine test_limit_hull
