@@ -1418,7 +1418,8 @@ contains
     call set(T_max, -huge(0.0))
     call set(T_min, huge(0.0))
 
-    ! for each vertex in the mesh store the min and max values of the P1DG nodes directly surrounding it
+    ! for each vertex in the mesh store the min and max values of the P1DG
+    !  nodes directly surrounding it
     do ele = 1, ele_count(T)
        T_ele => ele_nodes(T,ele)
        T_val = ele_val(T,ele)
@@ -1476,105 +1477,155 @@ contains
 
   end subroutine limit_vb
 
-  ! subroutine limit_vector_vb(state, V)
-  !   !Vector valued limiter on manifolds
-  !   !Based on vertex-based limiter
-  !   !
-  !   !Idea: instead of creating vertex mins and maxes, we 
-  !   !create vertex convex hulls.
-  !   !STEPS:
-  !   !First compute the limits on the vector.
-  !   !1) Compute the mean velocities in each element.
-  !   !2) For each element and each vertex, we define 
-  !   ! a method to rotate the mean velocity into the 2D plane.
-  !   ! Here we use quite a crude method that doesn't use the pullback
-  !   ! if it leads to grid imprinting then it will need to be improved.
-  !   !3) At each vertex, we obtain a set of 2D vectors coming from the 
-  !   ! elements neighbouring that vertex.
-  !   !4) At each vertex, We compute the convex hull of that set.
-  !   !Now the limiting steps.
+  subroutine limit_vector_vb(state, V)
+    !Vector valued limiter on manifolds
+    !Based on vertex-based limiter
+    !
+    !Idea: instead of creating vertex mins and maxes, we 
+    !create vertex convex hulls.
+    !STEPS:
+    !First compute the limits on the vector.
+    !1) Compute the mean velocities in each element.
+    !2) For each element and each vertex, we define 
+    ! a method to rotate the mean velocity into the 2D plane.
+    ! Here we use quite a crude method that doesn't use the pullback
+    ! if it leads to grid imprinting then it will need to be improved.
+    !3) At each vertex, we obtain a set of 2D vectors coming from the 
+    ! elements neighbouring that vertex.
+    !4) At each vertex, We compute the convex hull of that set.
+    !This is done in the convex_hull() function in Vector_Tools.F90
+    !Now the limiting steps.
 
-  !   !5) For each element E write V = V_0 + \Delta V where V_0 is the cell
-  !   ! average. For each vertex v in element E, find 0=>a_{Ev}>=1 such that
-  !   ! V' = V_0 + a_{Ev}\Delta V is inside the convex hull of vertex v.
+    !5) For each element E write V = V_0 + \Delta V where V_0 is the cell
+    ! average. For each vertex v in element E, find 0=>a_{Ev}>=1 such that
+    ! V' = V_0 + a_{Ev}\Delta V is inside the convex hull of vertex v.
+    ! This is done in the limit_hull() function
 
-  !   type(state_type), intent(inout) :: state
-  !   type(vector_field), intent(inout) :: V
-  !   !
-  !   ! This is the limited version of the field, we have to make a copy
-  !   type(vector_field) :: V_limit, V_mean
-  !   type(mesh_type), pointer :: vertex_mesh
-  !   ! counters
-  !   integer :: ele, node, ele2, neigh
-  !   ! local numbers
-  !   integer, dimension(:), pointer :: V_ele, neighs
-  !   ! gradient scaling factor
-  !   real, dimension(V%dim) :: alpha
-  !   ! local field values
-  !   real, dimension(V%dim,ele_loc(V,1)) :: V_val!,V_val_slope,V_mean
-  !   real, dimension(V%dim) :: Vbar
-  !   type(csr_sparsity), pointer :: NEList
-  !   type(tensor_field), pointer :: Basis
+    type(state_type), intent(inout) :: state
+    type(vector_field), intent(inout) :: V
+    !
+    ! This is the limited version of the field, we have to make a copy
+    type(vector_field) :: V_limit, V_mean
+    type(mesh_type), pointer :: vertex_mesh
+    ! counters
+    integer :: ele, node, ele2, neigh
+    ! local numbers
+    integer, dimension(:), pointer :: V_ele, neighs
+    ! local field values
+    real, dimension(V%dim,ele_loc(V,1)) :: V_val, E_normal_val, V_val_slope
+    real, dimension(V%dim,V%dim,ele_loc(V,1)) :: v_basis_val
+    real, dimension(V%dim) :: Vbar, ENbar
+    type(csr_sparsity), pointer :: NEList
+    type(vector_field), pointer :: ElementNormals
+    type(tensor_field), pointer :: VertexBasis
+    
+    type(real_matrix), dimension(:), allocatable :: Hulls
+    real, dimension(:,:), allocatable :: Vectors
+    real, dimension(:), allocatable :: HullFlags
+    real, dimension(V%dim) :: t1, t2_nod, t2_ele
+    integer, dimension(:), pointer :: E_nodes
+    real :: theta, alpha
+    real, dimension(2,2) :: A
+    real, dimension(2) :: RHS
+    
+    if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
+       FLExit("The vertex based vector slope limiter only works for P1DG fields.")
+    end if
+    if (.not. mesh_dim(V)==2) then
+       FLExit("Vertex based vector slope limiter only works on 2D meshes.")
+    end if
+    if (.not. V%dim==3) then
+       FLExit("Vertex based vector slope limiter only coded for 3D vectors.")
+    end if
 
-  !   if (.not. element_degree(V%mesh, 1)==1 .or. continuity(V%mesh)>=0) then
-  !      FLExit("The vertex based vector slope limiter only works for P1DG fields.")
-  !   end if
-  !   if (.not. V%dim==2) then
-  !      FLExit("Vertex based vector slope limiter only works in 2D.")
-  !   end if
-  !   !Get basis (1,:) cpts are normals, (2,:), (3,:) cpts are normals and 
-  !   !tangents
+    !Get normals to rotate into 2D plane
+    !Normals on each vertex (set from Diamond)
+    VertexBasis => extract_tensor_field(state,'VertexBasis')
+    !Normals on each element (set from Advection_Local.F90)
+    ElementNormals => extract_vector_field(state,'ElementNormals')
 
-  !   Basis => extract_tensor_field(state,'InvariantBasis')
+    ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
+    call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
+    NEList => extract_nelist(vertex_mesh)
 
-  !   ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
-  !   call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
-  !   NEList => extract_nelist(vertex_mesh)
+    ! Allocate copy of field
+    call allocate(V_limit, V%dim,V%mesh,trim(V%name)//"Limited")
+    call set(V_limit, V)
 
-  !   ! Allocate copy of field
-  !   call allocate(V_limit, V%dim,V%mesh,trim(V%name)//"Limited")
-  !   call set(V_limit, V)
-  !   call allocate(V_mean, V%dim,V%mesh, trim(V%name)//"LimitMean")
+    !Construct convex hulls
+    allocate(Hulls(node_count(V)))
+    allocate(HullFlags(node_count(V)))
+    !loop over all elements
+    convex_ele: do ele = 1, ele_count(V)
+       E_nodes => ele_nodes(V,ele)
+       !Get vertex normals
+       v_basis_val = ele_val(VertexBasis,ele)
+       !loop over nodes in element
+       convex_node: do node = 1, ele_loc(V,ele)
+          !Get elements surrounding vertex
+          neighs => row_m_ptr(NEList, E_nodes(node))
+          !Set up list of element mean vectors for vertex
+          allocate(Vectors(2,size(neighs)))
+          !Loop over surrounding elements and get means
+          convex_ele2: do neigh = 1, size(neighs)
+             ele2 = neighs(neigh)
+             !Get element normals in ele2
+             E_normal_val = ele_val(ElementNormals,ele2)
+             ENbar = sum(E_normal_val,2)/size(E_normal_val,2)
+             !Get mean vector value in ele2
+             V_val = ele_val(V_mean,ele2)
+             Vbar = sum(V_val,2)/size(V_val,2)
+             !Rotate Vbar onto 2D plane
+             t1 = cross_product(ENbar,v_basis_val(1,:,node))
+             t1 = t1/norm2(t1)
+             t2_nod = cross_product(v_basis_val(1,:,node),t1)
+             t2_ele = cross_product(ENbar,t1)
+             !Need to solve
+             ! Vbar_ele.t1 = Vbar_nod.t1
+             ! Vbar_ele.t2_ele = Vbar_nod.t2_nod
+             A(1,:) = t1
+             A(2,:) = t2_nod
+             RHS(1) = dot_product(Vbar,t1)
+             RHS(2) = dot_product(Vbar,t2_ele)
+             call solve(A,RHS)
+             Vectors(1,neigh) = dot_product(RHS,v_basis_val(2,:,node))
+             Vectors(2,neigh) = dot_product(RHS,v_basis_val(3,:,node))
+          end do convex_ele2
+          call convex_hull(Vectors,Hulls(E_nodes(node))%ptr)
+          deallocate(Vectors)
+       end do convex_node
+    end do convex_ele
 
-  !   ! for each vertex in the mesh store the min and max values of the P1DG
-  !   ! nodes directly surrounding it
-  !   do ele = 1, ele_count(V)
-  !      V_ele => ele_nodes(V,ele)
-  !      V_val = ele_val(V,ele)
-  !      Vbar = sum(V_val,2)/size(V_val,2)
-  !      do node = 1, size(V_ele)
-  !         call set(V_mean, V_ele(node), Vbar)
-  !      end do
-  !   end do
+    !Compute limiting alpha
+    limiting_ele: do ele = 1, ele_count(V)
+       V_ele => ele_nodes(V,ele)
+       E_nodes => ele_nodes(V,ele)
+       V_val = ele_val(V,ele)
+       Vbar = sum(V_val,2)/size(V_val,2)
+       call set(V_limit,V_ele,V_val)
+       do node = 1, ele_loc(V,ele)
+          V_val_slope(:,node) = V_val(:,node) - Vbar       
+          V_val(:,node) = Vbar
+       end do    
+       call set(V_limit,V_ele,V_val)
+       alpha = 1.0
+       limiting_node: do node = 1, ele_loc(V,ele)
+          alpha = min(alpha,limit_hull(Vbar,V_val_slope(:,node),&
+               &hulls(E_nodes(node))%ptr))
+       end do limiting_node
+       call addto(V_limit, V_ele, alpha*V_val_slope)
+    end do limiting_ele
 
-  !   do ele = 1, ele_count(V)
-  !      V_ele => ele_nodes(V,ele)
-  !      do node = 1, size(V_ele)
-  !         neighs => row_m_ptr(NEList, node)
-  !         do neigh = 1, size(neighs)
-  !            ele2 = neighs(neigh)
-
-  !            !rotate mean of ele2 into plane of ele1
-  !            FLAbort('not done')
-
-  !            !Take 
-  !            FLAbort('not done')
-  !         end do
-  !      end do
-
-  !      ! Actually apply limiter
-
-  !      FLAbort('not done')
-
-  !   end do
-
-  !   !Deallocate copy of field
-  !   call set(V, V_limit)
-  !   call halo_update(V)
-  !   call deallocate(V_limit)
-  !   call deallocate(V_mean)
-
-  ! end subroutine limit_vector_bj
+    !Deallocate copy of field
+    call set(V, V_limit)
+    call halo_update(V)
+    call deallocate(V_limit)
+    call deallocate(V_mean)
+    do node = 1, size(Hulls)
+       deallocate(Hulls(node)%ptr)
+    end do
+    deallocate(Hulls)
+  end subroutine limit_vector_vb
 
   function limit_hull(Ubar,dU,hull,tol) result (alpha)
     real :: alpha
