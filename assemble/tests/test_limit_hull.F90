@@ -84,5 +84,12 @@ subroutine test_limit_hull
   fail = abs(alpha-0.9)>1.0e-8
   call report_test('[RandomHull_0.9]', fail, .false., &
        & "Point is outside hull, alpha = 0.9.")
+
+  Ubar = sum(Hull_p,2)/size(Hull_p,2)
+  dU = (0.5*(Hull_p(:,5)+Hull_p(:,6))-Ubar)/0.9
+  alpha = limit_hull(Ubar,dU,hull_p)
+  fail = abs(alpha-0.9)>1.0e-8
+  call report_test('[RandomMiddleHull_0.9]', fail, .false., &
+       & "Point is outside hull, alpha = 0.9.")
   deallocate(hull_p,vec)
 end subroutine test_limit_hull

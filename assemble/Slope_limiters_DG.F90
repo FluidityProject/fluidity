@@ -1582,8 +1582,7 @@ contains
     real, dimension(:,:), intent(in) :: hull
     real, intent(in), optional :: tol
     !
-    integer :: Udim, nhull,i, homehull, ihull, jhull, info
-    real, dimension(size(hull,2)) :: norms
+    integer :: Udim, nhull,i, phull, mhull, info
     real, dimension(size(Ubar)) :: vec1,vec2
     real, dimension(size(Ubar),size(Ubar)) :: A
     real :: ltol
@@ -1605,14 +1604,8 @@ contains
        return
     end if
     
-    do i = 1, nhull
-       norms(i) = norm2(hull(:,i)-Ubar)
-    end do
-    homehull = minloc(norms,dim=1)
-    assert(minval(norms)<ltol)
-
     if(nhull.eq.1) then
-       !Hull is a point.
+       !Hull is a point, not equal to Ubar + dU
        !Can only get into hull by completely removing slope.
        alpha = 0.0
        return
@@ -1635,44 +1628,34 @@ contains
        end if
     end if
 
-    !If we haven't returned by this point, hull is a convex polygon 
-    !enclosing finite area.
-    !First check that line segment Ubar + alpha*dU 
-    !intersects hull
-    ihull = mod(homehull,nhull)+1
-    jhull = mod(homehull+nhull-2,nhull)+1
-    if(isleft(hull(:,homehull),hull(:,ihull),Ubar + dU).or.&
-         isleft(hull(:,jhull),hull(:,homehull),Ubar + dU)) then
-       !Line segment does not intersect hull
-       alpha = 0.0
-    else
-       !Line Segment does intersect hull
-       !Find intersected edge
-       ! (0,1) x (1,0) = -1
-       intersection_search: do i = 1, nhull
-          jhull = mod(i,nhull)+1
-          if(cross_product2(hull(:,jhull)-hull(:,homehull),dU)>0.0) then
-             ihull = mod(i+nhull-1,nhull)+1
-             exit intersection_search
-          end if
-       end do intersection_search
-       !Solve for intersection
-       ! solve Ubar + alpha*dU = Pi + beta*(P_{i+1}-Pi)
-       ! i.e.
-       ! (-dU_1 (P_{i+1}-P_i)_1 )(alpha) = (Ubar_1 - (P_i)_1)
-       ! (-dU_2 (P_{i+1}-P_i)_2 )(beta)    (Ubar_2 - (P_i)_2)
-       
-       vec1 = Ubar - hull(:,ihull)
-       A(:,1) = -dU
-       A(:,2) = hull(:,jhull)-hull(:,ihull)
-       call solve(A,vec1,info)
-       assert((vec1(2).le.1.0))
-       assert((vec1(2).ge.0.0))
-       alpha = vec1(1)
-       assert(alpha.le.1.0)
-       assert(alpha.ge.0.0)
-    end if
-
+    !Find intersected edge
+    intersection_search: do i = 1, nhull
+       phull = mod(i,nhull)+1
+       mhull = mod(i+nhull-1,nhull)+1
+       if(.not.isleft(Ubar,hull(:,mhull),Ubar + dU).and.&
+            & isleft(Ubar,hull(:,phull),Ubar + dU)) then
+          exit intersection_search
+       end if
+    end do intersection_search
+    !Solve for intersection
+    ! solve Ubar + alpha*dU = Pi + beta*(P_{i+1}-Pi)
+    ! i.e.
+    ! (-dU_1 (P_{i+1}-P_i)_1 )(alpha) = (Ubar_1 - (P_i)_1)
+    ! (-dU_2 (P_{i+1}-P_i)_2 )(beta)    (Ubar_2 - (P_i)_2)
+    
+    vec1 = Ubar - hull(:,mhull)
+    A(:,1) = -dU
+    A(:,2) = hull(:,phull)-hull(:,mhull)
+    call solve(A,vec1,info)
+    !This checks that intersection occurs on selected line segment
+    assert((vec1(2).le.1.0))
+    assert((vec1(2).ge.0.0))
+    alpha = vec1(1)
+    !If alpha>1.0 we should have already exited
+    assert(alpha.le.1.0)
+    !Can't limit below zero
+    if(alpha<0.0) alpha = 0.0
+ 
     contains 
       function isleft(seg1,seg2,point,tol)
         real, intent(in), dimension(:) :: seg1, seg2, point
