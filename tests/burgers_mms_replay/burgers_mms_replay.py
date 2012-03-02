@@ -34,7 +34,7 @@ def test_convergence(statfiles, fields, tol):
 
 def test_convergence_rates(tol):
   fields = ["Error"]
-  statfiles = ["mms_adjoint_B_forward.stat", "mms_adjoint_C_forward.stat", "mms_adjoint_D_forward.stat", "mms_adjoint_E_forward.stat"]
+  statfiles = ["mms_adjoint_B_forward.stat", "mms_adjoint_C_forward.stat", "mms_adjoint_D_forward.stat"]
   res1 = test_convergence(statfiles, fields, tol)
   return res1
 
@@ -50,5 +50,5 @@ def print_convergence_rates():
   print ""
   print " =============== Time and space resolution increasing ================="
   fields = ["Error"]
-  statfiles = ["mms_adjoint_A_forward.stat", "mms_adjoint_B_forward.stat", "mms_adjoint_C_forward.stat", "mms_adjoint_D_forward.stat", "mms_adjoint_E_forward.stat"]
+  statfiles = ["mms_adjoint_A_forward.stat", "mms_adjoint_B_forward.stat", "mms_adjoint_C_forward.stat", "mms_adjoint_D_forward.stat"]
   print_convergence(statfiles, fields)
