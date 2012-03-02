@@ -1511,6 +1511,7 @@ AC_OUTPUT(Makefile
           bathymetry/Makefile
           ocean_forcing/Makefile ocean_forcing/tests/Makefile
           sediments/Makefile
+          lagrangian_biology/Makefile
           hyperlight/Makefile
           femtools/Makefile femtools/tests/Makefile
           forward_interfaces/Makefile

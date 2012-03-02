@@ -318,6 +318,8 @@ ifeq (@HYPERLIGHT@,yes)
 endif
 	@echo "    MAKE sediments"
 	@cd sediments; $(MAKE)
+	@echo "    MAKE lagrangian_biology"
+	@cd lagrangian_biology; $(MAKE)
 	@echo "    MAKE parameterisation"
 	@cd parameterisation; $(MAKE)
 	@echo "    MAKE forward_interfaces"
@@ -352,6 +354,7 @@ femtools/*.o \
 bathymetry/*.o \
 ocean_forcing/*.o \
 sediments/*.o \
+lagrangian_biology/*.o \
 parameterisation/*.o \
 forward_interfaces/*.o \
 horizontal_adaptivity/*.o \
@@ -393,6 +396,8 @@ clean-light:
 	@cd parameterisation; $(MAKE) clean
 	@echo "    CLEAN sediments"
 	@cd sediments; $(MAKE) clean
+	@echo "    CLEAN lagrangian_biology"
+	@cd lagrangian_biology; $(MAKE) clean
 	@echo "    CLEAN parameterisation/tests"
 	@cd parameterisation/tests; $(MAKE) clean
 	@echo "    CLEAN assemble"
@@ -580,6 +585,8 @@ endif
 	@cd ocean_forcing; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating sediments dependencies"
 	@cd sediments; ../bin/create_makefile $(TESTOPTS)
+	@echo "    Generating lagrangian_biology dependencies"
+	@cd lagrangian_biology; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating parameterisation dependencies"
 	@cd parameterisation; ../bin/create_makefile $(TESTOPTS)
 	@echo "    Generating forward_interfaces dependencies"
