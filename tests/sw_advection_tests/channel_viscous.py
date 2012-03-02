@@ -16,7 +16,8 @@ Plane Surface(6) = {5};
 
 Physical Line(1) = {1};
 Physical Line(2) = {2};
-Physical Line(3) = {4, 3};
+Physical Line(3) = {4};
+Physical Line(4) = {3};
 Physical Surface(1) = {6};
 Mesh.Optimize=1;
 '''
@@ -37,7 +38,8 @@ Plane Surface(6) = {5};
 
 Physical Line(1) = {1};
 Physical Line(2) = {2};
-Physical Line(3) = {4, 3};
+Physical Line(3) = {4};
+Physical Line(4) = {3};
 Physical Surface(1) = {6};
 Mesh.Optimize=1;
 '''
