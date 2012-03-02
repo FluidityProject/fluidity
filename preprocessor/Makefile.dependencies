@@ -57,11 +57,11 @@ Populate_State.o ../include/populate_state_module.mod: Populate_State.F90 \
    ../include/fldebug.mod ../include/global_parameters.mod \
    ../include/hadapt_extrude.mod ../include/hadapt_extrude_radially.mod \
    ../include/halos.mod ../include/initialise_fields_module.mod \
-   ../include/mesh_files.mod ../include/metric_tools.mod \
-   ../include/nemo_states_module.mod ../include/parallel_tools.mod \
-   ../include/profiler.mod ../include/read_triangle.mod \
-   ../include/reserve_state_module.mod ../include/sediment.mod \
-   ../include/spud.mod ../include/state_module.mod \
+   ../include/lagrangian_biology.mod ../include/mesh_files.mod \
+   ../include/metric_tools.mod ../include/nemo_states_module.mod \
+   ../include/parallel_tools.mod ../include/profiler.mod \
+   ../include/read_triangle.mod ../include/reserve_state_module.mod \
+   ../include/sediment.mod ../include/spud.mod ../include/state_module.mod \
    ../include/surfacelabels.mod ../include/tictoc.mod \
    ../include/transform_elements.mod ../include/vtk_cache_module.mod
 

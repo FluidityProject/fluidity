@@ -108,11 +108,12 @@ module detector_data_types
 
   ! Type holding meta-information about biology variables of LE agents
   type biovar
-    ! Variable name
     character(len=FIELD_NAME_LEN) :: name
     ! Name and option path of the primary diagnostic field
     character(len=FIELD_NAME_LEN) :: field_name
     character(len=OPTION_PATH_LEN) :: field_path
+    ! Option path for the depletion field (Uptake vars only)
+    character(len=OPTION_PATH_LEN):: depletion_field_path
     ! Type of variable, ie. diagnostic, uptake, release
     integer :: field_type = 0
     ! Flag indicating whether this variables gets written to the output file
@@ -129,6 +130,10 @@ module detector_data_types
     character(len=FIELD_NAME_LEN) :: name
     ! List of variables that define each agent of this group
     type(biovar), dimension(:), allocatable :: variables
+    ! List of all stages within this FG
+    type(stringlist) :: stage_names
+    ! Option path for the Agents diagnostic field
+    character(len=OPTION_PATH_LEN) :: agents_field_path
   end type functional_group
 
   type detector_linked_list

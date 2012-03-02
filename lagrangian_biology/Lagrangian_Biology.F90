@@ -53,6 +53,7 @@ implicit none
   public :: initialise_lagrangian_biology_metamodel, initialise_lagrangian_biology_agents, &
             lagrangian_biology_cleanup, update_lagrangian_biology, calculate_agent_diagnostics, &
             get_num_functional_groups, get_functional_group
+  public :: BIOFIELD_NONE, BIOFIELD_DIAG, BIOFIELD_UPTAKE, BIOFIELD_RELEASE
 
   type(detector_linked_list), dimension(:), allocatable, target, save :: agent_arrays
   type(functional_group), dimension(:), allocatable, target, save :: functional_groups
@@ -69,12 +70,12 @@ contains
     get_num_functional_groups = size(functional_groups)
   end function get_num_functional_groups
 
-  subroutine get_functional_group(i, fg)
+  function get_functional_group(i) result(fg)
     integer, intent(in) :: i
-    type(functional_group), intent(out) :: fg
+    type(functional_group), pointer :: fg
 
-    fg = functional_groups(i)
-  end subroutine get_functional_group
+    fg => functional_groups(i)
+  end function get_functional_group
 
   subroutine initialise_lagrangian_biology_metamodel()
     character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer, env_field_buffer
@@ -259,127 +260,148 @@ contains
     type(functional_group), intent(out) :: fgroup
     character(len=*), intent(in) :: fg_path
 
-    character(len=OPTION_PATH_LEN) :: biovar_buffer
+    character(len=OPTION_PATH_LEN) :: var_buffer, stage_buffer
     character(len=FIELD_NAME_LEN) :: biovar_name, field_name
-    integer :: j, biovar, biovar_total, biovar_state, biovar_chemical, &
-               biovar_uptake, biovar_release, chemvar_index
+    integer :: i, vars_state, vars_chem, vars_uptake, vars_release, &
+               vars_total, var_index, chemvar_index, stage_count
 
     call get_option(trim(fg_path)//"/name", fgroup%name)
 
-    ! Determine number of biovars
-    biovar_state = option_count(trim(fg_path)//"/variables/state_variable") 
-    biovar_chemical = option_count(trim(fg_path)//"/variables/chemical_variable")
-    biovar_uptake = 0
-    biovar_release = 0
-    do j=1, biovar_chemical
-       write(biovar_buffer, "(a,i0,a)") trim(fg_path)//"/variables/chemical_variable[",j-1,"]"
-       if (have_option(trim(biovar_buffer)//"/uptake")) then
-          biovar_uptake = biovar_uptake + 1
+    ! Record all associated stage names
+    stage_count = option_count(trim(fg_path)//"/stages/stage")
+    if (stage_count>0) then
+       allocate(fgroup%stage_names%ptr(stage_count))
+       do i=1, stage_count
+          write(stage_buffer, "(a,i0,a)") trim(fg_path)//"/stages/stage[",i-1,"]"
+          call get_option(trim(stage_buffer)//"/name", fgroup%stage_names%ptr(i))
+       end do
+    end if
+
+    ! Record the agent count field path
+    if (have_option(trim(fg_path)//"/scalar_field::Agents")) then
+       fgroup%agents_field_path = trim(fg_path)//"/scalar_field::Agents"
+    else
+       FLExit("No Agents field specified for functional group "//trim(fgroup%name))
+    end if
+
+    ! Determine number of variables
+    vars_state = option_count(trim(fg_path)//"/variables/state_variable") 
+    vars_chem = option_count(trim(fg_path)//"/variables/chemical_variable")
+    vars_uptake = 0
+    vars_release = 0
+    do i=1, vars_chem
+       write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/chemical_variable[",i-1,"]"
+       if (have_option(trim(var_buffer)//"/uptake")) then
+          vars_uptake = vars_uptake + 1
        end if
-       if (have_option(trim(biovar_buffer)//"/release")) then
-          biovar_release = biovar_release + 1
+       if (have_option(trim(var_buffer)//"/release")) then
+          vars_release = vars_release + 1
        end if
     end do
-    biovar_total = biovar_state + biovar_chemical + biovar_uptake + biovar_release
+    vars_total = vars_state + vars_chem + vars_uptake + vars_release
 
-    if (biovar_total > 0) then
+    if (vars_total > 0) then
 
        ! Allocate variable arrays
-       allocate(fgroup%variables(biovar_total))
+       allocate(fgroup%variables(vars_total))
 
        ! Add internal state variables
-       biovar = 1
-       do j=1, biovar_state
-          write(biovar_buffer, "(a,i0,a)") trim(fg_path)//"/variables/state_variable[",j-1,"]"
-          call get_option(trim(biovar_buffer)//"/name", biovar_name)
-          fgroup%variables(biovar)%name=trim(biovar_name)
-          if (have_option(trim(biovar_buffer)//"/include_in_io")) then
-             fgroup%variables(biovar)%write_to_file=.true.
+       var_index = 1
+       do i=1, vars_state
+          write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/state_variable[",i-1,"]"
+          call get_option(trim(var_buffer)//"/name", biovar_name)
+          fgroup%variables(var_index)%name=trim(biovar_name)
+          if (have_option(trim(var_buffer)//"/include_in_io")) then
+             fgroup%variables(var_index)%write_to_file=.true.
           end if
 
           ! Record according diagnostic field
-          if (have_option(trim(biovar_buffer)//"/scalar_field")) then
-             fgroup%variables(biovar)%field_type = BIOFIELD_DIAG
-             call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)                   
-             fgroup%variables(biovar)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
-             fgroup%variables(biovar)%field_path = trim(biovar_buffer)//"/scalar_field"
-             if (have_option(trim(biovar_buffer)//"/scalar_field/stage_aggregate")) then
-                fgroup%variables(biovar)%stage_aggregate=.true.
+          if (have_option(trim(var_buffer)//"/scalar_field")) then
+             fgroup%variables(var_index)%field_type = BIOFIELD_DIAG
+             call get_option(trim(var_buffer)//"/scalar_field/name", field_name)                   
+             fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
+             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
+             if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate")) then
+                fgroup%variables(var_index)%stage_aggregate=.true.
              else
-                fgroup%variables(biovar)%stage_aggregate=.false.
+                fgroup%variables(var_index)%stage_aggregate=.false.
              end if
           else
-             fgroup%variables(biovar)%field_type = BIOFIELD_NONE
+             fgroup%variables(var_index)%field_type = BIOFIELD_NONE
           end if
-          biovar = biovar+1
+          var_index = var_index+1
        end do
 
        ! Add chemical variables
-       do j=1, biovar_chemical
-          write(biovar_buffer, "(a,i0,a)") trim(fg_path)//"/variables/chemical_variable[",j-1,"]"
-          call get_option(trim(biovar_buffer)//"/name", biovar_name)
-          if (have_option(trim(biovar_buffer)//"/include_in_io")) then
-             fgroup%variables(biovar)%write_to_file=.true.
+       do i=1, vars_chem
+          write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/chemical_variable[",i-1,"]"
+          call get_option(trim(var_buffer)//"/name", biovar_name)
+          if (have_option(trim(var_buffer)//"/include_in_io")) then
+             fgroup%variables(var_index)%write_to_file=.true.
           end if
 
           ! Chemical pool variable and according diagnostic fields
-          fgroup%variables(biovar)%name = trim(biovar_name)
-          if (have_option(trim(biovar_buffer)//"/scalar_field")) then
-             fgroup%variables(biovar)%field_type = BIOFIELD_DIAG
-             call get_option(trim(biovar_buffer)//"/scalar_field/name", field_name)
-             fgroup%variables(biovar)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
-             fgroup%variables(biovar)%field_path = trim(biovar_buffer)//"/scalar_field"
-             if (have_option(trim(biovar_buffer)//"/scalar_field/stage_aggregate")) then
-                fgroup%variables(biovar)%stage_aggregate=.true.
+          fgroup%variables(var_index)%name = trim(biovar_name)
+          if (have_option(trim(var_buffer)//"/scalar_field")) then
+             fgroup%variables(var_index)%field_type = BIOFIELD_DIAG
+             call get_option(trim(var_buffer)//"/scalar_field/name", field_name)
+             fgroup%variables(var_index)%field_name = trim(fgroup%name)//trim(field_name)//trim(biovar_name)
+             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/scalar_field"
+             if (have_option(trim(var_buffer)//"/scalar_field/stage_aggregate")) then
+                fgroup%variables(var_index)%stage_aggregate=.true.
              else
-                fgroup%variables(biovar)%stage_aggregate=.false.
+                fgroup%variables(var_index)%stage_aggregate=.false.
              end if
           else
-             fgroup%variables(biovar)%field_type = BIOFIELD_NONE
+             fgroup%variables(var_index)%field_type = BIOFIELD_NONE
           end if
-          chemvar_index = biovar
-          biovar = biovar+1
+          chemvar_index = var_index
+          var_index = var_index+1
 
           ! Chemical uptake
-          if (have_option(trim(biovar_buffer)//"/uptake")) then
-             if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
+          ! Note check for existence of Request and Depletion field, and record Depletion field
+          if (have_option(trim(var_buffer)//"/uptake")) then
+             if (.not.have_option(trim(var_buffer)//"/chemical_field")) then
                 FLExit("No chemical field specified for "//trim(biovar_name)//" uptake in functional group "//trim(fgroup%name))
              end if
 
-             fgroup%variables(biovar)%name = trim(biovar_name)//"Uptake"
-             fgroup%variables(biovar)%field_type = BIOFIELD_UPTAKE
-             fgroup%variables(biovar)%field_name = trim(fgroup%name)//"Request"//trim(biovar_name)
-             call get_option(trim(biovar_buffer)//"/chemical_field/name", fgroup%variables(biovar)%chemfield)
-             call insert_global_uptake_field(fgroup%variables(biovar)%chemfield)
+             fgroup%variables(var_index)%name = trim(biovar_name)//"Uptake"
+             fgroup%variables(var_index)%field_type = BIOFIELD_UPTAKE
+             fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Request"//trim(biovar_name)
+             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/uptake/scalar_field::Request"
+             fgroup%variables(var_index)%depletion_field_path = trim(var_buffer)//"/uptake/scalar_field::Depletion"
+             call get_option(trim(var_buffer)//"/chemical_field/name", fgroup%variables(var_index)%chemfield)
+             call insert_global_uptake_field(fgroup%variables(var_index)%chemfield)
 
-             if (have_option(trim(biovar_buffer)//"/uptake/scalar_field::Request/stage_aggregate")) then
-                fgroup%variables(biovar)%stage_aggregate=.true.
+             if (have_option(trim(var_buffer)//"/uptake/scalar_field::Request/stage_aggregate")) then
+                fgroup%variables(var_index)%stage_aggregate=.true.
              else
-                fgroup%variables(biovar)%stage_aggregate=.false.
+                fgroup%variables(var_index)%stage_aggregate=.false.
              end if
-             fgroup%variables(biovar)%pool_index = chemvar_index
-             biovar = biovar+1
+             fgroup%variables(var_index)%pool_index = chemvar_index
+             var_index = var_index+1
           end if
 
           ! Chemical release
-          if (have_option(trim(biovar_buffer)//"/release")) then
-             if (.not.have_option(trim(biovar_buffer)//"/chemical_field")) then
+          if (have_option(trim(var_buffer)//"/release")) then
+             if (.not.have_option(trim(var_buffer)//"/chemical_field")) then
                 FLExit("No chemical field specified for "//trim(biovar_name)//" release in functional group "//trim(fgroup%name))
              end if
 
-             fgroup%variables(biovar)%name = trim(biovar_name)//"Release"
-             fgroup%variables(biovar)%field_type = BIOFIELD_RELEASE
-             fgroup%variables(biovar)%field_name = trim(fgroup%name)//"Release"//trim(biovar_name)
-             call get_option(trim(biovar_buffer)//"/chemical_field/name", fgroup%variables(biovar)%chemfield)
-             call insert_global_release_field(fgroup%variables(biovar)%chemfield)
+             fgroup%variables(var_index)%name = trim(biovar_name)//"Release"
+             fgroup%variables(var_index)%field_type = BIOFIELD_RELEASE
+             fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Release"//trim(biovar_name)
+             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/release/scalar_field::Release"
+             call get_option(trim(var_buffer)//"/chemical_field/name", fgroup%variables(var_index)%chemfield)
+             call insert_global_release_field(fgroup%variables(var_index)%chemfield)
 
-             if (have_option(trim(biovar_buffer)//"/release/scalar_field::Release/stage_aggregate")) then
-                fgroup%variables(biovar)%stage_aggregate=.true.
+             if (have_option(trim(var_buffer)//"/release/scalar_field::Release/stage_aggregate")) then
+                fgroup%variables(var_index)%stage_aggregate=.true.
              else
-                fgroup%variables(biovar)%stage_aggregate=.false.
+                fgroup%variables(var_index)%stage_aggregate=.false.
              end if
-             fgroup%variables(biovar)%pool_index = chemvar_index
-             biovar = biovar+1
+             fgroup%variables(var_index)%pool_index = chemvar_index
+             var_index = var_index+1
           end if
 
        end do
