@@ -49,6 +49,20 @@ lagrangian_biology =
                      state_variable |
                      chemical_variable
                   )*
+               }|
+               ## Built-in variable set corresponding to LERM Diatoms.
+               element variables_lerm {
+                  element scalar_field {
+                     attribute name { 'Particulate' },
+                     element diagnostic {
+                        internal_algorithm,
+                        diagnostic_scalar_field_no_adapt
+                     },
+                     ## Add diagnostic field that represents the total quantity across all stages of the FG.
+                     element stage_aggregate {
+                        empty
+                     }?
+                  }
                }
             ),
             ## This option holds a list of fields that define the ambient environment for agents of this Functional Group. 

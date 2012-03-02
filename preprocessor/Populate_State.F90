@@ -1426,10 +1426,7 @@ contains
 
       type(mesh_type) :: parent_mesh, biology_mesh
       type(functional_group), pointer :: fgroup
-      character(len=OPTION_PATH_LEN) :: fg_path, fg_buffer, var_buffer, stage_buffer, field_buffer
-      character(len=FIELD_NAME_LEN) :: var_name, field_name, stage_name, fg_name, chemfield_name
-      integer :: i, j, k, var_count, fg_count, stage_count
-      integer :: fg, v
+      integer :: i, fg, v
 
       ! First we allocate a piecewise constant mesh
       parent_mesh = extract_mesh(state, topology_mesh_name)

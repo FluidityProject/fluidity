@@ -15,32 +15,63 @@ The concrete behaviour of an agent, however, is defined by the stage the agent i
           <attribute name="name">
             <data type="string"/>
           </attribute>
-          <element name="variables">
-            <a:documentation>The variables of an agent define its individual internal state. 
+          <choice>
+            <element name="variables">
+              <a:documentation>The variables of an agent define its individual internal state. 
 Several types of variables are available: 
 state_variable defines an arbitrary internal property; 
 chemical_variable defines an internal pool of chemicals that can be exchanged with the environment. </a:documentation>
-            <element name="state_variable">
-              <a:documentation>An agent's stage determines the update function to apply at each timestep.</a:documentation>
-              <attribute name="name">
-                <value>Stage</value>
-              </attribute>
-              <optional>
-                <element name="include_in_io">
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-            <element name="state_variable">
-              <a:documentation>Dynamic size of the ensemble the agent represents. 
-All internal quantities that are exchanged with the environment get scaled by this factor.</a:documentation>
-              <attribute name="name">
-                <value>Size</value>
-              </attribute>
-              <element name="scalar_field">
-                <a:documentation>Biology agent field</a:documentation>
+              <element name="state_variable">
+                <a:documentation>An agent's stage determines the update function to apply at each timestep.</a:documentation>
                 <attribute name="name">
-                  <value>Ensemble</value>
+                  <value>Stage</value>
+                </attribute>
+                <optional>
+                  <element name="include_in_io">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+              <element name="state_variable">
+                <a:documentation>Dynamic size of the ensemble the agent represents. 
+All internal quantities that are exchanged with the environment get scaled by this factor.</a:documentation>
+                <attribute name="name">
+                  <value>Size</value>
+                </attribute>
+                <element name="scalar_field">
+                  <a:documentation>Biology agent field</a:documentation>
+                  <attribute name="name">
+                    <value>Ensemble</value>
+                  </attribute>
+                  <element name="diagnostic">
+                    <ref name="internal_algorithm"/>
+                    <ref name="diagnostic_scalar_field_no_adapt"/>
+                  </element>
+                  <optional>
+                    <element name="stage_aggregate">
+                      <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+                <optional>
+                  <element name="include_in_io">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+              <zeroOrMore>
+                <choice>
+                  <ref name="state_variable"/>
+                  <ref name="chemical_variable"/>
+                </choice>
+              </zeroOrMore>
+            </element>
+            <element name="variables_lerm">
+              <a:documentation>Built-in variable set corresponding to LERM Diatoms.</a:documentation>
+              <element name="scalar_field">
+                <attribute name="name">
+                  <value>Particulate</value>
                 </attribute>
                 <element name="diagnostic">
                   <ref name="internal_algorithm"/>
@@ -53,19 +84,8 @@ All internal quantities that are exchanged with the environment get scaled by th
                   </element>
                 </optional>
               </element>
-              <optional>
-                <element name="include_in_io">
-                  <empty/>
-                </element>
-              </optional>
             </element>
-            <zeroOrMore>
-              <choice>
-                <ref name="state_variable"/>
-                <ref name="chemical_variable"/>
-              </choice>
-            </zeroOrMore>
-          </element>
+          </choice>
           <element name="environment">
             <a:documentation>This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
 The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.</a:documentation>

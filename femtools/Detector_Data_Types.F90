@@ -109,19 +109,21 @@ module detector_data_types
   ! Type holding meta-information about biology variables of LE agents
   type biovar
     character(len=FIELD_NAME_LEN) :: name
+    ! Type of variable, ie. diagnostic, uptake, release
+    integer :: field_type = 0
+
     ! Name and option path of the primary diagnostic field
     character(len=FIELD_NAME_LEN) :: field_name
     character(len=OPTION_PATH_LEN) :: field_path
     ! Option path for the depletion field (Uptake vars only)
     character(len=OPTION_PATH_LEN):: depletion_field_path
-    ! Type of variable, ie. diagnostic, uptake, release
-    integer :: field_type = 0
+    ! Name of chemical field associated with uptake/release variables
+    character(len=FIELD_NAME_LEN) :: chemfield
+
     ! Flag indicating whether this variables gets written to the output file
     logical :: write_to_file = .false.
     ! Flag indicating whether to aggregate by stage
     logical :: stage_aggregate = .false.
-    ! Name of chemical field associated with uptake/release variables
-    character(len=FIELD_NAME_LEN) :: chemfield
     ! Variable index of the corresponding pool variable for uptake/release variables
     integer :: pool_index
   end type biovar

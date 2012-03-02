@@ -45,6 +45,7 @@ module lagrangian_biology
   use diagnostic_fields
   use Profiler
   use integer_hash_table_module
+  use LERM
 
 implicit none
 
@@ -79,7 +80,7 @@ contains
 
   subroutine initialise_lagrangian_biology_metamodel()
     character(len=OPTION_PATH_LEN) :: fg_buffer, stage_buffer, env_field_buffer
-    character(len=FIELD_NAME_LEN) :: fg_name, stage_name
+    character(len=FIELD_NAME_LEN) :: stage_name
     integer, dimension(:), allocatable :: rnd_seed
     integer :: i, rnd_seed_int, rnd_dim
     integer :: j, array, fg, stage, n_agent_arrays, n_fgroups, n_stages, n_env_fields
@@ -122,12 +123,18 @@ contains
     array = 1
     do fg=1, n_fgroups
        write(fg_buffer, "(a,i0,a)") "/embedded_models/lagrangian_ensemble_biology/functional_group[",fg-1,"]"
-       call get_option(trim(fg_buffer)//"/name", fg_name)
        n_stages = option_count(trim(fg_buffer)//"/stages/stage")
 
-       ! Get biology variable meta-data
+       ! Get biology meta-data
        if (have_option(trim(fg_buffer)//"/variables")) then
           call read_functional_group(functional_groups(fg), trim(fg_buffer))
+
+       ! Get biology meta-data for LERM diatoms
+       elseif (have_option(trim(fg_buffer)//"/variables_lerm")) then
+          call LERM_get_diatom_fgroup(functional_groups(fg), trim(fg_buffer))
+
+       else
+          FLExit("No variables defined for functional group under: "//trim(fg_buffer))
        end if
 
        do stage = 1, n_stages
