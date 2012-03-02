@@ -185,7 +185,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
    import helmholtz_tools as k
    return k.velocity(X)</string_value>
           </python>
@@ -231,7 +231,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value type="python" lines="20">def val(X,t):
+                <string_value lines="20" type="python">def val(X,t):
    import helmholtz_tools as k
    return k.forcing_mom(X)</string_value>
               </python>
