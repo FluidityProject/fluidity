@@ -1595,24 +1595,29 @@ contains
        E_nodes => ele_nodes(vertex_mesh,ele)
        V_val = ele_val(V,ele)
        Vbar = sum(V_val,2)/size(V_val,2)
+       !Get vertex normals
+       v_normal_val = ele_val(VertexNormals,ele)
+       v_tangent1_val = ele_val(VertexTangent1,ele)       
+       v_tangent2_val = ele_val(VertexTangent2,ele)
+
        call set(V_limit,V_ele,V_val)
        do node = 1, ele_loc(V,ele)
           V_val_slope(:,node) = V_val(:,node) - Vbar       
           V_val(:,node) = Vbar
        end do    
        alpha = 1.0
-       Vbar_2d = rotate_ele2vertex(&
-            &V_normal_val(:,node),ENbar,&
-            &V_tangent1_val(:,node),V_tangent2_val(:,node),Vbar)
        limiting_node: do node = 1, ele_loc(V,ele)
+          Vbar_2d = rotate_ele2vertex(&
+               &V_normal_val(:,node),ENbar,&
+               &V_tangent1_val(:,node),V_tangent2_val(:,node),Vbar)
           V_val_slope2d = rotate_ele2vertex(&
-                  &V_normal_val(:,node),ENbar,&
-                  &V_tangent1_val(:,node),V_tangent2_val(:,node),&
-                  &V_val_slope(:,node))
+               &V_normal_val(:,node),ENbar,&
+               &V_tangent1_val(:,node),V_tangent2_val(:,node),&
+               &V_val_slope(:,node))
           alpha = min(alpha,limit_hull(Vbar_2d,V_val_slope2d,&
                &hulls(E_nodes(node))%ptr))
-          call set(V_limit, V_ele(node), Vbar_2d + alpha*V_val_slope2d)
        end do limiting_node
+       call addto(V_limit, V_ele, alpha*V_val_slope)
     end do limiting_ele
 
     !Deallocate copy of field
@@ -1718,7 +1723,6 @@ contains
     !Check dimensions of arrays
     Udim = size(Ubar)
     assert(size(dU)==Udim)
-    ewrite(2,*) Udim, size(hull,1)
     assert(size(hull,1) == Udim)
     nhull = size(hull,2)
 
@@ -1759,26 +1763,37 @@ contains
             & isleft(Ubar,hull(:,phull),Ubar + dU)) then
           exit intersection_search
        end if
+       phull = -1
+       mhull = -1
     end do intersection_search
-    !Solve for intersection
-    ! solve Ubar + alpha*dU = Pi + beta*(P_{i+1}-Pi)
-    ! i.e.
-    ! (-dU_1 (P_{i+1}-P_i)_1 )(alpha) = (Ubar_1 - (P_i)_1)
-    ! (-dU_2 (P_{i+1}-P_i)_2 )(beta)    (Ubar_2 - (P_i)_2)
-    
-    vec1 = Ubar - hull(:,mhull)
-    A(:,1) = -dU
-    A(:,2) = hull(:,phull)-hull(:,mhull)
-    call solve(A,vec1,info)
-    !This checks that intersection occurs on selected line segment
-    assert((vec1(2).le.1.0))
-    assert((vec1(2).ge.0.0))
-    alpha = vec1(1)
-    !If alpha>1.0 we should have already exited
-    assert(alpha.le.1.0)
-    !Can't limit below zero
-    if(alpha<0.0) alpha = 0.0
- 
+
+    if(phull==-1) then
+       !Either point is to right of whole hull wrt Ubar
+       !    or point is to  left of whole hull wrt Ubar
+       !This can only happen if Ubar is on boundary of hull
+       !                    and line to Ubar+dU leads away from hull.
+       alpha = 0.0
+    else
+       !Solve for intersection
+       ! solve Ubar + alpha*dU = Pi + beta*(P_{i+1}-Pi)
+       ! i.e.
+       ! (-dU_1 (P_{i+1}-P_i)_1 )(alpha) = (Ubar_1 - (P_i)_1)
+       ! (-dU_2 (P_{i+1}-P_i)_2 )(beta)    (Ubar_2 - (P_i)_2)
+       
+       vec1 = Ubar - hull(:,mhull)
+       A(:,1) = -dU
+       A(:,2) = hull(:,phull)-hull(:,mhull)
+       call solve(A,vec1,info)
+       !This checks that intersection occurs on selected line segment
+       assert((vec1(2).le.1.0))
+       assert((vec1(2).ge.0.0))
+       alpha = vec1(1)
+       !If alpha>1.0 we should have already exited
+       assert(alpha.le.1.0)
+       !Can't limit below zero
+       if(alpha<0.0) alpha = 0.0
+    end if
+
     contains 
       function isleft(seg1,seg2,point,tol)
         real, intent(in), dimension(:) :: seg1, seg2, point
