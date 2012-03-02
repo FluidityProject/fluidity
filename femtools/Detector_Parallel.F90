@@ -267,10 +267,10 @@ contains
        end do phaseloop
 
        ! Write biology variables
-       if (allocated(detector_list%biovars)) then
-          do i=1,size(detector_list%biovars)
-             if (detector_list%biovars(i)%write_to_file) then
-                buffer=field_tag(name=trim(detector_list%biovars(i)%name), column=column, statistic="Detector")
+       if (associated(detector_list%fgroup)) then
+          do i=1,size(detector_list%fgroup%variables)
+             if (detector_list%fgroup%variables(i)%write_to_file) then
+                buffer=field_tag(name=trim(detector_list%fgroup%variables(i)%name), column=column, statistic="Detector")
                 write(detector_list%output_unit, '(a)') trim(buffer)
                 column=column+1
              end if
@@ -359,9 +359,9 @@ contains
     ncolumns = ncolumns + detector_list%num_vfields * dim
 
     ! Biology columns: no. diagnostic vars
-    if (allocated(detector_list%biovars)) then
-       do i=1, size(detector_list%biovars)
-          if (detector_list%biovars(i)%write_to_file) then
+    if (associated(detector_list%fgroup)) then
+       do i=1, size(detector_list%fgroup%variables)
+          if (detector_list%fgroup%variables(i)%write_to_file) then
              ncolumns = ncolumns + 1
           end if
        end do
@@ -447,9 +447,9 @@ contains
        deallocate(vvalue)
 
        ! Output biology variables
-       if (allocated(detector_list%biovars)) then
-          do i=1,size(detector_list%biovars)
-             if (detector_list%biovars(i)%write_to_file) then
+       if (associated(detector_list%fgroup)) then
+          do i=1,size(detector_list%fgroup%variables)
+             if (detector_list%fgroup%variables(i)%write_to_file) then
                 call write_scalar_to_file(detector%biology(i))
              end if
           end do

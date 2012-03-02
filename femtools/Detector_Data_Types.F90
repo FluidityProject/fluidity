@@ -38,7 +38,7 @@ module detector_data_types
   
   public :: detector_type, detector_linked_list, &
             detector_list_ptr, stringlist, &
-            random_walk, biovar, &
+            random_walk, biovar, functional_group, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
             GUIDED_SEARCH_TRACKING, RTREE_TRACKING
 
@@ -110,8 +110,9 @@ module detector_data_types
   type biovar
     ! Variable name
     character(len=FIELD_NAME_LEN) :: name
-    ! Name of primary diagnostic field associated with variable
+    ! Name and option path of the primary diagnostic field
     character(len=FIELD_NAME_LEN) :: field_name
+    character(len=OPTION_PATH_LEN) :: field_path
     ! Type of variable, ie. diagnostic, uptake, release
     integer :: field_type = 0
     ! Flag indicating whether this variables gets written to the output file
@@ -123,6 +124,12 @@ module detector_data_types
     ! Variable index of the corresponding pool variable for uptake/release variables
     integer :: pool_index
   end type biovar
+
+  type functional_group
+    character(len=FIELD_NAME_LEN) :: name
+    ! List of variables that define each agent of this group
+    type(biovar), dimension(:), allocatable :: variables
+  end type functional_group
 
   type detector_linked_list
      !! Doubly linked list implementation
@@ -136,14 +143,14 @@ module detector_data_types
      character(len=FIELD_NAME_LEN) :: name
 
      !! Biology options
-     integer :: fg_id
+     type(functional_group), pointer :: fgroup => null()
      real :: stage_id
-     logical :: has_biology=.false.
-     character(len=FIELD_NAME_LEN) :: fg_name, stage_name
+     character(len=FIELD_NAME_LEN) :: stage_name
      character(len=OPTION_PATH_LEN) :: stage_options
-     type(biovar), dimension(:), allocatable :: biovars
-     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: env_field_name
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
+
+     logical :: has_biology=.false.
+     character(len=FIELD_NAME_LEN), dimension(:), allocatable :: env_field_name
 
      !!!!!!!!!!!!!!!!!!!!!!!!!
      !!! Detector movement !!!
