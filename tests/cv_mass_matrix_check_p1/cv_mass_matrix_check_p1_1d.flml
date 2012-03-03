@@ -145,7 +145,7 @@ for ele in range(field.element_count):
     <scalar_field name="SumCVMassMatrix" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
-          <string_value type="python" lines="20">cvmass = states["fluid"].scalar_fields["CVMassMatrix"]
+          <string_value lines="20" type="python">cvmass = states["fluid"].scalar_fields["CVMassMatrix"]
 
 sum_cvmass = sum(cvmass.val)
 
