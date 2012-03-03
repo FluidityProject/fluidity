@@ -162,11 +162,10 @@ contains
     
   end subroutine python_run_random_walk
 
-  subroutine python_calc_agent_biology(agent, agent_list, xfield, state, dt, dict, key, stat)
+  subroutine python_calc_agent_biology(agent, agent_list, state, dt, dict, key, stat)
     !!< Wrapper function for python_run_agent_biology_c
     type(detector_type), pointer, intent(in) :: agent
     type(detector_linked_list), intent(in) :: agent_list
-    type(vector_field), pointer, intent(in) :: xfield
     type(state_type), intent(inout) :: state
     real, intent(in) :: dt
     character(len = *), intent(in) :: dict, key

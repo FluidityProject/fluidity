@@ -133,6 +133,15 @@ contains
        elseif (have_option(trim(fg_buffer)//"/variables_lerm")) then
           call LERM_get_diatom_fgroup(functional_groups(fg), trim(fg_buffer))
 
+          allocate(uptake_field_names(3))
+          uptake_field_names(1)="DissolvedAmmonium"
+          uptake_field_names(2)="DissolvedNitrate"
+          uptake_field_names(3)="DissolvedSilicate"
+
+          allocate(release_field_names(2))
+          release_field_names(1)="DissolvedAmmonium"
+          release_field_names(2)="DissolvedSilicate"
+
        else
           FLExit("No variables defined for functional group under: "//trim(fg_buffer))
        end if
@@ -173,12 +182,16 @@ contains
                 call get_option(trim(env_field_buffer)//"/name", agent_arrays(array)%env_field_name(j))
                 call python_run_string("persistent['fg_env_names']['"//trim(agent_arrays(array)%name)//"'].append('"//trim(agent_arrays(array)%env_field_name(j))//"')")
              end do
+
+          elseif (have_option(trim(fg_buffer)//"/environment_lerm")) then
+             call LERM_get_diatom_env_fields(agent_arrays(array)%env_field_name)
+          else
+             FLExit("No environment fields defined for functional group "//trim(agent_arrays(array)%fgroup%name))
           end if
 
           ! Store the python update code
           if (have_option(trim(stage_buffer)//"/biology/python")) then
              call get_option(trim(stage_buffer)//"/biology/python", agent_arrays(array)%biovar_pycode)
-             agent_arrays(array)%has_biology=.true.
           end if
 
           array = array + 1
@@ -246,13 +259,22 @@ contains
 
        ! Initialise agent biology variables
        if (associated(agent_arrays(array)%fgroup)) then
-          call get_option(trim(stage_buffer)//"/initial_state/biology", func)
-          agent => agent_arrays(array)%first
-          do while (associated(agent))
-             allocate(agent%biology(size(agent_arrays(array)%fgroup%variables)))
-             call python_init_agent_biology(agent, agent_arrays(array), trim(func))
-             agent => agent%next
-          end do
+          if (have_option(trim(stage_buffer)//"/initial_state/biology")) then
+             call get_option(trim(stage_buffer)//"/initial_state/biology", func)
+             agent => agent_arrays(array)%first
+             do while (associated(agent))
+                allocate(agent%biology(size(agent_arrays(array)%fgroup%variables)))
+                call python_init_agent_biology(agent, agent_arrays(array), trim(func))
+                agent => agent%next
+             end do
+          elseif (have_option(trim(stage_buffer)//"/initial_state/biology_lerm_living_diatom")) then
+             agent => agent_arrays(array)%first
+             do while (associated(agent))
+                allocate(agent%biology(size(agent_arrays(array)%fgroup%variables)))
+                call LERM_initialise_living_diatom(agent%biology)
+                agent => agent%next
+             end do
+          end if
        end if
 
        call write_detector_header(state, agent_arrays(array))
@@ -455,6 +477,7 @@ contains
     type(detector_linked_list) :: stage_change_list
     type(vector_field), pointer :: xfield
     integer :: i, j, pm_period
+    logical :: python_update, lerm_living_update, lerm_dead_update
 
     ewrite(1,*) "Lagrangian biology: Updating agents..."
     call profiler_tic("/update_lagrangian_biology")
@@ -471,17 +494,43 @@ contains
           call move_lagrangian_detectors(state, agent_arrays(i), dt, timestep)
        end if
 
-       if (agent_arrays(i)%has_biology) then
+       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
 
           ewrite(2,*) "Lagrangian biology: Updating ", trim(agent_arrays(i)%name)
 
-          ! Compile python function to set bio-variable, and store in the global dictionary
-          call python_run_detector_string(trim(agent_arrays(i)%biovar_pycode), trim(agent_arrays(i)%name), trim("biology_update"))
+          if (have_option(trim(agent_arrays(i)%stage_options)//"/biology/python")) then
+             python_update=.true.
+          else
+             python_update=.false.
+          end if
+          if (have_option(trim(agent_arrays(i)%stage_options)//"/biology/lerm_living_diatom")) then
+             lerm_living_update=.true.
+          else
+             lerm_living_update=.false.
+          end if
+          if (have_option(trim(agent_arrays(i)%stage_options)//"/biology/lerm_dead_diatom")) then
+             lerm_dead_update=.true.
+          else
+             lerm_dead_update=.false.
+          end if
+
+          if (python_update) then
+             ! Compile python function to set bio-variable, and store in the global dictionary
+             call python_run_detector_string(trim(agent_arrays(i)%biovar_pycode), trim(agent_arrays(i)%name), trim("biology_update"))
+          end if
 
           ! Update agent biology
           agent=>agent_arrays(i)%first
           do while (associated(agent))
-             call python_calc_agent_biology(agent, agent_arrays(i), xfield, state(1), dt, trim(agent_arrays(i)%name), trim("biology_update"))
+
+             if (python_update) then
+                call python_calc_agent_biology(agent, agent_arrays(i), state(1), dt, trim(agent_arrays(i)%name), trim("biology_update"))
+
+             elseif (lerm_living_update) then
+                call LERM_update_living_diatom(agent, agent_arrays(i), state(1), dt)
+             elseif (lerm_dead_update) then
+                call LERM_update_dead_diatom(agent, agent_arrays(i), state(1), dt)
+             end if
 
              ! Check for stage change
              if (agent%biology(BIOVAR_STAGE) /= agent_arrays(i)%stage_id) then
@@ -555,7 +604,7 @@ contains
 
     ! First we derive the per-stage diagnostic quantities from the agent data
     do i = 1, size(agent_arrays)
-       if (agent_arrays(i)%has_biology) then
+       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
           call derive_per_stage_diagnostics(agent_arrays(i), state)
        end if
     end do
@@ -564,7 +613,7 @@ contains
     do i = 1, size(agent_arrays)
        call profiler_tic(trim(agent_arrays(i)%name)//"::diagnostics")
 
-       if (agent_arrays(i)%has_biology) then
+       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
           do j=1, size(agent_arrays(i)%fgroup%variables)
              ! Reset stage-aggregated diagnostics
              if (agent_arrays(i)%fgroup%variables(j)%stage_aggregate.and.agent_arrays(i)%fgroup%variables(j)%field_type /= BIOFIELD_NONE) then
@@ -597,7 +646,7 @@ contains
     do i = 1, size(agent_arrays)
        call profiler_tic(trim(agent_arrays(i)%name)//"::diagnostics")
 
-       if (agent_arrays(i)%has_biology) then
+       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
           do j=1, size(agent_arrays(i)%fgroup%variables)
 
              ! Aggregate stage-aggregated diagnostic fields
@@ -770,7 +819,7 @@ contains
 
     ! Apply depletion factor to uptake variables
     do i = 1, size(agent_arrays)
-       if (agent_arrays(i)%has_biology) then
+       if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
           do j=1, size(agent_arrays(i)%fgroup%variables)
 
              if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_UPTAKE) then

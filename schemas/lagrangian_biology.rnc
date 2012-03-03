@@ -65,14 +65,20 @@ lagrangian_biology =
                   }
                }
             ),
-            ## This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
-            ## The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.
-            element environment {
-               ## Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.
-               element field {
-                  attribute name { xsd:string }
-               }*
-            },
+            (
+               ## This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
+               ## The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.
+               element environment {
+                  ## Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.
+                  element field {
+                     attribute name { xsd:string }
+                  }*
+               }|
+               ## Built-in environment option for LERM Diatoms.
+               element environment_lerm {
+                  empty
+               }
+            ),
             ##
             element stages {
                ## Detectors with their locations specified via a python function or from a file. Allows detector arrays to be added.
@@ -100,16 +106,21 @@ lagrangian_biology =
                      element position {
                         python_code
                      },
-                     ## Python function to set the initial state of the agent. 
-                     ## A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
-                     ## which needs to be returned with the appropriate initial variable values, eg.:
-                     ##
-                     ##  def val(biovars):
-                     ##     biovars['VarName'] = 1.0
-                     ##     return biovars
-                     element biology {
-                        python_code
-                     }
+                     (
+                        ## Python function to set the initial state of the agent. 
+                        ## A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
+                        ## which needs to be returned with the appropriate initial variable values, eg.:
+                        ##
+                        ##  def val(biovars):
+                        ##     biovars['VarName'] = 1.0
+                        ##     return biovars
+                        element biology {
+                           python_code
+                        }|
+                        element biology_lerm_living_diatom {
+                           empty
+                        }
+                     )
                   },
                   ## Movement options
                   element movement {
@@ -229,10 +240,20 @@ lagrangian_biology =
                   (
                      ## Biology model for this type of agent.
                      element biology {
-                        ## Python code specifying the biology model.
-                        element python {
-                           python_code
-                        }
+                        (
+                           ## Python code specifying the biology model.
+                           element python {
+                              python_code
+                           }|
+                           ## Builtin update code for living LERM diatoms
+                           element lerm_living_diatom {
+                              empty
+                           }|
+                           ## Builtin update code for dead LERM diatoms
+                           element lerm_dead_diatom {
+                              empty
+                           }
+                        )
                      }|
                      ## Do not calculate biology
                      ## This option is generally only useful for testing. 

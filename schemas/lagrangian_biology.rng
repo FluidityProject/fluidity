@@ -86,18 +86,24 @@ All internal quantities that are exchanged with the environment get scaled by th
               </element>
             </element>
           </choice>
-          <element name="environment">
-            <a:documentation>This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
+          <choice>
+            <element name="environment">
+              <a:documentation>This option holds a list of fields that define the ambient environment for agents of this Functional Group. 
 The local values of fields listed here will be presented in a dictionary 'environment' to the agent update function.</a:documentation>
-            <zeroOrMore>
-              <element name="field">
-                <a:documentation>Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.</a:documentation>
-                <attribute name="name">
-                  <data type="string"/>
-                </attribute>
-              </element>
-            </zeroOrMore>
-          </element>
+              <zeroOrMore>
+                <element name="field">
+                  <a:documentation>Environment field whose ambient value will be presented to the update code in the 'environment' dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string"/>
+                  </attribute>
+                </element>
+              </zeroOrMore>
+            </element>
+            <element name="environment_lerm">
+              <a:documentation>Built-in environment option for LERM Diatoms.</a:documentation>
+              <empty/>
+            </element>
+          </choice>
           <element name="stages">
             <a:documentation/>
             <zeroOrMore>
@@ -130,16 +136,21 @@ The return value must have length number_of_detectors.
 The t argument is for future use only - currently detector locations are only set at simulation start.</a:documentation>
                     <ref name="python_code"/>
                   </element>
-                  <element name="biology">
-                    <a:documentation>Python function to set the initial state of the agent. 
+                  <choice>
+                    <element name="biology">
+                      <a:documentation>Python function to set the initial state of the agent. 
 A dictionary mapping variable name to value gets passed to the function, where the stage ID is already set,
 which needs to be returned with the appropriate initial variable values, eg.:
 
  def val(biovars):
     biovars['VarName'] = 1.0
     return biovars</a:documentation>
-                    <ref name="python_code"/>
-                  </element>
+                      <ref name="python_code"/>
+                    </element>
+                    <element name="biology_lerm_living_diatom">
+                      <empty/>
+                    </element>
+                  </choice>
                 </element>
                 <element name="movement">
                   <a:documentation>Movement options</a:documentation>
@@ -279,10 +290,20 @@ Requires name of diffusivity field and according gradient field.</a:documentatio
                 <choice>
                   <element name="biology">
                     <a:documentation>Biology model for this type of agent.</a:documentation>
-                    <element name="python">
-                      <a:documentation>Python code specifying the biology model.</a:documentation>
-                      <ref name="python_code"/>
-                    </element>
+                    <choice>
+                      <element name="python">
+                        <a:documentation>Python code specifying the biology model.</a:documentation>
+                        <ref name="python_code"/>
+                      </element>
+                      <element name="lerm_living_diatom">
+                        <a:documentation>Builtin update code for living LERM diatoms</a:documentation>
+                        <empty/>
+                      </element>
+                      <element name="lerm_dead_diatom">
+                        <a:documentation>Builtin update code for dead LERM diatoms</a:documentation>
+                        <empty/>
+                      </element>
+                    </choice>
                   </element>
                   <element name="disable_biology">
                     <a:documentation>Do not calculate biology

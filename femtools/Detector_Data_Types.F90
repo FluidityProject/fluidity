@@ -156,7 +156,6 @@ module detector_data_types
      character(len=OPTION_PATH_LEN) :: stage_options
      character(len=PYTHON_FUNC_LEN) :: biovar_pycode
 
-     logical :: has_biology=.false.
      character(len=FIELD_NAME_LEN), dimension(:), allocatable :: env_field_name
 
      !!!!!!!!!!!!!!!!!!!!!!!!!

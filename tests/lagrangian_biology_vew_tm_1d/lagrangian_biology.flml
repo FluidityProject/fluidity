@@ -483,189 +483,23 @@ def val(X,t):
         <integer_value rank="0">123456789</integer_value>
       </random_seed>
       <functional_group name="Diatom">
-        <variables>
-          <state_variable name="Stage"/>
-          <state_variable name="Size">
-            <scalar_field name="Ensemble">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-          </state_variable>
-          <chemical_variable name="Ammonium">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-            <chemical_field name="DissolvedAmmonium"/>
-            <uptake>
-              <scalar_field name="Request">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-              </scalar_field>
-              <scalar_field name="Depletion">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-              </scalar_field>
-            </uptake>
-            <release>
-              <scalar_field name="Release">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-              </scalar_field>
-            </release>
-          </chemical_variable>
-          <chemical_variable name="Nitrate">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-            <chemical_field name="DissolvedNitrate"/>
-            <uptake>
-              <scalar_field name="Request">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-              </scalar_field>
-              <scalar_field name="Depletion">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-              </scalar_field>
-            </uptake>
-          </chemical_variable>
-          <chemical_variable name="Silicate">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-              <stage_aggregate/>
-            </scalar_field>
-            <chemical_field name="DissolvedSilicate"/>
-            <uptake>
-              <scalar_field name="Request">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-              </scalar_field>
-              <scalar_field name="Depletion">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-              </scalar_field>
-            </uptake>
-            <release>
-              <scalar_field name="Release">
-                <diagnostic>
-                  <algorithm name="Internal" material_phase_support="multiple"/>
-                  <output/>
-                  <stat/>
-                  <detectors>
-                    <include_in_detectors/>
-                  </detectors>
-                </diagnostic>
-              </scalar_field>
-            </release>
-          </chemical_variable>
-          <chemical_variable name="Carbon">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-            </scalar_field>
-          </chemical_variable>
-          <chemical_variable name="Chlorophyll">
-            <scalar_field name="Particulate">
-              <diagnostic>
-                <algorithm name="Internal" material_phase_support="multiple"/>
-                <output/>
-                <stat/>
-                <detectors>
-                  <include_in_detectors/>
-                </detectors>
-              </diagnostic>
-            </scalar_field>
-          </chemical_variable>
-        </variables>
-        <environment>
-          <field name="Temperature"/>
-          <field name="Irradiance"/>
-          <field name="DissolvedAmmonium"/>
-          <field name="DissolvedNitrate"/>
-          <field name="DissolvedSilicate"/>
-        </environment>
+        <variables_lerm>
+          <scalar_field name="Particulate">
+            <diagnostic>
+              <algorithm name="Internal" material_phase_support="multiple"/>
+              <output/>
+              <stat/>
+              <detectors>
+                <include_in_detectors/>
+              </detectors>
+            </diagnostic>
+          </scalar_field>
+        </variables_lerm>
+        <environment_lerm/>
         <stages>
           <stage name="Living">
             <id>
-              <real_value rank="0">1.0</real_value>
+              <real_value rank="0">0.0</real_value>
             </id>
             <initial_state>
               <number_of_agents>
@@ -678,21 +512,7 @@ def val(X,t):
   positions = arange(-199.975,0.,0.05).reshape(4000,1)
   return positions</string_value>
               </position>
-              <biology>
-                <string_value lines="20" type="python">def val(variables):
-  variables['Size'] = 50000.0
-  variables['Ammonium'] = 2.2e-9
-  variables['Carbon'] = 1.5e-8
-  variables['Chlorophyll'] = 2.7e-9
-  variables['Nitrate'] = 0.0
-  variables['Silicate'] = 1.05E-9
-  variables['AmmoniumUptake'] = 0.0
-  variables['NitrateUptake'] = 0.0
-  variables['SilicateUptake'] = 0.0
-  variables['AmmoniumRelease'] = 0.0
-  variables['SilicateRelease'] = 0.0
-  return variables</string_value>
-              </biology>
+              <biology_lerm_living_diatom/>
             </initial_state>
             <movement>
               <subcycles>
@@ -722,13 +542,7 @@ def val(position, element, local_coords, dt):
               </random_walk>
             </movement>
             <biology>
-              <python>
-                <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
-
-def val(biovars, env, dt):
-  bio.update_living_diatom(biovars, env, dt)
-  return biovars</string_value>
-              </python>
+              <lerm_living_diatom/>
             </biology>
             <particle_management>
               <period_in_timesteps>
@@ -736,7 +550,7 @@ def val(biovars, env, dt):
               </period_in_timesteps>
               <minimum>
                 <python>
-                  <string_value lines="20" type="python">from __builtin__ import abs
+                  <string_value type="python" lines="20">from __builtin__ import abs
 mld = persistent['diffusivity_mld_data']
 
 def val(X):
@@ -757,7 +571,7 @@ def val(X):
           </stage>
           <stage name="Dead">
             <id>
-              <real_value rank="0">2.0</real_value>
+              <real_value rank="0">1.0</real_value>
             </id>
             <initial_state>
               <number_of_agents>
@@ -801,13 +615,7 @@ def val(position, element, local_coords, dt):
               </random_walk>
             </movement>
             <biology>
-              <python>
-                <string_value lines="20" type="python">import fluidity.lagrangian_biology as bio
-
-def val(biovars, env, dt):
-  bio.update_dead_diatom(biovars, env, dt)
-  return biovars</string_value>
-              </python>
+              <lerm_dead_diatom/>
             </biology>
             <particle_management>
               <period_in_timesteps>
