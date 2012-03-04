@@ -550,11 +550,11 @@ def val(position, element, local_coords, dt):
               </period_in_timesteps>
               <minimum>
                 <python>
-                  <string_value type="python" lines="20">from __builtin__ import abs
+                  <string_value lines="20" type="python">from __builtin__ import abs
 mld = persistent['diffusivity_mld_data']
 
 def val(X):
-  minimum = 10.0
+  minimum = 20.0
   
   # Outside the prescribed "MLD" we merge down to 1
   if abs(X[0]) &gt; mld:
@@ -564,7 +564,7 @@ def val(X):
               </minimum>
               <maximum>
                 <constant>
-                  <real_value rank="0">20.0</real_value>
+                  <real_value rank="0">40.0</real_value>
                 </constant>
               </maximum>
             </particle_management>

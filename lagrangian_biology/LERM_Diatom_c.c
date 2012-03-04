@@ -10,13 +10,12 @@ void updateLivingDiatom_c(double vars[], int n_vars, double env[], int n_env, do
 	 * (import and initial housekeeping)
 	 */
 
-/*
+
     vars[C_OLD] = vars[C_NEW];
-    vars[Z_OLD] = vars[Z_NEW];
+    //vars[Z_OLD] = vars[Z_NEW];
     vars[AMMONIUM_ING] /= vars[C_OLD];
     vars[NITRATE_ING] /= vars[C_OLD];
     vars[SILICATE_ING] /= vars[C_OLD];
-*/
 
     /* External environmnet */
     //int z_old_int = (int) (vars[Z_OLD]);
@@ -75,9 +74,9 @@ void updateLivingDiatom_c(double vars[], int n_vars, double env[], int n_env, do
     double V_S_max = (((vars[CARBON_POOL]) >= (param_C_minS))?(((Q_s) <= (param_Q_S_min))?(((param_V_S_ref)*(T_function))):(((Q_s) >= (param_Q_S_max))?(0.0):(((param_V_S_ref)*(pow(((param_Q_S_max) - (Q_s)) / ((param_Q_S_max) - (param_Q_S_min)), 0.05))*(T_function))))):(0.0));
     double V_S_S = (((V_S_max)*((_ambientSilicate) / (((_ambientSilicate)+(param_k_S))))));
 
-    double amountAmm = ((vars[CARBON_POOL])*(V_C_ammonium)*(stepInHours));
-    double amountNit = ((vars[CARBON_POOL])*(V_C_nitrate)*(stepInHours));
-    double amountSi = ((vars[SILICATE_POOL])*(V_S_S)*(stepInHours));
+    double amountAmm = vars[C_OLD]*((vars[CARBON_POOL])*(V_C_ammonium)*(stepInHours));
+    double amountNit = vars[C_OLD]*((vars[CARBON_POOL])*(V_C_nitrate)*(stepInHours));
+    double amountSi = vars[C_OLD]*((vars[SILICATE_POOL])*(V_S_S)*(stepInHours));
 
     double _Ammonium_Pool_New = (((((vars[AMMONIUM_POOL])+(vars[AMMONIUM_ING])+
         (vars[NITRATE_ING]))) - (((vars[AMMONIUM_POOL])*(param_R_N)*(stepInHours)*(T_function)))) /
@@ -102,7 +101,7 @@ void updateLivingDiatom_c(double vars[], int n_vars, double env[], int n_env, do
 */
 
     /* External: ammonium excretion */
-    double _relAmount = ((((vars[AMMONIUM_POOL])+(vars[NITRATE_POOL])))*(param_R_N)*(stepInHours)*(T_function));
+    double _relAmount = vars[C_OLD]*((((vars[AMMONIUM_POOL])+(vars[NITRATE_POOL])))*(param_R_N)*(stepInHours)*(T_function));
 
 
     /* Phase 3
@@ -165,13 +164,13 @@ void updateLivingDiatom_c(double vars[], int n_vars, double env[], int n_env, do
 }
 
 void updateDeadDiatom_c(double vars[], int n_vars, double env[], int n_env, double *dt) {
-/*
+
     vars[C_OLD] = vars[C_NEW];
-    vars[Z_OLD] = vars[Z_NEW];
+    //vars[Z_OLD] = vars[Z_NEW];
     vars[AMMONIUM_ING] /= vars[C_OLD];
     vars[NITRATE_ING] /= vars[C_OLD];
     vars[SILICATE_ING] /= vars[C_OLD];
-*/
+
 
 /*
     if (constData->chem_depletion[z_old_int][AMMONIUM]<1)
@@ -195,12 +194,12 @@ void updateDeadDiatom_c(double vars[], int n_vars, double env[], int n_env, doub
     //vars[Z_NEW]=(((vars[Z_OLD]) <= (physics->turbocline))?(((rnd(physics->turbocline))+(((param_z_sink)*(stepInHours))))):(((vars[Z_OLD])+(((param_z_sink)*(stepInHours))))));
     double Si_reminT = (((param_S_dis)*(pow(param_Q_remS, ((((_ambientTemperature)+(273.0))) - (param_T_refS)) / (10.0)))));
     double N_reminT = (((param_Ndis)*(pow(param_Q_remN, ((((_ambientTemperature)+(273.0))) - (param_T_refN)) / (10.0)))));
-    double _relAmountSi = ((vars[SILICATE_POOL])*(Si_reminT)*(stepInHours));
+    double _relAmountSi = vars[C_OLD]*((vars[SILICATE_POOL])*(Si_reminT)*(stepInHours));
 
 //    chem_remin[z_old_int][SILICATE]+=_relAmountSi;
 
     double _Silicate_Pool_New = ((MAX(((((vars[SILICATE_POOL])+(vars[SILICATE_ING]))) - (((vars[SILICATE_POOL])*(Si_reminT)*(stepInHours)))), (0.0))));
-    double _relAmountAmm = ((((vars[AMMONIUM_POOL])+(vars[NITRATE_POOL])))*(N_reminT)*(stepInHours));
+    double _relAmountAmm = vars[C_OLD]*((((vars[AMMONIUM_POOL])+(vars[NITRATE_POOL])))*(N_reminT)*(stepInHours));
 //    chem_remin[z_old_int][AMMONIUM]+=_relAmountAmm;
 
     double _Ammonium_Pool_New = ((MAX(((((vars[AMMONIUM_POOL])+(vars[AMMONIUM_ING]))) - (((vars[AMMONIUM_POOL])*(N_reminT)*(stepInHours)))), (0.0))));
