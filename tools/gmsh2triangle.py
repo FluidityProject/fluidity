@@ -153,35 +153,15 @@ else:
     sys.stderr.write("Unable to determine dimension of problem\n")
     sys.exit(1)
 
-# Get rid of isolated nodes
-isolated=set(range(1,nodecount+1))
-for ele in elements:
-    for i in range(loc):
-        isolated.discard(int(gmsh_node_map[ele[i]]))
-
-for i in range(nodecount):
-    j = str(i+1)
-    if int(gmsh_node_map[j]) in isolated:
-        gmsh_node_map[j] = -666
-    else:
-        gmsh_node_map[j] = int(gmsh_node_map[j])
-        gmsh_node_map[j] -= sum(gmsh_node_map[j] > k for k in isolated)
-        gmsh_node_map[j] = str(gmsh_node_map[j])
-
-newnodecount = nodecount-len(isolated)
-
 nodefile=file(basename+".node", 'w')
-nodefile.write(`newnodecount`+" "+`options.dim`+" 0 0\n")
+nodefile.write(`nodecount`+" "+`options.dim`+" 0 0\n")
 j=0
 for i in range(nodecount):    
-    if not(i+1 in isolated):
-        j=j+1
-        nodefile.write(" ".join( [str(j)] + nodefile_linelist[i] )+"\n")
+  j=j+1
+  nodefile.write(" ".join( [str(j)] + nodefile_linelist[i] )+"\n")
 
 nodefile.write("# Produced by: "+" ".join(argv)+"\n")
 nodefile.close()
-
-nodecount=newnodecount
 
 # Output ele file
 elefile.write(`len(elements)`+" "+`loc`+" 1\n")
