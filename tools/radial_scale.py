@@ -38,5 +38,8 @@ for vtu in range(size(args.input_vtu)):
         new_z=new_radius*cos(theta)
         vtu_object.ugrid.GetPoints ().SetPoint (i,new_x,new_y,new_z)
 
+    if output_filename.endswith('.pvtu'):
+        output_filename = output_filename[:-4]+'vtu'
+
     vtu_object.Write(filename=output_filename)
     print 'Scaled vtu written to', output_filename
