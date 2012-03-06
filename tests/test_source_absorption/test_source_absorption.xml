@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+  <name>test_source_absorption</name>
+  <owner userid="avire"/>
+  <tags>flml</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>mpiexec -np 1 fluidity -v2 test_no_source_absorption.flml &gt; test_no_source_absorption.log &amp;&amp; mpiexec -np 1 fluidity -v2 test_source_absorption.flml &gt; test_source_absorption.log</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="ElapsedTime_no" language="python">from fluidity_tools import stat_parser
+ElapsedTime_no = stat_parser("test_no_source_absorption.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="umin_no" language="python">from fluidity_tools import stat_parser
+umin_no = stat_parser("test_no_source_absorption.stat")["fluid"]["Velocity%magnitude"]["min"]
+    </variable>
+    <variable name="umax_no" language="python">from fluidity_tools import stat_parser
+umax_no = stat_parser("test_no_source_absorption.stat")["fluid"]["Velocity%magnitude"]["max"]
+    </variable>
+    <variable name="ElapsedTime" language="python">from fluidity_tools import stat_parser
+ElapsedTime = stat_parser("test_source_absorption.stat")["ElapsedTime"]["value"][-1]
+    </variable>
+    <variable name="umin" language="python">from fluidity_tools import stat_parser
+umin = stat_parser("test_source_absorption.stat")["fluid"]["Velocity%magnitude"]["min"]
+    </variable>
+    <variable name="umax" language="python">from fluidity_tools import stat_parser
+umax = stat_parser("test_source_absorption.stat")["fluid"]["Velocity%magnitude"]["max"]
+    </variable>
+  </variables>
+  <pass_tests>
+  <test name="End time is correct." language="python">
+assert(abs(ElapsedTime_no - 1e-6) &lt; 4e-5)
+</test>
+  <test name="End time is correct." language="python">
+assert(abs(ElapsedTime - 1e-6) &lt; 4e-5)
+</test>
+  <test name="Min velocity is correct." language="python">
+assert(abs(umin_no[-1] - 0.5) &lt; 1e-4)
+</test>
+  <test name="Min velocity is correct." language="python">
+assert(abs(umin[-1] - 0.5) &lt; 1e-4)
+</test>
+  <test name="Max velocity is correct." language="python">
+assert(abs(umax_no[-1] - 0.5) &lt; 1e-4)
+</test>
+  <test name="Max velocity is correct." language="python">
+assert(abs(umax[-1] - 0.5) &lt; 1e-4)
+</test>
+  </pass_tests>
+</testproblem>

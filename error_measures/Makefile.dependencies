@@ -208,8 +208,8 @@ Metric_advection.o ../include/metric_advection.mod: Metric_advection.F90 \
    ../include/cv_upwind_values.mod ../include/cvtools.mod \
    ../include/diagnostic_fields.mod ../include/diagnostic_variables.mod \
    ../include/edge_length_module.mod ../include/elements.mod \
-   ../include/fdebug.h ../include/fetools.mod ../include/field_options.mod \
-   ../include/fields.mod ../include/fldebug.mod \
+   ../include/fdebug.h ../include/fefields.mod ../include/fetools.mod \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
    ../include/form_metric_field.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/merge_tensors.mod \
    ../include/parallel_tools.mod ../include/populate_state_module.mod \

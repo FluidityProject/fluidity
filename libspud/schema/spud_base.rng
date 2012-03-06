@@ -46,6 +46,9 @@
   <define name="python_code">
     <element name="string_value">
       <attribute name="type">
+        <value>code</value>
+      </attribute>
+      <attribute name="language">
         <value>python</value>
       </attribute>
       <!--

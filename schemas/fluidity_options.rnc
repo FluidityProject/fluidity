@@ -14,6 +14,7 @@ include "spatial_discretisation.rnc"
 include "temporal_discretisation.rnc"
 include "embedded_models.rnc"
 include "flredecomp.rnc"
+include "porous_media.rnc"
 
 start =
    (
@@ -32,7 +33,7 @@ start =
                # Lines is a hint to the gui about the size of the text box.
                # It is not an enforced limit on string length.
                attribute lines { "1" },
-               ( "fluids" | "oceans" | "multimaterial" | "porous_media" | "stokes" | "large_scale_ocean_options" | "foams" | "multiphase" )
+               ( "fluids" | "oceans" | "multimaterial" | "stokes" | "large_scale_ocean_options" | "foams" | "multiphase" )
             },
             comment
          },
@@ -1676,71 +1677,7 @@ start =
          biology?,
          forcing?,
          reduced_model?,
-         ## Porous Media
-         element porous_media {
-            ## Specify scalar field Porosity
-            element scalar_field {
-               attribute name { "Porosity" },
-               (
-                  element prescribed {
-                     velocity_mesh_choice,
-                     prescribed_scalar_field
-                  }|
-                  element aliased {
-                     generic_aliased_field
-                  }
-               )
-            },
-            ## Specify field Permeability
-            (
-               element scalar_field {
-                  attribute name { "Permeability" },
-                  (
-                     element prescribed {
-                        velocity_mesh_choice,
-                        prescribed_scalar_field
-                     }|
-                     element aliased {
-                        generic_aliased_field
-                     }
-                  )
-               }|
-               element vector_field {
-                  attribute name { "Permeability" },
-                  element prescribed {
-                     velocity_mesh_choice,
-                     prescribed_vector_field
-                  }
-               }|
-               element tensor_field {
-                  attribute name { "Permeability" },
-                  element prescribed { 
-                     velocity_mesh_choice,
-                     prescribed_tensor_field
-                  }
-               }
-            ),
-            ## Specify scalar field Electrical Conductivity
-            element scalar_field {
-               attribute name { "ElectricalConductivity" },
-               element diagnostic {
-                  velocity_mesh_choice,
-                  (
-                     internal_algorithm |
-                     scalar_python_diagnostic_algorithm
-                  ),
-                  diagnostic_scalar_field_no_adapt
-               }
-            }?,
-            element multiphase_parameters {
-               ## Capillary pressure multiplier cp_A
-               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
-               element cp_A {real}?,
-               ## Capillary pressure exponent cp_expo
-               ## in eq: cp_A*((Phase1_saturation+0.00001)**(-cp_expo))
-               element cp_expo {real}?
-            }?
-         }?,
+         porous_media_model?,
          embedded_models?,
          flredecomp?
       }
@@ -3996,6 +3933,72 @@ scalar_field_choice =
                }
             )
          }|
+         ## InterstitialVelocityCGCourantNumber
+         ##
+         ## Courant Number as defined on a CG mesh 
+         ## using the interstitial velocity for 
+         ## porous media flow.
+         ##
+         ## Adapting to this field is not recommended
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "InterstitialVelocityCGCourantNumber" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  porosity_include_dg_and_cg_cfl,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
+         ## InterstitialVelocityCVCourantNumber
+         ##
+         ## Courant Number as defined on a CV mesh 
+         ## using the interstitial velocity for 
+         ## porous media flow.
+         ##
+         ## Adapting to this field is not recommended
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "InterstitialVelocityCVCourantNumber" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  porosity_include_cv_cfl,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
+         ## InterstitialVelocityDGCourantNumber
+         ##
+         ## Courant Number as defined on a DG mesh 
+         ## using the interstitial velocity for 
+         ## porous media flow.
+         ##
+         ## Adapting to this field is not recommended
+         element scalar_field {
+            attribute rank { "0" },
+            attribute name { "InterstitialVelocityDGCourantNumber" },
+            (
+               element diagnostic {
+                  internal_algorithm,
+                  velocity_mesh_choice,
+                  porosity_include_dg_and_cg_cfl,
+                  diagnostic_scalar_field
+               }|
+               element aliased {
+                  generic_aliased_field
+               }
+            )
+         }|
          ## The equilibrium pressure perturbation 
          ## 
          ## Further details to be added
@@ -4268,6 +4271,12 @@ scalar_field_choice =
             (element diagnostic {
                internal_algorithm,
                velocity_mesh_choice,
+               ## Include the density field in the Grid Reynolds number calculation.
+               ## A Density field must exist in the material_phase for this.
+               ## This assumes that the viscosity used is the dynamic viscosity.
+               element include_density_field {
+                  comment
+               }?,
                diagnostic_scalar_field
             }
             | element aliased { generic_aliased_field })
@@ -4768,6 +4777,12 @@ scalar_field_choice =
                   internal_algorithm,
                   element integrate_divergence_by_parts {
                      empty
+                  }?,
+                  ## Test the divergence operator with the CV dual function space. 
+                  ## This is useful if the pressure is solved with a CV discretisation 
+                  ## or with a CG but with the continuity tested with the CV dual. 
+                  element test_with_cv_dual {
+                     comment
                   }?,
                   diagnostic_scalar_field_no_adapt,
                   element solver {
@@ -5733,11 +5748,59 @@ field_based_cfl_number_options =
             empty
          }|
          ## Select the Courant Number definition to be used.
+         ##
+         ## This uses the control volume approximation of the CFL Number 
+         ## and the interstitial velocity for porous media flow.
+         element courant_number {
+            attribute name { "InterstitialVelocityCVCourantNumber" },
+            porosity_include_cv_cfl
+         }|
+         ## Select the Courant Number definition to be used.
+         ##
+         ## This uses the CG finite element approximation of the CFL Number 
+         ## and the interstitial velocity for porous media flow.
+         element courant_number {
+            attribute name { "InterstitialVelocityCGCourantNumber" },
+            porosity_include_cv_cfl
+         }|
+         ## Select the Courant Number definition to be used.
          element courant_number {
             attribute name { string },
             empty
          }
       )
+   )
+
+dg_field_based_cfl_number_options =
+   (
+      (
+         ## IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
+         ## 
+         ## Select the Courant Number definition to be used.
+         ## 
+         ## This uses the DG finite element approximation of the CFL Number.
+         element courant_number {
+            attribute name { "DG_CourantNumber" },
+            empty
+         }|
+         ## IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
+         ## 
+         ## Select the Courant Number definition to be used.
+         ## 
+         ## This uses the DG finite element approximation of the CFL Number 
+         ## and the interstitial velocity for porous media flow.
+         element courant_number {
+            attribute name { "InterstitialVelocityDGCourantNumber" },
+            porosity_include_cv_cfl
+         }|
+         ## IF NOT SELECTED THEN THE DEFAULT DG_CourantNumber IS USED.
+         ## 
+         ## Select the Courant Number definition to be used.
+         element courant_number {
+            attribute name { string },
+            empty
+         }
+      )?
    )
 
 cv_face_cfl_number_options =
@@ -5770,6 +5833,14 @@ cv_face_cfl_number_options =
             attribute name { "CFLNumber" },
             empty
          }|
+         ## Select the Courant Number definition to be used in the slope of
+         ## the NVD diagram upper bound.
+         ## This uses a control volume definition of the CFL Number
+         ## and the interstitial velocity for porous media flow.
+         element courant_number {
+            attribute name { "InterstitialVelocityCVCourantNumber" },
+            porosity_include_cv_cfl
+         }|
          ## ***UNDER TESTING***
          ##
          ## Select the Courant Number definition to be used in the slope of
@@ -5797,6 +5868,22 @@ timestep_cfl_number_options =
             attribute name { "ControlVolumeCFLNumber" },
               ## Select the mesh on which you wish to evaluate the ControlVolumeCFLNumber.
               velocity_mesh_choice
+         }|
+         ## Select the Courant Number definition to be used for adaptive timestepping.
+         ## This uses the CG finite element approximation of the CFL Number 
+         ## and the interstitial velocity for porous media flow.
+         element courant_number {
+            attribute name { "InterstitialVelocityCGCourantNumber" },
+            velocity_mesh_choice,
+            porosity_include_dg_and_cg_cfl
+         }|
+         ## Select the Courant Number definition to be used for adaptive timestepping.
+         ## This uses the control volume approximation of the CFL Number 
+         ## and the interstitial velocity for porous media flow.         
+         element courant_number {
+            attribute name { "InterstitialVelocityCVCourantNumber" },
+            velocity_mesh_choice,
+            porosity_include_cv_cfl
          }
       )
    )
@@ -6568,6 +6655,13 @@ solenoidal_options =
               ## Automatic when projecting a discontinuous field
               element integrate_divergence_by_parts {
                 empty
+              }?,
+              ## Test the divergence equation with the control volume dual mesh
+              ## of the finite element lagrange multiplier mesh.
+              ## This will make the lagrange multiplier matrix non symmetric which must be 
+              ## considered when selecting the lagrange multiplier  solver options.
+              element test_divergence_with_cv_dual {
+                 comment
               }?
             }|
             element control_volumes {

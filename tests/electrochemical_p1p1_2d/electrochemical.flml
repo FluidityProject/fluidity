@@ -4,7 +4,7 @@
     <string_value lines="1">electrochemical</string_value>
   </simulation_name>
   <problem_type>
-    <string_value lines="1">porous_media</string_value>
+    <string_value lines="1">fluids</string_value>
   </problem_type>
   <geometry>
     <dimension>
@@ -29,6 +29,22 @@
     <mesh name="PressureMesh">
       <from_mesh>
         <mesh name="CoordinateMesh"/>
+        <stat>
+          <exclude_from_stat/>
+        </stat>
+      </from_mesh>
+    </mesh>
+    <mesh name="DGP0">
+      <from_mesh>
+        <mesh name="CoordinateMesh"/>
+        <mesh_shape>
+          <polynomial_degree>
+            <integer_value rank="0">0</integer_value>
+          </polynomial_degree>
+        </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -149,6 +165,7 @@
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix/>
+              <exclude_mass_terms/>
             </mass_terms>
             <advection_terms>
               <exclude_advection_terms/>
@@ -192,21 +209,25 @@
             <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <tensor_field name="Viscosity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <isotropic>
-                <constant>
-                  <real_value rank="0">0.001</real_value>
-                </constant>
-              </isotropic>
-            </value>
-            <output/>
-          </prescribed>
-        </tensor_field>
         <vector_field name="Absorption" rank="1">
           <diagnostic>
-            <algorithm name="Internal" material_phase_support="multiple"/>
+            <mesh name="DGP0"/>
+            <algorithm name="vector_python_diagnostic" material_phase_support="multiple">
+              <string_value lines="20" type="python"># get the prescribed fields 
+perm = states["water"].scalar_fields["Permeability"]
+visc = states["water"].scalar_fields["Viscosity"]
+
+# loop the DMmesh_p0 nodes (which are element centred)
+for n in range(field.node_count):
+   perm_n = perm.node_val(n)
+   visc_n = visc.node_val(n)
+   
+   # calc the absorption term
+   sigma_n = visc_n/perm_n
+   
+   # set the absorption term
+   field.set(n,sigma_n)</string_value>
+            </algorithm>
             <output>
               <exclude_from_vtu/>
             </output>
@@ -361,6 +382,21 @@
         </detectors>
       </prescribed>
     </scalar_field>
+    <scalar_field name="Viscosity" rank="0">
+      <prescribed>
+        <mesh name="DGP0"/>
+        <value name="WholeMesh">
+          <constant>
+            <real_value rank="0">0.001</real_value>
+          </constant>
+        </value>
+        <output/>
+        <stat/>
+        <detectors>
+          <exclude_from_detectors/>
+        </detectors>
+      </prescribed>
+    </scalar_field>
     <electrical_properties>
       <conductivity>
         <real_value rank="0">0.8410792485</real_value>
@@ -387,7 +423,7 @@
   <porous_media>
     <scalar_field name="Porosity">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="DGP0"/>
         <value name="WholeMesh">
           <constant>
             <real_value rank="0">0.2</real_value>
@@ -402,7 +438,7 @@
     </scalar_field>
     <scalar_field name="Permeability">
       <prescribed>
-        <mesh name="VelocityMesh"/>
+        <mesh name="DGP0"/>
         <value name="WholeMesh">
           <constant>
             <real_value rank="0">1.0e-12</real_value>

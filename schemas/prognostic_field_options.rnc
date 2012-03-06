@@ -215,6 +215,7 @@ prognostic_scalar_field =
                 prescribed_tensor_field_no_adapt
             }|
             element diagnostic {
+               mesh_choice?,
                (
                   tensor_python_diagnostic_algorithm |
                   internal_algorithm
@@ -223,7 +224,10 @@ prognostic_scalar_field =
             }
          )
       }?,
-      ## source term
+      ## Source term. If the scalar field to be 
+      ## solved for is subcycled then variations 
+      ## in this source field across the subcycled 
+      ## time steps are not considered.
       element scalar_field {
          attribute name { "Source" },
          attribute rank { "0" },
@@ -236,6 +240,14 @@ prognostic_scalar_field =
                   scalar_python_diagnostic_algorithm |
                   internal_algorithm
                ),
+               ## Add the source field directly to the 
+               ## matrix system right hand side. To be 
+               ## consistent this term should be tested 
+               ## using the function space that 
+               ## is used for the spatial discretisation.
+               element add_directly_to_rhs {
+                  comment
+               }?,
                diagnostic_scalar_field_no_adapt
             } 
          )
@@ -277,6 +289,7 @@ prognostic_scalar_field =
             }
          )
       }?,
+      porosity_include?,
       prognostic_scalar_output_options,
       prognostic_scalar_stat_options,
       scalar_convergence_options,
@@ -1153,6 +1166,14 @@ prognostic_pressure_field =
                ## ** ONLY WORKS with continuous_galerkin Velocity and lumping the mass matrix and not with lumping on submesh.
                element low_re_p_correction_fix {
                   empty
+               }?,
+               ## Test the continuity equation with the control volume dual mesh of the finite element pressure mesh.
+               ## Only works for incompressible flow. This will make the pressure matrix non symmetric which must be 
+               ## considered when selecting the pressure solver options. This will not work with the free surface and 
+               ## wetting and drying models. Also the mesh assoicated with the pressure field must use the lagrangian 
+               ## element type (the default). This will not work with the implicit solids model using two way coupling. 
+               element test_continuity_with_cv_dual {
+                  comment
                }?
             }|
             ## Select this discretisation if Pressure is defined on a discontinous mesh.

@@ -1138,7 +1138,6 @@ contains
     character(len=OPTION_PATH_LEN) :: field_name
     integer :: i ! counters
     integer :: nstates ! number of states
-    integer :: ncars   ! number of vehicles
     character(len=255) :: tmp ! temporary string to make life a little easier
     type(scalar_field), pointer :: fshistory_sfield
     integer :: fshistory_levels 
@@ -1187,24 +1186,6 @@ contains
     ! solar irradiance submodel (hyperlight)
     if (have_option("/ocean_biology/lagrangian_ensemble/hyperlight")) then 
        call allocate_and_insert_irradiance(states(1))
-    end if
-
-    ! insert porous media fields
-    if (have_option('/porous_media')) then
-       do i=1, nstates
-          call allocate_and_insert_scalar_field('/porous_media/scalar_field::Porosity', &
-             states(i), field_name='Porosity')
-          if (have_option("/porous_media/scalar_field::Permeability")) then
-             call allocate_and_insert_scalar_field('/porous_media/scalar_field::Permeability', &
-               states(i), field_name='Permeability')
-          elseif (have_option("/porous_media/vector_field::Permeability")) then
-             call allocate_and_insert_vector_field('/porous_media/vector_field::Permeability', &
-               states(i))
-          elseif (have_option("/porous_media/tensor_field::Permeability")) then
-             call allocate_and_insert_tensor_field('/porous_media/tensor_field::Permeability', &
-               states(i))
-          end if
-       end do
     end if
 
     ! insert electrical property fields
@@ -1420,6 +1401,7 @@ contains
 
     character(len=OPTION_PATH_LEN) :: path
     character(len=OPTION_PATH_LEN) :: state_name, aliased_field_name, field_name
+    integer :: stat
     integer :: i, j, k ! counters
     integer :: nstates ! number of states
     integer :: nfields ! number of fields
@@ -1577,6 +1559,37 @@ contains
 
     ! Deal with subgridscale parameterisations.
     call alias_diffusivity(states)
+    
+    ! Porous media fields
+    have_porous_media: if (have_option('/porous_media')) then
+       
+       ! alias the Porosity field
+       sfield=extract_scalar_field(states(1), 'Porosity')
+       sfield%aliased = .true.
+       do i = 1,nstates-1
+          call insert(states(i+1), sfield, 'Porosity')
+       end do
+       
+       ! alias the Permeability field which may be 
+       ! either scalar or vector (if present)
+       
+       sfield=extract_scalar_field(states(1), 'Permeability', stat = stat)
+       if (stat == 0) then       
+          sfield%aliased = .true.
+          do i = 1,nstates-1
+             call insert(states(i+1), sfield, 'Permeability')
+          end do       
+       end if
+       
+       vfield=extract_vector_field(states(1), 'Permeability', stat = stat)
+       if (stat == 0) then       
+          vfield%aliased = .true.
+          do i = 1,nstates-1
+             call insert(states(i+1), vfield, 'Permeability')
+          end do       
+       end if
+    
+    end if have_porous_media
 
   end subroutine alias_fields
 
@@ -2889,7 +2902,70 @@ contains
     aux_sfield%option_path = ""
     call insert(states, aux_sfield, trim(aux_sfield%name))
     call deallocate(aux_sfield)
+    
+    ! Porous media fields
+    have_porous_media: if (have_option('/porous_media')) then
+       
+       ! alias the OldPorosity field
+       aux_sfield=extract_scalar_field(states(1), 'OldPorosity')
+       aux_sfield%aliased = .true.
+       aux_sfield%option_path = ""
+       do p = 1,size(states)-1
+          call insert(states(p+1), aux_sfield, 'OldPorosity')
+       end do
+       
+       ! alias the OldPermeability field which may be 
+       ! either scalar or vector (if present)
+       
+       aux_sfield=extract_scalar_field(states(1), 'OldPermeability', stat = stat)
+       if (stat == 0) then       
+          aux_sfield%aliased = .true.
+          aux_sfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_sfield, 'OldPermeability')
+          end do       
+       end if
+       
+       aux_vfield=extract_vector_field(states(1), 'OldPermeability', stat = stat)
+       if (stat == 0) then       
+          aux_vfield%aliased = .true.
+          aux_vfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_vfield, 'OldPermeability')
+          end do       
+       end if
 
+       ! alias the IteratedPorosity field
+       aux_sfield=extract_scalar_field(states(1), 'IteratedPorosity')
+       aux_sfield%aliased = .true.
+       aux_sfield%option_path = ""
+       do p = 1,size(states)-1
+          call insert(states(p+1), aux_sfield, 'IteratedPorosity')
+       end do
+       
+       ! alias the IteratedPermeability field which may be 
+       ! either scalar or vector (if present)
+       
+       aux_sfield=extract_scalar_field(states(1), 'IteratedPermeability', stat = stat)
+       if (stat == 0) then       
+          aux_sfield%aliased = .true.
+          aux_sfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_sfield, 'IteratedPermeability')
+          end do       
+       end if
+       
+       aux_vfield=extract_vector_field(states(1), 'IteratedPermeability', stat = stat)
+       if (stat == 0) then       
+          aux_vfield%aliased = .true.
+          aux_vfield%option_path = ""
+          do p = 1,size(states)-1
+             call insert(states(p+1), aux_vfield, 'IteratedPermeability')
+          end do       
+       end if
+    
+    end if have_porous_media
+    
   end subroutine allocate_and_insert_auxilliary_fields
 
   function mesh_name(field_path)
@@ -3122,8 +3198,6 @@ contains
        call check_large_scale_ocean_options
     case ("multimaterial")
        call check_multimaterial_options
-    case ("porous_media")
-       call check_porous_media_options
     case ("stokes")
        call check_stokes_options
     case ("foams")
@@ -3716,117 +3790,109 @@ if (.not.have_option("/material_phase[0]/vector_field::Velocity/prognostic/vecto
 
   end subroutine check_multimaterial_options
 
-  subroutine check_porous_media_options
-
-    integer :: nmat, i
-    logical :: have_vfrac, have_viscosity, have_porosity, have_permeability
-
-    nmat = option_count("/material_phase")
-    ewrite(2,*) 'nmat:',nmat
-
-    have_porosity = have_option("/porous_media/scalar_field::Porosity")
-    have_permeability = have_option("/porous_media/scalar_field::Permeability").or.&
-                       &have_option("/porous_media/vector_field::Permeability").or.&
-                       &have_option("/porous_media/tensor_field::Permeability")
-    if((.not.have_porosity).or.(.not.have_permeability)) then
-       FLExit("For porous media problems we need porosity and permeability.")
-    end if
-! Need to sort this out for multiphase!!!
-    do i = 0, nmat-1
-       if(have_option("/porous_media/multiphase_parameters")) then
-          have_vfrac = have_option("/material_phase["//int2str(i)//&
-               "]/scalar_field::PhaseVolumeFraction")
-          have_viscosity = have_option("/materical_phase["//int2str(i)//&
-               "]/tensor_field::MaterialViscosity")
-          if((.not.have_vfrac).or.(.not.have_viscosity)) then
-             FLExit("Need volume fractions and viscosities for each material phase.")
-          endif
-       endif
-    end do
-
-  end subroutine check_porous_media_options
-
   subroutine check_stokes_options
 
     ! Check options for Stokes flow simulations.
 
-    integer :: i
+    integer :: i, nmat
     character(len=OPTION_PATH_LEN) :: velocity_path, pressure_path
-    character(len=FIELD_NAME_LEN) :: schur_preconditioner      
+    character(len=FIELD_NAME_LEN) :: schur_preconditioner, inner_matrix
     logical :: exclude_mass, exclude_advection
     real :: theta
 
-    velocity_path="/material_phase[0]/vector_field::Velocity/prognostic"
-    if (have_option(trim(velocity_path))) then
+    nmat = option_count("/material_phase")
 
-       ! Check that mass and advective terms are excluded:
-       exclude_mass = have_option(trim(velocity_path)//&
-            "/spatial_discretisation&
-            &/continuous_galerkin/mass_terms&
-            &/exclude_mass_terms").or.&
-                      have_option(trim(velocity_path)//&
-            "/spatial_discretisation&
-            &/discontinuous_galerkin/mass_terms&
-            &/exclude_mass_terms")
+    do i = 0, nmat-1
+      velocity_path="/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic"
 
-       exclude_advection = have_option(trim(velocity_path)//&
-            "/spatial_discretisation&
-            &/continuous_galerkin/advection_terms&
-            &/exclude_advection_terms").or.&
-                           have_option(trim(velocity_path)//&
-            "/spatial_discretisation&
-            &/discontinuous_galerkin/advection_scheme&
-            &/exclude_advection_terms") 
+      if (have_option(trim(velocity_path))) then
 
-       if(.not.(exclude_mass) .OR. .not.(exclude_advection)) then
-          FLExit("For Stokes problems you need to exclude the mass and advection terms.")
-       end if
+         ! Check that mass and advective terms are excluded:
+         exclude_mass = have_option(trim(velocity_path)//&
+              "/spatial_discretisation"//&
+              &"/continuous_galerkin/mass_terms"//&
+              &"/exclude_mass_terms").or.&
+                        have_option(trim(velocity_path)//&
+              "/spatial_discretisation"//&
+              &"/discontinuous_galerkin/mass_terms"//&
+              &"/exclude_mass_terms")
 
-       ! Check that theta = 1 (we must be implicit as we have no time term!)
-       call get_option(trim(velocity_path)//'/temporal_discretisation/theta/', theta)
-       if(theta /= 1.) then
-          FLExit("For Stokes problems, theta (under velocity) must = 1")
-       end if
+         exclude_advection = have_option(trim(velocity_path)//&
+              "/spatial_discretisation"//&
+              &"/continuous_galerkin/advection_terms"//&
+              &"/exclude_advection_terms").or.&
+                             have_option(trim(velocity_path)//&
+              "/spatial_discretisation"//&
+              &"/discontinuous_galerkin/advection_scheme/none") 
 
-       ! Check pressure_mass_matrix preconditioner is compatible with viscosity tensor:
-        if(have_option("/material_phase["//int2str(i)//&
-             "]/vector_field::Velocity/prognostic&
-             &/tensor_field::Viscosity/prescribed/value&
-             &/anisotropic_symmetric").or.&
-           have_option("/material_phase["//int2str(i)//&
-             "]/vector_field::Velocity/prognostic&
-             &/tensor_field::Viscosity/prescribed/value&
-             &/anisotropic_asymmetric")) then
+         if(.not.(exclude_mass) .OR. .not.(exclude_advection)) then
+            FLExit("For Stokes problems you need to exclude the mass and advection terms.")
+         end if
 
+         ! Check that theta = 1 (we must be implicit as we have no time term!)
+         call get_option(trim(velocity_path)//'/temporal_discretisation/theta/', theta)
+         if(theta /= 1.) then
+            FLExit("For Stokes problems, theta (under velocity) must = 1")
+         end if
+
+      end if
+
+      pressure_path="/material_phase["//int2str(i)//"]/scalar_field::Pressure/prognostic"
+
+      if (have_option(trim(pressure_path))) then  
+
+         ! Check pressure_mass_matrix preconditioner is compatible with viscosity tensor:
           if(have_option("/material_phase["//int2str(i)//&
-               "]/scalar_field::Pressure/prognostic&
-               &/scheme/use_projection_method")) then
+               "]/vector_field::Velocity/prognostic"//&
+               &"/tensor_field::Viscosity/prescribed/value"//&
+               &"/anisotropic_symmetric").or.&
+             have_option("/material_phase["//int2str(i)//&
+               "]/vector_field::Velocity/prognostic"//&
+               &"/tensor_field::Viscosity/prescribed/value"//&
+               &"/anisotropic_asymmetric")) then
 
-             if(have_option("/material_phase["//int2str(i)//&
-                  "]/scalar_field::Pressure/prognostic&
-                  &/scheme/use_projection_method&
-                  &/full_schur_complement")) then
+            if(have_option("/material_phase["//int2str(i)//&
+                 "]/scalar_field::Pressure/prognostic"//&
+                 &"/scheme/use_projection_method")) then
 
-                call get_option("/material_phase["//int2str(i)//&
-                     &"]/scalar_field::Pressure/prognostic/scheme/use_projection_method&
-                     &/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
+               if(have_option("/material_phase["//int2str(i)//&
+                    "]/scalar_field::Pressure/prognostic"//&
+                    &"/scheme/use_projection_method"//&
+                    &"/full_schur_complement")) then
 
-                select case(schur_preconditioner)
-                case("ScaledPressureMassMatrix")
-                   ewrite(-1,*) "WARNING - At present, the viscosity scaling for the pressure mass matrix is"
-                   ewrite(-1,*) "taken from the 1st component of the viscosity tensor. Such a scaling"
-                   ewrite(-1,*) "is only valid when all components of each viscosity tensor are constant."
-                end select
+                  call get_option("/material_phase["//int2str(i)//&
+                       &"]/scalar_field::Pressure/prognostic/scheme/use_projection_method"//&
+                       &"/full_schur_complement/preconditioner_matrix[0]/name", schur_preconditioner)
 
-             end if
+                  select case(schur_preconditioner)
+                  case("ScaledPressureMassMatrix")
+                     ewrite(-1,*) "WARNING - At present, the viscosity scaling for the pressure mass matrix is"
+                     ewrite(-1,*) "taken from the 1st component of the viscosity tensor. Such a scaling"
+                     ewrite(-1,*) "is only valid when all components of each viscosity tensor are constant."
+                  end select
 
-          end if
+                  ! Check inner matrix is valid for Stokes - must have full viscous terms
+                  ! included. Stokes does not have a mass matrix.
+                  call get_option("/material_phase["//int2str(i)//&
+                       &"]/scalar_field::Pressure/prognostic/scheme/use_projection_method"//&
+                       &"/full_schur_complement/inner_matrix[0]/name", inner_matrix)
+                  
+                  if(trim(inner_matrix)/="FullMomentumMatrix") then
+                     ewrite(-1,*) "For Stokes problems, FullMomentumMatrix must be specified under:"
+                     ewrite(-1,*) "scalar_field::Pressure/prognostic/scheme/use_projection_method& "
+                     ewrite(-1,*) "&/full_schur_complement/inner_matrix"
+                     FLExit("For Stokes problems, change --> FullMomentumMatrix")
+                  end if
 
-       end if
+               end if
 
-    end if
+            end if
 
-    pressure_path="/material_phase[0]/scalar_field::Pressure/prognostic"
+         end if
+
+      end if
+
+    end do
 
   end subroutine check_stokes_options
 

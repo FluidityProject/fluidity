@@ -53,7 +53,7 @@ class Tree(gobject.GObject):
 
     # Any children?
     if children is None:
-      self.children = copy.copy([])
+      self.children = []
     else:
       self.children = children
 
@@ -113,6 +113,10 @@ class Tree(gobject.GObject):
     """Get an attribute."""
     (datatype, curval) = self.attrs[attr]
     return curval
+
+  def get_attrs(self):
+    """Get all attributes"""
+    return self.attrs
 
   def set_data(self, data):
     (invalid, data) = self.valid_data(self.datatype, data)
@@ -439,20 +443,34 @@ class Tree(gobject.GObject):
   def is_tensor(self, geometry_dim_tree):
     return False
 
-  def is_python_code(self):
+  def is_code(self):
     """
     Perform a series of tests on the current Tree, to determine if
-    it is intended to be used to store python code data.
+    it is intended to be used to store code data.
     """
 
     try:
-       lang = self.selected_node.get_attr("language")
-       if lang == "python":
-         return True
+      lang = self.get_attr("language")
+      if lang == "python":
+        return True
     except:
       pass
 
     return False
+
+  def get_code_language(self):
+    """
+    Assuming this is a code snippet return the language.
+    """
+
+    if not self.is_code():
+      return "python"
+
+    try:
+      lang = self.get_attr("language")
+      return lang
+    except:   
+      return "python"
 
   def get_display_name(self):
     """
@@ -536,6 +554,13 @@ class Tree(gobject.GObject):
   
   def __repr__(self):
     return self.get_name_path()
+
+  def all_attrs_fixed(self):
+    for attr in self.attrs:
+      if self.attrs[attr][0] != "fixed":
+        return False
+
+    return True
  
 gobject.type_register(Tree)
 
