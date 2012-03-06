@@ -744,7 +744,7 @@ contains
           elseif (agent_list%fgroup%variables(i)%field_type == BIOFIELD_RELEASE) then
                 ! Make sure we don't release more than we have
                 !release_amount = min(agent%biology(i), agent%biology(agent_list%fgroup%variables(i)%pool_index))
-                call addto(diagfields(i), agent%element, agent%biology(agent_list%fgroup%variables(i)%pool_index))
+                call addto(diagfields(i), agent%element, agent%biology(i))
           end if
        end do
 

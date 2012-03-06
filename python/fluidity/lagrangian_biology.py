@@ -45,6 +45,12 @@ def update_living_diatom(vars, env, dt):
      ICES Journal of Marine Science, doi:10.1093/icesjms/fsr190.
   """
 
+  # Housekeeping
+  c_old = vars['Size']
+  vars['AmmoniumUptake'] = vars['AmmoniumUptake'] / c_old
+  vars['NitrateUptake'] = vars['NitrateUptake'] / c_old
+  vars['SilicateUptake'] = vars['SilicateUptake'] / c_old
+
   stepInHours = dt/3600.
 
   # Temperature conversion
@@ -124,12 +130,9 @@ def update_living_diatom(vars, env, dt):
 
   V_S_S = V_S_max * env['DissolvedSilicate'] / (env['DissolvedSilicate'] + param_k_S)
 
-  ammonium_uptake_rate = vars['Carbon'] * V_C_ammonium * stepInHours
-  nitrate_uptake_rate = vars['Carbon'] * V_C_nitrate * stepInHours
-  silicate_uptake_rate = vars['Silicate'] * V_S_S * stepInHours
-
-  # Ammonium excretion 
-  RelAmmonium = ((((vars['Ammonium'])+(vars['Nitrate'])))*(param_R_N)*(stepInHours)*(T_function))
+  ammonium_uptake_rate = c_old * vars['Carbon'] * V_C_ammonium * stepInHours
+  nitrate_uptake_rate = c_old * vars['Carbon'] * V_C_nitrate * stepInHours
+  silicate_uptake_rate = c_old * vars['Silicate'] * V_S_S * stepInHours
 
   # Update Pools
   ammonium_pool_new = (vars['Ammonium'] + vars['AmmoniumUptake'] + vars['NitrateUptake'] - (vars['Ammonium'] * param_R_N * stepInHours * T_function)) / C_d
@@ -153,10 +156,10 @@ def update_living_diatom(vars, env, dt):
 
   # Mortality
   if vars['Carbon'] <= param_C_starve:
-    vars['Stage'] = 2.0 # is Dead
+    vars['Stage'] = 1.0 # is Dead
 
   # Remineralisation Nitrogen
-  ammonium_release_rate = (vars['Ammonium'] + vars['Nitrate']) * param_R_N * stepInHours * T_function
+  ammonium_release_rate = c_old * (vars['Ammonium'] + vars['Nitrate']) * param_R_N * stepInHours * T_function
 
   # Housekeeping
   vars['Carbon'] = carbon_pool_new
@@ -185,13 +188,19 @@ def update_dead_diatom(vars, env, dt):
      ICES Journal of Marine Science, doi:10.1093/icesjms/fsr190.
   """
 
+  # Housekeeping
+  c_old = vars['Size']
+  vars['AmmoniumUptake'] = vars['AmmoniumUptake'] / c_old
+  vars['NitrateUptake'] = vars['NitrateUptake'] / c_old
+  vars['SilicateUptake'] = vars['SilicateUptake'] / c_old
+
   stepInHours = dt/3600.
 
   Si_reminT = param_S_dis * math.pow(param_Q_remS, (env['Temperature'] + 273.0 - param_T_refS) / 10.0)
   N_reminT = param_Ndis * math.pow(param_Q_remN, (env['Temperature'] + 273.0 - param_T_refN) / 10.0)
-  silicate_release_rate = vars['Silicate'] * Si_reminT * stepInHours
+  silicate_release_rate = c_old * vars['Silicate'] * Si_reminT * stepInHours
   silicate_pool_new = max(vars['Silicate'] - (vars['Silicate'] * Si_reminT * stepInHours), 0.0)
-  ammonium_release_rate = (vars['Ammonium'] + vars['Nitrate']) * N_reminT * stepInHours
+  ammonium_release_rate = c_old * (vars['Ammonium'] + vars['Nitrate']) * N_reminT * stepInHours
   ammonium_pool_new = max(vars['Ammonium'] - (vars['Ammonium'] * N_reminT * stepInHours), 0.0)
   nitrate_pool_new = max(vars['Nitrate'] - (vars['Nitrate'] * N_reminT * stepInHours), 0.0)
 
