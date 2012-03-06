@@ -59,8 +59,8 @@ subroutine fladapt(input_basename, input_basename_len, &
 #endif
   end interface
   
-  integer :: input_basename_len
-  integer :: output_basename_len
+  integer, intent(in) :: input_basename_len
+  integer, intent(in) :: output_basename_len
   
   character(len = input_basename_len), intent(in) :: input_basename
   character(len = output_basename_len), intent(in) :: output_basename
