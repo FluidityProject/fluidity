@@ -139,24 +139,20 @@ def update_living_diatom(vars, env, dt):
   nitrate_pool_new = 0.0
   silicate_pool_new = (vars['Silicate'] + vars['SilicateUptake']) / C_d
 
-  if vars['Carbon'] <= param_C_starve:
-    chlorophyll_pool_new = 0.0
+  if Theta_N <= param_Theta_max_N:
+    chlorophyll_pool_new = vars['Chlorophyll'] + Rho_Chl * (vars['AmmoniumUptake'] + vars['NitrateUptake'])
   else:
-    if Theta_N <= param_Theta_max_N:
-      chlorophyll_pool_new = vars['Chlorophyll'] + Rho_Chl * (vars['AmmoniumUptake'] + vars['NitrateUptake'])
-    else:
-      chlorophyll_pool_new = param_Theta_max_N * (vars['Ammonium'] + vars['Nitrate'])
-    chlorophyll_pool_new = chlorophyll_pool_new - (vars['Chlorophyll'] * param_R_Chl * stepInHours * T_function)
-    chlorophyll_pool_new = max(chlorophyll_pool_new / C_d, 0.0)
+    chlorophyll_pool_new = param_Theta_max_N * (vars['Ammonium'] + vars['Nitrate'])
+  chlorophyll_pool_new = chlorophyll_pool_new - (vars['Chlorophyll'] * param_R_Chl * stepInHours * T_function)
+  chlorophyll_pool_new = max(chlorophyll_pool_new / C_d, 0.0)
 
-  if vars['Carbon'] <= param_C_starve:
-    carbon_pool_new = 0.0
-  else:
-    carbon_pool_new = ((vars['Carbon'] * (P_phot_c - (R_C * T_function)) * stepInHours) + vars['Carbon']) / C_d
+  carbon_pool_new = ((vars['Carbon'] * (P_phot_c - (R_C * T_function)) * stepInHours) + vars['Carbon']) / C_d
 
   # Mortality
   if vars['Carbon'] <= param_C_starve:
     vars['Stage'] = 1.0 # is Dead
+    carbon_pool_new = 0.0
+    chlorophyll_pool_new = 0.0
 
   # Remineralisation Nitrogen
   ammonium_release_rate = c_old * (vars['Ammonium'] + vars['Nitrate']) * param_R_N * stepInHours * T_function
@@ -216,6 +212,47 @@ def update_dead_diatom(vars, env, dt):
   vars['AmmoniumRelease'] = ammonium_release_rate
   vars['SilicateRelease'] = silicate_release_rate
 
+
+def update_cyst_diatom(vars, env, dt):
+  """ Update kernel for Cyst stage Diatom agents from LERM-ES, 
+      created by M. Sinerchia nd W. Hinsley
+
+     References:
+     "Testing theories of fisheries recruitment.", Sinerchia, M., 2007
+     PhD Thesis, Department of Earth Science and Engineering, Imperial College, London
+
+     "Using an individual-based model with four trophic levels to model the effect of predation and competition on squid recruitment", 
+     Sinerchia, M., Field, A. J., Woods, J. D., Vallerga, S., and Hinsley, W. R.
+     ICES Journal of Marine Science, doi:10.1093/icesjms/fsr190.
+  """
+
+  stepInHours = dt/3600.
+
+  # Temperature conversion
+  T_K = env['Temperature'] + 273.0
+  T_function = math.exp(34.12969283 - 10000/T_K)
+
+  # Resting stage Respiration
+  R_C = 0.1 * param_R_maintenance
+  C_d = 1.0
+
+  carbon_pool_new = ((vars['Carbon'] * (-1. * (R_C * T_function)) * stepInHours) + vars['Carbon']) / C_d
+
+  # Mortality
+  if vars['Carbon'] <= param_C_starve:
+    vars['Stage'] = 1.0 # is Dead
+    carbon_pool_new = 0.0
+    chlorophyll_pool_new = 0.0
+
+  # Housekeeping
+  vars['Carbon'] = carbon_pool_new
+
+  vars['AmmoniumUptake'] = 0.0
+  vars['NitrateUptake'] = 0.0
+  vars['SilicateUptake'] = 0.0
+
+  vars['AmmoniumRelease'] = 0.0
+  vars['SilicateRelease'] = 0.0
 
 
 #####################################
