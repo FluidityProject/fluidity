@@ -29,3 +29,7 @@ clean:
 	@echo **********Cleaning the output from previous fluidity runs
 	rm -r kepsilon reference *.pdf
 
+space:
+	@$(foreach N,1 2 3 4 5 6 7 8 9, \
+		rm */backward_facing_step_2d*_*$(N).vtu; \
+	)

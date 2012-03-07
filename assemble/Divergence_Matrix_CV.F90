@@ -231,7 +231,7 @@ contains
                   if(notvisited(ggi)) then
                     notvisited(ggi)=.false.
   
-                    normgi=orientate_cvsurf_normgi(node_val(x_test, x_test_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
+                    call orientate_cvsurf_normgi(normgi, node_val(x_test, x_test_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
   
                     nodal_loop_j: do jloc = 1, field%mesh%shape%loc
   
@@ -667,7 +667,7 @@ contains
                 if(notvisited(ggi)) then
                   notvisited(ggi)=.false.
 
-                  normgi=orientate_cvsurf_normgi(node_val(x_p, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
+                  call orientate_cvsurf_normgi(normgi, node_val(x_p, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
                   udotn=dot_product(u_f(:,ggi), normgi(:))
 
@@ -1210,7 +1210,7 @@ contains
                     if(visited(ggi)==0) then
                       visited(ggi)=1
 
-                      normgi=orientate_cvsurf_normgi(x_ele(:,iloc),x_f(:,ggi),normal(:,ggi))
+                      call orientate_cvsurf_normgi(normgi, x_ele(:,iloc),x_f(:,ggi),normal(:,ggi))
 
                       udotn=dot_product(u_f(:,ggi), normgi(:))
 

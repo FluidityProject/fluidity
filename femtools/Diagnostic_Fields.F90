@@ -1933,7 +1933,7 @@ contains
                   if(notvisited(ggi)) then
                     notvisited(ggi)=.false.
 
-                    normgi=orientate_cvsurf_normgi(node_val(x_courant, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
+                    call orientate_cvsurf_normgi(normgi, node_val(x_courant, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
                     if(move_mesh) then
                       udotn=dot_product((u_f(:,ggi)-ug_f(:,ggi)), normgi)
@@ -2287,7 +2287,7 @@ contains
                 if(notvisited(ggi)) then
                   notvisited(ggi)=.false.
 
-                  normgi=orientate_cvsurf_normgi(node_val(x_courant, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
+                  call orientate_cvsurf_normgi(normgi, node_val(x_courant, x_nodes(iloc)),x_f(:,ggi),normal(:,ggi))
 
                   if(move_mesh) then
                     udotn=dot_product((u_f(:,ggi)-ug_f(:,ggi)), normgi)

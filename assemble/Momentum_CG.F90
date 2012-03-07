@@ -2051,23 +2051,6 @@
 
                   ! Isotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
                   les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_mod(gi)
-                  if(les_coef_gi(gi)>0.) then
-                    !ewrite(2,*) 'WARNING:'
-                    !ewrite(2,*) 'Lij ', leonard_gi(:,:,gi)
-                    !ewrite(2,*) 'Mij ', tensor_gi(:,:,gi)
-                    !ewrite(2,*) 'Mij_1 ', strain2_mod(gi)*strain2_gi(:,:,gi)*f2_mod(gi)
-                    !ewrite(2,*) 'Mij_2 ', strain_prod_gi(:,:,gi)*f1_mod(gi)
-                    !ewrite(2,*) 'S2 ', strain2_gi(:,:,gi)
-                    !ewrite(2,*) '|S2| ', strain2_mod(gi)
-                    !ewrite(2,*) 'S1|S1| ', strain_prod_gi(:,:,gi)
-                    !ewrite(2,*) 'G1, G2 ', f1_mod(gi), f2_mod(gi)
-                    !ewrite(2,*) 'LijMij, MijMij', sum(leonard_gi(:,:,gi)*tensor_gi(:,:,gi)), sum(tensor_gi(:,:,gi)*tensor_gi(:,:,gi))
-                    !ewrite(2,*) 'C ', les_coef_gi(gi)
-                    !ewrite(2,*) 'nut ', les_tensor_gi(:,:,gi)
-
-                  ! Clip at 1?
-                  !les_coef_gi(gi) = min(les_coef_gi(gi),1.0)
-
                   end if
                 end do
               else
@@ -2086,32 +2069,14 @@
                   ! Model coeff C = -(L_ij M_ij) / 2(M_ij M_ij)
                   les_coef_gi(gi) = -0.5*sum(leonard_gi(:,:,gi)*tensor_gi(:,:,gi)) / sum(tensor_gi(:,:,gi)*tensor_gi(:,:,gi))
 
-                  ! Clip at zero? Seems to be crucial to keeping viscosity matrix positive definite
-                  les_coef_gi(gi) = max(les_coef_gi(gi),0.0)
+                  ! Clip at zero and (optional) maxval.
+                  les_coef_gi(gi) = min(max(les_coef_gi(gi),0.0), smagorinsky_coefficient)
 
                   ! Anisotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
                   les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_gi(:,:,gi)
                 end do
               end if
             end if
-
-              ! Whether or not to allow negative eddy viscosity (backscattering) - DOES NOT PREVENT LOSS OF POSITIVE DEFINITENESS
-              ! but do not allow (viscosity+eddy_viscosity) < 0.
-              !if(backscatter) then
-                !do gi=1, ele_ngi(nu, ele)
-                !  if(any(les_tensor_gi(:,:,gi) < 0.0)) then
-                    !ewrite(2,*) "clipping les tensor at -visc"
-                !    les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi), epsilon(0.0) - viscosity_gi(:,:,gi))
-                !  end if
-                !end do
-              !else
-                !do gi=1, ele_ngi(nu, ele)
-                !  if(any(les_tensor_gi(:,:,gi) < 0.0)) then
-                    !ewrite(2,*) "clipping les tensor at 0"
-                !    les_tensor_gi(:,:,gi) = max(les_tensor_gi(:,:,gi), 0.0)
-                !  end if
-                !end do
-              !end if
 
             ! Set diagnostic fields
             call les_set_diagnostic_fields(state, nu, density, ele, detwei, eddy_visc_gi=les_tensor_gi, &

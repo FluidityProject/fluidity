@@ -61,7 +61,7 @@ implicit none
   !  - call keps_eps (which sets source/absorption/diffusivity for solve).
   !  - After keps_eps solve, keps_eddyvisc recalculates the eddy viscosity and adds it to the viscosity field.
   !  - Wall functions are added to selected boundaries in keps_bcs and wall_functions.
-  !  - keps_adapt_options repopulates the fields after an adapt.
+  !  - keps_adapt_mesh repopulates the fields after an adapt.
   !  - When done, clean-up.
 
 contains
@@ -127,12 +127,8 @@ subroutine keps_tke(state)
     type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_kk, prescribed_abs_kk
     type(vector_field), pointer        :: positions, nu, u
     type(tensor_field), pointer        :: kk_diff
-    type(element_type), pointer        :: shape_kk
     integer                            :: i, ele
-    integer, pointer, dimension(:)     :: nodes_kk
     real                               :: residual
-    real, allocatable, dimension(:)    :: detwei, strain_ngi, rhs_addto
-    real, allocatable, dimension(:,:,:):: dshape_kk
     logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_tke"
@@ -164,27 +160,7 @@ subroutine keps_tke(state)
     
     ! Assembly loop
     do ele = 1, ele_count(kk)
-        shape_kk => ele_shape(kk, ele)
-        nodes_kk => ele_nodes(kk, ele)
-
-        allocate(dshape_kk (size(nodes_kk), ele_ngi(kk, ele), positions%dim))
-        allocate(detwei (ele_ngi(kk, ele)))
-        allocate(strain_ngi (ele_ngi(kk, ele)))
-        allocate(rhs_addto(ele_loc(kk, ele)))
-        call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
-
-        ! Calculate TKE production at ngi using strain rate (double_dot_product) function
-        strain_ngi = double_dot_product(dshape_kk, ele_val(u, ele) )
-
-        ! Source term:
-        rhs_addto = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
-        call addto(src_rhs, nodes_kk, rhs_addto)
-
-        ! Absorption term:
-        rhs_addto = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(kk,ele))
-        call addto(abs_rhs, nodes_kk, rhs_addto)
-
-        deallocate(dshape_kk, detwei, strain_ngi, rhs_addto)
+       call assemble_keps_tke_ele(src_rhs, abs_rhs, kk, eps, EV, u, positions, ele)
     end do
 
     lumped_mass => get_lumped_mass(state, kk%mesh)
@@ -265,6 +241,38 @@ subroutine keps_tke(state)
 
 end subroutine keps_tke
 
+subroutine assemble_keps_tke_ele(src_rhs, abs_rhs, kk, eps, EV, u, positions, ele)
+
+  type(scalar_field), intent(inout) :: src_rhs, abs_rhs
+  type(scalar_field), intent(in) :: kk, eps, EV
+  type(vector_field), intent(in) :: positions, u
+  integer, intent(in) :: ele
+
+  real, dimension(ele_loc(kk, ele), ele_ngi(kk, ele), positions%dim) :: dshape_kk
+  real, dimension(ele_ngi(kk, ele)) :: detwei, strain_ngi
+  real, dimension(ele_loc(kk, ele)) :: rhs_addto
+  integer, dimension(ele_loc(kk, ele)) :: nodes_kk
+  type(element_type), pointer :: shape_kk
+  integer :: i
+
+  shape_kk => ele_shape(kk, ele)
+  nodes_kk = ele_nodes(kk, ele)
+
+  call transform_to_physical( positions, ele, shape_kk, dshape=dshape_kk, detwei=detwei )
+
+  ! Calculate TKE production at ngi using strain rate (double_dot_product) function
+  strain_ngi = double_dot_product(dshape_kk, ele_val(u, ele) )
+
+  ! Source term:
+  rhs_addto = shape_rhs(shape_kk, detwei*strain_ngi*ele_val_at_quad(EV, ele))
+  call addto(src_rhs, nodes_kk, rhs_addto)
+
+  ! Absorption term:
+  rhs_addto = shape_rhs(shape_kk, detwei*ele_val_at_quad(eps,ele)/ele_val_at_quad(kk,ele))
+  call addto(abs_rhs, nodes_kk, rhs_addto)
+
+end subroutine
+
 !----------------------------------------------------------------------------------
 
 subroutine keps_eps(state)
@@ -274,11 +282,8 @@ subroutine keps_eps(state)
     type(scalar_field)                 :: src_rhs, abs_rhs, prescribed_src_eps, prescribed_abs_eps
     type(vector_field), pointer        :: positions
     type(tensor_field), pointer        :: eps_diff
-    type(element_type), pointer        :: shape_eps
     integer                            :: i, ele
     real                               :: residual
-    real, allocatable, dimension(:)    :: detwei, rhs_addto
-    integer, pointer, dimension(:)     :: nodes_eps
     logical                            :: prescribed_src, prescribed_abs
 
     ewrite(1,*) "In keps_eps"
@@ -302,24 +307,8 @@ subroutine keps_eps(state)
 
     ! Assembly loop
     do ele = 1, ele_count(eps)
-        shape_eps => ele_shape(eps, ele)
-        nodes_eps => ele_nodes(eps, ele)
-
-        allocate(detwei (ele_ngi(eps, ele)))
-        allocate(rhs_addto(ele_loc(eps, ele)))
-        call transform_to_physical(positions, ele, detwei=detwei)
-
-        ! Source term:
-        rhs_addto = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
-                              ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
-        call addto(src_rhs, nodes_eps, rhs_addto)
-
-        ! Absorption term:
-        rhs_addto = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
-                              ele_val_at_quad(tke_old,ele))
-        call addto(abs_rhs, nodes_eps, rhs_addto)
-
-        deallocate(detwei, rhs_addto)
+        call assemble_keps_eps_ele(src_rhs, abs_rhs, tke_old, tke_src_old, &
+             & eps, EV, positions, ele)
     end do
 
     lumped_mass => get_lumped_mass(state, eps%mesh)
@@ -395,6 +384,37 @@ subroutine keps_eps(state)
     ewrite_minmax(abs_eps)
 
 end subroutine keps_eps
+
+subroutine assemble_keps_eps_ele(src_rhs, abs_rhs, tke_old, tke_src_old, &
+     & eps, EV, positions, ele)
+
+  type(scalar_field), intent(inout) :: src_rhs, abs_rhs
+  type(scalar_field), intent(in) :: tke_old, tke_src_old, eps, EV
+  type(vector_field), intent(in) :: positions
+  integer, intent(in) :: ele
+
+  real, dimension(ele_ngi(eps, ele)) :: detwei
+  real, dimension(ele_loc(eps, ele)) :: rhs_addto
+  integer, dimension(ele_loc(eps, ele)) :: nodes_eps
+  type(element_type), pointer :: shape_eps
+  integer :: i
+
+  shape_eps => ele_shape(eps, ele)
+  nodes_eps = ele_nodes(eps, ele)
+
+  call transform_to_physical(positions, ele, detwei=detwei)
+
+  ! Source term:
+  rhs_addto = shape_rhs(shape_eps, detwei*c_eps_1*ele_val_at_quad(eps,ele)/ &
+       ele_val_at_quad(tke_old,ele)*ele_val_at_quad(tke_src_old,ele))
+  call addto(src_rhs, nodes_eps, rhs_addto)
+
+  ! Absorption term:
+  rhs_addto = shape_rhs(shape_eps, detwei*c_eps_2*ele_val_at_quad(eps,ele)/ &
+       ele_val_at_quad(tke_old,ele))
+  call addto(abs_rhs, nodes_eps, rhs_addto)
+
+end subroutine
 
 !----------
 ! eddyvisc calculates the lengthscale, and then the eddy viscosity.
