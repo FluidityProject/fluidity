@@ -2051,7 +2051,6 @@
 
                   ! Isotropic tensor dynamic eddy viscosity m_ij = -2C|S1|.alpha^2.G1
                   les_tensor_gi(:,:,gi) = 2*alpha**2*les_coef_gi(gi)*strain1_mod(gi)*f1_mod(gi)
-                  end if
                 end do
               else
               ! Anisotropic filter/viscosity case
