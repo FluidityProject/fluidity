@@ -1257,6 +1257,55 @@ start =
                         }
                      )
                   },
+                  ## f_1 damping coefficient for low_Re k-epsilon model
+                  ## Required for low_Re boundaries. If no low_Re boundaries are present
+                  ## this will be set to 1.0 throughout the domain and will not
+                  ## affect the result
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "f_1" },
+                     element prescribed {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field                        
+                     }
+                  },
+                  ## f_2 damping coefficient for low_Re k-epsilon model
+                  ## Required for low_Re boundaries. If no low_Re boundaries are present
+                  ## this will be set to 1.0 throughout the domain and will not
+                  ## affect the result
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "f_2" },
+                     element prescribed {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field                        
+                     }
+                  },
+                  ## f_mu damping coefficient for low_Re k-epsilon model
+                  ## Required for low_Re boundaries. If no low_Re boundaries are present
+                  ## this will be set to 1.0 throughout the domain and will not
+                  ## affect the result
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "f_mu" },
+                     element prescribed {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field                        
+                     }
+                  },
+                  ## Describes distance to nearest solid wall.
+                  ## Required for low_Re boundaries.
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "DistanceToWall" },
+                     element prescribed {
+                        velocity_mesh_choice,
+                        prescribed_scalar_field
+                     }
+                  }?,
                   ## Select whether source and absorption terms for k and epsilon
                   ## are implicit or explicit.
                   element source_absorption {

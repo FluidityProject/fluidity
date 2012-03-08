@@ -1594,6 +1594,73 @@ This will appear in the stat file.</a:documentation>
                       <ref name="diagnostic_scalar_field"/>
                     </element>
                   </element>
+                  <element name="scalar_field">
+                    <a:documentation>f_1 damping coefficient for low_Re k-epsilon model
+Required for low_Re boundaries. If no low_Re boundaries are present
+this will be set to 1.0 throughout the domain and will not
+affect the result</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>f_1</value>
+                    </attribute>
+                    <element name="prescribed">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>f_2 damping coefficient for low_Re k-epsilon model
+Required for low_Re boundaries. If no low_Re boundaries are present
+this will be set to 1.0 throughout the domain and will not
+affect the result</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>f_2</value>
+                    </attribute>
+                    <element name="prescribed">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>f_mu damping coefficient for low_Re k-epsilon model
+Required for low_Re boundaries. If no low_Re boundaries are present
+this will be set to 1.0 throughout the domain and will not
+affect the result</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>f_mu</value>
+                    </attribute>
+                    <element name="prescribed">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Describes distance to nearest solid wall
+Required for low_Re boundaries.</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DistanceToWall</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
                   <element name="source_absorption">
                     <a:documentation>Select whether source and absorption terms for k and epsilon
 are implicit or explicit.</a:documentation>
