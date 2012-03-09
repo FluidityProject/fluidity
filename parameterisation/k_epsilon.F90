@@ -903,7 +903,7 @@ subroutine keps_damping_functions(k,eps,f_1,f_2,f_mu,y,bg_visc,node)
     type(tensor_field), intent(in) :: bg_visc
     integer, intent(in) :: node
 
-    real :: rhs, Re_T, R_y
+    real :: rhs, Re_T, R_y, fields_max = 1.e2
 
     if ((node_val(k,node) .eq. 0.0) .or. &
          & (node_val(y,node) .eq. 0.0) .or. &
@@ -925,13 +925,13 @@ subroutine keps_damping_functions(k,eps,f_1,f_2,f_mu,y,bg_visc,node)
        call set(f_2, node, 1.0)
        return
     end if
-    call set(f_mu, node, rhs)
+    call set(f_mu, node, max(rhs,fields_max))
 
     rhs = (0.05/node_val(f_mu,node))**3.0 + 1.0
-    call set(f_1, node, rhs)
+    call set(f_1, node, max(rhs,fields_max))
 
     rhs = -exp(- Re_T**2.0) + 1.0
-    call set(f_2, node, rhs)
+    call set(f_2, node, max(rhs,fields_max))
 
 end subroutine keps_damping_functions
 
