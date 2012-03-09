@@ -919,6 +919,12 @@ subroutine keps_damping_functions(k,eps,f_1,f_2,f_mu,y,bg_visc,node)
     R_y = node_val(k,node)**0.5 * node_val(y,node) / node_val(bg_visc,1,1,node)
     
     rhs = (- exp(- 0.0165*R_y) + 1.0)**2.0 * (20.5/Re_T + 1.0)
+    if (rhs > 1.0) then
+       call set(f_mu, node, 1.0)
+       call set(f_1, node, 1.0)
+       call set(f_2, node, 1.0)
+       return
+    end if
     call set(f_mu, node, rhs)
 
     rhs = (0.05/node_val(f_mu,node))**3.0 + 1.0
