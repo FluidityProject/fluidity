@@ -1605,7 +1605,7 @@ affect the result</a:documentation>
                     <attribute name="name">
                       <value>f_1</value>
                     </attribute>
-                    <element name="prescribed">
+                    <element name="diagnostic">
                       <ref name="internal_algorithm"/>
                       <ref name="velocity_mesh_choice"/>
                       <ref name="diagnostic_scalar_field"/>
@@ -1622,7 +1622,7 @@ affect the result</a:documentation>
                     <attribute name="name">
                       <value>f_2</value>
                     </attribute>
-                    <element name="prescribed">
+                    <element name="diagnostic">
                       <ref name="internal_algorithm"/>
                       <ref name="velocity_mesh_choice"/>
                       <ref name="diagnostic_scalar_field"/>
@@ -1639,7 +1639,7 @@ affect the result</a:documentation>
                     <attribute name="name">
                       <value>f_mu</value>
                     </attribute>
-                    <element name="prescribed">
+                    <element name="diagnostic">
                       <ref name="internal_algorithm"/>
                       <ref name="velocity_mesh_choice"/>
                       <ref name="diagnostic_scalar_field"/>
@@ -1647,7 +1647,7 @@ affect the result</a:documentation>
                   </element>
                   <optional>
                     <element name="scalar_field">
-                      <a:documentation>Describes distance to nearest solid wall
+                      <a:documentation>Describes distance to nearest solid wall.
 Required for low_Re boundaries.</a:documentation>
                       <attribute name="rank">
                         <value>0</value>

@@ -108,14 +108,6 @@ subroutine keps_init(state)
         &"/subgridscale_parameterisations/k-epsilon/debugging_mode/period", &
         & dump_period, default = 0.0)	
 
-    ! initialise low_Re damping functions
-    field => extract_scalar_field(state, "f_1")
-    call set(field, 1.0)
-    field => extract_scalar_field(state, "f_2")
-    call set(field, 1.0)
-    field => extract_scalar_field(state, "f_mu")
-    call set(field, 1.0)
-
     ! initialise lengthscale
     field => extract_scalar_field(state, "LengthScale")
     call zero(field)
@@ -816,6 +808,11 @@ subroutine keps_bcs(state)
     f_2       => extract_scalar_field(state, "f_2")
     f_mu      => extract_scalar_field(state, "f_mu")
 
+    ! initialise low_Re damping functions
+    call set(f_1, 1.0)
+    call set(f_2, 1.0)
+    call set(f_mu, 1.0)
+
     ! THIS IS NOT AVAILABLE BEFORE KEPS_INIT HAS BEEN CALLED! Grab it here for initialising BCs.
     call get_option(trim(state%option_path)//"/subgridscale_parameterisations/k-epsilon/C_mu", cmu, default = 0.09)
     ewrite(2,*) "cmu: ", cmu
@@ -886,7 +883,7 @@ subroutine keps_bcs(state)
              end if
              do node = 1, node_count(field1)
                 call keps_damping_functions(field2,field1,f_1,f_2,f_mu,y,bg_visc,node)
-             end do
+             end do 
           end if
        
        end if
@@ -908,13 +905,23 @@ subroutine keps_damping_functions(k,eps,f_1,f_2,f_mu,y,bg_visc,node)
 
     real :: rhs, Re_T, R_y
 
+    if ((node_val(k,node) .eq. 0.0) .or. &
+         & (node_val(y,node) .eq. 0.0) .or. &
+         & (node_val(bg_visc,1,1,node) .eq. 0.0) .or. &
+         & (node_val(eps,node) .eq. 0.0)) then
+       call set(f_mu, node, 0.0)
+       call set(f_1, node, 0.0)
+       call set(f_2, node, 0.0)
+       return
+    end if
+
     Re_T = node_val(k,node)**2.0 / (node_val(eps,node) * node_val(bg_visc,1,1,node))
     R_y = node_val(k,node)**0.5 * node_val(y,node) / node_val(bg_visc,1,1,node)
     
     rhs = (- exp(- 0.0165*R_y) + 1.0)**2.0 * (20.5/Re_T + 1.0)
     call set(f_mu, node, rhs)
 
-    rhs = (0.05/rhs)**3.0 + 1.0
+    rhs = (0.05/node_val(f_mu,node))**3.0 + 1.0
     call set(f_1, node, rhs)
 
     rhs = -exp(- Re_T**2.0) + 1.0
