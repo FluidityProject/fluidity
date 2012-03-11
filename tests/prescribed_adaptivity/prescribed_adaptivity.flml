@@ -214,7 +214,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(x, t):
+            <string_value lines="20" type="code" language="python">def val(x, t):
 	import math
 	r = math.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
 
@@ -245,7 +245,7 @@
     <prescribed_adaptivity>
       <adapt_interval>
         <python>
-          <string_value lines="20" type="python">def val(t):
+          <string_value lines="20" type="code" language="python">def val(t):
 	if "meshCounter" in persistent:
 		if persistent["meshCounter"] &gt;= 9:
 			return 0
@@ -258,7 +258,7 @@
       <mesh>
         <name>
           <python>
-            <string_value lines="20" type="python">def val(t):
+            <string_value lines="20" type="code" language="python">def val(t):
 	if "meshCounter" in persistent:
 		persistent["meshCounter"] += 1
 	else:

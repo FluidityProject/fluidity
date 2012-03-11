@@ -188,7 +188,7 @@
           <mesh name="CoordinateMesh"/>
           <value name="WholeMesh">
             <python>
-              <string_value lines="20" type="python">def val(X, t):
+              <string_value lines="20" type="code" language="python">def val(X, t):
 
   a = X[0]
   b = X[1]
@@ -410,7 +410,7 @@
             <value name="WholeMesh">
               <anisotropic_symmetric>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
     a = X[0]
     b = X[1]
     c = X[2]

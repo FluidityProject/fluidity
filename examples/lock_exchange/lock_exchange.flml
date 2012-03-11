@@ -50,7 +50,7 @@
     </dump_format>
     <dump_period>
       <python>
-        <string_value lines="20" type="python">def val(t):
+        <string_value lines="20" type="code" language="python">def val(t):
   if t&lt;40.0: return 0.25
   else: return 1.25</string_value>
       </python>
@@ -403,7 +403,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	if(X[0]&lt;0.4):
 		return -0.5
 	else:
@@ -418,7 +418,7 @@
             </control_volumes>
             <mixing_bin_bounds>
               <python>
-                <string_value lines="20" type="python">def val(t):
+                <string_value lines="20" type="code" language="python">def val(t):
   bounds = [-1E10]
   for i in range(501):
     bounds.append(-0.5+(i/500.))  
