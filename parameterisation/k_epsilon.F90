@@ -925,13 +925,13 @@ subroutine keps_damping_functions(k,eps,f_1,f_2,f_mu,y,bg_visc,node)
        call set(f_2, node, 1.0)
        return
     end if
-    call set(f_mu, node, max(rhs,fields_max))
+    call set(f_mu, node, min(rhs,fields_max))
 
     rhs = (0.05/node_val(f_mu,node))**3.0 + 1.0
-    call set(f_1, node, max(rhs,fields_max))
+    call set(f_1, node, min(rhs,fields_max))
 
     rhs = -exp(- Re_T**2.0) + 1.0
-    call set(f_2, node, max(rhs,fields_max))
+    call set(f_2, node, min(rhs,fields_max))
 
 end subroutine keps_damping_functions
 
