@@ -206,7 +206,7 @@ def gen_flmls(params, template_dir, output_dir, paths, names, verbose):
             path_type = libspud.get_option_type(path)
             path_rank = libspud.get_option_rank(path)
             path_shape = libspud.get_option_shape(path)
-            if (path_type == libspud.pytype_map[libspud.SPUD_REAL] and path_rank == 0):
+            if (path_type is float and path_rank == 0):
                 libspud.set_option(path,float(p_set[i]))
             elif (path_rank == 1 and path_type == libspud.pytype_map[libspud.SPUD_REAL]):
                 value = eval(p_set[i])
