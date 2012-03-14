@@ -61,7 +61,7 @@
             <integer_value shape="1" rank="1">5</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    return(X[0]+50, X[1],X[2])</string_value>
           </coordinate_map>
         </periodic_boundary_conditions>
@@ -897,7 +897,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
     TopTemp = 13
     t = TopTemp - 0.06*abs(X[2])
     return t</string_value>

@@ -141,7 +141,7 @@
               </surface_ids>
               <type name="dirichlet">
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
         import k_epsilon_tools as k
         tke=k.tke(X)
         return tke</string_value>
@@ -161,7 +161,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <python>
-                    <string_value lines="20" type="python">def val(X,t):
+                    <string_value lines="20" type="code" language="python">def val(X,t):
         import k_epsilon_tools as k
         return k.forcing_k(X)</string_value>
                   </python>
@@ -249,7 +249,7 @@
               </surface_ids>
               <type name="dirichlet">
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
         import k_epsilon_tools as k
         eps=k.eps(X)
         return eps</string_value>
@@ -269,7 +269,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <python>
-                    <string_value lines="20" type="python">def val(X,t):
+                    <string_value lines="20" type="code" language="python">def val(X,t):
         import k_epsilon_tools as k
         return k.forcing_eps(X)</string_value>
                   </python>
@@ -501,7 +501,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
    import k_epsilon_tools as k
    # Shear rotation about origin.
    return k.velocity(X)[0]</string_value>
@@ -509,7 +509,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
    import k_epsilon_tools as k
    # Shear rotation about origin.
    return k.velocity(X)[1]</string_value>
@@ -531,7 +531,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
    import k_epsilon_tools as k
    return k.forcing_mom(X)</string_value>
               </python>
@@ -591,7 +591,7 @@
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
         import k_epsilon_tools as k
         return k.pressure(X)</string_value>
           </python>
@@ -606,7 +606,7 @@
     <scalar_field name="PressureDifference" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">E=state.scalar_fields["Pressure"]
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["Pressure"]
 S=state.scalar_fields["PressureAnalytical"]
 
 for n in range(field.node_count):
@@ -636,7 +636,7 @@ for n in range(field.node_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
         import k_epsilon_tools as k
         nut=k.nut(X)
         return nut</string_value>
@@ -652,7 +652,7 @@ for n in range(field.node_count):
     <scalar_field name="EddyViscosityDifference" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">E=state.scalar_fields["ScalarEddyViscosity"]
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["ScalarEddyViscosity"]
 S=state.scalar_fields["EddyViscosityAnalytical"]
 
 for n in range(field.node_count):
@@ -679,7 +679,7 @@ for n in range(field.node_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
         import k_epsilon_tools as k
         tke=k.tke(X)
         return tke</string_value>
@@ -695,7 +695,7 @@ for n in range(field.node_count):
     <scalar_field name="TKEDifference" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">E=state.scalar_fields["TurbulentKineticEnergy"]
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentKineticEnergy"]
 S=state.scalar_fields["TKEAnalytical"]
 
 for n in range(field.node_count):
@@ -722,7 +722,7 @@ for n in range(field.node_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
         import k_epsilon_tools as k
         eps=k.eps(X)
         return eps</string_value>
@@ -738,7 +738,7 @@ for n in range(field.node_count):
     <scalar_field name="EpsilonDifference" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">E=state.scalar_fields["TurbulentDissipation"]
+          <string_value lines="20" type="code" language="python">E=state.scalar_fields["TurbulentDissipation"]
 S=state.scalar_fields["EpsilonAnalytical"]
 
 for n in range(field.node_count):
@@ -765,7 +765,7 @@ for n in range(field.node_count):
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
         import k_epsilon_tools as k
         return k.velocity(X)</string_value>
           </python>

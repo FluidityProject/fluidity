@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testproblem>
+  <name>netcdf_read_errors</name>
+  <owner userid="asc"/>
+  <tags>flml netcdf</tags>
+  <problem_definition length="medium" nprocs="1">
+    <command_line>for name in valid missing{data,dimension,variable} incorrect{dimension,variable}; do echo "Running case ${name}"; ../../bin/fluidity "${name}.flml" 1>/dev/null 2>"${name}.err"; done</command_line>
+  </problem_definition>
+  <variables>
+    <variable name="valid_err_filesize" language="python">
+import os
+valid_err_filesize = os.stat('valid.err').st_size
+    </variable>
+    <variable name="missingdata_err_linenumber" language="python">
+def filelines(filename):
+  with open(filename) as f:
+    for i, l in enumerate(f):
+      pass
+  return i + 1
+missingdata_err_linenumber = filelines('missingdata.err')
+    </variable>
+    <variable name="missingdimension_err_linenumber" language="python">
+def filelines(filename):
+  with open(filename) as f:
+    for i, l in enumerate(f):
+      pass
+  return i + 1
+missingdimension_err_linenumber = filelines('missingdimension.err')
+    </variable>
+    <variable name="missingvariable_err_linenumber" language="python">
+def filelines(filename):
+  with open(filename) as f:
+    for i, l in enumerate(f):
+      pass
+  return i + 1
+missingvariable_err_linenumber = filelines('missingvariable.err')
+    </variable>
+    <variable name="incorrectdimension_err_linenumber" language="python">
+def filelines(filename):
+  with open(filename) as f:
+    for i, l in enumerate(f):
+      pass
+  return i + 1
+incorrectdimension_err_linenumber = filelines('incorrectdimension.err')
+    </variable>
+    <variable name="incorrectvariable_err_linenumber" language="python">
+def filelines(filename):
+  with open(filename) as f:
+    for i, l in enumerate(f):
+      pass
+  return i + 1
+incorrectvariable_err_linenumber = filelines('incorrectvariable.err')
+    </variable>
+    <variable name="missingdata_err" language="python">
+fileHandle = open('missingdata.err.sample')
+correct = fileHandle.read()
+fileHandle.close()
+fileHandle = open('missingdata.err')
+line = fileHandle.read()
+fileHandle.close()
+missingdata_err = ( line == correct )
+    </variable>
+    <variable name="missingdimension_err" language="python">
+correct = 'ncdimid: ncid 65536: NetCDF: Invalid dimension ID or name\n'
+fileHandle = open('missingdimension.err')
+line = fileHandle.read()
+fileHandle.close()
+missingdimension_err = ( line == correct )
+    </variable>
+    <variable name="missingvariable_err" language="python">
+correct = 'ncvarid: ncid 65536: NetCDF: Variable not found\n'
+fileHandle = open('missingvariable.err')
+line = fileHandle.read()
+fileHandle.close()
+missingvariable_err = ( line == correct )
+    </variable>
+    <variable name="incorrectdimension_err" language="python">
+correct = 'ncdimid: ncid 65536: NetCDF: Invalid dimension ID or name\n'
+fileHandle = open('incorrectdimension.err')
+line = fileHandle.read()
+fileHandle.close()
+incorrectdimension_err = ( line == correct )
+    </variable>
+    <variable name="incorrectvariable_err" language="python">
+correct = 'ncvarid: ncid 65536: NetCDF: Variable not found\n'
+fileHandle = open('incorrectvariable.err')
+line = fileHandle.read()
+fileHandle.close()
+incorrectvariable_err = ( line == correct )
+    </variable>
+  </variables>
+  <pass_tests>
+    <test name="Checking the valid case has reported no errors" language="python">
+assert ( valid_err_filesize == 0 )
+    </test>
+    <test name="Checking the case with missing data has reported exactly 44 errors" language="python">
+assert ( missingdata_err_linenumber == 44 )
+    </test>
+    <test name="Checking the case with a missing dimension has reported exactly 1 error" language="python">
+assert ( missingdimension_err_linenumber == 1 )
+    </test>
+    <test name="Checking the case with a missing variable has reported exactly 1 error" language="python">
+assert ( missingvariable_err_linenumber == 1 )
+    </test>
+    <test name="Checking the case with an incorrect dimension label has reported exactly 1 error" language="python">
+assert ( incorrectdimension_err_linenumber == 1 )
+    </test>
+    <test name="Checking the case with an incorrect variable label has reported exactly 1 error" language="python">
+assert ( incorrectvariable_err_linenumber == 1 )
+    </test>
+    <test name="Checking the case with missing data has reported the correct errors" language="python">
+assert ( missingdata_err )
+    </test>
+    <test name="Checking the case with a missing dimension has reported the correct error" language="python">
+assert ( missingdimension_err )
+    </test>
+    <test name="Checking the case with a missing variable has reported the correct error" language="python">
+assert ( missingvariable_err )
+    </test>
+    <test name="Checking the case with an incorrect dimension label has reported the correct error" language="python">
+assert ( incorrectdimension_err )
+    </test>
+    <test name="Checking the case with an incorrect variable label has reported the correct error" language="python">
+assert ( incorrectvariable_err )
+    </test>
+  </pass_tests>
+  <warn_tests>
+  </warn_tests>
+</testproblem>
+

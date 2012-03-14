@@ -3,7 +3,9 @@
 	@true
 
 LERM.o ../include/lerm.mod: LERM.F90 ../include/detector_data_types.mod \
-   ../include/fdebug.h ../include/fldebug.mod
+   ../include/fdebug.h ../include/fields.mod ../include/fldebug.mod \
+   ../include/global_parameters.mod ../include/profiler.mod \
+   ../include/spud.mod ../include/state_module.mod
 
 ../include/lagrangian_biology.mod: Lagrangian_Biology.o
 	@true
