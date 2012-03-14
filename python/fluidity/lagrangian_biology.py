@@ -45,12 +45,6 @@ def update_living_diatom(vars, env, dt):
      ICES Journal of Marine Science, doi:10.1093/icesjms/fsr190.
   """
 
-  # Housekeeping
-  c_old = vars['Size']
-  vars['AmmoniumUptake'] = vars['AmmoniumUptake'] / c_old
-  vars['NitrateUptake'] = vars['NitrateUptake'] / c_old
-  vars['SilicateUptake'] = vars['SilicateUptake'] / c_old
-
   stepInHours = dt/3600.
 
   # Temperature conversion
@@ -130,9 +124,9 @@ def update_living_diatom(vars, env, dt):
 
   V_S_S = V_S_max * env['DissolvedSilicate'] / (env['DissolvedSilicate'] + param_k_S)
 
-  ammonium_uptake_rate = c_old * vars['Carbon'] * V_C_ammonium * stepInHours
-  nitrate_uptake_rate = c_old * vars['Carbon'] * V_C_nitrate * stepInHours
-  silicate_uptake_rate = c_old * vars['Silicate'] * V_S_S * stepInHours
+  ammonium_uptake_rate = vars['Carbon'] * V_C_ammonium * stepInHours
+  nitrate_uptake_rate = vars['Carbon'] * V_C_nitrate * stepInHours
+  silicate_uptake_rate = vars['Silicate'] * V_S_S * stepInHours
 
   # Update Pools
   ammonium_pool_new = (vars['Ammonium'] + vars['AmmoniumUptake'] + vars['NitrateUptake'] - (vars['Ammonium'] * param_R_N * stepInHours * T_function)) / C_d
@@ -155,7 +149,7 @@ def update_living_diatom(vars, env, dt):
     chlorophyll_pool_new = 0.0
 
   # Remineralisation Nitrogen
-  ammonium_release_rate = c_old * (vars['Ammonium'] + vars['Nitrate']) * param_R_N * stepInHours * T_function
+  ammonium_release_rate = (vars['Ammonium'] + vars['Nitrate']) * param_R_N * stepInHours * T_function
 
   # Housekeeping
   vars['Carbon'] = carbon_pool_new
@@ -184,19 +178,13 @@ def update_dead_diatom(vars, env, dt):
      ICES Journal of Marine Science, doi:10.1093/icesjms/fsr190.
   """
 
-  # Housekeeping
-  c_old = vars['Size']
-  vars['AmmoniumUptake'] = vars['AmmoniumUptake'] / c_old
-  vars['NitrateUptake'] = vars['NitrateUptake'] / c_old
-  vars['SilicateUptake'] = vars['SilicateUptake'] / c_old
-
   stepInHours = dt/3600.
 
   Si_reminT = param_S_dis * math.pow(param_Q_remS, (env['Temperature'] + 273.0 - param_T_refS) / 10.0)
   N_reminT = param_Ndis * math.pow(param_Q_remN, (env['Temperature'] + 273.0 - param_T_refN) / 10.0)
-  silicate_release_rate = c_old * vars['Silicate'] * Si_reminT * stepInHours
+  silicate_release_rate = vars['Silicate'] * Si_reminT * stepInHours
   silicate_pool_new = max(vars['Silicate'] - (vars['Silicate'] * Si_reminT * stepInHours), 0.0)
-  ammonium_release_rate = c_old * (vars['Ammonium'] + vars['Nitrate']) * N_reminT * stepInHours
+  ammonium_release_rate = (vars['Ammonium'] + vars['Nitrate']) * N_reminT * stepInHours
   ammonium_pool_new = max(vars['Ammonium'] - (vars['Ammonium'] * N_reminT * stepInHours), 0.0)
   nitrate_pool_new = max(vars['Nitrate'] - (vars['Nitrate'] * N_reminT * stepInHours), 0.0)
 
@@ -211,49 +199,6 @@ def update_dead_diatom(vars, env, dt):
 
   vars['AmmoniumRelease'] = ammonium_release_rate
   vars['SilicateRelease'] = silicate_release_rate
-
-
-def update_cyst_diatom(vars, env, dt):
-  """ Update kernel for Cyst stage Diatom agents from LERM-ES, 
-      created by M. Sinerchia nd W. Hinsley
-
-     References:
-     "Testing theories of fisheries recruitment.", Sinerchia, M., 2007
-     PhD Thesis, Department of Earth Science and Engineering, Imperial College, London
-
-     "Using an individual-based model with four trophic levels to model the effect of predation and competition on squid recruitment", 
-     Sinerchia, M., Field, A. J., Woods, J. D., Vallerga, S., and Hinsley, W. R.
-     ICES Journal of Marine Science, doi:10.1093/icesjms/fsr190.
-  """
-
-  stepInHours = dt/3600.
-
-  # Temperature conversion
-  T_K = env['Temperature'] + 273.0
-  T_function = math.exp(34.12969283 - 10000/T_K)
-
-  # Resting stage Respiration
-  R_C = 0.1 * param_R_maintenance
-  C_d = 1.0
-
-  carbon_pool_new = ((vars['Carbon'] * (-1. * (R_C * T_function)) * stepInHours) + vars['Carbon']) / C_d
-
-  # Mortality
-  if vars['Carbon'] <= param_C_starve:
-    vars['Stage'] = 1.0 # is Dead
-    carbon_pool_new = 0.0
-    chlorophyll_pool_new = 0.0
-
-  # Housekeeping
-  vars['Carbon'] = carbon_pool_new
-
-  vars['AmmoniumUptake'] = 0.0
-  vars['NitrateUptake'] = 0.0
-  vars['SilicateUptake'] = 0.0
-
-  vars['AmmoniumRelease'] = 0.0
-  vars['SilicateRelease'] = 0.0
-
 
 #####################################
 ## Utiliy functions for Hyperlight ##

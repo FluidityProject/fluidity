@@ -740,11 +740,11 @@ contains
 
           ! Uptake request and release are total amounts, so don't divide by element volume
           elseif (agent_list%fgroup%variables(i)%field_type == BIOFIELD_UPTAKE) then 
-                call addto(diagfields(i), agent%element, agent%biology(i))
+                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
           elseif (agent_list%fgroup%variables(i)%field_type == BIOFIELD_RELEASE) then
                 ! Make sure we don't release more than we have
                 !release_amount = min(agent%biology(i), agent%biology(agent_list%fgroup%variables(i)%pool_index))
-                call addto(diagfields(i), agent%element, agent%biology(i))
+                call addto(diagfields(i), agent%element, agent%biology(i)*agent%biology(BIOVAR_SIZE))
           end if
        end do
 
