@@ -58,14 +58,14 @@ if nodecount<0:
 
 dim=options.dim
 
-gmsh_node_map = {}
 nodefile_linelist = []
 for i in range(nodecount):
     # Node syntax
     line = mshfile.readline().split()
-    gmsh_node = line[0] # the node number that gmsh has assigned, which might
-                        # not be consecutive
-    gmsh_node_map[gmsh_node] = str(i+1)
+    # compare node id assigned by gmsh to consecutive node id (assumed by fluidity)
+    if eval(line[0])!=i+1:
+      print line[0], i+1
+      sys.stderr.write("ERROR: Nodes in gmsh .msh file must be numbered consecutively.")
     nodefile_linelist.append( line[1:dim+1] )
 
 assert(mshfile.readline().strip()=="$EndNodes")
@@ -169,7 +169,7 @@ elefile.write(`len(elements)`+" "+`loc`+" 1\n")
 for i, element in enumerate(elements):
     elefile.write(`i+1`+" ")
     for j in node_order:
-        elefile.write(" ".join([gmsh_node_map[x] for x in element[j-1:j]])+" ")
+      elefile.write(" ".join(element[j-1:j])+" ")
     elefile.write(" ".join(element[-1:]))
     elefile.write(" "+"\n")
 
@@ -181,7 +181,7 @@ if options.internal_faces:
   # make node element list
   ne_list = [set() for i in range(nodecount)]
   for i, element in enumerate(elements):
-      element=[eval(gmsh_node_map[element[j-1]]) for j in node_order]
+      element=[eval(element[j-1]) for j in node_order]
       for node in element:
         ne_list[node-1].add(i)
 
@@ -192,7 +192,7 @@ if options.internal_faces:
     face_nodes=[eval(node) for node in face[:-1]]
     # loop through elements around node face_nodes[0]
     for ele in ne_list[face_nodes[0]-1]:
-      element=[eval(gmsh_node_map[elements[ele][j-1]]) for j in node_order]
+      element=[eval(elements[ele][j-1]) for j in node_order]
       if set(face_nodes) < set(element):
         facelist.append(face+[`ele+1`])
   
