@@ -71,6 +71,7 @@ subroutine fladapt(input_basename, input_basename_len, &
   type(vector_field) :: new_mesh_field
   type(vector_field), pointer :: new_mesh_field_ptr, old_mesh_field
   type(tensor_field) :: metric, t_edge_lengths
+  character(len=FIELD_NAME_LEN) :: mesh_format
   
   ewrite(1, *) "In fladapt"
  
@@ -134,8 +135,9 @@ subroutine fladapt(input_basename, input_basename_len, &
   old_mesh_field => null()
   old_mesh => null()
   
+  call get_option(trim(old_mesh_field%mesh%option_path)//"/from_file/format/name", mesh_format)
   ! Write the output mesh
-  call write_mesh_files(output_basename, new_mesh_field)
+  call write_mesh_files(output_basename, mesh_format, new_mesh_field)
   
   ! Deallocate
   do i = 1, size(states)
@@ -170,7 +172,7 @@ contains
       FLAbort("External mesh field " // trim(mesh_field_name) // " not found in the system state")
     end if
       
-    mesh_field => extract_vector_field(state, mesh_field_name)    
+    mesh_field => extract_vector_field(state, mesh_field_name)
     
   end subroutine find_mesh_field_to_adapt
   

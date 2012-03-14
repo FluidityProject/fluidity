@@ -73,12 +73,11 @@ module adapt_state_module
   use diagnostic_variables
   use diagnostic_fields_wrapper_new, only : calculate_diagnostic_variables_new => calculate_diagnostic_variables
   use pickers
+  use write_gmsh
 #ifdef HAVE_ZOLTAN
   use zoltan_integration
   use mpi_interfaces
 #endif
-
-  use mesh_files
 
   implicit none
 
@@ -923,10 +922,10 @@ contains
       output_positions => extract_vector_field(states(1), "Coordinate")
 
       if(isparallel()) then
-        call write_mesh_files(parallel_filename("first_timestep_adapted_mesh"), output_positions)
+        call write_gmsh_file(parallel_filename("first_timestep_adapted_mesh"), output_positions)
         call write_halos("first_timestep_adapted_mesh", output_positions%mesh)
       else
-        call write_mesh_files("first_timestep_adapted_mesh", output_positions)
+        call write_gmsh_file("first_timestep_adapted_mesh", output_positions)
       end if
 
     end if
@@ -1607,7 +1606,7 @@ contains
       file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no)
       call find_mesh_to_adapt(states(1), mesh)
       positions = get_coordinate_field(states(1), mesh)
-      call write_mesh_files(file_name, positions)
+      call write_gmsh_file(file_name, positions)
       if(isparallel()) then
         file_name = adapt_state_debug_file_name("adapted_mesh", mesh_dump_no, add_parallel = .false.)  ! parallel extension is added by write_halos
         call write_halos(file_name, positions%mesh)
