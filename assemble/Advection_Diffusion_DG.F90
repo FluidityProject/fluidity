@@ -528,10 +528,12 @@ contains
     call allocate(rhs_diff, T%mesh, trim(field_name)//" Diffusion RHS")
    
     call construct_advection_diffusion_dg(matrix, rhs, field_name, state, &
-         mass, matrix_diff, rhs_diff, semidiscrete=.true., &
+         mass=mass, diffusion_m=matrix_diff, diffusion_rhs=rhs_diff, semidiscrete=.true., &
          velocity_name=velocity_name)
 
-    call get_dg_inverse_mass_matrix(inv_mass, mass)
+    ! mass has only been assembled only for owned elements, so we can only compute
+    ! its inverse for owned elements
+    call get_dg_inverse_mass_matrix(inv_mass, mass, only_owned_elements=.true.)
     
     ! Note that since theta and dt are module global, these lines have to
     ! come after construct_advection_diffusion_dg.
