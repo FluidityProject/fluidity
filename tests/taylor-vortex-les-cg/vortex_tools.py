@@ -28,6 +28,18 @@ def velocity(XX,t):
    w = C*(1.-theta*nu*t)*sin(a*x) * sin(b*y) * cos(c*z) + A2/c*t*sin(2*c*z)*cos(2*a*x) - A1/c*t*sin(2*c*z)*cos(2*b*y)
    return [u,v,w]
 
+def plot_velo(XX,t):
+  u=[]
+  for i in range(len(t)):
+    u.append(velocity(XX,t[i]))
+
+  pylab.figure(1)
+  pylab.title('Velocity at point '+str(XX[0])+','+str(XX[1])+','+str(XX[2]))
+  pylab.xlabel('Time (s)')
+  pylab.ylabel('u')
+  pylab.plot(t, u)
+  pylab.savefig("analytical_velocity.pdf")
+  return
 
 def dissipation_taylor(t,nu):
    # See Orszag et al, 1976
@@ -75,6 +87,7 @@ def plot_velo(XX,t):
   return
 
 def plot_dissipation(arrays):
+
   ##### Plot time series of turbulent kinetic energy dissipation rate (epsilon)
   pylab.figure(1)
   pylab.title('Simulated vs. analytical dissipation')
@@ -121,7 +134,6 @@ def plot_dissipation(arrays):
   pylab.axis([0,30,0,3])
   #pylab.axis([0.0,arrays[0][-1],0.0,max(dissipation_goldstein(arrays[0])[-1],vort_48[-1],vort_les48[-1],vort_dynles48[-1])])
   pylab.savefig("vortex_dissipation.pdf")
-  pylab.close()
   return
 
 def print_dims(arrays):

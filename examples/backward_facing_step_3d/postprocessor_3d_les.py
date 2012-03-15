@@ -7,6 +7,7 @@ import vtktools
 import numpy
 import pylab
 import re
+import extract_data
 from math import log
 
 def get_filelist(sample, start):
@@ -15,7 +16,7 @@ def get_filelist(sample, start):
         return int(s.split('_')[-1].split('.')[0])
    
     list = glob.glob("*vtu")
-    list = [l for l in list if 'check' not in l]
+    list = [l for l in list if 'checkpoint' not in l]
     vtu_nos = [float(s.split('_')[-1].split('.')[0]) for s in list]
     vals = zip(vtu_nos, list)
     vals.sort()
@@ -93,7 +94,7 @@ def reatt_length(filelist, zarray):
     ##### Get time for plot:
     t = min(datafile.GetScalarField("Time"))
     print file, ', elapsed time = ', t
-    if(t<20.):
+    if(t<200.):
       continue
     else:
       print "extracting data..."
@@ -108,11 +109,55 @@ def reatt_length(filelist, zarray):
 
       x2array = numpy.array(x2array)
       pts = numpy.array(pts)
+      ##### Get x-velocity on bottom boundary (instantaneous velocity):
+      uvw = datafile.ProbeData(pts, "Velocity")
+      u = uvw[:,0]
+      u = u.reshape([x2array.size,zarray.size])
+      pts=pts.reshape([x2array.size,zarray.size,3])
 
-      ##### Get x-velocity on bottom boundary
+      ##### experimental contour-value extraction:
+      x3=numpy.linspace(0.,20.,100)
+      y3=numpy.linspace(0.,1.2,20)
+      z3=zarray
+      pts3=[]
+      pts3=[(x3[i],y3[j],z3[k]) for i in range(len(x3)) for j in range(len(y3)) for k in range(len(z3))]
+      pts3=numpy.array(pts3)
+      #print 'pts3 shape: ', pts3.shape
+      #uvw3=datafile.ProbeData(pts3, "Velocity")
+      #contour=datafile.generate_values(0,1.,2.)
+
+      #return
+
+      ##### Find all potential reattachment points:
+      points = []
+      for j in range(len(u[0,:])):
+        for i in range(len(u[:,0])-1):
+          #print 'xyz: ', pts[i,j,:]
+          #print 'u1,u2: ', u[i,j], u[i+1,j]
+          ##### Hack to ignore division by zero entries in u.
+          ##### All u should be nonzero away from boundary!
+          if((u[i,j] / u[i+1,j]) < 0. and u[i+1,j] > 0.): # and not numpy.isinf(u[i,j] / u[i+1,j])):
+            ##### interpolate between nodes
+            p = x2array[i] + (x2array[i+1]-x2array[i]) * (0.0-u[i,j]) / (u[i+1,j]-u[i,j])
+            ##### Ignore spurious corner points
+            if(p>4.):
+              points.append(p)
+              #print 'p: ', p
+              ##### We have our first point on this plane so...
+              break
+
+      ##### This is the spanwise-averaged reattachment point:
+      if (len(points)>0):
+        avpt1 = sum(points) / len(points)
+      else:
+        avpt1 = 0.0
+      
+      ##### Get x-velocity on bottom boundary (average velocity):
+      pts=pts.reshape([x2array.size*zarray.size,3])
       uvw = datafile.ProbeData(pts, "AverageVelocity")
       u = uvw[:,0]
       u = u.reshape([x2array.size,zarray.size])
+      pts=pts.reshape([x2array.size,zarray.size,3])
 
       ##### Find all potential reattachment points:
       points = []
@@ -120,25 +165,27 @@ def reatt_length(filelist, zarray):
         for i in range(len(u[:,0])-1):
           ##### Hack to ignore division by zero entries in u.
           ##### All u should be nonzero away from boundary!
-          if((u[i,j] / u[i+1,j]) < 0. and u[i+1,j] > 0. and not numpy.isinf(u[i,j] / u[i+1,j])):
+          if((u[i,j] / u[i+1,j]) < 0. and u[i+1,j] > 0.): # and not numpy.isinf(u[i,j] / u[i+1,j])):
             ##### interpolate between nodes
             p = x2array[i] + (x2array[i+1]-x2array[i]) * (0.0-u[i,j]) / (u[i+1,j]-u[i,j])
             ##### Ignore spurious corner points
-            if(p>0.1):
+            if(p>4.):
               points.append(p)
-              print 'p: ', p
+              #print 'xyz,u1,u2: ', pts[i,j,:], u[i,j], u[i+1,j]
+              #print 'pav: ', p
               ##### We have our first point on this plane so...
               break
 
       ##### This is the spanwise-averaged reattachment point:
       if (len(points)>0):
-        avpt = sum(points) / len(points)
+        avpt2 = sum(points) / len(points)
       else:
-        avpt = 0.0
+        avpt2 = 0.0
+      print 'avpt: ', avpt2
+      
       ##### Get time for plot:
       t = min(datafile.GetScalarField("Time"))
-      results.append([avpt,t])
-
+      results.append([avpt1,avpt2,t])
   return results
 
 #########################################################################
@@ -253,8 +300,7 @@ def reynolds_stresses2(filelist,xarray,zarray,yarray):
   t = min(datafile.GetScalarField("Time"))
   print file, ', elapsed time = ', t
 
-  ##### Get instantaneous velocity components
-  uvw   = datafile.ProbeData(pts, "Velocity")
+  ##### Get time-averaged Re stresses
   udash = datafile.ProbeData(pts, "AverageReynoldsStress")
 
   # max velocity for normalising
@@ -282,23 +328,24 @@ def reynolds_stresses2(filelist,xarray,zarray,yarray):
 
 #########################################################################
 
-def plot_length(Re,type,mesh,reattachment_length):
+def plot_length(Re,type,mesh,rl):
   ##### Plot time series of reattachment length using pylab(matplotlib)
 
-  av_length = sum(reattachment_length[:,0]) / len(reattachment_length[:,0])
-  avg = numpy.zeros([len(reattachment_length[:,1])])
+  av_length = sum(rl[:,0]) / len(rl[:,0])
+  avg = numpy.zeros([len(rl[:,0])])
   avg[:] = av_length
-  Lemoinkim = numpy.zeros([len(reattachment_length[:,1])])
+  Lemoinkim = numpy.zeros([len(rl[:,0])])
   Lemoinkim[:]=6.28
 
   plot1 = pylab.figure()
   pylab.title("Time series of reattachment length: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh")
   pylab.xlabel('Time (s)')
   pylab.ylabel('Reattachment Length (L/h)')
-  pylab.plot(reattachment_length[:,1], reattachment_length[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
-  pylab.plot(reattachment_length[:,1], avg, linestyle="dashed")
-  pylab.plot(reattachment_length[:,1], Lemoinkim, linestyle="dashed")
-  pylab.legend(("length (step heights)","av. length","Le-Moin-Kim DNS"), loc="best")
+  pylab.plot(rl[:,2], rl[:,0], marker = 'o', markerfacecolor='white', markersize=6, markeredgecolor='black', linestyle="solid")
+  pylab.plot(rl[:,2], rl[:,1], linestyle="dashed")
+  pylab.plot(rl[:,2], Lemoinkim, linestyle="dashed")
+  pylab.legend(("length (inst. U)","length (av. U)","Le-Moin-Kim DNS"), loc="best")
+  pylab.axis([min(rl[:,2]),max(rl[:,2]),4.,20.])
   pylab.savefig("../reatt_len_3D_"+str(Re)+"_"+str(type)+"_"+str(mesh)+".pdf")
   return
 
@@ -308,21 +355,7 @@ def plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray):
   ##### Plot velocity profiles at different points in inlet region
 
   # get profiles from ERCOFTAC data
-  datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC181-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC181-table.dat"
-  # ignore header line
-  for line in range(1):
-    datafile.readline()
-  
-  y=[];U=[];uu=[];vv=[];uv=[]
-  for line in datafile:
-    y.append(1.0+float(line.split()[0]))
-    U.append(0.1*float(line.split()[1]))
-    uu.append(float(line.split()[2]))
-    vv.append(float(line.split()[3]))
-    uv.append(float(line.split()[4]))
-
-  #print 'y: ', y
+  y,U,uu,vv,uv = extract_data.ercoftacuplusprofiles()
 
   plot1 = pylab.figure(figsize = (16.5, 8.5))
   pylab.suptitle("Velocity and Reynolds stresses in inflow region: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh", fontsize=20)
@@ -338,7 +371,7 @@ def plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray):
   ax.plot(uu,y, linestyle="dashed")
   ax.plot(vv,y, linestyle="dashed")
   ax.plot(uv,y, linestyle="dashed")
-  pylab.legend(("U/10","(u'u')^1/2","(v'v')^1/2","-10*u'v'","ER U/10","ER (u'u')^1/2","ER (v'v')^1/2","ER -10*u'v'",),loc="upper right")
+  pylab.legend(("U/U0/10","|u'/U0|","|v'/U0|","-10*u'v'/U0^2","ER U/10","ER |u'/U0|","ER |v'/u0|","ER -10*u'v'/U0^2",),loc="upper right")
   ax.set_title('(a) x/h='+str(xarray[0]), fontsize=16)
   #ax.grid("True")
   for tick in ax.xaxis.get_major_ticks():
@@ -391,7 +424,7 @@ def plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray):
     tick.label1.set_fontsize(size)
   pylab.setp(dx.get_yticklabels(), visible=False)
 
-  pylab.axis([-0.01, 0.11, 1., 2.])
+  #pylab.axis([-0.01, 0.11, 1., 6.])
   bx.set_xlabel('Normalised U and Reynolds stresses', fontsize=24)
   ax.set_ylabel('y/h', fontsize=24)
 
@@ -405,81 +438,9 @@ def plot_inlet(Re,type,mesh,vprofiles,rprofiles,xarray,zarray,yarray):
 def plot_meanvelo(Re,type,mesh,vprofiles,xarray,yarray):
 
   # get profiles from ERCOFTAC data
-  datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC360-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC360-table.dat"
-  # ignore header line
-  for line in range(1):
-    datafile.readline()
-  
-  y4=[];U4=[]
-  for line in datafile:
-    y4.append(float(line.split()[0]))
-    U4.append(float(line.split()[1]))
-
-  datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC411-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC411-table.dat"
-  # ignore header line
-  for line in range(1):
-    datafile.readline()
-  
-  y6=[];U6=[]
-  for line in datafile:
-    y6.append(float(line.split()[0]))
-    U6.append(float(line.split()[1]))
-
-  datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC513-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC513-table.dat"
-  # ignore header line
-  for line in range(1):
-    datafile.readline()
-  
-  y10=[];U10=[]
-  for line in datafile:
-    y10.append(float(line.split()[0]))
-    U10.append(float(line.split()[1]))
-
-  datafile = open('../Ercoftac-test31-BFS/BFS-SEM-ERCOFTAC744-table.dat', 'r')
-  print "reading in data from file: BFS-SEM-ERCOFTAC744-table.dat"
-  # ignore header line
-  for line in range(1):
-    datafile.readline()
-  
-  y19=[];U19=[]
-  for line in datafile:
-    y19.append(float(line.split()[0]))
-    U19.append(float(line.split()[1]))
-
-  # get profiles from Le&Moin U graph. x=4
-  Le = open('../Le-profiles/Le-profile1-U-x4.dat', 'r').readlines()
-  Le_u4 = [float(line.split()[0]) for line in Le]
-  Le_y4 = [float(line.split()[1]) for line in Le]
-  jd = open('../Le-profiles/JD-profile1-U-x4.dat', 'r').readlines()
-  jd_u4 = [float(line.split()[0]) for line in jd]
-  jd_y4 = [float(line.split()[1]) for line in jd]
-
-  # get profiles from Le&Moin U graph. x=6
-  Le = open('../Le-profiles/Le-profile1-U-x6.dat', 'r').readlines()
-  Le_u6 = [float(line.split()[0]) for line in Le]
-  Le_y6 = [float(line.split()[1]) for line in Le]
-  jd = open('../Le-profiles/JD-profile1-U-x6.dat', 'r').readlines()
-  jd_u6 = [float(line.split()[0]) for line in jd]
-  jd_y6 = [float(line.split()[1]) for line in jd]
-
-  # get profiles from Le&Moin U graph. x=10
-  Le = open('../Le-profiles/Le-profile1-U-x10.dat', 'r').readlines()
-  Le_u10 = [float(line.split()[0]) for line in Le]
-  Le_y10 = [float(line.split()[1]) for line in Le]
-  jd = open('../Le-profiles/JD-profile1-U-x10.dat', 'r').readlines()
-  jd_u10 = [float(line.split()[0]) for line in jd]
-  jd_y10 = [float(line.split()[1]) for line in jd]
-
-  # get profiles from Le&Moin U graph. x=19
-  Le = open('../Le-profiles/Le-profile1-U-x19.dat', 'r').readlines()
-  Le_u19 = [float(line.split()[0]) for line in Le]
-  Le_y19 = [float(line.split()[1]) for line in Le]
-  jd = open('../Le-profiles/JD-profile1-U-x19.dat', 'r').readlines()
-  jd_u19 = [float(line.split()[0]) for line in jd]
-  jd_y19 = [float(line.split()[1]) for line in jd]
+  y4,U4,y6,U6,y10,U10,y19,U19 = extract_data.ercoftacvelocityprofiles()
+  # get profiles from Le&Moin data
+  Le_y4,Le_u4,jd_y4,jd_u4,Le_y6,Le_u6,jd_y6,jd_u6,Le_y10,Le_u10,jd_y10,jd_u10,Le_y19,Le_u19,jd_y19,jd_u19 = extract_data.velocityprofileslemoin()
 
   ##### Plot velocity profiles at different points behind step using pylab(matplotlib)
   plot1 = pylab.figure(figsize = (16.5, 8.5))
@@ -593,52 +554,10 @@ def plot_reynolds_stresses2(Re,type,mesh,rprofiles,xarray,zarray,yarray):
   plot1 = pylab.figure(figsize = (16.5, 8.5))
   pylab.suptitle("Time-averaged Reynolds stress profiles: Re="+str(Re)+", "+str(type)+", "+str(mesh)+" mesh", fontsize=20)
 
-  # get profiles from Le&Moin graphs. x=4
-  Le_uu4 = open('../Le-profiles/Le-profile1-uu-x4.dat', 'r').readlines()
-  rs_uu4 = [float(line.split()[0]) for line in Le_uu4]
-  y_uu4 = [float(line.split()[1]) for line in Le_uu4]
-  Le_vv4 = open('../Le-profiles/Le-profile1-vv-x4.dat', 'r').readlines()
-  rs_vv4 = [float(line.split()[0]) for line in Le_vv4]
-  y_vv4 = [float(line.split()[1]) for line in Le_vv4]
-  Le_uv4 = open('../Le-profiles/Le-profile1-uv-x4.dat', 'r').readlines()
-  rs_uv4 = [float(line.split()[0]) for line in Le_uv4]
-  y_uv4 = [float(line.split()[1]) for line in Le_uv4]
-
-  # get profiles from Le&Moin graphs. x=6
-  Le_uu6 = open('../Le-profiles/Le-profile1-uu-x6.dat', 'r').readlines()
-  rs_uu6 = [float(line.split()[0]) for line in Le_uu6]
-  y_uu6 = [float(line.split()[1]) for line in Le_uu6]
-  Le_vv6 = open('../Le-profiles/Le-profile1-vv-x6.dat', 'r').readlines()
-  rs_vv6 = [float(line.split()[0]) for line in Le_vv6]
-  y_vv6 = [float(line.split()[1]) for line in Le_vv6]
-  Le_uv6 = open('../Le-profiles/Le-profile1-uv-x6.dat', 'r').readlines()
-  rs_uv6 = [float(line.split()[0]) for line in Le_uv6]
-  y_uv6 = [float(line.split()[1]) for line in Le_uv6]
-
-  # get profiles from Le&Moin graphs. x=10
-  Le_uu10 = open('../Le-profiles/Le-profile1-uu-x10.dat', 'r').readlines()
-  rs_uu10 = [float(line.split()[0]) for line in Le_uu10]
-  y_uu10 = [float(line.split()[1]) for line in Le_uu10]
-  Le_vv10 = open('../Le-profiles/Le-profile1-vv-x10.dat', 'r').readlines()
-  rs_vv10 = [float(line.split()[0]) for line in Le_vv10]
-  y_vv10 = [float(line.split()[1]) for line in Le_vv10]
-  Le_uv10 = open('../Le-profiles/Le-profile1-uv-x10.dat', 'r').readlines()
-  rs_uv10 = [float(line.split()[0]) for line in Le_uv10]
-  y_uv10 = [float(line.split()[1]) for line in Le_uv10]
-
-  # get profiles from Le&Moin graphs. x=19
-  Le_uu19 = open('../Le-profiles/Le-profile1-uu-x19.dat', 'r').readlines()
-  rs_uu19 = [float(line.split()[0]) for line in Le_uu19]
-  y_uu19 = [float(line.split()[1]) for line in Le_uu19]
-  Le_vv19 = open('../Le-profiles/Le-profile1-vv-x19.dat', 'r').readlines()
-  rs_vv19 = [float(line.split()[0]) for line in Le_vv19]
-  y_vv19 = [float(line.split()[1]) for line in Le_vv19]
-  Le_uv19 = open('../Le-profiles/Le-profile1-uv-x19.dat', 'r').readlines()
-  rs_uv19 = [float(line.split()[0]) for line in Le_uv19]
-  y_uv19 = [float(line.split()[1]) for line in Le_uv19]
+  # get profiles from Le&Moin graphs.
+  y_uu4,rs_uu4,y_vv4,rs_vv4,y_uv4,rs_uv4,y_uu6,rs_uu6,y_vv6,rs_vv6,y_uv6,rs_uv6,y_uu10,rs_uu10,y_vv10,rs_vv10,y_uv10,rs_uv10,y_uu19,rs_uu19,y_vv19,rs_vv19,y_uv19,rs_uv19 = extract_data.restresseslemoin()
 
   size = 15
-
   ax = pylab.subplot(141)
   ax.plot(rprofiles[0,:,0],yarray, linestyle="solid")
   ax.plot(rprofiles[0,:,1],yarray, linestyle="solid")
@@ -710,23 +629,23 @@ def main():
     print "Re, bc type, mesh: ", Re, type, mesh
 
     ##### Only process every nth file by taking integer multiples of n:
-    filelist = get_filelist(sample=1, start=7)
+    filelist = get_filelist(sample=1, start=1)
 
     ##### Points to generate profiles:
     xarray = numpy.array([4.0, 6.0, 10.0, 19.0])
-    zarray = numpy.array([0.2, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.8])
+    zarray = numpy.linspace(0.1,3.9,39)
     yarray = numpy.array([0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.21,0.22,0.23,0.24,0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5.0])
 
     ##### Call reattachment_length function
     reattachment_length = numpy.array(reatt_length(filelist, zarray))
     numpy.save("../numpy_data/reatt_len_"+str(Re)+"_"+str(type)+"_"+str(mesh), reattachment_length)
     plot_length(Re,type,mesh,reattachment_length)
-
+    #return
     ##### Call meanvelo function
-    zarray = numpy.array([2.0])
     vprofiles = meanvelo(filelist, xarray, zarray, yarray)
     numpy.save("../numpy_data/mean_velo_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
     print "Showing plot of velocity profiles."
+    zarray = numpy.array([2.0])
     plot_meanvelo(Re,type,mesh,vprofiles,xarray,yarray)
     # points used by Le & Moin in U+ plot:
     xarray=numpy.array([10.0,12.5,15.0,17.5,19.0])
@@ -743,9 +662,8 @@ def main():
 
     ##### Plot inlet region
     xarray = numpy.array([-10.0, -7.0, -3.0, 0.0])
-    yarray = numpy.array([1.0,1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1,1.11,1.12,1.13,1.14,1.15,1.16,1.17,1.18,1.19,1.2,1.21,1.22,1.23,1.24,1.25,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.5,4.6,4.7,4.8,4.9,5.0])
+    yarray = numpy.array([1.0,1.01,1.02,1.03,1.04,1.05,1.06,1.07,1.08,1.09,1.1,1.11,1.12,1.13,1.14,1.15,1.16,1.17,1.18,1.19,1.2,1.21,1.22,1.23,1.24,1.25,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.5,4.6,4.7,4.8,4.9,5.0,5.1,5.2,5.3,5.4,5.5,5.6,5.7,5.8,5.9,6.0])
     rprofiles = reynolds_stresses2(filelist, xarray, zarray, yarray)
-    zarray = numpy.array([0.1, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 3.9])
     vprofiles = meanvelo(filelist, xarray, zarray, yarray)
     numpy.save("../numpy_data/inlet_profiles_"+str(Re)+"_"+str(type)+"_"+str(mesh), vprofiles)
     print "Showing plot of inlet profiles."

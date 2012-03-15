@@ -1,7 +1,8 @@
 BIN=../../../bin
 SCRIPTS=../../../scripts
 RE=5100
-JOB=keps-high-log-sem-periodic
+JOB=dynles-lilly-sem-periodic
+NN=coarse
 preprocess:
 	@if [ "x" == "x${NPROCS}" ]; then echo "**********ERROR: Please define NPROCS to set the number of processors to use"; false; fi;
 	@$(foreach NN,coarse , \
@@ -62,7 +63,7 @@ run-periodic:
 
 postprocess:
 	@echo **********Calling the velocity data extraction and plotting python script:
-	@$(foreach NN, fine, \
+	@$(foreach NN, coarse med fine, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d.py .; \
 		./postprocessor_3d.py $(RE) $(JOB) $(NN); \
@@ -71,7 +72,7 @@ postprocess:
 
 postprocess-les:
 	@echo **********Calling the LES velocity data extraction and plotting python script:
-	@$(foreach NN, fine, \
+	@$(foreach NN,coarse, \
 		cd $(RE)-$(JOB)-$(NN); \
 		ln -s ../postprocessor_3d_les.py .; \
 		./postprocessor_3d_les.py $(RE) $(JOB) $(NN); \
@@ -90,7 +91,7 @@ clean:
 
 space:
 	@$(foreach N,1 2 3 4 5 6 7 8 9, \
-		rm -r 5100-*/backward_facing_step_3d*_*$(N); \
+		rm -r $(RE)-$(JOB)-$(NN)/backward_facing_step_3d*_*$(N); \
 		rm 5100-*/backward_facing_step_3d*_*$(N).pvtu; \
 	)
 
