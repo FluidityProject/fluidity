@@ -13,102 +13,89 @@ from fluidity_tools import stat_parser as stat
 from math import log, pi
 from vortex_tools import plot_dissipation
 from vortex_tools import dissipation_goldstein
+from vortex_tools import print_dims, normalise
+from vortex_tools import plot_velo
 import numpy
 
-vort_12 = stat("taylor-green-vortex-3d-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_12 = stat("taylor-green-vortex-3d-12.stat")["ElapsedTime"]["value"]
-vort_24 = stat("taylor-green-vortex-3d-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_24 = stat("taylor-green-vortex-3d-24.stat")["ElapsedTime"]["value"]
-vort_48 = stat("taylor-green-vortex-3d-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_48 = stat("taylor-green-vortex-3d-48.stat")["ElapsedTime"]["value"]
-vort_les_12 = stat("taylor-green-vortex-3d-les-c0.04-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_les_12 = stat("taylor-green-vortex-3d-les-12.stat")["ElapsedTime"]["value"]
-vort_les_24 = stat("taylor-green-vortex-3d-les-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_les_24 = stat("taylor-green-vortex-3d-les-24.stat")["ElapsedTime"]["value"]
-vort_les_48 = stat("taylor-green-vortex-3d-les-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_les_48 = stat("taylor-green-vortex-3d-les-48.stat")["ElapsedTime"]["value"]
-vort_dynles_12 = stat("taylor-green-vortex-3d-dynles-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynles_12 = stat("taylor-green-vortex-3d-dynles-12.stat")["ElapsedTime"]["value"]
-vort_dynlesa_12 = stat("taylor-green-vortex-3d-dynles-aniso-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa_12 = stat("taylor-green-vortex-3d-dynles-aniso-12.stat")["ElapsedTime"]["value"]
-vort_dynlesa1_12 = stat("taylor-green-vortex-3d-dynles-a1-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa1_12 = stat("taylor-green-vortex-3d-dynles-a1-12.stat")["ElapsedTime"]["value"]
-vort_dynlesa1a_12 = stat("taylor-green-vortex-3d-dynles-aniso-a1-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa1a_12 = stat("taylor-green-vortex-3d-dynles-aniso-a1-12.stat")["ElapsedTime"]["value"]
-vort_dynlesa1b1_12 = stat("taylor-green-vortex-3d-dynles-a1b1-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa1b1_12 = stat("taylor-green-vortex-3d-dynles-a1b1-12.stat")["ElapsedTime"]["value"]
-vort_dynlesn_12 = stat("taylor-green-vortex-3d-dynles-nolimc-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesn_12 = stat("taylor-green-vortex-3d-dynles-nolimc-12.stat")["ElapsedTime"]["value"]
-vort_dynles_24 = stat("taylor-green-vortex-3d-dynles-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynles_24 = stat("taylor-green-vortex-3d-dynles-24.stat")["ElapsedTime"]["value"]
-vort_dynlesa_24 = stat("taylor-green-vortex-3d-dynles-aniso-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa_24 = stat("taylor-green-vortex-3d-dynles-aniso-24.stat")["ElapsedTime"]["value"]
-vort_dynlesa1_24 = stat("taylor-green-vortex-3d-dynles-a1-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa1_24 = stat("taylor-green-vortex-3d-dynles-a1-24.stat")["ElapsedTime"]["value"]
-vort_dynlesa1b1_24 = stat("taylor-green-vortex-3d-dynles-a1b1-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa1b1_24 = stat("taylor-green-vortex-3d-dynles-a1b1-24.stat")["ElapsedTime"]["value"]
-vort_dynlesa1a_24 = stat("taylor-green-vortex-3d-dynles-aniso-a1-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa1a_24 = stat("taylor-green-vortex-3d-dynles-aniso-a1-24.stat")["ElapsedTime"]["value"]
-vort_dynles_48 = stat("taylor-green-vortex-3d-dynles-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynles_48 = stat("taylor-green-vortex-3d-dynles-48.stat")["ElapsedTime"]["value"]
-vort_dynlesa_48 = stat("taylor-green-vortex-3d-dynles-aniso-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa_48 = stat("taylor-green-vortex-3d-dynles-aniso-48.stat")["ElapsedTime"]["value"]
-vort_dynlesa1_48 = stat("taylor-green-vortex-3d-dynles-a1-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa1_48 = stat("taylor-green-vortex-3d-dynles-a1-48.stat")["ElapsedTime"]["value"]
-vort_dynlesa1b1_48 = stat("taylor-green-vortex-3d-dynles-a1b1-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"]
-time_dynlesa1b1_48 = stat("taylor-green-vortex-3d-dynles-a1b1-48.stat")["ElapsedTime"]["value"]
+# background viscosity
+nu=0.01
 
 # vorticity L2 norm = sqrt(vort_x**2+vort_y**2+vort_z**2)
 # volume-average dissipation rate = nu*(vort_x**2+vort_y**2+vort_z**2)/volume
-nu=0.01
-vort_12 = nu*vort_12**2/(2*pi)**3
-vort_24 = nu*vort_24**2/(2*pi)**3
-vort_48 = nu*vort_48**2/(2*pi)**3
-vort_les_12 = nu*vort_les_12**2/(2*pi)**3
-vort_les_24 = nu*vort_les_24**2/(2*pi)**3
-vort_les_48 = nu*vort_les_48**2/(2*pi)**3
-vort_dynles_12 = nu*vort_dynles_12**2/(2*pi)**3
-vort_dynlesa_12 = nu*vort_dynlesa_12**2/(2*pi)**3
-vort_dynlesa1_12 = nu*vort_dynlesa1_12**2/(2*pi)**3
-vort_dynlesa1a_12 = nu*vort_dynlesa1a_12**2/(2*pi)**3
-vort_dynlesa1b1_12 = nu*vort_dynlesa1b1_12**2/(2*pi)**3
-vort_dynlesn_12 = nu*vort_dynlesn_12**2/(2*pi)**3
-vort_dynles_24 = nu*vort_dynles_24**2/(2*pi)**3
-vort_dynlesa_24 = nu*vort_dynlesa_24**2/(2*pi)**3
-vort_dynlesa1_24 = nu*vort_dynlesa1_24**2/(2*pi)**3
-vort_dynlesa1a_24 = nu*vort_dynlesa1a_24**2/(2*pi)**3
-vort_dynlesa1b1_24 = nu*vort_dynlesa1b1_24**2/(2*pi)**3
-vort_dynles_48 = nu*vort_dynles_48**2/(2*pi)**3
-vort_dynlesa_48 = nu*vort_dynlesa_48**2/(2*pi)**3
-vort_dynlesa1_48 = nu*vort_dynlesa1_48**2/(2*pi)**3
-vort_dynlesa1b1_48 = nu*vort_dynlesa1b1_48**2/(2*pi)**3
 
-plot_dissipation(vort_12,time_12,vort_24,time_24,vort_48,time_48,
-vort_les_12,time_les_12,vort_les_24,time_les_24,vort_les_48,time_les_48,
-vort_dynles_12,time_dynles_12,vort_dynles_24,time_dynles_24,vort_dynles_48,time_dynles_48,
-vort_dynlesa_12,time_dynlesa_12,vort_dynlesa_24,time_dynlesa_24,vort_dynlesa_48,time_dynlesa_48,
-vort_dynlesa1_12,time_dynlesa1_12,vort_dynlesa1_24,time_dynlesa1_24,vort_dynlesa1_48,time_dynlesa1_48,
-vort_dynlesa1a_12,time_dynlesa1a_12,vort_dynlesa1a_24,time_dynlesa1a_24,
-vort_dynlesa1b1_12,time_dynlesa1b1_12,vort_dynlesa1b1_24,time_dynlesa1b1_24,vort_dynlesa1b1_48,time_dynlesa1b1_48,
-vort_dynlesn_12,time_dynlesn_12)
+time_12 = stat("taylor-green-vortex-3d-12.stat")["ElapsedTime"]["value"]
+
+vort_12 = stat("taylor-green-vortex-3d-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_24 = stat("taylor-green-vortex-3d-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_48 = stat("taylor-green-vortex-3d-48.stat")["Fluid"]["DissipationRate"]["l2norm"]
+
+vort_les_12 = stat("taylor-green-vortex-3d-les-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_les_24 = stat("taylor-green-vortex-3d-les-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_les_48 = (stat("taylor-green-vortex-3d-les-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+
+vort_dynles_12 = stat("taylor-green-vortex-3d-dynles-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesa_12 = stat("taylor-green-vortex-3d-dynles-aniso-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesa1_12 = (stat("taylor-green-vortex-3d-dynles-a1-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesa1a_12 = stat("taylor-green-vortex-3d-dynles-aniso-a1-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesa1b1_12 = (stat("taylor-green-vortex-3d-dynles-a1b1-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesn_12 = stat("taylor-green-vortex-3d-dynles-nolimc-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesau_12 = (stat("taylor-green-vortex-3d-dynles-aniso-uns-12.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynles_24 = stat("taylor-green-vortex-3d-dynles-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesa_24 = stat("taylor-green-vortex-3d-dynles-aniso-24.stat")["Fluid"]["DissipationRate"]["l2norm"]
+vort_dynlesa1_24 = (stat("taylor-green-vortex-3d-dynles-a1-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesa1b1_24 = (stat("taylor-green-vortex-3d-dynles-a1b1-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesa1a_24 = (stat("taylor-green-vortex-3d-dynles-aniso-a1-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesana1_24 = (stat("taylor-green-vortex-3d-dynles-aniso-nolimc-a1-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesau_24 = (stat("taylor-green-vortex-3d-dynles-aniso-uns-24.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynles_48 = (stat("taylor-green-vortex-3d-dynles-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesa_48 = (stat("taylor-green-vortex-3d-dynles-aniso-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesa1a_48 = (stat("taylor-green-vortex-3d-dynles-aniso-a1-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesan_48 = (stat("taylor-green-vortex-3d-dynles-aniso-nolimc-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+vort_dynlesana1_48 = (stat("taylor-green-vortex-3d-dynles-aniso-nolimc-a1-48.stat")["Fluid"]["Vorticity%magnitude"]["l2norm"])**2.*nu/(2.*pi)**3
+
+vort_an_12 = stat("taylor-green-vortex-3d-analytical-12.stat")["Fluid"]["DissipationRate"]["l2norm"]
+
+# Finally, plot the normalised dissipation rates vs. theory:
+arrays=(time_12,vort_12,vort_24,vort_48,
+vort_les_12,vort_les_24,vort_les_48,
+vort_dynles_12,vort_dynles_24,vort_dynles_48,
+vort_dynlesa_12,vort_dynlesa_24,vort_dynlesa_48,
+vort_dynlesa1_12,vort_dynlesa1_24,
+vort_dynlesa1a_12,vort_dynlesa1a_24,
+vort_dynlesa1b1_12,vort_dynlesa1b1_24,
+vort_dynlesn_12,vort_an_12)
+
+#print_dims(arrays)
+normalise(arrays)
+plot_dissipation(arrays)
+pt=([1,1,1])
+time=numpy.linspace(0.,100.,100)
+plot_velo(pt,time)
 
 # Integral over time
+int_vort_12=0.
+for i in range(len(time_12)):
+  add=vort_12[i]*time_12[i]
+  int_vort_12+=add
+  print int_vort_12
+
 int_vort_12 = sum(vort_12*time_12)
-int_vort_24 = sum(vort_24*time_24)
-int_vort_48 = sum(vort_48*time_48)
-int_vort_dynles_12 = sum(vort_dynles_12*time_dynles_12)
-int_vort_dynles_24 = sum(vort_dynles_24*time_dynles_24)
-int_vort_dynles_48 = sum(vort_dynles_48*time_dynles_48)
-int_vort_dynlesa_12 = sum(vort_dynlesa_12*time_dynlesa_12)
-int_vort_dynlesa_24 = sum(vort_dynlesa_24*time_dynlesa_24)
-int_vort_dynlesa_48 = sum(vort_dynlesa_48*time_dynlesa_48)
-int_vort_dynlesa1_12 = sum(vort_dynlesa1_12*time_dynlesa1_12)
-int_vort_dynlesa1_24 = sum(vort_dynlesa1_24*time_dynlesa1_24)
-int_vort_dynlesa1_48 = sum(vort_dynlesa1_48*time_dynlesa1_48)
+int_vort_24 = sum(vort_24*time_12)
+int_vort_48 = sum(vort_48*time_12)
+int_vort_dynles_12 = sum(vort_dynles_12*time_12)
+int_vort_dynles_24 = sum(vort_dynles_24*time_12)
+int_vort_dynles_48 = sum(vort_dynles_48*time_12)
+int_vort_dynlesa_12 = sum(vort_dynlesa_12*time_12)
+int_vort_dynlesa_24 = sum(vort_dynlesa_24*time_12)
+int_vort_dynlesa_48 = sum(vort_dynlesa_48*time_12)
+#int_vort_dynlesa1_12 = sum(vort_dynlesa1_12*time_12)
+#int_vort_dynlesa1_24 = sum(vort_dynlesa1_24*time_12)
+#int_vort_dynlesa1_48 = sum(vort_dynlesa1_48*time_12)
+print int_vort_12,int_vort_24,int_vort_48,int_vort_dynles_12,int_vort_dynles_24,int_vort_dynles_48,int_vort_dynlesa_12,int_vort_dynlesa_24,int_vort_dynlesa_48
 
 # Analytical solution
-goldstein = dissipation_goldstein(time_dynles_12)
-int_gold = sum(goldstein*time_dynles_12)
+goldstein = dissipation_goldstein(time_12,nu)
+int_gold = sum(goldstein*time_12)
 
 # Convergence
 conv_12_24 = abs((int_vort_12-int_gold)/(int_vort_24-int_gold))
@@ -126,8 +113,8 @@ print 'conv_dynlesa_12_24 ', conv_dynlesa_12_24
 conv_dynlesa_24_48 = abs((int_vort_dynlesa_24-int_gold)/(int_vort_dynlesa_48-int_gold))
 print 'conv_dynlesa_24_48 ', conv_dynlesa_24_48
 
-conv_dynlesa1_12_24 = abs((int_vort_dynlesa1_12-int_gold)/(int_vort_dynlesa1_24-int_gold))
-print 'conv_dynlesa1_12_24 ', conv_dynlesa1_12_24
+#conv_dynlesa1_12_24 = abs((int_vort_dynlesa1_12-int_gold)/(int_vort_dynlesa1_24-int_gold))
+#print 'conv_dynlesa1_12_24 ', conv_dynlesa1_12_24
 #conv_dynlesa1_24_48 = abs((int_vort_dynlesa1_24-int_gold)/(int_vort_dynlesa1_48-int_gold))
 #print 'conv_dynlesa1_24_48 ', conv_dynlesa1_24_48
 
