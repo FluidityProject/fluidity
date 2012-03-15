@@ -72,7 +72,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="python">def val(t):
+          <string_value lines="20" type="code" language="python">def val(t):
   import numpy
   start = numpy.array([0, 0])
   end = numpy.array([210000, -210000])
@@ -88,7 +88,7 @@
         </number_of_detectors>
         <static/>
         <python>
-          <string_value lines="20" type="python">def val(t):
+          <string_value lines="20" type="code" language="python">def val(t):
   output1 = []
   for i in range(12):
     for j in range(12):
@@ -296,7 +296,7 @@
             <integer_value shape="1" rank="1">30</integer_value>
           </region_ids>
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
         from math import sqrt
         vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
         vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
@@ -311,7 +311,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
   
    	from math import sqrt, atan, cos, sin, pi
 
@@ -348,7 +348,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
   
    	from math import sqrt, atan, cos, sin, pi
 
@@ -413,7 +413,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
         from math import sqrt
         vx = sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
         return vx</string_value>
@@ -421,7 +421,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
         from math import sqrt
         vy = -sqrt(((0.05/(3600.*24.*365.))**2.)/2.)
         return vy</string_value>
@@ -513,7 +513,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(x, t):
+            <string_value lines="20" type="code" language="python">def val(x, t):
 	T = 273.
 	return T</string_value>
           </python>
@@ -544,7 +544,7 @@
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="python">def val(X, t):
+              <string_value lines="20" type="code" language="python">def val(X, t):
 
 	import math
 
@@ -582,7 +582,7 @@
           </surface_ids>
           <type name="dirichlet">
             <python>
-              <string_value lines="20" type="python">def val(X, t):
+              <string_value lines="20" type="code" language="python">def val(X, t):
    	Depth = X[1] * -1.
    	T = 273. + (Depth*0.026)
 	return T</string_value>

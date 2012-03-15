@@ -117,7 +117,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sqrt, pi, exp
   x = X[0]
   nu = 0.025
@@ -190,7 +190,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sqrt, pi, exp, cos, sin
   x = X[0]
   y = X[1]
@@ -210,7 +210,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sqrt, pi, exp, cos
   x = X[0]
   y = X[1]
@@ -221,7 +221,7 @@
               </x_component>
               <y_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sqrt, pi, exp, sin
   x = X[0]
   y = X[1]
@@ -289,7 +289,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sqrt, pi, exp
   x = X[0]
   y = X[1]
@@ -344,7 +344,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   from math import sqrt, pi, exp, cos, sin
   x = X[0]
   y = X[1]
