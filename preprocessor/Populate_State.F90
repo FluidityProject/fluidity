@@ -174,7 +174,7 @@ contains
     character(len=OPTION_PATH_LEN) :: mesh_path, mesh_file_name,&
          & mesh_file_format, from_file_path
     integer, dimension(:), pointer :: coplanar_ids
-    integer, dimension(3) :: mesh_dims_send, mesh_dims_recv
+    integer, dimension(3) :: mesh_dims
     integer :: i, j, nmeshes, nstates, quad_degree, stat
     type(element_type), pointer :: shape
     type(quadrature_type), pointer :: quad
@@ -276,16 +276,18 @@ contains
 
           if (no_active_processes /= getnprocs()) then
             ! not all processes are active, they need to be told the mesh dimensions
-            if (is_active_process) then
-              mesh_dims_send(1)=dim
-              mesh_dims_send(2)=loc
-              mesh_dims_send(3)=column_ids
-            end if
 
             ! receive the mesh dimension from rank 0 (which should always be active)
-            call MPI_Scatter(mesh_dims_send, 3, getpinteger(), &
-              mesh_dims_recv, 3, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
-
+            if (getrank()==0) then
+              mesh_dims(1)=mesh_dim(mesh)
+              mesh_dims(2)=ele_loc(mesh,1)
+              if (associated(mesh%columns)) then
+                mesh_dims(3)=1
+              else
+                mesh_dims(3)=0
+              end if
+            end if
+            call MPI_bcast(mesh_dims, 3, getpinteger(), 0, MPI_COMM_FEMTOOLS, stat)
           end if
 
           
@@ -294,9 +296,9 @@ contains
             ! see the comment in Global_Parameters. In this block, 
             ! we want to allocate an empty mesh and positions.
 
-            dim=mesh_dims_recv(1)
-            loc=mesh_dims_recv(2)
-            column_ids=mesh_dims_recv(3)
+            dim=mesh_dims(1)
+            loc=mesh_dims(2)
+            column_ids=mesh_dims(3)
 
             allocate(quad)
             allocate(shape)
