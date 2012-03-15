@@ -17,7 +17,7 @@ args = parser.parse_args()
 scale_factor=args.scale_factor
 print "Scale by a factor of", scale_factor
 
-R_earth = 6.37101e+06
+R_geoid = 6.37101e+06
 
 for vtu in range(size(args.input_vtu)):
     vtu_name=args.input_vtu[vtu]
@@ -26,13 +26,12 @@ for vtu in range(size(args.input_vtu)):
     print "Done importing ", vtu_name
 
     npoints = vtu_object.ugrid.GetNumberOfPoints()
-    dist = vtu_object.GetScalarField('DistanceToTop')
     for i in range(npoints):
         (x,y,z) = vtu_object.ugrid.GetPoint(i)
         radius = sqrt( x**2 + y**2 + z**2 )
         theta = arccos(z/radius)
         phi = arctan(y/x)
-        new_radius=R_earth - dist[i]*scale_factor
+        new_radius= R_geoid - (R_geoid - radius)*scale_factor
         new_x=new_radius*sin(theta)*cos(phi)
         new_y=new_radius*sin(theta)*sin(phi)
         new_z=new_radius*cos(theta)
