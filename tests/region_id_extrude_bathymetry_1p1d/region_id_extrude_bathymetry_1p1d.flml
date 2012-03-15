@@ -20,7 +20,7 @@
             </region_ids>
             <bottom_depth>
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
    return X[0]+400.0</string_value>
               </python>
             </bottom_depth>
@@ -63,7 +63,7 @@
             </region_ids>
             <bottom_depth>
               <python>
-                <string_value lines="20" type="python">def val(X,t):
+                <string_value lines="20" type="code" language="python">def val(X,t):
   return -X[0]+10000.0+6400.0</string_value>
               </python>
             </bottom_depth>

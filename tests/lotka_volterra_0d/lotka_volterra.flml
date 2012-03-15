@@ -259,7 +259,7 @@
   <ocean_biology>
     <pznd>
       <source_and_sink_algorithm>
-        <string_value lines="20" type="python">import fluidity.ocean_biology as biology
+        <string_value lines="20" type="code" language="python">import fluidity.ocean_biology as biology
 
 p={}
 p["alpha"]=.1
