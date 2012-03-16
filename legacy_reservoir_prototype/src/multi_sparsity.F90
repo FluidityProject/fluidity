@@ -669,6 +669,8 @@
       ! From matrix write COLM, FINDRM and CENTRM
       ! linked list as we go
       ptr = 1
+      ewrite(3,*),'nonods2=',nonods2
+       
       Loop_Irow: do irow = 1, nonods2
          findrm( irow ) = ptr
          centrm( irow ) = -1
@@ -982,10 +984,11 @@
       integer, dimension( cv_nonods ), intent( inout ) :: midacv_loc
       ! Local variables
       logical, dimension( : ), allocatable :: found, x_share
-      logical, dimension( :, : ), allocatable :: cv_on_face, u_on_face
+      logical, dimension( :, : ), allocatable :: cv_on_face, u_on_face, &
+                                       cvfem_on_face, ufem_on_face
       integer, dimension( : ), allocatable :: findgpts, colgpts, cv_other_loc, &
            u_other_loc, mat_other_loc
-      integer, dimension( :, : ), allocatable :: cv_neiloc, cv_sloclist, u_sloclist
+      integer, dimension( :, : ), allocatable :: cv_neiloc, cvfem_neiloc, cv_sloclist, u_sloclist
       real, dimension( : ), allocatable :: cvweight, cvweight_short, scvfeweight, &
            sbcvfeweigh, sele_overlap_scale
       real, dimension( :, : ),allocatable :: cvn, cvn_short, cvfen, cvfenlx, cvfenly, &
@@ -1003,8 +1006,11 @@
       ! Computing Gauss points and array containing node points on neighboors elements
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
-      allocate( cv_neiloc( cv_nloc, scvngi ) ) ; cv_neiloc = 0
-      call volnei( cv_neiloc, cv_nloc, scvngi, cv_ele_type )
+      allocate( cv_neiloc( cv_nloc, scvngi ) ) 
+      allocate( cvfem_neiloc( cv_nloc, scvngi ) ) 
+!!      allocate( cv_neiloc( cv_nloc, scvngi ) ) ; cv_neiloc = 0
+!!      allocate( cvfem_neiloc( cv_nloc, scvngi ) ) ; cvfem_neiloc = 0
+!!!      call volnei( cv_neiloc, cvfem_neiloc, cv_nloc, scvngi, cv_ele_type )
 
       ! Allocating space
       allocate( found( ncolm ) )
@@ -1025,6 +1031,7 @@
       allocate( ufenly( u_nloc, cv_ngi ) )
       allocate( ufenlz( u_nloc, cv_ngi ) )
       allocate( cv_on_face( cv_nloc, scvngi ) )
+      allocate( cvfem_on_face( cv_nloc, scvngi ) )
       allocate( scvfen( cv_nloc, scvngi ) )
       allocate( scvfenslx( cv_nloc, scvngi ) )
       allocate( scvfensly( cv_nloc, scvngi ) )
@@ -1039,6 +1046,7 @@
       allocate( sufenly( u_nloc, scvngi ) )
       allocate( sufenlz( u_nloc, scvngi ) )
       allocate( u_on_face( u_nloc, scvngi ) )
+      allocate( ufem_on_face( u_nloc, scvngi ) )
       allocate( sbcvfen( cv_snloc, sbcvngi ) )
       allocate( sbcvfenslx( cv_snloc, sbcvngi ) )
       allocate( sbcvfensly( cv_snloc, sbcvngi ) )
@@ -1061,6 +1069,32 @@
       allocate( mat_other_loc( mat_nloc ) )
       allocate( x_share( x_nonods ) )
       allocate( sele_overlap_scale( cv_nloc ) )
+
+      ncolgpts = 0 ; colgpts = 0 ; findgpts = 0
+      call cv_fem_shape_funs( &
+           ndim, cv_ele_type, &
+           cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn, cvn_short, &
+                                ! Volume shape functions
+           cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
+           cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
+           ufen, ufenlx, ufenly, ufenlz, &
+                                ! Surface of each CV shape functions
+           scvngi, cv_neiloc, cv_on_face, cvfem_on_face,&
+           scvfen, scvfenslx, scvfensly, scvfeweight, &
+           scvfenlx, scvfenly, scvfenlz, &
+           sufen, sufenslx, sufensly, &
+           sufenlx, sufenly, sufenlz, &
+                                ! Surface element shape funcs
+           u_on_face,ufem_on_face, nface, &
+           sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
+           sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz, &
+           cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
+                                ! Define the gauss points that lie on the surface of the CV
+           findgpts, colgpts, ncolgpts, &
+           sele_overlap_scale )   
+      ewrite(3,*)'findgpts:', size( findgpts ), '==>', findgpts( 1: cv_nloc + 1 )
+      ewrite(3,*)'colgpts:', size( colgpts ), ncolgpts, '==>', colgpts( 1 : ncolgpts )
+
 
       Loop_Elements_1: do ele = 1, totele
          Loop_CVILOC_1: do cv_iloc = 1, cv_nloc
@@ -1092,30 +1126,6 @@
       finacv_loc( cv_nonods + 1 ) = gcount2 + 1
 return
 
-      ncolgpts = 0 ; colgpts = 0 ; findgpts = 0
-      call cv_fem_shape_funs( &
-           ndim, cv_ele_type, &
-           cv_ngi, cv_ngi_short, cv_nloc, u_nloc, cvn, cvn_short, &
-                                ! Volume shape functions
-           cvweight, cvfen, cvfenlx, cvfenly, cvfenlz, &
-           cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
-           ufen, ufenlx, ufenly, ufenlz, &
-                                ! Surface of each CV shape functions
-           scvngi, cv_neiloc, cv_on_face, &
-           scvfen, scvfenslx, scvfensly, scvfeweight, &
-           scvfenlx, scvfenly, scvfenlz, &
-           sufen, sufenslx, sufensly, &
-           sufenlx, sufenly, sufenlz, &
-                                ! Surface element shape funcs
-           u_on_face, nface, &
-           sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
-           sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz, &
-           cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
-                                ! Define the gauss points that lie on the surface of the CV
-           findgpts, colgpts, ncolgpts, &
-           sele_overlap_scale )   
-      ewrite(3,*)'findgpts:', size( findgpts ), '==>', findgpts( 1: cv_nloc + 1 )
-      ewrite(3,*)'colgpts:', size( colgpts ), ncolgpts, '==>', colgpts( 1 : ncolgpts )
 
       x_share = .false.
       count2 = 0
@@ -1135,7 +1145,7 @@ return
                   call find_other_side( cv_other_loc, cv_nloc, cv_nodi, u_other_loc, u_nloc, &
                        mat_other_loc, mat_nloc, integrat_at_gi, &
                        totele, x_nloc, xu_nloc, x_ndgln, cv_ndgln, xu_ndgln, &
-                       cv_snloc, cv_on_face, scvngi, gi, x_share, x_nonods, ele, ele2, &
+                       cv_snloc, cvfem_on_face, scvngi, gi, x_share, x_nonods, ele, ele2, &
                        finele, colele, ncolele )
                   cv_jloc = cv_other_loc( cv_iloc )
                   cv_nodj = cv_ndgln( ( ele2 - 1 ) * cv_nloc + cv_jloc )
@@ -1155,6 +1165,7 @@ return
 
 
       deallocate( cv_neiloc )
+      deallocate( cvfem_neiloc )
       deallocate( found )
       deallocate( findgpts )
       deallocate( colgpts )
@@ -1358,6 +1369,8 @@ return
          call def_spar_ct_dg( cv_nonods, mx_nct, nct, findct, colct, &
               totele, cv_nloc, u_nloc, u_ndgln, u_ele_type, cv_ndgln )
       else
+         ewrite(3,*),'u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct:', &
+                      u_nonods, u_nloc, cv_nonods, cv_nloc, mx_nct
          call pousinmc2( totele, u_nonods, u_nloc, cv_nonods, cv_nloc, &
               mx_nct, u_ndgln, cv_ndgln, &
               nct, findct, colct, centct )

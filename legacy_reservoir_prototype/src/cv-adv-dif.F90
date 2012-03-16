@@ -251,7 +251,8 @@ contains
          WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1, &
          WIC_U_BC_DIRICHLET = 1
     LOGICAL, DIMENSION( : ), allocatable :: X_SHARE,LOG_ON_BOUND
-    LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE,U_ON_FACE
+    LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
+         CVFEM_ON_FACE, UFEM_ON_FACE
     INTEGER, DIMENSION( : ), allocatable :: FINDGPTS, &
          CV_OTHER_LOC, U_OTHER_LOC, MAT_OTHER_LOC, &
          JCOUNT_KLOC, JCOUNT_KLOC2, COLGPTS, CV_SLOC2LOC, U_SLOC2LOC, &
@@ -320,8 +321,8 @@ contains
     GOT_DIFFUS = ( R2NORM( TDIFFUSION, MAT_NONODS * NDIM * NDIM * NPHASE ) /= 0 )
 
     ! Allocate memory for the control volume surface shape functions, etc.
-    ALLOCATE( JCOUNT_KLOC(  U_NLOC ))
-    ALLOCATE( JCOUNT_KLOC2(  U_NLOC ))
+    ALLOCATE( JCOUNT_KLOC(  U_NLOC )) ;  jcount_kloc = 0
+    ALLOCATE( JCOUNT_KLOC2(  U_NLOC )) ;  jcount_kloc2 = 0
 
     ALLOCATE( CVNORMX( SCVNGI ))
     ALLOCATE( CVNORMY( SCVNGI ))
@@ -331,7 +332,9 @@ contains
     ALLOCATE( SNDOTQ( SCVNGI ))
     ALLOCATE( SNDOTQOLD( SCVNGI ))
     ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ))
+    ALLOCATE( CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
     ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ))
+    ALLOCATE( UFEM_ON_FACE( U_NLOC, SCVNGI ))
     ALLOCATE( CV_OTHER_LOC( CV_NLOC ))
     ALLOCATE( U_OTHER_LOC( U_NLOC ))
     ALLOCATE( MAT_OTHER_LOC( MAT_NLOC ))
@@ -471,19 +474,25 @@ contains
          CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
          UFEN, UFENLX, UFENLY, UFENLZ, &
                                 ! Surface of each CV shape functions...
-         SCVNGI, CV_NEILOC, CV_ON_FACE,  &  
+         SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &  
          SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
          SCVFENLX, SCVFENLY, SCVFENLZ,  &
          SUFEN, SUFENSLX, SUFENSLY,  &
          SUFENLX, SUFENLY, SUFENLZ,  &
                                 ! Surface element shape funcs...
-         U_ON_FACE, NFACE, & 
+         U_ON_FACE, UFEM_ON_FACE, NFACE, & 
          SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
          SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
          CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
                                 ! Define the gauss points that lie on the surface of the CV...
          FINDGPTS, COLGPTS, NCOLGPTS, &
          SELE_OVERLAP_SCALE )  
+
+      ewrite(3,*)'back in cv-adv-dif'
+      do cv_iloc = 1, cv_nloc
+         ewrite(3,*)'iloc, cv_on_face:', cv_iloc, ( cv_on_face( cv_iloc, gi ), gi = 1, scvngi )
+         ewrite(3,*)'iloc, cvfem_on_face:', cv_iloc, ( cvfem_on_face( cv_iloc, gi ), gi = 1, scvngi )
+      end do
 
     ! Determine FEMT (finite element wise) etc from T (control volume wise)
     ! Also determine the CV mass matrix MASS_CV and centre of the CV's XC_CV,YC_CV,ZC_CV. 
@@ -637,36 +646,44 @@ contains
              SELE = 0
              INTEGRAT_AT_GI=.TRUE.
 
-             IF( CV_JLOC == -1 ) THEN
+             Conditional_CheckingNeighbourhood: IF( CV_JLOC == -1 ) THEN
 
                 ! We are on the boundary or next to another element.  Determine CV_OTHER_LOC
-                ! CV_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
+                ! CVFEM_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
                 ! Look for these nodes on the other elements.
                 CALL FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
                      MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI,  &
                      TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-                     CV_SNLOC, CV_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
-                     FINELE, COLELE, NCOLELE ) 
+                     CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
+                     FINELE, COLELE, NCOLELE )
+
+                ewrite(3,*)'============================================================= '
+                ewrite(3,*)' ele, cv_iloc, cv_nodi, gi, cv_jloc: ', ele, cv_iloc, cv_nodi, gi, cv_jloc
+                ewrite(3,*)' ele2, integrat_at_gi:', ele2, integrat_at_gi
+                ewrite(3,*)'============================================================= '
+                ewrite(3,*)'cv_other_loc:', cv_other_loc( 1 : cv_nloc )
+                ewrite(3,*)'u_other_loc:', u_other_loc( 1 : u_nloc )
+                ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
+                ewrite(3,*)'x_share:', x_share( cv_nodi )
+                ewrite(3,*) '  '
 
                 IF(INTEGRAT_AT_GI) THEN
                    CV_JLOC = CV_OTHER_LOC( CV_ILOC )
                    SELE=0
 
                    IF( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
-                      ewrite(3,*)'---here1.1'
                       CV_JLOC = CV_ILOC
                       ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
-                      CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, CV_NGI, U_SLOC2LOC, CV_SLOC2LOC, &
-                           FACE_ELE, TOTELE, NFACE, CV_ON_FACE, GI, &
-                           CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC,U_SNLOC, STOTEL, &
+                      CALL CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, SCVNGI, U_SLOC2LOC, CV_SLOC2LOC, &
+                           FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
+                           CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
                            CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN ) 
-                      !           EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
+                      !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
                    ENDIF
                    INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
-                   !        ewrite(3,*)'---her2'
                 ENDIF
 
-             ENDIF
+             ENDIF Conditional_CheckingNeighbourhood
 
 
              ! avoid indegrating across the middle of a CV on the boundaries of elements        
@@ -695,35 +712,31 @@ contains
                 ELSE
                    CV_NODJ = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_JLOC )
                 ENDIF
-                X_NODI  =  X_NDGLN(( ELE - 1 ) * X_NLOC  + CV_ILOC )
+                X_NODI = X_NDGLN(( ELE - 1 ) * X_NLOC  + CV_ILOC )
 
                 Conditional_GETCT1: IF( GETCT ) THEN ! Obtain the CV discretised CT equations plus RHS
 
                    DO U_KLOC = 1, U_NLOC
                       U_NODK = U_NDGLN(( ELE - 1 ) * U_NLOC + U_KLOC )
                       JCOUNT = 0
-                      !                      ewrite(3,*) 'cv_nodi: ', cv_nodi
-                      !                      ewrite(3,*) 'findct: ', findct
-                      !                      ewrite(3,*) 'colct: ', colct
                       DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
-                         !                         ewrite(3,*) 'u_nodk, count, colct(count): ', u_nodk, count, colct(count)
                          IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                       END DO
                       JCOUNT_KLOC( U_KLOC ) = JCOUNT
+                      ewrite(3,*)' jcount1, ele, ele2: ', jcount, ele, ele2
                    END DO
-                   !                   ewrite(3,*) 'jcount_kloc: ', jcount_kloc
-                   IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
-                      !                      ewrite(3,*)'CV_NODI,CV_NODJ,ELE,ELE2:',CV_NODI,CV_NODJ,ELE,ELE2
+
+                   IF( ( ELE2 /= 0 ) .AND. ( ELE2 /= ELE ) ) THEN
+                      ewrite(3,*)'CV_NODI, CV_NODJ, ELE, ELE2: ', CV_NODI, CV_NODJ, ELE, ELE2
                       DO U_KLOC = 1, U_NLOC
                          U_NODK = U_NDGLN(( ELE2 - 1 ) * U_NLOC + U_KLOC )
-                         !             ewrite(3,*)'U_NODK:',U_NODK
+                         ewrite(3,*)'U_NODK:',U_NODK
                          JCOUNT = 0
                          DO COUNT = FINDCT( CV_NODI ), FINDCT( CV_NODI + 1 ) - 1, 1
-                            !           EWRITE(3,*)'COUNT,COLCT( COUNT ):',COUNT,COLCT( COUNT )
                             IF(COLCT( COUNT ) == U_NODK) JCOUNT = COUNT
                          END DO
-                         !        STOP 56
                          JCOUNT_KLOC2( U_KLOC ) = JCOUNT
+                         ewrite(3,*)' jcount2: ', jcount
                       END DO
 
                    ENDIF
@@ -1205,6 +1218,8 @@ contains
     DEALLOCATE( SNDOTQOLD )
     DEALLOCATE( CV_ON_FACE )
     DEALLOCATE( U_ON_FACE )
+    DEALLOCATE( CVFEM_ON_FACE )
+    DEALLOCATE( UFEM_ON_FACE )
     DEALLOCATE( CV_OTHER_LOC )
     DEALLOCATE( U_OTHER_LOC )
     DEALLOCATE( MAT_OTHER_LOC )
@@ -1303,11 +1318,11 @@ contains
   SUBROUTINE FIND_OTHER_SIDE( CV_OTHER_LOC, CV_NLOC, CV_NODI, U_OTHER_LOC, U_NLOC,  &
        MAT_OTHER_LOC, MAT_NLOC, INTEGRAT_AT_GI, &
        TOTELE, X_NLOC, XU_NLOC, X_NDGLN, CV_NDGLN, XU_NDGLN, &
-       CV_SNLOC, CV_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
+       CV_SNLOC, CVFEM_ON_FACE, SCVNGI, GI, X_SHARE, X_NONODS, ELE, ELE2,  &
        FINELE, COLELE, NCOLELE) 
     ! We are on the boundary or next to another element. Determine CV_OTHER_LOC,
     ! U_OTHER_LOC. 
-    ! CV_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
+    ! CVFEM_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
     ! Look for these nodes on the other elements. 
     ! ELE2=0 alo when we are between elements but are trying to integrate across 
     ! the middle of a CV. 
@@ -1320,7 +1335,7 @@ contains
     INTEGER, DIMENSION( CV_NLOC ), intent( inout ) :: CV_OTHER_LOC
     INTEGER, DIMENSION( U_NLOC ), intent( inout ) :: U_OTHER_LOC
     INTEGER, DIMENSION( MAT_NLOC ), intent( inout ) :: MAT_OTHER_LOC
-    LOGICAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: CV_ON_FACE
+    LOGICAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: CVFEM_ON_FACE
     LOGICAL, DIMENSION( X_NONODS ), intent( inout ) :: X_SHARE
     INTEGER, intent( inout ) :: ELE2    
     LOGICAL, intent( inout ) :: INTEGRAT_AT_GI  
@@ -1330,28 +1345,25 @@ contains
     INTEGER :: X_KLOC, X_NODK, X_NODK2, COUNT, ELE3, SUF_COUNT, CV_KLOC, CV_KLOC2, &
          U_KLOC, U_KLOC2, CV_NODK, XU_NODK, XU_NODK2, ILEV, JLEV
 
-    !ewrite(3,*) 'In FIND_OTHER_SIDE'
+    ewrite(3,*) 'In FIND_OTHER_SIDE'
 
     DO X_KLOC = 1, X_NLOC
        X_NODK = X_NDGLN(( ELE - 1) * X_NLOC + X_KLOC )
-       X_SHARE( X_NODK ) = CV_ON_FACE( X_KLOC, GI )
+       X_SHARE( X_NODK ) = CVFEM_ON_FACE( X_KLOC, GI )
     END DO
 
     ELE3 = 0
     DO COUNT = FINELE( ELE ), FINELE( ELE + 1 ) - 1, 1
        ELE2 = COLELE( COUNT )
-
-       ! See if we share the same nodes
-       SUF_COUNT = 0
+       SUF_COUNT = 0 ! See if we share the same nodes
        IF(ELE2.NE.ELE) THEN
           DO X_KLOC = 1, X_NLOC
              X_NODK = X_NDGLN(( ELE2 - 1 ) * X_NLOC + X_KLOC )
              IF( X_SHARE( X_NODK )) SUF_COUNT = SUF_COUNT + 1
           END DO
        ENDIF
-
        IF( SUF_COUNT == CV_SNLOC ) ELE3 = ELE2
-
+       ewrite(3,*)'suf_count:', ele, ele2, suf_count, cv_snloc
     END DO
 
     DO X_KLOC = 1, X_NLOC
@@ -1365,6 +1377,7 @@ contains
        ! the middle of a CV. 
        DO CV_KLOC = 1, CV_NLOC
           CV_NODK = CV_NDGLN(( ELE2 - 1 ) * CV_NLOC + CV_KLOC )
+          ewrite(3,*)'cv_nodi, cv_nodk:', cv_nodi, cv_nodk, ele, ele2
           IF( CV_NODK == CV_NODI ) INTEGRAT_AT_GI = .FALSE.
        END DO
     ENDIF
@@ -1372,22 +1385,19 @@ contains
     IF( ( ELE2 /= 0) .AND. INTEGRAT_AT_GI ) THEN ! Determine CV_OTHER_LOC(CV_KLOC)
        CV_OTHER_LOC = 0
        DO CV_KLOC = 1, CV_NLOC
-
-          IF( CV_ON_FACE( CV_KLOC, GI )) THEN ! Find opposite local node
+          IF( CVFEM_ON_FACE( CV_KLOC, GI )) THEN ! Find opposite local node
              X_NODK = X_NDGLN(( ELE - 1 ) * X_NLOC + CV_KLOC )
              DO CV_KLOC2 = 1, CV_NLOC
                 X_NODK2 = X_NDGLN(( ELE2 - 1 ) * X_NLOC + CV_KLOC2 )
                 IF( X_NODK2 == X_NODK ) CV_OTHER_LOC( CV_KLOC ) = CV_KLOC2
              END DO
           ENDIF
-
        END DO
 
        U_OTHER_LOC = 0 ! Determine U_OTHER_LOC(U_KLOC)
        IF(XU_NLOC /= U_NLOC) THEN ! This is for the overlapping approach
           DO U_KLOC = 1, XU_NLOC ! Find opposite local node
              XU_NODK = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_KLOC )
-
              DO U_KLOC2 = 1, XU_NLOC
                 XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
                 ! XU_NLOC==1 is a special case...
@@ -1768,6 +1778,7 @@ contains
 
     ! determine FEMT (finite element wise) etc from T (control volume wise)
     use shape_functions 
+    use shape_functions_NDim
     use matrix_operations
     IMPLICIT NONE
     INTEGER, intent( in ) :: NDIM, NPHASE, CV_NONODS, TOTELE, X_NLOC, CV_NGI, CV_NLOC, &
@@ -2572,6 +2583,7 @@ contains
        Y,        Z,  &
                                 !     - LOGICALS
        D1,       D3,       DCYL )
+use shape_functions_NDim
     !     --------------------------------------------------
     !     
     !     - this subroutine calculates the control volume (CV) 
@@ -2875,6 +2887,7 @@ contains
        SBUFEN, SBUFENSLX, SBUFENSLY,  &
        SAREA, SNORMXN, SNORMYN, SNORMZN, SNORMX, SNORMY, SNORMZ )
     ! use AdvectionDiffusion
+    use shape_functions_NDim
     IMPLICIT NONE
     INTEGER, intent( in ) :: SELE, STOTEL, X_NONODS, CV_SNLOC, SBNGI, NDIM
     INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
@@ -2997,6 +3010,7 @@ contains
        NORMXN, NORMYN, NORMZN, &
        NORMX, NORMY, NORMZ ) 
     ! use AdvectionDiffusion
+    use shape_functions_NDim
     IMPLICIT NONE
     INTEGER, intent( in ) :: ELE, STOTEL, X_NONODS, SNLOC, SNGI
     INTEGER, DIMENSION( STOTEL * SNLOC ), intent( in ) :: SNDGLN
@@ -3105,55 +3119,6 @@ contains
     RETURN
 
   END SUBROUTINE SDETNX2
-
-
-
-  SUBROUTINE NORMGI( NORMXN, NORMYN, NORMZN, &
-       DXDLX, DYDLX, DZDLX, DXDLY, DYDLY, DZDLY, &
-       NORMX, NORMY, NORMZ) 
-    ! Calculate the normal at the Gauss pts
-    ! Perform x-product. N=T1 x T2
-    implicit none
-    REAL, intent( inout ) :: NORMXN, NORMYN, NORMZN
-    REAL, intent( in )    :: DXDLX, DYDLX, DZDLX, DXDLY, DYDLY, DZDLY
-    REAL, intent( in )    :: NORMX, NORMY, NORMZ
-    ! Local variables
-    REAL :: RN, SIRN
-
-    CALL XPROD( NORMXN, NORMYN, NORMZN, &
-         DXDLX, DYDLX, DZDLX, &
-         DXDLY, DYDLY, DZDLY )
-
-    RN = SQRT( NORMXN**2 + NORMYN**2 + NORMZN**2 )
-
-    SIRN = SIGN( 1.0 / RN, NORMXN * NORMX + NORMYN * NORMY + NORMZN * NORMZ )
-
-    NORMXN = SIRN * NORMXN
-    NORMYN = SIRN * NORMYN
-    NORMZN = SIRN * NORMZN
-
-    RETURN
-
-  END SUBROUTINE NORMGI
-
-
-
-
-  SUBROUTINE XPROD( AX, AY, AZ, &
-       BX, BY, BZ, &
-       CX, CY, CZ )
-    implicit none
-    REAL, intent( inout ) :: AX, AY, AZ
-    REAL, intent( in )    :: BX, BY, BZ, CX, CY, CZ
-
-    ! Perform x-product. a=b x c 
-    AX =    BY * CZ - BZ * CY
-    AY = -( BX * CZ - BZ * CX )
-    AZ =    BX * CY - BY * CX
-
-    RETURN
-  END subroutine XPROD
-
 
 
 
@@ -5093,112 +5058,6 @@ contains
 
 
 
-  SUBROUTINE DGSDETNXLOC2( SNLOC, SNGI, &
-       XSL, YSL, ZSL, &
-       SN, SNLX, SNLY, SWEIGH, SDETWE, SAREA, &
-       D1, D3, DCYL, &
-       NORMXN, NORMYN, NORMZN, &
-       NORMX, NORMY, NORMZ )
-    IMPLICIT NONE
-
-    INTEGER, intent( in ) :: SNLOC, SNGI
-    REAL, DIMENSION( SNLOC ), intent( in ) :: XSL, YSL, ZSL
-    REAL, DIMENSION( SNLOC, SNGI ), intent( in ) :: SN, SNLX, SNLY
-    REAL, DIMENSION( SNGI ), intent( in ) :: SWEIGH
-    REAL, DIMENSION( SNGI ), intent( inout ) :: SDETWE 
-    REAL, intent( inout ) ::  SAREA
-    LOGICAL, intent( in ) ::  D1,D3,DCYL
-    REAL, DIMENSION( SNGI ), intent( inout ) :: NORMXN, NORMYN ,NORMZN
-    REAL, intent( inout ) :: NORMX, NORMY, NORMZ
-    ! Local variables
-    real, parameter :: pi = 3.141592654
-    INTEGER :: GI, SL, IGLX
-    REAL :: DXDLX, DXDLY, DYDLX, DYDLY, DZDLX, DZDLY
-    REAL :: A, B, C, DETJ, RGI, TWOPI
-
-    SAREA=0.
-
-    IF(D3) THEN
-       DO GI=1,SNGI
-
-          DXDLX=0.
-          DXDLY=0.
-          DYDLX=0.
-          DYDLY=0.
-          DZDLX=0.
-          DZDLY=0.
-
-          DO SL=1,SNLOC
-             DXDLX=DXDLX + SNLX(SL,GI)*XSL(SL)
-             DXDLY=DXDLY + SNLY(SL,GI)*XSL(SL)
-             DYDLX=DYDLX + SNLX(SL,GI)*YSL(SL)
-             DYDLY=DYDLY + SNLY(SL,GI)*YSL(SL)
-             DZDLX=DZDLX + SNLX(SL,GI)*ZSL(SL)
-             DZDLY=DZDLY + SNLY(SL,GI)*ZSL(SL)
-          END DO
-          A = DYDLX*DZDLY - DYDLY*DZDLX
-          B = DXDLX*DZDLY - DXDLY*DZDLX
-          C = DXDLX*DYDLY - DXDLY*DYDLX
-
-          DETJ=SQRT( A**2 + B**2 + C**2)
-          SDETWE(GI)=DETJ*SWEIGH(GI)
-          SAREA=SAREA+SDETWE(GI)
-
-          ! Calculate the normal at the Gauss pts...
-          ! Perform x-product. N=T1 x T2
-          CALL NORMGI(NORMXN(GI),NORMYN(GI),NORMZN(GI), &
-               DXDLX,DYDLX,DZDLX, DXDLY,DYDLY,DZDLY, &
-               NORMX,NORMY,NORMZ)
-
-       END DO
-       ! IF(D3) THEN...
-    ELSE IF(.NOT.D1) THEN
-       ! ENDOF IF(D3) THEN ELSE...
-       TWOPI=1.0
-       IF(DCYL) TWOPI=2.*PI
-
-       DO GI=1,SNGI
-          RGI=0.
-          DXDLX=0.
-          DXDLY=0.
-          DYDLX=0.
-          DYDLY=0.
-          DZDLX=0.
-          ! DZDLY=1 is to calculate the normal.
-          DZDLY=1.
-          DO SL=1,SNLOC
-             DXDLX=DXDLX + SNLX(SL,GI)*XSL(SL)
-             DYDLX=DYDLX + SNLX(SL,GI)*YSL(SL)
-             RGI=RGI+SN(SL,GI)*YSL(IGLX)
-          END DO
-          IF(.NOT.DCYL) RGI=1.0
-          DETJ=SQRT( DXDLX**2 + DYDLX**2 )
-          SDETWE(GI)=TWOPI*RGI*DETJ*SWEIGH(GI)
-          SAREA=SAREA+SDETWE(GI)
-          NORMZ=0.
-          CALL NORMGI(NORMXN(GI),NORMYN(GI),NORMZN(GI), &
-               DXDLX,DYDLX,DZDLX, DXDLY,DYDLY,DZDLY, &
-               NORMX,NORMY,NORMZ)
-       END DO
-    ELSE ! For 1D...
-       DO GI = 1, SNGI
-          DXDLX = 0.
-          DO SL = 1, SNLOC
-             DXDLX = DXDLX + SNLX( SL, GI ) * XSL( SL )
-          END DO
-          SDETWE( GI ) = SWEIGH( GI )
-          SAREA = SAREA + SDETWE( GI )
-          NORMXN( GI ) = NORMX
-          NORMYN( GI ) = 0.0
-          NORMZN( GI ) = 0.0
-       END DO
-    ENDIF
-
-  END SUBROUTINE DGSDETNXLOC2
-
-
-
-
   SUBROUTINE DGSIMPLNORM( ELE, SILOC2ILOC, TOTELE, NLOC, SNLOC, XONDGL, &
        X, Y, Z, XNONOD, NORMX, NORMY, NORMZ )
     ! Form approximate surface normal (NORMX,NORMY,NORMZ)
@@ -5648,14 +5507,14 @@ contains
 
 
 
-  SUBROUTINE CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, CV_NGI, U_SLOC2LOC, CV_SLOC2LOC, &
-       FACE_ELE, TOTELE, NFACE, CV_ON_FACE, GI, &
+  SUBROUTINE CALC_SELE( ELE, SELE, CV_SILOC, CV_ILOC, SCVNGI, U_SLOC2LOC, CV_SLOC2LOC, &
+       FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
        CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
        CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN ) 
     ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC for a face on the
     ! boundary of the domain
     IMPLICIT NONE
-    INTEGER, intent( in ) :: ELE, CV_NGI, CV_NONODS, TOTELE, STOTEL, CV_NLOC, U_NLOC, &
+    INTEGER, intent( in ) :: ELE, SCVNGI, CV_NONODS, TOTELE, STOTEL, CV_NLOC, U_NLOC, &
          CV_SNLOC, U_SNLOC, NFACE, GI, CV_ILOC
     INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
     INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) :: U_NDGLN
@@ -5663,33 +5522,44 @@ contains
     INTEGER, DIMENSION( STOTEL * U_SNLOC ), intent( in ) :: U_SNDGLN
     INTEGER, intent( inout ) :: SELE, CV_SILOC
     INTEGER, DIMENSION( NFACE, TOTELE ), intent( in ) :: FACE_ELE
-    LOGICAL, DIMENSION( CV_NLOC, CV_NGI ), intent( in )  :: CV_ON_FACE
+    LOGICAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in )  :: CVFEM_ON_FACE
     INTEGER, DIMENSION( U_SNLOC ), intent( inout ) :: U_SLOC2LOC
     INTEGER, DIMENSION( CV_SNLOC ), intent( inout ) :: CV_SLOC2LOC
     LOGICAL, DIMENSION( CV_NONODS ), intent( inout ) :: LOG_ON_BOUND
     ! local variables
     INTEGER :: IFACE, ELE2, SELE2, CV_JLOC, CV_JNOD, &
          U_JLOC, U_JNOD, CV_KLOC, CV_SKNOD, &
-         U_KLOC, U_SKLOC, U_SKNOD, CV_SKLOC
+         U_KLOC, U_SKLOC, U_SKNOD, CV_SKLOC, ngi, igi
     LOGICAL :: FOUND
-    !    ewrite(3,*)'CV_ON_FACE:',CV_ON_FACE
+
+    do cv_jloc = 1, cv_nloc
+       ewrite(3,*)'CVFEM_ON_FACE==:',( cvfem_on_face( cv_jloc, igi ), igi = 1, scvngi )
+    end do
+
     DO CV_JLOC = 1, CV_NLOC  
        CV_JNOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
        !       ewrite(3,*)'CV_NONODS,CV_JNOD,CV_NLOC,CV_NGI,CV_JLOC, GI:',  &
        !                CV_NONODS,CV_JNOD,CV_NLOC,CV_NGI,CV_JLOC, GI
-       LOG_ON_BOUND( CV_JNOD ) = CV_ON_FACE( CV_JLOC, GI )
+       ewrite(3,*)'cv_jloc, gi, cvfem_on_face:', cv_jloc, gi, cvfem_on_face( cv_jloc, gi )
+       LOG_ON_BOUND( CV_JNOD ) = CVFEM_ON_FACE( CV_JLOC, GI )
     END DO
     !    stop 2821
+    do iface = 1, nface
+       ewrite(3,*)'iface, ele, face_ele:', iface, ele, face_ele( iface, ele )
+    end do
 
+    SELE = 0
     ! What face are we on        
     DO IFACE = 1, NFACE
-       ELE2=FACE_ELE(IFACE,ELE)
+       ELE2 = FACE_ELE( IFACE, ELE )
        SELE2 = MAX( 0, - ELE2 )
+       SELE = SELE2
        ELE2 = MAX( 0, + ELE2 )
-       IF(SELE2 /= 0) THEN
+       IF( SELE2 /= 0 ) THEN
           FOUND = .TRUE.
-          DO CV_SKLOC = 1, CV_SNLOC  
+          DO CV_SKLOC = 1, CV_SNLOC 
              CV_SKNOD = CV_SNDGLN(( SELE2 - 1 ) * CV_SNLOC + CV_SKLOC )
+             ewrite(3,*)'CV_SKNOD, LOG_ON_BOUND:',CV_SKNOD, LOG_ON_BOUND(CV_SKNOD)
              IF( .NOT. LOG_ON_BOUND( CV_SKNOD )) FOUND=.FALSE.
           END DO
           IF( FOUND ) SELE = SELE2
@@ -5697,37 +5567,37 @@ contains
     END DO
     !    stop 3983
 
-    ! Calculate CV_SLOC2LOC    
-    ewrite(3,*)'sele, cv_snloc: ',sele, cv_snloc
-    ewrite(3,*) 'cv_sndgln: ', cv_sndgln
-    DO CV_SKLOC = 1, CV_SNLOC  
-       CV_SKNOD = CV_SNDGLN(( SELE - 1 ) * CV_SNLOC + CV_SKLOC )
-       DO CV_JLOC = 1, CV_NLOC  
-          CV_JNOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
-          IF( CV_SKNOD == CV_JNOD ) CV_KLOC = CV_JLOC
+    ! Calculate CV_SLOC2LOC  
+    Conditional_Sele: IF ( SELE /= 0 ) THEN   
+       ewrite(3,*)'sele, cv_snloc: ',sele, cv_snloc
+       ewrite(3,*) 'cv_sndgln: ', cv_sndgln
+       DO CV_SKLOC = 1, CV_SNLOC  
+          CV_SKNOD = CV_SNDGLN(( SELE - 1 ) * CV_SNLOC + CV_SKLOC )
+          DO CV_JLOC = 1, CV_NLOC  
+             CV_JNOD = CV_NDGLN(( ELE - 1 ) * CV_NLOC + CV_JLOC )
+             IF( CV_SKNOD == CV_JNOD ) CV_KLOC = CV_JLOC
+          END DO
+          CV_SLOC2LOC( CV_SKLOC ) = CV_KLOC
+          IF( CV_KLOC == CV_ILOC ) CV_SILOC = CV_SKLOC
        END DO
-       CV_SLOC2LOC( CV_SKLOC ) = CV_KLOC
-       IF(CV_KLOC.EQ.CV_ILOC) CV_SILOC=CV_SKLOC
-    END DO
-    ewrite(3,*) 'cv_sloc2loc: ', cv_sloc2loc
+       ewrite(3,*) 'cv_sloc2loc: ', cv_sloc2loc
 
-    ! Calculate U_SLOC2LOC  
-    DO U_SKLOC = 1, U_SNLOC  
-       U_SKNOD = U_SNDGLN(( SELE - 1 ) * U_SNLOC + U_SKLOC )
-       DO U_JLOC = 1, U_NLOC  
-          U_JNOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_JLOC )
-          IF( U_SKNOD == U_JNOD ) U_KLOC = U_JLOC
+       ! Calculate U_SLOC2LOC 
+       DO U_SKLOC = 1, U_SNLOC  
+          U_SKNOD = U_SNDGLN(( SELE - 1 ) * U_SNLOC + U_SKLOC )
+          DO U_JLOC = 1, U_NLOC  
+             U_JNOD = U_NDGLN(( ELE - 1 ) * U_NLOC + U_JLOC )
+             IF( U_SKNOD == U_JNOD ) U_KLOC = U_JLOC
+          END DO
+          U_SLOC2LOC( U_SKLOC ) = U_KLOC
        END DO
-       U_SLOC2LOC( U_SKLOC ) = U_KLOC
-    END DO
+    END IF Conditional_Sele
 
     RETURN   
   END SUBROUTINE CALC_SELE
 
 
 
-
-  !
   SUBROUTINE RE1DN3(NGI,NLOC,WEIGHT,N,NLX )
     IMPLICIT NONE
     ! QUADRATIC VARIATION FOR VELOCITY-2D 9 NODE BRICK ELEMENT.
@@ -5791,8 +5661,6 @@ contains
   END SUBROUTINE RE1DN3
 
 
-
-
   SUBROUTINE PUT_IN_CT_RHS(CT, CT_RHS, U_NLOC, SCVNGI, GI, NCOLCT, NDIM, &
        CV_NONODS, U_NONODS, NPHASE, IPHASE, TOTELE, ELE, ELE2, SELE, &
        JCOUNT_KLOC, JCOUNT_KLOC2, U_OTHER_LOC, U_NDGLN,  NU, NV, NW,  &
@@ -5822,12 +5690,13 @@ contains
          U_KLOC_LEV, U_NLOC_LEV
     REAL :: RCON,UDGI_IMP,VDGI_IMP,WDGI_IMP,NDOTQ_IMP
 
+    ewrite(3,*)' In PUT_IN_CT_RHS '
 
     !      U_NLOC_LEV =U_NLOC /CV_NLOC
 
     !      DO U_KLOC_LEV = 1, U_NLOC_LEV
     !  U_KLOC=(CV_ILOC-1)*U_NLOC_LEV + U_KLOC_LEV
-    
+
     DO U_KLOC = 1, U_NLOC
 
        JCOUNT_IPHA = JCOUNT_KLOC( U_KLOC )  +  (IPHASE - 1 ) * NCOLCT * NDIM
@@ -5873,6 +5742,8 @@ contains
             )/ DENOLD( CV_NODI_IPHA ) 
     ENDIF
 
+    ewrite(3,*)'JCOUNT_KLOC2:', JCOUNT_KLOC2( 1 : u_nloc)
+    ewrite(3,*)'ele2, ele:', ele2, ele
     IF((ELE2 /= 0).AND.(ELE2 /= ELE)) THEN
        ! We have a discontinuity between elements so integrate along the face...
        !        DO U_KLOC_LEV = 1, U_NLOC_LEV

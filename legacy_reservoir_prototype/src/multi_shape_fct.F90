@@ -46,11 +46,6 @@
   contains
 
 !!!
-!!!  N_SHAPE_FUN AND RELATED SUBRTS & FUNCTIONS
-!!!
-
-
-!!!
 !!! SHAPESE AND RELATED SUBRTS & FUNCTIONS
 
     SUBROUTINE SHAPESE( SELETYP,  SNEILOC,    &
@@ -1538,26 +1533,15 @@
          unly = 0. 
          unlz = 0. 
 
-      case( 5, 6, 9, 10 ) ! Bi-linear and Bi-quadratic Quadrilaterals and Tri-linear and Tri-quadratic Hexahedra
+      case( 5, 6, 9, 10 ) ! Quadrilaterals and Hexahedra
          call quad_nd_shape( ndim, cv_ele_type, cv_ngi, cv_nloc, u_nloc, cvn, cvweigh, &
               n, nlx, nly, nlz, &
               un, unlx, unly, unlz )
 
-      case( 3 ) ! Linear Triangles
-         call vol_cv_tri_shape( cv_ele_type, ndim, cv_ngi, cv_nloc, u_nloc, cvn, cvweigh, &
-              n, nlx, nly, nlz, un, unlx, unly, unlz )
-
-      case( 4 ) ! Quadratic Triangles
-         call vol_cv_qtri_shape( cv_ele_type, ndim, cv_ngi, cv_nloc, u_nloc, cvn, cvweigh, &
-              n, nlx, nly, nlz, un, unlx, unly, unlz )
-
-      case( 7 ) ! Linear Tetrahedra
-         call vol_cv_tet_shape( cv_ele_type, ndim, cv_ngi, cv_nloc, u_nloc, cvn, cvweigh, &
-              n, nlx, nly, nlz, un, unlx, unly, unlz )
-
-      case( 8 ) ! Quadratic Tetrahedra
-         call vol_cv_qtet_shape( cv_ele_type, ndim, cv_ngi, cv_nloc, u_nloc, cvn, cvweigh, &
-              n, nlx, nly, nlz, un, unlx, unly, unlz )
+      case( 3, 4, 7, 8 ) ! Triangles and Tetrahedra
+         call vol_cv_tri_tet_shape( cv_ele_type, ndim, cv_ngi, cv_nloc, u_nloc, cvn, &
+              cvweigh, n, nlx, nly, nlz, &
+              un, unlx, unly, unlz )
 
       case default; FLExit( "Wrong integer for CV_ELE_TYPE" )
       end Select
@@ -1575,13 +1559,13 @@
          cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
          ufen, ufenlx, ufenly, ufenlz, &
                                 ! Surface of each CV shape functions
-         scvngi, cv_neiloc, cv_on_face, &
+         scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
          scvfen, scvfenslx, scvfensly, scvfeweigh, &
          scvfenlx, scvfenly, scvfenlz, &
          sufen, sufenslx, sufensly, &
          sufenlx, sufenly, sufenlz, &
                                 ! Surface element shape funcs
-         u_on_face, nface, &
+         u_on_face, ufem_on_face, nface, &
          sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
          sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz, &
          cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
@@ -1604,13 +1588,13 @@
       real, dimension( u_nloc, cv_ngi ), intent( inout ) :: ufen, ufenlx, ufenly, ufenlz
       integer, intent( in ) :: scvngi
       integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc
-      logical, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_on_face
+      logical, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_on_face, cvfem_on_face
       real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfen, scvfenslx, scvfensly
       real, dimension( scvngi ), intent( inout ) :: scvfeweigh
       real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfenlx, scvfenly, scvfenlz
       real, dimension( u_nloc, scvngi ), intent( inout ) :: sufen, sufenslx, sufensly, sufenlx, &
            sufenly, sufenlz
-      logical, dimension( u_nloc, scvngi ), intent( inout ) :: u_on_face
+      logical, dimension( u_nloc, scvngi ), intent( inout ) :: u_on_face, ufem_on_face
       integer, intent( in ) :: nface, sbcvngi
       real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, sbcvfensly
       real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
@@ -1625,14 +1609,14 @@
       integer, intent( inout ) :: ncolgpts
       real, dimension( cv_nloc ), intent( inout ) :: sele_overlap_scale
       ! Local variables
-      logical, dimension( :, : ), allocatable :: u_on_face2
+      logical, dimension( :, : ), allocatable :: u_on_face2, ufem_on_face2
       integer, dimension( :, : ), allocatable :: u_sloclist2
       real, dimension( :, : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2, & 
            sufen2, sufenslx2, sufensly2, sufenlx2, sufenly2, sufenlz2, &
            sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2 
       character( len = option_path_len ) :: overlapping_path 
       logical :: is_overlapping   
-      integer :: u_nloc2, ilev, u_snloc2, u_ele_type2, gi
+      integer :: u_nloc2, ilev, ilev2, u_snloc2, u_ele_type2, gi
 
       ewrite(3,*) 'in  cv_fem_shape_funs subrt'
 
@@ -1737,6 +1721,7 @@
          u_ele_type2 = 1
          u_nloc2 = u_nloc / cv_nloc
          allocate( u_on_face2( u_nloc2, scvngi ) )
+         allocate( ufem_on_face2( u_nloc2, scvngi ) )
          allocate( sufen2( u_nloc2, scvngi ) )
          allocate( sufenslx2( u_nloc2, scvngi ) )
          allocate( sufensly2( u_nloc2, scvngi ) )
@@ -1747,22 +1732,22 @@
          ewrite(3,*)'u_on_face2, after allocated: ', u_on_face2
          ewrite(3,*)'cv_nloc, cv_ngi, scvngi:', cv_nloc, cv_ngi, scvngi
 
-         call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, &
+         call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc2, sufen2, sufenslx2, sufensly2, &
               sufenlx2, sufenly2, sufenlz2, &
               ndim )
 
-         call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
-              cv_neiloc,   &
-              u_on_face )
+         !call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
+         !     cv_neiloc,   &
+         !     u_on_face )
 
          do ilev = 1, u_nloc
             ewrite(3,*)'**u_on_face**:', ( u_on_face( ilev, gi ), gi = 1, scvngi )
          end do
          do ilev = 1, cv_nloc
-            ewrite(3,*)'**cv_on_face**:', ( cv_on_face( ilev, gi ), gi = 1, scvngi )
+            ewrite(3,*)'**cvfem_on_face**:', ( cvfem_on_face( ilev, gi ), gi = 1, scvngi )
          end do
 
          sufen = 0. ; sufenslx = 0. ; sufensly = 0. 
@@ -1773,6 +1758,9 @@
             !==       u_on_face2( 1 : u_nloc2, 1 : scvngi )
             u_on_face2( 1 : u_nloc2, 1 : scvngi ) = &
                  u_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
+                 1 : scvngi ) 
+            ufem_on_face2( 1 : u_nloc2, 1 : scvngi ) = &
+                 ufem_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
                  1 : scvngi ) 
             sufen( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
                  1 : scvngi ) = &
@@ -1795,20 +1783,24 @@
          end do Loop_ILEV2
 
       else
-         call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, &
+         call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc, sufen, sufenslx, sufensly, &
               sufenlx, sufenly, sufenlz, &
               ndim )
-         call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
-              cv_neiloc,   &
-              u_on_face )
+         !call U_Volnei( cv_ele_type, cv_nloc, u_nloc, scvngi, &
+         !     cv_neiloc,   &
+         !     u_on_face )
       end if Conditional_OverlappingMethod2
-      ewrite(3,*)'u_on_face1:', u_on_face
 
       ! Determine the surface element shape functions from those 
       ! calculated in SHAPESV_FEM_PLUS and also CV_SLOCLIST( NFACE,CV_SNLOC )
+      ewrite(3,*)'u_on_face2( u_iloc, i_scvngi):'
+      do ilev = 1, u_nloc2
+         ewrite(3,*) ilev, ( u_on_face2( ilev, ilev2 ), ilev2 = 1, scvngi )
+      end do
+
       Conditional_OverlappingMethod3: if( is_overlapping ) then
          u_ele_type2 = 1
          u_nloc2 = u_nloc / cv_nloc
@@ -1822,16 +1814,18 @@
          allocate( sbufenly2( u_snloc2, sbcvngi ) )
          allocate( sbufenlz2( u_snloc2, sbcvngi ) )
 
-         call det_suf_ele_shape( scvngi, cv_on_face, u_on_face2, nface, &
+         call det_suf_ele_shape( scvngi, nface, &
+              cv_neiloc, &
               cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc2, sufen2, sufenslx2, sufensly2, &
               sufenlx2, sufenly2, sufenlz2, &
               sbcvngi, sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, &
-              sbcvfenlx, sbcvfenly, sbcvfenlz,  &
+              sbcvfenlx, sbcvfenly, sbcvfenlz, &
               sbufen2, sbufenslx2, sbufensly2, &
               sbufenlx2, sbufenly2, sbufenlz2, &
-              cv_sloclist, u_sloclist2, cv_snloc, u_snloc2 )
+              cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
+              ndim, cv_ele_type )
 
          Loop_ILEV3: do ilev = 1, cv_nloc
             sbufen( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
@@ -1859,7 +1853,8 @@
          end do Loop_ILEV3
 
       else
-         call det_suf_ele_shape( scvngi, cv_on_face, u_on_face, nface, &
+         call det_suf_ele_shape( scvngi, nface, &
+              cv_neiloc, &
               cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc, sufen2, sufenslx, sufensly, &
@@ -1868,7 +1863,8 @@
               sbcvfenlx, sbcvfenly, sbcvfenlz,  &
               sbufen, sbufenslx, sbufensly, &
               sbufenlx, sbufenly, sbufenlz, &
-              cv_sloclist, u_sloclist, cv_snloc, u_snloc )
+              cv_sloclist, u_sloclist, cv_snloc, u_snloc, &
+              ndim, cv_ele_type )
       end if Conditional_OverlappingMethod3
 
       ! Define the gauss points that lie on the surface of the
@@ -1890,6 +1886,7 @@
          deallocate( ufenly2 )
          deallocate( ufenlz2 )
          deallocate( u_on_face2 )
+         deallocate( ufem_on_face2 )
          deallocate( sufen2 )
          deallocate( sufenslx2 )
          deallocate( sufensly2 )
@@ -1909,16 +1906,16 @@
     end subroutine cv_fem_shape_funs
 
 
-
-
-    SUBROUTINE DET_SUF_ELE_SHAPE( SCVNGI, CV_ON_FACE, U_ON_FACE, NFACE, & 
+    SUBROUTINE DET_SUF_ELE_SHAPE( SCVNGI, NFACE, &  
+         CV_NEILOC, &
          CV_NLOC, SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
          SCVFENLX, SCVFENLY, SCVFENLZ,  &
          U_NLOC,  SUFEN, SUFENSLX, SUFENSLY,  &
          SUFENLX, SUFENLY, SUFENLZ,  &
          SBCVNGI, SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
          SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
-         CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC )
+         CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &
+         NDIM, CV_ELE_TYPE )
       !     
       !     - this subroutine generates the FE basis functions, weights and the
       !     - derivatives of the shape functions for a variety of elements on the 
@@ -1926,250 +1923,287 @@
       !     - The routine also generates the shape functions and derivatives 
       !     - associated with the CV surfaces and also the FV basis functions.
       !     -------------------------------
-      !     - date last modified : 24/05/2003
+      !     - date last modified : 21/02/2012
       !     -------------------------------
 
       IMPLICIT NONE
 
       INTEGER, intent( in ) :: SCVNGI, CV_NLOC, U_NLOC, NFACE, &
            SBCVNGI, CV_SNLOC, U_SNLOC
+      INTEGER, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: CV_NEILOC
       ! CV_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
-      LOGICAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: CV_ON_FACE
-      LOGICAL, DIMENSION( U_NLOC, SCVNGI ), intent( in ) :: U_ON_FACE
       REAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: SCVFEN, SCVFENSLX, SCVFENSLY, &       
            SCVFENLX, SCVFENLY, SCVFENLZ
       REAL, DIMENSION( SCVNGI ), intent( inout ) :: SCVFEWEIGH
       REAL, DIMENSION( U_NLOC, SCVNGI ), intent( in ) :: SUFEN, SUFENSLX, SUFENSLY, &       
            SUFENLX, SUFENLY, SUFENLZ
-
-      REAL, DIMENSION( CV_SNLOC, SBCVNGI ), intent( inout ) :: SBCVFEN, SBCVFENSLX, SBCVFENSLY, &       
-           SBCVFENLX, SBCVFENLY, SBCVFENLZ
+      REAL, DIMENSION( CV_SNLOC, SBCVNGI ), intent( inout ) :: SBCVFEN, SBCVFENSLX, &
+           SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ
       REAL, DIMENSION( SBCVNGI ), intent( inout ) :: SBCVFEWEIGH
-      REAL, DIMENSION( U_SNLOC, SBCVNGI ), intent( inout ) :: SBUFEN, SBUFENSLX, SBUFENSLY, &       
+      REAL, DIMENSION( U_SNLOC, SBCVNGI ), intent( inout ) :: SBUFEN, SBUFENSLX, SBUFENSLY, &
            SBUFENLX, SBUFENLY, SBUFENLZ
       INTEGER, DIMENSION( NFACE, CV_SNLOC ), intent( inout ) ::  CV_SLOCLIST
       INTEGER, DIMENSION( NFACE, U_SNLOC ), intent( inout ) ::  U_SLOCLIST
+      INTEGER, intent( in ) :: NDIM, CV_ELE_TYPE
       ! Local variables
-      INTEGER :: GI, GI2, GIS, CV_KLOC, CV_SKLOC, U_KLOC, U_SKLOC, ii
-      LOGICAL :: FOUND
+      INTEGER :: CV_KLOC, CV_SKLOC, U_KLOC, U_SKLOC, CV_BSNGI
 
-      FOUND = .FALSE. 
-      DO CV_KLOC = 1, CV_NLOC
-         DO GI2 = 1, SCVNGI
-            IF( .NOT. FOUND ) THEN
-               IF( CV_ON_FACE( CV_KLOC, GI2 )) THEN
-                  GI = GI2
-                  FOUND= .TRUE.
-               END IF
-            END IF
-         END DO
-      END DO
+      ! Obtain SBCVFEN from SCVFEN: 
+      CALL SCVFEN_2_SBCVFEN( CV_NLOC, CV_SNLOC, SCVNGI, SBCVNGI, CV_NEILOC, &
+           SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBCVFEWEIGH, &
+           SCVFEN, SCVFENSLX, SCVFENSLY, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH )
 
+      ! Obtain SBUFEN from SUFEN: 
+      CALL SCVFEN_2_SBCVFEN( U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NEILOC, &
+           SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, SBCVFEWEIGH, &
+           SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, SCVFEWEIGH )
 
-      ! Use all quadrature pts on face with GI on it. Determine SBCVFEN: 
-      CV_SKLOC = 0
-      Loop_CVKLOC: DO CV_KLOC = 1, CV_NLOC
-         IF( CV_ON_FACE( CV_KLOC, GI )) THEN ! We are on the correct face
-            CV_SKLOC = CV_SKLOC + 1
-            GIS = 0
-            ewrite(3,*) 'gi, gis, cv_skloc:', gi, gis, cv_skloc
-
-            DO GI2 = 1, SCVNGI
-               ewrite(3,*) 'SCVFEN( CV_KLOC, GI2 ):', ( SCVFEN( CV_KLOC, ii ), ii=1,SCVNGI)
-               IF( ABS( SCVFEN( CV_KLOC, GI2 )) > 1.E-6 ) THEN
-                  IF( GIS < SBCVNGI ) THEN
-                     GIS = GIS + 1
-                     !EWRITE(3,*) 'CV_SNLOC, SBCVNGI, SCVNGI:',CV_SNLOC, SBCVNGI, SCVNGI
-                     SBCVFEN( CV_SKLOC, GIS ) = SCVFEN( CV_KLOC, GI2 )
-                     SBCVFENSLX( CV_SKLOC, GIS ) = SCVFENSLX( CV_KLOC, GI2 )
-                     SBCVFENSLY( CV_SKLOC, GIS ) = SCVFENSLY( CV_KLOC, GI2 )     
-                     SBCVFENLX( CV_SKLOC, GIS ) = SCVFENLX( CV_KLOC, GI2 )
-                     SBCVFENLY( CV_SKLOC, GIS ) = SCVFENLY( CV_KLOC, GI2 )
-                     SBCVFENLZ( CV_SKLOC, GIS ) = SCVFENLZ( CV_KLOC, GI2 )
-                     SBCVFEWEIGH( GIS ) = SCVFEWEIGH( GI2 )
-                  END IF
-               END IF
-            END DO
-
-            IF(GIS /= SBCVNGI ) THEN
-               EWRITE(3,*)'SOMETHING GONE WRONG WITH NO OF QUADRATURE PTS'
-               EWRITE(3,*)'GIS, SBCVNGI:',GIS, SBCVNGI
-               FLAbort("Wrong number of surface quadrature points")
-            ENDIF
-
-         ENDIF
-      END DO Loop_CVKLOC
-
-      ! Use all quadrature pts on face with GI on it. Determine SBUFEN: 
-      ewrite(3,*)'SBCVNGI=',SBCVNGI
-      IF(CV_SNLOC==1) THEN
-         SBUFEN= SBCVFEN
-         SBUFENSLX=SBCVFENSLX
-         SBUFENSLY=SBCVFENSLY 
-         SBUFENLX=SBCVFENLX
-         SBUFENLY=SBCVFENLY
-         SBUFENLZ=SBCVFENLZ
+      ! Determine CV_SLOCLIST & U_SLOCLIST
+      CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, NFACE, &
+           NDIM, CV_ELE_TYPE )
+      IF( U_SNLOC == 1 ) THEN
+         U_SLOCLIST( 1, 1 ) = 1
+         U_SLOCLIST( 2, 1 ) = U_NLOC
       ELSE
-         EWRITE(3,*)'NOT READY YET' 
-         FLAbort("Wrong number of surface CV-based grid nodes")
-         U_SKLOC = 0
-         Loop_UKLOC: DO U_KLOC = 1, U_NLOC
-            !       IF( U_ON_FACE( U_KLOC, GI )) THEN ! We are on the correct face
-            U_SKLOC = U_SKLOC + 1
-            GIS = 0
-            DO GI2 = 1, SCVNGI
-
-               IF(ABS( SUFEN( U_KLOC, GI2 )) > 1.E-6 ) THEN
-                  IF( GIS < SBCVNGI ) THEN
-                     GIS = GIS + 1
-                     ! EWRITE(3,*)'U_SKLOC, GIS ,U_KLOC, GI2, SUFEN( U_KLOC, GI2 ):', &
-                     !      U_SKLOC, GIS ,U_KLOC, GI2, SUFEN( U_KLOC, GI2 )
-                     SBUFEN( U_SKLOC, GIS ) = SUFEN( U_KLOC, GI2 )
-                     SBUFENSLX( U_SKLOC, GIS ) = SUFENSLX( U_KLOC, GI2 )
-                     SBUFENSLY( U_SKLOC, GIS ) = SUFENSLY( U_KLOC,GI2 )      
-                     SBUFENLX( U_SKLOC, GIS ) = SUFENLX( U_KLOC, GI2 )
-                     SBUFENLY( U_SKLOC, GIS ) = SUFENLY( U_KLOC, GI2 )
-                     SBUFENLZ( U_SKLOC, GIS ) = SUFENLZ( U_KLOC, GI2 )
-                  END IF
-               END IF
-            END DO
-
-            !       ENDIF
-         END DO Loop_UKLOC
+!!!   EWRITE(3,*)'NOT YET READY'
+!!!   FLAbort("Wrong number of surface velocity grid nodes")
+         CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, SCVNGI, NFACE, &
+              NDIM, CV_ELE_TYPE )
       ENDIF
-
-      ! Determine U_ON_FACE
-      !  DO U_KLOC = 1, U_NLOC
-      !     ewrite(3,*)'SUFEN( U_KLOC, GI):',(SUFEN( U_KLOC, GI),gi=1,SCVNGI)
-      !  end do
-
-      ! determine CV_SLOCLIST & U_SLOCLIST
-      CALL DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, CV_ON_FACE, NFACE )
-      IF(U_SNLOC==1) THEN
-         U_SLOCLIST(1,1)=1
-         U_SLOCLIST(2,1)=U_NLOC
-      ELSE
-         EWRITE(3,*)'NOT YET READY'
-         FLAbort("Wrong number of surface velocity grid nodes")
-         CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, SCVNGI, U_ON_FACE, NFACE )
-      ENDIF
-      ewrite(3,*)'CV_SNLOC,U_SNLOC,SCVNGI:',CV_SNLOC,U_SNLOC,SCVNGI
-      ewrite(3,*)'CV_SLOCLIST:',CV_SLOCLIST
-      ewrite(3,*)'U_SLOCLIST:',U_SLOCLIST
-      !    STOP 3893
+      ewrite(3,*)'CV_SNLOC, U_SNLOC, SCVNGI:', CV_SNLOC, U_SNLOC, SCVNGI
+      ewrite(3,*)'CV_SLOCLIST:', CV_SLOCLIST
+      ewrite(3,*)'U_SLOCLIST:', U_SLOCLIST
 
       RETURN
     END SUBROUTINE DET_SUF_ELE_SHAPE
 
 
+    subroutine scvfen_2_sbcvfen( cv_nloc, cv_snloc, scvngi, sbcvngi, cv_neiloc, &
+         sbcvfen, sbcvfenslx, sbcvfensly, sbcvfenlx, sbcvfenly, sbcvfenlz, sbcvfeweigh, &
+         scvfen, scvfenslx, scvfensly, scvfenlx, scvfenly, scvfenlz, scvfeweigh )
+      ! Compute SBCVFEN from SCVFEN
+      implicit none
+      integer, intent( in ) :: cv_nloc, cv_snloc, scvngi, sbcvngi
+      integer, dimension( cv_nloc, scvngi ), intent( in ) :: cv_neiloc
+      real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, &
+           sbcvfensly, sbcvfenlx, sbcvfenly, sbcvfenlz
+      real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
+      real, dimension( cv_nloc, scvngi ), intent( in ) ::  scvfen, &
+           scvfenslx, scvfensly, scvfenlx, scvfenly, scvfenlz
+      real, dimension( scvngi ), intent( in ) :: scvfeweigh
+      ! Local variables
+      logical, dimension( : ), allocatable :: candidate_gi
+      integer :: cv_siloc, cv_iloc, cv_bsgi, cv_sgi
+      real :: r_prodt
+
+      allocate( candidate_gi( scvngi ) )
+
+      ! The CV_SNLOC surface nodes are the only nodes that are candidates. 
+      ! They are the 1st nodes in the local list for the volumes
+      candidate_gi = .false.
+      Loop_SGI1: do cv_sgi = 1, scvngi
+         r_prodt = 1.
+         Loop_NLOC: do cv_iloc = 1, cv_snloc
+            r_prodt = r_prodt * scvfen( cv_iloc, cv_sgi )
+         end do Loop_NLOC
+         if( r_prodt > 1.e-5 ) candidate_gi( cv_sgi ) = .true.
+      end do Loop_SGI1
+
+      Loop_SNLOC: do cv_siloc = 1, cv_snloc
+         cv_iloc = cv_siloc
+         cv_bsgi = 0
+         Loop_SGI2: do cv_sgi = 1, scvngi
+            Conditional_1: if( candidate_gi( cv_sgi ) ) then
+               Conditional_2: if( cv_neiloc( cv_iloc, cv_sgi ) == -1 ) then
+                  cv_bsgi = cv_bsgi + 1
+                  sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
+                  sbcvfenslx( cv_siloc, cv_bsgi ) = scvfenslx( cv_iloc, cv_sgi )
+                  sbcvfensly( cv_siloc, cv_bsgi ) = scvfensly( cv_iloc, cv_sgi )
+                  sbcvfenlx( cv_siloc, cv_bsgi ) = scvfenlx( cv_iloc, cv_sgi )
+                  sbcvfenly( cv_siloc, cv_bsgi ) = scvfenly( cv_iloc, cv_sgi )
+                  sbcvfenlz( cv_siloc, cv_bsgi ) = scvfenlz( cv_iloc, cv_sgi )
+                  sbcvfeweigh( cv_bsgi ) = scvfeweigh( cv_sgi )
+               end if Conditional_2
+            end if Conditional_1
+         end do Loop_SGI2
+      end do Loop_SNLOC
+
+      deallocate( candidate_gi )
+
+      return
+    end subroutine scvfen_2_sbcvfen
 
 
-    SUBROUTINE DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, CV_ON_FACE, NFACE )
+
+    SUBROUTINE DETERMIN_SLOCLIST( CV_SLOCLIST, CV_NLOC, CV_SNLOC, SCVNGI, NFACE,  &
+         ndim, cv_ele_type )
       ! determine CV_SLOCLIST
       IMPLICIT NONE
-      INTEGER, intent( in ) :: CV_NLOC, CV_SNLOC, SCVNGI, NFACE
+      INTEGER, intent( in ) :: CV_NLOC, CV_SNLOC, SCVNGI, NFACE, ndim, cv_ele_type
       INTEGER, DIMENSION( NFACE, CV_SNLOC ), intent( inout ) :: CV_SLOCLIST
-      LOGICAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: CV_ON_FACE
       ! Local variables
-      INTEGER, DIMENSION( : ), allocatable :: CV_SLOC2LOC
-      LOGICAL, DIMENSION( : ), allocatable :: GI_ON_ELE_BOUND
-      INTEGER :: NUM_FACE, GI, CV_SKLOC, CV_KLOC, CV_SILOC, CV_SJLOC, CV_ILOC, CV_JLOC, IFACE
-      LOGICAL :: FOUND, FOUND_ALL, NEW_FACE
+      INTEGER :: IFACE, quad_cv_siloc, quad_cv_iloc, NPOLY, IP, JP, KP
+      LOGICAL :: FOUND
 
-      ALLOCATE( CV_SLOC2LOC( CV_SNLOC ))
-      !ewrite(3,*)'**********************************CV_SNLOC=',CV_SNLOC
-      !ewrite(3,*)'**********************************CV_SNLOC=',CV_SNLOC
-      !ewrite(3,*)'**********************************CV_SNLOC=',CV_SNLOC
-
-      ALLOCATE( GI_ON_ELE_BOUND( SCVNGI ))
-      DO GI=1,SCVNGI
-         GI_ON_ELE_BOUND(GI)=.FALSE.
-         DO CV_KLOC = 1, CV_NLOC
-            IF(CV_ON_FACE(CV_KLOC,GI)) GI_ON_ELE_BOUND(GI)=.NOT.GI_ON_ELE_BOUND(GI)
-         END DO
-      END DO
-
-      ewrite(3,*)'GI_ON_ELE_BOUND:',GI_ON_ELE_BOUND
-
-      !  ewrite(3,*) 'cvsnloc:', cv_snloc
-      !do cv_kloc=1, cv_nloc
-      !   EWRITE(3,*) 'CV_ON_FACE:',(CV_ON_FACE(cv_kloc,gi),gi=1,scvngi)
-      !     ewrite(3,*) 'CV_SLOCLIST:',(CV_SLOCLIST(iface,cv_kloc), iface=1,nface)
-      !end do
-
-      NUM_FACE = 0
-      Loop_GI: DO GI = 1, SCVNGI
-         IF(GI_ON_ELE_BOUND(GI)) THEN
-            !EWRITE(3,*)'*************GI=',GI
-
-            CV_SKLOC = 0
-            DO CV_KLOC = 1, CV_NLOC
-               EWRITE(3,*)'GI,CV_KLOC,CV_ON_FACE( CV_KLOC, GI ):',GI,CV_KLOC,CV_ON_FACE( CV_KLOC, GI )
-               IF( CV_ON_FACE( CV_KLOC, GI )) THEN
-                  CV_SKLOC = CV_SKLOC + 1
-                  CV_SLOC2LOC( CV_SKLOC ) = CV_KLOC
-               END IF
-            END DO
-            !ewrite(3,*)'num_face,gi=',num_face,gi
-            !ewrite(3,*)'CV_SLOC2LOC:',CV_SLOC2LOC
-            !EWRITE(3,*) 'CV_SLOC2LOC --',( CV_SKLOC /= 0 ), (CV_SLOC2LOC( CV_KLOC ), CV_KLOC=1,CV_SKLOC)
-            !do iface=1,num_face
-            !   EWRITE(3,*) 'gi, iface, CV_SLOCList', gi, iface, (CV_SLOCLIST(iface, cv_kloc),cv_kloc=1,cv_snloc)
-            !end do
-
-            Conditional_CV_SKLOC: IF( CV_SKLOC /= 0 ) THEN ! is this a new face
-               NEW_FACE = .TRUE.
-
-               Loop_IFACE: DO IFACE = 1, NUM_FACE
-                  FOUND_ALL = .TRUE.
-                  !ewrite(3,*) '===> iface:',iface
-
-                  Loop_CVLOC1: DO CV_SILOC = 1, CV_SNLOC
-                     CV_ILOC = CV_SLOC2LOC( CV_SILOC )
-                     FOUND = .FALSE.
-
-                     Loop_CVLOC2: DO CV_SJLOC = 1, CV_SNLOC
-                        CV_JLOC = CV_SLOCLIST( IFACE, CV_SJLOC )
-                        !if( (gi == scvngi) .and. (iface == nface))ewrite(3,*) 'here',cv_jloc
-                        IF( CV_ILOC == CV_JLOC ) FOUND = .TRUE.
-                        !ewrite(3,*) 'from found:',found, iface, cv_sjloc, cv_sloclist(iface,cv_sjloc)
-                     END DO Loop_CVLOC2
-
-                     IF( .NOT. FOUND ) FOUND_ALL = .FALSE.
-
-                  END DO Loop_CVLOC1
-
-                  IF( FOUND_ALL ) NEW_FACE = .FALSE.
-               END DO Loop_IFACE
-
-               IF(CV_NLOC==1) NEW_FACE = .TRUE.
-
-               !EWRITE(3,*) '******new_face:', new_face
-               !EWRITE(3,*) '******CV_SLOC2LOC:',CV_SLOC2LOC
-               IF( NEW_FACE ) THEN
-                  NUM_FACE = NUM_FACE + 1
-                  CV_SLOCLIST( NUM_FACE, : ) = CV_SLOC2LOC( : )
-                  !EWRITE(3,*) 'NUM FACE:', NUM_FACE
-               END IF
-            END IF Conditional_CV_SKLOC
-
+      CONDITIONAL_DIMENSION: IF(NDIM==1) THEN
+         ! 1d: 
+         IF(NFACE.NE.2) THEN
+            EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+            STOP 4332
          ENDIF
-      END DO Loop_GI
+         CV_SLOCLIST(1,1)=1
+         CV_SLOCLIST(2,1)=CV_NLOC
+      ELSE IF(NDIM==2) THEN
+         ! 2d: 
+         ! linear triangle: 
+         IF(CV_NLOC==3) THEN
+            IF(NFACE.NE.3) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4333
+            ENDIF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=3
+            CV_SLOCLIST(3,1)=2
+            CV_SLOCLIST(3,2)=3
+            ! linear quad: 
+         ELSE IF(CV_NLOC==4) THEN
+            IF(NFACE.NE.4) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4334
+            ENDIF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=3
+            CV_SLOCLIST(2,1)=2
+            CV_SLOCLIST(2,2)=4
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=2
+            CV_SLOCLIST(4,1)=1
+            CV_SLOCLIST(4,2)=2
+            ! quadratic triangle: 
+         ELSE IF(CV_NLOC==6) THEN
+            IF(NFACE.NE.3) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4335
+            ENDIF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=2
+            CV_SLOCLIST(1,3)=3
+            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(2,2)=4
+            CV_SLOCLIST(2,3)=6
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=5
+            CV_SLOCLIST(3,3)=6
+            ! quadratic quad: 
+         ELSE IF(CV_NLOC==9) THEN
+            IF(NFACE.NE.4) THEN
+               EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+               STOP 4336
+            ENDIF
+            CV_SLOCLIST(1,1)=1
+            CV_SLOCLIST(1,2)=4
+            CV_SLOCLIST(1,3)=7
+            CV_SLOCLIST(2,1)=3
+            CV_SLOCLIST(2,2)=6
+            CV_SLOCLIST(2,3)=9
+            CV_SLOCLIST(3,1)=1
+            CV_SLOCLIST(3,2)=2
+            CV_SLOCLIST(3,3)=3
+            CV_SLOCLIST(4,1)=7
+            CV_SLOCLIST(4,2)=8
+            CV_SLOCLIST(4,3)=9
 
-      IF(NUM_FACE /= NFACE) THEN 
-         EWRITE(3,*)' NUM_FACE, NFACE :', NUM_FACE, NFACE
-         FLAbort(" Wrong number of computed faces ")
-      END IF
+         ELSE IF(NDIM==3) THEN
+            ! 3d: 
+            ! linear triangle: 
+            IF(CV_NLOC==4) THEN
+               IF(NFACE.NE.4) THEN
+                  EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+                  STOP 4337
+               ENDIF
+               CV_SLOCLIST(1,1)=1
+               CV_SLOCLIST(1,2)=2
+               CV_SLOCLIST(1,3)=3
+               CV_SLOCLIST(2,1)=1
+               CV_SLOCLIST(2,2)=2
+               CV_SLOCLIST(2,3)=4
+               CV_SLOCLIST(3,1)=1
+               CV_SLOCLIST(3,2)=3
+               CV_SLOCLIST(3,3)=4
+               CV_SLOCLIST(4,1)=2
+               CV_SLOCLIST(4,2)=3
+               CV_SLOCLIST(4,3)=4
+               ! quadratic triangle: 
+               IF(CV_NLOC==10) THEN
+                  IF(NFACE.NE.4) THEN
+                     EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+                     STOP 4338
+                  ENDIF
+                  CV_SLOCLIST(1,1)=1
+                  CV_SLOCLIST(1,2)=2
+                  CV_SLOCLIST(1,3)=3
+                  CV_SLOCLIST(1,4)=3
+                  CV_SLOCLIST(2,1)=1
+                  CV_SLOCLIST(2,2)=2
+                  CV_SLOCLIST(2,3)=4
+                  CV_SLOCLIST(3,1)=1
+                  CV_SLOCLIST(3,2)=3
+                  CV_SLOCLIST(3,3)=4
+                  CV_SLOCLIST(4,1)=2
+                  CV_SLOCLIST(4,2)=3
+                  CV_SLOCLIST(4,3)=4
+                  ! general hex: 
+               ELSE 
+                  IF(NFACE.NE.6) THEN
+                     EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
+                     STOP 4339
+                  ENDIF
+                  npoly=INT(REAL(CV_NLOC+0.01)**0.333333)
+                  do iface=1,nface
+                     quad_cv_siloc =0
+                     Loop_Poly2d_2_1: do ip = 1, npoly
+                        Loop_Poly2d_2_2: do jp = 1, npoly
+                           Loop_Poly2d_2_3: do kp = 1, npoly
+                              quad_cv_iloc = ( kp - 1 ) * npoly * npoly + &
+                                   ( jp - 1 ) * npoly + ip 
+                              found = .false.
+                              Select Case( iface )
+                              case( 1 )
+                                 if( ip == 1 ) found = .true.
+                              case( 2 )  
+                                 if( ip == npoly ) found = .true.
+                              case( 3 )
+                                 if( jp == 1 ) found = .true.
+                              case( 4 )
+                                 if( jp == npoly ) found = .true.
+                              case( 5 )
+                                 if( kp == 1 ) found = .true.
+                              case( 6 )
+                                 if( kp == npoly ) found = .true.
+                              case default; FLExit( "Wrong integer for IFACE" )
+                              end Select
+                              if( found ) then
+                                 quad_cv_siloc = quad_cv_siloc + 1
+                                 CV_SLOCLIST(iface,quad_cv_siloc)=quad_cv_iloc
 
-      DEALLOCATE( CV_SLOC2LOC )
-      DEALLOCATE( GI_ON_ELE_BOUND )
+                              end if
+                           end do Loop_Poly2d_2_3
+                        end do Loop_Poly2d_2_2
+                     end do Loop_Poly2d_2_1
+                  end do
+
+               END IF
+            END IF
+         END IF
+      END IF CONDITIONAL_DIMENSION
 
       RETURN
     END SUBROUTINE DETERMIN_SLOCLIST
 
 
-
-    subroutine shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, &
+    subroutine shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
          cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
          scvfenlx, scvfenly, scvfenlz, &
          u_nloc, sufen, sufenslx, sufensly, &
@@ -2187,7 +2221,7 @@
       !-
       integer, intent( in ) :: scvngi, cv_nloc
       integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc
-      logical, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_on_face
+      logical, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_on_face, cvfem_on_face
       integer, intent( in ) :: cv_ele_type
       real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfen, scvfenslx, scvfensly
       real, dimension( scvngi ), intent( inout ) :: scvfeweigh
@@ -2198,14 +2232,21 @@
       integer, intent( in ) :: ndim
       ! Local variables
       integer :: iloc, gi
+      logical :: tri_tet
+      integer, dimension( :, : ), allocatable :: cvfem_neiloc
       real, dimension( :, : ), allocatable :: m, mu, cvn_dummy
       real, dimension( : ), allocatable :: cvweigh_dummy
+
+      ewrite(3,*)' In ShapesV_Fem_Plus '
 
       ! Allocating space
       allocate( m( cv_nloc, scvngi ) )
       allocate( mu( cv_nloc, scvngi ) )
       allocate( cvn_dummy( cv_nloc, scvngi ) )
       allocate( cvweigh_dummy( scvngi ) )
+      allocate( cvfem_neiloc( cv_nloc, scvngi ) )
+
+      tri_tet=.false.
 
       Cond_ShapeType: Select Case( cv_ele_type )
       case( 1, 2 ) ! 1D
@@ -2214,36 +2255,12 @@
          call fv_1d_quad( scvngi, u_nloc, sufen, sufenslx, sufensly, scvfeweigh, &
               sufenlx, sufenly, sufenlz ) ! For U fields
 
-      case( 3 ) ! Linear Triangle
-         call fvtri( scvngi, cv_nloc, scvngi, &
-              m, scvfen, scvfenslx, & 
-              scvfeweigh )
-         call fvtri( scvngi, u_nloc, scvngi, &
-              mu, sufen, sufenslx, & 
-              scvfeweigh )
-         ewrite(3,*)'pqp3,ndim, scvngi, cv_nloc, u_nloc: ', ndim, scvngi, cv_nloc, u_nloc
-         ewrite(3,*)'m:', m( 1 : cv_nloc, 1: scvngi )
-         ewrite(3,*)'mu:', mu( 1 : cv_nloc, 1: scvngi )
-         ewrite(3,*)'scvfen:', scvfen( 1 : cv_nloc, 1: scvngi )
-         ewrite(3,*)'sufen:', sufen( 1 : u_nloc, 1: scvngi )
-         ewrite(3,*)'scvfenslx:', scvfenslx( 1 : cv_nloc, 1: scvngi )
-         ewrite(3,*)'sufenslx:', sufenslx( 1 : u_nloc, 1: scvngi )
-         ewrite(3,*)'scvfeweigh:', scvfeweigh( 1: scvngi )
-         call vol_cv_tri_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, cvn_dummy, cvweigh_dummy, &
-              scvfen, scvfenlx, scvfenly, scvfenlz, &
-              sufen, sufenlx, sufenly, sufenlz )
-         ewrite(3,*)'pqp4' 
-
-      case( 4 ) ! Quadratic Triangle 
-         call fvqtri( scvngi, cv_nloc, scvngi, &
-              m, scvfen, scvfenslx, & 
-              scvfeweigh )
-         call fvqtri( scvngi, u_nloc, scvngi, &
-              mu, sufen, sufenslx, & 
-              scvfeweigh )
-         call vol_cv_qtri_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, cvn_dummy, cvweigh_dummy, &
-              scvfen, scvfenlx, scvfenly, scvfenlz, &
-              sufen, sufenlx, sufenly, sufenlz )
+      case( 3, 4, 7, 8 ) ! Triangle and Tetrahedra 
+         tri_tet=.true.
+         call suf_cv_tri_tet_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, scvfeweigh, &
+              scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly,  &
+              sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
+              cv_neiloc, cvfem_neiloc  )
 
       case( 5 ) ! Bi-linear Quadrilateral
          call fvquad( scvngi, cv_nloc, scvngi, &
@@ -2264,28 +2281,6 @@
               mu, sufen, sufenslx, & 
               scvfeweigh )
          call quad_nd_shape( ndim, cv_ele_type, scvngi, cv_nloc, u_nloc, cvn_dummy, cvweigh_dummy, &
-              scvfen, scvfenlx, scvfenly, scvfenlz, &
-              sufen, sufenlx, sufenly, sufenlz )
-
-      case( 7 ) ! Linear Tetrahedron
-         call fvtet( scvngi, cv_nloc, scvngi, &
-              m, scvfen, scvfenslx, & 
-              scvfensly, scvfeweigh )
-         call fvtet( scvngi, u_nloc, scvngi, &
-              mu, sufen, sufenslx, & 
-              sufensly, scvfeweigh )
-         call vol_cv_tet_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, cvn_dummy, cvweigh_dummy, &
-              scvfen, scvfenlx, scvfenly, scvfenlz, &
-              sufen, sufenlx, sufenly, sufenlz )
-
-      case( 8 ) ! Quadratic Tetrahedron
-         call fvqtet( scvngi, cv_nloc, scvngi, &
-              m, scvfen, scvfenslx, & 
-              scvfensly, scvfeweigh )
-         call fvqtet( scvngi, u_nloc, scvngi, &
-              mu, sufen, sufenslx, & 
-              sufensly, scvfeweigh )
-         call vol_cv_qtet_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, cvn_dummy, cvweigh_dummy, &
               scvfen, scvfenlx, scvfenly, scvfenlz, &
               sufen, sufenlx, sufenly, sufenlz )
 
@@ -2316,23 +2311,28 @@
       end Select Cond_ShapeType
 
 
-      call volnei( cv_neiloc, cv_nloc, scvngi, cv_ele_type )
+      if(.not.tri_tet) then
+         call volnei( cv_neiloc, cvfem_neiloc, cv_nloc, scvngi, cv_ele_type )
+      end if
 
       ewrite(3,*)'cv_ele_type:', cv_ele_type
 
-      cv_on_face = .false.
+      cv_on_face = .false. ; cvfem_on_face = .false.
       if ( ( cv_ele_type == 1 ) .or. ( cv_ele_type == 2 ) ) then ! 1D
          do iloc = 1, cv_nloc
             cv_on_face( iloc, iloc ) = .true.
             cv_on_face( iloc, iloc + 1 ) = .true.
          end do
-
+         cv_on_face = cvfem_on_face
       else
          do iloc = 1, cv_nloc
             do gi = 1, scvngi 
-               if ( ( cv_neiloc( iloc, gi ) /= 0 ) .and. &
-                    ( cv_neiloc( iloc, gi ) /= -1 ) ) &
+              ! ewrite(3,*)'cv_neiloc, cvfem_on_face:', iloc, gi, &
+              !      cv_neiloc( iloc, gi ), cvfem_neiloc( iloc, gi ) 
+               if ( cv_neiloc( iloc, gi ) == -1 ) &
                     cv_on_face( iloc, gi ) = .true.
+               if ( cvfem_neiloc( iloc, gi ) == -1 ) &
+                    cvfem_on_face( iloc, gi ) = .true. 
             end do
          end do
 
@@ -2340,12 +2340,16 @@
 
       do iloc = 1, cv_nloc
          ewrite(3,*)'iloc, cv_on_face:', iloc, ( cv_on_face( iloc, gi ), gi = 1, scvngi )
+         ewrite(3,*)'iloc, cvfem_neiloc:', iloc, ( cvfem_neiloc( iloc, gi ), gi = 1, scvngi )
+         ewrite(3,*)'iloc, cvfem_on_face:', iloc, ( cvfem_on_face( iloc, gi ), gi = 1, scvngi )
       end do
 
       deallocate( m )
       deallocate( mu )
       deallocate( cvn_dummy )
       deallocate( cvweigh_dummy )
+      deallocate( cvfem_neiloc )
+
 
       return
     end subroutine shapesv_fem_plus
@@ -2437,7 +2441,7 @@
 
 
 
-    SUBROUTINE SHAPESV( ELETYP,  NEILOC,    &
+    SUBROUTINE SHAPESV( ELETYP, NEILOC, FEM_NEILOC,  &
          NGI, NLOC,   &
          SVNGI, &
          SVN, &
@@ -2457,7 +2461,7 @@
 
       INTEGER, intent( in ) :: ELETYP
       INTEGER, intent( in ) :: NGI, NLOC, SVNGI
-      INTEGER, DIMENSION( NLOC, SVNGI ), intent( inout ) :: NEILOC
+      INTEGER, DIMENSION( NLOC, SVNGI ), intent( inout ) :: NEILOC, FEM_NEILOC
       REAL, DIMENSION( NLOC, SVNGI ), intent( inout ) :: SVN, SVNLX, SVNLY
       REAL, DIMENSION( SVNGI ), intent( inout ) :: SVWEIGH
       REAL, DIMENSION( NLOC, NGI ), intent( inout ) :: M
@@ -2560,21 +2564,19 @@
          EWRITE(3,*)'NOT GOT THIS YET'
 
       END IF Cond_ShapeType
-      !     
-      !     
-      CALL VOLNEI( NEILOC, NLOC, SVNGI, ELETYP )
-      !     
+
+      CALL VOLNEI( NEILOC, FEM_NEILOC, NLOC, SVNGI, ELETYP )
+
       DEALLOCATE( LX )
       DEALLOCATE( XN )
       DEALLOCATE( DXN )
-      !     
+
       RETURN
     END SUBROUTINE SHAPESV
 
 
 
     SUBROUTINE FVQUAD( NGI,    NLOC,    SVNGI,&
-                                !     - REALS
          M,      SVN,     SVNLX, &
          SVWEIGH                 )
       !     --------------------------------------------
@@ -6097,7 +6099,7 @@
 
 !!!==============================================================
 
-    SUBROUTINE VOLNEI( NEILOC, NLOC, SVNGI, CV_ELE_TYPE )
+    SUBROUTINE VOLNEI( NEILOC, FEM_NEILOC, NLOC, SVNGI, CV_ELE_TYPE )
       !--------------------------------------------------------   
       !- this subroutine calculates NEILOC which is the       
       !- array containing information given a local node
@@ -6111,12 +6113,14 @@
       IMPLICIT NONE     
       INTEGER, intent( in ) :: NLOC, SVNGI, CV_ELE_TYPE   
       INTEGER, DIMENSION( NLOC, SVNGI ), intent( inout ) :: NEILOC
+      INTEGER, DIMENSION( NLOC, SVNGI ), intent( inout ) :: FEM_NEILOC
       ! Local variables    
       INTEGER :: ILOC, IEXT, IGP
 
       NEILOC = 0
+      FEM_NEILOC = 0
 
-      SELECT CASE( CV_ELE_TYPE )
+      Conditional_Type: SELECT CASE( CV_ELE_TYPE )
 
       CASE( 1, 2 ) ! 1D
          DO ILOC = 1, NLOC
@@ -6125,8 +6129,11 @@
          END DO
          NEILOC( 1, 1 ) = -1
          NEILOC( NLOC, SVNGI ) = -1
+         FEM_NEILOC = NEILOC
 
       CASE( 3 ) ! Linear Triangle
+         FLAbort( " Defined elsewhere -- it needs to be updated " )
+
          ILOC = 1 ! CV 1
          NEILOC( ILOC, 1 ) = 2
          NEILOC( ILOC, 3 ) = 3
@@ -6148,7 +6155,10 @@
          neiloc( iloc, 7 ) = -1
          neiloc( iloc, 8 ) = -1
 
+         fem_neiloc = neiloc
+
       CASE( 4 ) ! Quadratic Triangle
+         FLAbort( " Defined elsewhere -- it needs to be updated " )
          ILOC = 1
          ! Face 1
          NEILOC( ILOC, 1 ) = 2
@@ -7405,7 +7415,7 @@
 
       CASE DEFAULT; FLExit( " Invalid integer for cv_ele_type " )
 
-      END SELECT
+      END SELECT Conditional_Type
 
       RETURN     
     END SUBROUTINE VOLNEI
@@ -7632,6 +7642,8 @@
            A22, A23, A31, A32, A33, DETJ, TWOPIE, RGI
       INTEGER :: GI, L, IGLX
 
+      ewrite(3,*)' In Detnlxr_Plus_U'
+
       VOLUME = 0.
 
       Conditional_D3: IF( D3 ) THEN
@@ -7721,7 +7733,7 @@
             RA( GI ) = RGI
             DETWEI( GI ) = TWOPIE * RGI * DETJ * WEIGHT( GI )
             VOLUME = VOLUME + DETWEI( GI )
-            ewrite(3,*) 'gi:', gi,detj, detwei(gi)
+            ewrite(3,*) 'ele, gi, detj, detwei:', ele, gi, detj, detwei(gi)
 
             Loop_L5: DO L = 1, X_NLOC
                NX( L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ

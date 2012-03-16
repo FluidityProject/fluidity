@@ -309,7 +309,7 @@
 
     SUBROUTINE calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA, TOTELE, CV_NLOC, MAT_NLOC, &
          CV_NDGLN, MAT_NDGLN, &
-         U_ABSORB, PERM, MOBILITY) 
+         U_ABSORB, PERM2, MOBILITY) 
       ! Calculate absorption for momentum eqns
       use matrix_operations
       !    use cv_advection
@@ -319,7 +319,7 @@
       INTEGER, DIMENSION( TOTELE * CV_NLOC ), intent( in ) :: CV_NDGLN
       INTEGER, DIMENSION( TOTELE * MAT_NLOC ), intent( in ) :: MAT_NDGLN
       REAL, DIMENSION( MAT_NONODS, NDIM * NPHASE, NDIM * NPHASE ), intent( inout ) :: U_ABSORB
-      REAL, DIMENSION( TOTELE, NDIM, NDIM ), intent( in ) :: PERM
+      REAL, DIMENSION( TOTELE, NDIM, NDIM ), intent( in ) :: PERM2
       REAL, intent( in ) :: MOBILITY
       ! Local variable
       REAL, PARAMETER :: TOLER = 1.E-10
@@ -328,15 +328,35 @@
       !    integer :: ii
       REAL :: SATURATION
       !    real :: abs_sum
-      REAL, DIMENSION( :, :, :), allocatable :: INV_PERM
+      REAL, DIMENSION( :, :, :), allocatable :: INV_PERM, PERM
 
       ewrite(3,*) 'In calculate_absorption2'
       ewrite(3,*) 'mat_ndgln: ', mat_ndgln
 
       ALLOCATE( INV_PERM( TOTELE, NDIM, NDIM ))
+      ALLOCATE( PERM( TOTELE, NDIM, NDIM ))
+
+!!!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+!!! Big-Hack here ... if permeability is isotropic then
+!!! PERM is non-invertible. 
+      PERM = PERM2
+      if( ndim > 1 ) then
+         do ele = 1, totele
+            do idim = 1, ndim
+               do jdim = 1, ndim
+                  if( idim /= jdim ) &
+                       perm( ele, idim, jdim ) = .9995 * perm( ele, idim, jdim )
+               end do
+            end do
+         end do
+      end if
+!!!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
       CALL PHA_BLOCK_INV( INV_PERM, PERM, TOTELE, NDIM )
 
+      ewrite(3,*)'perm:', perm
+      ewrite(3,*)'inv_perm:', inv_perm
+      !stop 1
       U_ABSORB = 0.0
 
       Loop_ELE: DO ELE = 1, TOTELE
@@ -357,12 +377,14 @@
                      IPHA_IDIM = ( IPHASE - 1 ) * NDIM + IDIM 
                      JPHA_JDIM = ( IPHASE - 1 ) * NDIM + JDIM 
 
-                     if (have_option("/material_phase["// int2str(iphase-1) //"]/multiphase_properties/relperm_type/Corey")) then
+                     if (have_option("/material_phase["// int2str(iphase-1) //&
+                          "]/multiphase_properties/relperm_type/Corey")) then
+
                         if (nphase==2) then
                            CALL relperm_corey( U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ), MOBILITY, &
                                 INV_PERM( ELE, IDIM, JDIM ), min(1.0,max(0.0,SATURA(CV_NOD))), IPHASE)
                         else
-                           FLAbort('Attempting to use twophase relperm function with '//int2str(nphase)//' phase(s)')
+                           FLAbort('Attempting to use twophase relperm function with '// int2str(nphase)//' phase(s)')
                         endif
 
                      elseif (have_option("/material_phase["// int2str(iphase-1) //"]/multiphase_properties/relperm_type/Land")) then
@@ -376,7 +398,7 @@
                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
 
                         !FLAbort('Unknown relperm_type')
-                        
+
                         !                      CASE( 0 ) 
                         ! no absorption option
                         !                         U_ABSORB( MAT_NOD, IPHA_IDIM, JPHA_JDIM ) = 0.0
@@ -409,7 +431,7 @@
       END DO Loop_ELE
 
       !    ewrite(3,*)'NUABS_COEFS,UABS_COEFS:',NUABS_COEFS,UABS_COEFS
-      !    ewrite(3,*)'U_ABSORB:'
+      ewrite(3,*)'U_ABSORB:'
       do mat_nod = 1, mat_nonods
          do iphase = 1, nphase
             ewrite(3,*) mat_nod, iphase, (U_ABSORB( MAT_NOD, iphase, jphase ), jphase = 1, nphase ) 
@@ -435,13 +457,19 @@
            kr1_max, kr2_max, kr1_exp, kr2_exp
 
       !    S_GC = 0.1
-      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", s_gc, default=0.1)
+      call get_option("/material_phase[0]/multiphase_properties/immobile_fraction", &
+           s_gc, default=0.1)
       !    S_OR = 0.3
-      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", s_or, default=0.3)
-      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_max", kr1_max, default=1.0)
-      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_max", kr2_max, default=1.0)
-      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_exponent", kr1_exp, default=2.0)
-      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", kr2_exp, default=2.0)
+      call get_option("/material_phase[1]/multiphase_properties/immobile_fraction", &
+           s_or, default=0.3)
+      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_max", &
+           kr1_max, default=1.0)
+      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_max", &
+           kr2_max, default=1.0)
+      call get_option("/material_phase[0]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
+           kr1_exp, default=2.0)
+      call get_option("/material_phase[1]/multiphase_properties/relperm_type/Corey/relperm_exponent", &
+           kr2_exp, default=2.0)
 
       SATURATION = SAT
       IF( IPHASE == 2 ) SATURATION = 1. - SAT
@@ -451,7 +479,7 @@
       ELSE IF( SAT > 1. -S_OR ) THEN
          kr1 = kr1_max
       ELSE
-         KR1 = ( ( SAT - S_GC) / ( 1. - S_GC - S_OR ))**kr1_exp
+         KR1 = ( ( SAT - S_GC) / ( 1. - S_GC - S_OR )) ** kr1_exp
       ENDIF
 
       SAT2 = 1.0 - SAT
@@ -460,7 +488,7 @@
       ELSEIF( SAT2 > 1. - S_GC ) THEN
          KR2 = kr2_max
       ELSE
-         KR2 = ( ( SAT2 - S_OR ) / ( 1. - S_GC - S_OR ))**kr2_exp
+         KR2 = ( ( SAT2 - S_OR ) / ( 1. - S_GC - S_OR )) ** kr2_exp
       ENDIF
 
       IF( IPHASE == 1 ) THEN

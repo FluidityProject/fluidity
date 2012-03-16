@@ -229,20 +229,19 @@ module mp_prototype
 
       nkcomp = Combination( ncomp, 2 )
 
-      nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
 
-      if( u_snloc < 0 ) u_snloc = 1 * nlev
-      cv_pha_nonods = cv_nonods * nphase
-      u_pha_nonods = u_nonods * nphase
-      ncp_coefs = nphase
-      nlenmcy = u_pha_nonods + cv_nonods
-
-      if( ndpset < 0 ) ndpset = cv_nonods
+     ! if( u_snloc < 0 ) u_snloc = 1 * nlev
+     ! cv_pha_nonods = cv_nonods * nphase
+     ! u_pha_nonods = u_nonods * nphase
+     ! ncp_coefs = nphase
+     ! nlenmcy = u_pha_nonods + cv_nonods
+     ! if( ndpset < 0 ) ndpset = cv_nonods
 
       ! This should really be in the copy routine, but it isn't used
       ! anyway
       !      allocate( opt_vel_upwind_coefs( nopt_vel_upwind_coefs ))
       opt_vel_upwind_coefs = 0.
+      nopt_vel_upwind_coefs = mat_nonods * nphase * ndim * ndim * 2
 
       ! Set up scalar and vector fields for previous time-step
       allocate( uold( u_pha_nonods ))

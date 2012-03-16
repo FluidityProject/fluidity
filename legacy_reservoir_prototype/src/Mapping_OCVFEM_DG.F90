@@ -115,7 +115,8 @@ module mapping_for_ocvfem
     real, dimension( : ), allocatable :: up_wind_nod, detwei, ra, x_quad
 
     logical, dimension( : ), allocatable :: x_share,log_on_bound
-    logical, dimension( :, : ), allocatable :: cv_on_face,u_on_face
+    logical, dimension( :, : ), allocatable :: cv_on_face,u_on_face, &
+                                 cvfem_on_face,ufem_on_face
     logical, parameter :: include_pore_vol_in_deriv = .false.
 
     !          ===> integers <====
@@ -171,7 +172,9 @@ module mapping_for_ocvfem
     allocate( sndotq( scvngi ))
     allocate( sndotqold( scvngi ))
     allocate( cv_on_face( cv_nloc, scvngi ))
+    allocate( cvfem_on_face( cv_nloc, scvngi ))
     allocate( u_on_face( u_nloc, scvngi ))
+    allocate( ufem_on_face( u_nloc, scvngi ))
     allocate( cv_other_loc( cv_nloc ))
     allocate( u_other_loc( u_nloc ))
     allocate( x_share( x_nonods ))
@@ -267,13 +270,13 @@ module mapping_for_ocvfem
          cvweight_short, cvfen_short, cvfenlx_short, cvfenly_short, cvfenlz_short, &
          ufen, ufenlx, ufenly, ufenlz, &
                                 ! surface of each cv shape functions...
-         scvngi, cv_neiloc, cv_on_face,  &  
+         scvngi, cv_neiloc, cv_on_face, cvfem_on_face,  &  
          scvfen, scvfenslx, scvfensly, scvfeweigh, &
          scvfenlx, scvfenly, scvfenlz,  &
          sufen, sufenslx, sufensly,  &
          sufenlx, sufenly, sufenlz,  &
                                 ! surface element shape funcs...
-         u_on_face, nface, & 
+         u_on_face, ufem_on_face, nface, & 
          sbcvngi,sbcvfen, sbcvfenslx, sbcvfensly, sbcvfeweigh, sbcvfenlx, sbcvfenly, sbcvfenlz, &
          sbufen, sbufenslx, sbufensly, sbufenlx, sbufenly, sbufenlz, &
          cv_sloclist, u_sloclist, cv_snloc, u_snloc, &

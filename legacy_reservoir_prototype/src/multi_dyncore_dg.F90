@@ -36,7 +36,6 @@ module multiphase_1D_engine
   use shape_functions
   use spact
   use printout
-  use spact
   use fldebug
 
   implicit none
@@ -1512,6 +1511,7 @@ contains
        XU_NLOC, XU_NDGLN, &
        FINDCMC, COLCMC, NCOLCMC, MASS_MN_PRES, PIVIT_MAT, JUST_BL_DIAG_MAT,  &
        UDIFFUSION, IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
+    use shape_functions_NDim
     implicit none
 
     INTEGER, intent( in ) :: NDIM, NPHASE, U_NLOC, X_NLOC, P_NLOC, CV_NLOC, MAT_NLOC, TOTELE, &
@@ -1592,7 +1592,8 @@ contains
          DENGI, DENGIOLD,GRAD_SOU_GI,SUD,SVD,SWD, SUDOLD,SVDOLD,SWDOLD, SUD2,SVD2,SWD2, &
          SUDOLD2,SVDOLD2,SWDOLD2, &
          SNDOTQ, SNDOTQOLD, SINCOME, SINCOMEOLD, SDEN, SDENOLD
-    LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE
+    LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
+                                     CVFEM_ON_FACE, UFEM_ON_FACE
 
 
     LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES
@@ -1637,7 +1638,6 @@ contains
 
     call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
          cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
-
 
     GOT_DIFFUS = .FALSE.
 
@@ -1735,7 +1735,9 @@ contains
     ALLOCATE( U_ILOC_OTHER_SIDE(U_SNLOC))
 
     ALLOCATE( CV_ON_FACE( CV_NLOC, SCVNGI ))
+    ALLOCATE( CVFEM_ON_FACE( CV_NLOC, SCVNGI ))
     ALLOCATE( U_ON_FACE( U_NLOC, SCVNGI ))
+    ALLOCATE( UFEM_ON_FACE( U_NLOC, SCVNGI ))
     ALLOCATE( U_OTHER_LOC( U_NLOC ))
     ALLOCATE( MAT_OTHER_LOC( MAT_NLOC ))
 
@@ -1823,12 +1825,7 @@ contains
 
 
     !     ======= DEFINE THE SUB-CONTROL VOLUME & FEM SHAPE FUNCTIONS ========
-    NCOLGPTS = 0
-    COLGPTS = 0
-    FINDGPTS = 0
-    ewrite(3,*)'in ASSEMB_FORCE_CTY',NCOLGPTS 
-    ewrite(3,*)'in ASSEMB_FORCE_CTY, COLGPTS', size( COLGPTS ), COLGPTS( 1 : size( COLGPTS ) )
-    ewrite(3,*)'in ASSEMB_FORCE_CTY, FINDGPTS', size( FINDGPTS ), FINDGPTS( 1 : size( FINDGPTS ) )
+    ncolgpts = 0 ; colgpts = 0 ; findgpts = 0
 
     CALL CV_FEM_SHAPE_FUNS( &
                                 ! Volume shape functions...
@@ -1838,13 +1835,13 @@ contains
          CVWEIGHT_SHORT, CVFEN_SHORT, CVFENLX_SHORT, CVFENLY_SHORT, CVFENLZ_SHORT, &
          UFEN, UFENLX, UFENLY, UFENLZ, &
                                 ! Surface of each CV shape functions...
-         SCVNGI, CV_NEILOC, CV_ON_FACE,  &  
+         SCVNGI, CV_NEILOC, CV_ON_FACE, CVFEM_ON_FACE, &  
          SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
          SCVFENLX, SCVFENLY, SCVFENLZ,  &
          SUFEN, SUFENSLX, SUFENSLY,  &
          SUFENLX, SUFENLY, SUFENLZ,  &
                                 ! Surface element shape funcs...
-         U_ON_FACE, NFACE, & 
+         U_ON_FACE, UFEM_ON_FACE,NFACE, & 
          SBCVNGI,SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFEWEIGH, SBCVFENLX, SBCVFENLY, SBCVFENLZ, &
          SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, &
          CV_SLOCLIST, U_SLOCLIST, CV_SNLOC, U_SNLOC, &

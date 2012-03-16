@@ -143,20 +143,20 @@
 !!! i.e., ilayer =nlayer
 !!!
       ilayer = nlayer        
-      write(*,*)'X-Coord:'
+      ewrite(3,*)'X-Coord:'
       call Mapping_QTet_TriangleSide( .true., ilayer, x_nonods, &
            x, fem_nod, ifem )
-      write(*,*)'Y-Coord:'
+      ewrite(3,*)'Y-Coord:'
       call Mapping_QTet_TriangleSide( .false., ilayer, x_nonods, &
            y, fem_nod, ifem )
-      write(*,*)'Z-Coord:'
+      ewrite(3,*)'Z-Coord:'
       call Mapping_QTet_TriangleSide( .false., ilayer, x_nonods, &
            z, fem_nod, ifem )
 !!!
 !!! Now for the node points in the centre of the Pascal tetrahedron at 
 !!! ilayer = nlayer (i.e., basis of the tetrahedron).
 !!!
-      write(*,*)'Centre:'
+      ewrite(3,*)'Centre:'
       call Mapping_QTet_TriangleCentre( ilayer, x_nonods, x, y, z )
 
 !!!
@@ -166,23 +166,23 @@
       Loop_Layers10: do ilayer = ( nlayer - 1 ), 1, -1
 
          ! Node at the vertices of each layer
-         write(*,*)'X/Y/Z-Coord Vertices, ilayer:', ilayer 
+         ewrite(3,*)'X/Y/Z-Coord Vertices, ilayer:', ilayer 
          call Mapping_QTet_TriangleVertices( .true., ilayer, x_nonods, &
               x, y, z, fem_nod, ifem ) 
 
          ! Node at the side of each layer
-         write(*,*)'X-Coord Sides, ilayer:', ilayer 
+         ewrite(3,*)'X-Coord Sides, ilayer:', ilayer 
          call Mapping_QTet_TriangleSide( .true., ilayer, x_nonods, &
               x, fem_nod, ifem ) 
-         write(*,*)'Y-Coord Sides, ilayer:', ilayer 
+         ewrite(3,*)'Y-Coord Sides, ilayer:', ilayer 
          call Mapping_QTet_TriangleSide( .false., ilayer, x_nonods, &
               y, fem_nod, ifem )
-         write(*,*)'Z-Coord Sides, ilayer:', ilayer 
+         ewrite(3,*)'Z-Coord Sides, ilayer:', ilayer 
          call Mapping_QTet_TriangleSide( .false., ilayer, x_nonods, &
               z, fem_nod, ifem )
 
          ! Now the node points in the central region of the intermediate layers
-         write(*,*)'Nodes in the centre of the triangle at layer', ilayer
+         ewrite(3,*)'Nodes in the centre of the triangle at layer', ilayer
          call Mapping_QTet_TriangleCentre( ilayer, x_nonods, x, y, z )
 
       end do Loop_Layers10
@@ -213,7 +213,7 @@
       do ele2 = 1, 32
          do iloc = 1, 8
             if( x_ndgln_big( ( ele2 - 1 ) * quad_cv_nloc + iloc ) <= 10 ) then
-               write(*,*)'nod, fem_nod:', x_ndgln_big( ( ele2 - 1 ) * quad_cv_nloc + iloc ), &
+               ewrite(3,*)'nod, fem_nod:', x_ndgln_big( ( ele2 - 1 ) * quad_cv_nloc + iloc ), &
                     fem_nod( x_ndgln_big( ( ele2 - 1 ) * quad_cv_nloc + iloc ) )
             end if
          end do
@@ -337,7 +337,7 @@
                ifem = ifem + 1
                fem_nod( node ) = ifem
             end if
-            write(*, '(a10,i3,i3,g12.5)')'SideNodes:', ilayer, node, x( node )
+            !ewrite(3, '(a10,i3,i3,g12.5)')'SideNodes:', ilayer, node, x( node )
          end do Loop_ILOC0
       end do Loop_Side0
       !print*, '++'
@@ -372,7 +372,7 @@
                     y( tet_nodes( 0, ilayer - 1 ) + 1 + 2 * ilayer + 1 + ilayer0 )
                ! Node Point - Z coordinates 
                z( node + inod ) = z( tet_nodes( 0, ilayer - 1 ) + 1 )
-               write(*,'(i3,1x,i3,3g12.5)') ilayer, node + inod , x( node + inod ), y( node + inod ), z( node + inod )
+               ewrite(3,'(i3,1x,i3,3g12.5)') ilayer, node + inod , x( node + inod ), y( node + inod ), z( node + inod )
             end do Loop_Centre_Nodes1
          end do Loop_Centre_Nodes0
       end if Conditional_Centre_Nodes
@@ -508,7 +508,7 @@
            (/ 1, 2, 3, 1, 2, 4, 1, 3, 4, 2, 3, 4 /)
       integer :: ele, ele2, iloc, iloc2, node, node1, node2, node3, node4
 
-      write(*,*)'in QTet_CV'
+      ewrite(3,*)'in QTet_CV'
 
       ! Computing node point in the centre of the tetrahedra
       Loop_Elements_Tets0: do ele = 1, totele
@@ -546,7 +546,7 @@
       ! Now mapping the CV node points
       ! nodeplustetnodes = tet_nodes( 0, nlayer )
       Loop_Elements_Tets2: do ele = 1, totele
-         write(*,*)'Ele / Totele:', ele, totele
+         ewrite(3,*)'Ele / Totele:', ele, totele
          call Mapping_QTet_CV( ele, x_nonods, nodeplustetnodes, &
               x_ndgln2, x, y, z )
       end do Loop_Elements_Tets2
@@ -572,7 +572,7 @@
       ! Local variables
       integer :: ele2, node, iloc, iloc2, inode, nodeplus, nodeminus, nodeplus1
 
-      write(*,*)'in Mapping_QTet_CV'
+      ewrite(3,*)'in Mapping_QTet_CV'
 
       Loop_Elements_Triangle: do ele2 = 1, tet_totele
          inode = ( ele - 1 ) * tet_totele * no_of_nodes_in_faces + & 
@@ -587,7 +587,7 @@
                x( node ) = 0.5 * ( x( nodeplus ) + x( nodeminus ) )
                y( node ) = 0.5 * ( y( nodeplus ) + y( nodeminus ) )
                z( node ) = 0.5 * ( z( nodeplus ) + z( nodeminus ) )
-               write(*,*) ele2, iloc, nodeminus, nodeplus, node
+               ewrite(3,*) ele2, iloc, nodeminus, nodeplus, node
             else
                nodeplus = x_ndgln2( inode + iloc - 2 )
                nodeminus = x_ndgln2( inode + iloc )
@@ -596,10 +596,10 @@
                x( node ) = 0.5 * ( x( nodeplus ) + x( nodeminus ) )
                y( node ) = 0.5 * ( y( nodeplus ) + y( nodeminus ) )
                z( node ) = 0.5 * ( z( nodeplus ) + z( nodeminus ) )
-               write(*,*) ele2, iloc, nodeminus, nodeplus, node
+               ewrite(3,*) ele2, iloc, nodeminus, nodeplus, node
             endif Conditional_Sides
-            !write(*,*) node, x( node ), y( node ), z( node )
-            !write(*,*) ele2, iloc, node
+            !ewrite(3,*) node, x( node ), y( node ), z( node )
+            !ewrite(3,*) ele2, iloc, node
          end do Loop_Sides
          iloc = 4 ! Centre node point
          nodeplustetnodes = nodeplustetnodes + 1
@@ -611,9 +611,9 @@
          x( node ) = 1. / 3. * ( x( nodeplus1 ) + x( nodeplus ) + x( nodeminus ) )
          y( node ) = 1. / 3. * ( y( nodeplus1 ) + y( nodeplus ) + y( nodeminus ) )
          z( node ) = 1. / 3. * ( z( nodeplus1 ) + z( nodeplus ) + z( nodeminus ) )
-         ! write(*,*) node, x( node ), y( node ), z( node )
-         !write(*,*) ele2, iloc, node
-         write(*,*) ele2, iloc, nodeminus, nodeplus, nodeplus1, node
+         ! ewrite(3,*) node, x( node ), y( node ), z( node )
+         !ewrite(3,*) ele2, iloc, node
+         ewrite(3,*) ele2, iloc, nodeminus, nodeplus, nodeplus1, node
          !stop 87
       end do Loop_Elements_Triangle
 
@@ -634,7 +634,7 @@
       integer, dimension( : ), allocatable :: x_temp
       logical :: ltest
 
-      write(*,*)'Renumbering and elliminating repeating nodes'
+      ewrite(3,*)'Renumbering and elliminating repeating nodes'
 
       allocate( x_temp( x_nonods ) )
       x_temp = 0
@@ -665,12 +665,12 @@
       print*, 'comparing the x_ndgln2 with the old one '
       ele2 = 0
       do ele = 1, ntotel
-         write(*,*) ele, x( x_temp( ele ) ), y( x_temp( ele ) ), z( x_temp( ele ) )
-         write(*,*) ele, x( x_ndgln2( ele ) ), y( x_ndgln2( ele ) ), z( x_ndgln2( ele ) )
+         ewrite(3,*) ele, x( x_temp( ele ) ), y( x_temp( ele ) ), z( x_temp( ele ) )
+         ewrite(3,*) ele, x( x_ndgln2( ele ) ), y( x_ndgln2( ele ) ), z( x_ndgln2( ele ) )
          ltest = x_temp( ele ) == x_ndgln2( ele )
          if ( .not. ltest ) then
             !     ele2 = ele2 + 1
-            write(*,*), ele
+            ewrite(3,*), ele
          end if
       end do
 
@@ -684,7 +684,7 @@
       ! Local variables
       integer :: ele, ele2, inode, iloc, node1, node2, node3, node4
 
-      write(*,*)'Checking QTet_CV nodes after renumbering'
+      ewrite(3,*)'Checking QTet_CV nodes after renumbering'
       do ele = 1, totele
          do ele2 = 1, tet_totele
             inode = ( ele - 1 ) * tet_totele * no_of_nodes_in_faces + & 
@@ -694,12 +694,12 @@
                   node1 = x_ndgln2( inode + iloc + 1 )
                   node2 = x_ndgln2( inode + iloc )
                   node3 = x_ndgln2( inode + 3 + iloc )
-                  write(*,*) ele, ele2, iloc, node1, node2, node3
+                  ewrite(3,*) ele, ele2, iloc, node1, node2, node3
                else
                   node1 = x_ndgln2( inode + iloc - 2 )
                   node2 = x_ndgln2( inode + iloc )
                   node3 = x_ndgln2( inode + 3 + iloc )
-                  write(*,*) ele, ele2, iloc, node1, node2, node3
+                  ewrite(3,*) ele, ele2, iloc, node1, node2, node3
                end if
             end do
             iloc = 4
@@ -707,9 +707,9 @@
             node2 = x_ndgln2( inode + 2 )
             node3 = x_ndgln2( inode + 3 )
             node4 = x_ndgln2( inode + 3 + iloc )
-            write(*,*) ele, ele2, iloc, node1, node2, node3, node4
+            ewrite(3,*) ele, ele2, iloc, node1, node2, node3, node4
          end do
-         write(*,*) ele, x_ndgln2( ele * tet_totele * no_of_nodes_in_faces + ele )
+         ewrite(3,*) ele, x_ndgln2( ele * tet_totele * no_of_nodes_in_faces + ele )
       end do
 
       return
@@ -879,10 +879,10 @@
       x_ndgln( ( elequad - 1 ) * quad_cv_nloc + 8 ) = node8 ! 13
 
       ! Printing the hexahedra node points
-      write(*,*) 'Printing node points of the hexaedra from tetrahedron', ele 
+      ewrite(3,*) 'Printing node points of the hexaedra from tetrahedron', ele 
       do ele2 = 1, 4
-         write(*,*) ele2
-         write(*,'(8i3)') ( x_ndgln( ( ele2 - 1 ) * quad_cv_nloc + inode ), inode = 1, 8 )
+         ewrite(3,*) ele2
+         ewrite(3,'(8i3)') ( x_ndgln( ( ele2 - 1 ) * quad_cv_nloc + inode ), inode = 1, 8 )
       end do
 
       return
@@ -909,7 +909,7 @@
       ! Local variables
       integer :: i, j, temp
 
-      write(*,*) ' checking repetitive nodes'
+      ewrite(3,*) ' checking repetitive nodes'
       QTet_CheckRepetitiveNodes = .false.
       do i = 1, n - 1
          if( x( i ) /= 0 ) then
