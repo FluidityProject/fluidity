@@ -93,7 +93,7 @@
          lx( 2 ) = posi
          ly( 2 ) = posi
          nd_quad_1d = 2
-         if ( sngi == 1 ) then
+         if ( ngi == 1 ) then
             lx( 1 ) = 0. ; ly( 1 ) = 0. ; nd_quad_1d = 1
          end if
          Loop_Q: do q = 1, nd_quad_1d
@@ -116,6 +116,11 @@
                end do Loop_Corn
             end do Loop_P
          end do Loop_Q
+
+         nd_quad_1d = 2
+         if ( sngi == 1 ) then
+            lx( 1 ) = 0. ; ly( 1 ) = 0. ; nd_quad_1d = 1
+         end if
 
          if( ( sngi == 1 ) .and. ( snloc > 1 ) ) then ! Surface shape functions
             Loop_P2: do p = 1, nd_quad_1d
@@ -150,12 +155,12 @@
                   if( mloc == 1 ) m( 1, gpoi ) = 1.
                   weight( gpoi ) = weit( p ) * weit( q )
                  ! n( corn, gpoi ) = 0.25 * ( 1. + lxp( corn ) * lxp( p ) * &
-                  n( corn, gpoi ) = 0.25 * ( 1. + lxp( corn ) * lx( p ) * &
-                       ( 1. + lyp( corn ) * ly( q ) ) )
+                  n( corn, gpoi ) = 0.25 * ( 1. + lxp( corn ) * rlx * &
+                       ( 1. + lyp( corn ) * rly ) )
                   nlx( corn, gpoi ) = 0.25 * lxp( corn ) * &
-                       ( 1. + lyp( corn ) * ly( q ) )
+                       ( 1. + lyp( corn ) * rly )
                   nly( corn, gpoi ) = 0.25 * lyp( corn ) * &
-                       ( 1. + lxp( corn ) * lx( q ) )
+                       ( 1. + lxp( corn ) * rlx )
                end do Loop_Corn3
             end do Loop_P3
          end do Loop_Q3
@@ -3610,12 +3615,12 @@ ewrite(3,*)'sn:', sn
       integer, intent( in ) :: nwicel
       logical, intent( in ) :: d3
       ! Local variables
-      integer :: ipoly, iqadra
+      integer :: ipoly, iqadra, iloc
       real, dimension( : ), allocatable :: rdum 
 
       ewrite(3,*)' In shape_l_q_quad'
 
-      allocate( rdum( 0 ) )
+      allocate( rdum( 1 ) )
 
       Select Case( nwicel )
 
