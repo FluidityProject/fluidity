@@ -671,8 +671,8 @@ contains
 
     real, dimension(mesh_dim(xfield)) :: r_d, r_o
     real :: target_distance, t, face_t, ele_t
-    integer :: i, neigh_face, next_ele
-    integer, dimension(:), pointer :: neigh_list
+    integer :: i, neigh_face, next_face
+    integer, dimension(:), pointer :: face_list
 
     new_element = start_element 
 
@@ -694,24 +694,24 @@ contains
     search_loop: do 
 
        ! Go through all faces of the element and look for the smallest t in the ray's direction
-       next_ele = -1
+       next_face = -1
        ele_t = huge(1.0)
-       neigh_list=>ele_neigh(xfield,new_element)
-       do i=1, size(neigh_list)
-          neigh_face = ele_face(xfield, new_element, neigh_list(i))
-          call ray_intersetion_distance(neigh_face, face_t)
+       face_list=>ele_faces(xfield,new_element)
+       do i=1, size(face_list)
+          call ray_intersetion_distance(face_list(i), face_t)
 
           if (face_t < ele_t .and. t < face_t) then
              ele_t = face_t
-             next_ele = neigh_list(i)
+             next_face = face_list(i)
           end if
        end do
 
        if (ele_t < target_distance) then
-          if (next_ele > 0) then
+          neigh_face = face_neigh(xfield, next_face)
+          if (neigh_face /= next_face) then
              ! Recurse on the next element
              t = ele_t
-             new_element = next_ele
+             new_element = face_ele(xfield, neigh_face)
           else
              if (element_owned(xfield,new_element)) then
                 ! Detector is going outside domain

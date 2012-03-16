@@ -147,6 +147,9 @@ lagrangian_biology =
                         }|
                         element rtree_tracking{
                            empty
+                        }|
+                        element geometric_tracking{
+                           empty
                         }
                      ),
                      (
