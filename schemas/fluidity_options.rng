@@ -4154,7 +4154,7 @@ and should be prognostic.</a:documentation>
 NOTE: the diagnostic FreeSurface field only works in combination
 with the free_surface boundary condition applied to the Velocity
 field, without the no_normal_stress_option.
-It gives you a 3D field (constant over the vertical)
+It gives you a full dimensional field (constant over the vertical)
 of the free surface elevation.</a:documentation>
             <ref name="internal_algorithm"/>
             <ref name="pressure_mesh_choice">
@@ -4165,9 +4165,9 @@ of the free surface elevation.</a:documentation>
           <element name="prognostic">
             <a:documentation>Free Surface
 NOTE: the prognostic FreeSurface field only works in combination
-with the free_surface or explicit_free_surface boundary condition applied to the Velocity
+with the free_surface boundary condition applied to the Velocity
 field in combination with the no_normal_stress_option.
-It gives you a 3D field (constant over the vertical)
+It gives you a full dimensional field (constant over the vertical)
 of the free surface elevation. Initial and boundary conditions
 for free surface should be set on this field.</a:documentation>
             <ref name="pressure_mesh_choice">
@@ -4203,7 +4203,7 @@ requires a distinct name for the options dictionary.</a:documentation>
               </choice>
             </oneOrMore>
             <element name="solver">
-              <a:documentation>Solver - only necessary in combination with an explicit_free_surface bc under Velocity.</a:documentation>
+              <a:documentation>Solver - only necessary in combination with an explicit no_normal_stress free_surface bc under Velocity.</a:documentation>
               <ref name="linear_solver_options_sym"/>
             </element>
             <ref name="prognostic_scalar_output_options"/>

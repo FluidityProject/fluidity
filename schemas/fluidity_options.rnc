@@ -3222,7 +3222,7 @@ scalar_field_choice =
                ## NOTE: the diagnostic FreeSurface field only works in combination
                ## with the free_surface boundary condition applied to the Velocity
                ## field, without the no_normal_stress_option.
-               ## It gives you a 3D field (constant over the vertical)
+               ## It gives you a full dimensional field (constant over the vertical)
                ## of the free surface elevation.
                element diagnostic {
                   internal_algorithm,
@@ -3232,9 +3232,9 @@ scalar_field_choice =
                }|
                ## Free Surface
                ## NOTE: the prognostic FreeSurface field only works in combination
-               ## with the free_surface or explicit_free_surface boundary condition applied to the Velocity
+               ## with the free_surface boundary condition applied to the Velocity
                ## field in combination with the no_normal_stress_option.
-               ## It gives you a 3D field (constant over the vertical)
+               ## It gives you a full dimensional field (constant over the vertical)
                ## of the free surface elevation. Initial and boundary conditions
                ## for free surface should be set on this field.
                element prognostic {
@@ -3261,7 +3261,7 @@ scalar_field_choice =
                         input_choice_initial_condition_real
                      }
                   )+,
-                  ## Solver - only necessary in combination with an explicit_free_surface bc under Velocity.
+                  ## Solver - only necessary in combination with an explicit no_normal_stress free_surface bc under Velocity.
                   element solver {
                      linear_solver_options_sym
                   },
