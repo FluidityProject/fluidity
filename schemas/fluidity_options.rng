@@ -2885,6 +2885,9 @@ element. Recommended value 1.0e-10.</a:documentation>
         <element name="rtree_tracking">
           <empty/>
         </element>
+        <element name="geometric_tracking">
+          <empty/>
+        </element>
       </choice>
       <choice>
         <element name="explicit_runge_kutta_guided_search">

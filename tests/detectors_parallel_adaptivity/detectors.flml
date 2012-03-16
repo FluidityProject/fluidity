@@ -78,7 +78,9 @@
         <search_tolerance>
           <real_value rank="0">1.0e-10</real_value>
         </search_tolerance>
+        <geometric_tracking/>
         <rk4_guided_search/>
+        <turn_static_on_boundary/>
       </lagrangian_timestepping>
     </detectors>
   </io>

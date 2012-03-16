@@ -146,8 +146,8 @@ contains
 
     if(present(stat)) stat = 0
 
-    stage_local_coords=local_coords(xfield,detector%element,detector%update_vector)
-    call python_run_random_walk_from_locals(detector%update_vector, detector%element, &
+    stage_local_coords=local_coords(xfield,detector%update_element,detector%update_vector)
+    call python_run_random_walk_from_locals(detector%update_vector, detector%update_element, &
             xfield%dim, stage_local_coords, dt, dict, len_trim(dict), &
             key, len_trim(key), value, lstat) 
 

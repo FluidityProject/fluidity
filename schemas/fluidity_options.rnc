@@ -2119,6 +2119,9 @@ lagrangian_timestepping =
             }|
             element rtree_tracking{
                empty
+            }|
+            element geometric_tracking{
+               empty
             }
          ),
          (

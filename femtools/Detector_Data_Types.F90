@@ -40,10 +40,10 @@ module detector_data_types
             detector_list_ptr, stringlist, &
             random_walk, biovar, functional_group, &
             STATIC_DETECTOR, LAGRANGIAN_DETECTOR, &
-            GUIDED_SEARCH_TRACKING, RTREE_TRACKING
+            GUIDED_SEARCH_TRACKING, RTREE_TRACKING, GEOMETRIC_TRACKING
 
   integer, parameter :: STATIC_DETECTOR=1, LAGRANGIAN_DETECTOR=2
-  integer, parameter :: GUIDED_SEARCH_TRACKING=1, RTREE_TRACKING=2  
+  integer, parameter :: GUIDED_SEARCH_TRACKING=1, RTREE_TRACKING=2, GEOMETRIC_TRACKING=3
 
   type stringlist
      !!< Container type for a list of strings.
@@ -71,6 +71,8 @@ module detector_data_types
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
      real, dimension(:), allocatable :: update_vector
+     !! RK element corresponding to the update_vector during RK iterations
+     integer :: update_element
 
      !! Biology variables
      real, dimension(:), allocatable :: biology

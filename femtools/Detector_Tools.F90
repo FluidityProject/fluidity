@@ -300,7 +300,7 @@ contains
 
     if (have_update_vector) then
        assert(present(nstages))
-       detector_buffer_size=(nstages+2)*ndims+3
+       detector_buffer_size=(nstages+2)*ndims+4
     else
        detector_buffer_size=ndims+4
     end if
@@ -328,12 +328,13 @@ contains
 
     ! Lagrangian advection fields: (nstages+1)*ndims
     if (present(nstages)) then
-       assert(size(buff)==(nstages+2)*ndims+3)
+       assert(size(buff)==(nstages+2)*ndims+4)
        assert(allocated(detector%update_vector))
        assert(allocated(detector%k))
 
-       buff(ndims+4:2*ndims+3) = detector%update_vector
-       buff(2*ndims+4:(nstages+2)*ndims+3) = reshape(detector%k,(/nstages*ndims/))
+       buff(ndims+4) = detector%update_element
+       buff(ndims+5:2*ndims+4) = detector%update_vector
+       buff(2*ndims+5:(nstages+2)*ndims+4) = reshape(detector%k,(/nstages*ndims/))
     else
        assert(size(buff)==ndims+4)
        buff(ndims+4) = detector%list_id
@@ -378,19 +379,20 @@ contains
 
     ! Lagrangian advection fields: (nstages+1)*ndims
     if (present(nstages)) then
-       assert(size(buff)==(nstages+2)*ndims+3)
+       assert(size(buff)==(nstages+2)*ndims+4)
+       detector%update_element = buff(ndims+4)
 
        ! update_vector, dimension(ndim)
        if (.not. allocated(detector%update_vector)) then
           allocate(detector%update_vector(ndims))
        end if       
-       detector%update_vector = reshape(buff(ndims+4:2*ndims+3),(/ndims/))
+       detector%update_vector = reshape(buff(ndims+5:2*ndims+4),(/ndims/))
 
        ! k, dimension(nstages:ndim)
        if (.not. allocated(detector%k)) then
           allocate(detector%k(nstages,ndims))
        end if  
-       detector%k = reshape(buff(2*ndims+4:(nstages+2)*ndims+3),(/nstages,ndims/))
+       detector%k = reshape(buff(2*ndims+5:(nstages+2)*ndims+4),(/nstages,ndims/))
     else
        assert(size(buff)==ndims+4)
 
