@@ -1870,7 +1870,8 @@
 
          totele = 3
          x_nonods = 7
-         h_scale = 2.70240031 ! Scaling factor to give a unity area of the local triangle
+         !h_scale = 2.70240031 ! Scaling factor to give a unity area of the local triangle
+         h_scale =  1.5196713713031851 ! Scaling factor to give a unity area of the local triangle
 
          ! Setting-up unity area triangle
          lx( 1 ) = 0.
@@ -1938,7 +1939,8 @@
 
          x_nonods = 16
          totele = 9
-         h_scale = 2.70240031 ! Scaling factor to give a unity area of the local triangle
+         !h_scale = 2.70240031 ! Scaling factor to give a unity area of the local triangle
+         h_scale =  1.5196713713031851 ! Scaling factor to give a unity area of the local triangle
 
          ! Setting-up unity area triangle
          lx( 1 ) = 0.
