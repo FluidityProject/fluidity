@@ -319,7 +319,7 @@
             <align_bc_with_cartesian>
               <y_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X,t):
+                  <string_value lines="20" type="code" language="python">def val(X,t):
    from math import pi, cos
    import solution
    k = solution.nond_wavenumber()
@@ -370,7 +370,7 @@
         <mesh name="CoordinateMesh"/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">import solution
+            <string_value lines="20" type="code" language="python">import solution
 global F, G
 F = solution.nond_F
 G = solution.nond_G
@@ -429,7 +429,7 @@ def val(X,t):
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">import solution
+            <string_value lines="20" type="code" language="python">import solution
 global F, G
 F = solution.nond_F
 G = solution.nond_G
@@ -473,7 +473,7 @@ def val(X,t):
     <scalar_field name="DifferenceSquared" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">fsd = state.scalar_fields["FreeSurfaceDifference"]
+          <string_value lines="20" type="code" language="python">fsd = state.scalar_fields["FreeSurfaceDifference"]
 
 assert(field.node_count==fsd.node_count)
 
