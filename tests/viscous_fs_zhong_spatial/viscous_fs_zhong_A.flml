@@ -139,7 +139,7 @@
                   <iterative_method name="cg"/>
                   <preconditioner name="mg"/>
                   <relative_error>
-                    <real_value rank="0">1.e-12</real_value>
+                    <real_value rank="0">1.e-7</real_value>
                   </relative_error>
                   <max_iterations>
                     <integer_value rank="0">1000</integer_value>
@@ -161,7 +161,7 @@
               <iterative_method name="cg"/>
               <preconditioner name="sor"/>
               <relative_error>
-                <real_value rank="0">1.e-12</real_value>
+                <real_value rank="0">1.e-7</real_value>
               </relative_error>
               <max_iterations>
                 <integer_value rank="0">1000</integer_value>
@@ -173,7 +173,7 @@
             </solver>
           </preconditioner>
           <relative_error>
-            <real_value rank="0">1.e-10</real_value>
+            <real_value rank="0">1.e-5</real_value>
           </relative_error>
           <absolute_error>
             <real_value rank="0">1.e-16</real_value>
@@ -261,7 +261,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="mg"/>
           <relative_error>
-            <real_value rank="0">1.e-12</real_value>
+            <real_value rank="0">1.e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>

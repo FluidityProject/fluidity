@@ -23,39 +23,6 @@ ab_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
 file1 = "viscous_fs_zhong_B.stat"
 
 finish_time_b = stat(file1)["ElapsedTime"]["value"][-1]</variable>
-<!--    <variable name="bc_convergence_fs" language="python">import calculate_order
-
-file1 = "viscous_fs_zhong_B.stat"
-file2 = "viscous_fs_zhong_C.stat"
-
-bc_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
-    <variable name="finish_time_c" language="python">from fluidity_tools import stat_parser as stat
-
-file1 = "viscous_fs_zhong_C.stat"
-
-finish_time_c = stat(file1)["ElapsedTime"]["value"][-1]</variable>
-    <variable name="cd_convergence_fs" language="python">import calculate_order
-
-file1 = "viscous_fs_zhong_C.stat"
-file2 = "viscous_fs_zhong_D.stat"
-
-cd_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
-    <variable name="finish_time_d" language="python">from fluidity_tools import stat_parser as stat
-
-file1 = "viscous_fs_zhong_D.stat"
-
-finish_time_d = stat(file1)["ElapsedTime"]["value"][-1]</variable>
-    <variable name="de_convergence_fs" language="python">import calculate_order
-
-file1 = "viscous_fs_zhong_D.stat"
-file2 = "viscous_fs_zhong_E.stat"
-
-de_convergence_fs = calculate_order.report_convergence(file1, file2)</variable>
-    <variable name="finish_time_e" language="python">from fluidity_tools import stat_parser as stat
-
-file1 = "viscous_fs_zhong_E.stat"
-
-finish_time_e = stat(file1)["ElapsedTime"]["value"][-1]</variable>-->
   </variables>
   <pass_tests>
     <test name="afinish" language="python">assert(finish_time_a&gt;64.0)</test>
