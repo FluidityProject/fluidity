@@ -2388,22 +2388,16 @@ contains
     end function calculate_volume_by_surface_integral_element
   end function calculate_volume_by_surface_integral
 
-
-
-
   subroutine free_surface_module_check_options
     
     character(len=OPTION_PATH_LEN):: option_path, phase_path, pressure_path, pade_path
     character(len=FIELD_NAME_LEN):: fs_meshname, p_meshname, bctype
     logical:: have_free_surface, have_explicit_free_surface, have_viscous_free_surface
     integer i, p
-    
-    have_viscous_free_surface = .false.
 
     do p=1, option_count('/material_phase')
       phase_path='/material_phase['//int2str(p-1)//']'
-      pressure_path=trim(phase_path)//'/scalar_field::Pressure/prognostic'
-      
+      pressure_path=trim(phase_path)//'/scalar_field::Pressure/prognostic'      
       ! check if we have a free_surface bc
       option_path=trim(phase_path)//'/vector_field::Velocity/prognostic'
       if (have_option(trim(option_path))) then
@@ -2431,6 +2425,7 @@ contains
         ! no prognostic velocity, no free_surface bc
         have_free_surface=.false.
         have_explicit_free_surface=.false.
+        have_viscous_free_surface = .false.
       end if
       
       if (have_free_surface) then
