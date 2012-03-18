@@ -38,7 +38,7 @@ def get_interface_depth(file):
   interface_depth = bounding_box[2]
   return interface_depth
 
-def find_interface_depth(finalinterfacedepth):
+def find_interface_depth():
   # Get list of files:
   files = get_filelist()
 
@@ -52,4 +52,5 @@ def find_interface_depth(finalinterfacedepth):
     interface_depth[file] = (get_interface_depth(files[file]) * 500)
     time[file] = ((get_time(files[file]) * rescale_time) / myr2sec)
 
-  finalinterfacedepth = interface_depth[-1]
+  final_interface_depth = interface_depth[-1]
+  return[final_interface_depth]

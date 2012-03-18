@@ -11,18 +11,17 @@
 
 <variables>
 
-<variable name="finalinterfacedepth" language="python">
-from interface_depth_data import *
-import numpy
-
-find_interface_depth(finalinterfacedepth)
-
+<variable name="final_interface_depth" language="python">
+from interface_depth_calculation import *
+final_interface_depth=find_interface_depth()
 </variable>
 
 </variables>
 
 <pass_tests>
- <test name="finalinterfacedepth" language="python">assert(finalinterfacedepth&gt;450.0)</test>
+<test name="Test final_interface_depth is 484.4 +- 0.5" language="python"> 
+assert(abs(final_interface_depth - 484.4) &lt; 0.5)
+</test>
 </pass_tests>
 
 </testproblem>
