@@ -43,13 +43,10 @@
     </dump_format>
     <dump_period_in_timesteps>
       <constant>
-        <integer_value rank="0">1</integer_value>
+        <integer_value rank="0">50</integer_value>
       </constant>
     </dump_period_in_timesteps>
     <output_mesh name="VelocityMesh"/>
-    <convergence>
-      <convergence_file/>
-    </convergence>
     <stat/>
   </io>
   <timestepping>
@@ -173,7 +170,7 @@
             </solver>
           </preconditioner>
           <relative_error>
-            <real_value rank="0">1.0e-5</real_value>
+            <real_value rank="0">1.0e-4</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">10000</integer_value>
@@ -408,54 +405,6 @@
         </priority>
       </prognostic>
     </scalar_field>
-    <scalar_field name="FiniteElementDivergence" rank="0">
-      <diagnostic field_name="Velocity">
-        <algorithm legacy="true" name="Internal" material_phase_support="multiple"/>
-        <mesh name="CoordinateMesh"/>
-        <solver>
-          <iterative_method name="preonly"/>
-          <preconditioner name="lu"/>
-          <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">10000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <output/>
-        <stat/>
-        <convergence>
-          <exclude_from_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="CFLNumber" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <exclude_from_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
     <scalar_field name="FreeSurface" rank="0">
       <prognostic>
         <mesh name="CoordinateMesh"/>
@@ -468,7 +417,7 @@
           <iterative_method name="cg"/>
           <preconditioner name="sor"/>
           <relative_error>
-            <real_value rank="0">1.e-6</real_value>
+            <real_value rank="0">1.0e-7</real_value>
           </relative_error>
           <max_iterations>
             <integer_value rank="0">1000</integer_value>
@@ -491,40 +440,6 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="ControlVolumeDivergence" rank="0">
-      <diagnostic field_name="Velocity">
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <exclude_from_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
-    <scalar_field name="ControlVolumeCFLNumber" rank="0">
-      <diagnostic>
-        <algorithm name="Internal" material_phase_support="multiple"/>
-        <mesh name="VelocityMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <exclude_from_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
     </scalar_field>
     <tensor_field name="MaterialViscosity" rank="2">
       <prescribed>

@@ -10,8 +10,6 @@ import operator
 import numpy
 import pylab
 
-filename=sys.argv[1]
-
 def key(file):
   return int(file.split('_')[-1].split('.')[0])
 
@@ -40,27 +38,18 @@ def get_interface_depth(file):
   interface_depth = bounding_box[2]
   return interface_depth
 
-# Get list of files:
-files = get_filelist()
+def find_interface_depth(finalinterfacedepth):
+  # Get list of files:
+  files = get_filelist()
 
-# Get interface depth and simulation time for all vtu files:
-interface_depth= numpy.zeros(len(files))
-time           = numpy.zeros(len(files))
-myr2sec        = 60.*60.*24.*365.*1e6
-rescale_time   = (500e3 / 1e-9)
+  # Get interface depth and simulation time for all vtu files:
+  interface_depth = numpy.zeros(len(files))
+  time            = numpy.zeros(len(files))
+  myr2sec         = 60.*60.*24.*365.*1e6
+  rescale_time    = (500e3 / 1e-9)
 
-for file in range(len(files)) :
-  interface_depth[file] = (get_interface_depth(files[file]) * 500)
-  time[file] = ((get_time(files[file]) * rescale_time) / myr2sec)
-  print interface_depth[file], time[file]
+  for file in range(len(files)) :
+    interface_depth[file] = (get_interface_depth(files[file]) * 500)
+    time[file] = ((get_time(files[file]) * rescale_time) / myr2sec)
 
-pylab.plot(time,interface_depth)
-pylab.xlabel("Time (Myr)")
-pylab.ylabel("Interface Depth (km)")
-pylab.xlim(0.0,6)
-pylab.ylim(-100,-500)
-ax = pylab.gca()
-ax.set_ylim(ax.get_ylim()[::-1])
-
-numpy.savetxt(filename+".dat",(time,interface_depth))
-pylab.savefig(filename+".png")
+  finalinterfacedepth = interface_depth[-1]

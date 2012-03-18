@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testproblem>
+
+<name>viscous_fs_drunkensailor</name>
+<owner userid="rhodrid"/>
+<tags>flml</tags>
+
+<problem_definition length="medium" nprocs="1">
+ <command_line>fluidity -v2 viscous_fs_drunkensailor.flml</command_line>
+</problem_definition>
+
+<variables>
+
+<variable name="finalinterfacedepth" language="python">
+from interface_depth_data import *
+import numpy
+
+find_interface_depth(finalinterfacedepth)
+
+</variable>
+
+</variables>
+
+<pass_tests>
+ <test name="finalinterfacedepth" language="python">assert(finalinterfacedepth&gt;450.0)</test>
+</pass_tests>
+
+</testproblem>
