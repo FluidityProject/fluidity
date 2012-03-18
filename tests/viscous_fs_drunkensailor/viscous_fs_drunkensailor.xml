@@ -20,7 +20,7 @@ final_interface_depth=find_interface_depth()
 
 <pass_tests>
 <test name="Test final_interface_depth is 484.4 +- 0.5" language="python"> 
-assert(abs(final_interface_depth - 484.4) &lt; 0.5)
+assert(abs(final_interface_depth + 484.4) &lt; 0.5)
 </test>
 </pass_tests>
 

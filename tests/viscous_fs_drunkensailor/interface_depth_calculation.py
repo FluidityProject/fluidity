@@ -53,4 +53,4 @@ def find_interface_depth():
     time[file] = ((get_time(files[file]) * rescale_time) / myr2sec)
 
   final_interface_depth = interface_depth[-1]
-  return[final_interface_depth]
+  return final_interface_depth
