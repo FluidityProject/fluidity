@@ -1417,6 +1417,7 @@ contains
           !       stop 32823
           !   endif
        ELSE
+          ! Works for non-constant and constant ( XU_NLOC = 1 ) velocity basis functions
           DO U_KLOC = 1, U_NLOC ! Find opposite local node
              XU_NODK = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_KLOC )
 

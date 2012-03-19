@@ -1634,7 +1634,7 @@
       real, dimension( u_nloc, cv_ngi ), intent( inout ) :: un, unlx, unly, unlz
       ! Local variables
       integer, dimension( : ), allocatable :: x_ndgln, fem_nod
-      real, dimension( : ), allocatable :: lx, ly, lz, x, y, z
+      real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, cvweigh_dummy
       integer, parameter :: max_totele = 1000, max_x_nonods = 1000
       logical :: d1, dcyl, d3
       integer :: ele, quad_cv_ngi, quad_cv_nloc, totele, x_nonods, &
@@ -1669,6 +1669,7 @@
       allocate( z( max_x_nonods ))
       allocate( fem_nod( max_x_nonods ) )
       allocate( x_ndgln( max_totele * quad_cv_nloc ) )
+      allocate( cvweigh_dummy( cv_ngi )) 
 
       ! Get the x_ndgln for the nodes of the triangle or tet or hex/quad super-elements:
       call Compute_XNDGLN_TriTetQuadHex( cv_ele_type, &
@@ -1687,9 +1688,16 @@
            quad_cv_nloc, x_ndgln, fem_nod, cvn )
 
       ! And for velocities:
-      call shape_tri_tet( cv_ele_type, ndim, totele, u_nloc, cv_ngi, x_nonods, &
-           quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
-           un, unlx, unly, unlz, cvweigh )
+      if( u_nloc == 1 ) then ! Constant basis function throughout element
+         un = 1.0
+         unlx = 0.0
+         if( ndim >= 2 ) unly = 0.0
+         if( ndim >= 3 ) unlz = 0.0
+      else
+         call shape_tri_tet( cv_ele_type, ndim, totele, u_nloc, cv_ngi, x_nonods, &
+              quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
+              un, unlx, unly, unlz, cvweigh_dummy )
+      end if
 
       deallocate( lx )
       deallocate( ly )
@@ -1699,6 +1707,7 @@
       deallocate( z ) 
       deallocate( x_ndgln )
       deallocate( fem_nod )
+      deallocate( cvweigh_dummy )
 
       return
     end subroutine vol_cv_tri_tet_shape
@@ -2263,7 +2272,8 @@
       ! Local variables
       integer, parameter :: max_totele = 1000, max_x_nonods = 1000
       integer, dimension( : ), allocatable :: x_ndgln, fem_nod
-      real, dimension( : ), allocatable :: lx, ly, lz, x, y, z
+      real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, scvfeweigh_dummy
+      integer, dimension( :,: ), allocatable :: cv_neiloc_dummy, cvfem_neiloc_dummy
       logical :: d1, dcyl, d3
       integer :: x_nonods, totele, ele, cv_iloc, quad_cv_ngi, quad_cv_nloc
 
@@ -2296,6 +2306,9 @@
       allocate( z( max_x_nonods ))
       allocate( x_ndgln( max_totele * quad_cv_nloc ) )
       allocate( fem_nod( max_x_nonods ) )
+      allocate( scvfeweigh_dummy( scvngi ) )
+      allocate( cv_neiloc_dummy( cv_nloc, scvngi ) )
+      allocate( cvfem_neiloc_dummy( cv_nloc, scvngi ) )
 
       ! Get the x_ndgln for the nodes of triangles, tetrahedra, quadrilaterals or hexahedra
       ! super-elements:
@@ -2348,11 +2361,20 @@
       ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
 
       ! And for velocities:
-      call Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
-           cv_ele_type, ndim, totele, u_nloc, scvngi, x_nonods, &
-           quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
-           sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
-           scvfeweigh, cv_neiloc, cvfem_neiloc )
+      if( u_nloc == 1 ) then ! a constant basis function... 
+         sufen = 1.0 
+         sufenlx = 0.0 
+         if( ndim >= 2 ) sufenly = 0.0
+         if( ndim >= 3 ) sufenlz = 0.0 
+         if( ndim >= 2 ) sufenslx = 0.0
+         if( ndim >= 3 ) sufensly = 0.0
+      else
+         call Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
+              cv_ele_type, ndim, totele, u_nloc, scvngi, x_nonods, &
+              quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
+              sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
+              scvfeweigh_dummy, cv_neiloc_dummy, cvfem_neiloc_dummy )
+      endif
 
       ewrite(3,*)'Shape Functions for velocity fields -- SUFEN'
       call PrintOutFunMat( u_nloc, scvngi, sufen )
@@ -2383,6 +2405,9 @@
       deallocate( z ) 
       deallocate( x_ndgln )
       deallocate( fem_nod )
+      deallocate( scvfeweigh_dummy)
+      deallocate( cv_neiloc_dummy)
+      deallocate( cvfem_neiloc_dummy )
 
       return
     end subroutine suf_cv_tri_tet_shape
@@ -2938,10 +2963,10 @@
          FLExit( "SCVNGI /= CV_SGK " )
       endif
 
-ewrite(3,*)'l1:', l1
-ewrite(3,*)'l2:', l2
-ewrite(3,*)'l3:', l3
-ewrite(3,*)'sn:', sn
+      ewrite(3,*)'l1:', l1
+      ewrite(3,*)'l2:', l2
+      ewrite(3,*)'l3:', l3
+      ewrite(3,*)'sn:', sn
 
       ! Remapping over the common quadrature points across CV
       do cv_iloc = 1, cv_nloc

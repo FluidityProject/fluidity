@@ -1593,7 +1593,7 @@ contains
          SUDOLD2,SVDOLD2,SWDOLD2, &
          SNDOTQ, SNDOTQOLD, SINCOME, SINCOMEOLD, SDEN, SDENOLD
     LOGICAL, DIMENSION( :, : ), allocatable :: CV_ON_FACE, U_ON_FACE, &
-                                     CVFEM_ON_FACE, UFEM_ON_FACE
+         CVFEM_ON_FACE, UFEM_ON_FACE
 
 
     LOGICAL :: D1, D3, DCYL, GOT_DIFFUS, GOT_UDEN, DISC_PRES
@@ -2362,34 +2362,50 @@ contains
              if( is_overlapping ) then
                 U_OTHER_LOC=0
                 U_ILOC_OTHER_SIDE=0
-                DO U_SILOC = 1, U_SNLOC/CV_NLOC
-                   U_ILOC = U_SLOC2LOC( U_SILOC )
-                   U_INOD = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_ILOC )
-                   DO U_ILOC2 = 1, U_NLOC/CV_NLOC
-                      U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_ILOC2 )
-                      IF( U_INOD2 == U_INOD ) THEN
-                         DO ILEV=1,CV_NLOC
-                            U_ILOC_OTHER_SIDE( U_SILOC +(ILEV-1)*U_SNLOC/CV_NLOC) &
-                                 = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
-                            U_OTHER_LOC( U_ILOC + (ILEV-1)*U_NLOC/CV_NLOC) &
-                                 = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
-                         END DO
-                      ENDIF
+                IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions
+                   DO ILEV=1,CV_NLOC
+                      U_ILOC_OTHER_SIDE( 1 +(ILEV-1)*U_SNLOC/CV_NLOC) &
+                           = 1 + (ILEV-1)*U_NLOC/CV_NLOC
+                      U_OTHER_LOC( 1 + (ILEV-1)*U_NLOC/CV_NLOC) &
+                           = 1 + (ILEV-1)*U_NLOC/CV_NLOC
                    END DO
-                END DO
+                ELSE
+
+                   DO U_SILOC = 1, U_SNLOC/CV_NLOC
+                      U_ILOC = U_SLOC2LOC( U_SILOC )
+                      U_INOD = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_ILOC )
+                      DO U_ILOC2 = 1, U_NLOC/CV_NLOC
+                         U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_ILOC2 )
+                         IF( U_INOD2 == U_INOD ) THEN
+                            DO ILEV=1,CV_NLOC
+                               U_ILOC_OTHER_SIDE( U_SILOC +(ILEV-1)*U_SNLOC/CV_NLOC) &
+                                    = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                               U_OTHER_LOC( U_ILOC + (ILEV-1)*U_NLOC/CV_NLOC) &
+                                    = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                            END DO
+                         ENDIF
+                      END DO
+                   END DO
+                END IF
              ELSE
                 U_OTHER_LOC=0
-                DO U_SILOC = 1, U_SNLOC
-                   U_ILOC = U_SLOC2LOC( U_SILOC )
-                   U_INOD = XU_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-                   DO U_ILOC2 = 1, U_NLOC
-                      U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * U_NLOC + U_ILOC2 )
-                      IF( U_INOD2 == U_INOD ) THEN
-                         U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
-                         U_OTHER_LOC( U_ILOC )=U_ILOC2
-                      ENDIF
+                U_ILOC_OTHER_SIDE=0
+                IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions
+                   U_ILOC_OTHER_SIDE( 1 ) = 1
+                   U_OTHER_LOC( 1 )= 1
+                ELSE
+                   DO U_SILOC = 1, U_SNLOC
+                      U_ILOC = U_SLOC2LOC( U_SILOC )
+                      U_INOD = XU_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
+                      DO U_ILOC2 = 1, U_NLOC
+                         U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * U_NLOC + U_ILOC2 )
+                         IF( U_INOD2 == U_INOD ) THEN
+                            U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
+                            U_OTHER_LOC( U_ILOC )=U_ILOC2
+                         ENDIF
+                      END DO
                    END DO
-                END DO
+                ENDIF
              ENDIF
 
              MAT_OTHER_LOC=0
@@ -2403,6 +2419,7 @@ contains
                    ENDIF
                 END DO
              END DO
+
           ENDIF If_ele2_notzero_1
 
 
