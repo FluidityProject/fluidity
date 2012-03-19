@@ -281,7 +281,6 @@ contains
           end if
           allocate(detector%update_vector(xfield%dim))
           detector%update_vector = 0.
-          detector%update_element = detector%element
 
           if (detector_list%velocity_advection) then
              if (allocated(detector%k)) then
@@ -378,7 +377,6 @@ contains
        do while (associated(detector))
           if (detector%type==LAGRANGIAN_DETECTOR) then
              detector%position = detector%update_vector
-             detector%element = detector%update_element
           end if
           detector => detector%next
        end do
@@ -401,6 +399,12 @@ contains
           end if
           if(allocated(detector%update_vector)) then
              deallocate(detector%update_vector)
+          end if
+          if(allocated(detector%ray_o)) then
+             deallocate(detector%ray_o)
+          end if
+          if(allocated(detector%ray_d)) then
+             deallocate(detector%ray_d)
           end if
        end if
        detector => detector%next
@@ -434,8 +438,8 @@ contains
           ! Evaluate velocity at update_vector and set k
           if (detector_list%velocity_advection) then
              ! stage vector is computed by evaluating velocity at current position
-             stage_local_coords=local_coords(xfield,detector%update_element,detector%update_vector)
-             detector%k(stage,:)=eval_field(detector%update_element, vfield, stage_local_coords)
+             stage_local_coords=local_coords(xfield,detector%element,detector%update_vector)
+             detector%k(stage,:)=eval_field(detector%element, vfield, stage_local_coords)
           else
              ! do not advect detector with the velocity field
              detector%k(stage,:)=0.0
@@ -488,6 +492,29 @@ contains
 
     search_tolerance=detector_list%search_tolerance
 
+    if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+       detector => detector_list%first
+       do while (associated(detector))
+          if (.not. allocated(detector%ray_o)) then
+             allocate(detector%ray_o(xfield%dim))
+             detector%ray_o = detector%position
+          end if
+          if (.not. allocated(detector%ray_d)) then
+             allocate(detector%ray_d(xfield%dim))
+          end if
+          ! Calcualte and normalise ray direction
+          detector%ray_d = detector%update_vector - detector%ray_o
+          detector%target_distance = sqrt(sum(detector%ray_d**2))
+          if (detector%target_distance > 0.0) then
+             detector%ray_d = detector%ray_d / detector%target_distance
+          else
+             detector%ray_d = 0.0
+          end if
+
+          detector => detector%next
+       end do
+    end if
+
     ! This loop continues until all detectors have completed their
     ! timestep this is measured by checking if the send and receive
     ! lists are empty in all processors
@@ -509,8 +536,8 @@ contains
 
              if (detector_list%tracking_method == GUIDED_SEARCH_TRACKING) then
                 call profiler_tic(trim(detector_list%name)//"::movement::tracking::guided_search")
-                call local_guided_search(xfield,detector%update_vector,detector%update_element,&
-                        search_tolerance,detector%update_element,new_owner,detector%local_coords)
+                call local_guided_search(xfield,detector%update_vector,detector%element,&
+                        search_tolerance,new_owner,detector%local_coords)
                 call profiler_toc(trim(detector_list%name)//"::movement::tracking::guided_search")
 
              elseif (detector_list%tracking_method == RTREE_TRACKING) then
@@ -521,8 +548,9 @@ contains
 
              elseif (detector_list%tracking_method == GEOMETRIC_TRACKING) then
                 call profiler_tic(trim(detector_list%name)//"::movement::tracking::geometric_tracking")
-                call geometric_ray_tracing(xfield,detector%update_vector,detector%position,detector%element,&
-                        detector%update_element,new_owner,search_tolerance)
+                call geometric_ray_tracing(xfield,detector%ray_o,detector%ray_d,detector%target_distance,&
+                        detector%element,new_owner,search_tolerance)
+                detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
                 call profiler_toc(trim(detector_list%name)//"::movement::tracking::geometric_tracking")
 
              else
@@ -532,12 +560,12 @@ contains
              if (new_owner==-1) then
                 if (detector_list%reflect_on_boundary) then
                    ! We reflect the detector path at the face we just went through
-                   call reflect_on_boundary(xfield,detector%update_vector,detector%update_element)
+                   call reflect_on_boundary(xfield,detector%update_vector,detector%element)
 
                 else
                    ! Turn detector static inside the domain
                    ewrite(1,*) "WARNING: detector attempted to leave computational domain;"
-                   ewrite(1,*) "Turning detector static, ID:", detector%id_number, "element:", detector%update_element
+                   ewrite(1,*) "Turning detector static, ID:", detector%id_number, "element:", detector%element
                    detector%type=STATIC_DETECTOR
                    ! move on to the next detector, without updating det0%position, 
                    ! because det0%update_vector is by now outside of the computational domain
@@ -578,32 +606,38 @@ contains
 
     deallocate(send_list_array)
 
+    if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+       detector => detector_list%first
+       do while (associated(detector))
+          detector%ray_o = detector%update_vector
+          detector => detector%next
+       end do
+    end if
+
     call profiler_toc(trim(detector_list%name)//"::movement::tracking")
 
   end subroutine track_detectors
 
-  subroutine local_guided_search(xfield,coordinate,start_element,search_tolerance,new_element,new_owner,l_coords,ele_path)
+  subroutine local_guided_search(xfield,coordinate,element,search_tolerance,new_owner,l_coords,ele_path)
     ! Do a local guided search until we either hit the new element 
     ! or have to leave the local domain. The new_owner argument indicates
     ! whether we have found the new element, where to continue searching
     ! or flags that we have gone outside the domain with -1.
     type(vector_field), pointer, intent(in) :: xfield
     real, dimension(mesh_dim(xfield)), intent(inout) :: coordinate
-    integer, intent(in) :: start_element
+    integer, intent(inout) :: element
     real, intent(in) :: search_tolerance
     real, dimension(mesh_dim(xfield)+1), intent(out) :: l_coords
-    integer, intent(out) :: new_element, new_owner
+    integer, intent(out) :: new_owner
     type(ilist), intent(inout), optional :: ele_path
 
     integer, dimension(:), pointer :: neigh_list
     integer :: neigh, face
     logical :: outside_domain
 
-    new_element = start_element
-
     search_loop: do
        ! Compute the local coordinates of the arrival point with respect to this element
-       l_coords=local_coords(xfield,new_element,coordinate)
+       l_coords=local_coords(xfield,element,coordinate)
 
        if (minval(l_coords)>-search_tolerance) then
           !The arrival point is in this element, we're done
@@ -614,15 +648,15 @@ contains
        ! The arrival point is not in this element, try to get closer to it by 
        ! searching in the coordinate direction in which it is furthest away
        neigh = minval(minloc(l_coords))
-       neigh_list=>ele_neigh(xfield,new_element)
+       neigh_list=>ele_neigh(xfield,element)
        if (neigh_list(neigh)>0) then
           ! The neighbouring element is also on this domain
           ! so update the element and try again
-          new_element = neigh_list(neigh)
+          element = neigh_list(neigh)
 
           ! Record the elements along the path travelled
           if (present(ele_path)) then
-             call insert(ele_path, new_element)
+             call insert(ele_path, element)
           end if
        else
           ! Next element in coordinate direction is not on this domain.
@@ -633,7 +667,7 @@ contains
           !      But we need to check if we've gone through a corner.
 
           ! So check if this element is owned
-          if (element_owned(xfield,new_element)) then
+          if (element_owned(xfield,element)) then
              ! This face goes outside of the computational domain.
              ! Try all of the faces with negative local coordinate
              ! just in case we went through a corner.
@@ -641,7 +675,7 @@ contains
              face_search: do face = 1, size(l_coords)
                 if (l_coords(face)<-search_tolerance.and.neigh_list(face)>0) then
                    outside_domain = .false.
-                   new_element = neigh_list(face)
+                   element = neigh_list(face)
                    exit face_search
                 end if
              end do face_search
@@ -652,7 +686,7 @@ contains
              end if
           else
              ! The current element is on a Halo, we need to send it to the owner.
-             new_owner=element_owner(xfield%mesh,new_element)
+             new_owner=element_owner(xfield%mesh,element)
              exit search_loop
           end if
        end if
@@ -660,35 +694,24 @@ contains
 
   end subroutine local_guided_search
 
-  subroutine geometric_ray_tracing(xfield,arrival_coord,start_coord,start_element,new_element,new_owner,search_tolerance)
+  subroutine geometric_ray_tracing(xfield,r_o,r_d,target_distance,new_element,new_owner,search_tolerance)
     ! This tracking method is based on a standard Ray-tracing algorithm using planes and half-spaces.
     ! Reference: 
     type(vector_field), pointer, intent(in) :: xfield
-    real, dimension(mesh_dim(xfield)), intent(inout) :: arrival_coord, start_coord
-    integer, intent(in) :: start_element
-    integer, intent(out) ::  new_element, new_owner
-    real, intent(in) :: search_tolerance
+    real, dimension(mesh_dim(xfield)), intent(in) :: r_d, r_o
+    integer, intent(inout) :: new_element
+    integer, intent(out) :: new_owner
+    real, intent(in) :: target_distance, search_tolerance
 
-    real, dimension(mesh_dim(xfield)) :: r_d, r_o
-    real :: target_distance, t, face_t, ele_t
+    real :: t, face_t, ele_t
     integer :: i, neigh_face, next_face
     integer, dimension(:), pointer :: face_list
 
-    new_element = start_element 
-
-    ! Ray origin and direction
-    r_o = start_coord
-    r_d = arrival_coord - r_o
-
     ! Exit if r_d is zero
-    if (sum(r_d**2) < search_tolerance) then
+    if (target_distance < search_tolerance) then
        new_owner=getprocno()
        return
     end if
-
-    ! Normalise ray direction
-    target_distance = sqrt(sum(r_d**2))
-    r_d = r_d / target_distance
 
     t = 0.0
     search_loop: do 
@@ -852,7 +875,7 @@ contains
        if (detector%type==LAGRANGIAN_DETECTOR) then
 
           ! Establish how many subcycles are needed
-          detector%rw_subsubcycles = auto_subcycle_per_ele(detector%update_element)
+          detector%rw_subsubcycles = auto_subcycle_per_ele(detector%element)
           total_subsubcycle = total_subsubcycle + detector%rw_subsubcycles
           if (detector%rw_subsubcycles > max_subsubcycle) then
              max_subsubcycle = detector%rw_subsubcycles
@@ -1006,18 +1029,18 @@ contains
 
     position = detector_value(xfield, detector)
     position(xfield%dim)=position(xfield%dim) + 0.5*dt*K_grad(xfield%dim)
-    offset_element=detector%update_element
-    call local_guided_search(xfield,position,detector%update_element,1e-10,offset_element,new_owner,lcoord)
+    offset_element=detector%element
+    call local_guided_search(xfield,position,offset_element,1e-10,new_owner,lcoord)
 
     ! In case the offset sampling point is outside the domain we extrapolate
     if (new_owner < 0) then
-       K=eval_field(detector%update_element, diff_field, detector%local_coords)
+       K=eval_field(detector%element, diff_field, detector%local_coords)
     end if
 
     if (new_owner/=getprocno() .and. new_owner > 0) then
        ! Offset sampling point is on another parallel domain
        ewrite(-1,*) "Detected non-local element in internal Diffusive Random Walk;"
-       ewrite(-1,*) "offset_element", offset_element, "detector%update_element", detector%update_element
+       ewrite(-1,*) "offset_element", offset_element, "detector%element", detector%element
        FLAbort("Guided search in internal Random Walk function detected non-local element")
     else
        ! Evaluate K at the offset sampling point

@@ -71,8 +71,11 @@ module detector_data_types
      real, dimension(:,:), allocatable :: k
      !! RK update destination vector (size dim)
      real, dimension(:), allocatable :: update_vector
-     !! RK element corresponding to the update_vector during RK iterations
-     integer :: update_element
+
+     ! Definition of the ray for geometric tracking
+     real, dimension(:), allocatable :: ray_o, ray_d
+     ! Distance to the target coordinate
+     real :: target_distance
 
      !! Biology variables
      real, dimension(:), allocatable :: biology
