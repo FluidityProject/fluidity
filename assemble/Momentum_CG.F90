@@ -2057,11 +2057,20 @@
                 ! First filter width G1=alpha^2*mesh size (units length^2)
                 f1_gi = alpha**2*length_scale_tensor(du_t, ele_shape(nu, ele))
                 f1_mod = alpha**2*length_scale(x, ele)
+
                 ! Second filter width G2=(alpha^2+gamma^2)*mesh size
-                f2_gi = (alpha**2+gamma**2)/alpha**2*f1_gi
-                f2_mod = (alpha**2+gamma**2)/alpha**2*f1_mod
+                f2_gi = gamma**2*f1_gi
+                f2_mod = gamma**2*f1_mod
 
                 do gi=1, ele_ngi(nu, ele)
+                  ! Normalise tensor filter width so that volume equals that of scalar filter width definition
+                  f1_gi(:,:,gi) = f1_gi(:,:,gi)*f1_mod(gi)/norm2(f1_gi(:,:,gi))
+                  f2_gi(:,:,gi) = f2_gi(:,:,gi)*f2_mod(gi)/norm2(f2_gi(:,:,gi))
+
+                  ! Temporary check that volumes agree:
+                  f1_mod(gi)=norm2(f1_gi(:,:,gi))
+                  f2_mod(gi)=norm2(f2_gi(:,:,gi))
+
                   ! Tensor M_ij = (|S2|*S2).G2 - ((|S1|S1)^f2).G1
                   tensor_gi(:,:,gi) = strain2_mod(gi)*strain2_gi(:,:,gi)*f2_gi(:,:,gi) - strain_prod_gi(:,:,gi)*f1_gi(:,:,gi)
 
