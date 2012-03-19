@@ -662,20 +662,16 @@ def VtuMatchLocationsArbitrary(vtu1, vtu2, tolerance = 1.0e-6):
   if not locations1.shape == locations2.shape:
     return False   
     
-  epsilon = numpy.ones(locations1.shape[1])*numpy.finfo(numpy.float).eps
-  for j in range(locations1.shape[1]): epsilon[j] = epsilon[j]*(locations1[:,j].max()-locations1[:,j].min())
+  found = numpy.array([False for i in range(len(locations2))])
 
   for i in range(len(locations1)):
-    for j in range(len(locations1[i])):
-      if(abs(locations1[i][j]) < epsilon[j]): locations1[i][j] = 0.0
-      if(abs(locations2[i][j]) < epsilon[j]): locations2[i][j] = 0.0
+    for j in range(len(locations2)):
+      if not found[j]:
+        if (abs(locations2[j,:]-locations1[i,:])<tolerance).all():
+          found[j] = True
+          break
 
-  # lexical sort on x,y and z coordinates resp. of locations1 and locations2
-  sort_index1=numpy.lexsort(locations1.T)
-  sort_index2=numpy.lexsort(locations2.T)
-  
-  # should now be in same order, so we can check for its biggest difference
-  return abs(locations1[sort_index1]-locations2[sort_index2]).max() < tolerance
+  return found.all()
 
 def VtuDiff(vtu1, vtu2, filename = None):
   """
