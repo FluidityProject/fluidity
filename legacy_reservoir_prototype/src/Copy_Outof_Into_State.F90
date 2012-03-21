@@ -152,7 +152,7 @@ module copy_outof_into_state
 
 
       integer, dimension(:), allocatable :: cv_ndgln, u_ndgln, p_ndgln, x_ndgln, xu_ndgln, mat_ndgln, &
-           cv_sndgln, p_sndgln, u_sndgln
+           cv_sndgln, p_sndgln, u_sndgln, u_sndgln2
       integer, dimension(:), pointer :: element_nodes
 
       real, dimension(:), allocatable :: initial_constant_velocity
@@ -170,6 +170,8 @@ module copy_outof_into_state
            ncoef, nuabs_coefs, &
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
            cv_sele_type, u_sele_type
+	   
+      integer :: u_snloc2, ilev, ele, sele, u_siloc, u_siloc2, inod_remain
 
       integer :: nits, nits_internal, ndpset, noit_dim, &
            nits_flux_lim_volfra, nits_flux_lim_comp, nits_flux_lim_t
@@ -371,7 +373,6 @@ module copy_outof_into_state
       p_snloc = 2
       ! x_snloc = 1
       mat_nonods = mat_nloc * totele
-      if( is_overlapping ) u_snloc = u_snloc * cv_nloc
 
       ewrite(3,*)'cv_nonods, u_snloc, cv_snloc:', cv_nonods, u_snloc, cv_snloc
 
@@ -667,9 +668,18 @@ module copy_outof_into_state
       !- mat_ele_type, u_sele_type, cv_sele_type
       mat_ele_type = 1 ; u_sele_type = 1 ; cv_sele_type = 1
 
+
+      if( is_overlapping ) u_snloc = u_snloc * cv_nloc
+
+      u_snloc2=u_snloc/cv_nloc
+      u_nloc2=u_nloc/cv_nloc
+
       allocate( cv_sndgln( stotel * cv_snloc ) )
       allocate( p_sndgln( stotel * p_snloc ) )
       allocate( u_sndgln( stotel * u_snloc ) )
+      allocate( u_sndgln2( stotel * u_snloc2 ) )
+
+
 
       Mapping_Surfaces: Select Case( ndim ) ! THIS NEED TO BE CHANGED
       case( 1 )
@@ -695,8 +705,51 @@ module copy_outof_into_state
             ewrite(3,*)'cv_sndgln:', j, ( cv_sndgln( ( j - 1 ) * cv_snloc + k ), k = 1, cv_snloc )
          end do
 
+     
+
          ewrite(3,*)'stotel, u_snloc:', stotel, u_snloc
-         call getsndgln( vmesh, u_sndgln )
+         call getsndgln( vmesh, u_sndgln2 )
+
+
+print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc 
+
+         ! convert u_sndgln2 to overlapping u_sndgln...
+      
+	
+ 
+ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc, '::', u_nloc2, u_snloc2 
+ 
+         do sele=1,stotel
+          do u_siloc2=1,u_snloc2
+             do ilev=1,cv_nloc
+                u_siloc=(ilev-1)*u_snloc2 + u_siloc2
+                ele=int((u_sndgln2((sele-1)*u_snloc2 + u_siloc2)-1)/u_nloc2) +1
+                inod_remain=u_sndgln2((sele-1)*u_snloc2 + u_siloc2)-(ele-1)*u_nloc2
+                u_sndgln( (sele-1)*u_snloc + u_siloc) &
+                     =(ele-1)*u_nloc + inod_remain + (ilev-1)*u_nloc2
+
+                print *, 'sele, ilev, u_siloc, stotel, ele, inod_remain, u_2, idx:::',&
+  sele, ilev, u_siloc, stotel, ele, inod_remain, u_sndgln2((sele-1)*u_snloc2 + u_siloc2), (sele-1)*u_snloc + u_siloc
+
+             end do
+          end do
+       end do
+
+         do j = 1, stotel
+            ewrite(3,*)'u_sndgln2:', j, ( u_sndgln2( ( j - 1 ) * u_snloc2 + k ), k = 1, u_snloc2 )
+         end do
+
+
+
+
+       deallocate(u_sndgln2)
+
+        print *, '+++++++++++++++++++'
+        print *, u_sndgln
+        print *, '+++++++++++++++++++'
+
+
+
          do j = 1, stotel
             ewrite(3,*)'u_sndgln:', j, ( u_sndgln( ( j - 1 ) * u_snloc + k ), k = 1, u_snloc )
          end do
@@ -1274,7 +1327,7 @@ module copy_outof_into_state
          endif
 
          if (.not. allocated(suf_vol_bc)) then
-            allocate( suf_vol_bc( stotel * 1 * nphases ))
+            allocate( suf_vol_bc( stotel * cv_snloc * nphases ))
             suf_vol_bc = 0.
          endif
 
