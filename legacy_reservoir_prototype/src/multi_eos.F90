@@ -34,6 +34,7 @@
     use global_parameters, only: OPTION_PATH_LEN
     use spud
     use futils, only: int2str
+    use vector_tools
 
   contains
 
@@ -275,7 +276,7 @@
            CV_NDGLN, MAT_NDGLN, &
            U_ABSORB2, PERM, MOBILITY)
 
-      !    ewrite(3,*)'after in calculate_absorption, U_ABSORB2:', size(U_ABSORB2),U_ABSORB2
+      ewrite(3,*)'after in calculate_absorption, U_ABSORB2:', size(U_ABSORB2),U_ABSORB2
 
       DO ELE = 1, TOTELE
          DO CV_ILOC = 1, CV_NLOC
@@ -339,24 +340,25 @@
 !!!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 !!! Big-Hack here ... if permeability is isotropic then
 !!! PERM is non-invertible. 
-      PERM = PERM2
-      if( ndim > 1 ) then
-         do ele = 1, totele
-            do idim = 1, ndim
-               do jdim = 1, ndim
-                  if( idim /= jdim ) &
-                       perm( ele, idim, jdim ) = .9995 * perm( ele, idim, jdim )
-               end do
-            end do
-         end do
-      end if
+!      PERM = PERM2
+!      if( ndim > 1 ) then
+!         do ele = 1, totele
+!            do idim = 1, ndim
+!               do jdim = 1, ndim
+!                  if( idim /= jdim ) &
+!                       perm( ele, idim, jdim ) = .9995 * perm( ele, idim, jdim )
+!               end do
+!            end do
+!         end do
+!      end if
 !!!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+!      CALL PHA_BLOCK_INV( INV_PERM, PERM, TOTELE, NDIM )
 
-      CALL PHA_BLOCK_INV( INV_PERM, PERM, TOTELE, NDIM )
+      perm=perm2
+      do ele = 1, totele
+         inv_perm(ele, :, :)=inverse(perm(ele, :, :))
+      end do
 
-      ewrite(3,*)'perm:', perm
-      ewrite(3,*)'inv_perm:', inv_perm
-      !stop 1
       U_ABSORB = 0.0
 
       Loop_ELE: DO ELE = 1, TOTELE

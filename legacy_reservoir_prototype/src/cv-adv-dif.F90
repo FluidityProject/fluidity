@@ -1172,7 +1172,7 @@ contains
 
 
     ewrite(3,*)'upwind fraction:'
-    ewrite(3,*) 'This is wrong now, but up_wind_nod is not used anyway I think'
+    ewrite(3,*) 'This is wrong now, but up_wind_nod is not used anyway I think', cv_nonods, x_nonods
     do iphase=1,nphase
        ewrite(3,*)'for phase iphase=',iphase
        do ele=1,totele-1
@@ -1417,16 +1417,15 @@ contains
           !       stop 32823
           !   endif
        ELSE
-          ! Works for non-constant and constant ( XU_NLOC = 1 ) velocity basis functions
-          DO U_KLOC = 1, U_NLOC ! Find opposite local node
-             XU_NODK = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_KLOC )
-
-             DO U_KLOC2 = 1, U_NLOC
-                XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
-                IF( ( XU_NODK2 == XU_NODK ) .OR. ( XU_NLOC == 1 ) ) &
-                     U_OTHER_LOC( U_KLOC ) = U_KLOC2
-             END DO
-          END DO
+          ! Works for non constant and constant (XU_NLOC=1) vel basis functions...
+            DO U_KLOC = 1, U_NLOC ! Find opposite local node
+               XU_NODK = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_KLOC )
+               DO U_KLOC2 = 1, U_NLOC
+                  XU_NODK2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_KLOC2 )
+                  IF( ( XU_NODK2 == XU_NODK ) .OR. ( XU_NLOC == 1 ) ) &
+                       U_OTHER_LOC( U_KLOC ) = U_KLOC2
+               END DO
+            END DO
        ENDIF
 
        MAT_OTHER_LOC = CV_OTHER_LOC
@@ -5798,6 +5797,7 @@ use shape_functions_NDim
     REAL :: x_coord
 
     ewrite(3,*)'satura :',satura
+
     do iphase=1,nphase
        ewrite(3,*)'cv REPRESENTATION OF iphase:',iphase
        do ele=1,totele

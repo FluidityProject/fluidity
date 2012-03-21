@@ -627,6 +627,8 @@ contains
          NOIT_DIM, &
          IPLIKE_GRAD_SOU, PLIKE_GRAD_SOU_COEF, PLIKE_GRAD_SOU_GRAD )
 
+    ewrite(3,*) 'global_solve, just_bl_diag_mat', global_solve, just_bl_diag_mat
+
 
     IF( GLOBAL_SOLVE ) THEN 
        ! Global solve  
@@ -677,10 +679,12 @@ contains
        CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT)
 
+       print *, 'P_RHS', p_rhs
+       print *, 'CT_RHS', ct_rhs
+
        P_RHS = -P_RHS + CT_RHS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! CHRIS BAKER 
-
 
        ! Matrix vector involving the mass diagonal term
        DO CV_NOD = 1, CV_NONODS
@@ -689,7 +693,7 @@ contains
              P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
                   - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
                   
-             print*, cv_nod,  count, P_RHS( CV_NOD ), DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ) * P( CV_JNOD )    
+             print*, cv_nod, cv_jnod, count, P_RHS( CV_NOD ), DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
           END DO
        END DO
 
@@ -1930,7 +1934,7 @@ contains
              DO IPHA_IDIM = 1, NDIM * NPHASE
                 DO JPHA_JDIM = 1, NDIM * NPHASE
                    SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) &
-                                !                        + CVfen( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
+                        !                                + CVfen( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                         + CVN( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM ) 
                    SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) &
                                 !                        + CVfen( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
@@ -2362,49 +2366,48 @@ contains
              if( is_overlapping ) then
                 U_OTHER_LOC=0
                 U_ILOC_OTHER_SIDE=0
-                IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions
+                IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions...
                    DO ILEV=1,CV_NLOC
                       U_ILOC_OTHER_SIDE( 1 +(ILEV-1)*U_SNLOC/CV_NLOC) &
-                           = 1 + (ILEV-1)*U_NLOC/CV_NLOC
+                                 = 1 + (ILEV-1)*U_NLOC/CV_NLOC
                       U_OTHER_LOC( 1 + (ILEV-1)*U_NLOC/CV_NLOC) &
-                           = 1 + (ILEV-1)*U_NLOC/CV_NLOC
+                                 = 1 + (ILEV-1)*U_NLOC/CV_NLOC
                    END DO
                 ELSE
-
                    DO U_SILOC = 1, U_SNLOC/CV_NLOC
                       U_ILOC = U_SLOC2LOC( U_SILOC )
                       U_INOD = XU_NDGLN(( ELE - 1 ) * XU_NLOC + U_ILOC )
                       DO U_ILOC2 = 1, U_NLOC/CV_NLOC
                          U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * XU_NLOC + U_ILOC2 )
-                         IF( U_INOD2 == U_INOD ) THEN
+                         IF( U_INOD2 == U_INOD ) THEN 
                             DO ILEV=1,CV_NLOC
                                U_ILOC_OTHER_SIDE( U_SILOC +(ILEV-1)*U_SNLOC/CV_NLOC) &
-                                    = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                                 = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
                                U_OTHER_LOC( U_ILOC + (ILEV-1)*U_NLOC/CV_NLOC) &
-                                    = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                                 = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
                             END DO
                          ENDIF
                       END DO
                    END DO
-                END IF
+                ENDIF
              ELSE
                 U_OTHER_LOC=0
                 U_ILOC_OTHER_SIDE=0
-                IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions
+                IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions...
                    U_ILOC_OTHER_SIDE( 1 ) = 1
                    U_OTHER_LOC( 1 )= 1
                 ELSE
-                   DO U_SILOC = 1, U_SNLOC
-                      U_ILOC = U_SLOC2LOC( U_SILOC )
-                      U_INOD = XU_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-                      DO U_ILOC2 = 1, U_NLOC
-                         U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * U_NLOC + U_ILOC2 )
-                         IF( U_INOD2 == U_INOD ) THEN
-                            U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
-                            U_OTHER_LOC( U_ILOC )=U_ILOC2
-                         ENDIF
-                      END DO
-                   END DO
+                  DO U_SILOC = 1, U_SNLOC
+                     U_ILOC = U_SLOC2LOC( U_SILOC )
+                     U_INOD = XU_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
+                     DO U_ILOC2 = 1, U_NLOC
+                        U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * U_NLOC + U_ILOC2 )
+                        IF( U_INOD2 == U_INOD ) THEN
+                           U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
+                           U_OTHER_LOC( U_ILOC )=U_ILOC2
+                        ENDIF
+                     END DO
+                  END DO
                 ENDIF
              ENDIF
 

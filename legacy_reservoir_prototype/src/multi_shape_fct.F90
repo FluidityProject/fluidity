@@ -1731,6 +1731,8 @@
          ewrite(3,*)'u_on_face: ', u_on_face
          ewrite(3,*)'u_on_face2, after allocated: ', u_on_face2
          ewrite(3,*)'cv_nloc, cv_ngi, scvngi:', cv_nloc, cv_ngi, scvngi
+         ewrite(3,*)'u_nloc, u_nloc2:', u_nloc, u_nloc2
+
 
          call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
@@ -1804,7 +1806,10 @@
       Conditional_OverlappingMethod3: if( is_overlapping ) then
          u_ele_type2 = 1
          u_nloc2 = u_nloc / cv_nloc
-         u_snloc2 = u_snloc / cv_nloc
+         u_snloc2 = u_snloc !/ cv_nloc
+
+         ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
+         ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
 
          allocate( u_sloclist2( 1 : nface, u_snloc2 ) )
          allocate( sbufen2( u_snloc2, sbcvngi ) )
@@ -1827,30 +1832,39 @@
               cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
               ndim, cv_ele_type )
 
-         Loop_ILEV3: do ilev = 1, cv_nloc
-            sbufen( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-                 1 : sbcvngi ) = &
-                 sbufen2( 1 : u_snloc2, 1 : sbcvngi )
-            sbufenslx( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-                 1 : sbcvngi ) = &
-                 sbufenslx2( 1 : u_snloc2, 1 : sbcvngi )
-            sbufensly( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-                 1 : sbcvngi ) = &
-                 sbufensly2( 1 : u_snloc2, 1 : sbcvngi )
-            sbufenlx( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-                 1 : sbcvngi ) = &
-                 sbufenlx2( 1 : u_snloc2, 1 : sbcvngi )
-            sbufenly( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-                 1 : sbcvngi ) = &
-                 sbufenly2( 1 : u_snloc2, 1 : sbcvngi )
-            sbufenlz( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-                 1 : sbcvngi ) = &
-                 sbufenlz2( 1 : u_snloc2, 1 : sbcvngi )
-            u_sloclist( 1 : nface, &
-                 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2 ) = &
-                 u_sloclist2( 1 : nface, 1 : u_snloc2 ) + &
-                 ( ilev - 1 ) * u_nloc2
-         end do Loop_ILEV3
+!!$         Loop_ILEV3: do ilev = 1, cv_nloc
+!!$
+!!$            sbufen( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+!!$                 1 : sbcvngi ) = &
+!!$                 sbufen2( 1 : u_snloc2, 1 : sbcvngi )
+!!$            sbufenslx( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+!!$                 1 : sbcvngi ) = &
+!!$                 sbufenslx2( 1 : u_snloc2, 1 : sbcvngi )
+!!$            sbufensly( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+!!$                 1 : sbcvngi ) = &
+!!$                 sbufensly2( 1 : u_snloc2, 1 : sbcvngi )
+!!$            sbufenlx( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+!!$                 1 : sbcvngi ) = &
+!!$                 sbufenlx2( 1 : u_snloc2, 1 : sbcvngi )
+!!$            sbufenly( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+!!$                 1 : sbcvngi ) = &
+!!$                 sbufenly2( 1 : u_snloc2, 1 : sbcvngi )
+!!$            sbufenlz( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+!!$                 1 : sbcvngi ) = &
+!!$                 sbufenlz2( 1 : u_snloc2, 1 : sbcvngi )
+!!$            u_sloclist( 1 : nface, &
+!!$                 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2 ) = &
+!!$                 u_sloclist2( 1 : nface, 1 : u_snloc2 ) + &
+!!$                 ( ilev - 1 ) * u_nloc2
+!!$         end do Loop_ILEV3
+
+         sbufen=sbufen2
+         sbufenslx=sbufenslx2
+         sbufensly=sbufensly2
+         sbufenlx=sbufenlx2
+         sbufenly=sbufenly2
+         sbufenlz=sbufenlz2
+         u_sloclist=u_sloclist2
 
       else
          call det_suf_ele_shape( scvngi, nface, &
@@ -1965,8 +1979,6 @@
          U_SLOCLIST( 1, 1 ) = 1
          U_SLOCLIST( 2, 1 ) = U_NLOC
       ELSE
-!!!   EWRITE(3,*)'NOT YET READY'
-!!!   FLAbort("Wrong number of surface velocity grid nodes")
          CALL DETERMIN_SLOCLIST( U_SLOCLIST, U_NLOC, U_SNLOC, SCVNGI, NFACE, &
               NDIM, CV_ELE_TYPE )
       ENDIF
@@ -2045,6 +2057,8 @@
       INTEGER :: IFACE, quad_cv_siloc, quad_cv_iloc, NPOLY, IP, JP, KP
       LOGICAL :: FOUND
 
+     ewrite(3,*)  'edw111::', CV_NLOC, CV_SNLOC, SCVNGI, NFACE, ndim , cv_ele_type
+
       CONDITIONAL_DIMENSION: IF(NDIM==1) THEN
          ! 1d: 
          IF(NFACE.NE.2) THEN
@@ -2061,9 +2075,9 @@
                EWRITE(3,*) 'NFACE not correct NFACE=',NFACE
                STOP 4333
             ENDIF
-            CV_SLOCLIST(1,1)=1
-            CV_SLOCLIST(1,2)=2
-            CV_SLOCLIST(2,1)=1
+            CV_SLOCLIST(1,1)=1  ! this is local cv number (1,2,3)
+            CV_SLOCLIST(1,2)=2  ! but what is the face numbering?
+            CV_SLOCLIST(2,1)=1  ! could be right or wrong...
             CV_SLOCLIST(2,2)=3
             CV_SLOCLIST(3,1)=2
             CV_SLOCLIST(3,2)=3
@@ -2309,6 +2323,7 @@
       case default; FLExit( "Wrong integer for CV_ELE_TYPE" )
 
       end Select Cond_ShapeType
+
 
       if(.not.tri_tet) then
          call volnei( cv_neiloc, cvfem_neiloc, cv_nloc, scvngi, cv_ele_type )
