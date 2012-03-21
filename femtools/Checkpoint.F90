@@ -1,4 +1,4 @@
-!    Copyright (C) 2006 Imperial College London and others.
+!    Copyrigh (C) 2006 Imperial College London and others.
 !
 !    Please see the AUTHORS file in the main source directory for a full list
 !    of copyright holders.
@@ -438,8 +438,6 @@ contains
     type(mesh_type), pointer :: mesh, external_mesh
     logical :: from_file, extruded
     
-    character(len = OPTION_PATH_LEN) :: currentMeshFormat
-
     assert(len_trim(prefix) > 0)
 
     n_meshes = option_count("/geometry/mesh")
@@ -474,7 +472,7 @@ contains
           external_mesh => get_external_mesh(state)
           call get_option(trim(external_mesh%option_path) // "/from_file/format/name", mesh_format)
 
-          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format/name", trim(currentMeshFormat), stat=stat1)
+          call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/format/name", trim(mesh_format), stat=stat1)
           call set_option_attribute(trim(mesh_path) // "/from_mesh/extrude/checkpoint_from_file/file_name", trim(mesh_filename), stat=stat2)
           if ((stat1/=SPUD_NO_ERROR .and. stat1/=SPUD_NEW_KEY_WARNING) .or. &
              & (stat2/=SPUD_NO_ERROR .and. stat2/=SPUD_NEW_KEY_WARNING)) then
