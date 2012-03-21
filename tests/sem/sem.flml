@@ -226,7 +226,7 @@
                   </number_of_eddies>
                   <turbulence_lengthscale>
                     <python>
-                      <string_value lines="20" type="python">def val(X, t):
+                      <string_value lines="20" type="code" language="python">def val(X, t):
 	znod=X[2]
 	if (X[2]&gt;1.0):
 		znod=2.0-X[2]
@@ -244,7 +244,7 @@
                   </turbulence_lengthscale>
                   <mean_profile>
                     <python>
-                      <string_value lines="20" type="python">def val(X, t):
+                      <string_value lines="20" type="code" language="python">def val(X, t):
 	znod=X[2]
 	if (X[2]&gt;1.0):
 		znod=2.0-X[2]
@@ -261,7 +261,7 @@
                   </mean_profile>
                   <Re_stresses_profile>
                     <python>
-                      <string_value lines="20" type="python">def val(X, t):
+                      <string_value lines="20" type="code" language="python">def val(X, t):
 	znod=X[2]
 	if (X[2]&gt;1.0):
 		znod=2.0-X[2]
@@ -284,7 +284,7 @@
                   </number_of_eddies>
                   <turbulence_lengthscale>
                     <python>
-                      <string_value lines="20" type="python">def val(X, t):
+                      <string_value lines="20" type="code" language="python">def val(X, t):
 	znod=X[2]
 	if (X[2]&gt;1.0):
 		znod=2.0-X[2]
@@ -307,7 +307,7 @@
                   </mean_profile>
                   <Re_stresses_profile>
                     <python>
-                      <string_value lines="20" type="python">def val(X, t):
+                      <string_value lines="20" type="code" language="python">def val(X, t):
 	znod=X[2]
 	if (X[2]&gt;1.0):
 		znod=2.0-X[2]
@@ -329,7 +329,7 @@
                   </number_of_eddies>
                   <turbulence_lengthscale>
                     <python>
-                      <string_value lines="20" type="python">def val(X, t):
+                      <string_value lines="20" type="code" language="python">def val(X, t):
 	znod=X[2]
 	if (X[2]&gt;1.0):
 		znod=2.0-X[2]
@@ -352,7 +352,7 @@
                   </mean_profile>
                   <Re_stresses_profile>
                     <python>
-                      <string_value lines="20" type="python">def val(X, t):
+                      <string_value lines="20" type="code" language="python">def val(X, t):
 	znod=X[2]
 	if (X[2]&gt;1.0):
 		znod=2.0-X[2]

@@ -5,7 +5,7 @@ preprocess:
 
 run:
 	@echo **********Running simulation
-	../../bin/fluidity -v2 -l mphase_tephra_settling.flml
+	../../bin/fluidity mphase_tephra_settling.flml
 
 input: clean preprocess
 
