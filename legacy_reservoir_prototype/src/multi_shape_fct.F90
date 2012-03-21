@@ -2310,7 +2310,6 @@
 
       end Select Cond_ShapeType
 
-
       if(.not.tri_tet) then
          call volnei( cv_neiloc, cvfem_neiloc, cv_nloc, scvngi, cv_ele_type )
       end if

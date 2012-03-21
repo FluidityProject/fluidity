@@ -2365,10 +2365,11 @@
          sufen = 1.0 
          sufenlx = 0.0 
          if( ndim >= 2 ) sufenly = 0.0
-         if( ndim >= 3 ) sufenlz = 0.0 
+         if( ndim >= 3 ) sufenlz = 0.0
          if( ndim >= 2 ) sufenslx = 0.0
          if( ndim >= 3 ) sufensly = 0.0
       else
+
          call Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
               cv_ele_type, ndim, totele, u_nloc, scvngi, x_nonods, &
               quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
