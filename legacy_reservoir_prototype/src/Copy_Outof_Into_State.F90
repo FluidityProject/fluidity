@@ -309,8 +309,8 @@ module copy_outof_into_state
          cv_nloc = pmesh%shape%degree + 1
          shared_nodes = 1
       case(2)
-        !!!!==> xu_nloc = 3
-         xu_nloc = 1
+         xu_nloc = 3
+         !xu_nloc = 1
          cv_nloc = tr(pmesh%shape%degree+1)
          select case(pmesh%shape%degree)
          case(1)
@@ -476,9 +476,9 @@ module copy_outof_into_state
          !end if
          if( ndgln_switch )then
             element_nodes => ele_nodes( positions, k )
-!ewrite(3,*)'ele_nodes:', size( element_nodes )
-                do j = 1, size( element_nodes )
-            !do j = 1, xu_nloc
+            !ewrite(3,*)'ele_nodes:', size( element_nodes )
+            !do j = 1, size( element_nodes )
+            do j = 1, xu_nloc
                xu_nod = xu_nod + 1
                xu_ndgln( ( k - 1 ) * xu_nloc + j ) = element_nodes( j )
                !       xu( xu_nod ) = positions % val( 1, xu_nod )
