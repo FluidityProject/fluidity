@@ -622,7 +622,7 @@ contains
        bcast_rounds = maxval(ndets_being_bcast)
        call allmax(bcast_rounds)
        do round=1, bcast_rounds
-          ndata_per_det = detector_buffer_size(xfield%dim,.false.)
+          ndata_per_det = detector_buffer_size(xfield%dim)
 
           ! Broadcast detectors whose new owner we can't identify
           do i=1,getnprocs()
@@ -705,23 +705,23 @@ contains
 
   end subroutine distribute_detectors
 
-  subroutine exchange_detectors(detector_list,xfield,send_list_array)
+  subroutine exchange_detectors(detector_list,xfield,send_list_array,have_rk,have_ray)
     ! This subroutine serialises send_list_array, sends it, 
     ! receives serialised detectors from all procs and unpacks them.
     type(detector_linked_list), intent(inout) :: detector_list
     type(vector_field), pointer, intent(in) :: xfield
     type(detector_linked_list), dimension(:), intent(inout) :: send_list_array
+    logical, intent(in), optional :: have_rk, have_ray 
 
     real, dimension(:,:), allocatable :: detector_buffer
     type(detector_type), pointer :: detector, detector_received
     type(halo_type), pointer :: ele_halo
     type(integer_hash_table) :: ele_numbering_inverse
-    integer :: j, dim, count, n_stages, target_proc, receive_proc, &
+    integer :: j, dim, count, target_proc, receive_proc, &
                det_size, ndet_to_send, ndet_received, &
                halo_level, nprocs, IERROR
     integer, parameter ::TAG=12
     integer, dimension(:), allocatable :: sendRequest, status
-    logical :: have_update_vector
 
     ewrite(2,*) "In exchange_detectors"  
 
@@ -742,12 +742,10 @@ contains
     end if
 
     ! Get buffer size, depending on whether RK-GS parameters are still allocated
-    have_update_vector=allocated(detector_list%stage_matrix)
-    if(have_update_vector) then
-       n_stages=detector_list%n_stages
-       det_size=detector_buffer_size(dim,have_update_vector,n_stages)
+    if(present_and_true(have_rk)) then
+       det_size=detector_buffer_size(dim,nstages=detector_list%n_stages,have_ray=have_ray)
     else
-       det_size=detector_buffer_size(dim,have_update_vector)
+       det_size=detector_buffer_size(dim)
     end if
     
     ! Send to all procs
@@ -768,8 +766,8 @@ contains
              assert(detector%element>0)
              detector%element = halo_universal_number(ele_halo, detector%element)
 
-             if (have_update_vector) then
-                call pack_detector(detector, detector_buffer(j,1:det_size), dim, nstages=n_stages)
+             if (present_and_true(have_rk)) then
+                call pack_detector(detector, detector_buffer(j,1:det_size), dim,nstages=detector_list%n_stages,have_ray=have_ray)
              else
                 call pack_detector(detector, detector_buffer(j,1:det_size), dim)
              end if
@@ -815,9 +813,9 @@ contains
 
           ! Unpack routine uses ele_numbering_inverse to translate universal element 
           ! back to local detector element
-          if (have_update_vector) then
+          if (present_and_true(have_rk)) then
              call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,&
-                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=n_stages)
+                    global_to_local=ele_numbering_inverse,coordinates=xfield,nstages=detector_list%n_stages,have_ray=have_ray)
           else
              call unpack_detector(detector_received,detector_buffer(j,1:det_size),dim,&
                     global_to_local=ele_numbering_inverse,coordinates=xfield)

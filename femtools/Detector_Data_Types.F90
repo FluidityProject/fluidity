@@ -75,7 +75,7 @@ module detector_data_types
      ! Definition of the ray for geometric tracking
      real, dimension(:), allocatable :: ray_o, ray_d
      ! Distance to the target coordinate
-     real :: target_distance
+     real :: target_distance, current_t
 
      !! Biology variables
      real, dimension(:), allocatable :: biology

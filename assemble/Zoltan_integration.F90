@@ -1967,7 +1967,7 @@ module zoltan_integration
 
     ! calculate the amount of data to be transferred per detector
     zoltan_global_ndims = zoltan_global_zz_positions%dim
-    zoltan_global_ndata_per_det = detector_buffer_size(zoltan_global_ndims, .false.)
+    zoltan_global_ndata_per_det = detector_buffer_size(zoltan_global_ndims)
     ewrite(2,*) "Amount of data to be transferred per detector: ", zoltan_global_ndata_per_det
     
     head = 1

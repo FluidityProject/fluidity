@@ -5,7 +5,7 @@ y = zeros(100) + 0.5
 
 t = 0.
 n_cycles = 1
-dt = 0.1/n_cycles
+dt = 0.2/n_cycles
 tmax = 8
 
 def vel(x,y):

@@ -290,6 +290,12 @@ contains
              detector%k = 0.
           end if
 
+          if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+             allocate(detector%ray_o(xfield%dim))
+             detector%ray_o = detector%position
+             allocate(detector%ray_d(xfield%dim))
+          end if
+
        end if
        detector => detector%next
     end do
@@ -482,7 +488,7 @@ contains
     type(detector_linked_list), dimension(:), allocatable :: send_list_array
     real :: search_tolerance
     integer :: k, nprocs, new_owner, all_send_lists_empty
-    logical :: outside_domain, any_lagrangian
+    logical :: outside_domain, any_lagrangian, have_ray
 
     call profiler_tic(trim(detector_list%name)//"::movement::tracking")
 
@@ -493,26 +499,27 @@ contains
     search_tolerance=detector_list%search_tolerance
 
     if (detector_list%tracking_method == GEOMETRIC_TRACKING) then
+       have_ray = .true.
+
        detector => detector_list%first
        do while (associated(detector))
-          if (.not. allocated(detector%ray_o)) then
-             allocate(detector%ray_o(xfield%dim))
-             detector%ray_o = detector%position
-          end if
-          if (.not. allocated(detector%ray_d)) then
-             allocate(detector%ray_d(xfield%dim))
-          end if
+
           ! Calcualte and normalise ray direction
           detector%ray_d = detector%update_vector - detector%ray_o
-          detector%target_distance = sqrt(sum(detector%ray_d**2))
+          detector%target_distance = sum(detector%ray_d**2)
           if (detector%target_distance > 0.0) then
+             detector%target_distance = sqrt(detector%target_distance)
              detector%ray_d = detector%ray_d / detector%target_distance
           else
+             detector%target_distance = 0.0
              detector%ray_d = 0.0
           end if
+          detector%current_t = 0.0
 
           detector => detector%next
        end do
+    else
+       have_ray = .false.
     end if
 
     ! This loop continues until all detectors have completed their
@@ -549,7 +556,7 @@ contains
              elseif (detector_list%tracking_method == GEOMETRIC_TRACKING) then
                 call profiler_tic(trim(detector_list%name)//"::movement::tracking::geometric_tracking")
                 call geometric_ray_tracing(xfield,detector%ray_o,detector%ray_d,detector%target_distance,&
-                        detector%element,new_owner,search_tolerance)
+                        detector%element,new_owner,detector%current_t,search_tolerance)
                 detector%local_coords = local_coords(xfield,detector%element,detector%update_vector)
                 call profiler_toc(trim(detector_list%name)//"::movement::tracking::geometric_tracking")
 
@@ -597,7 +604,7 @@ contains
 
           !This call serialises send_list_array, sends it, 
           !receives serialised receive_list_array, and unserialises that.
-          call exchange_detectors(detector_list,xfield,send_list_array)
+          call exchange_detectors(detector_list,xfield,send_list_array,have_rk=.true.,have_ray=have_ray)
        else
           ! If we run out of lagrangian detectors for some reason, exit the loop
           exit
@@ -694,7 +701,7 @@ contains
 
   end subroutine local_guided_search
 
-  subroutine geometric_ray_tracing(xfield,r_o,r_d,target_distance,new_element,new_owner,search_tolerance)
+  subroutine geometric_ray_tracing(xfield,r_o,r_d,target_distance,new_element,new_owner,current_t,search_tolerance)
     ! This tracking method is based on a standard Ray-tracing algorithm using planes and half-spaces.
     ! Reference: 
     type(vector_field), pointer, intent(in) :: xfield
@@ -702,8 +709,9 @@ contains
     integer, intent(inout) :: new_element
     integer, intent(out) :: new_owner
     real, intent(in) :: target_distance, search_tolerance
+    real, intent(inout) :: current_t
 
-    real :: t, face_t, ele_t
+    real :: face_t, ele_t
     integer :: i, neigh_face, next_face
     integer, dimension(:), pointer :: face_list
 
@@ -713,7 +721,6 @@ contains
        return
     end if
 
-    t = 0.0
     search_loop: do 
 
        ! Go through all faces of the element and look for the smallest t in the ray's direction
@@ -723,7 +730,7 @@ contains
        do i=1, size(face_list)
           call ray_intersetion_distance(face_list(i), face_t)
 
-          if (face_t < ele_t .and. t < face_t) then
+          if (face_t < ele_t .and. current_t < face_t) then
              ele_t = face_t
              next_face = face_list(i)
           end if
@@ -733,7 +740,7 @@ contains
           neigh_face = face_neigh(xfield, next_face)
           if (neigh_face /= next_face) then
              ! Recurse on the next element
-             t = ele_t
+             current_t = ele_t
              new_element = face_ele(xfield, neigh_face)
           else
              if (element_owned(xfield,new_element)) then

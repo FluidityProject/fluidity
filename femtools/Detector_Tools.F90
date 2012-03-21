@@ -291,23 +291,29 @@ contains
 
   end subroutine delete_all_detectors
 
-  function detector_buffer_size(ndims, have_update_vector, nstages)
+  function detector_buffer_size(ndims, nstages, have_ray) result(buffer_size)
     ! Returns the number of reals we need to pack a detector
     integer, intent(in) :: ndims
-    logical, intent(in) :: have_update_vector
     integer, intent(in), optional :: nstages
-    integer :: detector_buffer_size
+    logical, intent(in), optional :: have_ray
+    integer :: buffer_size
 
-    if (have_update_vector) then
-       assert(present(nstages))
-       detector_buffer_size=(nstages+2)*ndims+4
-    else
-       detector_buffer_size=ndims+4
+    ! Basics: Position(ndims) + element + id + type 
+    buffer_size = ndims+4
+
+    if (present(nstages)) then
+       ! RK advection: k(nstages) + update_vector
+       buffer_size = buffer_size + (nstages+1)*ndims
+    end if
+
+    if (present_and_true(have_ray)) then
+       ! Ray tracking: ray_o(ndims) + ray_d(ndims) + target_distance + current_t
+       buffer_size = buffer_size + 2*ndims + 2
     end if
 
   end function detector_buffer_size
 
-  subroutine pack_detector(detector,buff,ndims,nstages)
+  subroutine pack_detector(detector,buff,ndims,nstages,have_ray)
     ! Packs (serialises) detector into buff
     ! Basic fields are: element, position, id_number and type
     ! If nstages is given, the detector is still moving
@@ -316,6 +322,9 @@ contains
     real, dimension(:), intent(out) :: buff
     integer, intent(in) :: ndims
     integer, intent(in), optional :: nstages
+    logical, intent(in), optional :: have_ray
+
+    integer :: index
 
     assert(size(detector%position)==ndims)
     assert(size(buff)>=ndims+3)
@@ -325,30 +334,47 @@ contains
     buff(ndims+1) = detector%element
     buff(ndims+2) = detector%id_number
     buff(ndims+3) = detector%type
+    index = ndims+4
 
     ! Lagrangian advection fields: (nstages+1)*ndims
     if (present(nstages)) then
-       assert(size(buff)==(nstages+2)*ndims+3)
        assert(allocated(detector%update_vector))
        assert(allocated(detector%k))
 
-       buff(ndims+4:2*ndims+3) = detector%update_vector
-       buff(2*ndims+4:(nstages+2)*ndims+3) = reshape(detector%k,(/nstages*ndims/))
+       buff(index:index+ndims-1) = detector%update_vector
+       index = index + ndims
+       buff(index:index+nstages*ndims-1) = reshape(detector%k,(/nstages*ndims/))
+       index = index + nstages*ndims
     else
-       assert(size(buff)==ndims+4)
-       buff(ndims+4) = detector%list_id
+       buff(index) = detector%list_id
+       index = index+1
+    end if
+
+    if (present_and_true(have_ray)) then
+       ! Ray tracking: ray_o + ray_d
+       buff(index) = detector%target_distance
+       index = index+1
+       buff(index) = detector%current_t
+       index = index+1
+       buff(index:index+ndims-1) = detector%ray_o
+       index = index + ndims
+       buff(index:index+ndims-1) = detector%ray_d
+       index = index + ndims
     end if
     
   end subroutine pack_detector
 
-  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages)
+  subroutine unpack_detector(detector,buff,ndims,global_to_local,coordinates,nstages,have_ray)
     ! Unpacks the detector from buff and fills in the blanks
     type(detector_type), pointer :: detector
     real, dimension(:), intent(in) :: buff
     integer, intent(in) :: ndims
     type(integer_hash_table), intent(in), optional :: global_to_local
     type(vector_field), intent(in), optional :: coordinates
-    integer, intent(in), optional :: nstages    
+    integer, intent(in), optional :: nstages  
+    logical, intent(in), optional :: have_ray 
+
+    integer :: index
 
     assert(size(buff)>=ndims+3)
 
@@ -361,6 +387,7 @@ contains
     detector%element = buff(ndims+1)
     detector%id_number = buff(ndims+2)
     detector%type = buff(ndims+3)
+    index = ndims+4
 
     ! Reconstruct element number if global-to-local mapping is given
     if (present(global_to_local)) then
@@ -378,23 +405,41 @@ contains
 
     ! Lagrangian advection fields: (nstages+1)*ndims
     if (present(nstages)) then
-       assert(size(buff)==(nstages+2)*ndims+3)
 
        ! update_vector, dimension(ndim)
        if (.not. allocated(detector%update_vector)) then
           allocate(detector%update_vector(ndims))
        end if       
-       detector%update_vector = reshape(buff(ndims+4:2*ndims+3),(/ndims/))
+       detector%update_vector = reshape(buff(index:index+ndims-1),(/ndims/))
+       index = index + ndims
 
        ! k, dimension(nstages:ndim)
        if (.not. allocated(detector%k)) then
           allocate(detector%k(nstages,ndims))
        end if  
-       detector%k = reshape(buff(2*ndims+4:(nstages+2)*ndims+3),(/nstages,ndims/))
+       detector%k = reshape(buff(index:index+nstages*ndims-1),(/nstages,ndims/))
+       index = index + nstages*ndims
     else
-       assert(size(buff)==ndims+4)
+       detector%list_id = buff(index)
+       index = index+1
+    end if
 
-       detector%list_id = buff(ndims+4)
+    if (present_and_true(have_ray)) then
+       ! Ray tracking: ray_o + ray_d
+       detector%target_distance = buff(index)
+       index = index+1
+       detector%current_t = buff(index)
+       index = index+1
+       if (.not. allocated(detector%ray_o)) then
+          allocate(detector%ray_o(ndims))
+       end if   
+       detector%ray_o = buff(index:index+ndims-1)
+       index = index + ndims
+       if (.not. allocated(detector%ray_d)) then
+          allocate(detector%ray_d(ndims))
+       end if   
+       detector%ray_d = buff(index:index+ndims-1)
+       index = index + ndims
     end if
    
   end subroutine unpack_detector
