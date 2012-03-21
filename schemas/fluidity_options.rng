@@ -6993,6 +6993,22 @@ Defaults to -huge(0.0)*epsilon(0.0) if not set.</a:documentation>
       </element>
     </choice>
   </define>
+  <!--
+    cv limiter options that 
+    have NO reliance on any CFL field. 
+  -->
+  <define name="limiter_options_excluding_cfl">
+    <choice>
+      <element name="limit_face_value">
+        <a:documentation>Limit the face value to satisfy a boundedness criterion.</a:documentation>
+        <ref name="sweby_limiter"/>
+      </element>
+      <element name="do_not_limit_face_value">
+        <a:documentation>Do not limit the face value</a:documentation>
+        <empty/>
+      </element>
+    </choice>
+  </define>
   <define name="sweby_limiter">
     <element name="limiter">
       <a:documentation>See "High-Resolution Schemes Using Flux Limiters for
