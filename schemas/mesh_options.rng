@@ -30,6 +30,13 @@ surface or region IDs.</a:documentation>
             </attribute>
             <ref name="comment"/>
           </element>
+          <element name="format">
+            <a:documentation>ExodusII mesh format. Note that this is still experimental.</a:documentation>
+            <attribute name="name">
+              <value>exodusii</value>
+            </attribute>
+            <ref name="comment"/>
+          </element>
         </choice>
         <attribute name="file_name">
           <data type="string"/>
