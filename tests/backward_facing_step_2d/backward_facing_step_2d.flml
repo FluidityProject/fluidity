@@ -180,7 +180,7 @@
             <align_bc_with_cartesian>
               <x_component>
                 <python>
-                  <string_value lines="20" type="python">def val(X, t):
+                  <string_value lines="20" type="code" language="python">def val(X, t):
     u = 4.0*(X[1] - 1.0)*(2.0 - X[1])*min(1.0, 10*t)
     return u</string_value>
                 </python>

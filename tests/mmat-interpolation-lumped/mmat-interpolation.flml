@@ -130,7 +130,7 @@ will get cut off by final_timestep</comment>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
    from math import sin, cos
    # Shear rotation about origin.
    return (sin(X[0])*cos(X[1]), -1.0*cos(X[0])*sin(X[1]))</string_value>
@@ -228,7 +228,7 @@ will get cut off by final_timestep</comment>
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sqrt, pi
 	dx1 = X[0]-pi/2
 	dx2 = X[1]-0.2*(1.0+pi)
@@ -398,7 +398,7 @@ will get cut off by final_timestep</comment>
         <explicit/>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sqrt, pi
 	dx1 = X[0]-pi/2
 	dx2 = X[1]-0.55*(1.0+pi)
@@ -473,7 +473,7 @@ will get cut off by final_timestep</comment>
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
 	from math import sqrt, pi
 	dx1 = X[0]-pi/2
 	dx2 = X[1]-0.55*(1.0+pi)

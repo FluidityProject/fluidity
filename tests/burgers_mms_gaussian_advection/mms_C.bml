@@ -84,7 +84,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sqrt, exp, pi
   x = X[0]
   return 0.0
@@ -112,7 +112,7 @@
           <prescribed>
             <value name="WholeMesh">
               <python>
-                <string_value lines="20" type="python">def val(X, t):
+                <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sqrt, exp, pi
   x = X[0]
   return -0.5*sqrt(2)*x**2*exp(-0.5*x**2)/sqrt(pi) + 0.5*sqrt(2)*exp(-0.5*x**2)/sqrt(pi) - 0.5*x*exp(-x**2)/pi</string_value>
@@ -127,7 +127,7 @@
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
   from math import sqrt, exp, pi
   x = X[0]
   return 1.0/sqrt(2*pi) * exp(-x**2 / 2)</string_value>
@@ -142,7 +142,7 @@
       <diagnostic>
         <mesh name="VelocityMesh"/>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">soln = state.scalar_fields["Velocity"]
+          <string_value lines="20" type="code" language="python">soln = state.scalar_fields["Velocity"]
 exact = state.scalar_fields["AnalyticalSolution"]
 
 for i in range(field.node_count):

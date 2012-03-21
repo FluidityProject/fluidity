@@ -7,8 +7,8 @@ RIGHT_X   = 1.2
 
 input: clean
 	interval --dx=$(MESH_SIZE) $(LEFT_X) $(RIGHT_X) line
-	gmsh -2 tri.geo -o tri.msh
-	gmsh -3 tet.geo -o tet.msh
+	cp src/tri.msh .
+	cp src/tet.msh .
 
 clean:
 	rm -f *.ele
