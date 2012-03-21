@@ -338,6 +338,7 @@ module copy_outof_into_state
       if ( trim( vel_element_type ) == 'overlapping' ) is_overlapping = .true. 
 
       if( is_overlapping ) u_nloc = cv_nloc * xu_nloc
+
       ewrite(3,*)'ndim, cv_nloc, x_nloc, xu_nloc, u_nloc:', ndim, cv_nloc, x_nloc, xu_nloc, u_nloc 
 
       if (pmesh%continuity>=0) then
@@ -367,9 +368,11 @@ module copy_outof_into_state
          ! cv_snloc = 3 ! quadratic triangle
       case default; FLAbort("Incorrect number of dimension - ndim")
       end Select
-      p_snloc = 1
+      p_snloc = 2
       ! x_snloc = 1
       mat_nonods = mat_nloc * totele
+      if( is_overlapping ) u_snloc = u_snloc * cv_nloc
+
       ewrite(3,*)'cv_nonods, u_snloc, cv_snloc:', cv_nonods, u_snloc, cv_snloc
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
