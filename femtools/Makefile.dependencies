@@ -343,6 +343,11 @@ EventCounter.o ../include/eventcounter.mod: EventCounter.F90 \
 
 ExodusII_Fortran.o ../include/exodusii_fortran.mod: ExodusII_Fortran.F90
 
+../include/exodusii_fortran.mod: Exodusii_Fortran.o
+	@true
+
+Exodusii_Fortran.o ../include/exodusii_fortran.mod: Exodusii_Fortran.F90
+
 ../include/fefields.mod: FEFields.o
 	@true
 
