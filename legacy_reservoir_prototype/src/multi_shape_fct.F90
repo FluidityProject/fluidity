@@ -1745,12 +1745,12 @@
          !     cv_neiloc,   &
          !     u_on_face )
 
-         do ilev = 1, u_nloc
-            ewrite(3,*)'**u_on_face**:', ( u_on_face( ilev, gi ), gi = 1, scvngi )
-         end do
-         do ilev = 1, cv_nloc
-            ewrite(3,*)'**cvfem_on_face**:', ( cvfem_on_face( ilev, gi ), gi = 1, scvngi )
-         end do
+         !         do ilev = 1, u_nloc
+         !            ewrite(3,*)'**u_on_face**:', ( u_on_face( ilev, gi ), gi = 1, scvngi )
+         !         end do
+         !         do ilev = 1, cv_nloc
+         !            ewrite(3,*)'**cvfem_on_face**:', ( cvfem_on_face( ilev, gi ), gi = 1, scvngi )
+         !         end do
 
          sufen = 0. ; sufenslx = 0. ; sufensly = 0. 
          sufenlx = 0. ; sufenly = 0. ; sufenlz = 0.
@@ -1758,12 +1758,12 @@
             !==  u_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
             !==       1 : scvngi ) = &
             !==       u_on_face2( 1 : u_nloc2, 1 : scvngi )
-            u_on_face2( 1 : u_nloc2, 1 : scvngi ) = &
-                 u_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
-                 1 : scvngi ) 
-            ufem_on_face2( 1 : u_nloc2, 1 : scvngi ) = &
-                 ufem_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
-                 1 : scvngi ) 
+            !            u_on_face2( 1 : u_nloc2, 1 : scvngi ) = &
+            !                 u_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
+            !                 1 : scvngi ) 
+            !            ufem_on_face2( 1 : u_nloc2, 1 : scvngi ) = &
+            !                 ufem_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
+            !                 1 : scvngi ) 
             sufen( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
                  1 : scvngi ) = &
                  sufen2( 1 : u_nloc2, 1 : scvngi )
@@ -1806,7 +1806,7 @@
       Conditional_OverlappingMethod3: if( is_overlapping ) then
          u_ele_type2 = 1
          u_nloc2 = u_nloc / cv_nloc
-         u_snloc2 = u_snloc !/ cv_nloc
+         u_snloc2 = u_snloc / cv_nloc
 
          ewrite(3,*) 'U_NLOC  , U_SNLOC  ', u_nloc  , u_snloc
          ewrite(3,*) 'U_NLOC2, U_SNLOC2', u_nloc2, u_snloc2
@@ -1832,39 +1832,31 @@
               cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
               ndim, cv_ele_type )
 
-!!$         Loop_ILEV3: do ilev = 1, cv_nloc
-!!$
-!!$            sbufen( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-!!$                 1 : sbcvngi ) = &
-!!$                 sbufen2( 1 : u_snloc2, 1 : sbcvngi )
-!!$            sbufenslx( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-!!$                 1 : sbcvngi ) = &
-!!$                 sbufenslx2( 1 : u_snloc2, 1 : sbcvngi )
-!!$            sbufensly( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-!!$                 1 : sbcvngi ) = &
-!!$                 sbufensly2( 1 : u_snloc2, 1 : sbcvngi )
-!!$            sbufenlx( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-!!$                 1 : sbcvngi ) = &
-!!$                 sbufenlx2( 1 : u_snloc2, 1 : sbcvngi )
-!!$            sbufenly( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-!!$                 1 : sbcvngi ) = &
-!!$                 sbufenly2( 1 : u_snloc2, 1 : sbcvngi )
-!!$            sbufenlz( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
-!!$                 1 : sbcvngi ) = &
-!!$                 sbufenlz2( 1 : u_snloc2, 1 : sbcvngi )
-!!$            u_sloclist( 1 : nface, &
-!!$                 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2 ) = &
-!!$                 u_sloclist2( 1 : nface, 1 : u_snloc2 ) + &
-!!$                 ( ilev - 1 ) * u_nloc2
-!!$         end do Loop_ILEV3
+         Loop_ILEV3: do ilev = 1, cv_nloc
 
-         sbufen=sbufen2
-         sbufenslx=sbufenslx2
-         sbufensly=sbufensly2
-         sbufenlx=sbufenlx2
-         sbufenly=sbufenly2
-         sbufenlz=sbufenlz2
-         u_sloclist=u_sloclist2
+            sbufen( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+                 1 : sbcvngi ) = &
+                 sbufen2( 1 : u_snloc2, 1 : sbcvngi )
+            sbufenslx( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+                 1 : sbcvngi ) = &
+                 sbufenslx2( 1 : u_snloc2, 1 : sbcvngi )
+            sbufensly( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+                 1 : sbcvngi ) = &
+                 sbufensly2( 1 : u_snloc2, 1 : sbcvngi )
+            sbufenlx( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+                 1 : sbcvngi ) = &
+                 sbufenlx2( 1 : u_snloc2, 1 : sbcvngi )
+            sbufenly( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+                 1 : sbcvngi ) = &
+                 sbufenly2( 1 : u_snloc2, 1 : sbcvngi )
+            sbufenlz( 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2, &
+                 1 : sbcvngi ) = &
+                 sbufenlz2( 1 : u_snloc2, 1 : sbcvngi )
+            u_sloclist( 1 : nface, &
+                 1 + ( ilev - 1 ) * u_snloc2 : ilev * u_snloc2 ) = &
+                 u_sloclist2( 1 : nface, 1 : u_snloc2 ) + &
+                 ( ilev - 1 ) * u_nloc2
+         end do Loop_ILEV3
 
       else
          call det_suf_ele_shape( scvngi, nface, &
