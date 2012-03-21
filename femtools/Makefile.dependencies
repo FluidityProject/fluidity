@@ -338,6 +338,11 @@ Embed_Python_Fortran.o ../include/embed_python.mod: Embed_Python_Fortran.F90 \
 EventCounter.o ../include/eventcounter.mod: EventCounter.F90 \
    ../include/fdebug.h ../include/fldebug.mod
 
+../include/exodusii_fortran.mod: ExodusII_Fortran.o
+	@true
+
+ExodusII_Fortran.o ../include/exodusii_fortran.mod: ExodusII_Fortran.F90
+
 ../include/fefields.mod: FEFields.o
 	@true
 
@@ -718,7 +723,8 @@ MeshDiagnostics.o ../include/meshdiagnostics.mod: MeshDiagnostics.F90 \
 Mesh_Files.o ../include/mesh_files.mod: Mesh_Files.F90 ../include/elements.mod \
    ../include/fdebug.h ../include/fields.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/gmsh_common.mod \
-   ../include/read_gmsh.mod ../include/read_triangle.mod ../include/spud.mod \
+   ../include/read_exodusii.mod ../include/read_gmsh.mod \
+   ../include/read_triangle.mod ../include/spud.mod \
    ../include/state_module.mod ../include/write_gmsh.mod \
    ../include/write_triangle.mod
 
@@ -897,6 +903,15 @@ Quadrature.o ../include/quadrature.mod: Quadrature.F90 ../include/fdebug.h \
 
 Quadrature_Test.o ../include/quadrature_test.mod: Quadrature_Test.F90 \
    ../include/quadrature.mod
+
+../include/read_exodusii.mod: Read_ExodusII.o
+	@true
+
+Read_ExodusII.o ../include/read_exodusii.mod: Read_ExodusII.F90 \
+   ../include/elements.mod ../include/exodusii_fortran.mod ../include/fdebug.h \
+   ../include/fields.mod ../include/futils.mod \
+   ../include/global_parameters.mod ../include/spud.mod \
+   ../include/state_module.mod
 
 ../include/read_gmsh.mod: Read_GMSH.o
 	@true

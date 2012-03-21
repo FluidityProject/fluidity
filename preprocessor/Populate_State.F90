@@ -253,8 +253,9 @@ contains
             deallocate(quad)
             deallocate(shape)
 
-         else if(trim(mesh_file_format)=="triangle" &
-              .or. trim(mesh_file_format)=="gmsh") then
+          else if(trim(mesh_file_format)=="triangle" &
+              .or. trim(mesh_file_format)=="gmsh" &
+              .or. trim(mesh_file_format)=="exodusii") then
             ! Get mesh dimension if present
             call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
             ! Read mesh

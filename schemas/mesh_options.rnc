@@ -21,6 +21,11 @@ mesh_info =
             element format {
                attribute name { "gmsh" },
                comment
+            }|
+            ## ExodusII mesh format. Note that this is still experimental.
+            element format {
+               attribute name { "exodusii" },
+               comment
             }
          ),
          attribute file_name { xsd:string },

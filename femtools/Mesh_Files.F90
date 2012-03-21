@@ -52,6 +52,7 @@ module mesh_files
   use gmsh_common
   use read_gmsh
   use read_triangle
+  use read_exodusii
   use write_gmsh
   use write_triangle
 
@@ -119,6 +120,10 @@ contains
        call identify_gmsh_file(filename, dim, loc, nodes,&
             elements, node_attributes, selements, selement_boundaries)
 
+    case("exodusii")
+       call identify_exodusii_file(filename, dim, loc, nodes,&
+            elements, node_attributes, selements, selement_boundaries)
+
        ! Additional mesh format subroutines go here
 
     case default
@@ -151,6 +156,9 @@ contains
 
     case("gmsh")
        field = read_gmsh_file(filename, shape)
+
+    case("exodusii")
+       field = read_exodusii_file(filename, shape)
 
        ! Additional mesh format subroutines go here
 
@@ -185,13 +193,15 @@ contains
        meshFormat = format
     end if
 
-
     select case( trim(meshFormat) )
     case("triangle")
        result_state = read_triangle_files(filename, shape,shape_type,n_states)
 
     case("gmsh")
        result_state = read_gmsh_file(filename, shape,shape_type,n_states)
+
+    case("exodusii")
+       result_state = read_exodusii_file(filename, shape,shape_type,n_states)
 
        ! Additional mesh format subroutines go here
 
@@ -244,6 +254,10 @@ contains
     case("gmsh")
        field = read_gmsh_file(filename, quad_degree, quad_ngi, &
             no_faces, quad_family)
+
+    case("exodusii")
+!       field = read_exodusii_file(filename, quad_degree, quad_ngi, &
+!            no_faces, quad_family)
 
        ! Additional mesh format subroutines go here
 
