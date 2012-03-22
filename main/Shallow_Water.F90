@@ -704,7 +704,7 @@
                call set(old_h_DG,h_DG)
                FLExit('need to solve continuity equation')
                call solve_advection_dg_subcycle("DGLayerThickness", state, &
-                    "NonlinearVelocity")
+                    "NonlinearVelocity",continuity=.true.)
                call calculate_scalar_galerkin_projection(state, h_projected)
                call set(h, h_projected)
             else
