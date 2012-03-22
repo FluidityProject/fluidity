@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="MMS_A">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -135,6 +135,9 @@
             <real_value rank="0">1.0</real_value>
           </theta>
           <control_volumes>
+            <number_advection_iterations>
+              <integer_value rank="0">3</integer_value>
+            </number_advection_iterations>
             <pivot_theta>
               <real_value rank="0">1.0</real_value>
             </pivot_theta>

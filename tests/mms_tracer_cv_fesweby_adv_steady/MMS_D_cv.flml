@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">MMS_B_cv</string_value>
+    <string_value lines="1">MMS_D_cv</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">fluids</string_value>
@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="MMS_B">
+      <from_file file_name="MMS_D">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
@@ -60,11 +60,11 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">0.010037253558425281</real_value>
-      <comment>0.0050186267792126406 gives a cv cfl number of 0.5</comment>
+      <real_value rank="0">0.0041263986301734437</real_value>
+      <comment>0.0020631993150867218 gives a cv cfl number of 0.5</comment>
     </timestep>
     <finish_time>
-      <real_value rank="0">15.0</real_value>
+      <real_value rank="0">20.0</real_value>
     </finish_time>
     <steady_state>
       <tolerance>
@@ -77,7 +77,6 @@
       </steady_state_file>
     </steady_state>
   </timestepping>
-  <physical_parameters/>
   <material_phase name="Burgers">
     <vector_field name="Velocity" rank="1">
       <prescribed>

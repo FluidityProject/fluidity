@@ -12,7 +12,7 @@
     </dimension>
     <mesh name="CoordinateMesh">
       <from_file file_name="MMS_A">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <include_in_stat/>
         </stat>
@@ -133,32 +133,19 @@
         </spatial_discretisation>
         <temporal_discretisation>
           <theta>
-            <real_value rank="0">1.0</real_value>
+            <real_value rank="0">0.0</real_value>
           </theta>
           <control_volumes>
+            <maximum_courant_number_per_subcycle>
+              <real_value rank="0">0.25</real_value>
+              <courant_number name="ControlVolumeCFLNumber"/>
+            </maximum_courant_number_per_subcycle>
             <pivot_theta>
-              <real_value rank="0">1.0</real_value>
+              <real_value rank="0">0.0</real_value>
             </pivot_theta>
           </control_volumes>
         </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="sor"/>
-          <relative_error>
-            <real_value rank="0">1.0e-10</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">1000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
+        <explicit/>
         <initial_condition name="WholeMesh">
           <constant>
             <real_value rank="0">0.0</real_value>
