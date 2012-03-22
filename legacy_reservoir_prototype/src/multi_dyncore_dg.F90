@@ -354,7 +354,7 @@ contains
     ALLOCATE( WIC_T2_BC( STOTEL * CV_SNLOC * NPHASE * IGOT_T2  ))
     ALLOCATE( THETA_GDIFF( CV_NONODS * NPHASE * IGOT_T2 ))
 
-    !    print *,'In VOLFRA_ASSEM_SOLVE'
+    !    ewrite(3,*) 'In VOLFRA_ASSEM_SOLVE'
 
     ALLOCATE( ACV( NCOLACV ))
     ALLOCATE( CV_RHS( CV_NONODS * NPHASE ))
@@ -643,7 +643,8 @@ contains
 
        CALL ULONG_2_UVW( U, V, W, UP, U_NONODS, NDIM, NPHASE )
 
-       P( 1 : CV_NONODS ) = UP( U_NONODS * NDIM * NPHASE + 1 : U_NONODS * NDIM * NPHASE + CV_NONODS )
+       P( 1 : CV_NONODS ) = UP( U_NONODS * NDIM * NPHASE + 1 : &
+            U_NONODS * NDIM * NPHASE + CV_NONODS )
 
     ELSE ! solve using a projection method
 
@@ -652,10 +653,17 @@ contains
        ! Put pressure in rhs of force balance eqn:  CDP=C*P
        CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
+       ewrite(3,*) 'U_RHS:', U_RHS
+       ewrite(3,*) 'CDP:', CDP
+       ewrite(3,*) 'P:', P
+       ewrite(3,*) 'C:', C
+       stop 3922
 
        U_RHS_CDP = U_RHS + CDP
 
        CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
+       ewrite(3,*)  'JUST_BL_DIAG_MAT, INV_PIVIT_MAT: ', JUST_BL_DIAG_MAT, INV_PIVIT_MAT
+       ewrite(3,*) 'U_RHS_CDP:', U_RHS_CDP
 
        IF( JUST_BL_DIAG_MAT ) THEN
 
@@ -671,6 +679,8 @@ contains
 
        ENDIF
 
+        ewrite(3,*) 'UP_VEL:', UP_VEL
+
        CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
 
@@ -679,8 +689,10 @@ contains
        CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT)
 
-       print *, 'P_RHS', p_rhs
-       print *, 'CT_RHS', ct_rhs
+       ewrite(3,*)  'u::', u
+       ewrite(3,*)  'v::', v
+       ewrite(3,*)  'P_RHS', p_rhs
+       ewrite(3,*)  'CT_RHS', ct_rhs
 
        P_RHS = -P_RHS + CT_RHS
 
@@ -1934,7 +1946,7 @@ contains
              DO IPHA_IDIM = 1, NDIM * NPHASE
                 DO JPHA_JDIM = 1, NDIM * NPHASE
                    SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI( GI, IPHA_IDIM, JPHA_JDIM ) &
-                        !                                + CVfen( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
+                                !                                + CVfen( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
                         + CVN( MAT_ILOC, GI ) * U_ABSORB( MAT_NODI, IPHA_IDIM, JPHA_JDIM ) 
                    SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) = SIGMAGI_STAB( GI, IPHA_IDIM, JPHA_JDIM ) &
                                 !                        + CVfen( MAT_ILOC, GI ) * U_ABS_STAB( MAT_NODI, IPHA_IDIM, JPHA_JDIM )
@@ -2166,7 +2178,7 @@ contains
        !       CALL DG_DIFFUSION( ELE, U_NLOC, U_NONODS, TOTELE, LMMAT1, LMMAT, LNXNMAT1, LNNXMAT, LINVMMAT1, &
        !            LINVMNXNMAT1, AMAT )
 
-       !       print *,'DETWEI:',DETWEI
+       !       ewrite(3,*) 'DETWEI:',DETWEI
        !       stop 82
 
        ! Add in C matrix contribution: (DG velocities)
@@ -2183,19 +2195,24 @@ contains
              GRAD_SOU_GI_NMY = 0.0 
              GRAD_SOU_GI_NMZ = 0.0  
              Loop_GaussPoints1: DO GI = 1, CV_NGI
-                !        print *,'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
-                !        print *,'u_iLOC, GI, UFEN( U_ILOC, GI ):',u_iLOC, GI, UFEN( U_ILOC, GI )
+                !        ewrite(3,*) 'P_JLOC, GI, CVFENX( P_JLOC, GI ):',P_JLOC, GI, CVFENX( P_JLOC, GI )
+                !        ewrite(3,*) 'u_iLOC, GI, UFEN( U_ILOC, GI ):',u_iLOC, GI, UFEN( U_ILOC, GI )
                 NMX = NMX + UFEN( U_ILOC, GI ) * CVFENX( P_JLOC, GI ) * DETWEI( GI )
                 NMY = NMY + UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
                 NMZ = NMZ + UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
                 IF( IPLIKE_GRAD_SOU == 1 ) THEN 
                    GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
-                        + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * CVFENX( P_JLOC, GI ) * DETWEI( GI )
+                        + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
+                        CVFENX( P_JLOC, GI ) * DETWEI( GI )
                    GRAD_SOU_GI_NMY(:) = GRAD_SOU_GI_NMY(:)  &
-                        + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
+                        + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
+                        CVFENY( P_JLOC, GI ) * DETWEI( GI )
                    GRAD_SOU_GI_NMZ(:) = GRAD_SOU_GI_NMZ(:)  &
-                        + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
+                        + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
+                        CVFENZ( P_JLOC, GI ) * DETWEI( GI )
                 ENDIF
+                ewrite(3,*) 'ELE, GI, U_ILOC, P_JLOC, NMX, NMY, NMZ:', &
+                     ELE, GI, U_ILOC, P_JLOC, NMX, NMY, NMZ
              END DO Loop_GaussPoints1
 
              ! Put into matrix
@@ -2369,9 +2386,9 @@ contains
                 IF( XU_NLOC == 1 ) THEN ! For constant vel basis functions...
                    DO ILEV=1,CV_NLOC
                       U_ILOC_OTHER_SIDE( 1 +(ILEV-1)*U_SNLOC/CV_NLOC) &
-                                 = 1 + (ILEV-1)*U_NLOC/CV_NLOC
+                           = 1 + (ILEV-1)*U_NLOC/CV_NLOC
                       U_OTHER_LOC( 1 + (ILEV-1)*U_NLOC/CV_NLOC) &
-                                 = 1 + (ILEV-1)*U_NLOC/CV_NLOC
+                           = 1 + (ILEV-1)*U_NLOC/CV_NLOC
                    END DO
                 ELSE
                    DO U_SILOC = 1, U_SNLOC/CV_NLOC
@@ -2382,9 +2399,9 @@ contains
                          IF( U_INOD2 == U_INOD ) THEN 
                             DO ILEV=1,CV_NLOC
                                U_ILOC_OTHER_SIDE( U_SILOC +(ILEV-1)*U_SNLOC/CV_NLOC) &
-                                 = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                                    = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
                                U_OTHER_LOC( U_ILOC + (ILEV-1)*U_NLOC/CV_NLOC) &
-                                 = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
+                                    = U_ILOC2 + (ILEV-1)*U_NLOC/CV_NLOC
                             END DO
                          ENDIF
                       END DO
@@ -2397,17 +2414,17 @@ contains
                    U_ILOC_OTHER_SIDE( 1 ) = 1
                    U_OTHER_LOC( 1 )= 1
                 ELSE
-                  DO U_SILOC = 1, U_SNLOC
-                     U_ILOC = U_SLOC2LOC( U_SILOC )
-                     U_INOD = XU_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
-                     DO U_ILOC2 = 1, U_NLOC
-                        U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * U_NLOC + U_ILOC2 )
-                        IF( U_INOD2 == U_INOD ) THEN
-                           U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
-                           U_OTHER_LOC( U_ILOC )=U_ILOC2
-                        ENDIF
-                     END DO
-                  END DO
+                   DO U_SILOC = 1, U_SNLOC
+                      U_ILOC = U_SLOC2LOC( U_SILOC )
+                      U_INOD = XU_NDGLN(( ELE - 1 ) * U_NLOC + U_ILOC )
+                      DO U_ILOC2 = 1, U_NLOC
+                         U_INOD2 = XU_NDGLN(( ELE2 - 1 ) * U_NLOC + U_ILOC2 )
+                         IF( U_INOD2 == U_INOD ) THEN
+                            U_ILOC_OTHER_SIDE( U_SILOC ) = U_ILOC2
+                            U_OTHER_LOC( U_ILOC )=U_ILOC2
+                         ENDIF
+                      END DO
+                   END DO
                 ENDIF
              ENDIF
 
@@ -2479,7 +2496,7 @@ contains
              discontinuous_pres: IF(DISC_PRES) THEN 
                 DO P_SJLOC = 1, CV_SNLOC
                    P_JLOC = CV_SLOC2LOC( P_SJLOC )
-                   !     print *,'P_SJLOC,p_jloc=',P_SJLOC,p_jloc
+                   !     ewrite(3,*) 'P_SJLOC,p_jloc=',P_SJLOC,p_jloc
                    P_JNOD = P_NDGLN(( ELE - 1 ) * P_NLOC + P_JLOC )
                    P_JLOC2 = MAT_OTHER_LOC(P_JLOC)
                    P_JNOD2 = P_NDGLN(( ELE2 - 1 ) * P_NLOC + P_JLOC2 )

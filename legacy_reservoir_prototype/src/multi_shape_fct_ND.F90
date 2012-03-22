@@ -2252,7 +2252,7 @@
     subroutine suf_cv_tri_tet_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, scvfeweigh, &
          scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly,  &
          sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
-         cv_neiloc, cvfem_neiloc )
+         cv_neiloc, cvfem_neiloc, u_neiloc, ufem_neiloc )
       !        sn, snlx, snly, snlz, sufnlx, sufnly,  &
       !        sun, sunlx, sunly, sunlz, sufunlx, sufunly  )
       ! Compute shape functions N, UN etc for linear triangles. Shape functions 
@@ -2267,12 +2267,11 @@
            scvfenlz, scvfenslx, scvfensly
       real, dimension( u_nloc, scvngi ), intent( inout ) :: sufen, sufenlx, sufenly, sufenlz, &
            sufenslx, sufensly
-      integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc
-      integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cvfem_neiloc
+      integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc, cvfem_neiloc
+      integer, dimension( u_nloc, scvngi ), intent( inout ) :: u_neiloc, ufem_neiloc
       ! Local variables
       integer, parameter :: max_totele = 1000, max_x_nonods = 1000
       integer, dimension( : ), allocatable :: x_ndgln, fem_nod
-      integer, dimension( :,: ), allocatable :: cv_neiloc_dummy, cvfem_neiloc_dummy
       real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, scvfeweigh_dummy
       logical :: d1, dcyl, d3
       integer :: x_nonods, totele, ele, cv_iloc, quad_cv_ngi, quad_cv_nloc
@@ -2306,9 +2305,7 @@
       allocate( z( max_x_nonods ))
       allocate( x_ndgln( max_totele * quad_cv_nloc ) )
       allocate( fem_nod( max_x_nonods ) )
-      allocate( scvfeweigh_dummy (scvngi))
-      allocate( cv_neiloc_dummy( cv_nloc, scvngi ))
-      allocate( cvfem_neiloc_dummy( cv_nloc, scvngi ))
+      allocate( scvfeweigh_dummy( scvngi ) )
 
       ! Get the x_ndgln for the nodes of triangles, tetrahedra, quadrilaterals or hexahedra
       ! super-elements:
@@ -2373,7 +2370,7 @@
            cv_ele_type, ndim, totele, u_nloc, scvngi, x_nonods, &
            quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
            sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
-           scvfeweigh_dummy, cv_neiloc_dummy, cvfem_neiloc_dummy )
+           scvfeweigh_dummy, u_neiloc, ufem_neiloc )
       endif
 
       ewrite(3,*)'Shape Functions for velocity fields -- SUFEN'
@@ -2405,9 +2402,7 @@
       deallocate( z ) 
       deallocate( x_ndgln )
       deallocate( fem_nod )
-      deallocate( scvfeweigh_dummy)
-      deallocate( cv_neiloc_dummy)
-      deallocate( cvfem_neiloc_dummy )
+      deallocate( scvfeweigh_dummy )
 
       return
     end subroutine suf_cv_tri_tet_shape
@@ -2448,7 +2443,7 @@
            quad_snx, quad_sny, quad_sm, quad_smlx, quad_smly, &
            suf_quad_sn, suf_quad_snlx, suf_quad_snly, &
            gl_quad_sn, gl_quad_snlx, gl_quad_snly, gl_quad_snlz, &
-           sn_2, suf_nlx_2, suf_nly_2, snlx_2, snly_2, snlz_2, &
+           sn_2, snlx_2, snly_2, snlz_2, &
            suf_snlx_2, suf_snly_2, suf_snlx, suf_snly, rdummy2
       logical :: d1, dcyl, d3, d2, lowqua, found, found_fem_nod, &
            zer_l1, zer_l2, zer_l3, zer_l4, tri_tet
@@ -2544,9 +2539,6 @@
       allocate( xsl( quad_cv_snloc ) ) 
       allocate( ysl( quad_cv_snloc ) ) 
       allocate( zsl( quad_cv_snloc ) ) 
-
-      allocate( suf_snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
-      allocate( suf_snly_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
 
       allocate( l1( stotel * quad_cv_sngi * totele ) )
       allocate( l2( stotel * quad_cv_sngi * totele ) )
@@ -2774,8 +2766,8 @@
 
             end do Loop_QUAD_CV_SGI
 
-            ewrite(3,*)'ele, totele, quad_cv_sgi, quad_cv_sngi:', &
-                 ele, totele, quad_cv_sgi, quad_cv_sngi
+            ewrite(3,*)'ele, totele, quad_cv_sngi:', &
+                 ele, totele, quad_cv_sngi
 
             ! Determine the quadrature points and weights
             Loop_NGI: do quad_cv_sgi = 1, quad_cv_sngi 
@@ -2815,7 +2807,7 @@
       ! quadrature pts quad_L1, quad_L2, quad_L3, quad_L4, etc
       tri_tet = .true.
       call shatri_hex( gl_quad_l1, gl_quad_l2, gl_quad_l3, gl_quad_l4, rdummy, d3, &
-           cv_nloc, quad_cv_sngi, &
+           cv_nloc, stotel * quad_cv_sngi * totele, &
            gl_quad_sn, gl_quad_snlx, gl_quad_snly, gl_quad_snlz, &
            tri_tet )
       ewrite(3,*)'gl_quad_l1:', ( gl_quad_l1( cv_sgi ), cv_sgi = 1, stotel * quad_cv_sngi * totele )
@@ -2825,9 +2817,12 @@
       ewrite(3,*)' '
 
       do xnod = 1, cv_nloc
-         ewrite(3,*)'gl_quad_sn:', xnod, ( gl_quad_sn( xnod, ele ), ele = 1, quad_cv_sngi )
-         ewrite(3,*)'gl_quad_snlx:', xnod, ( gl_quad_snlx( xnod, ele ), ele = 1, quad_cv_sngi )
-         ewrite(3,*)'gl_quad_snly:', xnod, ( gl_quad_snly( xnod, ele ), ele = 1, quad_cv_sngi )
+         ewrite(3,*)'gl_quad_sn:', xnod, ( gl_quad_sn( xnod, ele ), &
+              ele = 1, stotel * quad_cv_sngi * totele )
+         ewrite(3,*)'gl_quad_snlx:', xnod, ( gl_quad_snlx( xnod, ele ), &
+              ele = stotel * 1, quad_cv_sngi * totele )
+         ewrite(3,*)'gl_quad_snly:', xnod, ( gl_quad_snly( xnod, ele ), &
+              ele = stotel * 1, quad_cv_sngi * totele )
       end do
       ! 
       ! Find shared quadrature points to see what is on the other side 
@@ -2858,12 +2853,12 @@
          endif
       end do
 
-      allocate( sn_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
-      allocate( suf_nlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
-      allocate( suf_nly_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
-      allocate( snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
-      allocate( snly_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
-      allocate( snlz_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
+      allocate( sn_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; sn_2 = 0.
+      allocate( suf_snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snlx_2 = 0.
+      allocate( suf_snly_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; suf_snly_2 = 0.
+      allocate( snlx_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; snlx_2 = 0.
+      allocate( snly_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; snly_2 = 0.
+      allocate( snlz_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; snlz_2 = 0.
       allocate( scvweigh_2( stotel * quad_cv_sngi * totele ) )
       allocate( cv_neiloc_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
       allocate( cv_neiloc_3( cv_nloc, stotel * quad_cv_sngi * totele ) )
@@ -2906,14 +2901,17 @@
       ! This is determined by looking to see if any of the face nodes 
       ! have a local fem node. 
 
+      ewrite(3,*) 'suf_quad_snlx:', suf_quad_snlx
+      ewrite(3,*) 'suf_quad_snly:', suf_quad_snly
+
       cv_sgk = 0 ; cv_neiloc_2 = 0
       do cv_sgi = 1, stotel * quad_cv_sngi * totele
          if( .not. remove_ig_pt( cv_sgi ) ) then
             cv_sgk = cv_sgk + 1
             ! this is also gl_quad_sn( :, cv_sgi ):
             sn_2( :, cv_sgk ) = suf_quad_sn( :, cv_sgi ) 
-            suf_nlx_2( :, cv_sgk ) = suf_quad_snlx( :, cv_sgi )
-            suf_nly_2( :, cv_sgk ) = suf_quad_snly( :, cv_sgi )
+            suf_snlx_2( :, cv_sgk ) = suf_quad_snlx( :, cv_sgi )
+            suf_snly_2( :, cv_sgk ) = suf_quad_snly( :, cv_sgi )
             snlx_2( :, cv_sgk ) = gl_quad_snlx( :, cv_sgi )
             snly_2( :, cv_sgk ) = gl_quad_snly( :, cv_sgi )
             snlz_2( :, cv_sgk ) = gl_quad_snlz( :, cv_sgi )
@@ -2925,6 +2923,8 @@
             if( d3 ) l4_2( cv_sgk ) = gl_quad_l4( cv_sgi )
          end if
       end do
+
+      ewrite(3,*) 'suf_snlx_2:', suf_snlx_2
 
       cv_sngi_2 = cv_sgk
 
@@ -2954,9 +2954,13 @@
             l2( cv_sgk ) = l2_2( cv_sgi )
             l3( cv_sgk ) = l3_2( cv_sgi )
             if( d3 ) l4( cv_sgk ) = l4_2( cv_sgi )
-            cv_neiloc( :, cv_sgk ) = cv_neiloc_2( :, cv_sgi )          
+            cv_neiloc( :, cv_sgk ) = cv_neiloc_2( :, cv_sgi )   
+            ewrite(3,*) 'cv_sgk, cv_sgi :' ,cv_sgk, cv_sgi 
+            ewrite(3,*) 'suf_snlx_2( :, cv_sgi ):', suf_snlx_2( :, cv_sgi )      
+            ewrite(3,*) 'sufnlx( :, cv_sgk ):', sufnlx( :, cv_sgk )       
          endif
       end do Loop_CV_SGI
+        ewrite(3,*) 'sufnlx( : , 1 : scvngi ):', sufnlx( :, 1 : scvngi )
 
       if( scvngi /= cv_sgk ) then
          ewrite(3,*) 'scvngi, cv_sgk:', scvngi, cv_sgk
@@ -2967,6 +2971,9 @@
       ewrite(3,*)'l2:', l2
       ewrite(3,*)'l3:', l3
       ewrite(3,*)'sn:', sn
+      ewrite(3,*)'snlx:', snlx
+      ewrite(3,*)'snly:', snly
+      ewrite(3,*)'snlz:', snlz
 
       ! Remapping over the common quadrature points across CV
       do cv_iloc = 1, cv_nloc
@@ -3089,8 +3096,6 @@
       deallocate( suf_snlx_2 )
       deallocate( suf_snly_2 )
       deallocate( sn_2 )
-      deallocate( suf_nlx_2 )
-      deallocate( suf_nly_2 )
       deallocate( snlx_2 )
       deallocate( snly_2 )
       deallocate( snlz_2 )

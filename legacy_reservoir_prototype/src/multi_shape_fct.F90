@@ -1610,7 +1610,7 @@
       real, dimension( cv_nloc ), intent( inout ) :: sele_overlap_scale
       ! Local variables
       logical, dimension( :, : ), allocatable :: u_on_face2, ufem_on_face2
-      integer, dimension( :, : ), allocatable :: u_sloclist2
+      integer, dimension( :, : ), allocatable :: u_sloclist2, u_neiloc, u_neiloc2
       real, dimension( :, : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2, & 
            sufen2, sufenslx2, sufensly2, sufenlx2, sufenly2, sufenlz2, &
            sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2 
@@ -1720,6 +1720,8 @@
       Conditional_OverlappingMethod2: if( is_overlapping ) then
          u_ele_type2 = 1
          u_nloc2 = u_nloc / cv_nloc
+         allocate( u_neiloc( u_nloc, scvngi ) )
+         allocate( u_neiloc2( u_nloc2, scvngi ) )
          allocate( u_on_face2( u_nloc2, scvngi ) )
          allocate( ufem_on_face2( u_nloc2, scvngi ) )
          allocate( sufen2( u_nloc2, scvngi ) )
@@ -1735,6 +1737,7 @@
 
 
          call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
+              u_neiloc2, u_on_face2, ufem_on_face2, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc2, sufen2, sufenslx2, sufensly2, &
@@ -1782,10 +1785,17 @@
             sufenlz( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
                  1 : scvngi ) = &
                  sufenlz2( 1 : u_nloc2, 1 : scvngi )
+            u_neiloc( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
+                 1 : scvngi ) = u_neiloc2( 1 : u_nloc2, 1 : scvngi )
+            u_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
+                 1 : scvngi ) = u_on_face2( 1 : u_nloc2, 1 : scvngi )
+            ufem_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
+                 1 : scvngi ) = ufem_on_face2( 1 : u_nloc2, 1 : scvngi )
          end do Loop_ILEV2
 
       else
          call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
+              u_neiloc, u_on_face, ufem_on_face, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc, sufen, sufenslx, sufensly, &
@@ -1820,7 +1830,7 @@
          allocate( sbufenlz2( u_snloc2, sbcvngi ) )
 
          call det_suf_ele_shape( scvngi, nface, &
-              cv_neiloc, &
+              cvfem_on_face, &
               cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc2, sufen2, sufenslx2, sufensly2, &
@@ -1831,6 +1841,10 @@
               sbufenlx2, sbufenly2, sbufenlz2, &
               cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
               ndim, cv_ele_type )
+            ewrite(3,*) 'sbufen2:', sbufen2
+            ewrite(3,*) 'sbcvfen:', sbcvfen
+            ewrite(3,*) 'sufen2:', sufen2
+            ewrite(3,*) 'scvfen:', scvfen
 
          Loop_ILEV3: do ilev = 1, cv_nloc
 
@@ -1860,7 +1874,7 @@
 
       else
          call det_suf_ele_shape( scvngi, nface, &
-              cv_neiloc, &
+              cvfem_on_face, &
               cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc, sufen2, sufenslx, sufensly, &
@@ -1891,6 +1905,8 @@
          deallocate( ufenlx2 )
          deallocate( ufenly2 )
          deallocate( ufenlz2 )
+         deallocate( u_neiloc )
+         deallocate( u_neiloc2 )
          deallocate( u_on_face2 )
          deallocate( ufem_on_face2 )
          deallocate( sufen2 )
@@ -1913,7 +1929,7 @@
 
 
     SUBROUTINE DET_SUF_ELE_SHAPE( SCVNGI, NFACE, &  
-         CV_NEILOC, &
+         CVFEM_ON_FACE, &
          CV_NLOC, SCVFEN, SCVFENSLX, SCVFENSLY, SCVFEWEIGH, &
          SCVFENLX, SCVFENLY, SCVFENLZ,  &
          U_NLOC,  SUFEN, SUFENSLX, SUFENSLY,  &
@@ -1936,7 +1952,7 @@
 
       INTEGER, intent( in ) :: SCVNGI, CV_NLOC, U_NLOC, NFACE, &
            SBCVNGI, CV_SNLOC, U_SNLOC
-      INTEGER, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: CV_NEILOC
+      LOGICAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: CVFEM_ON_FACE
       ! CV_ON_FACE(CV_KLOC,GI)=.TRUE. if CV_KLOC is on the face that GI is centred on.
       REAL, DIMENSION( CV_NLOC, SCVNGI ), intent( in ) :: SCVFEN, SCVFENSLX, SCVFENSLY, &       
            SCVFENLX, SCVFENLY, SCVFENLZ
@@ -1955,12 +1971,12 @@
       INTEGER :: CV_KLOC, CV_SKLOC, U_KLOC, U_SKLOC, CV_BSNGI
 
       ! Obtain SBCVFEN from SCVFEN: 
-      CALL SCVFEN_2_SBCVFEN( CV_NLOC, CV_SNLOC, SCVNGI, SBCVNGI, CV_NEILOC, &
+      CALL SCVFEN_2_SBCVFEN( CV_NLOC, CV_SNLOC, SCVNGI, SBCVNGI, CVFEM_ON_FACE, &
            SBCVFEN, SBCVFENSLX, SBCVFENSLY, SBCVFENLX, SBCVFENLY, SBCVFENLZ, SBCVFEWEIGH, &
            SCVFEN, SCVFENSLX, SCVFENSLY, SCVFENLX, SCVFENLY, SCVFENLZ, SCVFEWEIGH )
 
       ! Obtain SBUFEN from SUFEN: 
-      CALL SCVFEN_2_SBCVFEN( U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CV_NEILOC, &
+      CALL SCVFEN_2_SBCVFEN( U_NLOC, U_SNLOC, SCVNGI, SBCVNGI, CVFEM_ON_FACE, &
            SBUFEN, SBUFENSLX, SBUFENSLY, SBUFENLX, SBUFENLY, SBUFENLZ, SBCVFEWEIGH, &
            SUFEN, SUFENSLX, SUFENSLY, SUFENLX, SUFENLY, SUFENLZ, SCVFEWEIGH )
 
@@ -1982,13 +1998,13 @@
     END SUBROUTINE DET_SUF_ELE_SHAPE
 
 
-    subroutine scvfen_2_sbcvfen( cv_nloc, cv_snloc, scvngi, sbcvngi, cv_neiloc, &
+    subroutine scvfen_2_sbcvfen( cv_nloc, cv_snloc, scvngi, sbcvngi, cvfem_on_face, &
          sbcvfen, sbcvfenslx, sbcvfensly, sbcvfenlx, sbcvfenly, sbcvfenlz, sbcvfeweigh, &
          scvfen, scvfenslx, scvfensly, scvfenlx, scvfenly, scvfenlz, scvfeweigh )
       ! Compute SBCVFEN from SCVFEN
       implicit none
       integer, intent( in ) :: cv_nloc, cv_snloc, scvngi, sbcvngi
-      integer, dimension( cv_nloc, scvngi ), intent( in ) :: cv_neiloc
+      logical, dimension( cv_nloc, scvngi ), intent( in ) :: cvfem_on_face
       real, dimension( cv_snloc, sbcvngi ), intent( inout ) :: sbcvfen, sbcvfenslx, &
            sbcvfensly, sbcvfenlx, sbcvfenly, sbcvfenlz
       real, dimension( sbcvngi ), intent( inout ) :: sbcvfeweigh
@@ -2010,6 +2026,7 @@
          Loop_NLOC: do cv_iloc = 1, cv_snloc
             r_prodt = r_prodt * scvfen( cv_iloc, cv_sgi )
          end do Loop_NLOC
+         ewrite(3,*) 'cv_sgi, r_prodt:', cv_sgi, r_prodt
          if( r_prodt > 1.e-5 ) candidate_gi( cv_sgi ) = .true.
       end do Loop_SGI1
 
@@ -2018,9 +2035,13 @@
          cv_bsgi = 0
          Loop_SGI2: do cv_sgi = 1, scvngi
             Conditional_1: if( candidate_gi( cv_sgi ) ) then
-               Conditional_2: if( cv_neiloc( cv_iloc, cv_sgi ) == -1 ) then
+               Conditional_2: if( cvfem_on_face( cv_iloc, cv_sgi ) ) then
                   cv_bsgi = cv_bsgi + 1
                   sbcvfen( cv_siloc, cv_bsgi ) = scvfen( cv_iloc, cv_sgi )
+                  ewrite(3,*) 'cv_siloc, cv_bsgi,cv_iloc, cv_sgi:', &
+                       cv_siloc, cv_bsgi,cv_iloc, cv_sgi
+                  ewrite(3,*) 'sbcvfen( cv_siloc, cv_bsgi ),scvfen( cv_iloc, cv_sgi ):', &
+                       sbcvfen( cv_siloc, cv_bsgi ),scvfen( cv_iloc, cv_sgi )
                   sbcvfenslx( cv_siloc, cv_bsgi ) = scvfenslx( cv_iloc, cv_sgi )
                   sbcvfensly( cv_siloc, cv_bsgi ) = scvfensly( cv_iloc, cv_sgi )
                   sbcvfenlx( cv_siloc, cv_bsgi ) = scvfenlx( cv_iloc, cv_sgi )
@@ -2210,6 +2231,7 @@
 
 
     subroutine shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
+         u_neiloc, u_on_face, ufem_on_face, &
          cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
          scvfenlx, scvfenly, scvfenlz, &
          u_nloc, sufen, sufenslx, sufensly, &
@@ -2227,7 +2249,9 @@
       !-
       integer, intent( in ) :: scvngi, cv_nloc
       integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc
+      integer, dimension( u_nloc, scvngi ), intent( inout ) :: u_neiloc
       logical, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_on_face, cvfem_on_face
+      logical, dimension( u_nloc, scvngi ), intent( inout ) :: u_on_face, ufem_on_face
       integer, intent( in ) :: cv_ele_type
       real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfen, scvfenslx, scvfensly
       real, dimension( scvngi ), intent( inout ) :: scvfeweigh
@@ -2239,7 +2263,7 @@
       ! Local variables
       integer :: iloc, gi
       logical :: tri_tet
-      integer, dimension( :, : ), allocatable :: cvfem_neiloc
+      integer, dimension( :, : ), allocatable :: cvfem_neiloc, ufem_neiloc
       real, dimension( :, : ), allocatable :: m, mu, cvn_dummy
       real, dimension( : ), allocatable :: cvweigh_dummy
 
@@ -2251,6 +2275,7 @@
       allocate( cvn_dummy( cv_nloc, scvngi ) )
       allocate( cvweigh_dummy( scvngi ) )
       allocate( cvfem_neiloc( cv_nloc, scvngi ) )
+      allocate( ufem_neiloc( u_nloc, scvngi ) )
 
       tri_tet=.false.
 
@@ -2266,7 +2291,7 @@
          call suf_cv_tri_tet_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, scvfeweigh, &
               scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly,  &
               sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
-              cv_neiloc, cvfem_neiloc  )
+              cv_neiloc, cvfem_neiloc, u_neiloc, ufem_neiloc )
 
       case( 5 ) ! Bi-linear Quadrilateral
          call fvquad( scvngi, cv_nloc, scvngi, &
@@ -2333,8 +2358,8 @@
       else
          do iloc = 1, cv_nloc
             do gi = 1, scvngi 
-              ! ewrite(3,*)'cv_neiloc, cvfem_on_face:', iloc, gi, &
-              !      cv_neiloc( iloc, gi ), cvfem_neiloc( iloc, gi ) 
+               ! ewrite(3,*)'cv_neiloc, cvfem_on_face:', iloc, gi, &
+               !      cv_neiloc( iloc, gi ), cvfem_neiloc( iloc, gi ) 
                if ( cv_neiloc( iloc, gi ) == -1 ) &
                     cv_on_face( iloc, gi ) = .true.
                if ( cvfem_neiloc( iloc, gi ) == -1 ) &
@@ -2343,6 +2368,13 @@
          end do
 
       end if
+
+      do iloc = 1, u_nloc
+         do gi = 1, scvngi 
+            u_on_face( iloc, gi ) = ( u_neiloc( iloc, gi ) == -1 )
+            ufem_on_face( iloc, gi ) = ( ufem_neiloc( iloc, gi ) == -1 )
+         end do
+      end do
 
       do iloc = 1, cv_nloc
          ewrite(3,*)'iloc, cv_on_face:', iloc, ( cv_on_face( iloc, gi ), gi = 1, scvngi )
