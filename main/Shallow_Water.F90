@@ -709,7 +709,7 @@
                call set(h, h_projected)
             else
                call solve_advection_dg_subcycle("LayerThickness", state, &
-                    "NonlinearVelocity")               
+                    "NonlinearVelocity",continuity=.true.)               
             end if
          end if
 
