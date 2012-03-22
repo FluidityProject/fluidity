@@ -76,7 +76,8 @@ module advection_local_DG
   logical :: include_advection
   contains
 
-  subroutine solve_advection_dg_subcycle(field_name, state, velocity_name)
+    subroutine solve_advection_dg_subcycle(field_name, state, velocity_name,&
+         &continuity)
     !!< Construct and solve the advection equation for the given
     !!< field using discontinuous elements.
     
@@ -86,6 +87,8 @@ module advection_local_DG
     type(state_type), intent(inout) :: state
     !! Optional velocity name
     character(len = *), intent(in) :: velocity_name
+    !! Solve continuity equation as opposed to advection equation
+    logical, intent(in), optional :: continuity
 
     !! Tracer to be solved for.
     type(scalar_field), pointer :: T, T_old, s_field
@@ -150,7 +153,7 @@ module advection_local_DG
     call zero(rhs)
 
     call construct_advection_dg(matrix, rhs, field_name, state, &
-         mass, velocity_name=velocity_name)
+         mass, velocity_name=velocity_name,continuity=continuity)
 
     call get_dg_inverse_mass_matrix(inv_mass, mass)
     
@@ -182,7 +185,19 @@ module advection_local_DG
     if (have_option(trim(T%option_path)//"/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter")) then
        limit_slope=.true.
-       limiter=LIMITER_VB
+
+       call get_option(trim(T%option_path)//"/prognostic/spatial_discretisation/discontinuous_galerkin/slope_limiter/name",limiter_name)
+
+       select case(trim(limiter_name))
+       case("Vertex_Based")
+          limiter=LIMITER_VB
+       case("Edge_Based")
+          limiter=LIMITER_EB
+       case("Barth_Jespersen")
+          limiter=LIMITER_BJ
+       case default
+          FLAbort('No such limiter')
+       end select
        
        ! Note unsafe for mixed element meshes
        if (element_degree(T,1)==0) then
@@ -229,7 +244,7 @@ module advection_local_DG
   end subroutine solve_advection_dg_subcycle
 
   subroutine construct_advection_dg(big_m, rhs, field_name,&
-       & state, mass, velocity_name) 
+       & state, mass, velocity_name, continuity) 
     !!< Construct the advection equation for discontinuous elements in
     !!< acceleration form.
     !!< 
@@ -250,6 +265,8 @@ module advection_local_DG
     type(csr_matrix), intent(inout), optional :: mass
     !! Optional velocity name
     character(len = *), intent(in), optional :: velocity_name
+    !! solve the continuity equation
+    logical, intent(in), optional :: continuity
 
     !! Position, and velocity fields.
     type(vector_field) :: X, U, U_nl
@@ -305,7 +322,7 @@ module advection_local_DG
     element_loop: do ele=1,element_count(T)
        
        call construct_adv_element_dg(ele, big_m, rhs,&
-            & X, T, U_nl, mass)
+            & X, T, U_nl, mass, continuity=continuity)
        
     end do element_loop
     
@@ -316,7 +333,7 @@ module advection_local_DG
   end subroutine construct_advection_dg
 
   subroutine construct_adv_element_dg(ele, big_m, rhs,&
-       & X, T, U_nl, mass)
+       & X, T, U_nl, mass, continuity)
     !!< Construct the advection_diffusion equation for discontinuous elements in
     !!< acceleration form.
     implicit none
@@ -333,6 +350,9 @@ module advection_local_DG
     type(vector_field), intent(in) :: X, U_nl
 
     type(scalar_field), intent(in) :: T
+
+    !! Solve the continuity equation rather than advection
+    logical, intent(in), optional :: continuity
 
     ! Bilinear forms.
     real, dimension(ele_loc(T,ele), ele_loc(T,ele)) :: &
@@ -408,10 +428,15 @@ module advection_local_DG
 
       ! Element advection matrix
       !    /                           /
-      !  - | (grad T dot U_nl) T dV -  | T ( div U_nl ) T dV
+      !  - | (grad phi dot U_nl) T dV -| phi ( div U_nl ) T dV
       !    /                           /
-      Advection_mat = -dshape_dot_vector_shape(T_shape%dn, U_nl_q, T_shape, T_shape%quadrature%weight)  &
-           -shape_shape(T_shape, T_shape, U_nl_div_q * T_shape%quadrature%weight)
+      Advection_mat = -dshape_dot_vector_shape(T_shape%dn, U_nl_q, T_shape,&
+           & T_shape%quadrature%weight)
+      if(.not.present_and_true(continuity)) then
+         Advection_mat = Advection_mat&
+              &-shape_shape(T_shape, T_shape, U_nl_div_q * T_shape&
+              &%quadrature%weight)
+      end if
    else
       Advection_mat=0.0
    end if
@@ -727,7 +752,6 @@ module advection_local_DG
          "/prognostic/spatial_discretisation/&
          &discontinuous_galerkin/slope_limiter")) then
        limit_slope=.true.
-       limiter=VECTOR_LIMITER_VB
        
        ! Note unsafe for mixed element meshes
        if (element_degree(U,1)==0) then
@@ -764,7 +788,14 @@ module advection_local_DG
           call mult_t(U_cartesian_tmp, L, U)
           call mult(U_cartesian, inv_mass_cartesian, U_cartesian_tmp)
 
-          call limit_slope_dg(U_cartesian, state, limiter)
+          !Really crap limiter
+          !Just limit each cartesian component
+          do dim1 = 1, U_cartesian%dim
+             u_component = extract_scalar_field(U_cartesian, dim1)
+             call limit_vb(state, U_component)
+          end do
+          !limiter=VECTOR_LIMITER_VB
+          !call limit_slope_dg(U_cartesian, state, limiter)
 
           call mult(U_tmp, L, U_cartesian)
           call mult(U, inv_mass_local, U_tmp)

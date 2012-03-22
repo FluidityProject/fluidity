@@ -692,6 +692,7 @@
 
          !velocity advection step
          if(.not.exclude_velocity_advection) then
+            !NEED TO PROJECT TO P1DG HERE
             call solve_vector_advection_dg_subcycle("LocalVelocity", state,&
                  & "NonlinearVelocity")
             ewrite_minmax(u)

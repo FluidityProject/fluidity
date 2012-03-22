@@ -1011,10 +1011,24 @@ conservative_advection below).</a:documentation>
             </optional>
           </element>
           <optional>
-            <element name="slope_limiter">
+            <choice>
               <a:documentation>use a slope limiter for advection</a:documentation>
-              <empty/>
-            </element>
+              <element name="slope_limiter">
+                <attribute name="name">
+                  <value>Vertex_Based</value>
+                </attribute>
+              </element>
+              <element name="slope_limiter">
+                <attribute name="name">
+                  <value>Edge_Based</value>
+                </attribute>
+              </element>
+              <element name="slope_limiter">
+                <attribute name="name">
+                  <value>Barth_Jespersen</value>
+                </attribute>
+              </element>
+            </choice>
           </optional>
           <ref name="comment"/>
         </element>

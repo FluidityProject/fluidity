@@ -826,9 +826,17 @@ prognostic_layerthickness_field =
                      }?
                   },
                   ## use a slope limiter for advection
-                  element slope_limiter {
-                     empty
-                  }?,
+                  (
+                     element slope_limiter {
+                        attribute name {"Vertex_Based"}
+                     }|
+                     element slope_limiter {
+                        attribute name {"Edge_Based"}
+                     }|
+                     element slope_limiter {
+                        attribute name {"Barth_Jespersen"}
+                     }
+                  )?,
                   comment
                }
             ),
