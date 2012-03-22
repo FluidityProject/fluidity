@@ -1506,10 +1506,10 @@ contains
     type(vector_field), intent(inout) :: V
     !
     ! This is the limited version of the field, we have to make a copy
-    type(vector_field) :: V_limit, V_mean
+    type(vector_field) :: V_limit
     type(mesh_type), pointer :: vertex_mesh
     ! counters
-    integer :: ele, node, ele2, neigh,stat
+    integer :: ele, node, ele2, neigh,stat, hull_count, i
     ! local numbers
     integer, dimension(:), pointer :: V_ele, neighs
     ! local field values
@@ -1547,6 +1547,7 @@ contains
     if(stat /= 0) then
        call get_element_normals(ElementNormals,state)
     end if
+
     ! returns linear version of V%mesh (if is periodic, so is vertex_mesh)
     call find_linear_parent_mesh(state, V%mesh, vertex_mesh)
     NEList => extract_nelist(vertex_mesh)
@@ -1559,6 +1560,7 @@ contains
     allocate(Hulls(node_count(V)))
     allocate(HullFlags(node_count(V)))
     !loop over all elements
+    hull_count = 0
     convex_ele: do ele = 1, ele_count(V)
        E_nodes => ele_nodes(vertex_mesh,ele)
        !Get vertex normals
@@ -1584,12 +1586,14 @@ contains
                   &V_normal_val(:,node),ENbar,&
                   &V_tangent1_val(:,node),V_tangent2_val(:,node),Vbar)
           end do convex_ele2
-          call convex_hull(Vectors,Hulls(E_nodes(node))%ptr)
+          hull_count = hull_count+1
+          call convex_hull(Vectors,Hulls(hull_count)%ptr)          
           deallocate(Vectors)
        end do convex_node
     end do convex_ele
 
     !Compute limiting alpha
+    hull_count = 0
     limiting_ele: do ele = 1, ele_count(V)
        V_ele => ele_nodes(V,ele)
        E_nodes => ele_nodes(vertex_mesh,ele)
@@ -1600,11 +1604,11 @@ contains
        v_tangent1_val = ele_val(VertexTangent1,ele)       
        v_tangent2_val = ele_val(VertexTangent2,ele)
 
-       call set(V_limit,V_ele,V_val)
        do node = 1, ele_loc(V,ele)
           V_val_slope(:,node) = V_val(:,node) - Vbar       
           V_val(:,node) = Vbar
-       end do    
+       end do
+       call set(V_limit,V_ele,V_val)
        alpha = 1.0
        limiting_node: do node = 1, ele_loc(V,ele)
           Vbar_2d = rotate_ele2vertex(&
@@ -1614,17 +1618,17 @@ contains
                &V_normal_val(:,node),ENbar,&
                &V_tangent1_val(:,node),V_tangent2_val(:,node),&
                &V_val_slope(:,node))
+          hull_count = hull_count + 1
           alpha = min(alpha,limit_hull(Vbar_2d,V_val_slope2d,&
-               &hulls(E_nodes(node))%ptr))
+               &hulls(hull_count)%ptr))
        end do limiting_node
        call addto(V_limit, V_ele, alpha*V_val_slope)
     end do limiting_ele
-
+    
     !Deallocate copy of field
     call set(V, V_limit)
     call halo_update(V)
     call deallocate(V_limit)
-    call deallocate(V_mean)
     do node = 1, size(Hulls)
        deallocate(Hulls(node)%ptr)
     end do
@@ -1646,6 +1650,7 @@ contains
         do ele = 1, ele_count(ElementNormals)
            call get_element_normals_ele(ElementNormals,down,X,ele)
         end do
+        call insert(state,ElementNormals,ElementNormals%name)
       end subroutine get_element_normals
 
       subroutine get_element_normals_ele(ElementNormals,down,X,ele)
@@ -1662,7 +1667,6 @@ contains
         !Get element normal
         up_gi = -ele_val_at_quad(down,ele)
         call get_up_gi(X,ele,up_gi)
-        
         do nod = 1, size(EN_nodes)
            call set(ElementNormals,EN_nodes(nod),sum(up_gi,2)/size(up_gi,2))
         end do

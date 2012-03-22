@@ -92,7 +92,7 @@
             <integer_value shape="1" rank="1">4</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value type="python" lines="20">def val(X,t):
+            <string_value lines="20" type="python">def val(X,t):
 	result = list(X)
 	result[2]=result[2]-1.0
 	return result</string_value>
@@ -222,7 +222,7 @@
   y = X[1]
   z = X[2]
   
-  return [sin(2*pi*x)*sin(2*pi*z),0.,sin(2*pi*x)]</string_value>
+  return [sin(2*pi*x)*sin(2*pi*z),0.,0.]</string_value>
           </python>
         </initial_condition>
         <output/>
@@ -339,7 +339,7 @@
         <mesh name="CoordinateMesh"/>
         <value name="WholeMesh">
           <constant>
-            <real_value shape="3" dim1="dim" rank="1">0.0 1.0 0.0</real_value>
+            <real_value shape="3" dim1="dim" rank="1">0.0 -1.0 0.0</real_value>
           </constant>
         </value>
         <output/>
