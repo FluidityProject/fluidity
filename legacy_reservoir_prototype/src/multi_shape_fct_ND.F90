@@ -2461,6 +2461,9 @@
       d2 = ( ndim == 2 )
       d1 = .false.
       dcyl = .false. 
+
+      sn = 0.0 ; snlx = 0.0 ; snly = 0.0 ; snlz = 0.0 ; sufnlx = 0.0 ; sufnly = 0.0
+
       ! Compute some dummy variables
       ! npoly=2 for linear 2 node elements, =3 for quadratic 3 node elements in 1D. 
       call dummy_tri_tet( d1, d3, quad_cv_ngi, quad_cv_nloc, &
@@ -2944,11 +2947,11 @@
          if( .not. found ) then
             cv_sgk = cv_sgk + 1
             sn( :, cv_sgk ) = sn_2( :, cv_sgi )
-            sufnlx( :, cv_sgk ) = suf_snlx_2( :, cv_sgi )
-            sufnly( :, cv_sgk ) = suf_snly_2( :, cv_sgi )
+            if( ndim >= 2 ) sufnlx( :, cv_sgk ) = suf_snlx_2( :, cv_sgi )
+            if( ndim >= 3 ) sufnly( :, cv_sgk ) = suf_snly_2( :, cv_sgi )
             snlx( :, cv_sgk ) = snlx_2( :, cv_sgi )
-            snly( :, cv_sgk ) = snly_2( :, cv_sgi )
-            snlz( :, cv_sgk ) = snlz_2( :, cv_sgi )
+            if( ndim >= 2 ) snly( :, cv_sgk ) = snly_2( :, cv_sgi )
+            if( ndim >= 3 ) snlz( :, cv_sgk ) = snlz_2( :, cv_sgi )
             scvweigh( cv_sgk ) = scvweigh_2( cv_sgi )
             l1( cv_sgk ) = l1_2( cv_sgi )
             l2( cv_sgk ) = l2_2( cv_sgi )
