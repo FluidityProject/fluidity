@@ -16,16 +16,16 @@ module exodusii_fortran
 
   ! Open an ExodusII mesh file
   interface f_read_ex_open
-    function c_read_ex_open_long(path, mode, comp_ws, io_ws, version) result(exoid) bind(c,name="c_read_ex_open_long")
-       use, intrinsic :: iso_c_binding
-       implicit none
-       character(kind=c_char, len=1):: path
-       integer(kind=c_int) :: mode
-       integer(kind=c_int) :: comp_ws
-       integer(kind=c_int) :: io_ws
-       real(kind=c_float) :: version
-       integer(kind=c_int) :: exoid
-     end function c_read_ex_open_long
+!    function c_read_ex_open_long(path, mode, comp_ws, io_ws, version) result(exoid) bind(c,name="c_read_ex_open_long")
+!       use, intrinsic :: iso_c_binding
+!       implicit none
+!       character(kind=c_char, len=1):: path
+!       integer(kind=c_int) :: mode
+!       integer(kind=c_int) :: comp_ws
+!       integer(kind=c_int) :: io_ws
+!       real(kind=c_float) :: version
+!       integer(kind=c_int) :: exoid
+!     end function c_read_ex_open_long
      ! A nicer interface for opening an exodusII meshfile
     function c_read_ex_open(path, version) result(exoid) bind(c,name="c_read_ex_open")
        use, intrinsic :: iso_c_binding

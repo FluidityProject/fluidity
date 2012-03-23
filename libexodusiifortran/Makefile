@@ -13,16 +13,15 @@ CC = gcc
 default: modules libb
 
 libb:
-	$(AR) libexodusiifortran.a exodusiicwrapper.o exodusii_fortran.mod
+	$(AR) libexodusiifortran.a ExodusII_C_Interface.o exodusii_fortran.mod
 	$(RANLIB) libexodusiifortran.a
 
 
-
-modules: exodusii_fortran.o exodusiicwrapper.o
-exodusii_fortran.o: exodusii_fortran.F90
-	$(FC) -c exodusii_fortran.F90
-exodusiicwrapper.o: exodusiicwrapper.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c exodusiicwrapper.c
+modules: ExodusII_F_Interface.o ExodusII_C_Interface.o
+ExodusII_F_Interface.o: ExodusII_F_Interface.F90
+	$(FC) -c ExodusII_F_Interface.F90
+ExodusII_C_Interface.o: ExodusII_C_Interface.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c ExodusII_C_Interface.c
 
 clean:
 	rm -f *.mod *.o *.a
