@@ -1841,10 +1841,10 @@
               sbufenlx2, sbufenly2, sbufenlz2, &
               cv_sloclist, u_sloclist2, cv_snloc, u_snloc2, &
               ndim, cv_ele_type )
-            ewrite(3,*) 'sbufen2:', sbufen2
-            ewrite(3,*) 'sbcvfen:', sbcvfen
-            ewrite(3,*) 'sufen2:', sufen2
-            ewrite(3,*) 'scvfen:', scvfen
+         ewrite(3,*) 'sbufen2:', sbufen2
+         ewrite(3,*) 'sbcvfen:', sbcvfen
+         ewrite(3,*) 'sufen2:', sufen2
+         ewrite(3,*) 'scvfen:', scvfen
 
          Loop_ILEV3: do ilev = 1, cv_nloc
 
@@ -1924,6 +1924,20 @@
          deallocate( u_sloclist2 )
       end if
 
+
+      ! Set to zero anything that should be zero in case it was not pre-defined
+      if( ndim < 2 ) then
+         cvfenly = 0.0 ; cvfenly_short = 0.0 ; ufenly = 0.0 ; scvfenslx = 0.0 ; & 
+              scvfenly = 0.0 ; sufenslx = 0.0 ; sufenly = 0.0 ; sbcvfenslx = 0.0 ;  &
+              sbcvfenly = 0.0 ; sbufenslx = 0.0 ; sbufenly = 0.0 
+
+      elseif( ndim < 3 ) then
+         cvfenlz = 0.0 ; cvfenlz_short = 0.0 ; ufenlz = 0.0 ; scvfensly = 0.0 ; &
+              scvfenlz = 0.0 ; sufensly = 0.0 ; sufenlz = 0.0 ; sbcvfensly = 0.0 ; &
+              sbcvfenlz = 0.0 ; sbufensly = 0.0 ;sbufenlz = 0.0
+
+      end if
+
       return
     end subroutine cv_fem_shape_funs
 
@@ -1947,7 +1961,7 @@
       !     -------------------------------
       !     - date last modified : 21/02/2012
       !     -------------------------------
-
+ 
       IMPLICIT NONE
 
       INTEGER, intent( in ) :: SCVNGI, CV_NLOC, U_NLOC, NFACE, &

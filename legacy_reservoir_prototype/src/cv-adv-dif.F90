@@ -315,6 +315,8 @@ contains
     ewrite(3,*)'CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA', &
          CV_DISOPT, CV_DG_VEL_INT_OPT, DT, CV_THETA, CV_BETA
 
+    ndotq = 0. ; ndotqold = 0.
+
     call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
          cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
 
@@ -958,6 +960,7 @@ contains
                       IF(GETMAT) THEN
                          ! - Calculate the integration of the limited, high-order flux over a face  
                          ! Conservative discretisation. The matrix (PIVOT ON LOW ORDER SOLN)
+                         ewrite(3,*)'SELE, IPHASE, STOTEL:', SELE, IPHASE, STOTEL
                          IF( ( CV_NODI_IPHA /= CV_NODJ_IPHA ).AND.( CV_NODJ_IPHA /= 0 ) ) THEN
                             DO COUNT = FINACV( CV_NODI_IPHA ), FINACV( CV_NODI_IPHA + 1 ) - 1, 1
                                IF( COLACV( COUNT ) == CV_NODJ_IPHA )  JCOUNT_IPHA = COUNT
@@ -5553,8 +5556,9 @@ use shape_functions_NDim
     DO IFACE = 1, NFACE
        ELE2 = FACE_ELE( IFACE, ELE )
        SELE2 = MAX( 0, - ELE2 )
-       SELE = SELE2
+       !! SELE = SELE2
        ELE2 = MAX( 0, + ELE2 )
+       ewrite(3,*)'nface, iface, sele2, sele:', nface, iface, sele2, sele
        IF( SELE2 /= 0 ) THEN
           FOUND = .TRUE.
           DO CV_SKLOC = 1, CV_SNLOC 
@@ -5775,6 +5779,8 @@ use shape_functions_NDim
           ENDIF
        END DO
     ENDIF
+
+ewrite(3,*)'check ct:,', NCOLCT * NDIM * NPHASE, size(ct), ct(1:NCOLCT * NDIM * NPHASE)
 
     RETURN
   END SUBROUTINE PUT_IN_CT_RHS
