@@ -653,17 +653,17 @@ contains
        ! Put pressure in rhs of force balance eqn:  CDP=C*P
        CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-       ewrite(3,*) 'U_RHS:', U_RHS
-       ewrite(3,*) 'CDP:', CDP
-       ewrite(3,*) 'P:', P
-       ewrite(3,*) 'C:', C
-       stop 3922
+       !ewrite(3,*) 'U_RHS:', U_RHS
+       !ewrite(3,*) 'CDP:', CDP
+       !ewrite(3,*) 'P:', P
+       !ewrite(3,*) 'C:', C
+      ! stop 3922
 
        U_RHS_CDP = U_RHS + CDP
 
        CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
        ewrite(3,*)  'JUST_BL_DIAG_MAT, INV_PIVIT_MAT: ', JUST_BL_DIAG_MAT, INV_PIVIT_MAT
-       ewrite(3,*) 'U_RHS_CDP:', U_RHS_CDP
+       !ewrite(3,*) 'U_RHS_CDP:', U_RHS_CDP
 
        IF( JUST_BL_DIAG_MAT ) THEN
 
@@ -679,7 +679,7 @@ contains
 
        ENDIF
 
-        ewrite(3,*) 'UP_VEL:', UP_VEL
+       ! ewrite(3,*) 'UP_VEL:', UP_VEL
 
        CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
@@ -689,10 +689,10 @@ contains
        CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT)
 
-       ewrite(3,*)  'u::', u
-       ewrite(3,*)  'v::', v
-       ewrite(3,*)  'P_RHS', p_rhs
-       ewrite(3,*)  'CT_RHS', ct_rhs
+       !ewrite(3,*)  'u::', u
+       !ewrite(3,*)  'v::', v
+       !ewrite(3,*)  'P_RHS', p_rhs
+       !ewrite(3,*)  'CT_RHS', ct_rhs
 
        P_RHS = -P_RHS + CT_RHS
 
@@ -716,9 +716,9 @@ contains
 
        ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
 
-       ewrite(3,*) 'CMC: ', CMC
-       ewrite(3,*) 'FINDCMC: ', FINDCMC
-       ewrite(3,*) 'COLCMC: ', COLCMC
+       !ewrite(3,*) 'CMC: ', CMC
+       !ewrite(3,*) 'FINDCMC: ', FINDCMC
+       !ewrite(3,*) 'COLCMC: ', COLCMC
 
        CALL SOLVER( CMC, DP, P_RHS, &
             FINDCMC, COLCMC, &
@@ -2211,8 +2211,8 @@ contains
                         + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                         CVFENZ( P_JLOC, GI ) * DETWEI( GI )
                 ENDIF
-                ewrite(3,*) 'ELE, GI, U_ILOC, P_JLOC, NMX, NMY, NMZ:', &
-                     ELE, GI, U_ILOC, P_JLOC, NMX, NMY, NMZ
+               ! ewrite(3,*) 'ELE, GI, U_ILOC, P_JLOC, NMX, NMY, NMZ:', &
+               !      ELE, GI, U_ILOC, P_JLOC, NMX, NMY, NMZ
              END DO Loop_GaussPoints1
 
              ! Put into matrix
