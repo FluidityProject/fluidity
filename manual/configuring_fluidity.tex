@@ -1533,13 +1533,12 @@ For control volume discretisations only, this option allows a given flux $h$ of 
 \index{boundary conditions!free surface}
 \index{free surface!boundary condition}
 
-The \option{\ldots/free\_surface} option allows the height of upper surface to vary according
-to the pressure and velocity fields. This boundary condition is available on the velocity field only. It is
-recommended you activate a diagnostic Free Surface field also.
+The \option{\ldots/free\_surface} option allows the upper surface height to vary according to the pressure and velocity fields. This boundary condition is available on the velocity field only. When using a free surface, it is recommended that you active a diagnostic free surface (though this is optional). This option is also available at \option{\ldots/scalar\_field::FreeSurface}. 
+
+Note that the default free surface treatment implements the physical boundary condition p=0 (this is full pressure without subtracting the hydrostatic component). For viscous fluids, the correct boundary condition is a no normal stress condition, which includes a viscosity term. When using this option a prognostic free surface field is also required. This option is also available at \option{\ldots/scalar\_field::FreeSurface}. 
 
 By default, the mesh geometry is not influenced by the free-surface calculation, however \fluidity\ can deform the mesh according to the free-surface elevation. 
 This option is available at \option{/mesh\_adaptivity/mesh\_movement/free\_surface}.
-
 
 \subsubsection{Wetting and drying}\label{subsec:wetting_drying_bc}
 \index{boundary conditions!wetting and drying}
