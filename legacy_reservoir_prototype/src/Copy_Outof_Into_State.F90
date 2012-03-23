@@ -1453,10 +1453,10 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
 
             shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
                  &prognostic/boundary_conditions[0]/surface_ids")
-            if( .not. allocated( velocity_sufid_bc ))allocate(velocity_sufid_bc(1:shape_option(1)))
-
+            !if( .not. allocated( velocity_sufid_bc ))allocate(velocity_sufid_bc(1:shape_option(1)))
             Velocity_BC_Type = 1
             nobcs = get_boundary_condition_count( velocity )
+            if( .not. allocated( velocity_sufid_bc ) ) allocate(velocity_sufid_bc( 1 : nobcs ))
             
             do k = 1, nobcs
                velocity_bc => extract_surface_field( velocity, k, "value" )
