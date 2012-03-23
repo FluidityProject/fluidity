@@ -38,7 +38,7 @@ module read_exodusii
   use fields
   use state_module
   use spud
-  use exodusii_fortran
+  use exodusii_f_interface
   use global_parameters, only : OPTION_PATH_LEN
 
   implicit none

@@ -1,4 +1,4 @@
-module exodusii_fortran
+module exodusii_f_interface
 
   use iso_c_binding
   implicit none
@@ -154,4 +154,4 @@ module exodusii_fortran
   end interface f_ex_close
 
 
-end module exodusii_fortran
+end module exodusii_f_interface
