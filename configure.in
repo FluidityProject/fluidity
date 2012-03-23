@@ -805,8 +805,8 @@ AC_ARG_WITH(exodusii,
 
 if test "x$with_exodusii" != "xno" ; then
   if test -n "$with_exodusii" ; then
-    if test -d "$with_netcdf" ; then
-      LIBS="$LIBS -L$with_netcdf"
+    if test -d "$with_exodusii" ; then
+      LIBS="$LIBS -L$with_exodusii/lib"
     fi
   fi
 fi
