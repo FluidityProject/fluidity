@@ -5569,6 +5569,24 @@ limiter_options =
       )
   )
 
+# cv limiter options that 
+# have NO reliance on any CFL field. 
+limiter_options_excluding_cfl =
+  (
+      (
+        ## Limit the face value to satisfy a boundedness criterion.
+        element limit_face_value{
+          (
+            sweby_limiter
+          )
+        }|
+        ## Do not limit the face value
+        element do_not_limit_face_value{
+          empty
+        }
+      )
+  )
+
 sweby_limiter = 
   ## See "High-Resolution Schemes Using Flux Limiters for
   ## Hyperbolic Conservation-Laws", P. K. Sweby, 1984, Siam
