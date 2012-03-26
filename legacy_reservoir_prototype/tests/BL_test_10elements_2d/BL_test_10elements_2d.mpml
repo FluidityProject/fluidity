@@ -569,6 +569,20 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
+        <boundary_conditions name="sides">
+          <surface_ids>
+            <integer_value shape="1" rank="1">8</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <align_bc_with_cartesian>
+              <y_component>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </y_component>
+            </align_bc_with_cartesian>
+          </type>
+        </boundary_conditions>
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <mesh name="PressureMesh"/>
