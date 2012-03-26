@@ -1727,8 +1727,6 @@
          allocate( sufenlx2( u_nloc2, scvngi ) )
          allocate( sufenly2( u_nloc2, scvngi ) )
          allocate( sufenlz2( u_nloc2, scvngi ) )
-         ewrite(3,*)'u_on_face: ', u_on_face
-         ewrite(3,*)'u_on_face2, after allocated: ', u_on_face2
          ewrite(3,*)'cv_nloc, cv_ngi, scvngi:', cv_nloc, cv_ngi, scvngi
          ewrite(3,*)'u_nloc, u_nloc2:', u_nloc, u_nloc2
 
@@ -1801,10 +1799,10 @@
 
       ! Determine the surface element shape functions from those 
       ! calculated in SHAPESV_FEM_PLUS and also CV_SLOCLIST( NFACE,CV_SNLOC )
-      ewrite(3,*)'u_on_face2( u_iloc, i_scvngi):'
-      do ilev = 1, u_nloc2
-         ewrite(3,*) ilev, ( u_on_face2( ilev, ilev2 ), ilev2 = 1, scvngi )
-      end do
+      !ewrite(3,*)'u_on_face2( u_iloc, i_scvngi):'
+      !do ilev = 1, u_nloc2
+      !   ewrite(3,*) ilev, ( u_on_face2( ilev, ilev2 ), ilev2 = 1, scvngi )
+      !end do
 
       Conditional_OverlappingMethod3: if( is_overlapping ) then
          u_ele_type2 = 1
