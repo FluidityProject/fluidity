@@ -376,12 +376,15 @@ contains
        TOLD = T
        COMPOLD = COMP
 
+       ewrite(1,*)' New Time Step:', itime
+
        ! evaluate prescribed fields at time = current_time+dt
        call set_prescribed_field_values(state, exclude_interpolated=.true., &
             exclude_nonreprescribed=.true., time=ACCTIM)
 
        ! Non linear its:
        Loop_ITS: DO ITS = 1, NITS
+       ewrite(1,*)' New Non-Linear Iteration:', its
           
           ! solve temperature fields if found in input and prognostic
           solve_temp: if (have_temperature_fields .and. &
