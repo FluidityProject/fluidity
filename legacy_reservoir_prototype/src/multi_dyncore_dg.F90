@@ -653,17 +653,18 @@ contains
        ! Put pressure in rhs of force balance eqn:  CDP=C*P
        CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-       !ewrite(3,*) 'U_RHS:', U_RHS
-       !ewrite(3,*) 'CDP:', CDP
-       !ewrite(3,*) 'P:', P
-       !ewrite(3,*) 'C:', C
-      ! stop 3922
+       !print *,'U_RHS:',U_RHS
+       !print *,'CDP:',CDP
+       !print *,'P:',P
+       !print *,'C:',C
+       !
+       !stop 3922
 
        U_RHS_CDP = U_RHS + CDP
 
        CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
-       ewrite(3,*)  'JUST_BL_DIAG_MAT, INV_PIVIT_MAT: ', JUST_BL_DIAG_MAT, INV_PIVIT_MAT
-       !ewrite(3,*) 'U_RHS_CDP:', U_RHS_CDP
+       print *, 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
+       print *,'U_RHS_CDP:',U_RHS_CDP
 
        IF( JUST_BL_DIAG_MAT ) THEN
 
@@ -678,6 +679,7 @@ contains
                option_path = '/material_phase[0]/vector_field::Velocity')
 
        ENDIF
+        !print *,'UP_VEL:',UP_VEL
 
        ! ewrite(3,*) 'UP_VEL:', UP_VEL
 
@@ -689,10 +691,10 @@ contains
        CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT)
 
-       !ewrite(3,*)  'u::', u
-       !ewrite(3,*)  'v::', v
-       !ewrite(3,*)  'P_RHS', p_rhs
-       !ewrite(3,*)  'CT_RHS', ct_rhs
+       !print *, 'u::', u
+       !print *, 'v::', v
+       !print *, 'P_RHS::', p_rhs
+       !print *, 'CT_RHS::', ct_rhs
 
        P_RHS = -P_RHS + CT_RHS
 
@@ -2218,6 +2220,8 @@ contains
                 NMX = NMX + UFEN( U_ILOC, GI ) * CVFENX( P_JLOC, GI ) * DETWEI( GI )
                 NMY = NMY + UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
                 NMZ = NMZ + UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
+
+                !print *, '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':',CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
                 IF( IPLIKE_GRAD_SOU == 1 ) THEN 
                    GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
                         + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
@@ -2229,9 +2233,14 @@ contains
                         + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                         CVFENZ( P_JLOC, GI ) * DETWEI( GI )
                 ENDIF
-               ! ewrite(3,*) 'ELE, GI, U_ILOC, P_JLOC, NMX, NMY, NMZ:', &
-               !      ELE, GI, U_ILOC, P_JLOC, NMX, NMY, NMZ
+                  !PRINT *,'ELE,GI,U_ILOC,P_JLOC,::,NMX,NMY,NMZ:', &
+                  !         ELE,GI,U_ILOC,P_JLOC,'::',NMX,NMY,NMZ
+                  !print *, ' '
+                  !print *, ' '
              END DO Loop_GaussPoints1
+
+
+              !print *, 'NMX,NMY,NMZ:',NMX,NMY,NMZ
 
              ! Put into matrix
 
@@ -2239,7 +2248,6 @@ contains
 
              CALL POSINMAT( COUNT, IU_NOD, JCV_NOD,&
                   U_NONODS, FINDC, COLC, NCOLC )
-
 
              Loop_Phase1: DO IPHASE = 1, NPHASE
                 COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM * NCOLC
@@ -3119,7 +3127,7 @@ contains
     !      CALL MATMASSINV( MASINV, MMAT, U_NONODS, U_NLOC, TOTELE)
 
     ewrite(3,*)'Leaving assemb_force_cty'
-    !    stop 98123
+        !stop 98123
 
     RETURN
 

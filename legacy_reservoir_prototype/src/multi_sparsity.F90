@@ -234,6 +234,9 @@
       FINDCT( CV_NONODS + 1) = COUNT + 1
       NCT = COUNT
 
+      print *, colct(1:nct)
+      print *, nct, mx_nct
+
       IF(NCT > MX_NCT ) THEN
          EWRITE(3,*)'MX_NCT is not long enough NCT,MX_NCT:',NCT,MX_NCT
       ENDIF
@@ -699,6 +702,8 @@
 
       deallocate( matrix )
 
+      print *, nimem, lencolm
+      !stop 999
       return
     end subroutine pousinmc2
 
@@ -716,7 +721,7 @@
       integer :: col, u_nod, cv_nod, count, count2
       integer, dimension( : ), allocatable :: in_row_c
 
-      ewrite(3,*) 'In conv_ct2c subrt.'
+      ewrite(3,*) 'In conv_ct2c subrt.', colct
 
       ! No. of non-zero's in row of C matrix. 
       allocate( in_row_c( u_nonods ) )

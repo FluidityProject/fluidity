@@ -643,6 +643,7 @@ contains
 
              ! Get the neighbouring node for node ILOC and Gauss point GI
              CV_JLOC = CV_NEILOC( CV_ILOC, GI )
+          PRINT *,'*** CV_JLOC,GI,TOTELE:',CV_JLOC,GI,TOTELE
 
              ELE2 = 0
              SELE = 0
@@ -667,12 +668,13 @@ contains
                 ewrite(3,*)'u_other_loc:', u_other_loc( 1 : u_nloc )
                 ewrite(3,*)'mat_other_loc:', mat_other_loc( 1 : mat_nloc )
                 ewrite(3,*)'x_share:', x_share( cv_nodi )
-                ewrite(3,*) '  '
+                ewrite(3,*) 'INTEGRAT_AT_GI=  ',INTEGRAT_AT_GI
 
                 IF(INTEGRAT_AT_GI) THEN
                    CV_JLOC = CV_OTHER_LOC( CV_ILOC )
                    SELE=0
 
+                   PRINT *,'CV_JLOC =',CV_JLOC
                    IF( CV_JLOC == 0 ) THEN ! We are on the boundary of the domain
                       CV_JLOC = CV_ILOC
                       ! Calculate SELE, CV_SILOC, U_SLOC2LOC, CV_SLOC2LOC
@@ -680,7 +682,7 @@ contains
                            FACE_ELE, TOTELE, NFACE, CVFEM_ON_FACE, GI, &
                            CV_NONODS, LOG_ON_BOUND, CV_NLOC, U_NLOC, CV_SNLOC, U_SNLOC, STOTEL, &
                            CV_NDGLN, U_NDGLN, CV_SNDGLN, U_SNDGLN ) 
-                      !EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
+                      EWRITE(3,*)'*****AFTER CALC_SELE SELE,CV_SILOC,CV_SNLOC:',SELE,CV_SILOC,CV_SNLOC
                    ENDIF
                    INTEGRAT_AT_GI=.NOT.((ELE==ELE2).AND.(SELE==0))
                 ENDIF
@@ -960,7 +962,7 @@ contains
                       IF(GETMAT) THEN
                          ! - Calculate the integration of the limited, high-order flux over a face  
                          ! Conservative discretisation. The matrix (PIVOT ON LOW ORDER SOLN)
-                         ewrite(3,*)'SELE, IPHASE, STOTEL:', SELE, IPHASE, STOTEL
+                         print *,'SELE,IPHASE,STOTEL:',SELE,IPHASE,STOTEL
                          IF( ( CV_NODI_IPHA /= CV_NODJ_IPHA ).AND.( CV_NODJ_IPHA /= 0 ) ) THEN
                             DO COUNT = FINACV( CV_NODI_IPHA ), FINACV( CV_NODI_IPHA + 1 ) - 1, 1
                                IF( COLACV( COUNT ) == CV_NODJ_IPHA )  JCOUNT_IPHA = COUNT
@@ -5556,9 +5558,10 @@ use shape_functions_NDim
     DO IFACE = 1, NFACE
        ELE2 = FACE_ELE( IFACE, ELE )
        SELE2 = MAX( 0, - ELE2 )
-       !! SELE = SELE2
+!!       SELE = SELE2
        ELE2 = MAX( 0, + ELE2 )
-       ewrite(3,*)'nface, iface, sele2, sele:', nface, iface, sele2, sele
+       print *,'nface,iface:',nface,iface
+       print *,'sele2,sele=',sele2,sele
        IF( SELE2 /= 0 ) THEN
           FOUND = .TRUE.
           DO CV_SKLOC = 1, CV_SNLOC 
@@ -5567,8 +5570,11 @@ use shape_functions_NDim
              IF( .NOT. LOG_ON_BOUND( CV_SKNOD )) FOUND=.FALSE.
           END DO
           IF( FOUND ) SELE = SELE2
+          print *,'found,sele:',found,sele
        END IF
+        print *,'-sele2,sele=',sele2,sele
     END DO
+      PRINT *,'HERE1 SELE,SELE2:',SELE,SELE2
     !    stop 3983
 
     ! Calculate CV_SLOC2LOC  

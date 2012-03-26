@@ -1121,12 +1121,12 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
       allocate( suf_u_bc_rob2( stotel * u_snloc * nphases ))
       allocate( suf_v_bc_rob2( stotel * u_snloc * nphases ))
       allocate( suf_w_bc_rob2( stotel * u_snloc * nphases ))
-      allocate( suf_t_bc_rob1( stotel * nphases ))
-      allocate( suf_t_bc_rob2( stotel * nphases ))
-      allocate( suf_vol_bc_rob1( stotel * nphases ))
-      allocate( suf_vol_bc_rob2( stotel * nphases ))
-      allocate( suf_comp_bc_rob1( stotel * nphases ))
-      allocate( suf_comp_bc_rob2( stotel * nphases ))
+      allocate( suf_t_bc_rob1( stotel * cv_snloc * nphases ))
+      allocate( suf_t_bc_rob2( stotel * cv_snloc * nphases ))
+      allocate( suf_vol_bc_rob1( stotel * cv_snloc * nphases ))
+      allocate( suf_vol_bc_rob2( stotel * cv_snloc * nphases ))
+      allocate( suf_comp_bc_rob1( stotel * cv_snloc * nphases ))
+      allocate( suf_comp_bc_rob2( stotel * cv_snloc * nphases ))
       suf_u_bc_rob1 = 0.
       suf_u_bc_rob2 = 0.
       suf_v_bc_rob1 = 0.
@@ -1832,6 +1832,11 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
       comp_diff_coef=0.0
       allocate( cv_one( nphases * cv_nonods ))
       cv_one = 1.0
+
+
+    ewrite(3,*)'suf_vol_bc_rob1:', suf_vol_bc_rob1
+    ewrite(3,*)' #####'
+    ewrite(3,*)'suf_vol_bc_rob2:', suf_vol_bc_rob2
 
 
     call test_bc( ndim, nphases, &
