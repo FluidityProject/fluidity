@@ -597,6 +597,12 @@ contains
   end subroutine add_free_surface_to_cmc_projection
     
   subroutine update_prognostic_free_surface(state, fs, implicit_prognostic_fs, explicit_prognostic_fs)
+    !!< For the viscous free surface method, update the prognostic surface field
+    !!< from the scaled free surface (\Delta\rho g\eta) that has just been solved with
+    !!< the pressure projection (implicit) or time-integrated explicitly.
+    !!< This is done via a small, surface Galerkin projection equation that is
+    !!< assembled and solved for. If /geometry/ocean_boundaries are specified the updated
+    !!< values are also extrapolated from the top surface.
     type(state_type), intent(inout):: state
     type(scalar_field), intent(inout):: fs
     logical, intent(in):: implicit_prognostic_fs, explicit_prognostic_fs
@@ -794,7 +800,8 @@ contains
   end subroutine update_prognostic_free_surface
     
   subroutine add_free_surface_to_poisson_rhs(poisson_rhs, state, dt, theta_pg)
-
+    !!< Add the rhs contributions of the fs terms in the continuity equation
+    !!< to the initial Poisson equation
     type(scalar_field), intent(inout) :: poisson_rhs
     type(state_type), intent(inout) :: state
     real, intent(in) :: dt, theta_pg
@@ -946,6 +953,8 @@ contains
   end subroutine add_free_surface_to_poisson_rhs
     
   subroutine copy_poisson_solution_to_interior(state, p_theta, p, old_p, u)
+    !!< Copy the solved for initial Poisson solution p_theta into p and old_p
+    !!< but maintain initial condition for free surface nodes.
   type(state_type), intent(in):: state
   type(scalar_field), intent(inout), target:: p_theta, p, old_p
   type(vector_field), intent(in):: u
@@ -1004,6 +1013,9 @@ contains
   end subroutine copy_poisson_solution_to_interior
 
   subroutine initialise_implicit_prognostic_free_surface(state, fs, u)
+    !!< Setup ScaledFreeSurface and OldScaledFreeSurface surface fields (to contain
+    !!< \Delta\rho g\eta values). Initialise them with initial condition (requires
+    !!< little mass matrix solve).
     type(state_type), intent(inout):: state
     type(scalar_field), intent(inout):: fs
     type(vector_field), intent(in):: u
@@ -1582,11 +1594,12 @@ contains
 
     end subroutine add_boundary_integral_sele
 
-  end subroutine
+  end subroutine add_explicit_viscous_free_surface_integrals
 
   subroutine add_implicit_viscous_free_surface_scaled_mass_integrals(state, mass, u, p, fs)
     ! This routine adds in the boundary conditions for the viscous free surface
     ! (that is the free_surface bc with the no_normal_stress option)
+    ! to the "scaled mass matrix" (pressure mass scaled with inverse of viscosity used as stokes preconditioner)
     ! mass has been extended with some extra rows and columns (corresponding to free surface
     ! nodes) that are used to enforce the kinematic bc.
     ! Here we fill in those terms with the scaled mass on the free surface.
