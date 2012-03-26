@@ -68,6 +68,8 @@ public free_surface_module_check_options
 contains
 
   function has_standard_free_surface_bc(u) result(standard_free_surface)
+  !!< whether velocity has a 'standard' free surface boundary condition,
+  !!< i.e. a fs bc without the no_normal_stress option
   type(vector_field), intent(in):: u
   logical:: standard_free_surface
 
@@ -91,6 +93,8 @@ contains
   end function has_standard_free_surface_bc
 
   function has_implicit_viscous_free_surface_bc(u) result(implicit_free_surface)
+  !!< whether velocity has a free surface boundary condition with
+  !!< the no_normal_stress option but without the explicit option
   type(vector_field), intent(in):: u
   logical:: implicit_free_surface
 
@@ -115,6 +119,8 @@ contains
   end function has_implicit_viscous_free_surface_bc
 
   function has_explicit_viscous_free_surface_bc(u) result(explicit_free_surface)
+  !!< whether velocity has a free surface boundary condition with
+  !!< the no_normal_stress option and the explicit option
   type(vector_field), intent(in):: u
   logical:: explicit_free_surface
 
@@ -139,6 +145,9 @@ contains
   end function has_explicit_viscous_free_surface_bc
 
   subroutine update_implicit_scaled_free_surface(states)
+  !!< Set OldScaledFreeSurface to ScaledFreeSurface, these
+  !!< ScaledFreeSurface is the surface fields \Delta\rho g\eta that we solve for 
+  !!< with the implicit viscous fs method
   type(state_type), dimension(:), intent(in) :: states
 
     type(scalar_field), pointer:: free_surface, scaled_fs, old_scaled_fs
@@ -153,8 +162,8 @@ contains
 
             scaled_fs => extract_surface_field(free_surface, "_implicit_free_surface", "ScaledFreeSurface")
             old_scaled_fs => extract_surface_field(free_surface, "_implicit_free_surface", "OldScaledFreeSurface")
-
-            old_scaled_fs%val = scaled_fs%val
+            
+            call set(old_scaled_fs, scaled_fs)
 
           end if
         end if
