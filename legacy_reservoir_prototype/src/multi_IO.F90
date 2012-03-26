@@ -543,6 +543,7 @@ contains
     ewrite(3,*) 'STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC:', &
                  STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC
     ewrite(3,*) 'phase 1 is gas, phase 2 is liquid'
+    ewrite(3,*) 'all of SUF_U_BC:',SUF_U_BC
 
     DO XNOD=1,X_NONODS
        XMIN=MIN(XMIN,X(XNOD))
