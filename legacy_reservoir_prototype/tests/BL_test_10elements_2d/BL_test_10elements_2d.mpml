@@ -566,6 +566,11 @@
                   <real_value rank="0">0.0</real_value>
                 </constant>
               </x_component>
+              <y_component>
+                <constant>
+                  <real_value rank="0">0</real_value>
+                </constant>
+              </y_component>
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
