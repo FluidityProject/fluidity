@@ -486,4 +486,140 @@ contains
   ! -----------------------------------------------------------------------------------------
 
 
+  SUBROUTINE TEST_BC(NDIM, NPHASE, &
+       U_NONODS, CV_NONODS, X_NONODS, &
+       U_SNLOC, P_SNLOC, CV_SNLOC, STOTEL, U_SNDGLN, P_SNDGLN, CV_SNDGLN, &
+                                ! for force balance eqn:
+       SUF_U_BC, SUF_V_BC, SUF_W_BC, SUF_P_BC, &
+       SUF_U_BC_ROB1, SUF_U_BC_ROB2, SUF_V_BC_ROB1, SUF_V_BC_ROB2,  &
+       SUF_W_BC_ROB1, SUF_W_BC_ROB2, &
+       WIC_U_BC, WIC_P_BC,  &
+                                ! For cty eqn: 
+       SUF_VOL_BC, SUF_D_BC,  &
+       SUF_VOL_BC_ROB1, SUF_VOL_BC_ROB2,  &
+       WIC_VOL_BC, WIC_D_BC,  &
+       X, Y, Z )
+    ! This subroutine prints out the b.c's and suggests values they should take on
+    ! Can be called from CV_ASSEMB_FORCE_CTY. 
+
+    INTEGER, intent( in ) :: NDIM, NPHASE, U_NONODS, CV_NONODS, X_NONODS, &
+         STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC
+    INTEGER, DIMENSION( STOTEL * U_SNLOC ), intent( in ) :: U_SNDGLN
+    INTEGER, DIMENSION( STOTEL * P_SNLOC ), intent( in )  :: P_SNDGLN
+    INTEGER, DIMENSION( STOTEL * CV_SNLOC ), intent( in ) :: CV_SNDGLN
+    REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC, SUF_V_BC, SUF_W_BC
+    REAL, DIMENSION( STOTEL * P_SNLOC * NPHASE ), intent( in ) :: SUF_P_BC
+    REAL, DIMENSION( STOTEL * U_SNLOC * NPHASE ), intent( in ) :: SUF_U_BC_ROB1, SUF_U_BC_ROB2, &
+         SUF_V_BC_ROB1, SUF_V_BC_ROB2, SUF_W_BC_ROB1, SUF_W_BC_ROB2 
+    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_U_BC, WIC_P_BC
+    REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC, SUF_D_BC
+    REAL, DIMENSION( STOTEL * CV_SNLOC * NPHASE ), intent( in ) :: SUF_VOL_BC_ROB1, &
+         SUF_VOL_BC_ROB2
+    INTEGER, DIMENSION( STOTEL * NPHASE ), intent( in ) ::  WIC_VOL_BC, WIC_D_BC
+    REAL, DIMENSION( X_NONODS ), intent( in ) :: X, Y, Z
+
+    ! Local variables...
+    REAL :: XMIN, XMAX, YMIN, YMAX
+    INTEGER :: IXMIN, IXMAX, IYMIN, IYMAX
+    INTEGER :: IPHASE, XNOD, SELE, CV_SILOC, CV_NOD, SPHA, &
+         U_SILOC, U_NOD, U_NOD_PHAS, CV_NOD_PHAS
+
+    ewrite(3,*)' In TEST_BC'
+
+    XMIN=1.E+5
+    XMAX=-1.E+5
+
+    YMIN=1.E+5
+    YMAX=-1.E+5
+    ewrite(3,*) 'This is for deciphering WIC_U_BC & WIC_P_BC'
+    ewrite(3,*) 'WIC_U_BC_DIRICHLET = 1, WIC_U_BC_ROBIN = 2, WIC_U_BC_DIRI_ADV_AND_ROBIN = 3'
+    ewrite(3,*) 'WIC_P_BC_DIRICHLET = 1'
+    ewrite(3,*) 'WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2'
+    ewrite(3,*) 'WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1'
+
+    DO XNOD=1,X_NONODS
+       XMIN=MIN(XMIN,X(XNOD))
+       XMAX=MAX(XMAX,X(XNOD))
+
+       YMIN=MIN(YMIN,Y(XNOD))
+       YMAX=MAX(YMAX,Y(XNOD))
+    END DO
+
+    DO SELE=1,STOTEL
+       IXMIN=0
+       IXMAX=0
+       IYMIN=0
+       IYMAX=0
+       DO CV_SILOC=1,CV_SNLOC
+          CV_NOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
+          IF(ABS(X(CV_NOD)-XMIN).LT.1.E-4) THEN ! Left boundary
+             IXMIN=IXMIN+1
+          ENDIF
+          IF(ABS(X(CV_NOD)-XMAX).LT.1.E-4) THEN ! Right boundary
+             IXMAX=IXMAX+1
+          ENDIF
+
+          IF(ABS(Y(CV_NOD)-YMIN).LT.1.E-4) THEN ! Bottom boundary
+             IYMIN=IYMIN+1
+          ENDIF
+          IF(ABS(X(CV_NOD)-YMAX).LT.1.E-4) THEN ! Top boundary
+             IYMAX=IYMAX+1
+          ENDIF
+       END DO
+
+       print *,'sele=' ,sele
+       IF(IXMIN==CV_SNLOC) THEN
+          print *,'is a left boundary element'
+          print *,'u-phase1=1., u-phase2=0., vol-phase1=1., no p b.c.'
+       ENDIF
+       IF(IXMAX==CV_SNLOC) THEN
+          print *,'is a right boundary element'
+          print *,'pressure =0, no vel bc'
+       ENDIF
+
+       IF(IYMIN==CV_SNLOC) THEN
+          print *,'is a bottom boundary element'
+          print *,'u-phase1=0., u-phase2=0.'
+       ENDIF
+       IF(IYMAX==CV_SNLOC) THEN
+          print *,'is a top boundary element'
+          print *,'u-phase1=0., u-phase2=0.'
+       ENDIF
+
+       DO IPHASE=1,NPHASE
+          ewrite(3,*) 'IPHASE:',IPHASE
+          SPHA=SELE+(IPHASE-1)*STOTEL
+          ewrite(3,*) 'WIC_U_BC, WIC_P_BC, WIC_VOL_BC, WIC_D_BC:', &
+               WIC_U_BC(SPHA), WIC_P_BC(SPHA), WIC_VOL_BC(SPHA), WIC_D_BC(SPHA)
+
+          DO U_SILOC=1,U_SNLOC
+             U_NOD=U_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
+             U_NOD_PHAS=U_NOD+(IPHASE-1)*STOTEL*U_SNLOC
+             ewrite(3,*) 'U_SILOC,U_NOD,IPHASE,U_NOD_PHAS:',U_SILOC,U_NOD,IPHASE,U_NOD_PHAS
+             ewrite(3,*) 'SUF_U_BC, SUF_V_BC, SUF_W_BC:', &
+                  SUF_U_BC(U_NOD_PHAS), SUF_V_BC(U_NOD_PHAS), SUF_W_BC(U_NOD_PHAS)
+             ewrite(3,*) 'SUF_U_BC_ROB1, SUF_U_BC_ROB2:', &
+                  SUF_U_BC_ROB1(U_NOD_PHAS), SUF_U_BC_ROB2(U_NOD_PHAS)
+             ewrite(3,*) 'SUF_V_BC_ROB1, SUF_V_BC_ROB2:', &
+                  SUF_V_BC_ROB1(U_NOD_PHAS), SUF_V_BC_ROB2(U_NOD_PHAS)
+             ewrite(3,*) 'SUF_W_BC_ROB1, SUF_W_BC_ROB2:', &
+                  SUF_W_BC_ROB1(U_NOD_PHAS), SUF_W_BC_ROB2(U_NOD_PHAS)
+          END DO
+
+          DO CV_SILOC=1,CV_SNLOC
+             CV_NOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
+             CV_NOD_PHAS=CV_NOD+(IPHASE-1)*STOTEL*CV_SNLOC
+             ewrite(3,*) 'CV_SILOC,CV_NOD,IPHASE,CV_NOD_PHAS:',CV_SILOC,CV_NOD,IPHASE,CV_NOD_PHAS
+
+             ewrite(3,*) 'SUF_P_BC, SUF_VOL_BC, SUF_D_BC:', &
+                  SUF_P_BC(CV_NOD_PHAS), SUF_VOL_BC(CV_NOD_PHAS), SUF_D_BC(CV_NOD_PHAS)
+             ewrite(3,*) 'SUF_VOL_BC_ROB1(CV_NOD_PHAS), SUF_VOL_BC_ROB2(CV_NOD_PHAS):', &
+                  SUF_VOL_BC_ROB1(CV_NOD_PHAS), SUF_VOL_BC_ROB2(CV_NOD_PHAS)
+          END DO
+
+       END DO
+    END DO
+    RETURN
+  END SUBROUTINE TEST_BC
+
 end module printout
