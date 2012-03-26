@@ -521,8 +521,8 @@ contains
     ! Local variables...
     REAL :: XMIN, XMAX, YMIN, YMAX
     INTEGER :: IXMIN, IXMAX, IYMIN, IYMAX
-    INTEGER :: IPHASE, XNOD, SELE, CV_SILOC, CV_NOD, SPHA, &
-         U_SILOC, U_NOD, U_NOD_PHAS, CV_NOD_PHAS
+    INTEGER :: IPHASE, XNOD, SELE, CV_SILOC, CV_NOD, CV_SNOD, SPHA, &
+         U_SILOC, U_SNOD, U_SNOD_PHAS, CV_SNOD_PHAS
 
     ewrite(3,*)' In TEST_BC'
 
@@ -536,6 +536,13 @@ contains
     ewrite(3,*) 'WIC_P_BC_DIRICHLET = 1'
     ewrite(3,*) 'WIC_T_BC_DIRICHLET = 1, WIC_T_BC_ROBIN = 2'
     ewrite(3,*) 'WIC_T_BC_DIRI_ADV_AND_ROBIN = 3, WIC_D_BC_DIRICHLET = 1'
+    ewrite(3,*) 'STOTEL, U_SNLOC, NPHASE, STOTEL * U_SNLOC * NPHASE', &
+                 STOTEL, U_SNLOC, NPHASE, STOTEL * U_SNLOC * NPHASE
+    ewrite(3,*) 'NDIM, NPHASE, U_NONODS, CV_NONODS, X_NONODS:', &
+                 NDIM, NPHASE, U_NONODS, CV_NONODS, X_NONODS
+    ewrite(3,*) 'STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC:', &
+                 STOTEL, U_SNLOC, P_SNLOC, CV_SNLOC
+    ewrite(3,*) 'phase 1 is gas, phase 2 is liquid'
 
     DO XNOD=1,X_NONODS
        XMIN=MIN(XMIN,X(XNOD))
@@ -579,11 +586,11 @@ contains
 
        IF(IYMIN==CV_SNLOC) THEN
           print *,'is a bottom boundary element'
-          print *,'u-phase1=0., u-phase2=0.'
+          print *,'v-phase1=0., v-phase2=0.'
        ENDIF
        IF(IYMAX==CV_SNLOC) THEN 
           print *,'is a top boundary element'
-          print *,'u-phase1=0., u-phase2=0.'
+          print *,'v-phase1=0., v-phase2=0.'
        ENDIF
 
        DO IPHASE=1,NPHASE
@@ -593,32 +600,36 @@ contains
                WIC_U_BC(SPHA), WIC_P_BC(SPHA), WIC_VOL_BC(SPHA), WIC_D_BC(SPHA)
 
           DO U_SILOC=1,U_SNLOC
-             U_NOD=U_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
-             U_NOD_PHAS=U_NOD+(IPHASE-1)*STOTEL*U_SNLOC
-             ewrite(3,*) 'U_SILOC,U_NOD,IPHASE,U_NOD_PHAS:',U_SILOC,U_NOD,IPHASE,U_NOD_PHAS
+!             U_SNOD=U_SNDGLN((SELE-1)*U_SNLOC+U_SILOC)
+             U_SNOD=(SELE-1)*U_SNLOC+U_SILOC
+             U_SNOD_PHAS=U_SNOD+(IPHASE-1)*STOTEL*U_SNLOC
+             ewrite(3,*) 'U_SILOC,U_SNOD,IPHASE,U_SNOD_PHAS:',U_SILOC,U_SNOD,IPHASE,U_SNOD_PHAS
              ewrite(3,*) 'SUF_U_BC, SUF_V_BC, SUF_W_BC:', &
-                  SUF_U_BC(U_NOD_PHAS), SUF_V_BC(U_NOD_PHAS), SUF_W_BC(U_NOD_PHAS)
+                  SUF_U_BC(U_SNOD_PHAS), SUF_V_BC(U_SNOD_PHAS), SUF_W_BC(U_SNOD_PHAS)
              ewrite(3,*) 'SUF_U_BC_ROB1, SUF_U_BC_ROB2:', &
-                  SUF_U_BC_ROB1(U_NOD_PHAS), SUF_U_BC_ROB2(U_NOD_PHAS)
+                  SUF_U_BC_ROB1(U_SNOD_PHAS), SUF_U_BC_ROB2(U_SNOD_PHAS)
              ewrite(3,*) 'SUF_V_BC_ROB1, SUF_V_BC_ROB2:', &
-                  SUF_V_BC_ROB1(U_NOD_PHAS), SUF_V_BC_ROB2(U_NOD_PHAS)
+                  SUF_V_BC_ROB1(U_SNOD_PHAS), SUF_V_BC_ROB2(U_SNOD_PHAS)
              ewrite(3,*) 'SUF_W_BC_ROB1, SUF_W_BC_ROB2:', &
-                  SUF_W_BC_ROB1(U_NOD_PHAS), SUF_W_BC_ROB2(U_NOD_PHAS)
+                  SUF_W_BC_ROB1(U_SNOD_PHAS), SUF_W_BC_ROB2(U_SNOD_PHAS)
           END DO
 
           DO CV_SILOC=1,CV_SNLOC
-             CV_NOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
-             CV_NOD_PHAS=CV_NOD+(IPHASE-1)*STOTEL*CV_SNLOC
-             ewrite(3,*) 'CV_SILOC,CV_NOD,IPHASE,CV_NOD_PHAS:',CV_SILOC,CV_NOD,IPHASE,CV_NOD_PHAS
+!             CV_SNOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
+             CV_SNOD=(SELE-1)*CV_SNLOC+CV_SILOC
+             CV_SNOD_PHAS=CV_SNOD+(IPHASE-1)*STOTEL*CV_SNLOC
+             ewrite(3,*) 'CV_SILOC,CV_SNOD,IPHASE,CV_SNOD_PHAS:', &
+                          CV_SILOC,CV_SNOD,IPHASE,CV_SNOD_PHAS
 
              ewrite(3,*) 'SUF_P_BC, SUF_VOL_BC, SUF_D_BC:', &
-                  SUF_P_BC(CV_NOD_PHAS), SUF_VOL_BC(CV_NOD_PHAS), SUF_D_BC(CV_NOD_PHAS)
-             ewrite(3,*) 'SUF_VOL_BC_ROB1(CV_NOD_PHAS), SUF_VOL_BC_ROB2(CV_NOD_PHAS):', &
-                  SUF_VOL_BC_ROB1(CV_NOD_PHAS), SUF_VOL_BC_ROB2(CV_NOD_PHAS)
+                  SUF_P_BC(CV_SNOD_PHAS), SUF_VOL_BC(CV_SNOD_PHAS), SUF_D_BC(CV_SNOD_PHAS)
+             ewrite(3,*) 'SUF_VOL_BC_ROB1(CV_SNOD_PHAS), SUF_VOL_BC_ROB2(CV_SNOD_PHAS):', &
+                  SUF_VOL_BC_ROB1(CV_SNOD_PHAS), SUF_VOL_BC_ROB2(CV_SNOD_PHAS)
           END DO
 
        END DO
     END DO
+    STOP 2621
     RETURN
   END SUBROUTINE TEST_BC
 
