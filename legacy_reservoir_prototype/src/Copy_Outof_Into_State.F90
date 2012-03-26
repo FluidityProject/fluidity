@@ -1388,7 +1388,7 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
 !!! Velocity and associated boundary conditions:
 !!!
       ewrite(3,*) "velocity..."
-
+ 
 
       if (.not. allocated(u)) then
          allocate(u(nphases*size(velocity%val(1, :))))
