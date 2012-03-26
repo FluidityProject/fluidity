@@ -236,7 +236,7 @@ module copy_outof_into_state
       real :: gravity_magnitude, delta_den, grm
       type(vector_field) :: gravity_direction
 
-      integer :: nobcs, nodi
+      integer :: nobcs
 
       character(len=option_path_len) :: vel_element_type
       integer, dimension( : ), allocatable :: index
@@ -246,10 +246,8 @@ module copy_outof_into_state
       real :: val
 
       ! velocity bcs
-      integer :: local_node, count
+      integer :: count
       integer, dimension(:), allocatable :: face_nodes
-      type(mesh_type), pointer :: surface_mesh
-      integer, dimension(:), pointer :: surface_element_list, surface_node_list
 
       ewrite(3,*) 'In copy_outof_state'
 
@@ -1156,13 +1154,15 @@ module copy_outof_into_state
             allocate( den( nphases * node_count( density ))) ; den = 0.
          endif
          if ( .not. allocated( wic_d_bc )) then
-            allocate( wic_d_bc( stotel * nphases ) ) ;  wic_d_bc = 0
+            allocate( wic_d_bc( stotel * nphases ) ) ; wic_d_bc = 0
          end if
          if ( .not. allocated( suf_d_bc )) then 
             allocate( suf_d_bc( stotel * p_snloc * nphases ) ) ; suf_d_bc = 0.
          end if
+
          call Get_ScalarFields_Outof_State( state, i, density, &
               den, wic_d_bc, suf_d_bc )
+
          ewrite(3,*)'density:', den
          ewrite(3,*)'==='
          ewrite(3,*)'wic_d_bc:', wic_d_bc
@@ -1457,13 +1457,11 @@ module copy_outof_into_state
          if (.not. allocated(initial_constant_velocity)) allocate(initial_constant_velocity(ndim))
          initial_constant_velocity=0.
          call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
-              initial_constant_velocity, stat)
+              initial_constant_velocity)
 
-         if (stat==0) then
-            u((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(1)
-            if (ndim>1) v((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(2)
-            if (ndim>2) w((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(3)
-         endif
+         u((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(1)
+         if (ndim>1) v((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(2)
+         if (ndim>2) w((i-1)*size(velocity%val(1, :))+1:i*size(velocity%val(1, :)))=initial_constant_velocity(3)
 
          ! This will make sure that the fields in the PC *does not* contain any boundary conditions
          ! elements. This need to be changed along with the future data structure to take into 
@@ -1488,15 +1486,11 @@ module copy_outof_into_state
               ']/vector_field::Velocity/prognostic/' // &
               'boundary_conditions[0]/type::dirichlet' )) then
 
-
             nobcs = get_boundary_condition_count( velocity )
             Velocity_BC_Type = 1
 
-
             do k = 1, nobcs
                velocity_bc => extract_surface_field( velocity, k, "value" )
-               print *, 'phase, bc', i, k
-               ewrite_minmax(velocity_bc)
 
                shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
                     &prognostic/boundary_conditions["//int2str(k-1)//"]/surface_ids")
@@ -1506,10 +1500,11 @@ module copy_outof_into_state
                call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
                     &prognostic/boundary_conditions[" // int2str(k-1) // "]/surface_ids", Velocity_SufID_BC )
 
+               ! we can delete this 
                ! Specify the boundary condition type.
-               do j = 1, shape_option( 1 )
-                  wic_u_bc( velocity_sufid_bc(j) + ( i - 1 ) * nphases ) = Velocity_BC_Type
-               enddo
+               !do j = 1, shape_option( 1 )
+               !   wic_u_bc( velocity_sufid_bc(j) + ( i - 1 ) * nphases ) = Velocity_BC_Type
+               !enddo
 
                allocate(face_nodes(face_loc(velocity, 1)))
                face_nodes=(/( l, l=1, u_snloc2)/)
@@ -1518,6 +1513,8 @@ module copy_outof_into_state
 
                   if( any ( velocity_sufid_bc == vmesh%faces%boundary_ids(j) ) ) then 
 
+                     wic_u_bc( j  + ( i - 1 ) * stotel ) = Velocity_BC_Type
+
                      count=1
                      do kk = 1, u_snloc
 
@@ -1525,16 +1522,8 @@ module copy_outof_into_state
                         if (velocity%dim>1) suf_v_bc( ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk ) = velocity_bc%val( 2, face_nodes(count) )
                         if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk ) = velocity_bc%val( 3, face_nodes(count) )
 
-                        !print *, i, j, vmesh%faces%boundary_ids(j), &
-                        !     ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk, velocity_bc%val( 1, face_nodes(count) )
-
-
-                        !print *, suf_u_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ), &
-                        !     suf_v_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ), &
-                        !     suf_w_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk )
-
                         count=count+1
-                        if (mod(kk, u_snloc2)==0. ) count=1
+                        if ( mod(kk, u_snloc2)==0. ) count=1
                      end do
 
                      face_nodes = face_nodes + u_snloc2
@@ -1549,7 +1538,7 @@ module copy_outof_into_state
 
          endif Conditional_Velocity_BC
 
-      enddo Loop_Velocity ! phase loop
+      enddo Loop_Velocity ! This is the phase loop
 
 
       allocate(uabs_option(nphases))
@@ -2152,40 +2141,38 @@ module copy_outof_into_state
       ! Local variables
       type( mesh_type ), pointer :: pmesh, cmesh
       type(scalar_field), pointer :: pressure
-      integer, dimension(:), allocatable :: sufid_bc, shape_option
+      integer, dimension(:), allocatable :: sufid_bc
       character( len = option_path_len ) :: option_path, field_name
-      integer :: stotel, nobcs, bc_type, i, j, k, kk, nstates, nphases, ncomps, snloc, stat
+      integer :: stotel, nobcs, bc_type, i, j, k, kk
+      integer :: nstates, nphases, ncomps, snloc, stat
+      integer :: shape_option(2)
       real :: initial_constant
 
       field_name = trim( field % name )
       field => extract_scalar_field( state( iphase ), field_name )
 
       pressure => extract_scalar_field(state(1), "Pressure")
+      ! this is basically p_snloc
       snloc = face_loc( pressure, 1 )
-     
+
       pmesh => extract_mesh(state, "PressureMesh" )
       cmesh => extract_mesh(state, "CoordinateMesh" )
 
       stotel = surface_element_count( cmesh )
       nstates = option_count("/material_phase")
-      ncomps=0
-      do i=1,nstates
+      ncomps = 0
+      do i = 1, nstates
          if (have_option("/material_phase[" // int2str(i-1) // "]/is_multiphase_component")) then
             ncomps=ncomps+1
          end if
       end do
       nphases = nstates - ncomps
-      allocate( shape_option( nphases ) ) ! This need to be generalised!!
-
-
-      print *, stotel, nstates, nphases
-
 
       option_path = "/material_phase["//int2str(iphase-1)//"]/scalar_field::"//trim(field_name)
 
+      ! only constant initial conditions supported for now (i.e. no python functions)
       call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
            initial_constant, stat)
-
       if (stat==0) then
          field_prot = initial_constant
       else
@@ -2194,52 +2181,29 @@ module copy_outof_into_state
          ewrite(1, *) "field name::", trim(field_name)
       end if
 
-
       Conditional_Field_BC: if( have_option( trim( option_path ) // &
            "/prognostic/boundary_conditions[0]/type::dirichlet" )) then
 
-         bc_type = 1
+         BC_Type = 1
          nobcs = get_boundary_condition_count( field )
-
 
          do k = 1, nobcs
             field_prot_bc => extract_surface_field( field, k, "value" )
 
-            BC_Type = 1
-
-            ewrite(3,*)'fckp:',  trim( option_path ) // "/prognostic/boundary_conditions["// int2str(k-1)//"]/surface_ids"
-!/material_phase::phase2/scalar_field::Density/prognostic/boundary_conditions::inflow/type::dirichlet
-             
-
             shape_option = option_shape( trim( option_path ) // &
-                  "/prognostic/boundary_conditions["// int2str(k-1)//"]/surface_ids" )
-
-ewrite(3,*) 'fff'
+                 "/prognostic/boundary_conditions["// int2str(k-1)//"]/surface_ids" )
 
             allocate( sufid_bc( 1 : shape_option( 1 )) )
-ewrite(3,*) 'fff2'
 
             call get_option( '/material_phase[' // int2str(iphase-1) // &
                  ']/scalar_field::' // trim(field_name) // '/prognostic/' // &
                  'boundary_conditions['//int2str(k-1)//']/surface_ids', SufID_BC )
-ewrite(3,*) 'fff3'
-
-
-            ! Specify the boundary condition type.
-            !do j=1,shape_option(1)
-            !   wic_bc( sufid_bc( j ) + ( iphase - 1 ) * stotel ) = bc_type
-            !enddo
-            !do j = 1, stotel
-            !   if () &
-            !        wic_bc( j  + ( iphase - 1 ) * stotel ) = bc_type
-            !end do
-
 
             do j = 1, stotel
                if( any ( sufid_bc == pmesh%faces%boundary_ids(j) ) ) then
-                  
-                  wic_bc( j  + ( iphase - 1 ) * stotel ) = bc_type
- 
+
+                  wic_bc( j  + ( iphase - 1 ) * stotel ) = BC_Type
+
                   do kk = 1, snloc
                      ! this assumes a constant bc (i.e. python functions are not supported)
                      suf_bc( ( iphase - 1 ) * stotel*snloc + (j-1)*snloc + kk ) = field_prot_bc%val(1)
@@ -2249,14 +2213,10 @@ ewrite(3,*) 'fff3'
             end do
 
             deallocate( sufid_bc )
-            deallocate( shape_option )
 
          end do ! End of BC loop
 
-      endif Conditional_Field_BC
-
-
-
+      end if Conditional_Field_BC
 
       return
     end subroutine Get_ScalarFields_Outof_State
