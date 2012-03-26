@@ -156,6 +156,8 @@ module copy_outof_into_state
       integer, dimension(:), pointer :: element_nodes
 
       real, dimension(:), allocatable :: initial_constant_velocity
+      real :: initial_constant_density
+
 
       logical :: is_isotropic, is_symmetric, is_diagonal, ndgln_switch
 
@@ -1153,14 +1155,18 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
          density => extract_scalar_field( state( i ), "Density")
          if ( .not. allocated( den )) allocate( den( nphases * node_count( density )))
 
-         do j = node_count( density ), 1, -1
-            den(( i - 1 ) * node_count( density ) + j ) = density%val( j )
-            ! This will make sure that the fields in the PC *does not* contain any boundary conditions
-            ! elements. This need to be changed along with the future data structure to take into 
-            ! account the overlapping formulation.
-            if( j == 1 ) den(( i - 1 ) * node_count( density ) + j ) = &
-                 den(( i - 1 ) * node_count( density ) + j + 1)     
-         end do
+         option_path = "/material_phase["//int2str(i-1)//"]/scalar_field::Density"
+
+         call get_option(trim(option_path)//"/prognostic/initial_condition::WholeMesh/constant", &
+              initial_constant_density, stat)
+
+         if (stat==0) then
+            den = initial_constant_density
+         else
+            den = 1
+            ewrite(1, *) "Initialising density to 1."
+         end if
+
 
          if( .not. ( allocated( wic_d_bc ) .and. allocated( suf_d_bc ))) then 
             allocate( wic_d_bc( stotel * nphases ))
@@ -1175,41 +1181,42 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
               "]/scalar_field::Density/" // &
               "prognostic/boundary_conditions[0]/type::dirichlet" )) then
 
-            shape_option = option_shape( "/material_phase[" // int2str(i-1) // "]/scalar_field::" // &
-                 "Density/prognostic/boundary_conditions[0]/surface_ids" )
-            allocate(  density_sufid_bc( 1 : shape_option( 1 )))
-
-            pvf_bc_type = 1
-            nobcs = get_boundary_condition_count( density )
+         pvf_bc_type = 1
+         nobcs = get_boundary_condition_count( density )
 
 
-           do k = 1, nobcs
-             density_bc => extract_surface_field( density, k, "value" )
+            do k = 1, nobcs
+               density_bc => extract_surface_field( density, k, "value" )
               
-             Density_BC_Type = 1
+               Density_BC_Type = 1
 
-             call get_option( '/material_phase[' // int2str(i-1) // &
-                 ']/scalar_field::Density/prognostic/' // &
-                 'boundary_conditions[0]/surface_ids', Density_SufID_BC )
+               shape_option = option_shape( "/material_phase[" // int2str(i-1) // "]/scalar_field::" // &
+                    "Density/prognostic/boundary_conditions["// int2str(k-1)//"]/surface_ids" )
+               allocate( density_sufid_bc( 1 : shape_option( 1 )) )
+
+              call get_option( '/material_phase[' // int2str(i-1) // &
+                    ']/scalar_field::Density/prognostic/' // &
+                    'boundary_conditions['//int2str(k-1)//']/surface_ids', Density_SufID_BC )
 
 
-             ! Specify the boundary condition type.
-             do j=1,shape_option(1)
-               wic_d_bc( density_sufid_bc( j ) + ( i - 1 ) * nphases ) = density_bc_type
-             enddo
+               ! Specify the boundary condition type.
+               do j=1,shape_option(1)
+                  wic_d_bc( density_sufid_bc( j ) + ( i - 1 ) * nphases ) = density_bc_type
+               enddo
       
-             do j = 1, stotel
-              if(pmesh%faces%boundary_ids(j) .eq. density_sufid_bc(k)) then
-               do kk = 1, p_snloc
-                  suf_d_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = density_bc%val( k )
+               do j = 1, stotel
+                  if( any ( density_sufid_bc == pmesh%faces%boundary_ids(j) ) ) then 
+                     do kk = 1, p_snloc
+                        ! this assumes a constant bc (i.e. python functions are not supported)
+                        suf_d_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = density_bc%val(1)
+                     end do
+                     
+                  end if
                end do
-              end if 
-             end do
-      
+
+               deallocate(density_sufid_bc)
+
            end do ! End of BC loop
-
-
-          deallocate(density_sufid_bc)
 
          endif Conditional_Density_BC
 
@@ -1364,7 +1371,7 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
          
       
              do j = 1, stotel
-              if(pmesh%faces%boundary_ids(j) .eq. pvf_sufid_bc(k)) then
+              if(pmesh%faces%boundary_ids(j) == pvf_sufid_bc(k)) then
                do kk = 1, p_snloc
                   suf_vol_bc( ( i - 1 ) * stotel*p_snloc + (j-1)*p_snloc + kk ) = phasevolumefraction_bc%val( k )
                end do
@@ -1470,17 +1477,6 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
 
                shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
                     &prognostic/boundary_conditions["//int2str(k-1)//"]/surface_ids")
-    
-
-               ! Get the surface mesh.
-               !call get_boundary_condition(velocity, k, surface_mesh=surface_mesh, &
-               !     surface_element_list=surface_element_list, &
-               !     surface_node_list=surface_node_list)
-               !print *, 'SEL1::', surface_element_list
-               !print *, 'SEL2::', surface_node_list
-               !print *, 'SEL3::', ele_count(surface_mesh), node_count(surface_mesh), &
-               !     ele_count(velocity), node_count(velocity), &
-               !     ele_count(velocity_bc), node_count(velocity_bc)
 
                allocate(velocity_sufid_bc(1:shape_option(1)))
 
@@ -1532,11 +1528,6 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
 
       enddo Loop_Velocity ! phase loop
 
-      !print *, 'dim', velocity%dim
-      !do kk=1, size(suf_u_bc)
-      !   print *, kk, suf_u_bc(kk), suf_v_bc(kk),suf_w_bc(kk)
-      !end do
-      !stop 999
 
       allocate(uabs_option(nphases))
       allocate(eos_option(nphases))
