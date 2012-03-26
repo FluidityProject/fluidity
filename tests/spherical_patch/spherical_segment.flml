@@ -49,7 +49,7 @@
     </mesh>
     <mesh name="InputMesh">
       <from_file file_name="patch">
-        <format name="triangle"/>
+        <format name="gmsh"/>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -67,7 +67,7 @@
             </bottom_depth>
             <sizing_function>
               <constant>
-                <real_value rank="0">45</real_value>
+                <real_value rank="0">30</real_value>
               </constant>
             </sizing_function>
             <top_surface_id>
@@ -164,6 +164,12 @@
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">10</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
     <stat/>
   </io>
   <timestepping>
@@ -172,26 +178,18 @@
       <time_units date="seconds since 1987-01-05 00:00.0"/>
     </current_time>
     <timestep>
-      <real_value rank="0">300.0</real_value>
+      <real_value rank="0">3600.0</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">2592000</real_value>
       <comment>(2592000)1 month, in seconds. Given a timestep size of 300 s, the simulation should perform 8640 time-steps.</comment>
     </finish_time>
+    <final_timestep>
+      <integer_value rank="0">2</integer_value>
+    </final_timestep>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
     </nonlinear_iterations>
-    <adaptive_timestep>
-      <requested_cfl>
-        <real_value rank="0">1.0</real_value>
-      </requested_cfl>
-      <courant_number name="CFLNumber">
-        <mesh name="VelocityMesh"/>
-      </courant_number>
-      <minimum_timestep>
-        <real_value rank="0">30</real_value>
-      </minimum_timestep>
-    </adaptive_timestep>
   </timestepping>
   <physical_parameters>
     <gravity>
@@ -241,22 +239,6 @@
           <reference_density>
             <real_value rank="0">1.0</real_value>
           </reference_density>
-          <temperature_dependency>
-            <reference_temperature>
-              <real_value rank="0">0.0</real_value>
-            </reference_temperature>
-            <thermal_expansion_coefficient>
-              <real_value rank="0">2.e-4</real_value>
-            </thermal_expansion_coefficient>
-          </temperature_dependency>
-          <salinity_dependency>
-            <reference_salinity>
-              <real_value rank="0">0.0</real_value>
-            </reference_salinity>
-            <saline_contraction_coefficient>
-              <real_value rank="0">2e-3</real_value>
-            </saline_contraction_coefficient>
-          </salinity_dependency>
           <subtract_out_hydrostatic_level/>
         </linear>
       </fluids>
@@ -293,13 +275,19 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">0.0</real_value>
-          </constant>
+          <free_surface>
+            <python>
+              <string_value type="code" lines="20" language="python">def val(X,t):
+  from math import asin, atan2, sqrt, pi, exp
+  r=sqrt(sum([x**2 for x in X]))
+  lon=180/pi*atan2(X[1],X[0])
+  lat=180/pi*asin(X[2]/r)
+  d=(lat-52.75)**2+(lon+5.875)**2
+  return exp(-d)</string_value>
+            </python>
+          </free_surface>
         </initial_condition>
-        <output>
-          <debugging_vtus/>
-        </output>
+        <output/>
         <stat/>
         <convergence>
           <include_in_convergence/>
@@ -389,17 +377,6 @@
             <real_value shape="3" dim1="dim" rank="1">0.0 0.0 0.0</real_value>
           </constant>
         </initial_condition>
-        <boundary_conditions name="drag_on_bottom_and_sides">
-          <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
-          </surface_ids>
-          <type name="drag">
-            <constant>
-              <real_value rank="0">0.0025</real_value>
-            </constant>
-            <quadratic_drag/>
-          </type>
-        </boundary_conditions>
         <boundary_conditions name="FreeSurface">
           <surface_ids>
             <integer_value shape="1" rank="1">1</integer_value>
@@ -408,7 +385,7 @@
         </boundary_conditions>
         <boundary_conditions name="NoNormalFlow">
           <surface_ids>
-            <integer_value shape="1" rank="1">2</integer_value>
+            <integer_value shape="5" rank="1">2 1009 1010 1011 1013</integer_value>
           </surface_ids>
           <type name="no_normal_flow"/>
         </boundary_conditions>
@@ -503,280 +480,6 @@
           <include_in_steady_state/>
         </steady_state>
       </diagnostic>
-    </scalar_field>
-    <scalar_field name="Temperature" rank="0">
-      <prognostic>
-        <mesh name="VelocityMesh"/>
-        <equation name="AdvectionDiffusion"/>
-        <spatial_discretisation>
-          <discontinuous_galerkin>
-            <advection_scheme>
-              <upwind/>
-              <project_velocity_to_continuous>
-                <mesh name="BaseMesh"/>
-              </project_velocity_to_continuous>
-              <integrate_advection_by_parts>
-                <twice/>
-              </integrate_advection_by_parts>
-            </advection_scheme>
-            <diffusion_scheme>
-              <compact_discontinuous_galerkin/>
-            </diffusion_scheme>
-            <slope_limiter name="Vertex_Based"/>
-          </discontinuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-          <discontinuous_galerkin>
-            <maximum_courant_number_per_subcycle>
-              <real_value rank="0">0.1</real_value>
-            </maximum_courant_number_per_subcycle>
-          </discontinuous_galerkin>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="eisenstat"/>
-          <relative_error>
-            <real_value rank="0">1e-6</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">3000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
-    a = X[0]
-    b = X[1]
-    c = X[2]
-    from math import sqrt
-    dtt=6.37101e+6-sqrt(a**2+b**2+c**2)
-    T=20.0-(0.01)*dtt
-    return T</string_value>
-          </python>
-        </initial_condition>
-        <tensor_field name="Diffusivity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <anisotropic_symmetric>
-                <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
-    a = X[0]
-    b = X[1]
-    c = X[2]
-    from math import sqrt, sin, cos, atan2, acos
-    r=sqrt(a**2+b**2+c**2)
-    A1=20000.0
-    A2=A1
-    A3=1.0e-4
-    phi=atan2(b,a)
-    theta=acos(c/r)
-    T11=A1*sin(phi)**2+A2*cos(theta)**2*cos(phi)**2+A3*sin(theta)**2*cos(phi)**2
-    T12=-A1*sin(phi)*cos(phi)+A2*cos(theta)**2*sin(phi)*cos(phi)+A3*sin(theta)**2*sin(phi)*cos(phi)
-    T13=-A2*sin(theta)*cos(theta)*cos(phi)+A3*sin(theta)*cos(theta)*cos(phi)
-    T21=T12
-    T22=A1*cos(phi)**2+A2*cos(theta)**2*sin(phi)**2+A3*sin(theta)**2*sin(phi)**2
-    T23=-A2*sin(theta)*cos(theta)*sin(phi)+A3*sin(theta)*cos(theta)*sin(phi)
-    T31=T13
-    T32=T23
-    T33=A2*sin(theta)**2+A3*cos(theta)**2
-    
-    return [[T11, T12, T13],
-           [T21, T22, T23],
-           [T31, T32, T33]]</string_value>
-                </python>
-              </anisotropic_symmetric>
-            </value>
-            <output/>
-          </prescribed>
-        </tensor_field>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
-    </scalar_field>
-    <scalar_field name="GeostrophicPressure" rank="0">
-      <prognostic>
-        <mesh name="PressureMesh"/>
-        <spatial_discretisation>
-          <geostrophic_pressure_option>
-            <string_value>exclude_coriolis</string_value>
-          </geostrophic_pressure_option>
-        </spatial_discretisation>
-        <solver>
-          <iterative_method name="cg"/>
-          <preconditioner name="mg">
-            <vertical_lumping/>
-          </preconditioner>
-          <relative_error>
-            <real_value rank="0">1.0e-8</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">10000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <boundary_conditions name="zero_top">
-          <surface_ids>
-            <integer_value shape="1" rank="1">1</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">0.0</real_value>
-            </constant>
-          </type>
-        </boundary_conditions>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <no_interpolation/>
-      </prognostic>
-    </scalar_field>
-    <scalar_field name="Salinity" rank="0">
-      <prognostic>
-        <mesh name="VelocityMesh"/>
-        <equation name="AdvectionDiffusion"/>
-        <spatial_discretisation>
-          <discontinuous_galerkin>
-            <advection_scheme>
-              <upwind/>
-              <project_velocity_to_continuous>
-                <mesh name="CoordinateMesh"/>
-              </project_velocity_to_continuous>
-              <integrate_advection_by_parts>
-                <twice/>
-              </integrate_advection_by_parts>
-            </advection_scheme>
-            <diffusion_scheme>
-              <compact_discontinuous_galerkin/>
-            </diffusion_scheme>
-            <slope_limiter name="Vertex_Based"/>
-          </discontinuous_galerkin>
-          <conservative_advection>
-            <real_value rank="0">0.0</real_value>
-          </conservative_advection>
-        </spatial_discretisation>
-        <temporal_discretisation>
-          <theta>
-            <real_value rank="0">1.0</real_value>
-          </theta>
-          <discontinuous_galerkin>
-            <maximum_courant_number_per_subcycle>
-              <real_value rank="0">0.1</real_value>
-            </maximum_courant_number_per_subcycle>
-          </discontinuous_galerkin>
-        </temporal_discretisation>
-        <solver>
-          <iterative_method name="gmres">
-            <restart>
-              <integer_value rank="0">30</integer_value>
-            </restart>
-          </iterative_method>
-          <preconditioner name="eisenstat"/>
-          <relative_error>
-            <real_value rank="0">1e-6</real_value>
-          </relative_error>
-          <max_iterations>
-            <integer_value rank="0">3000</integer_value>
-          </max_iterations>
-          <never_ignore_solver_failures/>
-          <diagnostics>
-            <monitors/>
-          </diagnostics>
-        </solver>
-        <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X, t):
-    a = X[0]
-    b = X[1]
-    c = X[2]
-    from math import sqrt
-    dtt=6.37101e+6-sqrt(a**2+b**2+c**2)
-    T = 32.0 + 0.01*dtt
-    return T</string_value>
-          </python>
-        </initial_condition>
-        <tensor_field name="Diffusivity" rank="2">
-          <prescribed>
-            <value name="WholeMesh">
-              <anisotropic_symmetric>
-                <python>
-                  <string_value lines="20" type="code" language="python">def val(X, t):
-    a = X[0]
-    b = X[1]
-    c = X[2]
-    from math import sqrt, sin, cos, atan2, acos
-    r=sqrt(a**2+b**2+c**2)
-    A1=20000.0
-    A2=A1
-    A3=1.0e-4
-    phi=atan2(b,a)
-    theta=acos(c/r)
-    T11=A1*sin(phi)**2+A2*cos(theta)**2*cos(phi)**2+A3*sin(theta)**2*cos(phi)**2
-    T12=-A1*sin(phi)*cos(phi)+A2*cos(theta)**2*sin(phi)*cos(phi)+A3*sin(theta)**2*sin(phi)*cos(phi)
-    T13=-A2*sin(theta)*cos(theta)*cos(phi)+A3*sin(theta)*cos(theta)*cos(phi)
-    T21=T12
-    T22=A1*cos(phi)**2+A2*cos(theta)**2*sin(phi)**2+A3*sin(theta)**2*sin(phi)**2
-    T23=-A2*sin(theta)*cos(theta)*sin(phi)+A3*sin(theta)*cos(theta)*sin(phi)
-    T31=T13
-    T32=T23
-    T33=A2*sin(theta)**2+A3*cos(theta)**2
-    
-    return [[T11, T12, T13],
-           [T21, T22, T23],
-           [T31, T32, T33]]</string_value>
-                </python>
-              </anisotropic_symmetric>
-            </value>
-            <output/>
-          </prescribed>
-        </tensor_field>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-        <consistent_interpolation/>
-      </prognostic>
     </scalar_field>
     <scalar_field name="Partition" rank="0">
       <diagnostic>
