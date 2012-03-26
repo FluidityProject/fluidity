@@ -3423,7 +3423,7 @@ contains
     END DO
 
     ewrite(3,*) 'Leaving LUMP_ENERGY_EQNS'
-
+ 
   END SUBROUTINE LUMP_ENERGY_EQNS
 
 
