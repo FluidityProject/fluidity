@@ -581,7 +581,7 @@ contains
           print *,'is a bottom boundary element'
           print *,'u-phase1=0., u-phase2=0.'
        ENDIF
-       IF(IYMAX==CV_SNLOC) THEN
+       IF(IYMAX==CV_SNLOC) THEN 
           print *,'is a top boundary element'
           print *,'u-phase1=0., u-phase2=0.'
        ENDIF
