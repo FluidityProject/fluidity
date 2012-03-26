@@ -1610,7 +1610,7 @@
       real, dimension( cv_nloc ), intent( inout ) :: sele_overlap_scale
       ! Local variables
       logical, dimension( :, : ), allocatable :: u_on_face2, ufem_on_face2
-      integer, dimension( :, : ), allocatable :: u_sloclist2, u_neiloc, u_neiloc2
+      integer, dimension( :, : ), allocatable :: u_sloclist2
       real, dimension( :, : ), allocatable :: ufen2, ufenlx2, ufenly2, ufenlz2, & 
            sufen2, sufenslx2, sufensly2, sufenlx2, sufenly2, sufenlz2, &
            sbufen2, sbufenslx2, sbufensly2, sbufenlx2, sbufenly2, sbufenlz2 
@@ -1720,9 +1720,6 @@
       Conditional_OverlappingMethod2: if( is_overlapping ) then
          u_ele_type2 = 1
          u_nloc2 = u_nloc / cv_nloc
-         allocate( u_neiloc( u_nloc, scvngi ) )
-         allocate( u_neiloc2( u_nloc2, scvngi ) )
-         allocate( u_on_face2( u_nloc2, scvngi ) )
          allocate( ufem_on_face2( u_nloc2, scvngi ) )
          allocate( sufen2( u_nloc2, scvngi ) )
          allocate( sufenslx2( u_nloc2, scvngi ) )
@@ -1737,7 +1734,7 @@
 
 
          call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
-              u_neiloc2, u_on_face2, ufem_on_face2, &
+              ufem_on_face2, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc2, sufen2, sufenslx2, sufensly2, &
@@ -1785,17 +1782,13 @@
             sufenlz( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
                  1 : scvngi ) = &
                  sufenlz2( 1 : u_nloc2, 1 : scvngi )
-            u_neiloc( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
-                 1 : scvngi ) = u_neiloc2( 1 : u_nloc2, 1 : scvngi )
-            u_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
-                 1 : scvngi ) = u_on_face2( 1 : u_nloc2, 1 : scvngi )
             ufem_on_face( 1 + ( ilev - 1 ) * u_nloc2 : ilev * u_nloc2, &
                  1 : scvngi ) = ufem_on_face2( 1 : u_nloc2, 1 : scvngi )
          end do Loop_ILEV2
 
       else
          call shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
-              u_neiloc, u_on_face, ufem_on_face, &
+              ufem_on_face, &
               cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
               scvfenlx, scvfenly, scvfenlz, &
               u_nloc, sufen, sufenslx, sufensly, &
@@ -1905,9 +1898,6 @@
          deallocate( ufenlx2 )
          deallocate( ufenly2 )
          deallocate( ufenlz2 )
-         deallocate( u_neiloc )
-         deallocate( u_neiloc2 )
-         deallocate( u_on_face2 )
          deallocate( ufem_on_face2 )
          deallocate( sufen2 )
          deallocate( sufenslx2 )
@@ -2245,7 +2235,7 @@
 
 
     subroutine shapesv_fem_plus( scvngi, cv_neiloc, cv_on_face, cvfem_on_face, &
-         u_neiloc, u_on_face, ufem_on_face, &
+         ufem_on_face, &
          cv_ele_type, cv_nloc, scvfen, scvfenslx, scvfensly, scvfeweigh, &
          scvfenlx, scvfenly, scvfenlz, &
          u_nloc, sufen, sufenslx, sufensly, &
@@ -2263,9 +2253,8 @@
       !-
       integer, intent( in ) :: scvngi, cv_nloc
       integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc
-      integer, dimension( u_nloc, scvngi ), intent( inout ) :: u_neiloc
       logical, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_on_face, cvfem_on_face
-      logical, dimension( u_nloc, scvngi ), intent( inout ) :: u_on_face, ufem_on_face
+      logical, dimension( u_nloc, scvngi ), intent( inout ) :: ufem_on_face
       integer, intent( in ) :: cv_ele_type
       real, dimension( cv_nloc, scvngi ), intent( inout ) :: scvfen, scvfenslx, scvfensly
       real, dimension( scvngi ), intent( inout ) :: scvfeweigh
@@ -2305,7 +2294,7 @@
          call suf_cv_tri_tet_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, scvfeweigh, &
               scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly,  &
               sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
-              cv_neiloc, cvfem_neiloc, u_neiloc, ufem_neiloc )
+              cv_neiloc, cvfem_neiloc, ufem_neiloc )
 
       case( 5 ) ! Bi-linear Quadrilateral
          call fvquad( scvngi, cv_nloc, scvngi, &
@@ -2385,7 +2374,6 @@
 
       do iloc = 1, u_nloc
          do gi = 1, scvngi 
-            u_on_face( iloc, gi ) = ( u_neiloc( iloc, gi ) == -1 )
             ufem_on_face( iloc, gi ) = ( ufem_neiloc( iloc, gi ) == -1 )
          end do
       end do

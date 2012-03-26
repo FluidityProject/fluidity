@@ -1679,7 +1679,8 @@
 
       ! Compute the shape functions using these quadrilaterals/hexs:
       ! For pressure:
-      call shape_tri_tet( cv_ele_type, ndim, totele, cv_nloc, cv_ngi, x_nonods, &
+      call shape_tri_tet( cv_ele_type, cv_nloc, &
+           cv_ele_type, ndim, totele, cv_nloc, cv_ngi, x_nonods, &
            quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
            n, nlx, nly, nlz, cvweigh )
 
@@ -1688,15 +1689,13 @@
            quad_cv_nloc, x_ndgln, fem_nod, cvn )
 
       ! And for velocities:
-      if(u_nloc==1) then ! constant basis function throughout element...
-        un=1.0
-        unlx=0.0
-        if(ndim >= 2) unly=0.0
-        if(ndim >= 3) unlz=0.0
+      if( u_nloc == 1 ) then ! constant basis function throughout element...
+         un = 1.0 ; unlx = 0.0 ; unly = 0.0 ; unlz = 0.0
       else
-        call shape_tri_tet( cv_ele_type, ndim, totele, u_nloc, cv_ngi, x_nonods, &
-           quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
-           un, unlx, unly, unlz, cvweigh_dummy )
+         call shape_tri_tet( cv_ele_type, cv_nloc, &
+              cv_ele_type, ndim, totele, u_nloc, cv_ngi, x_nonods, &
+              quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
+              un, unlx, unly, unlz, cvweigh_dummy )
       endif
 
       deallocate( lx )
@@ -2252,9 +2251,7 @@
     subroutine suf_cv_tri_tet_shape( cv_ele_type, ndim, scvngi, cv_nloc, u_nloc, scvfeweigh, &
          scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly,  &
          sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
-         cv_neiloc, cvfem_neiloc, u_neiloc, ufem_neiloc )
-      !        sn, snlx, snly, snlz, sufnlx, sufnly,  &
-      !        sun, sunlx, sunly, sunlz, sufunlx, sufunly  )
+         cv_neiloc, cvfem_neiloc, ufem_neiloc )
       ! Compute shape functions N, UN etc for linear triangles. Shape functions 
       ! associated with volume integration using both CV basis functions CVN, as 
       ! well as FEM basis functions SN (and its derivatives SNLX, SNLY, SNLZ). Also 
@@ -2268,10 +2265,11 @@
       real, dimension( u_nloc, scvngi ), intent( inout ) :: sufen, sufenlx, sufenly, sufenlz, &
            sufenslx, sufensly
       integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc, cvfem_neiloc
-      integer, dimension( u_nloc, scvngi ), intent( inout ) :: u_neiloc, ufem_neiloc
+      integer, dimension( u_nloc, scvngi ), intent( inout ) :: ufem_neiloc
       ! Local variables
       integer, parameter :: max_totele = 1000, max_x_nonods = 1000
       integer, dimension( : ), allocatable :: x_ndgln, fem_nod
+      integer, dimension( :, : ), allocatable :: cv_neiloc_cells_dummy
       real, dimension( : ), allocatable :: lx, ly, lz, x, y, z, scvfeweigh_dummy
       logical :: d1, dcyl, d3
       integer :: x_nonods, totele, ele, cv_iloc, quad_cv_ngi, quad_cv_nloc
@@ -2306,6 +2304,7 @@
       allocate( x_ndgln( max_totele * quad_cv_nloc ) )
       allocate( fem_nod( max_x_nonods ) )
       allocate( scvfeweigh_dummy( scvngi ) )
+      allocate( cv_neiloc_cells_dummy( cv_nloc,scvngi ) )
 
       ! Get the x_ndgln for the nodes of triangles, tetrahedra, quadrilaterals or hexahedra
       ! super-elements:
@@ -2331,6 +2330,7 @@
       ! Compute the shape functions using these quadrilaterals and hexahedra:
       ! For pressure:
       call Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
+           cv_nloc, cv_ele_type, &
            cv_ele_type, ndim, totele, cv_nloc, scvngi, x_nonods, &
            quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
            scvfen, scvfenlx, scvfenly, scvfenlz, scvfenslx, scvfensly, &
@@ -2358,19 +2358,16 @@
       ewrite(3,*) ( scvfeweigh( cv_iloc ), cv_iloc = 1, scvngi )
 
       ! And for velocities:
-      if(u_nloc==1) then ! a constant basis function... 
-        sufen=1.0 
-        sufenlx=0.0 
-        if(ndim>=2) sufenly=0.0
-        if(ndim>=3) sufenlz=0.0 
-        if(ndim>=2) sufenslx=0.0
-        if(ndim>=3) sufensly=0.0
+      if( u_nloc == 1 ) then ! a constant basis function... 
+        sufen = 1.0 ; sufenlx = 0.0 ; sufenly = 0.0 ; sufenlz = 0.0  
+        sufenslx = 0.0 ; sufensly = 0.0
       else
         call Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
+           cv_nloc, cv_ele_type, &
            cv_ele_type, ndim, totele, u_nloc, scvngi, x_nonods, &
            quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
            sufen, sufenlx, sufenly, sufenlz, sufenslx, sufensly, &
-           scvfeweigh_dummy, u_neiloc, ufem_neiloc )
+           scvfeweigh_dummy, cv_neiloc_cells_dummy, ufem_neiloc )
       endif
 
       ewrite(3,*)'Shape Functions for velocity fields -- SUFEN'
@@ -2403,24 +2400,32 @@
       deallocate( x_ndgln )
       deallocate( fem_nod )
       deallocate( scvfeweigh_dummy )
+      deallocate( cv_neiloc_cells_dummy )
 
       return
     end subroutine suf_cv_tri_tet_shape
 
 
     subroutine Compute_SurfaceShapeFunctions_Triangle_Tetrahedron( &
+         cv_nloc_cells, cv_ele_type_cells, &
          cv_ele_type, ndim, totele, cv_nloc, scvngi, x_nonods, &
          quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, fem_nod, &
          sn, snlx, snly, snlz, sufnlx, sufnly, &
-         scvweigh, cv_neiloc, cvfem_neiloc )
+         scvweigh, cv_neiloc_cells, cvfem_neiloc )
+      ! This subroutine calculates shape functions sn, snlx, snly, snlz, sufnlx, sufnly, 
+      ! their weights scvweigh and local connectivity cv_neiloc_cells, cvfem_neiloc 
+      ! on the boundaries of the cv_nloc_cells control volumes. 
+      ! The control volume types are defines using cv_ele_type_cells. 
+      ! cv_neiloc_cells is associated with the CV cells 
+      ! cvfem_neiloc is associated with the FEM basis SN etc.
       use shape_functions
       implicit none
-      integer, intent( in ) :: cv_ele_type, ndim, totele, cv_nloc, scvngi, &
-           x_nonods, quad_cv_nloc
+      integer, intent( in ) :: cv_nloc_cells, cv_ele_type_cells, cv_ele_type, &
+           ndim, totele, cv_nloc, scvngi, x_nonods, quad_cv_nloc
       integer, dimension( totele * quad_cv_nloc ), intent( in ) :: x_ndgln
       integer, dimension( x_nonods ), intent( in ) :: fem_nod
-      integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cv_neiloc
-      integer, dimension( cv_nloc, scvngi ), intent( inout ) :: cvfem_neiloc
+      integer, dimension( cv_nloc_cells, scvngi ), intent( inout ) :: cv_neiloc_cells, &
+           cvfem_neiloc
       real, dimension( x_nonods ), intent( in ) :: x, y, z
       real, dimension( quad_cv_nloc ), intent( in ) :: lx, ly, lz ! corner nodes
       real, dimension( cv_nloc, scvngi ), intent( inout ) :: sn, snlx, snly, snlz, &
@@ -2430,8 +2435,8 @@
       logical, dimension( : ), allocatable :: remove_ig_pt
       integer, dimension( : ), allocatable :: x_sndgln, next_to_cv_iloc_gi, &
            next_to_cv_iloc_gi2 
-      integer, dimension( :, : ), allocatable :: loc_2nd_lev, cv_neiloc_2, &
-           cv_neiloc_3
+      integer, dimension( :, : ), allocatable :: loc_2nd_lev, cv_neiloc_cells_2, &
+           cv_neiloc_cells_3
       real, dimension( : ), allocatable :: l1_2, l2_2, l3_2, l4_2, &
            quad_cvweight, detwei, ra, rdummy, &
            normxn, normyn, normzn, quad_scvweight, quad_sdetwei, sra, &
@@ -2452,23 +2457,23 @@
            ip, jp, kp, sele, iface, stotel, nface, npoly, quad_cv_snloc, quad_cv_sngi, &
            cv_iloc, cv_jloc, cv_iloc_belong, cv_ngi_2, cv_sgi, cv_sgj, &
            quad_cv_sgi, quad_cv_siloc, cv_sgk, cv_sngi_2, quad_cv_sjloc, quad_sgi, &
-           xnodi, xnodj, nodi, nodj
+           xnodi, xnodj, nodi, nodj, cv_iloc_cells, cv_jloc_cells
       real :: xgi, ygi, zgi, volume, sarea, normx, normy, normz, d2_quad
 
       ewrite(3,*)'In shape_tri_tet'
+
+      sn = 0.0 ; snlx = 0.0 ; snly = 0.0 ; snlz = 0.0 ; sufnlx = 0.0 ; sufnly = 0.0
 
       d3 = ( ndim == 3 )
       d2 = ( ndim == 2 )
       d1 = .false.
       dcyl = .false. 
 
-      sn = 0.0 ; snlx = 0.0 ; snly = 0.0 ; snlz = 0.0 ; sufnlx = 0.0 ; sufnly = 0.0
-
       ! Compute some dummy variables
       ! npoly=2 for linear 2 node elements, =3 for quadratic 3 node elements in 1D. 
       call dummy_tri_tet( d1, d3, quad_cv_ngi, quad_cv_nloc, &
            dummy_sngi, dummy_snloc, nwicel, & 
-           cv_nloc, scvngi, totele, quad_u_loc_dummy, &
+           cv_nloc_cells, scvngi, totele, quad_u_loc_dummy, &
            mloc, dummy_smloc, lowqua, npoly )
 
       quad_cv_snloc = npoly ** ( ndim - 1 )
@@ -2754,7 +2759,7 @@
                Loop_CV_ILOC: do cv_iloc = 1, cv_nloc
                   suf_quad_sn( cv_iloc, cv_sgi ) = 0.0
                   suf_quad_snlx( cv_iloc, cv_sgi ) = 0.0
-                  if( d3 ) suf_quad_snly( cv_iloc, cv_sgi ) = 0.0
+                  suf_quad_snly( cv_iloc, cv_sgi ) = 0.0
                   Loop_QUAD_CV_SJLOC: do quad_cv_sjloc = 1, quad_cv_snloc
                      xnod = x_sndgln( ( sele - 1 ) * quad_cv_snloc + quad_cv_sjloc )
                      suf_quad_sn( cv_iloc, cv_sgi ) = suf_quad_sn( cv_iloc, cv_sgi ) + &
@@ -2863,15 +2868,17 @@
       allocate( snly_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; snly_2 = 0.
       allocate( snlz_2( cv_nloc, stotel * quad_cv_sngi * totele ) ) ; snlz_2 = 0.
       allocate( scvweigh_2( stotel * quad_cv_sngi * totele ) )
-      allocate( cv_neiloc_2( cv_nloc, stotel * quad_cv_sngi * totele ) )
-      allocate( cv_neiloc_3( cv_nloc, stotel * quad_cv_sngi * totele ) )
+      allocate( cv_neiloc_cells_2( cv_nloc_cells, stotel * quad_cv_sngi * totele ) ) ; &
+           cv_neiloc_cells_2 = 0
+      allocate( cv_neiloc_cells_3( cv_nloc_cells, stotel * quad_cv_sngi * totele ) ) ; &
+           cv_neiloc_cells_3 = 0
       allocate( l1_2( stotel * quad_cv_sngi * totele ) )
       allocate( l2_2( stotel * quad_cv_sngi * totele ) )
       allocate( l3_2( stotel * quad_cv_sngi * totele ) )
       allocate( l4_2( stotel * quad_cv_sngi * totele ) )
 
-      cv_neiloc_3 = 0
-      ! Define cv_neiloc_3 from next_to_cv_iloc_gi2; next_to_cv_iloc_gi: 
+      cv_neiloc_cells_3 = 0
+      ! Define cv_neiloc_cells_3 from next_to_cv_iloc_gi2; next_to_cv_iloc_gi: 
       Loop_Neiloc3: do cv_sgi = 1, stotel * quad_cv_sngi * totele
          Conditional_Neiloc3: if( .not. remove_ig_pt( cv_sgi ) ) then
             xnodi = next_to_cv_iloc_gi( cv_sgi )
@@ -2888,12 +2895,12 @@
             end if
 
             if ( ( nodi /= 0 ) .and. ( nodj /= 0 ) ) then
-               cv_neiloc_3( nodi, cv_sgi ) = nodj
+               cv_neiloc_cells_3( nodi, cv_sgi ) = nodj
                ! If there is no node on the other side of the quadrature pt then set -1
             elseif ( nodi /= 0 ) then
-               cv_neiloc_3( nodi, cv_sgi ) = -1
+               cv_neiloc_cells_3( nodi, cv_sgi ) = -1
             elseif ( nodj /= 0 ) then
-               cv_neiloc_3( nodj, cv_sgi ) = -1
+               cv_neiloc_cells_3( nodj, cv_sgi ) = -1
             endif
 
          endif Conditional_Neiloc3
@@ -2907,7 +2914,7 @@
       ewrite(3,*) 'suf_quad_snlx:', suf_quad_snlx
       ewrite(3,*) 'suf_quad_snly:', suf_quad_snly
 
-      cv_sgk = 0 ; cv_neiloc_2 = 0
+      cv_sgk = 0 ; cv_neiloc_cells_2 = 0
       do cv_sgi = 1, stotel * quad_cv_sngi * totele
          if( .not. remove_ig_pt( cv_sgi ) ) then
             cv_sgk = cv_sgk + 1
@@ -2919,7 +2926,7 @@
             snly_2( :, cv_sgk ) = gl_quad_snly( :, cv_sgi )
             snlz_2( :, cv_sgk ) = gl_quad_snlz( :, cv_sgi )
             scvweigh_2( cv_sgk ) = gl_quad_scvweigh( cv_sgi )
-            cv_neiloc_2( :, cv_sgk ) = cv_neiloc_3( :, cv_sgi )
+            cv_neiloc_cells_2( :, cv_sgk ) = cv_neiloc_cells_3( :, cv_sgi )
             l1_2( cv_sgk ) = gl_quad_l1( cv_sgi )
             l2_2( cv_sgk ) = gl_quad_l2( cv_sgi )
             l3_2( cv_sgk ) = gl_quad_l3( cv_sgi )
@@ -2932,7 +2939,7 @@
       cv_sngi_2 = cv_sgk
 
       ! Take out repetition of quadrature points
-      cv_sgk = 0 ; cv_neiloc = 0 ; l1 = 0. ; l2 = 0. ; l3 = 0.
+      cv_sgk = 0 ; cv_neiloc_cells = 0 ; l1 = 0. ; l2 = 0. ; l3 = 0.
       Loop_CV_SGI: do cv_sgi = 1, cv_sngi_2
          found = .false.
          Loop_CV_SGJ: do cv_sgj = 1, cv_sgi - 1
@@ -2957,13 +2964,13 @@
             l2( cv_sgk ) = l2_2( cv_sgi )
             l3( cv_sgk ) = l3_2( cv_sgi )
             if( d3 ) l4( cv_sgk ) = l4_2( cv_sgi )
-            cv_neiloc( :, cv_sgk ) = cv_neiloc_2( :, cv_sgi )   
+            cv_neiloc_cells( :, cv_sgk ) = cv_neiloc_cells_2( :, cv_sgi )   
             ewrite(3,*) 'cv_sgk, cv_sgi :' ,cv_sgk, cv_sgi 
             ewrite(3,*) 'suf_snlx_2( :, cv_sgi ):', suf_snlx_2( :, cv_sgi )      
             ewrite(3,*) 'sufnlx( :, cv_sgk ):', sufnlx( :, cv_sgk )       
          endif
       end do Loop_CV_SGI
-        ewrite(3,*) 'sufnlx( : , 1 : scvngi ):', sufnlx( :, 1 : scvngi )
+      ewrite(3,*) 'sufnlx( : , 1 : scvngi ):', sufnlx( :, 1 : scvngi )
 
       if( scvngi /= cv_sgk ) then
          ewrite(3,*) 'scvngi, cv_sgk:', scvngi, cv_sgk
@@ -2979,11 +2986,11 @@
       ewrite(3,*)'snlz:', snlz
 
       ! Remapping over the common quadrature points across CV
-      do cv_iloc = 1, cv_nloc
+      do cv_iloc_cells = 1, cv_nloc_cells
          do cv_sgi = 1, scvngi
-            if ( cv_neiloc( cv_iloc, cv_sgi ) > 0 ) then
-               cv_jloc = cv_neiloc( cv_iloc, cv_sgi )
-               cv_neiloc( cv_jloc, cv_sgi ) = cv_iloc
+            if ( cv_neiloc_cells( cv_iloc_cells, cv_sgi ) > 0 ) then
+               cv_jloc_cells = cv_neiloc_cells( cv_iloc_cells, cv_sgi )
+               cv_neiloc_cells( cv_jloc_cells, cv_sgi ) = cv_iloc_cells
             end if
          end do
       end do
@@ -3103,8 +3110,8 @@
       deallocate( snly_2 )
       deallocate( snlz_2 )
       deallocate( scvweigh_2 )
-      deallocate( cv_neiloc_2 )
-      deallocate( cv_neiloc_3 )
+      deallocate( cv_neiloc_cells_2 )
+      deallocate( cv_neiloc_cells_3 )
       deallocate( l1_2 )
       deallocate( l2_2 )
       deallocate( l3_2 )
@@ -3191,13 +3198,16 @@
     end subroutine dummy_tri_tet
 
 
-    subroutine shape_tri_tet( cv_ele_type, ndim, totele, cv_nloc, cv_ngi, x_nonods, &
+    subroutine shape_tri_tet( cv_ele_type_cells, cv_nloc_cells, &
+         cv_ele_type, ndim, totele, cv_nloc, cv_ngi, x_nonods, &
          quad_cv_nloc, x_ndgln, x, y, z, lx, ly, lz, &
          n, nlx, nly, nlz, cvweigh )
+      ! Determine the volume shape functions n, nlx, nly, nlz 
+      ! and weights cvweigh for the cv_nloc_cells CV cells. 
       use shape_functions
       implicit none
-      integer, intent( in ) :: cv_ele_type, ndim, totele, cv_nloc, cv_ngi, &
-           x_nonods, quad_cv_nloc
+      integer, intent( in ) :: cv_ele_type_cells, cv_nloc_cells, cv_ele_type, &
+           ndim, totele, cv_nloc, cv_ngi, x_nonods, quad_cv_nloc
       integer, dimension( totele * quad_cv_nloc ), intent( in ) :: x_ndgln
       real, dimension( x_nonods ), intent( in ) :: x, y, z
       real, dimension( quad_cv_nloc ), intent( in ) :: lx, ly, lz ! corner nodes
@@ -3224,7 +3234,7 @@
          dummy_sngi = 4
          dummy_snloc = 4
          nwicel = 3
-         if( cv_nloc == 10 ) then ! Quadratic hexs
+         if( cv_nloc_cells == 10 ) then ! Quadratic hexs
             quad_cv_ngi = 27
             nwicel = 4
             dummy_sngi = 9
@@ -3235,7 +3245,7 @@
          dummy_sngi = 2
          dummy_snloc = 2
          nwicel = 1
-         if ( cv_nloc == 6 ) then ! Quadratic quads
+         if ( cv_nloc_cells == 6 ) then ! Quadratic quads
             quad_cv_ngi = 9
             dummy_sngi = 3
             dummy_snloc = 3
@@ -3244,8 +3254,8 @@
       end if Conditional_Dimensionality1
 
       if ( cv_ngi == 9 ) quad_cv_ngi = 3
-      ewrite(3,*) 'totele, cv_nloc, cv_ngi, quad_cv_ngi:', &
-           totele, cv_nloc, cv_ngi, quad_cv_ngi
+      ewrite(3,*) 'totele, cv_nloc, cv_nloc_cells, cv_ngi, quad_cv_ngi:', &
+           totele, cv_nloc, cv_nloc_cells, cv_ngi, quad_cv_ngi
 
       ! Consistency check:
       if( cv_ngi /= totele * quad_cv_ngi ) then
