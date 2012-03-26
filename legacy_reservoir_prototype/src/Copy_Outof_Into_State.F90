@@ -1389,18 +1389,38 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
 !!!
       ewrite(3,*) "velocity..."
 
+
+      if (.not. allocated(u)) then
+         allocate(u(nphases*size(velocity%val(1, :))))
+         allocate(v(nphases*size(velocity%val(1, :))))
+         allocate(w(nphases*size(velocity%val(1, :))))
+         u=0.
+         v=0.
+         w=0.
+      endif
+
+      if (.not.allocated(wic_u_bc)) then
+         allocate( wic_u_bc( stotel * nphases ))
+         wic_u_bc = 0
+      endif
+      if (.not.allocated(suf_u_bc)) then
+         allocate( suf_u_bc( stotel * u_snloc * nphases ))
+         suf_u_bc = 0.
+      endif
+      if (.not.allocated(suf_v_bc)) then
+         allocate( suf_v_bc( stotel * u_snloc * nphases ))
+         suf_v_bc = 0.
+      endif
+      if (.not.allocated(suf_w_bc)) then
+         allocate( suf_w_bc( stotel * u_snloc * nphases ))
+         suf_w_bc = 0.
+      endif
+
       Loop_Velocity: do i = 1, nphases
 
          velocity => extract_vector_field(state(i), "Velocity")
          option_path = "/material_phase["//int2str(i-1)//"]/vector_field::Velocity"
-         if (.not. allocated(u)) then
-            allocate(u(nphases*size(velocity%val(1, :))))
-            allocate(v(nphases*size(velocity%val(1, :))))
-            allocate(w(nphases*size(velocity%val(1, :))))
-            u=0.
-            v=0.
-            w=0.
-         endif
+   
 
          ! facility to initialise velocity field with the initial value from diamond
          ! as long as it's a constant value
@@ -1434,38 +1454,23 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
             endif
          enddo
 
-         if (.not.allocated(wic_u_bc)) then
-            allocate( wic_u_bc( stotel * nphases ))
-            wic_u_bc = 0
-         endif
-         if (.not.allocated(suf_u_bc)) then
-            allocate( suf_u_bc( stotel * u_snloc * nphases ))
-            suf_u_bc = 0.
-         endif
-         if (.not.allocated(suf_v_bc)) then
-            allocate( suf_v_bc( stotel * u_snloc * nphases ))
-            suf_v_bc = 0.
-         endif
-         if (.not.allocated(suf_w_bc)) then
-            allocate( suf_w_bc( stotel * u_snloc * nphases ))
-            suf_w_bc = 0.
-         endif
-  
-
          Conditional_Velocity_BC: if( have_option( '/material_phase[' // int2str(i-1) // &
               ']/vector_field::Velocity/prognostic/' // &
               'boundary_conditions[0]/type::dirichlet' )) then
 
 
            nobcs = get_boundary_condition_count( velocity )
-            Velocity_BC_Type = 1
+           Velocity_BC_Type = 1
          
 
             do k = 1, nobcs
                velocity_bc => extract_surface_field( velocity, k, "value" )
+               print *, 'phase, bc', i, k
+               ewrite_minmax(velocity_bc)
 
                shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
-                    &prognostic/boundary_conditions[0]/surface_ids")
+                    &prognostic/boundary_conditions["//int2str(k-1)//"]/surface_ids")
+    
 
                ! Get the surface mesh.
                !call get_boundary_condition(velocity, k, surface_mesh=surface_mesh, &
@@ -1492,19 +1497,28 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
 
                do j = 1, stotel
 
-                  if( any (  velocity_sufid_bc == vmesh%faces%boundary_ids(j) ) ) then 
+                  if( any ( velocity_sufid_bc == vmesh%faces%boundary_ids(j) ) ) then 
 
                      count=1
                      do kk = 1, u_snloc
-                        suf_u_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 1, face_nodes(count) )
-                        if (velocity%dim>1) suf_v_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 2, face_nodes(count) )
-                        if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 3, face_nodes(count) )
+
+                        suf_u_bc( ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk ) = velocity_bc%val( 1, face_nodes(count) )
+                        if (velocity%dim>1) suf_v_bc( ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk ) = velocity_bc%val( 2, face_nodes(count) )
+                        if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk ) = velocity_bc%val( 3, face_nodes(count) )
+
+                        !print *, i, j, vmesh%faces%boundary_ids(j), &
+                        !     ( i - 1 ) * stotel*u_snloc + (j-1)*u_snloc + kk, velocity_bc%val( 1, face_nodes(count) )
+
+                        
+                        !print *, suf_u_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ), &
+                        !     suf_v_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ), &
+                        !     suf_w_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk )
 
                         count=count+1
-                        if (mod(kk, u_snloc2)==0. )  count=1
+                        if (mod(kk, u_snloc2)==0. ) count=1
                      end do
 
-                     face_nodes = face_nodes +u_snloc2
+                     face_nodes = face_nodes + u_snloc2
 
                   end if
                end do
@@ -1515,11 +1529,14 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
             end do ! End of BC Loop 
 
          endif Conditional_Velocity_BC
-         
-         print*, 'xxxx->', suf_u_bc, wic_u_bc
 
-      enddo Loop_Velocity
+      enddo Loop_Velocity ! phase loop
 
+      !print *, 'dim', velocity%dim
+      !do kk=1, size(suf_u_bc)
+      !   print *, kk, suf_u_bc(kk), suf_v_bc(kk),suf_w_bc(kk)
+      !end do
+      !stop 999
 
       allocate(uabs_option(nphases))
       allocate(eos_option(nphases))
