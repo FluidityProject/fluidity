@@ -631,6 +631,8 @@ contains
        END DO
     END DO
 
+    ewrite(3,*)'suf_u_bc:', suf_u_bc
+    ewrite(3,*)' '
     ewrite(3,*)'suf_vol_bc_rob1:', suf_vol_bc_rob1
     ewrite(3,*)' #####'
     ewrite(3,*)'suf_vol_bc_rob2:', suf_vol_bc_rob2
