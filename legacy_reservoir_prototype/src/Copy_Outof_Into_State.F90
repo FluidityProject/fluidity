@@ -35,7 +35,6 @@ module copy_outof_into_state
   use fldebug
   use state_module
   use fields
-  use fields_base
   use field_options
   use spud
   use populate_state_module
@@ -243,6 +242,12 @@ module copy_outof_into_state
 
       real :: val
 
+      ! velocity bcs
+      integer :: local_node, count
+      integer, dimension(:), allocatable :: face_nodes
+      type(mesh_type), pointer :: surface_mesh
+      integer, dimension(:), pointer :: surface_element_list, surface_node_list
+
       ewrite(3,*) 'In copy_outof_state'
 
       nlev = 3
@@ -367,7 +372,6 @@ module copy_outof_into_state
       case( 2 )
          u_snloc = face_loc( vmesh, 1 )
          cv_snloc = face_loc( pmesh, 1 )
-         ! cv_snloc = 3 ! quadratic triangle
       case default; FLAbort("Incorrect number of dimension - ndim")
       end Select
       p_snloc = 2
@@ -1451,45 +1455,67 @@ print *, '...>>>>>', u_snloc, stotel, cv_nloc, u_nloc
               ']/vector_field::Velocity/prognostic/' // &
               'boundary_conditions[0]/type::dirichlet' )) then
 
-            shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
-                 &prognostic/boundary_conditions[0]/surface_ids")
-            !if( .not. allocated( velocity_sufid_bc ))allocate(velocity_sufid_bc(1:shape_option(1)))
+
+           nobcs = get_boundary_condition_count( velocity )
             Velocity_BC_Type = 1
-            nobcs = get_boundary_condition_count( velocity )
-            if( .not. allocated( velocity_sufid_bc ) ) allocate(velocity_sufid_bc( 1 : nobcs ))
-            
+         
+
             do k = 1, nobcs
                velocity_bc => extract_surface_field( velocity, k, "value" )
-           
-            
-                call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/" // &
-                 "prognostic/boundary_conditions[0]/surface_ids", Velocity_SufID_BC )
-           
-!
-                 ! Specify the boundary condition type.
-                 do j = 1, shape_option( 1 )
-                   wic_u_bc( velocity_sufid_bc(j) + ( i - 1 ) * nphases ) = Velocity_BC_Type
-                 enddo
-      
-             do j = 1, stotel
-!              print*, vmesh%faces%boundary_ids(j) , velocity_sufid_bc(k)
-              if(vmesh%faces%boundary_ids(j) .eq. velocity_sufid_bc(k)) then
-               do kk = 1, p_snloc
-                  suf_u_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 1, k )
-                  if (velocity%dim>1) suf_v_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 2, k )
-                  if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 3, k )
-!                  print*, suf_u_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ), j
+
+               shape_option=option_shape("/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
+                    &prognostic/boundary_conditions[0]/surface_ids")
+
+               ! Get the surface mesh.
+               !call get_boundary_condition(velocity, k, surface_mesh=surface_mesh, &
+               !     surface_element_list=surface_element_list, &
+               !     surface_node_list=surface_node_list)
+               !print *, 'SEL1::', surface_element_list
+               !print *, 'SEL2::', surface_node_list
+               !print *, 'SEL3::', ele_count(surface_mesh), node_count(surface_mesh), &
+               !     ele_count(velocity), node_count(velocity), &
+               !     ele_count(velocity_bc), node_count(velocity_bc)
+
+               allocate(velocity_sufid_bc(1:shape_option(1)))
+
+               call get_option( "/material_phase[" // int2str(i-1) // "]/vector_field::Velocity/&
+                    &prognostic/boundary_conditions[" // int2str(k-1) // "]/surface_ids", Velocity_SufID_BC )
+
+               ! Specify the boundary condition type.
+               do j = 1, shape_option( 1 )
+                  wic_u_bc( velocity_sufid_bc(j) + ( i - 1 ) * nphases ) = Velocity_BC_Type
+               enddo
+
+               allocate(face_nodes(face_loc(velocity, 1)))
+               face_nodes=(/( l, l=1, u_snloc2)/)
+
+               do j = 1, stotel
+
+                  if( any (  velocity_sufid_bc == vmesh%faces%boundary_ids(j) ) ) then 
+
+                     count=1
+                     do kk = 1, u_snloc
+                        suf_u_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 1, face_nodes(count) )
+                        if (velocity%dim>1) suf_v_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 2, face_nodes(count) )
+                        if (velocity%dim>2) suf_w_bc( ( i - 1 ) * stotel*cv_snloc + (j-1)*cv_snloc + kk ) = velocity_bc%val( 3, face_nodes(count) )
+
+                        count=count+1
+                        if (mod(kk, u_snloc2)==0. )  count=1
+                     end do
+
+                     face_nodes = face_nodes +u_snloc2
+
+                  end if
                end do
-              end if 
-           
-            end do
-            
-           end do ! End of BC Loop 
-            
+
+               deallocate(face_nodes)
+               deallocate(velocity_sufid_bc)
+
+            end do ! End of BC Loop 
+
          endif Conditional_Velocity_BC
          
-!         print*, suf_u_bc, wic_u_bc
-
+         print*, 'xxxx->', suf_u_bc, wic_u_bc
 
       enddo Loop_Velocity
 
