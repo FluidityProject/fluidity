@@ -570,7 +570,7 @@ contains
           IF(ABS(Y(CV_NOD)-YMIN).LT.1.E-4) THEN ! Bottom boundary
              IYMIN=IYMIN+1
           ENDIF
-          IF(ABS(X(CV_NOD)-YMAX).LT.1.E-4) THEN ! Top boundary
+          IF(ABS(Y(CV_NOD)-YMAX).LT.1.E-4) THEN ! Top boundary
              IYMAX=IYMAX+1
           ENDIF
        END DO
@@ -630,7 +630,7 @@ contains
 
        END DO
     END DO
-
+!        stop 3821
     RETURN
   END SUBROUTINE TEST_BC
 
