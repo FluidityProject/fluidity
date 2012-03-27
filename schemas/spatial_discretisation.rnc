@@ -726,3 +726,54 @@ compressive_control_volume_options =
         cv_face_cfl_number_options
       }
    )
+
+# standard control volume face value options that 
+# have NO reliance on any CFL field.
+standard_control_volume_options_excluding_cfl = 
+   (
+      ## First Order Upwind face value discretisation
+      ##  face_value = donor_value, 
+      ## where
+      ##  donor_value = income*val_1 + (1.-income)*val_2, 
+      ## where val_i is the value on the ith node neighbouring the face and
+      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+      ## First order upwinding is monotonic so no limiting is ever required
+      element face_value {
+        attribute name { "FirstOrderUpwind" },
+        empty
+      }|
+      ## Trapezoidal face value discretisation
+      ##  face_value = 0.5*(val_1 + val_2), 
+      ## where
+      ##  val_i is the value on the ith node neighbouring the face
+      ##
+      ## Trapezoidal discretisation is unbounded so limiting is compulsory
+      element face_value {
+        attribute name { "Trapezoidal" },
+        limiter_options_excluding_cfl
+      }|
+      ## Finite Element face value discretisation
+      ##  face_value = finite element interpolation from surrounding nodes
+      ##
+      ## Finite element discretisation may become unbounded so limiting is often necessary.
+      element face_value {
+        attribute name { "FiniteElement" },
+        ## Disable advection, but still permit a sinking velocity.
+        ## Useful for pseudo-1D simulations involving biology
+        element only_sinking_velocity {
+            empty
+         }?,
+        limiter_options_excluding_cfl
+      }|
+      ## First Order Downwind face value discretisation
+      ##  face_value = downwind_value, 
+      ## where
+      ##  donor_value = (1.-income)*val_1 + income*val_2, 
+      ## where val_i is the value on the ith node neighbouring the face and
+      ## income = [0, 1] depending on whether the flow is coming from node 1 or 2
+      ## First order downwinding is unconditionally unstable
+      element face_value {
+        attribute name { "FirstOrderDownwind" },
+        empty
+      }
+   )

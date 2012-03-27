@@ -443,20 +443,34 @@ class Tree(gobject.GObject):
   def is_tensor(self, geometry_dim_tree):
     return False
 
-  def is_python_code(self):
+  def is_code(self):
     """
     Perform a series of tests on the current Tree, to determine if
-    it is intended to be used to store python code data.
+    it is intended to be used to store code data.
     """
 
     try:
-       lang = self.selected_node.get_attr("language")
-       if lang == "python":
-         return True
+      lang = self.get_attr("language")
+      if lang == "python":
+        return True
     except:
       pass
 
     return False
+
+  def get_code_language(self):
+    """
+    Assuming this is a code snippet return the language.
+    """
+
+    if not self.is_code():
+      return "python"
+
+    try:
+      lang = self.get_attr("language")
+      return lang
+    except:   
+      return "python"
 
   def get_display_name(self):
     """

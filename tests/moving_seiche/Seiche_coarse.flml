@@ -383,7 +383,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
    from math import cos, tanh, pi
    # set a tan hyperbolic profile in z (gradient of temperature at mid-depth)
    return (-tanh((5.0-X[2])-0.01*(X[0]-50)))</string_value>

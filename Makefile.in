@@ -553,7 +553,11 @@ unittest: build_unittest
 	@echo "RUN bin/tests"
 	@bin/unittestharness bin/tests
 
-schema:
+bin/spud-preprocess:
+	@echo "Installing spudtools"
+	@$(MAKE) -C libspud install-spudtools
+
+schema: bin/spud-preprocess
 	@echo "Rebuilding schema fluidity_options.rng"
 	@./bin/spud-preprocess schemas/fluidity_options.rnc
 
@@ -615,14 +619,14 @@ endif
 
 install: default fltools bin/shallow_water bin/burgers_equation
 	@mkdir -p $(DESTDIR)$(bindir) $(DESTDIR)$(docdir)/fluidity
-	cp bin/* $(DESTDIR)$(bindir)
+	find bin/ -maxdepth 1 -type f -exec cp '{}' $(DESTDIR)$(bindir) \;
 	rm -f $(DESTDIR)$(bindir)/spud-* $(DESTDIR)$(bindir)/diamond $(DESTDIR)$(bindir)/silenteval $(DESTDIR)$(bindir)/runut
 	[ -f manual/fluidity_manual.pdf ] && cp manual/fluidity_manual.pdf $(DESTDIR)$(docdir)/fluidity || true
 	mkdir -p $(DESTDIR)$(datadir)/fluidity
 	cp -r schemas/ $(DESTDIR)$(datadir)/fluidity/
 	mkdir -p $(DESTDIR)$(datadir)/diamond/schemata
 	cp schemas/flml $(DESTDIR)$(datadir)/diamond/schemata
-	cd python ; python setup.py install --root="${DESTDIR}" --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
+	cd python ; python setup.py install --root=$(shell echo ${DESTDIR} | sed 's/^$$/\//') --prefix="$(prefix)" $$FLUIDITY_PYTHON_INSTALL_ARGS
 	cp -r examples/ $(DESTDIR)$(docdir)/fluidity
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/\.\.\/bin\///" '{}' \;
 	find $(DESTDIR)$(docdir)/fluidity/examples -type f -exec sed -i "s/\.\.\/\.\.\/bin\///" '{}' \;

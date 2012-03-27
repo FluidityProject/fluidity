@@ -53,7 +53,7 @@
             <integer_value shape="1" rank="1">8</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   result = list(X)
   result[0]=result[0]-1.0
   return result</string_value>
@@ -67,7 +67,7 @@
             <integer_value shape="1" rank="1">9</integer_value>
           </aliased_boundary_ids>
           <coordinate_map>
-            <string_value lines="20" type="python">def val(X,t):
+            <string_value lines="20" type="code" language="python">def val(X,t):
   result = list(X)
   result[1]=result[1]-1.0
   return result</string_value>
@@ -250,7 +250,7 @@
         <mesh name="PressureMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
     from math import sin, cos, pi
     return 2*pi * cos(2*pi*X[0]) - 2*pi * sin(2*pi*X[1])</string_value>
           </python>
@@ -268,7 +268,7 @@
     <scalar_field name="DivSource" rank="0">
       <diagnostic>
         <algorithm name="scalar_python_diagnostic" material_phase_support="single">
-          <string_value lines="20" type="python">import fluidity_tools
+          <string_value lines="20" type="code" language="python">import fluidity_tools
 import scipy.sparse
 import scipy.sparse.linalg
 coord  = state.vector_fields["Coordinate"]
@@ -340,7 +340,7 @@ assert info == 0</string_value>
         <mesh name="VelocityMesh"/>
         <value name="WholeMesh">
           <python>
-            <string_value lines="20" type="python">def val(X, t):
+            <string_value lines="20" type="code" language="python">def val(X, t):
     from math import sin, cos, pi
     return [sin(2*pi*X[0]), cos(2*pi*X[1]), 0]</string_value>
           </python>
