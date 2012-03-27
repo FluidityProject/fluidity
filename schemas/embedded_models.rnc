@@ -4,6 +4,123 @@ embedded_models =
    (
       ## Fluidity embedded models
       element embedded_models {
-         comment
+         ## Under Development
+         ##
+         ## Fluid-Solid Interaction Modelling via
+         ## Immersed Solids
+         element fsi_model {
+            ## Solid Geometry
+            element geometry
+            {
+               fsi_model_input_mesh+
+            },
+            (
+               ## 1-way coupling: Stationary solid, or
+               ## solid with prescribed movement
+               element one_way_coupling
+               {
+                  (
+                     (
+                        fsi_model_projection
+                     ),
+                     ## Prescribed diagnostic Velocity vector for a solid
+                     element vector_field {
+                        attribute rank { "1" },
+                        attribute name { "SolidVelocity" },
+                        ## Field type
+                        (
+                           fsi_model_prescribed_solid_velocity_mesh
+                           |
+                           fsi_model_diagnostic_solid_velocity_mesh
+                        )
+                     }?,
+                     ## Specify what is added to .stat files
+                     element stat {
+                        ## Exclude all FSI modelling output fields?
+                        element exclude_in_stat { empty }?
+                     }
+                  )
+               }|
+               ## For future use maybe.
+               element two_way_coupled {empty}
+            )?
+         }?
       }
    )
+
+fsi_model_mesh = 
+   ## Specify the solid mesh
+   element mesh {
+      attribute name { xsd:string }
+   }
+
+fsi_model_input_mesh = 
+   ## Specify the solid mesh
+   element mesh {
+      attribute name { xsd:string },
+      mesh_info,
+      element exclude_from_mesh_adaptivity{empty}?
+   }
+
+fsi_model_projection =
+    ## Specify the method to be use for projections
+    ## of fields between fluid and solid mesh
+    ## Currently only the Galerkin Projection via 
+    ## supermeshing is supported.
+    element inter_mesh_projection
+    {
+        ## Construction of a supermesh for the part of 
+        ## the fluid mesh which is occupied by the solid mesh.
+        ## The SolidConcentration is then obtained by projecting
+        ## unity from the supermesh, to the fluid mesh.
+        element galerkin_projection{
+           continuous_discontinuous_projection,
+           supermesh_conservation?
+        }
+    }
+
+fsi_model_input_real_dim_vector_python =
+    ## Python function prescribing dimensional vector input. Functions should be of the form:
+    ##
+    ##  def val(X, t):
+    ##     # Function code
+    ##     return # Return value
+    ##
+    ## where X and the return value are tuples of length geometry dimension.
+    element python
+    {
+     python_code
+    }
+
+fsi_model_prescribed_solid_velocity_mesh =
+    ## Prescribed Solid velocity via Python input
+    element prescribed {
+        ## Set the name of the Solid Mesh that
+        ## has a prescribed velocity
+        element mesh {
+            attribute name { xsd:string },
+            (
+              fsi_model_input_real_dim_vector_python,
+              prescribed_output_options,
+              prescribed_vector_stat_options,
+              prescribed_detector_options
+            )
+        }+
+    }
+        
+
+fsi_model_diagnostic_solid_velocity_mesh =
+    ## For future use maybe
+    element diagnostic
+    {
+        ## Set the name of the Solid Mesh that
+        ## has a prescribed velocity
+        element mesh {
+            attribute name { xsd:string },
+            (
+               vector_python_diagnostic_algorithm,
+               diagnostic_vector_field
+            )
+        }+
+    }
+

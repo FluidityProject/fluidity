@@ -769,8 +769,8 @@ State_Matrices.o ../include/state_matrices_module.mod: State_Matrices.F90 \
 Supermesh_Force.o ../include/supermesh_force.mod: Supermesh_Force.F90 \
    ../include/bound_field_module.mod ../include/fdebug.h \
    ../include/fefields.mod ../include/fields.mod \
-   ../include/global_parameters.mod ../include/solvers.mod \
-   ../include/sparsity_patterns.mod ../include/spud.mod \
+   ../include/global_parameters.mod ../include/linked_lists.mod \
+   ../include/solvers.mod ../include/sparsity_patterns.mod ../include/spud.mod \
    ../include/supermesh_construction.mod ../include/vtk_interfaces.mod
 
 ../include/surface_id_interleaving.mod: Surface_Id_Interleaving.o

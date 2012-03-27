@@ -1,10 +1,151 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0">
+<grammar xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <!-- The embedded models -->
   <define name="embedded_models">
     <element name="embedded_models">
       <a:documentation>Fluidity embedded models</a:documentation>
-      <ref name="comment"/>
+      <optional>
+        <element name="fsi_model">
+          <a:documentation>Under Development
+
+Fluid-Solid Interaction Modelling via
+Immersed Solids</a:documentation>
+          <element name="geometry">
+            <a:documentation>Solid Geometry</a:documentation>
+            <oneOrMore>
+              <ref name="fsi_model_input_mesh"/>
+            </oneOrMore>
+          </element>
+          <optional>
+            <choice>
+              <element name="one_way_coupling">
+                <a:documentation>1-way coupling: Stationary solid, or
+solid with prescribed movement</a:documentation>
+                <ref name="fsi_model_projection"/>
+                <optional>
+                  <element name="vector_field">
+                    <a:documentation>Prescribed diagnostic Velocity vector for a solid</a:documentation>
+                    <attribute name="rank">
+                      <value>1</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>SolidVelocity</value>
+                    </attribute>
+                    <choice>
+                      <a:documentation>Field type</a:documentation>
+                      <ref name="fsi_model_prescribed_solid_velocity_mesh"/>
+                      <ref name="fsi_model_diagnostic_solid_velocity_mesh"/>
+                    </choice>
+                  </element>
+                </optional>
+                <element name="stat">
+                  <a:documentation>Specify what is added to .stat files</a:documentation>
+                  <optional>
+                    <element name="exclude_in_stat">
+                      <a:documentation>Exclude all FSI modelling output fields?</a:documentation>
+                      <empty/>
+                    </element>
+                  </optional>
+                </element>
+              </element>
+              <element name="two_way_coupled">
+                <a:documentation>For future use maybe.</a:documentation>
+                <empty/>
+              </element>
+            </choice>
+          </optional>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="fsi_model_mesh">
+    <element name="mesh">
+      <a:documentation>Specify the solid mesh</a:documentation>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+    </element>
+  </define>
+  <define name="fsi_model_input_mesh">
+    <element name="mesh">
+      <a:documentation>Specify the solid mesh</a:documentation>
+      <attribute name="name">
+        <data type="string"/>
+      </attribute>
+      <ref name="mesh_info"/>
+      <optional>
+        <element name="exclude_from_mesh_adaptivity">
+          <empty/>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <define name="fsi_model_projection">
+    <element name="inter_mesh_projection">
+      <a:documentation>Specify the method to be use for projections
+of fields between fluid and solid mesh
+Currently only the Galerkin Projection via 
+supermeshing is supported.</a:documentation>
+      <element name="galerkin_projection">
+        <a:documentation>Construction of a supermesh for the part of 
+the fluid mesh which is occupied by the solid mesh.
+The SolidConcentration is then obtained by projecting
+unity from the supermesh, to the fluid mesh.</a:documentation>
+        <ref name="continuous_discontinuous_projection"/>
+        <optional>
+          <ref name="supermesh_conservation"/>
+        </optional>
+      </element>
+    </element>
+  </define>
+  <define name="fsi_model_input_real_dim_vector_python">
+    <element name="python">
+      <a:documentation>Python function prescribing dimensional vector input. Functions should be of the form:
+
+ def val(X, t):
+    # Function code
+    return # Return value
+
+where X and the return value are tuples of length geometry dimension.</a:documentation>
+      <ref name="python_code"/>
+    </element>
+  </define>
+  <define name="fsi_model_prescribed_solid_velocity_mesh">
+    <element name="prescribed">
+      <a:documentation>Prescribed Solid velocity via Python input</a:documentation>
+      <oneOrMore>
+        <element name="mesh">
+          <a:documentation>Set the name of the Solid Mesh that
+has a prescribed velocity</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <group>
+            <ref name="fsi_model_input_real_dim_vector_python"/>
+            <ref name="prescribed_output_options"/>
+            <ref name="prescribed_vector_stat_options"/>
+            <ref name="prescribed_detector_options"/>
+          </group>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="fsi_model_diagnostic_solid_velocity_mesh">
+    <element name="diagnostic">
+      <a:documentation>For future use maybe</a:documentation>
+      <oneOrMore>
+        <element name="mesh">
+          <a:documentation>Set the name of the Solid Mesh that
+has a prescribed velocity</a:documentation>
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <group>
+            <ref name="vector_python_diagnostic_algorithm"/>
+            <ref name="diagnostic_vector_field"/>
+          </group>
+        </element>
+      </oneOrMore>
     </element>
   </define>
 </grammar>
