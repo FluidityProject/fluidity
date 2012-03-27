@@ -37,6 +37,7 @@ module hydrostatic_projection
   use solvers
   use field_options
   use vertical_extrapolation_module
+  use divergence_matrix_cg
   
 implicit none
 
@@ -119,7 +120,7 @@ contains
       
     else
        
-       get_cmc_m = .false.
+      get_cmc_m = .false.
             
     end if
     
@@ -150,7 +151,7 @@ contains
     type(block_csr_matrix):: local_lumped_ct_m
     logical:: compute_lumped_ct_m
     
-    ! then compute or retreive the lumped version of the divergence matrix
+    ! compute or retreive the lumped version of the divergence matrix
     ! if ct_m hasn't changed (get_ct_m==.false.) we should be able to reuse the one cached in state
     compute_lumped_ct_m = get_ct_m
     
@@ -197,18 +198,17 @@ contains
     type(scalar_field):: full_ct_rhs
     logical, intent(in):: get_ct_m
     
+    type(block_csr_matrix):: pct_m
     type(csr_matrix):: temp_vct_m
     type(csr_matrix), pointer:: vct_m
     type(csr_sparsity), pointer:: vct_sparsity
     type(scalar_field), pointer:: p
     type(scalar_field):: vertical_u, component
     type(vector_field), pointer:: vertical_normal, positions
-    type(vector_field):: u_vertical_normal
-    real, dimension(:), pointer:: ct_val
-    integer, dimension(:), pointer:: ct_row
-    real, dimension(u%dim):: normal, horiz_u
+    type(vector_field):: pu
+    real, dimension(u%dim):: normal
     logical:: constant_normal, get_vct_m
-    integer:: i, j, k, ele, stat, vdim, u_node
+    integer:: i, ele, stat, vdim
     
     vertical_normal => extract_vector_field(state, "GravityDirection")
     ! if gravity is in a constant, axis-aligned direction - use the cheap version
@@ -231,22 +231,6 @@ contains
     else
     
       FLExit("The hydrostatic projection does not yet work for varying gravitational direction (e.g. on the sphere).")
-      call allocate(u_vertical_normal, vertical_normal%dim, u%mesh, "GravityDirectionVelocityMesh")
-      call remap_field(vertical_normal, u_vertical_normal)
-      do i=1, size(full_ct_m, 1)
-        ct_row => row_m_ptr(full_ct_m, i)
-        do j=1, size(ct_row)
-          u_node=ct_row(j)
-          normal=node_val(u_vertical_normal, u_node)
-          horiz_u = node_val(u, u_node)
-          horiz_u = horiz_u - dot_product(normal, horiz_u)*normal
-          call set(u, u_node, horiz_u)
-          do k=1, u%dim
-            ct_val => row_val_ptr(full_ct_m, 1, k, i)
-            call addto(full_ct_rhs, i, -ct_val(j)*horiz_u(k))
-          end do
-        end do
-      end do
       
     end if
 
@@ -273,19 +257,24 @@ contains
       ! used in assemble_vct_ele
       positions => extract_vector_field(state, "Coordinate")
 
-      call zero(vct_m)
+      call allocate(pct_m, vct_m%sparsity, (/ 1, u%dim /), name="BlockVelocityGradientMatrix")
+
+      call allocate(pu, u%dim, p%mesh, "VelocityOnPressureMesh")
+
+      call assemble_divergence_matrix_cg(pct_m, state, full_ct_rhs, &
+              p%mesh, pu, option_path=p%option_path)
+
+      vct_m%val=pct_m%val(1,vdim)%ptr
       
-      do ele=1, element_count(p)
-        call assemble_vct_ele(vct_m, p%mesh, ele)
-      end do
+!      do ele=1, element_count(p)
+!        call assemble_vct_ele(vct_m, p%mesh, ele)
+!      end do
       
     end if
     
+    call allocate(vertical_u, p%mesh, "VerticalVelocity")
+    vertical_u%option_path=p%option_path
     call petsc_solve(vertical_u, vct_m, full_ct_rhs)
-    
-    if (.not. constant_normal) then
-      call deallocate(u_vertical_normal)
-    end if
     
   contains
     

@@ -94,7 +94,8 @@
 
       ! Do we want to use the compressible projection method?
       logical :: use_compressible_projection
-      logical :: use_hydrostatic_projection = .false.
+      ! Are we using the hydrostatic porjection approach?
+      logical :: use_hydrostatic_projection
       ! Are we doing a full Schur solve?
       logical :: full_schur
       ! Are we lumping mass or assuming consistent mass?
@@ -325,13 +326,6 @@
            if (prognostic_p) then
              prognostic_p_istate = istate
            end if
-
-           !use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
-           !if (use_hydrostatic_projection) then
-           !FIXME: break up prepare_...
-           !  ! point to surface versions, also p_theta is allocated on the surface mesh, or points to surface_p
-           !  p => surface_p; old_p => surface_old_p
-           !end if
  
          end if
 
@@ -410,15 +404,13 @@
                   ctp_m(istate)%ptr => get_velocity_divergence_matrix(state(istate), ct_m_name = "CVTestedVelocityDivergenceMatrix")
                end if
 
-               use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
                if (use_hydrostatic_projection) then
-                  call prepare_hydrostatic_projection(state(istate), &
+                 ! get the lumped cmc matrix, create a surface mesh and
+                 ! return pointers to surface fields that have 
+                 ! Pressure and OldPressure remapped to them
+                 call prepare_hydrostatic_projection(state(istate), &
                        surface_p, surface_old_p, &
                        cmc_m, get_cmc_m=reassemble_cmc_m)
-
-                  ! point to surface versions, also p_theta is allocated on the surface mesh, or points to surface_p
-                  p => surface_p; old_p => surface_old_p
- 
                else
                  ! Get the pressure poisson matrix (i.e. the CMC/projection matrix)
                  cmc_m => get_pressure_poisson_matrix(state(istate), get_cmc=reassemble_cmc_m) ! ...and similarly for get_cmc_m
@@ -528,7 +520,13 @@
                theta_divergence=1.0
             end if
 
-           ! This is broken for multiphase, a p_theta is allocated for every prognostic velocity
+            if (use_hydrostatic_projection) then
+              ! point to surface versions, so that p_theta is allocated on 
+              ! the surface mesh, or points to surface_p
+              p => surface_p; old_p => surface_old_p
+            end if
+
+            ! This is broken for multiphase, a p_theta is allocated for every prognostic velocity
             if (use_theta_pg) then
                allocate(p_theta)
                call allocate(p_theta, p%mesh, "PressureTheta")
@@ -542,6 +540,8 @@
             end if
             
             if (use_hydrostatic_projection) then
+              ! in the momentum assembly we'd like to have the real Pressure
+              ! again, so we can use p%mesh etc.
               p => extract_scalar_field(state(istate), "Pressure")
             end if
 
@@ -922,6 +922,10 @@
          end do assembly_loop
          call profiler_toc("assembly_loop")  ! End of Step 1 (diagnostics and matrix assembly)
 
+         if (use_hydrostatic_projection) then
+           p => surface_p
+           old_p => surface_old_p
+         end if
 
          !! Obtain pressure guess p^{*} (assemble and solve a Poisson pressure equation for p^{*} if desired)
 
@@ -960,6 +964,7 @@
 
             call profiler_toc(p, "assembly")
          end if ! end of prognostic pressure
+
 
 
          if (.not.reduced_model) then
@@ -1103,7 +1108,6 @@
                      end if
                      
                      if(use_hydrostatic_projection) then
-                        FLAbort("FIXME: deal with reassemble_ct_m here.")
                         call reconstruct_vertical_velocities(state(istate), u, full_ct_m(istate)%ptr, full_ct_rhs(istate), reassemble_ct_m)
                         call deallocate(full_ct_rhs(istate))
                      end if
@@ -1365,6 +1369,11 @@
                    &"/prognostic/spatial_discretisation/continuous_galerkin&
                    &/test_continuity_with_cv_dual")
 
+         ! this options assumes a constant vertical pressure, which is enforced
+         ! by only taking the surface value thus effectively lumping the pressure
+         ! projection equation.
+         use_hydrostatic_projection = have_option(trim(p%option_path)//'/prognostic/scheme/hydrostatic_pressure')
+
       end subroutine get_pressure_options
 
 
@@ -1602,7 +1611,7 @@
          ! Despite multiplying velocity by a nonlocal operator
          ! a halo_update isn't necessary as this is just a rhs
          ! contribution
-         call allocate(temp_projec_rhs, p%mesh, "TempProjectionRHS")
+         call allocate(temp_projec_rhs, projec_rhs%mesh, "TempProjectionRHS")
          call zero(temp_projec_rhs)
 
          if (.not. use_theta_divergence) then
