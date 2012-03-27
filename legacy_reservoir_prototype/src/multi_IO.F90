@@ -575,23 +575,23 @@ contains
           ENDIF
        END DO
 
-       print *,'sele=' ,sele
+       ewrite(3,*) 'sele=' ,sele
        IF(IXMIN==CV_SNLOC) THEN
-          print *,'is a left boundary element'
-          print *,'u-phase1=1., u-phase2=0., vol-phase1=1., no p b.c.'
+        ewrite(3,*) 'is a left boundary element'
+        ewrite(3,*) 'u-phase1=1., u-phase2=0., vol-phase1=1., no p b.c.'
        ENDIF
        IF(IXMAX==CV_SNLOC) THEN
-          print *,'is a right boundary element'
-          print *,'pressure =0, no vel bc'
+        ewrite(3,*) 'is a right boundary element'
+        ewrite(3,*) 'pressure =0, no vel bc'
        ENDIF
 
        IF(IYMIN==CV_SNLOC) THEN
-          print *,'is a bottom boundary element'
-          print *,'v-phase1=0., v-phase2=0.'
+        ewrite(3,*) 'is a bottom boundary element'
+        ewrite(3,*) 'v-phase1=0., v-phase2=0.'
        ENDIF
        IF(IYMAX==CV_SNLOC) THEN 
-          print *,'is a top boundary element'
-          print *,'v-phase1=0., v-phase2=0.'
+        ewrite(3,*) 'is a top boundary element'
+        ewrite(3,*) 'v-phase1=0., v-phase2=0.'
        ENDIF
 
        DO IPHASE=1,NPHASE
@@ -601,7 +601,7 @@ contains
                WIC_U_BC(SPHA), WIC_P_BC(SPHA), WIC_VOL_BC(SPHA), WIC_D_BC(SPHA)
 
           DO U_SILOC=1,U_SNLOC
-!             U_SNOD=U_SNDGLN((SELE-1)*U_SNLOC+U_SILOC)
+             !U_SNOD=U_SNDGLN((SELE-1)*U_SNLOC+U_SILOC)
              U_SNOD=(SELE-1)*U_SNLOC+U_SILOC
              U_SNOD_PHAS=U_SNOD+(IPHASE-1)*STOTEL*U_SNLOC
              ewrite(3,*) 'U_SILOC,U_SNOD,IPHASE,U_SNOD_PHAS:',U_SILOC,U_SNOD,IPHASE,U_SNOD_PHAS
@@ -616,7 +616,7 @@ contains
           END DO
 
           DO CV_SILOC=1,CV_SNLOC
-!             CV_SNOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
+             !CV_SNOD=CV_SNDGLN((SELE-1)*CV_SNLOC+CV_SILOC)
              CV_SNOD=(SELE-1)*CV_SNLOC+CV_SILOC
              CV_SNOD_PHAS=CV_SNOD+(IPHASE-1)*STOTEL*CV_SNLOC
              ewrite(3,*) 'CV_SILOC,CV_SNOD,IPHASE,CV_SNOD_PHAS:', &
@@ -631,13 +631,6 @@ contains
        END DO
     END DO
 
-    ewrite(3,*)'suf_u_bc:', suf_u_bc
-    ewrite(3,*)' '
-    ewrite(3,*)'suf_vol_bc_rob1:', suf_vol_bc_rob1
-    ewrite(3,*)' #####'
-    ewrite(3,*)'suf_vol_bc_rob2:', suf_vol_bc_rob2
-
-    STOP 2621
     RETURN
   END SUBROUTINE TEST_BC
 
