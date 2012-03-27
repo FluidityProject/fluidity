@@ -123,7 +123,7 @@ contains
     print*, "*************************"
     print*, "test the exodusII lib"
     version = 0.0
-!    exoid = f_read_ex_open(trim(lfilename), version)
+    exoid = f_read_ex_open(trim(lfilename), version)
     print*, "exoid: ", exoid
     print*, "exodus file version: ", version
 

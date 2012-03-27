@@ -338,15 +338,11 @@ Embed_Python_Fortran.o ../include/embed_python.mod: Embed_Python_Fortran.F90 \
 EventCounter.o ../include/eventcounter.mod: EventCounter.F90 \
    ../include/fdebug.h ../include/fldebug.mod
 
-../include/exodusii_fortran.mod: ExodusII_Fortran.o
+../include/exodusii_f_interface.mod: Exodusii_F_Interface.o
 	@true
 
-ExodusII_Fortran.o ../include/exodusii_fortran.mod: ExodusII_Fortran.F90
-
-../include/exodusii_fortran.mod: Exodusii_Fortran.o
-	@true
-
-Exodusii_Fortran.o ../include/exodusii_fortran.mod: Exodusii_Fortran.F90
+Exodusii_F_Interface.o ../include/exodusii_f_interface.mod: \
+   Exodusii_F_Interface.F90
 
 ../include/fefields.mod: FEFields.o
 	@true
@@ -909,12 +905,12 @@ Quadrature.o ../include/quadrature.mod: Quadrature.F90 ../include/fdebug.h \
 Quadrature_Test.o ../include/quadrature_test.mod: Quadrature_Test.F90 \
    ../include/quadrature.mod
 
-../include/read_exodusii.mod: Read_ExodusII.o
+../include/read_exodusii.mod: Read_Exodusii.o
 	@true
 
-Read_ExodusII.o ../include/read_exodusii.mod: Read_ExodusII.F90 \
-   ../include/elements.mod ../include/exodusii_fortran.mod ../include/fdebug.h \
-   ../include/fields.mod ../include/futils.mod \
+Read_Exodusii.o ../include/read_exodusii.mod: Read_Exodusii.F90 \
+   ../include/elements.mod ../include/exodusii_f_interface.mod \
+   ../include/fdebug.h ../include/fields.mod ../include/futils.mod \
    ../include/global_parameters.mod ../include/spud.mod \
    ../include/state_module.mod
 

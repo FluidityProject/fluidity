@@ -71,12 +71,14 @@ int c_ex_get_elem_block_parameters(int *exoid, int *num_elem_blk, int *block_ids
    int error;
    char elem_type[MAX_STR_LENGTH+1];
    int *num_attr;
+   int i;
    // Get element block ids:
    error = ex_get_elem_blk_ids(*exoid, block_ids);
    // Get element type of blocks, number of elements in blocks, and
    // number of nodes per element:
    num_attr = (int *) calloc(*num_elem_blk, sizeof(int));
-   for (int i=0; i<*num_elem_blk; i++)
+   
+   for (i=0; i<*num_elem_blk; i++)
    {
       error = ex_get_elem_block(*exoid,
                                 block_ids[i],
@@ -101,10 +103,11 @@ int c_ex_get_node_set_param(int *exoid, int *num_node_sets, int *node_set_ids, i
 {
    int error;
    int num_df_in_set;
+   int i;
    // Get node set IDs:
    error = ex_get_node_set_ids(*exoid, node_set_ids);
    // Assemble array with number of nodes per node set 'num_nodes_in_set':
-   for (int i=0; i<*num_node_sets; i++)
+   for (i=0; i<*num_node_sets; i++)
    {
       error = ex_get_node_set_param(*exoid, node_set_ids[i], &num_nodes_in_set[i], &num_df_in_set);
    }
