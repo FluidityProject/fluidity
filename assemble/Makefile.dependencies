@@ -313,8 +313,9 @@ Foam_Flow.o ../include/foam_flow_module.mod: Foam_Flow.F90 \
 	@true
 
 Free_Surface.o ../include/free_surface_module.mod: Free_Surface.F90 \
-   ../include/boundary_conditions.mod ../include/eventcounter.mod \
-   ../include/fdebug.h ../include/field_options.mod ../include/fields.mod \
+   ../include/boundary_conditions.mod ../include/data_structures.mod \
+   ../include/eventcounter.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod \
    ../include/global_parameters.mod ../include/halos.mod \
    ../include/integer_set_module.mod ../include/parallel_tools.mod \
    ../include/physics_from_options.mod ../include/sparse_matrices_fields.mod \
@@ -395,6 +396,18 @@ Hydrostatic_Pressure.o ../include/hydrostatic_pressure.mod: \
    ../include/state_matrices_module.mod ../include/state_module.mod \
    ../include/transform_elements.mod ../include/upwind_stabilisation.mod \
    ../include/vertical_extrapolation_module.mod
+
+../include/hydrostatic_projection.mod: Hydrostatic_Projection.o
+	@true
+
+Hydrostatic_Projection.o ../include/hydrostatic_projection.mod: \
+   Hydrostatic_Projection.F90 ../include/boundary_conditions.mod \
+   ../include/divergence_matrix_cg.mod ../include/fdebug.h \
+   ../include/field_options.mod ../include/fields.mod ../include/fldebug.mod \
+   ../include/solvers.mod ../include/sparse_matrices_fields.mod \
+   ../include/sparse_tools.mod ../include/sparsity_patterns_meshes.mod \
+   ../include/state_module.mod ../include/vertical_extrapolation_module.mod \
+   ../include/vtk_interfaces.mod
 
 ../include/implicit_solids.mod: Implicit_Solids.o
 	@true
@@ -576,11 +589,11 @@ Momentum_Equation.o ../include/momentum_equation.mod: Momentum_Equation.F90 \
    ../include/fldebug.mod ../include/foam_drainage.mod \
    ../include/free_surface_module.mod ../include/full_projection.mod \
    ../include/geostrophic_pressure.mod ../include/hydrostatic_pressure.mod \
-   ../include/implicit_solids.mod ../include/linked_lists.mod \
-   ../include/momentum_cg.mod ../include/momentum_dg.mod \
-   ../include/momentum_diagnostic_fields.mod ../include/multiphase_module.mod \
-   ../include/oceansurfaceforcing.mod ../include/parallel_tools.mod \
-   ../include/petsc_solve_state_module.mod \
+   ../include/hydrostatic_projection.mod ../include/implicit_solids.mod \
+   ../include/linked_lists.mod ../include/momentum_cg.mod \
+   ../include/momentum_dg.mod ../include/momentum_diagnostic_fields.mod \
+   ../include/multiphase_module.mod ../include/oceansurfaceforcing.mod \
+   ../include/parallel_tools.mod ../include/petsc_solve_state_module.mod \
    ../include/pressure_dirichlet_bcs_cv.mod ../include/profiler.mod \
    ../include/reduced_model_runtime.mod \
    ../include/rotated_boundary_conditions.mod ../include/slope_limiters_dg.mod \
