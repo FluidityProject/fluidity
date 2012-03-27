@@ -988,6 +988,11 @@ contains
 
                          IMID_IPHA = MIDACV( CV_NODI_IPHA )
 
+                         if( imid_ipha < 1 ) then
+                              ewrite(1,*)'midacv:', midacv( 1 : cv_nonods * nphase )
+                              ewrite(1,*)' cv_nodi_ipha, IMID_IPHA :', cv_nodi_ipha, IMID_IPHA
+                         endif
+
                          ACV( IMID_IPHA ) =  ACV( IMID_IPHA ) &
                               +  FTHETA_T2 * SCVDETWEI( GI ) * NDOTQ * ( 1. - INCOME ) * LIMD   & ! advection
                               +  FTHETA * SCVDETWEI( GI ) * DIFF_COEF_DIVDX  &  ! Diffusion contribution
@@ -5786,7 +5791,7 @@ use shape_functions_NDim
        END DO
     ENDIF
 
-ewrite(3,*)'check ct:,', NCOLCT * NDIM * NPHASE, size(ct), ct(1:NCOLCT * NDIM * NPHASE)
+    ! ewrite(3,*)'check ct:,', NCOLCT * NDIM * NPHASE, size(ct), ct(1:NCOLCT * NDIM * NPHASE)
 
     RETURN
   END SUBROUTINE PUT_IN_CT_RHS

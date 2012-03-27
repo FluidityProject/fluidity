@@ -1097,7 +1097,7 @@ module copy_outof_into_state
             k = ( i - 1 ) * nphases *  node_count(field) + ( j - 1 ) * node_count(field)
             call Get_ScalarFields_Outof_State( state, i, field, &
                  comp( k + 1 : k + node_count( field )), wic_comp_bc, suf_comp_bc, &
-                 field_prot_source=comp_source)
+                 field_prot_source=comp_source( k + 1 : k + node_count( field )))
 
          end do
 
@@ -1126,9 +1126,9 @@ module copy_outof_into_state
          if ( .not. allocated( suf_d_bc )) then 
             allocate( suf_d_bc( stotel * p_snloc * nphases ) ) ; suf_d_bc = 0.
          end if
-
+         k = ( i - 1 ) * node_count( field )
          call Get_ScalarFields_Outof_State( state, i, field, &
-              den, wic_d_bc, suf_d_bc )
+              den(  k + 1 : k + node_count( field ) ), wic_d_bc, suf_d_bc )
 
          ewrite(3,*)'density:', den
          ewrite(3,*)'==='
@@ -1185,9 +1185,9 @@ module copy_outof_into_state
             allocate( suf_vol_bc( stotel * cv_snloc * nphases ))
             suf_vol_bc = 0.
          endif
-
+         k = ( i - 1 ) * node_count( field )
          call Get_ScalarFields_Outof_State( state, i, field, &
-              satura, wic_vol_bc, suf_vol_bc )
+              satura( k + 1 : k + node_count( field ) ), wic_vol_bc, suf_vol_bc )
 
       enddo Loop_VolumeFraction
 
@@ -1470,10 +1470,10 @@ module copy_outof_into_state
                allocate( wic_t_bc( stotel * nphases )) ; wic_t_bc = 0
                allocate( suf_t_bc( stotel * cv_nloc * nphases )) ; suf_t_bc = 0.
             endif
-
+            k = ( i - 1 ) * node_count( field )
             call Get_ScalarFields_Outof_State( state, i, field, &
-                 t, wic_t_bc, suf_t_bc, &
-                 field_prot_source=t_source)
+                 t( k + 1 : k + node_count( field ) ), wic_t_bc, suf_t_bc, &
+                 field_prot_source=t_source( k + 1 : k + node_count( field ) ))
 
          end do Loop_Temperature
 

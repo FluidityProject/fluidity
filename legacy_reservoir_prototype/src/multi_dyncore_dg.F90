@@ -648,6 +648,10 @@ contains
 
     ELSE ! solve using a projection method
 
+
+
+       ewrite(3,*) 'pivit_mat', pivit_mat
+       
        CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
        ! Put pressure in rhs of force balance eqn:  CDP=C*P
@@ -657,8 +661,6 @@ contains
        !print *,'CDP:',CDP
        !print *,'P:',P
        !print *,'C:',C
-       !
-       !stop 3922
 
        U_RHS_CDP = U_RHS + CDP
 

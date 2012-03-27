@@ -1008,8 +1008,6 @@
            ncolgpts, i_dummy, ele, ele2, ele3, cv_iloc, cv_jloc, cv_nodi, cv_nodj, &
            cv_nodj2, gcount, gcount2, gcount3, gi, cv_nod, count2
 
-      ewrite(3,*)' In CV_Neighboor_Sparsity'
-
       ! Computing Gauss points and array containing node points on neighboors elements
       call retrieve_ngi( ndim, cv_ele_type, cv_nloc, u_nloc, &
            cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
@@ -1480,7 +1478,7 @@ return
            finacv, colacv, midacv )
       ewrite(3,*)'finacv: ', finacv( 1 : cv_pha_nonods + 1 )
       ewrite(3,*)'colacv: ', colacv( 1 : ncolacv )
-      ewrite(3,*)'midacv: ', midacv( 1 : cv_pha_nonods )
+      ewrite(1,*)'midacv: ', midacv( 1 : cv_pha_nonods )
 
       !-
       !- Deallocating temporary arrays

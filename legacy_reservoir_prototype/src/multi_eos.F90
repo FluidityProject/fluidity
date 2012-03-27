@@ -267,7 +267,6 @@
            CV_NDGLN, MAT_NDGLN, &
            U_ABSORB, PERM, MOBILITY)
 
-
       PERT = 0.0001
       SATURA2( 1 : CV_NONODS ) = SATURA( 1 : CV_NONODS ) + PERT
       IF ( NPHASE > 1 ) SATURA2( 1 + CV_NONODS : 2 * CV_NONODS ) = SATURA( 1 + CV_NONODS : 2 * CV_NONODS ) - PERT
@@ -275,8 +274,6 @@
       CALL calculate_absorption2( MAT_NONODS, CV_NONODS, NPHASE, NDIM, SATURA2, TOTELE, CV_NLOC, MAT_NLOC, &
            CV_NDGLN, MAT_NDGLN, &
            U_ABSORB2, PERM, MOBILITY)
-
-      ewrite(3,*)'after in calculate_absorption, U_ABSORB2:', size(U_ABSORB2),U_ABSORB2
 
       DO ELE = 1, TOTELE
          DO CV_ILOC = 1, CV_NLOC
@@ -332,27 +329,8 @@
       REAL, DIMENSION( :, :, :), allocatable :: INV_PERM, PERM
 
       ewrite(3,*) 'In calculate_absorption2'
-      ewrite(3,*) 'mat_ndgln: ', mat_ndgln
-
       ALLOCATE( INV_PERM( TOTELE, NDIM, NDIM ))
       ALLOCATE( PERM( TOTELE, NDIM, NDIM ))
-
-!!!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!!! Big-Hack here ... if permeability is isotropic then
-!!! PERM is non-invertible. 
-!      PERM = PERM2
-!      if( ndim > 1 ) then
-!         do ele = 1, totele
-!            do idim = 1, ndim
-!               do jdim = 1, ndim
-!                  if( idim /= jdim ) &
-!                       perm( ele, idim, jdim ) = .9995 * perm( ele, idim, jdim )
-!               end do
-!            end do
-!         end do
-!      end if
-!!!XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!      CALL PHA_BLOCK_INV( INV_PERM, PERM, TOTELE, NDIM )
 
       perm=perm2
       do ele = 1, totele
@@ -432,13 +410,6 @@
 
       END DO Loop_ELE
 
-      !    ewrite(3,*)'NUABS_COEFS,UABS_COEFS:',NUABS_COEFS,UABS_COEFS
-      ewrite(3,*)'U_ABSORB:'
-      do mat_nod = 1, mat_nonods
-         do iphase = 1, nphase
-            ewrite(3,*) mat_nod, iphase, (U_ABSORB( MAT_NOD, iphase, jphase ), jphase = 1, nphase ) 
-         end do
-      end do
       DEALLOCATE( INV_PERM )
 
       ewrite(3,*) 'Leaving calculate_absorption2'
@@ -524,7 +495,7 @@
             endif
          endif
       endif
-
+ewrite(3,*)'absp:', absp
       RETURN
     END SUBROUTINE relperm_corey
 
