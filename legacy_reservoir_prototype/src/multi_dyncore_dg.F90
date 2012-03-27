@@ -648,8 +648,6 @@ contains
 
     ELSE ! solve using a projection method
 
-
-
        ewrite(3,*) 'pivit_mat', pivit_mat
        
        CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
@@ -657,16 +655,16 @@ contains
        ! Put pressure in rhs of force balance eqn:  CDP=C*P
        CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-       !print *,'U_RHS:',U_RHS
-       !print *,'CDP:',CDP
-       !print *,'P:',P
-       !print *,'C:',C
+       ewrite(3,*) 'U_RHS:',U_RHS
+       ewrite(3,*) 'CDP:',CDP
+       ewrite(3,*) 'P:',P
+       ewrite(3,*) 'C:',C
 
        U_RHS_CDP = U_RHS + CDP
 
        CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
-       print *, 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
-       print *,'U_RHS_CDP:',U_RHS_CDP
+       ewrite(3,*) 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
+       ewrite(3,*) 'U_RHS_CDP:',U_RHS_CDP
 
        IF( JUST_BL_DIAG_MAT ) THEN
 
@@ -681,22 +679,22 @@ contains
                option_path = '/material_phase[0]/vector_field::Velocity')
 
        ENDIF
-        !print *,'UP_VEL:',UP_VEL
 
-       ! ewrite(3,*) 'UP_VEL:', UP_VEL
+       ewrite(3,*) 'UP_VEL:', UP_VEL
 
        CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
 
-       ! put on rhs the cty eqn;  put most recent pressure in RHS of momentum eqn
+       ! put on rhs the cty eqn; put most recent pressure in RHS of momentum eqn
        ! NB. P_RHS = -CT*U + CT_RHS 
        CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT)
 
-       !print *, 'u::', u
-       !print *, 'v::', v
-       !print *, 'P_RHS::', p_rhs
-       !print *, 'CT_RHS::', ct_rhs
+       ewrite(3,*) 'u::', u
+       ewrite(3,*) 'v::', v
+       ewrite(3,*) 'w::', w
+       ewrite(3,*) 'P_RHS::', p_rhs
+       ewrite(3,*) 'CT_RHS::', ct_rhs
 
        P_RHS = -P_RHS + CT_RHS
 
@@ -709,7 +707,7 @@ contains
              P_RHS( CV_NOD ) = P_RHS( CV_NOD ) &
                   - DIAG_SCALE_PRES( CV_NOD ) * MASS_MN_PRES( COUNT ) * P( CV_JNOD )
                   
-             print*, cv_nod, cv_jnod, count, P_RHS( CV_NOD ), DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
+             ewrite(3,*) cv_nod, cv_jnod, count, P_RHS( CV_NOD ), DIAG_SCALE_PRES( CV_NOD ),  MASS_MN_PRES( COUNT ), P( CV_JNOD )    
           END DO
        END DO
 
@@ -720,9 +718,9 @@ contains
 
        ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
 
-       !ewrite(3,*) 'CMC: ', CMC
-       !ewrite(3,*) 'FINDCMC: ', FINDCMC
-       !ewrite(3,*) 'COLCMC: ', COLCMC
+       ewrite(3,*) 'CMC: ', CMC
+       ewrite(3,*) 'FINDCMC: ', FINDCMC
+       ewrite(3,*) 'COLCMC: ', COLCMC
 
        CALL SOLVER( CMC, DP, P_RHS, &
             FINDCMC, COLCMC, &

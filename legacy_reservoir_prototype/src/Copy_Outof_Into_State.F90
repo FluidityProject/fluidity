@@ -118,11 +118,8 @@ module copy_outof_into_state
       type(mesh_type), pointer :: vmesh => null()
       type(mesh_type), pointer :: pmesh  => null()
 
-      type(scalar_field), pointer :: porosity, permeability, density, pressure, &
-           phasevolumefraction, pvf_source, &
-           scalarfield, scalarfield_source, &
-           componentmassfraction, &
-           phasevolumefraction_bc, density_bc, pressure_bc, scalarfield_bc, field
+      type(scalar_field), pointer :: porosity, permeability, &
+           density, pressure, pvf_source, field
 
       type(vector_field), pointer :: velocity, velocity_source
       type(vector_field), pointer :: velocity_bc
@@ -133,7 +130,7 @@ module copy_outof_into_state
 
       real :: nonlinear_iteration_tolerance
 
-      character(len=OPTION_PATH_LEN) :: field_name, material_phase_name, option_path
+      character(len=OPTION_PATH_LEN) :: option_path
 
       !! temporary variables only needed for interfacing purposes
 
@@ -156,8 +153,6 @@ module copy_outof_into_state
       integer, dimension(:), pointer :: element_nodes
 
       real, dimension(:), allocatable :: initial_constant_velocity
-      real :: initial_constant_density
-
 
       logical :: is_isotropic, is_symmetric, is_diagonal, ndgln_switch
 
@@ -223,13 +218,9 @@ module copy_outof_into_state
 
       real, dimension( : , : , : , : ), allocatable :: comp_diffusion
 
-      integer :: Velocity_BC_Type, Pressure_BC_Type, density_bc_type, &
-           component_bc_type, pvf_bc_type, Temperature_bc_type, shape_option(2), kk
+      integer :: Velocity_BC_Type, shape_option(2), kk
 
-      real :: component_suf_bc
-
-      integer, dimension(:), allocatable :: Velocity_SufID_BC, Pressure_SufID_BC, density_sufid_bc, &
-           component_sufid_bc, pvf_sufid_bc, Temperature_sufid_bc
+      integer, dimension(:), allocatable :: Velocity_SufID_BC
 
       ! Gravity terms to be linked with u_source
       logical :: have_gravity
@@ -1404,7 +1395,7 @@ module copy_outof_into_state
                do j=1,node_count(velocity_source)
                   u_source((i-1)*node_count(velocity_source)+j)=velocity_source%val(X_, j)
                   if (ndim>1) u_source(u_nonods*nphases + (i-1)*node_count(velocity_source)+j) = velocity_source%val(Y_, j)
-                  if (ndim>2) u_source(2*u_nonods*nphases + (i-1)*node_count(velocity_source)+j) = velocity_source%val(Z_, j)                  
+                  if (ndim>2) u_source(2*u_nonods*nphases + (i-1)*node_count(velocity_source)+j) = velocity_source%val(Z_, j)
                enddo
             else
                u_source = 0.
@@ -1412,6 +1403,7 @@ module copy_outof_into_state
          enddo
       end if Conditional_VelocitySource
 
+      density => extract_scalar_field(state(1), "Density")
       if (have_gravity) then
          do i = 1, nphases - 1, 1
             delta_den = 0.
