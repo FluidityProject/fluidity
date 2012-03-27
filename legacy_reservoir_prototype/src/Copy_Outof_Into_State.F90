@@ -1143,7 +1143,7 @@ module copy_outof_into_state
       end if
 
       call Get_ScalarFields_Outof_State( state, 1, field, &
-           p, wic_d_bc, suf_d_bc )
+           p, wic_p_bc, suf_p_bc )
 
       ! Control-volume pressure
       allocate( cv_p( node_count( field )))
@@ -1156,6 +1156,8 @@ module copy_outof_into_state
             suf_p_bc( ( i - 1 ) * stotel * p_snloc + 1 : i * stotel * p_snloc ) = suf_p_bc( 1 : stotel * p_snloc)
          end do
       end if
+
+      ewrite(3,*) 'wic_p_bc', wic_p_bc
 
 !!!
 !!! Volume Fraction (or Saturation)
@@ -1877,9 +1879,9 @@ module copy_outof_into_state
                  'boundary_conditions['//int2str(k-1)//']/surface_ids', SufID_BC )
 
             do j = 1, stotel
-               if( any ( sufid_bc == pmesh%faces%boundary_ids(j) ) ) then
+               if( any ( SufID_BC == pmesh%faces%boundary_ids(j) ) ) then
 
-                  wic_bc( j  + ( iphase - 1 ) * stotel ) = BC_Type
+                  wic_bc( j + ( iphase - 1 ) * stotel ) = BC_Type
 
                   do kk = 1, snloc
                      ! this assumes a constant bc (i.e. python functions are not supported)
