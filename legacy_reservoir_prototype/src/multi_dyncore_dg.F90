@@ -716,6 +716,18 @@ contains
 
        DP = 0.0
 
+       ! print cmc
+       if(.true.) then
+          DO CV_NOD = 1, CV_NONODS
+             print *,'cv_nod=',cv_nod
+             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
+                CV_JNOD = COLCMC( COUNT )
+                print *,'CV_JNOD,cmc(count):',CV_JNOD,cmc(count)
+             END DO
+          END DO
+          stop 1244
+       endif
+
        ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
 
        ewrite(3,*) 'CMC: ', CMC
@@ -1104,11 +1116,8 @@ contains
     REAL, DIMENSION( :, :, : ), allocatable :: INV_PIVIT_MAT
 
     ALLOCATE( INV_PIVIT_MAT( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ))
-
-
     CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
-
-
+    
     CALL COLOR_GET_CMC_PHA( CV_NONODS, U_NONODS, NDIM, NPHASE, &
          NCOLC, FINDC, COLC, &
          INV_PIVIT_MAT,  &
@@ -2240,7 +2249,7 @@ contains
              END DO Loop_GaussPoints1
 
 
-              !print *, 'NMX,NMY,NMZ:',NMX,NMY,NMZ
+             print *, 'ele, u_iloc, p_jloc', ele, u_iloc, p_jloc, 'NMX,NMY,NMZ:',NMX,NMY,NMZ
 
              ! Put into matrix
 
@@ -2303,7 +2312,7 @@ contains
     END DO Loop_Elements
 
 
-    !!       stop 27
+    stop 27
 
     !! *************************loop over surfaces*********************************************
 

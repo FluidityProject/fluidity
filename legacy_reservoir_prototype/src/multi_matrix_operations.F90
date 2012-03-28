@@ -398,7 +398,7 @@
            TOTELE, U_NLOC, NCOLCT, NCOLCMC
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
-      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( inout ) :: INV_PIVIT_MAT
+      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( in ) :: INV_PIVIT_MAT
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
@@ -418,6 +418,8 @@
       REAL, DIMENSION( :), allocatable :: CDP, DU, DV, DW, DU_LONG
       INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
       REAL :: SUM
+
+      INTEGER :: I, ELE
 
       ALLOCATE( NEED_COLOR( CV_NONODS ))
       ALLOCATE( COLOR_VEC( CV_NONODS ))
@@ -505,12 +507,13 @@
               C, NCOLC, FINDC, COLC )
          !!DU_LONG = BLOCK_MAT * CDP
          if(.true.) then
-            !         do ele=1,totele
-            !     ewrite(3,*)'ele=',ele
-            !     do i=1,U_nloc*nphase
-            !         ewrite(3,*)INV_PIVIT_MAT(ele,i,:)
-            !     end do
-            !  end do
+            do ele=1,totele
+               ewrite(3,*)'ele=',ele
+               do i=1,U_nloc*nphase*ndim
+                  ewrite(3,*)i, INV_PIVIT_MAT(ele,i,:)
+               end do
+            end do
+
             !       INV_PIVIT_MAT=0.0
             !       do i=1,u_nloc*ndim*nphase
             !         INV_PIVIT_MAT(:,i,i)=1.0

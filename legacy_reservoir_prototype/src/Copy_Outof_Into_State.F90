@@ -1121,12 +1121,6 @@ module copy_outof_into_state
          call Get_ScalarFields_Outof_State( state, i, field, &
               den(  k + 1 : k + node_count( field ) ), wic_d_bc, suf_d_bc )
 
-         ewrite(3,*)'density:', den
-         ewrite(3,*)'==='
-         ewrite(3,*)'wic_d_bc:', wic_d_bc
-         ewrite(3,*)'==='
-         ewrite(3,*)'suf_d_bc:', suf_d_bc
-
       end do Loop_Density
 
 !!!
@@ -1156,8 +1150,6 @@ module copy_outof_into_state
             suf_p_bc( ( i - 1 ) * stotel * p_snloc + 1 : i * stotel * p_snloc ) = suf_p_bc( 1 : stotel * p_snloc)
          end do
       end if
-
-      ewrite(3,*) 'wic_p_bc', wic_p_bc
 
 !!!
 !!! Volume Fraction (or Saturation)
@@ -1220,7 +1212,6 @@ module copy_outof_into_state
 
          velocity => extract_vector_field(state(i), "Velocity")
          option_path = "/material_phase["//int2str(i-1)//"]/vector_field::Velocity"
-
 
          ! facility to initialise velocity field with the initial value from diamond
          ! as long as it's a constant value
