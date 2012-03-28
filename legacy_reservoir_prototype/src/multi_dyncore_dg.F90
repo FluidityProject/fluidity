@@ -1653,7 +1653,7 @@ contains
          IU_NOD_PHA, IU_NOD_DIM_PHA, U_NODI_IPHA, U_NODK, U_NODK_PHA, U_SKLOC, X_INOD, X_INOD2, &
          U_NODJ, U_NODJ2, U_NODJ_IPHA, U_SJLOC, X_ILOC, MAT_ILOC2, MAT_INOD, MAT_INOD2, MAT_SILOC, &
          CV_ILOC, CV_NOD, CV_NOD_PHA, U_JNOD_IDIM_IPHA, COUNT_PHA2, P_JLOC2, P_JNOD, P_JNOD2, &
-         CV_SILOC, JDIM, JPHASE, ILEV, U_NLOC2, CV_KLOC2, CV_NODK2, CV_NODK2_PHA, GI_SHORT
+         CV_SILOC, JDIM, JPHASE, ILEV, U_NLOC2, CV_KLOC2, CV_NODK2, CV_NODK2_PHA, GI_SHORT, NLEV
     REAL    :: NN, NXN, NNX, NXNX, NMX, NMY, NMZ, SAREA, &
          VNMX, VNMY, VNMZ
     REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
@@ -1683,6 +1683,11 @@ contains
 
     call retrieve_ngi( ndim, u_ele_type, cv_nloc, u_nloc, &
          cv_ngi, cv_ngi_short, scvngi, sbcvngi, nface )
+    if(is_overlapping) then
+       nlev=cv_nloc
+    else
+       nlev=1
+    endif
 
     GOT_DIFFUS = .FALSE.
 
@@ -1924,10 +1929,11 @@ contains
             CVFEN, CVFENLX, CVFENLY, CVFENLZ, CVWEIGHT, DETWEI, RA, VOLUME, D1, D3, DCYL, &
             CVFENX, CVFENY, CVFENZ, &
             U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
-
+! Adjust the volume according to the number of levels. 
+       VOLUME=VOLUME/REAL(NLEV)
        MASS_ELE(ELE)=VOLUME
-         print *,'volume,0.1/18.:',volume,0.1/18.
-       stop 2892
+!         print *,'volume,0.1/18.:',volume,0.1/18.
+!       stop 2892
 
        UD = 0.0
        VD = 0.0
@@ -2325,7 +2331,7 @@ contains
          end do
          print *,'vol of domain=',rsum
  
-           stop 27
+!           stop 27
 
     !! *************************loop over surfaces*********************************************
 

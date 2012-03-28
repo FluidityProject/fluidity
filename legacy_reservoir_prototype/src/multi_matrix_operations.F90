@@ -398,7 +398,7 @@
            TOTELE, U_NLOC, NCOLCT, NCOLCMC
       INTEGER, DIMENSION( U_NONODS + 1 ), intent( in ) ::FINDC
       INTEGER, DIMENSION( NCOLC ), intent( in ) :: COLC
-      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( in ) :: INV_PIVIT_MAT
+      REAL, DIMENSION( TOTELE, U_NLOC * NPHASE * NDIM, U_NLOC * NPHASE * NDIM ), intent( inout ) :: INV_PIVIT_MAT
       INTEGER, DIMENSION( TOTELE * U_NLOC ), intent( in ) ::  U_NDGLN
       INTEGER, DIMENSION( CV_NONODS + 1 ), intent( in ) :: FINDCT
       INTEGER, DIMENSION( NCOLCT ), intent( in ) :: COLCT
@@ -433,7 +433,7 @@
       print *,'c=',c
 !      stop 282
 
-      if(.false.) then
+      if(.true.) then
          DO CV_NOD = 1, CV_NONODS
             DO COUNT = FINDCT( CV_NOD ), FINDCT( CV_NOD + 1 ) - 1
                U_JNOD = COLCT( COUNT )
@@ -516,10 +516,10 @@
 !               end do
 !            end do
 
-            !       INV_PIVIT_MAT=0.0
-            !       do i=1,u_nloc*ndim*nphase
-            !         INV_PIVIT_MAT(:,i,i)=1.0
-            !       end do
+                   INV_PIVIT_MAT=0.0
+                   do i=1,u_nloc*ndim*nphase
+                     INV_PIVIT_MAT(:,i,i)=1.0
+                   end do
             CALL PHA_BLOCK_MAT_VEC( DU_LONG, INV_PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
                  TOTELE, U_NLOC, U_NDGLN )
             ! NB. P_RHS=CT*U + CV_RHS 

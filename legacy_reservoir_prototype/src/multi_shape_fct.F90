@@ -7747,7 +7747,7 @@
 
          TWOPIE = 1.0 
          IF( DCYL ) TWOPIE = 2. * PIE
-         rsum=0.0
+!         rsum=0.0
 
          Loop_GI2: DO GI = 1, NGI
 
@@ -7759,11 +7759,6 @@
 
             Loop_L4: DO L = 1, X_NLOC
                IGLX = XONDGL(( ELE - 1 ) * X_NLOC + L )
-               if(gi==1) then
-                 print *,'L,IGLX,X( IGLX ),Y( IGLX ):',L,IGLX,X( IGLX ),Y( IGLX )
-               endif
-               print *,'L, GI,NLX( L, GI ),NLY( L, GI ):',  &
-                        L, GI,NLX( L, GI ),NLY( L, GI )
                AGI = AGI + NLX( L, GI ) * X( IGLX ) 
                BGI = BGI + NLX( L, GI ) * Y( IGLX ) 
                CGI = CGI + NLY( L, GI ) * X( IGLX ) 
@@ -7771,7 +7766,6 @@
                RGI = RGI + N( L, GI ) * Y( IGLX )
             END DO Loop_L4
 
-            print *,'x_nloc,AGI,BGI,CGI,DGI:',x_nloc,AGI,BGI,CGI,DGI
 
             IF( .NOT. DCYL ) RGI = 1.0
 
@@ -7779,16 +7773,19 @@
             RA( GI ) = RGI
             DETWEI( GI ) = TWOPIE * RGI * DETJ * WEIGHT( GI )
             VOLUME = VOLUME + DETWEI( GI )
-            print *,'volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI ):', &
-                     volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI )
-            ewrite(3,*) 'ele, gi, detj, detwei:', ele, gi, detj, detwei(gi)
-            rsum=rsum+WEIGHT( GI )
+!            print *,'volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI ):', &
+!                     volume,DETWEI( GI ),TWOPIE , RGI , DETJ , WEIGHT( GI )
+!            ewrite(3,*) 'ele, gi, detj, detwei:', ele, gi, detj, detwei(gi)
+!            rsum=rsum+WEIGHT( GI )
 
             Loop_L5: DO L = 1, X_NLOC
                NX( L, GI ) = (  DGI * NLX( L, GI ) - BGI * NLY( L, GI )) / DETJ
                NY( L, GI ) = ( -CGI * NLX( L, GI ) + AGI * NLY( L, GI )) / DETJ
                NZ( L, GI ) = 0.0
             END DO Loop_L5
+
+!            print *,'nx:',nx
+!            print *,'ny:',ny
 
             Loop_L6: DO L = 1, U_NLOC
                UNX( L, GI ) = (  DGI * UNLX( L, GI ) - BGI * UNLY( L, GI )) / DETJ
@@ -7798,7 +7795,7 @@
 
          END DO Loop_GI2
 
-         print *,'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
+!         print *,'ngi,sum(weight),rsum:',ngi,sum(weight),rsum
 
       ELSE ! FOR 1D...
 

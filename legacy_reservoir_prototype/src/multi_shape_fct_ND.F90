@@ -3318,7 +3318,10 @@
          Loop_NGI: do quad_cv_gi = 1, quad_cv_ngi ! Determine the quadrature points and weights
             cv_gi = ( ele - 1 ) * quad_cv_ngi + quad_cv_gi
             ewrite(3,*)'ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi:', ele, totele, quad_cv_gi, quad_cv_ngi, cv_gi, cv_ngi
-            cvweigh( cv_gi ) = detwei( quad_cv_gi )
+! the weights need to sum to 0.5 in 2D triangles and 1./6. in 3D tets...
+            if(ndim==1) cvweigh( cv_gi ) = detwei( quad_cv_gi )
+            if(ndim==2) cvweigh( cv_gi ) = 0.5*detwei( quad_cv_gi )
+            if(ndim==3) cvweigh( cv_gi ) = (1./6.)*detwei( quad_cv_gi )
             xgi = 0.
             ygi = 0.
             zgi = 0.
