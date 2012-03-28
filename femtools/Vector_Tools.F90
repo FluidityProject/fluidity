@@ -256,6 +256,7 @@ contains
       inverse(3,2)=A(3,1)*A(1,2)-A(1,1)*A(3,2)
       inverse(3,3)=A(1,1)*A(2,2)-A(2,1)*A(1,2)
       
+      assert(det/=0.0)
       inverse=inverse/det
       
     case (2)
@@ -264,9 +265,11 @@ contains
       inverse(2,2)=A(1,1)
       inverse(1,2)=-A(1,2)
       inverse(2,1)=-A(2,1)
+      assert(det/=0.0)
       inverse=inverse/det
       
     case (1)
+      assert(A(1,1)/=0)
       inverse(1,1)=1.0/A(1,1)
       
     case default
