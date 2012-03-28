@@ -3233,7 +3233,7 @@
       logical :: d1, dcyl, d3, lowqua
       integer :: ele, quad_cv_ngi, quad_cv_gi, cv_gi, nwicel, xnod, quad_cv_iloc, &
            quad_u_loc_dummy, mloc, dummy_sngi, dummy_snloc, dummy_smloc
-      real :: xgi, ygi, zgi, volume
+      real :: xgi, ygi, zgi, volume, rsum
       real, dimension( : ), allocatable :: quad_l1, quad_l2, quad_l3, quad_l4, &
            quad_cvweight, detwei, ra, rdummy
       real, dimension( :, : ), allocatable :: quad_n, quad_nlx, quad_nly, quad_nlz, &
@@ -3351,7 +3351,13 @@
       call shatri_hex( quad_l1, quad_l2, quad_l3, quad_l4, rdummy, d3, &
            cv_nloc, cv_ngi, n, nlx, nly, nlz, &
            .true. )
-
+      print *,'cvweigh:',cvweigh
+      rsum=0.0
+      do cv_gi=1,cv_ngi
+         rsum=rsum+cvweigh(cv_gi)
+      end do
+      print *,'rsum:',rsum
+!      stop 2821
       deallocate( quad_l1 )
       deallocate( quad_l2 )
       deallocate( quad_l3 )

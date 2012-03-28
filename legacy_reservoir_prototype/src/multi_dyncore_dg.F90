@@ -647,22 +647,24 @@ contains
             U_NONODS * NDIM * NPHASE + CV_NONODS )
 
     ELSE ! solve using a projection method
+
+!       ewrite(3,*) 'pivit_mat', pivit_mat
        
        CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
        ! Put pressure in rhs of force balance eqn:  CDP=C*P
        CALL C_MULT( CDP, P, CV_NONODS, U_NONODS, NDIM, NPHASE, C, NCOLC, FINDC, COLC)
 
-       ewrite(3,*) 'U_RHS:',U_RHS
-       ewrite(3,*) 'CDP:',CDP
-       ewrite(3,*) 'P:',P
-       ewrite(3,*) 'C:',C
+!       ewrite(3,*) 'U_RHS:',U_RHS
+!       ewrite(3,*) 'CDP:',CDP
+!       ewrite(3,*) 'P:',P
+!       ewrite(3,*) 'C:',C
 
        U_RHS_CDP = U_RHS + CDP
 
        CALL UVW_2_ULONG( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
-       ewrite(3,*) 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
-       ewrite(3,*) 'U_RHS_CDP:',U_RHS_CDP
+!       ewrite(3,*) 'JUST_BL_DIAG_MAT,INV_PIVIT_MAT:',JUST_BL_DIAG_MAT,INV_PIVIT_MAT
+!       ewrite(3,*) 'U_RHS_CDP:',U_RHS_CDP
 
        IF( JUST_BL_DIAG_MAT ) THEN
 
@@ -678,7 +680,7 @@ contains
 
        ENDIF
 
-       ewrite(3,*) 'UP_VEL:', UP_VEL
+!       ewrite(3,*) 'UP_VEL:', UP_VEL
 
        CALL ULONG_2_UVW( U, V, W, UP_VEL, U_NONODS, NDIM, NPHASE )
 
@@ -688,11 +690,11 @@ contains
        CALL CT_MULT(P_RHS, U, V, W, CV_NONODS, U_NONODS, NDIM, NPHASE, &
             CT, NCOLCT, FINDCT, COLCT)
 
-       ewrite(3,*) 'u::', u
-       ewrite(3,*) 'v::', v
-       ewrite(3,*) 'w::', w
-       ewrite(3,*) 'P_RHS::', p_rhs
-       ewrite(3,*) 'CT_RHS::', ct_rhs
+!       ewrite(3,*) 'u::', u
+!       ewrite(3,*) 'v::', v
+!       ewrite(3,*) 'w::', w
+!       ewrite(3,*) 'P_RHS::', p_rhs
+!       ewrite(3,*) 'CT_RHS::', ct_rhs
 
        P_RHS = -P_RHS + CT_RHS
 
@@ -728,9 +730,9 @@ contains
 
        ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
 
-       ewrite(3,*) 'CMC: ', CMC
-       ewrite(3,*) 'FINDCMC: ', FINDCMC
-       ewrite(3,*) 'COLCMC: ', COLCMC
+!       ewrite(3,*) 'CMC: ', CMC
+!       ewrite(3,*) 'FINDCMC: ', FINDCMC
+!       ewrite(3,*) 'COLCMC: ', COLCMC
 
        CALL SOLVER( CMC, DP, P_RHS, &
             FINDCMC, COLCMC, &
@@ -1656,7 +1658,7 @@ contains
          VNMX, VNMY, VNMZ
     REAL    :: VOLUME, MN, XC, YC, ZC, XC2, YC2, ZC2, HDC, VLM, VLM_NEW,VLM_OLD, NN_SNDOTQ_IN,NN_SNDOTQ_OUT, &
          NN_SNDOTQOLD_IN,NN_SNDOTQOLD_OUT, NORMX, NORMY, NORMZ, RNN
-    REAL    :: MASSE, MASSE2
+    REAL    :: MASSE, MASSE2, rsum
     character( len = 100 ) :: name
 
     character( len = option_path_len ) :: overlapping_path 
@@ -1861,6 +1863,7 @@ contains
 
     PIVIT_MAT = 0.0
 
+
     !     ======= DEFINE THE SUB-CONTROL VOLUME SHAPE FUNCTIONS, ETC ========
 
     ! Shape functions associated with volume integration using both CV basis 
@@ -1923,6 +1926,8 @@ contains
             U_NLOC, UFENLX, UFENLY, UFENLZ, UFENX, UFENY, UFENZ ) 
 
        MASS_ELE(ELE)=VOLUME
+         print *,'volume,0.1/18.:',volume,0.1/18.
+       stop 2892
 
        UD = 0.0
        VD = 0.0
@@ -2228,7 +2233,7 @@ contains
                 NMY = NMY + UFEN( U_ILOC, GI ) * CVFENY( P_JLOC, GI ) * DETWEI( GI )
                 NMZ = NMZ + UFEN( U_ILOC, GI ) * CVFENZ( P_JLOC, GI ) * DETWEI( GI )
 
-                !print *, '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':',CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
+                print *, '* i, j, gi', U_ILOC,P_JLOC, gi, ':',UFEN( U_ILOC, GI ), ':',CVFENX( P_JLOC, GI ),  CVFENY( P_JLOC, GI ),  CVFENZ( P_JLOC, GI ), ':', DETWEI( GI )
                 IF( IPLIKE_GRAD_SOU == 1 ) THEN 
                    GRAD_SOU_GI_NMX( : ) = GRAD_SOU_GI_NMX( : )  &
                         + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
@@ -2240,14 +2245,14 @@ contains
                         + GRAD_SOU_GI( GI, : ) * UFEN( U_ILOC, GI ) * &
                         CVFENZ( P_JLOC, GI ) * DETWEI( GI )
                 ENDIF
-                  !PRINT *,'ELE,GI,U_ILOC,P_JLOC,::,NMX,NMY,NMZ:', &
-                  !         ELE,GI,U_ILOC,P_JLOC,'::',NMX,NMY,NMZ
-                  !print *, ' '
-                  !print *, ' '
+!                  PRINT *,'ELE,GI,U_ILOC,P_JLOC,::,NMX,NMY,NMZ:', &
+!                           ELE,GI,U_ILOC,P_JLOC,'::',NMX,NMY,NMZ
+!                  print *, ' '
+!                  print *, ' '
              END DO Loop_GaussPoints1
 
 
-             print *, 'ele, u_iloc, p_jloc', ele, u_iloc, p_jloc, 'NMX,NMY,NMZ:',NMX,NMY,NMZ
+              print *, 'ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ:',ELE,U_ILOC,P_JLOC,NMX,NMY,NMZ
 
              ! Put into matrix
 
@@ -2309,8 +2314,18 @@ contains
 
     END DO Loop_Elements
 
+         print *,'c=',c
 
-    !stop 27
+         print *,'x:',x
+         print *,'y:',y
+         print *,'mass_ele:',mass_ele
+         rsum=0.0
+         do ele=1,totele
+           rsum=rsum+mass_ele(ele)
+         end do
+         print *,'vol of domain=',rsum
+ 
+           stop 27
 
     !! *************************loop over surfaces*********************************************
 

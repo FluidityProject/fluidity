@@ -417,9 +417,9 @@
       REAL, DIMENSION( :), allocatable :: NEED_COLOR, COLOR_VEC, CMC_COLOR_VEC
       REAL, DIMENSION( :), allocatable :: CDP, DU, DV, DW, DU_LONG
       INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
+      INTEGER :: I, ELE
       REAL :: SUM
 
-      INTEGER :: I, ELE
 
       ALLOCATE( NEED_COLOR( CV_NONODS ))
       ALLOCATE( COLOR_VEC( CV_NONODS ))
@@ -430,6 +430,8 @@
       ALLOCATE( DW( U_NONODS * NPHASE ))
       ALLOCATE( CMC_COLOR_VEC( CV_NONODS )) 
 
+      print *,'c=',c
+!      stop 282
 
       if(.false.) then
          DO CV_NOD = 1, CV_NONODS
@@ -507,12 +509,12 @@
               C, NCOLC, FINDC, COLC )
          !!DU_LONG = BLOCK_MAT * CDP
          if(.true.) then
-            do ele=1,totele
-               ewrite(3,*)'ele=',ele
-               do i=1,U_nloc*nphase*ndim
-                  ewrite(3,*)i, INV_PIVIT_MAT(ele,i,:)
-               end do
-            end do
+!            do ele=1,totele
+!               ewrite(3,*)'ele=',ele
+!               do i=1,U_nloc*nphase*ndim
+!                  ewrite(3,*)i, INV_PIVIT_MAT(ele,i,:)
+!               end do
+!            end do
 
             !       INV_PIVIT_MAT=0.0
             !       do i=1,u_nloc*ndim*nphase
@@ -572,16 +574,19 @@
       END DO Loop_while
 
 
-      if(.false.) then
+      if(.true.) then
          DO CV_NOD = 1, CV_NONODS
 
+            print *,'cv_nod=',cv_nod
             DO COUNT = FINDCMC( CV_NOD ), FINDCMC( CV_NOD + 1 ) - 1
                CV_JNOD = COLCMC( COUNT )
+               print *,'CV_JNOD,cmc(count):',CV_JNOD,cmc(count)
 
             END DO
 
          END DO
          !       cmc(FINDCMC( CV_NONODS + 1 ) - 1)=50000.
+         stop 1244
       endif
 
       DEALLOCATE( NEED_COLOR )
