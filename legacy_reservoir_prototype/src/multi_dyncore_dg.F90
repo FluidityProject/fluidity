@@ -2322,14 +2322,25 @@ contains
 
          print *,'c=',c
 
-         print *,'x:',x
-         print *,'y:',y
-         print *,'mass_ele:',mass_ele
-         rsum=0.0
-         do ele=1,totele
-           rsum=rsum+mass_ele(ele)
+       do iphase=1,nphase
+       do idim=1,ndim
+         do u_inod=1,u_nonods
+           print *,'iphase,idim,u_inod:',iphase,idim,u_inod
+           print *,'colc:',(colc(count),count=findc(u_inod),findc(u_inod+1)-1)
+           print *,'c:',(c(count+(idim-1)*ncolc+(iphase-1)*ndim*ncolc), &
+                         count=findc(u_inod),findc(u_inod+1)-1)
          end do
-         print *,'vol of domain=',rsum
+       end do
+       end do
+
+!         print *,'x:',x
+!         print *,'y:',y
+!         print *,'mass_ele:',mass_ele
+!         rsum=0.0
+!         do ele=1,totele
+!           rsum=rsum+mass_ele(ele)
+!         end do
+!         print *,'vol of domain=',rsum
  
 !           stop 27
 
@@ -2403,7 +2414,7 @@ contains
                            U_NONODS, FINDC, COLC, NCOLC )
 
                       Loop_Phase2: DO IPHASE = 1, NPHASE
-                         COUNT_PHA = COUNT + ( IPHASE - 1 ) * NCOLC
+                         COUNT_PHA = COUNT + ( IPHASE - 1 ) * NDIM * NCOLC 
                          IU_PHA_NOD = IU_NOD + ( IPHASE - 1 ) * U_NONODS * NDIM
                          SUF_P_SJ_IPHA = ( SELE - 1 ) * P_SNLOC + P_SJLOC  + (IPHASE-1)*STOTEL*P_SNLOC
 

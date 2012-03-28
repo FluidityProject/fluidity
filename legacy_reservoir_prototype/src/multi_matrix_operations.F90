@@ -417,7 +417,7 @@
       REAL, DIMENSION( :), allocatable :: NEED_COLOR, COLOR_VEC, CMC_COLOR_VEC
       REAL, DIMENSION( :), allocatable :: CDP, DU, DV, DW, DU_LONG
       INTEGER :: NCOLOR, CV_NOD, CV_JNOD, COUNT, COUNT2, IDIM, IPHASE, CV_COLJ, U_JNOD, CV_JNOD2
-      INTEGER :: I, ELE
+      INTEGER :: I, ELE,u_inod,u_nod
       REAL :: SUM
 
 
@@ -430,10 +430,25 @@
       ALLOCATE( DW( U_NONODS * NPHASE ))
       ALLOCATE( CMC_COLOR_VEC( CV_NONODS )) 
 
-      print *,'c=',c
+!      print *,'c=',c
 !      stop 282
+       do iphase=1,nphase
+       do idim=1,ndim
+         do u_inod=1,u_nonods
+           print *,'iphase,idim,u_inod:',iphase,idim,u_inod
+           print *,'colc:',(colc(count),count=findc(u_inod),findc(u_inod+1)-1)
+           print *,'c:',(c(count+(idim-1)*ncolc+(iphase-1)*ndim*ncolc), &
+                         count=findc(u_inod),findc(u_inod+1)-1)
+         end do
+       end do
+       end do
+!         stop 292
+
 
       if(.true.) then
+         print *,'NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase:', &
+                  NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase
+!         stop 321
          DO CV_NOD = 1, CV_NONODS
             DO COUNT = FINDCT( CV_NOD ), FINDCT( CV_NOD + 1 ) - 1
                U_JNOD = COLCT( COUNT )
@@ -523,6 +538,7 @@
             CALL PHA_BLOCK_MAT_VEC( DU_LONG, INV_PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
                  TOTELE, U_NLOC, U_NDGLN )
             ! NB. P_RHS=CT*U + CV_RHS 
+!               DU_LONG=CDP
 
             CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
 
@@ -572,6 +588,45 @@
          ewrite(3,*)'************ sum,done,NCOLOR=',sum,done,NCOLOR
 
       END DO Loop_while
+
+      do ncolor=1,cv_nonods
+        COLOR_VEC=0.0
+        COLOR_VEC(ncolor)=1.0
+
+        du_long=0.0
+        cdp=0.0
+
+!         CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+         CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, 1, 1, &
+              C, NCOLC, FINDC, COLC )
+
+       if(.false.) then
+         du_long=cdp
+
+         CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, 1, 1 )
+!         CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
+
+         CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, 1, 1, &
+!         CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+              CT, NCOLCT, FINDCT, COLCT )
+       else
+! CMC_COLOR_VEC=c^T CDP
+          CMC_COLOR_VEC=0.0
+          do u_nod=1,u_nonods
+             do count=findc(u_nod),findc(u_nod+1)-1
+                cv_jnod=colc(count)
+                CMC_COLOR_VEC(cv_jnod)=CMC_COLOR_VEC(cv_jnod)+c(count)*CDP(u_nod)
+             end do
+          end do
+       endif
+
+         print *,'ncolor=',ncolor
+         print *,'CMC_COLOR_VEC:',CMC_COLOR_VEC
+      end do
+        
+      print *,' '
+      print *,'ct(1),c(1):',ct(1),c(1)
+      print *,'ct(ncolct),c(ncolc):',ct(ncolct),c(ncolc)
 
 
       if(.true.) then
