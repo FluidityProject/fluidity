@@ -647,8 +647,6 @@ contains
             U_NONODS * NDIM * NPHASE + CV_NONODS )
 
     ELSE ! solve using a projection method
-
-       ewrite(3,*) 'pivit_mat', pivit_mat
        
        CALL PHA_BLOCK_INV( INV_PIVIT_MAT, PIVIT_MAT, TOTELE, U_NLOC * NPHASE * NDIM )
 
@@ -2312,7 +2310,7 @@ contains
     END DO Loop_Elements
 
 
-    stop 27
+    !stop 27
 
     !! *************************loop over surfaces*********************************************
 

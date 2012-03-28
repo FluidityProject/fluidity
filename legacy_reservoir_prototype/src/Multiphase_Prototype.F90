@@ -68,7 +68,7 @@ module mp_prototype
            u_ele_type, p_ele_type, mat_ele_type, cv_ele_type, &
            cv_sele_type, u_sele_type
 
-      integer :: ntime, ntime_dump, nits, nits_internal, ndpset, noit_dim, &
+      integer :: ntime_dump, nits, nits_internal, ndpset, noit_dim, &
            nits_flux_lim_volfra, nits_flux_lim_comp, nits_flux_lim_t
 
       real :: patmos, p_ini, t_beta, v_beta, t_theta, v_theta, &

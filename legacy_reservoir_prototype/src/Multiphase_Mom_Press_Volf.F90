@@ -135,7 +135,7 @@ contains
          nits_flux_lim_volfra, nits_flux_lim_comp, & 
          ndpset 
     real :: dt, current_time
-    integer :: ntime, dump_no
+    integer :: dump_no
     
     ! The following need to be changed later in the other subrts as it should be controlled by the 
     ! input files
