@@ -445,7 +445,7 @@
 !         stop 292
 
 
-      if(.true.) then
+      if(.false.) then
          print *,'NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase:', &
                   NCOLCT,NDIM,NCOLC,cv_nonods,u_nonods,nphase
 !         stop 321
@@ -458,14 +458,31 @@
                   IF(CV_COLJ == CV_NOD) THEN
                      DO IDIM=1,NDIM
                         DO IPHASE=1,NPHASE
-                           CT(COUNT2+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
-                                C(COUNT+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
+!                           CT(COUNT2+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
+!                                C(COUNT+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
+                           CT(COUNT+(IDIM-1)*NCOLCT+NCOLCT*NDIM*(IPHASE-1))=  &
+                                C(COUNT2+(IDIM-1)*NCOLC+NCOLC*NDIM*(IPHASE-1))
                         END DO
                      END DO
                   ENDIF
                END DO
             END DO
          END DO
+
+         print *,'colct:'
+         DO CV_NOD = 1, CV_NONODS
+               print *,'cv_NOD=',cv_NOD
+               print *,(colct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
+               print *,(ct(count2),COUNT2=FINDCt(cv_NOD),FINDCt(cv_NOD+1)-1)
+         end do
+
+         print *,'colc:'
+         do U_JNOD=1,u_nonods
+               print *,'U_JNOD=',U_JNOD
+               print *,(colc(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
+               print *,(c(count2),COUNT2=FINDC(U_JNOD),FINDC(U_JNOD+1)-1)
+         end do
+!         stop 221
 
       endif
 
@@ -531,10 +548,10 @@
 !               end do
 !            end do
 
-                   INV_PIVIT_MAT=0.0
-                   do i=1,u_nloc*ndim*nphase
-                     INV_PIVIT_MAT(:,i,i)=1.0
-                   end do
+!                   INV_PIVIT_MAT=0.0
+!                   do i=1,u_nloc*ndim*nphase
+!                     INV_PIVIT_MAT(:,i,i)=1.0
+!                   end do
             CALL PHA_BLOCK_MAT_VEC( DU_LONG, INV_PIVIT_MAT, CDP, U_NONODS, NDIM, NPHASE, &
                  TOTELE, U_NLOC, U_NDGLN )
             ! NB. P_RHS=CT*U + CV_RHS 
@@ -589,22 +606,22 @@
 
       END DO Loop_while
 
-      do ncolor=1,cv_nonods
+      do ncolor=1,-cv_nonods
         COLOR_VEC=0.0
         COLOR_VEC(ncolor)=1.0
 
         du_long=0.0
         cdp=0.0
 
-!         CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
-         CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, 1, 1, &
+         CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, NDIM, NPHASE, &
+!         CALL C_MULT( CDP, COLOR_VEC, CV_NONODS, U_NONODS, 1, 1, &
               C, NCOLC, FINDC, COLC )
 
-       if(.false.) then
+       if(.true.) then
          du_long=cdp
 
-         CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, 1, 1 )
-!         CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
+!         CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, 1, 1 )
+         CALL ULONG_2_UVW( DU, DV, DW, DU_LONG, U_NONODS, NDIM, NPHASE )
 
          CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, 1, 1, &
 !         CALL CT_MULT( CMC_COLOR_VEC, DU, DV, DW, CV_NONODS, U_NONODS, NDIM, NPHASE, &
@@ -641,7 +658,7 @@
 
          END DO
          !       cmc(FINDCMC( CV_NONODS + 1 ) - 1)=50000.
-         stop 1244
+!         stop 1244 
       endif
 
       DEALLOCATE( NEED_COLOR )

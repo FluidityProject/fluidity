@@ -725,7 +725,7 @@ contains
                 print *,'CV_JNOD,cmc(count):',CV_JNOD,cmc(count)
              END DO
           END DO
-          stop 1244
+!          stop 1244
        endif
 
        ewrite(3,*)'b4 pressure solve P_RHS:', P_RHS
@@ -777,6 +777,8 @@ contains
     END DO
     CV_P = CV_P / MASS_CV
     ewrite(3,*)'also CV_P=',CV_P
+
+     stop 443
 
     ewrite(3,*)'the velocity should be:'
     do ele=1,-totele
