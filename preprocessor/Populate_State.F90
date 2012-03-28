@@ -277,13 +277,21 @@ contains
           if (no_active_processes /= getnprocs()) then
             ! not all processes are active, they need to be told the mesh dimensions
 
-            ! receive the mesh dimension from rank 0 (which should always be active)
+            ! receive the mesh dimension from rank 0
             if (getrank()==0) then
-              mesh_dims(1)=mesh_dim(mesh)
-              mesh_dims(2)=ele_loc(mesh,1)
-              if (associated(mesh%columns)) then
-                mesh_dims(3)=1
+              if (is_active_process) then
+                ! normally rank 0 should always be active, so it knows the dimensions
+                mesh_dims(1)=mesh_dim(mesh)
+                mesh_dims(2)=ele_loc(mesh,1)
+                if (associated(mesh%columns)) then
+                  mesh_dims(3)=1
+                else
+                  mesh_dims(3)=0
+                end if
               else
+                ! this is a special case for a unit test with 1 inactive process
+                call get_option('/geometry/dimension', mesh_dims(1))
+                mesh_dims(2)=mesh_dims(1)+1
                 mesh_dims(3)=0
               end if
             end if
