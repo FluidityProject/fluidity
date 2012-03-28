@@ -167,6 +167,8 @@ FETools.o: FETools.F90
 	@echo "        FC $<"
 	$(FC) $(FCFLAGS) $(UNROLL_LOOPS) $(GENFLAGS) -c $< || (rm $(LIB) && false)
 
+Read_Exodusii.o: Exodusii_F_Interface.o
+
 # The refcount template dependencies are not actually needed for
 # Reference_counting.o but they are needed by everything which depends on
 # Reference_counting.o

@@ -810,7 +810,7 @@ if test "x$with_exodusii" != "xno" ; then
     fi
   fi
 fi
-AC_CHECK_LIB(exodus, ex_close)
+AC_CHECK_LIB(exodus, ex_close, [], [AC_CHECK_LIB(exoIIv2c, ex_close)])
 
 # Parmetis and zoltan
 ACX_ParMetis([AC_MSG_NOTICE(["ParMetis found"])], [AC_MSG_WARN(["ParMetis not found"])])
