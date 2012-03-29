@@ -52,8 +52,8 @@ def update_living_diatom(vars, env, dt):
   T_function = math.exp(34.12969283 - 10000/T_K)
 
   # Photosynthesis
-  Q_N = (vars['Ammonium'] + vars['AmmoniumUptake'] + vars['Nitrate'] + vars['NitrateUptake']) / vars['Carbon']
-  Q_s = (vars['Silicate'] + vars['SilicateUptake']) / vars['Carbon']
+  Q_N = (vars['Ammonium'] + vars['AmmoniumIngested'] + vars['Nitrate'] + vars['NitrateIngested']) / vars['Carbon']
+  Q_s = (vars['Silicate'] + vars['SilicateIngested']) / vars['Carbon']
 
   if Q_N > param_Q_Nmax:
     P_max_c = param_P_ref_c * T_function
@@ -72,7 +72,7 @@ def update_living_diatom(vars, env, dt):
     P_phot_c = P_max_c * (1.0 - math.exp(-0.284400e-2*Theta_c*E_0 / P_max_c))
 
   # Chlorophyll Synthesis
-  Theta_N = vars['Chlorophyll'] / (vars['Ammonium'] + vars['AmmoniumUptake'] + vars['Nitrate'] + vars['NitrateUptake'])
+  Theta_N = vars['Chlorophyll'] / (vars['Ammonium'] + vars['AmmoniumIngested'] + vars['Nitrate'] + vars['NitrateIngested'])
 
   if E_0 > 0.0 and Theta_c > 0.0:
     Rho_Chl = param_Theta_max_N * P_phot_c / (3600.0 * param_Alpha_Chl * Theta_c * E_0)
@@ -80,11 +80,11 @@ def update_living_diatom(vars, env, dt):
     Rho_Chl = 0.0
 
   # Respiration
-  R_C_growth = (vars['AmmoniumUptake'] + vars['NitrateUptake']) * param_Zeta / (stepInHours * vars['Carbon'])
+  R_C_growth = (vars['AmmoniumIngested'] + vars['NitrateIngested']) * param_Zeta / (stepInHours * vars['Carbon'])
   R_C = param_R_maintenance + R_C_growth
 
   # Cell division
-  if vars['Carbon'] + (vars['Carbon'] * (P_phot_c - R_C) * stepInHours) >= param_C_rep and (vars['Silicate'] + vars['SilicateUptake']) >= param_S_rep:
+  if vars['Carbon'] + (vars['Carbon'] * (P_phot_c - R_C) * stepInHours) >= param_C_rep and (vars['Silicate'] + vars['SilicateIngested']) >= param_S_rep:
     C_d = 2.0
   else:
     C_d = 1.0
@@ -93,8 +93,8 @@ def update_living_diatom(vars, env, dt):
     vars['Size'] = vars['Size'] * 2
 
   # Nutrients Uptake
-  Q_nitrate = (vars['Nitrate'] + vars['NitrateUptake']) / vars['Carbon']
-  Q_ammonium = (vars['Ammonium'] + vars['AmmoniumUptake']) / vars['Carbon']
+  Q_nitrate = (vars['Nitrate'] + vars['NitrateIngested']) / vars['Carbon']
+  Q_ammonium = (vars['Ammonium'] + vars['AmmoniumIngested']) / vars['Carbon']
   omega = (param_k_AR / (param_k_AR + env['DissolvedAmmonium'])) * ((param_k_AR + env['DissolvedNitrate']) / (param_k_AR + env['DissolvedAmmonium'] + env['DissolvedNitrate']))
 
   if vars['Ammonium'] + vars['Nitrate'] < 1000.0:
@@ -129,12 +129,12 @@ def update_living_diatom(vars, env, dt):
   silicate_uptake_rate = vars['Silicate'] * V_S_S * stepInHours
 
   # Update Pools
-  ammonium_pool_new = (vars['Ammonium'] + vars['AmmoniumUptake'] + vars['NitrateUptake'] - (vars['Ammonium'] * param_R_N * stepInHours * T_function)) / C_d
+  ammonium_pool_new = (vars['Ammonium'] + vars['AmmoniumIngested'] + vars['NitrateIngested'] - (vars['Ammonium'] * param_R_N * stepInHours * T_function)) / C_d
   nitrate_pool_new = 0.0
-  silicate_pool_new = (vars['Silicate'] + vars['SilicateUptake']) / C_d
+  silicate_pool_new = (vars['Silicate'] + vars['SilicateIngested']) / C_d
 
   if Theta_N <= param_Theta_max_N:
-    chlorophyll_pool_new = vars['Chlorophyll'] + Rho_Chl * (vars['AmmoniumUptake'] + vars['NitrateUptake'])
+    chlorophyll_pool_new = vars['Chlorophyll'] + Rho_Chl * (vars['AmmoniumIngested'] + vars['NitrateIngested'])
   else:
     chlorophyll_pool_new = param_Theta_max_N * (vars['Ammonium'] + vars['Nitrate'])
   chlorophyll_pool_new = chlorophyll_pool_new - (vars['Chlorophyll'] * param_R_Chl * stepInHours * T_function)

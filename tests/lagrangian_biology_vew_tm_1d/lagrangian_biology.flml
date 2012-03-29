@@ -527,6 +527,17 @@ def val(X,t):
                 </diagnostic>
                 <stage_aggregate/>
               </scalar_field>
+              <scalar_field name="Ingested">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+                <stage_aggregate/>
+              </scalar_field>
               <scalar_field name="Depletion">
                 <diagnostic>
                   <algorithm name="Internal" material_phase_support="multiple"/>
@@ -577,6 +588,17 @@ def val(X,t):
                 </diagnostic>
                 <stage_aggregate/>
               </scalar_field>
+              <scalar_field name="Ingested">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+                <stage_aggregate/>
+              </scalar_field>
               <scalar_field name="Depletion">
                 <diagnostic>
                   <algorithm name="Internal" material_phase_support="multiple"/>
@@ -604,6 +626,17 @@ def val(X,t):
             <chemical_field name="DissolvedSilicate"/>
             <uptake>
               <scalar_field name="Request">
+                <diagnostic>
+                  <algorithm name="Internal" material_phase_support="multiple"/>
+                  <output/>
+                  <stat/>
+                  <detectors>
+                    <include_in_detectors/>
+                  </detectors>
+                </diagnostic>
+                <stage_aggregate/>
+              </scalar_field>
+              <scalar_field name="Ingested">
                 <diagnostic>
                   <algorithm name="Internal" material_phase_support="multiple"/>
                   <output/>
@@ -665,6 +698,10 @@ def val(X,t):
               <stage_aggregate/>
             </scalar_field>
           </chemical_variable>
+          <chemical_variable name="NtoC"/>
+          <chemical_variable name="C_fuel"/>
+          <chemical_variable name="Nitrogen"/>
+          <chemical_variable name="ChltoC"/>
         </variables>
         <environment>
           <field name="Irradiance"/>
@@ -734,12 +771,10 @@ def val(position, element, local_coords, dt):
             </movement>
             <biology>
               <python>
-                <string_value lines="20" type="code" language="python">import fluidity.lagrangian_biology as bio
-
-sim_time = persistent['diffusivity_mld_time']
+                <string_value lines="20" type="code" language="python">import fluidity.lerm_ps as lerm
 
 def val(biovars, env, dt):
-  bio.update_living_diatom(biovars, env, dt)
+  lerm.update_Living_Diatom(biovars, env, dt)
   return biovars</string_value>
               </python>
             </biology>
@@ -815,10 +850,10 @@ def val(position, element, local_coords, dt):
             </movement>
             <biology>
               <python>
-                <string_value lines="20" type="code" language="python">import fluidity.lagrangian_biology as bio
+                <string_value lines="20" type="code" language="python">import fluidity.lerm_ps as lerm
 
 def val(biovars, env, dt):
-  bio.update_dead_diatom(biovars, env, dt)
+  lerm.update_Dead_Diatom(biovars, env, dt)
   return biovars</string_value>
               </python>
             </biology>

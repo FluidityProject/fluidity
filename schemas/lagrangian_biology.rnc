@@ -371,6 +371,18 @@ chemical_variable =
                   empty
                }?
             },
+            ## Ingested field on a discontinuous mesh mesh
+            element scalar_field {
+               attribute name { "Ingested" },
+               element diagnostic {
+                  internal_algorithm,
+                  diagnostic_scalar_field_no_adapt
+               },
+               ## Add diagnostic field that represents the total quantity across all stages of the FG.
+               element stage_aggregate {
+                  empty
+               }?
+            },
             ## Depletion factor
             element scalar_field {
                attribute name { "Depletion" },

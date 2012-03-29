@@ -1430,7 +1430,8 @@ contains
          do v=1, size(fgroup%variables)
             if (fgroup%variables(v)%field_type == BIOFIELD_DIAG .or. &
                 fgroup%variables(v)%field_type == BIOFIELD_UPTAKE .or. &
-                fgroup%variables(v)%field_type == BIOFIELD_RELEASE) then
+                fgroup%variables(v)%field_type == BIOFIELD_RELEASE .or. &
+                fgroup%variables(v)%field_type == BIOFIELD_INGESTED ) then
 
                ! Allocate primary diagnostic fields, ie. <FG><Variable><Stage>
                do i=1, size(fgroup%stage_names%ptr)

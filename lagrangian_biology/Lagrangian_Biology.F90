@@ -54,14 +54,14 @@ implicit none
   public :: initialise_lagrangian_biology_metamodel, initialise_lagrangian_biology_agents, &
             lagrangian_biology_cleanup, update_lagrangian_biology, calculate_agent_diagnostics, &
             get_num_functional_groups, get_functional_group
-  public :: BIOFIELD_NONE, BIOFIELD_DIAG, BIOFIELD_UPTAKE, BIOFIELD_RELEASE
+  public :: BIOFIELD_NONE, BIOFIELD_DIAG, BIOFIELD_UPTAKE, BIOFIELD_RELEASE, BIOFIELD_INGESTED
 
   type(detector_linked_list), dimension(:), allocatable, target, save :: agent_arrays
   type(functional_group), dimension(:), allocatable, target, save :: functional_groups
 
   character(len=FIELD_NAME_LEN), dimension(:), pointer :: uptake_field_names, release_field_names
 
-  integer, parameter :: BIOFIELD_NONE=0, BIOFIELD_DIAG=1, BIOFIELD_UPTAKE=2, BIOFIELD_RELEASE=3
+  integer, parameter :: BIOFIELD_NONE=0, BIOFIELD_DIAG=1, BIOFIELD_UPTAKE=2, BIOFIELD_RELEASE=3, BIOFIELD_INGESTED=4
   integer, parameter :: BIOVAR_STAGE=1, BIOVAR_SIZE=2
 
 contains
@@ -321,7 +321,7 @@ contains
     do i=1, vars_chem
        write(var_buffer, "(a,i0,a)") trim(fg_path)//"/variables/chemical_variable[",i-1,"]"
        if (have_option(trim(var_buffer)//"/uptake")) then
-          vars_uptake = vars_uptake + 1
+          vars_uptake = vars_uptake + 2
        end if
        if (have_option(trim(var_buffer)//"/release")) then
           vars_release = vars_release + 1
@@ -408,6 +408,22 @@ contains
                 fgroup%variables(var_index)%stage_aggregate=.false.
              end if
              fgroup%variables(var_index)%pool_index = chemvar_index
+             var_index = var_index+1
+
+             ! Create a 'ChemIngested' variable
+             fgroup%variables(var_index)%name = trim(biovar_name)//"Ingested"
+             fgroup%variables(var_index)%field_type = BIOFIELD_INGESTED
+             fgroup%variables(var_index)%field_name = trim(fgroup%name)//"Ingested"//trim(biovar_name)
+             fgroup%variables(var_index)%field_path = trim(var_buffer)//"/uptake/scalar_field::Ingested"
+             call get_option(trim(var_buffer)//"/chemical_field/name", fgroup%variables(var_index)%chemfield)
+
+             if (have_option(trim(var_buffer)//"/uptake/scalar_field::Ingested/stage_aggregate")) then
+                fgroup%variables(var_index)%stage_aggregate=.true.
+             else
+                fgroup%variables(var_index)%stage_aggregate=.false.
+             end if
+             fgroup%variables(var_index)%pool_index = chemvar_index
+             fgroup%variables(var_index)%request_index = var_index - 1
              var_index = var_index+1
           end if
 
@@ -822,13 +838,13 @@ contains
        if (have_option(trim(agent_arrays(i)%stage_options)//"/biology")) then
           do j=1, size(agent_arrays(i)%fgroup%variables)
 
-             if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_UPTAKE) then
+             if (agent_arrays(i)%fgroup%variables(j)%field_type == BIOFIELD_INGESTED) then
                 depletion_field=>extract_scalar_field(state, trim(agent_arrays(i)%fgroup%variables(j)%chemfield)//"Depletion")
 
                 agent => agent_arrays(i)%first
                 do while (associated(agent))
                    depletion = ele_val(depletion_field, agent%element)
-                   agent%biology(j) = agent%biology(j) * depletion(1)
+                   agent%biology(j) = depletion(1) * agent%biology(agent_arrays(i)%fgroup%variables(j)%request_index)
 
                    agent => agent%next
                 end do

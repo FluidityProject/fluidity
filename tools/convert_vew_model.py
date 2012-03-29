@@ -4,6 +4,14 @@ import re
 from pyparsing import Literal, Word, Group, OneOrMore, alphanums, nums, ParseException, Forward
 from xml.dom.minidom import parse
 
+### taken from: http://stackoverflow.com/questions/2669059/how-to-sort-alpha-numeric-set-in-python
+def sorted_nicely( l ): 
+    """ Sort the given iterable in the way that humans expect.""" 
+    convert = lambda text: int(text) if text.isdigit() else text 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)
+
+
 ### VEW grammar ###
 ident = Word( alphanums + '_' + '$' )
 number = Word( nums + '.' + '-' + 'e' + 'E' )
@@ -82,17 +90,47 @@ stmt << ( assignment | cond_stmt | cell_division | chemical_uptake | chemical_re
 planktonica = ( stmt )
 
 indent = 2
+id_counter = 0
+stage_id = {}
+stage_functions = {}
+pool_update_vars = {}
+
+functions_to_exclude = [ 'Motion' ]
 
 def eval_token( t ):
-  global indent
+  global indent, stage_id, pool_update_vars
 
   if t[0] == var:
-    return str(t[1])
+    v = str(t[1])
+    if v == 'TimeStep':
+      v = 'dt_in_hours'
+    if v == 'Temp':
+      v = 'env["Temperature"]'
+    if v == 'Vis_Irrad':
+      v = 'env["Irradiance"]'
+    if v.endswith('$Pool'):
+      v = 'vars["' + v.split('$')[0] + '"]'
+    if v.endswith('$Ingested'):
+      v = 'vars["' + v.split('$')[0] + 'Ingested' + '"]'
+    if v.endswith('$Conc'):
+      v = 'env["Dissolved' + v.split('$')[0] + '"]'
+    return v
+
+  elif t[0] == assign:
+    if t[1][0] == var:
+      v = str(t[1][1])
+      if v.endswith('$Pool'):
+        # record the pool variable, so we can set it later
+        v = v.split('$')[0]
+        pool_update_vars[v + '_new'] = t[1]
+        return v + '_new = ' + eval_token(t[2])
+      else:
+        return eval_token(t[1]) + ' = ' + eval_token(t[2])
+    else:
+      return eval_token(t[1]) + ' = ' + eval_token(t[2])
+
   elif t[0] == val:
     return str(float(t[2]))
-  elif t[0] == assign:
-    return eval_token(t[1]) + ' = ' + eval_token(t[2])
-
   elif t[0] == add:
     c = '(' + eval_token(t[1])
     for summand in t[2:]:
@@ -119,12 +157,12 @@ def eval_token( t ):
     return 'min(' + eval_token(t[1]) + ', ' + eval_token(t[2]) + ')'
 
   elif t[0] == cond:
-    return eval_token(t[2]) + ' if ' + eval_token(t[1]) + ' else ' + eval_token(t[3])
+    return '((' + eval_token(t[2]) + ') if (' + eval_token(t[1]) + ') else (' + eval_token(t[3]) + '))'
   elif t[0] == boolor:
-    return eval_token(t[1]) + ' or ' + eval_token(t[2])
+    return '(' + eval_token(t[1]) + ') or (' + eval_token(t[2]) + ')'
   elif t[0] == booland:
-    return eval_token(t[1]) + ' and ' + eval_token(t[2])
-  elif t[0] == r'\equal':   # not sure why this is necessary here..?
+    return '(' + eval_token(t[1]) + ') and (' + eval_token(t[2]) + ')'
+  elif t[0] == eq:   # not sure why this is necessary here..?
     return '(' + eval_token(t[1]) + ' == ' + eval_token(t[2]) + ')'
   elif t[0] == gt:
     return '(' + eval_token(t[1]) + ' > ' + eval_token(t[2]) + ')'
@@ -144,17 +182,17 @@ def eval_token( t ):
     indent = indent - 2
     return c
 
-  # TODO
   elif t[0] == divide:
-    return 'CELL_DIVISION'
+    return 'vars["Size"] = vars["Size"] * ' + eval_token(t[1])
   elif t[0] == change:
-    return 'STAGE_CHANGE'
+    s = str(t[2])
+    return 'vars["Stage"] = ' + str(float(stage_id[s])) + '  # ' + s
   elif t[0] == uptake:
-    return 'CHEM_UPTAKE'
+    chem = str(t[2][1]).split('$')[0]
+    return 'vars["' + chem + 'Uptake"] = ' + eval_token(t[1])
   elif t[0] == release:
-    return 'CHEM_RELEASE'
-  elif t[0] == rnd:
-    return 'RND_NOT_ALLOWED'
+    chem = str(t[2][1]).split('$')[0]
+    return 'vars["' + chem + 'Release"] = ' + eval_token(t[1])
   else:
     raise Exception('Unkown token: ' + str(t))
 
@@ -171,17 +209,21 @@ for fg in fgroups:
   fg_name = fg.getElementsByTagName('name')[0].firstChild.data
   print "FG: " + fg_name
 
-  stage_functions = {}
-  stages = fg.getElementsByTagName('stage')
-  for stage in stages:
-    stage_name = stage.getElementsByTagName('name')[0].firstChild.data
-    stage_functions[stage_name] = []
-
   params = {}
   for parameter in fg.getElementsByTagName('parameter'):
     param_name = parameter.getElementsByTagName('name')[0].firstChild.data
     val_str = parameter.getElementsByTagName('value')[0].firstChild.data
     params[param_name] =  float(val_str)
+
+  stage_functions = {}
+  stage_id = {}
+  stage_functions = {}
+  stages = fg.getElementsByTagName('stage')
+  for stage in stages:
+    stage_name = stage.getElementsByTagName('name')[0].firstChild.data
+    stage_functions[stage_name] = []
+    stage_id[stage_name] = id_counter
+    id_counter = id_counter + 1
 
   func_equations = {}
   for function in fg.getElementsByTagName('function'):
@@ -192,22 +234,28 @@ for fg in fgroups:
       stage_functions[call_stage.firstChild.data].append(func_name)
 
   f.write('\n# Parameters for FG ' + fg_name + '\n')
-  for param, pvalue in params.iteritems():
-    f.write(param + ' = ' + str(pvalue) + '\n')
+  for p in sorted_nicely( params.keys() ):
+    f.write(p + ' = ' + str(params[p]) + '\n')
 
   # Now print to file
   for stage in stage_functions.keys():
     print "Writing Stage: " + stage
+    f.write('\n## FG: ' + fg_name + ';   Stage: ' + stage + ';   ID: ' + str(stage_id[stage]) )
     f.write('\ndef update_' + stage + '_' + fg_name + '(vars, env, dt):\n')
-    f.write('  stepInHours = dt/3600.0\n')
+    f.write('  dt_in_hours = dt / 3600.0\n')
 
+    pool_update_vars = {}
     for func in stage_functions[stage]:
+      if func in functions_to_exclude:
+        print "!!Excluding function: " + func
+        continue
+
       print "  Function: " + func
       f.write('\n  ### ' + func + ' ###\n')
-      for eq in func_equations[func]:
-        eq_name = eq.getElementsByTagName('name')[0].firstChild.data
+      for equation in func_equations[func]:
+        eq_name = equation.getElementsByTagName('name')[0].firstChild.data
         f.write('  # ' + eq_name + '\n')
-        eq_string = eq.getElementsByTagName('eq')[0].firstChild.data
+        eq_string = equation.getElementsByTagName('eq')[0].firstChild.data
         eq_code = ''
 
         try:
@@ -229,4 +277,8 @@ for fg in fgroups:
         finally:
           f.write('  ' + eq_code + '\n')
 
-
+    # Add the housekeeping for pool updates
+    f.write('\n  ### Setting pool variables\n')
+    for temp_var, token in pool_update_vars.iteritems():
+      eq_code = eval_token(token) + ' = ' + temp_var
+      f.write('  ' + eq_code + '\n')

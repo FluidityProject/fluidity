@@ -451,6 +451,22 @@ The scaled request quantity will then get added to the according absorption fiel
             </optional>
           </element>
           <element name="scalar_field">
+            <a:documentation>Ingested field on a discontinuous mesh mesh</a:documentation>
+            <attribute name="name">
+              <value>Ingested</value>
+            </attribute>
+            <element name="diagnostic">
+              <ref name="internal_algorithm"/>
+              <ref name="diagnostic_scalar_field_no_adapt"/>
+            </element>
+            <optional>
+              <element name="stage_aggregate">
+                <a:documentation>Add diagnostic field that represents the total quantity across all stages of the FG.</a:documentation>
+                <empty/>
+              </element>
+            </optional>
+          </element>
+          <element name="scalar_field">
             <a:documentation>Depletion factor</a:documentation>
             <attribute name="name">
               <value>Depletion</value>
