@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testproblem>
+   
+  <name>bc_from_field</name>
+  <owner userid="ctj10"/>
+  <tags>flml</tags>
+  
+  <problem_definition length="short" nprocs="1">
+    <command_line>make run</command_line>
+    <!-- This tests Fluidity's capability of enforcing boundary conditions using values from another field -->
+  </problem_definition>
+  
+  <variables>
+    <variable name="time" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("bc_from_field.stat")
+time=s["ElapsedTime"]["value"]
+    </variable>
+    
+    <variable name="temperature_max" language="python">
+from fluidity_tools import stat_parser
+s = stat_parser("bc_from_field.stat")
+temperature_max=s["Gas"]["Temperature"]["max"]
+    </variable>
+  </variables>
+    
+  <pass_tests>
+    <test name="Final time is 0.05 seconds" language="python">
+import fluidity_tools
+fluidity_tools.compare_variable(abs(time[-1]), 0.05, 1.0e-14)
+    </test>
+    
+    <test name="Maximum value of Temperature is 5.0" language="python">
+import fluidity_tools
+fluidity_tools.compare_variables(temperature_max, [5.0, 5.0, 5.0, 5.0, 5.0], 1.0e-14)
+    </test>
+  </pass_tests>
+  
+  <warn_tests>
+  </warn_tests>
+  
+</testproblem>
