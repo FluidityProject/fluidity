@@ -684,6 +684,10 @@ contains
     integer, dimension(:), pointer:: surface_element_list
     integer i, nbcs
 
+    integer :: stat
+    type(scalar_field), pointer:: parent_field
+    character(len=OPTION_PATH_LEN) :: parent_field_name
+
     ! Get number of boundary conditions
     nbcs=option_count(trim(bc_path))
 
@@ -768,8 +772,20 @@ contains
           if (have_option(trim(bc_type_path)//"/from_file")) then
             ! Special case for tidal harmonic boundary conditions
             call set_tidal_bc_value(surface_field, bc_position, trim(bc_type_path), field%name)
+
           else if (have_option(trim(bc_type_path)//"/NEMO_data")) then
             call set_nemo_bc_value(state, surface_field, bc_position, trim(bc_type_path), field%name, surface_element_list)
+
+          else if (have_option(trim(bc_type_path)//"/from_field")) then
+            ! The parent field contains the boundary values that you want to apply to surface_field.
+            call get_option(trim(bc_type_path)//"/from_field/parent_field_name", parent_field_name)
+            parent_field => extract_scalar_field(state, parent_field_name, stat)
+            if(stat /= 0) then
+               FLAbort("Could not extract parent scalar field. Check options file?")
+            end if
+
+            call remap_field_to_surface(parent_field, surface_field, surface_element_list, stat)
+
           else
             call initialise_field(surface_field, bc_type_path, bc_position, &
               time=time)
@@ -850,17 +866,18 @@ contains
     integer ele, face
 
     type(mesh_type), pointer:: surface_mesh
-    type(scalar_field) surface_field_component
+    type(scalar_field) :: surface_field_component, parent_field_component
     type(scalar_field), pointer:: scalar_surface_field
     type(vector_field), pointer:: surface_field, surface_field11
     type(vector_field), pointer:: surface_field2, surface_field21, surface_field22
-    type(vector_field) bc_position, temp_position
+    type(vector_field) :: bc_position, temp_position
+    type(vector_field), pointer :: parent_field
     character(len=OPTION_PATH_LEN) bc_path_i, bc_type_path, bc_component_path
-    character(len=FIELD_NAME_LEN) bc_name, bc_type
+    character(len=FIELD_NAME_LEN) bc_name, bc_type, parent_field_name
     logical applies(3)
     real:: time, theta, dt
     integer, dimension(:), pointer:: surface_element_list
-    integer i, j, k, nbcs
+    integer i, j, k, nbcs, stat
 
     ns=1
     nbcs=option_count(trim(bc_path))
@@ -988,9 +1005,20 @@ contains
                     foamvel_component=extract_scalar_field(foamvel, j)
                     call remap_field_to_surface(foamvel_component, surface_field_component, surface_element_list)
 
+                  else if (have_option(trim(bc_type_path)//"/from_field")) then
+                     ! The parent field contains the boundary values that you want to apply to surface_field.
+                     call get_option(trim(bc_type_path)//"/from_field/parent_field_name", parent_field_name)
+                     parent_field => extract_vector_field(state, parent_field_name, stat)
+                     if(stat /= 0) then
+                        FLAbort("Could not extract parent vector field. Check options file?")
+                     end if
+                     parent_field_component = extract_scalar_field(parent_field, j)
+
+                     call remap_field_to_surface(parent_field_component, surface_field_component, surface_element_list, stat)
+
                   else
-                  call initialise_field(surface_field_component, bc_component_path, bc_position, &
-                       time=time)
+                     call initialise_field(surface_field_component, bc_component_path, bc_position, &
+                              time=time)
                   end if
                end if
             end do

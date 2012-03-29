@@ -111,6 +111,11 @@ input_choice_real_contents =
    ## where X is a tuple of length geometry dimension.
    element python {
       python_code
+   }|
+   ## The parent field contains the boundary values that you want to apply as a boundary condition to this field.
+   ## Note: Only works with a parent field in the same material_phase.
+   element from_field {
+      attribute parent_field_name { xsd:string }
    }
 
 initial_condition_scalar = 
